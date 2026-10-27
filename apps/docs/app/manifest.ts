@@ -1,17 +1,22 @@
 import type { MetadataRoute } from "next";
+import { THEME_COLORS } from "@/lib/theme";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "verbatra",
     short_name: "verbatra",
-    description: "Incremental i18n translation automation for developers.",
+    description: "Check your i18n locale files and translate only the keys that changed.",
     start_url: "/",
     display: "standalone",
-    theme_color: "#0B0B12",
-    background_color: "#0B0B12",
+    theme_color: THEME_COLORS.dark,
+    background_color: THEME_COLORS.dark,
     icons: [
-      { src: "/favicon.ico", sizes: "any", type: "image/x-icon" },
+      { src: "/favicon.ico", sizes: "16x16 32x32 48x48 64x64", type: "image/x-icon" },
       { src: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

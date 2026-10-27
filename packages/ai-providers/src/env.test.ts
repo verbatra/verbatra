@@ -1,13 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  OPENAI_COMPATIBLE_ENV_VAR,
   OPENAI_COMPATIBLE_KEY_PLACEHOLDER,
-  PROVIDER_ENV,
+  processEnvironment,
+  readLibreTranslateKey,
   requireAnthropicKey,
   requireGoogleTranslateKey,
+  requireOpenCodeKey,
   resolveOpenAiCompatibleKey,
 } from "./env.js";
 import { ProviderError } from "./errors.js";
+import { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
 
 describe("PROVIDER_ENV", () => {
   it("maps every provider id to its canonical environment variable name", () => {
@@ -17,16 +19,18 @@ describe("PROVIDER_ENV", () => {
       gemini: "GEMINI_API_KEY",
       deepl: "DEEPL_API_KEY",
       "google-translate": "GOOGLE_TRANSLATE_API_KEY",
+      opencode: "OPENCODE_API_KEY",
     });
   });
 
-  it("covers exactly the five v1 providers", () => {
+  it("covers exactly the providers that require a key", () => {
     expect(Object.keys(PROVIDER_ENV).sort()).toEqual([
       "anthropic",
       "deepl",
       "gemini",
       "google-translate",
       "openai",
+      "opencode",
     ]);
   });
 });
@@ -60,6 +64,7 @@ describe("requireGoogleTranslateKey", () => {
       expect(error).toBeInstanceOf(ProviderError);
       expect((error as ProviderError).code).toBe("MISSING_API_KEY");
       expect((error as ProviderError).message).toContain("GOOGLE_TRANSLATE_API_KEY");
+      expect((error as ProviderError).envVar).toBe("GOOGLE_TRANSLATE_API_KEY");
       expect((error as ProviderError).message).not.toContain("AIza");
     }
   });
@@ -67,6 +72,45 @@ describe("requireGoogleTranslateKey", () => {
   it("treats an empty key as missing", () => {
     process.env.GOOGLE_TRANSLATE_API_KEY = "";
     expect(() => requireGoogleTranslateKey()).toThrow(ProviderError);
+  });
+});
+
+describe("requireOpenCodeKey", () => {
+  let saved: string | undefined;
+
+  beforeEach(() => {
+    saved = process.env.OPENCODE_API_KEY;
+  });
+
+  afterEach(() => {
+    if (saved === undefined) {
+      delete process.env.OPENCODE_API_KEY;
+    } else {
+      process.env.OPENCODE_API_KEY = saved;
+    }
+  });
+
+  it("returns the key when the environment variable is set", () => {
+    process.env.OPENCODE_API_KEY = "oc_sk_test_key";
+    expect(requireOpenCodeKey()).toBe("oc_sk_test_key");
+  });
+
+  it("names the variable and never a value when it is missing", () => {
+    delete process.env.OPENCODE_API_KEY;
+    try {
+      requireOpenCodeKey();
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderError);
+      expect((error as ProviderError).code).toBe("MISSING_API_KEY");
+      expect((error as ProviderError).message).toContain("OPENCODE_API_KEY");
+      expect((error as ProviderError).envVar).toBe("OPENCODE_API_KEY");
+    }
+  });
+
+  it("treats an empty key as missing", () => {
+    process.env.OPENCODE_API_KEY = "";
+    expect(() => requireOpenCodeKey()).toThrow(ProviderError);
   });
 });
 
@@ -159,6 +203,7 @@ describe("resolveOpenAiCompatibleKey", () => {
       expect(error).toBeInstanceOf(ProviderError);
       expect((error as ProviderError).code).toBe("MISSING_API_KEY");
       expect((error as ProviderError).message).toContain("MY_CUSTOM_LOCAL_KEY");
+      expect((error as ProviderError).envVar).toBe("MY_CUSTOM_LOCAL_KEY");
     }
   });
 
@@ -170,5 +215,27 @@ describe("resolveOpenAiCompatibleKey", () => {
   it("never reads OPENAI_API_KEY at any tier", () => {
     process.env.OPENAI_API_KEY = "hosted-key-should-never-be-used";
     expect(resolveOpenAiCompatibleKey()).toBe(OPENAI_COMPATIBLE_KEY_PLACEHOLDER);
+  });
+});
+
+describe("processEnvironment", () => {
+  it("returns the live process environment", () => {
+    expect(processEnvironment()).toBe(process.env);
+  });
+});
+
+describe("readLibreTranslateKey", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("returns the key when LIBRETRANSLATE_API_KEY is set", () => {
+    vi.stubEnv("LIBRETRANSLATE_API_KEY", "lt-key");
+    expect(readLibreTranslateKey()).toBe("lt-key");
+  });
+
+  it("returns undefined rather than failing when the variable is unset or empty", () => {
+    vi.stubEnv("LIBRETRANSLATE_API_KEY", "");
+    expect(readLibreTranslateKey()).toBeUndefined();
   });
 });

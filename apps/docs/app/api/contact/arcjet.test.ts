@@ -106,9 +106,22 @@ describe("resolveClient", () => {
     expect(first).toBe(second);
   });
 
+  it("returns undefined when ARCJET_KEY is only whitespace", () => {
+    process.env.ARCJET_KEY = "   ";
+    expect(resolveClient({})).toBeUndefined();
+  });
+
   it("returns the injected client without touching ARCJET_KEY", () => {
     delete process.env.ARCJET_KEY;
     const client: ArcjetProtectClient = { protect: vi.fn() };
     expect(resolveClient({ client })).toBe(client);
+  });
+});
+
+describe("the server-only guard", () => {
+  it("imports server-only first, so a client component that reaches the Arcjet key fails the build", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync(new URL("./arcjet.ts", import.meta.url), "utf8");
+    expect(source.startsWith('import "server-only";\n')).toBe(true);
   });
 });

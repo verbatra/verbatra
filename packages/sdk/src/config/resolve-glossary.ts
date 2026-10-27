@@ -1,10 +1,11 @@
 import { resolve } from "node:path";
 import type { SdkFs } from "../fs.js";
-import { readGlossaryRecord } from "./glossary-file.js";
+import type { GlossaryInput } from "./glossary.js";
+import { readGlossaryInput } from "./glossary-file.js";
 
 /**
  * Where a loaded config's glossary came from, reported by {@link loadConfigWithMeta}. The resolved
- * {@link VerbatraConfig} holds only the final term map, so this is the one place a tool can tell an
+ * {@link VerbatraConfig} holds only the final glossary, so this is the one place a tool can tell an
  * inline glossary from one read out of a file, and name that file.
  */
 export type GlossaryProvenance =
@@ -13,7 +14,7 @@ export type GlossaryProvenance =
       readonly source: "none";
     }
   | {
-      /** The glossary was written inline in the config as a term map. */
+      /** The glossary was written inline in the config. */
       readonly source: "inline";
     }
   | {
@@ -24,12 +25,12 @@ export type GlossaryProvenance =
     };
 
 export interface ResolvedGlossary {
-  readonly glossary: Readonly<Record<string, string>> | undefined;
+  readonly glossary: GlossaryInput | undefined;
   readonly provenance: GlossaryProvenance;
 }
 
 export async function resolveGlossary(
-  glossary: Readonly<Record<string, string>> | string | undefined,
+  glossary: GlossaryInput | string | undefined,
   baseDir: string,
   fs: SdkFs,
 ): Promise<ResolvedGlossary> {
@@ -38,8 +39,8 @@ export async function resolveGlossary(
   }
   if (typeof glossary === "string") {
     const resolvedPath = resolve(baseDir, glossary);
-    const record = await readGlossaryRecord(resolvedPath, fs);
-    return { glossary: record, provenance: { source: "file", path: resolvedPath } };
+    const input = await readGlossaryInput(resolvedPath, fs);
+    return { glossary: input, provenance: { source: "file", path: resolvedPath } };
   }
   return { glossary, provenance: { source: "inline" } };
 }

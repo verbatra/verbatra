@@ -70,7 +70,7 @@ scale, or a theme model. Confusing them is the most common way to produce a wron
 
 | Surface | Path | Stack | Themes | Skill to load |
 |---|---|---|---|---|
-| Docs site | `apps/docs` | Fumadocs 16 / Next.js 16 / Tailwind 4 | dark only | `docs-ui` |
+| Docs site | `apps/docs` | Fumadocs 16 / Next.js 16 / Tailwind 4 | dark default, light too | `docs-ui` |
 | Studio dashboard | `packages/studio` | React / Vite 8 / Tailwind 4 SPA | light and dark | `studio-ui` |
 
 Invoke the matching skill with the `Skill` tool before forming any opinion, and invoke
@@ -139,10 +139,13 @@ status or diff hue must ship its `-soft` companion. Screenshot every changed vie
 both themes by setting `localStorage["verbatra-studio-theme"]` and confirming
 `document.documentElement.dataset.theme` before shooting.
 
-**Docs specifically:** the site is dark-only (`color-scheme: dark`, no toggle). A `dark:`
-variant or a light-mode assumption is a finding. Component color must come from the
-semantic layer (`--surface-*`, `--text-*`, `--accent*`), not from the Fumadocs
-`--color-fd-*` layer directly.
+**Docs specifically:** the site defaults to dark and ships a light theme with a toggle
+(`html.light` overrides every theme token in `apps/docs/app/global.css`). A `dark:` variant
+or a component that branches on the theme in JavaScript is a finding: theming belongs in the
+token. Component color must come from the semantic layer (`--surface-*`, `--text-*`,
+`--accent*`), not from the Fumadocs `--color-fd-*` layer directly. Screenshot every changed
+view in both themes by setting `localStorage["theme"]` to `light` before the page loads and
+confirming `document.documentElement.classList` holds `light` before shooting.
 
 **Reuse.** Check whether the change re-derived something that already exists: page padding
 and heading rhythm (`Section`/`SectionHead` in docs, `PageSection`/`SectionCard` in

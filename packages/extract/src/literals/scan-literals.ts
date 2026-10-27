@@ -1,6 +1,10 @@
 import { discoverSourceFiles, hasExtension } from "../discovery.js";
 import { toReportedPath } from "../reported-path.js";
-import { DEFAULT_MAX_SOURCE_FILE_BYTES, type ScanDiagnostic } from "../scan-project.js";
+import {
+  DEFAULT_MAX_SOURCE_FILE_BYTES,
+  type FileScannedListener,
+  type ScanDiagnostic,
+} from "../scan-project.js";
 import { nodeSourceFs, type SourceFs } from "../source-fs-port.js";
 import {
   type FileLiterals,
@@ -70,6 +74,7 @@ export interface ScanLiteralsInput {
   readonly exclude?: readonly string[];
   readonly ignore?: readonly string[];
   readonly maxFileBytes?: number;
+  readonly onFileScanned?: FileScannedListener;
 }
 
 const EXCLUDED_DIRECTORIES = ["__tests__", "__mocks__"];
@@ -168,8 +173,10 @@ export async function scanLiterals(
     fs,
   );
   const ignored = new Set((input.ignore ?? []).map(normalizeLiteralText));
-  for (const path of files.filter((candidate) => !NON_APPLICATION_FILE.test(candidate))) {
+  const applicationFiles = files.filter((candidate) => !NON_APPLICATION_FILE.test(candidate));
+  for (const [index, path] of applicationFiles.entries()) {
     await scanFile(path, input, ignored, fs, state);
+    input.onFileScanned?.(index + 1, applicationFiles.length);
   }
   return state;
 }

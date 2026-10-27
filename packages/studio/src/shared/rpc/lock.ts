@@ -1,3 +1,4 @@
+import type { ProvenanceSummary } from "@verbatra/sdk";
 import { z } from "zod";
 
 export const LOCK_STATE_METHOD = "lock.state";
@@ -12,6 +13,8 @@ export interface LockLocaleState {
   readonly missing: number;
   readonly stale: number;
   readonly upToDate: number;
+  readonly emptySource?: number;
+  readonly provenance?: ProvenanceSummary;
 }
 
 export type LockStateResult =

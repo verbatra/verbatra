@@ -1,0 +1,885 @@
+{
+  "version": "2026-09-28",
+  "origin": "static",
+  "documentation": [
+    "https://developers.deepl.com/docs/getting-started/supported-languages",
+    "https://developers.deepl.com/docs/languages/using-the-languages-api"
+  ],
+  "languages": [
+    {
+      "code": "ACE",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "AF",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "SQ",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "AR",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "AN",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "HY",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "AS",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "AY",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "AZ",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "BA",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "EU",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "BE",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "BN",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "BHO",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "BS",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "BR",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "BG",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "MY",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "YUE",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "CA",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "CEB",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "ZH-HANS",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "ZH-HANT",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "ZH",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "HR",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "CS",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "DA",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "PRS",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "NL",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "EN",
+      "source": true,
+      "target": false,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "EN-US",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "EN-GB",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "EO",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "ET",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "FI",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "FR",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "FR-CA",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "FR-FR",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "GL",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "KA",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "DE",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "DE-DE",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "DE-CH",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "EL",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "GN",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "GU",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "HT",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "HA",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "HE",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "HI",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "HU",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "IS",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "IG",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "ID",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "GA",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "IT",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "JA",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "JV",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "PAM",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "KK",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "GOM",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "KO",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "KMR",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "CKB",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "KY",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "LA",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "LV",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "LN",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "LT",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "LMO",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "LB",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "MK",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "MAI",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "MG",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "MS",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "ML",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "MT",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "MI",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "MR",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "MN",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "NE",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "NB",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "OC",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "OM",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "PAG",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "PS",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "FA",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "PL",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "PT-BR",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "PT-PT",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "PT",
+      "source": true,
+      "target": false,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "PA",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "QU",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "RO",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "RU",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "SA",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "SR",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "ST",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "SCN",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "SK",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "SL",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "ES",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "ES-419",
+      "source": false,
+      "target": true,
+      "glossary": true,
+      "formality": true
+    },
+    {
+      "code": "SU",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "SW",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "SV",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "TL",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "TG",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "TA",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "TT",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "TE",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "TH",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "TS",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "TN",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "TR",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "TK",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "UK",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "UR",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "UZ",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "VI",
+      "source": true,
+      "target": true,
+      "glossary": true,
+      "formality": false
+    },
+    {
+      "code": "CY",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "WO",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "XH",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "YI",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    },
+    {
+      "code": "ZU",
+      "source": true,
+      "target": true,
+      "glossary": false,
+      "formality": false
+    }
+  ]
+}

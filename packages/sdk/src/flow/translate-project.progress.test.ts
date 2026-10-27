@@ -1,11 +1,30 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import {
+  ProviderError,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
+} from "@verbatra/ai-providers";
 import { describe, expect, it, vi } from "vitest";
 import { localeLockPath } from "../lock/locale-write-lock.js";
 import type { ProgressEvent } from "../progress/types.js";
-import { baseConfig, makeStubProvider, makeTempDir, writeJsonFile } from "../test-support.js";
+import {
+  baseConfig,
+  makeIntegrityProvider,
+  makeStubProvider,
+  makeTempDir,
+  writeJsonFile,
+} from "../test-support.js";
 import type { LocaleSummary } from "./summary.js";
 import { translate } from "./translate-project.js";
+
+const BASE_TYPES: ReadonlySet<string> = new Set([
+  "locale-started",
+  "sub-batch",
+  "locale-finished",
+  "run-finished",
+]);
 
 async function holdLock(dir: string, locale: string): Promise<void> {
   const path = localeLockPath(dir, locale);
@@ -36,6 +55,31 @@ async function makeProject(keyCount: number): Promise<string> {
   return dir;
 }
 
+function cancellingProvider(
+  controller: AbortController,
+  firstBatch: (request: TranslateRequest) => Promise<TranslateResult>,
+): TranslationProvider {
+  const { provider: answering } = makeStubProvider();
+  let calls = 0;
+  return {
+    ...answering,
+    translateBatch: async (request) => {
+      calls += 1;
+      if (calls > 1) {
+        return answering.translateBatch(request);
+      }
+      controller.abort();
+      return firstBatch(request);
+    },
+  };
+}
+
+function finishEvents(events: readonly ProgressEvent[]): readonly ProgressEvent[] {
+  return events.filter(
+    (event) => event.type === "locale-finished" || event.type === "run-finished",
+  );
+}
+
 describe("translate: onProgress emits locale, sub-batch, and run events on the live path", () => {
   it("fires a started/finished event per locale, a sub-batch per batch, and one run-finished", async () => {
     const dir = await makeProject(3);
@@ -48,16 +92,168 @@ describe("translate: onProgress emits locale, sub-batch, and run events on the l
       { createProvider: () => provider },
     );
 
-    expect(events).toEqual([
+    expect(events.filter((event) => BASE_TYPES.has(event.type))).toEqual([
       { type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 2 },
       { type: "sub-batch", locale: "de", batchIndex: 1, totalBatches: 2 },
       { type: "sub-batch", locale: "de", batchIndex: 2, totalBatches: 2 },
-      { type: "locale-finished", locale: "de", translated: 3, localeIndex: 0, totalLocales: 2 },
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "succeeded",
+        translated: 3,
+        localeIndex: 0,
+        totalLocales: 2,
+      },
       { type: "locale-started", locale: "fr", localeIndex: 1, totalLocales: 2 },
       { type: "sub-batch", locale: "fr", batchIndex: 1, totalBatches: 2 },
       { type: "sub-batch", locale: "fr", batchIndex: 2, totalBatches: 2 },
-      { type: "locale-finished", locale: "fr", translated: 3, localeIndex: 1, totalLocales: 2 },
-      { type: "run-finished", localesCompleted: 2 },
+      {
+        type: "locale-finished",
+        locale: "fr",
+        status: "succeeded",
+        translated: 3,
+        localeIndex: 1,
+        totalLocales: 2,
+      },
+      { type: "run-finished", localesCompleted: 2, localesFailed: 0 },
+    ]);
+  });
+
+  it("plans, times each batch with its usage, and announces the write, in order", async () => {
+    const dir = await makeProject(3);
+    const config = baseConfig({ targetLocales: ["de"], maxBatchSize: 2 });
+    const { provider } = makeStubProvider({ usage: { inputTokens: 10, outputTokens: 4 } });
+    const events: ProgressEvent[] = [];
+
+    await translate(
+      { config, cwd: dir, onProgress: (event) => events.push(event) },
+      { createProvider: () => provider },
+    );
+
+    const batchFinished = {
+      type: "batch-finished",
+      locale: "de",
+      totalBatches: 2,
+      durationMs: expect.any(Number),
+      usage: { inputTokens: 10, outputTokens: 4 },
+    };
+    expect(events).toEqual([
+      { type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 1 },
+      { type: "locale-planned", locale: "de", keys: 3, batches: 2, cacheHits: 0 },
+      { type: "sub-batch", locale: "de", batchIndex: 1, totalBatches: 2 },
+      { ...batchFinished, batchIndex: 1 },
+      { type: "sub-batch", locale: "de", batchIndex: 2, totalBatches: 2 },
+      { ...batchFinished, batchIndex: 2 },
+      { type: "writing", locale: "de" },
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "succeeded",
+        translated: 3,
+        localeIndex: 0,
+        totalLocales: 1,
+      },
+      { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
+    ]);
+  });
+
+  it("counts translation-memory hits in the plan and leaves usage off a batch that reported none", async () => {
+    const dir = await makeProject(2);
+    const config = baseConfig({ targetLocales: ["de"] });
+    const { provider } = makeStubProvider();
+    await translate({ config, cwd: dir }, { createProvider: () => provider });
+    await writeJsonFile(join(dir, "locales", "en.json"), {
+      k0: "value 0",
+      k1: "value 1",
+      k2: "new",
+    });
+    await writeJsonFile(join(dir, "locales", "de.json"), {});
+    const events: ProgressEvent[] = [];
+
+    await translate(
+      { config, cwd: dir, onProgress: (event) => events.push(event) },
+      { createProvider: () => provider },
+    );
+
+    expect(events).toContainEqual({
+      type: "locale-planned",
+      locale: "de",
+      keys: 1,
+      batches: 1,
+      cacheHits: 2,
+    });
+    const finished = events.find((event) => event.type === "batch-finished");
+    expect(finished).not.toHaveProperty("usage");
+  });
+
+  it("reports a provider retry the provider makes, through the hooks the SDK hands its factory", async () => {
+    const dir = await makeProject(1);
+    const config = baseConfig({ targetLocales: ["de"] });
+    const { provider } = makeStubProvider();
+    const events: ProgressEvent[] = [];
+
+    await translate(
+      { config, cwd: dir, onProgress: (event) => events.push(event) },
+      {
+        createProvider: (_config, _context, hooks) => {
+          hooks?.onRetry?.({ attempt: 2, delayMs: 250, status: 429 });
+          return provider;
+        },
+      },
+    );
+
+    expect(events).toContainEqual({
+      type: "provider-retry",
+      attempt: 2,
+      delayMs: 250,
+      status: 429,
+    });
+  });
+
+  it("hands the factory no hooks when nobody listens to progress", async () => {
+    const dir = await makeProject(1);
+    const config = baseConfig({ targetLocales: ["de"] });
+    const { provider } = makeStubProvider();
+    const createProvider = vi.fn(() => provider);
+
+    await translate({ config, cwd: dir }, { createProvider });
+
+    expect(createProvider).toHaveBeenCalledWith(config.provider);
+  });
+
+  it("reports the repair round a provider runs for keys its first response left out", async () => {
+    const dir = await makeProject(2);
+    const config = baseConfig({ targetLocales: ["de"] });
+    const { provider } = makeStubProvider();
+    const events: ProgressEvent[] = [];
+
+    await translate(
+      { config, cwd: dir, onProgress: (event) => events.push(event) },
+      {
+        createProvider: () => ({
+          ...provider,
+          translateBatch: async (request) => {
+            request.onRepair?.(1);
+            return provider.translateBatch(request);
+          },
+        }),
+      },
+    );
+
+    expect(events).toContainEqual({ type: "repair", locale: "de", keys: 1 });
+  });
+
+  it("emits no plan, batch or write event on a dry run", async () => {
+    const dir = await makeProject(3);
+    const config = baseConfig({ targetLocales: ["de"] });
+    const events: ProgressEvent[] = [];
+
+    await translate({ config, cwd: dir, dryRun: true, onProgress: (event) => events.push(event) });
+
+    expect(events.map((event) => event.type)).toEqual([
+      "locale-started",
+      "locale-finished",
+      "run-finished",
     ]);
   });
 
@@ -76,12 +272,19 @@ describe("translate: onProgress emits locale, sub-batch, and run events on the l
     expect(events.some((event) => event.type === "sub-batch")).toBe(false);
     expect(events).toEqual([
       { type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 1 },
-      { type: "locale-finished", locale: "de", translated: 3, localeIndex: 0, totalLocales: 1 },
-      { type: "run-finished", localesCompleted: 1 },
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "succeeded",
+        translated: 3,
+        localeIndex: 0,
+        totalLocales: 1,
+      },
+      { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
     ]);
   });
 
-  it("counts a failed (isolated, not thrown) locale in run-finished and fires its locale-finished with 0", async () => {
+  it("counts a failed (isolated, not thrown) locale in run-finished and fires its locale-finished as failed", async () => {
     const dir = await makeProject(1);
     await holdLock(dir, "de");
     const config = baseConfig({ targetLocales: ["de", "fr"] });
@@ -97,11 +300,126 @@ describe("translate: onProgress emits locale, sub-batch, and run events on the l
     expect(events).toContainEqual({
       type: "locale-finished",
       locale: "de",
+      status: "failed",
       translated: 0,
       localeIndex: 0,
       totalLocales: 2,
     });
-    expect(events).toContainEqual({ type: "run-finished", localesCompleted: 2 });
+    expect(events).toContainEqual({ type: "run-finished", localesCompleted: 2, localesFailed: 1 });
+  });
+
+  it("reports a locale the integrity gate partly refused as partial", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "en.json"), { plain: "Hello", named: "Hi {{name}}" });
+    const provider = makeIntegrityProvider((value, key) =>
+      key === "named" ? "Hallo" : `[de] ${value}`,
+    );
+    const events: ProgressEvent[] = [];
+
+    const summary = await translate(
+      { config: baseConfig(), cwd: dir, onProgress: (event) => events.push(event) },
+      { createProvider: () => provider },
+    );
+
+    expect(summary.partial).toEqual(["de"]);
+    expect(finishEvents(events)).toEqual([
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "partial",
+        translated: 1,
+        localeIndex: 0,
+        totalLocales: 1,
+      },
+      { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
+    ]);
+  });
+
+  it("reports a locale cut short by cancellation after a kept batch as partial", async () => {
+    const dir = await makeProject(3);
+    const controller = new AbortController();
+    const { provider: answering } = makeStubProvider();
+    const provider = cancellingProvider(controller, (request) => answering.translateBatch(request));
+    const events: ProgressEvent[] = [];
+
+    const summary = await translate(
+      {
+        config: baseConfig({ maxBatchSize: 1 }),
+        cwd: dir,
+        signal: controller.signal,
+        onProgress: (event) => events.push(event),
+      },
+      { createProvider: () => provider },
+    );
+
+    expect(summary.cancelled).toBe(true);
+    expect(finishEvents(events)).toEqual([
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "partial",
+        translated: 1,
+        localeIndex: 0,
+        totalLocales: 1,
+      },
+      { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
+    ]);
+  });
+
+  it("reports a locale cut short by cancellation after a failed batch as failed", async () => {
+    const dir = await makeProject(3);
+    const controller = new AbortController();
+    const provider = cancellingProvider(controller, () =>
+      Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE", "server error")),
+    );
+    const events: ProgressEvent[] = [];
+
+    const summary = await translate(
+      {
+        config: baseConfig({ maxBatchSize: 1 }),
+        cwd: dir,
+        signal: controller.signal,
+        onProgress: (event) => events.push(event),
+      },
+      { createProvider: () => provider },
+    );
+
+    expect(summary.failed).toEqual(["de"]);
+    expect(finishEvents(events)).toEqual([
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "failed",
+        translated: 0,
+        localeIndex: 0,
+        totalLocales: 1,
+      },
+      { type: "run-finished", localesCompleted: 1, localesFailed: 1 },
+    ]);
+  });
+
+  it("leaves a locale a cancelled run never started out of localesFailed", async () => {
+    const dir = await makeProject(3);
+    const controller = new AbortController();
+    const { provider: answering } = makeStubProvider();
+    const provider = cancellingProvider(controller, (request) => answering.translateBatch(request));
+    const events: ProgressEvent[] = [];
+
+    const summary = await translate(
+      {
+        config: baseConfig({ targetLocales: ["de", "fr"], maxBatchSize: 1 }),
+        cwd: dir,
+        concurrency: 1,
+        signal: controller.signal,
+        onProgress: (event) => events.push(event),
+      },
+      { createProvider: () => provider },
+    );
+
+    expect(summary.failed).toEqual(["fr"]);
+    expect(events.filter((event) => event.type === "locale-started")).toHaveLength(1);
+    expect(events.at(-1)).toEqual({ type: "run-finished", localesCompleted: 1, localesFailed: 0 });
   });
 
   it("carries the same localeIndex on a finish as on its start, even out of completion order", async () => {

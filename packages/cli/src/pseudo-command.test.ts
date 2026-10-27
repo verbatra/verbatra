@@ -38,6 +38,57 @@ describe("run pseudo: SDK delegation, rendering, and exit codes", () => {
 
     expect(calls.pseudolocalize[0]).not.toHaveProperty("locale");
     expect(calls.pseudolocalize[0]).not.toHaveProperty("out");
+    expect(calls.pseudolocalize[0]).not.toHaveProperty("mode");
+  });
+
+  it("passes --mode bidi through and leaves the locale to the SDK's per-mode default", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    const code = await run(["pseudo", "--mode", "bidi"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(calls.pseudolocalize[0]).toMatchObject({ mode: "bidi" });
+    expect(calls.pseudolocalize[0]).not.toHaveProperty("locale");
+  });
+
+  it("names the mode in the terminal feedback and the JSON envelope", async () => {
+    const result = makePseudoResult({
+      locale: "ar-XB",
+      mode: "bidi",
+      path: "/proj/.verbatra-local/pseudo/locales/ar-XB.json",
+      entries: 4,
+      transformed: 4,
+    });
+    const { deps } = recordingDeps({ pseudolocalize: async () => result });
+    const human = captureStreams();
+    const json = captureStreams();
+
+    await run(["pseudo", "--mode", "bidi"], deps, human.streams);
+    await run(["pseudo", "--mode", "bidi", "--json"], deps, json.streams);
+
+    expect(human.out()).toContain("ar-XB (bidi): 4 of 4 entries pseudolocalized");
+    expect(parseEnvelope(json.out())).toMatchObject({
+      ok: true,
+      command: "pseudo",
+      result: { locale: "ar-XB", mode: "bidi" },
+    });
+  });
+
+  it.each(["rtl", "BIDI", ""])("rejects the unknown mode %o as a usage error", async (mode) => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    const code = await run(["pseudo", "--mode", mode, "--json"], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(calls.pseudolocalize).toHaveLength(0);
+    expect(parseEnvelope(cap.out())).toMatchObject({
+      ok: false,
+      command: "pseudo",
+      code: "INVALID_OPTION",
+      message: expect.stringContaining('The --mode option takes "accented" or "bidi"'),
+    });
   });
 
   it("prints what was generated and where it went", async () => {
@@ -53,7 +104,7 @@ describe("run pseudo: SDK delegation, rendering, and exit codes", () => {
     await run(["pseudo"], deps, cap.streams);
 
     expect(cap.out()).toContain("verbatra pseudo");
-    expect(cap.out()).toContain("en-XA: 12 of 12 entries pseudolocalized");
+    expect(cap.out()).toContain("en-XA (accented): 12 of 12 entries pseudolocalized");
     expect(cap.out()).toContain("wrote /proj/.verbatra-local/pseudo/locales/en-XA.json");
   });
 

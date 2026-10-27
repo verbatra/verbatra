@@ -6,6 +6,11 @@ export const RETRANSLATE_ENTRY_METHOD = "translation.retranslateEntry";
 export const retranslateEntryParamsSchema = z.strictObject({
   locale: z.string().min(1),
   key: z.string().min(1),
+  includeHuman: z.boolean().optional(),
+});
+
+export const agentRetranslateEntryParamsSchema = retranslateEntryParamsSchema.omit({
+  includeHuman: true,
 });
 
 export type RetranslateEntryParams = z.infer<typeof retranslateEntryParamsSchema>;

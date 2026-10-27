@@ -36,6 +36,21 @@ type SettingsState =
       readonly glossary: GlossaryGetResult;
     };
 
+function ProviderActions({ snapshot }: { readonly snapshot: ProjectSnapshotResult }): ReactNode {
+  if (snapshot.capabilities.spend) {
+    return <Badge tone="success">Enabled</Badge>;
+  }
+  const hint =
+    snapshot.capabilities.spendWithheld === "policy"
+      ? "machine translation disabled by policy"
+      : "start with --allow-spend";
+  return (
+    <span>
+      Off <span className="text-muted-foreground">({hint})</span>
+    </span>
+  );
+}
+
 function ProjectDetails({ snapshot }: { readonly snapshot: ProjectSnapshotResult }): ReactNode {
   const items: Array<readonly [string, ReactNode]> = [
     [
@@ -43,18 +58,7 @@ function ProjectDetails({ snapshot }: { readonly snapshot: ProjectSnapshotResult
       <MonoValue key="target-locales">{snapshot.targetLocales.join(", ")}</MonoValue>,
     ],
     ["File pattern", <MonoValue key="file-pattern">{snapshot.files.pattern}</MonoValue>],
-    [
-      "Provider actions",
-      snapshot.capabilities.spend ? (
-        <Badge key="spend" tone="success">
-          Enabled
-        </Badge>
-      ) : (
-        <span key="spend">
-          Off <span className="text-muted-foreground">(start with --allow-spend)</span>
-        </span>
-      ),
-    ],
+    ["Provider actions", <ProviderActions key="spend" snapshot={snapshot} />],
   ];
   if (snapshot.prune !== undefined) {
     items.push(["Prune", snapshot.prune ? "yes" : "no"]);

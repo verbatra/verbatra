@@ -2,14 +2,23 @@ import type { RpcResultFor } from "../shared/rpc/contract.js";
 
 export type DiffLocale = RpcResultFor<"status.diff">["locales"][number];
 
-export type KeyLocaleStatus = "missing" | "changed" | "orphaned" | "in-sync";
+export type KeyLocaleStatus =
+  | "missing"
+  | "changed"
+  | "orphaned"
+  | "protected"
+  | "in-sync"
+  | "absent";
 
 export interface KeyLocaleStatusRow {
   readonly locale: string;
   readonly status: KeyLocaleStatus;
 }
 
-function statusForLocale(locale: DiffLocale, key: string): KeyLocaleStatus {
+function statusForLocale(locale: DiffLocale, key: string, inSource: boolean): KeyLocaleStatus {
+  if (locale.protected?.includes(key) === true) {
+    return "protected";
+  }
   if (locale.missing.includes(key)) {
     return "missing";
   }
@@ -19,14 +28,20 @@ function statusForLocale(locale: DiffLocale, key: string): KeyLocaleStatus {
   if (locale.orphaned.includes(key)) {
     return "orphaned";
   }
-  return "in-sync";
+  return inSource ? "in-sync" : "absent";
 }
 
 export function deriveKeyLocaleStatus(
   locales: readonly DiffLocale[],
   key: string,
 ): readonly KeyLocaleStatusRow[] {
-  return locales.map((locale) => ({ locale: locale.locale, status: statusForLocale(locale, key) }));
+  const inSource =
+    !locales.some((locale) => locale.orphaned.includes(key)) ||
+    locales.some((locale) => locale.missing.includes(key) || locale.changed.includes(key));
+  return locales.map((locale) => ({
+    locale: locale.locale,
+    status: statusForLocale(locale, key, inSource),
+  }));
 }
 
 export function isFullyInSync(locales: readonly DiffLocale[]): boolean {

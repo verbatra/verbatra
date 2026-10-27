@@ -5,9 +5,10 @@ import {
   applyProviderDegraded,
   buildEntryReviewFlags,
   computeReviewFlags,
+  latinEquivalentLength,
   type ReviewFlagInput,
 } from "./review-flags.js";
-import { entry } from "./test-support.js";
+import { entry, termGlossary } from "./test-support.js";
 
 const CLEAN_INTEGRITY: PlaceholderIntegrityResult = {
   matches: true,
@@ -34,7 +35,7 @@ describe("computeReviewFlags: clean input", () => {
 });
 
 describe("computeReviewFlags: LENGTH_RATIO_OUTLIER", () => {
-  it("is skipped when the trimmed source is under 12 UTF-16 code units", () => {
+  it("is skipped when the trimmed source is under 12 grapheme clusters", () => {
     const flag = computeReviewFlags(input({ sourceValue: "short sourc", translatedValue: "x" }));
     expect(flag).toBeUndefined();
   });
@@ -70,6 +71,199 @@ describe("computeReviewFlags: LENGTH_RATIO_OUTLIER", () => {
     const translated = "1".repeat(40);
     expect(translated.length / source.length).toBeGreaterThan(3.0);
     const flag = computeReviewFlags(input({ sourceValue: source, translatedValue: translated }));
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+});
+
+describe("latinEquivalentLength", () => {
+  it.each([
+    ["Latin", "abc", 3],
+    ["Han", "保存", 7],
+    ["Hiragana and Katakana", "さんファ", 6],
+    ["Hangul", "저장", 4],
+    ["Cyrillic", "абв", 3],
+    ["ideographic punctuation", "。、", 2],
+    ["astral Han", "\u{20000}", 3.5],
+  ])("weighs %s graphemes by their own script", (_script, value, expected) => {
+    expect(latinEquivalentLength(value)).toBe(expected);
+  });
+});
+
+describe("computeReviewFlags: LENGTH_RATIO_OUTLIER grapheme counting", () => {
+  it("counts an emoji with a skin-tone modifier as one character", () => {
+    const translated = "\u{1F44D}\u{1F3FD}".repeat(39);
+    expect(translated.length).toBeGreaterThan(39 * 3);
+    expect(
+      computeReviewFlags(input({ sourceValue: "1234567890123", translatedValue: translated })),
+    ).toBeUndefined();
+  });
+
+  it("counts an astral-plane character as one character", () => {
+    const translated = "\u{10330}".repeat(6);
+    expect(translated.length).toBe(12);
+    const flag = computeReviewFlags(
+      input({ sourceValue: "12345678901234567890", translatedValue: translated }),
+    );
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+
+  it("counts a base letter with a combining mark as one character", () => {
+    const translated = "e\u0301".repeat(39);
+    expect(translated.length).toBe(78);
+    expect(
+      computeReviewFlags(input({ sourceValue: "1234567890123", translatedValue: translated })),
+    ).toBeUndefined();
+  });
+
+  it("does not open the ratio on a source of 12 code units but fewer graphemes", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "e\u0301".repeat(6), translatedValue: "x" }),
+    );
+    expect(flag).toBeUndefined();
+  });
+});
+
+const SAVED = "Your changes have been saved successfully.";
+const SHARED = "{userName} shared {count} files";
+const DOCS_LINK = "See https://example.com/docs/getting-started for details";
+const DELETE_PROJECT =
+  "Are you sure you want to delete this project? This action cannot be undone.";
+const CONNECTION = "Please check your internet connection and try again.";
+const UPLOAD = "Upload failed because the file is too large.";
+const SETTINGS = "Account settings and privacy preferences";
+
+const CORRECT_CJK_PAIRS: readonly (readonly [string, string, string])[] = [
+  ["zh", SAVED, "变更已成功保存。"],
+  ["ja", SAVED, "変更が正常に保存されました。"],
+  ["ko", SAVED, "변경 사항이 성공적으로 저장되었습니다."],
+  ["zh", SHARED, "{userName} 共享了 {count} 个文件"],
+  ["ja", SHARED, "{userName} さんが {count} 件のファイルを共有しました"],
+  ["ko", SHARED, "{userName}님이 파일 {count}개를 공유했습니다"],
+  ["zh", DOCS_LINK, "详情请参阅 https://example.com/docs/getting-started"],
+  ["ja", DOCS_LINK, "詳細は https://example.com/docs/getting-started を参照してください"],
+  ["ko", DOCS_LINK, "자세한 내용은 https://example.com/docs/getting-started 를 참조하세요"],
+  ["zh", DELETE_PROJECT, "确定要删除此项目吗？此操作无法撤消。"],
+  ["ja", DELETE_PROJECT, "このプロジェクトを削除してもよろしいですか？この操作は元に戻せません。"],
+  ["ko", DELETE_PROJECT, "이 프로젝트를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다."],
+  ["zh", CONNECTION, "请检查您的网络连接，然后重试。"],
+  ["ja", CONNECTION, "インターネット接続を確認して、もう一度お試しください。"],
+  ["ko", CONNECTION, "인터넷 연결을 확인한 후 다시 시도하세요."],
+  ["zh", UPLOAD, "文件过大，上传失败。"],
+  ["ja", UPLOAD, "ファイルが大きすぎるため、アップロードに失敗しました。"],
+  ["ko", UPLOAD, "파일이 너무 커서 업로드에 실패했습니다."],
+  ["zh", SETTINGS, "账户设置和隐私偏好"],
+  ["ja", SETTINGS, "アカウント設定とプライバシー設定"],
+  ["ko", SETTINGS, "계정 설정 및 개인정보 환경설정"],
+  ["ja", "Annual financial statement required", "年次財務諸表が必要です"],
+];
+
+const TRUNCATED_CJK_PAIRS: readonly (readonly [string, string, string])[] = [
+  ["zh", SAVED, "变更"],
+  ["ja", SAVED, "変更が"],
+  ["ko", SAVED, "변경"],
+  ["zh", DELETE_PROJECT, "确定要删除"],
+  ["ja", DELETE_PROJECT, "このプロジェクト"],
+  ["ko", DELETE_PROJECT, "이 프로젝트를"],
+];
+
+const OVERLONG_CJK_PAIRS: readonly (readonly [string, string, string])[] = [
+  ["zh", "Save your changes", "保存您的更改".repeat(5)],
+  ["ja", "Save your changes", "変更を保存してください。".repeat(3)],
+  ["ko", "Save your changes", "변경 사항을 저장하세요. ".repeat(4)],
+];
+
+const LOWER_BOUND = 0.35;
+const UPPER_BOUND = 3.0;
+const MARGIN = 1.5;
+
+describe("computeReviewFlags: LENGTH_RATIO_OUTLIER across scripts", () => {
+  it.each(CORRECT_CJK_PAIRS)(
+    "does not flag a correct en to %s translation of %j",
+    (targetLocale, sourceValue, translatedValue) => {
+      expect(
+        computeReviewFlags(input({ sourceValue, translatedValue, targetLocale })),
+      ).toBeUndefined();
+    },
+  );
+
+  it.each(CORRECT_CJK_PAIRS)(
+    "keeps a correct en to %s ratio at least 1.5x inside both bounds for %j",
+    (_targetLocale, sourceValue, translatedValue) => {
+      const ratio = latinEquivalentLength(translatedValue) / latinEquivalentLength(sourceValue);
+      expect(ratio).toBeGreaterThan(LOWER_BOUND * MARGIN);
+      expect(ratio).toBeLessThan(UPPER_BOUND / MARGIN);
+    },
+  );
+
+  it.each(CORRECT_CJK_PAIRS)(
+    "does not flag the reverse %s to en direction of %j",
+    (sourceLocale, englishValue, cjkValue) => {
+      expect(
+        computeReviewFlags(
+          input({
+            sourceValue: cjkValue,
+            translatedValue: englishValue,
+            sourceLocale,
+            targetLocale: "en",
+          }),
+        ),
+      ).toBeUndefined();
+    },
+  );
+
+  it.each(TRUNCATED_CJK_PAIRS)(
+    "still flags a truncated en to %s translation of %j",
+    (targetLocale, sourceValue, translatedValue) => {
+      const flag = computeReviewFlags(input({ sourceValue, translatedValue, targetLocale }));
+      expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+    },
+  );
+
+  it.each(OVERLONG_CJK_PAIRS)(
+    "still flags an en to %s translation far longer than %j",
+    (targetLocale, sourceValue, translatedValue) => {
+      const flag = computeReviewFlags(input({ sourceValue, translatedValue, targetLocale }));
+      expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+    },
+  );
+
+  it("still flags a truncated ja to en translation", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "変更が正常に保存されました。",
+        translatedValue: "Saved",
+        sourceLocale: "ja",
+        targetLocale: "en",
+      }),
+    );
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+
+  it("skips a Han source too short for the ratio once weighted to Latin length", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "保存", translatedValue: "x", sourceLocale: "zh", targetLocale: "en" }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("weighs by the text's own script, not the locale tag", () => {
+    expect(
+      computeReviewFlags(
+        input({ sourceValue: SAVED, translatedValue: "变更已成功保存。", targetLocale: "en" }),
+      ),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    ["sr-Latn", "Vaše izmene su uspešno sačuvane."],
+    ["sr-Cyrl", "Ваше измене су успешно сачуване."],
+  ])("treats en to %s like Latin text", (targetLocale, translatedValue) => {
+    expect(
+      computeReviewFlags(input({ sourceValue: SAVED, translatedValue, targetLocale })),
+    ).toBeUndefined();
+    const flag = computeReviewFlags(
+      input({ sourceValue: SAVED, translatedValue: translatedValue.slice(0, 5), targetLocale }),
+    );
     expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
   });
 });
@@ -140,7 +334,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Click Save to continue",
         translatedValue: "Klicken Sie zum Fortfahren",
-        glossary: {},
+        glossary: termGlossary({}),
       }),
     );
     expect(flag).toBeUndefined();
@@ -151,7 +345,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Click Save to continue",
         translatedValue: "Klicken Sie zum Fortfahren",
-        glossary: { Save: "Speichern" },
+        glossary: termGlossary({ Save: "Speichern" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -162,7 +356,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Click Save to continue",
         translatedValue: "Klicken Sie SPEICHERN zum Fortfahren",
-        glossary: { save: "Speichern" },
+        glossary: termGlossary({ save: "Speichern" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -173,7 +367,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Click Continue",
         translatedValue: "Klicken Sie Weiter",
-        glossary: { Save: "Speichern" },
+        glossary: termGlossary({ Save: "Speichern" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -184,7 +378,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Airport transfers are included",
         translatedValue: "Flughafentransfers sind inklusive",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -195,7 +389,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "AI summary",
         translatedValue: "Kindliche Zusammenfassung",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -206,7 +400,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "AI2 is the model name",
         translatedValue: "AI2 ist der Modellname",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -217,7 +411,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "xAI builds models",
         translatedValue: "xAI baut Modelle",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -228,7 +422,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Learn C++ today",
         translatedValue: "Lerne heute",
-        glossary: { "C++": "C++" },
+        glossary: termGlossary({ "C++": "C++" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -239,7 +433,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Learn .NET today",
         translatedValue: "Lerne heute .NET",
-        glossary: { ".NET": ".NET" },
+        glossary: termGlossary({ ".NET": ".NET" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -251,7 +445,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         sourceLocale: "ja",
         sourceValue: "アカウントを削除します",
         translatedValue: "Delete your account",
-        glossary: { アカウント: "account" },
+        glossary: termGlossary({ アカウント: "account" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -264,7 +458,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         targetLocale: "en",
         sourceValue: "サーバー1台を追加します",
         translatedValue: "Add one machine",
-        glossary: { サーバー: "server" },
+        glossary: termGlossary({ サーバー: "server" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -276,7 +470,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         targetLocale: "ja",
         sourceValue: "Delete your account",
         translatedValue: "これを削除してください",
-        glossary: { account: "アカウント" },
+        glossary: termGlossary({ account: "アカウント" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -288,7 +482,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         sourceLocale: "ja",
         sourceValue: "AI検索を実行します",
         translatedValue: "Führe die Suche aus",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -299,7 +493,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Order at the cafe\u0301",
         translatedValue: "Bestellen Sie dort",
-        glossary: { cafe: "Kaffee" },
+        glossary: termGlossary({ cafe: "Kaffee" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -310,7 +504,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Open your account",
         translatedValue: "Öffne dein Benutzerkonto",
-        glossary: { account: "Konto" },
+        glossary: termGlossary({ account: "Konto" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -321,7 +515,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Open your account settings",
         translatedValue: "Öffne deine Kontoeinstellungen",
-        glossary: { account: "Konto" },
+        glossary: termGlossary({ account: "Konto" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -333,7 +527,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         targetLocale: "ko",
         sourceValue: "Delete your account",
         translatedValue: "계정을 삭제합니다",
-        glossary: { account: "계정" },
+        glossary: termGlossary({ account: "계정" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -345,7 +539,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         targetLocale: "ja",
         sourceValue: "Add one server",
         translatedValue: "サーバー1台を追加",
-        glossary: { server: "サーバー" },
+        glossary: termGlossary({ server: "サーバー" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -356,7 +550,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Click Save to continue",
         translatedValue: "Klicken Sie zum Fortfahren",
-        glossary: { Save: "", "": "Speichern" },
+        glossary: termGlossary({ Save: "", "": "Speichern" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -367,7 +561,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "xAI and AI both ship models",
         translatedValue: "xAI und AI liefern beide Modelle",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -399,13 +593,83 @@ describe("computeReviewFlags: INTEGRITY_REORDERED", () => {
   });
 });
 
+describe("computeReviewFlags: BIDI_CONTROLS_CHANGED", () => {
+  const RLI = "\u2067";
+  const PDI = "\u2069";
+  const LRO = "\u202d";
+  const RLO = "\u202e";
+  const PDF = "\u202c";
+
+  function bidiFlag(sourceValue: string, translatedValue: string): ReviewFlag | undefined {
+    return computeReviewFlags(
+      input({ sourceValue, translatedValue, sourceLocale: "en", targetLocale: "ar" }),
+    );
+  }
+
+  it("flags a target left unbalanced while the source is balanced", () => {
+    expect(bidiFlag("Hello {name}", `مرحبا ${RLI}{name}`)?.reasons).toEqual([
+      "BIDI_CONTROLS_CHANGED",
+    ]);
+  });
+
+  it("flags a target whose isolate is closed only on the next line", () => {
+    expect(bidiFlag("Hello\nthere", `${RLI}مرحبا\n${PDI}هناك`)?.reasons).toEqual([
+      "BIDI_CONTROLS_CHANGED",
+    ]);
+  });
+
+  it("does not flag an unbalanced target when the source is unbalanced too", () => {
+    expect(bidiFlag(`Hello ${RLI}there`, `مرحبا ${RLI}هناك`)).toBeUndefined();
+  });
+
+  it("does not flag directional marks the translator adds", () => {
+    expect(bidiFlag("Order 42 shipped", "\u200fتم شحن الطلب\u061c 42\u200e")).toBeUndefined();
+  });
+
+  it("does not flag a balanced isolate the translator adds", () => {
+    expect(bidiFlag("Hello {name}", `مرحبا ${RLI}{name}${PDI}`)).toBeUndefined();
+  });
+
+  it("does not flag a translation that drops balanced isolates the source has", () => {
+    expect(bidiFlag(`Hello ${RLI}{name}${PDI}`, "مرحبا {name}")).toBeUndefined();
+  });
+
+  it("flags an added right-to-left override even when it is closed", () => {
+    expect(bidiFlag("Hello there", `${RLO}مرحبا${PDF} هناك`)?.reasons).toEqual([
+      "BIDI_CONTROLS_CHANGED",
+    ]);
+  });
+
+  it("flags an added left-to-right override even when it is closed", () => {
+    expect(bidiFlag("Hello there", `${LRO}مرحبا${PDF} هناك`)?.reasons).toEqual([
+      "BIDI_CONTROLS_CHANGED",
+    ]);
+  });
+
+  it("flags a second override of a kind the source holds once, compared by count", () => {
+    expect(bidiFlag(`${RLO}abc${PDF} there`, `${RLO}abc${PDF} ${RLO}هناك${PDF}`)?.reasons).toEqual([
+      "BIDI_CONTROLS_CHANGED",
+    ]);
+  });
+
+  it("does not flag the same controls as the source", () => {
+    expect(
+      bidiFlag(`${RLO}abc${PDF} there ${RLI}x${PDI}`, `${RLO}abc${PDF} هناك ${RLI}x${PDI}`),
+    ).toBeUndefined();
+  });
+
+  it("does not flag a translation that drops an override the source has", () => {
+    expect(bidiFlag(`${RLO}abc${PDF} there`, "abc هناك")).toBeUndefined();
+  });
+});
+
 describe("computeReviewFlags: multi-reason key", () => {
   it("includes every reason code that applies", () => {
     const flag = computeReviewFlags(
       input({
         sourceValue: "Click Save to continue",
         translatedValue: "Click Save to continue",
-        glossary: { Save: "Speichern" },
+        glossary: termGlossary({ Save: "Speichern" }),
         integrity: { matches: true, missing: [], extra: [], reordered: true },
       }),
     );
@@ -505,7 +769,7 @@ describe("buildEntryReviewFlags", () => {
       new Map([["cta", CLEAN_INTEGRITY]]),
       "en",
       "de",
-      { Save: "Speichern" },
+      termGlossary({ Save: "Speichern" }),
       undefined,
     );
     expect(result.get("cta")?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);

@@ -1,0 +1,157 @@
+// @vitest-environment jsdom
+
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createTranslator } from "next-intl";
+import type { ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
+import { i18n, type Locale, localizedPath } from "@/lib/i18n";
+import { preloadRegisteredIslands } from "@/test-support/islands";
+import { resolveServer } from "@/test-support/resolve-server";
+
+const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../messages");
+const localeState = vi.hoisted(() => ({ current: "en" }));
+
+function translatorFor(locale: string, namespace: string) {
+  return createTranslator({
+    locale,
+    messages: JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8")),
+    namespace: namespace as never,
+  });
+}
+
+vi.mock("next-intl/server", () => ({
+  setRequestLocale: () => undefined,
+  getTranslations: async (options: string | { locale: string; namespace: string }) =>
+    typeof options === "string"
+      ? translatorFor(localeState.current, options)
+      : translatorFor(options.locale, options.namespace),
+  getLocale: async () => localeState.current,
+}));
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  usePathname: () => "/docs/providers",
+}));
+vi.mock("@/components/site-providers", () => ({
+  SiteProviders: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock("@/components/landing-providers", () => ({
+  LandingProviders: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock("@/components/site-header", () => ({
+  HomeSiteHeader: () => <header>site header</header>,
+}));
+vi.mock("@/components/docs-site-header", () => ({
+  DocsSiteHeader: () => <header>site header</header>,
+}));
+vi.mock("@/lib/layout.shared", () => ({
+  baseOptions: async () => ({}),
+}));
+vi.mock("fumadocs-ui/layouts/notebook", () => ({
+  DocsLayout: ({ children }: { children: ReactNode }) => (
+    <div id="nd-notebook-layout">{children}</div>
+  ),
+}));
+vi.mock("@/lib/source", () => ({
+  source: { getPageTree: () => ({ name: "docs", children: [] }) },
+}));
+vi.mock("@/lib/docs-page-tree", () => ({
+  withLlmsLinks: async <T,>(tree: T) => tree,
+  withShortCommandLabels: <T,>(tree: T) => tree,
+}));
+vi.mock("@/lib/docs-status-badges", () => ({
+  withStatusBadges: async <T,>(tree: T) => tree,
+}));
+vi.mock("@/lib/docs-group-labels", () => ({
+  withGroupLabels: <T,>(tree: T) => tree,
+}));
+
+type Layout = (props: {
+  params: Promise<{ lang: string }>;
+  children: ReactNode;
+}) => ReactNode | Promise<ReactNode>;
+
+const LAYOUTS: ReadonlyArray<readonly [string, Layout]> = [
+  ["home", (await import("./(home)/layout")).default],
+  ["docs", (await import("./docs/layout")).default],
+  ["legal", (await import("./(legal)/layout")).default],
+];
+
+await preloadRegisteredIslands();
+
+const IMPRINT_LABEL: Record<Locale, string> = {
+  en: "Legal notice (Impressum)",
+  de: "Impressum",
+  es: "Aviso legal (Impressum)",
+  fr: "Mentions légales (Impressum)",
+};
+
+async function renderLayout(layout: Layout, locale: Locale): Promise<Document> {
+  localeState.current = locale;
+  const tree = await resolveServer(
+    await layout({ params: Promise.resolve({ lang: locale }), children: <p>page body</p> }),
+  );
+  return new DOMParser().parseFromString(renderToStaticMarkup(tree), "text/html");
+}
+
+describe.each(i18n.languages)("every layout links the imprint (%s)", (locale) => {
+  it.each(LAYOUTS)("the %s layout renders a labelled imprint link", async (_name, layout) => {
+    const doc = await renderLayout(layout, locale);
+    const links = Array.from(
+      doc.querySelectorAll(`footer a[href="${localizedPath(locale, "/imprint")}"]`),
+    );
+
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link.textContent?.trim()).toBe(IMPRINT_LABEL[locale]);
+      expect(link.closest("main")).toBeNull();
+    }
+  });
+});
+
+describe("the compact legal footer", () => {
+  it.each(LAYOUTS.filter(([name]) => name !== "home"))(
+    "gives the %s layout imprint, privacy, contact and licenses links in the reader's locale",
+    async (_name, layout) => {
+      const doc = await renderLayout(layout, "de");
+      const links = Array.from(
+        doc.querySelectorAll("footer nav:not(.vk-locale-links) a"),
+        (link) => [link.getAttribute("href"), link.textContent],
+      );
+
+      expect(links).toEqual([
+        ["/de/imprint", "Impressum"],
+        ["/de/privacy", "Datenschutzerklärung"],
+        ["/de/contact", "Kontakt"],
+        ["/de/licenses", "Lizenzen"],
+      ]);
+      expect(doc.querySelector("footer nav")?.getAttribute("aria-label")).toBe("Rechtliches");
+      expect(
+        Array.from(doc.querySelectorAll("footer nav.vk-locale-links a"), (link) =>
+          link.getAttribute("href"),
+        ),
+      ).toEqual([
+        "/docs/providers",
+        "/de/docs/providers",
+        "/es/docs/providers",
+        "/fr/docs/providers",
+      ]);
+    },
+  );
+});
+
+describe.each(i18n.languages)("the docs layout skip link (%s)", (locale) => {
+  it("is the first focusable element and jumps to the docs article", async () => {
+    const docs = LAYOUTS.find(([name]) => name === "docs")?.[1];
+    if (!docs) throw new Error("docs layout missing");
+    const doc = await renderLayout(docs, locale);
+    const first = doc.querySelector("a[href], button, input, select, textarea, [tabindex]");
+    const messages = JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8"));
+
+    expect(first?.classList.contains("vk-skip-link")).toBe(true);
+    expect(first?.getAttribute("href")).toBe("#nd-page");
+    expect(first?.textContent).toBe(messages.landing.nav.skipToContent);
+  });
+});

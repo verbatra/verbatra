@@ -16,3 +16,7 @@ export function canRetranslate(
     pill.tone === "danger"
   );
 }
+
+export function canRetranslateReviewed(capabilities: RetranslateCapabilities | undefined): boolean {
+  return capabilities?.spend === true && capabilities.writeToDisk;
+}

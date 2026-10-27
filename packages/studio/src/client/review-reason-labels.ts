@@ -12,9 +12,12 @@ const REVIEW_REASON_LABELS: Readonly<Record<ReviewReasonCode, ReviewReasonLabelV
   MAX_LENGTH_EXCEEDED: { label: "Over length budget", tone: "warning" },
   EQUALS_SOURCE: { label: "Matches source text", tone: "warning" },
   GLOSSARY_TERM_MISSED: { label: "Glossary term missed", tone: "warning" },
+  GLOSSARY_FORBIDDEN_TERM: { label: "Forbidden term used", tone: "warning" },
   INTEGRITY_REORDERED: { label: "Placeholders reordered", tone: "warning" },
   PROVIDER_DEGRADED: { label: "Provider degraded", tone: "neutral" },
   FUZZY_CACHE_REUSE: { label: "Reused after source edit", tone: "warning" },
+  FOREIGN_PLACEHOLDER_CHANGED: { label: "Other-syntax placeholder changed", tone: "warning" },
+  BIDI_CONTROLS_CHANGED: { label: "Direction controls changed", tone: "warning" },
 };
 
 export function reviewReasonLabel(code: ReviewReasonCode): ReviewReasonLabelView {

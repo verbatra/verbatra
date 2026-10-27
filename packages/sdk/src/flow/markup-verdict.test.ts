@@ -146,7 +146,7 @@ describe.each(cases)("the write gate and the read-only verdict agree on markup: 
   });
 
   it("gateCandidateValue refuses exactly when the verdict does, naming the same tags", () => {
-    const gate = gateCandidateValue(entryFor(c.source), c.candidate, adapter);
+    const gate = gateCandidateValue(entryFor(c.source), c.candidate, adapter, "de");
     if (c.matches) {
       expect(gate.accepted).toBe(true);
       return;

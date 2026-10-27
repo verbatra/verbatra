@@ -5,5 +5,5 @@
     "allowJs": true,
     "checkJs": true
   },
-  "include": ["tsup.base.mjs", "vitest.base.mjs"]
+  "include": ["tsup.base.mjs", "vitest.base.mjs", "scaling.base.mjs"]
 }

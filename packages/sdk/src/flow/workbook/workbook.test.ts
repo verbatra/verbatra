@@ -75,7 +75,7 @@ function lockCorruptingFs(path: string): LockCorruptingFs {
         return defaultFs.readFileBounded(target, maxBytes);
       }
       reads += 1;
-      return { kind: "ok", content: reads === 1 ? '{"version":1,"locales":{}}' : "{ not json" };
+      return { kind: "ok", content: reads <= 2 ? '{"version":1,"locales":{}}' : "{ not json" };
     },
     writeFile: async (target, data) => {
       if (target === path) {
@@ -186,7 +186,7 @@ describe("exportWorkbook", () => {
     expect(data.sheets.map((s) => s.locale)).toEqual(["de"]);
   });
 
-  it("lets the file-system error through unwrapped when the handoff itself cannot be written", async () => {
+  it("wraps a failed handoff write in EXPORT_UNWRITABLE carrying the file-system error as its cause", async () => {
     const dir = await project({ a: "A" }, { de: { a: "Aa" } });
     const fakeFs = makeFakeFs({
       fileExists: defaultFs.fileExists,
@@ -205,9 +205,14 @@ describe("exportWorkbook", () => {
       (error: unknown) => error,
     );
 
-    expect(rejection).toBeInstanceOf(Error);
-    expect(rejection).not.toBeInstanceOf(SdkError);
-    expect(rejection).toMatchObject({ code: "ENOSPC" });
+    expect(rejection).toBeInstanceOf(SdkError);
+    expect(rejection).toMatchObject({
+      code: "EXPORT_UNWRITABLE",
+      message: expect.stringMatching(
+        /^Could not write the handoff file verbatra-translations\.xlsx \(ENOSPC\)\./,
+      ),
+      cause: { code: "ENOSPC" },
+    });
   });
 
   it("rejects an unknown requested locale with UNKNOWN_LOCALE instead of silently dropping it", async () => {
@@ -282,6 +287,22 @@ describe("exportWorkbook", () => {
     const row = data.sheets[0]?.rows.find((r) => r.key === "a");
     expect(row?.reviewStatus).toBe("review");
     expect(row?.reviewReasons).toContain("length-ratio-outlier");
+  });
+
+  it("recomputes FOREIGN_PLACEHOLDER_CHANGED for a current target that drops one", async () => {
+    const dir = await project(
+      { a: "Hello {name}, welcome back!" },
+      { de: { a: "Hallo, willkommen zurück!" } },
+    );
+    const result = await exportWorkbook({
+      config: cfg({ targetLocales: ["de"] }),
+      cwd: dir,
+      includeUnchanged: true,
+    });
+    const data = await readWorkbook(new Uint8Array(await readFile(result.path)));
+    const row = data.sheets[0]?.rows.find((r) => r.key === "a");
+    expect(row?.reviewStatus).toBe("review");
+    expect(row?.reviewReasons).toBe("foreign-placeholder-changed");
   });
 
   it("recomputes MAX_LENGTH_EXCEEDED for a current target over its key's budget", async () => {
@@ -387,6 +408,28 @@ describe("importWorkbook", () => {
       locales: Record<string, Record<string, string>>;
     };
     expect(Object.keys(lock.locales.de ?? {}).sort()).toEqual(["farewell", "greeting"]);
+  });
+
+  it("writes new keys in source order, not in the handoff's alphabetical row order", async () => {
+    const dir = await project(
+      { title: "Home", nested: { title: "Account", link: "Open settings" }, alpha: "First" },
+      { de: {} },
+    );
+    const config = cfg({ targetLocales: ["de"] });
+    const out = await exportWorkbook({ config, cwd: dir });
+    await fillWorkbook(out.path, "de", {
+      alpha: "Erste",
+      "nested.link": "Einstellungen öffnen",
+      "nested.title": "Konto",
+      title: "Start",
+    });
+
+    await importWorkbook({ config, workbook: out.path, cwd: dir });
+
+    const raw = await readFile(join(dir, "locales", "de.json"), "utf8");
+    const de = JSON.parse(raw) as { nested: Record<string, string> };
+    expect(Object.keys(JSON.parse(raw) as object)).toEqual(["title", "nested", "alpha"]);
+    expect(Object.keys(de.nested)).toEqual(["title", "link"]);
   });
 
   it("imports a legacy workbook built without the Context column", async () => {
@@ -738,9 +781,14 @@ describe("importWorkbook", () => {
     const dir = await project({ a: "A" }, { de: undefined });
     const path = join(dir, "bad.xlsx");
     await writeFile(path, new Uint8Array([1, 2, 3]));
-    await expect(
-      importWorkbook({ config: cfg({ targetLocales: ["de"] }), workbook: path, cwd: dir }),
-    ).rejects.toMatchObject({ code: "SOURCE_INVALID" });
+    const failure = await importWorkbook({
+      config: cfg({ targetLocales: ["de"] }),
+      workbook: path,
+      cwd: dir,
+    }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((failure as Error).cause).toBeInstanceOf(Error);
   });
 
   it("rejects an over-cap workbook (on-disk gate) as a structured SOURCE_INVALID", async () => {

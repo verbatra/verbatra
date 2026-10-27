@@ -171,7 +171,39 @@ describe("importLocale", () => {
     expect(result.accepted.size).toBe(0);
     expect(result.withheld.size).toBe(0);
     expect(result.summary.notices).toEqual([
-      { code: "BLANK_ROW_BASELINE_RETAINED", message: expect.any(String) },
+      {
+        code: "BLANK_ROW_BASELINE_RETAINED",
+        message: expect.stringMatching(/^1 row was left blank for a key whose source changed/),
+      },
+    ]);
+  });
+
+  it("counts every drifted blank row in the plural when more than one was left blank", () => {
+    const oldGreet = entry("greet", "Hi");
+    const newGreet = entry("greet", "Hi there");
+    const oldBye = entry("bye", "Bye");
+    const newBye = entry("bye", "Bye now");
+    const sheet: WorkbookSheet = {
+      locale: "de",
+      rows: [row("greet", "", contentHash(newGreet)), row("bye", "", contentHash(newBye))],
+    };
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [newGreet, newBye]),
+        target: resource("de", [entry("greet", "Hallo"), entry("bye", "Tschuess")]),
+        baseline: new Map([
+          ["greet", contentHash(oldGreet)],
+          ["bye", contentHash(oldBye)],
+        ]),
+      }),
+    );
+
+    expect(result.summary.notices).toEqual([
+      {
+        code: "BLANK_ROW_BASELINE_RETAINED",
+        message: expect.stringMatching(/^2 rows were left blank for a key whose source changed/),
+      },
     ]);
   });
 
@@ -261,6 +293,47 @@ describe("importLocale", () => {
         params({ sheet: ghost, source: resource("en", [src]), target: resource("de", []) }),
       ),
     ).toThrow(UnknownKeyError);
+  });
+
+  it("accepts a person's value for a key whose source value is empty", () => {
+    const src = entry("blank", "");
+    const sheet: WorkbookSheet = { locale: "de", rows: [row("blank", "Leer", contentHash(src))] };
+
+    const result = importLocale(
+      params({ sheet, source: resource("en", [src]), target: resource("de", []) }),
+    );
+
+    expect(result.accepted.get("blank")?.value).toBe("Leer");
+    expect(result.summary.translated).toEqual(["blank"]);
+  });
+
+  it("does not report a blank row for a key whose source value is empty as unfilled", () => {
+    const src = entry("blank", " ");
+    const sheet: WorkbookSheet = { locale: "de", rows: [row("blank", "", contentHash(src))] };
+
+    const result = importLocale(
+      params({ sheet, source: resource("en", [src]), target: resource("de", []) }),
+    );
+
+    expect(result.summary.unfilled).toEqual([]);
+    expect(result.accepted.size).toBe(0);
+  });
+
+  it("keeps an XLIFF initial echo of a key whose source value is empty instead of reporting it unfilled", () => {
+    const src = entry("blank", "");
+    const sheet: WorkbookSheet = { locale: "de", rows: [row("blank", "Alt", contentHash(src))] };
+
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [src]),
+        target: resource("de", [entry("blank", "Alt")]),
+        states: new Map([["blank", "initial"]]),
+      }),
+    );
+
+    expect(result.summary.unfilled).toEqual([]);
+    expect(result.accepted.size).toBe(0);
   });
 
   it('accepts a filled row with reviewStatus "review" exactly like an equivalent "ok" row', () => {
@@ -384,6 +457,35 @@ describe("importLocale", () => {
     expect(result.accepted.get("greet")?.value).toBe("");
     expect(result.summary.integrityMismatches).toEqual([]);
     expect(result.summary.translated).toEqual(["greet"]);
+  });
+
+  describe("each imported key lands in exactly one summary bucket", () => {
+    const src = entry("greet", "Hi {{name}}", ["{{name}}"]);
+    const other = entry("bye", "Bye");
+    const upToDate = {
+      source: resource("en", [src, other]),
+      target: resource("de", [
+        entry("greet", "Hallo {{name}}", ["{{name}}"]),
+        entry("bye", "Tschüss"),
+      ]),
+      baseline: new Map([
+        ["greet", contentHash(src)],
+        ["bye", contentHash(other)],
+      ]),
+    };
+
+    it.each([
+      ["a [[CLEAR]] of an up-to-date key", "[[CLEAR]]", "translated"],
+      ["an accepted overwrite of an up-to-date key", "Servus {{name}}", "translated"],
+      ["a refused overwrite of an up-to-date key", "Servus", "integrityMismatches"],
+    ] as const)("reports %s only under %s, never also under unchanged", (_label, cell, bucket) => {
+      const sheet: WorkbookSheet = { locale: "de", rows: [row("greet", cell, contentHash(src))] };
+
+      const { summary } = importLocale(params({ sheet, ...upToDate }));
+
+      expect(summary[bucket]).toEqual(["greet"]);
+      expect(summary.unchanged).toEqual(["bye"]);
+    });
   });
 
   it("withholds a [[CLEAR]] whose source drifted, reporting it like any drift", () => {

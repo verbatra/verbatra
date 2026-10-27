@@ -55,6 +55,10 @@ export interface ResolveOptions {
  *
  * @example
  * ```ts
+ * import { createDefaultRegistry, type FormatAdapter } from "@verbatra/sdk";
+ *
+ * declare function createTomlAdapter(): FormatAdapter;
+ *
  * const registry = createDefaultRegistry().register(createTomlAdapter());
  * const resolution = registry.resolve("locales/de.toml");
  * if (resolution.status === "resolved") {
@@ -88,6 +92,16 @@ export class AdapterRegistry {
    *
    * @example
    * ```ts
+   * import {
+   *   createDefaultRegistry,
+   *   type FormatAdapter,
+   *   loadConfig,
+   *   translate,
+   * } from "@verbatra/sdk";
+   *
+   * declare function createTomlAdapter(): FormatAdapter;
+   *
+   * const config = await loadConfig();
    * const registry = createDefaultRegistry().register(createTomlAdapter());
    * await translate({ config }, { adapterRegistry: registry });
    * ```

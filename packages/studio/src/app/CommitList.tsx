@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { commitSummaryParts, renderText } from "../client/render-text.js";
-import type { HistoryCommit } from "../shared/rpc/history.js";
+import type { HistoryCommit, HistoryUnavailableReason } from "../shared/rpc/history.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { Loading } from "./Loading.js";
 import { EmptyState } from "./ui.js";
@@ -58,6 +58,14 @@ function CommitRow({ commit }: { readonly commit: HistoryCommit }): ReactNode {
             }
           }}
         />
+        <span
+          className="min-w-0 break-words text-xs font-medium text-muted-foreground"
+          ref={(element) => {
+            if (element !== null) {
+              renderText(element, parts.author);
+            }
+          }}
+        />
       </p>
       <TouchedPaths paths={commit.touchedPaths} />
     </li>
@@ -70,7 +78,14 @@ export interface CommitListProps {
   readonly emptyMessage: string;
 }
 
-const UNAVAILABLE_MESSAGE = "This project is not a git repository, or git is not installed.";
+const NO_GIT_MESSAGE = "This project is not a git repository, or git is not installed.";
+
+const UNAVAILABLE_MESSAGES: Readonly<Record<HistoryUnavailableReason, string>> = {
+  "git-missing": NO_GIT_MESSAGE,
+  "not-a-repository": NO_GIT_MESSAGE,
+  timeout: "Reading the git history took too long and was stopped.",
+  "output-too-large": "The git history is too large to read here.",
+};
 
 export function CommitList({ state, compact = false, emptyMessage }: CommitListProps): ReactNode {
   if (state.kind === "loading") {
@@ -80,12 +95,13 @@ export function CommitList({ state, compact = false, emptyMessage }: CommitListP
     return <ErrorMessage error={state.error} />;
   }
   if (state.kind === "unavailable") {
+    const message = UNAVAILABLE_MESSAGES[state.reason];
     if (compact) {
-      return <p className="text-sm text-muted-foreground">{UNAVAILABLE_MESSAGE}</p>;
+      return <p className="text-sm text-muted-foreground">{message}</p>;
     }
     return (
       <EmptyState icon="history" title="History unavailable">
-        {UNAVAILABLE_MESSAGE}
+        {message}
       </EmptyState>
     );
   }

@@ -7,30 +7,70 @@ export function requestTimedOutMessage(timeoutMs: number): string {
   return `The translation provider request exceeded the ${timeoutMs} ms request timeout.`;
 }
 
+export interface SdkAttemptOptions {
+  readonly signal?: AbortSignal;
+  readonly timeout: number;
+}
+
 function combineSignals(caller: AbortSignal | undefined, timeout: AbortSignal): AbortSignal {
   return caller === undefined ? timeout : AbortSignal.any([caller, timeout]);
 }
 
-export async function withRequestTimeout<T>(
+function renameTimeout(error: unknown, timeoutMs: number): unknown {
+  return error instanceof ProviderError && error.code === "TIMEOUT"
+    ? new ProviderError("TIMEOUT", requestTimedOutMessage(timeoutMs))
+    : error;
+}
+
+export async function raceAttemptTimeout<T>(
   timeoutMs: number,
   callerSignal: AbortSignal | undefined,
   call: (signal: AbortSignal) => Promise<T>,
-  context?: ProviderCallContext,
 ): Promise<T> {
   const timeoutController = new AbortController();
   const signal = combineSignals(callerSignal, timeoutController.signal);
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timedOut = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
-      timeoutController.abort();
       reject(new ProviderError("TIMEOUT", requestTimedOutMessage(timeoutMs)));
+      timeoutController.abort();
     }, timeoutMs);
   });
   try {
-    return await Promise.race([guardProviderCall(() => call(signal), signal, context), timedOut]);
+    return await Promise.race([call(signal), timedOut]);
   } finally {
     if (timer !== undefined) {
       clearTimeout(timer);
     }
+  }
+}
+
+export function withRequestTimeout<T>(
+  timeoutMs: number,
+  callerSignal: AbortSignal | undefined,
+  call: (signal: AbortSignal) => Promise<T>,
+  context?: ProviderCallContext,
+): Promise<T> {
+  return guardProviderCall(
+    () => raceAttemptTimeout(timeoutMs, callerSignal, call),
+    callerSignal,
+    context,
+  );
+}
+
+export async function withSdkAttemptTimeout<T>(
+  timeoutMs: number,
+  callerSignal: AbortSignal | undefined,
+  call: (options: SdkAttemptOptions) => Promise<T>,
+  context?: ProviderCallContext,
+): Promise<T> {
+  const options: SdkAttemptOptions =
+    callerSignal === undefined
+      ? { timeout: timeoutMs }
+      : { signal: callerSignal, timeout: timeoutMs };
+  try {
+    return await guardProviderCall(() => call(options), callerSignal, context);
+  } catch (error) {
+    throw renameTimeout(error, timeoutMs);
   }
 }

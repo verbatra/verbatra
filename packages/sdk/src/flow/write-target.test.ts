@@ -8,7 +8,7 @@ import { SdkError } from "../errors.js";
 import { baseConfig, makeStubProvider, makeTempDir, writeJsonFile } from "../test-support.js";
 import { translate } from "./translate-project.js";
 import {
-  escapesWorkingDirectory,
+  escapesProjectRoot,
   targetUnwritableMessage,
   writeTargetResource,
 } from "./write-target.js";
@@ -166,6 +166,7 @@ describe("writeTargetResource", () => {
       RESOURCE,
       TARGET,
       CWD,
+      {},
     ).catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(SdkError);
@@ -175,34 +176,34 @@ describe("writeTargetResource", () => {
   it("lets an AdapterError through untouched, so its own code survives", async () => {
     const original = new AdapterError("INVALID_STRUCTURE", "cannot represent this");
 
-    await expect(writeTargetResource(adapterWriting(original), RESOURCE, TARGET, CWD)).rejects.toBe(
-      original,
-    );
+    await expect(
+      writeTargetResource(adapterWriting(original), RESOURCE, TARGET, CWD, {}),
+    ).rejects.toBe(original);
   });
 
   it("lets an SdkError through untouched", async () => {
     const original = new SdkError("LOCK_FILE_INVALID", "corrupt");
 
-    await expect(writeTargetResource(adapterWriting(original), RESOURCE, TARGET, CWD)).rejects.toBe(
-      original,
-    );
+    await expect(
+      writeTargetResource(adapterWriting(original), RESOURCE, TARGET, CWD, {}),
+    ).rejects.toBe(original);
   });
 
   it("resolves quietly when the adapter write succeeds", async () => {
     const adapter = { ...adapterWriting(new Error("x")), write: async () => {} };
 
-    await expect(writeTargetResource(adapter, RESOURCE, TARGET, CWD)).resolves.toBeUndefined();
+    await expect(writeTargetResource(adapter, RESOURCE, TARGET, CWD, {})).resolves.toBeUndefined();
   });
 });
 
-describe("escapesWorkingDirectory", () => {
+describe("escapesProjectRoot", () => {
   it.each([
     ["the working directory itself", ""],
     ["its parent", ".."],
     ["a path through its parent", `..${sep}elsewhere`],
     ["an absolute path, as relative returns across drives", resolve("/elsewhere")],
   ])("refuses %s", (_label, inside) => {
-    expect(escapesWorkingDirectory(inside)).toBe(true);
+    expect(escapesProjectRoot(inside)).toBe(true);
   });
 
   it.each([
@@ -210,6 +211,6 @@ describe("escapesWorkingDirectory", () => {
     ["a directory whose name merely begins with two dots", join("..pseudo", "de.json")],
     ["a file whose name merely begins with two dots", "..d.ts"],
   ])("accepts %s", (_label, inside) => {
-    expect(escapesWorkingDirectory(inside)).toBe(false);
+    expect(escapesProjectRoot(inside)).toBe(false);
   });
 });

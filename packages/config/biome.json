@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
   "root": false,
   "vcs": {
     "enabled": true,
@@ -39,6 +39,14 @@
       "semicolons": "always",
       "trailingCommas": "all"
     }
+  },
+  "markdown": {
+    "formatter": { "enabled": false },
+    "linter": { "enabled": false }
+  },
+  "yaml": {
+    "formatter": { "enabled": false },
+    "linter": { "enabled": false }
   },
   "assist": {
     "enabled": true,

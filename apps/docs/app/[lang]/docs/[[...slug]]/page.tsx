@@ -1,40 +1,35 @@
-import { getBreadcrumbItems } from "fumadocs-core/breadcrumb";
-import { Callout } from "fumadocs-ui/components/callout";
+import { findNeighbour } from "fumadocs-core/page-tree";
 import {
   DocsBody,
   DocsDescription,
   DocsPage,
   DocsTitle,
   EditOnGitHub,
-  MarkdownCopyButton,
-  ViewOptionsPopover,
 } from "fumadocs-ui/layouts/notebook/page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { DocsCallout } from "@/components/docs-callout";
+import { DocsPageActions } from "@/components/docs-page-actions";
 import { JsonLd } from "@/components/json-ld";
-import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
-import { extractFaqItems } from "@/lib/extract-faq";
+import { getMDXComponents } from "@/components/mdx";
+import { PageEyebrow } from "@/components/page-eyebrow";
+import { PageNeighbours } from "@/components/page-neighbours";
+import { sdkReferenceComponents } from "@/components/sdk-reference";
+import { docsBreadcrumbTrail } from "@/lib/docs-breadcrumb";
+import { footerNeighbourUrls } from "@/lib/docs-neighbours";
+import { withShortCommandLabels } from "@/lib/docs-page-tree";
+import { extractFaqItems, withoutQuestions } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
-import { ogAlternateLocales, ogLocale } from "@/lib/site";
+import { markdownUrl } from "@/lib/markdown-route";
+import { onThisPageLabel, pageToc } from "@/lib/page-toc";
+import { socialMetadata } from "@/lib/social-metadata";
 import { source } from "@/lib/source";
-import {
-  type BreadcrumbLdItem,
-  breadcrumbListLd,
-  faqPageLd,
-  techArticleLd,
-} from "@/lib/structured-data";
+import { breadcrumbListLd, type FaqItem, faqPageLd, techArticleLd } from "@/lib/structured-data";
+import { contentCommitTimes, isTranslationOutdated } from "@/lib/translation-freshness";
 
-function breadcrumbTrail(pageUrl: string, lang: Locale): BreadcrumbLdItem[] {
-  const items = getBreadcrumbItems(pageUrl, source.getPageTree(lang), { includePage: true });
-  const trail: BreadcrumbLdItem[] = [];
-  for (const item of items) {
-    if (typeof item.name !== "string") continue;
-    trail.push({ name: item.name, url: item.url });
-  }
-  return trail;
-}
+const CODE_HEADINGS_CLASS = "vk-code-headings";
 
 type DocsPageData = NonNullable<ReturnType<typeof source.getPage>>;
 
@@ -53,11 +48,18 @@ async function pageJsonLd(
   ];
   if (!slug || slug.length === 0) return blocks;
 
-  const trail = breadcrumbTrail(page.url, lang);
+  const trail = docsBreadcrumbTrail(source.getPageTree(lang), page.url);
   if (trail.length > 0) blocks.push(breadcrumbListLd({ items: trail }));
 
   if (slug.length === 1 && slug[0] === "faq") {
-    const items = extractFaqItems(await page.data.getText("processed"));
+    const homeFaq = await getTranslations({ locale: lang, namespace: "landing.faq" });
+    const homeQuestions = Object.values(homeFaq.raw("items") as Record<string, FaqItem>).map(
+      (item) => item.question,
+    );
+    const items = withoutQuestions(
+      extractFaqItems(await page.data.getText("processed")),
+      homeQuestions,
+    );
     if (items.length > 0) blocks.push(faqPageLd({ items, lang }));
   }
   return blocks;
@@ -74,12 +76,13 @@ async function LocaleNotice({
 }) {
   if (lang === i18n.defaultLanguage || !slug || slug.length === 0) return null;
 
-  if (source.getPage(slug, i18n.defaultLanguage)?.path === page.path) {
+  const sourcePath = source.getPage(slug, i18n.defaultLanguage)?.path;
+  if (sourcePath === page.path) {
     const notTranslated = await getTranslations({ locale: lang, namespace: "docs.notTranslated" });
     return (
-      <Callout type="info" className={CALLOUT_CLASS} title={notTranslated("title")}>
+      <DocsCallout locale={lang} type="info" title={notTranslated("title")}>
         {notTranslated("text")}
-      </Callout>
+      </DocsCallout>
     );
   }
 
@@ -87,17 +90,30 @@ async function LocaleNotice({
     locale: lang,
     namespace: "docs.machineTranslated",
   });
+  const outdated =
+    sourcePath !== undefined && isTranslationOutdated(contentCommitTimes, sourcePath, page.path);
+  const outdatedCopy = outdated
+    ? await getTranslations({ locale: lang, namespace: "docs.outdatedTranslation" })
+    : undefined;
   return (
-    <Callout type="info" className={CALLOUT_CLASS} title={machineTranslated("title")}>
-      {machineTranslated("text")}{" "}
-      <Link href={`/docs/${slug.join("/")}`}>{machineTranslated("viewOriginal")}</Link>.
-    </Callout>
+    <DocsCallout
+      locale={lang}
+      type={outdatedCopy ? "warn" : "info"}
+      title={outdatedCopy ? outdatedCopy("title") : machineTranslated("title")}
+    >
+      {machineTranslated("text")} {outdatedCopy ? `${outdatedCopy("text")} ` : null}
+      <Link className="vk-prose-link" href={`/docs/${slug.join("/")}`}>
+        {machineTranslated("viewOriginal")}
+      </Link>
+      .
+    </DocsCallout>
   );
 }
 
 export default async function Page(props: { params: Promise<{ slug?: string[]; lang: string }> }) {
   const params = await props.params;
   const lang = toLocale(params.lang);
+  setRequestLocale(lang);
   const page = source.getPage(params.slug, lang);
   if (!page) notFound();
 
@@ -109,43 +125,58 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
     ? undefined
     : `https://github.com/verbatra/verbatra/blob/main/apps/docs/content/docs/${page.path}`;
 
-  const markdownHref = localizedPath(
-    lang,
-    `/docs.mdx${params.slug?.length ? `/${params.slug.join("/")}` : ""}`,
-  );
+  const markdownHref = markdownUrl(page.url);
 
   const jsonLd = await pageJsonLd(page, params.slug, lang);
 
+  const tree = source.getPageTree(lang);
+  const neighbours = findNeighbour(withShortCommandLabels(tree), page.url);
+
   return (
     <DocsPage
-      toc={isHome ? [] : page.data.toc}
+      toc={isHome ? [] : pageToc(page.data.toc, page.data.tocDepth)}
+      tableOfContentPopover={{ trigger: { "aria-label": onThisPageLabel(lang) } }}
       full={isHome}
-      role="main"
-      breadcrumb={{ enabled: !isHome, includePage: true }}
-      footer={{ enabled: !isHome, className: "vk-docs-footer" }}
+      tableOfContent={{ single: true }}
+      breadcrumb={{
+        enabled: !isHome,
+        component: <PageEyebrow tree={tree} url={page.url} />,
+      }}
+      footer={{
+        enabled: !isHome,
+        component: <PageNeighbours locale={lang} {...neighbours} />,
+      }}
       className={isHome ? "max-w-none p-0 md:p-0 xl:p-0" : undefined}
+      tabIndex={-1}
     >
       {jsonLd.map((data) => (
         <JsonLd key={String(data["@type"])} data={data} />
       ))}
+      <LocaleNotice page={page} slug={params.slug} lang={lang} />
       {isHome ? null : (
-        <>
-          <DocsTitle>{page.data.title}</DocsTitle>
-          <DocsDescription>{page.data.description}</DocsDescription>
-          <div className="not-prose -mt-4 flex flex-wrap items-center gap-2">
-            <MarkdownCopyButton markdownUrl={markdownHref} />
-            <ViewOptionsPopover markdownUrl={markdownHref} githubUrl={editHref} />
+        <header className="vk-page-head">
+          <div className="vk-page-head-row">
+            <DocsTitle id="page-title">{page.data.title}</DocsTitle>
+            <DocsPageActions markdownUrl={markdownHref} githubUrl={editHref} />
           </div>
-        </>
+          <DocsDescription className="vk-page-lead">{page.data.description}</DocsDescription>
+        </header>
       )}
-      <DocsBody>
-        <LocaleNotice page={page} slug={params.slug} lang={lang} />
-        <MDX components={getMDXComponents(lang)} />
-        {editHref ? <EditOnGitHub href={editHref} /> : null}
+      <DocsBody className={page.data.codeHeadings ? CODE_HEADINGS_CLASS : undefined}>
+        <MDX
+          components={getMDXComponents(
+            lang,
+            sdkReferenceComponents(lang),
+            isHome ? undefined : footerNeighbourUrls(neighbours),
+          )}
+        />
+        {editHref ? <EditOnGitHub href={editHref} className="vk-tap" /> : null}
       </DocsBody>
     </DocsPage>
   );
 }
+
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return source.generateParams();
@@ -172,25 +203,23 @@ export async function generateMetadata(props: {
     `/docs-og${ogImageSegments.length ? `/${ogImageSegments.join("/")}` : ""}`,
   );
 
+  const title = page.data.seoTitle ?? page.data.title;
+
   return {
-    title: page.data.title,
+    title,
     description: page.data.description,
-    alternates: { canonical: page.url, languages },
-    openGraph: {
+    alternates: {
+      canonical: page.url,
+      languages,
+      types: { "text/markdown": markdownUrl(page.url) },
+    },
+    ...socialMetadata({
+      locale: lang,
+      path: page.url,
       type: "article",
-      siteName: "verbatra",
-      locale: ogLocale(lang),
-      alternateLocale: ogAlternateLocales(lang),
-      title: page.data.title,
+      title,
       description: page.data.description,
-      url: page.url,
-      images: [{ url: ogImagePath, width: 1200, height: 630, alt: page.data.title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: page.data.title,
-      description: page.data.description,
-      images: [ogImagePath],
-    },
+      image: { path: ogImagePath, alt: page.data.title },
+    }),
   };
 }

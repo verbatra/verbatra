@@ -45,24 +45,35 @@
   "bin": {
     "verbatra": "./dist/index.js"
   },
+  "main": "./dist/lib.cjs",
+  "module": "./dist/lib.js",
+  "types": "./dist/lib.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/lib.d.ts",
-      "import": "./dist/lib.js"
-    }
+      "import": {
+        "types": "./dist/lib.d.ts",
+        "default": "./dist/lib.js"
+      },
+      "require": {
+        "types": "./dist/lib.d.cts",
+        "default": "./dist/lib.cjs"
+      }
+    },
+    "./schemas/*": "./dist/schemas/*",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
   ],
   "engines": {
-    "node": ">=22.14.0"
+    "node": "^22.18.0 || >=24"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/emit-schemas.mjs",
     "lint": "biome check .",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
@@ -79,6 +90,7 @@
     "@verbatra/mcp": "workspace:*",
     "@verbatra/studio": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
+    "ajv": "catalog:",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

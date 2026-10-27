@@ -1,21 +1,22 @@
 import { ImageResponse } from "next/og";
 import { getTranslations } from "next-intl/server";
+import { HERO_OG_LINES } from "@/lib/hero-terminal";
 import { toLocale } from "@/lib/i18n";
-import { OG_IMAGE_SIZE, OgFrame } from "@/lib/og-image";
+import { loadOgFonts } from "@/lib/og-fonts";
+import { HomeOgFrame, OG_IMAGE_SIZE } from "@/lib/og-image";
 import { SITE_URL } from "@/lib/site";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
   const locale = toLocale(lang);
-  const t = await getTranslations({ locale, namespace: "landing.meta" });
+  const t = await getTranslations({ locale, namespace: "landing.banner" });
 
   return new ImageResponse(
-    <OgFrame
-      eyebrow={locale.toUpperCase()}
-      title={t("ogTitle")}
-      description={t("ogDescription")}
+    <HomeOgFrame
+      headline={t.markup("headline", { accent: (chunks: string) => chunks })}
+      lines={HERO_OG_LINES}
       footer={new URL(SITE_URL).host}
     />,
-    { ...OG_IMAGE_SIZE },
+    { ...OG_IMAGE_SIZE, fonts: await loadOgFonts() },
   );
 }

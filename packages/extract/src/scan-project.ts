@@ -86,12 +86,15 @@ export interface ProjectScan {
   readonly diagnostics: readonly ScanDiagnostic[];
 }
 
+export type FileScannedListener = (scanned: number, total: number) => void;
+
 export interface ScanProjectInput {
   readonly cwd: string;
   readonly roots: readonly string[];
   readonly extractor: SourceExtractor;
   readonly exclude?: readonly string[];
   readonly maxFileBytes?: number;
+  readonly onFileScanned?: FileScannedListener;
 }
 
 interface KeyRecord {
@@ -244,8 +247,9 @@ export async function scanProject(
     },
     fs,
   );
-  for (const path of files) {
+  for (const [index, path] of files.entries()) {
     await scanFile(path, input, fs, state);
+    input.onFileScanned?.(index + 1, files.length);
   }
   const entries = [...state.keys.entries()];
   return {

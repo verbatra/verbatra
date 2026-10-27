@@ -1,10 +1,18 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "agentGuidance": false,
+  "cacheDir": ".turbo/cache",
   "globalPassThroughEnv": ["BASE_SHA", "HEAD_BRANCH", "HEAD_SHA", "PUBLISHED_PACKAGES_JSON"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["PORT"]
     },
     "lint": {
       "dependsOn": ["^build"]

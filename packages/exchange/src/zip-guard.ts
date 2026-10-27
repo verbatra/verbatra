@@ -1,7 +1,8 @@
 import { Readable } from "node:stream";
-import JSZip from "jszip";
+import type JSZip from "jszip";
 import { ExchangeError } from "./errors.js";
 import type { WorkbookLimits } from "./limits.js";
+import { loadJsZip } from "./xlsx-libraries.js";
 
 function assertNoDoctype(name: string, xml: string): void {
   if (/<!DOCTYPE/i.test(xml) || /<!ENTITY/i.test(xml)) {
@@ -62,7 +63,7 @@ export async function streamEntryBounded(
 export async function guardWorkbookBytes(bytes: Uint8Array, limits: WorkbookLimits): Promise<void> {
   let zip: JSZip;
   try {
-    zip = await JSZip.loadAsync(bytes);
+    zip = await (await loadJsZip()).loadAsync(bytes);
   } catch {
     throw new ExchangeError("WORKBOOK_INVALID", "The workbook is not a readable xlsx container.");
   }

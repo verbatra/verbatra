@@ -1,11 +1,20 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () =>
+    Object.assign((key: string) => key, {
+      rich: (key: string, tags: Record<string, (chunks: string) => unknown>) => [
+        key,
+        tags.imprint?.("imprint link"),
+      ],
+    }),
 }));
 
 const { ContactForm } = await import("./contact-form");
@@ -19,7 +28,12 @@ function render(): HTMLDivElement {
   document.body.append(container);
   const root = createRoot(container);
   act(() => {
-    root.render(<ContactForm />);
+    root.render(
+      <ContactForm
+        privacyNotice={<a href="/privacy#contact-form">privacy notice</a>}
+        imprintHref="/de/imprint"
+      />,
+    );
   });
   mounted = { container, root };
   return container;
@@ -67,7 +81,74 @@ afterEach(() => {
   container.remove();
 });
 
+function serverHtml(): string {
+  return renderToString(<ContactForm privacyNotice="privacy notice" imprintHref="/de/imprint" />);
+}
+
+function serverMarkup(): HTMLFormElement {
+  const host = document.createElement("div");
+  host.innerHTML = serverHtml();
+  const form = host.querySelector("form");
+  if (!form) throw new Error("no form in the server markup");
+  return form;
+}
+
+describe("ContactForm without JavaScript", () => {
+  it("posts to the contact route, so a no-JS submit never puts the fields into the URL", () => {
+    const form = serverMarkup();
+    expect(form.getAttribute("method")).toBe("post");
+    expect(form.getAttribute("action")).toBe("/api/contact");
+  });
+
+  it("tells a visitor without JavaScript to use the email address on the localized imprint", () => {
+    const noscript = new DOMParser()
+      .parseFromString(serverHtml(), "text/html")
+      .querySelector("form > noscript");
+    const fallback = new DOMParser().parseFromString(noscript?.innerHTML ?? "", "text/html");
+    const link = fallback.querySelector("p a");
+
+    expect(fallback.body.textContent).toContain("noScript");
+    expect(link?.getAttribute("href")).toBe("/de/imprint");
+    expect(link?.textContent).toBe("imprint link");
+  });
+
+  it("renders the submit button disabled until the form has hydrated", () => {
+    const button = serverMarkup().querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+  });
+});
+
 describe("ContactForm", () => {
+  it("enables the submit button once it has hydrated", () => {
+    const container = render();
+    const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+  });
+
+  it("draws the submit button as the site primary button, not the Fumadocs one", () => {
+    const button = render().querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(button.classList.contains("vk-btn-primary")).toBe(true);
+    expect(button.className).not.toMatch(/\bfd-|bg-fd-/);
+  });
+
+  it("never transitions opacity, so the hydrated enable swaps in one frame", () => {
+    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    const list =
+      /no-preference\) \{\s*\.vk-btn \{\s*transition-property:([^;]+);/.exec(css)?.[1] ?? "";
+    expect(list).not.toBe("");
+    expect(list).not.toContain("opacity");
+  });
+
+  it("shows the privacy notice it is given directly below the submit button", () => {
+    const container = render();
+    const notice = container.querySelector('button[type="submit"]')?.nextElementSibling;
+
+    expect(notice?.tagName).toBe("P");
+    expect(notice?.querySelector('a[href="/privacy#contact-form"]')?.textContent).toBe(
+      "privacy notice",
+    );
+  });
+
   it("renders a labeled field for name, email, and message", () => {
     const container = render();
     expect(field(container, "name").tagName).toBe("INPUT");

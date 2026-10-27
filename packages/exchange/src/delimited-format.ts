@@ -1,4 +1,4 @@
-import { ExchangeError } from "./errors.js";
+import { handoffFileName } from "./handoff-file-name.js";
 
 /**
  * The two delimiter-separated interchange formats. They are one implementation with one parameter, the
@@ -16,24 +16,6 @@ export const QUOTE = '"';
 
 export const UTF8_BOM = "\ufeff";
 
-const FORBIDDEN_FILE_NAME_CHARS = /[\\/:*?"<>|\p{Cc}]/u;
-
-function assertPlainFileLocale(locale: string): void {
-  if (locale.length === 0 || locale === "." || locale === "..") {
-    throw new ExchangeError(
-      "WORKBOOK_INVALID",
-      `The locale "${locale}" cannot be an interchange file name: it must name a file, not a directory.`,
-    );
-  }
-  if (FORBIDDEN_FILE_NAME_CHARS.test(locale)) {
-    throw new ExchangeError(
-      "WORKBOOK_INVALID",
-      `The locale "${locale}" cannot be an interchange file name: it must not contain a path separator, a control character, or any of : * ? " < > | .`,
-    );
-  }
-}
-
 export function delimitedFileName(locale: string, format: DelimitedFormat): string {
-  assertPlainFileLocale(locale);
-  return `${locale}.${format}`;
+  return handoffFileName(locale, format, "WORKBOOK_INVALID");
 }

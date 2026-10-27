@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createDefaultClient } from "./client.js";
+import { createDefaultClient, OPENAI_COMPATIBLE_USER_AGENT } from "./client.js";
+import type { OpenAiCompatibleConfig } from "./config.js";
 
 interface CapturedOptions {
   readonly apiKey?: string | null;
   readonly baseURL?: string;
   readonly logLevel?: string;
+  readonly defaultHeaders?: Readonly<Record<string, string>>;
 }
 
 const capturedOptions: CapturedOptions[] = [];
@@ -18,6 +20,10 @@ vi.mock("openai", () => {
   }
   return { default: FakeOpenAI };
 });
+
+async function construct(config: OpenAiCompatibleConfig): Promise<void> {
+  await createDefaultClient(config).chat.completions.create({} as never);
+}
 
 describe("createDefaultClient: structural isolation from the hosted openai key path", () => {
   let savedOpenAiKey: string | undefined;
@@ -44,9 +50,9 @@ describe("createDefaultClient: structural isolation from the hosted openai key p
     }
   });
 
-  it("passes the local placeholder and the configured baseUrl even when OPENAI_API_KEY is set", () => {
+  it("passes the local placeholder and the configured baseUrl even when OPENAI_API_KEY is set", async () => {
     process.env.OPENAI_API_KEY = "hosted-key-should-never-reach-a-custom-baseUrl";
-    createDefaultClient({
+    await construct({
       baseUrl: "http://192.168.178.74:1234",
       model: "qwen2.5-14b-instruct",
       maxOutputTokens: 1024,
@@ -59,16 +65,22 @@ describe("createDefaultClient: structural isolation from the hosted openai key p
     expect(capturedOptions[0]?.apiKey).not.toBe("hosted-key-should-never-reach-a-custom-baseUrl");
   });
 
-  it("passes the OPENAI_COMPATIBLE_API_KEY convention value when set", () => {
+  it("identifies itself as verbatra rather than with the SDK's default user agent", async () => {
+    await construct({ baseUrl: "http://localhost:1234", model: "m", maxOutputTokens: 10 });
+    expect(OPENAI_COMPATIBLE_USER_AGENT).toBe("verbatra");
+    expect(capturedOptions[0]?.defaultHeaders).toEqual({ "User-Agent": "verbatra" });
+  });
+
+  it("passes the OPENAI_COMPATIBLE_API_KEY convention value when set", async () => {
     process.env.OPENAI_COMPATIBLE_API_KEY = "convention-key";
-    createDefaultClient({ baseUrl: "http://localhost:1234", model: "m", maxOutputTokens: 10 });
+    await construct({ baseUrl: "http://localhost:1234", model: "m", maxOutputTokens: 10 });
     expect(capturedOptions[0]?.apiKey).toBe("convention-key");
   });
 
-  it("passes a resolved apiKeyEnvVar value, never the convention variable, when both are set", () => {
+  it("passes a resolved apiKeyEnvVar value, never the convention variable, when both are set", async () => {
     process.env.OPENAI_COMPATIBLE_API_KEY = "convention-key";
     process.env.LM_STUDIO_KEY = "named-key";
-    createDefaultClient({
+    await construct({
       baseUrl: "http://localhost:1234",
       model: "m",
       maxOutputTokens: 10,
@@ -76,5 +88,20 @@ describe("createDefaultClient: structural isolation from the hosted openai key p
     });
     expect(capturedOptions[0]?.apiKey).toBe("named-key");
     delete process.env.LM_STUDIO_KEY;
+  });
+});
+
+describe("createDefaultClient: hosted identity", () => {
+  it("uses the supplied key and ignores the openai-compatible convention variable", async () => {
+    vi.stubEnv("OPENAI_COMPATIBLE_API_KEY", "convention-key");
+    await createDefaultClient(
+      { baseUrl: "https://opencode.ai/inference/openai/v1", model: "m", maxOutputTokens: 10 },
+      undefined,
+      undefined,
+      { id: "opencode", apiKey: "hosted-key" },
+    ).chat.completions.create({} as never);
+    vi.unstubAllEnvs();
+    expect(capturedOptions.at(-1)?.apiKey).toBe("hosted-key");
+    expect(capturedOptions.at(-1)?.defaultHeaders).toEqual({ "User-Agent": "verbatra" });
   });
 });

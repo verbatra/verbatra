@@ -1,5 +1,6 @@
 import { AdapterError } from "../errors.js";
 import type { I18nextPluralCategory } from "../i18next/plural.js";
+import { invalidJson } from "../json/syntax-position.js";
 
 export const PLURAL_CATEGORIES: readonly I18nextPluralCategory[] = [
   "zero",
@@ -29,7 +30,7 @@ export function parseXcstringsDocument(content: string, filePath: string): Xcstr
   try {
     parsed = JSON.parse(content);
   } catch {
-    throw new AdapterError("INVALID_JSON", `${filePath} is not valid JSON.`);
+    throw invalidJson(content, `${filePath} is not valid JSON.`);
   }
   if (!isRecord(parsed)) {
     throw new AdapterError(
@@ -116,12 +117,6 @@ function pluralVariationsOf(loc: XcstringsRecord): unknown {
   return variations.plural;
 }
 
-/**
- * Reads one locale's content out of an already-fetched `localizations[locale]` entry: a plain
- * `stringUnit` value, or a `variations.plural` category map. Throws on any shape that is neither, so
- * a malformed or unsupported (device-class or width variant only) localization is reported rather
- * than silently mishandled.
- */
 export function localizationValueOf(
   loc: unknown,
   filePath: string,

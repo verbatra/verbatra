@@ -32,15 +32,22 @@ function collectSourceFiles(root: string): string[] {
 }
 
 describe("static proof: no write-capable sdk call is ever referenced", () => {
-  it("never calls watch(, importWorkbook(, or exportWorkbook( anywhere in studio's own source, and calls translate( only from the one handler that is meant to", () => {
+  it("never calls watch(, importWorkbook(, or exportWorkbook( anywhere in studio's own source, and calls translate( only from the one handler that is meant to or from the estimate handler as a dry run", () => {
     const forbidden = ["watch", "importWorkbook", "exportWorkbook", "translate"].map((name) => ({
       name,
       pattern: new RegExp(`(?<![.\\w])${name}\\(`),
     }));
     const allowedTranslateCaller = join(SRC_ROOT, "server", "methods", "translate-pending.ts");
+    const dryRunTranslateCaller = join(SRC_ROOT, "server", "methods", "estimate.ts");
     const offenders: string[] = [];
     for (const file of collectSourceFiles(SRC_ROOT)) {
       if (file === allowedTranslateCaller) {
+        continue;
+      }
+      if (file === dryRunTranslateCaller) {
+        const content = readFileSync(file, "utf8");
+        expect(content).toMatch(/estimate: true/);
+        expect(content).not.toMatch(/createProvider|dryRun: false/);
         continue;
       }
       const content = readFileSync(file, "utf8");
@@ -75,7 +82,7 @@ async function hashTree(root: string): Promise<string> {
 }
 
 describe("read-only proof: the fixture project's file tree is untouched", () => {
-  it("hashes identically after driving the read views, and a default server answers METHOD_UNKNOWN for both spend methods", async () => {
+  it("hashes identically after driving the read views, and a default server answers SPEND_DISABLED for both spend methods", async () => {
     const project = await makeFixtureProject();
     try {
       const before = await hashTree(project.root);
@@ -113,9 +120,9 @@ describe("read-only proof: the fixture project's file tree is untouched", () => 
             locale: "de",
             key: "greeting",
           });
-          expect(retranslate.error?.code).toBe("METHOD_UNKNOWN");
+          expect(retranslate.error?.code).toBe("SPEND_DISABLED");
           const translatePending = await postMethod("translation.translatePending");
-          expect(translatePending.error?.code).toBe("METHOD_UNKNOWN");
+          expect(translatePending.error?.code).toBe("SPEND_DISABLED");
         },
         {
           token: "read-only-proof-token",

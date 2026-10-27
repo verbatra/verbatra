@@ -29,6 +29,7 @@ export {
 export { toReportedPath } from "./reported-path.js";
 export {
   type ExtractedKey,
+  type FileScannedListener,
   type KeyConflict,
   type KeyPrefixLocation,
   type ProjectKeyUsage,

@@ -1,69 +1,19 @@
 import type { CSSProperties } from "react";
 
+export const OG_WORDMARK = "verbatra";
+
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
-export const OG_IMAGE_CONTENT_TYPE = "image/png";
 
-const FRAME_BACKGROUND = [
-  "radial-gradient(circle at 85% -10%, hsla(258, 47%, 74%, 0.35), transparent 60%)",
-  "radial-gradient(circle at -10% 110%, hsla(291, 64%, 42%, 0.3), transparent 55%)",
-  "linear-gradient(135deg, hsl(240, 24%, 6%) 0%, hsl(258, 25%, 10%) 55%, hsl(291, 40%, 12%) 100%)",
-].join(", ");
-
-const FRAME_STYLE: CSSProperties = {
-  width: "100%",
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-  padding: "72px 88px",
-  background: FRAME_BACKGROUND,
-  color: "hsl(240, 30%, 94%)",
-  fontFamily: "sans-serif",
-};
-
-function BrandMark() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-      <div
-        style={{
-          width: "36px",
-          height: "36px",
-          borderRadius: "10px",
-          background: "linear-gradient(135deg, hsl(291, 64%, 42%), hsl(258, 47%, 74%))",
-          display: "flex",
-        }}
-      />
-      <div
-        style={{
-          fontSize: "26px",
-          fontWeight: 700,
-          letterSpacing: "6px",
-          textTransform: "uppercase",
-          color: "hsl(258, 47%, 74%)",
-          display: "flex",
-        }}
-      >
-        Verbatra
-      </div>
-    </div>
-  );
-}
-
-function FooterBar({ label }: { label: string }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-      <div
-        style={{
-          width: "100%",
-          height: "2px",
-          background: "linear-gradient(90deg, hsl(291, 64%, 42%), hsl(258, 47%, 74%), transparent)",
-          display: "flex",
-        }}
-      />
-      <div style={{ fontSize: "20px", color: "hsl(240, 13%, 65%)", display: "flex" }}>{label}</div>
-    </div>
-  );
-}
+export const OG_PALETTE = {
+  void: "hsl(240, 24%, 4%)",
+  background: "hsl(240, 24%, 6%)",
+  strong: "hsl(240, 30%, 94%)",
+  muted: "hsl(240, 13%, 65%)",
+  faint: "hsl(240, 13%, 58%)",
+  glow: "hsl(258, 60%, 74%)",
+  purple: "hsl(258, 52%, 56%)",
+  border: "hsl(240, 23%, 22%)",
+} as const;
 
 export function titleFontSize(title: string): number {
   if (title.length > 70) return 44;
@@ -71,61 +21,172 @@ export function titleFontSize(title: string): number {
   return 66;
 }
 
+type OgTerminalLine = { kind: "command" | "output"; text: string };
+
+export const OG_FONT = { display: "Geist", mono: "Geist Mono" } as const;
+
+export const OG_TERMINAL_PROMPT = "$";
+
+const FRAME_STYLE: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
+  padding: "64px 80px",
+  background: OG_PALETTE.void,
+  color: OG_PALETTE.strong,
+  fontFamily: OG_FONT.display,
+};
+
+function Wordmark() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M4 4 L12 20 L20 4"
+          stroke={OG_PALETTE.glow}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <div
+        style={{
+          fontSize: "32px",
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          color: OG_PALETTE.strong,
+          display: "flex",
+        }}
+      >
+        {OG_WORDMARK}
+      </div>
+    </div>
+  );
+}
+
+function TerminalLine({ line }: { line: OgTerminalLine }) {
+  if (line.kind === "output") {
+    return (
+      <div style={{ display: "flex", color: OG_PALETTE.muted, whiteSpace: "pre" }}>{line.text}</div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", gap: "14px", color: OG_PALETTE.strong, whiteSpace: "pre" }}>
+      <div style={{ display: "flex", color: OG_PALETTE.glow }}>{OG_TERMINAL_PROMPT}</div>
+      <div style={{ display: "flex" }}>{line.text}</div>
+    </div>
+  );
+}
+
+function TopBar({ label }: { label: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <Wordmark />
+      <div
+        style={{
+          fontFamily: OG_FONT.mono,
+          fontSize: "20px",
+          color: OG_PALETTE.muted,
+          display: "flex",
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
 export function OgFrame({
-  eyebrow,
   title,
   description,
   footer,
 }: {
-  eyebrow?: string | undefined;
   title: string;
   description?: string | undefined;
   footer: string;
 }) {
   return (
     <div style={FRAME_STYLE}>
+      <TopBar label={footer} />
       <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
-        <BrandMark />
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "980px" }}>
-          {eyebrow ? (
-            <div
-              style={{
-                fontSize: "22px",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "3px",
-                color: "hsl(291, 64%, 62%)",
-                display: "flex",
-              }}
-            >
-              {eyebrow}
-            </div>
-          ) : null}
+        <div
+          style={{
+            fontSize: `${titleFontSize(title)}px`,
+            fontWeight: 700,
+            lineHeight: 1.08,
+            letterSpacing: "-0.03em",
+            textWrap: "balance",
+            display: "flex",
+          }}
+        >
+          {title}
+        </div>
+        {description ? (
           <div
             style={{
-              fontSize: `${titleFontSize(title)}px`,
-              fontWeight: 700,
-              lineHeight: 1.15,
+              paddingLeft: "24px",
+              borderLeft: `3px solid ${OG_PALETTE.purple}`,
+              fontWeight: 500,
+              fontSize: "28px",
+              lineHeight: 1.4,
+              color: OG_PALETTE.muted,
               display: "flex",
             }}
           >
-            {title}
+            {description}
           </div>
-          {description ? (
-            <div
-              style={{
-                fontSize: "26px",
-                color: "hsl(240, 13%, 65%)",
-                lineHeight: 1.4,
-                display: "flex",
-              }}
-            >
-              {description}
-            </div>
-          ) : null}
-        </div>
+        ) : null}
       </div>
-      <FooterBar label={footer} />
+    </div>
+  );
+}
+
+export function HomeOgFrame({
+  headline,
+  lines,
+  footer,
+}: {
+  headline: string;
+  lines: ReadonlyArray<OgTerminalLine>;
+  footer: string;
+}) {
+  return (
+    <div style={FRAME_STYLE}>
+      <TopBar label={footer} />
+      <div
+        style={{
+          fontSize: "76px",
+          fontWeight: 700,
+          lineHeight: 1.04,
+          letterSpacing: "-0.03em",
+          color: OG_PALETTE.strong,
+          textWrap: "balance",
+          display: "flex",
+        }}
+      >
+        {headline}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          padding: "26px 30px",
+          border: `1px solid ${OG_PALETTE.border}`,
+          borderLeft: `3px solid ${OG_PALETTE.purple}`,
+          borderRadius: "12px",
+          background: OG_PALETTE.background,
+          fontFamily: OG_FONT.mono,
+          fontSize: "22px",
+          lineHeight: 1.35,
+        }}
+      >
+        {lines.map((line) => (
+          <TerminalLine key={`${line.kind}:${line.text}`} line={line} />
+        ))}
+      </div>
     </div>
   );
 }

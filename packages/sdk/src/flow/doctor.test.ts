@@ -88,11 +88,17 @@ describe("doctor: the config check", () => {
     expect(detailOf(result, "config")).toContain("'verbatra' property in package.json");
   });
 
-  it("marks the four config-dependent checks skipped rather than failed when the config is absent", async () => {
+  it("marks the ten config-dependent checks skipped rather than failed when the config is absent", async () => {
     const result = await doctor({ cwd: projectDir });
 
     expect(result.checks.map((entry) => entry.status)).toEqual([
       "fail",
+      "skipped",
+      "skipped",
+      "skipped",
+      "skipped",
+      "skipped",
+      "skipped",
       "skipped",
       "skipped",
       "skipped",
@@ -256,6 +262,11 @@ describe("doctor: the adapter and provider checks", () => {
       'No factory is registered for provider "mistral"',
     );
     expect(detailOf(result, "provider")).toContain("anthropic, openai, gemini, deepl");
+    expect(statusOf(result, "locales")).toBe("skipped");
+    expect(detailOf(result, "locales")).toBe(
+      'Not checked: provider "mistral" is not a known provider.',
+    );
+    expect(result.locales).toBeUndefined();
   });
 });
 
@@ -330,6 +341,28 @@ describe("doctor: the API key check", () => {
     expect(detailOf(result, "api-key")).toContain("OPENAI_COMPATIBLE_API_KEY");
   });
 
+  it.each([
+    ["", "The libretranslate provider needs no API key."],
+    ["lt-key-value", "LIBRETRANSLATE_API_KEY is set."],
+  ])(
+    "passes libretranslate's key check whether or not LIBRETRANSLATE_API_KEY is set (%j)",
+    async (value, detail) => {
+      vi.stubEnv("LIBRETRANSLATE_API_KEY", value);
+      await writeConfig(
+        validConfig({
+          provider: { id: "libretranslate", options: { baseUrl: "http://127.0.0.1:5000" } },
+        }),
+      );
+
+      const result = await doctor({ cwd: projectDir });
+
+      expect(statusOf(result, "api-key")).toBe("pass");
+      expect(detailOf(result, "api-key")).toContain(detail);
+      expect(detailOf(result, "api-key")).not.toContain("lt-key-value");
+      expect(statusOf(result, "locales")).toBe("warn");
+    },
+  );
+
   it("fails openai-compatible when its own named variable is unset", async () => {
     vi.stubEnv("MY_LOCAL_LLM_KEY", undefined);
     await writeConfig(
@@ -382,7 +415,7 @@ describe("doctor: the source locale file check", () => {
 
     const result = await doctor({ cwd: projectDir });
 
-    expect(result.checks).toHaveLength(5);
+    expect(result.checks).toHaveLength(11);
     expect(statusOf(result, "config")).toBe("pass");
     expect(statusOf(result, "format-adapter")).toBe("pass");
     expect(statusOf(result, "provider")).toBe("pass");
@@ -509,8 +542,10 @@ describe("doctor: the source locale file check", () => {
     );
 
     expect(statusOf(result, "source-file")).toBe("pass");
-    expect(probed).toEqual([join(projectDir, "locales", "en.json")]);
-    expect(read).toEqual([join(projectDir, "locales", "en.json")]);
+    const source = join(projectDir, "locales", "en.json");
+    const target = join(projectDir, "locales", "de.json");
+    expect(probed).toEqual([source, source, target]);
+    expect(read).toEqual([source, source, target, join(projectDir, "verbatra.lock.json")]);
   });
 
   it("never touches real disk for the parse when a file-system port is supplied", async () => {
@@ -597,7 +632,116 @@ describe("doctor: it reports every independent problem and spends nothing", () =
       "format-adapter",
       "provider",
       "api-key",
+      "network-policy",
       "source-file",
+      "plural-rules",
+      "plural-completeness",
+      "locale-codes",
+      "locale-state",
+      "locales",
     ]);
+  });
+});
+
+describe("doctor: check titles and details", () => {
+  it("never repeats a check's title at the start of its detail", async () => {
+    await writeConfig(validConfig());
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    for (const entry of result.checks) {
+      expect(entry.detail.startsWith(`${entry.title}:`)).toBe(false);
+    }
+  });
+});
+
+describe("doctor: the locale-codes check", () => {
+  it("reports that every locale code is canonical when none needs a change", async () => {
+    await writeConfig(validConfig({ targetLocales: ["de", "zh-Hant-TW", "es-419"] }));
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(statusOf(result, "locale-codes")).toBe("pass");
+    expect(detailOf(result, "locale-codes")).toBe(
+      "Every configured locale code is in canonical BCP 47 form.",
+    );
+  });
+
+  it("warns with the canonical form for non-canonical and deprecated codes without failing", async () => {
+    await writeConfig(validConfig({ targetLocales: ["zh-hant-tw", "iw", "in", "tl"] }));
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(result.ok).toBe(true);
+    expect(statusOf(result, "locale-codes")).toBe("warn");
+    const detail = detailOf(result, "locale-codes");
+    expect(detail).toContain('"zh-hant-tw" is canonically "zh-Hant-TW"');
+    expect(detail).toContain('"iw" is canonically "he"');
+    expect(detail).toContain('"in" is canonically "id"');
+    expect(detail).toContain('"tl" is canonically "fil"');
+    expect(detail).toContain("never renamed");
+  });
+
+  it("covers the source locale too", async () => {
+    await writeConfig(validConfig({ sourceLocale: "EN", targetLocales: ["de"] }));
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(statusOf(result, "locale-codes")).toBe("warn");
+    expect(detailOf(result, "locale-codes")).toContain('"EN" is canonically "en"');
+  });
+
+  it("is skipped when the config cannot be loaded", async () => {
+    await writeConfig(validConfig({ targetLocales: ["en_US"] }));
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(statusOf(result, "config")).toBe("fail");
+    expect(detailOf(result, "config")).toContain('"en_US" is not a valid BCP 47 locale code');
+    expect(statusOf(result, "locale-codes")).toBe("skipped");
+  });
+});
+
+describe("doctor: the plural-rules check", () => {
+  it("names the ICU and CLDR versions the runtime derives plural categories from", async () => {
+    await writeConfig(validConfig({ targetLocales: ["de", "cs"] }));
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(statusOf(result, "plural-rules")).toBe("pass");
+    expect(detailOf(result, "plural-rules")).toContain(`ICU ${process.versions.icu}`);
+    expect(detailOf(result, "plural-rules")).toContain("every target locale has CLDR plural rules");
+  });
+
+  it("warns about a target locale ICU has no plural rules for without failing the run", async () => {
+    await writeConfig(validConfig({ targetLocales: ["de", "tlh"] }));
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(result.ok).toBe(true);
+    expect(statusOf(result, "plural-rules")).toBe("warn");
+    expect(detailOf(result, "plural-rules")).toContain('"tlh"');
+  });
+});
+
+describe("doctor: human-only mode", () => {
+  it("passes the provider and key checks, reporting machine translation disabled by policy", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", undefined);
+    await writeConfig(validConfig({ provider: { id: "none", options: {} } }));
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(result.ok).toBe(true);
+    expect(statusOf(result, "provider")).toBe("pass");
+    expect(detailOf(result, "provider")).toContain("Machine translation disabled by policy");
+    expect(statusOf(result, "api-key")).toBe("pass");
+    expect(detailOf(result, "api-key")).toContain("No API key is needed");
+    expect(providerFactoryCalls).toEqual([]);
   });
 });

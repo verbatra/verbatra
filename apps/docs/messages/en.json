@@ -5,13 +5,30 @@
       "text": "This page was translated automatically, so it may contain mistakes or read a little oddly. The English version is the source of truth.",
       "viewOriginal": "Read the English original"
     },
+    "outdatedTranslation": {
+      "title": "Translation may be out of date",
+      "text": "The English page changed after this translation."
+    },
     "notTranslated": {
       "title": "Not available in your language",
       "text": "This page has not been translated yet, so it is shown in English."
     },
+    "codeBlock": {
+      "output": "Output"
+    },
+    "callout": {
+      "note": "Note",
+      "warning": "Warning"
+    },
+    "pagination": {
+      "label": "Page navigation"
+    },
+    "breadcrumb": {
+      "label": "Breadcrumb"
+    },
     "availableFrom": {
       "title": "Available from {version}",
-      "text": "This needs verbatra {version} or newer. Earlier releases do not have it, so check your installed version with verbatra --version and upgrade if it is older.",
+      "text": "This needs verbatra {version} or newer. Earlier releases do not have it, so check your installed version with <code>verbatra --version</code> and upgrade if it is older.",
       "packageTitle": "Available from {version}",
       "packageText": "This needs {version} or newer. Earlier releases do not have it, so upgrade that package if yours is older."
     },
@@ -25,119 +42,83 @@
       "tablistLabel": "Screenshot theme",
       "dark": "Dark",
       "light": "Light"
+    },
+    "diffPanel": {
+      "label": "A diff showing only the changed translation key being re-translated",
+      "caption": "Only the changed key is sent to the provider. Current keys are left untouched."
+    },
+    "statusBadges": {
+      "new": "new"
+    },
+    "startHere": {
+      "title": "Start here",
+      "lead": "With `@verbatra/cli` installed, one command wires Claude Code, Codex, Gemini CLI, Cursor or VS Code to verbatra, spending off. Any other agent: paste the prompt.",
+      "markdown": "Start here: once `@verbatra/cli` is installed in the project, `{command}` wires your coding agent, spending off."
+    },
+    "mcpInstall": {
+      "label": "Add to {client}"
+    },
+    "theme": {
+      "light": "Light theme"
     }
   },
   "landing": {
     "meta": {
-      "title": "verbatra: incremental i18n translation for locale files",
-      "ogTitle": "verbatra: incremental i18n sync",
-      "description": "Keep your i18n locale files in sync. verbatra translates only the keys that changed, through your choice of AI or machine-translation provider. Start now.",
-      "ogDescription": "Keep i18n locale files in sync. Translate only changed keys.",
-      "ogImageAlt": "verbatra keeps your i18n locale files in sync and translates only the keys that changed.",
-      "definition": "verbatra is a CLI and SDK that keeps your i18n locale files in sync, translating only the keys that changed through your choice of AI or machine-translation provider."
-    },
-    "hero": {
-      "headline": "Translate only what changed.",
-      "lead": "verbatra diffs your source locale against a committed lock file, sends only the new and changed keys to the provider you choose, and leaves every other key untouched.",
-      "ctaGithub": "Star on GitHub",
-      "ctaStart": "Get started",
-      "facts": {
-        "release": "Latest release",
-        "formats": "File formats",
-        "providers": "Providers",
-        "license": "License"
-      }
-    },
-    "terminal": {
-      "sessionLabel": "An example verbatra command-line session.",
-      "transcript": {
-        "run": {
-          "l1": "diff en.json · 2 new · 1 changed · 117 unchanged",
-          "l2": "de  3 translated · 117 untouched · 0 withheld",
-          "l3": "es  3 translated · 117 untouched · 0 withheld",
-          "l4": "fr  3 translated · 117 untouched · 0 withheld",
-          "l5": "✓ 9 keys translated in 1.8s · 351 untouched · lock updated"
-        }
-      }
+      "title": "Verbatra: i18n CLI that translates only the changed keys",
+      "ogTitle": "Verbatra: translate only what changed",
+      "description": "Verbatra is an open source i18n CLI and SDK. It finds missing and changed keys in your locale files and translates only those with your own provider key.",
+      "ogDescription": "Translate only the i18n keys that changed, and fail CI while one is missing.",
+      "ogImageAlt": "Verbatra: Translate only what changed, above a check run that finds two missing keys per locale and a translate run that sends only those.",
+      "definition": "Verbatra is an open source CLI and SDK for i18n locale files. It sends only new and changed keys to the AI or machine-translation provider you pick and fails CI while a key is missing."
     },
     "install": {
-      "tablistLabel": "Package manager",
       "copy": "Copy",
       "copied": "Copied",
+      "copyFailed": "Copy failed",
       "copyAria": "Copy install command",
+      "copyAgentAria": "Copy the agent setup command",
+      "aiLabel": "Prompt for AI agents",
       "copyPromptAria": "Copy the AI agent setup prompt",
-      "pnpmNote": "pnpm installs correctly but exits 1 with ERR_PNPM_IGNORED_BUILDS, because it gates a dependency's install scripts. Run pnpm approve-builds once, or see",
-      "pnpmNoteLink": "Troubleshooting",
-      "aiTabLabel": "AI",
-      "aiCaption": "This is a truncated preview. Read the full prompt and setup walkthrough on",
-      "aiCaptionLink": "the setup guide",
-      "copyCommand": "Copy {command}"
-    },
-    "gate": {
-      "rows": {
-        "key": "key",
-        "candidate": "candidate",
-        "missing": "missing",
-        "reason": "reason",
-        "kept": "kept"
-      },
-      "annotations": {
-        "new": "new",
-        "kept": "kept"
-      }
-    },
-    "how": {
-      "heading": "Every run is a diff, not a rewrite.",
-      "steps": {
-        "configure": {
-          "title": "Configure",
-          "body": "Source locale, targets, one provider."
-        },
-        "diff": {
-          "title": "Diff",
-          "body": "New, changed, unchanged or orphaned, against the lock."
-        },
-        "translate": {
-          "title": "Translate",
-          "body": "Only new and changed keys go out."
-        },
-        "verifyWrite": {
-          "title": "Verify and write",
-          "body": "Broken results are withheld, the rest written."
-        }
-      }
+      "copyCommand": "Copy {command}",
+      "promptCta": "Start with a prompt",
+      "promptCopied": "Prompt copied",
+      "promptCopyFailed": "Could not copy the prompt. Select it in the preview and copy it by hand.",
+      "promptPreviewLabel": "Copies this prompt for your agent"
     },
     "faq": {
-      "heading": "Frequently asked questions",
+      "heading": "Before you install Verbatra",
+      "lead": "Short answers, each with the docs page that goes deeper.",
+      "docs": {
+        "label": "In the docs",
+        "quickstart": "Quickstart",
+        "safety": "Translation safety",
+        "compare": "Full comparison"
+      },
       "items": {
-        "formats": {
-          "question": "Which formats and frameworks does verbatra support?",
-          "answer": "JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, gettext .po/.pot files, INI, and .NET .resx. That covers React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android, and any gettext-based stack. verbatra reads the files you already have; there is no verbatra-specific format to migrate to."
-        },
-        "incremental": {
-          "question": "How does verbatra avoid re-translating everything on every run?",
-          "answer": "It keeps a committed lock file that records what was already translated. Each run diffs your source locale against that lock and sends only the new or changed keys to your provider. Unchanged keys are never touched, so a typical run costs a handful of strings, not your whole catalog."
+        "cost": {
+          "question": "Is Verbatra free?",
+          "answer": "Yes. Verbatra is free and open source under the <license>MIT license</license>, and you pay only your provider for the keys that changed; <link>estimating cost</link> sizes a run first."
         },
         "providers": {
-          "question": "Which translation providers can I use?",
-          "answer": "Six, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), and openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call."
+          "question": "Which translation providers does Verbatra support?",
+          "answer": "{providers}{pending, select, yes {, plus {upcoming} from {next}} other {}}. Set one in <code>provider</code>, or <code>none</code> when only people translate; the <link>providers page</link> covers each."
         },
-        "safety": {
-          "question": "What stops a bad translation from breaking my app?",
-          "answer": "Every result passes a placeholder and ICU integrity check before it is written. A translation that drops, invents, or reorders a placeholder, or produces invalid ICU message syntax, is withheld rather than saved to your locale file. The same gate applies to edits and retranslations made in Verbatra Studio."
+        "privacy": {
+          "question": "Does Verbatra send my strings or API keys anywhere?",
+          "answer": "Only to the provider you configure, when a command translates; there is no telemetry. Keys stay in environment variables, and <link>data handling</link> lists what each provider receives."
         },
-        "cost": {
-          "question": "What does verbatra cost?",
-          "answer": "verbatra itself is free and open source under the MIT license. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model."
+        "ci": {
+          "question": "Can Verbatra fail a pull request when translations are missing?",
+          "answer": "Yes. <code>verbatra check</code> exits 1 while a locale has missing or stale keys, with no API key needed; the <link>GitHub Action</link> runs it on pull requests."
+        },
+        "incremental": {
+          "question": "Does Verbatra re-translate strings that did not change?",
+          "answer": "No. Only new and changed keys go to your provider; a committed <link>lock file</link> records what is already translated."
         }
       }
     },
-    "finalClose": {
-      "heading": "Stop hand-syncing locale files.",
-      "docs": "Read the docs"
-    },
     "footer": {
-      "tagline": "Translate only what changed. An open-source CLI and SDK that keeps your i18n locale files in sync through the provider you choose.",
+      "tagline": "An open source CLI and SDK that keeps your i18n locale files in sync through the provider you choose.",
       "cols": {
         "product": {
           "title": "Product",
@@ -146,52 +127,49 @@
           "sdk": "SDK",
           "studio": "Studio",
           "mcpServer": "MCP server",
-          "githubAction": "GitHub Action"
-        },
-        "agents": {
-          "title": "For AI agents",
-          "llmsIndex": "llms.txt (index)",
-          "llmsFull": "llms-full.txt (full text)",
-          "aiTxt": "ai.txt (usage policy)"
-        },
-        "learn": {
-          "title": "Learn",
+          "githubAction": "GitHub Action",
           "howItWorks": "How it works",
           "providers": "Providers",
           "formats": "Formats",
           "lockFile": "The lock file",
-          "configFile": "Config file"
+          "configFile": "Config file",
+          "compare": "Comparison",
+          "llmsIndex": "llms.txt (index)",
+          "llmsFull": "llms-full.txt (full text)",
+          "aiTxt": "ai.txt (usage policy)"
+        },
+        "packages": {
+          "title": "Packages",
+          "releases": "Release notes"
         },
         "community": {
           "title": "Community",
+          "contributing": "Contributing",
           "codeOfConduct": "Code of conduct",
-          "security": "Security policy",
-          "releases": "Release notes"
+          "security": "Security policy"
         },
         "legal": {
           "title": "Legal",
+          "license": "MIT license",
           "privacy": "Privacy policy",
-          "imprint": "Imprint",
-          "contact": "Contact"
+          "imprint": "Legal notice (Impressum)",
+          "contact": "Contact",
+          "licenses": "Licenses"
         }
       },
-      "legalLine": "Open-source under the MIT License · © 2026 Mario Kreitz",
-      "githubAria": "verbatra on GitHub",
-      "npmAria": "verbatra on npm",
-      "contributorsTitle": "Contributors",
-      "contributorAria": "{name} on GitHub"
+      "versionParts": "CLI and SDK v{cli}, Studio v{studio}, MCP server v{mcp}",
+      "legalLicense": "Open source under the MIT license",
+      "legalCopyright": "© 2026 Mario Kreitz",
+      "githubAria": "Verbatra on GitHub",
+      "npmAria": "Verbatra on npm",
+      "language": "Language"
     },
     "brand": {
       "vmarkAlt": "verbatra"
     },
     "nav": {
       "docs": "Docs",
-      "providers": "Providers",
-      "formats": "Formats",
-      "contributing": "Contributing",
-      "startWithAi": "Start with AI",
-      "contact": "Contact",
-      "npm": "verbatra on npm",
+      "reference": "Reference",
       "languageSwitcher": {
         "chooseLanguage": "Choose a language",
         "triggerAriaSuffix": "choose a language",
@@ -200,128 +178,340 @@
       },
       "skipToContent": "Skip to content"
     },
-    "proof": {
-      "lock": {
-        "title": "The lock file",
-        "body": "One hash per key per locale, committed next to your files."
-      },
-      "written": {
-        "title": "Written, and only that",
-        "body": "de.json after the run."
-      },
-      "refused": {
-        "title": "Refused before it reaches the file",
-        "body": "Withheld, never written, sent again next run."
+    "topNav": {
+      "label": "Main",
+      "menu": {
+        "open": "Open menu",
+        "close": "Close menu",
+        "title": "Menu"
       }
+    },
+    "banner": {
+      "headline": "Translate only <accent>what changed</accent>",
+      "lead": "Verbatra fills the missing keys in your locale files, gives your coding agent an MCP server, and fails CI when translations drift.",
+      "ctaPrimary": "Get started",
+      "keysAdded": "+{count, plural, one {# key} other {# keys}}"
     },
     "marquee": {
-      "label": "Supported frameworks and formats",
-      "intro": "Works with the locale files you already have.",
-      "frameworksLabel": "Frameworks verbatra works with",
-      "formatsLabel": "File formats verbatra reads and writes",
-      "formatTip": "format: \"{id}\"",
-      "frameworks": {
-        "react": "i18next JSON",
-        "next": "next-intl JSON",
-        "vue": "vue-i18n JSON",
-        "nuxt": "vue-i18n JSON",
-        "angular": "ngx-translate JSON or XLIFF",
-        "node": "i18next JSON",
-        "svelte": "i18next JSON or YAML",
-        "astro": "i18next JSON or YAML",
-        "reactNative": "i18next JSON",
-        "flutter": "Flutter ARB",
-        "spring": "Java .properties",
-        "apple": ".strings and .xcstrings",
-        "android": "strings.xml",
-        "dotnet": ".resx"
-      }
+      "heading": "Works with the locale files and providers you already use",
+      "pause": "Pause animation",
+      "play": "Play animation",
+      "providers": "Providers",
+      "formats": "File formats",
+      "new": "New",
+      "allProviders": "All providers",
+      "allFormats": "All formats"
     },
-    "providers": {
-      "heading": "Six providers, one interface.",
-      "lead": "Switch by changing one line of config.",
-      "hint": "Hover or tab through the cards.",
-      "kinds": {
-        "anthropic": "Claude models",
-        "openai": "GPT models",
-        "gemini": "free tier available",
-        "deepl": "machine translation",
-        "googleTranslate": "machine translation",
-        "openaiCompatible": "Ollama, vLLM, LM Studio"
-      }
+    "statement": {
+      "label": "One run, one locale",
+      "heading": "<em>{sent} keys</em> leave your machine, {kept} stay put"
     },
-    "loop": {
-      "heading": "The rest of the translation loop, in the same tool.",
-      "rows": {
-        "excel": {
-          "title": "Hand a workbook to translators, import it back.",
-          "body": "Export, get it back filled in, import through the same gate.",
-          "cta": "Read about the Excel handoff"
-        },
-        "studio": {
-          "title": "See every locale's state in Verbatra Studio.",
-          "body": "Coverage, flagged entries, in-place edits. No provider call.",
-          "cta": "Review translations in Studio",
-          "alt": "The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
-        },
-        "ci": {
-          "title": "Run it on save, in CI, or from a GitHub Action.",
-          "body": "<code>watch</code> translates on change. <code>check</code> fails the pull request when a locale drifts.",
-          "cta": "Wire up CI"
-        },
-        "agent": {
-          "title": "Or hand it to your agent.",
-          "body": "An MCP server, plus installable skills for the CLI, MCP and Studio.",
-          "cta": "Start with AI"
-        }
+    "highlights": {
+      "heading": "Everything around the diff",
+      "lead": "A CLI, an SDK, a local Studio and an MCP server, all reading the same lock file.",
+      "translate": {
+        "label": "Translate",
+        "title": "Pay for {sent} strings, not {total}"
       },
-      "links": {
-        "llms": "llms.txt",
-        "llmsFull": "llms-full.txt",
-        "mcpDocs": "MCP server docs"
+      "ci": {
+        "label": "Check",
+        "title": "Drift fails the pull request",
+        "body": "The check exits {code} while a locale is missing keys. It needs no API key, so it runs on every pull request."
+      },
+      "integrity": {
+        "label": "Integrity",
+        "title": "Placeholders arrive intact"
+      },
+      "agents": {
+        "label": "Agents",
+        "title": "Your coding agent fixes translations",
+        "body": "Register the MCP server for the project, and the agent can read status and fix translations. Tools that spend provider tokens stay off until you allow them."
+      }
+    },
+    "playground": {
+      "heading": "Translate a string with the SDK",
+      "lead": "Pick a string and watch the SDK call translate it into every language below. Placeholders stay exactly in place.",
+      "items": "Source string",
+      "languages": "Target languages",
+      "source": "Source ({locale})",
+      "copy": "Copy code",
+      "label": "Pre-generated with the Verbatra SDK and Gemini, not live.",
+      "metadata": {
+        "label": "How these results were generated",
+        "provider": "Provider",
+        "model": "Model",
+        "generated": "Generated"
+      },
+      "languageNames": {
+        "de": "German",
+        "es": "Spanish",
+        "fr": "French",
+        "ja": "Japanese"
       },
       "table": {
-        "key": "key",
-        "source": "source",
-        "target": "target"
+        "caption": "Every pre-generated result, one row per source string",
+        "source": "Source (English)"
+      },
+      "links": {
+        "label": "Read more",
+        "quickstart": "SDK quickstart",
+        "reference": "SDK reference",
+        "providers": "Providers"
+      },
+      "animation": {
+        "pause": "Pause animation",
+        "play": "Play animation"
+      },
+      "status": {
+        "running": "Translating {strings, plural, one {# string} other {# strings}} into {languages, plural, one {# language} other {# languages}}",
+        "passed": "Integrity check passed: {intact} of {total} placeholders intact",
+        "passedNone": "Integrity check passed: no placeholders to protect"
+      },
+      "counters": {
+        "sent": "sent",
+        "kept": "kept",
+        "placeholders": "placeholders",
+        "checking": "checking"
+      },
+      "clock": {
+        "typing": "typing",
+        "running": "running",
+        "done": "done"
+      },
+      "run": {
+        "queued": "queued",
+        "awaiting": "awaiting",
+        "resolved": "resolved"
       }
     },
-    "gains": {
-      "heading": "What you actually get.",
-      "lead": "This page's German, Spanish and French come from it.",
+    "features": {
+      "label": "Features",
+      "heading": "Built for the whole translation workflow",
+      "lead": "From the first string in your source code to the reviewed translation in production.",
       "items": {
-        "cost": {
-          "title": "You pay for the keys you changed.",
-          "body": "Only new and changed keys go to the provider, and every run prints its token count per locale.",
-          "note": "a run on this site's messages"
-        },
-        "gate": {
-          "title": "A broken placeholder never reaches production.",
-          "body": "A candidate that drops a placeholder, breaks ICU or unbalances markup is withheld, never written, and sent again next run.",
-          "note": "the same gate guards Studio edits and imports"
-        },
-        "ci": {
-          "title": "Locale drift fails the pull request.",
-          "body": "<code>verbatra check</code> exits 1 when any locale is missing or stale, with <code>--json</code> for CI.",
-          "note": "this site runs it on every pull request"
-        },
-        "config": {
-          "title": "Your terms and register stay fixed.",
-          "body": "A glossary binds how listed terms are translated; <code>tone</code> sets formal, informal or neutral address.",
-          "note": "this site's verbatra.config.ts"
-        },
-        "git": {
-          "title": "Every translation is a git diff.",
-          "body": "Locale files and the lock are plain text in your repo, and nothing is removed without <code>--prune</code>.",
-          "note": "one hash per key per target locale"
+        "studio": {
+          "title": "Review in Studio",
+          "body": "A local dashboard over your project: browse every locale, work through the review queue and edit values in place."
         },
         "handoff": {
-          "title": "People and other tools can take over.",
-          "body": "Excel export and import for translators, TMX for translation memory, generated TypeScript types for your keys.",
-          "note": "four of the fourteen commands"
+          "title": "Hand off to people",
+          "body": "Export an Excel workbook for a translator and import it back. Imported values stay protected from later machine runs."
+        },
+        "extract": {
+          "title": "Extract from source",
+          "body": "Scan your code for translation calls and add the new keys to the source locale before anyone translates them."
+        },
+        "watch": {
+          "title": "Watch while you build",
+          "body": "Keep a watcher running in development, and every change to the source locale is translated as you save."
+        },
+        "types": {
+          "title": "Typed keys",
+          "body": "Generate TypeScript declarations for your keys and message arguments, so a typo in a key fails the build."
+        },
+        "doctor": {
+          "title": "Know before you spend",
+          "body": "Doctor checks the setup without an API key, and an estimate sizes a run before it costs anything."
         }
       }
+    },
+    "steps": {
+      "items": {
+        "check": {
+          "title": "Check",
+          "body": "`verbatra check` compares the source, the targets and the lock file. It calls no provider and needs no key."
+        },
+        "translate": {
+          "title": "Translate",
+          "body": "`verbatra translate` sends only missing and changed keys, and refuses any result with mismatched placeholders, broken inline markup or invalid ICU syntax."
+        },
+        "ci": {
+          "title": "Gate in CI",
+          "body": "The GitHub Action runs `check` on each pull request and fails it while a locale is out of sync."
+        }
+      }
+    },
+    "compare": {
+      "columns": {
+        "criterion": "Criterion",
+        "manual": "Manual workflow"
+      },
+      "rows": {
+        "license": {
+          "label": "Open source, license",
+          "verbatra": "Yes, MIT",
+          "lingo": "Repository Apache-2.0; the current CLI has no license field; the platform is not described as open source",
+          "tolgee": "Apache-2.0 core, enterprise parts under a non-commercial license; CLI MIT",
+          "weblate": "Yes, GPL-3.0-or-later, the `wlc` CLI too",
+          "crowdin": "CLI and GitHub Action MIT; no public platform source found",
+          "lokalise": "CLI BSD-3-Clause; no public platform source found",
+          "phrase": "CLI and setup-cli Action MIT; no public platform source found",
+          "manual": "Not applicable, no product"
+        },
+        "selfHosting": {
+          "label": "Self-hosting",
+          "verbatra": "Runs on your machine and in your CI; there is no hosted service",
+          "lingo": "No self-hosted platform offering found; the older open source CLI can run against a local Ollama model",
+          "tolgee": "Yes; advanced features need a license",
+          "weblate": "Yes, or hosted by Weblate",
+          "crowdin": "Unknown: the pricing page names no on-premises option and no statement either way was found",
+          "lokalise": "No: on-premises and private cloud deployments are not supported",
+          "phrase": "Unknown: the pricing page names no self-hosted option and no statement either way was found",
+          "manual": "Not applicable, no product; depends on the service you choose"
+        },
+        "pricing": {
+          "label": "Pricing model",
+          "verbatra": "Free; your provider bills its usage to you directly",
+          "lingo": "Usage-based, with a free Sandbox tier",
+          "tolgee": "Free plan; paid tiers priced by hosted words",
+          "weblate": "Hosted: priced by hosted strings, free Libre plan for public open source projects; self-hosted: free",
+          "crowdin": "Paid plans priced mainly by hosted words; trials; free licenses for open source projects",
+          "lokalise": "Four paid tiers, 14-day trial",
+          "phrase": "Paid plans metered by seats and words, 14-day trial",
+          "manual": "Developer time plus the service you choose, no product"
+        },
+        "providers": {
+          "label": "AI and machine translation providers",
+          "verbatra": "Built in: {providers}",
+          "lingo": "LLMs from many vendors, among them OpenAI, Anthropic and Google; no classic machine translation engine such as DeepL listed",
+          "tolgee": "Machine translation: DeepL, Google, Amazon, Azure, Baidu (self-hosted only); LLMs: OpenAI, Azure OpenAI, Anthropic, Gemini, OpenAI-compatible APIs",
+          "weblate": "29 built-in services, including DeepL, OpenAI, Anthropic and LibreTranslate",
+          "crowdin": "Machine translation: DeepL, Google, Microsoft, Amazon and more; AI: OpenAI, Anthropic, Gemini and more",
+          "lokalise": "Google Translate and DeepL; LLMs in Pro AI",
+          "phrase": "Phrase Language AI, Google, Amazon, Microsoft; DeepL removed from Strings on 2026-06-30",
+          "manual": "Any service you paste into, no product"
+        },
+        "ownKeys": {
+          "label": "Bring your own API keys",
+          "verbatra": "Yes, from environment variables only",
+          "lingo": "An Enterprise feature per the pricing page; the older open source CLI uses your own keys",
+          "tolgee": "LLM keys yes; own machine translation keys stated for self-hosted",
+          "weblate": "Yes, administrators set up each service with their own credentials",
+          "crowdin": "Yes: third-party machine translation engines take your own keys; AI providers use your own key or are managed by Crowdin",
+          "lokalise": "Unknown: not mentioned in the machine translation and AI docs",
+          "phrase": "Ecosystem engines under your own contract; within Strings not confirmed",
+          "manual": "Your own accounts, no product"
+        },
+        "incremental": {
+          "label": "Incremental translation",
+          "verbatra": "Yes, a per-key hash in a lock file",
+          "lingo": "Yes, a lockfile diff in the CLI",
+          "tolgee": "Auto-translates untranslated targets (2.x docs)",
+          "weblate": "Automatic translation add-on for strings not yet translated",
+          "crowdin": "Pre-translation can be limited to \"Untranslated strings\"",
+          "lokalise": "Automations and pre-translation fill empty values",
+          "phrase": "Pre-translation fills empty translations and skips keys that already have one",
+          "manual": "By hand, no product"
+        },
+        "cli": {
+          "label": "Command-line tool (CLI)",
+          "verbatra": "Yes, `verbatra`",
+          "lingo": "Yes, `@lingo.dev/cli`; the older open source CLI `lingo.dev` is still published",
+          "tolgee": "Yes, `@tolgee/cli`, MIT",
+          "weblate": "Yes, `wlc`",
+          "crowdin": "Yes, Crowdin CLI",
+          "lokalise": "Yes, Lokalise CLI v2",
+          "phrase": "Yes, Phrase Strings CLI",
+          "manual": "Not applicable, no product"
+        },
+        "ci": {
+          "label": "CI and GitHub Action",
+          "verbatra": "Official Action; `check` exits 1 on missing or stale keys",
+          "lingo": "GitHub App; the repository also ships an action.yml",
+          "tolgee": "No official Action found",
+          "weblate": "Git integration that pushes commits and opens pull requests; no official GitHub Action found",
+          "crowdin": "Official GitHub Action",
+          "lokalise": "Official push and pull GitHub Actions",
+          "phrase": "CLI in CI; official setup-cli GitHub Action",
+          "manual": "Not applicable, no product"
+        },
+        "mcp": {
+          "label": "MCP server",
+          "verbatra": "Yes, local over stdio",
+          "lingo": "Yes",
+          "tolgee": "Yes",
+          "weblate": "No official MCP server found",
+          "crowdin": "Yes, hosted",
+          "lokalise": "Yes, hosted, in beta",
+          "phrase": "Yes, hosted, signed in with a Phrase account",
+          "manual": "Not applicable, no product"
+        },
+        "inContext": {
+          "label": "In-context editing",
+          "verbatra": "No",
+          "lingo": "Unknown: not mentioned in the platform docs or the repository README",
+          "tolgee": "Yes, Alt-click or Option-click on an element opens the editor",
+          "weblate": "No official in-context editor found",
+          "crowdin": "Yes, Crowdin In-Context",
+          "lokalise": "Yes, the LiveJS web editor",
+          "phrase": "Yes, In-Context Editor with official framework adapters",
+          "manual": "Not applicable, no product"
+        },
+        "translatorUi": {
+          "label": "Web interface for translators",
+          "verbatra": "Local review dashboard (Studio); no hosted interface",
+          "lingo": "Web platform for engine configuration; no official string editor for translators found",
+          "tolgee": "Yes, the web platform, hosted or self-hosted",
+          "weblate": "Yes, a web translation interface",
+          "crowdin": "Yes, the online editor in the browser",
+          "lokalise": "Project key editor documented; the page does not say it is web-based",
+          "phrase": "Yes, the Strings Editor in the browser",
+          "manual": "The chosen service's own interface, no product"
+        },
+        "formats": {
+          "label": "File formats",
+          "verbatra": "{count} formats, listed in the docs",
+          "lingo": "18 listed",
+          "tolgee": "17 on the overview page",
+          "weblate": "50 listed",
+          "crowdin": "17 listed for string-based projects",
+          "lokalise": "30 listed",
+          "phrase": "47 format entries listed",
+          "manual": "Whatever you copy by hand, no product"
+        }
+      },
+      "sourceRef": "Source {number}, {tool}",
+      "noteRef": "Note M, manual workflow",
+      "sources": "Sources",
+      "manualNote": "The manual workflow is not a product, so it has no source: the column describes copying strings into a translation service and back by hand.",
+      "lastChecked": "Last checked",
+      "fairness": "Verbatra is a CLI and SDK; the other columns are translation platforms and a manual workflow, compared as ways to keep locale files translated. Each cell states what the vendor's own pages said on that date, and \"no official ... found\" means our search found none, not that the product lacks it.",
+      "scrollHint": "Scroll the table sideways to see every column."
+    },
+    "openSource": {
+      "newTab": "(opens in a new tab)",
+      "contributorsHeading": "Contributors",
+      "contributorAria": "{name} on GitHub",
+      "contributorSlot": "Your avatar here",
+      "contributorSlotHint": "find an issue to start with"
+    },
+    "closing": {
+      "heading": "Start with a dry run",
+      "lead": "After init, a dry run needs no API key, writes nothing and lists exactly which keys a real run would send.",
+      "label": "Before you spend a token"
+    },
+    "fab": {
+      "label": "Back to top"
     }
+  },
+  "compare": {
+    "meta": {
+      "title": "Compare Verbatra with Lingo.dev, Tolgee, Crowdin and more",
+      "description": "Verbatra vs Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise and Phrase: license, providers, own API keys, CI, MCP and formats, each with a dated source.",
+      "ogImageAlt": "How Verbatra compares, with the verbatra wordmark"
+    },
+    "heading": "How Verbatra compares",
+    "lead": "Verbatra next to Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase and a manual workflow. Every product cell says what the vendor's own pages stated and links its source; the manual column cites note M.",
+    "caption": "Ways to keep locale files translated: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase and a manual workflow",
+    "lingoNote": "Lingo.dev cells refer to the current `@lingo.dev/cli` and the hosted platform unless they name the older open source CLI `lingo.dev`.",
+    "formatsNote": "Format counts come from each vendor's own list and are not normalized against each other.",
+    "concession": "Tolgee, Crowdin, Lokalise and Phrase offer in-context editing, which Verbatra does not. For review, Verbatra has the local Studio dashboard, not a hosted editor for translators.",
+    "sourcesChecked": "Every source below was checked on {date}.",
+    "nextHeading": "Try it yourself",
+    "quickstart": "Start with the quickstart",
+    "home": "Back to the Verbatra home page",
+    "breadcrumbHome": "Home",
+    "breadcrumbCompare": "Compare"
   },
   "legal": {
     "privacy": {
@@ -331,30 +521,37 @@
       },
       "title": "Privacy policy",
       "lastUpdatedLabel": "Last updated",
-      "disclaimer": "This is a translation for convenience. In case of any discrepancy, the English version prevails.",
+      "languageVersions": "This privacy policy is available in English, German, Spanish, and French. All four language versions have the same content and are equally binding.",
       "s1": {
         "heading": "1. Responsible party",
-        "body": "The party responsible for data processing on this site is Mario Kreitz, Germany. You can reach us by email at <email>info@kreitz-webdev.de</email>."
+        "body": "The party responsible for data processing on this site is Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Germany (the same details as in the <imprint>legal notice (Impressum)</imprint>). You can reach us by email at <email>info@kreitz-webdev.de</email>. No data protection officer has been appointed, because neither Art. 37 GDPR nor § 38 BDSG (German Federal Data Protection Act) requires one for this site."
       },
       "s2": {
         "heading": "2. Overview",
-        "body": "This site is built to respect your privacy. It sets no cookies, runs no cross-site tracking, and collects only the minimal data needed to operate the site and understand aggregate usage. The sections below explain exactly what is processed and why."
+        "body": "This site is built to respect your privacy. It loads no third-party or analytics scripts in your browser, runs no cross-site tracking, sets a cookie only if you object to analytics (section 5), and collects only the minimal data needed to operate the site and understand aggregate usage. The sections below explain exactly what is processed and why."
       },
       "s3": {
         "heading": "3. Server logs and hosting",
-        "body": "The site is self-hosted on a virtual server at <contabo>Contabo</contabo>, managed with Plesk. When you visit, the server processes standard access logs that may include your IP address, the date and time of the request, the requested URL, the referring page, and your browser's user-agent string. This data is used to operate and secure the site, for example to deliver pages, diagnose errors, and defend against abuse. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in a secure, functioning service). These logs are retained only for a short period."
+        "body": "The site is self-hosted on a virtual server rented from <contabo>Contabo</contabo> (Contabo GmbH, Welfenstraße 22, 81541 Munich, Germany) and managed with Plesk. Contabo provides the server infrastructure and, in doing so, processes the data described in this section and in section 4 on our behalf as a processor (Art. 28 GDPR). When you visit, the web server processes standard access logs that may include your IP address, the date and time of the request, the requested URL, the referring page, and your browser's user-agent string. The application that serves the site also writes operational and error messages to its own container log, for example when a contact form notification cannot be sent. This data is used to operate and secure the site, for example to deliver pages, diagnose errors, and defend against abuse. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in a secure, functioning service). The web server's access logs are deleted as soon as they are no longer needed for these purposes. The container log is rotated automatically and limited to 3 files of 10 MB each; once that limit is reached, the oldest file is deleted."
       },
       "s4": {
         "heading": "4. Analytics",
-        "body": "We use Umami, a privacy-friendly analytics tool that we self-host. Umami is <strong>cookieless and does not collect personal data or use cross-site fingerprinting</strong>. It records only aggregated metrics such as page views, referrers, approximate country, and browser, operating system, and device type. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in understanding how the site is used). You can read more about Umami in its <umami>documentation</umami>."
+        "body": "We count page views with Umami, an open-source analytics tool that we host ourselves on the same server as this site (see section 3), so no analytics data is passed to a third party. No analytics script runs in your browser, and nothing is written to your device for counting page views. The only thing read from your device in connection with analytics is the opt-out cookie described in section 5, and only to honour your objection. Instead, when your browser loads a page of this site directly (not when it prefetches one in the background), our web server forwards the following details of that request to our Umami server: your IP address, your browser's user-agent string, the first language tag of your browser's Accept-Language header (for example en-US), which is forwarded with each page view, the referring page (without its query string) and the path of the page you loaded together with the five UTM parameters of the page address (utm_source, utm_medium, utm_campaign, utm_term and utm_content, each shortened to 255 characters); all other query parameters, such as advertising click identifiers, and the fragment are discarded and not forwarded. Clicks, copied text and other interactions are not recorded. <strong>Your IP address and user-agent string themselves are not stored.</strong> The Umami server computes a pseudonymous session identifier by hashing the website ID, your IP address, your user-agent string, a value that changes every month and a secret key of the server. With each page view it stores that identifier, the time, the page path with any of those UTM parameters and the referring page, and for the session that language tag, your browser, operating system and device type (derived from the user-agent string), and your country, region and city, which it looks up from your IP address in a GeoLite2 database on the same server without contacting any other service. Because the session identifier is derived from your IP address, this is pseudonymous rather than anonymous processing of personal data. We only look at the results in aggregate and do not try to identify individual visitors. Because nothing is stored on your device for counting page views and the opt-out cookie is read only to honour your objection, no consent under § 25 TDDDG (German Telecommunications Digital Services Data Protection Act) is required for it. The legal basis for the processing is Art. 6(1)(f) GDPR (our legitimate interest in understanding how the site is used). The analytics records are stored in the Umami database on this server. If your browser sends a Global Privacy Control (GPC) or Do Not Track signal, nothing is forwarded. You can also object with the button below: it sets the cookie described in section 5, and while your browser sends that cookie, nothing is forwarded either. An opt-out saved in your browser's local storage under this site's earlier analytics setup is no longer read; if you opted out that way, please opt out again here. You can read more about Umami in its <umami>documentation</umami>.",
+        "optOut": {
+          "optOut": "Opt out of analytics",
+          "optIn": "Allow analytics again",
+          "statusOptedOut": "Saved: you have opted out. Your page views are not counted while this browser keeps the cookie.",
+          "statusOptedIn": "Saved: analytics is allowed again. Your page views are counted unless your browser sends a GPC or Do Not Track signal.",
+          "signals": "If your browser sends a Global Privacy Control (GPC) or Do Not Track signal, your page views are not counted, whichever button you choose. The buttons work without JavaScript."
+        }
       },
       "s5": {
         "heading": "5. Cookies",
-        "body": "This site sets no cookies. Because nothing requiring consent is stored on your device, no cookie consent banner is required."
+        "body": "This site sets a cookie only when you object to analytics with the button in section 4: the cookie verbatra_analytics_optout with the value 1, valid for one year, which only stores your objection so that our server stops forwarding your page views. It is set only at your request and is strictly necessary for that purpose, so it needs no consent (§ 25(2) no. 2 TDDDG). Allowing analytics again deletes it. No other cookies are set. Two choices you make are saved in your browser's storage. When you switch between the light and dark theme, your choice is saved in local storage under the key theme. When you pick a package manager (npm, pnpm, yarn or bun) on the tabs above an install command, your choice is saved under the key package-manager in both local storage and session storage, so that the other install commands show the same package manager. Neither entry is written before you make that choice; both stay in your browser, are never sent to our server or anyone else, and you can delete them at any time by clearing this site's data in your browser. Because nothing requiring consent is stored on your device, no cookie consent banner is required."
       },
       "s6": {
         "heading": "6. Fonts and assets",
-        "body": "Fonts are self-hosted: they are bundled at build time, so no requests are made to Google Fonts or any other third party when you load a page. The one exception is status badges: the home page and the testing page embed live badge images from GitHub, Codecov, and shields.io that show the current build, coverage, version, and license. Loading these images transmits your IP address to those providers, which act as independent controllers under their own privacy policies. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in showing accurate project status). Apart from these badges and the self-hosted Umami script described above, no third-party scripts or embeds load at runtime."
+        "body": "Fonts and images, including the contributor avatars on the home page, are self-hosted: they are served from this site's own server, so loading a page makes no request to Google Fonts, GitHub, or any other third party. The site embeds no status badges. No third-party scripts, images, or embeds load at runtime, and no analytics script runs in your browser. External sites such as GitHub or npm are only contacted when you follow a link to them."
       },
       "s7": {
         "heading": "7. GitHub and npm",
@@ -362,31 +559,35 @@
       },
       "s8": {
         "heading": "8. Your rights",
-        "body": "Under the GDPR you have the rights of access, rectification, erasure, restriction of processing, objection, and data portability (Art. 15–21 GDPR). You also have the right to lodge a complaint with a supervisory authority. To exercise any of these rights, contact us using the details below."
+        "body": "Under the GDPR you have the rights of access, rectification, erasure, restriction of processing, objection, and data portability (Art. 15–21 GDPR); the right to object is set out separately in section 9. You also have the right to lodge a complaint with a supervisory authority (Art. 77 GDPR). The supervisory authority responsible for us is \"Der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg\" (the State Commissioner for Data Protection and Freedom of Information of Baden-Württemberg), Heilbronner Straße 35, 70191 Stuttgart, Germany, <lfdi>www.baden-wuerttemberg.datenschutz.de</lfdi>. To exercise any of these rights, contact us using the details below."
+      },
+      "objection": {
+        "heading": "9. Right to object (Art. 21 GDPR)",
+        "body": "Where we process your personal data on the basis of Art. 6(1)(f) GDPR (legitimate interests), as described in sections 3, 4, and 12, <strong>you have the right to object to that processing at any time</strong>, on grounds relating to your particular situation. If you object, we will no longer process the personal data concerned unless we can demonstrate compelling legitimate grounds for the processing that override your interests, rights, and freedoms, or the processing serves the establishment, exercise, or defence of legal claims. An informal message to <email>info@kreitz-webdev.de</email> is enough to object."
       },
       "s9": {
-        "heading": "9. Contact",
+        "heading": "10. Contact",
         "body": "For any privacy-related questions or requests, email <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
-        "heading": "10. Changes to this policy",
+        "heading": "11. Changes to this policy",
         "body": "We may update this privacy policy as the site evolves or as legal requirements change. The date below reflects the most recent revision."
       },
       "s11": {
-        "heading": "11. Contact form",
-        "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. The notification email is sent directly through our own mail server, hosted in Germany; no third-party email provider is involved in delivering it, and delivering it involves no transfer of data outside the EU. The only third-party processor involved under Art. 28 GDPR is Arcjet, which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse; this data is retained for a period set by our Arcjet plan, currently up to one hour on the free tier. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are retained only as long as necessary to handle the inquiry and are not stored anywhere beyond the operator's inbox."
+        "heading": "12. Contact form",
+        "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. The notification email is sent directly through our own mail server, hosted in Germany; no third-party email provider is involved in delivering it, and delivering it involves no transfer of data outside the EU. Besides the hosting provider (see section 3), the only processor involved under Art. 28 GDPR is Arcjet (Arcjet Labs, Inc., San Francisco, USA), which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse. According to <arcjetprivacy>Arcjet's privacy documentation</arcjetprivacy>, Arcjet retains this request data for 30 days and retains aggregated data derived from it for longer. Arcjet is based in the United States and does not guarantee that requests are processed in the EU, so this data may be transferred to the United States, a third country (Art. 44 ff. GDPR). Arcjet is not certified under the EU-U.S. Data Privacy Framework, so the European Commission's adequacy decision for that framework does not cover this transfer; it is instead based on the EU Standard Contractual Clauses (Art. 46(2)(c) GDPR). You can request a copy of these safeguards by emailing <email>info@kreitz-webdev.de</email>. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are not stored anywhere beyond the operator's inbox. They are deleted once your inquiry has been fully handled."
       },
       "s12": {
-        "heading": "12. AI-assisted translation",
-        "body": "This project, verbatra, is an AI-assisted translation tool, and this documentation site uses it on itself: the interface text is translated into German, Spanish, and French with the help of AI language models. The longer documentation pages are AI-translated too, in a separate step outside that automated pipeline. Translated content is reviewed before publication. We note this here voluntarily, for transparency, not because a specific legal disclosure requirement applies to it."
+        "heading": "13. AI-assisted translation",
+        "body": "This project, verbatra, is an AI-assisted translation tool, and this documentation site uses it on itself. English is the source language. The interface text (navigation, buttons, and similar strings) is machine-translated into German, Spanish, and French by verbatra with Google's Gemini language model. The documentation pages are translated with AI as well, in a separate step outside that automated pipeline. Some texts, including parts of these legal pages, were written or corrected directly instead of being generated by that pipeline. Translations are checked on a best-effort basis: not every translated text is reviewed by a person before it is published, so a translation may contain errors. If you notice one, please tell us through the <contact>contact form</contact>. We provide this information voluntarily, for transparency."
       }
     },
     "imprint": {
       "meta": {
-        "title": "Imprint",
+        "title": "Legal notice (Impressum)",
         "description": "Legal disclosure (Impressum) for the verbatra documentation site."
       },
-      "intro": "This legal notice (Impressum) is provided in German as required by German law.",
+      "intro": "Legal notice (Impressum) for this website. The details below are given in German.",
       "lastUpdatedLabel": "Last updated",
       "contactLinkNote": "For a fast electronic response, you can also use our <link>online contact form</link>."
     },
@@ -396,7 +597,8 @@
         "description": "Get in touch with the verbatra documentation site operator."
       },
       "title": "Contact",
-      "intro": "Use this form to reach the site operator directly. This is a second, direct electronic contact channel alongside the email address in the Imprint.",
+      "intro": "Use this form to reach the site operator directly. This is a second, direct electronic contact channel alongside the email address in the <imprint>legal notice (Impressum)</imprint>.",
+      "privacyNotice": "We use your name, email address, and message only to answer your inquiry and delete them once it has been handled. Details are in the <privacy>privacy policy</privacy>.",
       "form": {
         "nameLabel": "Name",
         "namePlaceholder": "Your name",
@@ -412,6 +614,7 @@
         "errorBody": "We could not send your message. Please try again in a moment.",
         "rateLimitedBody": "You have sent too many messages recently. Please try again later.",
         "validationErrorBody": "Please fix the highlighted fields and try again.",
+        "noScript": "The form needs JavaScript to send your message. Without it, write to the email address in the <imprint>legal notice (Impressum)</imprint> instead.",
         "errors": {
           "required": "This field is required.",
           "invalid_email": "Enter a valid email address.",
@@ -419,6 +622,24 @@
           "too_long": "This field is too long."
         }
       }
+    },
+    "licenses": {
+      "meta": {
+        "title": "Licenses",
+        "description": "Licenses of the third-party software, fonts and assets that the verbatra documentation site ships."
+      },
+      "title": "Licenses",
+      "intro": "verbatra itself is MIT licensed. This site also ships third-party packages, fonts and assets, each under its own license. The list and the license texts below are given in English, as their authors wrote them."
     }
+  },
+  "notFound": {
+    "meta": {
+      "title": "Page not found",
+      "description": "This page does not exist on the verbatra site."
+    },
+    "title": "This page does not exist",
+    "lead": "The address may be mistyped, or the page has moved. The docs and the home page are a good place to start.",
+    "home": "Go to the home page",
+    "docs": "Open the docs"
   }
 }

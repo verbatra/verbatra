@@ -1,5 +1,16 @@
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { defaultAdapterRegistry, makeContext, makeProject, nodeFs } from "../test-support.js";
+import {
+  baseLoadedConfig,
+  baseVerbatraConfig,
+  defaultAdapterRegistry,
+  makeContext,
+  makeProject,
+  makeTempDir,
+  nodeFs,
+  writeJsonFile,
+} from "../test-support.js";
 import { keyValueTool } from "./key-value.js";
 
 describe("key.value", () => {
@@ -13,8 +24,11 @@ describe("key.value", () => {
 
     expect(outcome).toEqual({
       kind: "ok",
-      result: { source: "Hello", target: "Hallo" },
-      structuredContent: { source: "Hello", target: "Hallo" },
+      result: {
+        source: "Hello",
+        target: "Hallo",
+        provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+      },
     });
   });
 
@@ -29,7 +43,6 @@ describe("key.value", () => {
     expect(outcome).toEqual({
       kind: "ok",
       result: { source: "Hello" },
-      structuredContent: { source: "Hello" },
     });
   });
 
@@ -51,5 +64,34 @@ describe("key.value", () => {
     const outcome = await keyValueTool.execute({ locale: "", key: "greeting" }, makeContext());
 
     expect(outcome.kind).toBe("invalid");
+  });
+
+  it("returns the description the source file gives translators for the key", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "en.arb"), {
+      "@@locale": "en",
+      greeting: "Hello",
+      "@greeting": { description: "Shown on the home page" },
+    });
+    await writeJsonFile(join(dir, "locales", "de.arb"), { "@@locale": "de", greeting: "Hallo" });
+
+    const outcome = await keyValueTool.execute(
+      { locale: "de", key: "greeting" },
+      makeContext({
+        cwd: dir,
+        config: baseLoadedConfig({
+          config: baseVerbatraConfig({
+            format: "arb",
+            files: { pattern: "locales/{locale}.arb" },
+          }),
+        }),
+      }),
+    );
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: { source: "Hello", target: "Hallo", description: "Shown on the home page" },
+    });
   });
 });

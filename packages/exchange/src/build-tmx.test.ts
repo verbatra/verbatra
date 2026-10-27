@@ -196,3 +196,35 @@ describe("removedCharacterCount counts what buildTmx has to leave out", () => {
     ).toBe(0);
   });
 });
+
+describe("buildTmx writes translation properties", () => {
+  const document = buildTmx({
+    sourceLanguage: "en",
+    units: [
+      {
+        source: "Hello",
+        translations: [
+          {
+            language: "de",
+            text: "Hallo",
+            properties: [
+              { type: "x-origin", value: "machine" },
+              { type: "x-review", value: "a & <b>" },
+            ],
+          },
+          { language: "fr", text: "Bonjour" },
+        ],
+      },
+    ],
+  });
+
+  it("writes each property before the segment, in order, with its value escaped", () => {
+    expect(document).toContain(
+      '<tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">a &amp; &lt;b&gt;</prop><seg>Hallo</seg></tuv>',
+    );
+  });
+
+  it("writes a translation without properties as a bare segment", () => {
+    expect(document).toContain('<tuv xml:lang="fr"><seg>Bonjour</seg></tuv>');
+  });
+});

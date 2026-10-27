@@ -1,26 +1,26 @@
 import { join } from "node:path";
-import type { DelimitedFormat } from "@verbatra/exchange";
 import { z } from "zod";
 import type { SdkFs } from "../../fs.js";
+import type { HandoffFamily } from "./exchange-format.js";
 
 const MANIFEST_VERSION = 1;
 
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 
-function exportManifestFileName(format: DelimitedFormat): string {
-  return `.verbatra-export-${format}.json`;
+export function exportManifestFileName(family: HandoffFamily): string {
+  return `.verbatra-export-${family}.json`;
 }
 
 const manifestSchema = z.object({
   version: z.number().int().positive(),
-  format: z.enum(["csv", "tsv"]),
+  format: z.enum(["csv", "tsv", "xliff"]),
   locales: z.array(z.string()),
 });
 
 export async function writeExportManifest(
   fs: SdkFs,
   directory: string,
-  format: DelimitedFormat,
+  format: HandoffFamily,
   locales: readonly string[],
 ): Promise<void> {
   const manifest = { version: MANIFEST_VERSION, format, locales: [...locales] };
@@ -33,7 +33,7 @@ export async function writeExportManifest(
 export async function readExportedLocales(
   fs: SdkFs,
   directory: string,
-  format: DelimitedFormat,
+  format: HandoffFamily,
 ): Promise<ReadonlySet<string> | undefined> {
   const read = await fs.readFileBounded(
     join(directory, exportManifestFileName(format)),

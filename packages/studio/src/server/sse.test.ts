@@ -2,6 +2,8 @@ import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSseHub, type SseClientResponse } from "./sse.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 interface FakeResponse extends SseClientResponse {
   writes: string[];
   ended: boolean;
@@ -79,10 +81,23 @@ describe("createSseHub: broadcast and heartbeat", () => {
     const response = fakeResponse();
     hub.register(response);
 
-    hub.broadcastRefresh({ reason: "source", at: "sk-abcdefgh12345678" });
+    hub.broadcastRefresh({ reason: "source", at: `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z` });
 
-    expect(response.writes[0]).not.toContain("sk-abcdefgh12345678");
+    expect(response.writes[0]).not.toContain(`${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`);
     expect(response.writes[0]).toContain("[REDACTED]");
+    hub.closeAll();
+  });
+
+  it("redacts a key that follows a JSON escape in the serialized frame", () => {
+    const hub = createSseHub();
+    const response = fakeResponse();
+    hub.register(response);
+    const key = `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`;
+
+    hub.broadcastRefresh({ reason: "source", at: `line\n${key}` });
+
+    expect(response.writes[0]).not.toContain(key);
+    expect(response.writes[0]).toContain("line\\n[REDACTED]");
     hub.closeAll();
   });
 

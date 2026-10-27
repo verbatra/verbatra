@@ -10,9 +10,9 @@
  *
  * It is an open union (`(string & {})` at the end), so unknown or newly released model IDs are
  * still accepted. Type-only: it informs editor completions and is never validated at runtime,
- * where the schema stays `z.string().min(1)`. The list is current as of `@google/genai` 2.17.1
- * and does not update automatically; refresh it by hand when adopting a newer SDK version that
- * adds models worth completing on.
+ * where the schema stays `z.string().min(1)`. The list was last refreshed against
+ * `@google/genai` 2.17.1 and does not update automatically; refresh it by hand when adopting a
+ * newer SDK version that adds models worth completing on.
  */
 export type GeminiModel =
   | "gemini-2.5-flash"

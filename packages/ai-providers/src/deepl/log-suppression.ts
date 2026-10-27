@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import log from "loglevel";
+import { loadSdkModule } from "../lazy-sdk.js";
 
 interface LevelSettableLogger {
   setLevel(level: "silent"): void;
@@ -27,6 +27,7 @@ export function silenceDeeplLogger(instances: readonly (LoglevelInstance | undef
   }
 }
 
-export function silenceSdkLogging(): void {
+export async function silenceSdkLogging(): Promise<void> {
+  const { default: log } = await loadSdkModule("loglevel", () => import("loglevel"));
   silenceDeeplLogger([log, resolveDeeplLoglevel()]);
 }

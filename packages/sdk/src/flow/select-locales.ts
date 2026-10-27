@@ -2,7 +2,7 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 
 export function selectLocales(
-  config: VerbatraConfig,
+  config: Pick<VerbatraConfig, "targetLocales">,
   requested?: readonly string[],
 ): readonly string[] {
   if (requested === undefined) {
@@ -20,4 +20,37 @@ export function selectLocales(
   }
   const wanted = new Set(requested);
   return config.targetLocales.filter((locale) => wanted.has(locale));
+}
+
+/**
+ * Refuses a locale that is not one of the config's target locales. It returns nothing for a
+ * configured target, and throws otherwise with the same structured error, and the same message,
+ * that every SDK flow taking a `locales` filter raises, so a surface that takes a single locale
+ * of its own fails exactly as the SDK does.
+ *
+ * @param config - The resolved config, or any object carrying its `targetLocales`.
+ * @param locale - The locale to check, compared exactly as configured.
+ *
+ * @throws {@link SdkError} `UNKNOWN_LOCALE`: the locale is not a configured target locale.
+ *
+ * @example
+ * ```ts
+ * import {
+ *   assertTargetLocale,
+ *   glossaryForLocale,
+ *   loadConfigWithMeta,
+ *   readCurrentGlossary,
+ * } from "@verbatra/sdk";
+ *
+ * const loaded = await loadConfigWithMeta();
+ * assertTargetLocale(loaded.config, "de");
+ * const glossary = await readCurrentGlossary({ loaded });
+ * const forGerman = glossaryForLocale(glossary, "de");
+ * ```
+ */
+export function assertTargetLocale(
+  config: Pick<VerbatraConfig, "targetLocales">,
+  locale: string,
+): void {
+  selectLocales(config, [locale]);
 }

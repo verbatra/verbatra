@@ -6,6 +6,14 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { baseConfig, makeTempDir, writeJsonFile } from "../test-support.js";
 import { check } from "./check.js";
 import { diff } from "./diff.js";
+import { keyContext } from "./key-context.js";
+import { keyIntegrity } from "./key-integrity.js";
+import { keyValue } from "./key-value.js";
+import { localeIntegrity } from "./locale-integrity.js";
+import { readLocaleFileSnapshot } from "./locale-snapshot.js";
+import { localeValues } from "./locale-values.js";
+import { localeValuesPage } from "./locale-values-page.js";
+import { lockState } from "./lock-state.js";
 import { exportWorkbook } from "./workbook/export-workbook.js";
 
 const cfg = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
@@ -37,7 +45,10 @@ describe("a corrupt target locale file is attributed to its path and locale", ()
     expect((error as AdapterError).code).toBe("INVALID_JSON");
     expect((error as AdapterError).message).toContain(path);
     expect((error as AdapterError).message).toContain("fr");
-    expect((error as AdapterError).message).toContain("The file is not valid JSON.");
+    expect((error as AdapterError).message).toContain(
+      "The file is not valid JSON (line 1, column 3).",
+    );
+    expect((error as AdapterError).position).toEqual({ line: 1, column: 3 });
   });
 
   it("names the path and locale on diff", async () => {
@@ -77,6 +88,50 @@ describe("a corrupt target locale file is attributed to its path and locale", ()
   });
 });
 
+describe("every read entry point that declares AdapterError lets it through", () => {
+  const readers: ReadonlyArray<readonly [string, (dir: string) => Promise<unknown>]> = [
+    ["keyValue", (dir) => keyValue({ config: cfg(), cwd: dir, locale: "fr", key: "a" })],
+    [
+      "keyContext",
+      (dir) =>
+        keyContext({
+          loaded: { config: cfg(), glossary: { source: "inline" } },
+          cwd: dir,
+          locale: "fr",
+          key: "a",
+        }),
+    ],
+    ["keyIntegrity", (dir) => keyIntegrity({ config: cfg(), cwd: dir })],
+    [
+      "lockState",
+      async (dir) => {
+        await writeJsonFile(join(dir, "verbatra.lock.json"), { version: 1, locales: {} });
+        return lockState({ config: cfg(), cwd: dir });
+      },
+    ],
+    ["localeValues", (dir) => localeValues({ config: cfg(), cwd: dir })],
+    ["localeValuesPage", (dir) => localeValuesPage({ config: cfg(), cwd: dir })],
+    ["localeIntegrity", (dir) => localeIntegrity({ config: cfg(), cwd: dir })],
+    [
+      "readLocaleFileSnapshot",
+      (dir) => readLocaleFileSnapshot({ config: cfg(), cwd: dir, locale: "fr" }),
+    ],
+  ];
+
+  it.each(readers)(
+    "%s rejects with the adapter's own error for a corrupt target",
+    async (_name, read) => {
+      const { dir, path } = await projectWithCorruptFrench();
+
+      const error = await read(dir).catch((thrown: unknown) => thrown);
+
+      expect(error).toBeInstanceOf(AdapterError);
+      expect((error as AdapterError).code).toBe("INVALID_JSON");
+      expect((error as AdapterError).message).toContain(path);
+    },
+  );
+});
+
 describe("target-read attribution covers every adapter, not only JSON", () => {
   it("names the path on a malformed YAML target", async () => {
     const dir = await makeTempDir();
@@ -96,7 +151,9 @@ describe("target-read attribution covers every adapter, not only JSON", () => {
 
     expect((error as AdapterError).code).toBe("INVALID_YAML");
     expect((error as AdapterError).message).toContain(path);
-    expect((error as AdapterError).message).toContain("The file is not valid YAML.");
+    expect((error as AdapterError).message).toContain(
+      "The file is not valid YAML (line 2, column 1).",
+    );
   });
 
   it("names the path on a malformed XLIFF target", async () => {

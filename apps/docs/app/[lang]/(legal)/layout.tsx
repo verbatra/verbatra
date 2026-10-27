@@ -1,1 +1,31 @@
-export { LocaleHomeLayout as default } from "@/lib/locale-home-layout";
+import { setRequestLocale } from "next-intl/server";
+import type { ReactNode } from "react";
+import { FooterLocaleLinks } from "@/components/footer-locale-links";
+import { LegalFooter } from "@/components/legal-footer";
+import { SiteProviders } from "@/components/site-providers";
+import { toLocale } from "@/lib/i18n";
+import { LocaleHomeLayout } from "@/lib/locale-home-layout";
+
+export default async function LegalRouteLayout({
+  params,
+  children,
+}: {
+  params: Promise<{ lang: string }>;
+  children: ReactNode;
+}): Promise<ReactNode> {
+  const { lang } = await params;
+  const locale = toLocale(lang);
+  setRequestLocale(locale);
+  return (
+    <SiteProviders locale={locale}>
+      <LocaleHomeLayout
+        params={params}
+        footer={
+          <LegalFooter locale={locale} localeSwitch={<FooterLocaleLinks locale={locale} />} />
+        }
+      >
+        {children}
+      </LocaleHomeLayout>
+    </SiteProviders>
+  );
+}

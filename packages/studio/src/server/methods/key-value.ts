@@ -1,5 +1,6 @@
 import { keyValue } from "@verbatra/sdk";
 import type { RpcHandler } from "../rpc.js";
+import { projectReadDeps } from "./project-read-deps.js";
 
 export const keyValueHandler: RpcHandler<"key.value"> = async (params, deps) =>
   keyValue(
@@ -9,8 +10,5 @@ export const keyValueHandler: RpcHandler<"key.value"> = async (params, deps) =>
       locale: params.locale,
       key: params.key,
     },
-    {
-      ...(deps.fs !== undefined ? { fs: deps.fs } : {}),
-      ...(deps.adapterRegistry !== undefined ? { adapterRegistry: deps.adapterRegistry } : {}),
-    },
+    projectReadDeps(deps),
   );

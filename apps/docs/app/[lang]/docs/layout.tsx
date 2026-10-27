@@ -1,11 +1,20 @@
 import { DocsLayout } from "fumadocs-ui/layouts/notebook";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
-import { DocsSiteHeader } from "@/components/site-header";
+import { DocsSiteHeader } from "@/components/docs-site-header";
+import { FooterLocaleLinks } from "@/components/footer-locale-links";
+import { LegalFooter } from "@/components/legal-footer";
+import { RootTabsProvider, SidebarTabs } from "@/components/root-tabs";
+import { SiteProviders } from "@/components/site-providers";
 import { withGroupLabels } from "@/lib/docs-group-labels";
-import { withExpandedNewGroups, withLlmsLinks } from "@/lib/docs-page-tree";
+import { withLlmsLinks, withShortCommandLabels } from "@/lib/docs-page-tree";
+import { withStatusBadges } from "@/lib/docs-status-badges";
 import { toLocale } from "@/lib/i18n";
 import { baseOptions } from "@/lib/layout.shared";
+import { rootTabs, withNavOnlyTabLinks } from "@/lib/root-tabs";
 import { source } from "@/lib/source";
+
+const DOCS_CONTENT_ID = "nd-page";
 
 export default async function Layout({
   params,
@@ -16,18 +25,35 @@ export default async function Layout({
 }) {
   const { lang } = await params;
   const locale = toLocale(lang);
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "landing.nav" });
   const tree = withGroupLabels(
-    withExpandedNewGroups(await withLlmsLinks(source.getPageTree(locale), locale)),
+    await withStatusBadges(
+      withShortCommandLabels(await withLlmsLinks(source.getPageTree(locale), locale)),
+      locale,
+    ),
   );
-  const { nav, ...base } = await baseOptions(locale);
+  const { nav, links = [], ...base } = await baseOptions(locale);
+  const tabs = rootTabs(tree);
   return (
-    <DocsLayout
-      {...base}
-      nav={{ ...nav, mode: "top" }}
-      slots={{ ...base.slots, header: DocsSiteHeader }}
-      tree={tree}
-    >
-      {children}
-    </DocsLayout>
+    <SiteProviders locale={locale}>
+      <a className="vk-skip-link" href={`#${DOCS_CONTENT_ID}`}>
+        {t("skipToContent")}
+      </a>
+      <RootTabsProvider tabs={tabs}>
+        <DocsLayout
+          {...base}
+          links={withNavOnlyTabLinks(links, tabs)}
+          nav={{ ...nav, mode: "top" }}
+          slots={{ ...base.slots, header: DocsSiteHeader }}
+          sidebar={{ banner: <SidebarTabs key="root-tabs" /> }}
+          tabs={false}
+          tree={tree}
+        >
+          {children}
+          <LegalFooter locale={locale} localeSwitch={<FooterLocaleLinks locale={locale} />} />
+        </DocsLayout>
+      </RootTabsProvider>
+    </SiteProviders>
   );
 }

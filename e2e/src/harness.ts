@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import ExcelJS from "exceljs";
 import { execa } from "execa";
 import { type RecordedProcessOutput, recordPendingRun, recordRun } from "./diagnostics.js";
 
@@ -12,6 +13,7 @@ export interface Tarballs {
   sdk: string;
   cli: string;
   studio: string;
+  mcp: string;
 }
 
 interface Manifest extends Tarballs {
@@ -39,14 +41,21 @@ export async function readSharedConsumer(): Promise<Consumer> {
   };
 }
 
-export async function makeConsumer(options: { withStudio?: boolean } = {}): Promise<Consumer> {
-  const { sdk, cli, studio } = await readTarballs();
+export async function makeConsumer(
+  options: { withStudio?: boolean; withMcp?: boolean } = {},
+): Promise<Consumer> {
+  const { sdk, cli, studio, mcp } = await readTarballs();
   const dir = await mkdtemp(join(tmpdir(), "verbatra-e2e-consumer-"));
   await writeFile(
     join(dir, "package.json"),
     JSON.stringify({ name: "verbatra-e2e-consumer", version: "0.0.0", private: true }, null, 2),
   );
-  const packs = options.withStudio === true ? [sdk, cli, studio] : [sdk, cli];
+  const packs = [
+    sdk,
+    cli,
+    ...(options.withStudio === true ? [studio] : []),
+    ...(options.withMcp === true ? [mcp] : []),
+  ];
   await execa("npm", ["install", "--no-audit", "--no-fund", "--no-package-lock", ...packs], {
     cwd: dir,
   });
@@ -135,6 +144,8 @@ export interface ErrorEnvelope {
   command: string | null;
   code: string;
   message: string;
+  causeCode?: string;
+  hint?: string;
 }
 
 export type JsonEnvelope<TResult> = SuccessEnvelope<TResult> | ErrorEnvelope;
@@ -246,6 +257,35 @@ export async function writeJsonIn(
   await writeFileIn(dir, relativePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+export const UNREACHABLE_PROVIDER =
+  '{ id: "openai-compatible", options: { baseUrl: "http://127.0.0.1:1", model: "e2e-unreachable", maxOutputTokens: 256 } }';
+
+export interface WatchProjectLocales {
+  readonly source: Record<string, string>;
+  readonly target: Record<string, string>;
+}
+
+const IN_SYNC_LOCALES: WatchProjectLocales = {
+  source: { greeting: "Hello {{name}}" },
+  target: { greeting: "Hallo {{name}}" },
+};
+
+export async function seedWatchProject(
+  dir: string,
+  provider: string,
+  locales: WatchProjectLocales = IN_SYNC_LOCALES,
+): Promise<string> {
+  await mkdir(dir, { recursive: true });
+  await writeJsonIn(dir, "locales/en.json", locales.source);
+  await writeJsonIn(dir, "locales/de.json", locales.target);
+  await writeFileIn(
+    dir,
+    "verbatra.config.ts",
+    `import { defineConfig } from "@verbatra/cli";\n\nexport default defineConfig({\n  sourceLocale: "en",\n  targetLocales: ["de"],\n  format: "i18next-json",\n  files: { pattern: "locales/{locale}.json" },\n  provider: ${provider},\n});\n`,
+  );
+  return dir;
+}
+
 export async function readJsonIn<T = unknown>(dir: string, relativePath: string): Promise<T> {
   return JSON.parse(await readFile(join(dir, relativePath), "utf8")) as T;
 }
@@ -271,15 +311,26 @@ const SCAFFOLD_MODELS: Partial<Record<ProviderEnv["id"], string>> = {
   gemini: "gemini-2.5-flash",
 };
 
+export function liveRunRequired(): boolean {
+  return process.env.E2E_REQUIRE_LIVE === "1";
+}
+
+function missingLiveProvider(detail: string): null {
+  if (liveRunRequired()) {
+    throw new Error(`E2E_REQUIRE_LIVE is set, but ${detail}, so the live tier cannot run.`);
+  }
+  return null;
+}
+
 export function providerFromEnv(): ProviderEnv | null {
   const id = (process.env.E2E_PROVIDER ?? "gemini") as ProviderEnv["id"];
   const envVar = PROVIDER_ENV_VARS[id];
   if (!envVar) {
-    return null;
+    return missingLiveProvider(`E2E_PROVIDER names no known provider`);
   }
   const key = process.env[envVar];
   if (!key) {
-    return null;
+    return missingLiveProvider(`${envVar} is empty`);
   }
   const model = SCAFFOLD_MODELS[id];
   return model ? { id, envVar, key, model } : { id, envVar, key };
@@ -298,4 +349,42 @@ export function providerConfigBlock(provider: { id: ProviderEnv["id"]; model?: s
     case "google-translate":
       return `{ id: "google-translate", options: {} }`;
   }
+}
+
+const WORKBOOK_HEADER_ROW = 1;
+const WORKBOOK_KEY_COLUMN = 1;
+const WORKBOOK_TRANSLATION_COLUMN = 5;
+const WORKBOOK_INSTRUCTIONS_SHEET = "Instructions";
+
+export interface FillWorkbookOptions {
+  onDataSheetHeaders?: (headers: readonly string[]) => void;
+}
+
+export async function fillWorkbook(
+  workbookPath: string,
+  translationFor: (key: string) => string | undefined,
+  options: FillWorkbookOptions = {},
+): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(workbookPath);
+  for (const sheet of workbook.worksheets) {
+    if (sheet.name === WORKBOOK_INSTRUCTIONS_SHEET) {
+      continue;
+    }
+    const headers: string[] = [];
+    sheet.getRow(WORKBOOK_HEADER_ROW).eachCell((cell) => {
+      headers.push(String(cell.value));
+    });
+    options.onDataSheetHeaders?.(headers);
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === WORKBOOK_HEADER_ROW) {
+        return;
+      }
+      const translation = translationFor(String(row.getCell(WORKBOOK_KEY_COLUMN).value));
+      if (translation !== undefined) {
+        row.getCell(WORKBOOK_TRANSLATION_COLUMN).value = translation;
+      }
+    });
+  }
+  await workbook.xlsx.writeFile(workbookPath);
 }

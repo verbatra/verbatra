@@ -9,6 +9,7 @@ import type {
 import type { PlaceholderIntegrityResult } from "@verbatra/core";
 import { createDefaultRegistry } from "@verbatra/format-adapters";
 import type { LoadedConfig, SdkFs, VerbatraConfig } from "@verbatra/sdk";
+import type { McpProjectSession } from "./project-session.js";
 import type { McpToolContext } from "./types.js";
 
 export const defaultAdapterRegistry = createDefaultRegistry() as unknown as NonNullable<
@@ -94,6 +95,11 @@ export function baseLoadedConfig(overrides: Partial<LoadedConfig> = {}): LoadedC
     glossary: { source: "none" },
     ...overrides,
   };
+}
+
+export function staticProject(loaded: LoadedConfig = baseLoadedConfig()): McpProjectSession {
+  const state = { kind: "configured", loaded } as const;
+  return { current: async () => state, latest: () => state };
 }
 
 export async function makeTempDir(): Promise<string> {

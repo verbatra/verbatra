@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode, Ref, TdHTMLAttributes, ThHTMLAttributes } from "react";
 import { Card } from "./Card.js";
 import { cn } from "./lib/cn.js";
 import { tableClasses } from "./ui.js";
@@ -22,7 +22,10 @@ export function TableRow({
   className,
   hover = true,
   ...props
-}: HTMLAttributes<HTMLTableRowElement> & { readonly hover?: boolean }): ReactNode {
+}: HTMLAttributes<HTMLTableRowElement> & {
+  readonly hover?: boolean;
+  readonly ref?: Ref<HTMLTableRowElement>;
+}): ReactNode {
   return <tr className={cn(hover && tableClasses.rowHover, className)} {...props} />;
 }
 

@@ -22,6 +22,13 @@ pre-commit:
         pnpm-lock.yaml is out of sync with a package.json (a dependency was
         added/changed/removed without updating the lockfile). Run `pnpm install`,
         then `git add pnpm-lock.yaml` and commit again.
+    catalog-lockfile:
+      glob: "{package.json,packages/*/package.json,apps/*/package.json,pnpm-lock.yaml,pnpm-workspace.yaml}"
+      run: pnpm check:catalog-lockfile
+      fail_text: |
+        A catalog: specifier in pnpm-lock.yaml disagrees with its package.json.
+        Restore the lockfile specifier, or run `pnpm install`, then
+        `git add pnpm-lock.yaml` and commit again.
     no-em-dash:
       run: pnpm check:no-em-dash
       fail_text: |

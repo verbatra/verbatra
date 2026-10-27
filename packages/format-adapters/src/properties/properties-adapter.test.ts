@@ -1,11 +1,13 @@
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { cpuScalingRatio, LINEAR_MAX_RATIO, LINEAR_SCALE } from "@verbatra/config/scaling";
 import type { LocaleResource, SupportedFormat, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { FormatAdapter } from "../adapter.js";
 import { createDefaultRegistry } from "../default-registry.js";
 import { AdapterError } from "../errors.js";
+import { parsePropertiesEntries } from "./parse.js";
 import { createPropertiesAdapter } from "./properties-adapter.js";
 
 const adapter = createPropertiesAdapter();
@@ -176,14 +178,15 @@ describe("createPropertiesAdapter read", () => {
 
   it("parses a value spread over many continuations in bounded time (algorithmic-DoS guard)", async () => {
     const lines = 200_000;
-    const content = `k=${"a\\\n".repeat(lines)}z\n`;
-    const path = await tempFile("m.properties", content);
-    const start = performance.now();
+    const contentOf = (n: number) => `k=${"a\\\n".repeat(n)}z\n`;
+    const path = await tempFile("m.properties", contentOf(lines));
     const { resource } = await adapter.read(path, "de");
-    const elapsed = performance.now() - start;
     expect(resource.entries.size).toBe(1);
     expect(resource.entries.get("k")?.value).toBe(`${"a".repeat(lines)}z`);
-    expect(elapsed).toBeLessThan(3000);
+    const parse = (content: string) => parsePropertiesEntries(content, "m");
+    expect(cpuScalingRatio(parse, contentOf(lines / LINEAR_SCALE), contentOf(lines))).toBeLessThan(
+      LINEAR_MAX_RATIO,
+    );
   });
 });
 

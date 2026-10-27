@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { lookupRate, rateCardSchema } from "./rate-card.js";
+import { lookupRate, type RateCard, rateCardSchema } from "./rate-card.js";
+
+type Identical<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+
+type SchemaCard = z.infer<typeof rateCardSchema>;
 
 const validCard = {
   asOf: "2026-01-15",
@@ -268,5 +273,13 @@ describe("rateCardSchema: the currency label a figure is printed under", () => {
 
   it("checks the shape of a currency code and not its existence, so a well-formed unreal code passes", () => {
     expect(rateCardSchema.parse({ ...validCard, currency: "ZZZ" }).currency).toBe("ZZZ");
+  });
+});
+
+describe("the RateCard interface", () => {
+  it("describes exactly what rateCardSchema parses", () => {
+    const sameValues: Identical<RateCard, SchemaCard> = true;
+    const sameKeys: Identical<keyof RateCard, keyof SchemaCard> = true;
+    expect([sameValues, sameKeys]).toEqual([true, true]);
   });
 });

@@ -8,6 +8,7 @@ export interface AnthropicMessage {
 
 export interface AnthropicCallOptions {
   readonly signal?: AbortSignal;
+  readonly timeout?: number;
 }
 
 export interface MessagesClient {

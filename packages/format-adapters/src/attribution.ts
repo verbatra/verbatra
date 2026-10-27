@@ -1,6 +1,7 @@
 import type { LocaleResource } from "@verbatra/core";
-import type { FormatAdapter } from "./adapter.js";
+import type { FormatAdapter, WriteContext } from "./adapter.js";
 import { AdapterError } from "./errors.js";
+import { ForeignThrowError } from "./shell.js";
 
 const ERRNO_CODE = /^E[A-Z0-9]+$/;
 
@@ -13,20 +14,15 @@ function carriesErrnoCode(error: unknown): boolean {
   );
 }
 
-function detailOf(error: unknown): string {
-  if (error instanceof Error && error.message.length > 0) {
-    return error.message;
-  }
-  return String(error);
-}
-
 function attribute(format: string, method: string, error: unknown): never {
-  if (error instanceof AdapterError || carriesErrnoCode(error)) {
-    throw error;
+  const original = error instanceof ForeignThrowError ? error.cause : error;
+  if (original instanceof AdapterError || carriesErrnoCode(original)) {
+    throw original;
   }
   throw new AdapterError(
     "ADAPTER_FAILED",
-    `The "${format}" adapter failed in ${method}(): ${detailOf(error)}.`,
+    `The "${format}" adapter failed in ${method}(). The adapter's own error is attached as the cause.`,
+    { cause: original },
   );
 }
 
@@ -61,6 +57,7 @@ function guardAsync<TArgs extends unknown[], TResult>(
 export function attributeAdapterFailures(adapter: FormatAdapter): FormatAdapter {
   const { format } = adapter;
   const compare = adapter.comparePlaceholders?.bind(adapter);
+  const compareArms = adapter.compareBranchArms?.bind(adapter);
   return {
     format,
     canHandle: guard(format, "canHandle", (filePath: string, sample?: string) =>
@@ -75,11 +72,17 @@ export function attributeAdapterFailures(adapter: FormatAdapter): FormatAdapter 
     read: guardAsync(format, "read", (filePath: string, locale: string) =>
       adapter.read(filePath, locale),
     ),
-    write: guardAsync(format, "write", (resource: LocaleResource, filePath: string) =>
-      adapter.write(resource, filePath),
+    write: guardAsync(
+      format,
+      "write",
+      (resource: LocaleResource, filePath: string, context?: WriteContext) =>
+        adapter.write(resource, filePath, context),
     ),
     ...(compare === undefined
       ? {}
       : { comparePlaceholders: guard(format, "comparePlaceholders", compare) }),
+    ...(compareArms === undefined
+      ? {}
+      : { compareBranchArms: guard(format, "compareBranchArms", compareArms) }),
   };
 }

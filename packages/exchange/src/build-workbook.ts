@@ -1,10 +1,11 @@
-import ExcelJS from "exceljs";
-import JSZip from "jszip";
+import type ExcelJS from "exceljs";
+import type JSZip from "jszip";
 import { ExchangeError } from "./errors.js";
 import { escapeFormulaLead } from "./formula-guard.js";
 import { INSTRUCTIONS_LINES } from "./instructions.js";
 import { COLUMN, HEADER_ROW, HEADERS, INSTRUCTIONS_SHEET_NAME } from "./layout.js";
 import type { WorkbookModel, WorkbookSheet } from "./types.js";
+import { loadExcelJs, loadJsZip } from "./xlsx-libraries.js";
 
 const READ_ONLY_FILL: ExcelJS.Fill = {
   type: "pattern",
@@ -152,7 +153,7 @@ export function spliceWorkbookProtection(xml: string): string {
 async function protectWorkbookStructure(bytes: Uint8Array): Promise<Uint8Array> {
   let zip: JSZip;
   try {
-    zip = await JSZip.loadAsync(bytes);
+    zip = await (await loadJsZip()).loadAsync(bytes);
   } catch {
     throw new ExchangeError("WORKBOOK_INVALID", "The workbook could not be serialized.");
   }
@@ -168,7 +169,7 @@ async function protectWorkbookStructure(bytes: Uint8Array): Promise<Uint8Array> 
 
 export async function buildWorkbook(model: WorkbookModel): Promise<Uint8Array> {
   assertNoWorksheetNameCollisions(model.sheets);
-  const workbook = new ExcelJS.Workbook();
+  const workbook = new (await loadExcelJs()).Workbook();
   buildInstructionsSheet(workbook);
   for (const sheet of model.sheets) {
     await buildDataSheet(workbook, sheet);

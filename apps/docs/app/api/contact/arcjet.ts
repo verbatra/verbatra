@@ -1,4 +1,6 @@
+import "server-only";
 import arcjet, { type ArcjetDecision, detectBot, fixedWindow, shield } from "@arcjet/next";
+import { readArcjetEnv } from "@/lib/contact-env";
 import { forbiddenResponse, rateLimitedResponse, serverErrorResponse } from "./respond";
 
 const RATE_LIMIT_WINDOW = "10m";
@@ -8,7 +10,7 @@ export type ArcjetProtectClient = {
   protect: (request: Request) => Promise<ArcjetDecision>;
 };
 
-export type CheckArcjetDeps = {
+type CheckArcjetDeps = {
   client?: ArcjetProtectClient;
 };
 
@@ -31,9 +33,9 @@ export function buildClient(key: string): ArcjetProtectClient {
 
 export function resolveClient(deps: CheckArcjetDeps): ArcjetProtectClient | undefined {
   if (deps.client) return deps.client;
-  const key = process.env.ARCJET_KEY;
-  if (key === undefined || key.length === 0) return undefined;
-  cachedClient ??= buildClient(key);
+  const arcjetEnv = readArcjetEnv();
+  if (!arcjetEnv.ok) return undefined;
+  cachedClient ??= buildClient(arcjetEnv.value.ARCJET_KEY);
   return cachedClient;
 }
 

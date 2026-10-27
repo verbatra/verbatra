@@ -17,7 +17,10 @@ export const localeResourceSchema = z.object({
 export interface LocaleResource {
   /** The locale these entries belong to (for example, "en" or "de"). */
   readonly locale: string;
-  /** The namespace these entries belong to; empty when the format has no namespacing. */
+  /**
+   * The namespace these entries belong to. Every built-in adapter sets it to the locale file's base
+   * name without its extension; an adapter you write may choose another value.
+   */
   readonly namespace: string;
   /** The source format the resource came from, retained for round-trip fidelity on write. */
   readonly format: FormatId;

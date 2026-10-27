@@ -1,4 +1,7 @@
 import { isLocale } from "@/lib/i18n";
+import { absolutizeMarkdownLinks } from "@/lib/markdown-links";
+import { pageFrontmatter } from "@/lib/page-frontmatter";
+import { SITE_URL } from "@/lib/site";
 import { source } from "@/lib/source";
 
 export const dynamic = "force-static";
@@ -15,11 +18,14 @@ export async function GET(
   const page = isLocale(lang) ? source.getPage(slug, lang) : undefined;
   if (!page) return new Response(null, { status: 404 });
 
-  const markdown = await page.data.getText("processed");
+  const markdown = absolutizeMarkdownLinks(await page.data.getText("processed"));
   const description = page.data.description ? `\n${page.data.description}\n` : "";
-  const body = `# ${page.data.title}\n${description}\n${markdown}`;
+  const body = `${pageFrontmatter(page.data)}# ${page.data.title}\n${description}\n${markdown}`;
 
   return new Response(body, {
-    headers: { "Content-Type": "text/markdown; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/markdown; charset=utf-8",
+      Link: `<${new URL(page.url, SITE_URL).href}>; rel="canonical"`,
+    },
   });
 }

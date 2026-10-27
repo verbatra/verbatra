@@ -1,0 +1,102 @@
+{
+  "items": [
+    {
+      "id": "save",
+      "text": "Save changes"
+    },
+    {
+      "id": "signIn",
+      "text": "Sign in"
+    },
+    {
+      "id": "welcome",
+      "text": "Welcome back, {name}!"
+    },
+    {
+      "id": "messages",
+      "text": "You have {count} new messages"
+    },
+    {
+      "id": "cartEmpty",
+      "text": "Your cart is empty."
+    },
+    {
+      "id": "deleteFile",
+      "text": "Delete this file?"
+    },
+    {
+      "id": "dontShow",
+      "text": "Don't show this again"
+    },
+    {
+      "id": "settings",
+      "text": "Settings"
+    },
+    {
+      "id": "onlyChanged",
+      "text": "Only changed keys get translated."
+    },
+    {
+      "id": "brand",
+      "text": "Verbatra",
+      "sameAllowed": true
+    }
+  ],
+  "translations": {
+    "de": {
+      "save": "Änderungen speichern",
+      "signIn": "Anmelden",
+      "welcome": "Willkommen zurück, {name}!",
+      "messages": "Sie haben {count} neue Nachrichten",
+      "cartEmpty": "Ihr Warenkorb ist leer.",
+      "deleteFile": "Diese Datei löschen?",
+      "dontShow": "Nicht wieder anzeigen",
+      "settings": "Einstellungen",
+      "onlyChanged": "Es werden nur geänderte Schlüssel übersetzt.",
+      "brand": "Verbatra"
+    },
+    "es": {
+      "save": "Guardar cambios",
+      "signIn": "Iniciar sesión",
+      "welcome": "¡Bienvenido de nuevo, {name}!",
+      "messages": "Tienes {count} mensajes nuevos",
+      "cartEmpty": "Tu carrito está vacío.",
+      "deleteFile": "¿Eliminar este archivo?",
+      "dontShow": "No mostrar esto de nuevo",
+      "settings": "Configuración",
+      "onlyChanged": "Solo las claves modificadas se traducen.",
+      "brand": "Verbatra"
+    },
+    "fr": {
+      "save": "Enregistrer les modifications",
+      "signIn": "Se connecter",
+      "welcome": "Bienvenue, {name} !",
+      "messages": "Vous avez {count} nouveaux messages",
+      "cartEmpty": "Votre panier est vide.",
+      "deleteFile": "Supprimer ce fichier ?",
+      "dontShow": "Ne plus afficher ceci",
+      "settings": "Paramètres",
+      "onlyChanged": "Seules les clés modifiées sont traduites.",
+      "brand": "Verbatra"
+    },
+    "ja": {
+      "save": "変更を保存",
+      "signIn": "サインイン",
+      "welcome": "おかえりなさい、{name}さん！",
+      "messages": "{count}件の新しいメッセージがあります",
+      "cartEmpty": "カートは空です。",
+      "deleteFile": "このファイルを削除しますか？",
+      "dontShow": "今後表示しない",
+      "settings": "設定",
+      "onlyChanged": "変更されたキーのみが翻訳されます。",
+      "brand": "Verbatra"
+    }
+  },
+  "metadata": {
+    "sdkVersion": "0.11.1",
+    "provider": "gemini",
+    "model": "gemini-2.5-flash",
+    "generatedAt": "2026-10-16T03:48:14.305Z",
+    "temperature": "provider default"
+  }
+}

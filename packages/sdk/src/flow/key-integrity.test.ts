@@ -68,6 +68,8 @@ describe("keyIntegrity", () => {
             missing: [],
             extra: [],
             icuValid: true,
+            icuArmsMatch: true,
+            icuArmDetails: [],
             markupMatches: true,
             markupDetails: [],
           },
@@ -91,6 +93,8 @@ describe("keyIntegrity", () => {
         missing: ["{{name}}"],
         extra: [],
         icuValid: true,
+        icuArmsMatch: true,
+        icuArmDetails: [],
         markupMatches: true,
         markupDetails: [],
       },
@@ -112,6 +116,8 @@ describe("keyIntegrity", () => {
         missing: [],
         extra: ["{{name}}"],
         icuValid: true,
+        icuArmsMatch: true,
+        icuArmDetails: [],
         markupMatches: true,
         markupDetails: [],
       },
@@ -133,6 +139,8 @@ describe("keyIntegrity", () => {
         missing: [],
         extra: [],
         icuValid: true,
+        icuArmsMatch: true,
+        icuArmDetails: [],
         markupMatches: true,
         markupDetails: [],
       },
@@ -201,6 +209,8 @@ describe("keyIntegrity", () => {
         missing: [],
         extra: [],
         icuValid: false,
+        icuArmsMatch: true,
+        icuArmDetails: [],
         markupMatches: true,
         markupDetails: [],
       },
@@ -220,12 +230,27 @@ describe("keyIntegrity", () => {
   });
 
   it("narrows to the requested keys via the keys filter, dropping any that are not changed", async () => {
-    const dir = await project({ a: "A new", b: "B new" }, { de: { a: "Aa", b: "Bb" } });
-    await withBaseline(dir, "de", { a: "A old", b: "B old" });
+    const dir = await project(
+      { a: "A new", b: "B new", c: "C" },
+      { de: { a: "Aa", b: "Bb", c: "Cc" } },
+    );
+    await withBaseline(dir, "de", { a: "A old", b: "B old", c: "C" });
 
-    const results = await keyIntegrity({ config: cfg(), cwd: dir, keys: ["a", "not-a-real-key"] });
+    const results = await keyIntegrity({ config: cfg(), cwd: dir, keys: ["a", "c"] });
 
     expect(results[0]?.entries.map((e) => e.key)).toEqual(["a"]);
+  });
+
+  it("refuses a requested key the source does not have with UNKNOWN_KEY", async () => {
+    const dir = await project({ a: "A new" }, { de: { a: "Aa", gone: "Weg" } });
+    await withBaseline(dir, "de", { a: "A old" });
+
+    await expect(
+      keyIntegrity({ config: cfg(), cwd: dir, keys: ["a", "gone"] }),
+    ).rejects.toMatchObject({
+      code: "UNKNOWN_KEY",
+      message: 'The key "gone" was not found in the source resource.',
+    });
   });
 
   it("honors a locales subset", async () => {
@@ -298,6 +323,8 @@ describe("keyIntegrity", () => {
           missing: [],
           extra: [],
           icuValid: true,
+          icuArmsMatch: true,
+          icuArmDetails: [],
           markupMatches: true,
           markupDetails: [],
         },
@@ -360,6 +387,8 @@ describe("keyIntegrity: inline markup already on disk", () => {
       key: "docs",
       matches: true,
       icuValid: true,
+      icuArmsMatch: true,
+      icuArmDetails: [],
       markupMatches: false,
       markupDetails: ["-</a>", "-<a href>"],
     });
@@ -402,5 +431,42 @@ describe("keyIntegrity: inline markup already on disk", () => {
     const [locale] = await keyIntegrity({ config: cfg(), cwd: dir });
 
     expect(locale?.entries[0]).toMatchObject({ markupMatches: true });
+  });
+
+  it("reports ICU plural arms that do not fit the target language, the rule the write gate applies", async () => {
+    const source = { files: "{count, plural, one {# file} other {# files!}}" };
+    const dir = await project(source, {
+      ru: { files: "{count, plural, one {# файл} other {# файлов}}" },
+    });
+    await withBaseline(dir, "ru", { files: "{count, plural, one {# file} other {# files}}" });
+
+    const [result] = await keyIntegrity({
+      config: cfg({ format: "next-intl-json", targetLocales: ["ru"] }),
+      cwd: dir,
+    });
+
+    const found = result?.entries[0];
+    expect(found).toMatchObject({ key: "files", icuValid: true, icuArmsMatch: false });
+    expect(found?.icuArmDetails).toEqual([
+      '{count} plural: missing arm "few" required by the target language',
+      '{count} plural: missing arm "many" required by the target language',
+    ]);
+  });
+
+  it("reports matching arms for a translation carrying the target language's categories", async () => {
+    const source = { files: "{count, plural, one {# file} other {# files!}}" };
+    const dir = await project(source, {
+      ru: {
+        files: "{count, plural, one {# файл} few {# файла} many {# файлов} other {# файла}}",
+      },
+    });
+    await withBaseline(dir, "ru", { files: "{count, plural, one {# file} other {# files}}" });
+
+    const [result] = await keyIntegrity({
+      config: cfg({ format: "next-intl-json", targetLocales: ["ru"] }),
+      cwd: dir,
+    });
+
+    expect(result?.entries[0]).toMatchObject({ icuArmsMatch: true, icuArmDetails: [] });
   });
 });

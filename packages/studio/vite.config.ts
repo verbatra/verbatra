@@ -10,5 +10,12 @@ export default defineConfig({
     outDir: "../../dist/app",
     emptyOutDir: true,
     assetsInlineLimit: 0,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [{ name: "react", test: /node_modules[\\/](?:react|react-dom|scheduler)[\\/]/ }],
+        },
+      },
+    },
   },
 });

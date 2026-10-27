@@ -4,6 +4,7 @@ import { PROVIDER_ENV } from "@verbatra/ai-providers";
 import { contentHash, type TranslationEntry } from "@verbatra/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
+import { valueHash } from "../lock/provenance-file.js";
 import {
   baseConfig,
   makeFakeFs,
@@ -36,6 +37,16 @@ function entry(value: string, placeholders: readonly string[] = []): Translation
 }
 
 describe("check", () => {
+  it("passes a malformed target locale file's AdapterError through with its own code", async () => {
+    const dir = await project({ a: "A" }, {});
+    await writeFile(join(dir, "locales", "de.json"), "{ not json");
+
+    await expect(check({ config: cfg(), cwd: dir })).rejects.toMatchObject({
+      name: "AdapterError",
+      code: "INVALID_JSON",
+    });
+  });
+
   it("reports all up-to-date locales as in sync", async () => {
     const dir = await project(
       { a: "A", b: "B" },
@@ -45,7 +56,7 @@ describe("check", () => {
 
     expect(summary.inSync).toBe(true);
     expect(summary.locales.map((l) => l.locale)).toEqual(["de", "fr"]);
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: 0,
       stale: 0,
@@ -60,14 +71,14 @@ describe("check", () => {
     const summary = await check({ config: cfg(), cwd: dir });
 
     expect(summary.inSync).toBe(false);
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: 1,
       stale: 0,
       upToDate: 1,
       inSync: false,
     });
-    expect(summary.locales[1]).toEqual({
+    expect(summary.locales[1]).toMatchObject({
       locale: "fr",
       missing: 2,
       stale: 0,
@@ -86,7 +97,7 @@ describe("check", () => {
     const summary = await check({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
 
     expect(summary.inSync).toBe(false);
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: 0,
       stale: 1,
@@ -104,7 +115,7 @@ describe("check", () => {
 
     const summary = await check({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
 
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: 1,
       stale: 1,
@@ -211,7 +222,7 @@ describe("check with consistency", () => {
     const summary = await check({ config: cfg(), cwd: dir, consistency: true });
 
     expect(summary.inSync).toBe(true);
-    expect(summary.locales).toEqual([
+    expect(summary.locales).toMatchObject([
       {
         locale: "de",
         missing: 0,
@@ -338,5 +349,51 @@ describe("check with consistency", () => {
       { fs },
     );
     expect(summary.locales[0]?.inconsistencies).toHaveLength(1);
+  });
+});
+
+describe("check: review state against the lock-file source baseline", () => {
+  async function approvedProject(lockedSource: string): Promise<string> {
+    const dir = await project({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    await writeJsonFile(join(dir, "verbatra.provenance.json"), {
+      version: 1,
+      locales: {
+        de: {
+          greeting: {
+            origin: "machine",
+            valueHash: valueHash("Hallo"),
+            reviewState: "approved",
+            reviewedSourceHash: "reviewed",
+          },
+        },
+      },
+    });
+    await writeJsonFile(join(dir, "verbatra.lock.json"), {
+      version: 1,
+      locales: { de: { greeting: lockedSource } },
+    });
+    return dir;
+  }
+
+  it("counts an approval unreviewed once the lock-file records another source", async () => {
+    const dir = await approvedProject("other");
+
+    const summary = await check({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
+
+    expect(summary.locales[0]?.provenance?.byReviewState).toMatchObject({
+      approved: 0,
+      unreviewed: 1,
+    });
+  });
+
+  it("counts an approval approved while the lock-file records the reviewed source", async () => {
+    const dir = await approvedProject("reviewed");
+
+    const summary = await check({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
+
+    expect(summary.locales[0]?.provenance?.byReviewState).toMatchObject({
+      approved: 1,
+      unreviewed: 0,
+    });
   });
 });

@@ -1,4 +1,4 @@
-export type ExchangeErrorCode = "TMX_INVALID" | "WORKBOOK_INVALID";
+export type ExchangeErrorCode = "TMX_INVALID" | "WORKBOOK_INVALID" | "XLIFF_INVALID";
 
 /** Where in an interchange file a refusal happened. */
 export interface ExchangeErrorLocation {

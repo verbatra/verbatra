@@ -1,7 +1,3 @@
-"use client";
-
-import { useSyncExternalStore } from "react";
-
 const REDUCE_QUERY = "(prefers-reduced-motion: reduce)";
 
 export function prefersReducedMotion(): boolean {
@@ -9,12 +5,9 @@ export function prefersReducedMotion(): boolean {
   return window.matchMedia(REDUCE_QUERY).matches;
 }
 
-function subscribe(onChange: () => void): () => void {
-  const query = window.matchMedia(REDUCE_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-export function useReducedMotionPreference(): boolean {
-  return useSyncExternalStore(subscribe, prefersReducedMotion, () => false);
+export function subscribeReducedMotion(listener: (reduced: boolean) => void): () => void {
+  const media = window.matchMedia(REDUCE_QUERY);
+  const onChange = (): void => listener(media.matches);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
 }

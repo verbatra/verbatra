@@ -12,6 +12,8 @@ const CONFIGS: Record<string, ProviderConfig> = {
     id: "openai-compatible",
     options: { baseUrl: "http://localhost:1234/v1", model: "llama-3", maxOutputTokens: 1024 },
   },
+  opencode: { id: "opencode", options: { model: "glm-5.3", maxOutputTokens: 1024 } },
+  libretranslate: { id: "libretranslate", options: { baseUrl: "http://localhost:5000" } },
 };
 
 describe("PROVIDER_KIND", () => {
@@ -25,6 +27,7 @@ describe("PROVIDER_KIND", () => {
     vi.stubEnv("GEMINI_API_KEY", "test-key");
     vi.stubEnv("DEEPL_API_KEY", "test-key");
     vi.stubEnv("GOOGLE_TRANSLATE_API_KEY", "test-key");
+    vi.stubEnv("OPENCODE_API_KEY", "test-key");
 
     for (const id of PROVIDER_IDS) {
       const config = CONFIGS[id];

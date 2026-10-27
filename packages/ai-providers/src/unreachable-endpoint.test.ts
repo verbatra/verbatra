@@ -105,24 +105,24 @@ describe("findNetworkCause", () => {
   });
 });
 
-describe("the other classified codes keep their constants", () => {
-  it("leaves RATE_LIMITED alone even with an endpoint host in hand", async () => {
+describe("the other classified codes name the status, never the host", () => {
+  it("names only the status of RATE_LIMITED even with an endpoint host in hand", async () => {
     const error = await failWith(
       Object.assign(new Error("too many"), { status: 429 }),
       "localhost:11434",
     );
 
     expect(error.code).toBe("RATE_LIMITED");
-    expect(error.message).toBe("The translation provider rate-limited this request.");
+    expect(error.message).toBe("The translation provider rate-limited this request (HTTP 429).");
   });
 
-  it("leaves PROVIDER_UNAVAILABLE alone", async () => {
+  it("names only the status of PROVIDER_UNAVAILABLE", async () => {
     const error = await failWith(
       Object.assign(new Error("boom"), { status: 503 }),
       "localhost:11434",
     );
 
     expect(error.code).toBe("PROVIDER_UNAVAILABLE");
-    expect(error.message).toBe("The translation provider is currently unavailable.");
+    expect(error.message).toBe("The translation provider is currently unavailable (HTTP 503).");
   });
 });

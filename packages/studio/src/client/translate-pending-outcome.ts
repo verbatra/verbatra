@@ -5,6 +5,7 @@ export interface WithheldBreakdown {
   readonly integrityMismatches: number;
   readonly providerFailures: number;
   readonly budgetWithheld: number;
+  readonly sensitiveWithheld: number;
 }
 
 export type TranslatePendingOutcome =
@@ -22,12 +23,14 @@ function sumWithheldBreakdown(locales: readonly LocaleSummary[]): WithheldBreakd
   let integrityMismatches = 0;
   let providerFailures = 0;
   let budgetWithheld = 0;
+  let sensitiveWithheld = 0;
   for (const locale of locales) {
     integrityMismatches += locale.integrityMismatches.length;
     providerFailures += locale.providerFailures.length;
     budgetWithheld += locale.budgetWithheld.length;
+    sensitiveWithheld += locale.sensitiveWithheld.length;
   }
-  return { integrityMismatches, providerFailures, budgetWithheld };
+  return { integrityMismatches, providerFailures, budgetWithheld, sensitiveWithheld };
 }
 
 export function deriveTranslatePendingOutcome(
@@ -43,7 +46,10 @@ export function deriveTranslatePendingOutcome(
   if (summary.partial.length > 0) {
     const breakdown = sumWithheldBreakdown(summary.locales);
     const withheldCount =
-      breakdown.integrityMismatches + breakdown.providerFailures + breakdown.budgetWithheld;
+      breakdown.integrityMismatches +
+      breakdown.providerFailures +
+      breakdown.budgetWithheld +
+      breakdown.sensitiveWithheld;
     return { kind: "withheld", withheldCount, partialLocales: summary.partial, breakdown };
   }
   return { kind: "success" };

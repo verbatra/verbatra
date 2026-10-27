@@ -180,7 +180,9 @@ describe("translation-memory cache: cross-key reuse", () => {
     expect(de.a).toBe("[de] Hello");
     expect(de.b).toBe("[de] Hello");
     expect([...(summary.locales[0]?.translated ?? [])].sort()).toEqual(["a", "b"]);
-    expect(localeCacheKeys(await loadCache(dir), computeFingerprint(cfg()), "de")).toHaveLength(1);
+    expect(
+      localeCacheKeys(await loadCache(dir), computeFingerprint(cfg(), "de"), "de"),
+    ).toHaveLength(1);
   });
 
   it("withholds every key sharing content when the representative fails the integrity gate", async () => {
@@ -241,7 +243,7 @@ describe("translation-memory cache: cross-key reuse", () => {
     const dir = await project({ a_solo: "Solo", z_a: "Dup", z_b: "Dup" }, { de: {} });
     const stub = makeStubProvider({ usage: USAGE_100 });
     const summary = await translate(
-      { config: cfg({ maxTokens: 400, budgetBehavior: "stop", maxBatchSize: 1 }), cwd: dir },
+      { config: cfg({ maxTokens: 720, budgetBehavior: "stop", maxBatchSize: 1 }), cwd: dir },
       { createProvider: () => stub.provider },
     );
 
@@ -292,7 +294,7 @@ describe("translation-memory cache: fingerprint and gate", () => {
       { createProvider: () => makeStubProvider().provider },
     );
 
-    const fingerprint = computeFingerprint(cfg());
+    const fingerprint = computeFingerprint(cfg(), "de");
     const [hash] = localeCacheKeys(await loadCache(dir), fingerprint, "de");
     expect(hash).toBeDefined();
     await writeFile(
@@ -311,6 +313,45 @@ describe("translation-memory cache: fingerprint and gate", () => {
     expect(summary.locales[0]?.cacheHits).toEqual([]);
     expect(summary.locales[0]?.translated).toEqual(["b"]);
     expect((await readTarget(dir, "de")).b).toBe("[de] Hi {{name}}");
+  });
+});
+
+describe("translation-memory cache: a hit is held to the target language's plural arms", () => {
+  const PLURAL = "{n, plural, one {# file} other {# files}}";
+  const RUSSIAN = "{n, plural, one {# файл} few {# файла} many {# файлов} other {# файла}}";
+  const ENGLISH_SHAPED = "{n, plural, one {# файл} other {# файла}}";
+  const ruCfg = (): VerbatraConfig => cfg({ format: "next-intl-json", targetLocales: ["ru"] });
+
+  it("refuses a remembered Russian value with only one and other and sends the key to the provider", async () => {
+    const dir = await project({ a: PLURAL }, { ru: {} });
+    const russianStub = (): ReturnType<typeof makeStubProvider> =>
+      makeStubProvider({ translate: () => RUSSIAN });
+    await translate(
+      { config: ruCfg(), cwd: dir },
+      { createProvider: () => russianStub().provider },
+    );
+
+    const fingerprint = computeFingerprint(ruCfg(), "de");
+    const [hash] = localeCacheKeys(await loadCache(dir), fingerprint, "ru");
+    expect(hash).toBeDefined();
+    await writeFile(
+      cacheFilePath(dir),
+      `${JSON.stringify({ version: 1, entries: { [fingerprint]: { ru: { [hash as string]: ENGLISH_SHAPED } } } })}\n`,
+    );
+
+    await setSource(dir, { b: PLURAL });
+    const stub = russianStub();
+    const summary = await translate(
+      { config: ruCfg(), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls.map((call) => call.request.entries.map((entry) => entry.key))).toEqual([
+      ["b"],
+    ]);
+    expect(summary.locales[0]?.cacheHits).toEqual([]);
+    expect(summary.locales[0]?.translated).toEqual(["b"]);
+    expect((await readTarget(dir, "ru")).b).toBe(RUSSIAN);
   });
 });
 
@@ -369,7 +410,7 @@ describe("translation-memory cache: interaction with prune, check, diff", () => 
       { config: cfg(), cwd: dir },
       { createProvider: () => makeStubProvider().provider },
     );
-    const fingerprint = computeFingerprint(cfg());
+    const fingerprint = computeFingerprint(cfg(), "de");
     const before = localeCacheKeys(await loadCache(dir), fingerprint, "de");
 
     await setSource(dir, { b: "Hello" });
@@ -389,7 +430,7 @@ describe("translation-memory cache: interaction with prune, check, diff", () => 
     const checkBefore = await check({ config: cfg(), cwd: dir });
     const diffBefore = await diff({ config: cfg(), cwd: dir });
 
-    const fingerprint = computeFingerprint(cfg());
+    const fingerprint = computeFingerprint(cfg(), "de");
     await writeFile(
       cacheFilePath(dir),
       `${JSON.stringify({ version: 1, entries: { [fingerprint]: { de: { someHash: "X" } } } })}\n`,
@@ -478,7 +519,7 @@ describe("integrity gate: an empty provider value never reaches disk or the cach
     expect(summary.locales[0]?.integrityMismatches).toEqual(["a"]);
     expect(summary.locales[0]?.translated).toEqual([]);
     expect(summary.succeeded).toEqual([]);
-    expect(await readTarget(dir, "de")).not.toHaveProperty("a");
+    expect(await defaultFs.fileExists(targetPath(dir, "de"))).toBe(false);
   });
 
   it("never overwrites an existing good translation of a changed key with an empty value", async () => {
@@ -845,13 +886,13 @@ describe("fuzzy reuse of the translation memory", () => {
       { createProvider: () => makeStubProvider().provider },
     );
 
-    const fingerprint = computeFingerprint(cfg());
+    const fingerprint = computeFingerprint(cfg(), "de");
     expect(localeCacheKeys(await loadCache(dir), fingerprint, "de")).toHaveLength(1);
   });
 
   it("leaves the cache fingerprint alone, so turning it on does not cool the cache", () => {
-    expect(computeFingerprint(cfg({ fuzzyCache: { enabled: true, threshold: 0.8 } }))).toBe(
-      computeFingerprint(cfg()),
+    expect(computeFingerprint(cfg({ fuzzyCache: { enabled: true, threshold: 0.8 } }), "de")).toBe(
+      computeFingerprint(cfg(), "de"),
     );
   });
 
@@ -861,7 +902,7 @@ describe("fuzzy reuse of the translation memory", () => {
       { config: cfg(), cwd: dir },
       { createProvider: () => makeStubProvider().provider },
     );
-    const fingerprint = computeFingerprint(cfg());
+    const fingerprint = computeFingerprint(cfg(), "de");
     const [hash] = localeCacheKeys(await loadCache(dir), fingerprint, "de");
     await writeFile(
       cacheFilePath(dir),

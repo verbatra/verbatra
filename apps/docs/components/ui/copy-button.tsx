@@ -2,44 +2,32 @@
 
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { trackUmamiEvent } from "@/lib/umami";
-import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
-import { cn } from "@/lib/utils";
+import { CopyControl, type CopyControlSize } from "@/components/ui/copy-control";
+
+type CopyButtonProps = {
+  text: string;
+  label: string;
+  size?: CopyControlSize;
+  className?: string;
+  compact?: boolean;
+};
 
 export function CopyButton({
   text,
   label,
+  size = "md",
   className,
-  onCopied,
-}: {
-  text: string;
-  label: string;
-  className?: string;
-  onCopied?: () => void;
-}): ReactNode {
+  compact = false,
+}: CopyButtonProps): ReactNode {
   const t = useTranslations("landing.install");
-  const [copied, copy] = useCopyToClipboard();
   return (
-    <button
-      type="button"
-      onClick={() => {
-        copy(text);
-        if (onCopied) {
-          onCopied();
-        } else {
-          trackUmamiEvent("copy-command", { command: text });
-        }
-      }}
-      aria-label={label}
-      className={cn(
-        "inline-flex min-h-8 shrink-0 items-center rounded-md border border-fd-border px-2.5 font-sans text-[13px] transition-colors",
-        copied
-          ? "border-[color:color-mix(in_srgb,var(--v-glow)_45%,var(--border-default))] text-[color:var(--accent)]"
-          : "text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-accent-foreground",
-        className,
-      )}
-    >
-      {copied ? t("copied") : t("copy")}
-    </button>
+    <CopyControl
+      text={text}
+      label={label}
+      status={{ copy: t("copy"), copied: t("copied"), copyFailed: t("copyFailed") }}
+      size={size}
+      compact={compact}
+      {...(className === undefined ? {} : { className })}
+    />
   );
 }

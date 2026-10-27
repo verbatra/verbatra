@@ -1,11 +1,11 @@
 "use client";
 
-import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useTranslations } from "next-intl";
 import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { HONEYPOT_FIELD } from "@/app/api/contact/honeypot-field";
 import type { ContactFieldErrors } from "@/app/api/contact/schema";
-import { cn } from "@/lib/utils";
+import Button from "@/components/ui/button";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type SubmitState = "idle" | "loading" | "success" | "rate_limited" | "error";
 
@@ -14,10 +14,12 @@ type ContactResponseBody =
   | { status: "invalid"; errors: ContactFieldErrors }
   | { status: "rate_limited" }
   | { status: "forbidden" }
+  | { status: "too_large" }
+  | { status: "unsupported_media_type" }
   | { status: "error" };
 
 const INPUT_CLASS =
-  "rounded-[10px] border border-fd-border bg-fd-background px-3 py-2 text-sm text-fd-foreground transition-colors aria-invalid:border-[color:var(--border-danger)]";
+  "rounded-[10px] border border-(--border-default) bg-(--surface-bg) px-3 py-2 text-sm text-(--text-strong) transition-colors aria-invalid:border-(--border-danger)";
 
 async function submitContactForm(formData: FormData): Promise<ContactResponseBody> {
   const response = await fetch("/api/contact", {
@@ -43,20 +45,20 @@ function StatusMessage({
 }): ReactNode {
   if (state === "success") {
     return (
-      <p className="text-[color:var(--text-success)]">
+      <p className="text-(--text-success)">
         <strong>{t("successTitle")}</strong> {t("successBody")}
       </p>
     );
   }
   if (state === "rate_limited") {
-    return <p className="text-[color:var(--text-danger)]">{t("rateLimitedBody")}</p>;
+    return <p className="text-(--text-danger)">{t("rateLimitedBody")}</p>;
   }
   if (state === "error" && hasFieldErrors) {
-    return <p className="text-[color:var(--text-danger)]">{t("validationErrorBody")}</p>;
+    return <p className="text-(--text-danger)">{t("validationErrorBody")}</p>;
   }
   if (state === "error") {
     return (
-      <p className="text-[color:var(--text-danger)]">
+      <p className="text-(--text-danger)">
         <strong>{t("errorTitle")}</strong> {t("errorBody")}
       </p>
     );
@@ -95,7 +97,7 @@ function Field({
   };
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-fd-foreground">
+      <label htmlFor={id} className="text-sm font-medium text-(--text-strong)">
         {label}
       </label>
       {as === "textarea" ? (
@@ -104,7 +106,7 @@ function Field({
         <input {...sharedProps} type={type} maxLength={maxLength} />
       )}
       {errorText && (
-        <p id={errorId} className="text-sm text-[color:var(--text-danger)]">
+        <p id={errorId} className="text-sm text-(--text-danger)">
           {errorText}
         </p>
       )}
@@ -112,11 +114,18 @@ function Field({
   );
 }
 
-export function ContactForm(): ReactNode {
+export function ContactForm({
+  privacyNotice,
+  imprintHref,
+}: {
+  privacyNotice: ReactNode;
+  imprintHref: string;
+}): ReactNode {
   const t = useTranslations("legal.contact.form");
   const nameId = useId();
   const emailId = useId();
   const messageId = useId();
+  const hydrated = useHydrated();
 
   const [state, setState] = useState<SubmitState>("idle");
   const [fieldErrors, setFieldErrors] = useState<ContactFieldErrors>({});
@@ -146,7 +155,23 @@ export function ContactForm(): ReactNode {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="not-prose flex flex-col gap-5">
+    <form
+      method="post"
+      action="/api/contact"
+      onSubmit={handleSubmit}
+      className="not-prose flex flex-col gap-5"
+    >
+      <noscript>
+        <p className="text-sm text-(--text-strong)">
+          {t.rich("noScript", {
+            imprint: (chunks: ReactNode) => (
+              <a href={imprintHref} className="vk-prose-link">
+                {chunks}
+              </a>
+            ),
+          })}
+        </p>
+      </noscript>
       <Field
         id={nameId}
         name="name"
@@ -178,13 +203,10 @@ export function ContactForm(): ReactNode {
       >
         <input type="text" name={HONEYPOT_FIELD} tabIndex={-1} autoComplete="off" />
       </div>
-      <button
-        type="submit"
-        disabled={state === "loading"}
-        className={cn(buttonVariants({ variant: "primary" }), "self-start")}
-      >
+      <Button type="submit" disabled={!hydrated || state === "loading"} className="self-start">
         {state === "loading" ? t("submitting") : t("submit")}
-      </button>
+      </Button>
+      <p className="-mt-2 text-sm text-(--text-muted)">{privacyNotice}</p>
       <div role="status" aria-live="polite" className="text-sm">
         <StatusMessage state={state} hasFieldErrors={Object.keys(fieldErrors).length > 0} t={t} />
       </div>

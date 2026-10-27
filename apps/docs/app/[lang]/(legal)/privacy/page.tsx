@@ -1,44 +1,32 @@
+import { CalloutContainer } from "fumadocs-ui/components/callout";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
-import { i18n, toLocale } from "@/lib/i18n";
+import { AnalyticsOptOut, type AnalyticsOptOutLabels } from "@/components/analytics-opt-out";
+import { CALLOUT_CLASS } from "@/components/docs-callout";
+import { LegalPage, LegalPageHead } from "@/components/legal-page";
+import { type Locale, toLocale } from "@/lib/i18n";
+import {
+  PRIVACY_ANALYTICS_KEY,
+  PRIVACY_HEADING_ANCHORS,
+  PRIVACY_OBJECTION_HEADING_ID,
+  PRIVACY_OBJECTION_KEY,
+  PRIVACY_SECTION_KEYS,
+  privacyLinkHrefs,
+} from "@/lib/legal-privacy";
+import { markdownUrl } from "@/lib/markdown-route";
 import { LEGAL_LAST_UPDATED, localeAlternates } from "@/lib/site";
+import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 
-const UMAMI_DOCS = "https://umami.is/docs/";
-const GITHUB_REPO = "https://github.com/verbatra/verbatra";
-const GITHUB_PRIVACY =
-  "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement";
-const NPM_SCOPE = "https://www.npmjs.com/search?q=%40verbatra";
-const NPM_PRIVACY = "https://docs.npmjs.com/policies/privacy";
-const CONTABO_URL = "https://contabo.com/de/";
-const CONTACT_MAILTO = "mailto:info@kreitz-webdev.de";
-
-const SECTION_KEYS = [
-  "s1",
-  "s2",
-  "s3",
-  "s4",
-  "s5",
-  "s6",
-  "s7",
-  "s8",
-  "s9",
-  "s10",
-  "s11",
-  "s12",
-] as const;
-
-const linkTags = {
-  email: (chunks: ReactNode) => <a href={CONTACT_MAILTO}>{chunks}</a>,
-  umami: (chunks: ReactNode) => <a href={UMAMI_DOCS}>{chunks}</a>,
-  repo: (chunks: ReactNode) => <a href={GITHUB_REPO}>{chunks}</a>,
-  ghprivacy: (chunks: ReactNode) => <a href={GITHUB_PRIVACY}>{chunks}</a>,
-  npm: (chunks: ReactNode) => <a href={NPM_SCOPE}>{chunks}</a>,
-  npmprivacy: (chunks: ReactNode) => <a href={NPM_PRIVACY}>{chunks}</a>,
-  contabo: (chunks: ReactNode) => <a href={CONTABO_URL}>{chunks}</a>,
-  contact: (chunks: ReactNode) => <a href="/contact">{chunks}</a>,
+const linkTagsFor = (locale: Locale) => ({
+  ...Object.fromEntries(
+    Object.entries(privacyLinkHrefs(locale)).map(([tag, href]) => [
+      tag,
+      (chunks: ReactNode) => <a href={href}>{chunks}</a>,
+    ]),
+  ),
   strong: (chunks: ReactNode) => <strong>{chunks}</strong>,
-};
+});
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string }>;
@@ -46,47 +34,78 @@ export async function generateMetadata(props: {
   const { lang } = await props.params;
   const locale = toLocale(lang);
   const t = await getTranslations({ locale, namespace: "legal.privacy.meta" });
+  const tMeta = await getTranslations({ locale, namespace: "landing.meta" });
+  const alternates = localeAlternates(locale, "/privacy");
   return {
     title: t("title"),
     description: t("description"),
     robots: { index: true },
-    alternates: localeAlternates(locale, "/privacy"),
+    alternates: { ...alternates, types: { "text/markdown": markdownUrl(alternates.canonical) } },
+    ...socialMetadata({
+      locale,
+      path: alternates.canonical,
+      type: "website",
+      title: t("title"),
+      description: t("description"),
+      image: { path: homeOgImagePath(locale), alt: tMeta("ogImageAlt") },
+    }),
   };
 }
 
 export default async function PrivacyPage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
   const locale = toLocale(lang);
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "legal.privacy" });
-  const isAuthoritative = locale === i18n.defaultLanguage;
+  const tLegal = await getTranslations({ locale, namespace: "landing.footer.cols.legal" });
+  const linkTags = linkTagsFor(locale);
+  const optOutLabels: AnalyticsOptOutLabels = {
+    optOut: t(`${PRIVACY_ANALYTICS_KEY}.optOut.optOut`),
+    optIn: t(`${PRIVACY_ANALYTICS_KEY}.optOut.optIn`),
+    statusOptedOut: t(`${PRIVACY_ANALYTICS_KEY}.optOut.statusOptedOut`),
+    statusOptedIn: t(`${PRIVACY_ANALYTICS_KEY}.optOut.statusOptedIn`),
+    signals: t(`${PRIVACY_ANALYTICS_KEY}.optOut.signals`),
+  };
 
-  const lastUpdated = (
-    <p>
-      <em>
-        {t("lastUpdatedLabel")}: {LEGAL_LAST_UPDATED}
-      </em>
-    </p>
+  const lastUpdatedText = (
+    <em>
+      {t("lastUpdatedLabel")}: {LEGAL_LAST_UPDATED}
+    </em>
   );
+  const lastUpdated = <p>{lastUpdatedText}</p>;
 
   return (
-    <main className="container mx-auto max-w-3xl px-6 py-16 prose">
-      <h1>{t("title")}</h1>
-      {lastUpdated}
+    <LegalPage>
+      <LegalPageHead eyebrow={tLegal("title")} title={t("title")} lead={lastUpdatedText} />
 
-      {!isAuthoritative && (
-        <p>
-          <em>{t("disclaimer")}</em>
-        </p>
+      <p>
+        <em>{t("languageVersions")}</em>
+      </p>
+
+      {PRIVACY_SECTION_KEYS.map((key) =>
+        key === PRIVACY_OBJECTION_KEY ? (
+          <section key={key} aria-labelledby={PRIVACY_OBJECTION_HEADING_ID}>
+            <CalloutContainer type="info" className={CALLOUT_CLASS}>
+              <h2 id={PRIVACY_OBJECTION_HEADING_ID} className="mt-0 scroll-mt-24">
+                {t(`${key}.heading`)}
+              </h2>
+              <p className="mb-0">{t.rich(`${key}.body`, linkTags)}</p>
+            </CalloutContainer>
+          </section>
+        ) : (
+          <section key={key}>
+            <h2 id={PRIVACY_HEADING_ANCHORS[key]} className="scroll-mt-24">
+              {t(`${key}.heading`)}
+            </h2>
+            <p>{t.rich(`${key}.body`, linkTags)}</p>
+            {key === PRIVACY_ANALYTICS_KEY && (
+              <AnalyticsOptOut locale={locale} labels={optOutLabels} />
+            )}
+          </section>
+        ),
       )}
 
-      {SECTION_KEYS.map((key) => (
-        <section key={key}>
-          <h2>{t(`${key}.heading`)}</h2>
-          <p>{t.rich(`${key}.body`, linkTags)}</p>
-        </section>
-      ))}
-
       {lastUpdated}
-    </main>
+    </LegalPage>
   );
 }

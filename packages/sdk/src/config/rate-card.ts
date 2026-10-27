@@ -31,14 +31,14 @@ export const characterRateSchema = z.strictObject({
 });
 
 /**
- * The zod schema for one `rates.table` entry: either {@link tokenRateSchema} or
- * {@link characterRateSchema}, never a mix of the two shapes.
+ * The zod schema for one `rates.table` entry: either a token rate or a character rate, never a
+ * mix of the two shapes.
  */
 export const modelRateSchema = z.union([tokenRateSchema, characterRateSchema]);
 
 /**
  * The zod schema for the optional `rates` block: the `asOf` date and `currency` printed beside
- * every priced estimate, plus a `table` of {@link modelRateSchema} entries keyed by rate key
+ * every priced estimate, plus a `table` of rate entries keyed by rate key
  * (`provider/model`, or the bare provider id for a provider without a model).
  */
 export const rateCardSchema = z.strictObject({
@@ -73,7 +73,14 @@ export type ModelRate = z.infer<typeof modelRateSchema>;
  * example `gemini/gemini-2.5-flash`), and the bare provider id for one without (`deepl`,
  * `google-translate`).
  */
-export type RateCard = z.infer<typeof rateCardSchema>;
+export interface RateCard {
+  /** The date the rates were read, written as `YYYY-MM-DD`; printed beside every priced estimate. */
+  asOf: string;
+  /** The three-letter uppercase currency code the rates are written in, such as `USD` or `EUR`. */
+  currency: string;
+  /** The rate entries by rate key: a token rate or a character rate, never both. */
+  table: Record<string, ModelRate>;
+}
 
 export function lookupRate(card: RateCard | undefined, rateKey: string): ModelRate | undefined {
   if (card === undefined) {

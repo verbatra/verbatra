@@ -95,6 +95,9 @@ describe("translate: plural-category generation (supported case)", () => {
     const locale = summary.locales[0];
     expect(locale?.generated).toEqual(["items_many"]);
     expect(locale?.integrityMismatches).toEqual(["items_few"]);
+    expect(locale?.integrityRefusals).toEqual([
+      { key: "items_few", reason: "placeholder", details: ["+{{__stub_integrity_fail__}}"] },
+    ]);
     expect(hasNotice(locale?.notices ?? [])).toBe(true);
   });
 
@@ -317,6 +320,41 @@ describe("translate: plural generation fallbacks (never a hard failure)", () => 
     expect(summary.locales[0]?.generated).toEqual([]);
     expect(hasNotice(summary.locales[0]?.notices ?? [])).toBe(true);
   });
+
+  const SOURCE_SHORT_NOTICE =
+    'The source does not supply all CLDR plural categories the target language "pl" requires ' +
+    "(missing: few, many); verbatra translates only the source's plural forms and does not " +
+    "synthesize the others. Add the missing forms manually.";
+
+  it.each([
+    ["deepl", false],
+    ["deepl", true],
+    ["none", false],
+    ["none", true],
+  ] as const)(
+    "provider %s (dry run %s): names the forms the source lacks, never a failed generation",
+    async (id, dryRun) => {
+      const dir = await project(PLURAL_SOURCE, { pl: {} });
+
+      const summary = await translate(
+        {
+          config: cfg({ provider: { id, options: {} } }),
+          cwd: dir,
+          generatePlurals: true,
+          dryRun,
+        },
+        {
+          createProvider: () =>
+            makeStubProvider({ id: "deepl", kind: "machine-translation" }).provider,
+        },
+      );
+
+      const notices = (summary.locales[0]?.notices ?? []).filter(
+        (notice) => notice.code === "PLURAL_CATEGORIES_INCOMPLETE",
+      );
+      expect(notices.map((notice) => notice.message)).toEqual([SOURCE_SHORT_NOTICE]);
+    },
+  );
 
   it("non-i18next format: generation is a no-op, run succeeds, no notice", async () => {
     const dir = await project(PLURAL_SOURCE, { pl: {} });
@@ -732,7 +770,7 @@ describe("translate: plural generation and the token budget", () => {
 
     const summary = await translate(
       {
-        config: cfg({ maxTokens: 450, budgetBehavior: "stop" }),
+        config: cfg({ maxTokens: 770, budgetBehavior: "stop" }),
         cwd: dir,
         generatePlurals: true,
       },
@@ -769,7 +807,7 @@ describe("translate: plural generation and the token budget", () => {
         ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED")?.message;
 
     expect(noticeFor("pl")).toContain("projected at");
-    expect(noticeFor("ar")).toContain("had already reached");
+    expect(noticeFor("ar")).toContain("had already stopped short of");
     expect(noticeFor("ar")).not.toContain("projected at");
   });
 
@@ -784,7 +822,7 @@ describe("translate: plural generation and the token budget", () => {
         config: cfg({
           targetLocales: ["ar"],
           maxBatchSize: 2,
-          maxTokens: 450,
+          maxTokens: 770,
           budgetBehavior: "stop",
         }),
         cwd: dir,

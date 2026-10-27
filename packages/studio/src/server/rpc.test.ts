@@ -10,25 +10,42 @@ const READ_ONLY_METHODS = [
   "lock.state",
   "history.list",
   "key.integrity",
+  "key.context",
   "locale.values",
+  "locale.integrity",
   "review.queue",
   "usage.summary",
+  "translation.estimate",
 ] as const;
 
-const ALWAYS_ON_WRITE_METHODS = ["translation.editEntry", "key.value", "glossary.write"] as const;
-const SPEND_METHODS = ["translation.retranslateEntry", "translation.translatePending"];
+const ALWAYS_ON_WRITE_METHODS = [
+  "translation.editEntry",
+  "key.value",
+  "glossary.write",
+  "review.approve",
+  "review.reject",
+  "review.approveMany",
+  "review.rejectMany",
+  "review.approveLocale",
+] as const;
+const SPEND_METHODS = [
+  "translation.retranslateEntry",
+  "translation.translatePending",
+  "translation.retranslateEntries",
+  "translation.inFlight",
+];
 
 describe("the shared contract's method list", () => {
-  it("is exactly the fifteen agreed methods, including the schema-only write methods", () => {
+  it("is exactly the twenty-five agreed methods, including the schema-only write methods", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(
       new Set([...READ_ONLY_METHODS, ...SPEND_METHODS, ...ALWAYS_ON_WRITE_METHODS]),
     );
-    expect(RPC_METHOD_NAMES).toHaveLength(15);
+    expect(RPC_METHOD_NAMES).toHaveLength(25);
   });
 });
 
 describe("createRpcHandlers: capability gating", () => {
-  it("registers the ten read handlers plus the three unpriced write handlers by default, without spend", () => {
+  it("registers the thirteen read handlers plus the eight unpriced write handlers by default, without spend", () => {
     const handlers = createRpcHandlers({ spend: false, writeToDisk: true });
     expect(new Set(Object.keys(handlers))).toEqual(
       new Set([...READ_ONLY_METHODS, ...ALWAYS_ON_WRITE_METHODS]),
@@ -38,6 +55,7 @@ describe("createRpcHandlers: capability gating", () => {
   it("omits translation.retranslateEntry and translation.translatePending without spend", () => {
     const handlers = createRpcHandlers({ spend: false, writeToDisk: true });
     expect(handlers["translation.retranslateEntry"]).toBeUndefined();
+    expect(handlers["translation.retranslateEntries"]).toBeUndefined();
     expect(handlers["translation.translatePending"]).toBeUndefined();
     expect(handlers["translation.editEntry"]).toBeDefined();
     expect(handlers["key.value"]).toBeDefined();

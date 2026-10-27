@@ -651,22 +651,20 @@ describe("createAndroidXmlAdapter after the shared XML helper extraction", () =>
     expect(resource.entries.get("entity")?.value).toBe("Tom & Jerry <b>not markup</b>");
   });
 
-  it("round-trips the whole document byte-identically apart from the trailing newline it drops", async () => {
+  it("round-trips the whole document byte-identically, trailing newline included", async () => {
     const path = await tempFile("shared-rt.xml", SHARED_HELPER_FIXTURE);
     const { resource } = await adapter.read(path, "en");
     await adapter.write(resource, path);
-    expect(await readFile(path, "utf8")).toBe(SHARED_HELPER_FIXTURE.replace(/\n$/, ""));
+    expect(await readFile(path, "utf8")).toBe(SHARED_HELPER_FIXTURE);
   });
 
-  it("drops the destination's trailing newline on every write, unlike the resx adapter which restores it", async () => {
+  it("keeps the destination's trailing newline on every write, like the resx adapter", async () => {
     const path = await tempFile("shared-nl.xml", SHARED_HELPER_FIXTURE);
     for (let pass = 0; pass < 3; pass += 1) {
       const { resource } = await adapter.read(path, "en");
       await adapter.write(resource, path);
     }
-    const written = await readFile(path, "utf8");
-    expect(written.endsWith("</resources>")).toBe(true);
-    expect(written).toBe(SHARED_HELPER_FIXTURE.replace(/\n$/, ""));
+    expect(await readFile(path, "utf8")).toBe(SHARED_HELPER_FIXTURE);
   });
 
   it("leaves the untranslatable, CDATA, markup, and array resources untouched when one value changes", async () => {

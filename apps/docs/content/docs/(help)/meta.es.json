@@ -1,4 +1,4 @@
 {
   "title": "Ayuda",
-  "pages": ["faq", "troubleshooting", "recovery-and-rollback"]
+  "pages": ["troubleshooting", "faq"]
 }

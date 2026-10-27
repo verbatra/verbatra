@@ -1,7 +1,8 @@
 import { resolve } from "node:path";
 import { z } from "zod";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
-import { sortRecordKeys } from "../record-utils.js";
+import { renameRecordKeys, sortRecordKeys } from "../record-utils.js";
+import type { FingerprintFor } from "./fingerprint.js";
 import type { CacheAddition, TranslationMemory } from "./types.js";
 
 /**
@@ -84,6 +85,29 @@ export function lookupMemory(
   return memory.entries[fingerprint]?.[locale]?.[contentHash];
 }
 
+export function memoryLocalesWithState(memory: TranslationMemory): ReadonlySet<string> {
+  const locales = new Set<string>();
+  for (const byLocale of Object.values(memory.entries)) {
+    for (const [locale, hashes] of Object.entries(byLocale)) {
+      if (Object.keys(hashes).length > 0) {
+        locales.add(locale);
+      }
+    }
+  }
+  return locales;
+}
+
+export function withMemoryLocalesMoved(
+  memory: TranslationMemory,
+  moves: ReadonlyMap<string, string>,
+): TranslationMemory {
+  const entries: Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>> = {};
+  for (const [fingerprint, byLocale] of Object.entries(memory.entries)) {
+    entries[fingerprint] = renameRecordKeys(byLocale, moves);
+  }
+  return { ...memory, entries };
+}
+
 export function lookupSource(memory: TranslationMemory, contentHash: string): string | undefined {
   return memory.sources[contentHash];
 }
@@ -92,30 +116,26 @@ type LocaleAdditions = ReadonlyMap<string, Readonly<Record<string, CacheAddition
 
 export function applyAdditions(
   base: TranslationMemory,
-  fingerprint: string,
+  fingerprintFor: FingerprintFor,
   additionsByLocale: LocaleAdditions,
 ): TranslationMemory {
   if (additionsByLocale.size === 0) {
     return base;
   }
-  const fingerprintEntries: Record<string, Record<string, string>> = {};
-  for (const [locale, hashes] of Object.entries(base.entries[fingerprint] ?? {})) {
-    fingerprintEntries[locale] = { ...hashes };
-  }
+  const entries: Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>> = {
+    ...base.entries,
+  };
   const sources: Record<string, string> = { ...base.sources };
   for (const [locale, additions] of additionsByLocale) {
-    const values: Record<string, string> = { ...fingerprintEntries[locale] };
+    const fingerprint = fingerprintFor(locale);
+    const values: Record<string, string> = { ...entries[fingerprint]?.[locale] };
     for (const addition of Object.values(additions)) {
       values[addition.contentHash] = addition.value;
       sources[addition.contentHash] = addition.source;
     }
-    fingerprintEntries[locale] = values;
+    entries[fingerprint] = { ...entries[fingerprint], [locale]: values };
   }
-  return {
-    version: CURRENT_CACHE_VERSION,
-    entries: { ...base.entries, [fingerprint]: fingerprintEntries },
-    sources,
-  };
+  return { version: CURRENT_CACHE_VERSION, entries, sources };
 }
 
 export function additionsToRecord(
@@ -156,7 +176,7 @@ export async function writeTranslationMemory(
 export async function feedTranslationMemory(
   cwd: string,
   fs: SdkFs,
-  fingerprint: string,
+  fingerprintFor: FingerprintFor,
   additionsByLocale: LocaleAdditions,
 ): Promise<void> {
   if (additionsByLocale.size === 0) {
@@ -168,6 +188,52 @@ export async function feedTranslationMemory(
     if (!writable) {
       return;
     }
-    await writeTranslationMemory(path, applyAdditions(memory, fingerprint, additionsByLocale), fs);
+    await writeTranslationMemory(
+      path,
+      applyAdditions(memory, fingerprintFor, additionsByLocale),
+      fs,
+    );
+  } catch {}
+}
+
+function withoutMatchingValue(
+  memory: TranslationMemory,
+  locale: string,
+  contentHash: string,
+  matches: (value: string) => boolean,
+): TranslationMemory | undefined {
+  let changed = false;
+  const entries: Record<string, Record<string, Record<string, string>>> = {};
+  for (const [fingerprint, locales] of Object.entries(memory.entries)) {
+    const hashes = locales[locale];
+    const value = hashes?.[contentHash];
+    if (hashes === undefined || value === undefined || !matches(value)) {
+      entries[fingerprint] = locales;
+      continue;
+    }
+    const { [contentHash]: _evicted, ...rest } = hashes;
+    entries[fingerprint] = { ...locales, [locale]: rest };
+    changed = true;
+  }
+  return changed ? { ...memory, entries } : undefined;
+}
+
+export async function evictMemoryValue(
+  cwd: string,
+  fs: SdkFs,
+  locale: string,
+  contentHash: string,
+  matches: (value: string) => boolean,
+): Promise<void> {
+  try {
+    const path = cacheFilePath(cwd);
+    const { memory, writable } = await readTranslationMemory(path, fs);
+    if (!writable) {
+      return;
+    }
+    const next = withoutMatchingValue(memory, locale, contentHash, matches);
+    if (next !== undefined) {
+      await writeTranslationMemory(path, next, fs);
+    }
   } catch {}
 }

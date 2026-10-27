@@ -139,6 +139,13 @@ describe("pseudolocalizeValue: ICU message structure survives", () => {
     expect(result).toContain("female {");
   });
 
+  it("accents the arm text of a plural whose argument name is not ASCII", () => {
+    const result = pseudolocalizeValue("{número, plural, one {# item left} other {# items left}}");
+
+    expect(result).toContain("{número, plural, ");
+    expect(result).toContain("íṫéṁ ĺéƒṫ");
+  });
+
   it("keeps a plural offset clause untouched", () => {
     const source = "{count, plural, offset:1 one {# other person} other {# other people}}";
 

@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import {
+  type FileScannedListener,
   type ProjectScan,
   type SourceExtractor,
   type SourceFramework,
@@ -10,6 +11,7 @@ import { buildExtractor, type ExtractionConfig } from "../config/extraction-conf
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import type { SdkFs } from "../fs.js";
+import type { ScanProgressListener } from "../progress/types.js";
 
 export type CreateExtractor = (framework: SourceFramework) => SourceExtractor;
 
@@ -38,11 +40,22 @@ export function toSourceFs(fs: SdkFs): SourceFs {
   };
 }
 
+export function scanProgress(onProgress: ScanProgressListener | undefined): {
+  onFileScanned?: FileScannedListener;
+} {
+  return onProgress === undefined
+    ? {}
+    : {
+        onFileScanned: (scanned, total) => onProgress({ type: "files-scanned", scanned, total }),
+      };
+}
+
 export async function runScan(
   extraction: ExtractionConfig,
   cwd: string,
   fs: SdkFs,
   createExtractor: CreateExtractor = buildExtractor,
+  onProgress?: ScanProgressListener,
 ): Promise<ProjectScan> {
   return scanProject(
     {
@@ -50,6 +63,7 @@ export async function runScan(
       roots: extraction.roots.map((root) => resolve(cwd, root)),
       extractor: createExtractor(extraction.framework),
       ...(extraction.exclude !== undefined ? { exclude: extraction.exclude } : {}),
+      ...scanProgress(onProgress),
     },
     toSourceFs(fs),
   );

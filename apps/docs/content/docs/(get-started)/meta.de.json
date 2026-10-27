@@ -1,4 +1,5 @@
 {
   "title": "Erste Schritte",
-  "pages": ["your-first-translation", "add-a-language"]
+  "defaultOpen": true,
+  "pages": ["quickstart", "../(sdk)/sdk-quickstart", "pick-your-stack", "../(agents)/start-with-ai"]
 }

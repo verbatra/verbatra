@@ -1,9 +1,124 @@
-const RTL_LANGUAGE_SUBTAGS: ReadonlySet<string> = new Set(["ar", "he", "fa", "ur"]);
+const RTL_SCRIPTS: ReadonlySet<string> = new Set([
+  "Adlm",
+  "Arab",
+  "Aran",
+  "Armi",
+  "Avst",
+  "Chrs",
+  "Cprt",
+  "Elym",
+  "Gara",
+  "Hatr",
+  "Hebr",
+  "Hung",
+  "Khar",
+  "Lydi",
+  "Mand",
+  "Mani",
+  "Mend",
+  "Merc",
+  "Mero",
+  "Narb",
+  "Nbat",
+  "Nkoo",
+  "Orkh",
+  "Ougr",
+  "Palm",
+  "Phli",
+  "Phlp",
+  "Phnx",
+  "Prti",
+  "Rohg",
+  "Samr",
+  "Sarb",
+  "Sidt",
+  "Sogd",
+  "Sogo",
+  "Syrc",
+  "Syre",
+  "Syrj",
+  "Syrn",
+  "Thaa",
+  "Yezi",
+]);
 
-function primarySubtag(locale: string): string {
-  return (locale.split(/[-_]/)[0] ?? "").toLowerCase();
+interface TextInfo {
+  readonly direction?: string;
 }
 
-export function isRtlLocale(locale: string): boolean {
-  return RTL_LANGUAGE_SUBTAGS.has(primarySubtag(locale));
+interface LocaleTextInfo {
+  getTextInfo?: () => TextInfo;
+  readonly textInfo?: TextInfo;
+}
+
+function parseLocale(tag: string): Intl.Locale | undefined {
+  try {
+    return new Intl.Locale(tag.replaceAll("_", "-"));
+  } catch {
+    return undefined;
+  }
+}
+
+const directionCache = new Map<string, boolean>();
+
+function textInfoDirection(locale: Intl.Locale & LocaleTextInfo): string | undefined {
+  try {
+    const info = typeof locale.getTextInfo === "function" ? locale.getTextInfo() : locale.textInfo;
+    return info?.direction;
+  } catch {
+    return undefined;
+  }
+}
+
+function scriptDirectionIsRtl(locale: Intl.Locale): boolean {
+  try {
+    const script = locale.maximize().script;
+    return script !== undefined && RTL_SCRIPTS.has(script);
+  } catch {
+    return false;
+  }
+}
+
+function resolveIsRtl(tag: string): boolean {
+  const locale = parseLocale(tag);
+  if (locale === undefined) {
+    return false;
+  }
+  const direction = textInfoDirection(locale);
+  if (direction === "rtl" || direction === "ltr") {
+    return direction === "rtl";
+  }
+  return scriptDirectionIsRtl(locale);
+}
+
+export function isRtlLocale(tag: string): boolean {
+  const cached = directionCache.get(tag);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const rtl = resolveIsRtl(tag);
+  directionCache.set(tag, rtl);
+  return rtl;
+}
+
+const STRONG_RTL =
+  /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}\p{Script=Adlam}\p{Script=Samaritan}\p{Script=Mandaic}\p{Script=Hanifi_Rohingya}\p{Script=Yezidi}\p{Script=Mende_Kikakui}]/u;
+
+export function hasStrongRtl(text: string): boolean {
+  return STRONG_RTL.test(text);
+}
+
+export type TextDirection = "ltr" | "rtl" | "auto";
+
+export function directionForValue(
+  value: string | undefined,
+  locale: string | undefined,
+): TextDirection {
+  if (locale === undefined) {
+    return "auto";
+  }
+  if (!isRtlLocale(locale)) {
+    return "ltr";
+  }
+  return value === undefined || hasStrongRtl(value) ? "rtl" : "auto";
 }

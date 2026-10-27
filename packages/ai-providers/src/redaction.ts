@@ -1,22 +1,131 @@
+import { keyEnvVarNames } from "./key-env-vars.js";
+
 const REDACTED = "[REDACTED]";
 
+export const MIN_SCRUBBED_VALUE_LENGTH = 8;
+
+const UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+
 const KEY_PATTERNS: readonly RegExp[] = [
-  /\bsk-[A-Za-z0-9_-]{8,}/g,
   /AIza[0-9A-Za-z_-]{35}/g,
-  /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?::fx)?/g,
+  new RegExp(`${UUID}:fx\\b`, "g"),
 ];
+
+const SK_TOKEN =
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: an ANSI escape is a key boundary
+  /(?=sk-)(?:(?<![A-Za-z0-9])|(?<=\\[bfnrt])|(?<=\\u[0-9A-Fa-f]{4})|(?<=%[0-9A-Fa-f]{2})|(?<=\x1b\[[0-9;?]*[@-~])|(?<=\\u001[bB]\[[0-9;?]*[@-~])|(?<=\x1b\([A-Za-z0-9])|(?<=\\u001[bB]\([A-Za-z0-9]))sk-[A-Za-z0-9_-]+/g;
+
+const MIN_SK_ALPHANUMERICS = 32;
+
+const QUOTE = `(?:\\\\*["'])?`;
+
+const KEY_NAME = "(?:deepl[_-]?(?:(?:api|auth)[_-]?)?|(?:api|auth)[_-]?)key";
+
+const SEPARATOR = "(?:\\s*(?:[:=]|%3D)\\s*|\\s+)";
+
+const DEEPL_KEY_IN_CONTEXT = new RegExp(
+  `(\\b${KEY_NAME}${QUOTE}${SEPARATOR}${QUOTE})${UUID}(?::fx)?`,
+  "gi",
+);
+
+function alphanumericCount(text: string): number {
+  return text.replace(/[^A-Za-z0-9]/g, "").length;
+}
+
+function redactSkToken(token: string): string {
+  if (alphanumericCount(token.slice(3)) >= MIN_SK_ALPHANUMERICS) {
+    return REDACTED;
+  }
+  return token;
+}
 
 function escapeForRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export function redact(text: string, secret = process.env.ANTHROPIC_API_KEY): string {
-  let out = text;
+function jsonEscaped(value: string): string {
+  return JSON.stringify(value).slice(1, -1);
+}
+
+function configuredKeyValues(): string[] {
+  const values = new Set<string>();
+  for (const name of keyEnvVarNames()) {
+    const value = process.env[name];
+    if (value !== undefined && value.length >= MIN_SCRUBBED_VALUE_LENGTH) {
+      values.add(value);
+      values.add(jsonEscaped(value));
+    }
+  }
+  return [...values].sort((a, b) => b.length - a.length);
+}
+
+let cachedValuePattern: { readonly snapshot: string; readonly pattern: RegExp } | undefined;
+
+function configuredValuePattern(): RegExp | undefined {
+  const values = configuredKeyValues();
+  if (values.length === 0) {
+    cachedValuePattern = undefined;
+    return undefined;
+  }
+  const snapshot = values.join("\0");
+  if (cachedValuePattern?.snapshot !== snapshot) {
+    cachedValuePattern = {
+      snapshot,
+      pattern: new RegExp(values.map(escapeForRegExp).join("|"), "g"),
+    };
+  }
+  return cachedValuePattern.pattern;
+}
+
+function scrubValues(text: string): string {
+  const pattern = configuredValuePattern();
+  return pattern === undefined ? text : text.replace(pattern, REDACTED);
+}
+
+function scrubPatterns(text: string): string {
+  let out = text.replace(DEEPL_KEY_IN_CONTEXT, `$1${REDACTED}`).replace(SK_TOKEN, redactSkToken);
   for (const pattern of KEY_PATTERNS) {
     out = out.replace(pattern, REDACTED);
   }
-  if (secret !== undefined && secret.length > 0) {
-    out = out.replace(new RegExp(escapeForRegExp(secret), "g"), REDACTED);
-  }
   return out;
+}
+
+export function redactKeys(text: string): string {
+  return scrubPatterns(scrubValues(text));
+}
+
+export interface TextSpan {
+  readonly start: number;
+  readonly end: number;
+}
+
+export function matchSpans(
+  pattern: RegExp,
+  text: string,
+  accept: (match: string) => boolean = () => true,
+): TextSpan[] {
+  return [...text.matchAll(pattern)]
+    .filter((match) => match[0].length > 0 && accept(match[0]))
+    .map((match) => ({ start: match.index, end: match.index + match[0].length }));
+}
+
+function isLongSkToken(token: string): boolean {
+  return redactSkToken(token) === REDACTED;
+}
+
+function deeplContextSpans(text: string): TextSpan[] {
+  return [...text.matchAll(DEEPL_KEY_IN_CONTEXT)].map((match) => ({
+    start: match.index + (match[1] ?? "").length,
+    end: match.index + match[0].length,
+  }));
+}
+
+export function findKeyShapes(text: string): readonly TextSpan[] {
+  const valuePattern = configuredValuePattern();
+  return [
+    ...(valuePattern === undefined ? [] : matchSpans(valuePattern, text)),
+    ...deeplContextSpans(text),
+    ...matchSpans(SK_TOKEN, text, isLongSkToken),
+    ...KEY_PATTERNS.flatMap((pattern) => matchSpans(pattern, text)),
+  ];
 }

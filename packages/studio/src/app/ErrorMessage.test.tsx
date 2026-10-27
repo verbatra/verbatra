@@ -35,7 +35,9 @@ describe("ErrorMessage", () => {
   it("resolves a provider code to its own copy, not to the transport wording", () => {
     const view = render(<ErrorMessage error={{ code: "AUTH_FAILED", message: "401" }} />);
 
-    expect(view.text()).toBe("The translation provider rejected the configured API key.");
+    expect(view.text()).toBe(
+      "The translation provider rejected the configured API key or refused the request under its policy.",
+    );
   });
 
   it("puts the prefix in front of the resolved copy, separated by a space", () => {

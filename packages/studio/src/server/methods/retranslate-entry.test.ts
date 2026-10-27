@@ -1,6 +1,6 @@
 import { access, mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { CreateProvider, LoadedConfig, SdkFs } from "@verbatra/sdk";
+import { type CreateProvider, editEntry, type LoadedConfig, type SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
@@ -69,6 +69,33 @@ const stubCreateProvider: CreateProvider = () => ({
 });
 
 describe("retranslateEntryHandler", () => {
+  it("refuses a value a person wrote unless includeHuman is passed", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+    try {
+      await editEntry({
+        config: project.config,
+        cwd: project.root,
+        locale: "de",
+        key: "greeting",
+        value: "Hallo",
+      });
+
+      await expect(
+        retranslateEntryHandler(
+          { locale: "de", key: "greeting" },
+          deps(project, stubCreateProvider),
+        ),
+      ).rejects.toMatchObject({ code: "KEY_PROTECTED" });
+      const result = await retranslateEntryHandler(
+        { locale: "de", key: "greeting", includeHuman: true },
+        deps(project, stubCreateProvider),
+      );
+      expect(result).toMatchObject({ accepted: true });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
   it("delegates to the sdk seam and returns its accepted result", async () => {
     const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
     try {
@@ -106,7 +133,12 @@ describe("retranslateEntryHandler", () => {
         deps(project, droppingProvider),
       );
 
-      expect(result).toEqual({ accepted: false, reason: "placeholder", value: "Hallo" });
+      expect(result).toEqual({
+        accepted: false,
+        reason: "placeholder",
+        details: ["-{{name}}"],
+        value: "Hallo",
+      });
     } finally {
       await project.cleanup();
     }

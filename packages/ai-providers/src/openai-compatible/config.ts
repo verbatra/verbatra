@@ -1,47 +1,54 @@
 import { z } from "zod";
-import { PROVIDER_ENV } from "../env.js";
-import type { ProviderCallContext } from "../guard.js";
+import { httpBaseUrlSchema } from "../base-url.js";
+import { PROVIDER_ENV } from "../key-env-vars.js";
+import { localeMapConfigSchema } from "../locale-map.js";
 import { requestTimeoutConfigSchema } from "../request-timeout-config.js";
 
-const HOSTED_PROVIDER_ENV_VARS: ReadonlySet<string> = new Set(
-  Object.values(PROVIDER_ENV).map((name) => name.toUpperCase()),
+const HOSTED_PROVIDER_BY_ENV_VAR: ReadonlyMap<string, string> = new Map(
+  Object.entries(PROVIDER_ENV).map(([providerId, name]) => [name.toUpperCase(), providerId]),
 );
 
-function isNotHostedProviderEnvVar(value: string): boolean {
-  return !HOSTED_PROVIDER_ENV_VARS.has(value.toUpperCase());
+const ENDPOINT_PATH_SUFFIX = /\/(?:chat\/)?completions\/*$/i;
+
+export const ENDPOINT_PATH_BASE_URL_MESSAGE =
+  "baseUrl must be the API root, usually ending in /v1, not the /chat/completions or " +
+  "/completions endpoint: verbatra appends /chat/completions itself.";
+
+function isNotEndpointPath(value: string): boolean {
+  try {
+    return !ENDPOINT_PATH_SUFFIX.test(new URL(value).pathname);
+  } catch {
+    return true;
+  }
 }
 
-const HTTP_OR_HTTPS_SCHEME = /^https?:\/\//i;
+function hostedProviderEnvVarMessage(value: string): string | undefined {
+  const providerId = HOSTED_PROVIDER_BY_ENV_VAR.get(value.toUpperCase());
+  return providerId === undefined
+    ? undefined
+    : `apiKeyEnvVar must not name a hosted provider's environment variable. ${value} belongs to ` +
+        `the "${providerId}" provider: set provider.id to "${providerId}", or name a different variable.`;
+}
 
 export const openAiCompatibleConfigSchema = z
   .object({
-    baseUrl: z
-      .url({ message: "baseUrl must be a valid absolute URL." })
-      .regex(HTTP_OR_HTTPS_SCHEME, { message: "baseUrl must use the http or https scheme." }),
+    baseUrl: httpBaseUrlSchema.refine(isNotEndpointPath, {
+      message: ENDPOINT_PATH_BASE_URL_MESSAGE,
+    }),
     model: z.string().min(1),
     maxOutputTokens: z.number().int().positive(),
     apiKeyEnvVar: z
       .string()
       .min(1)
-      .refine(isNotHostedProviderEnvVar, {
-        message: "apiKeyEnvVar must not name a hosted provider's environment variable.",
+      .superRefine((value, ctx) => {
+        const message = hostedProviderEnvVarMessage(value);
+        if (message !== undefined) {
+          ctx.addIssue({ code: "custom", message });
+        }
       })
       .optional(),
   })
-  .extend(requestTimeoutConfigSchema.shape);
+  .extend(requestTimeoutConfigSchema.shape)
+  .extend(localeMapConfigSchema.shape);
 
 export type OpenAiCompatibleConfig = z.infer<typeof openAiCompatibleConfigSchema>;
-
-/**
- * What a transport failure against this endpoint may name: the host and port of the configured
- * `baseUrl`, and nothing else. Deliberately only the URL's `host` component, so any path, query, or
- * user-info in `baseUrl` (where an embedded credential would live) can never travel into a message.
- * Undefined when the value does not parse as a URL at all.
- */
-export function endpointContextOf(baseUrl: string): ProviderCallContext | undefined {
-  try {
-    return { endpointHost: new URL(baseUrl).host };
-  } catch {
-    return undefined;
-  }
-}

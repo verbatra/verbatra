@@ -1,53 +1,49 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Fragment, type ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
-import { Faq, type FaqEntry } from "@/components/landing/faq";
+import { Faq, faqContent } from "@/components/landing/faq";
+import { Features } from "@/components/landing/features";
 import { FinalCta } from "@/components/landing/final-cta";
-import { FullFooter } from "@/components/landing/footer";
-import { Gains } from "@/components/landing/gains";
-import { Loop } from "@/components/landing/loop";
+import { Hero } from "@/components/landing/hero";
+import { Highlights } from "@/components/landing/highlights";
+import { ScrollTop } from "@/components/landing/islands";
 import { Marquee } from "@/components/landing/marquee";
-import { Proof } from "@/components/landing/proof";
-import { Providers } from "@/components/landing/providers";
-import { LandingHero } from "@/components/landing-hero";
-import { localizedPath, toLocale } from "@/lib/i18n";
+import { MotionRoot } from "@/components/landing/motion-root";
+import { Playground } from "@/components/landing/playground";
+import { Statement } from "@/components/landing/statement";
+import { toLocale } from "@/lib/i18n";
+import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
+import { MAIN_CONTENT_ID } from "@/lib/locale-home-layout";
+import { markdownUrl } from "@/lib/markdown-route";
 import {
   homeAlternates,
+  LANDING_LAST_UPDATED,
   MCP_VERSION,
-  ogAlternateLocales,
-  ogLocale,
   PACKAGE_VERSION,
-  SITE_URL,
   STUDIO_VERSION,
 } from "@/lib/site";
-import {
-  type FaqItem,
-  faqPageLd,
-  type HowToStepItem,
-  howToLd,
-  softwareApplicationLd,
-} from "@/lib/structured-data";
-
-const HOW_STEP_KEYS = ["configure", "diff", "translate", "verifyWrite"] as const;
+import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
+import { faqPageLd, softwareApplicationLd } from "@/lib/structured-data";
 
 export default async function HomePage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
   const locale = toLocale(lang);
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "landing" });
 
-  const faqItems: ReadonlyArray<FaqEntry> = Object.entries(
-    t.raw("faq.items") as Record<string, FaqItem>,
-  ).map(([id, item]) => ({ ...item, id }));
+  const faqItems = await faqContent(locale);
 
-  const howStepCopy = t.raw("how.steps") as Record<string, { title: string; body: string }>;
-  const howSteps: ReadonlyArray<HowToStepItem> = HOW_STEP_KEYS.map((key) => {
-    const step = howStepCopy[key];
-    return { name: step?.title ?? "", text: step?.body ?? "" };
-  });
-
-  const version = PACKAGE_VERSION;
-  const studioVersion = STUDIO_VERSION;
-  const mcpVersion = MCP_VERSION;
+  const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
+    hero: <Hero />,
+    marquee: <Marquee />,
+    statement: <Statement />,
+    highlights: <Highlights />,
+    playground: <Playground />,
+    features: <Features />,
+    faq: <Faq locale={locale} items={faqItems} />,
+    finalCta: <FinalCta />,
+  };
 
   return (
     <div className="vk-home w-full">
@@ -55,23 +51,24 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
         data={softwareApplicationLd({
           description: t("meta.definition"),
           lang: locale,
-          version,
-          studioVersion,
-          mcpVersion,
+          version: PACKAGE_VERSION,
+          studioVersion: STUDIO_VERSION,
+          mcpVersion: MCP_VERSION,
+          dateModified: LANDING_LAST_UPDATED,
         })}
       />
-      <JsonLd data={faqPageLd({ items: faqItems, lang: locale })} />
-      <JsonLd data={howToLd({ name: t("how.heading"), steps: howSteps, lang: locale })} />
+      <JsonLd
+        data={faqPageLd({
+          items: faqItems.map(({ question, answer }) => ({ question, answer })),
+          lang: locale,
+        })}
+      />
 
-      <LandingHero />
-      <Marquee />
-      <Proof />
-      <Providers />
-      <Loop />
-      <Gains />
-      <Faq items={faqItems} />
-      <FinalCta />
-      <FullFooter />
+      {LANDING_SECTIONS.map((id) => (
+        <Fragment key={id}>{sections[id]}</Fragment>
+      ))}
+      <MotionRoot />
+      <ScrollTop label={t("fab.label")} targetId={MAIN_CONTENT_ID} />
     </div>
   );
 }
@@ -87,27 +84,19 @@ export async function generateMetadata(props: {
   const description = t("description");
   const ogDescription = t("ogDescription");
   const ogImageAlt = t("ogImageAlt");
-  const { canonical } = homeAlternates(locale);
-  const ogImagePath = localizedPath(locale, "/home-og");
+  const { canonical, languages } = homeAlternates(locale);
 
   return {
-    openGraph: {
+    alternates: { canonical, languages, types: { "text/markdown": markdownUrl(canonical) } },
+    ...socialMetadata({
+      locale,
+      path: canonical,
       type: "website",
-      siteName: "verbatra",
-      locale: ogLocale(locale),
-      alternateLocale: ogAlternateLocales(locale),
-      url: new URL(canonical, SITE_URL).href,
       title: ogTitle,
       description: ogDescription,
-      images: [{ url: ogImagePath, width: 1200, height: 630, alt: ogImageAlt }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      site: "@mariokreitz",
-      creator: "@mariokreitz",
-      title,
-      description,
-      images: [ogImagePath],
-    },
+      image: { path: homeOgImagePath(locale), alt: ogImageAlt },
+      twitterTitle: title,
+      twitterDescription: description,
+    }),
   };
 }

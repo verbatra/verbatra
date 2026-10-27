@@ -6,6 +6,8 @@ import {
 } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
 import { judgeEntryMarkup } from "./markup-verdict.js";
+import { pluralCategoryLookupFor } from "./plural-rules.js";
+import type { IntegrityRefusal } from "./summary.js";
 
 /**
  * Every reason a candidate translation can be refused before it is written. The same gate guards
@@ -20,7 +22,9 @@ import { judgeEntryMarkup } from "./markup-verdict.js";
  * - `placeholder`: the candidate does not carry the same placeholders as the source, so
  *   interpolation would break at runtime. For the double-brace formats (i18next, ngx-translate, and
  *   YAML) this also covers a single-brace `{name}`-shaped token the candidate invented and the
- *   source never had, which is a fabrication whichever interpolation delimiters the project uses.
+ *   source never had, which is a fabrication whichever interpolation delimiters the project uses. The
+ *   refusal's `details` names each placeholder the candidate dropped, prefixed with `-`, and each
+ *   one it added, prefixed with `+`.
  * - `markup`: the candidate does not carry the same inline HTML or XML tags as the source, or it
  *   carries them unbalanced, mis-nested, or newly nested inside another tag of the same name, any
  *   of which breaks the rendering of the string the way a dropped placeholder breaks its
@@ -63,13 +67,28 @@ import { judgeEntryMarkup } from "./markup-verdict.js";
  *   carries only as text are still refused, and any other tag in the same value is still
  *   compared, including a second spelling of the same name. The refusal's `details` names the
  *   offending tags.
- * - `icu`: the candidate is not a valid ICU message under the configured format's adapter.
+ * - `icu`: the candidate is not a valid ICU message under the configured format's adapter, or,
+ *   for a format that checks branch arms (next-intl and ARB), its arms do not fit the target
+ *   language. Every `plural` must carry exactly the target language's CLDR cardinal categories and
+ *   every `selectordinal` exactly its ordinal categories, so an English `one`/`other` source becomes
+ *   `one`/`few`/`many`/`other` in Russian and `other` alone in Japanese; only `other` is required
+ *   for a language the runtime has no plural rules for. The source's `=N` exact-value arms and its
+ *   `offset` must survive, and further exact-value arms may be added. Every `select` keeps the
+ *   source's arm set unchanged. Placeholder parity inside each arm is still judged under
+ *   `placeholder`, an arm the source lacks being compared against the source's arms together. The
+ *   refusal's `details` names each wrong arm. Pseudolocalization is not held to the arm rule,
+ *   since a pseudolocalized value keeps the source's arms by design.
  * - `degenerate`: the candidate collapsed into runaway output rather than a translation. Two shapes
  *   are detected: the candidate is at least twelve times the length of a source of meaningful
  *   length, or a short unit repeats consecutively enough to dominate the value. An untranslated
  *   echo of the source is not degenerate by this rule; it surfaces as the `EQUALS_SOURCE` review
  *   reason instead, which flags rather than refuses.
  * - `empty`: the source has text but the candidate is blank, which would silently erase a string.
+ *
+ * A candidate that breaks several rules is refused with one reason, the first that applies in
+ * this order: `empty`, `icu` for a message that does not parse (a `plural` without `other`
+ * included), `placeholder`, `markup`, `icu` for arms that do not fit the target language, and
+ * `degenerate`.
  *
  * This tuple is the single source of truth for the set. {@link IntegrityGateReason} is derived from
  * it, so build any runtime validator or exhaustive lookup from this value rather than retyping the
@@ -105,16 +124,57 @@ export type IntegrityGateResult =
       readonly details?: readonly string[];
     };
 
+export type IntegrityGateRejection = Extract<IntegrityGateResult, { readonly accepted: false }>;
+
+export function refusalOf(key: string, rejection: IntegrityGateRejection): IntegrityRefusal {
+  return rejection.details === undefined
+    ? { key, reason: rejection.reason }
+    : { key, reason: rejection.reason, details: rejection.details };
+}
+
+export function branchArmProblems(
+  sourceValue: string,
+  candidateValue: string,
+  adapter: FormatAdapter,
+  targetLocale: string | undefined,
+): readonly string[] {
+  if (targetLocale === undefined || adapter.compareBranchArms === undefined) {
+    return [];
+  }
+  return adapter.compareBranchArms(
+    sourceValue,
+    candidateValue,
+    pluralCategoryLookupFor(targetLocale),
+  );
+}
+
+function placeholderDetails(result: PlaceholderIntegrityResult): readonly string[] {
+  return [
+    ...result.missing.map((placeholder) => `-${placeholder}`),
+    ...result.extra.map((placeholder) => `+${placeholder}`),
+  ];
+}
+
 export function gateCandidateValue(
   sourceEntry: TranslationEntry,
   candidateValue: string,
   adapter: FormatAdapter,
+  targetLocale: string | undefined,
 ): IntegrityGateResult {
+  if (sourceEntry.value.trim() !== "" && candidateValue.trim() === "") {
+    return { accepted: false, reason: "empty" };
+  }
+  if (!adapter.validateMessage(candidateValue)) {
+    return { accepted: false, reason: "icu" };
+  }
   const placeholderResult =
     adapter.comparePlaceholders?.(sourceEntry.value, candidateValue) ??
     checkPlaceholders(sourceEntry.placeholders, adapter.extractPlaceholders(candidateValue));
   if (!placeholderResult.matches) {
-    return { accepted: false, reason: "placeholder" };
+    const details = placeholderDetails(placeholderResult);
+    return details.length > 0
+      ? { accepted: false, reason: "placeholder", details }
+      : { accepted: false, reason: "placeholder" };
   }
   const markup = judgeEntryMarkup(sourceEntry, candidateValue);
   if (!markup.matches) {
@@ -122,14 +182,12 @@ export function gateCandidateValue(
       ? { accepted: false, reason: "markup", details: markup.details }
       : { accepted: false, reason: "markup" };
   }
-  if (!adapter.validateMessage(candidateValue)) {
-    return { accepted: false, reason: "icu" };
+  const armProblems = branchArmProblems(sourceEntry.value, candidateValue, adapter, targetLocale);
+  if (armProblems.length > 0) {
+    return { accepted: false, reason: "icu", details: armProblems };
   }
   if (assessValueDegeneracy(sourceEntry.value, candidateValue).degenerate) {
     return { accepted: false, reason: "degenerate" };
-  }
-  if (sourceEntry.value.trim() !== "" && candidateValue.trim() === "") {
-    return { accepted: false, reason: "empty" };
   }
   return { accepted: true, integrity: placeholderResult };
 }

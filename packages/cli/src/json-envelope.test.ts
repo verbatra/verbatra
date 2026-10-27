@@ -47,6 +47,23 @@ describe("json-envelope: failure", () => {
     expect(parsed.message).toBe("bad config");
   });
 
+  it("carries the wrapped cause's code only when there is one", () => {
+    const withCause = parseEnvelope(
+      renderErrorEnvelope("translate", {
+        code: "PROVIDER_CONSTRUCTION_FAILED",
+        message: "m",
+        causeCode: "MISSING_API_KEY",
+      }),
+    );
+    const without = parseEnvelope(renderErrorEnvelope("translate", { code: "X", message: "m" }));
+
+    expect(withCause).toMatchObject({
+      code: "PROVIDER_CONSTRUCTION_FAILED",
+      causeCode: "MISSING_API_KEY",
+    });
+    expect(without).not.toHaveProperty("causeCode");
+  });
+
   it("carries a null command when no subcommand was resolved", () => {
     const parsed = parseEnvelope(renderErrorEnvelope(null, { code: "CLI_ERROR", message: "x" }));
 

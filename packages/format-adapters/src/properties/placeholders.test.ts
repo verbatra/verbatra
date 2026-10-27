@@ -1,3 +1,4 @@
+import { cpuScalingRatio, LINEAR_MAX_RATIO } from "@verbatra/config/scaling";
 import { checkPlaceholders } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import { extractPropertiesPlaceholders } from "./placeholders.js";
@@ -5,6 +6,14 @@ import { extractPropertiesPlaceholders } from "./placeholders.js";
 describe("extractPropertiesPlaceholders", () => {
   it("extracts positional tokens in document order", () => {
     expect(extractPropertiesPlaceholders("{0} then {1}")).toEqual(["{0}", "{1}"]);
+  });
+
+  it("extracts a non-ASCII argument and recurses into its plural arms", () => {
+    expect(
+      extractPropertiesPlaceholders(
+        "{件数, plural, one {# {名前}} other {# {名前}s}} {nom_é,number}",
+      ),
+    ).toEqual(["{件数,plural}", "{名前}", "{名前}", "{nom_é,number}"]);
   });
 
   it("extracts named tokens and normalizes inner whitespace", () => {
@@ -143,19 +152,18 @@ describe("extractPropertiesPlaceholders", () => {
 
   it("extracts a large unbalanced-brace value in bounded time (algorithmic-DoS guard)", () => {
     const value = "{a".repeat(200_000);
-    const start = performance.now();
-    const result = extractPropertiesPlaceholders(value);
-    const elapsed = performance.now() - start;
-    expect(result).toEqual([]);
-    expect(elapsed).toBeLessThan(2000);
+    expect(extractPropertiesPlaceholders(value)).toEqual([]);
+    expect(cpuScalingRatio(extractPropertiesPlaceholders, "{a".repeat(25_000), value)).toBeLessThan(
+      LINEAR_MAX_RATIO,
+    );
   });
 
   it("extracts a deeply nested balanced sub-message value in bounded time", () => {
-    const value = `{0,plural,other{${"{".repeat(100_000)}${"}".repeat(100_000)}}}`;
-    const start = performance.now();
-    const result = extractPropertiesPlaceholders(value);
-    const elapsed = performance.now() - start;
-    expect(result).toEqual(["{0,plural}"]);
-    expect(elapsed).toBeLessThan(2000);
+    const nested = (n: number) => `{0,plural,other{${"{".repeat(n)}${"}".repeat(n)}}}`;
+    const value = nested(100_000);
+    expect(extractPropertiesPlaceholders(value)).toEqual(["{0,plural}"]);
+    expect(cpuScalingRatio(extractPropertiesPlaceholders, nested(12_500), value)).toBeLessThan(
+      LINEAR_MAX_RATIO,
+    );
   });
 });

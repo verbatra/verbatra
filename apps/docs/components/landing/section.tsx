@@ -18,15 +18,30 @@ export function Section({
   rhythm = "md",
   className,
   id,
+  band = false,
+  labelledBy,
 }: {
   children: ReactNode;
   width?: keyof typeof WIDTHS;
   rhythm?: keyof typeof RHYTHM;
   className?: string;
   id?: string;
+  band?: boolean;
+  labelledBy?: string;
 }): ReactNode {
+  if (band) {
+    return (
+      <section id={id} aria-labelledby={labelledBy} className={cn("vk-band", className)}>
+        <div className={cn("vk-gutter mx-auto", WIDTHS[width])}>{children}</div>
+      </section>
+    );
+  }
   return (
-    <section id={id} className={cn("vk-gutter mx-auto", WIDTHS[width], RHYTHM[rhythm], className)}>
+    <section
+      id={id}
+      aria-labelledby={labelledBy}
+      className={cn("vk-gutter mx-auto", WIDTHS[width], RHYTHM[rhythm], className)}
+    >
       {children}
     </section>
   );

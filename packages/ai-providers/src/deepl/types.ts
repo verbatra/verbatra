@@ -7,6 +7,10 @@ export interface DeepLTextResult {
 export interface DeepLTranslateOptions {
   readonly formality?: string;
   readonly glossary?: string;
+  readonly tagHandling?: "xml";
+  readonly tagHandlingVersion?: "v2";
+  readonly ignoreTags?: readonly string[];
+  readonly outlineDetection?: boolean;
 }
 
 export interface DeepLTranslateClient {

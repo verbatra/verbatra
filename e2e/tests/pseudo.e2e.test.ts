@@ -14,6 +14,7 @@ import {
 
 interface PseudoResultJson {
   locale: string;
+  mode: string;
   path: string;
   entries: number;
   transformed: number;
@@ -133,6 +134,41 @@ describe("pseudo (no provider, no key)", () => {
 
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toContain("PSEUDO_OUTPUT_CONFLICT");
+  });
+
+  it("writes a right-to-left ar-XB pseudolocale with --mode bidi", async () => {
+    const dir = await seedProject("pseudo-bidi");
+
+    const result = await runVerbatra(
+      consumer,
+      ["pseudo", "--json", "--mode", "bidi", "--cwd", dir],
+      {
+        env: NO_PROVIDER_KEYS,
+      },
+    );
+
+    expect(result.exitCode).toBe(0);
+    const summary = successResult(result.stdout);
+    expect(summary).toMatchObject({ locale: "ar-XB", mode: "bidi", written: true, copied: [] });
+    expect(summary.path).toBe(join(dir, ".verbatra-local", "pseudo", "locales", "ar-XB.json"));
+    const written = await readJsonIn<Record<string, string>>(
+      dir,
+      ".verbatra-local/pseudo/locales/ar-XB.json",
+    );
+    expect(written.greeting).toBe("\u200f\u202eHello\u202c\u200f {{name}}");
+  });
+
+  it("refuses an unknown --mode as a usage error", async () => {
+    const dir = await seedProject("pseudo-refuses-mode");
+
+    const result = await runVerbatra(
+      consumer,
+      ["pseudo", "--json", "--mode", "rtl", "--cwd", dir],
+      { env: NO_PROVIDER_KEYS },
+    );
+
+    expect(result.exitCode).toBe(2);
+    expect(parseEnvelope(result.stdout)).toMatchObject({ ok: false, code: "INVALID_OPTION" });
   });
 
   it("refuses a malformed pseudolocale tag as a usage error", async () => {

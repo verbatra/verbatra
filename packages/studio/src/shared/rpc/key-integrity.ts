@@ -16,6 +16,8 @@ export interface KeyIntegrityLocaleResult {
   readonly missing: readonly string[];
   readonly extra: readonly string[];
   readonly icuValid: boolean;
+  readonly icuArmsMatch: boolean;
+  readonly icuArmDetails: readonly string[];
   readonly markupMatches: boolean;
   readonly markupDetails: readonly string[];
 }
