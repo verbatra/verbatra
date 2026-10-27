@@ -1,0 +1,3 @@
+interface:
+  display_name: "verbatra CLI"
+  short_description: "Run verbatra safely: check cost, read exit codes, keep locales in sync"
