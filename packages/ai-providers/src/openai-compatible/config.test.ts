@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PROVIDER_ENV } from "../key-env-vars.js";
 import { ENDPOINT_PATH_BASE_URL_MESSAGE, openAiCompatibleConfigSchema } from "./config.js";
 
 const validConfig = {
@@ -129,20 +130,17 @@ describe("openAiCompatibleConfigSchema: apiKeyEnvVar", () => {
     expect(openAiCompatibleConfigSchema.parse(config).apiKeyEnvVar).toBe("LM_STUDIO_KEY");
   });
 
-  it.each([
-    "ANTHROPIC_API_KEY",
-    "OPENAI_API_KEY",
-    "GEMINI_API_KEY",
-    "DEEPL_API_KEY",
-    "GOOGLE_TRANSLATE_API_KEY",
-  ])(
-    "rejects %s: a config author cannot point openai-compatible at a hosted provider's key by name",
-    (hostedVar) => {
+  it.each(Object.entries(PROVIDER_ENV))(
+    "rejects the %s variable %s and names the provider to use instead",
+    (providerId, hostedVar) => {
       const result = openAiCompatibleConfigSchema.safeParse({
         ...validConfig,
         apiKeyEnvVar: hostedVar,
       });
       expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.message).toContain(
+        `${hostedVar} belongs to the "${providerId}" provider: set provider.id to "${providerId}"`,
+      );
     },
   );
 
