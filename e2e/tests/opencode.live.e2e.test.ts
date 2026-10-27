@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
+  liveRunRequired,
   readJsonIn,
   readSharedConsumer,
   runVerbatra,
@@ -12,6 +13,7 @@ import {
 import { classifyLiveRun, type RunTarget } from "../src/run-outcome.js";
 
 const hasKey = (process.env.OPENCODE_API_KEY ?? "") !== "";
+const skipLive = !hasKey && !liveRunRequired();
 const model = process.env.OPENCODE_MODEL ?? "glm-5.3";
 
 const SOURCE = {
@@ -34,10 +36,15 @@ async function writeProject(consumer: Consumer, name: string): Promise<string> {
   return dir;
 }
 
-describe.skipIf(!hasKey)(`opencode (live: ${hasKey ? model : "skipped"})`, () => {
+describe.skipIf(skipLive)(`opencode (live: ${hasKey ? model : "skipped"})`, () => {
   let consumer: Consumer;
 
   beforeAll(async () => {
+    if (!hasKey) {
+      throw new Error(
+        "E2E_REQUIRE_LIVE is set, but OPENCODE_API_KEY is empty, so the live tier cannot run.",
+      );
+    }
     consumer = await readSharedConsumer();
   }, 180_000);
 
