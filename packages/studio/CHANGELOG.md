@@ -1,5 +1,61 @@
 # @verbatra/studio
 
+## 0.6.0
+
+### Minor Changes
+
+- [#252](https://github.com/verbatra/verbatra/pull/252) [`2d8bab9`](https://github.com/verbatra/verbatra/commit/2d8bab9dde713d7973be2560f134779baa6b4be1) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Side-by-side editor, review queue with bulk and keyboard review, provenance badges, per-locale glossary, RTL display.
+  
+  **Upgrading from 0.5**
+  - Node.js `^22.18.0 || >=24` is required (0.5 accepted `>=22.14.0`); Node 23 is not supported.
+  - `startStudioServer({ cwd })` roots the server at the directory of the config the search found; pass a `loader` that uses `configPath` to keep `cwd`.
+  - The Review queue is built from the committed files. Approve and Reject write files (Reject removes the value) and are limited to 60 calls a minute (`reviewDecisionRateLimitMax`, `reviewDecisionRateLimitWindowMs`). `METHOD_RATE_LIMITED` carries `retryAfterSeconds`.
+  - A spend method called while spending is off answers `SPEND_DISABLED` (HTTP 403) instead of `METHOD_UNKNOWN`, and spend is withheld under `provider: none`.
+  - `key.integrity` fails with `UNKNOWN_KEY` for an unknown key, and `verbatra_locale_values` returns one page of 200 entries by default, at most 1,000, with a `nextCursor`; pass `limit` and `cursor`.
+  
+  **Editor and review**
+  - The editor shows the source with highlighted placeholders, the description and glossary terms, and the translation with its author, integrity, length against `maxLength` and a live glossary check. Ctrl or Cmd with Enter saves.
+  - The Translations list filters by locale and by **Missing**, **Changed**, **Orphaned**, **Protected**, **Review queue** and **Integrity problems**. Each key shows an origin badge, and edits are recorded as `human` (dialog) or `agent` (tool). Retranslating a protected key offers **Replace anyway**.
+  - The review queue shows each row's origin and flags, with **Approve all** for a locale and bulk **Approve selected**, **Reject selected** and, with `--allow-spend`, **Retranslate selected**. `j`, `k`, `a`, `r`, `e`, `t` and `?` drive it from the keyboard.
+  
+  **Settings and display**
+  - The Settings glossary edits glossary v2 terms and a **Do not translate** list.
+  - Right-to-left text follows each locale's direction, with placeholders isolated left to right.
+  
+  **Agent tools**
+  - New: `verbatra_translation_estimate`, `verbatra_key_context`, `verbatra_locale_integrity`, `verbatra_review_approve` and `verbatra_review_reject` (reviewer name required). `verbatra_translation_translatePending` takes `locales` and `maxTokens`.
+
+### Patch Changes
+
+- [`08abfe3`](https://github.com/verbatra/verbatra/commit/08abfe3c8e7294f3739c9533d5b9126afb16a018) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Runtime dependency updates that reach consumers of the published packages.
+  
+  **`@verbatra/sdk`**
+  - `@anthropic-ai/sdk` 0.127.0 -> 0.137.0
+  - `@formatjs/icu-messageformat-parser` 3.5.19 -> 3.5.22
+  - `@google/genai` 2.23.0 -> 2.31.0
+  - `cosmiconfig` 9.0.2 -> 10.0.1
+  - `deepl-node` 1.28.0 -> 1.28.1
+  - `openai` 7.19.0 -> 7.43.0
+  - `zod` 4.6.5 -> 4.6.7 (also a dependency of `@verbatra/cli`, `@verbatra/mcp` and `@verbatra/studio`)
+  
+  **Transitive security fixes in your own lockfile**
+  - verbatra's repository pins patched `axios` 1.20.0 (through `deepl-node`) and `brace-expansion`
+    1.1.21 and 2.1.7 (through `exceljs`) with lockfile overrides, which are not part of the published
+    packages. Your install resolves these from its own lockfile, so update them there to pick up the
+    fixes.
+  - `follow-redirects` 1.16.1 is reached through `deepl-node` -> `axios`. The repository pins the
+    patched release with a lockfile override that is not part of the published packages, so update it
+    in your lockfile to pick up the fix.
+  - `proxy-addr` 2.0.8 (GHSA-jqcg-44mw-7w3h) is reached only through `@modelcontextprotocol/sdk`,
+    an optional peer of `@google/genai` that npm does not install for you. If your project installs
+    `@modelcontextprotocol/sdk` itself, update `proxy-addr` to 2.0.8 or newer in your lockfile.
+  
+  **`@verbatra/mcp`**
+  - `@modelcontextprotocol/sdk` 1.30.0 -> `@modelcontextprotocol/server` 2.3.1, which no longer
+    pulls in `hono`, `ip-address` or `express`; its license changes from MIT to Apache-2.0
+- Updated dependencies [[`2d8bab9`](https://github.com/verbatra/verbatra/commit/2d8bab9dde713d7973be2560f134779baa6b4be1), [`08abfe3`](https://github.com/verbatra/verbatra/commit/08abfe3c8e7294f3739c9533d5b9126afb16a018)]:
+  - @verbatra/sdk@0.12.0
+
 ## 0.5.2
 
 ### Patch Changes
