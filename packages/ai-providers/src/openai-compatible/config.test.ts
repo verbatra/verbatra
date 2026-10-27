@@ -83,6 +83,8 @@ describe("openAiCompatibleConfigSchema: baseUrl names the API root, not an endpo
 
   it.each([
     "https://opencode.ai/zen/go/v1",
+    "https://opencode.ai/inference/openai/v1",
+    "https://opencode.ai/zen/v1",
     "http://localhost:1234/v1/",
     "http://localhost:11434/v1",
     "https://api.example.com/completions-gateway/v1",
