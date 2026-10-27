@@ -42,7 +42,7 @@ function fillRow(
     current[column] = best;
     diagonal = up;
     left = best;
-    rowBest = best < rowBest ? best : rowBest;
+    rowBest = Math.min(best, rowBest);
   }
   return rowBest;
 }
