@@ -194,6 +194,22 @@ provider: {
 
 Die Antwort nutzt dasselbe strikte Schema wie `openai`; das erste balancierte JSON-Objekt wird aus umgebender Prosa oder einem Code-Fence genommen und validiert. `verbatra init --provider openai-compatible --base-url <url> --model <name>` schreibt diesen Block ([init](/de/docs/cli/init#provider)), und `--api-key-env-var <NAME>` ergänzt den Namen der Variable.
 
+### OpenCode Zen
+
+Die kostenpflichtigen Modelle von [OpenCode Zen](https://opencode.ai/docs/zen/), die über Chat Completions bereitgestellt werden, funktionieren mit einem Zen-API-Key in `OPENCODE_API_KEY`. OpenCode Go und die kostenlosen Zen-Modelle sind von OpenCode auf die eigenen Coding-Clients beschränkt, werden also abgelehnt, wenn verbatra sie aufruft, und funktionieren hier nicht.
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "openai-compatible",
+  options: {
+    baseUrl: "https://opencode.ai/inference/openai/v1",
+    model: "glm-5.3", // example: a Zen model served over Chat Completions
+    maxOutputTokens: 4096,
+    apiKeyEnvVar: "OPENCODE_API_KEY",
+  },
+}
+```
+
 ### Keys sind optional
 
 Der Key wird der Reihe nach aufgelöst:

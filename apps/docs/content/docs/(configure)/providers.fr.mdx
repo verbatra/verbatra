@@ -194,6 +194,22 @@ provider: {
 
 La réponse suit le même schéma strict que `openai` ; le premier objet JSON équilibré est pris dans toute prose ou bloc de code qui l'entoure, puis validé. `verbatra init --provider openai-compatible --base-url <url> --model <name>` écrit ce bloc ([init](/fr/docs/cli/init#fournisseurs)), et `--api-key-env-var <NAME>` ajoute le nom de la variable.
 
+### OpenCode Zen
+
+Les modèles payants d'[OpenCode Zen](https://opencode.ai/docs/zen/) servis par Chat Completions fonctionnent avec une clé d'API Zen dans `OPENCODE_API_KEY`. OpenCode Go et les modèles gratuits de Zen sont réservés par OpenCode à ses propres clients de programmation : ils sont donc refusés quand verbatra les appelle et ne fonctionnent pas ici.
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "openai-compatible",
+  options: {
+    baseUrl: "https://opencode.ai/inference/openai/v1",
+    model: "glm-5.3", // example: a Zen model served over Chat Completions
+    maxOutputTokens: 4096,
+    apiKeyEnvVar: "OPENCODE_API_KEY",
+  },
+}
+```
+
 ### Les clés sont optionnelles
 
 La clé se résout dans cet ordre :
