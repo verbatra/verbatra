@@ -42,7 +42,7 @@ L'action installe `@verbatra/cli` et `@verbatra/sdk` exactement dans cette versi
 
 ### Passer la clé du fournisseur
 
-Fais passer la clé depuis les secrets du dépôt sous la variable que lit ton fournisseur ; [Fournisseurs](/fr/docs/providers#les-clés-viennent-de-lenvironnement) les liste.
+Fais passer la clé depuis les secrets du dépôt sous la variable que lit ton fournisseur ; [Fournisseurs](/fr/docs/providers#les-clés-viennent-de-lenvironnement) les liste. L'action n'a pas d'entrée pour la clé, donc une clé ne circule jamais comme entrée ni comme argument de la CLI.
 
 ## Contrôler une pull request
 
@@ -89,22 +89,23 @@ Ajoute `require-reviewed: "true"` à `command: check` pour lancer [`verbatra che
 - Chaque locale avec des clés non approuvées reçoit une annotation d'erreur [`REVIEW_REQUIRED`](/fr/docs/error-codes#review_required) qui les nomme, et le résumé de job ajoute une colonne `unreviewed`.
 - Un `verbatra.provenance.json` corrompu ou écrit par un verbatra plus récent fait échouer le contrôle avec une seule annotation `REVIEW_STATE_UNREADABLE`.
 
-## Analyser les sources et choisir les locales
+## Choisir les locales et analyser les sources
 
-<AvailableFrom version="0.12.0" />
-
-Ajoute `sensitive: "true"` à `command: check` pour exécuter `verbatra check --sensitive`, qui fait échouer l'étape quand le fichier source ou le glossaire contient du contenu qui paraît sensible, comme des e-mails, des clés ou des numéros de carte. Mets dans `locales` une liste séparée par des virgules, comme `de,fr`, pour limiter n'importe quelle commande à ces locales cibles.
+Mets dans `locales` une liste séparée par des virgules, comme `de,fr`, pour limiter n'importe quelle commande à ces locales cibles.
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
           version: 0.12.0
           command: check
-          sensitive: "true"
           locales: "de,fr"
 ```
 
-- Les deux demandent une `version` `0.12.0` ou plus récente ; une version plus ancienne ou une préversion fait échouer l'étape avant toute installation, comme pour `qa`.
+### Contenu sensible
+
+<AvailableFrom version="0.12.0" />
+
+Ajoute `sensitive: "true"` à `command: check` pour exécuter `verbatra check --sensitive`. L'étape échoue quand le fichier source ou le glossaire contient des e-mails, des clés ou des numéros de carte, et annote chaque clé source concernée sans afficher la correspondance. Une `version` plus ancienne, ou une préversion `0.12.0-next.*`, fait échouer l'étape avant toute installation.
 
 ## Mode humain uniquement
 
@@ -156,7 +157,7 @@ Si aucune configuration n'est trouvée, l'étape échoue avant d'installer la CL
 | `locales` | `""` | locales cibles séparées par des virgules à exécuter (`--locales`) |
 | `node-version` | `"24"` | version de Node.js que l'action installe pour exécuter la CLI ; elle doit se résoudre en 22.18.0 ou plus récent sur la 22, ou en 24 ou plus récent |
 
-Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Un booléen invalide, ou une entrée sans la commande ou `qa` qu'elle exige, fait échouer l'étape avec la sortie `1` avant l'installation de la CLI.
+Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Un booléen invalide, ou une entrée sans la commande ou `qa` qu'elle exige, fait échouer l'étape avec la sortie `1` avant l'installation de la CLI. La CLI refuse un `qa-severity` inconnu, et `qa-severity: error` avec `qa-strict`, avec la sortie `2` après.
 
 ## Sorties
 
@@ -166,9 +167,9 @@ Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Un booléen inva
 
 ## Ce qu'une exécution te montre
 
-- **Annotations.** Avec `translate` et la sortie `1`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. Toutes se rattachent au fichier de leur locale quand l'action le trouve. Chaque `check` ajoute un avertissement `PLURAL_CATEGORIES_INCOMPLETE` par locale dont les pluriels n'ont pas une catégorie CLDR que la langue utilise. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec le code d'erreur, sa cause sous la forme `(cause: X)` et une piste `Next step:` quand la CLI les fournit.
-- **Résumé de job.** Une ligne par locale avec les compteurs de la commande exécutée, une ligne agrégée et les locales partielles et en échec. Avec `qa`, il ajoute un tableau de constats jusqu'à 1000 constats ; les pluriels incomplets ont leur propre section.
-- **Statut de sortie.** L'action émet d'abord les annotations et le résumé, puis sort avec le [code de sortie](/fr/docs/cli/output#codes-de-sortie) de la CLI elle-même, sauf qu'un `3` de `translate` passe et qu'un échec avant le lancement de la CLI (pas de répertoire de travail, pas de config, une installation échouée) sort avec `1` .
+- **Annotations.** Avec `translate` et la sortie `1`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. Toutes se rattachent au fichier de leur locale quand l'action le trouve. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec le code d'erreur, sa cause sous la forme `(cause: X)` et une piste `Next step:` quand la CLI les fournit.
+- **Résumé de job.** Une ligne par locale avec les compteurs de la commande exécutée, une ligne agrégée et les locales partielles et en échec.
+- **Statut de sortie.** L'action émet d'abord les annotations et le résumé, puis sort avec le [code de sortie](/fr/docs/cli/output#codes-de-sortie) de la CLI elle-même, sauf qu'un `3` de `translate` passe et qu'un échec avant le lancement de la CLI (pas de répertoire de travail, pas de config, une installation échouée) sort avec `1` ; une entrée refusée reçoit un seul `::error::`, sans résumé.
 
 ## Sécurité
 

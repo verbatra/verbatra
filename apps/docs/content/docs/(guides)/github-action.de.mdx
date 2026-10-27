@@ -42,7 +42,7 @@ Die Action installiert `@verbatra/cli` und `@verbatra/sdk` in genau dieser Versi
 
 ### Den Provider-Schlüssel übergeben
 
-Reiche den Schlüssel aus deinen Repository-Secrets unter der Variable weiter, die dein Provider liest; [Provider](/de/docs/providers#keys-kommen-aus-der-umgebung) listet sie auf.
+Reiche den Schlüssel aus deinen Repository-Secrets unter der Variable weiter, die dein Provider liest; [Provider](/de/docs/providers#keys-kommen-aus-der-umgebung) listet sie auf. Die Action hat keine Schlüssel-Eingabe, ein Schlüssel reist also nie als Eingabe oder CLI-Argument.
 
 ## Einen Pull Request absichern
 
@@ -89,22 +89,23 @@ Ergänze `command: check` um `require-reviewed: "true"`, um [`verbatra check --r
 - Jede Locale mit nicht freigegebenen Keys bekommt eine [`REVIEW_REQUIRED`](/de/docs/error-codes#review_required)-Fehler-Annotation, die sie nennt, und die Job-Zusammenfassung ergänzt eine Spalte `unreviewed`.
 - Ist `verbatra.provenance.json` beschädigt oder stammt sie von einem neueren verbatra, schlägt das Gate mit einer einzigen `REVIEW_STATE_UNREADABLE`-Annotation fehl.
 
-## Quellen prüfen und Locales auswählen
+## Locales auswählen und Quellen prüfen
 
-<AvailableFrom version="0.12.0" />
-
-Ergänze `command: check` um `sensitive: "true"`, um `verbatra check --sensitive` auszuführen; der Schritt schlägt fehl, wenn die Quelldatei oder das Glossar Inhalte enthält, die sensibel wirken, etwa E-Mails, Schlüssel oder Kartennummern. Setze `locales` auf eine kommagetrennte Liste wie `de,fr`, um jeden Befehl auf diese Ziel-Locales zu beschränken.
+Setze `locales` auf eine kommagetrennte Liste wie `de,fr`, um jeden Befehl auf diese Ziel-Locales zu beschränken.
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
           version: 0.12.0
           command: check
-          sensitive: "true"
           locales: "de,fr"
 ```
 
-- Beide brauchen eine `version` ab `0.12.0`; eine ältere Version oder ein Prerelease lässt den Schritt wie bei `qa` fehlschlagen, bevor irgendetwas installiert wird.
+### Sensible Inhalte
+
+<AvailableFrom version="0.12.0" />
+
+Ergänze `command: check` um `sensitive: "true"`, um `verbatra check --sensitive` auszuführen. Der Schritt schlägt fehl, wenn die Quelldatei oder das Glossar E-Mails, Schlüssel oder Kartennummern enthält, und annotiert jeden betroffenen Quell-Key, ohne den Treffer auszugeben. Eine ältere `version` oder ein `0.12.0-next.*`-Prerelease lässt den Schritt fehlschlagen, bevor irgendetwas installiert wird.
 
 ## Rein menschlicher Modus
 
@@ -153,10 +154,10 @@ Wird keine Konfiguration gefunden, schlägt der Schritt vor der Installation der
 | `qa-strict` | `"false"` | `"true"` lässt auch Warnungen fehlschlagen (`--strict`); verlangt `qa` |
 | `require-reviewed` | `"false"` | `"true"` lässt auch nicht freigegebene maschinelle Übersetzungen fehlschlagen (`--require-reviewed`); nur `check` |
 | `sensitive` | `"false"` | `"true"` ergänzt die Prüfung auf sensible Inhalte (`--sensitive`); nur `check` |
-| `locales` | `""` | kommagetrennte Ziel-Locales, für die gelaufen wird (`--locales`) |
+| `locales` | `""` | kommagetrennte Ziel-Locales, auf die der Lauf beschränkt wird (`--locales`) |
 | `node-version` | `"24"` | Node.js-Version, die die Action zum Ausführen der CLI einrichtet; sie muss zu 22.18.0 oder neuer auf 22 oder zu 24 oder neuer auflösen |
 
-Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger boolescher Wert oder eine Eingabe ohne den Befehl oder `qa`, den sie braucht, lässt den Schritt mit Exit `1` vor der CLI-Installation fehlschlagen.
+Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger boolescher Wert oder eine Eingabe ohne den Befehl oder `qa`, den sie braucht, lässt den Schritt mit Exit `1` vor der CLI-Installation fehlschlagen. Die CLI lehnt ein unbekanntes `qa-severity` und `qa-severity: error` mit `qa-strict` mit Exit `2` danach ab.
 
 ## Outputs
 
@@ -166,9 +167,9 @@ Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger
 
 ## Was ein Lauf dir zeigt
 
-- **Annotationen.** Unter `translate` mit Exit `1` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Alle hängen an der Datei ihrer Locale, wenn die Action sie findet. Jeder `check` ergänzt pro Locale eine `PLURAL_CATEGORIES_INCOMPLETE`-Warnung, wenn ihren Pluralen eine CLDR-Kategorie fehlt, die die Sprache nutzt. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehlercode, der Ursache als `(cause: X)` und einem `Next step:`-Hinweis, sofern die CLI sie liefert.
-- **Job-Zusammenfassung.** Eine Zeile pro Locale mit den Zahlen des ausgeführten Befehls, eine Gesamtzeile und die teilweisen und fehlgeschlagenen Locales. Mit `qa` kommt eine Befundtabelle mit bis zu 1000 Befunden hinzu; unvollständige Plurale bekommen einen eigenen Abschnitt.
-- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/de/docs/cli/output#exit-codes) der CLI, außer dass ein `translate`-Exit `3` besteht und ein Fehler vor dem Start der CLI (kein Arbeitsverzeichnis, keine Config, eine gescheiterte Installation) mit `1` endet.
+- **Annotationen.** Unter `translate` mit Exit `1` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Alle hängen an der Datei ihrer Locale, wenn die Action sie findet. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehlercode, der Ursache als `(cause: X)` und einem `Next step:`-Hinweis, sofern die CLI sie liefert.
+- **Job-Zusammenfassung.** Eine Zeile pro Locale mit den Zahlen des ausgeführten Befehls, eine Gesamtzeile und die teilweisen und fehlgeschlagenen Locales.
+- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/de/docs/cli/output#exit-codes) der CLI, außer dass ein `translate`-Exit `3` besteht und ein Fehler vor dem Start der CLI (kein Arbeitsverzeichnis, keine Config, eine gescheiterte Installation) mit `1` endet; eine abgelehnte Eingabe bekommt ein einziges `::error::`, keine Zusammenfassung.
 
 ## Sicherheit
 
