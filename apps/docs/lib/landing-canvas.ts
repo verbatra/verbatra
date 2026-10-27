@@ -988,7 +988,7 @@ const WATCH_ROWS = 2;
 const WATCH_TARGETS = 3;
 const WATCH_TARGET_H = 32;
 const WATCH_ROW_OFFSET = 21;
-const WATCH_EDIT_START = 0.35;
+const WATCH_SETTLE = 0.8;
 const WATCH_RING_R = 10;
 const WATCH_ORBIT = 1.5;
 
@@ -1023,7 +1023,7 @@ function watchSourceRow(g: WatchGeometry, row: number): number {
 }
 
 function watchBase(g: WatchGeometry, row: number): number {
-  return g.barMax * (0.55 + 0.2 * hash(row, 2));
+  return g.barMax * (0.3 + 0.15 * hash(row, 2));
 }
 
 function watchCaret(c: DrawContext, p: Palette, at: Point, C: number): void {
@@ -1043,13 +1043,13 @@ function watchSource(
 ): void {
   localeFile(c, p, g.source, true, 1);
   const typed = easeOut(ramp(C, 0.4, 0.9));
-  const edge = ramp(C, 0, 0.35) * loopFade(C, WATCH_CYCLE, 0.35);
+  const settle = loopFade(C, WATCH_CYCLE, WATCH_SETTLE);
   for (let row = 0; row < WATCH_ROWS; row += 1) {
     const cy = watchSourceRow(g, row);
-    const width =
-      row === edited ? lerp(g.barMax * WATCH_EDIT_START, g.barMax, typed) : watchBase(g, row);
+    const base = watchBase(g, row);
+    const width = row === edited ? lerp(base, g.barMax, typed * settle) : base;
     keyPill(c, g.source.x + KEY_INSET, cy, p.muted, 0.9);
-    valueBar(c, g.source.x + VALUE_INSET, cy, width, p.dim, 0.9 * (row === edited ? edge : 1));
+    valueBar(c, g.source.x + VALUE_INSET, cy, width, p.dim, 0.9);
     if (row === edited) watchCaret(c, p, { x: g.source.x + VALUE_INSET + 3 + width, y: cy }, C);
   }
   strokeRound(

@@ -507,6 +507,41 @@ describe("drawFeature", () => {
     );
   });
 
+  it("watch keeps every source row continuous across each cycle boundary", () => {
+    const rows = (t: number, w: number, h: number) => {
+      const top = (h - 92) / 2;
+      return [0, 1].map((row) => {
+        const cy = top + 38 + row * 28;
+        const bar = frame("watch", t, w, h).log.find(
+          (entry) =>
+            entry.method === "fill" &&
+            entry.fill === PALETTE.dim &&
+            entry.points.length > 0 &&
+            entry.points.every((pt) => Math.abs(pt.y - cy) < 4),
+        );
+        const xs = (bar?.points ?? []).map((pt) => pt.x);
+        return { width: Math.max(...xs) - Math.min(...xs), alpha: bar?.alpha ?? Number.NaN };
+      });
+    };
+    for (const [w, h] of [
+      [255, 189],
+      [600, 190],
+    ] as const) {
+      for (const k of [1, 2, 3, 4]) {
+        const before = rows(4.5 * k - 0.001, w, h);
+        const after = rows(4.5 * k + 0.001, w, h);
+        before.forEach((row, index) => {
+          expect(Math.abs(row.width - (after[index]?.width ?? Number.NaN))).toBeLessThanOrEqual(
+            0.5,
+          );
+          expect(Math.abs(row.alpha - (after[index]?.alpha ?? Number.NaN))).toBeLessThanOrEqual(
+            0.02,
+          );
+        });
+      }
+    }
+  });
+
   it("types shows the failed build with a typo pill and a bad bar at its still time", () => {
     const early = frame("types", 1);
     expect(early.colors.has(PALETTE.bad)).toBe(false);
