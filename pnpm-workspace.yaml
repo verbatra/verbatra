@@ -171,9 +171,8 @@ overrides:
   # to the v1 line axios declares.
   follow-redirects@<1.16.1: ">=1.16.1 <2"
   # @modelcontextprotocol/sdk advisories fixed in 1.32.0 (Dependabot alerts 59 to 64 and 67 to 68),
-  # vulnerable <1.32.0. The copy is the optional peer of @google/genai (^1.25.2) that pnpm installs
-  # automatically, so the parent cannot be bumped; this lifts it to the patched release, bounded to the
-  # v1 line genai declares.
+  # vulnerable <1.32.0. This narrows the optional peer range of @google/genai (^1.25.2) so pnpm no
+  # longer installs a vulnerable copy, bounded to the v1 line genai declares.
   "@modelcontextprotocol/sdk@<1.32.0": ">=1.32.0 <2"
 
 allowBuilds:
