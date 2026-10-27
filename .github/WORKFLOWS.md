@@ -54,8 +54,9 @@ uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 A tag is mutable and a pinned SHA is not, so this is what keeps a compromised or retagged upstream
 action out of a run. Dependabot updates both the SHA and the comment together, in the workflows and
 in the local composite actions. The rule applies to third-party actions only: the local composite
-actions in `actions/` are referenced by path (`uses: ./.github/actions/setup-workspace`), and
-`verbatra/action` is referenced by major tag from consumer workflows outside this repository.
+actions in `actions/` are referenced by path (`uses: ./.github/actions/setup-workspace`).
+`verbatra/action` lives in a separate repository, so `docs-i18n-check.yml` pins it to a full commit
+SHA like any other action; consumer workflows outside this repository may reference its major tag.
 
 That trailing version comment is one of the functional comments that survive any cleanup pass.
 Workflow files take no prose or rationale comments otherwise; reasoning belongs in the commit

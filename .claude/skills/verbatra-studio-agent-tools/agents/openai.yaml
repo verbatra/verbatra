@@ -1,0 +1,3 @@
+interface:
+  display_name: "verbatra Studio tools"
+  short_description: "Drive the Studio dashboard tab through its browser tools"
