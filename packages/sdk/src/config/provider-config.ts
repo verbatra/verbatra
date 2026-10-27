@@ -37,11 +37,11 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
     id: z.literal("google-translate"),
     options: googleTranslateConfigSchema.strict(),
   }),
+  z.strictObject({ id: z.literal("opencode"), options: openCodeConfigSchema.strict() }),
   z.strictObject({
     id: z.literal("openai-compatible"),
     options: openAiCompatibleConfigSchema.strict(),
   }),
-  z.strictObject({ id: z.literal("opencode"), options: openCodeConfigSchema.strict() }),
   z.strictObject({
     id: z.literal("libretranslate"),
     options: libreTranslateConfigSchema.strict(),
@@ -88,9 +88,9 @@ export type ProviderConfigInput = z.input<typeof providerConfigSchema>;
 
 /**
  * The identifier of a supported translation provider: `anthropic`, `openai`, `gemini`, `deepl`,
- * `google-translate`, `openai-compatible`, `opencode`, `libretranslate`, or `none`.
- * `openai-compatible` targets a local or self-hosted server that speaks the OpenAI chat-completions
- * API; `opencode` targets OpenCode Zen's paid models at its fixed endpoint; `libretranslate` targets
+ * `google-translate`, `opencode`, `openai-compatible`, `libretranslate`, or `none`.
+ * `opencode` targets OpenCode Zen's paid models at its fixed endpoint; `openai-compatible` targets a
+ * local or self-hosted server that speaks the OpenAI chat-completions API; `libretranslate` targets
  * a self-hosted LibreTranslate server, a machine-translation API with no language model behind it;
  * `none` disables machine translation altogether.
  */
@@ -138,9 +138,9 @@ const providerFactories: ProviderFactories = {
   deepl: (options) => createDeepLProvider(options),
   "google-translate": (options, context) =>
     createGoogleTranslateProvider(options, networkDeps(context)),
+  opencode: (options, context) => createOpenCodeProvider(options, retryingDeps(context)),
   "openai-compatible": (options, context) =>
     createOpenAiCompatibleProvider(options, retryingDeps(context)),
-  opencode: (options, context) => createOpenCodeProvider(options, retryingDeps(context)),
   libretranslate: (options, context) => createLibreTranslateProvider(options, networkDeps(context)),
 };
 

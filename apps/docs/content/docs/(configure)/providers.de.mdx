@@ -157,7 +157,7 @@ verbatra liefert Googles datierte [Sprachtabelle](https://docs.cloud.google.com/
 
 <AvailableFrom version="0.12.0" />
 
-Die kostenpflichtigen Modelle von [OpenCode Zen](https://opencode.ai/docs/zen/), die über Chat Completions laufen. Claude, GPT und Gemini nutzen auf Zen andere Endpunkte und funktionieren hier nicht. OpenCode behält Go und die kostenlosen Zen-Modelle seinen eigenen Clients vor.
+Hier funktionieren nur Modelle von [OpenCode Zen](https://opencode.ai/docs/zen/), die über `/chat/completions` laufen (die Modelltabelle nennt den Endpunkt jedes Modells). OpenCode behält Go und die kostenlosen Zen-Modelle seinen eigenen Clients vor.
 
 ```ts title="verbatra.config.ts"
 provider: {

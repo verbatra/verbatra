@@ -3,7 +3,7 @@ import type { ClassifiedProviderErrorCode } from "./error-classification.js";
 const SAFE_VENDOR_ERROR_TYPE = /^[A-Za-z][A-Za-z0-9_]{0,39}$/;
 const GENERIC_VENDOR_ERROR_TYPE = "error";
 
-export type EndpointRemedies = "chat-completions";
+export type EndpointRemedies = "chat-completions" | "zen-chat-completions";
 
 export const BASE_URL_REMEDY =
   "Check that provider.options.baseUrl points at the API root, usually ending in /v1, not at " +
@@ -11,6 +11,8 @@ export const BASE_URL_REMEDY =
 export const REJECTED_REQUEST_REMEDY =
   "The server rejected the request: check the model name and whether the server supports Chat " +
   "Completions with strict JSON schema output.";
+export const ZEN_MODEL_REMEDY =
+  "The model must be one that OpenCode Zen serves over the Chat Completions endpoint.";
 export const REFUSED_REQUEST_REMEDY =
   "The server refused the request under its policy or the key's permissions.";
 
@@ -29,6 +31,17 @@ const CHAT_COMPLETIONS_REMEDY_BY_STATUS: Readonly<Record<number, string>> = {
   404: BASE_URL_REMEDY,
   405: BASE_URL_REMEDY,
   422: REJECTED_REQUEST_REMEDY,
+};
+
+const ZEN_REMEDY_BY_STATUS: Readonly<Record<number, string>> = {
+  400: ZEN_MODEL_REMEDY,
+  404: ZEN_MODEL_REMEDY,
+  422: ZEN_MODEL_REMEDY,
+};
+
+const REMEDY_TABLES: Readonly<Record<EndpointRemedies, Readonly<Record<number, string>>>> = {
+  "chat-completions": CHAT_COMPLETIONS_REMEDY_BY_STATUS,
+  "zen-chat-completions": ZEN_REMEDY_BY_STATUS,
 };
 
 const FORBIDDEN_STATUS = 403;
@@ -92,7 +105,7 @@ function remedyFor(status: number, remedies: EndpointRemedies | undefined): stri
   if (status === FORBIDDEN_STATUS) {
     return REFUSED_REQUEST_REMEDY;
   }
-  return remedies === "chat-completions" ? CHAT_COMPLETIONS_REMEDY_BY_STATUS[status] : undefined;
+  return remedies === undefined ? undefined : REMEDY_TABLES[remedies][status];
 }
 
 export function httpFailureMessage(

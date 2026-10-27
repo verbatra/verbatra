@@ -155,7 +155,7 @@ descriptive only, nothing branches on it), `supportsGlossary`, and `translateBat
 Resolution is a factory table, not the exported `ProviderRegistry`:
 `packages/sdk/src/config/provider-config.ts` defines `providerFactories`, a `ProviderFactories`
 mapped type over `MachineProviderId` (`"anthropic" | "openai" | "gemini" | "deepl" |
-"google-translate" | "openai-compatible" | "opencode" | "libretranslate"`), so a provider present in the config union but missing
+"google-translate" | "opencode" | "openai-compatible" | "libretranslate"`), so a provider present in the config union but missing
 from the factory table fails to compile. `ProviderId` additionally holds `"none"`, the human-only
 variant that disables machine translation by policy: it has no factory, no provider is ever
 constructed for it, and `isMachineProvider` / `machineTranslationDisabledError` in the

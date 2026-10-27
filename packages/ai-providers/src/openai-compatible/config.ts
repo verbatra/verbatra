@@ -4,8 +4,8 @@ import { PROVIDER_ENV } from "../key-env-vars.js";
 import { localeMapConfigSchema } from "../locale-map.js";
 import { requestTimeoutConfigSchema } from "../request-timeout-config.js";
 
-const HOSTED_PROVIDER_ENV_VARS: ReadonlySet<string> = new Set(
-  Object.values(PROVIDER_ENV).map((name) => name.toUpperCase()),
+const HOSTED_PROVIDER_BY_ENV_VAR: ReadonlyMap<string, string> = new Map(
+  Object.entries(PROVIDER_ENV).map(([providerId, name]) => [name.toUpperCase(), providerId]),
 );
 
 const ENDPOINT_PATH_SUFFIX = /\/(?:chat\/)?completions\/*$/i;
@@ -22,8 +22,12 @@ function isNotEndpointPath(value: string): boolean {
   }
 }
 
-function isNotHostedProviderEnvVar(value: string): boolean {
-  return !HOSTED_PROVIDER_ENV_VARS.has(value.toUpperCase());
+function hostedProviderEnvVarMessage(value: string): string | undefined {
+  const providerId = HOSTED_PROVIDER_BY_ENV_VAR.get(value.toUpperCase());
+  return providerId === undefined
+    ? undefined
+    : `apiKeyEnvVar must not name a hosted provider's environment variable. ${value} belongs to ` +
+        `the "${providerId}" provider: set provider.id to "${providerId}", or name a different variable.`;
 }
 
 export const openAiCompatibleConfigSchema = z
@@ -36,8 +40,11 @@ export const openAiCompatibleConfigSchema = z
     apiKeyEnvVar: z
       .string()
       .min(1)
-      .refine(isNotHostedProviderEnvVar, {
-        message: "apiKeyEnvVar must not name a hosted provider's environment variable.",
+      .superRefine((value, ctx) => {
+        const message = hostedProviderEnvVarMessage(value);
+        if (message !== undefined) {
+          ctx.addIssue({ code: "custom", message });
+        }
       })
       .optional(),
   })

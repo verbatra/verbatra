@@ -27,8 +27,8 @@ const PROVIDER_IDS: Readonly<Record<MachineProviderId, true>> = {
   gemini: true,
   deepl: true,
   "google-translate": true,
-  "openai-compatible": true,
   opencode: true,
+  "openai-compatible": true,
   libretranslate: true,
 };
 

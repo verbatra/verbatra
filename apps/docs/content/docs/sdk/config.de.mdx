@@ -360,9 +360,9 @@ function editConfiguredGlossaryTerm(
 Ein Identitätshelfer für eine typisierte `verbatra.config.ts`: er gibt sein Argument unverändert
 zurück, für Typinferenz und Editor-Autovervollständigung, einschließlich der bekannten Modell-IDs
 des gewählten Providers (nur beim Schreiben; zur Laufzeit besteht jeder nicht-leere String). Jeder
-Provider außer `openai-compatible`, `libretranslate` und `none` bekommt zusätzlich eine Überladung
+Provider außer `opencode`, `openai-compatible`, `libretranslate` und `none` bekommt zusätzlich eine Überladung
 mit `AuthoringConfigFor<"<id>">`, etwa `AuthoringConfigFor<"anthropic">`, die den `provider`-Block
-auf die Optionen dieses Providers einschränkt; diese drei nutzen den Rückfall mit `AuthoringConfig`
+auf die Optionen dieses Providers einschränkt; diese vier nutzen den Rückfall mit `AuthoringConfig`
 unten.
 
 ```ts title="Signatur"
