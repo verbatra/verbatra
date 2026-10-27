@@ -99,8 +99,8 @@ export interface BatchFinishedEvent {
 /**
  * Emitted when a built-in provider retries a request that failed with a retryable status, before
  * it waits. The provider is shared by every locale of a run, so the event names no locale. The
- * Gemini provider reports the delay and the status; the Anthropic, OpenAI and openai-compatible
- * providers report the attempt only, when their client starts it. DeepL, Google Cloud
+ * Gemini provider reports the delay and the status; the Anthropic, OpenAI, OpenCode and
+ * openai-compatible providers report the attempt only, when their client starts it. DeepL, Google Cloud
  * Translation and LibreTranslate report none.
  */
 export interface ProviderRetryEvent {

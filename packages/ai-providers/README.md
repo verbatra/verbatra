@@ -13,7 +13,7 @@ branches on which one is configured. It depends on `@verbatra/core` only.
 
 ## Responsibilities
 
-- **One interface, many implementations.** Anthropic, OpenAI, Gemini and openai-compatible are
+- **One interface, many implementations.** Anthropic, OpenAI, Gemini, openai-compatible and OpenCode are
   `kind: "llm"`; DeepL, Google Cloud Translation and LibreTranslate are
   `kind: "machine-translation"`, a descriptive label, not a branch point. The
   [Providers page](https://verbatra.kreitz-webdev.de/docs/providers) is the user-facing list.
@@ -49,7 +49,7 @@ It must not:
 
 - `src/provider.ts`: the `TranslationProvider` interface.
 - `src/<provider>/`: one folder per provider (`anthropic`, `openai`, `gemini`, `openai-compatible`,
-  `deepl`, `google-translate`, `libretranslate`).
+  `opencode`, `deepl`, `google-translate`, `libretranslate`).
 - `src/llm/`: the shared LLM translation layer.
 - `src/masked-batch.ts`, `src/masked-wire.ts`, `src/masked-wire-codec.ts`: placeholder masking for
   machine-translation engines.

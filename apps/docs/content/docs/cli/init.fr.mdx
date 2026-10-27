@@ -44,14 +44,14 @@ verbatra init --agent --client cursor,vscode --dry-run
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--provider` | `<id>` | aucun (requis, sauf s'il est demandé) | fournisseur pour lequel générer la config : `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` ou `none` |
+| `--provider` | `<id>` | aucun (requis, sauf s'il est demandé) | fournisseur pour lequel générer la config : `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `opencode`, `libretranslate` ou `none` |
 | `--format` | `<id>` | détecté, sinon `i18next-json` | le format des fichiers de locale, l'un des ids de [Formats](/fr/docs/formats) |
 | `--source` | `<locale>` | détectée, sinon `en` | la locale source dans laquelle tes chaînes sont écrites |
 | `--targets` | `<locales>` | détectées, sinon `de` | locales cibles vers lesquelles traduire, séparées par des virgules |
 | `--path` | `<pattern>` | détecté, sinon la structure habituelle du format ([Détection](#détection)) | motif des fichiers de locale ; doit contenir le jeton `{locale}` |
-| `--model` | `<name>` | le défaut de l'échafaudage | le modèle ; requis pour `openai-compatible`, optionnel pour `anthropic`, `openai` et `gemini` |
+| `--model` | `<name>` | le défaut de l'échafaudage | le modèle ; requis pour `openai-compatible`, optionnel pour `anthropic`, `openai`, `gemini` et `opencode` |
 | `--base-url` | `<url>` | aucun | l'URL du serveur ; `openai-compatible` et `libretranslate` uniquement, et requis dans ce cas |
-| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | la variable dans laquelle `openai-compatible` lit sa clé ; `openai-compatible` uniquement |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | la variable dans laquelle `openai-compatible` lit sa clé |
 | `--yes` | aucun | désactivé | ne pose jamais de question ; prend le défaut pour tout ce qui n'est ni passé ni détecté |
 | `--force` | aucun | désactivé | écrase un `verbatra.config.ts` existant dont le contenu diffère |
 | `--agent` | aucun | désactivé | écrit en plus la section pour les agents de code dans `AGENTS.md` ou `CLAUDE.md` et le serveur MCP verbatra dans la config de projet de chaque client détecté ([Préparer les agents de code](#préparer-les-agents-de-code)) |

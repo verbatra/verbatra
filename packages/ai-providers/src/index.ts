@@ -147,6 +147,14 @@ export {
   createOpenAiCompatibleProvider,
   type OpenAiCompatibleDeps,
 } from "./openai-compatible/openai-compatible-provider.js";
+export {
+  type OpenCodeConfig,
+  openCodeConfigSchema,
+} from "./opencode/config.js";
+export {
+  createOpenCodeProvider,
+  type OpenCodeDeps,
+} from "./opencode/opencode-provider.js";
 export type {
   ListedLanguageSupport,
   LiveLanguageRequest,

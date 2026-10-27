@@ -101,7 +101,7 @@
         },
         "providers": {
           "question": "Quels fournisseurs de traduction Verbatra prend-il en charge ?",
-          "answer": "{providers}{pending, select, yes {, plus {upcoming} de {next}} other {}}. Définis-en un dans le bloc <code>provider</code>, ou <code>none</code> si seuls des humains traduisent ; voir les <link>fournisseurs</link>."
+          "answer": "{providers}{pending, select, yes {, plus {upcoming} de {next}} other {}}. Définis-en un dans <code>provider</code>, ou <code>none</code> si seuls des humains traduisent ; voir les <link>fournisseurs</link>."
         },
         "privacy": {
           "question": "Verbatra envoie-t-il mes chaînes ou mes clés API n’importe où ?",

@@ -26,8 +26,9 @@ type AuthoringVariant<Id extends ProviderId, M extends string> =
 /**
  * Maps each provider ID to its authoring-time config variant. The three language-model providers
  * get narrowed model unions; DeepL, Google Cloud Translation and LibreTranslate have no model to
- * narrow, and `openai-compatible` deliberately keeps a free-form model string because the endpoint
- * is a local or self-hosted server whose model list the SDK cannot know ahead of time. `none` has
+ * narrow, `opencode` keeps a free-form model string because OpenCode Zen's catalog changes, and
+ * `openai-compatible` does too because the endpoint is a local or self-hosted server whose model
+ * list the SDK cannot know ahead of time. `none` has
  * no options at all.
  */
 type AuthoringProviderVariant = {
@@ -46,6 +47,8 @@ type AuthoringProviderVariant = {
   "google-translate": Extract<ProviderConfigInput, { id: "google-translate" }>;
   /** A local or self-hosted OpenAI-compatible endpoint, whose model stays a free-form string. */
   "openai-compatible": Extract<ProviderConfigInput, { id: "openai-compatible" }>;
+  /** OpenCode Zen's paid models, whose model stays a free-form string because Zen's catalog changes. */
+  opencode: Extract<ProviderConfigInput, { id: "opencode" }>;
   /**
    * A self-hosted LibreTranslate server, which takes no model because it is a machine-translation
    * API rather than a language model.

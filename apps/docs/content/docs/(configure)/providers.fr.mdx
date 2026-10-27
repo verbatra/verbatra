@@ -4,7 +4,7 @@ seoTitle: "Fournisseurs d'IA et de traduction automatique"
 description: "Tous les fournisseurs d'IA et de traduction automatique pris en charge par verbatra, avec leurs options et leur variable de clé d'API, et ce qu'ils partagent."
 type: reference
 ---
-Sélectionne un fournisseur par `id` dans le bloc `provider` de ta [configuration](/fr/docs/config-file). Anthropic, OpenAI, Gemini et openai-compatible sont des modèles de langage ; DeepL, Google Cloud Translation et LibreTranslate sont des services de traduction automatique ; `none` désactive la traduction automatique. Les identifiants de modèle ici sont des exemples. La couverture des langues se trouve dans [Langues et locales](/fr/docs/language-support), et ce que reçoit chaque fournisseur dans [Traitement des données et confidentialité](/fr/docs/data-handling).
+Sélectionne un fournisseur par `id` dans le bloc `provider` de ta [configuration](/fr/docs/config-file). Anthropic, OpenAI, Gemini, OpenCode et openai-compatible sont des modèles de langage ; DeepL, Google Cloud Translation et LibreTranslate sont des services de traduction automatique ; `none` désactive la traduction automatique. La couverture des langues se trouve dans [Langues et locales](/fr/docs/language-support), et ce que reçoit chaque fournisseur dans [Traitement des données et confidentialité](/fr/docs/data-handling).
 
 ## Lequel choisir ?
 
@@ -31,6 +31,7 @@ verbatra ne lit jamais une clé depuis la configuration. Chaque fournisseur héb
 | `gemini` | `GEMINI_API_KEY` |
 | `deepl` | `DEEPL_API_KEY` |
 | `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
+| `opencode` | `OPENCODE_API_KEY` |
 
 Définis-la dans `.env` (que `verbatra init` ajoute au `.gitignore`), dans ton shell ou dans le coffre de secrets de ta CI, et ne la commite jamais. Une variable absente ou vide échoue avec [`MISSING_API_KEY`](/fr/docs/error-codes#missing_api_key), en nommant la variable mais jamais une valeur. `openai-compatible` et `libretranslate` n'ont généralement besoin d'aucune clé.
 
@@ -152,6 +153,31 @@ Lit `GOOGLE_TRANSLATE_API_KEY`, une clé d'API d'un projet Google Cloud où l'AP
 
 verbatra embarque la [table de langues](https://docs.cloud.google.com/translate/docs/languages) datée de Google et refuse une langue non listée avant toute dépense. Un code régional dont la langue n'est listée que dans son ensemble, comme `de-AT`, est envoyé tel qu'il est écrit avec un avertissement.
 
+## OpenCode
+
+<AvailableFrom version="0.12.0" />
+
+Les modèles payants d'[OpenCode Zen](https://opencode.ai/docs/zen/) servis par Chat Completions. Claude, GPT et Gemini utilisent d'autres endpoints sur Zen et ne fonctionnent pas ici. OpenCode réserve Go et les modèles gratuits de Zen à ses propres clients.
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "opencode",
+  options: {
+    model: "glm-5.3", // example: a Zen model served over Chat Completions
+    maxOutputTokens: 4096,
+  },
+}
+```
+
+| Option | Type | Défaut | Effet |
+| --- | --- | --- | --- |
+| `model` | chaîne | requis | L'identifiant du modèle. |
+| `maxOutputTokens` | entier positif | requis | Plafonne les tokens de sortie d'une réponse. |
+| `requestTimeoutMs` | entier positif | `120000` | Borne chaque tentative de requête. |
+| `localeMap` | map de locale vers code | aucun | Remplace le code envoyé par locale. |
+
+Endpoint fixe, sans `baseUrl`. Lit `OPENCODE_API_KEY`.
+
 ## openai-compatible
 
 Tout serveur qui parle l'API Chat Completions d'OpenAI : LM Studio, Ollama, vLLM, ou une API hébergée.
@@ -194,22 +220,6 @@ provider: {
 
 La réponse suit le même schéma strict que `openai` ; le premier objet JSON équilibré est pris dans toute prose ou bloc de code qui l'entoure, puis validé. `verbatra init --provider openai-compatible --base-url <url> --model <name>` écrit ce bloc ([init](/fr/docs/cli/init#fournisseurs)), et `--api-key-env-var <NAME>` ajoute le nom de la variable.
 
-### OpenCode Zen
-
-Les modèles payants d'[OpenCode Zen](https://opencode.ai/docs/zen/) servis par Chat Completions fonctionnent avec une clé d'API Zen dans `OPENCODE_API_KEY`. OpenCode Go et les modèles gratuits de Zen sont réservés par OpenCode à ses propres clients de programmation : ils sont donc refusés quand verbatra les appelle et ne fonctionnent pas ici.
-
-```ts title="verbatra.config.ts"
-provider: {
-  id: "openai-compatible",
-  options: {
-    baseUrl: "https://opencode.ai/inference/openai/v1",
-    model: "glm-5.3", // example: a Zen model served over Chat Completions
-    maxOutputTokens: 4096,
-    apiKeyEnvVar: "OPENCODE_API_KEY",
-  },
-}
-```
-
 ### Les clés sont optionnelles
 
 La clé se résout dans cet ordre :
@@ -226,7 +236,7 @@ Le `http://` est autorisé vers n'importe quel hôte. Avec une clé et une URL `
 
 ### Choisir un modèle local
 
-Préfère un modèle multilingue ajusté par instructions et sans raisonnement, aussi grand que ton matériel l'exécute bien, comme `qwen2.5-14b-instruct`. Les modèles de raisonnement et les builds fortement quantifiés ont tendance à envelopper ou tronquer la réponse, ce qui échoue en `INVALID_RESPONSE` ou `OUTPUT_TRUNCATED` au lieu d'écrire une traduction corrompue ; un modèle de raisonnement a besoin de [place](#limites-de-tokens-de-sortie).
+Préfère un modèle multilingue ajusté par instructions et sans raisonnement, aussi grand que ton matériel l'exécute bien, comme `qwen2.5-14b-instruct`. Les modèles de raisonnement et les builds fortement quantifiés ont tendance à envelopper ou tronquer la réponse, ce qui échoue en `INVALID_RESPONSE` ou `OUTPUT_TRUNCATED`.
 
 ## LibreTranslate
 
@@ -280,8 +290,8 @@ Une requête ne porte que les termes du glossaire de sa locale cible, et chaque 
 
 | Fournisseur | `tone` | `glossary` |
 | --- | --- | --- |
-| Anthropic, OpenAI, Gemini, openai-compatible | envoyé et respecté | traductions, traductions interdites, termes à ne pas traduire et notes envoyés comme données contraignantes |
-| DeepL | mappé sur la formalité ; `FORMALITY_DOWNGRADED` avec une clé gratuite ou une langue sans formalité | `GLOSSARY_IGNORED` ; seul `glossaryId` s'applique |
+| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | envoyé et respecté | traductions, traductions interdites, termes à ne pas traduire et notes envoyés comme données contraignantes |
+| DeepL | mappé sur la formalité | `GLOSSARY_IGNORED` ; seul `glossaryId` s'applique |
 | Google Cloud Translation, LibreTranslate | `FORMALITY_DOWNGRADED` pour `formal` ou `informal` | `GLOSSARY_IGNORED` |
 
 ## Comportement partagé par tous les fournisseurs
@@ -292,7 +302,7 @@ Le travail d'une locale part en sous-lots séquentiels d'au plus [`maxBatchSize`
 
 ### Nouvelles tentatives
 
-Les limites de débit et les erreurs serveur sont retentées avec backoff, par le client chez OpenAI, openai-compatible, Anthropic et DeepL et par verbatra pour Gemini. Google Cloud Translation et LibreTranslate ne réessaient pas : l'erreur remonte aussitôt comme `RATE_LIMITED` ou `PROVIDER_UNAVAILABLE`.
+Les limites de débit et les erreurs serveur sont retentées avec backoff, par le client chez OpenAI, OpenCode, openai-compatible, Anthropic et DeepL et par verbatra pour Gemini. Google Cloud Translation et LibreTranslate ne réessaient pas.
 
 ### Délai de requête
 
@@ -325,7 +335,7 @@ Les fichiers, le fichier de verrouillage et la mémoire utilisent toujours les c
 | DeepL | La langue seule : `en-US` comme `EN`, `zh-Hant-TW` comme `ZH`. | `zh-Hant`, `zh-TW`, `zh-HK`, `zh-MO` comme `ZH-HANT` ; `zh-Hans`, `zh-CN`, `zh-SG` comme `ZH-HANS`. Les variantes DeepL sont conservées (`EN-GB`, `EN-US`, `PT-BR`, `PT-PT`, `ES-419`, `FR-CA`, `FR-FR`, `DE-CH`, `DE-DE`). L'espagnol avec une région d'Amérique latine ou des Caraïbes (`MX`, `AR`, `CO`, `CL`, `PE`, `VE`, `EC`, `GT`, `CU`, `BO`, `DO`, `HN`, `PY`, `SV`, `NI`, `CR`, `PA`, `UY`, `PR`, `US`, `419`) comme `ES-419`. Les autres régions et écritures sont retirées : `de-AT` comme `DE`. |
 | Google Cloud Translation | `zh-Hant` (`zh-HK`, `zh-MO`) comme `zh-TW`, `zh-Hans` (`zh-SG`) comme `zh-CN`, `nb` comme `no` ; tout le reste tel qu'il est écrit. | Comme pour la source. |
 | LibreTranslate | La langue seule (`de-AT` comme `de`), sauf que `pt-BR` est conservé et que le chinois part comme `zh-Hans` ou `zh-Hant` (`zh-TW` comme `zh-Hant`). | Comme pour la source. |
-| Anthropic, OpenAI, Gemini, openai-compatible | Tel qu'il est écrit. | Comme pour la source. |
+| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | Tel qu'il est écrit. | Comme pour la source. |
 
 Un LLM reçoit aussi les [noms de langue, d'écriture et de région](/fr/docs/translation-safety#noms-de-langue-décriture-et-de-région). DeepL n'a pas de cible anglaise ni portugaise générique, donc une cible qui aboutit à un `en` ou `pt` nu (comme `en-AU`) est refusée avant l'exécution : fais-la correspondre à `EN-GB`, `EN-US`, `PT-BR` ou `PT-PT`.
 
@@ -358,7 +368,7 @@ Chaque locale configurée est jugée avant toute dépense :
 | DeepL | Sa table de langues embarquée, avec la prise en charge du glossaire et de la formalité par langue | Une langue source ou cible non listée | Un glossaire pour une paire hors des langues de glossaire, un ton sans formalité, un code listé seulement en partie |
 | Google Cloud Translation | Sa table de langues embarquée | Une langue non listée | Tout glossaire, un ton `formal` ou `informal`, un code régional listé seulement comme langue |
 | LibreTranslate | Rien avant une exécution ; la liste `/languages` du serveur avec `doctor --live` | Jamais | Chaque locale cible à chaque exécution, tout glossaire, un ton `formal` ou `informal` |
-| Anthropic, OpenAI, Gemini, openai-compatible | Rien : un LLM accepte toutes les langues | Jamais | Une langue hors de la [liste des langues bien testées](/fr/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution) |
+| Anthropic, OpenAI, Gemini, OpenCode, openai-compatible | Rien : un LLM accepte toutes les langues | Jamais | Une langue hors de la [liste des langues bien testées](/fr/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution) |
 | none | Sans objet | Jamais | Jamais |
 
 Une locale non prise en charge est refusée avec [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/fr/docs/error-codes#locale_unsupported_by_provider) (code de sortie `2`) avant qu'aucun fournisseur ne soit construit ; un avertissement ne refuse jamais et apparaît comme [avis](/fr/docs/error-codes#sdk-notice-codes). [`verbatra doctor`](/fr/docs/cli/doctor#prise-en-charge-des-locales) donne chaque verdict, et son option `--live` vérifie la liste actuelle du fournisseur, mais `translate` utilise toujours la table embarquée. Pour une langue ajoutée depuis, associe la locale dans `localeMap` : un code explicite est envoyé avec un avertissement, pas refusé.
@@ -369,7 +379,7 @@ Un échec de fournisseur remonte comme une [erreur structurée, sans secret](/fr
 
 ### Limites de tokens de sortie
 
-Les fournisseurs LLM plafonnent les tokens de chaque réponse ; un modèle qui s'arrête au plafond lève [`OUTPUT_TRUNCATED`](/fr/docs/error-codes#output_truncated). verbatra redécoupe un sous-lot tronqué en deux moitiés, en descendant jusqu'à une seule entrée, et ne retient qu'une entrée qui déborde encore. Pour régler cela durablement, baisse `maxBatchSize` ou augmente `maxTokens` (Anthropic) ou `maxOutputTokens`. Un modèle de raisonnement puise ses tokens de raisonnement cachés dans le même budget : donne-lui donc une marge généreuse. Les fournisseurs de traduction automatique ne peuvent pas tronquer.
+Les fournisseurs LLM plafonnent les tokens de chaque réponse ; un modèle qui s'arrête au plafond lève [`OUTPUT_TRUNCATED`](/fr/docs/error-codes#output_truncated). verbatra redécoupe un sous-lot tronqué en deux moitiés, en descendant jusqu'à une seule entrée, et ne retient qu'une entrée qui déborde encore. Pour régler cela durablement, baisse `maxBatchSize` ou augmente `maxTokens` (Anthropic) ou `maxOutputTokens`. Un modèle de raisonnement puise ses tokens de raisonnement cachés dans le même budget : donne-lui donc une marge généreuse.
 
 ### Signalements de relecture
 

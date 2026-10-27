@@ -44,14 +44,14 @@ verbatra init --agent --client cursor,vscode --dry-run
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--provider` | `<id>` | ninguno (obligatorio, salvo que se pregunte) | proveedor a preparar: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` o `none` |
+| `--provider` | `<id>` | ninguno (obligatorio, salvo que se pregunte) | proveedor a preparar: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `opencode`, `libretranslate` o `none` |
 | `--format` | `<id>` | detectado, si no `i18next-json` | el formato de los archivos de locale, uno de los ids de [Formatos](/es/docs/formats) |
 | `--source` | `<locale>` | detectado, si no `en` | el locale de origen en el que están escritas tus cadenas |
 | `--targets` | `<locales>` | detectado, si no `de` | locales de destino separados por comas a los que traducir |
 | `--path` | `<pattern>` | detectado, si no la estructura habitual del formato ([Detección](#detección)) | patrón de los archivos de locale; debe contener el token `{locale}` |
-| `--model` | `<name>` | el valor por defecto del scaffold | el modelo; obligatorio para `openai-compatible`, opcional para `anthropic`, `openai` y `gemini` |
+| `--model` | `<name>` | el valor por defecto del scaffold | el modelo; obligatorio para `openai-compatible`, opcional para `anthropic`, `openai`, `gemini` y `opencode` |
 | `--base-url` | `<url>` | ninguno | la URL del servidor; solo para `openai-compatible` y `libretranslate`, y ahí es obligatorio |
-| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | la variable de la que `openai-compatible` lee su clave; solo para `openai-compatible` |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | la variable de la que `openai-compatible` lee su clave |
 | `--yes` | ninguno | desactivado | nunca pregunta; toma el valor por defecto de todo lo que ni se pasó ni se detectó |
 | `--force` | ninguno | desactivado | sobrescribe un `verbatra.config.ts` existente cuyo contenido es distinto |
 | `--agent` | ninguno | desactivado | escribe además la sección para agentes de programación en `AGENTS.md` o `CLAUDE.md` y el servidor MCP de verbatra en la configuración de proyecto de cada cliente detectado ([Preparar los agentes de programación](#preparar-los-agentes-de-programación)) |

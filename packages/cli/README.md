@@ -43,7 +43,7 @@ export GEMINI_API_KEY=your-key-here
 npx @verbatra/cli translate
 ```
 
-`init` scaffolds `verbatra.config.ts` and `.env.example`; `translate` fills every target locale once. Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, `deepl`, and `google-translate` work the same way; only the key variable and the config's `provider` block differ. `openai-compatible` also needs `--model` and `--base-url` for your local or self-hosted server, `libretranslate` needs `--base-url` for your LibreTranslate server, and `none` sets up a human-only project that never calls a provider.
+`init` scaffolds `verbatra.config.ts` and `.env.example`; `translate` fills every target locale once. Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, `opencode`, `deepl`, and `google-translate` work the same way; only the key variable and the config's `provider` block differ. `openai-compatible` also needs `--model` and `--base-url` for your local or self-hosted server, `libretranslate` needs `--base-url` for your LibreTranslate server, and `none` sets up a human-only project that never calls a provider.
 
 ## Commands
 

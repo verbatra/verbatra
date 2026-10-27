@@ -20,6 +20,7 @@ const PROVIDER_LANGUAGES: ProviderLanguageSupportTable = {
   deepl: () => deepLLanguageSupport,
   "google-translate": () => googleTranslateLanguageSupport,
   "openai-compatible": () => llmLanguageSupport,
+  opencode: () => llmLanguageSupport,
   libretranslate: (options) => libreTranslateLanguageSupport(options.baseUrl),
 };
 

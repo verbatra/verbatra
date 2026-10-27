@@ -44,14 +44,14 @@ verbatra init --agent --client cursor,vscode --dry-run
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--provider` | `<id>` | keiner (erforderlich, sofern nicht abgefragt) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` oder `none` |
+| `--provider` | `<id>` | keiner (erforderlich, sofern nicht abgefragt) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `opencode`, `libretranslate` oder `none` |
 | `--format` | `<id>` | erkannt, sonst `i18next-json` | das Format der Locale-Dateien, eine der IDs unter [Formate](/de/docs/formats) |
 | `--source` | `<locale>` | erkannt, sonst `en` | die Quell-Locale, in der deine Strings geschrieben sind |
 | `--targets` | `<locales>` | erkannt, sonst `de` | kommagetrennte Ziel-Locales, in die übersetzt wird |
 | `--path` | `<pattern>` | erkannt, sonst das übliche Layout des Formats ([Erkennung](#erkennung)) | Muster der Locale-Dateien; muss das Token `{locale}` enthalten |
-| `--model` | `<name>` | der Standard des Scaffolds | das Modell; erforderlich für `openai-compatible`, optional für `anthropic`, `openai` und `gemini` |
+| `--model` | `<name>` | der Standard des Scaffolds | das Modell; erforderlich für `openai-compatible`, optional für `anthropic`, `openai`, `gemini` und `opencode` |
 | `--base-url` | `<url>` | keiner | die Server-URL; nur für `openai-compatible` und `libretranslate` und dort erforderlich |
-| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | die Variable, aus der `openai-compatible` seinen Key liest; nur für `openai-compatible` |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | die Variable, aus der `openai-compatible` seinen Key liest |
 | `--yes` | keins | aus | nie nachfragen; für alles, was weder übergeben noch erkannt wurde, den Standardwert nehmen |
 | `--force` | keins | aus | eine bestehende `verbatra.config.ts` mit abweichendem Inhalt überschreiben |
 | `--agent` | keins | aus | zusätzlich den Abschnitt für Coding-Agenten in `AGENTS.md` oder `CLAUDE.md` und den verbatra-MCP-Server in die Projektkonfiguration jedes erkannten Clients schreiben ([Coding-Agenten einrichten](#coding-agenten-einrichten)) |

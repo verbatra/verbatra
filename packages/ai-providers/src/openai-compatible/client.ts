@@ -9,17 +9,23 @@ import type { OpenAiCompatibleConfig } from "./config.js";
 
 export const OPENAI_COMPATIBLE_USER_AGENT = "verbatra";
 
+export interface HostedClientIdentity {
+  readonly id: "opencode";
+  readonly apiKey: string;
+}
+
 export function createDefaultClient(
   config: OpenAiCompatibleConfig,
   network?: ProviderNetwork,
   onRetry?: ProviderRetryListener,
+  hosted?: HostedClientIdentity,
 ): OpenAiClient {
   const transport = openAiStyleTransport(
-    { id: "openai-compatible", baseUrl: config.baseUrl },
+    hosted === undefined ? { id: "openai-compatible", baseUrl: config.baseUrl } : { id: hosted.id },
     network,
     onRetry,
   );
-  const apiKey = resolveOpenAiCompatibleKey(config.apiKeyEnvVar);
+  const apiKey = hosted?.apiKey ?? resolveOpenAiCompatibleKey(config.apiKeyEnvVar);
   const loadClient = memoizeAsync(async () => {
     const { default: OpenAI } = await loadSdkModule("openai", () => import("openai"));
     return new OpenAI({

@@ -58,6 +58,7 @@ describe("scaffoldingMetadata", () => {
       gemini: "GEMINI_API_KEY",
       deepl: "DEEPL_API_KEY",
       "google-translate": "GOOGLE_TRANSLATE_API_KEY",
+      opencode: "OPENCODE_API_KEY",
     });
   });
 
@@ -90,11 +91,12 @@ describe("scaffoldingMetadata", () => {
     expect(scaffoldingMetadata.providerEnv).not.toHaveProperty("none");
   });
 
-  it("exposes the three LLM scaffold models (DeepL omitted)", () => {
+  it("exposes the four LLM scaffold models (DeepL omitted)", () => {
     expect(scaffoldingMetadata.scaffoldModels).toEqual({
       anthropic: "claude-sonnet-4-6",
       openai: "gpt-5.4-mini",
       gemini: "gemini-2.5-flash",
+      opencode: "glm-5.3",
     });
   });
 

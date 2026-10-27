@@ -112,8 +112,9 @@ when the CI workflow concludes successfully. A broken CLI cannot reach npm.
 
 ### Live tier
 
-`tests/translate.live.e2e.test.ts`, `tests/watch.live.e2e.test.ts`, and
-`tests/libretranslate.live.e2e.test.ts`; `npm test` runs it alongside the no-key tier. It drives
+`tests/translate.live.e2e.test.ts`, `tests/watch.live.e2e.test.ts`,
+`tests/libretranslate.live.e2e.test.ts`, and `tests/opencode.live.e2e.test.ts` (it skips unless
+`OPENCODE_API_KEY` is set; `OPENCODE_MODEL` picks the model, default `glm-5.3`); `npm test` runs it alongside the no-key tier. It drives
 real `translate` and `watch` against a live provider. `translate` fills a missing key and leaves
 the project in sync, and on an LLM provider writes `sr-Latn` in Latin rather than Cyrillic script;
 `watch` translates on startup, again on a source change, and stops on interrupt. It needs

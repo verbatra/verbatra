@@ -74,7 +74,26 @@ describe("runInit", () => {
   it("lists none among the providers it offers", async () => {
     const cap = captureStreams();
     expect(await runInit({ cwd: dir, yes: true }, cap.streams, nonInteractive)).toBe(2);
-    expect(cap.err()).toContain("google-translate|openai-compatible|libretranslate|none");
+    expect(cap.err()).toContain("google-translate|opencode|openai-compatible|libretranslate|none");
+  });
+
+  it("scaffolds an opencode config with a default model, no baseUrl, and OPENCODE_API_KEY", async () => {
+    const cap = captureStreams();
+    const code = await runInit(
+      { cwd: dir, yes: true, provider: "opencode" },
+      cap.streams,
+      nonInteractive,
+    );
+
+    expect(code).toBe(0);
+    const config = readFileSync(join(dir, "verbatra.config.ts"), "utf8");
+    expect(config).toContain('id: "opencode"');
+    expect(config).toContain('model: "glm-5.3"');
+    expect(config).toContain("maxOutputTokens: 4096");
+    expect(config).not.toContain("baseUrl");
+    expect(readFileSync(join(dir, ".env.example"), "utf8").split("\n")).toContain(
+      "OPENCODE_API_KEY=",
+    );
   });
 
   it("scaffolds a google-translate config, env example, and gitignore non-interactively", async () => {
@@ -392,6 +411,7 @@ describe("init metadata derivation", () => {
       gemini: "GEMINI_API_KEY",
       deepl: "DEEPL_API_KEY",
       "google-translate": "GOOGLE_TRANSLATE_API_KEY",
+      opencode: "OPENCODE_API_KEY",
     });
   });
 
@@ -401,6 +421,7 @@ describe("init metadata derivation", () => {
       anthropic: "claude-sonnet-4-6",
       openai: "gpt-5.4-mini",
       gemini: "gemini-2.5-flash",
+      opencode: "glm-5.3",
     });
   });
 

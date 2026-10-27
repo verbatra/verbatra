@@ -28,6 +28,7 @@ export const PROVIDER_BILLING: ProviderBillingTable = {
   deepl: { unit: "characters", billedByApi: true },
   "google-translate": { unit: "characters", billedByApi: true },
   "openai-compatible": { unit: "tokens", billedByApi: false },
+  opencode: { unit: "tokens", billedByApi: true },
   libretranslate: { unit: "characters", billedByApi: false },
   none: { unit: "characters", billedByApi: false },
 };
@@ -42,6 +43,7 @@ export function modelOf(provider: ProviderConfig): string | undefined {
     case "openai":
     case "gemini":
     case "openai-compatible":
+    case "opencode":
       return provider.options.model;
     case "deepl":
     case "google-translate":

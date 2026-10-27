@@ -29,7 +29,7 @@ export function createOpenAiCompatibleProvider(
     declareKeyEnvVar(validConfig.apiKeyEnvVar);
   }
   const client = deps.client ?? createDefaultClient(validConfig, deps.network, deps.onRetry);
-  const mechanism = createMechanism(client, validConfig);
+  const mechanism = createOpenAiCompatibleMechanism(client, validConfig);
   return {
     id: PROVIDER_ID,
     kind: "llm",
@@ -39,12 +39,15 @@ export function createOpenAiCompatibleProvider(
   };
 }
 
-function createMechanism(client: OpenAiClient, config: OpenAiCompatibleConfig): LlmMechanism {
-  const timeoutMs = config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
-  const endpoint: ProviderCallContext = {
+export function createOpenAiCompatibleMechanism(
+  client: OpenAiClient,
+  config: OpenAiCompatibleConfig,
+  endpoint: ProviderCallContext = {
     ...endpointContextOf(config.baseUrl),
     remedies: "chat-completions",
-  };
+  },
+): LlmMechanism {
+  const timeoutMs = config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
   return {
     translate: async ({ payloadJson, signal }): Promise<ReturnType<typeof extractOpenAiResult>> => {
       const body = buildOpenAiRequest(config, payloadJson, "strict-schema", "max_tokens");

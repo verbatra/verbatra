@@ -30,7 +30,7 @@ Each `allowedHosts` entry is a host name (`llm.internal`, any case), a wildcard 
 
 ## Hosted providers
 
-Under `local-only`, `anthropic`, `openai`, `gemini`, `deepl` and `google-translate` are refused, because their endpoints are public. To allow one, list its host:
+Under `local-only`, `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` and `opencode` are refused, because their endpoints are public. To allow one, list its host:
 
 ```ts title="verbatra.config.ts"
 network: {
@@ -39,7 +39,7 @@ network: {
 }
 ```
 
-The hosts are `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` for a key ending in `:fx`) and `translation.googleapis.com`. If `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` or `GOOGLE_GEMINI_BASE_URL` is set, verbatra checks that endpoint instead. Gemini in Vertex AI mode (`GOOGLE_GENAI_USE_VERTEXAI` or `GOOGLE_GENAI_USE_ENTERPRISE` set to `true`) is always refused under a restrictive policy.
+The hosts are `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` for a key ending in `:fx`), `translation.googleapis.com` and `opencode.ai`. If `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` or `GOOGLE_GEMINI_BASE_URL` is set, verbatra checks that endpoint instead. Gemini in Vertex AI mode (`GOOGLE_GENAI_USE_VERTEXAI` or `GOOGLE_GENAI_USE_ENTERPRISE` set to `true`) is always refused under a restrictive policy.
 
 ## Pin a policy from the environment
 
@@ -62,7 +62,7 @@ A refused host stops `translate`, `watch` at startup, retranslation in Studio an
 
 ## Know when requests are checked
 
-The first check resolves no names, so a host name it cannot classify on its own, such as `llm.internal`, passes it. Every request from `anthropic`, `openai`, `gemini`, `google-translate`, `openai-compatible` and `libretranslate` is checked again right before it is sent:
+The first check resolves no names, so a host name it cannot classify on its own, such as `llm.internal`, passes it. Every request from `anthropic`, `openai`, `gemini`, `google-translate`, `opencode`, `openai-compatible` and `libretranslate` is checked again right before it is sent:
 
 - a host name is resolved, and every address it resolves to must be permitted;
 - only a `307` or `308` to the same origin is followed, up to five in a row; a redirect to any other origin, including `https` to `http`, fails the request.

@@ -44,14 +44,14 @@ verbatra init --agent --client cursor,vscode --dry-run
 
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
-| `--provider` | `<id>` | none (required unless asked) | provider to scaffold: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate`, or `none` |
+| `--provider` | `<id>` | none (required unless asked) | provider to scaffold: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `opencode`, `libretranslate`, or `none` |
 | `--format` | `<id>` | detected, else `i18next-json` | the locale file format, one of the ids on [Formats](/docs/formats) |
 | `--source` | `<locale>` | detected, else `en` | the source locale your strings are written in |
 | `--targets` | `<locales>` | detected, else `de` | comma-separated target locales to translate into |
 | `--path` | `<pattern>` | detected, else the format's usual layout ([Detection](#detection)) | locale file pattern; must contain the `{locale}` token |
-| `--model` | `<name>` | the scaffold default | the model; required for `openai-compatible`, optional for `anthropic`, `openai` and `gemini` |
+| `--model` | `<name>` | the scaffold default | the model; required for `openai-compatible`, optional for `anthropic`, `openai`, `gemini` and `opencode` |
 | `--base-url` | `<url>` | none | the server URL; `openai-compatible` and `libretranslate` only, and required there |
-| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | the variable `openai-compatible` reads its key from; `openai-compatible` only |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | the variable `openai-compatible` reads its key from |
 | `--yes` | none | off | never prompt; take the default for anything neither passed nor detected |
 | `--force` | none | off | overwrite an existing `verbatra.config.ts` whose content differs |
 | `--agent` | none | off | also write the coding-agent section to `AGENTS.md` or `CLAUDE.md` and the verbatra MCP server to each detected client's project config ([Set up coding agents](#set-up-coding-agents)) |

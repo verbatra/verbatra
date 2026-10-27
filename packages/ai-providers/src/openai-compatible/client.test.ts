@@ -90,3 +90,18 @@ describe("createDefaultClient: structural isolation from the hosted openai key p
     delete process.env.LM_STUDIO_KEY;
   });
 });
+
+describe("createDefaultClient: hosted identity", () => {
+  it("uses the supplied key and ignores the openai-compatible convention variable", async () => {
+    process.env.OPENAI_COMPATIBLE_API_KEY = "convention-key";
+    await createDefaultClient(
+      { baseUrl: "https://opencode.ai/inference/openai/v1", model: "m", maxOutputTokens: 10 },
+      undefined,
+      undefined,
+      { id: "opencode", apiKey: "hosted-key" },
+    ).chat.completions.create({} as never);
+    delete process.env.OPENAI_COMPATIBLE_API_KEY;
+    expect(capturedOptions.at(-1)?.apiKey).toBe("hosted-key");
+    expect(capturedOptions.at(-1)?.defaultHeaders).toEqual({ "User-Agent": "verbatra" });
+  });
+});

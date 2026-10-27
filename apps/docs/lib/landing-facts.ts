@@ -28,6 +28,7 @@ const PROVIDER_IDS: Readonly<Record<MachineProviderId, true>> = {
   deepl: true,
   "google-translate": true,
   "openai-compatible": true,
+  opencode: true,
   libretranslate: true,
 };
 

@@ -10,6 +10,7 @@ export const PROVIDER_KIND: ProviderKindTable = {
   deepl: "machine-translation",
   "google-translate": "machine-translation",
   "openai-compatible": "llm",
+  opencode: "llm",
   libretranslate: "machine-translation",
 };
 
