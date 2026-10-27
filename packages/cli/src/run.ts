@@ -2330,7 +2330,7 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     .option(
       "--provider <id>",
       "translation provider to use: anthropic, openai, gemini, deepl, google-translate, " +
-        "openai-compatible, libretranslate, or none to disable machine translation (required " +
+        "openai-compatible, opencode, libretranslate, or none to disable machine translation (required " +
         "unless prompted)",
     )
     .option(

@@ -256,7 +256,7 @@ describe("runInit for agents", () => {
 
     expect(code).toBe(2);
     expect(cap.err()).toContain(
-      "[MISSING_OPTIONS] Missing --provider <anthropic|openai|gemini|deepl|google-translate|openai-compatible|libretranslate|none>, --format <id>, --source <locale>, --targets <locales>, --path <pattern>.",
+      "[MISSING_OPTIONS] Missing --provider <anthropic|openai|gemini|deepl|google-translate|opencode|openai-compatible|libretranslate|none>, --format <id>, --source <locale>, --targets <locales>, --path <pattern>.",
     );
     expect(cap.err()).toContain(
       "Or add --yes to accept the default for --format <id>, --source <locale>, --targets <locales>, --path <pattern>.",
@@ -292,7 +292,7 @@ describe("runInit for agents", () => {
     expect(envelope.code).toBe("FORMAT_AMBIGUOUS");
     expect(envelope.candidates).toHaveLength(4);
     expect(envelope.missing).toEqual([
-      "--provider <anthropic|openai|gemini|deepl|google-translate|openai-compatible|libretranslate|none>",
+      "--provider <anthropic|openai|gemini|deepl|google-translate|opencode|openai-compatible|libretranslate|none>",
     ]);
     expect(envelope.message).toContain("Also missing --provider");
   });
