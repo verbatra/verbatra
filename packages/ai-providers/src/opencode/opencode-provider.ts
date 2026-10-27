@@ -29,11 +29,10 @@ export function createOpenCodeProvider(
       id: PROVIDER_ID,
       apiKey: requireOpenCodeKey(),
     });
-  const mechanism = createOpenAiCompatibleMechanism(
-    client,
-    validConfig,
-    endpointContextOf(OPENCODE_BASE_URL),
-  );
+  const mechanism = createOpenAiCompatibleMechanism(client, validConfig, {
+    ...endpointContextOf(OPENCODE_BASE_URL),
+    remedies: "zen-chat-completions",
+  });
   return {
     id: PROVIDER_ID,
     kind: "llm",

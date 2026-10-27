@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ProviderError } from "../errors.js";
+import { ZEN_MODEL_REMEDY } from "../http-failure-message.js";
 import { keyEnvVarNames } from "../key-env-vars.js";
 import { OPENCODE_BASE_URL, resolveProviderEndpoint } from "../network/endpoints.js";
 import type { OpenAiClient } from "../openai/types.js";
@@ -57,19 +58,24 @@ describe("createOpenCodeProvider", () => {
     expect(firstCallOf(calls)).toMatchObject({ model: "glm-5.3", max_tokens: 2048 });
   });
 
-  it("names the host on a failed request and never points the user at a baseUrl it cannot set", async () => {
-    class StatusError extends Error {
-      readonly status = 404;
-    }
-    const client: OpenAiClient = {
-      chat: { completions: { create: () => Promise.reject(new StatusError("not found")) } },
-    };
-    const failure = await createOpenCodeProvider(config, { client })
-      .translateBatch(request())
-      .catch((error: unknown) => error);
-    expect(String((failure as Error).message)).toContain("opencode.ai");
-    expect(String((failure as Error).message)).not.toContain("baseUrl");
-  });
+  it.each([400, 404, 422])(
+    "names the host and the Zen model rule on HTTP %i, never pointing at a baseUrl it cannot set",
+    async (status) => {
+      class StatusError extends Error {
+        readonly status = status;
+      }
+      const client: OpenAiClient = {
+        chat: { completions: { create: () => Promise.reject(new StatusError("rejected")) } },
+      };
+      const failure = await createOpenCodeProvider(config, { client })
+        .translateBatch(request())
+        .catch((error: unknown) => error);
+      const message = String((failure as Error).message);
+      expect(message).toContain("opencode.ai");
+      expect(message).toContain(ZEN_MODEL_REMEDY);
+      expect(message).not.toContain("baseUrl");
+    },
+  );
 
   it("rejects an invalid config before building a client", () => {
     expect(() => createOpenCodeProvider({ ...config, model: "" })).toThrow();
