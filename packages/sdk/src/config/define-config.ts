@@ -67,7 +67,7 @@ export function defineConfig(config: AuthoringConfigFor<"deepl">): VerbatraConfi
 export function defineConfig(config: AuthoringConfigFor<"google-translate">): VerbatraConfigInput;
 /**
  * Types a `verbatra.config.ts` for any supported provider. This is the fallback overload, and the
- * one that serves `openai-compatible`, `opencode`, `libretranslate` and `none`. For
+ * one that serves `opencode`, `openai-compatible`, `libretranslate` and `none`. For
  * `openai-compatible` the model is a free-form string, because the endpoint is a local or
  * self-hosted server whose model list the SDK cannot know; `opencode` keeps a free-form model too,
  * since OpenCode Zen's catalog changes.
