@@ -51,9 +51,9 @@ line, how to set the project up; each later config reload adds one line. `verbat
 
 1. Keys live in environment variables only. verbatra reads `ANTHROPIC_API_KEY`,
    `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`,
-   `GOOGLE_TRANSLATE_API_KEY`, `OPENAI_COMPATIBLE_API_KEY`, or
-   `LIBRETRANSLATE_API_KEY` from the process environment. There is no key
-   argument and no key field in the config file.
+   `GOOGLE_TRANSLATE_API_KEY`, `OPENCODE_API_KEY`,
+   `OPENAI_COMPATIBLE_API_KEY`, or `LIBRETRANSLATE_API_KEY` from the process
+   environment. There is no key argument and no key field in the config file.
    Never write a key value into a file, a command line, a commit, or your own
    output. Name the variable and let the human fill it in.
 2. Ask before spending. A real translate run bills the provider the moment it

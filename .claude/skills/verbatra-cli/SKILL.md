@@ -27,9 +27,9 @@ Reach for those when you are holding tools rather than a shell.
 
 1. Keys live in environment variables only. verbatra reads `ANTHROPIC_API_KEY`,
    `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`,
-   `GOOGLE_TRANSLATE_API_KEY`, `OPENAI_COMPATIBLE_API_KEY`, or
-   `LIBRETRANSLATE_API_KEY` from the process environment. There is no key
-   argument and no key field in the config file.
+   `GOOGLE_TRANSLATE_API_KEY`, `OPENCODE_API_KEY`,
+   `OPENAI_COMPATIBLE_API_KEY`, or `LIBRETRANSLATE_API_KEY` from the process
+   environment. There is no key argument and no key field in the config file.
    Never write a key value into a file, a command line, a commit, or your own
    output. Name the variable and let the human fill it in.
 2. Ask before spending. A real translate run bills the provider the moment it
@@ -686,12 +686,15 @@ appended to `.env.example` rather than replacing it. Run `doctor` afterwards.
 | `deepl` | `DEEPL_API_KEY` |
 | `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
 | `openai-compatible` | `OPENAI_COMPATIBLE_API_KEY`, or a custom variable named in the config |
+| `opencode` | `OPENCODE_API_KEY` |
 | `libretranslate` | `LIBRETRANSLATE_API_KEY`, optional: only a server started with `--api-keys` needs it |
 | `none` | none; no provider is constructed and no key is read |
 
 Ask the human which provider to use unless the project already answers it. Do not
-pick one that spends against a service nobody agreed to. `openai-compatible`
-points at a local or self-hosted server and `libretranslate` at a self-hosted
+pick one that spends against a service nobody agreed to. `opencode` serves
+OpenCode Zen's paid models over its Chat Completions endpoint only; OpenCode Go
+and its free models are limited to OpenCode's own clients and do not work.
+`openai-compatible` points at a local or self-hosted server and `libretranslate` at a self-hosted
 LibreTranslate server (machine translation with no language model); both may
 legitimately need no key at all. The three machine-translation providers,
 `deepl`, `google-translate` and `libretranslate`, translate placeholder-bearing
