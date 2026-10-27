@@ -135,21 +135,18 @@
     },
     "verbatra-cli": {
       "source": "verbatra/skills",
-      "ref": "updates/new",
       "sourceType": "github",
       "skillPath": "skills/verbatra-cli/SKILL.md",
       "computedHash": "12b544295f581764f1870178516fff46184bb98b7bfada29bf5d774ef3564e4a"
     },
     "verbatra-mcp-tools": {
       "source": "verbatra/skills",
-      "ref": "updates/new",
       "sourceType": "github",
       "skillPath": "skills/verbatra-mcp-tools/SKILL.md",
       "computedHash": "91e3d2bacb601acaef2d577996a63b7b83e97799c8c21c3359d64a04a767e7db"
     },
     "verbatra-studio-agent-tools": {
       "source": "verbatra/skills",
-      "ref": "updates/new",
       "sourceType": "github",
       "skillPath": "skills/verbatra-studio-agent-tools/SKILL.md",
       "computedHash": "190ad8c394dd2a17a7a210fecfba510f084eb434ad088e148cfb384bc79d2d56"
