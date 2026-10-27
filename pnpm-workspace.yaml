@@ -166,6 +166,15 @@ overrides:
   # token after a { comment } token. Vulnerable >=1.8.4 <1.11.0; lifts the 1.10.0 copy launch-editor
   # pulls through @changesets/cli (dev-only), bounded to the v1 line launch-editor declares.
   shell-quote@<1.11.0: ">=1.11.0 <2"
+  # follow-redirects high-severity advisories (Dependabot alerts 65 and 66), vulnerable >=1.16.0 <1.16.1.
+  # Lifts the 1.16.0 copy axios pulls through deepl-node on the published ai-providers/sdk path, bounded
+  # to the v1 line axios declares.
+  follow-redirects@<1.16.1: ">=1.16.1 <2"
+  # @modelcontextprotocol/sdk advisories fixed in 1.32.0 (Dependabot alerts 59 to 64 and 67 to 68),
+  # vulnerable <1.32.0. The copy is the optional peer of @google/genai (^1.25.2) that pnpm installs
+  # automatically, so the parent cannot be bumped; this lifts it to the patched release, bounded to the
+  # v1 line genai declares.
+  "@modelcontextprotocol/sdk@<1.32.0": ">=1.32.0 <2"
 
 allowBuilds:
   '@google/genai': false
