@@ -105,7 +105,7 @@ Set `locales` to a comma-separated list such as `de,fr` to limit any command to 
 
 <AvailableFrom version="0.12.0" />
 
-Add `sensitive: "true"` to `command: check` to run `verbatra check --sensitive`. The step fails when the source file or glossary holds emails, keys or card numbers, and annotates each affected key without printing the match. An older `version`, or a `0.12.0-next.*` prerelease, fails the step before anything is installed.
+Add `sensitive: "true"` to `command: check` to run `verbatra check --sensitive`. The step fails when the source file or glossary holds content a `sensitiveData` detector or pattern matches, such as emails, keys or card numbers, and annotates each affected key without printing the match. An older `version`, or a `0.12.0-next.*` prerelease, fails the step before anything is installed.
 
 ## Human-only mode
 
@@ -154,8 +154,8 @@ If no config is found, the step fails before installing the CLI and names the di
 | `qa-strict` | `"false"` | `"true"` also fails on warnings (`--strict`); requires `qa` |
 | `require-reviewed` | `"false"` | `"true"` also fails on unapproved machine-written translations (`--require-reviewed`); `check` only |
 | `sensitive` | `"false"` | `"true"` adds the sensitive-content scan (`--sensitive`); `check` only |
-| `locales` | `""` | comma-separated target locales to run (`--locales`) |
-| `node-version` | `"24"` | Node.js version the action sets up to run the CLI; it must resolve to 22.18.0 or newer on 22, or to 24 or newer |
+| `locales` | `""` | comma-separated target locales to limit the run to (`--locales`) |
+| `node-version` | `"24"` | Node.js version the action sets up to run the CLI; it must satisfy the CLI's engines: `^22.18.0 || >=24` from 0.12.0, `>=22.14.0` before |
 
 The boolean inputs accept only `"true"` or `"false"`. A bad boolean, or an input without the command or `qa` it needs, fails the step with exit `1` before the CLI install. The CLI rejects an unknown `qa-severity`, and `qa-severity: error` with `qa-strict`, with exit `2` after it.
 
@@ -167,8 +167,8 @@ The boolean inputs accept only `"true"` or `"false"`. A bad boolean, or an input
 
 ## What a run shows you
 
-- **Annotations.** Under `translate` with exit `1`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. All of these attach to that locale's file when the action can find it. A run that fails as a whole gets one `verbatra` annotation with the error code, its cause as `(cause: X)` and a `Next step:` hint when the CLI gives them.
-- **Job summary.** One row per locale with the counts for the command that ran, an aggregate line, and the partial and failed locales.
+- **Annotations.** Under `translate` with exit `1`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. All of these attach to that locale's file when the action can find it. A partial locale's `LOCALE_PARTIAL` annotation names the withheld keys, grouped by cause. Every `check` adds one `PLURAL_CATEGORIES_INCOMPLETE` warning per locale whose plurals lack a CLDR category the language uses. With `sensitive`, each flagged key gets a `SENSITIVE_CONTENT` error annotation and a line in the summary. A run that fails as a whole gets one `verbatra` annotation with the error code, its cause as `(cause: X)` and a `Next step:` hint when the CLI gives them. GitHub shows at most 10 annotations per severity, so the action orders them drift, review, quality errors, warnings, and adds one notice counting the rest.
+- **Job summary.** One row per locale with the counts for the command that ran, an aggregate line, and the partial and failed locales. With `qa` it adds a findings table of up to 1000 findings; incomplete plurals get their own section.
 - **Exit status.** The action emits the annotations and summary first, then exits with the CLI's own [exit code](/docs/cli/output#exit-codes), except that a `translate` exit `3` passes and a failure before the CLI runs (no working directory, no config, a failed install) exits `1`; a refused input gets one `::error::`, no summary.
 
 ## Security

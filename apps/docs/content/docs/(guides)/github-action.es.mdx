@@ -105,7 +105,7 @@ Pon en `locales` una lista separada por comas, como `de,fr`, para limitar cualqu
 
 <AvailableFrom version="0.12.0" />
 
-Añade `sensitive: "true"` a `command: check` para ejecutar `verbatra check --sensitive`. El paso falla cuando el archivo fuente o el glosario contienen correos electrónicos, claves o números de tarjeta, y anota cada clave fuente afectada sin imprimir la coincidencia. Una `version` anterior, o una prerelease `0.12.0-next.*`, hace fallar el paso antes de instalar nada.
+Añade `sensitive: "true"` a `command: check` para ejecutar `verbatra check --sensitive`. El paso falla cuando el archivo fuente o el glosario contienen contenido que coincide con un detector o patrón de `sensitiveData`, como correos electrónicos, claves o números de tarjeta, y anota cada clave fuente afectada sin imprimir la coincidencia. Una `version` anterior, o una prerelease `0.12.0-next.*`, hace fallar el paso antes de instalar nada.
 
 ## Modo solo humano
 
@@ -155,7 +155,7 @@ Si no encuentra configuración, el paso falla antes de instalar la CLI y nombra 
 | `require-reviewed` | `"false"` | `"true"` falla también con traducciones de máquina sin aprobar (`--require-reviewed`); solo `check` |
 | `sensitive` | `"false"` | `"true"` añade el análisis de contenido sensible (`--sensitive`); solo `check` |
 | `locales` | `""` | locales de destino separados por comas para los que se ejecuta (`--locales`) |
-| `node-version` | `"24"` | versión de Node.js que la acción prepara para ejecutar la CLI; debe resolverse a 22.18.0 o posterior en la 22, o a 24 o posterior |
+| `node-version` | `"24"` | versión de Node.js que la acción prepara para ejecutar la CLI; debe cumplir los engines de la CLI: `^22.18.0 || >=24` desde 0.12.0, antes `>=22.14.0` |
 
 Las entradas booleanas solo aceptan `"true"` o `"false"`. Un booleano no válido, o una entrada sin el comando o `qa` que necesita, hace fallar el paso con salida `1` antes de instalar la CLI. La CLI rechaza un `qa-severity` desconocido, y `qa-severity: error` con `qa-strict`, con salida `2` después.
 
@@ -167,8 +167,8 @@ Las entradas booleanas solo aceptan `"true"` o `"false"`. Un booleano no válido
 
 ## Qué te muestra una ejecución
 
-- **Anotaciones.** Con `translate` y salida `1`, cada locale fallido o parcial se convierte en una anotación de error titulada `verbatra: <locale>`. Con `check` o `diff`, cada locale desviado recibe una titulada `verbatra check: <locale>` o `verbatra diff: <locale>`. Todas se asocian al archivo de su locale cuando la acción lo encuentra. Una ejecución que falla por completo recibe una sola anotación `verbatra` con el código de error, su causa como `(cause: X)` y una pista `Next step:` cuando la CLI las da.
-- **Resumen del job.** Una fila por locale con los recuentos del comando ejecutado, una línea agregada y los locales parciales y fallidos.
+- **Anotaciones.** Con `translate` y salida `1`, cada locale fallido o parcial se convierte en una anotación de error titulada `verbatra: <locale>`. Con `check` o `diff`, cada locale desviado recibe una titulada `verbatra check: <locale>` o `verbatra diff: <locale>`. Todas se asocian al archivo de su locale cuando la acción lo encuentra. La anotación `LOCALE_PARTIAL` de un locale parcial nombra las claves retenidas, agrupadas por causa. Cada `check` añade un aviso `PLURAL_CATEGORIES_INCOMPLETE` por locale cuyos plurales carecen de una categoría CLDR que usa el idioma. Con `sensitive`, cada clave marcada recibe una anotación de error `SENSITIVE_CONTENT` y una línea en el resumen. Una ejecución que falla por completo recibe una sola anotación `verbatra` con el código de error, su causa como `(cause: X)` y una pista `Next step:` cuando la CLI las da. GitHub muestra como mucho 10 anotaciones por severidad, así que la acción las ordena por desviación, revisión, errores de calidad y avisos, y añade un aviso que cuenta el resto.
+- **Resumen del job.** Una fila por locale con los recuentos del comando ejecutado, una línea agregada y los locales parciales y fallidos. Con `qa` añade una tabla de hallazgos de hasta 1000 hallazgos; los plurales incompletos tienen su propia sección.
 - **Estado de salida.** La acción emite primero las anotaciones y el resumen y luego sale con el [código de salida](/es/docs/cli/output#códigos-de-salida) de la propia CLI, salvo que un `3` de `translate` pasa y un fallo antes de arrancar la CLI (sin directorio de trabajo, sin config, una instalación fallida) sale con `1`; una entrada rechazada recibe un único `::error::`, sin resumen.
 
 ## Seguridad

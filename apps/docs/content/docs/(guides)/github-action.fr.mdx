@@ -105,7 +105,7 @@ Mets dans `locales` une liste séparée par des virgules, comme `de,fr`, pour li
 
 <AvailableFrom version="0.12.0" />
 
-Ajoute `sensitive: "true"` à `command: check` pour exécuter `verbatra check --sensitive`. L'étape échoue quand le fichier source ou le glossaire contient des e-mails, des clés ou des numéros de carte, et annote chaque clé source concernée sans afficher la correspondance. Une `version` plus ancienne, ou une préversion `0.12.0-next.*`, fait échouer l'étape avant toute installation.
+Ajoute `sensitive: "true"` à `command: check` pour exécuter `verbatra check --sensitive`. L'étape échoue quand le fichier source ou le glossaire contient du contenu que reconnaît un détecteur ou un motif de `sensitiveData`, comme des e-mails, des clés ou des numéros de carte, et annote chaque clé source concernée sans afficher la correspondance. Une `version` plus ancienne, ou une préversion `0.12.0-next.*`, fait échouer l'étape avant toute installation.
 
 ## Mode humain uniquement
 
@@ -154,8 +154,8 @@ Si aucune configuration n'est trouvée, l'étape échoue avant d'installer la CL
 | `qa-strict` | `"false"` | `"true"` échoue aussi sur les avertissements (`--strict`) ; exige `qa` |
 | `require-reviewed` | `"false"` | `"true"` échoue aussi sur les traductions machine non approuvées (`--require-reviewed`) ; uniquement `check` |
 | `sensitive` | `"false"` | `"true"` ajoute l'analyse du contenu sensible (`--sensitive`) ; uniquement `check` |
-| `locales` | `""` | locales cibles séparées par des virgules à exécuter (`--locales`) |
-| `node-version` | `"24"` | version de Node.js que l'action installe pour exécuter la CLI ; elle doit se résoudre en 22.18.0 ou plus récent sur la 22, ou en 24 ou plus récent |
+| `locales` | `""` | locales cibles séparées par des virgules auxquelles limiter l'exécution (`--locales`) |
+| `node-version` | `"24"` | version de Node.js que l'action installe pour exécuter la CLI ; elle doit respecter les engines de la CLI : `^22.18.0 || >=24` à partir de 0.12.0, avant `>=22.14.0` |
 
 Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Un booléen invalide, ou une entrée sans la commande ou `qa` qu'elle exige, fait échouer l'étape avec la sortie `1` avant l'installation de la CLI. La CLI refuse un `qa-severity` inconnu, et `qa-severity: error` avec `qa-strict`, avec la sortie `2` après.
 
@@ -167,8 +167,8 @@ Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Un booléen inva
 
 ## Ce qu'une exécution te montre
 
-- **Annotations.** Avec `translate` et la sortie `1`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. Toutes se rattachent au fichier de leur locale quand l'action le trouve. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec le code d'erreur, sa cause sous la forme `(cause: X)` et une piste `Next step:` quand la CLI les fournit.
-- **Résumé de job.** Une ligne par locale avec les compteurs de la commande exécutée, une ligne agrégée et les locales partielles et en échec.
+- **Annotations.** Avec `translate` et la sortie `1`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. Toutes se rattachent au fichier de leur locale quand l'action le trouve. L'annotation `LOCALE_PARTIAL` d'une locale partielle nomme les clés retenues, regroupées par cause. Chaque `check` ajoute un avertissement `PLURAL_CATEGORIES_INCOMPLETE` par locale dont les pluriels n'ont pas une catégorie CLDR que la langue utilise. Avec `sensitive`, chaque clé signalée reçoit une annotation d'erreur `SENSITIVE_CONTENT` et une ligne dans le résumé. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec le code d'erreur, sa cause sous la forme `(cause: X)` et une piste `Next step:` quand la CLI les fournit. GitHub affiche au plus 10 annotations par gravité, donc l'action les ordonne par dérive, relecture, erreurs de qualité puis avertissements, et ajoute une notice qui compte le reste.
+- **Résumé de job.** Une ligne par locale avec les compteurs de la commande exécutée, une ligne agrégée et les locales partielles et en échec. Avec `qa`, il ajoute un tableau de constats jusqu'à 1000 constats ; les pluriels incomplets ont leur propre section.
 - **Statut de sortie.** L'action émet d'abord les annotations et le résumé, puis sort avec le [code de sortie](/fr/docs/cli/output#codes-de-sortie) de la CLI elle-même, sauf qu'un `3` de `translate` passe et qu'un échec avant le lancement de la CLI (pas de répertoire de travail, pas de config, une installation échouée) sort avec `1` ; une entrée refusée reçoit un seul `::error::`, sans résumé.
 
 ## Sécurité
