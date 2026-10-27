@@ -24,12 +24,12 @@ export const PROVIDER_DISPLAY: Readonly<Record<MachineProviderId, ProviderDispla
   gemini: { label: "Gemini", kind: "llm" },
   deepl: { label: "DeepL", kind: "machine" },
   "google-translate": { label: "Google Cloud Translation", kind: "machine" },
+  opencode: { label: "OpenCode", kind: "llm" },
   "openai-compatible": {
     label: "Ollama, LM Studio, vLLM",
     kind: "llm",
     shortLabel: "OpenAI-compatible",
   },
-  opencode: { label: "OpenCode", kind: "llm" },
   libretranslate: { label: "LibreTranslate", kind: "machine" },
 };
 
