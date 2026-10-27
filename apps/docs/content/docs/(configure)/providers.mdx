@@ -33,7 +33,7 @@ verbatra never reads a key from the config. Each hosted provider reads one varia
 | `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
 | `opencode` | `OPENCODE_API_KEY` |
 
-Set it in `.env` (which `verbatra init` gitignores), your shell, or your CI secret store. An unset or empty variable fails with [`MISSING_API_KEY`](/docs/error-codes#missing_api_key), naming the variable but never a value. `openai-compatible` and `libretranslate` usually need no key.
+Set it in `.env` (which `verbatra init` gitignores), your shell, or your CI secret store, and never commit it. An unset or empty variable fails with [`MISSING_API_KEY`](/docs/error-codes#missing_api_key), naming the variable but never a value. `openai-compatible` and `libretranslate` usually need no key.
 
 ## Anthropic
 
@@ -176,7 +176,7 @@ provider: {
 | `requestTimeoutMs` | positive integer | `120000` | Bounds each request attempt. |
 | `localeMap` | map of locale to code | none | Overrides the code sent per locale. |
 
-The endpoint is fixed; no `baseUrl`. Reads `OPENCODE_API_KEY`.
+The endpoint is fixed; no `baseUrl`.
 
 ## openai-compatible
 
