@@ -13,14 +13,15 @@ const FILES = `${HERO} .vk-banner-files`;
 
 for (const locale of LOCALES) {
   test.describe(`hero ${homeUrl(locale)}`, () => {
-    test("opens with the release announcement, one install chip with a copy button, and the locale files", async ({
+    test("opens with the headline, one install chip with a copy button, and the locale files", async ({
       page,
     }) => {
       await page.goto(homeUrl(locale));
-      const announce = page.locator(`${HERO} a.vk-announce`);
-      await expect(announce).toBeVisible();
-      await expect(announce).toHaveAttribute("href", /\/releases\/tag\//);
-      await expect(announce.locator(".vk-pill-new")).toBeVisible();
+      await expect(page.locator(`${HERO} .vk-announce`)).toHaveCount(0);
+      await expect(page.locator(`${HERO} .vk-banner-copy > :first-child`)).toHaveJSProperty(
+        "tagName",
+        "H1",
+      );
       await expect(page.locator(`${HERO} .vk-banner-install code`)).toHaveText(
         "npm i -D @verbatra/cli",
       );
@@ -69,37 +70,6 @@ for (const theme of THEMES) {
     });
   });
 }
-
-test.describe("hero under reduced motion", () => {
-  test.use({ reducedMotion: "reduce" });
-
-  test("keeps the pill still", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.locator(`${HERO} .vk-pill-new-shimmer`)).toHaveCSS("display", "none");
-    const animation = await page
-      .locator(`${HERO} .vk-pill-new-ring`)
-      .evaluate((ring) => getComputedStyle(ring, "::before").animationName);
-    expect(animation).toBe("none");
-  });
-});
-
-test.describe("hero pill motion", () => {
-  test.use({ reducedMotion: "no-preference" });
-
-  test("runs the pill's glow, ring and shimmer three times, never forever", async ({ page }) => {
-    await page.goto("/");
-    const counts = await page
-      .locator(`${HERO} .vk-pill-new`)
-      .evaluate((pill) =>
-        [
-          getComputedStyle(pill, "::before"),
-          getComputedStyle(pill.querySelector(".vk-pill-new-ring") as Element, "::before"),
-          getComputedStyle(pill.querySelector(".vk-pill-new-shimmer") as Element, "::before"),
-        ].map((style) => style.animationIterationCount),
-      );
-    expect(counts).toEqual(["3", "3", "3"]);
-  });
-});
 
 test.describe("hero install chip border", () => {
   test("draws the install command without a border", async ({ page }) => {

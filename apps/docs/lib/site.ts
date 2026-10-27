@@ -16,7 +16,7 @@ export const NODE_RANGE = versionData.nodeRange;
 
 export const LEGAL_LAST_UPDATED = "2026-10-16";
 
-export const LANDING_LAST_UPDATED = "2026-10-26";
+export const LANDING_LAST_UPDATED = "2026-10-27";
 
 export const PRIVACY_CONTACT_FORM_ANCHOR = "contact-form";
 

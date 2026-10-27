@@ -45,7 +45,6 @@ describe("landing message parity", () => {
       "landing.nav.skipToContent",
       "landing.topNav.label",
       "landing.banner.headline",
-      "landing.banner.announcement.badge",
       "landing.banner.keysAdded",
       "landing.footer.versionParts",
       "landing.steps.items.ci.title",

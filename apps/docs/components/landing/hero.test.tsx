@@ -6,11 +6,9 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { releaseUrl } from "@/components/landing/links";
 import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
 import { HERO_FILE_ADDED_COUNT } from "@/lib/landing-hero-files";
 import { PLAYGROUND_FILES_PATTERN, PLAYGROUND_TRANSLATIONS } from "@/lib/landing-playground";
-import { PACKAGE_VERSION } from "@/lib/site";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
 import { stripAccentTags } from "@/test-support/accent-tags";
@@ -63,7 +61,6 @@ const banner = messages.landing.banner;
 const headlinePlain = stripAccentTags(banner.headline);
 const headlineLit = /<accent>(.*)<\/accent>/.exec(banner.headline)?.[1];
 const install = messages.landing.install;
-const newTab = messages.landing.openSource.newTab;
 
 function source(path: string): string {
   return readFileSync(join(process.cwd(), path), "utf8");
@@ -99,40 +96,17 @@ describe("Hero copy", () => {
     expect(h1?.firstChild?.textContent).toBe(headlinePlain.replace(headlineLit ?? "", ""));
   });
 
-  it("opens the copy with the new-release announcement, linking the current release notes in a new tab", async () => {
-    const copy = (await render()).querySelector(".vk-banner-copy");
-    const announce = copy?.firstElementChild;
-    expect(announce?.tagName).toBe("A");
-    expect(announce?.className).toBe("vk-announce");
-    expect(announce?.getAttribute("href")).toBe(releaseUrl(PACKAGE_VERSION));
-    expect(announce?.getAttribute("target")).toBe("_blank");
-    expect(announce?.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(announce?.querySelector(".vk-pill-new")?.textContent).toBe(banner.announcement.badge);
-    expect(announce?.querySelector(".vk-announce-text")?.textContent).toBe(
-      banner.announcement.text.replace("{version}", PACKAGE_VERSION),
-    );
-    expect(announce?.querySelector(".sr-only")?.textContent).toBe(` ${newTab}`);
-    expect(announce?.nextElementSibling?.tagName).toBe("H1");
+  it("opens the copy with the headline, with no announcement or pill above it", async () => {
+    const doc = await render();
+    const copy = doc.querySelector(".vk-banner-copy");
+    expect(copy?.firstElementChild?.tagName).toBe("H1");
+    expect(copy?.firstElementChild?.id).toBe(HERO_TITLE_ID);
+    expect(doc.querySelector(".vk-announce, .vk-pill-new")).toBeNull();
   });
 
-  it.each(["en", "de", "es", "fr"])(
-    "names the release in the %s announcement without repeating the pill's word",
-    (locale) => {
-      const catalog = JSON.parse(source(`messages/${locale}.json`)) as typeof messages;
-      const { badge, text } = catalog.landing.banner.announcement;
-      expect(text).toContain("{version}");
-      expect(text.toLocaleLowerCase(locale)).not.toContain(badge.toLocaleLowerCase(locale));
-    },
-  );
-
-  it("keeps the pill's ring, shimmer and chevron away from assistive technology", async () => {
-    const announce = (await render()).querySelector(".vk-announce");
-    for (const part of announce?.querySelectorAll(
-      ".vk-pill-new-ring, .vk-pill-new-shimmer, .vk-announce-chevron",
-    ) ?? []) {
-      expect(part.getAttribute("aria-hidden")).toBe("true");
-    }
-    expect(announce?.querySelectorAll("[aria-hidden='true']")).toHaveLength(3);
+  it.each(["en", "de", "es", "fr"])("ships no announcement strings in %s", (locale) => {
+    const catalog = JSON.parse(source(`messages/${locale}.json`)) as typeof messages;
+    expect(catalog.landing.banner).not.toHaveProperty("announcement");
   });
 
   it("offers Get started to the quickstart beside an install command chip, and no GitHub button or trust line", async () => {
@@ -145,7 +119,7 @@ describe("Hero copy", () => {
     expect(ctas?.firstElementChild).toBe(links[0]);
     expect(ctas?.lastElementChild?.className).toBe("vk-banner-install");
     expect(doc.querySelector(".vk-banner-trust, dl, .vk-facts")).toBeNull();
-    expect(doc.querySelector(".vk-banner a[target='_blank']:not(.vk-announce)")).toBeNull();
+    expect(doc.querySelector(".vk-banner a[target='_blank']")).toBeNull();
   });
 
   it("prefixes the quickstart link with a non-default locale and renders its own catalog", async () => {

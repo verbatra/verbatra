@@ -1,8 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { CommandRow } from "@/components/landing/islands";
-import { releaseUrl } from "@/components/landing/links";
-import { NewAnnouncement } from "@/components/new-pill";
 import Button from "@/components/ui/button";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
@@ -15,7 +13,6 @@ import {
   heroFilePreview,
 } from "@/lib/landing-hero-files";
 import { splitPlaceholders } from "@/lib/playground-cycle";
-import { PACKAGE_VERSION } from "@/lib/site";
 
 export const HERO_TITLE_ID = "hero-title";
 
@@ -66,7 +63,6 @@ function LocaleFiles({ keysAdded }: { keysAdded: string }): ReactNode {
 export async function Hero(): Promise<ReactNode> {
   const t = await getTranslations("landing.banner");
   const tInstall = await getTranslations("landing.install");
-  const tOpen = await getTranslations("landing.openSource");
   const locale = toLocale(await getLocale());
 
   return (
@@ -74,13 +70,6 @@ export async function Hero(): Promise<ReactNode> {
       <div aria-hidden="true" className="vk-banner-halo" />
       <div className="vk-banner-grid vk-gutter vk-w-wide mx-auto w-full">
         <div className="vk-banner-copy">
-          <NewAnnouncement
-            href={releaseUrl(PACKAGE_VERSION)}
-            badge={t("announcement.badge")}
-            newTab={tOpen("newTab")}
-          >
-            {t("announcement.text", { version: PACKAGE_VERSION })}
-          </NewAnnouncement>
           <h1 id={HERO_TITLE_ID} className="vk-banner-title">
             {t.rich("headline", {
               accent: (chunks) => <span className="vk-banner-title-lit">{chunks}</span>,

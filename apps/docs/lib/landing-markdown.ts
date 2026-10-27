@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { availableFromCopy } from "@/components/available-from";
-import { LICENSE_URL, releaseUrl } from "@/components/landing/links";
+import { LICENSE_URL } from "@/components/landing/links";
 import {
   HERO_CHECK_EXIT_CODE,
   HERO_SENT_STRINGS,
@@ -33,7 +33,6 @@ import { fencedMarkdown, inlineCodeMarkdown, markupChunks } from "./llm-markdown
 import { absoluteMarkdownHref } from "./markdown-links";
 import { pageFrontmatter } from "./page-frontmatter";
 import { RELEASE_BADGE } from "./release-badge";
-import { PACKAGE_VERSION } from "./site";
 
 type Context = { readonly locale: Locale; readonly badge: string };
 
@@ -71,10 +70,6 @@ async function hero({ locale }: Context): Promise<string> {
   const quickstart = localizedPath(locale, "/docs/quickstart");
   return blocks(
     `# ${t.markup("headline", { accent: (chunks: string) => markupChunks(chunks) })}`,
-    link(
-      `${t("announcement.badge")}: ${t("announcement.text", { version: PACKAGE_VERSION })}`,
-      releaseUrl(PACKAGE_VERSION),
-    ),
     t("lead"),
     list([link(t("ctaPrimary"), quickstart)]),
     fencedMarkdown("sh", null, HERO_INSTALL_COMMAND),

@@ -187,10 +187,6 @@
       }
     },
     "banner": {
-      "announcement": {
-        "badge": "New",
-        "text": "v{version} is out"
-      },
       "headline": "Translate only <accent>what changed</accent>",
       "lead": "Verbatra fills the missing keys in your locale files, gives your coding agent an MCP server, and fails CI when translations drift.",
       "ctaPrimary": "Get started",

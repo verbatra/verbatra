@@ -64,7 +64,6 @@ vi.mock("fumadocs-ui/components/sidebar/base", () => {
 
 const { baseOptions } = await import("./layout.shared");
 const { headerLinks: sharedHeaderLinks } = await import("./header-links");
-const { releaseUrl } = await import("@/components/landing/links");
 const { HomeSiteHeader } = await import("@/components/site-header");
 const { HomeNavProvider } = await import("@/components/home-nav");
 
@@ -125,14 +124,6 @@ afterEach(() => {
   act(() => mounted?.root.unmount());
   mounted.container.remove();
   mounted = undefined;
-});
-
-describe("release links", () => {
-  it("links the tag the release workflow creates for the cli", () => {
-    expect(releaseUrl("0.11.1")).toBe(
-      "https://github.com/verbatra/verbatra/releases/tag/%40verbatra%2Fcli%400.11.1",
-    );
-  });
 });
 
 describe("search options", () => {

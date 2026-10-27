@@ -187,10 +187,6 @@
       }
     },
     "banner": {
-      "announcement": {
-        "badge": "Neu",
-        "text": "v{version} ist da"
-      },
       "headline": "Übersetze nur <accent>was sich geändert hat</accent>",
       "lead": "Verbatra füllt die fehlenden Schlüssel in deinen Sprachdateien, gibt deinem Code-Agenten einen MCP-Server und lässt die CI fehlschlagen, wenn Übersetzungen abweichen.",
       "ctaPrimary": "Loslegen",

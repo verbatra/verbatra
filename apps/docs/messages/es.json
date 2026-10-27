@@ -187,10 +187,6 @@
       }
     },
     "banner": {
-      "announcement": {
-        "badge": "Nuevo",
-        "text": "Ya está disponible v{version}"
-      },
       "headline": "Traduce solo <accent>lo que cambió</accent>",
       "lead": "Verbatra rellena las claves que faltan en tus archivos de idioma, le da a tu agente de codificación un servidor MCP y falla la CI cuando las traducciones se desvían.",
       "ctaPrimary": "Empezar",

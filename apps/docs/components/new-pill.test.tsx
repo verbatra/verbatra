@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import { contrast, themeTokens } from "@/test-support/contrast";
-import { NEW_PILL_CLASS, NewAnnouncement, NewPill } from "./new-pill";
+import { NEW_PILL_CLASS, NewPill } from "./new-pill";
 
 function parse(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
@@ -29,22 +29,6 @@ describe("NewPill", () => {
       "vk-pill-new-shimmer",
     ]);
     for (const layer of layers) expect(layer.getAttribute("aria-hidden")).toBe("true");
-  });
-
-  it("wraps the pill, the text and a hidden chevron in one new-tab link", () => {
-    const doc = parse(
-      renderToStaticMarkup(
-        <NewAnnouncement href="https://example.com/notes" badge="New" newTab="(opens in a new tab)">
-          Notes
-        </NewAnnouncement>,
-      ),
-    );
-    const link = doc.querySelector("a.vk-announce");
-    expect(link?.getAttribute("href")).toBe("https://example.com/notes");
-    expect(link?.getAttribute("target")).toBe("_blank");
-    expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(link?.textContent).toBe("New Notes (opens in a new tab)");
-    expect(link?.querySelector(".vk-announce-chevron")?.getAttribute("aria-hidden")).toBe("true");
   });
 });
 

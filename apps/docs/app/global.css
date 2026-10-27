@@ -1988,57 +1988,6 @@ body > [data-radix-popper-content-wrapper] > * {
   display: none;
 }
 
-.vk-announce {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  max-width: 100%;
-  min-height: 2rem;
-  padding: 0.25rem 0.625rem 0.25rem 0.3125rem;
-  border: 1px solid var(--text-faint);
-  border-radius: var(--radius-full);
-  color: var(--text-body);
-  font-size: var(--text-sm);
-  line-height: var(--leading-snug);
-}
-
-.vk-announce:hover {
-  border-color: var(--accent);
-  color: var(--text-strong);
-}
-
-.vk-announce:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.vk-announce-text {
-  min-width: 0;
-}
-
-.vk-announce-chevron {
-  flex-shrink: 0;
-  width: 0.875rem;
-  height: 0.875rem;
-  color: var(--text-muted);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .vk-announce {
-    transition:
-      color var(--duration-fast) var(--ease-standard),
-      border-color var(--duration-fast) var(--ease-standard);
-  }
-
-  .vk-announce-chevron {
-    transition: translate var(--duration-fast) var(--ease-standard);
-  }
-
-  .vk-announce:hover .vk-announce-chevron {
-    translate: 2px 0;
-  }
-}
-
 .vk-available-from {
   vertical-align: 0.1em;
 }

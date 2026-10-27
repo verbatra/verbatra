@@ -326,8 +326,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, statement, highlights,
   playground, features, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
-  `page.tsx`. The files: `hero.tsx` (the `NewAnnouncement` depth pill linking the current cli
-  release notes, the `h1` with a gradient second line, the lead, the Get started button beside the install chip, a
+  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead, the Get started button beside the install chip, a
   `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`; on the right an `aria-hidden`
   `.vk-banner-files` stack of three locale-file cards from `lib/landing-hero-files.ts`: `fr` and
   `es` behind, tilted, each its `heroFileName` and the `heroFilePreview` line, and `de` in front
@@ -756,12 +755,11 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   `reveal-marks.test.tsx` pins that no section file carries a mark and `motion-root.test.tsx` the observer and
   the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
-  layout animation runs in it on load. On load only the announcement's depth pill (see "Depth pill"
-  under "The docs surface"), whose glow, ring and shimmer run three times and stop, moves;
+  layout animation runs in it on load;
   `motion-root.test.tsx` fails on any animated `.vk-banner` rule. The locale-file cards are static, server-rendered and `aria-hidden`;
   the install chip's `CommandRow` is the hero's only island, with no timer and no GSAP (`hero.test.tsx` fails on a static GSAP import
   and on any `HeroTracks` or `landing-tracks` reference there). `e2e/hero.spec.ts` pins the cards,
-  the install chip, the finite pill animations and 320px and 375px without a sideways scroll.
+  the install chip and 320px and 375px without a sideways scroll.
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
   it runs only in the state described under "Marquee" above, pauses through its button, hover
   and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
@@ -1048,8 +1046,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   `.vk-banner-halo` (one soft halo under the cards on a phone, two halos and the faded grid from
   64rem, all sized in rem so a tall narrow column never stretches them into a strip behind the
   text): `.vk-banner-grid` is one column (copy, then cards), and from
-  64rem an asymmetric 6fr / 5fr split, vertically centered, the copy (`.vk-banner-copy`: the
-  `.vk-announce` depth pill link, the `h1` `.vk-banner-title` (at most eight words, one sentence),
+  64rem an asymmetric 6fr / 5fr split, vertically centered, the copy (`.vk-banner-copy`: the `h1` `.vk-banner-title` (at most eight words, one sentence),
   the `.vk-banner-lead` subline (at most 25 words), `.vk-banner-ctas` with Get started
   (`/docs/quickstart`) beside the `.vk-banner-install` chip, a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
   of `HERO_INSTALL_COMMAND`) in the wider column beside the demo (`.vk-banner-demo`: the
@@ -1148,7 +1145,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   writes from the git history of `content/docs` before dev, build, typecheck and test. Without a
   full history (a shallow clone, or the Docker build, whose context excludes `.git`) it keeps a
   snapshot written earlier or writes an empty one, and an empty one shows no outdated notice.
-- **Pills**: `.vk-pill` is the badge shape for everything except a "new" announcement: an outline
+- **Pills**: `.vk-pill` is the badge shape for everything except the "new" marker: an outline
   pill in `--accent` text with the glow-tinted border, mono, `--text-xs`, no fill. The sidebar NEW badge
   (`components/new-badge.tsx`; the landing footer carries none, `footer.test.tsx` pins it) is the depth pill (see "Depth pill") and is hidden in the
   phone breadcrumb bar, which reads the sidebar's tree (the eyebrow and the prev/next footer take plain
@@ -1184,15 +1181,9 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   stop: every animation is finite. Under `prefers-reduced-motion: reduce` none of them runs and the
   shimmer is `display: none`; under `forced-colors` the layers drop and the chip gets a `CanvasText`
   border. `NewBadge` (`components/new-badge.tsx`) is the sidebar's NEW marker: the same pill with
-  `ms-1.5`, hidden in `.vk-crumbs`. `NewAnnouncement` in the same file is the wide form: the depth
-  pill inside a `.vk-announce` link, a `--radius-full` outline with a `--text-faint` boundary (3:1
-  like every control), the announcement text and a chevron that moves 2px on hover, with the
-  `sr-only` new-tab note. The hero opens with it,
-  pointing at the release notes of the newest cli release (`PACKAGE_VERSION`) with text that names
-  the release without repeating the pill's word (`landing.banner.announcement.text`, "v{version} is
-  out"; `hero.test.tsx` checks it in every locale). The pill appears in the hero announcement, the
-  marquee's upcoming-release provider badge (which always carries its visible version) and the
-  sidebar NEW marker. A version, a dated feature or a quickstart tag stays the `.vk-pill` outline;
+  `ms-1.5`, hidden in `.vk-crumbs`. The hero carries no announcement or pill. The pill appears
+  in the marquee's upcoming-release provider badge (which always carries its visible version)
+  and the sidebar NEW marker. A version, a dated feature or a quickstart tag stays the `.vk-pill` outline;
   never put the pill in a table or a heading.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
   `--width-measure` (about 72 characters of body text); tables and code blocks run the full

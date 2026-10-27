@@ -11,10 +11,6 @@ export const CODE_OF_CONDUCT_URL = `${GITHUB_URL}/blob/main/CODE_OF_CONDUCT.md`;
 export const SECURITY_URL = `${GITHUB_URL}/blob/main/SECURITY.md`;
 export const LICENSE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
 
-export function releaseUrl(version: string): string {
-  return `${RELEASES_URL}/tag/${encodeURIComponent(`@verbatra/cli@${version}`)}`;
-}
-
 export const LEGAL_PAGE_LINKS = [
   { key: "imprint", path: "/imprint" },
   { key: "privacy", path: "/privacy" },

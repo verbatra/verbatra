@@ -215,3 +215,40 @@ test("keeps a 24px gap between the search pill and the first header link at 768p
   if (search === null || link === null) throw new Error("header controls missing");
   expect(link.x - (search.x + search.width)).toBeGreaterThanOrEqual(24);
 });
+
+const NEW_PILL = "#nd-sidebar .vk-pill-new";
+const NEW_PILL_PAGE = "/docs/custom-format-adapters";
+
+test.describe("sidebar new pill under reduced motion", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("keeps the pill still", async ({ page }) => {
+    await openDocsPage(page, NEW_PILL_PAGE);
+    const pill = page.locator(NEW_PILL).first();
+    await expect(pill).toBeVisible();
+    await expect(pill.locator(".vk-pill-new-shimmer")).toHaveCSS("display", "none");
+    const animation = await pill
+      .locator(".vk-pill-new-ring")
+      .evaluate((ring) => getComputedStyle(ring, "::before").animationName);
+    expect(animation).toBe("none");
+  });
+});
+
+test.describe("sidebar new pill motion", () => {
+  test.use({ reducedMotion: "no-preference" });
+
+  test("runs the pill's glow, ring and shimmer three times, never forever", async ({ page }) => {
+    await openDocsPage(page, NEW_PILL_PAGE);
+    const counts = await page
+      .locator(NEW_PILL)
+      .first()
+      .evaluate((pill) =>
+        [
+          getComputedStyle(pill, "::before"),
+          getComputedStyle(pill.querySelector(".vk-pill-new-ring") as Element, "::before"),
+          getComputedStyle(pill.querySelector(".vk-pill-new-shimmer") as Element, "::before"),
+        ].map((style) => style.animationIterationCount),
+      );
+    expect(counts).toEqual(["3", "3", "3"]);
+  });
+});
