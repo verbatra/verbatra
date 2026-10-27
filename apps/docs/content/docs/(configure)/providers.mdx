@@ -157,7 +157,7 @@ verbatra ships Google's dated [language table](https://docs.cloud.google.com/tra
 
 <AvailableFrom version="0.12.0" />
 
-The paid models of [OpenCode Zen](https://opencode.ai/docs/zen/) served over Chat Completions. Claude, GPT and Gemini on Zen use other endpoints and do not work here. OpenCode keeps Go and the free Zen models for its own clients.
+Only [OpenCode Zen](https://opencode.ai/docs/zen/) models served over `/chat/completions` work here (the model table lists each model's endpoint). OpenCode keeps Go and the free Zen models for its own clients.
 
 ```ts title="verbatra.config.ts"
 provider: {
