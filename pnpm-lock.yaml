@@ -90,6 +90,7 @@ overrides:
   esbuild@<0.28.1: '>=0.28.1'
   adm-zip@<0.6.1: '>=0.6.1'
   axios@<1.20.0: '>=1.20.0 <2'
+  zod@<4.6.6: '>=4.6.7 <5'
   protobufjs@<7.6.5: '>=7.6.5 <8'
   js-yaml@>=4.0.0 <4.3.2: '>=4.3.2 <5'
   js-yaml@>=5.0.0 <5.2.2: '>=5.2.2 <6'
@@ -685,7 +686,7 @@ packages:
     resolution: {integrity: sha512-YpEnbPz8kWF1BWthwUCnRhci7OvDLSUO8NFKoevoPkjNkK9CJeibZITgxr9vhqOP8Le61e5tNDHFTxw1dc6Png==}
     hasBin: true
     peerDependencies:
-      zod: ^3.25.0 || ^4.0.0
+      zod: '>=4.6.7 <5'
     peerDependenciesMeta:
       zod:
         optional: true
@@ -3999,7 +4000,7 @@ packages:
       react-dom: ^19.2.0
       react-router: 7.x.x || 8.x.x
       waku: '*'
-      zod: 4.x.x
+      zod: '>=4.6.7 <5'
     peerDependenciesMeta:
       '@mdx-js/mdx':
         optional: true
@@ -5009,7 +5010,7 @@ packages:
       google-auth-library: '>=9.15.1 <11'
       undici: '>=5 <9'
       ws: ^8.21.0
-      zod: ^3.25 || ^4.0
+      zod: '>=4.6.7 <5'
     peerDependenciesMeta:
       '@aws-sdk/credential-provider-node':
         optional: true
@@ -5800,9 +5801,6 @@ packages:
   zip-stream@4.1.1:
     resolution: {integrity: sha512-9qv4rlDiopXg4E69k+vMHjNN63YFMe9sZMrdlvKnCjlCRWeCBswPPMPUfx+ipsAWq1LXHe70RcbaHdJJpS6hyQ==}
     engines: {node: '>= 10'}
-
-  zod@4.6.5:
-    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
@@ -6624,16 +6622,16 @@ snapshots:
       eventsource-parser: 3.1.1
       jose: 6.2.10
       pkce-challenge: 5.0.1
-      zod: 4.6.5
+      zod: 4.6.7
 
   '@modelcontextprotocol/core@2.3.1':
     dependencies:
-      zod: 4.6.5
+      zod: 4.6.7
 
   '@modelcontextprotocol/server@2.3.1':
     dependencies:
       '@modelcontextprotocol/core': 2.3.1
-      zod: 4.6.5
+      zod: 4.6.7
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
@@ -9008,7 +9006,7 @@ snapshots:
       tinyglobby: 0.2.17
       unbash: 6.0.1
       yaml: 2.9.1
-      zod: 4.6.5
+      zod: 4.6.7
 
   launch-editor@2.14.1:
     dependencies:
@@ -10763,8 +10761,6 @@ snapshots:
       archiver-utils: 3.0.4
       compress-commons: 4.1.2
       readable-stream: 3.6.2
-
-  zod@4.6.5: {}
 
   zod@4.6.7: {}
 
