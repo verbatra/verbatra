@@ -272,7 +272,7 @@ function editConfiguredGlossaryTerm(
 
 ### defineConfig
 
-Une fonction identité pour un `verbatra.config.ts` typé : elle renvoie son argument inchangé, pour l'inférence de types et l'autocomplétion de l'éditeur, y compris les IDs de modèles connus du fournisseur sélectionné (à l'écriture seulement ; à l'exécution, toute chaîne non vide passe). Chaque fournisseur sauf `openai-compatible`, `libretranslate` et `none` a aussi une surcharge qui prend `AuthoringConfigFor<"<id>">`, comme `AuthoringConfigFor<"anthropic">`, et restreint le bloc `provider` aux options de ce fournisseur ; ces trois-là utilisent le repli avec `AuthoringConfig` ci-dessous.
+Une fonction identité pour un `verbatra.config.ts` typé : elle renvoie son argument inchangé, pour l'inférence de types et l'autocomplétion de l'éditeur, y compris les IDs de modèles connus du fournisseur sélectionné (à l'écriture seulement ; à l'exécution, toute chaîne non vide passe). Chaque fournisseur sauf `opencode`, `openai-compatible`, `libretranslate` et `none` a aussi une surcharge qui prend `AuthoringConfigFor<"<id>">`, comme `AuthoringConfigFor<"anthropic">`, et restreint le bloc `provider` aux options de ce fournisseur ; ces quatre-là utilisent le repli avec `AuthoringConfig` ci-dessous.
 
 ```ts title="Signature"
 function defineConfig(config: AuthoringConfigFor<"anthropic">): VerbatraConfigInput;

@@ -342,10 +342,10 @@ function editConfiguredGlossaryTerm(
 
 An identity helper for a typed `verbatra.config.ts`: it returns its argument unchanged, for type
 inference and editor autocomplete, including the selected provider's known model IDs (authoring-only;
-at runtime any non-empty string passes). Every provider except `openai-compatible`,
+at runtime any non-empty string passes). Every provider except `opencode`, `openai-compatible`,
 `libretranslate`, and `none` also gets an overload taking `AuthoringConfigFor<"<id>">`, such as
 `AuthoringConfigFor<"anthropic">`, narrowing the `provider` block to that provider's options; those
-three use the `AuthoringConfig` fallback below.
+four use the `AuthoringConfig` fallback below.
 
 ```ts title="Signature"
 function defineConfig(config: AuthoringConfigFor<"anthropic">): VerbatraConfigInput;
