@@ -53,8 +53,8 @@ catalogs:
       specifier: 8.20.0
       version: 8.20.0
     chokidar:
-      specifier: 5.0.0
-      version: 5.0.0
+      specifier: 6.0.0
+      version: 6.0.0
     knip:
       specifier: 6.42.1
       version: 6.42.1
@@ -543,7 +543,7 @@ importers:
         version: 0.9.12
       chokidar:
         specifier: 'catalog:'
-        version: 5.0.0
+        version: 6.0.0
       cosmiconfig:
         specifier: 10.0.1
         version: 10.0.1
@@ -613,7 +613,7 @@ importers:
         version: link:../sdk
       chokidar:
         specifier: 'catalog:'
-        version: 5.0.0
+        version: 6.0.0
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -5196,10 +5196,6 @@ packages:
   readdir-glob@1.1.3:
     resolution: {integrity: sha512-v05I2k7xN8zXvPD9N+z/uhXPaj0sUFCe2rcWZIpBsqxfP7xXFQ0tipAd/wjj1YxWyWtUS5IDJpOG82JKt2EAVA==}
 
-  readdirp@5.0.0:
-    resolution: {integrity: sha512-9u/XQ1pvrQtYyMpZe7DXKv2p5CNvyVwzUB6uhLAnQwHMSgKMBR62lc7AHljaeteeHXn11XTAaLLUVZYVZyuRBQ==}
-    engines: {node: '>= 20.19.0'}
-
   readdirp@5.1.1:
     resolution: {integrity: sha512-Kko+Y5XQ6fM+Ce3dq3m9YGxnacYZYl9cA1wZjaF3Vbry2L3i1qVg8+CAgNPsXRArPMUMCaOR7oa9Nqntc43JKA==}
     engines: {node: '>= 20.19.0'}
@@ -8135,7 +8131,7 @@ snapshots:
 
   chokidar@5.0.0:
     dependencies:
-      readdirp: 5.0.0
+      readdirp: 5.1.1
 
   chokidar@6.0.0:
     dependencies:
@@ -10050,8 +10046,6 @@ snapshots:
   readdir-glob@1.1.3:
     dependencies:
       minimatch: 5.1.9
-
-  readdirp@5.0.0: {}
 
   readdirp@5.1.1: {}
 
