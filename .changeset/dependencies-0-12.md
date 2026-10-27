@@ -2,17 +2,19 @@
 "@verbatra/sdk": patch
 "@verbatra/cli": patch
 "@verbatra/mcp": patch
+"@verbatra/studio": patch
 ---
 
 Runtime dependency updates that reach consumers of the published packages.
 
 **`@verbatra/sdk`**
-- `@anthropic-ai/sdk` 0.127.0 -> 0.133.0
-- `@formatjs/icu-messageformat-parser` 3.5.19 -> 3.5.21
-- `@google/genai` 2.23.0 -> 2.28.0
+- `@anthropic-ai/sdk` 0.127.0 -> 0.137.0
+- `@formatjs/icu-messageformat-parser` 3.5.19 -> 3.5.22
+- `@google/genai` 2.23.0 -> 2.31.0
 - `cosmiconfig` 9.0.2 -> 10.0.1
 - `deepl-node` 1.28.0 -> 1.28.1
-- `openai` 7.19.0 -> 7.32.0
+- `openai` 7.19.0 -> 7.43.0
+- `zod` 4.6.5 -> 4.6.7 (also a dependency of `@verbatra/cli`, `@verbatra/mcp` and `@verbatra/studio`)
 
 **Transitive security fixes in your own lockfile**
 - verbatra's repository pins patched `axios` 1.20.0 (through `deepl-node`) and `brace-expansion`
