@@ -1,12 +1,11 @@
 "use client";
 
-import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useTranslations } from "next-intl";
 import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { HONEYPOT_FIELD } from "@/app/api/contact/honeypot-field";
 import type { ContactFieldErrors } from "@/app/api/contact/schema";
+import Button from "@/components/ui/button";
 import { useHydrated } from "@/lib/use-hydrated";
-import { cn } from "@/lib/utils";
 
 type SubmitState = "idle" | "loading" | "success" | "rate_limited" | "error";
 
@@ -204,13 +203,9 @@ export function ContactForm({
       >
         <input type="text" name={HONEYPOT_FIELD} tabIndex={-1} autoComplete="off" />
       </div>
-      <button
-        type="submit"
-        disabled={!hydrated || state === "loading"}
-        className={cn(buttonVariants({ variant: "primary" }), "self-start transition-none")}
-      >
+      <Button type="submit" disabled={!hydrated || state === "loading"} className="self-start">
         {state === "loading" ? t("submitting") : t("submit")}
-      </button>
+      </Button>
       <p className="-mt-2 text-sm text-(--text-muted)">{privacyNotice}</p>
       <div role="status" aria-live="polite" className="text-sm">
         <StatusMessage state={state} hasFieldErrors={Object.keys(fieldErrors).length > 0} t={t} />

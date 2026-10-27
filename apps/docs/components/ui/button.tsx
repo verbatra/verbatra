@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 
 type ButtonLook = {
@@ -21,14 +21,15 @@ type NativeButtonProps = ButtonLook & {
 type ButtonProps = LinkButtonProps | NativeButtonProps;
 
 const BASE =
-  "group not-prose inline-flex items-center gap-2 rounded-[10px] font-semibold transition-[filter,background-color,color] disabled:opacity-50 disabled:pointer-events-none";
+  "vk-btn group not-prose inline-flex items-center gap-2 rounded-[10px] font-semibold disabled:opacity-50 disabled:pointer-events-none";
 
 const VARIANT: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  primary: "vk-btn-primary text-(--accent-fill-fg) hover:brightness-[1.08]",
-  secondary: "border border-(--text-faint) text-(--text-strong) hover:bg-(--surface-hover)",
+  primary: "vk-btn-primary text-(--accent-fill-fg)",
+  secondary:
+    "vk-btn-secondary border border-(--text-faint) bg-(--surface-card) text-(--text-strong) hover:border-(--accent) hover:bg-(--surface-hover)",
   outline:
-    "border border-(--text-faint) text-(--text-strong) hover:bg-(--surface-hover) aria-pressed:border-(--accent) aria-pressed:bg-(--surface-hover)",
-  ghost: "text-(--text-muted) hover:text-(--text-strong)",
+    "vk-btn-secondary border border-(--text-faint) bg-transparent text-(--text-strong) hover:border-(--accent) hover:bg-(--surface-hover) aria-pressed:border-(--accent) aria-pressed:bg-(--surface-hover)",
+  ghost: "vk-btn-ghost text-(--text-muted) hover:bg-(--surface-hover) hover:text-(--text-strong)",
 };
 
 const SIZE: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -56,7 +57,10 @@ function ButtonContent({
     <>
       {children}
       {trailingArrow ? (
-        <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">
+        <span
+          aria-hidden="true"
+          className="motion-safe:transition-transform motion-safe:duration-(--duration-fast) motion-safe:ease-(--ease-standard) motion-safe:group-hover:translate-x-1"
+        >
           →
         </span>
       ) : null}
@@ -77,8 +81,6 @@ function isLinkButton(props: ButtonProps): props is LinkButtonProps {
 export default function Button(props: ButtonProps): ReactNode {
   const { variant = "primary", size = "md", trailingArrow = false, className, children } = props;
   const classes = buttonClasses(variant, size, className);
-  const style: CSSProperties | undefined =
-    variant === "primary" ? { background: "var(--accent-fill)" } : undefined;
   const content = <ButtonContent trailingArrow={trailingArrow}>{children}</ButtonContent>;
 
   if (isLinkButton(props)) {
@@ -94,13 +96,13 @@ export default function Button(props: ButtonProps): ReactNode {
     } = props;
     if (disabled) {
       return (
-        <button type="button" {...safeAttributes(rest)} className={classes} style={style} disabled>
+        <button type="button" {...safeAttributes(rest)} className={classes} disabled>
           {content}
         </button>
       );
     }
     return (
-      <IntentPrefetchLink {...rest} href={href} className={classes} style={style}>
+      <IntentPrefetchLink {...rest} href={href} className={classes}>
         {content}
       </IntentPrefetchLink>
     );
@@ -116,7 +118,7 @@ export default function Button(props: ButtonProps): ReactNode {
     ...rest
   } = props;
   return (
-    <button type="button" className={classes} style={style} {...rest}>
+    <button type="button" className={classes} {...rest}>
       {content}
     </button>
   );

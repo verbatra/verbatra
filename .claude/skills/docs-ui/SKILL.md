@@ -155,8 +155,8 @@ Scales are fixed and narrow, deliberately:
 - Shadows: `--shadow-panel` (a neutral lift) and `--shadow-sm`. Two, not a ramp, each
   lighter in the light theme, and neither tinted (`lib/theme.test.ts` fails on a hue in either
   shadow). Violet light comes only from the halo tokens above, in the places that name them: the
-  hero halo and the shadow under its front locale-file card, the CI tile, the feature visuals and the closing
-  panel.
+  hero halo and the shadow under its front locale-file card, the CI tile, the feature visuals, the closing
+  panel and the glow of the primary `Button`.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
@@ -277,12 +277,29 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `TabList` moves selection and focus with the arrow keys (wrapping), Home and End; its one
   underline look serves every tab row, and it wires no `id` or `aria-controls`, because no
   landing tab drives a panel of its own.
-  `Button` takes `variant: "primary" | "secondary" | "outline" | "ghost"` (`secondary` and
-  `outline` both draw a `--text-faint` border that holds 3:1 on its own; `outline` also shows a
-  pressed `--accent` border through `aria-pressed`) and `size: "sm" | "md" | "lg"`. `primary`
-  carries `.vk-btn-primary`, a fill with no border; under `forced-colors`, where the fill drops, it
+  `Button` takes `variant: "primary" | "secondary" | "outline" | "ghost"` and
+  `size: "sm" | "md" | "lg"`. Every button carries `.vk-btn` (the transition on `transform`,
+  `box-shadow`, `background-color`, `border-color`, `color` and `filter` over `--duration-fast` and
+  `--ease-standard`, and the press: `translateY(1px)` plus `brightness(0.96)`; the hover lift of
+  `translateY(-1px)` on primary and secondary; the transitions and transforms only under
+  `prefers-reduced-motion: no-preference`, so reduced motion keeps color changes and no movement,
+  and the hover lift and the primary glow only where `(hover: hover)` holds, so a tap leaves
+  nothing stuck; the active `brightness` and the hover glow are not motion and stay). `primary` carries
+  `.vk-btn-primary`, whose fill lives in the stylesheet (`@layer components`), not an inline style:
+  a 180deg gradient from `--accent-fill` to `--btn-fill-end` (`--accent-fill` mixed half into
+  `--pill-new-end`), a 1px inner top highlight (`--btn-highlight`, `--accent-fill-fg` at 38 percent),
+  a 1px outer rim (`--btn-rim`, `--pill-new-end` at 80 percent) and a soft `--halo-strong` glow that
+  widens on hover with a `brightness(1.08)`; it has no border. `components/ui/button.test.tsx`
+  holds `--accent-fill-fg` at 4.5:1 on both gradient ends in both themes. Under `forced-colors`, where the fill drops, it
   gets a 1px inset `ButtonText` outline (not a border, so its size never changes), left to the
-  focus ring while it is `:focus-visible`.
+  focus ring while it is `:focus-visible`. `secondary` and `outline` carry `.vk-btn-secondary`
+  (`--shadow-sm`) and both draw a `--text-faint` border that holds 3:1 on its own
+  (`control-boundaries.test.tsx` reads the first `border-(--token)` of the class string): secondary
+  sits on `--surface-card`, outline on a transparent fill and also shows a pressed `--accent` border
+  through `aria-pressed`; on hover both turn the border `--accent` and the fill `--surface-hover`.
+  `ghost` has no border and tints `--surface-hover` on hover as its text goes `--text-strong`. The
+  trailing arrow moves 4px on hover (`motion-safe` only). The contact form's submit is this
+  primary `Button`, never the Fumadocs `buttonVariants`.
   Extend the variant union rather than passing ad hoc `className` overrides.
   A control's boundary never relies on `--border-default` alone (about 1.3 to 1.5:1): a bordered
   button and `CopyControl` draw it in `--text-faint`, and the copy
@@ -531,7 +548,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   matches do the rows turn into one masked line that runs `vk-marquee` (a `transform` keyframe,
   `--marquee-items` times `--marquee-item-time` per loop, the providers row reversed through
   `--marquee-direction`, so the two rows run in opposite directions), and the pause button shows
-  before the rows: an `outline` `Button` at `size="md"` (44px tall, like the other landing controls)
+  before the rows: a `ghost` `Button` at `size="md"` (44px tall, like the other landing controls)
   whose visible text is its name and says the action it takes next: `landing.marquee.pause` while
   running, `landing.marquee.play` while paused, with no `aria-pressed` (a changing name plus a
   pressed state would read "Play animation, pressed"), and its `aria-hidden` glyph swapping on

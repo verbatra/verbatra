@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -123,10 +125,18 @@ describe("ContactForm", () => {
     expect(button.disabled).toBe(false);
   });
 
-  it("swaps the disabled colours for the enabled ones in one frame, so no frame mixes them", () => {
+  it("draws the submit button as the site primary button, not the Fumadocs one", () => {
     const button = render().querySelector('button[type="submit"]') as HTMLButtonElement;
-    expect(button.classList.contains("transition-none")).toBe(true);
-    expect(button.classList.contains("transition-colors")).toBe(false);
+    expect(button.classList.contains("vk-btn-primary")).toBe(true);
+    expect(button.className).not.toMatch(/\bfd-|bg-fd-/);
+  });
+
+  it("never transitions opacity, so the hydrated enable swaps in one frame", () => {
+    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    const list =
+      /no-preference\) \{\s*\.vk-btn \{\s*transition-property:([^;]+);/.exec(css)?.[1] ?? "";
+    expect(list).not.toBe("");
+    expect(list).not.toContain("opacity");
   });
 
   it("shows the privacy notice it is given directly below the submit button", () => {

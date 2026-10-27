@@ -117,6 +117,13 @@ test.describe("forced colors", () => {
     for (let index = 0; index < (await buttons.count()); index += 1) {
       await expect(buttons.nth(index)).toHaveCSS("outline-style", "solid");
       await expect(buttons.nth(index)).toHaveCSS("outline-width", "1px");
+      await expect(buttons.nth(index)).not.toHaveCSS("outline-style", "none");
+      const paint = await buttons.nth(index).evaluate((node) => {
+        const style = getComputedStyle(node);
+        return { outline: style.outlineColor, text: style.color, fill: style.backgroundColor };
+      });
+      expect(paint.outline).not.toBe("rgba(0, 0, 0, 0)");
+      expect(paint.text).not.toBe(paint.fill);
     }
     expect(await primarySizes(page)).toEqual(normal);
   });
