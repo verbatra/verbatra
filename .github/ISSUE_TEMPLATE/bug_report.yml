@@ -75,8 +75,8 @@ body:
         - gemini
         - deepl
         - google-translate
-        - openai-compatible
         - opencode
+        - openai-compatible
         - libretranslate
         - none
     validations:
