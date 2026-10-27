@@ -13,12 +13,13 @@ starts the server with `verbatra mcp --redact-values` (or `verbatra-mcp
   config, glossary or file error, is replaced whole by one marker; its code and
   `Next step:` line stay. Key names, counts, statuses, origins, integrity verdicts, commit
   subjects and paths are not redacted.
-- `review.approve` and `review.reject` take the marker's 16-digit hash as
+- `review.approve` and `review.reject` take the marker's 16-character hexadecimal hash as
   `expectedHash` and refuse `expectedValue`. Relay the hash of the value the user
   reviewed; a changed value is still refused with `REVIEW_VALUE_CHANGED`.
 - `locale.values` refuses `query` and `key.context` refuses `draft`, as invalid
   input naming the field: leave them out. `glossary.write` answers with
-  `termCount` and `doNotTranslateCount` only.
+  empty `terms` and `doNotTranslate` lists and the counts `termCount` and
+  `doNotTranslateCount`, not the terms.
 - `translation.editEntry` still writes. A marker is not the text: never send one
   to `translation.editEntry` or `glossary.write`.
 - The spend tools still need `--allow-spend`, and a provider still receives the

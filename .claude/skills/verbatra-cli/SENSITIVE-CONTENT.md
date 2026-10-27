@@ -12,6 +12,6 @@ come back exactly once). Withheld keys are listed under
 `result.locales[].sensitiveWithheld` and leave the locale `partial` or `failed`,
 so the run exits `1`; they are retried on the next run. `verbatra init` writes
 `sensitiveData: { mode: "warn" }` unless the provider is `none`, and
-`check --sensitive` runs the same scan without a key. Never weaken the block, add
+`check --sensitive` runs the same detectors without a key, over every field (key, value, description and meaning), which is wider than a machine-translation run scans. Never weaken the block, add
 to `allow` or drop a detector to get a run through; say what was found and let
 the human decide.

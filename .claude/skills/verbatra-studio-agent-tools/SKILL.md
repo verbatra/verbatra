@@ -66,7 +66,9 @@ the values of up to a thousand keys per page.
 
 Two independent gates decide which tools register: agent tools at all, and spend.
 Neither can be flipped from the browser, and a missing tool is the operator's decision,
-never a fault to route around. `verbatra_project_snapshot` reports which gate applies.
+never a fault to route around. `verbatra_project_snapshot` reports which gate applies; with no
+`verbatra_` tools at all it does not exist, so ask the operator whether Studio was started with
+`--expose-agent-tools`.
 See [GATES.md](GATES.md).
 
 ## How to work

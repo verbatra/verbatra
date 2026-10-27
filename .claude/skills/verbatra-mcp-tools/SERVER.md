@@ -29,7 +29,9 @@ line, how to set the project up; each later config reload adds one line. `verbat
 
 ## Without a config
 
-The server starts even when the project has no config, or one that does not load.
+The server starts even when config search finds none, or the config found does not load.
+The exception is an explicit `--config` path that does not exist at startup: it fails
+with `CONFIG_NOT_FOUND`.
 Then `project.snapshot` returns `configured: false`, a `configProblem` with the
 code (`CONFIG_NOT_FOUND` or `CONFIG_INVALID`) and message, and a `nextStep`. Every
 tool except `project.snapshot` and `project.doctor` stays listed but refuses with

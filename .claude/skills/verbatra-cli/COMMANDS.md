@@ -9,14 +9,14 @@ Read this table before running anything unattended.
 | `translate` | yes, unless `--dry-run`, `--estimate` or provider `none` | yes | yes, for a real run with a provider |
 | `watch` | yes, once per source change, unless provider `none` | yes | yes, unless provider `none` |
 | `export` | no | yes, the translator handoff: a workbook, CSV, TSV or XLIFF | no |
-| `import` | no | yes, target locales and the lock file | no |
+| `import` | no | yes, target locales, the lock file and `verbatra.provenance.json` | no |
 | `tmx` | no | yes on import, the translation memory; yes on export, the TMX file | no |
 | `check` | no | no | no |
 | `diff` | no | no | no |
 | `report` | no | no | no |
 | `pseudo` | no | yes, a pseudolocale under the out directory | no |
 | `types` | no | yes, the generated declaration, unless `--check` | no |
-| `doctor` | no | no | no, it never reads a key value; `--literals` does not even check for one; `--live` fetches a machine-translation provider's language list, sending the key DeepL and Google need, which uses no translation quota; `--data-flow` reads no key, makes no network request and spends nothing |
+| `doctor` | no | no | no, its checks only test that the key variable is set and never read its value; `--literals` does not even check for one; `--live` fetches a machine-translation provider's language list, sending the key DeepL and Google use when it is set (optional, and it uses no translation quota); `--data-flow` reads no key, makes no network request and spends nothing |
 | `studio` | only with `--allow-spend` or `VERBATRA_STUDIO_ALLOW_SPEND` | yes, through in-place edits | only when spend is granted |
 | `mcp` | only with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND` (also read from `.env.local` and `.env`) | yes, through in-place edits | only when spend is granted |
 | `init` | no | yes, the config, the env example unless the provider is `none`, and `.gitignore`; with `--agent` also `AGENTS.md` or `CLAUDE.md` and each wired client's MCP config (`.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `.codex/config.toml`, `.gemini/settings.json`); nothing with `--dry-run` | no |

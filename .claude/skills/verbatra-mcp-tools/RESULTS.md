@@ -15,8 +15,8 @@
   `emptySource` with the notice `SOURCE_VALUE_EMPTY`. Report the keys: nothing is
   translated for them until their source text is written.
 - `translation.editEntry` and `translation.retranslateEntry` both pass the
-  integrity gate: the value must carry the source's placeholders, parse as valid
-  ICU, and not be empty or degenerate. A rejection comes back as
+  integrity gate: the value must carry the source's placeholders and inline markup,
+  parse as valid ICU, and not be empty or degenerate. A rejection comes back as
   `accepted: false` with a reason. That is a result, not an error, and retrying
   the identical value will be rejected identically.
 - `translation.translatePending` passes no `prune` value, so the config's decides.
@@ -115,7 +115,7 @@
   `REVIEW_VALUE_CHANGED`; `review.approve` refuses a value whose source changed
   with `REVIEW_SOURCE_CHANGED`, and `review.reject` refuses an XLIFF project with
   `REVIEW_REJECT_UNSUPPORTED`.
-- Every tool returns `structuredContent` matching its declared `outputSchema`,
+- Every successful tool call returns `structuredContent` matching its declared `outputSchema`,
   plus the same JSON as text, and carries `readOnlyHint`, `destructiveHint`,
   `idempotentHint` and `openWorldHint` annotations. Every tool but six is
   read-only. `review.approve` is neither destructive nor open-world;
@@ -123,10 +123,12 @@
   but idempotent and stay local; `translation.retranslateEntry` and
   `translation.translatePending` are destructive, not idempotent, and open-world,
   because they call the provider. A failed call comes back with
-  `isError: true` and a message led by an error code such as `UNKNOWN_KEY`.
+  `isError: true` and, for a coded failure, a message led by its error code such as
+  `UNKNOWN_KEY`; invalid input instead reads `Invalid input for field "<name>": ...`
+  and carries no `structuredContent`.
   `OUTPUT_SCHEMA_MISMATCH` from a tool that writes means the call ran and its
   changes were applied: do not retry it, read the current state instead.
-- A second call to `translation.translatePending`, or to an entry tool for the
+- A second call to `translation.translatePending`, or to the same entry tool for the
   same locale and key, while the first is still running is refused with "A
   matching call is already in progress". Wait for the first result.
 - `glossary.write` changes only the fields you pass. `translation` without `locale`

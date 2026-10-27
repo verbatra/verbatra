@@ -1,8 +1,8 @@
 # Human output on stderr
 
-Everything below is for a person watching a terminal. It never reaches stdout,
-and `--json` output is byte-identical whatever the flags and the terminal; parse
-the envelope, never these lines.
+Everything below is for a person watching a terminal and goes to stderr, except
+the `studio` session URL, which goes to stdout. `--json` output is byte-identical
+whatever the flags and the terminal; parse the envelope, never these lines.
 
 Two global flags go before or after the command name:
 

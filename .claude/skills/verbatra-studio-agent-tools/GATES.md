@@ -20,7 +20,8 @@ Studio decides twice what an agent may do, and the two decisions are independent
 
 Neither gate can be flipped from the browser. You may tell the human which flag
 would change what, but say plainly that granting spend means Studio will bill the
-configured provider. Never present a re-launch as a fix for a missing tool.
+configured provider. Naming the startup flag is fine; never relaunch Studio yourself or press the operator to, and a
+spend tool missing under `policy` is not fixable by any flag.
 A spend method reached while spending is off answers `SPEND_DISABLED` (HTTP 403),
 and its message names the reason: Studio was started without `--allow-spend`, or
 the config's provider is `none`, which `--allow-spend` does not change.

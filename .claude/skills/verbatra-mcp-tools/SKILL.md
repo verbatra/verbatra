@@ -1,6 +1,6 @@
 ---
 name: verbatra-mcp-tools
-description: Operate a verbatra i18n project through its stdio MCP server. Use when an MCP client is connected to verbatra and status must be read, a key is missing or stale, a translation corrected or re-run, a glossary term added, values searched in bulk, every broken translation found, who wrote or last committed a value reported, the last run's review queue and token usage reported, or a pending run's cost estimated. Also use when a spending tool is missing from the tool list or values are redacted.
+description: Operate a verbatra i18n project through its stdio MCP server. Use when an MCP client is connected to verbatra and status must be read, a key is missing or stale, a translation corrected or re-run, a glossary term added, values searched in bulk, every broken translation found, who wrote a value or last committed its file reported, the last run's review queue and token usage reported, or a pending run's cost estimated. Also use when a spending tool is missing or values are redacted.
 license: MIT
 metadata:
   source: 'https://github.com/verbatra/skills'
