@@ -5,210 +5,53 @@
 
 Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK type breaks.
 
-**Node.js**
-- `@verbatra/sdk` and `@verbatra/cli` need Node.js `^22.18.0 || >=24`; 0.11 accepted `>=22.14.0`.
-  On 22.14 to 22.17 and on Node 23, npm warns about the engine or refuses to install under
-  `engine-strict`. Upgrade Node.js to 22.18.0 or newer on the 22 line, or to 24 or newer.
+**Config and environment**
+- Node.js `^22.18.0 || >=24` is required (0.11 accepted `>=22.14.0`).
+- Locale codes must be BCP 47, else `CONFIG_INVALID`: write `pt-BR` with `files.localeStyle: "posix"` for `pt_BR`, `sr-Latn` (with `posix` in a `gettext-po` project) for `sr@latin`, `zh-Hant-TW` for `zh_Hant_TW` (a `gettext-po` project spells its file `zh_TW`: rename it), `de` for `german`.
+- An unknown key in the `provider` block and an `openai-compatible` `baseUrl` ending in `/chat/completions` fail `CONFIG_INVALID`: move options under `provider.options`, or use the API root. An invalid `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` value fails `translate` (dry runs and estimates included), `retranslateEntry` and `watch` startup with `CONFIG_INVALID`; provider `none` skips the check.
+- A `--cwd` naming no directory exits 2 with `INVALID_OPTION`. Project files resolve against the found config's directory, not the working directory: a config shared by several packages needs one each, or `--config` with `--cwd`. Without `.git` the search reaches your home directory: delete a stray config there or pass `--config`.
 
-**Config that loaded in 0.11 and now fails with `CONFIG_INVALID`**
-- Locale codes must be BCP 47. For an underscore spelling such as `pt_BR`, write `pt-BR` and set
-  `files.localeStyle: "posix"`: files keep their paths, and the next `translate` carries the
-  lock-file, memory and provenance state over. In `apple-xcstrings` this adds a `pt-BR` block.
-- A gettext spelling such as `sr@latin` becomes `sr-Latn` with `posix` in a `gettext-po` project,
-  keeping its path. A code whose script the region implies, such as `zh_Hant_TW`, becomes
-  `zh-Hant-TW`, which a `gettext-po` project spells `zh_TW`: rename that file to `zh_TW`.
-- A language subtag of five to eight letters (`german`) or a malformed tag is rejected: use a
-  two- or three-letter language code such as `de`.
-- Unknown keys in the `provider` block beside `id` and `options`, such as a misplaced `localeMap`,
-  are rejected. Move a provider option under `provider.options`, or remove the key.
-- An invalid `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` value fails
-  `translate`, dry runs and estimates included.
-- An `openai-compatible` `baseUrl` ending in `/chat/completions` or `/completions`, which 0.11
-  accepted and then failed every request against, is rejected. Set `baseUrl` to the API root,
-  such as `https://host/v1`.
-
-**Files that change on the first 0.12 run**
-- A new `verbatra.provenance.json` next to the lock file records who wrote each value. Commit it.
-  A corrupt one fails every write with `PROVENANCE_FILE_INVALID`.
-- Android, XLIFF and gettext writers keep the file's line endings and indentation, and a created
-  `.po` file gets a `Language` header, so the first write may produce a whitespace-only diff.
-- ARB target files get `@@locale` first, and `translate --prune` now removes ARB keys.
-- XLIFF: an empty, missing, `state="new"` or `state="needs-translation"` target counts as missing
-  and is translated, and billed, on the next run. A value containing entities may show as changed
-  once. A unit missing from the target document is appended. A segment in state `initial` that
-  verbatra writes becomes `translated`.
-- No empty target file is created for a new locale whose keys were all withheld, and `import`
-  writes new keys in source order.
-- `tmx export` writes a `<prop type="x-origin">` on every target segment, and `x-review` on a
-  machine one, where 0.11 wrote bare segments. A TMX consumer that rejects unknown properties
-  needs them stripped or allowed.
-- i18next: `verbatra types` also declares the base key of each plural group (`cart.items` next to
-  `cart.items_one`), so `types --check` reports a committed 0.11 declaration as out of date. Run
-  `verbatra types` once and commit the file.
+**Files that change on the first run**
+- A new `verbatra.provenance.json` records who wrote each value: commit it. A corrupt one fails writes with `PROVENANCE_FILE_INVALID`.
+- Android, XLIFF and gettext writers keep line endings and indentation (the first write may show a whitespace-only diff), ARB targets get `@@locale`, and `translate --prune` removes ARB keys.
+- No empty target file is created for a locale whose keys were all withheld, and `import` writes new keys in source order.
+- An empty, missing, `new` or `needs-translation` XLIFF target is translated and billed.
+- `tmx export` adds `x-origin` and `x-review` properties to segments.
+- `verbatra types` declares each i18next plural base key, so `types --check` flags a 0.11 file: rerun `verbatra types`.
 
 **Translation behavior and spend**
-- A source key whose value is empty or whitespace only, such as one `extract` added without a
-  default or a `gettext-po` source entry with an empty `msgstr`, is never missing, stale or up to
-  date, even when 0.11 already translated it. `check` and `diff` exit 0 when only such keys
-  differ, where 0.11 exited 1. `translate` sends nothing for them where 0.11 paid to translate an
-  empty string, keeps the target value, and `export` writes no row. JSON only gains fields:
-  `emptySource` on every `check` and `lockState` locale (a count) and on every `diff` and
-  `translate` locale (the keys), and a `SOURCE_VALUE_EMPTY` notice on `translate`; no other field
-  changes meaning. A target value such a key already has, from 0.11 or by hand, is kept until
-  the source is written; the key then reports as stale, and under the default `humanEdits:
-  "protect"` a value verbatra did not write stays protected until a person resolves it. Write the
-  source text to translate such a key.
-- `tmx import` reads the project's source locale file and fails with `SOURCE_INVALID` (exit 2)
-  when that file exists but cannot be parsed. Fix the source file, then import again.
-- `diff --unused` no longer counts a plain string such as `step_one` as used by `t("step")` in an
-  Android, gettext or Apple catalog, where plural forms are marked: it is listed as unused and
-  `diff --unused` exits 1. `extract` no longer adds `step` next to a plain `step_one` in
-  i18next-json, YAML or another catalog under i18next, which it treats as a plural form. Rename
-  such keys, or ignore them with `extract.unused.ignore`.
-- `tmx import` takes the plural flag from the source file: a plural form whose text matches an
-  imported unit is now an exact memory hit, filled without a provider call, where 0.11 sent it to
-  the provider. Units imported with 0.11 stay keyed as plain strings: import the TMX file again.
-  A unit matching a plural form and a plain string is stored for both and counted once.
-- `humanEdits` defaults to `"protect"`: a stale key whose value a person wrote, imported or edited
-  outside verbatra is no longer retranslated, and `check` keeps reporting it as stale. Set
-  `humanEdits: "overwrite"`, or pass `translate --include-human` for one run, to get 0.11 behavior.
-- Plural categories come from CLDR. French, Spanish, Italian and Portuguese now need `many`, and
-  Japanese, Chinese, Korean, Thai and Vietnamese no longer need `one`. `generatePlurals` creates
-  the extra forms, and i18next ordinals follow ordinal rules.
-- For next-intl and ARB, the integrity gate checks ICU plural and select arms. A stored value that
-  kept the source's arms (memory, fuzzy match, import) is withheld and paid for again. Values
-  already in a locale file stay until their source changes.
-- An LLM run into a language outside the well-tested list carries a `LOCALE_NOT_WELL_TESTED`
-  notice. The locale is still translated.
-- Estimates and token budgets reserve 550 system-rule tokens per LLM request instead of 250.
-- DeepL and Google receive normalized language codes (`en-US` as `EN`, `zh-Hant` as `ZH-HANT`,
-  `nb` as `no`). Override them with `provider.options.localeMap`.
-- DeepL and Google translate values with placeholders that 0.11 withheld with
-  `PLACEHOLDER_UNSUPPORTED`: the next run bills them and writes machine translations, flagged for
-  review as usual. To keep such a key human-only, write its value by hand before the run.
-- DeepL, Google and LibreTranslate also mask a token of another placeholder syntax than the
-  format's (`{name}` in i18next, `{{x}}` in vue-i18n). A value holding one, which 0.11 sent as
-  plain text, is now withheld with `PLACEHOLDER_UNSUPPORTED` when its other text holds `{`, `}`,
-  `<` or `>`, such as ICU `{n, plural, ...}` in i18next or a comparison sign. A value with markup
-  is withheld by DeepL and Google, while LibreTranslate keeps the markup and withholds it only for
-  a brace; Google also withholds one with a line break, tab or double space. Translate such keys
-  by hand or with an LLM provider.
-- DeepL and Google: a locale missing from the shipped language table refuses the whole run with
-  `LOCALE_UNSUPPORTED_BY_PROVIDER` (exit 2) before anything is spent. DeepL formality uses
-  `prefer_`, so an unsupported register gives a `FORMALITY_DOWNGRADED` notice instead of failing.
-- `requestTimeoutMs` applies per attempt. A failed call reports its last attempt's cause
-  (`RATE_LIMITED`, `PROVIDER_UNAVAILABLE`, `PROVIDER_ERROR`) instead of `TIMEOUT`, and Gemini
-  retries a timed-out attempt.
-- More single-brace names are placeholders. Names in another script (`{número}`, `{名前}`) are
-  protected in `vue-i18n-json`, `properties` and `ini`, and ASCII names starting with `$`
-  (`{$name}`) in `vue-i18n-json` and `ini`: a translation that renames or drops one is refused
-  instead of written. In `i18next-json`, `ngx-translate-json` and `yaml`, a translation that
-  invents such a token (`{$x}`, `{número}`) is refused as fabricated. Values already in a locale
-  file stay until their source changes.
-- In `resx`, a named hole such as `{name}` or `{when:d}` is a placeholder: a translation that
-  renames it (`{name}` to `{nombre}`) is refused instead of written. A braced word in prose
-  (`Click {Save}`, `{ curly }`) counts too, so keep it unchanged in the translation. Existing
-  values that renamed one now show in the integrity views of Studio and the MCP server.
-- Integrity refusals report `empty` and `icu` ahead of `placeholder` and `markup`.
-  `LENGTH_RATIO_OUTLIER` counts graphemes weighted by script.
-- `lockAcquireTimeoutMs` bounds only the waits before a provider call, and `onLockWait` first
-  fires after one second. Locks left by 0.11 or by another machine are never reclaimed
-  automatically: delete them by hand once no verbatra process runs.
+- A source key with an empty value is never missing, stale or up to date: `check` and `diff` exit 0 where 0.11 exited 1, and `translate` no longer pays for it.
+- `humanEdits` defaults to `"protect"`: a stale key a person wrote, imported or edited is not retranslated. Use `"overwrite"` or `translate --include-human` for 0.11 behavior.
+- Plural categories come from CLDR: French, Spanish, Italian and Portuguese need `many`, and Japanese, Chinese, Korean, Thai and Vietnamese no longer need `one`.
+- next-intl and ARB values that kept the source's ICU arms are withheld and paid for again.
+- In Android, gettext and Apple catalogs `diff --unused` no longer counts a plain `step_one` as used by `t("step")` (it exits 1), and under i18next `extract` no longer adds `step` next to it: rename the key or use `extract.unused.ignore`.
+- `tmx import` fails with `SOURCE_INVALID` on an unparsable source file and matches plural forms: import 0.11 units again.
+- Estimates reserve 550 system-rule tokens per LLM request, not 250.
+- DeepL and Google get normalized language codes (`en-US` as `EN`) and refuse a locale outside their table with `LOCALE_UNSUPPORTED_BY_PROVIDER` (exit 2). Override with `provider.options.localeMap`.
+- DeepL and Google now translate and bill placeholder values 0.11 withheld with `PLACEHOLDER_UNSUPPORTED`: to keep a key human-only, write its value by hand. They also withhold a value holding another syntax's token beside `{`, `}`, `<` or `>`.
+- More names are placeholders (`{número}`, `{$name}`, resx `{name}`): a translation that renames one is refused. Existing values stay until their source changes.
+- `requestTimeoutMs` applies to each attempt, not the whole retried call; after retries a failure reports the last attempt's cause (`RATE_LIMITED`, `PROVIDER_UNAVAILABLE`, `PROVIDER_ERROR`, or `TIMEOUT`), and Gemini retries a timed-out attempt.
+- `LENGTH_RATIO_OUTLIER` measures weighted graphemes (Han 3.5, kana 1.5, Hangul 2), so correct CJK translations stop being flagged as too short; some values flag differently, for example a CJK source into a Latin target.
+- `openai-compatible` requests send `User-Agent: verbatra` instead of the OpenAI SDK default: update proxy rules keyed on it.
+- Locks left by 0.11 or by another machine are never reclaimed: delete them by hand once no verbatra process runs.
 
 **CLI output and exit codes**
 - New exit code 3: `translate` under `provider: none` left keys for a person.
-- `init`: `--yes` with an ambiguous format exits 2 with `FORMAT_AMBIGUOUS` (pass `--format`), a
-  non-interactive run without `--yes` fails with `MISSING_OPTIONS`, and a differing
-  `verbatra.config.ts` fails with `CONFIG_EXISTS` instead of being skipped with exit 0. An existing
-  `.env.example` is appended to.
-- `init` no longer writes `verbatra.config.ts`, `.env.example` or `.gitignore` through a symbolic
-  link that leads outside the project or nowhere: it exits 2 with `INIT_UNWRITABLE` before writing
-  anything. Replace the link with a plain file, or point it inside the project.
-- `export` and `tmx export` refuse an output path outside the project or onto a project file, and
-  `pseudo --out` checks its path again after resolving symbolic links. Failed writes are
-  structured. All exit 2: `EXPORT_OUTPUT_CONFLICT`, `EXPORT_UNWRITABLE`, `TMX_OUTPUT_CONFLICT`,
-  `TMX_UNWRITABLE`, `PSEUDO_OUTPUT_CONFLICT`.
-- `tmx import` and `importTmx` surfaced the raw file-system error (for example `EACCES`) when
-  `verbatra.cache.json` could not be written. They now throw `MEMORY_UNWRITABLE`, still exit 2. Match
-  that code instead of the file-system one.
-- A failed `watch` run's error line moves from stdout to stderr, human output prints paths
-  relative to the working directory, and dry runs read `would translate`.
-- `watch` whose provider cannot be built, such as one with an unset API key, exits 2 with
-  `PROVIDER_CONSTRUCTION_FAILED` at startup instead of waiting for changes; the SDK's `watch`
-  rejects the same way. Set the key before starting it.
-- A `--cwd` that names no existing directory exits 2 with `INVALID_OPTION` on every command,
-  before anything is read, instead of a later `CONFIG_NOT_FOUND` or `SOURCE_UNREADABLE`.
-- Run from a subdirectory, or with a `--cwd` naming one, a command resolves locale files, the lock,
-  cache and provenance files, `.verbatra-local/` and the `extract` roots (also for `diff --unused`
-  and `doctor --literals`) against the directory of the config the search found. 0.11 used the
-  working directory, so it failed with `SOURCE_UNREADABLE` or used the subdirectory's files. The
-  default outputs (`verbatra-translations`, `verbatra-types.d.ts`) and the `.gitignore` top-up go
-  there too, `studio` opens that project, and `translate`, `watch`, `doctor`, `studio` and `mcp`
-  also load its `.env.local` and `.env` after the working directory's. One shared config run from
-  each package for per-package locale files now needs a config per package, or `--config` with
-  `--cwd`. Paths you pass, such as `--out`, still resolve against the working directory.
-- `types --out` and `pseudo --out` must stay inside the project root, where 0.11 required the
-  working directory. A path reaching up into the root from a subdirectory is now accepted, and one
-  inside the working directory but outside the root (a `--config` in another directory) is
-  refused. Pass a path inside the project root.
-- Without a `.git` directory, the search reaches up to your home directory, so a stray config there
-  now becomes the project root of a run started below it, and files are written next to it. Delete
-  that config, run `git init` in the project, or pass `--config`.
-- Every command writes progress and `next:` lines to stderr (trim them with `--quiet` and
-  `--no-color`). stdout keeps its text, `doctor` colors its status labels when stdout is a color
-  terminal, and `--json` is unchanged.
-- `doctor --json` reports `"warn"` instead of `"pass"` for a check that names something worth
-  attention, and `"skipped"` for a plural-completeness check that did not run. A script that
-  requires every status to be `"pass"` should also accept `"warn"`, or check `ok` instead.
-- The `--json` envelope gains the optional `hint`, `causeCode`, `candidates` and `missing` fields
-  and stays at version 1. New records: `lock-wait` on `import`, and `{"type":"interrupted"}`.
-- `check` lists `incompletePlurals` warnings (only `check --qa --strict` exits 1 on them), and
-  error messages name project files by their project-relative path.
-- All CLI output is redacted. A bare UUID is no longer redacted outside a key context, an `sk-`
-  token followed by 32 or more letters and digits is redacted even when it is not a key, and a
-  value shorter than eight characters is no longer scrubbed by value.
-- Studio 0.5 and MCP server 0.2 show no last run (an empty review queue, no usage) once a 0.12
-  run records one of the new review reasons in `.verbatra-local/run-status.json`. Upgrade them
-  with the CLI, or delete that file to read it with the old versions again.
-- `verbatra mcp` exits 0 when the client closes stdin (it exited 13). `verbatra mcp --json` is
-  refused with a stderr line only, so stdout stays clean for the client.
-- Every command-line usage error (an unknown option or command, a missing or invalid argument, an
-  extra argument) prints `verbatra: error [USAGE_ERROR] <message>` on stderr, plus a `next:` line
-  without `--json`, instead of commander's `error: <message>`. Match on the exit code `2` or the
-  `USAGE_ERROR` code, not on the old `error:` prefix.
-- `verbatra init` exits 2 with `MISSING_OPTIONS` when stdin ends at a prompt (it exited 13).
-  Answer each prompt, or pass the options as flags.
-- `verbatra pseudo` names the mode in its summary line (`en-XA (accented): 118 of 120 entries`
-  instead of `en-XA: 118 of 120 entries`). A script that parses it should read `--json` instead.
+- `init` exits 2 with `FORMAT_AMBIGUOUS` (`--yes`) or `MISSING_OPTIONS` (no terminal, or stdin ended; it exited 13), fails `CONFIG_EXISTS` on a differing config and `INIT_UNWRITABLE` through a symbolic link leaving the project.
+- `export` and `tmx export` refuse a path outside the project or onto a project file (new `EXPORT_OUTPUT_CONFLICT`, `TMX_OUTPUT_CONFLICT`, exit 2); `pseudo --out` (`PSEUDO_OUTPUT_CONFLICT`) now also refuses a symlink leaving the project and a project file; `types --out` must stay in the project root; `tmx import` throws `MEMORY_UNWRITABLE` instead of the raw file-system error.
+- `watch` with an unbuildable provider exits 2 with `PROVIDER_CONSTRUCTION_FAILED` at startup.
+- Progress and `next:` lines go to stderr, a failed `watch` error moves from stdout to stderr, paths print relative, dry runs read `would translate`, and `pseudo` names the mode in its summary line: parse `--json`.
+- A usage error prints `verbatra: error [USAGE_ERROR] <message>` instead of commander's `error: <message>`: match exit code `2` or the code.
+- `--json` stays version 1 and gains optional `hint`, `causeCode`, `candidates` and `missing` fields, plus `lock-wait` and `interrupted` stream records.
+- `doctor --json` reports `"warn"` besides `"pass"` (and `"skipped"` for plural-completeness): check `ok` rather than requiring every `pass`.
+- A bare UUID is no longer redacted, an `sk-` token of 32 or more characters is, and values under eight characters are not scrubbed.
+- `verbatra mcp` exits 0 when stdin closes (it exited 13).
+- Studio 0.5 and MCP 0.2 show no last run once a 0.12 run records a new review reason: upgrade them or delete `.verbatra-local/run-status.json`.
 
-**SDK callers (TypeScript and JavaScript)**
-- `readGlossaryFile` and `updateGlossaryTerm` return a `Glossary`, and `translation: null` removes
-  only the shared translation. `TranslateRequest.glossary`, seen by a custom provider, is a
-  `LocaleGlossary`.
-- `ProviderId` includes `"none"`, so an exhaustive `switch` or `Record` breaks, and
-  `VerbatraConfigInput` is the schema's input shape.
-- `LocaleSummary.protected` and `LocaleSummary.sensitiveWithheld` are new required fields, and
-  `SuggestionStatus` gains `"sensitive-withheld"`. `RunBudget.supported` is `true` for a run
-  that sent no request, and `import`'s `unchanged` leaves out keys the handoff accepted or refused.
-- `DoctorCheckStatus` gains `"warn"`: a check that names something worth attention without
-  failing, such as a plural missing a CLDR category or a non-canonical locale code, reports
-  `warn` instead of `pass`, in `doctor --json` too, and `doctor` prints it as `[warn]`. `ok` and
-  the exit code do not change. Handle `"warn"` in an exhaustive `switch` or `Record`.
-- `localeValues().values` has a null prototype (use `Object.hasOwn`), and `scaffoldingMetadata` is
-  deep-frozen.
-- `onProgress` has new event kinds, `ReviewReasonCode` gains `GLOSSARY_FORBIDDEN_TERM`,
-  `FOREIGN_PLACEHOLDER_CHANGED` and `BIDI_CONTROLS_CHANGED`, and `SdkNoticeCode` gains codes
-  such as `SOURCE_FOREIGN_PLACEHOLDERS`, `LOCALE_STATE_CARRIED_OVER` and the `SENSITIVE_CONTENT_*`
-  notices, so an exhaustive `switch` or `Record` breaks. An invalid `lockAcquireTimeoutMs` throws
-  `LOCK_TIMEOUT_INVALID` instead of being accepted.
-- Adapter plugins: `BuildWriteTree` gets a fourth argument, `serializeEntries` a fifth (the
-  locale), `parseEntries` receives the locale, and `write` takes a `WriteContext`. A throw from a
-  `custom:` parser is `ADAPTER_FAILED` with the original error as `cause`, and a malformed
-  `parseEntries` result fails the read.
-- `SOURCE_INVALID` and `PROVIDER_CONSTRUCTION_FAILED` carry the wrapped error as `cause`.
-- A function given a config from `loadConfig` or `loadConfigWithMeta` and no `cwd` resolves paths
-  against the directory of a config the search found (the load's `cwd` for a `configPath`) instead
-  of `process.cwd()`; `doctor` and `dataFlow` do the same for the config they load. Pass `cwd` to
-  keep the old base.
-- `keyIntegrity` refuses a requested key the source does not have with `UNKNOWN_KEY`; 0.11 left it
-  out and returned empty entries. Pass only source keys in `keys`.
+**SDK callers**
+- `readGlossaryFile` and `updateGlossaryTerm` return a `Glossary`, `translation: null` removes only the shared one, and `TranslateRequest.glossary` is a `LocaleGlossary`.
+- `ProviderId` gains `"none"`, `DoctorCheckStatus` `"warn"`, `SuggestionStatus` `"sensitive-withheld"`, `ReviewReasonCode` `GLOSSARY_FORBIDDEN_TERM`, `FOREIGN_PLACEHOLDER_CHANGED` and `BIDI_CONTROLS_CHANGED`, and `SdkNoticeCode` and `onProgress` more members: an exhaustive `switch` or `Record` breaks. `LocaleSummary.protected` and `sensitiveWithheld` are required.
+- `localeValues().values` has a null prototype (use `Object.hasOwn`), `keyIntegrity` throws `UNKNOWN_KEY` for a key the source lacks, and an invalid `lockAcquireTimeoutMs` throws `LOCK_TIMEOUT_INVALID`.
+- `VerbatraConfigInput` is the schema's input shape. `RunBudget.supported` is `true` for a run that sent no request, and `import`'s `unchanged` leaves out keys the handoff accepted or refused.
+- Adapter plugins: `BuildWriteTree` takes the locale as a 4th argument, `serializeEntries` a `WriteContext` and the locale (4th, 5th), `parseEntries` the locale, and `write` an optional `WriteContext`. A `custom:` parser throw is `ADAPTER_FAILED` with the original as `cause` (0.11: `INVALID_STRUCTURE`, no cause), and a malformed `parseEntries` result fails the read.
+- Functions given a loaded config and no `cwd` resolve paths against the config's directory, not `process.cwd()`. Pass `cwd` for the old base.
