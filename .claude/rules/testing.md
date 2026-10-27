@@ -59,7 +59,8 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
   gate**: it runs as the `e2e` job in `.github/workflows/ci.yml`, and `release.yml` only publishes
   when the CI workflow's conclusion is success.
 - **Live tier**: `tests/translate.live.e2e.test.ts` and `tests/watch.live.e2e.test.ts`, run with
-  `npm test` (which runs both tiers), plus `tests/libretranslate.live.e2e.test.ts`, which skips
+  `npm test` (which runs both tiers), plus `tests/opencode.live.e2e.test.ts` (skips unless `OPENCODE_API_KEY` is set), and
+  `tests/libretranslate.live.e2e.test.ts`, which skips
   unless `LIBRETRANSLATE_URL` points at a LibreTranslate server you started yourself (no workflow
   starts one; see `e2e/README.md`). Drives real `translate`/`watch` against a live provider
   (default `gemini`, controlled by `E2E_PROVIDER` and the matching API key env var). Runs

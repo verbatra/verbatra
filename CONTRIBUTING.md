@@ -200,7 +200,7 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
      `packages/ai-providers/src/llm/run.ts`: implement an `LlmMechanism` that
      performs the one HTTP call and returns the raw completion, then make
      `translateBatch` call `runLlmTranslation(request, mechanism)`. Anthropic,
-     OpenAI, Gemini and openai-compatible all do this. Do not fork the shared
+     OpenAI, Gemini, openai-compatible and OpenCode all do this. Do not fork the shared
      layer, the system rules, or the canonical response schema: they are what
      enforce the prompt-injection boundary and schema-bound output.
    - A **machine-translation API** that takes strings and returns strings, with
