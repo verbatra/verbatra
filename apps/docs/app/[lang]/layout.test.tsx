@@ -26,7 +26,7 @@ vi.mock("@/lib/framework-provider", () => ({
   LocaleAwareFrameworkProvider: ({ children }: { children: ReactNode }) => children,
 }));
 
-const { default: Layout } = await import("./layout");
+const { default: Layout, generateMetadata } = await import("./layout");
 
 describe("Layout: no third-party script", () => {
   it("loads no external script and opens no connection to another origin", async () => {
@@ -131,5 +131,13 @@ describe("Layout: a stored theme before the first paint", () => {
     setTheme("light");
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
     expect((await initScript())?.textContent).toContain(JSON.stringify(THEME_STORAGE_KEY));
+  });
+});
+
+describe("Layout: Search Console verification", () => {
+  it("carries the Google site verification token", async () => {
+    const metadata = await generateMetadata({ params: Promise.resolve({ lang: "en" }) });
+
+    expect(metadata.verification?.google).toBe("z0lelBJ5J1ajeyw1BedyvY1PrGlqa4b8IXZlMVGxRcM");
   });
 });

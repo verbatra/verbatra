@@ -51,6 +51,7 @@ export async function generateMetadata(props: {
       },
     },
     alternates: { canonical, languages },
+    verification: { google: "z0lelBJ5J1ajeyw1BedyvY1PrGlqa4b8IXZlMVGxRcM" },
     ...socialMetadata({
       locale,
       path: canonical,
