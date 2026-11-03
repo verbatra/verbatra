@@ -16,12 +16,23 @@ export interface RowBusy {
 
 const RETRANSLATE_BUSY_CLASSNAME = "disabled:opacity-100";
 
-const RETRANSLATE_WIDEST_LABEL = "Retranslating… 12:34";
-
 const RETRANSLATE_ACTIONS_RESERVED_CLASSNAME = "min-w-106";
 
 function shortcutFor(action: ReviewShortcutAction, active: boolean): string | undefined {
   return active ? shortcutKeysFor(action) : undefined;
+}
+
+function ElapsedSlot({ seconds }: { readonly seconds: number | undefined }): ReactNode {
+  const className =
+    "inline-block min-w-[5ch] text-end font-mono tabular-nums text-muted-foreground";
+  if (seconds === undefined) {
+    return <span aria-hidden="true" className={className} data-busy-slot="" />;
+  }
+  return (
+    <span className={className} data-busy-elapsed="" data-busy-slot="">
+      {compactElapsed(seconds)}
+    </span>
+  );
 }
 
 export function ReviewRowActions({
@@ -91,7 +102,10 @@ export function ReviewRowActions({
       {onRetranslate !== undefined ? (
         <Button
           size="xs"
-          reserve={RETRANSLATE_WIDEST_LABEL}
+          reserve={reserve("retranslate", "Retranslate")}
+          trailing={
+            <ElapsedSlot seconds={running === "retranslate" ? busy?.elapsedSeconds : undefined} />
+          }
           aria-busy={running === "retranslate" || undefined}
           className={cn(running === "retranslate" && RETRANSLATE_BUSY_CLASSNAME)}
           onClick={onRetranslate}
@@ -99,14 +113,6 @@ export function ReviewRowActions({
           aria-keyshortcuts={shortcutFor("retranslate", shortcutsActive)}
         >
           {label("retranslate", "Retranslate")}
-          {running === "retranslate" && busy?.elapsedSeconds !== undefined ? (
-            <>
-              {" "}
-              <span className="font-mono tabular-nums text-muted-foreground" data-busy-elapsed="">
-                {compactElapsed(busy.elapsedSeconds)}
-              </span>
-            </>
-          ) : null}
         </Button>
       ) : null}
       <span className="sr-only" role="status">

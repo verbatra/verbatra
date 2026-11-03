@@ -144,13 +144,24 @@ describe("Button", () => {
     }
   });
 
-  it("reserves another label's width without adding text to the name", () => {
+  it("carries the reserved text on its slot and leaves the label text unchanged", () => {
     const view = render(<Button reserve="Approving…">Approve</Button>);
     const slot = view.get("[data-reserve]");
 
     expect(slot.dataset.reserve).toBe("Approving…");
     expect(view.get("button").textContent).toBe("Approve");
     expect(view.get("button").getAttribute("aria-label")).toBeNull();
+  });
+
+  it("renders a trailing slot after the reserved label, outside it", () => {
+    const view = render(
+      <Button reserve="Retranslating…" trailing={<i data-slot="">5s</i>}>
+        Retranslate
+      </Button>,
+    );
+
+    expect(view.get("[data-reserve]").contains(view.get("[data-slot]"))).toBe(false);
+    expect(view.get("button").lastElementChild?.tagName).toBe("I");
   });
 
   it("renders no reserve wrapper unless asked", () => {

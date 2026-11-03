@@ -87,6 +87,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly size?: ButtonSize;
   readonly trailingArrow?: boolean;
   readonly reserve?: string;
+  readonly trailing?: ReactNode;
   readonly ref?: Ref<HTMLButtonElement>;
   readonly children: ReactNode;
 }
@@ -110,6 +111,7 @@ export function Button({
   size = "sm",
   trailingArrow = false,
   reserve,
+  trailing,
   className,
   type = "button",
   children,
@@ -126,6 +128,7 @@ export function Button({
       data-size={size}
     >
       <ButtonContent trailingArrow={trailingArrow}>{label}</ButtonContent>
+      {trailing}
     </button>
   );
 }
