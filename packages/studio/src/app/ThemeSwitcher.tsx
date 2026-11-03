@@ -1,13 +1,8 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
-import { THEME_OPTIONS, type ThemePreference } from "../client/theme.js";
+import { useSyncExternalStore } from "react";
 import { Dropdown } from "./Dropdown.js";
 import { Icon, type IconName } from "./Icon.js";
-import {
-  applyThemePreference,
-  readStoredThemePreference,
-  storeThemePreference,
-} from "./lib/theme-dom.js";
+import { THEME_OPTIONS, type ThemePreference, themeStore } from "./lib/theme-dom.js";
 
 const PREFERENCE_ICON: Readonly<Record<ThemePreference, IconName>> = {
   system: "monitor",
@@ -16,13 +11,7 @@ const PREFERENCE_ICON: Readonly<Record<ThemePreference, IconName>> = {
 };
 
 export function ThemeSwitcher(): ReactNode {
-  const [preference, setPreference] = useState<ThemePreference>(readStoredThemePreference);
-
-  function handleSelect(next: ThemePreference): void {
-    setPreference(next);
-    storeThemePreference(next);
-    applyThemePreference(next);
-  }
+  const preference = useSyncExternalStore(themeStore.subscribe, themeStore.getMode);
 
   const activeLabel = THEME_OPTIONS.find((option) => option.value === preference)?.label ?? "";
 
@@ -36,7 +25,7 @@ export function ThemeSwitcher(): ReactNode {
         id: option.value,
         label: option.label,
         selected: option.value === preference,
-        onSelect: () => handleSelect(option.value),
+        onSelect: () => themeStore.setMode(option.value),
       }))}
     />
   );

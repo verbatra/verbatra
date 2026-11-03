@@ -6,10 +6,10 @@ import { render } from "./test-support.js";
 const TONE_EXPECTATIONS: Readonly<
   Record<DiffTone, { readonly label: string; readonly bg: string }>
 > = {
-  missing: { label: "Missing", bg: "bg-diff-new-soft" },
+  missing: { label: "Missing", bg: "bg-diff-missing-soft" },
   changed: { label: "Changed", bg: "bg-diff-changed-soft" },
   orphaned: { label: "Orphaned", bg: "bg-diff-orphaned-soft" },
-  protected: { label: "Protected", bg: "bg-warning-soft" },
+  protected: { label: "Protected", bg: "bg-diff-protected-soft" },
 };
 
 const TONES = Object.keys(TONE_EXPECTATIONS) as readonly DiffTone[];

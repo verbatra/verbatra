@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { THEME_STORAGE_KEY } from "../client/theme.js";
+import { THEME_STORAGE_KEY } from "./lib/theme-dom.js";
 import { ThemeSwitcher } from "./ThemeSwitcher.js";
 import { click, render } from "./test-support.js";
 

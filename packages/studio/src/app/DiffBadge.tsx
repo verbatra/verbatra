@@ -14,10 +14,10 @@ const DIFF_LABEL: Readonly<Record<DiffTone, string>> = {
 };
 
 const DIFF_TONE_CLASSES: Readonly<Record<DiffTone, string>> = {
-  missing: "bg-diff-new-soft text-diff-new",
+  missing: "bg-diff-missing-soft text-diff-missing",
   changed: "bg-diff-changed-soft text-diff-changed",
   orphaned: "bg-diff-orphaned-soft text-diff-orphaned",
-  protected: "bg-warning-soft text-warning",
+  protected: "bg-diff-protected-soft text-diff-protected",
 };
 
 export function isDiffTone(value: string): value is DiffTone {

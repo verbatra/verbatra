@@ -11,6 +11,9 @@ const INLINE_SCRIPT_WITH_BODY = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script
 const STYLE_ELEMENT = /<style[^>]*>/i;
 const EVENT_HANDLER_ATTRIBUTE = /\son[a-z]+\s*=/i;
 const JAVASCRIPT_URL = /(?:href|src)\s*=\s*["']javascript:/i;
+const THEME_INIT_SCRIPT =
+  /<script\b(?![^>]*\btype\s*=\s*["']module["'])[^>]*\bsrc\s*=\s*["']\/theme-init\.js["'][^>]*>/i;
+const DATA_URL_FONT = /url\(\s*["']?data:/i;
 
 async function listHtmlFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true, recursive: true });
@@ -66,5 +69,33 @@ describe("built SPA output", () => {
       const content = await readFile(file, "utf8");
       expect(content).not.toMatch(JAVASCRIPT_URL);
     }
+  });
+
+  it("ships theme-init.js and references it from a classic script in the head", async () => {
+    const script = await readFile(join(outDir, "theme-init.js"), "utf8");
+    expect(script).toContain("verbatra-studio-theme");
+    const html = await readFile(join(outDir, "index.html"), "utf8");
+    const head = html.slice(0, html.indexOf("</head>"));
+    expect(head).toMatch(THEME_INIT_SCRIPT);
+    expect(head.indexOf("/theme-init.js")).toBeLessThan(head.indexOf('type="module"'));
+  });
+
+  it("emits the Geist fonts as files, never as data URLs", async () => {
+    const assets = await readdir(join(outDir, "assets"));
+    const css = await Promise.all(
+      assets
+        .filter((name) => name.endsWith(".css"))
+        .map((name) => readFile(join(outDir, "assets", name), "utf8")),
+    );
+    expect(css.length).toBeGreaterThan(0);
+    for (const sheet of css) {
+      expect(sheet).not.toMatch(DATA_URL_FONT);
+    }
+    expect(assets.filter((name) => name.endsWith(".woff2")).length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("ships the font license beside the app", async () => {
+    const license = await readFile(join(outDir, "licenses", "OFL-Geist.txt"), "utf8");
+    expect(license).toContain("SIL OPEN FONT LICENSE Version 1.1");
   });
 });
