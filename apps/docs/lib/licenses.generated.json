@@ -1,5 +1,5 @@
 {
-  "packageCount": 348,
+  "packageCount": 349,
   "groups": [
     {
       "license": "MIT",
@@ -792,6 +792,14 @@
           "copyright": ["Copyright (c) Microsoft Corporation."],
           "author": null,
           "textId": "text-6",
+          "notice": null
+        },
+        {
+          "name": "@verbatra/ui",
+          "version": "0.0.0",
+          "copyright": [],
+          "author": "Mario Kreitz",
+          "textId": null,
           "notice": null
         },
         {
