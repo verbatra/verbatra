@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { PanelCaption } from "@/components/ui/panel-caption";
+import { THEMES, type ThemeName } from "@/lib/theme";
 import { useSiteTheme } from "@/lib/use-site-theme";
 import { cn } from "@/lib/utils";
 
@@ -11,10 +12,6 @@ const SHOTS = {
   review: { width: 2880, height: 1200 },
   translations: { width: 2880, height: 2360 },
 } as const;
-
-const THEMES = ["dark", "light"] as const;
-
-type StudioTheme = (typeof THEMES)[number];
 
 const THEME_BUTTON_CLASS = "vk-tap rounded-md px-2.5 py-1 text-xs transition-colors";
 
@@ -45,8 +42,8 @@ export function StudioScreenshot({
 }: StudioScreenshotProps): ReactNode {
   const t = useTranslations("docs.screenshot");
   const { resolvedTheme } = useSiteTheme();
-  const [chosen, setChosen] = useState<StudioTheme | null>(null);
-  const siteTheme: StudioTheme = resolvedTheme === "light" ? "light" : "dark";
+  const [chosen, setChosen] = useState<ThemeName | null>(null);
+  const siteTheme: ThemeName = resolvedTheme === "light" ? "light" : "dark";
   const theme = chosen ?? siteTheme;
   const { width, height } = SHOTS[shot];
 
