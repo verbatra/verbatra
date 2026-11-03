@@ -28,7 +28,7 @@
 
   @media (hover: hover) {
     .vk-btn-danger:hover {
-      filter: brightness(1.08);
+      background: var(--status-danger-strong);
     }
   }
 

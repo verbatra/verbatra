@@ -27,8 +27,8 @@ export function Card({
         PADDING[padding],
         className,
       )}
-      data-padding={padding}
       {...props}
+      data-padding={padding}
     />
   );
 }

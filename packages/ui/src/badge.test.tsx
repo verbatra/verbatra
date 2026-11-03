@@ -13,6 +13,9 @@ const TONES: readonly BadgeTone[] = [
   "success",
   "warning",
   "danger",
+  "missing",
+  "orphaned",
+  "protected",
 ];
 
 describe("Badge", () => {
@@ -38,6 +41,25 @@ describe("Badge", () => {
       expect(className).toContain(`bg-(--status-${tone}-soft)`);
     },
   );
+
+  it.each(["changed", "missing", "orphaned", "protected"] as const)(
+    "tints the %s tone with its diff token, its soft fill and a 40 percent border",
+    (tone) => {
+      const className = render(<Badge tone={tone}>x</Badge>).get("span").className;
+
+      expect(className).toContain(`text-(--diff-${tone})`);
+      expect(className).toContain(`bg-(--diff-${tone}-soft)`);
+      expect(className).toContain(`var(--diff-${tone})_40%`);
+    },
+  );
+
+  it("pins the normal font weight so a badge never inherits a heavier one", () => {
+    expect(
+      render(<Badge>x</Badge>)
+        .get("span")
+        .className.split(" "),
+    ).toContain("font-normal");
+  });
 
   it("fills the solid tone and leaves the other site tones unfilled", () => {
     expect(render(<Badge tone="solid">x</Badge>).get("span").className).toContain(
@@ -65,7 +87,7 @@ describe("Badge", () => {
     expect(names).toContain("uppercase");
   });
 
-  it("wraps a long value in its own case only when asked", () => {
+  it("wraps a long value only when asked, without touching its case", () => {
     const names = render(
       <Badge tone="danger" wrap>
         x
@@ -75,9 +97,19 @@ describe("Badge", () => {
       .className.split(" ");
 
     expect(names).toContain("whitespace-normal");
-    expect(names).toContain("normal-case");
     expect(names).toContain("[overflow-wrap:anywhere]");
     expect(names).not.toContain("whitespace-nowrap");
+    expect(names).toContain("uppercase");
+  });
+
+  it("shows a verbatim value in its own case and spacing, separately from wrapping", () => {
+    const names = render(<Badge verbatim>de-AT</Badge>)
+      .get("span")
+      .className.split(" ");
+
+    expect(names).toContain("normal-case");
+    expect(names).toContain("tracking-normal");
     expect(names).not.toContain("uppercase");
+    expect(names).toContain("whitespace-nowrap");
   });
 });

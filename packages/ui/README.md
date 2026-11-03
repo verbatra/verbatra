@@ -5,11 +5,12 @@
 
 ## Purpose
 
-The shared design tokens and base components (`Button`, `Badge`, `Card`, `Icon`) for the verbatra surfaces. `apps/docs` and `@verbatra/studio` consume
-them. `src/tokens.css` holds the brand primitives (`--v-*`), the semantic layer (`--surface-*`,
-`--border-*`, `--text-*`, `--accent*`, `--focus-ring`, `--scrim`), the status and diff tones
-(`--status-*`, `--diff-*`, each with a `-soft` tint), the type, radius, shadow, motion
-and layout scales, and the heading font binding.
+The shared design tokens and base components (`Button`, `Badge`, `Card`, `Icon`) for the
+verbatra surfaces. `apps/docs` and `@verbatra/studio` consume them. `src/tokens.css` holds the
+brand primitives (`--v-*`), the semantic layer (`--surface-*`, `--border-*`, `--text-*`,
+`--accent*`, `--focus-ring`, `--scrim`), the status and diff tones (`--status-*`, `--diff-*`, each
+with a `-soft` tint, plus `--status-danger-strong` for the danger hover), the `--halo-strong`
+glow, the type, radius, shadow, motion and layout scales, and the heading font binding.
 
 ## Contract
 
@@ -40,9 +41,10 @@ and layout scales, and the heading font binding.
   classes name. Import it next to `tokens.css` and add an `@source` for `packages/ui/src` so
   Tailwind scans the component classes.
 - `@verbatra/ui`: `Button` and `buttonClasses()` (variants `primary`, `secondary`, `outline`,
-  `ghost`, `secondary-success`, `secondary-danger`, `danger`; sizes `sm`, `md`, `lg`), `Badge`
+  `ghost`, `secondary-success`, `secondary-danger`, `danger`; sizes `xs`, `sm`, `md`, `lg`), `Badge`
   (tones `neutral`, `glow`, `new`, `changed`, `unchanged`, `solid`, `success`, `warning`,
-  `danger`), `Card`, `Icon` and `cn`. Components style through semantic tokens only, in
+  `danger`, `missing`, `orphaned`, `protected`; `changed` carries the diff look; `verbatim` and `wrap`
+  options), `Card`, `Icon` and `cn`. Components style through semantic tokens only, in
   class form (`text-(--text-muted)`), and carry `data-variant`, `data-size`, `data-tone` and
   `data-padding` attributes. Sibling modules import each other with their real `.ts`/`.tsx`
   extension, because the apps bundle this source directly.

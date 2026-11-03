@@ -10,10 +10,10 @@ export type ButtonVariant =
   | "secondary-danger"
   | "danger";
 
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 const BASE =
-  "vk-btn group not-prose inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold disabled:opacity-50 disabled:pointer-events-none";
+  "vk-btn group not-prose inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-md) font-semibold disabled:opacity-60 disabled:pointer-events-none";
 
 const SECONDARY_LOOK =
   "vk-btn-secondary border border-(--text-faint) bg-(--surface-card) hover:bg-(--surface-hover)";
@@ -30,6 +30,7 @@ const VARIANT: Readonly<Record<ButtonVariant, string>> = {
 };
 
 const SIZE: Readonly<Record<ButtonSize, string>> = {
+  xs: "px-2 py-1 text-xs font-medium",
   sm: "py-[7px] px-3 text-sm",
   md: "py-[11px] px-[18px] text-sm",
   lg: "py-[13px] px-[22px] text-base",
@@ -92,9 +93,9 @@ export function Button({
     <button
       type={type}
       className={buttonClasses({ variant, size, className })}
+      {...props}
       data-variant={variant}
       data-size={size}
-      {...props}
     >
       <ButtonContent trailingArrow={trailingArrow}>{children}</ButtonContent>
     </button>

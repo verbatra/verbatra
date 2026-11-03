@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createThemeStore, resolveThemeMode, type ThemeMode } from "./theme.js";
+import { createThemeStore, resolveThemeMode, type ThemeMode } from "./theme.ts";
 
 const KEY = "test-theme";
 const ALL: readonly ThemeMode[] = ["system", "light", "dark"];

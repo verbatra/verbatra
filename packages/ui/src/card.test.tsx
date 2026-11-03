@@ -7,7 +7,7 @@ describe("Card", () => {
   it("renders a plain div by default, so a card is not a landmark unless asked", () => {
     const view = render(<Card>Body</Card>);
 
-    expect(view.get("div > div").tagName).toBe("DIV");
+    expect(view.get("[data-padding]").tagName).toBe("DIV");
     expect(view.query("section")).toBeNull();
   });
 
@@ -23,7 +23,7 @@ describe("Card", () => {
 
   it("applies the medium padding by default", () => {
     const view = render(<Card>Body</Card>);
-    const card = view.get("div > div");
+    const card = view.get("[data-padding]");
 
     expect(card.dataset.padding).toBe("md");
     expect(card.className.split(" ")).toContain("p-6");
@@ -31,7 +31,7 @@ describe("Card", () => {
 
   it("applies the small padding on request", () => {
     const names = render(<Card padding="sm">Body</Card>)
-      .get("div > div")
+      .get("[data-padding]")
       .className.split(" ");
 
     expect(names).toContain("p-4");
@@ -39,14 +39,14 @@ describe("Card", () => {
   });
 
   it("adds no padding at all for flush content such as an edge-to-edge table", () => {
-    const card = render(<Card padding="none">Body</Card>).get("div > div");
+    const card = render(<Card padding="none">Body</Card>).get("[data-padding]");
 
     expect(card.dataset.padding).toBe("none");
     expect(card.className).not.toMatch(/(?:^|\s)p-\d/);
   });
 
   it("keeps the tile surface in every padding mode", () => {
-    const className = render(<Card padding="none">Body</Card>).get("div > div").className;
+    const className = render(<Card padding="none">Body</Card>).get("[data-padding]").className;
 
     expect(className).toContain("border-(--border-tile)");
     expect(className).toContain("bg-(--surface-tile)");
@@ -55,7 +55,7 @@ describe("Card", () => {
   it("merges a caller className onto the surface classes", () => {
     const view = render(<Card className="mb-6">Body</Card>);
 
-    expect(view.get("div > div").className.split(" ")).toContain("mb-6");
+    expect(view.get("[data-padding]").className.split(" ")).toContain("mb-6");
   });
 
   it("forwards native div attributes, so a caller can make the card a live region", () => {

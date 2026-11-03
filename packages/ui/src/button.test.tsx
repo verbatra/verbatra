@@ -13,7 +13,7 @@ const VARIANTS: readonly ButtonVariant[] = [
   "danger",
 ];
 
-const SIZES: readonly ButtonSize[] = ["sm", "md", "lg"];
+const SIZES: readonly ButtonSize[] = ["xs", "sm", "md", "lg"];
 
 describe("Button", () => {
   it("defaults to a non-submitting button so a caller never posts a form by accident", () => {
@@ -106,6 +106,34 @@ describe("Button", () => {
         "--text-faint",
       );
     }
+  });
+
+  it("sets the compact size to the dense row-action metrics", () => {
+    const names = buttonClasses({ size: "xs" }).split(" ");
+
+    expect(names).toContain("px-2");
+    expect(names).toContain("py-1");
+    expect(names).toContain("text-xs");
+    expect(names).toContain("font-medium");
+    expect(names).not.toContain("font-semibold");
+  });
+
+  it("keeps the label on one line and fades a disabled button", () => {
+    const names = buttonClasses().split(" ");
+
+    expect(names).toContain("whitespace-nowrap");
+    expect(names).toContain("disabled:opacity-60");
+  });
+
+  it("keeps its own data attributes even when a caller passes the same names", () => {
+    const view = render(
+      <Button variant="danger" {...{ "data-variant": "x", "data-size": "x" }}>
+        x
+      </Button>,
+    );
+
+    expect(view.get("button").dataset.variant).toBe("danger");
+    expect(view.get("button").dataset.size).toBe("sm");
   });
 
   it("lets a caller class win over a conflicting size class", () => {

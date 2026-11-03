@@ -10,20 +10,30 @@ export type BadgeTone =
   | "solid"
   | "success"
   | "warning"
-  | "danger";
+  | "danger"
+  | "missing"
+  | "orphaned"
+  | "protected";
 
 const BASE =
-  "not-prose inline-flex items-center font-mono uppercase rounded-[6px] border px-[7px] py-[3px] text-xs tracking-[0.08em] whitespace-nowrap";
+  "not-prose inline-flex items-center font-mono font-normal uppercase rounded-(--radius-sm) border px-[7px] py-[3px] text-xs tracking-[0.08em] whitespace-nowrap";
 
-const WRAPPED =
-  "min-w-0 max-w-full whitespace-normal normal-case tracking-normal [overflow-wrap:anywhere]";
+const WRAPPED = "min-w-0 max-w-full whitespace-normal [overflow-wrap:anywhere]";
+
+const VERBATIM = "normal-case tracking-normal";
 
 const TONE: Readonly<Record<BadgeTone, string>> = {
   neutral: "text-(--text-muted) border-(--border-default)",
   glow: "text-(--accent) border-[color:color-mix(in_srgb,var(--accent)_40%,transparent)]",
   new: "text-(--v-status-new) border-[color:color-mix(in_srgb,var(--accent)_40%,transparent)]",
   changed:
-    "text-(--v-status-changed) border-[color:color-mix(in_srgb,var(--accent-fill)_40%,transparent)]",
+    "text-(--diff-changed) bg-(--diff-changed-soft) border-[color:color-mix(in_srgb,var(--diff-changed)_40%,transparent)]",
+  missing:
+    "text-(--diff-missing) bg-(--diff-missing-soft) border-[color:color-mix(in_srgb,var(--diff-missing)_40%,transparent)]",
+  orphaned:
+    "text-(--diff-orphaned) bg-(--diff-orphaned-soft) border-[color:color-mix(in_srgb,var(--diff-orphaned)_40%,transparent)]",
+  protected:
+    "text-(--diff-protected) bg-(--diff-protected-soft) border-[color:color-mix(in_srgb,var(--diff-protected)_40%,transparent)]",
   unchanged: "text-(--v-status-unchanged) border-(--border-default)",
   solid: "text-(--accent-fill-fg) border-transparent bg-(--accent-fill)",
   success:
@@ -37,14 +47,16 @@ const TONE: Readonly<Record<BadgeTone, string>> = {
 export function Badge({
   tone = "neutral",
   wrap = false,
+  verbatim = false,
   children,
 }: {
   readonly tone?: BadgeTone;
   readonly wrap?: boolean;
+  readonly verbatim?: boolean;
   readonly children: ReactNode;
 }): ReactNode {
   return (
-    <span className={cn(BASE, TONE[tone], wrap && WRAPPED)} data-tone={tone}>
+    <span className={cn(BASE, TONE[tone], wrap && WRAPPED, verbatim && VERBATIM)} data-tone={tone}>
       {children}
     </span>
   );
