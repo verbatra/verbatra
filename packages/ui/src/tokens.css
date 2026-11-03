@@ -60,6 +60,26 @@
   --motion-distance-lg: 16px;
 
   --v-status-new: var(--v-glow);
+
+  --text-body: var(--text-strong);
+  --text-link: var(--v-glow);
+  --text-danger: var(--v-danger);
+  --text-success: var(--v-glow);
+  --border-danger: color-mix(in srgb, var(--v-danger) 55%, transparent);
+  --border-accent: color-mix(in srgb, var(--accent) 45%, var(--border-default));
+  --accent: var(--v-glow);
+  --accent-fill: var(--v-purple);
+  --accent-fill-fg: hsl(258 60% 98%);
+  --pill-new-start: var(--accent-fill);
+  --pill-new-fg: hsl(0 0% 100%);
+  --pill-new-glow: color-mix(in srgb, var(--pill-new-start) 55%, transparent);
+  --btn-fill-end: color-mix(in srgb, var(--accent-fill) 50%, var(--pill-new-end));
+  --btn-highlight: color-mix(in srgb, var(--accent-fill-fg) 38%, transparent);
+  --btn-rim: color-mix(in srgb, var(--pill-new-end) 80%, transparent);
+  --focus-ring: var(--v-glow);
+  --surface-band: color-mix(in srgb, var(--surface-card) 40%, var(--surface-bg));
+  --scroll-shade: color-mix(in srgb, var(--text-muted) 24%, transparent);
+  --surface-chrome: color-mix(in srgb, var(--surface-bg) 94%, transparent);
 }
 
 @media (min-width: 768px) {
@@ -79,6 +99,21 @@
 
   --shadow-panel: 0 24px 48px -24px rgba(0, 0, 0, 0.6);
   --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.4);
+
+  --surface-page: var(--v-void);
+  --surface-bg: hsl(240 24% 6%);
+  --surface-card: hsl(240 28% 14%);
+  --surface-raised: hsl(240 24% 18%);
+  --surface-muted: hsl(240 24% 18%);
+  --surface-hover: hsl(258 25% 20%);
+  --border-default: hsl(240 23% 22%);
+  --text-strong: hsl(240 30% 94%);
+  --text-muted: hsl(240 13% 65%);
+  --text-faint: hsl(240 13% 58%);
+  --text-on-accent: hsl(240 23% 7%);
+  --pill-new-end: hsl(258 56% 47%);
+  --pill-new-rim: transparent;
+  --scrim: hsl(240 24% 3% / 0.6);
 }
 
 .light,
@@ -92,6 +127,21 @@
 
   --shadow-panel: 0 24px 48px -28px rgba(20, 20, 40, 0.18);
   --shadow-sm: 0 2px 8px -2px rgba(20, 20, 40, 0.12);
+
+  --surface-page: var(--surface-bg);
+  --surface-bg: hsl(240 20% 98%);
+  --surface-card: hsl(240 18% 95%);
+  --surface-raised: hsl(0 0% 100%);
+  --surface-muted: hsl(240 16% 93%);
+  --surface-hover: hsl(258 40% 94%);
+  --border-default: hsl(240 14% 86%);
+  --text-strong: hsl(240 28% 9%);
+  --text-muted: hsl(240 10% 36%);
+  --text-faint: hsl(240 8% 40%);
+  --text-on-accent: hsl(258 60% 98%);
+  --pill-new-end: hsl(254 70% 26%);
+  --pill-new-rim: color-mix(in srgb, var(--pill-new-end) 45%, transparent);
+  --scrim: hsl(240 20% 20% / 0.35);
 }
 
 h1,

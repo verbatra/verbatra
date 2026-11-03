@@ -36,25 +36,25 @@
 :root {
   color-scheme: dark;
 
-  --color-fd-background: hsl(240 24% 6%);
-  --color-fd-card: hsl(240 28% 14%);
-  --color-fd-popover: hsl(240 24% 18%);
-  --color-fd-muted: hsl(240 24% 18%);
-  --color-fd-border: hsl(240 23% 22%);
-  --color-fd-foreground: hsl(240 30% 94%);
-  --color-fd-muted-foreground: hsl(240 13% 65%);
+  --color-fd-background: var(--surface-bg);
+  --color-fd-card: var(--surface-card);
+  --color-fd-popover: var(--surface-raised);
+  --color-fd-muted: var(--surface-muted);
+  --color-fd-border: var(--border-default);
+  --color-fd-foreground: var(--text-strong);
+  --color-fd-muted-foreground: var(--text-muted);
 
-  --color-fd-primary: var(--v-glow);
-  --color-fd-primary-foreground: hsl(240 23% 7%);
-  --color-fd-accent: hsl(258 25% 20%);
-  --color-fd-accent-foreground: hsl(240 30% 94%);
+  --color-fd-primary: var(--text-link);
+  --color-fd-primary-foreground: var(--text-on-accent);
+  --color-fd-accent: var(--surface-hover);
+  --color-fd-accent-foreground: var(--text-strong);
 
-  --color-fd-ring: var(--v-glow);
+  --color-fd-ring: var(--focus-ring);
 
   --color-fd-info: var(--v-glow);
   --color-fd-warning: var(--v-status-changed);
   --color-fd-error: var(--v-danger);
-  --color-fd-popover-foreground: var(--color-fd-foreground);
+  --color-fd-popover-foreground: var(--text-strong);
   --color-fd-success: var(--v-glow);
 }
 
@@ -207,38 +207,6 @@ samp {
   --fab-offset: 1rem;
   --fab-clearance: calc(var(--fab-size) + 2 * var(--fab-offset) + env(safe-area-inset-bottom));
 
-  --surface-page: var(--v-void);
-
-  --surface-bg: var(--color-fd-background);
-  --surface-card: var(--color-fd-card);
-  --surface-raised: var(--color-fd-popover);
-  --surface-hover: var(--color-fd-accent);
-  --border-default: var(--color-fd-border);
-  --text-strong: var(--color-fd-foreground);
-  --text-body: var(--color-fd-foreground);
-  --text-muted: var(--color-fd-muted-foreground);
-  --text-faint: hsl(240 13% 58%);
-  --text-link: var(--color-fd-primary);
-  --text-danger: var(--v-danger);
-  --text-success: var(--v-glow);
-  --border-danger: color-mix(in srgb, var(--v-danger) 55%, transparent);
-  --border-accent: color-mix(in srgb, var(--accent) 45%, var(--border-default));
-  --accent: var(--v-glow);
-  --accent-fill: var(--v-purple);
-  --accent-fill-fg: hsl(258 60% 98%);
-  --pill-new-start: var(--accent-fill);
-  --pill-new-end: hsl(258 56% 47%);
-  --pill-new-fg: hsl(0 0% 100%);
-  --pill-new-glow: color-mix(in srgb, var(--pill-new-start) 55%, transparent);
-  --pill-new-rim: transparent;
-  --btn-fill-end: color-mix(in srgb, var(--accent-fill) 50%, var(--pill-new-end));
-  --btn-highlight: color-mix(in srgb, var(--accent-fill-fg) 38%, transparent);
-  --btn-rim: color-mix(in srgb, var(--pill-new-end) 80%, transparent);
-  --focus-ring: var(--v-glow);
-  --surface-band: color-mix(in srgb, var(--surface-card) 40%, var(--surface-bg));
-  --scroll-shade: color-mix(in srgb, var(--text-muted) 24%, transparent);
-  --surface-chrome: color-mix(in srgb, var(--surface-bg) 94%, transparent);
-  --scrim: hsl(240 24% 3% / 0.6);
   --color-fd-overlay: var(--scrim);
   --banner-title: min(clamp(2.875rem, 6.6vw, 5.75rem), 15.5cqi);
   --statement-title: clamp(2.5rem, 6.4vw, 5.75rem);
@@ -255,31 +223,14 @@ samp {
 html.light {
   color-scheme: light;
 
-  --surface-page: var(--color-fd-background);
-  --pill-new-end: hsl(254 70% 26%);
-  --pill-new-rim: color-mix(in srgb, var(--pill-new-end) 45%, transparent);
+  --color-fd-secondary: var(--surface-muted);
+  --color-fd-secondary-foreground: var(--text-strong);
 
-  --color-fd-background: hsl(240 20% 98%);
-  --color-fd-card: hsl(240 18% 95%);
-  --color-fd-popover: hsl(0 0% 100%);
-  --color-fd-muted: hsl(240 16% 93%);
-  --color-fd-border: hsl(240 14% 86%);
-  --color-fd-foreground: hsl(240 28% 9%);
-  --color-fd-muted-foreground: hsl(240 10% 36%);
-  --color-fd-secondary: hsl(240 16% 93%);
-  --color-fd-secondary-foreground: hsl(240 28% 9%);
-
-  --color-fd-primary-foreground: hsl(258 60% 98%);
-  --color-fd-accent: hsl(258 40% 94%);
-  --color-fd-accent-foreground: hsl(240 28% 9%);
-
-  --text-faint: hsl(240 8% 40%);
   --surface-tile: hsl(0 0% 100%);
   --border-tile: var(--border-default);
   --halo-strong: color-mix(in srgb, var(--accent-fill) 22%, transparent);
   --halo-soft: color-mix(in srgb, var(--accent) 14%, transparent);
   --art-dim: hsl(240 8% 68%);
-  --scrim: hsl(240 20% 20% / 0.35);
 }
 
 @media (width < 40rem) {

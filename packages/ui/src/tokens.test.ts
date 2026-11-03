@@ -40,6 +40,20 @@ const THEMED_TOKENS = [
   "--v-danger",
   "--shadow-panel",
   "--shadow-sm",
+  "--surface-page",
+  "--surface-bg",
+  "--surface-card",
+  "--surface-raised",
+  "--surface-muted",
+  "--surface-hover",
+  "--border-default",
+  "--text-strong",
+  "--text-muted",
+  "--text-faint",
+  "--text-on-accent",
+  "--pill-new-end",
+  "--pill-new-rim",
+  "--scrim",
 ];
 
 const SHARED_TOKENS = [
@@ -62,6 +76,25 @@ const SHARED_TOKENS = [
   "--duration-base",
   "--motion-distance-lg",
   "--v-status-new",
+  "--text-body",
+  "--text-link",
+  "--text-danger",
+  "--text-success",
+  "--border-danger",
+  "--border-accent",
+  "--accent",
+  "--accent-fill",
+  "--accent-fill-fg",
+  "--pill-new-start",
+  "--pill-new-fg",
+  "--pill-new-glow",
+  "--btn-fill-end",
+  "--btn-highlight",
+  "--btn-rim",
+  "--focus-ring",
+  "--surface-band",
+  "--scroll-shade",
+  "--surface-chrome",
 ];
 
 describe("tokens.css", () => {
@@ -81,6 +114,21 @@ describe("tokens.css", () => {
       (name) => dark?.declarations.get(name) === light?.declarations.get(name),
     );
     expect(same).toEqual([]);
+  });
+
+  it("never declares a themed token outside the theme selectors", () => {
+    const rootBlocks = blocks.filter((block) => block.selector === ":root");
+    const leaked = THEMED_TOKENS.filter((name) =>
+      rootBlocks.some((block) => block.declarations.has(name)),
+    );
+    expect(leaked).toEqual([]);
+  });
+
+  it("resolves every var() reference to a declared token or a fallback", () => {
+    const unresolved = [...css.matchAll(/var\((--[\w-]+)\s*([,)])/g)]
+      .filter((match) => match[2] === ")" && !declared.has(match[1] ?? ""))
+      .map((match) => match[1]);
+    expect(unresolved).toEqual([]);
   });
 
   it("binds headings to the display font", () => {
