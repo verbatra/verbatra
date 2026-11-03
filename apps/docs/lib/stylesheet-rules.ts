@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 
 export type StyleRule = {
@@ -47,13 +48,15 @@ export function stylesheetRules(css: string): StyleRule[] {
 }
 
 export function uiTokensCss(): string {
-  return readFileSync(join(process.cwd(), "../../packages/ui/src/tokens.css"), "utf8");
+  return readFileSync(createRequire(import.meta.url).resolve("@verbatra/ui/tokens.css"), "utf8");
+}
+
+export function docsGlobalCss(): string {
+  return readFileSync(join(process.cwd(), "app/global.css"), "utf8");
 }
 
 export function docsStylesheetRules(): StyleRule[] {
-  return stylesheetRules(
-    `${uiTokensCss()}\n${readFileSync(join(process.cwd(), "app/global.css"), "utf8")}`,
-  );
+  return stylesheetRules(`${uiTokensCss()}\n${docsGlobalCss()}`);
 }
 
 export function rulesFor(rules: ReadonlyArray<StyleRule>, selector: string): StyleRule[] {

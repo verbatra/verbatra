@@ -5,7 +5,12 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DefaultThemeMeta } from "@/components/default-theme-meta";
-import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
+import {
+  docsGlobalCss,
+  docsStylesheetRules,
+  rulesFor,
+  stylesheetRules,
+} from "@/lib/stylesheet-rules";
 import {
   contrast,
   luminance,
@@ -160,17 +165,34 @@ describe("theme tokens", () => {
     });
   });
 
-  it("gives the light theme its own value for every Fumadocs color and brand primitive", () => {
-    const light = declarationsOf(".light");
-    const dark = declarationsOf(".dark");
-    const themed = Object.keys(dark).filter(
-      (name) =>
-        /^--(surface-(bg|card|raised|muted|hover)|border-default|text-(strong|muted|on-accent))$/.test(
-          name,
-        ) || /^--v-(purple|glow|violet|void|danger|status-changed|status-unchanged)$/.test(name),
-    );
-    expect(themed.length).toBeGreaterThan(12);
-    for (const name of themed) expect(light, name).toHaveProperty(name);
+  it("aliases every Fumadocs color of :root to a semantic token that differs between the themes", () => {
+    const aliases = Object.entries(
+      rootDeclarations(stylesheetRules(docsGlobalCss()), ":root"),
+    ).filter(([name]) => name.startsWith("--color-fd-"));
+    expect(aliases.map(([name]) => name).sort()).toEqual([
+      "--color-fd-accent",
+      "--color-fd-accent-foreground",
+      "--color-fd-background",
+      "--color-fd-border",
+      "--color-fd-card",
+      "--color-fd-error",
+      "--color-fd-foreground",
+      "--color-fd-info",
+      "--color-fd-muted",
+      "--color-fd-muted-foreground",
+      "--color-fd-overlay",
+      "--color-fd-popover",
+      "--color-fd-popover-foreground",
+      "--color-fd-primary",
+      "--color-fd-primary-foreground",
+      "--color-fd-ring",
+      "--color-fd-success",
+      "--color-fd-warning",
+    ]);
+    for (const [name, value] of aliases) {
+      expect(value, name).toMatch(/^var\(--[\w-]+\)$/);
+      expect(resolve(DARK, value), name).not.toBe(resolve(LIGHT, value));
+    }
   });
 
   it.each([
@@ -296,6 +318,8 @@ describe("theme tokens", () => {
     expect(DARK["--border-accent"]).toBe(
       "color-mix(in srgb, var(--accent) 45%, var(--border-default))",
     );
+    expect(declarationsOf(".dark")).not.toHaveProperty("--border-accent");
+    expect(declarationsOf(".light")).not.toHaveProperty("--border-accent");
     expect(declarationsOf("html.light")).not.toHaveProperty("--border-accent");
   });
 
