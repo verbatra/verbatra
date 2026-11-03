@@ -2,7 +2,7 @@
   "name": "@verbatra/ui",
   "version": "0.0.0",
   "private": true,
-  "description": "Shared design tokens for the verbatra docs site. Studio does not consume it yet.",
+  "description": "Shared design tokens, fonts and theme store for the verbatra docs site and Studio.",
   "license": "MIT",
   "author": "Mario Kreitz",
   "repository": {
@@ -20,7 +20,16 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./tokens.css": "./src/tokens.css"
+    "./tokens.css": "./src/tokens.css",
+    "./fonts.css": "./src/fonts.css",
+    "./theme": {
+      "types": "./src/theme.ts",
+      "default": "./src/theme.ts"
+    },
+    "./cn": {
+      "types": "./src/cn.ts",
+      "default": "./src/cn.ts"
+    }
   },
   "engines": {
     "node": "^22.18.0 || >=24"
@@ -31,10 +40,15 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "clsx": "catalog:",
+    "tailwind-merge": "catalog:"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "@verbatra/config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
+    "jsdom": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
