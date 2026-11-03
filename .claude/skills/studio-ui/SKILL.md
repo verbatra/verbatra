@@ -149,7 +149,8 @@ Conventions carried by that list:
 between themes is the failure mode to watch for.
 
 **A solid danger fill uses `danger-foreground`.** The `danger` Button variant
-(`src/app/Button.tsx`) fills with `bg-danger` and writes `text-danger-foreground`. Use it for a
+(`packages/ui/src/button.tsx`, `.vk-btn-danger` in `packages/ui/src/components.css`) fills with
+`--status-danger` and writes `--status-danger-fg`. Use it for a
 destructive confirmation, not for an ordinary row action, which stays a tinted `secondary` button.
 
 The scales come from ui and are not Studio's to override: radii `--radius-sm` 6px, `--radius-md`
@@ -189,10 +190,16 @@ Rules that follow:
 `main.tsx`, `ui.tsx` and `test-support.tsx`; the rest are components, each with a
 co-located test). Compose these before writing anything new.
 
-- **Primitives:** `Button` (`variant: "primary" | "secondary" | "ghost" | "danger"`,
-  `size: "sm" | "md"`, default `secondary`/`sm`), `Card` (`padding: "none" | "sm" | "md"`,
-  `as: "div" | "section"`), `Badge` (`tone: "success" | "warning" | "neutral" | "danger"`, `wrap` to let a long
-  user value break inside the pill instead of overflowing; pills stay on one line by default),
+- **Shared primitives (owned by `@verbatra/ui`, import from `@verbatra/ui`):** `Button`
+  (`variant: "primary" | "secondary" | "outline" | "ghost" | "secondary-success" |
+  "secondary-danger" | "danger"`, `size: "sm" | "md" | "lg"`, default `secondary`/`sm`; the site
+  look, with `.vk-btn*` in `packages/ui/src/components.css`), `Card` (`padding: "none" | "sm" |
+  "md"`, `as: "div" | "section"`; the tile surface), `Badge` (`tone: "neutral" | "success" |
+  "warning" | "danger"` plus the site tones `glow`, `new`, `changed`, `unchanged`, `solid`; `wrap`
+  lets a long user value break in its own case instead of overflowing; badges stay on one line
+  and uppercase by default) and `Icon`. They theme through semantic tokens only and expose
+  `data-variant`, `data-size`, `data-tone` and `data-padding` for tests. Change them in
+  `packages/ui/src`, never as a Studio copy. Studio-local primitives:
   `Input`, `Select`, `Dropdown`, `Popover`, `Tooltip`, `Tabs`, `Accordion`, `Table`,
   `Sheet`, `Skeleton`, `Loading`, `ProgressBar`, `Toast`, `ErrorMessage`, `ErrorBoundary`.
   Extend a variant union rather than passing ad hoc `className` overrides at call sites.
@@ -208,7 +215,7 @@ co-located test). Compose these before writing anything new.
   "Workspace", restating the sidebar zone header sitting at the same height a few hundred
   pixels to the left. `SettingsPanel.tsx` shows the good case, where the kicker adds
   information. Treat a kicker that repeats its own navigation as the tell it is.
-- **Icons:** `src/app/Icon.tsx` is a closed set of 24 inline SVG paths keyed by
+- **Icons:** `packages/ui/src/icon.tsx` is a closed set of 24 inline SVG paths keyed by
   `IconName`. There is no icon package. A new icon is a new entry in `ICON_PATHS` and a
   new member of the union, drawn on the same 24-unit stroked grid as its neighbours.
 - **Class composition:** always `cn()` from `src/app/lib/cn.ts` (re-exports `cn` from `@verbatra/ui/cn`, clsx plus tailwind-merge),
