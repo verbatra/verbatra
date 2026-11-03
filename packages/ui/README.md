@@ -5,9 +5,10 @@
 
 ## Purpose
 
-The shared design tokens for the verbatra surfaces. `apps/docs` consumes them; Studio does not yet. `src/tokens.css` holds the brand primitives (`--v-*`), the semantic
-layer (`--surface-*`, `--border-*`, `--text-*`, `--accent*`, `--focus-ring`, `--scrim`), the type,
-radius, shadow, motion and layout scales, and the heading font binding.
+The shared design tokens for the verbatra surfaces. `apps/docs` consumes them; Studio does not
+yet. `src/tokens.css` holds the brand primitives (`--v-*`), the semantic layer (`--surface-*`,
+`--border-*`, `--text-*`, `--accent*`, `--focus-ring`, `--scrim`), the type, radius, shadow, motion
+and layout scales, and the heading font binding.
 
 ## Contract
 

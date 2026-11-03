@@ -14,8 +14,8 @@ user-invocable: true
 ## Overview
 
 apps/docs is a Fumadocs site, not a blank Next.js app. Its look is already decided
-and codified in `packages/ui/src/tokens.css` and `apps/docs/app/global.css`. Two layers stack: the Fumadocs UI theme,
-then a verbatra layer that overrides it. Generic frontend advice that assumes a
+and codified in `packages/ui/src/tokens.css` and `apps/docs/app/global.css`. Two layers stack:
+the Fumadocs UI theme, then a verbatra layer that overrides it. Generic frontend advice that assumes a
 greenfield page will fight both. This skill states what is fixed, what is yours to
 extend, and where to look things up.
 
@@ -44,7 +44,8 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   No animation library is a dependency: the playground's typing and decoding are timer-driven state
   (`lib/playground-cycle.ts`).
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
-  CSS custom properties in `packages/ui/src/tokens.css` and `app/global.css`, not a JS config object.
+  CSS custom properties in `packages/ui/src/tokens.css` and `app/global.css`, not a JS config
+  object.
 - `app/global.css` opens with these imports in this order, and the order matters:
 
   ```css
@@ -107,8 +108,8 @@ not in `apps/docs/app/global.css`. Palettes sit under `.dark, [data-theme="dark"
 `.light, [data-theme="light"]`; theme-invariant scales (type, radius, motion, layout, fonts) sit
 under `:root`. `apps/docs/app/global.css` imports the file right after the Fumadocs and Tailwind
 imports, keeps its own dark default and `html.light` for the marketing and Fumadocs-compat tokens,
-and aliases every `--color-fd-*` onto a semantic token. Studio does not consume the package yet. Change a shared token in `packages/ui/src/tokens.css`, never as a
-copy in a consuming app.
+and aliases every `--color-fd-*` onto a semantic token. Studio does not consume the package yet.
+Change a shared token in `packages/ui/src/tokens.css`, never as a copy in a consuming app.
 
 Three layers exist. Write against the third.
 
@@ -130,12 +131,13 @@ Three layers exist. Write against the third.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
    `--color-fd-muted-foreground`, `--color-fd-primary`, `--color-fd-primary-foreground`,
-   `--color-fd-accent`, `--color-fd-accent-foreground`, `--color-fd-ring`, plus the callout
+   `--color-fd-accent`, `--color-fd-accent-foreground`, `--color-fd-ring`,
+   `--color-fd-popover-foreground`, `--color-fd-overlay`, plus the callout
    hues `--color-fd-info`, `--color-fd-warning`, `--color-fd-error`, `--color-fd-success`, and in
    the light theme `--color-fd-secondary` / `--color-fd-secondary-foreground`.
-   The surface, text, border, primary, accent and ring ones are aliases of the semantic layer in
-   `packages/ui/src/tokens.css` (`var(--surface-card)` and so on), the callout hues alias `--v-*`
-   primitives, and only `--color-fd-secondary` / `-foreground` carry values under `html.light`.
+   The surface, text, border, primary, accent, ring and popover-foreground ones are aliases of the
+   semantic layer in `packages/ui/src/tokens.css` (`var(--surface-card)` and so on),
+   `--color-fd-overlay` aliases `--scrim`, the callout hues alias `--v-*` primitives, and only `--color-fd-secondary` / `-foreground` carry values under `html.light`.
    These exist so Fumadocs' own components inherit the verbatra palette. Change one only to
    retheme Fumadocs itself.
 3. **Semantic layer.** This is the one to use in components:

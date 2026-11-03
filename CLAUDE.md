@@ -152,7 +152,8 @@ request there.
 
 `packages/ui/src/tokens.css` owns the shared design tokens: brand primitives, the semantic layer,
 and the type, radius, shadow, motion and layout scales. `apps/docs/app/global.css` imports it and
-keeps only the Fumadocs aliases and the marketing tokens. Change a shared token in `tokens.css`,
+keeps the Fumadocs aliases, the marketing tokens, the docs layout, section, fab and reveal
+tokens, and its `@theme inline` aliases. Change a shared token in `tokens.css`,
 not in a consuming app.
 
 `.claude/skills/` holds the skills vendored into this repository: the third-party
