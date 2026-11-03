@@ -3,9 +3,8 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { runInNewContext } from "node:vm";
-import { createThemeStore } from "@verbatra/ui/theme";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { THEME_STORAGE_KEY } from "./theme-dom.js";
+import { THEME_STORAGE_KEY, themeStore } from "./theme-dom.js";
 
 const PUBLIC_DIR = join(process.cwd(), "src", "app", "public");
 
@@ -38,7 +37,7 @@ function runInitScript(): string | undefined {
 }
 
 function runStore(): string | undefined {
-  createThemeStore({ storageKey: THEME_STORAGE_KEY, modes: ["system", "light", "dark"] }).init();
+  themeStore.init()();
   return document.documentElement.dataset.theme;
 }
 

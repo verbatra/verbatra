@@ -161,8 +161,23 @@ describe("createThemeStore", () => {
     const media = installMatchMedia(false);
     const store = createThemeStore({ storageKey: KEY, modes: ALL });
     store.init();
-    store.init();
+    const stop = store.init();
     expect(media.listenerCount()).toBe(1);
+    stop();
+  });
+
+  it("removes its OS and storage listeners when the init cleanup runs", () => {
+    const media = installMatchMedia(false);
+    const store = createThemeStore({ storageKey: KEY, modes: ALL });
+    const listener = vi.fn();
+    store.subscribe(listener);
+
+    store.init()();
+
+    expect(media.listenerCount()).toBe(0);
+    window.localStorage.setItem(KEY, "light");
+    window.dispatchEvent(new StorageEvent("storage", { key: KEY }));
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it("re-applies when another tab changes the stored mode", () => {
@@ -214,6 +229,64 @@ describe("createThemeStore", () => {
     store.setMode("dark");
 
     expect(store.getMode()).toBe("dark");
+    expect(applied()).toBe("dark");
+  });
+
+  it("keeps an explicit in-session choice when the OS flips, even though storage never took it", () => {
+    breakStorage();
+    const media = installMatchMedia(false);
+    const store = createThemeStore({ storageKey: KEY, modes: ALL });
+    store.init();
+    expect(applied()).toBe("dark");
+
+    store.setMode("light");
+    media.emitChange();
+
+    expect(applied()).toBe("light");
+  });
+
+  it("keeps the choice when only the write fails and the read still works", () => {
+    installMatchMedia(false);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("quota exceeded");
+    });
+    const store = createThemeStore({ storageKey: KEY, modes: ALL });
+    store.init();
+
+    store.setMode("light");
+
+    expect(store.getMode()).toBe("light");
+    expect(applied()).toBe("light");
+  });
+
+  it("lets another tab's stored mode replace a choice storage never took", () => {
+    installMatchMedia(false);
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("quota exceeded");
+    });
+    const store = createThemeStore({ storageKey: KEY, modes: ALL });
+    const stop = store.init();
+    store.setMode("light");
+    setItem.mockRestore();
+
+    window.localStorage.setItem(KEY, "dark");
+    window.dispatchEvent(new StorageEvent("storage", { key: KEY }));
+
+    expect(store.getMode()).toBe("dark");
+    expect(applied()).toBe("dark");
+    stop();
+  });
+
+  it("resumes tracking the OS once the user returns to the system mode", () => {
+    const media = installMatchMedia(true);
+    const store = createThemeStore({ storageKey: KEY, modes: ALL });
+    store.init();
+    store.setMode("dark");
+    store.setMode("system");
+
+    media.setPrefersLight(false);
+    media.emitChange();
+
     expect(applied()).toBe("dark");
   });
 });

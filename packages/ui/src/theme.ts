@@ -13,7 +13,7 @@ export interface ThemeStore {
   getResolved(): ResolvedTheme;
   setMode(mode: ThemeMode): void;
   subscribe(listener: () => void): () => void;
-  init(): void;
+  init(): () => void;
 }
 
 const LIGHT_QUERY = "(prefers-color-scheme: light)";
@@ -29,7 +29,7 @@ export function resolveThemeMode(mode: ThemeMode, systemPrefersLight: boolean): 
 export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): ThemeStore {
   const fallback: ThemeMode = modes.includes("system") ? "system" : (modes[0] ?? "dark");
   const listeners = new Set<() => void>();
-  let remembered: ThemeMode = fallback;
+  let remembered: ThemeMode | null = null;
   let systemQuery: MediaQueryList | null = null;
 
   function parse(stored: string | null): ThemeMode {
@@ -37,10 +37,13 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
   }
 
   function getMode(): ThemeMode {
+    if (remembered !== null) {
+      return remembered;
+    }
     try {
       return parse(window.localStorage.getItem(storageKey));
     } catch {
-      return remembered;
+      return fallback;
     }
   }
 
@@ -79,6 +82,7 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
 
   function onStorage(event: StorageEvent): void {
     if (event.key === storageKey || event.key === null) {
+      remembered = null;
       refresh();
     }
   }
@@ -91,10 +95,12 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
       if (!modes.includes(mode)) {
         return;
       }
-      remembered = mode;
       try {
         window.localStorage.setItem(storageKey, mode);
-      } catch {}
+        remembered = null;
+      } catch {
+        remembered = mode;
+      }
       refresh();
     },
     subscribe(listener) {
@@ -110,6 +116,11 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
       systemQuery.addEventListener("change", onSystemChange);
       window.removeEventListener("storage", onStorage);
       window.addEventListener("storage", onStorage);
+      return () => {
+        systemQuery?.removeEventListener("change", onSystemChange);
+        systemQuery = null;
+        window.removeEventListener("storage", onStorage);
+      };
     },
   };
 }
