@@ -41,8 +41,8 @@ headlessly, no DOM).
 ## The stack, and why it constrains you
 
 - `vite` 8.3.4, `@vitejs/plugin-react` 6.1.2, `tailwindcss` 4.3.3 through
-  `@tailwindcss/vite`, `clsx` 2.1.1, `tailwind-merge` 3.7.0. React and TypeScript come
-  from the workspace catalog.
+  `@tailwindcss/vite`. `clsx` and `tailwind-merge` come through `cn` from
+  `@verbatra/ui`. React and TypeScript come from the workspace catalog.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js` and no
   PostCSS config. Tokens are CSS custom properties and `@theme` blocks in
   `src/app/styles.css`.
@@ -84,7 +84,7 @@ attribute, and no `javascript:` URL. Consequences for UI work:
 
 ## Typography: Geist, self-hosted
 
-`@verbatra/ui/fonts.css` (imported first in `styles.css`) declares Geist and Geist Mono as
+`@verbatra/ui/fonts.css` (imported after `tailwindcss` and `tokens.css` in `styles.css`) declares Geist and Geist Mono as
 variable woff2 faces, latin and latin-ext, `font-display: swap`, and points
 `--font-geist-sans` and `--font-geist-mono` at them with a system stack behind each. The ui
 tokens bind `--font-sans` and `--font-mono` to those variables, so `font-sans` and `font-mono`
@@ -103,13 +103,11 @@ to a font CDN; CSP will block it.
 Studio owns no palette. `packages/ui/src/tokens.css` defines the brand primitives (`--v-*`), the
 semantic layer (`--surface-*`, `--border-default`, `--text-*`, `--accent*`, `--focus-ring`,
 `--scrim`, `--status-*`, `--diff-*`), the radius and shadow scales and the type scale.
-`src/app/styles.css` imports it and holds two small things:
-
-1. **A plain `@theme` entry** for `--shadow-panel`, so Tailwind generates the `shadow-panel`
-   utility. The ui value is unlayered and wins over it.
-2. **`@theme inline`**, which maps every `--color-*` onto a ui semantic token. That is what turns
-   a token into utilities such as `bg-card`, `text-muted-foreground`, `border-border`,
-   `bg-success-soft`.
+`src/app/styles.css` imports it and holds one thing: **`@theme inline`**, which maps every
+`--color-*` onto a ui semantic token and the two shadow utilities onto ui shadows
+(`shadow-panel` is `--shadow-sm`, `shadow-panel-lg` is ui's large `--shadow-panel`). That is what
+turns a token into utilities such as `bg-card` (the tile surface), `bg-input` (the raised
+surface), `text-muted-foreground`, `border-border`, `bg-success-soft`.
 
 Never put a ui `--text-*` color token into `@theme`: Tailwind reads that namespace as font sizes.
 Map text colors through `--color-*` instead.
@@ -140,8 +138,9 @@ Conventions carried by that list:
   low-alpha background (`--status-success-soft`). A new semantic hue ships both, with a contrast
   test in `packages/ui/src/tokens.test.ts`, or it is not finished.
 - **Protected is not Changed.** `diff-protected` is teal, `diff-changed` amber; the pill carries a
-  word as well, never color alone.
-- **The sidebar currently aliases the card, text and hover surfaces.** It is no longer a separate
+  word as well, never color alone. Orphaned intentionally uses the neutral tone, and Missing
+  currently shares the accent hue with links and focus.
+- **The sidebar currently aliases the page background, text and hover surfaces.** It is no longer a separate
   dark palette; it is interim until the navigation shell is rebuilt.
 
 **The modal scrim has its own token.** `OverlayBackdrop` (`src/app/ui.tsx`) draws it with

@@ -17,8 +17,8 @@ and layout scales, and the heading font binding.
   consuming app decides its own default theme, attribute or class, and storage key.
 - Theme-invariant tokens sit under `:root`. Derived tokens resolve there, so the theme class or
   attribute must be set on the document root element (`<html>`), not on an inner element.
-- Fonts resolve through `--font-geist-sans` and `--font-geist-mono`, which the app provides, with a
-  system stack as the fallback.
+- Fonts resolve through `--font-geist-sans` and `--font-geist-mono`, with a system stack as the
+  fallback. For Studio, `fonts.css` provides them; docs provides them through `next/font`.
 - `apps/docs` imports `@verbatra/ui/tokens.css` right after its Fumadocs and Tailwind imports, then
   aliases its `--color-fd-*` variables onto the semantic tokens.
 - Studio imports `@verbatra/ui/tokens.css` and `@verbatra/ui/fonts.css` in `styles.css` and maps
