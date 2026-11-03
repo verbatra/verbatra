@@ -178,6 +178,16 @@ overrides:
   # longer installs a vulnerable copy, bounded to the v1 line genai declares.
   "@modelcontextprotocol/sdk@<1.32.0": ">=1.32.0 <2"
 
+# GHSA-g3hv-75wg-m249: globparts amplification DoS in minimatch, patched only in 11.x. Reached through
+# exceljs 4.4.0 (latest) > archiver 5 / archiver-utils > glob@7 > minimatch 3, readdir-glob > minimatch 5,
+# and unzipper > fstream > rimraf > glob. No override: glob@7 needs minimatch 3 internals and breaks on 11
+# (TypeError in glob/sync.js). Unreachable: exceljs loads archiver and unzipper only in its streaming
+# WorkbookWriter and WorkbookReader, which packages/exchange never uses, and no attacker-controlled glob
+# pattern reaches minimatch. Remove once an exceljs release above 4.4.0 drops archiver 5 and unzipper 0.10.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-g3hv-75wg-m249
+
 allowBuilds:
   '@google/genai': false
   '@parcel/watcher': false
