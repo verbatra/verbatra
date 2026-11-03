@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
+import {
+  docsStylesheetRules,
+  rulesFor,
+  stylesheetRules,
+  uiTokensCss,
+} from "@/lib/stylesheet-rules";
 
 const rules = docsStylesheetRules();
 
@@ -39,13 +44,15 @@ describe("the redesign tokens", () => {
 
 describe("the landing tile surface", () => {
   it("is mockup F's card and hairline in the dark theme and a white card in the light theme", () => {
-    expect(rootToken("--surface-tile")).toBe("hsl(240 26% 8%)");
-    expect(rootToken("--border-tile")).toBe("hsl(240 22% 16%)");
-    const light = rulesFor(rules, "html.light").find(
-      (rule) => "--surface-tile" in rule.declarations,
-    );
-    expect(light?.declarations["--surface-tile"]).toBe("hsl(0 0% 100%)");
-    expect(light?.declarations["--border-tile"]).toBe("var(--border-default)");
+    const themed = (prefix: string) =>
+      stylesheetRules(uiTokensCss()).find(
+        (rule) => rule.selector.startsWith(prefix) && "--surface-tile" in rule.declarations,
+      )?.declarations;
+    expect(themed(".dark")?.["--surface-tile"]).toBe("hsl(240 26% 8%)");
+    expect(themed(".dark")?.["--border-tile"]).toBe("hsl(240 22% 16%)");
+    expect(themed(".light")?.["--surface-tile"]).toBe("hsl(0 0% 100%)");
+    expect(themed(".light")?.["--border-tile"]).toBe("var(--border-default)");
+    expect(rules.some((rule) => "--surface-tile" in rule.declarations)).toBe(false);
   });
 
   it.each([".vk-tile", ".vk-feature", ".vk-faq-item", ".vk-banner-file", ".vk-closer"])(

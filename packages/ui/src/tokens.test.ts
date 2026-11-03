@@ -93,6 +93,13 @@ describe("tokens.css", () => {
     expect(unresolved).toEqual([]);
   });
 
+  it("declares the heading font rule inside the base layer so utilities can override it", () => {
+    expect(css).toMatch(
+      /@layer base\s*\{\s*h1,\s*h2,\s*h3,\s*h4,\s*h5,\s*h6\s*\{[^}]*font-family: var\(--font-display\)/,
+    );
+    expect(css).not.toMatch(/^h1,/m);
+  });
+
   it("binds headings to the display font", () => {
     const headings = blocks.find((block) => block.selector.startsWith("h1,"));
     expect(headings?.selector).toBe("h1, h2, h3, h4, h5, h6");
@@ -162,7 +169,13 @@ const TONES = [
   "--diff-orphaned",
   "--diff-protected",
 ] as const;
-const SURFACES = ["--surface-bg", "--surface-card"] as const;
+const SURFACES = [
+  "--surface-bg",
+  "--surface-card",
+  "--surface-raised",
+  "--surface-muted",
+  "--surface-tile",
+] as const;
 
 describe.each(THEMES)("status and diff tokens in the %s theme", (theme) => {
   const tokens = rootTokens(theme);
