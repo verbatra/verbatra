@@ -122,11 +122,13 @@
   --v-status-unchanged: hsl(240 10% 58%);
   --v-danger: hsl(0 78% 70%);
   --v-success: hsl(142 66% 68%);
-  --v-warning: hsl(52 90% 60%);
+  --v-warning: hsl(72 70% 58%);
   --v-neutral: hsl(240 14% 68%);
   --v-status-protected: hsl(185 60% 62%);
   --status-danger-fg: hsl(0 60% 12%);
+  --status-danger-strong: hsl(0 78% 78%);
   --accent-fill-strong: hsl(258 52% 58%);
+  --halo-strong: color-mix(in srgb, var(--accent-fill) 55%, transparent);
 
   --shadow-panel: 0 24px 48px -24px rgba(0, 0, 0, 0.6);
   --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.4);
@@ -158,11 +160,13 @@
   --v-status-unchanged: hsl(240 6% 42%);
   --v-danger: hsl(0 70% 42%);
   --v-success: hsl(150 85% 22%);
-  --v-warning: hsl(48 100% 22%);
+  --v-warning: hsl(68 100% 18%);
   --v-neutral: hsl(243 10% 36%);
   --v-status-protected: hsl(185 85% 22%);
   --status-danger-fg: hsl(0 0% 100%);
+  --status-danger-strong: hsl(0 70% 34%);
   --accent-fill-strong: hsl(258 55% 36%);
+  --halo-strong: color-mix(in srgb, var(--accent-fill) 22%, transparent);
 
   --shadow-panel: 0 24px 48px -28px rgba(20, 20, 40, 0.18);
   --shadow-sm: 0 2px 8px -2px rgba(20, 20, 40, 0.12);

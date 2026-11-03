@@ -1,7 +1,5 @@
+import { Button, Card, Icon, type IconName } from "@verbatra/ui";
 import { Fragment, type ReactNode, type Ref } from "react";
-import { Button } from "./Button.js";
-import { Card } from "./Card.js";
-import { Icon, type IconName } from "./Icon.js";
 import { cn } from "./lib/cn.js";
 import { Sheet, type SheetSize } from "./Sheet.js";
 
@@ -181,11 +179,6 @@ export const tableClasses = {
   rowHover: "hover:bg-accent/40",
   numeric: "text-end tabular-nums",
 };
-
-export const pillClassName =
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-0.5 font-sans text-xs font-medium leading-5";
-
-export const pillDotClassName = "size-1.5 flex-none rounded-full bg-current";
 
 export const microLabelClassName =
   "font-mono text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";

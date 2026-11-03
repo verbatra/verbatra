@@ -359,7 +359,7 @@ describe("KeyDetailDrawer", () => {
       <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
-    expect(view.getByText("span", "No placeholders").className).toContain("text-neutral");
+    expect(view.getByText("span", "No placeholders").dataset.tone).toBe("neutral");
   });
 
   it("marks a meaningfully checked, matching key as clean", async () => {
@@ -373,7 +373,7 @@ describe("KeyDetailDrawer", () => {
       <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
-    expect(view.getByText("span", "Placeholders match").className).toContain("text-success");
+    expect(view.getByText("span", "Placeholders match").dataset.tone).toBe("success");
   });
 
   it("shows no pill for a locale the integrity result carries no entry for", async () => {

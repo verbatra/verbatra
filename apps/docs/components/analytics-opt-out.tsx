@@ -1,5 +1,5 @@
+import { buttonClasses } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { buttonClasses } from "@/components/ui/button";
 import type { Locale } from "@/lib/i18n";
 
 export const ANALYTICS_OPT_OUT_ACTION = "/api/analytics";
@@ -27,7 +27,7 @@ function ChoiceForm({
     <form method="post" action={ANALYTICS_OPT_OUT_ACTION} className="m-0">
       <input type="hidden" name="lang" value={locale} />
       <input type="hidden" name="choice" value={choice} />
-      <button type="submit" className={buttonClasses("secondary", "sm")}>
+      <button type="submit" className={buttonClasses({ variant: "secondary", size: "sm" })}>
         {label}
       </button>
     </form>

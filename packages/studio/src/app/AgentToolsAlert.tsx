@@ -1,6 +1,6 @@
+import { Icon } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { ToolRegistrationFailure } from "../webmcp/registration-report.js";
-import { Icon } from "./Icon.js";
 
 export interface AgentToolsAlertProps {
   readonly failures: readonly ToolRegistrationFailure[];

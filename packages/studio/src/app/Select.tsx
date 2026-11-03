@@ -1,5 +1,5 @@
+import { Icon } from "@verbatra/ui";
 import type { ReactNode, SelectHTMLAttributes } from "react";
-import { Icon } from "./Icon.js";
 import { cn } from "./lib/cn.js";
 
 export function Select({

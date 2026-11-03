@@ -534,7 +534,7 @@ describe("EditEntryDialog", () => {
       const violation = view
         .all("[data-draft-flags] *")
         .find((node) => node.textContent === "Forbidden: Karren");
-      expect(violation?.className).toContain("text-danger");
+      expect(violation?.dataset.tone).toBe("danger");
       expect(view.get("[data-glossary-forbidden]").className).not.toContain("text-danger");
       expect(rpcCalls.at(-1)).toEqual({
         method: "key.context",

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import type { Mock } from "vitest";
 import { describe, expect, it, vi } from "vitest";
+import { compactElapsed, rowBusyLabel } from "../client/review-in-flight.js";
 import { ReviewRowActions } from "./ReviewRowActions.js";
-import { click, render } from "./test-support.js";
+import { arbitraryClasses, callerClasses, click, render } from "./test-support.js";
 
 interface Handlers {
   readonly onApprove: Mock<() => void>;
@@ -17,6 +18,9 @@ function handlers(): Handlers {
     onEdit: vi.fn<() => void>(),
   };
 }
+
+const busyText = (seconds: number): string =>
+  `${rowBusyLabel("retranslate")}${compactElapsed(seconds)}`;
 
 describe("ReviewRowActions", () => {
   it("offers exactly the three row actions, with Edit first", () => {
@@ -65,9 +69,11 @@ describe("ReviewRowActions", () => {
   it("tints approve and reject apart through the tinted button variants", () => {
     const view = render(<ReviewRowActions {...handlers()} />);
 
-    expect(view.getByText("button", "Approve").className).toContain("text-success");
-    expect(view.getByText("button", "Reject…").className).toContain("text-danger");
-    expect(view.getByText("button", "Approve").className).not.toContain("[");
+    expect(view.getByText("button", "Approve").dataset.variant).toBe("secondary-success");
+    expect(view.getByText("button", "Reject…").dataset.variant).toBe("secondary-danger");
+    for (const label of ["Edit", "Approve", "Reject…"]) {
+      expect(arbitraryClasses(callerClasses(view.getByText("button", label)))).toEqual([]);
+    }
   });
 
   it("uses non-submitting buttons, since a review row can sit inside a form", () => {
@@ -114,14 +120,14 @@ describe("ReviewRowActions", () => {
       "Edit",
       "Approve",
       "Reject…",
-      "Retranslating… 7s",
+      busyText(7),
     ]);
     expect(view.all("button").every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
     expect(view.get("[data-busy-elapsed]").className).toContain("tabular-nums");
     expect(view.get('[role="status"]').textContent).toBe("Retranslating…");
   });
 
-  it("keeps the elapsed time inside the fixed-width Retranslate button", () => {
+  it("keeps the elapsed time inside the Retranslate button", () => {
     const view = render(
       <ReviewRowActions
         {...handlers()}
@@ -130,8 +136,7 @@ describe("ReviewRowActions", () => {
       />,
     );
 
-    const button = view.getByText("button", "Retranslating… 12:34");
-    expect(button.className).toContain("min-w-40");
+    const button = view.getByText("button", busyText(754));
     expect(button.contains(view.get("[data-busy-elapsed]"))).toBe(true);
   });
 
@@ -163,28 +168,47 @@ describe("ReviewRowActions", () => {
   it("shows a running bulk rejection on the Reject button", () => {
     const view = render(<ReviewRowActions {...handlers()} busy={{ action: "reject" }} />);
 
-    expect(view.getByText("button", "Rejecting…").className).toContain("w-24");
+    expect(view.getByText("button", "Rejecting…").dataset.variant).toBe("secondary-danger");
   });
 
-  it("reserves a fixed width for each labelled action so a busy label never moves the row", () => {
+  const reserved = (button: HTMLElement): string | undefined =>
+    button.querySelector<HTMLElement>("[data-reserve]")?.dataset.reserve;
+
+  it("reserves the other label's width on Approve and Reject, so the row never moves", () => {
+    const view = render(<ReviewRowActions {...handlers()} />);
+
+    expect(reserved(view.getByText("button", "Approve"))).toBe("Approving…");
+    expect(reserved(view.getByText("button", "Reject…"))).toBe("Rejecting…");
+    const busy = render(<ReviewRowActions {...handlers()} busy={{ action: "approve" }} />);
+    const approving = busy.getByText("button", "Approving…");
+    expect(reserved(approving)).toBe("Approve");
+    expect(approving.getAttribute("aria-busy")).toBe("true");
+    expect(view.getByText("button", "Approve").hasAttribute("aria-busy")).toBe(false);
+  });
+
+  it("adds no caller class to Retranslate beyond its busy opacity", () => {
     const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
 
-    expect(view.getByText("button", "Edit").className.split(" ")).toContain("w-12");
-    expect(view.getByText("button", "Approve").className).toContain("w-24");
-    expect(view.getByText("button", "Reject…").className).toContain("w-24");
+    expect(callerClasses(view.getByText("button", "Retranslate"))).toEqual([]);
+  });
+
+  it("sizes every row action at the compact size and keeps the status region empty", () => {
+    const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
+
+    for (const label of ["Edit", "Approve", "Reject…", "Retranslate"]) {
+      expect(view.getByText("button", label).dataset.size).toBe("xs");
+    }
     expect(view.get('[role="status"]').textContent).toBe("");
   });
 
-  it("lets an idle Retranslate button hug its label and widens it only while it runs", () => {
+  it("reserves the busy label and a fixed elapsed slot, idle and busy alike", () => {
     const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
-    const idle = view.getByText("button", "Retranslate").className.split(" ");
+    const idleButton = view.getByText("button", "Retranslate");
+    const idleSlot = idleButton.querySelector<HTMLElement>("[data-busy-slot]");
 
-    expect(idle).toContain("min-w-0");
-    expect(idle).not.toContain("min-w-40");
-    expect(idle).not.toContain("w-40");
-    expect(idle).toContain("transition-[min-width]");
-    expect(idle).toContain("motion-reduce:transition-none");
-
+    expect(reserved(idleButton)).toBe(rowBusyLabel("retranslate"));
+    expect(idleSlot?.getAttribute("aria-hidden")).toBe("true");
+    expect(idleSlot?.textContent).toBe("");
     view.rerender(
       <ReviewRowActions
         {...handlers()}
@@ -192,10 +216,15 @@ describe("ReviewRowActions", () => {
         busy={{ action: "retranslate", elapsedSeconds: 5 }}
       />,
     );
-    const busy = view.getByText("button", "Retranslating… 5s").className.split(" ");
+    const busySlot = view.get("[data-busy-elapsed]");
 
-    expect(busy).toContain("min-w-40");
-    expect(busy).not.toContain("min-w-0");
+    expect(busySlot.className.split(" ")).toEqual(idleSlot?.className.split(" "));
+    expect(busySlot.className.split(" ")).toContain("min-w-[5ch]");
+    expect(busySlot.className.split(" ")).toContain("font-mono");
+  });
+
+  it("fits the longest elapsed text in the slot's five characters", () => {
+    expect(compactElapsed(99 * 60 + 59).length).toBeLessThanOrEqual(5);
   });
 
   it("keeps a running Retranslate button at full opacity so its elapsed time stays readable", () => {
@@ -206,7 +235,7 @@ describe("ReviewRowActions", () => {
         busy={{ action: "retranslate", elapsedSeconds: 5 }}
       />,
     );
-    const busy = view.getByText("button", "Retranslating… 5s").className.split(" ");
+    const busy = view.getByText("button", busyText(5)).className.split(" ");
 
     expect(busy).toContain("disabled:opacity-100");
     expect(busy).not.toContain("disabled:opacity-60");

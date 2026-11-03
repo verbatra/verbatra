@@ -54,16 +54,19 @@ Alongside that chain, `ui` sits beside `config` as a leaf: `config <- ui <- docs
 - `@verbatra/config` (`packages/config/package.json`) has no workspace dependencies; every other
   package takes it as a `devDependency` for shared tsconfig, biome, tsup, and vitest presets.
 - `@verbatra/ui` (`packages/ui/package.json`) is private, has no build and depends only on `clsx`
-  and `tailwind-merge`: `exports` point at raw source (`src/tokens.css`, `src/fonts.css`,
-  `src/theme.ts`, `src/cn.ts`, `src/index.ts`). `@verbatra/studio` takes it as a `devDependency`
-  too, bundled by Vite (`packages/studio/src/app/styles.css` imports `tokens.css` and `fonts.css`;
-  `lib/theme-dom.ts` and `lib/cn.ts` import `theme` and `cn`), so it stays out of studio's
-  published `dependencies`. Studio imports it only under `src/app`, never from `src/client` or
+  and `tailwind-merge`, with `react` as a peer: `exports` point at raw source (`src/tokens.css`,
+  `src/fonts.css`, `src/components.css`, `src/theme.ts`, `src/cn.ts`, `src/index.ts`, which
+  exports `Button`, `Badge`, `Card` and `Icon`). `@verbatra/studio` takes it as a `devDependency`
+  too, bundled by Vite (`packages/studio/src/app/styles.css` imports `tokens.css`, `fonts.css` and
+  `components.css` and adds an `@source` for `packages/ui/src`; `lib/theme-dom.ts` and `lib/cn.ts`
+  import `theme` and `cn`, and about forty components import `Button`, `Badge`, `Card` and `Icon`
+  from `@verbatra/ui`), so it stays out of studio's published `dependencies`. Studio imports it only under `src/app`, never from `src/client` or
   `src/server`, whose tsconfig has no DOM lib. `apps/docs` takes it as a
   `devDependency` (Next bundles it, so the third-party license collector, which walks
   `dependencies` only, does not list it), lists it in `transpilePackages`
-  (`apps/docs/next.config.mjs`), imports `@verbatra/ui/tokens.css` in `apps/docs/app/global.css`
-  and `THEMES` / `ThemeName` in `apps/docs/lib/theme.ts`.
+  (`apps/docs/next.config.mjs`), imports `@verbatra/ui/tokens.css` and `components.css` in
+  `apps/docs/app/global.css` (with an `@source` for `packages/ui/src`), and `THEMES` /
+  `ThemeName` in `apps/docs/lib/theme.ts`.
   It never depends on `core`, `sdk`, or any surface, and no published package may reference it in
   its `.d.ts`.
 - `apps/docs` takes `@verbatra/core` as a `devDependency` only for the test-only root-entry import

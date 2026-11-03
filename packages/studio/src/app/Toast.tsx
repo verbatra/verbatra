@@ -1,5 +1,5 @@
+import { Card } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { Card } from "./Card.js";
 
 export function Toast({ children }: { readonly children: ReactNode }): ReactNode {
   return (

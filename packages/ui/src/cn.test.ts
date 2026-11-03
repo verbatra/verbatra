@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cn } from "./cn.js";
+import { cn } from "./cn.ts";
 
 describe("cn", () => {
   it("joins truthy class values and drops falsy ones", () => {

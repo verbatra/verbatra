@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 
+import { buttonClasses } from "@verbatra/ui";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import { contrast, themeTokens } from "@/test-support/contrast";
-import { buttonClasses } from "./button";
 import { CopyControl } from "./copy-control";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -66,7 +66,7 @@ describe("control boundaries", () => {
   it.each(["secondary", "outline"] as const)(
     "draws the %s button's border at 3:1 or more on every landing surface",
     (variant) => {
-      expectBoundary(borderToken(buttonClasses(variant)));
+      expectBoundary(borderToken(buttonClasses({ variant })));
     },
   );
 

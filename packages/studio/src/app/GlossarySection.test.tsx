@@ -210,6 +210,7 @@ describe("GlossarySection, file-backed", () => {
     typeInto(field(view, "New glossary translation"), "x");
 
     expect(view.getByText("button", "Add term").hasAttribute("disabled")).toBe(true);
+    expect(view.getByText("button", "Add term").className.split(" ")).toContain("min-h-9.5");
   });
 
   it("measures a padded term at the cap by its trimmed length, the one it sends", async () => {
@@ -321,7 +322,7 @@ describe("GlossarySection, file-backed", () => {
     const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
 
     expect(view.text()).toContain("1 never-use rule; choose a locale to see them");
-    expect(view.all(".bg-neutral-soft").some((badge) => badge.textContent === "de")).toBe(true);
+    expect(view.all("[data-tone=neutral]").some((badge) => badge.textContent === "de")).toBe(true);
     expect(view.text()).not.toContain("not target locales");
   });
 

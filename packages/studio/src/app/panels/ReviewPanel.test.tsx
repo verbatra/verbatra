@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { compactElapsed, rowBusyLabel } from "../../client/review-in-flight.js";
 import type { KeyContextResult } from "../../shared/rpc/key-context.js";
 import type { LocaleValuesResult } from "../../shared/rpc/locale-values.js";
 import type { ReviewDecisionResult } from "../../shared/rpc/review-decision.js";
@@ -286,7 +287,7 @@ describe("ReviewPanel", () => {
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     const chips = view
-      .all("tbody span.rounded-sm")
+      .all("tbody span[data-tone]")
       .map((chip) => chip.textContent)
       .filter((text) => !text?.includes("Origin:"));
 
@@ -304,10 +305,10 @@ describe("ReviewPanel", () => {
     stubReview();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    const chips = view.all("tbody span.rounded-sm");
+    const chips = view.all("tbody span[data-tone]");
 
-    expect(chips[1]?.className).toContain("bg-warning-soft");
-    expect(chips[2]?.className).toContain("bg-neutral-soft");
+    expect(chips[1]?.dataset.tone).toBe("warning");
+    expect(chips[2]?.dataset.tone).toBe("neutral");
   });
 
   it("offers the row actions when the session may write to disk", async () => {
@@ -1799,18 +1800,24 @@ describe("ReviewPanel: retranslations the server is still running", () => {
           .all("tbody tr")
           .find((row) => rowKeyOf(row) === "cart.badge")
           ?.querySelector('[role="status"]')?.textContent ?? "";
-      expect(busyRetranslate(view, "cart.badge").textContent).toBe("Retranslating… 5s");
+      expect(busyRetranslate(view, "cart.badge").textContent).toBe(
+        `${rowBusyLabel("retranslate")}${compactElapsed(5)}`,
+      );
       expect(status()).toBe("Retranslating…");
 
       act(() => vi.advanceTimersByTime(1_000));
-      expect(busyRetranslate(view, "cart.badge").textContent).toBe("Retranslating… 6s");
+      expect(busyRetranslate(view, "cart.badge").textContent).toBe(
+        `${rowBusyLabel("retranslate")}${compactElapsed(6)}`,
+      );
       expect(status()).toBe("Retranslating…");
 
       await act(async () => {
         vi.advanceTimersByTime(9_000);
       });
       await flush();
-      expect(busyRetranslate(view, "cart.badge").textContent).toBe("Retranslating… 15s");
+      expect(busyRetranslate(view, "cart.badge").textContent).toBe(
+        `${rowBusyLabel("retranslate")}${compactElapsed(15)}`,
+      );
       expect(status()).toBe("Retranslating… 15 seconds so far");
 
       running = [];

@@ -1,8 +1,6 @@
+import { Badge } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { KeyLocaleStatus } from "../client/diff-view.js";
-import { Badge } from "./Badge.js";
-import { cn } from "./lib/cn.js";
-import { pillClassName, pillDotClassName } from "./ui.js";
 
 export type DiffTone = "missing" | "changed" | "orphaned" | "protected";
 
@@ -13,24 +11,12 @@ const DIFF_LABEL: Readonly<Record<DiffTone, string>> = {
   protected: "Protected",
 };
 
-const DIFF_TONE_CLASSES: Readonly<Record<DiffTone, string>> = {
-  missing: "bg-diff-missing-soft text-diff-missing",
-  changed: "bg-diff-changed-soft text-diff-changed",
-  orphaned: "bg-diff-orphaned-soft text-diff-orphaned",
-  protected: "bg-diff-protected-soft text-diff-protected",
-};
-
 export function isDiffTone(value: string): value is DiffTone {
   return Object.hasOwn(DIFF_LABEL, value);
 }
 
 export function DiffBadge({ tone }: { readonly tone: DiffTone }): ReactNode {
-  return (
-    <span className={cn(pillClassName, DIFF_TONE_CLASSES[tone])}>
-      <span className={pillDotClassName} aria-hidden="true" />
-      {DIFF_LABEL[tone]}
-    </span>
-  );
+  return <Badge tone={tone}>{DIFF_LABEL[tone]}</Badge>;
 }
 
 export function KeyLocaleStatusBadge({ status }: { readonly status: KeyLocaleStatus }): ReactNode {

@@ -1,6 +1,6 @@
+import { Icon, type IconName } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { PageId } from "../client/routes.js";
-import { Icon, type IconName } from "./Icon.js";
 import { cn } from "./lib/cn.js";
 import { Tooltip } from "./Tooltip.js";
 import { DialogCloseButton, OverlayBackdrop } from "./ui.js";

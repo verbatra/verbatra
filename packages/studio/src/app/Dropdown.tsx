@@ -1,6 +1,5 @@
+import { Button, type ButtonVariant, Icon } from "@verbatra/ui";
 import { type ReactNode, useState } from "react";
-import { Button, type ButtonVariant } from "./Button.js";
-import { Icon } from "./Icon.js";
 import { Popover } from "./Popover.js";
 
 export interface DropdownItem {

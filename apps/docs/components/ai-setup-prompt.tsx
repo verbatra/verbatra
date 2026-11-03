@@ -1,8 +1,8 @@
 "use client";
 
+import { buttonClasses } from "@verbatra/ui";
 import { useTranslations } from "next-intl";
 import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from "react";
-import { buttonClasses } from "@/components/ui/button";
 import { CopyAnnouncement } from "@/components/ui/copy-announcement";
 import { CopyButton } from "@/components/ui/copy-button";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
@@ -150,7 +150,11 @@ export function PromptCopyButton({ className }: { className?: string } = {}): Re
         aria-describedby={popoverId}
         data-copied={status === "copied"}
         onClick={() => copy(AI_SETUP_PROMPT)}
-        className={buttonClasses("secondary", "lg", "vk-prompt-trigger w-full justify-center")}
+        className={buttonClasses({
+          variant: "secondary",
+          size: "lg",
+          className: "vk-prompt-trigger w-full justify-center",
+        })}
       >
         <CopyGlyph status={status} />
         <span>{t("promptCta")}</span>

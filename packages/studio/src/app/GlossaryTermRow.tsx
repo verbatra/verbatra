@@ -1,3 +1,4 @@
+import { Badge, Button } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import {
@@ -17,8 +18,6 @@ import {
   MAX_GLOSSARY_PART_OF_SPEECH_LENGTH,
   MAX_GLOSSARY_TRANSLATION_LENGTH,
 } from "../shared/rpc/glossary.js";
-import { Badge } from "./Badge.js";
-import { Button } from "./Button.js";
 import { TextField } from "./Input.js";
 import { microLabelClassName } from "./ui.js";
 
@@ -146,7 +145,9 @@ function LocaleOverrides({
       <ul className="m-0 mt-1.5 flex list-none flex-wrap gap-x-3 gap-y-1 p-0">
         {overrides.map(([locale, translation]) => (
           <li key={locale} className="flex min-w-0 items-center gap-1.5 text-sm text-foreground">
-            <Badge tone="neutral">{locale}</Badge>
+            <Badge tone="neutral" verbatim>
+              {locale}
+            </Badge>
             <span dir="auto" className={WRAP_TEXT}>
               {translation}
             </span>
@@ -186,7 +187,7 @@ function TermDetails({
         <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Never use</span>
           {forbidden.map((rendering) => (
-            <Badge key={rendering} tone="danger" wrap>
+            <Badge key={rendering} tone="danger" wrap verbatim>
               <span dir="auto">{rendering}</span>
             </Badge>
           ))}
@@ -324,12 +325,18 @@ function RowActions({
   return (
     <span className="flex shrink-0 items-center gap-1.5">
       {redacted ? null : (
-        <Button ref={editRef} onClick={onEdit} disabled={busy} aria-label={`Edit ${term.source}`}>
+        <Button
+          ref={editRef}
+          size="xs"
+          onClick={onEdit}
+          disabled={busy}
+          aria-label={`Edit ${term.source}`}
+        >
           Edit
         </Button>
       )}
       {removable ? (
-        <Button onClick={onRemove} disabled={busy} aria-label={`Remove ${term.source}`}>
+        <Button size="xs" onClick={onRemove} disabled={busy} aria-label={`Remove ${term.source}`}>
           Remove
         </Button>
       ) : null}
@@ -377,7 +384,7 @@ export function GlossaryTermRow({
   }
 
   return (
-    <li className="min-w-0 rounded-md border border-border bg-muted/40 px-3 py-2.5">
+    <li className="min-w-0 rounded-(--radius-sm) border border-border bg-muted/40 px-3 py-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex min-w-0 flex-1 basis-0 flex-wrap items-center gap-2">
           <span
@@ -387,7 +394,7 @@ export function GlossaryTermRow({
             {term.source}
           </span>
           {term.partOfSpeech !== undefined ? (
-            <Badge tone="neutral" wrap>
+            <Badge tone="neutral" wrap verbatim>
               {term.partOfSpeech}
             </Badge>
           ) : null}

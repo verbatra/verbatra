@@ -32,7 +32,6 @@ describe("ProvenanceBadge", () => {
       <ProvenanceBadge provenance={{ origin: "human", reviewState: "unreviewed" }} />,
     );
 
-    expect(view.container.innerHTML).toContain("bg-success-soft");
-    expect(view.container.innerHTML).toContain("text-success");
+    expect(view.get("[data-tone]").dataset.tone).toBe("success");
   });
 });

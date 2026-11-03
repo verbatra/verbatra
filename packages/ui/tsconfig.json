@@ -1,8 +1,9 @@
 {
   "extends": "@verbatra/config/tsconfig.package.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   }
 }

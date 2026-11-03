@@ -1,3 +1,4 @@
+import { Badge, Button } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import {
@@ -14,8 +15,6 @@ import {
   MAX_GLOSSARY_TRANSLATION_LENGTH,
 } from "../shared/rpc/glossary.js";
 import { rpcClient } from "./api.js";
-import { Badge } from "./Badge.js";
-import { Button } from "./Button.js";
 import { GlossaryDoNotTranslate, glossarySubheadingClassName } from "./GlossaryDoNotTranslate.js";
 import { GlossaryTermRow, type GlossaryWriter } from "./GlossaryTermRow.js";
 import { TextField } from "./Input.js";
@@ -128,7 +127,12 @@ function GlossaryAddForm({
           disabled={busy}
           onChange={(event) => setTranslation(event.target.value)}
         />
-        <Button variant="primary" size="md" onClick={() => void add()} disabled={busy || !ready}>
+        <Button
+          variant="primary"
+          className="min-h-9.5"
+          onClick={() => void add()}
+          disabled={busy || !ready}
+        >
           Add term
         </Button>
       </div>

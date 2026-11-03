@@ -132,7 +132,7 @@ describe("ContactForm", () => {
   });
 
   it("never transitions opacity, so the hydrated enable swaps in one frame", () => {
-    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    const css = readFileSync(join(process.cwd(), "../../packages/ui/src/components.css"), "utf8");
     const list =
       /no-preference\) \{\s*\.vk-btn \{\s*transition-property:([^;]+);/.exec(css)?.[1] ?? "";
     expect(list).not.toBe("");

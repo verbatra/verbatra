@@ -1,7 +1,7 @@
+import { Icon } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { resolveErrorCopy } from "../client/error-copy.js";
 import type { StructuredError } from "../client/state.js";
-import { Icon } from "./Icon.js";
 
 export interface ErrorMessageProps {
   readonly error: StructuredError;

@@ -11,7 +11,7 @@ export function valueDirection(locale: string | undefined, value?: string): Valu
 }
 
 const SCROLLABLE_CLASSES =
-  "overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
+  "overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 const HIGHLIGHTED_TOKEN_CLASSES =
   "rounded-sm bg-accent px-0.5 font-mono text-[0.92em] text-accent-foreground";

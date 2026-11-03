@@ -258,7 +258,7 @@ describe("ActivityPanel", () => {
     expect(meter?.className).not.toContain("bg-danger");
     expect(status.textContent).toContain("Stopped before the ceiling");
     expect(status.textContent).not.toContain("Ceiling reached");
-    expect(status.querySelector(".text-warning")).not.toBeNull();
+    expect(status.querySelector("[data-tone=warning]")).not.toBeNull();
   });
 
   it("does not call the budget estimated when the run counted nothing at all", async () => {

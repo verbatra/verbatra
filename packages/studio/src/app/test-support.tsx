@@ -1,3 +1,4 @@
+import { type ButtonSize, type ButtonVariant, buttonClasses } from "@verbatra/ui";
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach } from "vitest";
@@ -269,3 +270,17 @@ afterEach(() => {
   connectionStatus = "live";
   stores = freshStores();
 });
+
+export function callerClasses(button: HTMLElement): readonly string[] {
+  const own = new Set(
+    buttonClasses({
+      variant: button.dataset.variant as ButtonVariant,
+      size: button.dataset.size as ButtonSize,
+    }).split(" "),
+  );
+  return button.className.split(" ").filter((name) => name !== "" && !own.has(name));
+}
+
+export function arbitraryClasses(classes: readonly string[]): readonly string[] {
+  return classes.filter((name) => name.includes("[") || name.includes("(--"));
+}

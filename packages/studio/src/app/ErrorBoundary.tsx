@@ -1,6 +1,5 @@
+import { Button, Icon } from "@verbatra/ui";
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { Button } from "./Button.js";
-import { Icon } from "./Icon.js";
 
 export interface ErrorBoundaryProps {
   readonly children: ReactNode;

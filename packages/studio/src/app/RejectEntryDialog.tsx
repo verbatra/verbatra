@@ -1,3 +1,4 @@
+import { Button } from "@verbatra/ui";
 import type { ReactNode, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -7,7 +8,6 @@ import {
 } from "../client/review-decision-outcome.js";
 import { orNetworkFailure } from "../client/rpc-client.js";
 import { rpcClient } from "./api.js";
-import { Button } from "./Button.js";
 import { actionStatusTextClassName } from "./lib/action-status-classes.js";
 import { cn } from "./lib/cn.js";
 import { TranslationValue } from "./TranslationValue.js";

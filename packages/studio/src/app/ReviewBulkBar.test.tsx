@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { ReviewBulkBar, type ReviewBulkBarProps } from "./ReviewBulkBar.js";
-import { click, render } from "./test-support.js";
+import { arbitraryClasses, callerClasses, click, render } from "./test-support.js";
 
 function props(overrides: Partial<ReviewBulkBarProps> = {}): ReviewBulkBarProps {
   return {
@@ -125,11 +125,24 @@ describe("ReviewBulkBar", () => {
     expect(view.text()).toContain("3 selected");
   });
 
-  it("uses the tinted variants and fixed widths rather than one-off classes", () => {
+  it("uses the tinted status variants", () => {
     const view = render(<ReviewBulkBar {...props()} />);
 
-    expect(button(view, "Approve selected").className).toContain("text-success");
-    expect(button(view, "Reject selected…").className).toContain("text-danger");
-    expect(view.container.innerHTML).not.toMatch(/-\[/);
+    expect(button(view, "Approve selected").dataset.variant).toBe("secondary-success");
+    expect(button(view, "Reject selected…").dataset.variant).toBe("secondary-danger");
+    for (const label of ["Approve selected", "Reject selected…", "Retranslate selected"]) {
+      expect(arbitraryClasses(callerClasses(button(view, label)))).toEqual([]);
+    }
+  });
+
+  it("reserves the other label's width on each action, so a busy label never moves the bar", () => {
+    const view = render(<ReviewBulkBar {...props()} />);
+    const reserved = (label: string): string | undefined =>
+      button(view, label).querySelector<HTMLElement>("[data-reserve]")?.dataset.reserve;
+
+    expect(reserved("Approve selected")).toBe("Approving…");
+    expect(reserved("Reject selected…")).toBe("Rejecting…");
+    expect(reserved("Retranslate selected")).toBe("Retranslating…");
+    expect(view.text()).not.toContain("Approving…");
   });
 });

@@ -1,9 +1,7 @@
+import { Badge, Button, Icon } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { connectionStore } from "./api.js";
-import { Badge } from "./Badge.js";
-import { Button } from "./Button.js";
-import { Icon } from "./Icon.js";
 import { ThemeSwitcher } from "./ThemeSwitcher.js";
 import { microLabelClassName } from "./ui.js";
 

@@ -2,6 +2,7 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { buttonClasses } from "@verbatra/ui";
 import { act, type ComponentProps } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
@@ -20,7 +21,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const { default: Button, buttonClasses } = await import("./button");
+const { default: Button } = await import("./button");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -49,13 +50,13 @@ describe("Button as a link", () => {
 
 describe("buttonClasses", () => {
   it("names the primary variant, so forced colors can give its fill a boundary", () => {
-    expect(buttonClasses("primary").split(" ")).toContain("vk-btn-primary");
-    expect(buttonClasses("secondary").split(" ")).not.toContain("vk-btn-primary");
+    expect(buttonClasses({ variant: "primary" }).split(" ")).toContain("vk-btn-primary");
+    expect(buttonClasses({ variant: "secondary" }).split(" ")).not.toContain("vk-btn-primary");
   });
 });
 
 describe("button treatment", () => {
-  const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+  const css = readFileSync(join(process.cwd(), "../../packages/ui/src/components.css"), "utf8");
 
   it("holds the primary label at 4.5:1 on both ends of the fill in both themes", () => {
     for (const theme of ["dark", "light"] as const) {
@@ -93,13 +94,13 @@ describe("button treatment", () => {
   it("applies the primary glow and the lift only where hover exists", () => {
     expect(css).toMatch(/@media \(hover: hover\) \{\s*\.vk-btn-primary:hover \{/);
     expect(css).toMatch(
-      /@media \(hover: hover\) \{\s*\.vk-btn:is\(\.vk-btn-primary, \.vk-btn-secondary\):hover \{/,
+      /@media \(hover: hover\) \{\s*\.vk-btn:is\(\.vk-btn-primary, \.vk-btn-secondary, \.vk-btn-danger\):hover \{/,
     );
   });
 
   it("tints the ghost and fills the secondary on hover", () => {
-    expect(buttonClasses("ghost")).toContain("hover:bg-(--surface-hover)");
-    expect(buttonClasses("secondary")).toContain("bg-(--surface-card)");
-    expect(buttonClasses("secondary")).toContain("hover:border-(--accent)");
+    expect(buttonClasses({ variant: "ghost" })).toContain("hover:bg-(--surface-hover)");
+    expect(buttonClasses({ variant: "secondary" })).toContain("bg-(--surface-card)");
+    expect(buttonClasses({ variant: "secondary" })).toContain("hover:border-(--accent)");
   });
 });

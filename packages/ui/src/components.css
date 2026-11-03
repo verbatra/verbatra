@@ -1,0 +1,86 @@
+@layer components {
+  .vk-btn-primary {
+    background: linear-gradient(180deg, var(--accent-fill), var(--btn-fill-end));
+    box-shadow:
+      inset 0 1px 0 var(--btn-highlight),
+      0 0 0 1px var(--btn-rim),
+      0 8px 20px -10px var(--halo-strong);
+  }
+
+  @media (hover: hover) {
+    .vk-btn-primary:hover {
+      box-shadow:
+        inset 0 1px 0 var(--btn-highlight),
+        0 0 0 1px var(--btn-rim),
+        0 12px 26px -8px var(--halo-strong);
+      filter: brightness(1.08);
+    }
+  }
+
+  .vk-btn-secondary {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .vk-btn-danger {
+    background: var(--status-danger);
+    box-shadow: var(--shadow-sm);
+  }
+
+  @media (hover: hover) {
+    .vk-btn-danger:hover {
+      background: var(--status-danger-strong);
+    }
+  }
+
+  .vk-btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .vk-btn-reserve {
+    display: inline-grid;
+    justify-items: center;
+  }
+
+  .vk-btn-reserve::after {
+    content: attr(data-reserve);
+    grid-area: 1 / 1;
+    height: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .vk-btn {
+    transition-property: none;
+  }
+
+  .vk-btn:active {
+    filter: brightness(0.96);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .vk-btn {
+      transition-property: transform, box-shadow, background-color, border-color, color, filter;
+      transition-duration: var(--duration-fast);
+      transition-timing-function: var(--ease-standard);
+    }
+
+    @media (hover: hover) {
+      .vk-btn:is(.vk-btn-primary, .vk-btn-secondary, .vk-btn-danger):hover {
+        transform: translateY(-1px);
+      }
+    }
+
+    .vk-btn:is(.vk-btn-primary, .vk-btn-secondary, .vk-btn-ghost, .vk-btn-danger):active {
+      transform: translateY(1px);
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  .vk-btn-primary:not(:focus-visible),
+  .vk-btn-danger:not(:focus-visible) {
+    outline: 1px solid ButtonText;
+    outline-offset: -1px;
+  }
+}

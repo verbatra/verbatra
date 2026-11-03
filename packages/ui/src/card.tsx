@@ -1,10 +1,18 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import { cn } from "./lib/cn.js";
+import { cn } from "./cn.ts";
+
+export type CardPadding = "none" | "sm" | "md";
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  readonly padding?: "none" | "sm" | "md";
+  readonly padding?: CardPadding;
   readonly as?: "div" | "section";
 }
+
+const PADDING: Readonly<Record<CardPadding, string>> = {
+  none: "",
+  sm: "p-4",
+  md: "p-6",
+};
 
 export function Card({
   padding = "md",
@@ -15,12 +23,12 @@ export function Card({
   return (
     <Element
       className={cn(
-        "rounded-lg border border-border bg-card",
-        padding === "sm" && "p-4",
-        padding === "md" && "p-6",
+        "rounded-(--radius-lg) border border-(--border-tile) bg-(--surface-tile)",
+        PADDING[padding],
         className,
       )}
       {...props}
+      data-padding={padding}
     />
   );
 }

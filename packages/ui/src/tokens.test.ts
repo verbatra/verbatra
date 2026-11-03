@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { THEMES } from "./index.js";
+import { THEMES } from "./index.ts";
 
 const css = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
 
@@ -211,10 +211,29 @@ describe.each(THEMES)("status and diff tokens in the %s theme", (theme) => {
     expect(value).toBeGreaterThanOrEqual(AA);
   });
 
+  it("keeps the danger hover fill legible under its foreground and apart from the base fill", () => {
+    const strong = resolveColor(tokens, "--status-danger-strong");
+    expect(ratio(resolveColor(tokens, "--status-danger-fg"), strong)).toBeGreaterThanOrEqual(AA);
+    expect(strong).not.toEqual(resolveColor(tokens, "--status-danger"));
+  });
+
   it("keeps protected distinct from changed", () => {
     expect(resolveColor(tokens, "--diff-protected")).not.toEqual(
       resolveColor(tokens, "--diff-changed"),
     );
+  });
+});
+
+describe.each(THEMES)("warning hue in the %s theme", (theme) => {
+  const hue = (name: string): number => {
+    const value = themeBlock(theme).declarations.get(name) ?? "";
+    return Number(/^hsl\((\d+)/.exec(value)?.[1]);
+  };
+
+  it("sits at least 30 degrees from the changed hue, so two bordered badges read apart", () => {
+    const gap = Math.abs(hue("--v-warning") - hue("--v-status-changed"));
+
+    expect(Math.min(gap, 360 - gap)).toBeGreaterThanOrEqual(30);
   });
 });
 

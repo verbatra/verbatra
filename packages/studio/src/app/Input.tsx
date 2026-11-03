@@ -1,5 +1,5 @@
+import { Icon } from "@verbatra/ui";
 import type { InputHTMLAttributes, ReactNode, Ref, TextareaHTMLAttributes } from "react";
-import { Icon } from "./Icon.js";
 import { cn } from "./lib/cn.js";
 
 const FIELD_CLASSNAME =

@@ -1,7 +1,7 @@
+import { Icon, type IconName } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useSyncExternalStore } from "react";
 import { Dropdown } from "./Dropdown.js";
-import { Icon, type IconName } from "./Icon.js";
 import { THEME_OPTIONS, type ThemePreference, themeStore } from "./lib/theme-dom.js";
 
 const PREFERENCE_ICON: Readonly<Record<ThemePreference, IconName>> = {

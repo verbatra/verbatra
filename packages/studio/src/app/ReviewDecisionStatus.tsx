@@ -1,3 +1,4 @@
+import { Button } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
@@ -7,7 +8,6 @@ import {
   batchSummaryHeadline,
   groupBatchFailures,
 } from "../client/review-batch-outcome.js";
-import { Button } from "./Button.js";
 import { actionStatusTextClassName } from "./lib/action-status-classes.js";
 import { cn } from "./lib/cn.js";
 

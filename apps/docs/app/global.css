@@ -3,6 +3,10 @@
 @import "fumadocs-ui/css/preset.css";
 @import "tw-animate-css";
 @import "@verbatra/ui/tokens.css";
+@import "@verbatra/ui/components.css";
+@source "../../../packages/ui/src/**/*.tsx";
+@source not "../../../packages/ui/src/**/*.test.tsx";
+@source not "../../../packages/ui/src/test-support.tsx";
 
 @source "../node_modules/fumadocs-ui/dist/**/*.js";
 
@@ -211,7 +215,6 @@ samp {
   --banner-title: min(clamp(2.875rem, 6.6vw, 5.75rem), 15.5cqi);
   --statement-title: clamp(2.5rem, 6.4vw, 5.75rem);
   --gradient-headline: linear-gradient(90deg, var(--text-strong) 30%, var(--accent));
-  --halo-strong: color-mix(in srgb, var(--accent-fill) 55%, transparent);
   --halo-soft: color-mix(in srgb, var(--accent) 30%, transparent);
   --grid-line: color-mix(in srgb, var(--border-default) 70%, transparent);
   --star: color-mix(in srgb, var(--text-faint) 70%, transparent);
@@ -224,7 +227,6 @@ html.light {
   --color-fd-secondary: var(--surface-muted);
   --color-fd-secondary-foreground: var(--text-strong);
 
-  --halo-strong: color-mix(in srgb, var(--accent-fill) 22%, transparent);
   --halo-soft: color-mix(in srgb, var(--accent) 14%, transparent);
   --art-dim: hsl(240 8% 68%);
 }
@@ -293,56 +295,6 @@ html.light {
     line-height: var(--leading-normal);
     color: var(--text-muted);
     text-wrap: pretty;
-  }
-}
-
-@layer components {
-  .vk-btn-primary {
-    background: linear-gradient(180deg, var(--accent-fill), var(--btn-fill-end));
-    box-shadow:
-      inset 0 1px 0 var(--btn-highlight),
-      0 0 0 1px var(--btn-rim),
-      0 8px 20px -10px var(--halo-strong);
-  }
-
-  @media (hover: hover) {
-    .vk-btn-primary:hover {
-      box-shadow:
-        inset 0 1px 0 var(--btn-highlight),
-        0 0 0 1px var(--btn-rim),
-        0 12px 26px -8px var(--halo-strong);
-      filter: brightness(1.08);
-    }
-  }
-
-  .vk-btn-secondary {
-    box-shadow: var(--shadow-sm);
-  }
-
-  .vk-btn {
-    transition-property: none;
-  }
-
-  .vk-btn:active {
-    filter: brightness(0.96);
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .vk-btn {
-      transition-property: transform, box-shadow, background-color, border-color, color, filter;
-      transition-duration: var(--duration-fast);
-      transition-timing-function: var(--ease-standard);
-    }
-
-    @media (hover: hover) {
-      .vk-btn:is(.vk-btn-primary, .vk-btn-secondary):hover {
-        transform: translateY(-1px);
-      }
-    }
-
-    .vk-btn:is(.vk-btn-primary, .vk-btn-secondary, .vk-btn-ghost):active {
-      transform: translateY(1px);
-    }
   }
 }
 
@@ -4168,11 +4120,6 @@ html:has(.vk-home) {
 }
 
 @media (forced-colors: active) {
-  .vk-btn-primary:not(:focus-visible) {
-    outline: 1px solid ButtonText;
-    outline-offset: -1px;
-  }
-
   .vk-compare-mark {
     border-inline-start: 3px solid CanvasText;
   }

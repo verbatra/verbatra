@@ -58,7 +58,7 @@ Packages on `main`: `@verbatra/core` (private, pure domain model, no I/O), `@ver
 provider strategies), `@verbatra/exchange` (private, Excel workbook and TMX interchange),
 `@verbatra/extract` (private, source-code extraction of translation call sites),
 `@verbatra/config` (private, shared build/TS/lint config), `@verbatra/ui` (private, shared
-design tokens as raw CSS and TS source, no build), `@verbatra/sdk` (public,
+design tokens and base components as raw CSS and TS source, no build), `@verbatra/sdk` (public,
 central orchestration API), `@verbatra/cli` (public, the `verbatra` binary),
 `@verbatra/studio` (public, local dashboard), `@verbatra/mcp` (public, stdio MCP
 server exposing translation status, glossary, and editing tools). `apps/docs`

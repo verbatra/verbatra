@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
-import { Button } from "./Button.js";
 import { TranslationValue, valueDirection } from "./TranslationValue.js";
 import { render } from "./test-support.js";
 
@@ -124,13 +126,16 @@ describe("TranslationValue", () => {
   });
 
   it("draws the focus ring of a button on a paragraph value a keyboard can scroll", () => {
-    const focusClasses = (element: Element): readonly string[] =>
-      element.className.split(" ").filter((name) => name.startsWith("focus-visible:"));
+    const css = readFileSync(join(import.meta.dirname, "../../../ui/src/components.css"), "utf8");
+    const rule = /\.vk-btn:focus-visible \{([^}]*)\}/.exec(css)?.[1] ?? "";
     const value = render(<TranslationValue as="p" value="{name}" />);
-    const button = render(<Button>Edit</Button>);
+    const names = value.get("p").className.split(" ");
 
-    expect(focusClasses(value.get("p"))).toEqual(focusClasses(button.get("button")));
-    expect(focusClasses(value.get("p"))).toContain("focus-visible:outline-ring");
+    expect(rule).toContain("outline: 2px solid var(--focus-ring)");
+    expect(rule).toContain("outline-offset: 2px");
+    expect(names).toContain("focus-visible:outline-2");
+    expect(names).toContain("focus-visible:outline-offset-2");
+    expect(names).toContain("focus-visible:outline-ring");
   });
 
   it("leaves an inline value's overflow to its caller", () => {

@@ -125,7 +125,7 @@ Three layers exist. Write against the third.
    palette: `--v-status-new` (the accent) /
    `--v-status-changed` (amber, dark `hsl(38 85% 62%)`, light `hsl(30 90% 30%)`, also Fumadocs'
    warning callout color) / `--v-status-unchanged`: the `tone` colors of
-   `components/ui/badge.tsx` and nothing on the landing (the exit code in the CI tile is
+   the `Badge` in `@verbatra/ui` and nothing on the landing (the exit code in the CI tile is
    `--text-danger`). There is no pink (`lib/landing-tokens.test.ts` fails if `--v-pink`
    or `--v-violet` comes back). The landing's light effects are tokens too, defined for both
    themes in `:root` and `html.light`: `--gradient-headline` (strong text into the accent, painted
@@ -301,7 +301,10 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   underline look serves every tab row, and it wires no `id` or `aria-controls`, because no
   landing tab drives a panel of its own.
   `Button` takes `variant: "primary" | "secondary" | "outline" | "ghost"` and
-  `size: "sm" | "md" | "lg"`. Every button carries `.vk-btn` (the transition on `transform`,
+  `size: "sm" | "md" | "lg"`. `Button` and `Badge` are owned by `@verbatra/ui`
+  (`packages/ui/src/button.tsx`, `badge.tsx`, with the `.vk-btn*` rules in
+  `packages/ui/src/components.css`); `components/ui/button.tsx` is only the link wrapper over
+  `buttonClasses()` that renders `IntentPrefetchLink`. Every button carries `.vk-btn` (the transition on `transform`,
   `box-shadow`, `background-color`, `border-color`, `color` and `filter` over `--duration-fast` and
   `--ease-standard`, and the press: `translateY(1px)` plus `brightness(0.96)`; the hover lift of
   `translateY(-1px)` on primary and secondary; the transitions and transforms only under

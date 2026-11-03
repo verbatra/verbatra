@@ -1,3 +1,4 @@
+import { Button, Icon } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { canTranslatePending, type RefreshToastView } from "../client/refresh-toast.js";
@@ -6,8 +7,6 @@ import {
   type TranslatePendingOutcome,
 } from "../client/translate-pending-outcome.js";
 import { rpcClient } from "./api.js";
-import { Button } from "./Button.js";
-import { Icon } from "./Icon.js";
 import { actionStatusTextClassName } from "./lib/action-status-classes.js";
 import { Toast } from "./Toast.js";
 import { useCapabilities } from "./use-capabilities.js";
