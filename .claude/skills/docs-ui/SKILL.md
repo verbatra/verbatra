@@ -1,6 +1,6 @@
 ---
 name: docs-ui
-description: 'Visual and component conventions for the verbatra docs site (apps/docs), a Fumadocs 16 / Next.js 16 / Tailwind 4 app. Use when adding or reshaping UI in apps/docs: landing sections, MDX-facing components, design tokens in app/global.css, or anything touching the Fumadocs theme layer. Also use before accepting generic design advice that does not account for Fumadocs.'
+description: 'Visual and component conventions for the verbatra docs site (apps/docs), a Fumadocs 16 / Next.js 16 / Tailwind 4 app. Use when adding or reshaping UI in apps/docs: landing sections, MDX-facing components, design tokens (packages/ui/src/tokens.css, imported by app/global.css), or anything touching the Fumadocs theme layer. Also use before accepting generic design advice that does not account for Fumadocs.'
 license: MIT
 metadata:
   author: verbatra
@@ -14,8 +14,8 @@ user-invocable: true
 ## Overview
 
 apps/docs is a Fumadocs site, not a blank Next.js app. Its look is already decided
-and codified in `apps/docs/app/global.css`. Two layers stack: the Fumadocs UI theme,
-then a verbatra layer that overrides it. Generic frontend advice that assumes a
+and codified in `packages/ui/src/tokens.css` and `apps/docs/app/global.css`. Two layers stack:
+the Fumadocs UI theme, then a verbatra layer that overrides it. Generic frontend advice that assumes a
 greenfield page will fight both. This skill states what is fixed, what is yours to
 extend, and where to look things up.
 
@@ -44,15 +44,21 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   No animation library is a dependency: the playground's typing and decoding are timer-driven state
   (`lib/playground-cycle.ts`).
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
-  CSS custom properties in `app/global.css`, not a JS config object.
-- `app/global.css` opens with three imports in this order, and the order matters:
+  CSS custom properties in `packages/ui/src/tokens.css` and `app/global.css`, not a JS config
+  object.
+- `app/global.css` opens with these imports in this order, and the order matters:
 
   ```css
   @import "tailwindcss";
   @import "fumadocs-ui/css/purple.css";
   @import "fumadocs-ui/css/preset.css";
   @import "tw-animate-css";
+  @import "@verbatra/ui/tokens.css";
   ```
+
+  The ui import follows `preset.css` so its unlayered token rules come after the Fumadocs preset
+  in source order and win equal-specificity ties; the `--color-fd-*` aliases in `global.css`
+  then override Fumadocs' own values the same way.
 
   `tw-animate-css` supplies the enter and exit utilities the shadcn primitives use
   (`animate-in`, `fade-in-0`); a `prefers-reduced-motion: reduce` rule
@@ -60,11 +66,13 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 
 - `@source "../node_modules/fumadocs-ui/dist/**/*.js";` makes Tailwind scan the
   Fumadocs bundle. Removing it silently drops classes Fumadocs emits at runtime.
-- Two themes, dark by default. `:root` holds the dark values (`color-scheme: dark`), and
-  `html.light` (declared after the semantic `:root` block, so the first match of a token in the
-  file stays the dark value that `lib/og-image.test.tsx` reads) overrides every theme-dependent token: the brand primitives, the `--color-fd-*` layer,
-  `--text-faint` and the two shadows. The semantic layer is derived from those, so it follows on
-  its own. The theme is not a React context: Fumadocs' `RootProvider` runs with
+- Two themes, dark by default. The shared palettes live in `packages/ui/src/tokens.css` under
+  `.dark, [data-theme="dark"]` and `.light, [data-theme="light"]`. `global.css` keeps the
+  dark-default class contract on `<html>` (`:root` sets `color-scheme: dark`, `html.light` sets
+  `color-scheme: light`), the `--color-fd-*` docs aliases, and the marketing tokens. `html.light`
+  overrides only the docs-only tokens: `--color-fd-secondary` / `--color-fd-secondary-foreground`,
+  `--surface-tile`, `--border-tile`, `--halo-strong`, `--halo-soft` and `--art-dim`. Everything
+  else follows from the palette class. The theme is not a React context: Fumadocs' `RootProvider` runs with
   `theme: { enabled: false }` (`components/themed-root-provider.tsx`), so `next-themes` never
   mounts, because a context value that changes after hydration (`next-themes` re-memoizes on the
   system preference) forces every island still waiting for its chunk to client-render, and throws
@@ -97,6 +105,16 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 
 ## Token layers: always use the outermost one
 
+The token definitions live in the shared package `packages/ui/src/tokens.css` (`@verbatra/ui`),
+not in `apps/docs/app/global.css`. Palettes sit under `.dark, [data-theme="dark"]` and
+`.light, [data-theme="light"]`; theme-invariant scales (type, radius, motion, layout, fonts) sit
+under `:root`. `apps/docs/app/global.css` imports the file right after the Fumadocs and Tailwind
+imports, keeps its own dark default and `html.light` for the marketing and Fumadocs-compat tokens,
+and aliases the Fumadocs surface, text, border, primary, accent and ring tokens onto semantic
+tokens, the callout hues (info, warning, error, success) onto `--v-*` primitives, and the
+overlay onto `--scrim`. Studio does not consume the package yet.
+Change a shared token in `packages/ui/src/tokens.css`, never as a copy in a consuming app.
+
 Three layers exist. Write against the third.
 
 1. **Brand primitives.** One brand hue, violet 258. `--v-glow` is the accent (dark
@@ -117,9 +135,13 @@ Three layers exist. Write against the third.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
    `--color-fd-muted-foreground`, `--color-fd-primary`, `--color-fd-primary-foreground`,
-   `--color-fd-accent`, `--color-fd-accent-foreground`, `--color-fd-ring`, plus the callout
+   `--color-fd-accent`, `--color-fd-accent-foreground`, `--color-fd-ring`,
+   `--color-fd-popover-foreground`, `--color-fd-overlay`, plus the callout
    hues `--color-fd-info`, `--color-fd-warning`, `--color-fd-error`, `--color-fd-success`, and in
    the light theme `--color-fd-secondary` / `--color-fd-secondary-foreground`.
+   The surface, text, border, primary, accent, ring and popover-foreground ones are aliases of the
+   semantic layer in `packages/ui/src/tokens.css` (`var(--surface-card)` and so on),
+   `--color-fd-overlay` aliases `--scrim`, the callout hues alias `--v-*` primitives, and only `--color-fd-secondary` / `-foreground` carry values under `html.light`.
    These exist so Fumadocs' own components inherit the verbatra palette. Change one only to
    retheme Fumadocs itself.
 3. **Semantic layer.** This is the one to use in components:
@@ -236,7 +258,7 @@ Two families, loaded in `app/[lang]/layout.tsx` through `next/font/google` (lati
 differ by weight, size and tracking, not by family. You do not set a heading font per component.
 Adding a third family needs a reason that survives review.
 
-The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`
+The type scale is a major third (1.25) held in `packages/ui/src/tokens.css`: `--text-display`, `--text-h2`
 (capped at 3rem, read only by `.vk-h2`; the marquee's centered `h2`, `.vk-marquee-heading`, is a small
 mono uppercase label instead), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*`
 and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.25rem) with
@@ -1365,7 +1387,7 @@ touches `messages/en.json` and needs the other three updated in the same change,
 Tokens drift. Before quoting a value from this skill, confirm it:
 
 ```bash
-grep -n '\--surface-\|--text-\|--accent\|--radius-\|--shadow-\|--scrim\|--width-page\|--header-height\|--crumb-height' apps/docs/app/global.css
+grep -n '\--surface-\|--text-\|--accent\|--radius-\|--shadow-\|--scrim\|--width-page\|--header-height\|--crumb-height' packages/ui/src/tokens.css apps/docs/app/global.css
 grep -n 'vk-page-\|vk-crumb\|vk-docs-footer\|vk-callout\|vk-header-search\|nd-toc\|nd-sidebar' apps/docs/app/global.css
 ```
 

@@ -21,6 +21,7 @@ the npm scope `@verbatra`. The binding rules are in [CLAUDE.md](CLAUDE.md) and
 - `packages/sdk`: the orchestration API; business logic lives here and below.
 - `packages/cli`, `packages/studio`, `packages/mcp`: thin surfaces over the SDK.
 - `packages/config`: shared TypeScript, Biome, tsup and Vitest presets.
+- `packages/ui`: shared design tokens (`src/tokens.css`), consumed by `apps/docs`; private, no build.
 - `apps/docs`: the documentation site and landing page (Next.js and Fumadocs).
 
 Commands, formats and providers are registered in code (`packages/cli/src/run.ts`,

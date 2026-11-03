@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
+import { docsStylesheetRules, rulesFor, uiTokensCss } from "@/lib/stylesheet-rules";
 import { startMotion } from "./motion-root";
 
 type Callback = (entries: IntersectionObserverEntry[]) => void;
@@ -108,7 +108,7 @@ describe("startMotion", () => {
 });
 
 describe("the motion stylesheet", () => {
-  const css = readFileSync(join(import.meta.dirname, "../../app/global.css"), "utf8");
+  const css = `${uiTokensCss()}\n${readFileSync(join(import.meta.dirname, "../../app/global.css"), "utf8")}`;
   const all = docsStylesheetRules();
   const reveal = all.filter((rule) => rule.selector.includes("[data-reveal]"));
 

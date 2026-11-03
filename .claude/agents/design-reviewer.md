@@ -6,7 +6,7 @@ description: |
   <example>
   Context: A new landing section was just added to the docs site.
   user: "I added a comparison section to the docs landing page under components/landing. Does it hold up?"
-  assistant: "I'll use the design-reviewer agent to run the docs site, screenshot the new section at desktop and mobile widths, and check it against the semantic tokens in app/global.css and the frontend-design tell list."
+  assistant: "I'll use the design-reviewer agent to run the docs site, screenshot the new section at desktop and mobile widths, and check it against the semantic tokens in packages/ui/src/tokens.css and the frontend-design tell list."
   <commentary>
   A rendered UI change exists and the question is visual quality and token compliance, which needs an actual browser rather than reading the diff. That is exactly design-reviewer's trigger.
   </commentary>
@@ -140,7 +140,7 @@ both themes by setting `localStorage["verbatra-studio-theme"]` and confirming
 `document.documentElement.dataset.theme` before shooting.
 
 **Docs specifically:** the site defaults to dark and ships a light theme with a toggle
-(`html.light` overrides every theme token in `apps/docs/app/global.css`). A `dark:` variant
+(the shared theme tokens live in `packages/ui/src/tokens.css`, under `.dark` and `.light`; `html.light` in `apps/docs/app/global.css` overrides only the marketing and Fumadocs-compat tokens). A `dark:` variant
 or a component that branches on the theme in JavaScript is a finding: theming belongs in the
 token. Component color must come from the semantic layer (`--surface-*`, `--text-*`,
 `--accent*`), not from the Fumadocs `--color-fd-*` layer directly. Screenshot every changed

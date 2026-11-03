@@ -174,6 +174,7 @@ the symbol name are what you should search for.
   thin wrapper; do not push logic into it.
 - The dependency direction is acyclic and one-way:
   config <- core <- format-adapters / ai-providers / exchange <- sdk <- cli.
+  `@verbatra/ui` (design tokens, no runtime code) sits beside `config`, consumed by `apps/docs`.
   Never import against the arrow.
 - `@verbatra/core` stays pure: no I/O, no network, no file system.
 - zod belongs at boundaries only (config, CLI args, provider responses), not in

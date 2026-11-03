@@ -6,8 +6,8 @@ is grounded in a specific file; check that file before assuming a rule has drift
 ## Barrel exports are package-root-only
 
 Every package has exactly one barrel: `packages/<name>/src/index.ts`. Confirmed with
-`find packages -name "index.ts"`, which returns exactly nine files, one per package
-(`ai-providers`, `cli`, `core`, `exchange`, `extract`, `format-adapters`, `mcp`, `sdk`, `studio`),
+`find packages -name "index.ts"`, which returns exactly ten files, one per package
+(`ai-providers`, `cli`, `core`, `exchange`, `extract`, `format-adapters`, `mcp`, `sdk`, `studio`, `ui`),
 all at the package's `src` root. No subfolder anywhere in the repo (`format-adapters/src/xliff/`,
 `ai-providers/src/deepl/`, `extract/src/i18next/`, `mcp/src/tools/`, and so on) has its own
 internal `index.ts`.

@@ -25,6 +25,7 @@ import {
   titleFontSize,
 } from "./og-image";
 import { SITE_URL } from "./site";
+import { uiTokensCss } from "./stylesheet-rules";
 
 describe("titleFontSize", () => {
   it("uses the largest size for a short title", () => {
@@ -128,20 +129,20 @@ describe("OgFrame", () => {
 });
 
 describe("OG_PALETTE", () => {
-  const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+  const css = uiTokensCss();
   const token = (name: string) =>
     new RegExp(`${name}: hsl\\(([^)]+)\\);`).exec(css)?.[1]?.split(" ").join(", ");
 
   it.each([
     ["void", "--v-void"],
-    ["background", "--color-fd-background"],
-    ["strong", "--color-fd-foreground"],
-    ["muted", "--color-fd-muted-foreground"],
+    ["background", "--surface-bg"],
+    ["strong", "--text-strong"],
+    ["muted", "--text-muted"],
     ["faint", "--text-faint"],
     ["glow", "--v-glow"],
     ["purple", "--v-purple"],
-    ["border", "--color-fd-border"],
-  ] as const)("mirrors %s from the %s token in global.css", (key, name) => {
+    ["border", "--border-default"],
+  ] as const)("mirrors %s from the %s token in tokens.css", (key, name) => {
     expect(OG_PALETTE[key]).toBe(`hsl(${token(name)})`);
   });
 });
