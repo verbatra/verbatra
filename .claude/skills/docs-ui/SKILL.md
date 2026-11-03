@@ -66,11 +66,13 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 
 - `@source "../node_modules/fumadocs-ui/dist/**/*.js";` makes Tailwind scan the
   Fumadocs bundle. Removing it silently drops classes Fumadocs emits at runtime.
-- Two themes, dark by default. `:root` holds the dark values (`color-scheme: dark`), and
-  `html.light` (declared after the semantic `:root` block, so the first match of a token in the
-  file stays the dark value that `lib/og-image.test.tsx` reads) overrides every theme-dependent token: the brand primitives, the `--color-fd-*` layer,
-  `--text-faint` and the two shadows. The semantic layer is derived from those, so it follows on
-  its own. The theme is not a React context: Fumadocs' `RootProvider` runs with
+- Two themes, dark by default. The shared palettes live in `packages/ui/src/tokens.css` under
+  `.dark, [data-theme="dark"]` and `.light, [data-theme="light"]`. `global.css` keeps the
+  dark-default class contract on `<html>` (`:root` sets `color-scheme: dark`, `html.light` sets
+  `color-scheme: light`), the `--color-fd-*` docs aliases, and the marketing tokens. `html.light`
+  overrides only the docs-only tokens: `--color-fd-secondary` / `--color-fd-secondary-foreground`,
+  `--surface-tile`, `--border-tile`, `--halo-strong`, `--halo-soft` and `--art-dim`. Everything
+  else follows from the palette class. The theme is not a React context: Fumadocs' `RootProvider` runs with
   `theme: { enabled: false }` (`components/themed-root-provider.tsx`), so `next-themes` never
   mounts, because a context value that changes after hydration (`next-themes` re-memoizes on the
   system preference) forces every island still waiting for its chunk to client-render, and throws
@@ -108,7 +110,9 @@ not in `apps/docs/app/global.css`. Palettes sit under `.dark, [data-theme="dark"
 `.light, [data-theme="light"]`; theme-invariant scales (type, radius, motion, layout, fonts) sit
 under `:root`. `apps/docs/app/global.css` imports the file right after the Fumadocs and Tailwind
 imports, keeps its own dark default and `html.light` for the marketing and Fumadocs-compat tokens,
-and aliases every `--color-fd-*` onto a semantic token. Studio does not consume the package yet.
+and aliases the Fumadocs surface, text, border, primary, accent and ring tokens onto semantic
+tokens, the callout hues (info, warning, error, success) onto `--v-*` primitives, and the
+overlay onto `--scrim`. Studio does not consume the package yet.
 Change a shared token in `packages/ui/src/tokens.css`, never as a copy in a consuming app.
 
 Three layers exist. Write against the third.
