@@ -18,14 +18,13 @@ describe("the shared token package wiring", () => {
     expect(ui).toBeGreaterThan(preset);
   });
 
-  it("never redeclares in the docs :root a token the ui themes declare", () => {
+  it("never redeclares in a docs rule a token the ui themes declare", () => {
     const themed = new Set(
       stylesheetRules(uiTokensCss())
         .filter((rule) => rule.selector.startsWith(".dark") || rule.selector.startsWith(".light"))
         .flatMap((rule) => Object.keys(rule.declarations)),
     );
     const redeclared = stylesheetRules(docsGlobalCss())
-      .filter((rule) => rule.selector === ":root")
       .flatMap((rule) => Object.keys(rule.declarations))
       .filter((name) => themed.has(name));
     expect(redeclared).toEqual([]);
@@ -33,7 +32,9 @@ describe("the shared token package wiring", () => {
 
   it("resolves every var() in the docs stylesheets to a declared custom property", () => {
     const css = `${uiTokensCss()}\n${docsGlobalCss()}`;
-    const declared = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((match) => match[1]));
+    const declared = new Set(
+      stylesheetRules(css).flatMap((rule) => Object.keys(rule.declarations)),
+    );
     const unresolved = new Set(
       [...css.matchAll(/var\((--[\w-]+)/g)]
         .map((match) => match[1] ?? "")

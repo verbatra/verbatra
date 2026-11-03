@@ -33,9 +33,37 @@ function themeBlock(theme: string): Block {
   return found;
 }
 
-const THEMED_TOKENS = [...themeBlock("dark").declarations.keys()];
+const THEMED_TOKENS = [
+  ...new Set(THEMES.flatMap((theme) => [...themeBlock(theme).declarations.keys()])),
+];
 
 describe("tokens.css", () => {
+  it("declares themed tokens", () => {
+    expect(THEMED_TOKENS.length).toBeGreaterThan(0);
+  });
+
+  it("declares the scale families under :root", () => {
+    const root = blocks.filter((block) => block.selector === ":root");
+    const names = root.flatMap((block) => [...block.declarations.keys()]);
+    expect(names.length).toBeGreaterThan(0);
+    for (const prefix of [
+      "--radius-",
+      "--gutter",
+      "--width-",
+      "--ease-",
+      "--duration-",
+      "--motion-distance-",
+      "--text-",
+      "--leading-",
+      "--tracking-",
+    ]) {
+      expect(
+        names.some((name) => name.startsWith(prefix)),
+        prefix,
+      ).toBe(true);
+    }
+  });
+
   it.each(THEMES)("declares every themed token under the %s selectors", (theme) => {
     const block = themeBlock(theme);
     expect(block.selector).toBe(`.${theme}, [data-theme="${theme}"]`);
