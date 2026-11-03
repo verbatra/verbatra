@@ -175,7 +175,7 @@ export function DetailList({
 
 export const tableClasses = {
   table: "w-full min-w-[480px] border-collapse text-sm",
-  th: "border-b border-border bg-muted/60 px-3 py-2.5 text-start font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
+  th: "border-b border-border bg-muted/60 px-3 py-2.5 text-start font-mono text-[11px] font-semibold uppercase tracking-wide text-muted-foreground",
   tbody: "divide-y divide-border",
   td: "px-3 py-2.5 text-foreground",
   rowHover: "hover:bg-accent/40",
@@ -188,4 +188,4 @@ export const pillClassName =
 export const pillDotClassName = "size-1.5 flex-none rounded-full bg-current";
 
 export const microLabelClassName =
-  "font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
+  "font-mono text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";

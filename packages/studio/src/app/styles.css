@@ -10,26 +10,23 @@
   color-scheme: dark;
 }
 
-@theme {
-  --shadow-panel: 0 8px 24px -12px rgb(0 0 0 / 0.3);
-}
-
 @theme inline {
   --color-background: var(--surface-bg);
-  --color-card: var(--surface-card);
+  --color-card: var(--surface-tile);
   --color-popover: var(--surface-raised);
   --color-muted: var(--surface-muted);
   --color-border: var(--border-default);
   --color-foreground: var(--text-strong);
   --color-muted-foreground: var(--text-muted);
   --color-primary: var(--accent-fill);
-  --color-primary-strong: var(--pill-new-end);
+  --color-primary-strong: var(--accent-fill-strong);
   --color-primary-foreground: var(--accent-fill-fg);
   --color-accent: var(--surface-hover);
   --color-accent-foreground: var(--accent);
   --color-ring: var(--focus-ring);
+  --color-input: var(--surface-raised);
 
-  --color-sidebar: var(--surface-card);
+  --color-sidebar: var(--surface-bg);
   --color-sidebar-foreground: var(--text-strong);
   --color-sidebar-muted: var(--text-muted);
   --color-sidebar-border: var(--border-default);
@@ -55,6 +52,7 @@
   --color-diff-protected: var(--diff-protected);
   --color-diff-protected-soft: var(--diff-protected-soft);
 
+  --shadow-panel: var(--shadow-sm);
   --shadow-panel-lg: var(--shadow-panel);
 
   --color-overlay: var(--scrim);

@@ -3,7 +3,7 @@ import { Icon } from "./Icon.js";
 import { cn } from "./lib/cn.js";
 
 const FIELD_CLASSNAME =
-  "mt-1 block w-full max-w-[320px] rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
+  "mt-1 block w-full max-w-[320px] rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
 
 export function TextArea({
   className,

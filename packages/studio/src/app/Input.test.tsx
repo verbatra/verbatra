@@ -15,7 +15,7 @@ describe("TextArea", () => {
     const className = view.get("textarea").className;
 
     expect(className).toContain("border-border");
-    expect(className).toContain("bg-background");
+    expect(className).toContain("bg-input");
   });
 
   it("merges a caller className onto the field classes", () => {
