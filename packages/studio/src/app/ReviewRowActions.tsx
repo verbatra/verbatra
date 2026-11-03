@@ -68,6 +68,7 @@ export function ReviewRowActions({
       <Button
         variant="secondary-success"
         size="xs"
+        className="min-w-20"
         onClick={onApprove}
         disabled={busy !== undefined || decisionDisabled || approveDisabled}
         aria-keyshortcuts={shortcutFor("approve", shortcutsActive)}
@@ -77,6 +78,7 @@ export function ReviewRowActions({
       <Button
         variant="secondary-danger"
         size="xs"
+        className="min-w-20"
         onClick={onReject}
         disabled={busy !== undefined || decisionDisabled}
         aria-keyshortcuts={shortcutFor("reject", shortcutsActive)}

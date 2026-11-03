@@ -126,7 +126,7 @@ describe("TranslationValue", () => {
   });
 
   it("draws the focus ring of a button on a paragraph value a keyboard can scroll", () => {
-    const css = readFileSync(join(process.cwd(), "../ui/src/components.css"), "utf8");
+    const css = readFileSync(join(import.meta.dirname, "../../../ui/src/components.css"), "utf8");
     const rule = /\.vk-btn:focus-visible \{([^}]*)\}/.exec(css)?.[1] ?? "";
     const value = render(<TranslationValue as="p" value="{name}" />);
     const names = value.get("p").className.split(" ");

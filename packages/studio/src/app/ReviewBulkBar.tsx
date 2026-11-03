@@ -58,6 +58,7 @@ export function ReviewBulkBar({
       <span className="flex flex-wrap items-center gap-2">
         <Button
           variant="secondary-success"
+          className="min-w-40"
           disabled={idle || decisionBlocker !== null || approveDisabled}
           onClick={onApprove}
         >
@@ -65,13 +66,18 @@ export function ReviewBulkBar({
         </Button>
         <Button
           variant="secondary-danger"
+          className="min-w-40"
           disabled={idle || decisionBlocker !== null}
           onClick={onReject}
         >
           {label("reject", "Reject selected…")}
         </Button>
         {onRetranslate !== undefined ? (
-          <Button disabled={idle || retranslateBlocker !== null} onClick={onRetranslate}>
+          <Button
+            className="min-w-48"
+            disabled={idle || retranslateBlocker !== null}
+            onClick={onRetranslate}
+          >
             {label("retranslate", "Retranslate selected")}
           </Button>
         ) : null}

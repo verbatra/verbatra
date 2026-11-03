@@ -90,7 +90,12 @@ function KeepForm({
         disabled={busy}
         onChange={setCaseSensitive}
       />
-      <Button variant="primary" onClick={() => void keep()} disabled={busy || !ready}>
+      <Button
+        variant="primary"
+        className="min-h-9.5"
+        onClick={() => void keep()}
+        disabled={busy || !ready}
+      >
         Keep untranslated
       </Button>
     </div>

@@ -2,7 +2,7 @@
 import type { Mock } from "vitest";
 import { describe, expect, it, vi } from "vitest";
 import { ReviewRowActions } from "./ReviewRowActions.js";
-import { callerClasses, click, render } from "./test-support.js";
+import { arbitraryClasses, callerClasses, click, render } from "./test-support.js";
 
 interface Handlers {
   readonly onApprove: Mock<() => void>;
@@ -68,9 +68,7 @@ describe("ReviewRowActions", () => {
     expect(view.getByText("button", "Approve").dataset.variant).toBe("secondary-success");
     expect(view.getByText("button", "Reject…").dataset.variant).toBe("secondary-danger");
     for (const label of ["Edit", "Approve", "Reject…"]) {
-      expect(
-        callerClasses(view.getByText("button", label)).filter((name) => name.includes("[")),
-      ).toEqual([]);
+      expect(arbitraryClasses(callerClasses(view.getByText("button", label)))).toEqual([]);
     }
   });
 
@@ -168,6 +166,23 @@ describe("ReviewRowActions", () => {
     const view = render(<ReviewRowActions {...handlers()} busy={{ action: "reject" }} />);
 
     expect(view.getByText("button", "Rejecting…").dataset.variant).toBe("secondary-danger");
+  });
+
+  it("reserves the busy label width on Approve and Reject, so the row never moves", () => {
+    const view = render(<ReviewRowActions {...handlers()} />);
+
+    expect(view.getByText("button", "Approve").className.split(" ")).toContain("min-w-20");
+    expect(view.getByText("button", "Reject…").className.split(" ")).toContain("min-w-20");
+    const busy = render(<ReviewRowActions {...handlers()} busy={{ action: "approve" }} />);
+    expect(busy.getByText("button", "Approving…").className.split(" ")).toContain("min-w-20");
+  });
+
+  it("leaves Retranslate with only its own width transition as a caller class", () => {
+    const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
+
+    expect(arbitraryClasses(callerClasses(view.getByText("button", "Retranslate")))).toEqual([
+      "transition-[min-width]",
+    ]);
   });
 
   it("sizes every row action at the compact size and keeps the status region empty", () => {

@@ -280,3 +280,7 @@ export function callerClasses(button: HTMLElement): readonly string[] {
   );
   return button.className.split(" ").filter((name) => name !== "" && !own.has(name));
 }
+
+export function arbitraryClasses(classes: readonly string[]): readonly string[] {
+  return classes.filter((name) => name.includes("[") || name.includes("(--"));
+}
