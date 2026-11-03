@@ -144,6 +144,19 @@ describe("Button", () => {
     }
   });
 
+  it("reserves another label's width without adding text to the name", () => {
+    const view = render(<Button reserve="Approving…">Approve</Button>);
+    const slot = view.get("[data-reserve]");
+
+    expect(slot.dataset.reserve).toBe("Approving…");
+    expect(view.get("button").textContent).toBe("Approve");
+    expect(view.get("button").getAttribute("aria-label")).toBeNull();
+  });
+
+  it("renders no reserve wrapper unless asked", () => {
+    expect(render(<Button>Approve</Button>).query("[data-reserve]")).toBeNull();
+  });
+
   it("keeps the label on one line and fades a disabled button", () => {
     const names = buttonClasses().split(" ");
 

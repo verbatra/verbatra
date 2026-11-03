@@ -123,7 +123,7 @@ describe("ReviewRowActions", () => {
     expect(view.get('[role="status"]').textContent).toBe("Retranslating…");
   });
 
-  it("keeps the elapsed time inside the fixed-width Retranslate button", () => {
+  it("keeps the elapsed time inside the Retranslate button", () => {
     const view = render(
       <ReviewRowActions
         {...handlers()}
@@ -133,7 +133,6 @@ describe("ReviewRowActions", () => {
     );
 
     const button = view.getByText("button", "Retranslating… 12:34");
-    expect(button.className).toContain("min-w-40");
     expect(button.contains(view.get("[data-busy-elapsed]"))).toBe(true);
   });
 
@@ -168,21 +167,25 @@ describe("ReviewRowActions", () => {
     expect(view.getByText("button", "Rejecting…").dataset.variant).toBe("secondary-danger");
   });
 
-  it("reserves the busy label width on Approve and Reject, so the row never moves", () => {
+  const reserved = (button: HTMLElement): string | undefined =>
+    button.querySelector<HTMLElement>("[data-reserve]")?.dataset.reserve;
+
+  it("reserves the other label's width on Approve and Reject, so the row never moves", () => {
     const view = render(<ReviewRowActions {...handlers()} />);
 
-    expect(view.getByText("button", "Approve").className.split(" ")).toContain("min-w-20");
-    expect(view.getByText("button", "Reject…").className.split(" ")).toContain("min-w-20");
+    expect(reserved(view.getByText("button", "Approve"))).toBe("Approving…");
+    expect(reserved(view.getByText("button", "Reject…"))).toBe("Rejecting…");
     const busy = render(<ReviewRowActions {...handlers()} busy={{ action: "approve" }} />);
-    expect(busy.getByText("button", "Approving…").className.split(" ")).toContain("min-w-20");
+    const approving = busy.getByText("button", "Approving…");
+    expect(reserved(approving)).toBe("Approve");
+    expect(approving.getAttribute("aria-busy")).toBe("true");
+    expect(view.getByText("button", "Approve").hasAttribute("aria-busy")).toBe(false);
   });
 
-  it("leaves Retranslate with only its own width transition as a caller class", () => {
+  it("adds no caller class to Retranslate beyond its busy opacity", () => {
     const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
 
-    expect(arbitraryClasses(callerClasses(view.getByText("button", "Retranslate")))).toEqual([
-      "transition-[min-width]",
-    ]);
+    expect(callerClasses(view.getByText("button", "Retranslate"))).toEqual([]);
   });
 
   it("sizes every row action at the compact size and keeps the status region empty", () => {
@@ -194,16 +197,9 @@ describe("ReviewRowActions", () => {
     expect(view.get('[role="status"]').textContent).toBe("");
   });
 
-  it("lets an idle Retranslate button hug its label and widens it only while it runs", () => {
+  it("reserves the widest Retranslate label, idle and busy alike", () => {
     const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
-    const idle = view.getByText("button", "Retranslate").className.split(" ");
-
-    expect(idle).toContain("min-w-0");
-    expect(idle).not.toContain("min-w-40");
-    expect(idle).not.toContain("w-40");
-    expect(idle).toContain("transition-[min-width]");
-    expect(idle).toContain("motion-reduce:transition-none");
-
+    const idle = reserved(view.getByText("button", "Retranslate"));
     view.rerender(
       <ReviewRowActions
         {...handlers()}
@@ -211,10 +207,9 @@ describe("ReviewRowActions", () => {
         busy={{ action: "retranslate", elapsedSeconds: 5 }}
       />,
     );
-    const busy = view.getByText("button", "Retranslating… 5s").className.split(" ");
 
-    expect(busy).toContain("min-w-40");
-    expect(busy).not.toContain("min-w-0");
+    expect(idle).toBe("Retranslating… 12:34");
+    expect(reserved(view.getByText("button", "Retranslating… 5s"))).toBe(idle);
   });
 
   it("keeps a running Retranslate button at full opacity so its elapsed time stays readable", () => {

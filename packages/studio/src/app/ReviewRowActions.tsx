@@ -14,10 +14,9 @@ export interface RowBusy {
   readonly elapsedSeconds?: number | undefined;
 }
 
-const RETRANSLATE_IDLE_CLASSNAME =
-  "min-w-0 transition-[min-width] duration-150 ease-out motion-reduce:transition-none";
+const RETRANSLATE_BUSY_CLASSNAME = "disabled:opacity-100";
 
-const RETRANSLATE_BUSY_CLASSNAME = "min-w-40 disabled:opacity-100";
+const RETRANSLATE_WIDEST_LABEL = "Retranslating… 12:34";
 
 const RETRANSLATE_ACTIONS_RESERVED_CLASSNAME = "min-w-106";
 
@@ -49,6 +48,8 @@ export function ReviewRowActions({
   const running = busy?.action;
   const label = (action: RowBusyAction, idle: string): string =>
     running === action ? rowBusyLabel(action) : idle;
+  const reserve = (action: RowBusyAction, idle: string): string =>
+    running === action ? idle : rowBusyLabel(action);
   return (
     <span
       className={cn(
@@ -68,7 +69,8 @@ export function ReviewRowActions({
       <Button
         variant="secondary-success"
         size="xs"
-        className="min-w-20"
+        reserve={reserve("approve", "Approve")}
+        aria-busy={running === "approve" || undefined}
         onClick={onApprove}
         disabled={busy !== undefined || decisionDisabled || approveDisabled}
         aria-keyshortcuts={shortcutFor("approve", shortcutsActive)}
@@ -78,7 +80,8 @@ export function ReviewRowActions({
       <Button
         variant="secondary-danger"
         size="xs"
-        className="min-w-20"
+        reserve={reserve("reject", "Reject…")}
+        aria-busy={running === "reject" || undefined}
         onClick={onReject}
         disabled={busy !== undefined || decisionDisabled}
         aria-keyshortcuts={shortcutFor("reject", shortcutsActive)}
@@ -88,10 +91,9 @@ export function ReviewRowActions({
       {onRetranslate !== undefined ? (
         <Button
           size="xs"
-          className={cn(
-            RETRANSLATE_IDLE_CLASSNAME,
-            running === "retranslate" && RETRANSLATE_BUSY_CLASSNAME,
-          )}
+          reserve={RETRANSLATE_WIDEST_LABEL}
+          aria-busy={running === "retranslate" || undefined}
+          className={cn(running === "retranslate" && RETRANSLATE_BUSY_CLASSNAME)}
           onClick={onRetranslate}
           disabled={busy !== undefined}
           aria-keyshortcuts={shortcutFor("retranslate", shortcutsActive)}

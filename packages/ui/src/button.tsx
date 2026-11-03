@@ -86,19 +86,37 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: ButtonVariant;
   readonly size?: ButtonSize;
   readonly trailingArrow?: boolean;
+  readonly reserve?: string;
   readonly ref?: Ref<HTMLButtonElement>;
   readonly children: ReactNode;
+}
+
+function ReservedLabel({
+  reserve,
+  children,
+}: {
+  readonly reserve: string;
+  readonly children: ReactNode;
+}): ReactNode {
+  return (
+    <span className="vk-btn-reserve" data-reserve={reserve}>
+      <span className="[grid-area:1/1]">{children}</span>
+    </span>
+  );
 }
 
 export function Button({
   variant = "secondary",
   size = "sm",
   trailingArrow = false,
+  reserve,
   className,
   type = "button",
   children,
   ...props
 }: ButtonProps): ReactNode {
+  const label =
+    reserve === undefined ? children : <ReservedLabel reserve={reserve}>{children}</ReservedLabel>;
   return (
     <button
       type={type}
@@ -107,7 +125,7 @@ export function Button({
       data-variant={variant}
       data-size={size}
     >
-      <ButtonContent trailingArrow={trailingArrow}>{children}</ButtonContent>
+      <ButtonContent trailingArrow={trailingArrow}>{label}</ButtonContent>
     </button>
   );
 }

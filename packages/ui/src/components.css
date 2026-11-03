@@ -37,6 +37,19 @@
     outline-offset: 2px;
   }
 
+  .vk-btn-reserve {
+    display: inline-grid;
+    justify-items: center;
+  }
+
+  .vk-btn-reserve::after {
+    content: attr(data-reserve);
+    grid-area: 1 / 1;
+    height: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .vk-btn {
     transition-property: none;
   }

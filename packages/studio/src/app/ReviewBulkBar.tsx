@@ -42,6 +42,8 @@ export function ReviewBulkBar({
   const idle = actionable === 0 || running;
   const label = (action: RowBusyAction, text: string): string =>
     busyAction === action ? rowBusyLabel(action) : text;
+  const reserve = (action: RowBusyAction, text: string): string =>
+    busyAction === action ? text : rowBusyLabel(action);
   return (
     <Card
       as="section"
@@ -58,7 +60,8 @@ export function ReviewBulkBar({
       <span className="flex flex-wrap items-center gap-2">
         <Button
           variant="secondary-success"
-          className="min-w-40"
+          reserve={reserve("approve", "Approve selected")}
+          aria-busy={busyAction === "approve" || undefined}
           disabled={idle || decisionBlocker !== null || approveDisabled}
           onClick={onApprove}
         >
@@ -66,7 +69,8 @@ export function ReviewBulkBar({
         </Button>
         <Button
           variant="secondary-danger"
-          className="min-w-40"
+          reserve={reserve("reject", "Reject selected…")}
+          aria-busy={busyAction === "reject" || undefined}
           disabled={idle || decisionBlocker !== null}
           onClick={onReject}
         >
@@ -74,7 +78,8 @@ export function ReviewBulkBar({
         </Button>
         {onRetranslate !== undefined ? (
           <Button
-            className="min-w-48"
+            reserve={reserve("retranslate", "Retranslate selected")}
+            aria-busy={busyAction === "retranslate" || undefined}
             disabled={idle || retranslateBlocker !== null}
             onClick={onRetranslate}
           >

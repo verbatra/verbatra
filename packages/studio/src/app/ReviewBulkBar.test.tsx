@@ -135,11 +135,14 @@ describe("ReviewBulkBar", () => {
     }
   });
 
-  it("reserves each action's width, so switching to a busy label never moves the bar", () => {
+  it("reserves the other label's width on each action, so a busy label never moves the bar", () => {
     const view = render(<ReviewBulkBar {...props()} />);
+    const reserved = (label: string): string | undefined =>
+      button(view, label).querySelector<HTMLElement>("[data-reserve]")?.dataset.reserve;
 
-    expect(button(view, "Approve selected").className.split(" ")).toContain("min-w-40");
-    expect(button(view, "Reject selected…").className.split(" ")).toContain("min-w-40");
-    expect(button(view, "Retranslate selected").className.split(" ")).toContain("min-w-48");
+    expect(reserved("Approve selected")).toBe("Approving…");
+    expect(reserved("Reject selected…")).toBe("Rejecting…");
+    expect(reserved("Retranslate selected")).toBe("Retranslating…");
+    expect(view.text()).not.toContain("Approving…");
   });
 });

@@ -51,4 +51,15 @@ describe("ui components resolve their custom properties", () => {
       /@media \(hover: hover\) \{\s*\.vk-btn-danger:hover \{\s*background: var\(--status-danger-strong\);/,
     );
   });
+
+  it("stacks the reserved text invisibly in the label's grid cell", () => {
+    const css = read("./components.css");
+    const rule = /\.vk-btn-reserve::after \{([^}]*)\}/.exec(css)?.[1] ?? "";
+
+    expect(css).toMatch(/\.vk-btn-reserve \{\s*display: inline-grid;/);
+    expect(rule).toContain("content: attr(data-reserve)");
+    expect(rule).toContain("grid-area: 1 / 1");
+    expect(rule).toContain("visibility: hidden");
+    expect(rule).toContain("height: 0");
+  });
 });
