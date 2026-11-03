@@ -1,6 +1,6 @@
-export const THEMES = ["dark", "light"] as const;
+import { THEMES, type ThemeName } from "@verbatra/ui";
 
-export type ThemeName = (typeof THEMES)[number];
+export { THEMES, type ThemeName };
 
 export const DEFAULT_THEME: ThemeName = "dark";
 
