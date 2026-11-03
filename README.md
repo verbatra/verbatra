@@ -89,7 +89,7 @@ None of the packages below is published on its own. `core`, `format-adapters`, `
 | [`exchange`](./packages/exchange/README.md) | Excel, CSV, XLIFF and TMX interchange |
 | [`extract`](./packages/extract/README.md) | Source-code extraction of translation call sites |
 | [`config`](./packages/config/README.md) | Shared build, TypeScript, lint and test configuration |
-| [`ui`](./packages/ui/README.md) | Shared design tokens for the docs site and Studio |
+| [`ui`](./packages/ui/README.md) | Shared design tokens for the docs site |
 | [`apps/docs`](./apps/docs/README.md) | The documentation site |
 | [`e2e`](./e2e/README.md) | End-to-end tests of the published packages |
 

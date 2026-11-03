@@ -150,9 +150,10 @@ tool tables against this repository's registries, nightly and on every change, s
 adding a command, format, provider or agent tool here also means opening a pull
 request there.
 
-`packages/ui/src/tokens.css` is the single source of the design tokens shared by `apps/docs` and,
-from Phase 2 of the Studio overhaul, `packages/studio`. `apps/docs` imports it ahead of its own
-`global.css` rules; change a shared token there, not in a consuming app.
+`packages/ui/src/tokens.css` owns the shared design tokens: brand primitives, the semantic layer,
+and the type, radius, shadow, motion and layout scales. `apps/docs/app/global.css` imports it and
+keeps only the Fumadocs aliases and the marketing tokens. Change a shared token in `tokens.css`,
+not in a consuming app.
 
 `.claude/skills/` holds the skills vendored into this repository: the third-party
 ones this project consumes, plus verbatra's own three installed back from
@@ -164,9 +165,10 @@ than assuming one here; it grows over time.
 Two skills there are written in this repository and are deliberately absent from
 `skills-lock.json`, because nothing upstream owns them: `docs-ui` (visual and component
 conventions for `apps/docs`) and `studio-ui` (the same for `packages/studio`). The two
-surfaces do not share a stack, a palette, a radius scale, or a theme model, so load the
+surfaces differ in stack and theme model, and Studio still has its own tokens in
+`packages/studio/src/app/styles.css` (it does not consume `@verbatra/ui` yet), so load the
 one that matches the surface being changed and do not cross-apply them. Both state the
-file that actually owns each token (`apps/docs/app/global.css`,
-`packages/studio/src/app/styles.css`) and end with the grep to re-verify it: when the
+files that own each token (`packages/ui/src/tokens.css` and `apps/docs/app/global.css` for docs,
+`packages/studio/src/app/styles.css` for Studio) and end with the grep to re-verify it: when the
 skill and the stylesheet disagree, the stylesheet wins and the skill is updated in the
 same change.

@@ -14,7 +14,7 @@ user-invocable: true
 ## Overview
 
 apps/docs is a Fumadocs site, not a blank Next.js app. Its look is already decided
-and codified in `apps/docs/app/global.css`. Two layers stack: the Fumadocs UI theme,
+and codified in `packages/ui/src/tokens.css` and `apps/docs/app/global.css`. Two layers stack: the Fumadocs UI theme,
 then a verbatra layer that overrides it. Generic frontend advice that assumes a
 greenfield page will fight both. This skill states what is fixed, what is yours to
 extend, and where to look things up.
@@ -44,15 +44,20 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   No animation library is a dependency: the playground's typing and decoding are timer-driven state
   (`lib/playground-cycle.ts`).
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
-  CSS custom properties in `app/global.css`, not a JS config object.
-- `app/global.css` opens with three imports in this order, and the order matters:
+  CSS custom properties in `packages/ui/src/tokens.css` and `app/global.css`, not a JS config object.
+- `app/global.css` opens with these imports in this order, and the order matters:
 
   ```css
   @import "tailwindcss";
   @import "fumadocs-ui/css/purple.css";
   @import "fumadocs-ui/css/preset.css";
   @import "tw-animate-css";
+  @import "@verbatra/ui/tokens.css";
   ```
+
+  The ui import follows `preset.css` so its unlayered token rules come after the Fumadocs preset
+  in source order and win equal-specificity ties; the `--color-fd-*` aliases in `global.css`
+  then override Fumadocs' own values the same way.
 
   `tw-animate-css` supplies the enter and exit utilities the shadcn primitives use
   (`animate-in`, `fade-in-0`); a `prefers-reduced-motion: reduce` rule
@@ -102,8 +107,7 @@ not in `apps/docs/app/global.css`. Palettes sit under `.dark, [data-theme="dark"
 `.light, [data-theme="light"]`; theme-invariant scales (type, radius, motion, layout, fonts) sit
 under `:root`. `apps/docs/app/global.css` imports the file right after the Fumadocs and Tailwind
 imports, keeps its own dark default and `html.light` for the marketing and Fumadocs-compat tokens,
-and aliases every `--color-fd-*` onto a semantic token. The same tokens apply to Studio once it
-adopts the package in Phase 2. Change a shared token in `packages/ui/src/tokens.css`, never as a
+and aliases every `--color-fd-*` onto a semantic token. Studio does not consume the package yet. Change a shared token in `packages/ui/src/tokens.css`, never as a
 copy in a consuming app.
 
 Three layers exist. Write against the third.
@@ -129,6 +133,9 @@ Three layers exist. Write against the third.
    `--color-fd-accent`, `--color-fd-accent-foreground`, `--color-fd-ring`, plus the callout
    hues `--color-fd-info`, `--color-fd-warning`, `--color-fd-error`, `--color-fd-success`, and in
    the light theme `--color-fd-secondary` / `--color-fd-secondary-foreground`.
+   The surface, text, border, primary, accent and ring ones are aliases of the semantic layer in
+   `packages/ui/src/tokens.css` (`var(--surface-card)` and so on), the callout hues alias `--v-*`
+   primitives, and only `--color-fd-secondary` / `-foreground` carry values under `html.light`.
    These exist so Fumadocs' own components inherit the verbatra palette. Change one only to
    retheme Fumadocs itself.
 3. **Semantic layer.** This is the one to use in components:
@@ -245,7 +252,7 @@ Two families, loaded in `app/[lang]/layout.tsx` through `next/font/google` (lati
 differ by weight, size and tracking, not by family. You do not set a heading font per component.
 Adding a third family needs a reason that survives review.
 
-The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`
+The type scale is a major third (1.25) held in `packages/ui/src/tokens.css`: `--text-display`, `--text-h2`
 (capped at 3rem, read only by `.vk-h2`; the marquee's centered `h2`, `.vk-marquee-heading`, is a small
 mono uppercase label instead), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*`
 and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.25rem) with
