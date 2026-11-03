@@ -11,6 +11,8 @@ describe("contentTypeFor", () => {
     ["/logo.svg", "image/svg+xml"],
     ["/logo.png", "image/png"],
     ["/favicon.ico", "image/x-icon"],
+    ["/assets/geist-latin-wght-normal-AbC123.woff2", "font/woff2"],
+    ["/licenses/OFL-Geist.txt", "text/plain; charset=utf-8"],
   ])("maps %s to %s", (assetPath, expected) => {
     expect(contentTypeFor(assetPath)).toBe(expected);
   });
