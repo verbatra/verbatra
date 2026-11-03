@@ -1,3 +1,4 @@
+import { Badge } from "@verbatra/ui";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Card } from "fumadocs-ui/components/card";
 import { type CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
@@ -28,7 +29,6 @@ import { OutputCodeBlock } from "@/components/output-code-block";
 import { StackCards } from "@/components/stack-cards";
 import { StartHere } from "@/components/start-here";
 import { StudioScreenshot } from "@/components/studio-screenshot";
-import Badge from "@/components/ui/badge";
 import CommandLine from "@/components/ui/command-line";
 import Tabs from "@/components/ui/tabs";
 import { VMark } from "@/components/vmark";
