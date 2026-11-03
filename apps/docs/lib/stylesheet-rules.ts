@@ -46,8 +46,14 @@ export function stylesheetRules(css: string): StyleRule[] {
   return rules;
 }
 
+export function uiTokensCss(): string {
+  return readFileSync(join(process.cwd(), "../../packages/ui/src/tokens.css"), "utf8");
+}
+
 export function docsStylesheetRules(): StyleRule[] {
-  return stylesheetRules(readFileSync(join(process.cwd(), "app/global.css"), "utf8"));
+  return stylesheetRules(
+    `${uiTokensCss()}\n${readFileSync(join(process.cwd(), "app/global.css"), "utf8")}`,
+  );
 }
 
 export function rulesFor(rules: ReadonlyArray<StyleRule>, selector: string): StyleRule[] {

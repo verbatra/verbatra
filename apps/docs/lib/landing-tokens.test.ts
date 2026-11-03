@@ -61,11 +61,10 @@ describe("the landing tile surface", () => {
 
 describe("the landing page surface", () => {
   it("is the void in the dark theme and the page tone in the light theme, leaving --v-void alone", () => {
-    expect(rootToken("--surface-page")).toBe("var(--v-void)");
-    const light = rulesFor(rules, "html.light").find(
-      (rule) => "--surface-page" in rule.declarations,
-    );
-    expect(light?.declarations["--surface-page"]).toBe("var(--color-fd-background)");
+    const dark = rulesFor(rules, ".dark").find((rule) => "--surface-page" in rule.declarations);
+    expect(dark?.declarations["--surface-page"]).toBe("var(--v-void)");
+    const light = rulesFor(rules, ".light").find((rule) => "--surface-page" in rule.declarations);
+    expect(light?.declarations["--surface-page"]).toBe("var(--surface-bg)");
     expect(light?.declarations["--v-void"]).toBe("hsl(0 0% 100%)");
   });
 

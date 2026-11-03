@@ -161,14 +161,15 @@ describe("theme tokens", () => {
   });
 
   it("gives the light theme its own value for every Fumadocs color and brand primitive", () => {
-    const light = declarationsOf("html.light");
-    const themed = Object.keys(DARK).filter(
+    const light = declarationsOf(".light");
+    const dark = declarationsOf(".dark");
+    const themed = Object.keys(dark).filter(
       (name) =>
-        /^--color-fd-(background|card|popover|muted|border|foreground|muted-foreground|accent|accent-foreground|primary-foreground)$/.test(
+        /^--(surface-(bg|card|raised|muted|hover)|border-default|text-(strong|muted|on-accent))$/.test(
           name,
         ) || /^--v-(purple|glow|violet|void|danger|status-changed|status-unchanged)$/.test(name),
     );
-    expect(themed.length).toBeGreaterThan(15);
+    expect(themed.length).toBeGreaterThan(12);
     for (const name of themed) expect(light, name).toHaveProperty(name);
   });
 

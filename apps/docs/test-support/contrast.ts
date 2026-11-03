@@ -20,8 +20,15 @@ export function themeTokens(rules: ReadonlyArray<StyleRule> = docsStylesheetRule
   dark: ThemeTokens;
   light: ThemeTokens;
 } {
-  const dark = rootDeclarations(rules, ":root");
-  return { dark, light: { ...dark, ...rootDeclarations(rules, "html.light") } };
+  const root = rootDeclarations(rules, ":root");
+  return {
+    dark: { ...root, ...rootDeclarations(rules, ".dark") },
+    light: {
+      ...root,
+      ...rootDeclarations(rules, ".light"),
+      ...rootDeclarations(rules, "html.light"),
+    },
+  };
 }
 
 const COLOR_MIX = /^color-mix\(in srgb, (.+) (\d+(?:\.\d+)?)%, (.+)\)$/;
