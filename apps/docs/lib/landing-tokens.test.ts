@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  docsGlobalCss,
   docsStylesheetRules,
   rulesFor,
   stylesheetRules,
@@ -52,7 +53,9 @@ describe("the landing tile surface", () => {
     expect(themed(".dark")?.["--border-tile"]).toBe("hsl(240 22% 16%)");
     expect(themed(".light")?.["--surface-tile"]).toBe("hsl(0 0% 100%)");
     expect(themed(".light")?.["--border-tile"]).toBe("var(--border-default)");
-    expect(rules.some((rule) => "--surface-tile" in rule.declarations)).toBe(false);
+    expect(
+      stylesheetRules(docsGlobalCss()).some((rule) => "--surface-tile" in rule.declarations),
+    ).toBe(false);
   });
 
   it.each([".vk-tile", ".vk-feature", ".vk-faq-item", ".vk-banner-file", ".vk-closer"])(
