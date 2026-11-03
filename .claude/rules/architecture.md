@@ -12,6 +12,8 @@ Acyclic, one-way, confirmed against every `packages/*/package.json` `dependencie
 config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <- cli / studio / mcp
 ```
 
+Alongside that chain, `ui` sits beside `config` as a leaf: `config <- ui <- docs` (and `<- studio` from Phase 2).
+
 - `@verbatra/core` (`packages/core/package.json`) depends only on `zod`. Nothing below it.
 - `@verbatra/format-adapters` depends on `@verbatra/core` (`packages/format-adapters/package.json`).
 - `@verbatra/ai-providers` depends on `@verbatra/core` (`packages/ai-providers/package.json`).
@@ -51,6 +53,12 @@ config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <-
   arrow.
 - `@verbatra/config` (`packages/config/package.json`) has no workspace dependencies; every other
   package takes it as a `devDependency` for shared tsconfig, biome, tsup, and vitest presets.
+- `@verbatra/ui` (`packages/ui/package.json`) is private, has no runtime dependencies and no build:
+  `exports` point at raw source (`src/tokens.css`, `src/index.ts`). `apps/docs` takes it as a
+  `dependency` (so the third-party license collector sees it), lists it in `transpilePackages`
+  (`apps/docs/next.config.mjs`) and imports `@verbatra/ui/tokens.css` in `apps/docs/app/global.css`.
+  It never depends on `core`, `sdk`, or any surface, and no published package may reference it in
+  its `.d.ts`.
 - `apps/docs` takes `@verbatra/core` as a `devDependency` only for the test-only root-entry import
   in `apps/docs/lib/translation-provenance.test.ts`.
 

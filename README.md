@@ -79,7 +79,7 @@ Gemini is the cheapest way to try verbatra, because its API has a real free tier
 
 The GitHub Action runs `translate`, `check`, or `diff` in CI, turns each failed or partial locale into an error annotation, writes a job summary, and exits with the CLI's own exit code. The one exception is a human-only `translate` that exits `3` with keys left for a person: the step passes with a warning. `check` and `diff` need no API key, so they are safe on a fork pull request.
 
-None of the packages below is published on its own. `core`, `format-adapters`, `ai-providers`, `exchange` and `extract` are bundled into `@verbatra/sdk`; `config`, the docs site and `e2e` are not bundled, and `e2e` sits outside the pnpm workspace.
+None of the packages below is published on its own. `core`, `format-adapters`, `ai-providers`, `exchange` and `extract` are bundled into `@verbatra/sdk`; `config`, `ui`, the docs site and `e2e` are not bundled, and `e2e` sits outside the pnpm workspace.
 
 | Package | Role |
 | --- | --- |
@@ -89,6 +89,7 @@ None of the packages below is published on its own. `core`, `format-adapters`, `
 | [`exchange`](./packages/exchange/README.md) | Excel, CSV, XLIFF and TMX interchange |
 | [`extract`](./packages/extract/README.md) | Source-code extraction of translation call sites |
 | [`config`](./packages/config/README.md) | Shared build, TypeScript, lint and test configuration |
+| [`ui`](./packages/ui/README.md) | Shared design tokens for the docs site and Studio |
 | [`apps/docs`](./apps/docs/README.md) | The documentation site |
 | [`e2e`](./e2e/README.md) | End-to-end tests of the published packages |
 

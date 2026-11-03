@@ -1,6 +1,6 @@
 ---
 name: docs-ui
-description: 'Visual and component conventions for the verbatra docs site (apps/docs), a Fumadocs 16 / Next.js 16 / Tailwind 4 app. Use when adding or reshaping UI in apps/docs: landing sections, MDX-facing components, design tokens in app/global.css, or anything touching the Fumadocs theme layer. Also use before accepting generic design advice that does not account for Fumadocs.'
+description: 'Visual and component conventions for the verbatra docs site (apps/docs), a Fumadocs 16 / Next.js 16 / Tailwind 4 app. Use when adding or reshaping UI in apps/docs: landing sections, MDX-facing components, design tokens (packages/ui/src/tokens.css, imported by app/global.css), or anything touching the Fumadocs theme layer. Also use before accepting generic design advice that does not account for Fumadocs.'
 license: MIT
 metadata:
   author: verbatra
@@ -96,6 +96,15 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   on the server and settles after hydration.
 
 ## Token layers: always use the outermost one
+
+The token definitions live in the shared package `packages/ui/src/tokens.css` (`@verbatra/ui`),
+not in `apps/docs/app/global.css`. Palettes sit under `.dark, [data-theme="dark"]` and
+`.light, [data-theme="light"]`; theme-invariant scales (type, radius, motion, layout, fonts) sit
+under `:root`. `apps/docs/app/global.css` imports the file right after the Fumadocs and Tailwind
+imports, keeps its own dark default and `html.light` for the marketing and Fumadocs-compat tokens,
+and aliases every `--color-fd-*` onto a semantic token. The same tokens apply to Studio once it
+adopts the package in Phase 2. Change a shared token in `packages/ui/src/tokens.css`, never as a
+copy in a consuming app.
 
 Three layers exist. Write against the third.
 
@@ -1365,7 +1374,7 @@ touches `messages/en.json` and needs the other three updated in the same change,
 Tokens drift. Before quoting a value from this skill, confirm it:
 
 ```bash
-grep -n '\--surface-\|--text-\|--accent\|--radius-\|--shadow-\|--scrim\|--width-page\|--header-height\|--crumb-height' apps/docs/app/global.css
+grep -n '\--surface-\|--text-\|--accent\|--radius-\|--shadow-\|--scrim\|--width-page\|--header-height\|--crumb-height' packages/ui/src/tokens.css apps/docs/app/global.css
 grep -n 'vk-page-\|vk-crumb\|vk-docs-footer\|vk-callout\|vk-header-search\|nd-toc\|nd-sidebar' apps/docs/app/global.css
 ```
 

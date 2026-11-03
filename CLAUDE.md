@@ -57,7 +57,8 @@ Packages on `main`: `@verbatra/core` (private, pure domain model, no I/O), `@ver
 (private, file to neutral-IR adapters), `@verbatra/ai-providers` (private, translation
 provider strategies), `@verbatra/exchange` (private, Excel workbook and TMX interchange),
 `@verbatra/extract` (private, source-code extraction of translation call sites),
-`@verbatra/config` (private, shared build/TS/lint config), `@verbatra/sdk` (public,
+`@verbatra/config` (private, shared build/TS/lint config), `@verbatra/ui` (private, shared
+design tokens as raw CSS and TS source, no build), `@verbatra/sdk` (public,
 central orchestration API), `@verbatra/cli` (public, the `verbatra` binary),
 `@verbatra/studio` (public, local dashboard), `@verbatra/mcp` (public, stdio MCP
 server exposing translation status, glossary, and editing tools). `apps/docs`
@@ -148,6 +149,10 @@ this repository. That repository's CI asserts their command, format, provider an
 tool tables against this repository's registries, nightly and on every change, so
 adding a command, format, provider or agent tool here also means opening a pull
 request there.
+
+`packages/ui/src/tokens.css` is the single source of the design tokens shared by `apps/docs` and,
+from Phase 2 of the Studio overhaul, `packages/studio`. `apps/docs` imports it ahead of its own
+`global.css` rules; change a shared token there, not in a consuming app.
 
 `.claude/skills/` holds the skills vendored into this repository: the third-party
 ones this project consumes, plus verbatra's own three installed back from

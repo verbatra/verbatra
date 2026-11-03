@@ -101,6 +101,10 @@ Two families is the whole set. A third needs a reason that survives review.
 
 ## Token layers: always use the outermost one
 
+Planned: in Phase 2 of the Studio overhaul the shared tokens move to `packages/ui/src/tokens.css`
+(`@verbatra/ui`) and `styles.css` stops defining them. Until that lands, everything below describes
+the current state of `styles.css`.
+
 `src/app/styles.css` has three layers. Write against the third, through Tailwind
 utilities.
 

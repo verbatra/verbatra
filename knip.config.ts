@@ -26,6 +26,10 @@ const config: KnipConfig = {
       ],
     },
 
+    "packages/ui": {
+      entry: ["src/tokens.css"],
+    },
+
     "packages/sdk": {
       ignoreDependencies: [
         "@formatjs/icu-messageformat-parser",
