@@ -58,7 +58,7 @@ export function ReviewRowActions({
       )}
     >
       <Button
-        className="w-12"
+        size="xs"
         onClick={onEdit}
         disabled={busy !== undefined}
         aria-keyshortcuts={shortcutFor("edit", shortcutsActive)}
@@ -67,7 +67,7 @@ export function ReviewRowActions({
       </Button>
       <Button
         variant="secondary-success"
-        className="w-24"
+        size="xs"
         onClick={onApprove}
         disabled={busy !== undefined || decisionDisabled || approveDisabled}
         aria-keyshortcuts={shortcutFor("approve", shortcutsActive)}
@@ -76,7 +76,7 @@ export function ReviewRowActions({
       </Button>
       <Button
         variant="secondary-danger"
-        className="w-24"
+        size="xs"
         onClick={onReject}
         disabled={busy !== undefined || decisionDisabled}
         aria-keyshortcuts={shortcutFor("reject", shortcutsActive)}
@@ -85,6 +85,7 @@ export function ReviewRowActions({
       </Button>
       {onRetranslate !== undefined ? (
         <Button
+          size="xs"
           className={cn(
             RETRANSLATE_IDLE_CLASSNAME,
             running === "retranslate" && RETRANSLATE_BUSY_CLASSNAME,

@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 import { TranslationValue, valueDirection } from "./TranslationValue.js";
@@ -124,10 +126,15 @@ describe("TranslationValue", () => {
   });
 
   it("draws the focus ring of a button on a paragraph value a keyboard can scroll", () => {
+    const css = readFileSync(join(process.cwd(), "../ui/src/components.css"), "utf8");
+    const rule = /\.vk-btn:focus-visible \{([^}]*)\}/.exec(css)?.[1] ?? "";
     const value = render(<TranslationValue as="p" value="{name}" />);
     const names = value.get("p").className.split(" ");
 
+    expect(rule).toContain("outline: 2px solid var(--focus-ring)");
+    expect(rule).toContain("outline-offset: 2px");
     expect(names).toContain("focus-visible:outline-2");
+    expect(names).toContain("focus-visible:outline-offset-2");
     expect(names).toContain("focus-visible:outline-ring");
   });
 

@@ -180,10 +180,5 @@ export const tableClasses = {
   numeric: "text-end tabular-nums",
 };
 
-export const pillClassName =
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-0.5 font-sans text-xs font-medium leading-5";
-
-export const pillDotClassName = "size-1.5 flex-none rounded-full bg-current";
-
 export const microLabelClassName =
   "font-mono text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";

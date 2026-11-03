@@ -2,7 +2,7 @@
 import type { Mock } from "vitest";
 import { describe, expect, it, vi } from "vitest";
 import { ReviewRowActions } from "./ReviewRowActions.js";
-import { click, render } from "./test-support.js";
+import { callerClasses, click, render } from "./test-support.js";
 
 interface Handlers {
   readonly onApprove: Mock<() => void>;
@@ -67,6 +67,11 @@ describe("ReviewRowActions", () => {
 
     expect(view.getByText("button", "Approve").dataset.variant).toBe("secondary-success");
     expect(view.getByText("button", "Reject…").dataset.variant).toBe("secondary-danger");
+    for (const label of ["Edit", "Approve", "Reject…"]) {
+      expect(
+        callerClasses(view.getByText("button", label)).filter((name) => name.includes("[")),
+      ).toEqual([]);
+    }
   });
 
   it("uses non-submitting buttons, since a review row can sit inside a form", () => {
@@ -162,15 +167,15 @@ describe("ReviewRowActions", () => {
   it("shows a running bulk rejection on the Reject button", () => {
     const view = render(<ReviewRowActions {...handlers()} busy={{ action: "reject" }} />);
 
-    expect(view.getByText("button", "Rejecting…").className).toContain("w-24");
+    expect(view.getByText("button", "Rejecting…").dataset.variant).toBe("secondary-danger");
   });
 
-  it("reserves a fixed width for each labelled action so a busy label never moves the row", () => {
+  it("sizes every row action at the compact size and keeps the status region empty", () => {
     const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
 
-    expect(view.getByText("button", "Edit").className.split(" ")).toContain("w-12");
-    expect(view.getByText("button", "Approve").className).toContain("w-24");
-    expect(view.getByText("button", "Reject…").className).toContain("w-24");
+    for (const label of ["Edit", "Approve", "Reject…", "Retranslate"]) {
+      expect(view.getByText("button", label).dataset.size).toBe("xs");
+    }
     expect(view.get('[role="status"]').textContent).toBe("");
   });
 
@@ -208,8 +213,8 @@ describe("ReviewRowActions", () => {
     const busy = view.getByText("button", "Retranslating… 5s").className.split(" ");
 
     expect(busy).toContain("disabled:opacity-100");
-    expect(busy).not.toContain("disabled:opacity-50");
-    expect(view.getByText("button", "Edit").className.split(" ")).toContain("disabled:opacity-50");
+    expect(busy).not.toContain("disabled:opacity-60");
+    expect(view.getByText("button", "Edit").className.split(" ")).toContain("disabled:opacity-60");
     expect(view.get("[data-busy-elapsed]").className.split(" ")).toContain("text-muted-foreground");
   });
 

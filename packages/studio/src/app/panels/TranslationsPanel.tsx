@@ -152,7 +152,7 @@ function ReviewReportButton({ locales }: { readonly locales: readonly DiffLocale
   }
 
   return (
-    <Button size="md" onClick={() => void handleClick()}>
+    <Button onClick={() => void handleClick()}>
       <Icon name={copied ? "check" : "copy"} size={14} />
       {copied ? "Copied" : "Copy as review report"}
     </Button>
@@ -715,7 +715,13 @@ function LocalesSection({
   return (
     <PageSection
       title="Locales"
-      meta={lock.kind === "loaded" ? <Badge tone="neutral">Lock v{lock.version}</Badge> : undefined}
+      meta={
+        lock.kind === "loaded" ? (
+          <Badge tone="neutral" verbatim>
+            Lock v{lock.version}
+          </Badge>
+        ) : undefined
+      }
     >
       {status.kind === "loading" ? (
         <div role="status">

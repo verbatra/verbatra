@@ -3,6 +3,8 @@
 @import "@verbatra/ui/fonts.css";
 @import "@verbatra/ui/components.css";
 @source "../../../ui/src/**/*.tsx";
+@source not "../../../ui/src/**/*.test.tsx";
+@source not "../../../ui/src/test-support.tsx";
 
 :root[data-theme="light"] {
   color-scheme: light;

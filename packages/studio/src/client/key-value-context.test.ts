@@ -83,7 +83,7 @@ describe("draft flags", () => {
       }),
     ).toEqual([
       { tone: "warning", label: "Missing" },
-      { tone: "danger", label: "Forbidden: Karren" },
+      { tone: "danger", label: "Forbidden: Karren", verbatim: true },
     ]);
     expect(draftTermFlags({ source: "cart", forbiddenUsed: [] })).toEqual([]);
     expect(draftTermFlags(undefined)).toEqual([]);

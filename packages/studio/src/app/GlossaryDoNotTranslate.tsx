@@ -26,9 +26,9 @@ function KeptTerm({
   readonly onRemove: () => void;
 }): ReactNode {
   return (
-    <li className="flex min-w-0 max-w-full items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1.5">
+    <li className="flex max-w-full flex-wrap items-center gap-2 rounded-(--radius-sm) border border-border bg-muted/40 px-2.5 py-1.5">
       <span
-        className="min-w-0 font-mono text-sm text-accent-foreground [overflow-wrap:anywhere]"
+        className="max-w-full font-mono text-sm text-accent-foreground [overflow-wrap:anywhere]"
         dir="auto"
       >
         {entry.term}
@@ -37,6 +37,7 @@ function KeptTerm({
       {editable ? (
         <Button
           ref={buttonRef}
+          size="xs"
           onClick={onRemove}
           disabled={writer.pending === entry.term}
           aria-label={`Remove ${entry.term} from do not translate`}
@@ -89,7 +90,7 @@ function KeepForm({
         disabled={busy}
         onChange={setCaseSensitive}
       />
-      <Button variant="primary" size="md" onClick={() => void keep()} disabled={busy || !ready}>
+      <Button variant="primary" onClick={() => void keep()} disabled={busy || !ready}>
         Keep untranslated
       </Button>
     </div>

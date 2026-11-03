@@ -12,8 +12,6 @@ import {
   microLabelClassName,
   OverlayBackdrop,
   PageSection,
-  pillClassName,
-  pillDotClassName,
   Section,
   SectionCard,
   tableClasses,
@@ -367,14 +365,6 @@ describe("shared class constants", () => {
 
   it("end-aligns numeric columns with fixed-rhythm digits", () => {
     expect(tableClasses.numeric).toBe("text-end tabular-nums");
-  });
-
-  it("keeps a pill on one line", () => {
-    expect(pillClassName).toContain("whitespace-nowrap");
-  });
-
-  it("colors the pill dot by the pill's own text color", () => {
-    expect(pillDotClassName).toContain("bg-current");
   });
 
   it("renders the micro-label as uppercase monospace", () => {

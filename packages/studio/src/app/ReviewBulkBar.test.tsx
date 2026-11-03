@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { ReviewBulkBar, type ReviewBulkBarProps } from "./ReviewBulkBar.js";
-import { click, render } from "./test-support.js";
+import { callerClasses, click, render } from "./test-support.js";
 
 function props(overrides: Partial<ReviewBulkBarProps> = {}): ReviewBulkBarProps {
   return {
@@ -130,5 +130,8 @@ describe("ReviewBulkBar", () => {
 
     expect(button(view, "Approve selected").dataset.variant).toBe("secondary-success");
     expect(button(view, "Reject selected…").dataset.variant).toBe("secondary-danger");
+    for (const label of ["Approve selected", "Reject selected…", "Retranslate selected"]) {
+      expect(callerClasses(button(view, label)).filter((name) => name.includes("["))).toEqual([]);
+    }
   });
 });

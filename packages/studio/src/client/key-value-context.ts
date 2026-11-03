@@ -43,6 +43,7 @@ export function hasGlossaryHits(glossary: LocaleGlossary): boolean {
 export interface DraftFlag {
   readonly tone: "success" | "warning" | "danger";
   readonly label: string;
+  readonly verbatim?: boolean;
 }
 
 export function draftTermFlags(check: GlossaryDraftTermCheck | undefined): readonly DraftFlag[] {
@@ -56,7 +57,7 @@ export function draftTermFlags(check: GlossaryDraftTermCheck | undefined): reado
     flags.push({ tone: "warning", label: "Missing" });
   }
   for (const rendering of check.forbiddenUsed) {
-    flags.push({ tone: "danger", label: `Forbidden: ${rendering}` });
+    flags.push({ tone: "danger", label: `Forbidden: ${rendering}`, verbatim: true });
   }
   return flags;
 }

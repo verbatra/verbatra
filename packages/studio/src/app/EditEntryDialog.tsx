@@ -102,7 +102,7 @@ function DraftFlags({ flags }: { readonly flags: readonly DraftFlag[] }): ReactN
   return (
     <span className="ms-2 inline-flex flex-wrap gap-1 align-middle" data-draft-flags="">
       {flags.map((flag) => (
-        <Badge key={flag.label} tone={flag.tone}>
+        <Badge key={flag.label} tone={flag.tone} verbatim={flag.verbatim === true}>
           {flag.label}
         </Badge>
       ))}
