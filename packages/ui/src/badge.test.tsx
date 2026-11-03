@@ -53,6 +53,14 @@ describe("Badge", () => {
     },
   );
 
+  it("is the containing block of its hidden text, so it never inflates the page", () => {
+    expect(
+      render(<Badge>x</Badge>)
+        .get("span")
+        .className.split(" "),
+    ).toContain("relative");
+  });
+
   it("pins the normal font weight so a badge never inherits a heavier one", () => {
     expect(
       render(<Badge>x</Badge>)
@@ -109,6 +117,7 @@ describe("Badge", () => {
 
     expect(names).toContain("normal-case");
     expect(names).toContain("tracking-normal");
+    expect(names).not.toContain("tracking-[0.08em]");
     expect(names).not.toContain("uppercase");
     expect(names).toContain("whitespace-nowrap");
   });

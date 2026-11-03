@@ -16,7 +16,7 @@ export type BadgeTone =
   | "protected";
 
 const BASE =
-  "not-prose inline-flex items-center font-mono font-normal uppercase rounded-(--radius-sm) border px-[7px] py-[3px] text-xs tracking-[0.08em] whitespace-nowrap";
+  "not-prose relative inline-flex items-center font-mono font-normal uppercase rounded-(--radius-sm) border px-[7px] py-[3px] text-xs tracking-[0.08em] whitespace-nowrap";
 
 const WRAPPED = "min-w-0 max-w-full whitespace-normal [overflow-wrap:anywhere]";
 

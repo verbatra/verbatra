@@ -36,18 +36,28 @@ const SIZE: Readonly<Record<ButtonSize, string>> = {
   lg: "py-[13px] px-[22px] text-base",
 };
 
+const BORDERLESS: ReadonlySet<ButtonVariant> = new Set(["primary", "ghost", "danger"]);
+
 export interface ButtonClassesOptions {
   readonly variant?: ButtonVariant;
   readonly size?: ButtonSize;
+  readonly boxed?: boolean;
   readonly className?: string | undefined;
 }
 
 export function buttonClasses({
   variant = "secondary",
   size = "sm",
+  boxed = false,
   className,
 }: ButtonClassesOptions = {}): string {
-  return cn(BASE, VARIANT[variant], SIZE[size], className);
+  return cn(
+    BASE,
+    VARIANT[variant],
+    boxed && BORDERLESS.has(variant) && "border border-transparent",
+    SIZE[size],
+    className,
+  );
 }
 
 export function ButtonContent({
@@ -92,7 +102,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={buttonClasses({ variant, size, className })}
+      className={buttonClasses({ variant, size, boxed: true, className })}
       {...props}
       data-variant={variant}
       data-size={size}

@@ -118,6 +118,32 @@ describe("Button", () => {
     expect(names).not.toContain("font-semibold");
   });
 
+  it("gives the component's borderless variants the same border box as the bordered ones", () => {
+    for (const variant of ["primary", "ghost", "danger"] as const) {
+      const view = render(<Button variant={variant}>x</Button>);
+      const names = view.get("button").className.split(" ");
+
+      expect(names, variant).toContain("border");
+      expect(names, variant).toContain("border-transparent");
+    }
+    for (const variant of [
+      "secondary",
+      "outline",
+      "secondary-success",
+      "secondary-danger",
+    ] as const) {
+      expect(render(<Button variant={variant}>x</Button>).get("button").className).not.toContain(
+        "border-transparent",
+      );
+    }
+  });
+
+  it("leaves the link class string unboxed, so a site link keeps its own box", () => {
+    for (const variant of ["primary", "ghost"] as const) {
+      expect(buttonClasses({ variant }).split(" ")).not.toContain("border-transparent");
+    }
+  });
+
   it("keeps the label on one line and fades a disabled button", () => {
     const names = buttonClasses().split(" ");
 

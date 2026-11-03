@@ -224,16 +224,16 @@ describe.each(THEMES)("status and diff tokens in the %s theme", (theme) => {
   });
 });
 
-describe("light warning hue", () => {
-  const hue = (theme: string, name: string): number => {
+describe.each(THEMES)("warning hue in the %s theme", (theme) => {
+  const hue = (name: string): number => {
     const value = themeBlock(theme).declarations.get(name) ?? "";
     return Number(/^hsl\((\d+)/.exec(value)?.[1]);
   };
 
   it("sits at least 30 degrees from the changed hue, so two bordered badges read apart", () => {
-    expect(
-      Math.abs(hue("light", "--v-warning") - hue("light", "--v-status-changed")),
-    ).toBeGreaterThanOrEqual(30);
+    const gap = Math.abs(hue("--v-warning") - hue("--v-status-changed"));
+
+    expect(Math.min(gap, 360 - gap)).toBeGreaterThanOrEqual(30);
   });
 });
 
