@@ -1,53 +1,25 @@
-import {
-  parseThemePreference,
-  type ResolvedTheme,
-  resolveTheme,
-  THEME_STORAGE_KEY,
-  type ThemePreference,
-} from "../../client/theme.js";
+import { createThemeStore, type ThemeMode } from "@verbatra/ui/theme";
 
-const LIGHT_QUERY = "(prefers-color-scheme: light)";
+export type ThemePreference = ThemeMode;
 
-export function readStoredThemePreference(): ThemePreference {
-  try {
-    return parseThemePreference(window.localStorage.getItem(THEME_STORAGE_KEY));
-  } catch {
-    return "system";
-  }
+export const THEME_STORAGE_KEY = "verbatra-studio-theme";
+
+export interface ThemeOption {
+  readonly value: ThemePreference;
+  readonly label: string;
 }
 
-export function storeThemePreference(preference: ThemePreference): void {
-  try {
-    window.localStorage.setItem(THEME_STORAGE_KEY, preference);
-  } catch {}
-}
+export const THEME_OPTIONS: readonly ThemeOption[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
 
-function systemPrefersLight(): boolean {
-  return window.matchMedia(LIGHT_QUERY).matches;
-}
-
-let appliedPreference: ThemePreference | null = null;
-
-function applyResolvedTheme(theme: ResolvedTheme): void {
-  document.documentElement.dataset.theme = theme;
-}
-
-export function applyThemePreference(preference: ThemePreference): void {
-  appliedPreference = preference;
-  applyResolvedTheme(resolveTheme(preference, systemPrefersLight()));
-}
-
-function handleOsSchemeChange(): void {
-  if (appliedPreference === "system") {
-    applyThemePreference("system");
-  }
-}
-
-let trackedQuery: MediaQueryList | null = null;
+export const themeStore = createThemeStore({
+  storageKey: THEME_STORAGE_KEY,
+  modes: THEME_OPTIONS.map((option) => option.value),
+});
 
 export function initTheme(): void {
-  applyThemePreference(readStoredThemePreference());
-  trackedQuery?.removeEventListener("change", handleOsSchemeChange);
-  trackedQuery = window.matchMedia(LIGHT_QUERY);
-  trackedQuery.addEventListener("change", handleOsSchemeChange);
+  themeStore.init();
 }

@@ -210,8 +210,6 @@ samp {
   --color-fd-overlay: var(--scrim);
   --banner-title: min(clamp(2.875rem, 6.6vw, 5.75rem), 15.5cqi);
   --statement-title: clamp(2.5rem, 6.4vw, 5.75rem);
-  --surface-tile: hsl(240 26% 8%);
-  --border-tile: hsl(240 22% 16%);
   --gradient-headline: linear-gradient(90deg, var(--text-strong) 30%, var(--accent));
   --halo-strong: color-mix(in srgb, var(--accent-fill) 55%, transparent);
   --halo-soft: color-mix(in srgb, var(--accent) 30%, transparent);
@@ -226,8 +224,6 @@ html.light {
   --color-fd-secondary: var(--surface-muted);
   --color-fd-secondary-foreground: var(--text-strong);
 
-  --surface-tile: hsl(0 0% 100%);
-  --border-tile: var(--border-default);
   --halo-strong: color-mix(in srgb, var(--accent-fill) 22%, transparent);
   --halo-soft: color-mix(in srgb, var(--accent) 14%, transparent);
   --art-dim: hsl(240 8% 68%);

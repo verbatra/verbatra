@@ -112,7 +112,8 @@ under `:root`. `apps/docs/app/global.css` imports the file right after the Fumad
 imports, keeps its own dark default and `html.light` for the marketing and Fumadocs-compat tokens,
 and aliases the Fumadocs surface, text, border, primary, accent and ring tokens onto semantic
 tokens, the callout hues (info, warning, error, success) onto `--v-*` primitives, and the
-overlay onto `--scrim`. Studio does not consume the package yet.
+overlay onto `--scrim`. Studio consumes the same file. It also holds the status tokens
+(`--status-*`, `--diff-*`, with `-soft` tints) that only Studio uses today; docs ignores them.
 Change a shared token in `packages/ui/src/tokens.css`, never as a copy in a consuming app.
 
 Three layers exist. Write against the third.

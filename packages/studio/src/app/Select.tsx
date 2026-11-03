@@ -11,7 +11,7 @@ export function Select({
     <span className="relative inline-block">
       <select
         className={cn(
-          "block appearance-none rounded-md border border-border bg-background py-2 pe-8 ps-3 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+          "block appearance-none rounded-md border border-border bg-input py-2 pe-8 ps-3 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
           className,
         )}
         {...props}
