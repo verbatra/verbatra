@@ -148,10 +148,10 @@ Conventions carried by that list:
 `bg-foreground/40`: it brightens the page in dark theme, because a token whose polarity flips
 between themes is the failure mode to watch for.
 
-**A solid danger fill uses `danger-foreground`.** The `danger` Button variant
+**A solid danger fill uses `--status-danger-fg`.** The `danger` Button variant
 (`packages/ui/src/button.tsx`, `.vk-btn-danger` in `packages/ui/src/components.css`) fills with
-`--status-danger` and writes `--status-danger-fg`. Use it for a
-destructive confirmation, not for an ordinary row action, which stays a tinted `secondary` button.
+`--status-danger` (`--status-danger-strong` on hover) and writes `--status-danger-fg`. Use it for
+a destructive confirmation, not for an ordinary row action, which stays a tinted `secondary` button.
 
 The scales come from ui and are not Studio's to override: radii `--radius-sm` 6px, `--radius-md`
 10px, `--radius-lg` and `--radius-xl` 12px; shadows `--shadow-panel` and `--shadow-sm`, each
@@ -192,12 +192,14 @@ co-located test). Compose these before writing anything new.
 
 - **Shared primitives (owned by `@verbatra/ui`, import from `@verbatra/ui`):** `Button`
   (`variant: "primary" | "secondary" | "outline" | "ghost" | "secondary-success" |
-  "secondary-danger" | "danger"`, `size: "sm" | "md" | "lg"`, default `secondary`/`sm`; the site
+  "secondary-danger" | "danger"`, `size: "xs" | "sm" | "md" | "lg"`, default `secondary`/`sm`, `xs` for dense row actions and
+  chip controls; the site
   look, with `.vk-btn*` in `packages/ui/src/components.css`), `Card` (`padding: "none" | "sm" |
   "md"`, `as: "div" | "section"`; the tile surface), `Badge` (`tone: "neutral" | "success" |
-  "warning" | "danger"` plus the site tones `glow`, `new`, `changed`, `unchanged`, `solid`; `wrap`
-  lets a long user value break in its own case instead of overflowing; badges stay on one line
-  and uppercase by default) and `Icon`. They theme through semantic tokens only and expose
+  "warning" | "danger"`, the diff tones `missing`, `changed`, `orphaned`, `protected`, and the site
+  tones `glow`, `new`, `unchanged`, `solid`; `wrap` lets a long value break instead of
+  overflowing, `verbatim` keeps a locale code, version or any user value in its own case; badges
+  stay on one line and uppercase by default) and `Icon`. They theme through semantic tokens only and expose
   `data-variant`, `data-size`, `data-tone` and `data-padding` for tests. Change them in
   `packages/ui/src`, never as a Studio copy. Studio-local primitives:
   `Input`, `Select`, `Dropdown`, `Popover`, `Tooltip`, `Tabs`, `Accordion`, `Table`,
