@@ -1,5 +1,5 @@
+import { Button } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { Button } from "./Button.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { DrawerShell, Section } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";

@@ -1,7 +1,7 @@
 import type { KeyProvenance } from "@verbatra/sdk";
+import { Badge } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { provenanceBadgeView } from "../client/provenance-view.js";
-import { Badge } from "./Badge.js";
 
 export function ProvenanceBadge({
   provenance,

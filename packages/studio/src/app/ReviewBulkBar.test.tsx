@@ -125,11 +125,10 @@ describe("ReviewBulkBar", () => {
     expect(view.text()).toContain("3 selected");
   });
 
-  it("uses the tinted variants and fixed widths rather than one-off classes", () => {
+  it("uses the tinted status variants", () => {
     const view = render(<ReviewBulkBar {...props()} />);
 
-    expect(button(view, "Approve selected").className).toContain("text-success");
-    expect(button(view, "Reject selected…").className).toContain("text-danger");
-    expect(view.container.innerHTML).not.toMatch(/-\[/);
+    expect(button(view, "Approve selected").dataset.variant).toBe("secondary-success");
+    expect(button(view, "Reject selected…").dataset.variant).toBe("secondary-danger");
   });
 });

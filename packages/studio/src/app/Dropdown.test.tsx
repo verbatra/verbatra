@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
+
+import { Icon } from "@verbatra/ui";
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Dropdown, type DropdownItem } from "./Dropdown.js";
-import { Icon } from "./Icon.js";
 import { click, pressKey, render } from "./test-support.js";
 
 const TRIGGER = "button[aria-haspopup='true']";
@@ -175,13 +176,13 @@ describe("Dropdown", () => {
   it("uses the bordered secondary trigger by default", () => {
     const view = render(<Dropdown label="Actions" items={actionItems()} />);
 
-    expect(view.get(TRIGGER).classList.contains("bg-card")).toBe(true);
+    expect(view.get(TRIGGER).dataset.variant).toBe("secondary");
   });
 
   it("renders a low-emphasis trigger on request", () => {
     const view = render(<Dropdown label="Actions" items={actionItems()} variant="ghost" />);
 
-    expect(view.get(TRIGGER).classList.contains("bg-transparent")).toBe(true);
+    expect(view.get(TRIGGER).dataset.variant).toBe("ghost");
   });
 
   it("aligns the list to the inline start by default", () => {

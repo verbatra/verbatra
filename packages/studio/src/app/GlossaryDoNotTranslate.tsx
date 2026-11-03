@@ -1,11 +1,10 @@
+import { Badge, Button } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
   type GlossaryDoNotTranslateView,
   MAX_GLOSSARY_TERM_LENGTH,
 } from "../shared/rpc/glossary.js";
-import { Badge } from "./Badge.js";
-import { Button } from "./Button.js";
 import { CaseSensitiveToggle, type GlossaryWriter } from "./GlossaryTermRow.js";
 import { TextField } from "./Input.js";
 

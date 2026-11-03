@@ -321,7 +321,7 @@ describe("GlossarySection, file-backed", () => {
     const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
 
     expect(view.text()).toContain("1 never-use rule; choose a locale to see them");
-    expect(view.all(".bg-neutral-soft").some((badge) => badge.textContent === "de")).toBe(true);
+    expect(view.all("[data-tone=neutral]").some((badge) => badge.textContent === "de")).toBe(true);
     expect(view.text()).not.toContain("not target locales");
   });
 

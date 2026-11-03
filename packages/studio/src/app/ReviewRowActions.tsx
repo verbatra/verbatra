@@ -1,3 +1,4 @@
+import { Button } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import {
   compactElapsed,
@@ -6,7 +7,6 @@ import {
   rowBusyStatus,
 } from "../client/review-in-flight.js";
 import { type ReviewShortcutAction, shortcutKeysFor } from "../client/review-shortcuts.js";
-import { Button } from "./Button.js";
 import { cn } from "./lib/cn.js";
 
 export interface RowBusy {

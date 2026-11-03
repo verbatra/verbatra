@@ -1,9 +1,9 @@
 import type { BudgetStanding } from "@verbatra/sdk";
+import { Badge, type BadgeTone } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import type { BudgetDisplay, UsageDisplay } from "../../client/usage-ticker-data.js";
 import { budgetPercent, toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
-import { Badge, type BadgeTone } from "../Badge.js";
 import { CommitList } from "../CommitList.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { Loading } from "../Loading.js";

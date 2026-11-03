@@ -143,7 +143,7 @@ describe("RejectEntryDialog", () => {
   it("confirms with the danger button and separates the sentence around its action label", () => {
     const { view } = renderDialog();
 
-    expect(view.getByText("button", "Reject and remove").className).toContain("bg-danger");
+    expect(view.getByText("button", "Reject and remove").dataset.variant).toBe("danger");
     expect(view.text()).toContain("run, or Translate pending changes across all locales, fills");
   });
 

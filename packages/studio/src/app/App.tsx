@@ -1,3 +1,4 @@
+import type { IconName } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -9,7 +10,6 @@ import { unreviewedRows } from "../client/review-queue-data.js";
 import { PAGE_IDS, type PageId, pageHash, parsePageHash } from "../client/routes.js";
 import { AgentToolsAlert } from "./AgentToolsAlert.js";
 import { refreshBus, sessionStore } from "./api.js";
-import type { IconName } from "./Icon.js";
 import { readStoredSidebarCollapsed, storeSidebarCollapsed } from "./lib/sidebar-dom.js";
 import type { PanelProps } from "./panel-props.js";
 import { ActivityPanel } from "./panels/ActivityPanel.js";

@@ -1,7 +1,6 @@
+import { Button, Card } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { type RowBusyAction, rowBusyLabel } from "../client/review-in-flight.js";
-import { Button } from "./Button.js";
-import { Card } from "./Card.js";
 
 export interface ReviewBulkBarProps {
   readonly count: number;

@@ -1,4 +1,5 @@
 import type { MachineClassOrigin } from "@verbatra/sdk";
+import { Button } from "@verbatra/ui";
 import type { ChangeEvent, ReactNode, Ref } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyValuePair } from "../../client/filter.js";
@@ -46,7 +47,6 @@ import { MAX_REVIEW_BATCH_ENTRIES } from "../../shared/rpc/review-batch.js";
 import type { StudioCapabilities } from "../../shared/rpc/snapshot.js";
 import { ApproveLocaleDialog } from "../ApproveLocaleDialog.js";
 import { BulkRejectDialog, type BulkRejectEntry } from "../BulkRejectDialog.js";
-import { Button } from "../Button.js";
 import { Checkbox } from "../Checkbox.js";
 import { EditEntryDialog } from "../EditEntryDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";

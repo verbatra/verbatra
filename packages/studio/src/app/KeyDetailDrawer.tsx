@@ -1,4 +1,5 @@
 import type { KeyProvenance } from "@verbatra/sdk";
+import { Badge, Button } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { DiffLocale, KeyLocaleStatusRow } from "../client/diff-view.js";
@@ -12,8 +13,6 @@ import { provenanceDetailItems } from "../client/provenance-view.js";
 import { canRetranslate } from "../client/retranslate-eligibility.js";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
 import { rpcClient } from "./api.js";
-import { Badge } from "./Badge.js";
-import { Button } from "./Button.js";
 import { CommitList } from "./CommitList.js";
 import { KeyLocaleStatusBadge } from "./DiffBadge.js";
 import { KeyDescription } from "./KeyDescription.js";

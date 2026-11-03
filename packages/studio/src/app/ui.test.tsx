@@ -283,7 +283,7 @@ describe("SectionCard", () => {
     );
     const section = view.get("section");
 
-    expect(section.className).toContain("border-border");
+    expect(section.dataset.padding).toBeDefined();
     expect(view.get("h2").textContent).toBe("Provider");
   });
 

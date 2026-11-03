@@ -1,7 +1,7 @@
 import type { ReviewReasonCode } from "@verbatra/sdk";
+import { Badge } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { reviewReasonLabel } from "../client/review-reason-labels.js";
-import { Badge } from "./Badge.js";
 
 export function ReviewReasonChips({
   reasons,

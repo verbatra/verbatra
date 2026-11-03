@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "@verbatra/ui/tokens.css";
 @import "@verbatra/ui/fonts.css";
+@import "@verbatra/ui/components.css";
+@source "../../../ui/src/**/*.tsx";
 
 :root[data-theme="light"] {
   color-scheme: light;

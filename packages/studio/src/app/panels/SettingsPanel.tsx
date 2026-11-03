@@ -1,10 +1,10 @@
+import { Badge } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { StructuredError } from "../../client/state.js";
 import type { GlossaryGetResult } from "../../shared/rpc/glossary.js";
 import type { ProjectSnapshotResult } from "../../shared/rpc/snapshot.js";
 import { rpcClient } from "../api.js";
-import { Badge } from "../Badge.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { GlossarySection } from "../GlossarySection.js";
 import { Loading } from "../Loading.js";

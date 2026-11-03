@@ -1,4 +1,5 @@
 import type { GlossaryDraftCheck, LocaleGlossary, ReviewReasonCode } from "@verbatra/sdk";
+import { Badge, Button } from "@verbatra/ui";
 import type { KeyboardEvent, ReactNode, Ref } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { deriveEditEntryOutcome, type EditEntryOutcome } from "../client/edit-entry-outcome.js";
@@ -14,8 +15,6 @@ import {
 import { compareLength, lengthSummary } from "../client/length-compare.js";
 import { settledActionStatusLabel } from "../client/settled-action-status.js";
 import { rpcClient } from "./api.js";
-import { Badge } from "./Badge.js";
-import { Button } from "./Button.js";
 import { TextArea } from "./Input.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";

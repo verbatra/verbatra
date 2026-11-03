@@ -286,7 +286,7 @@ describe("ReviewPanel", () => {
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     const chips = view
-      .all("tbody span.rounded-sm")
+      .all("tbody span[data-tone]")
       .map((chip) => chip.textContent)
       .filter((text) => !text?.includes("Origin:"));
 
@@ -304,10 +304,10 @@ describe("ReviewPanel", () => {
     stubReview();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    const chips = view.all("tbody span.rounded-sm");
+    const chips = view.all("tbody span[data-tone]");
 
-    expect(chips[1]?.className).toContain("bg-warning-soft");
-    expect(chips[2]?.className).toContain("bg-neutral-soft");
+    expect(chips[1]?.dataset.tone).toBe("warning");
+    expect(chips[2]?.dataset.tone).toBe("neutral");
   });
 
   it("offers the row actions when the session may write to disk", async () => {

@@ -1,5 +1,5 @@
+import { Card } from "@verbatra/ui";
 import type { HTMLAttributes, ReactNode, Ref, TdHTMLAttributes, ThHTMLAttributes } from "react";
-import { Card } from "./Card.js";
 import { cn } from "./lib/cn.js";
 import { tableClasses } from "./ui.js";
 

@@ -86,7 +86,7 @@ describe("TopBar", () => {
     setConnectionStatus("reconnecting");
     advance(DEGRADED_DELAY_MS);
 
-    expect(view.get('[role="status"] > span').className).toContain("text-warning");
+    expect(view.get('[role="status"] > span').dataset.tone).toBe("warning");
   });
 
   it("clears the notice the moment the stream recovers, without waiting out a delay", () => {

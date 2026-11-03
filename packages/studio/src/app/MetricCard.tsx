@@ -1,6 +1,5 @@
+import { Card, Icon, type IconName } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { Card } from "./Card.js";
-import { Icon, type IconName } from "./Icon.js";
 import { cn } from "./lib/cn.js";
 import { ProgressBar } from "./ProgressBar.js";
 import { microLabelClassName } from "./ui.js";

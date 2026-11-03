@@ -1,6 +1,6 @@
+import { Badge } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { KeyLocaleStatus } from "../client/diff-view.js";
-import { Badge } from "./Badge.js";
 import { cn } from "./lib/cn.js";
 import { pillClassName, pillDotClassName } from "./ui.js";
 

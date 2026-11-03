@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
+
+import type { IconName } from "@verbatra/ui";
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { PageId } from "../client/routes.js";
-import type { IconName } from "./Icon.js";
 import { DesktopSidebar, MobileNavDrawer, type SidebarNavProps } from "./Sidebar.js";
 import { click, pressKey, type RenderResult, render } from "./test-support.js";
 

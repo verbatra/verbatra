@@ -1,4 +1,5 @@
 import type { BudgetStanding } from "@verbatra/sdk";
+import { Badge, Button, Card, Icon } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -37,13 +38,9 @@ import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import { toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
 import { Accordion, AccordionItem } from "../Accordion.js";
 import { rpcClient } from "../api.js";
-import { Badge } from "../Badge.js";
-import { Button } from "../Button.js";
-import { Card } from "../Card.js";
 import { DiffBadge, isDiffTone } from "../DiffBadge.js";
 import { EditEntryDialog } from "../EditEntryDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
-import { Icon } from "../Icon.js";
 import { KeyDetailDrawer } from "../KeyDetailDrawer.js";
 import { KeyStatusFilterBar } from "../KeyStatusFilterBar.js";
 import { Loading } from "../Loading.js";

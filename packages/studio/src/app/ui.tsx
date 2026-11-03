@@ -1,7 +1,5 @@
+import { Button, Card, Icon, type IconName } from "@verbatra/ui";
 import { Fragment, type ReactNode, type Ref } from "react";
-import { Button } from "./Button.js";
-import { Card } from "./Card.js";
-import { Icon, type IconName } from "./Icon.js";
 import { cn } from "./lib/cn.js";
 import { Sheet, type SheetSize } from "./Sheet.js";
 

@@ -1,3 +1,4 @@
+import { Button } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
@@ -7,7 +8,6 @@ import {
 } from "../client/retranslate-outcome.js";
 import { settledActionStatusLabel } from "../client/settled-action-status.js";
 import { rpcClient } from "./api.js";
-import { Button } from "./Button.js";
 import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";
 
 type ButtonState =

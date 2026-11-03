@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { Icon, type IconName } from "./Icon.js";
-import { render } from "./test-support.js";
+import { Icon, type IconName } from "./icon.tsx";
+import { render } from "./test-support.tsx";
 
 const ICON_NAME_SET: Readonly<Record<IconName, true>> = {
   activity: true,
@@ -101,9 +101,9 @@ describe("Icon", () => {
   });
 
   it("applies a caller className, which is how a caller positions or tints the glyph", () => {
-    const view = render(<Icon name="search" className="text-muted-foreground" />);
+    const view = render(<Icon name="search" className="text-(--text-muted)" />);
 
-    expect(view.get("svg").getAttribute("class")).toBe("text-muted-foreground");
+    expect(view.get("svg").getAttribute("class")).toBe("text-(--text-muted)");
   });
 
   it("sets no class attribute when the caller passes none", () => {

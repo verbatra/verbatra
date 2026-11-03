@@ -2,7 +2,7 @@
   "name": "@verbatra/ui",
   "version": "0.0.0",
   "private": true,
-  "description": "Shared design tokens, fonts and theme store for the verbatra docs site and Studio.",
+  "description": "Shared design tokens, fonts, theme store and base components for the verbatra docs site and Studio.",
   "license": "MIT",
   "author": "Mario Kreitz",
   "repository": {
@@ -22,6 +22,7 @@
     },
     "./tokens.css": "./src/tokens.css",
     "./fonts.css": "./src/fonts.css",
+    "./components.css": "./src/components.css",
     "./theme": {
       "types": "./src/theme.ts",
       "default": "./src/theme.ts"
@@ -46,10 +47,17 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@verbatra/config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
     "jsdom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:"
   }
 }

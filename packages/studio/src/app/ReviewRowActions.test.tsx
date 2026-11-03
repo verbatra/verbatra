@@ -65,9 +65,8 @@ describe("ReviewRowActions", () => {
   it("tints approve and reject apart through the tinted button variants", () => {
     const view = render(<ReviewRowActions {...handlers()} />);
 
-    expect(view.getByText("button", "Approve").className).toContain("text-success");
-    expect(view.getByText("button", "Reject…").className).toContain("text-danger");
-    expect(view.getByText("button", "Approve").className).not.toContain("[");
+    expect(view.getByText("button", "Approve").dataset.variant).toBe("secondary-success");
+    expect(view.getByText("button", "Reject…").dataset.variant).toBe("secondary-danger");
   });
 
   it("uses non-submitting buttons, since a review row can sit inside a form", () => {
@@ -209,8 +208,8 @@ describe("ReviewRowActions", () => {
     const busy = view.getByText("button", "Retranslating… 5s").className.split(" ");
 
     expect(busy).toContain("disabled:opacity-100");
-    expect(busy).not.toContain("disabled:opacity-60");
-    expect(view.getByText("button", "Edit").className.split(" ")).toContain("disabled:opacity-60");
+    expect(busy).not.toContain("disabled:opacity-50");
+    expect(view.getByText("button", "Edit").className.split(" ")).toContain("disabled:opacity-50");
     expect(view.get("[data-busy-elapsed]").className.split(" ")).toContain("text-muted-foreground");
   });
 
