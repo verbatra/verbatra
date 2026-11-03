@@ -28,6 +28,7 @@
   "dependencies": {
     "@arcjet/next": "1.14.1",
     "@radix-ui/react-dialog": "1.1.23",
+    "@verbatra/ui": "workspace:*",
     "cn": "0.4.0",
     "fumadocs-core": "16.17.8",
     "fumadocs-mdx": "15.4.10",

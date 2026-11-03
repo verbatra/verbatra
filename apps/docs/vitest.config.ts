@@ -12,7 +12,7 @@ export default defineConfig({
     testTimeout: 60_000,
     server: {
       deps: {
-        inline: ["fumadocs-core", "fumadocs-mdx", "@verbatra/sdk"],
+        inline: ["fumadocs-core", "fumadocs-mdx", "@verbatra/sdk", "@verbatra/ui"],
       },
     },
     include: [

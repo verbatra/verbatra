@@ -28,6 +28,7 @@ const config = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: "standalone",
+  transpilePackages: ["@verbatra/ui"],
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
   outputFileTracingIncludes: {
     "/*": ["../../node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*"],
