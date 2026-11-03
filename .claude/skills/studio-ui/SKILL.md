@@ -16,12 +16,14 @@ user-invocable: true
 `@verbatra/studio` is a published, prebuilt single-page app that the `verbatra studio`
 command serves over a real project on localhost. It is an operator console, not a
 marketing page: the reader is a developer checking translation drift, clearing a review
-queue, or spending provider budget. Its look is already decided and codified in
-`packages/studio/src/app/styles.css` (181 lines).
+queue, or spending provider budget. Its look is decided by the shared design tokens in
+`packages/ui/src/tokens.css`, which `packages/studio/src/app/styles.css` imports and maps onto
+Tailwind utilities.
 
 Two things make generic frontend advice wrong here, and both are enforced by tests:
 
-1. The app ships **two themes**, light and dark, and every token is defined twice.
+1. The app ships **two themes**, light and dark, and every token is defined twice, in the
+   shared `@verbatra/ui` token file.
 2. The server sends a **strict CSP** with no `unsafe-inline` and no remote origins, so
    fonts, styles, and scripts cannot come from a CDN.
 
@@ -50,8 +52,8 @@ headlessly, no DOM).
 - There is no router library and no state library. Navigation is the URL hash, parsed by
   `src/client/routes.ts` and dispatched through the `PAGE_PANELS` table in
   `src/app/App.tsx`. State is React hooks plus small stores in `src/app/api.ts`.
-- `src/app/index.html` is deliberately bare: a `<div id="root">` and one module script.
-  Nothing else belongs in it.
+- `src/app/index.html` is deliberately bare: a `<div id="root">`, one module script and one
+  classic `<script src="/theme-init.js">` in the head. Nothing else belongs in it.
 
 ## The CSP is a design constraint, not just a security header
 
@@ -69,7 +71,9 @@ attribute, and no `javascript:` URL. Consequences for UI work:
 
 - **No Google Fonts, no CDN stylesheet, no remote image.** `font-src 'self'` and
   `img-src 'self' data:` permit same-origin only. A web font must be self-hosted and
-  bundled through Vite.
+  bundled through Vite. Geist is: `@verbatra/ui/fonts.css` carries the `@font-face` rules and
+  the woff2 files, and the server answers `.woff2` as `font/woff2`
+  (`src/server/content-type.ts`).
 - **No `<style>` element and no literal `style="..."` in markup.** A React `style` prop
   is fine: React DOM writes through CSSOM, which CSP does not govern. Use it only for a
   value Tailwind cannot express, such as a computed percentage.
@@ -78,50 +82,43 @@ attribute, and no `javascript:` URL. Consequences for UI work:
 - Anything that wants to reach a third-party origin at runtime is blocked by
   `default-src 'none'` and `connect-src 'self'`. Do not design a feature that needs one.
 
-## Typography: no web font is loaded, and that is deliberate
+## Typography: Geist, self-hosted
 
-`@theme` declares two families:
+`@verbatra/ui/fonts.css` (imported first in `styles.css`) declares Geist and Geist Mono as
+variable woff2 faces, latin and latin-ext, `font-display: swap`, and points
+`--font-geist-sans` and `--font-geist-mono` at them with a system stack behind each. The ui
+tokens bind `--font-sans` and `--font-mono` to those variables, so `font-sans` and `font-mono`
+utilities, `body` and headings all resolve to Geist.
 
-| Role | Stack head | Variable |
-|---|---|---|
-| Body | `"Inter"` then `ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, ...` | `--font-sans` |
-| Code | `"JetBrains Mono"` then `ui-monospace, SFMono-Regular, Menlo, Monaco, ...` | `--font-mono` |
+Vite emits the font files as hashed assets (`assetsInlineLimit: 0` keeps them out of the CSS as
+data URLs, which `csp-build-output.test.ts` asserts). The OFL text ships at
+`/licenses/OFL-Geist.txt` from `src/app/public/licenses/`, byte-equal to the copy beside the font
+files in `packages/ui/src/fonts/`.
 
-There is no `@font-face`, no `@fontsource` dependency, and no `<link>` in `index.html`.
-Confirmed with a grep across `src/` and `vite.config.ts`. The named families are used
-only if the operator already has them installed; otherwise the app renders in the system
-UI font. This keeps the served bundle small and the CSP tight.
-
-If you want a guaranteed typeface, that is a deliberate decision with a cost: add the
-font files to the package, self-host them through Vite so they are served same-origin,
-and accept the bundle growth. Do not add a `<link>` to a font CDN; CSP will block it and
-the page will silently fall back.
-
-Two families is the whole set. A third needs a reason that survives review.
+Two families is the whole set. A third needs a reason that survives review. Do not add a `<link>`
+to a font CDN; CSP will block it.
 
 ## Token layers: always use the outermost one
 
-Studio does not consume `@verbatra/ui` yet: everything below describes the tokens as
-`styles.css` defines them today.
+Studio owns no palette. `packages/ui/src/tokens.css` defines the brand primitives (`--v-*`), the
+semantic layer (`--surface-*`, `--border-default`, `--text-*`, `--accent*`, `--focus-ring`,
+`--scrim`, `--status-*`, `--diff-*`), the radius and shadow scales and the type scale.
+`src/app/styles.css` imports it and holds two small things:
 
-`src/app/styles.css` has three layers. Write against the third, through Tailwind
-utilities.
+1. **A plain `@theme` entry** for `--shadow-panel`, so Tailwind generates the `shadow-panel`
+   utility. The ui value is unlayered and wins over it.
+2. **`@theme inline`**, which maps every `--color-*` onto a ui semantic token. That is what turns
+   a token into utilities such as `bg-card`, `text-muted-foreground`, `border-border`,
+   `bg-success-soft`.
 
-1. **Raw theme values, defined twice.** `--v-*` custom properties under `:root` (light)
-   and again under `:root[data-theme="dark"]`. This is the only place a literal `hsl()`
-   belongs.
-2. **Static scales.** `@theme` holds the two font stacks and the radius scale. These do
-   not change per theme.
-3. **The Tailwind color mapping.** `@theme inline` maps every `--color-*` to its `--v-*`
-   source, which is what turns a token into utilities such as `bg-card`,
-   `text-muted-foreground`, `border-border`, `bg-success-soft`, `shadow-panel`.
+Never put a ui `--text-*` color token into `@theme`: Tailwind reads that namespace as font sizes.
+Map text colors through `--color-*` instead.
 
-Component code writes `className="bg-card text-muted-foreground"`. It does not write
-`hsl(241 28% 11%)` and it does not write `var(--v-card)`. A raw color value in a
-component is a defect: it breaks the single point of change and it will be wrong in one
-of the two themes.
+Component code writes `className="bg-card text-muted-foreground"`. It does not write a raw
+`hsl()` and it does not write `var(--surface-card)`. A raw color value in a component is a
+defect: it breaks the single point of change and it will be wrong in one of the two themes.
 
-The token families, as they exist today:
+The token families the utilities expose:
 
 ```
 surface/base   background  card  popover  muted  border
@@ -132,61 +129,60 @@ sidebar        sidebar  sidebar-foreground  sidebar-muted  sidebar-border
                 sidebar-accent  sidebar-active
 status          success  warning  danger  neutral (each with a -soft companion)
                 danger-foreground (text on a solid danger fill)
-diff            diff-new  diff-changed  diff-orphaned (each with a -soft companion)
+diff            diff-missing  diff-changed  diff-orphaned  diff-protected (each with -soft)
 shadow          shadow-panel  shadow-panel-lg
 overlay         overlay (modal scrim)
 ```
 
-Two conventions carried by that list, both worth keeping:
+Conventions carried by that list:
 
-- **Every status and diff hue is a pair**: a readable foreground (`--v-success`) and a
-  low-alpha background (`--v-success-soft`). A new semantic hue ships both or it is not
-  finished. `src/app/Badge.tsx` shows the pairing in use.
-- **The sidebar is its own family and is dark in both themes.** In the light theme
-  `--v-sidebar` is `hsl(244 48% 12%)`, a near-black indigo. That is intentional
-  chrome-versus-canvas contrast, not an oversight. Do not "fix" it by mapping the sidebar
-  onto the surface tokens.
+- **Every status and diff hue is a pair**: a readable foreground (`--status-success`) and a
+  low-alpha background (`--status-success-soft`). A new semantic hue ships both, with a contrast
+  test in `packages/ui/src/tokens.test.ts`, or it is not finished.
+- **Protected is not Changed.** `diff-protected` is teal, `diff-changed` amber; the pill carries a
+  word as well, never color alone.
+- **The sidebar currently aliases the card, text and hover surfaces.** It is no longer a separate
+  dark palette; it is interim until the navigation shell is rebuilt.
 
 **The modal scrim has its own token.** `OverlayBackdrop` (`src/app/ui.tsx`) draws it with
-`bg-overlay`, backed by `--v-overlay` in both `:root` blocks: a dark, translucent fill in each
-theme, so the page behind a dialog is dimmed in dark theme too. It used to be
-`bg-foreground/40`, which brightened the page in dark theme because `--v-foreground` is
-near-white there. Do not bring that pattern back: a token whose polarity flips between themes
-is the failure mode to watch for here, and it is easier to miss than a stray `dark:` variant
-because it looks token-compliant.
+`bg-overlay`, which maps to `--scrim`: a dark, translucent fill in each theme. Do not use
+`bg-foreground/40`: it brightens the page in dark theme, because a token whose polarity flips
+between themes is the failure mode to watch for.
 
 **A solid danger fill uses `danger-foreground`.** The `danger` Button variant
-(`src/app/Button.tsx`) fills with `bg-danger` and writes `text-danger-foreground`, white on
-the light theme's deep red and near-black on the dark theme's light red. Use it for a
-destructive confirmation, such as Reject and remove in the Review panel, not for an ordinary
-row action, which stays a tinted `secondary` button.
+(`src/app/Button.tsx`) fills with `bg-danger` and writes `text-danger-foreground`. Use it for a
+destructive confirmation, not for an ordinary row action, which stays a tinted `secondary` button.
 
-Scales are fixed and narrow, deliberately:
-
-- Radii: `--radius-sm` 4px, `--radius-md` 6px, `--radius-lg` 8px, `--radius-xl` 12px.
-  These are tighter than the docs site's scale on purpose; a dense operator console reads
-  better with less rounding. Do not import the docs values.
-- Shadows: `--shadow-panel` and `--shadow-panel-lg`. Two, not a ramp, and each is
-  redefined per theme because a lift that works on white is invisible on near-black.
+The scales come from ui and are not Studio's to override: radii `--radius-sm` 6px, `--radius-md`
+10px, `--radius-lg` and `--radius-xl` 12px; shadows `--shadow-panel` and `--shadow-sm`, each
+redefined per theme.
 
 ## Both themes, every time
 
-`:root` is light, `:root[data-theme="dark"]` is dark. The attribute is written by
-`src/app/lib/theme-dom.ts` onto `document.documentElement`; the preference is
-`"system" | "light" | "dark"`, persisted in `localStorage` under
-`verbatra-studio-theme` (`src/client/theme.ts`), and `system` tracks
-`(prefers-color-scheme: light)` live.
+The ui palette sits under `.dark, [data-theme="dark"]` and `.light, [data-theme="light"]`. Studio
+sets `data-theme` on `<html>` to the RESOLVED theme (`light` or `dark`, never `system`). Two
+writers do it, and they must agree:
+
+- `src/app/public/theme-init.js`, a classic script in the `<head>`, applies the stored or system
+  theme before first paint. It is not bundled, so it cannot import ui;
+  `src/app/lib/theme-init.test.tsx` runs it against the ui store for every stored value.
+- `createThemeStore` from `@verbatra/ui/theme`, wired in `src/app/lib/theme-dom.ts`, applies the
+  choice at runtime. It persists `"system" | "light" | "dark"` in `localStorage` under
+  `verbatra-studio-theme`, tracks `(prefers-color-scheme: light)` live while the mode is
+  `system`, and suppresses transitions through the `data-theme-switching` attribute declared in
+  `tokens.css`. It never injects a `<style>` element, which the CSP forbids.
+
+There is deliberately no `prefers-color-scheme` CSS fallback: it would duplicate the palette, and
+the SPA needs JavaScript anyway.
 
 Rules that follow:
 
-- A new `--v-*` token is added to **both** blocks in the same change. One block only is a
-  bug that ships looking fine on the author's machine.
-- Do not use Tailwind's `dark:` variant to patch a component. The theme belongs in the
-  token, not in the markup. If a component needs different treatment per theme, the token
-  it consumes is the wrong token or a new one is missing.
+- A new themed token is added to **both** theme blocks of `tokens.css` in the same change. One
+  block only is a bug that ships looking fine on the author's machine.
+- Do not use Tailwind's `dark:` variant to patch a component. The theme belongs in the token, not
+  in the markup.
 - Check contrast in both themes before calling a color done, particularly the `-soft`
-  backgrounds, which sit at 10 to 18 percent alpha and shift substantially against a
-  light versus a dark surface.
+  backgrounds, which sit at low alpha and shift against a light versus a dark surface.
 
 ## Reuse before you build
 
@@ -216,7 +212,7 @@ co-located test). Compose these before writing anything new.
 - **Icons:** `src/app/Icon.tsx` is a closed set of 24 inline SVG paths keyed by
   `IconName`. There is no icon package. A new icon is a new entry in `ICON_PATHS` and a
   new member of the union, drawn on the same 24-unit stroked grid as its neighbours.
-- **Class composition:** always `cn()` from `src/app/lib/cn.ts` (clsx plus tailwind-merge),
+- **Class composition:** always `cn()` from `src/app/lib/cn.ts` (re-exports `cn` from `@verbatra/ui/cn`, clsx plus tailwind-merge),
   never string concatenation. It is what makes a caller's `className` override predictable.
 - **Accessibility:** `use-dialog-a11y.ts` (focus trap and restore) and
   `src/client/roving-tabindex.ts` already exist. Any new overlay, drawer, or keyboard
@@ -284,8 +280,9 @@ patterns; this app is a client-rendered SPA, so ignore its server-component guid
 Tokens drift. Before quoting a value from this skill, confirm it:
 
 ```bash
-grep -n '^\s*--v-\|^\s*--radius-\|^\s*--color-' packages/studio/src/app/styles.css
+grep -n '^\s*--v-\|^\s*--status-\|^\s*--diff-\|^\s*--radius-' packages/ui/src/tokens.css
+grep -n '^\s*--color-' packages/studio/src/app/styles.css
 ```
 
-If the file and this skill disagree, the file wins, and this skill needs updating in the
+If a file and this skill disagree, the file wins, and this skill needs updating in the
 same change.

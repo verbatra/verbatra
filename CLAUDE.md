@@ -166,10 +166,10 @@ than assuming one here; it grows over time.
 Two skills there are written in this repository and are deliberately absent from
 `skills-lock.json`, because nothing upstream owns them: `docs-ui` (visual and component
 conventions for `apps/docs`) and `studio-ui` (the same for `packages/studio`). The two
-surfaces differ in stack and theme model, and Studio still has its own tokens in
-`packages/studio/src/app/styles.css` (it does not consume `@verbatra/ui` yet), so load the
+surfaces differ in stack and theme model (both consume the `@verbatra/ui` tokens, each with its
+own theme default, storage key and component set), so load the
 one that matches the surface being changed and do not cross-apply them. Both state the
-files that own each token (`packages/ui/src/tokens.css` and `apps/docs/app/global.css` for docs,
-`packages/studio/src/app/styles.css` for Studio) and end with the grep to re-verify it: when the
+files that own each token (`packages/ui/src/tokens.css` for both, `apps/docs/app/global.css` and
+`packages/studio/src/app/styles.css` for each surface's own mapping) and end with the grep to re-verify it: when the
 skill and the stylesheet disagree, the stylesheet wins and the skill is updated in the
 same change.
