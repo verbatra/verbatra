@@ -186,7 +186,7 @@ Rules that follow:
 
 ## Reuse before you build
 
-`src/app/` holds the Studio composites at its top level, each with a co-located test. Compose these before writing anything new.
+`src/app/` holds the Studio composites at its top level. Compose these before writing anything new.
 
 - **Shared primitives (owned by `@verbatra/ui`, import from `@verbatra/ui`):** `Button`
   (`variant: "primary" | "secondary" | "outline" | "ghost" | "secondary-success" |
@@ -198,7 +198,7 @@ Rules that follow:
   tones `glow`, `new`, `unchanged`, `solid`; `wrap` lets a long value break instead of
   overflowing, `verbatim` keeps a locale code, version or any user value in its own case; badges
   stay on one line and uppercase by default), `Icon`, the fields `TextField`, `TextArea`, `SearchInput` and
-  `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row aligns;
+  `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row aligns; `TextArea` takes no size;
   the focus ring is `.vk-field:focus-visible`), `Checkbox`, `Accordion`, `Skeleton`, `ProgressBar`,
   `Toast`, the `Table` family with `tableClasses`, `Sheet` and `DrawerShell`, `OverlayBackdrop`,
   `DialogCloseButton`, and the layout parts `Container`, `Section`, `PageSection`, `SectionCard`,

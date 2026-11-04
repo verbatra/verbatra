@@ -62,27 +62,36 @@ export function RefreshToast({ view, onDismiss }: RefreshToastProps): ReactNode 
 
   return (
     <Toast>
-      <div className="flex flex-col gap-1">
-        <span className="text-sm font-semibold text-foreground">{view.label}</span>
-        <span className="text-sm text-muted-foreground">{view.summary}</span>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {showAction ? (
-          <Button
-            variant="primary"
-            disabled={state.kind === "loading"}
-            onClick={() => void handleClick()}
-          >
-            Translate pending changes across all locales
-          </Button>
-        ) : null}
-        {state.kind !== "idle" ? (
-          <span className={actionStatusClassName(state)}>{actionStatusLabel(state)}</span>
-        ) : null}
-        <Button variant="ghost" className="ms-auto p-1.5" onClick={onDismiss} aria-label="Dismiss">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="text-sm font-semibold text-foreground">{view.label}</span>
+          <span className="text-sm text-muted-foreground">{view.summary}</span>
+        </div>
+        <Button
+          variant="ghost"
+          className="flex-none p-1.5"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+        >
           <Icon name="close" size={14} />
         </Button>
       </div>
+      {showAction || state.kind !== "idle" ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {showAction ? (
+            <Button
+              variant="primary"
+              disabled={state.kind === "loading"}
+              onClick={() => void handleClick()}
+            >
+              Translate pending changes across all locales
+            </Button>
+          ) : null}
+          {state.kind !== "idle" ? (
+            <span className={actionStatusClassName(state)}>{actionStatusLabel(state)}</span>
+          ) : null}
+        </div>
+      ) : null}
     </Toast>
   );
 }

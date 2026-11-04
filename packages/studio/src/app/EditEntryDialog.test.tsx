@@ -658,6 +658,16 @@ describe("EditEntryDialog", () => {
     expect(status.textContent).toContain("Current value");
     expect(status.textContent).toContain("Machine");
     expect(status.textContent).toContain("Placeholder mismatch");
+    expect(editor(view).getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("does not mark the text area invalid while the saved value holds up", async () => {
+    stubRpc({ "key.context": keyValue("Hello", "Hallo") });
+
+    const view = await renderAsync(dialog());
+    await flush();
+
+    expect(editor(view).hasAttribute("aria-invalid")).toBe(false);
   });
 
   it("shows no saved-value status for a key with no translation yet", async () => {

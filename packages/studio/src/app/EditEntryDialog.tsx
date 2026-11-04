@@ -3,7 +3,7 @@ import { Badge, Button, DrawerShell, microLabelClassName, Section, TextArea } fr
 import type { KeyboardEvent, ReactNode, Ref } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { deriveEditEntryOutcome, type EditEntryOutcome } from "../client/edit-entry-outcome.js";
-import { deriveIntegrityPillView } from "../client/integrity-pill.js";
+import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
 import {
   type DraftFlag,
   deriveKeyValueContext,
@@ -205,16 +205,11 @@ function SourceColumn({
 
 function SavedValueStatus({
   context,
-  locale,
-  keyName,
+  pill,
 }: {
   readonly context: LoadedContext;
-  readonly locale: string;
-  readonly keyName: string;
+  readonly pill: IntegrityPillView | null;
 }): ReactNode {
-  const integrity = useKeyIntegrity(keyName, 0);
-  const pill =
-    integrity.kind === "loaded" ? deriveIntegrityPillView(integrity.locales, locale) : null;
   if (context.target === undefined) {
     return null;
   }
@@ -274,10 +269,13 @@ function TranslationColumn({
   readonly textAreaRef: Ref<HTMLTextAreaElement>;
 }): ReactNode {
   const lengthId = useId();
+  const integrity = useKeyIntegrity(keyName, 0);
+  const pill =
+    integrity.kind === "loaded" ? deriveIntegrityPillView(integrity.locales, locale) : null;
   return (
     <div className="min-w-0">
       <Section title="Translation">
-        <SavedValueStatus context={context} locale={locale} keyName={keyName} />
+        <SavedValueStatus context={context} pill={pill} />
         {context.target === undefined ? (
           <p className="mb-2 text-sm text-muted-foreground">
             No translation exists yet for this locale.
@@ -287,6 +285,8 @@ function TranslationColumn({
           ref={textAreaRef}
           aria-label={`Translation (${locale})`}
           aria-describedby={lengthId}
+          aria-invalid={pill?.tone === "danger" ? true : undefined}
+          className="mt-1"
           aria-keyshortcuts="Control+Enter Meta+Enter"
           lang={locale}
           dir={valueDirection(locale, value)}
