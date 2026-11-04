@@ -86,7 +86,6 @@ describe("ActivityPanel", () => {
     const view = await renderAsync(<ActivityPanel refreshToken={0} />);
 
     expect(view.get("h1").textContent).toBe("Activity");
-    expect(view.getByText("p", "Reference")).toBeTruthy();
   });
 
   it("shows both panes as loading while the two reads are still open", () => {

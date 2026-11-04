@@ -14,6 +14,7 @@ export interface RouteParams {
   readonly locale?: string;
   readonly statuses?: readonly KeyStatus[];
   readonly key?: string;
+  readonly query?: string;
 }
 
 export interface Route {
@@ -25,11 +26,12 @@ export interface RouteParamsInput {
   readonly locale?: string | undefined;
   readonly statuses?: Iterable<KeyStatus> | undefined;
   readonly key?: string | null | undefined;
+  readonly query?: string | undefined;
 }
 
 const PAGE_PARAMS: Readonly<Record<PageId, readonly (keyof RouteParams)[]>> = {
   overview: [],
-  translations: ["locale", "statuses", "key"],
+  translations: ["locale", "statuses", "key", "query"],
   review: ["locale"],
   glossary: [],
   settings: [],
@@ -71,6 +73,7 @@ export function routeParams(input: RouteParamsInput): RouteParams {
     ...(input.key !== undefined && input.key !== null && input.key !== ""
       ? { key: input.key }
       : {}),
+    ...(input.query !== undefined && input.query.trim() !== "" ? { query: input.query } : {}),
   };
 }
 
@@ -84,6 +87,7 @@ function paramsForPage(page: PageId, search: URLSearchParams): RouteParams {
     locale: allowed.includes("locale") ? (search.get("locale") ?? undefined) : undefined,
     statuses: allowed.includes("statuses") ? statuses : undefined,
     key: allowed.includes("key") ? search.get("key") : undefined,
+    query: allowed.includes("query") ? (search.get("q") ?? undefined) : undefined,
   });
 }
 
@@ -109,6 +113,9 @@ export function routeHash(route: Route): string {
   }
   if (allowed.includes("key") && route.params.key !== undefined) {
     search.set("key", route.params.key);
+  }
+  if (allowed.includes("query") && route.params.query !== undefined) {
+    search.set("q", route.params.query);
   }
   const query = search.toString();
   return query === "" ? `#/${route.page}` : `#/${route.page}?${query}`;

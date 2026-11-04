@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PAGE_IDS, type PageId } from "../client/routes.js";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import { App } from "./App.js";
@@ -14,13 +14,16 @@ import {
   rpcCalls,
   sessionStore,
   stubRpc,
+  typeInto,
 } from "./test-support.js";
 
-vi.stubGlobal("matchMedia", () => ({
+const NARROW_MEDIA = () => ({
   matches: false,
   addEventListener: () => {},
   removeEventListener: () => {},
-}));
+});
+
+vi.stubGlobal("matchMedia", NARROW_MEDIA);
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
@@ -109,13 +112,17 @@ function mount(): Promise<RenderResult> {
 
 function navItem(view: RenderResult, label: string): HTMLElement {
   const match = view
-    .all("aside nav button")
+    .all('header nav[aria-label="Studio"] a')
     .find((button) => button.textContent?.startsWith(label) === true);
   if (match === undefined) {
-    throw new Error(`no rail nav item labeled ${label}`);
+    throw new Error(`no header nav link labeled ${label}`);
   }
   return match;
 }
+
+afterEach(() => {
+  vi.stubGlobal("matchMedia", NARROW_MEDIA);
+});
 
 beforeEach(() => {
   goToHash("/");
@@ -157,18 +164,16 @@ describe("App routing", () => {
     expect(window.location.hash).toBe("#/overview");
     expect(window.history.length).toBe(entries);
     expect(view.get("h1").textContent).toBe("Activity");
-    expect(view.get('aside [aria-current="page"]').textContent).toContain("Overview");
+    expect(view.get('header [aria-current="page"]').textContent).toContain("Overview");
   });
 
-  it("groups the sidebar into Workspace and Project", async () => {
+  it("lists the pages as header links in workspace-then-project order", async () => {
     const view = await mount();
-    const labels = (group: string) =>
-      view
-        .all(`aside nav[aria-label="${group}"] button`)
-        .map((button) => button.textContent?.replace(/\d.*$/, ""));
+    const labels = view
+      .all('header nav[aria-label="Studio"] a')
+      .map((link) => link.textContent?.replace(/\d.*$/, ""));
 
-    expect(labels("Workspace")).toEqual(["Overview", "Translations", "Review"]);
-    expect(labels("Project")).toEqual(["Glossary", "Settings"]);
+    expect(labels).toEqual(["Overview", "Translations", "Review", "Glossary", "Settings"]);
   });
 
   it("restores the filters of a deep link when browser back returns to the page", async () => {
@@ -225,20 +230,12 @@ describe("App routing", () => {
     expect(view.get("h1").textContent).toBe("Review");
   });
 
-  it("names the current page in the header row alongside the panel heading", async () => {
-    goToHash("#/settings");
-
-    const view = await mount();
-
-    expect(view.get("header span").textContent).toBe("Settings");
-  });
-
   it("marks the chosen nav item as the current page", async () => {
     const view = await mount();
 
     await clickAsync(navItem(view, "Review"));
 
-    expect(view.get('aside [aria-current="page"]').textContent).toContain("Review");
+    expect(view.get('header [aria-current="page"]').textContent).toContain("Review");
   });
 });
 
@@ -250,7 +247,7 @@ describe("App session expiry", () => {
       sessionStore.markSessionExpired();
     });
 
-    expect(view.query("aside")).toBeNull();
+    expect(view.query("header")).toBeNull();
     expect(view.getByText("h1", "Session expired")).not.toBeNull();
   });
 
@@ -404,7 +401,7 @@ describe("App navigation chrome", () => {
   it("counts the entries waiting on the review nav item", async () => {
     const view = await mount();
 
-    expect(view.get('aside nav[aria-label="Workspace"]').textContent).toContain("2 waiting");
+    expect(view.get('header nav[aria-label="Studio"]').textContent).toContain("2 waiting");
   });
 
   it("counts nothing while the review queue read has not answered yet", async () => {
@@ -412,40 +409,7 @@ describe("App navigation chrome", () => {
 
     const view = await mount();
 
-    expect(view.get('aside nav[aria-label="Workspace"]').textContent).not.toContain("waiting");
-  });
-
-  it("starts expanded for a first visit, with nothing stored", async () => {
-    const view = await mount();
-
-    expect(view.get('[aria-label="Collapse sidebar"]')).not.toBeNull();
-  });
-
-  it("collapses the rail on request and remembers the choice", async () => {
-    const view = await mount();
-
-    await clickAsync(view.get('[aria-label="Collapse sidebar"]'));
-
-    expect(view.get('[aria-label="Expand sidebar"]')).not.toBeNull();
-    expect(window.localStorage.getItem("verbatra-studio-sidebar")).toBe("collapsed");
-  });
-
-  it("expands the rail again and remembers that choice too", async () => {
-    const view = await mount();
-    await clickAsync(view.get('[aria-label="Collapse sidebar"]'));
-
-    await clickAsync(view.get('[aria-label="Expand sidebar"]'));
-
-    expect(view.get('[aria-label="Collapse sidebar"]')).not.toBeNull();
-    expect(window.localStorage.getItem("verbatra-studio-sidebar")).toBe("expanded");
-  });
-
-  it("restores a collapsed rail from a previous session", async () => {
-    window.localStorage.setItem("verbatra-studio-sidebar", "collapsed");
-
-    const view = await mount();
-
-    expect(view.get('[aria-label="Expand sidebar"]')).not.toBeNull();
+    expect(view.get('header nav[aria-label="Studio"]').textContent).not.toContain("waiting");
   });
 
   it("keeps the mobile nav drawer closed until it is asked for", async () => {
@@ -457,16 +421,16 @@ describe("App navigation chrome", () => {
   it("opens the mobile nav drawer from the header trigger", async () => {
     const view = await mount();
 
-    await clickAsync(view.get('[aria-label="Open navigation"]'));
+    await clickAsync(view.get('[aria-label^="Open navigation"]'));
 
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Navigation");
   });
 
   it("closes the drawer once a page is chosen from it, and navigates", async () => {
     const view = await mount();
-    await clickAsync(view.get('[aria-label="Open navigation"]'));
+    await clickAsync(view.get('[aria-label^="Open navigation"]'));
 
-    await clickAsync(view.getByText('[role="dialog"] button', "Settings"));
+    await clickAsync(view.getByText('[role="dialog"] nav a', "Settings"));
 
     expect(view.query('[role="dialog"]')).toBeNull();
     expect(view.get("h1").textContent).toBe("Settings");
@@ -474,11 +438,132 @@ describe("App navigation chrome", () => {
 
   it("closes the drawer from its own close button, without navigating", async () => {
     const view = await mount();
-    await clickAsync(view.get('[aria-label="Open navigation"]'));
+    await clickAsync(view.get('[aria-label^="Open navigation"]'));
 
     await clickAsync(view.get('[role="dialog"] [aria-label="Close navigation"]'));
 
     expect(view.query('[role="dialog"]')).toBeNull();
     expect(view.get("h1").textContent).toBe("Translations");
+  });
+
+  it("returns focus to the menu button when the drawer closes on Escape", async () => {
+    const view = await mount();
+    const trigger = view.get('[aria-label^="Open navigation"]');
+    act(() => {
+      trigger.focus();
+    });
+    await clickAsync(trigger);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+});
+
+describe("App header chrome", () => {
+  it("leaves focus alone when the viewport grows while the drawer is closed", async () => {
+    let listener: (() => void) | undefined;
+    const list = {
+      matches: false,
+      addEventListener: (_type: string, next: () => void) => {
+        listener = next;
+      },
+      removeEventListener: () => {},
+    };
+    vi.stubGlobal("matchMedia", () => list);
+    const view = await mount();
+    const toggle = view.get("[data-theme-toggle]");
+    act(() => {
+      toggle.focus();
+    });
+
+    list.matches = true;
+    act(() => listener?.());
+
+    expect(document.activeElement).toBe(toggle);
+  });
+
+  it("closes the open drawer when the viewport grows to the wide layout and keeps it closed", async () => {
+    let listener: (() => void) | undefined;
+    const list = {
+      matches: false,
+      addEventListener: (_type: string, next: () => void) => {
+        listener = next;
+      },
+      removeEventListener: () => {},
+    };
+    vi.stubGlobal("matchMedia", () => list);
+    const view = await mount();
+    await clickAsync(view.get('[aria-label^="Open navigation"]'));
+    expect(view.query('[role="dialog"]')).not.toBeNull();
+
+    list.matches = true;
+    act(() => listener?.());
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(view.get('header nav [aria-current="page"]'));
+
+    list.matches = false;
+    act(() => listener?.());
+    expect(view.query('[role="dialog"]')).toBeNull();
+  });
+
+  it("offers a first control that moves focus to the main region", async () => {
+    const view = await mount();
+    const skip = view.getByText("button", "Skip to main content");
+
+    await clickAsync(skip);
+
+    expect(document.activeElement).toBe(view.get("main#main"));
+    expect(view.container.querySelector("button, a, input")).toBe(skip);
+  });
+
+  it("keeps the filters of the current page when its own link is chosen", async () => {
+    goToHash("#/review?locale=de");
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Review"));
+
+    expect(window.location.hash).toBe("#/review?locale=de");
+  });
+
+  it("opens the translations list filtered by the header search", async () => {
+    goToHash("#/review");
+    const view = await mount();
+
+    typeInto(view.get("search input") as HTMLInputElement, "app.title");
+    await act(async () => {
+      view
+        .get("search form")
+        .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    await flush();
+
+    expect(window.location.hash).toBe("#/translations?q=app.title");
+    expect(view.get("h1").textContent).toBe("Translations");
+  });
+
+  it("does not run review shortcuts for keys typed in the header search", async () => {
+    goToHash("#/review");
+    const view = await mount();
+    await flush();
+    const field = view.get("search input");
+    const before = rpcCalls.length;
+
+    for (const key of ["a", "r", "e", "t", "x", "j", "k", "?", "Enter"]) {
+      act(() => {
+        field.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+      });
+    }
+
+    expect(rpcCalls).toHaveLength(before);
+    expect(view.query('[role="dialog"]')).toBeNull();
+
+    act(() => {
+      document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "?", bubbles: true }));
+    });
+    expect(view.query('[role="dialog"]')).not.toBeNull();
   });
 });

@@ -9,6 +9,10 @@ describe("next.config", () => {
     expect(i18n.hideLocale).toBe("default-locale");
   });
 
+  it("stays thenable, so Next awaits the fumadocs-mdx generation before typegen and build exit", () => {
+    expect(typeof (nextConfig as { then?: unknown }).then).toBe("function");
+  });
+
   it("limits agent-driven Next.js upgrade nudges to security releases", () => {
     expect(nextConfig.experimental?.agentUpgrade).toBe("security");
   });

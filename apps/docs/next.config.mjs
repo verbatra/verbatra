@@ -68,4 +68,4 @@ const withMDX = createMDX();
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
-export default withNextIntl(withMDX(config));
+export default withMDX(withNextIntl(config));

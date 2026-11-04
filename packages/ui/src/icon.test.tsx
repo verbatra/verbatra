@@ -24,6 +24,7 @@ const ICON_NAME_SET: Readonly<Record<IconName, true>> = {
   settings: true,
   alert: true,
   book: true,
+  glossary: true,
   help: true,
   globe: true,
   key: true,

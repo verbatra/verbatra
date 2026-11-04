@@ -194,7 +194,6 @@ describe("ReviewPanel", () => {
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
 
     expect(view.get("h1").textContent).toBe("Review");
-    expect(view.getByText("p", "Workspace")).toBeTruthy();
   });
 
   it("announces the queue as loading while the read is still open", () => {

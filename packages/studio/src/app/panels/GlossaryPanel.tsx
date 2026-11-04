@@ -17,7 +17,6 @@ export function GlossaryPanel(): ReactNode {
   return (
     <>
       <PageHeader
-        kicker="Project"
         title="Glossary"
         description="The terms every translation of this project is kept consistent with."
       />

@@ -46,6 +46,11 @@ export function navigateToPage(page: PageId): void {
   announceRouteChange();
 }
 
+export function navigateToRoute(route: Route): void {
+  window.location.hash = routeHash(route);
+  announceRouteChange();
+}
+
 export function useRoute(): Route {
   const hash = useSyncExternalStore(subscribe, currentHash);
   return useMemo(() => parseRoute(hash), [hash]);

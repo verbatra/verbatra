@@ -487,7 +487,6 @@ export function ReviewPanel({ refreshToken }: PanelProps): ReactNode {
   return (
     <>
       <PageHeader
-        kicker="Workspace"
         title="Review"
         description="Every translation a provider, the translation memory, or an agent wrote that nobody has approved yet, read from the committed files. Decisions are saved to verbatra.provenance.json; commit it to share them with your team."
       />

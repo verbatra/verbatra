@@ -104,7 +104,6 @@ async function capture(browser, entryUrl, theme) {
   });
   await context.addInitScript((value) => {
     localStorage.setItem("verbatra-studio-theme", value);
-    localStorage.setItem("verbatra-studio-sidebar", "expanded");
   }, theme);
 
   const page = await context.newPage();

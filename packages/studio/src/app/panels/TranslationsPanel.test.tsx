@@ -1729,6 +1729,64 @@ describe("TranslationsPanel deep links", () => {
     expect(window.history.length).toBe(entries);
   });
 
+  it("writes the key search into the hash and keeps it when a filter changes", async () => {
+    pointHashAt("#/translations?q=app");
+    stubFilterPage({ ...drawerStubs(), "locale.values": KEY_VALUES_STUB() });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+    const field = view.get('input[aria-label="Filter by key or translation text"]');
+
+    expect((field as HTMLInputElement).value).toBe("app");
+    expect(view.getByText("button", "List").getAttribute("aria-pressed")).toBe("true");
+    selectOption(view.get('select[aria-label="Filter by locale"]') as HTMLSelectElement, "de");
+    expect(window.location.hash).toBe("#/translations?locale=de&q=app");
+
+    typeInto(field as HTMLInputElement, "");
+    expect(window.location.hash).toBe("#/translations?locale=de");
+  });
+
+  it("keeps the list and the focused search field when the last search text is cleared", async () => {
+    pointHashAt("#/translations?q=app");
+    stubFilterPage({ ...drawerStubs(), "locale.values": KEY_VALUES_STUB() });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+    const field = view.get(
+      'input[aria-label="Filter by key or translation text"]',
+    ) as HTMLInputElement;
+    act(() => {
+      field.focus();
+    });
+
+    typeInto(field, "");
+
+    expect(window.location.hash).toBe("#/translations");
+    expect(view.get('input[aria-label="Filter by key or translation text"]')).toBe(field);
+    expect(document.activeElement).toBe(field);
+    expect(view.getByText("button", "List").getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("drops the key search from the hash when the grid view is chosen", async () => {
+    pointHashAt("#/translations?q=app");
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    await clickAsync(view.getByText("button", "Grid"));
+
+    expect(window.location.hash).toBe("#/translations");
+  });
+
+  it("clears the key search together with the filters", async () => {
+    pointHashAt("#/translations?locale=fr&q=zzz");
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    await clickAsync(view.getByText("button", "Clear filters"));
+
+    expect(window.location.hash).toBe("#/translations");
+  });
+
   it("clears the filters from the hash with the clear button", async () => {
     pointHashAt("#/translations?locale=fr&status=integrity");
     stubFilterPage();

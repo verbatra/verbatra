@@ -1,7 +1,6 @@
-import type { IconName } from "@verbatra/ui";
 import { Container } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   handleRefreshEvent,
   nextToastSlot,
@@ -10,9 +9,9 @@ import {
 import { unreviewedRows } from "../client/review-queue-data.js";
 import type { PageId } from "../client/routes.js";
 import { AgentToolsAlert } from "./AgentToolsAlert.js";
+import { AppHeader } from "./AppHeader.js";
 import { refreshBus, sessionStore } from "./api.js";
-import { readStoredSidebarCollapsed, storeSidebarCollapsed } from "./lib/sidebar-dom.js";
-import { NAV_GROUPS } from "./nav-groups.js";
+import { NavDrawer } from "./NavDrawer.js";
 import type { PanelProps } from "./panel-props.js";
 import { ActivityPanel } from "./panels/ActivityPanel.js";
 import { GlossaryPanel } from "./panels/GlossaryPanel.js";
@@ -20,27 +19,10 @@ import { ReviewPanel } from "./panels/ReviewPanel.js";
 import { SettingsPanel } from "./panels/SettingsPanel.js";
 import { TranslationsPanel } from "./panels/TranslationsPanel.js";
 import { RefreshToast } from "./RefreshToast.js";
-import { DesktopSidebar, MobileNavDrawer } from "./Sidebar.js";
-import { TopBar } from "./TopBar.js";
 import { useAgentToolsFailures } from "./use-agent-tools-status.js";
+import { useMediaQuery } from "./use-media-query.js";
 import { useReviewQueue } from "./use-review-queue.js";
-import { navigateToPage, useCanonicalHash, useRoute } from "./use-route.js";
-
-const PAGE_LABELS: Readonly<Record<PageId, string>> = {
-  overview: "Overview",
-  translations: "Translations",
-  review: "Review",
-  glossary: "Glossary",
-  settings: "Settings",
-};
-
-const PAGE_ICONS: Readonly<Record<PageId, IconName>> = {
-  overview: "activity",
-  translations: "diff",
-  review: "review",
-  glossary: "book",
-  settings: "settings",
-};
+import { useCanonicalHash, useRoute } from "./use-route.js";
 
 const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = {
   overview: ActivityPanel,
@@ -49,6 +31,12 @@ const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = 
   glossary: GlossaryPanel,
   settings: SettingsPanel,
 };
+
+const WIDE_QUERY = "(min-width: 80rem)";
+
+function focusMain(): void {
+  document.getElementById("main")?.focus();
+}
 
 function SessionExpiredNotice(): ReactNode {
   return (
@@ -75,7 +63,6 @@ export function App(): ReactNode {
   const [toast, setToast] = useState<RefreshToastView | undefined>(undefined);
   const [refreshToken, setRefreshToken] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(readStoredSidebarCollapsed);
 
   useEffect(
     () => sessionStore.subscribe((state) => setSessionExpired(state.kind === "session-expired")),
@@ -93,13 +80,6 @@ export function App(): ReactNode {
     [],
   );
 
-  function handleToggleSidebar(): void {
-    setSidebarCollapsed((current) => {
-      storeSidebarCollapsed(!current);
-      return !current;
-    });
-  }
-
   function handleDismissToast(): void {
     setToast((current) => nextToastSlot(current, { kind: "dismiss" }));
   }
@@ -116,8 +96,6 @@ export function App(): ReactNode {
       onDismissToast={handleDismissToast}
       mobileNavOpen={mobileNavOpen}
       onSetMobileNavOpen={setMobileNavOpen}
-      sidebarCollapsed={sidebarCollapsed}
-      onToggleSidebar={handleToggleSidebar}
     />
   );
 }
@@ -129,8 +107,6 @@ function AppShell({
   onDismissToast,
   mobileNavOpen,
   onSetMobileNavOpen,
-  sidebarCollapsed,
-  onToggleSidebar,
 }: {
   readonly page: PageId;
   readonly refreshToken: number;
@@ -138,8 +114,6 @@ function AppShell({
   readonly onDismissToast: () => void;
   readonly mobileNavOpen: boolean;
   readonly onSetMobileNavOpen: (open: boolean) => void;
-  readonly sidebarCollapsed: boolean;
-  readonly onToggleSidebar: () => void;
 }): ReactNode {
   const reviewQueue = useReviewQueue(refreshToken);
   const agentToolsFailures = useAgentToolsFailures();
@@ -147,44 +121,50 @@ function AppShell({
   const pageBadges: Readonly<Partial<Record<PageId, number>>> = { review: reviewCount };
 
   const ActivePanel = PAGE_PANELS[page];
+  const wide = useMediaQuery(WIDE_QUERY, false);
+  const wideRef = useRef(wide);
+  const activeLinkRef = useRef<HTMLAnchorElement>(null);
 
-  function navigate(next: PageId): void {
-    navigateToPage(next);
-    onSetMobileNavOpen(false);
-  }
+  useLayoutEffect(() => {
+    wideRef.current = wide;
+  });
+
+  useEffect(() => {
+    if (wide && mobileNavOpen) {
+      onSetMobileNavOpen(false);
+      activeLinkRef.current?.focus();
+    }
+  }, [wide, mobileNavOpen, onSetMobileNavOpen]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
-      <DesktopSidebar
-        groups={NAV_GROUPS}
-        pageLabels={PAGE_LABELS}
-        pageIcons={PAGE_ICONS}
-        pageBadges={pageBadges}
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <button
+        type="button"
+        className="fixed start-2 top-2 z-50 -translate-y-24 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground focus-visible:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        onClick={focusMain}
+      >
+        Skip to main content
+      </button>
+      <AppHeader
         activePage={page}
-        onSelectPage={navigate}
-        collapsed={sidebarCollapsed}
-        onToggleCollapsed={onToggleSidebar}
+        pageBadges={pageBadges}
+        onOpenMenu={() => onSetMobileNavOpen(true)}
+        activeLinkRef={activeLinkRef}
       />
       {mobileNavOpen ? (
-        <MobileNavDrawer
-          groups={NAV_GROUPS}
-          pageLabels={PAGE_LABELS}
-          pageIcons={PAGE_ICONS}
-          pageBadges={pageBadges}
+        <NavDrawer
           activePage={page}
-          onSelectPage={navigate}
+          pageBadges={pageBadges}
           onClose={() => onSetMobileNavOpen(false)}
+          shouldRestoreFocus={() => !wideRef.current}
         />
       ) : null}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar pageLabel={PAGE_LABELS[page]} onOpenNav={() => onSetMobileNavOpen(true)} />
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <Container>
-            <AgentToolsAlert failures={agentToolsFailures} />
-            <ActivePanel refreshToken={refreshToken} />
-          </Container>
-        </main>
-      </div>
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
+        <Container>
+          <AgentToolsAlert failures={agentToolsFailures} />
+          <ActivePanel refreshToken={refreshToken} />
+        </Container>
+      </main>
       {toast !== undefined ? <RefreshToast view={toast} onDismiss={onDismissToast} /> : null}
     </div>
   );

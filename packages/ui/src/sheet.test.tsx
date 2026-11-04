@@ -113,6 +113,20 @@ describe("Sheet", () => {
     },
   );
 
+  it("narrows the panel so a strip of backdrop stays visible on a phone", () => {
+    const dialog = sheet({ size: "narrow" }).get("[role='dialog']");
+
+    expect(dialog.dataset.size).toBe("narrow");
+    expect(dialog.className).toContain("w-[min(320px,85%)]");
+    expect(dialog.className).not.toContain("w-[min(480px,100%)]");
+  });
+
+  it("ignores the narrow size on a top or bottom sheet", () => {
+    const dialog = sheet({ side: "top", size: "narrow" } as never).get("[role='dialog']");
+
+    expect(dialog.className).not.toContain("w-[min(320px,85%)]");
+  });
+
   it("reports the wide size", () => {
     expect(sheet({ size: "wide" }).get("[role='dialog']").dataset.size).toBe("wide");
   });
