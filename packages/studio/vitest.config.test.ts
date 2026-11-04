@@ -8,6 +8,10 @@ const presetThresholds = { lines: 90, functions: 90, statements: 90, branches: 9
 const { include: testInclude, coverage } = studioVitestConfig.test ?? {};
 
 describe("the studio vitest config", () => {
+  it("runs the setup file that stubs the browser APIs jsdom lacks", () => {
+    expect(studioVitestConfig.test?.setupFiles).toEqual(["./vitest.setup.ts"]);
+  });
+
   it("discovers the tests of every non-React source tree", () => {
     expect(testInclude).toContain("src/server/**/*.test.ts");
     expect(testInclude).toContain("src/client/**/*.test.ts");

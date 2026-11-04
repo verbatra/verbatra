@@ -11,6 +11,7 @@
     "packages/*/tsup.config.ts",
     "packages/*/tsup.*.config.ts",
     "packages/*/vitest.config.ts",
+    "packages/*/vitest.setup.ts",
     "packages/*/vite.config.ts"
   ]
 }
