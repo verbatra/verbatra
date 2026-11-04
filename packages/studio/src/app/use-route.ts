@@ -8,9 +8,14 @@ import {
   type RouteParams,
   routeHash,
 } from "../client/routes.js";
+import {
+  announceRouteChange,
+  commitHash,
+  ROUTE_CHANGE_EVENT,
+  routeChangeBlocked,
+} from "./route-guard.js";
 
 const EMPTY_PARAMS: RouteParams = {};
-const ROUTE_CHANGE_EVENT = "verbatra:route-change";
 
 function subscribe(onChange: () => void): () => void {
   window.addEventListener("hashchange", onChange);
@@ -25,30 +30,36 @@ function currentHash(): string {
   return window.location.hash;
 }
 
-function announceRouteChange(): void {
-  window.dispatchEvent(new Event(ROUTE_CHANGE_EVENT));
-}
-
-export function replaceRoute(route: Route): void {
+export function replaceRoute(route: Route): boolean {
   const next = routeHash(route);
-  if (next === window.location.hash) {
-    return;
+  if (next === window.location.hash || routeChangeBlocked(next)) {
+    return false;
   }
-  window.history.replaceState(window.history.state, "", next);
-  announceRouteChange();
+  commitHash(next);
+  return true;
 }
 
-export function navigateToPage(page: PageId): void {
+export function navigateToPage(page: PageId): boolean {
   if (parseRoute(window.location.hash).page === page) {
-    return;
+    return true;
   }
-  window.location.hash = pageHash(page);
+  const next = pageHash(page);
+  if (routeChangeBlocked(next)) {
+    return false;
+  }
+  window.location.hash = next;
   announceRouteChange();
+  return true;
 }
 
-export function navigateToRoute(route: Route): void {
-  window.location.hash = routeHash(route);
+export function navigateToRoute(route: Route): boolean {
+  const next = routeHash(route);
+  if (routeChangeBlocked(next)) {
+    return false;
+  }
+  window.location.hash = next;
   announceRouteChange();
+  return true;
 }
 
 export function useRoute(): Route {
@@ -67,7 +78,9 @@ export function useCanonicalHash(): void {
   }, [hash]);
 }
 
-export function useRouteParams(page: PageId): readonly [RouteParams, (next: RouteParams) => void] {
+export function useRouteParams(
+  page: PageId,
+): readonly [RouteParams, (next: RouteParams) => boolean] {
   const route = useRoute();
   const params = route.page === page ? route.params : EMPTY_PARAMS;
   const setParams = useCallback(

@@ -54,8 +54,9 @@ export function NavLink({
       return;
     }
     event.preventDefault();
-    navigateToPage(page);
-    onNavigate?.();
+    if (navigateToPage(page)) {
+      onNavigate?.();
+    }
   }
 
   return (

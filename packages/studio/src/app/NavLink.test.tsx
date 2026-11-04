@@ -2,6 +2,7 @@
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NavLink, type NavLinkProps } from "./NavLink.js";
+import { installRouteGuard } from "./route-guard.js";
 import { render } from "./test-support.js";
 
 function mount(overrides: Partial<NavLinkProps> = {}): ReturnType<typeof render> {
@@ -85,5 +86,17 @@ describe("NavLink", () => {
 
   it("draws the page glyph when given one", () => {
     expect(mount({ icon: "review", variant: "drawer" }).get("a svg")).not.toBeNull();
+  });
+
+  it("stays put and does not report a navigation while unsaved edits hold the route", () => {
+    const onNavigate = vi.fn();
+    const release = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
+    const view = mount({ onNavigate });
+
+    clickWith(view.get("a"), {});
+    release();
+
+    expect(window.location.hash).toBe("#/translations");
+    expect(onNavigate).not.toHaveBeenCalled();
   });
 });

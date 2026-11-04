@@ -2,6 +2,7 @@
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HeaderSearch } from "./HeaderSearch.js";
+import { installRouteGuard } from "./route-guard.js";
 import { render, typeInto } from "./test-support.js";
 
 function submit(form: HTMLElement): void {
@@ -77,5 +78,18 @@ describe("HeaderSearch", () => {
 
     expect((view.get("input") as HTMLInputElement).value).toBe("");
     expect(onSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the typed text and stays on the page while unsaved edits hold the route", () => {
+    const onSearch = vi.fn();
+    const release = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
+    const view = render(<HeaderSearch label="Keys" onSearch={onSearch} />);
+
+    search(view, "held");
+    release();
+
+    expect(window.location.hash).toBe("#/review");
+    expect((view.get("input") as HTMLInputElement).value).toBe("held");
+    expect(onSearch).not.toHaveBeenCalled();
   });
 });
