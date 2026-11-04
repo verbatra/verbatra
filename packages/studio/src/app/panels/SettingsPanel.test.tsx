@@ -54,7 +54,9 @@ describe("SettingsPanel", () => {
     const view = await renderAsync(<SettingsPanel />);
 
     expect(view.get("h1").textContent).toBe("Settings");
-    expect(view.getByText("p", "Project configuration")).toBeTruthy();
+    expect(view.query("header p")?.textContent).toBe(
+      "The configuration this session was started with, and what this session may do.",
+    );
   });
 
   it("shows a loading indicator while the read is still open", () => {
@@ -93,7 +95,8 @@ describe("SettingsPanel", () => {
     expect(metricValue(view, "Source locale")).toBe("en");
     expect(metricValue(view, "Target locales")).toBe("2");
     expect(metricCard(view, "Target locales").querySelector("p")?.textContent).toBe("de, fr");
-    expect(metricValue(view, "Format")).toBe("i18next-json");
+    expect(metricCard(view, "Format").textContent).toContain("i18next-json");
+    expect(metricCard(view, "Format").querySelector(".break-all")).not.toBeNull();
     expect(metricValue(view, "Provider")).toBe("anthropic");
   });
 
@@ -105,12 +108,12 @@ describe("SettingsPanel", () => {
     expect(view.text()).toContain("Loaded from verbatra.config.ts");
   });
 
-  it("lists the full target locale list and the file pattern", async () => {
+  it("lists the file pattern once and the target locales only in the tile", async () => {
     stubSettings(SNAPSHOT);
 
     const view = await renderAsync(<SettingsPanel />);
 
-    expect(detailValue(view, "Target locales")).toBe("de, fr");
+    expect(detailValue(view, "Target locales")).toBeNull();
     expect(detailValue(view, "File pattern")).toBe("locales/{locale}.json");
   });
 

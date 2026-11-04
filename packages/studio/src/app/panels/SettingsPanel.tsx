@@ -18,7 +18,7 @@ function ProjectMetrics({ snapshot }: { readonly snapshot: ProjectSnapshotResult
         value={String(snapshot.targetLocales.length)}
         hint={snapshot.targetLocales.join(", ")}
       />
-      <MetricCard label="Format" value={snapshot.format} />
+      <MetricCard label="Format" value={<MonoValue breakAnywhere>{snapshot.format}</MonoValue>} />
       <MetricCard label="Provider" value={snapshot.provider.id} />
     </div>
   );
@@ -47,12 +47,6 @@ function ProviderActions({ snapshot }: { readonly snapshot: ProjectSnapshotResul
 function ProjectDetails({ snapshot }: { readonly snapshot: ProjectSnapshotResult }): ReactNode {
   const items: Array<readonly [string, ReactNode]> = [
     [
-      "Target locales",
-      <MonoValue key="target-locales" breakAnywhere>
-        {snapshot.targetLocales.join(", ")}
-      </MonoValue>,
-    ],
-    [
       "File pattern",
       <MonoValue key="file-pattern" breakAnywhere>
         {snapshot.files.pattern}
@@ -79,7 +73,6 @@ export function SettingsPanel(): ReactNode {
   return (
     <>
       <PageHeader
-        kicker="Project configuration"
         title="Settings"
         description="The configuration this session was started with, and what this session may do."
       />
