@@ -15,6 +15,7 @@ import {
   TableSkeleton,
 } from "@verbatra/ui";
 import type { ReactNode } from "react";
+import { useRef } from "react";
 import type { StatusData, StatusRow } from "../client/coverage.js";
 import { provenanceSummaryParts } from "../client/provenance-view.js";
 import type { RefreshableView } from "../client/state.js";
@@ -132,6 +133,7 @@ export function LocalesSection({
   readonly status: RefreshableView<StatusData>;
   readonly lock: LockView;
 }): ReactNode {
+  const coverageRef = useRef<HTMLDivElement>(null);
   return (
     <PageSection
       title="Locales"
@@ -155,7 +157,7 @@ export function LocalesSection({
           {status.stale && (
             <ErrorMessage error={status.error} prefix="Showing the last known status." />
           )}
-          <TableCard aria-label="Locale coverage">
+          <TableCard aria-label="Locale coverage" ref={coverageRef}>
             <Table>
               <TableHead>
                 <tr>
@@ -174,7 +176,7 @@ export function LocalesSection({
               </TableBody>
             </Table>
           </TableCard>
-          <ScrollHint />
+          <ScrollHint targetRef={coverageRef} />
         </>
       ) : null}
       {lock.kind === "no-lock" ? (

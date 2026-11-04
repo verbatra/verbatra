@@ -11,7 +11,7 @@ export interface ErrorMessageProps {
 export function ErrorMessage({ error, prefix }: ErrorMessageProps): ReactNode {
   return (
     <p
-      className="mb-4 flex items-start gap-2 rounded-md border-s-[3px] border-danger bg-danger-soft px-4 py-3 text-danger"
+      className="mb-4 flex items-start gap-2 rounded-lg border-s-[3px] border-danger bg-danger-soft px-4 py-3 text-danger"
       role="alert"
     >
       <Icon name="alert" className="mt-0.5 flex-none" />

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { type DiffLocale, deriveKeyLocaleStatus, driftKeys, isFullyInSync } from "./diff-view.js";
+import {
+  type DiffLocale,
+  deriveKeyLocaleStatus,
+  driftKeys,
+  isFullyInSync,
+  keyLocaleStatus,
+} from "./diff-view.js";
 
 function locale(overrides: Partial<DiffLocale> & { readonly locale: string }): DiffLocale {
   return {
@@ -168,5 +174,21 @@ describe("driftKeys", () => {
     const keys = driftKeys([locale({ locale: "de", missing: ["zebra", "apple", "mango"] })]);
 
     expect(keys).toEqual(["apple", "mango", "zebra"]);
+  });
+});
+
+describe("keyLocaleStatus", () => {
+  const locales = [
+    locale({ locale: "de", missing: ["a"] }),
+    locale({ locale: "fr", changed: ["a"] }),
+  ];
+
+  it("reads one locale's status for a key", () => {
+    expect(keyLocaleStatus(locales, "a", "de")).toBe("missing");
+    expect(keyLocaleStatus(locales, "a", "fr")).toBe("changed");
+  });
+
+  it("calls a locale the project does not list absent", () => {
+    expect(keyLocaleStatus(locales, "a", "xx")).toBe("absent");
   });
 });

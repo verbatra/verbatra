@@ -135,7 +135,18 @@ function resolveColor(tokens: ReadonlyMap<string, string>, name: string, depth =
   const value = tokens.get(name);
   if (value === undefined) throw new Error(`undeclared ${name}`);
   const reference = /^var\((--[\w-]+)\)$/.exec(value);
-  return reference?.[1] ? resolveColor(tokens, reference[1], depth + 1) : hslToRgb(value);
+  if (reference?.[1]) return resolveColor(tokens, reference[1], depth + 1);
+  const mix = /^color-mix\(in srgb, var\((--[\w-]+)\) (\d+)%, var\((--[\w-]+)\)\)$/.exec(value);
+  if (mix?.[1] && mix[2] && mix[3]) {
+    const share = Number(mix[2]) / 100;
+    const [from, onto] = [
+      resolveColor(tokens, mix[1], depth + 1),
+      resolveColor(tokens, mix[3], depth + 1),
+    ];
+    const blend = (a: number, b: number): number => a * share + b * (1 - share);
+    return [blend(from[0], onto[0]), blend(from[1], onto[1]), blend(from[2], onto[2])];
+  }
+  return hslToRgb(value);
 }
 
 function relativeLuminance(color: Rgb): number {
@@ -250,16 +261,79 @@ describe.each(THEMES)("field border in the %s theme", (theme) => {
   });
 });
 
+function hueOf(tokens: ReadonlyMap<string, string>, name: string): number {
+  const [r, g, b] = resolveColor(tokens, name);
+  const max = Math.max(r, g, b);
+  const delta = max - Math.min(r, g, b);
+  if (delta === 0) return 0;
+  const sector =
+    max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  return (sector * 60 + 360) % 360;
+}
+
+function hueGap(tokens: ReadonlyMap<string, string>, a: string, b: string): number {
+  const gap = Math.abs(hueOf(tokens, a) - hueOf(tokens, b));
+  return Math.min(gap, 360 - gap);
+}
+
 describe.each(THEMES)("warning hue in the %s theme", (theme) => {
-  const hue = (name: string): number => {
-    const value = themeBlock(theme).declarations.get(name) ?? "";
-    return Number(/^hsl\((\d+)/.exec(value)?.[1]);
-  };
-
   it("sits at least 30 degrees from the changed hue, so two bordered badges read apart", () => {
-    const gap = Math.abs(hue("--v-warning") - hue("--v-status-changed"));
+    expect(hueGap(rootTokens(theme), "--v-warning", "--v-status-changed")).toBeGreaterThanOrEqual(
+      30,
+    );
+  });
+});
 
-    expect(Math.min(gap, 360 - gap)).toBeGreaterThanOrEqual(30);
+describe.each(THEMES)("missing hue in the %s theme", (theme) => {
+  const tokens = rootTokens(theme);
+  const NEIGHBOURS = [
+    "--diff-changed",
+    "--diff-protected",
+    "--accent",
+    "--status-danger",
+    "--status-success",
+    "--status-warning",
+  ] as const;
+
+  it.each(NEIGHBOURS)("keeps the missing hue at least 30 degrees from %s", (neighbour) => {
+    expect(hueGap(tokens, "--diff-missing", neighbour), neighbour).toBeGreaterThanOrEqual(30);
+  });
+
+  it("leaves the new-badge colour on the accent", () => {
+    expect(tokens.get("--v-status-new")).toBe("var(--v-glow)");
+  });
+});
+
+describe.each(THEMES)("empty filter chip text in the %s theme", (theme) => {
+  it("keeps the muted text-faint readable at AA on the chip fill", () => {
+    const tokens = rootTokens(theme);
+
+    expect(
+      ratio(resolveColor(tokens, "--text-faint"), resolveColor(tokens, "--surface-card")),
+    ).toBeGreaterThanOrEqual(AA);
+  });
+});
+
+describe.each(THEMES)("table surfaces in the %s theme", (theme) => {
+  const tokens = rootTokens(theme);
+  const TEXTS = ["--text-strong", "--text-muted", "--diff-missing", "--status-success"] as const;
+
+  it.each(["--surface-table-head", "--surface-row-hover"] as const)(
+    "keeps the table text at AA on %s",
+    (surface) => {
+      for (const text of TEXTS) {
+        expect(
+          ratio(resolveColor(tokens, text), resolveColor(tokens, surface)),
+          `${text} on ${surface}`,
+        ).toBeGreaterThanOrEqual(AA);
+      }
+    },
+  );
+
+  it("keeps the header fill apart from the row fill", () => {
+    expect(resolveColor(tokens, "--surface-table-head")).not.toEqual(
+      resolveColor(tokens, "--surface-row-hover"),
+    );
   });
 });
 
@@ -267,7 +341,7 @@ describe("diff token mapping", () => {
   const root = rootTokens("dark");
 
   it.each([
-    ["--diff-missing", "var(--v-status-new)"],
+    ["--diff-missing", "var(--v-diff-missing)"],
     ["--diff-changed", "var(--v-status-changed)"],
     ["--diff-orphaned", "var(--v-neutral)"],
     ["--diff-protected", "var(--v-status-protected)"],

@@ -1,54 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { FilterBar, Toolbar } from "./Toolbar.js";
-import { render } from "./test-support.js";
-
-describe("Toolbar", () => {
-  it("renders the controls it was handed", () => {
-    const view = render(
-      <Toolbar>
-        <button type="button">Refresh</button>
-      </Toolbar>,
-    );
-
-    expect(view.get("button").textContent).toBe("Refresh");
-  });
-
-  it("renders no end group when the caller passes none, so nothing empty takes up space", () => {
-    const view = render(
-      <Toolbar>
-        <button type="button">Refresh</button>
-      </Toolbar>,
-    );
-
-    expect(view.all("div")).toHaveLength(1);
-  });
-
-  it("pushes the end slot to the inline-end edge in its own group", () => {
-    const view = render(
-      <Toolbar end={<button type="button">Export</button>}>
-        <button type="button">Refresh</button>
-      </Toolbar>,
-    );
-    const groups = view.all("div");
-
-    expect(groups).toHaveLength(2);
-    expect(groups[1]?.className).toContain("ms-auto");
-    expect(groups[1]?.textContent).toBe("Export");
-  });
-
-  it("wraps onto a second line rather than overflowing on a narrow viewport", () => {
-    const view = render(<Toolbar>controls</Toolbar>);
-
-    expect(view.get("div").className).toContain("flex-wrap");
-  });
-
-  it("merges a caller className onto the row", () => {
-    const view = render(<Toolbar className="mb-2">controls</Toolbar>);
-
-    expect(view.get("div").className).toContain("mb-2");
-  });
-});
+import { FilterBar } from "./filter-bar.tsx";
+import { render } from "./test-support.tsx";
 
 describe("FilterBar", () => {
   it("groups its controls in a fieldset, so they are announced as one named group", () => {

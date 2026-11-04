@@ -8,6 +8,7 @@ export const tableClasses = {
   tbody: "divide-y divide-(--border-default)",
   td: "px-3 py-2.5 text-(--text-strong)",
   rowHover: "hover:bg-(--surface-hover)/40",
+  rowSelected: "bg-(--surface-hover)",
   numeric: "text-end tabular-nums",
 };
 
@@ -29,12 +30,25 @@ export function TableBody({
 export function TableRow({
   className,
   hover = true,
+  selected,
   ...props
 }: HTMLAttributes<HTMLTableRowElement> & {
   readonly hover?: boolean;
+  readonly selected?: boolean;
   readonly ref?: Ref<HTMLTableRowElement>;
 }): ReactNode {
-  return <tr className={cn(hover && tableClasses.rowHover, className)} {...props} />;
+  return (
+    <tr
+      className={cn(
+        hover && tableClasses.rowHover,
+        selected === true && tableClasses.rowSelected,
+        className,
+      )}
+      aria-selected={selected}
+      data-selected={selected === true ? "" : undefined}
+      {...props}
+    />
+  );
 }
 
 export function TableHeaderCell({
@@ -79,13 +93,13 @@ export function TableCard({
   className,
   "aria-label": ariaLabel,
   ...props
-}: HTMLAttributes<HTMLDivElement>): ReactNode {
+}: HTMLAttributes<HTMLDivElement> & { readonly ref?: Ref<HTMLDivElement> }): ReactNode {
   const labelled =
     ariaLabel === undefined ? {} : { role: "region", tabIndex: 0, "aria-label": ariaLabel };
   return (
     <Card
       padding="none"
-      className={cn("overflow-x-auto", ariaLabel !== undefined && "vk-field", className)}
+      className={cn("relative overflow-x-auto", ariaLabel !== undefined && "vk-field", className)}
       {...labelled}
       {...props}
     />

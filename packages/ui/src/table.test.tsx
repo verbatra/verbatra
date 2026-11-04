@@ -63,7 +63,7 @@ describe("TableHead and TableBody", () => {
 });
 
 describe("TableRow", () => {
-  function row(props: { hover?: boolean; className?: string }) {
+  function row(props: { hover?: boolean; selected?: boolean; className?: string }) {
     return render(
       <table>
         <tbody>
@@ -80,6 +80,24 @@ describe("TableRow", () => {
 
   it("merges a caller className", () => {
     expect(row({ className: "group" }).className).toContain("group");
+  });
+
+  it("marks a selected row for assistive technology and for styling hooks", () => {
+    const selected = row({ selected: true });
+
+    expect(selected.getAttribute("aria-selected")).toBe("true");
+    expect(selected.hasAttribute("data-selected")).toBe(true);
+    expect(selected.className).toContain(tableClasses.rowSelected);
+  });
+
+  it("says nothing about selection unless the caller opts in", () => {
+    const plain = row({});
+    const unselected = row({ selected: false });
+
+    expect(plain.hasAttribute("aria-selected")).toBe(false);
+    expect(plain.hasAttribute("data-selected")).toBe(false);
+    expect(unselected.getAttribute("aria-selected")).toBe("false");
+    expect(unselected.hasAttribute("data-selected")).toBe(false);
   });
 });
 
@@ -137,6 +155,19 @@ describe("TableCard", () => {
     expect(card.dataset.padding).toBe("none");
     expect(card.getAttribute("aria-label")).toBe("Keys table");
     expect(card.className).toContain("overflow-x-auto");
+  });
+
+  it("forwards a ref to the scrolling element, so a caller can measure it", () => {
+    const seen: Array<HTMLDivElement | null> = [];
+    const view = render(<TableCard ref={(element) => void seen.push(element)}>x</TableCard>);
+
+    expect(seen[0]).toBe(view.get("[data-padding]"));
+  });
+
+  it("is a containing block, so visually hidden text inside a scrolled table cannot widen the page", () => {
+    const view = render(<TableCard>x</TableCard>);
+
+    expect(view.get("[data-padding]").className.split(" ")).toContain("relative");
   });
 
   it("becomes a focusable labelled region when it has a label, so a keyboard can scroll it", () => {

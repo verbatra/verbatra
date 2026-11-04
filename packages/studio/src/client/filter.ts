@@ -13,11 +13,11 @@ export interface KeyValuePair {
   readonly provenance?: KeyProvenance;
 }
 
-function valueMatches(
-  key: string,
-  needle: string,
-  values: ReadonlyMap<string, KeyValuePair> | undefined,
-): boolean {
+export interface KeyPairLookup {
+  get(key: string): KeyValuePair | undefined;
+}
+
+function valueMatches(key: string, needle: string, values: KeyPairLookup | undefined): boolean {
   const pair = values?.get(key);
   if (pair === undefined) {
     return false;
@@ -28,11 +28,7 @@ function valueMatches(
   );
 }
 
-export function keyMatchesQuery(
-  key: string,
-  query: string,
-  values?: ReadonlyMap<string, KeyValuePair>,
-): boolean {
+export function keyMatchesQuery(key: string, query: string, values?: KeyPairLookup): boolean {
   const needle = query.trim().toLowerCase();
   return needle === "" || key.toLowerCase().includes(needle) || valueMatches(key, needle, values);
 }
@@ -40,7 +36,7 @@ export function keyMatchesQuery(
 export function filterAndCapKeys(
   keys: readonly string[],
   query: string,
-  values?: ReadonlyMap<string, KeyValuePair>,
+  values?: KeyPairLookup,
 ): CappedKeyList {
   const matches =
     query.trim() === "" ? keys : keys.filter((key) => keyMatchesQuery(key, query, values));

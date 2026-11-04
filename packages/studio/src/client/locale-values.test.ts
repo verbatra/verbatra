@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   type LocaleValuesData,
   localeValuesOrEmpty,
+  pairFor,
+  sourceTextFor,
   toLocaleValuesOutcome,
-  valuesForLocale,
   valuesIndex,
 } from "./locale-values.js";
 
@@ -39,22 +40,6 @@ describe("toLocaleValuesOutcome", () => {
   it("passes through a transport or domain error unchanged", () => {
     const error = { code: "SESSION_EXPIRED", message: "expired" };
     expect(toLocaleValuesOutcome({ ok: false, error })).toEqual({ ok: false, error });
-  });
-});
-
-describe("valuesForLocale", () => {
-  it("returns a lookup map of that locale's key values", () => {
-    const map = valuesForLocale(DATA, "de");
-    expect(map.get("greeting.hello")).toEqual({ source: "Hello", target: "Hallo" });
-    expect(map.get("greeting.bye")).toEqual({ source: "Bye" });
-  });
-
-  it("returns an empty map for a locale not present in the data", () => {
-    expect(valuesForLocale(DATA, "es").size).toBe(0);
-  });
-
-  it("returns an empty map for an empty data set", () => {
-    expect(valuesForLocale([], "de").size).toBe(0);
   });
 });
 
@@ -107,16 +92,45 @@ describe("locale values: prototype-named keys parsed from the RPC response", () 
     '[{"locale":"de","values":{"__proto__":{"source":"P","target":"Pd"},"constructor":{"source":"C"}}}]',
   ) as LocaleValuesData;
 
-  it("keeps __proto__ and constructor as lookup entries in valuesForLocale", () => {
-    const map = valuesForLocale(parsed, "de");
-    expect(map.get("__proto__")).toEqual({ source: "P", target: "Pd" });
-    expect(map.get("constructor")).toEqual({ source: "C" });
-    expect(map.size).toBe(2);
-  });
-
   it("keeps __proto__ and constructor as lookup entries in valuesIndex", () => {
     const index = valuesIndex(parsed);
     expect(index.get("de\t__proto__")).toEqual({ source: "P", target: "Pd" });
     expect(index.get("de\tconstructor")).toEqual({ source: "C" });
+  });
+});
+
+describe("sourceTextFor", () => {
+  const data = [
+    { locale: "de", keys: ["a", "b"], values: { a: { target: "A" }, b: { source: "Bee" } } },
+    { locale: "fr", keys: ["a"], values: { a: { source: "Ay", target: "Aa" } } },
+  ];
+
+  it("reads the source text from the first locale that holds it", () => {
+    expect(sourceTextFor(data, "a")).toBe("Ay");
+    expect(sourceTextFor(data, "b")).toBe("Bee");
+  });
+
+  it("reads nothing for a key no locale holds a source for", () => {
+    expect(sourceTextFor(data, "missing")).toBeUndefined();
+    expect(sourceTextFor([], "a")).toBeUndefined();
+  });
+});
+
+describe("pairFor", () => {
+  it("reads a key the locale holds, even one named like an object property", () => {
+    const values = JSON.parse('{"constructor":{"source":"Builder"},"a":{"source":"A"}}');
+
+    expect(pairFor(values, "a")).toEqual({ source: "A" });
+    expect(pairFor(values, "constructor")).toEqual({ source: "Builder" });
+  });
+
+  it("reads nothing for an inherited property or a missing locale", () => {
+    expect(pairFor({}, "constructor")).toBeUndefined();
+    expect(pairFor({}, "toString")).toBeUndefined();
+    expect(pairFor(undefined, "a")).toBeUndefined();
+  });
+
+  it("keeps sourceTextFor from reading an inherited property", () => {
+    expect(sourceTextFor([{ locale: "de", keys: [], values: {} }], "constructor")).toBeUndefined();
   });
 });

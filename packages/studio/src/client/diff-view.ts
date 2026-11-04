@@ -44,6 +44,16 @@ export function deriveKeyLocaleStatus(
   }));
 }
 
+export function keyLocaleStatus(
+  locales: readonly DiffLocale[],
+  key: string,
+  locale: string,
+): KeyLocaleStatus {
+  return (
+    deriveKeyLocaleStatus(locales, key).find((row) => row.locale === locale)?.status ?? "absent"
+  );
+}
+
 export function isFullyInSync(locales: readonly DiffLocale[]): boolean {
   return locales.every(
     (locale) =>

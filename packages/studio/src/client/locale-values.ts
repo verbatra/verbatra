@@ -16,8 +16,10 @@ function isEveryLocaleValue(result: RpcResultFor<"locale.values">): result is Lo
   return Array.isArray(result);
 }
 
+const NO_VALUES: LocaleValuesData = [];
+
 export function localeValuesOrEmpty(view: RefreshableView<LocaleValuesData>): LocaleValuesData {
-  return view.kind === "data" ? view.data : [];
+  return view.kind === "data" ? view.data : NO_VALUES;
 }
 
 export function toLocaleValuesOutcome(
@@ -32,14 +34,6 @@ export function toLocaleValuesOutcome(
   return { ok: true, result: response.result };
 }
 
-export function valuesForLocale(
-  data: LocaleValuesData,
-  locale: string,
-): ReadonlyMap<string, KeyValuePair> {
-  const entry = data.find((candidate) => candidate.locale === locale);
-  return new Map(Object.entries(entry?.values ?? {}));
-}
-
 export function valuesIndex(data: LocaleValuesData): ReadonlyMap<string, KeyValuePair> {
   const index = new Map<string, KeyValuePair>();
   for (const entry of data) {
@@ -48,4 +42,21 @@ export function valuesIndex(data: LocaleValuesData): ReadonlyMap<string, KeyValu
     }
   }
   return index;
+}
+
+export function pairFor(
+  values: LocaleValuesData[number]["values"] | undefined,
+  key: string,
+): KeyValuePair | undefined {
+  return values !== undefined && Object.hasOwn(values, key) ? values[key] : undefined;
+}
+
+export function sourceTextFor(data: LocaleValuesData, key: string): string | undefined {
+  for (const entry of data) {
+    const source = pairFor(entry.values, key)?.source;
+    if (source !== undefined) {
+      return source;
+    }
+  }
+  return undefined;
 }

@@ -136,8 +136,10 @@ Conventions carried by that list:
   low-alpha background (`--status-success-soft`). A new semantic hue ships both, with a contrast
   test in `packages/ui/src/tokens.test.ts`, or it is not finished.
 - **Protected is not Changed.** `diff-protected` is teal, `diff-changed` amber; the pill carries a
-  word as well, never color alone. Orphaned intentionally uses the neutral tone, and Missing
-  currently shares the accent hue with links and focus.
+  word as well, never color alone. Orphaned intentionally uses the neutral tone. Missing has its own
+  blue (`--v-diff-missing`, hue 222), no longer the accent hue of links and focus; a test in
+  `packages/ui/src/tokens.test.ts` keeps it at least 30 degrees from changed, protected, accent,
+  danger, success and warning in both themes.
 - **Navigation is a top header, not a sidebar.** `AppHeader.tsx` follows the docs site header: a
   `--surface-chrome` bar with a `--border-default` bottom line, text links in `--text-muted` that
   turn `--text-strong` on hover and `--accent` when `aria-current="page"`, with a 1px `--accent`
@@ -157,6 +159,12 @@ a destructive confirmation, not for an ordinary row action, which stays a tinted
 The scales come from ui and are not Studio's to override: radii `--radius-sm` 6px, `--radius-md`
 10px, `--radius-lg` and `--radius-xl` 12px; shadows `--shadow-panel` and `--shadow-sm`, each
 redefined per theme.
+
+**Radius hierarchy.** Containers (cards, table cards, callouts, empty states) use `--radius-lg`.
+Controls (buttons, fields, chips, selects) use `--radius-md`. Anything nested inside a container
+or a control (a cell hit area, a badge, a code preview, a `kbd`) uses `--radius-sm`.
+`rounded-full` is for dots and the pill search field only. Tailwind's `rounded-sm`, `rounded-md`
+and `rounded-lg` resolve to these tokens, so either spelling is fine; a bare `rounded` is not.
 
 ## Both themes, every time
 
@@ -201,11 +209,20 @@ Rules that follow:
   line and uppercase by default), `Icon`, the fields `TextField`, `TextArea`, `SearchInput` and
   `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row
   aligns; `TextArea` takes no size; the focus ring is `.vk-field:focus-visible`), `Checkbox`,
-  `Accordion`, `Skeleton`, `ProgressBar`, `Toast`, the `Table` family with `tableClasses`,
+  `Accordion`, `Skeleton`, `ProgressBar`, `Toast`, `FilterBar` and `FilterChip` (`pressed`, `count`,
+  and `unavailable` with the reason, which keeps the chip focusable and shows the reason in a
+  `Tooltip` instead of disabling it), the `Table` family with `tableClasses` (`TableRow` takes
+  `selected` for `aria-selected` and `data-selected`; `TableCard` is a containing block, so
+  visually hidden text inside it cannot widen the page),
   `Sheet` and `DrawerShell`, `OverlayBackdrop`, `DialogCloseButton`, `Tooltip` (`aria-describedby`
-  on the control unless the label repeats its name, shown on hover and focus, dismissed with
-  Escape, none on a disabled control; `side`: `end`, `bottom`, `bottom-end`),
-  `SegmentedControl` (a pressed-state group), `ThemeToggle` (a cycle over a theme store that
+  on the control unless the label repeats its name or `decorative` says the control already
+  carries the words, shown on hover and focus (or on keyboard focus alone with `trigger="focus"`,
+  which ignores focus from a pointer press; `flip` opens it upward when the clipping box would cut it
+  off, so an open bubble never grows the scroll area), dismissed with Escape, none on a disabled control,
+  taking no layout while closed; `side`: `end`, `bottom`, `bottom-end`, and `top`, which only `flip`
+  reaches (`flip` applies to `bottom` and `bottom-end`, never to `end`); `className` goes on the
+  wrapper),
+  `ThemeToggle` (a cycle over a theme store that
   leaves system for the opposite of the OS theme first, labelled through `label(current, next)`
   and `announce(mode)` props, with its own tooltip and a polite live region), the
   `useDialogA11y` hook (focus trap that holds from any start point, Escape, focus restore; only
@@ -226,20 +243,49 @@ Rules that follow:
 - **Icons:** `packages/ui/src/icon.tsx` is a closed set of 25 inline SVG paths keyed by
   `IconName`. There is no icon package. A new icon is a new entry in `ICON_PATHS` and a
   new member of the union, drawn on the same 24-unit stroked grid as its neighbours.
-- **Class composition:** always `cn()` from `src/app/lib/cn.ts` (re-exports `cn` from `@verbatra/ui/cn`, clsx plus tailwind-merge),
-  never string concatenation. It is what makes a caller's `className` override predictable.
+- **Class composition:** always `cn()` from `src/app/lib/cn.ts` (re-exports `cn` from
+  `@verbatra/ui/cn`, clsx plus tailwind-merge), never string concatenation. It is what makes a
+  caller's `className` override predictable.
 - **Accessibility:** `useDialogA11y` from `@verbatra/ui` (focus trap that also holds when focus
-  starts outside the dialog, Escape, focus restore) and
-  `src/client/roving-tabindex.ts` already exist. Any new overlay, drawer, or keyboard
-  listbox uses them rather than hand-rolling focus management.
+  starts outside the dialog, Escape, focus restore) and `src/client/roving-tabindex.ts` (used
+  through `use-roving-table.ts` for the key table) already exist. Any new overlay, drawer, or
+  keyboard listbox uses them rather than hand-rolling focus management.
 - **Panels:** the five panels under `src/app/panels/` (Overview, Translations, Review, Glossary,
   Settings) all take `PanelProps` (`{ refreshToken: number }`, `src/app/panel-props.ts`) except
   Glossary and Settings, which read once, and are wired through `PAGE_PANELS` in `App.tsx` and
   `PAGE_LABELS`, `PAGE_ICONS` and `NAV_GROUPS` in `src/app/nav-groups.ts`. `DEFAULT_PAGE` in
   `src/client/routes.ts` is `overview`. Overview owns the metric row, the per-locale coverage
-  table, the last run and the locale file history; Translations keeps the key list or grid and
-  the editor; the glossary editor lives only on Glossary. Adding a page means adding it to
-  `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of those tables.
+  table, the last run and the locale file history; Translations is one `KeysTable` (the matrix of
+  a status per locale, or one locale's entries with source, translation, status and origin) under
+  `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary. Adding a page
+  means adding it to `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of
+  those tables.
+
+**Key table rules.** The key column and the header row are sticky, with an opaque fill
+(`--surface-table-head`, `--surface-row-hover`, the selected row's `--surface-hover`) and a seam
+border on each cell (the table uses `border-separate`, since collapsed borders vanish on sticky
+cells); the corner cell sits above both. Below `md` the key column is 7rem and truncates, the
+Source column of the matrix is hidden, and the table flows in the page; from `md` up the card is
+a bounded scroll region (`md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto`), so the header stays in
+view with many rows. The roving stops draw their focus ring inside (`-outline-offset-2`), so it is
+never clipped by the card edge. The region sets `scroll-ps-28 md:scroll-ps-60` (the sticky key
+column's width) and `scroll-pt-16` in the matrix or `scroll-pt-11` in the entries table (the
+header's height), and a focused stop is scrolled into view with `block` and `inline` set to
+`nearest`, so the ring is never under the sticky parts. ArrowLeft and ArrowRight stop at the row edges; ArrowUp and ArrowDown wrap. Column widths are
+fixed with `w-*` and `min-w-*`, so the key column never jumps while filtering. In sync is quiet
+text with a dot, never a bordered badge. A matrix cell is named by its `aria-label` (key, locale,
+status, then each marker after a comma); its marker words also sit in a `decorative` `Tooltip` on
+the cell's own focus stop, which adds no tab stop. In the entries table the same words open from
+keyboard focus on the key button only (`trigger="focus"`, so the native title of a truncated key
+and the tooltip never show together), the status marker carries a plain title, and the words reach
+assistive technology through visually hidden text in the status cell. `ScrollHint` takes the
+scroll card's ref and shows only while it overflows, at any width. A row is selected
+(`aria-selected`) while its key is open in the drawer or editor.
+
+**Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
+`color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they
+resolve against the theme of the root element, so do not use them inside a subtree that sets its
+own theme.
 
 ## Capabilities are two flags, and the decision is a pure function
 

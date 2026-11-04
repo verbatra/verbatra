@@ -1,19 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { DiffLocale } from "./diff-view.js";
+import { type DiffLocale, driftKeys } from "./diff-view.js";
 import {
   attentionEntryCount,
-  isKeyFilterActive,
-  isLocaleListed,
-  type KeyGroups,
+  attentionKeys,
+  emptyKeyCounts,
   type KeyStatus,
-  type KeyStatusFilter,
   type KeyStatusSources,
-  keyGroupsFor,
+  type KeyTableInput,
+  keyStatusIndex,
+  keyTableRows,
   type LocaleIntegrityData,
-  listedStatuses,
-  localeStatusSummary,
-  queryMatcher,
-  statusCounts,
   toggleStatus,
 } from "./key-status-filter.js";
 
@@ -57,37 +53,195 @@ const SOURCES: KeyStatusSources = {
   integrity: [{ locale: "de", entries: [verdict("a.changed", true), verdict("a.broken", false)] }],
 };
 
-function filter(locale: string | null, statuses: readonly KeyStatus[] = []): KeyStatusFilter {
-  return { locale, statuses: new Set(statuses) };
+const LOCALES = [DE, FR];
+const INDEX = keyStatusIndex(LOCALES, SOURCES);
+
+const VALUES = [
+  {
+    locale: "de",
+    keys: ["a.missing", "a.changed", "a.broken", "a.synced"],
+    values: {
+      "a.missing": { source: "Cart" },
+      "a.changed": { source: "Bag", target: "Tasche" },
+      "a.broken": { source: "Hi {name}", target: "Hallo" },
+      "a.synced": { source: "Shop", target: "Laden" },
+    },
+  },
+  {
+    locale: "fr",
+    keys: ["a.missing", "a.old", "a.synced"],
+    values: {
+      "a.missing": { source: "Cart" },
+      "a.old": { target: "Panier" },
+      "a.synced": { source: "Shop", target: "Boutique" },
+    },
+  },
+];
+
+function table(overrides: Partial<KeyTableInput> = {}) {
+  return keyTableRows({
+    locales: LOCALES,
+    index: INDEX,
+    localeValues: VALUES,
+    locale: "",
+    statuses: new Set(),
+    query: "",
+    ...overrides,
+  });
 }
 
-describe("keyGroupsFor", () => {
-  it("groups a locale's keys by diff state, review queue, and integrity problem", () => {
-    expect(keyGroupsFor(DE, SOURCES)).toEqual({
-      missing: ["a.missing"],
-      changed: ["a.changed", "a.broken"],
-      orphaned: [],
-      protected: ["a.changed"],
-      review: ["a.flagged"],
-      integrity: ["a.broken"],
-    });
+describe("keyStatusIndex", () => {
+  it("indexes each locale's keys by diff state, protection, review queue and integrity problem", () => {
+    expect([...(INDEX.get("de")?.get("a.changed") ?? [])]).toEqual(["changed", "protected"]);
+    expect([...(INDEX.get("de")?.get("a.broken") ?? [])]).toEqual(["changed", "integrity"]);
+    expect([...(INDEX.get("de")?.get("a.flagged") ?? [])]).toEqual(["review"]);
+    expect([...(INDEX.get("fr")?.get("a.old") ?? [])]).toEqual(["orphaned"]);
   });
 
-  it("reads a locale without protected keys or integrity data as empty groups", () => {
-    const groups = keyGroupsFor(FR, SOURCES);
-
-    expect(groups.protected).toEqual([]);
-    expect(groups.integrity).toEqual([]);
-    expect(groups.review).toEqual(["a.other"]);
+  it("holds no entry for a key that is in sync, and nothing for a locale without data", () => {
+    expect(INDEX.get("de")?.has("a.synced")).toBe(false);
+    expect(keyStatusIndex([FR], { review: [], integrity: [] }).get("fr")?.has("a.other")).toBe(
+      false,
+    );
   });
 });
 
-describe("listedStatuses", () => {
-  const groups: KeyGroups = keyGroupsFor(FR, { review: [], integrity: [] });
+describe("attentionKeys", () => {
+  it("unions the keys that need attention across the scoped locales", () => {
+    expect([...attentionKeys(INDEX, ["de", "fr"])].sort()).toEqual([
+      "a.broken",
+      "a.changed",
+      "a.flagged",
+      "a.missing",
+      "a.old",
+      "a.other",
+    ]);
+  });
 
-  it("always lists the diff groups and adds the others only when they hold keys", () => {
-    expect(listedStatuses(groups, filter(null))).toEqual(["missing", "changed", "orphaned"]);
-    expect(listedStatuses(keyGroupsFor(DE, SOURCES), filter(null))).toEqual([
+  it("limits the union to the scope and ignores an unknown locale", () => {
+    expect([...attentionKeys(INDEX, ["fr", "xx"])].sort()).toEqual([
+      "a.missing",
+      "a.old",
+      "a.other",
+    ]);
+  });
+});
+
+describe("keyTableRows", () => {
+  it("lists exactly the keys that need attention when nothing is filtered or searched", () => {
+    expect(table().items).toEqual([
+      "a.broken",
+      "a.changed",
+      "a.flagged",
+      "a.missing",
+      "a.old",
+      "a.other",
+    ]);
+    expect(table().items).not.toContain("a.synced");
+  });
+
+  it("scopes the rows to the chosen locale", () => {
+    expect(table({ locale: "fr" }).items).toEqual(["a.missing", "a.old", "a.other"]);
+  });
+
+  it("counts keys, not key and locale pairs, so a key missing in two locales counts once", () => {
+    const counts = table().counts;
+
+    expect(counts.missing).toBe(1);
+    expect(counts.changed).toBe(2);
+    expect(counts.orphaned).toBe(1);
+    expect(counts.protected).toBe(1);
+    expect(counts.review).toBe(2);
+    expect(counts.integrity).toBe(1);
+  });
+
+  it("counts only the chosen locale's keys", () => {
+    expect(table({ locale: "fr" }).counts).toMatchObject({ missing: 1, orphaned: 1, changed: 0 });
+  });
+
+  it("narrows to the chosen statuses and combines several as a union", () => {
+    expect(table({ statuses: new Set<KeyStatus>(["integrity"]) }).items).toEqual(["a.broken"]);
+    expect(table({ statuses: new Set<KeyStatus>(["orphaned", "review"]) }).items).toEqual([
+      "a.flagged",
+      "a.old",
+      "a.other",
+    ]);
+  });
+
+  it("keeps the chip counts at what is available before the status choice", () => {
+    expect(table({ statuses: new Set<KeyStatus>(["integrity"]) }).counts.missing).toBe(1);
+  });
+
+  it("finds a key that is in sync when a search names it, by key, source or translation", () => {
+    expect(table({ query: "synced" }).items).toEqual(["a.synced"]);
+    expect(table({ query: "laden" }).items).toEqual(["a.synced"]);
+    expect(table({ query: "boutique" }).items).toEqual(["a.synced"]);
+    expect(table({ query: "shop" }).items).toEqual(["a.synced"]);
+  });
+
+  it("finds an in-sync key in the chosen locale only when that locale holds the text", () => {
+    expect(table({ query: "boutique", locale: "de" }).items).toEqual([]);
+    expect(table({ query: "boutique", locale: "fr" }).items).toEqual(["a.synced"]);
+  });
+
+  it("searches the whole catalogue but still lets a status narrow the matches", () => {
+    expect(table({ query: "a.", statuses: new Set<KeyStatus>(["missing"]) }).items).toEqual([
+      "a.missing",
+    ]);
+  });
+
+  it("counts only the keys the search matches on each status", () => {
+    const counts = table({ query: "cart" }).counts;
+
+    expect(counts.missing).toBe(1);
+    expect(counts.changed).toBe(0);
+    expect(counts.orphaned).toBe(0);
+  });
+
+  it("treats a blank search as no search", () => {
+    expect(table({ query: "   " }).items).toEqual(table().items);
+  });
+
+  it("falls back to the attention keys while the locale values have not loaded", () => {
+    expect(table({ localeValues: [], query: "a." }).items).toEqual(table().items);
+  });
+
+  it("caps the rows at the render limit and reports the true total", () => {
+    const many = Array.from({ length: 520 }, (_, i) => `k.${String(i).padStart(4, "0")}`);
+    const big: DiffLocale = { ...DE, missing: many, changed: [], protected: [] };
+    const capped = keyTableRows({
+      locales: [big],
+      index: keyStatusIndex([big], { review: [], integrity: [] }),
+      localeValues: [],
+      locale: "",
+      statuses: new Set(),
+      query: "",
+    });
+
+    expect(capped.items).toHaveLength(500);
+    expect(capped.totalMatches).toBe(520);
+    expect(capped.truncated).toBe(true);
+  });
+});
+
+describe("the overview attention link", () => {
+  it("lands on a table with exactly as many rows as the overview counts pending keys", () => {
+    const rows = table({
+      statuses: new Set<KeyStatus>(["missing", "changed", "orphaned"]),
+      index: keyStatusIndex(LOCALES, { review: [], integrity: [] }),
+    });
+
+    expect(rows.totalMatches).toBe(driftKeys(LOCALES).length);
+    expect(rows.totalMatches).toBeGreaterThan(0);
+  });
+});
+
+describe("emptyKeyCounts", () => {
+  it("starts every status at zero, as a fresh object each time", () => {
+    const counts = emptyKeyCounts();
+
+    expect(Object.values(counts)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(Object.keys(counts)).toEqual([
       "missing",
       "changed",
       "orphaned",
@@ -95,94 +249,65 @@ describe("listedStatuses", () => {
       "review",
       "integrity",
     ]);
-  });
-
-  it("lists exactly the chosen statuses, in their fixed order", () => {
-    expect(listedStatuses(groups, filter(null, ["integrity", "missing"]))).toEqual([
-      "missing",
-      "integrity",
-    ]);
+    counts.missing = 4;
+    expect(emptyKeyCounts().missing).toBe(0);
   });
 });
 
-describe("localeStatusSummary", () => {
-  const de = keyGroupsFor(DE, SOURCES);
-  const matchesBroken = keyGroupsFor(DE, SOURCES, (_locale, key) => key === "a.broken");
-
-  it("counts every listed status of a pending locale, zeros included for the diff groups", () => {
-    expect(
-      localeStatusSummary(
-        keyGroupsFor(FR, { review: [], integrity: [] }),
-        filter(null),
-        false,
-        true,
-      ),
-    ).toEqual([
-      { status: "missing", count: 1 },
-      { status: "changed", count: 0 },
-      { status: "orphaned", count: 1 },
-    ]);
-  });
-
-  it("leaves out the empty groups of a locale with nothing pending", () => {
-    const upToDate = keyGroupsFor(
-      { ...FR, missing: [], orphaned: [], hasPendingChanges: false },
-      SOURCES,
-    );
-
-    expect(localeStatusSummary(upToDate, filter(null), false, false)).toEqual([
-      { status: "review", count: 1 },
-    ]);
-  });
-
-  it("counts only the keys the search matches", () => {
-    expect(localeStatusSummary(matchesBroken, filter(null), true, true)).toEqual([
-      { status: "changed", count: 1 },
-      { status: "integrity", count: 1 },
-    ]);
-  });
-
-  it("counts only the chosen statuses, zeros included", () => {
-    expect(localeStatusSummary(de, filter(null, ["orphaned", "review"]), false, false)).toEqual([
-      { status: "orphaned", count: 0 },
-      { status: "review", count: 1 },
-    ]);
-  });
-});
-
-describe("isLocaleListed", () => {
-  const de = keyGroupsFor(DE, SOURCES);
-
-  it("lists every locale while nothing is filtered", () => {
-    expect(isLocaleListed("de", de, filter(null))).toBe(true);
-  });
-
-  it("drops a locale other than the chosen one", () => {
-    expect(isLocaleListed("de", de, filter("fr"))).toBe(false);
-    expect(isLocaleListed("de", de, filter("de"))).toBe(true);
-  });
-
-  it("drops a locale with no key in any chosen status", () => {
-    expect(isLocaleListed("de", de, filter(null, ["orphaned"]))).toBe(false);
-    expect(isLocaleListed("de", de, filter(null, ["orphaned", "integrity"]))).toBe(true);
-  });
-});
-
-describe("statusCounts", () => {
-  it("adds up every locale, or only the chosen one", () => {
-    expect(statusCounts([DE, FR], SOURCES, null)).toEqual({
-      missing: 2,
-      changed: 2,
-      orphaned: 1,
-      protected: 1,
-      review: 2,
-      integrity: 1,
+describe("keyTableRows value lookups", () => {
+  it("reads only a key a locale holds, never a property it inherits", () => {
+    const inherited = Object.getOwnPropertyDescriptor(Function.prototype, "source");
+    Object.defineProperty(Function.prototype, "source", {
+      value: "polluted needle",
+      configurable: true,
     });
-    expect(statusCounts([DE, FR], SOURCES, "fr")).toMatchObject({ missing: 1, integrity: 0 });
+    try {
+      const locales: readonly DiffLocale[] = [
+        { locale: "de", missing: ["toString"], changed: [], orphaned: [], hasPendingChanges: true },
+      ];
+      const rows = keyTableRows({
+        locales,
+        index: keyStatusIndex(locales, { review: [], integrity: [] }),
+        localeValues: [{ locale: "de", keys: [], values: {} }],
+        locale: "",
+        statuses: new Set(),
+        query: "needle",
+      });
+
+      expect(rows.items).toEqual([]);
+    } finally {
+      if (inherited === undefined) {
+        Reflect.deleteProperty(Function.prototype, "source");
+      } else {
+        Object.defineProperty(Function.prototype, "source", inherited);
+      }
+    }
+  });
+
+  it("finds a key named like an object property when the locale really holds it", () => {
+    const locales: readonly DiffLocale[] = [
+      {
+        locale: "de",
+        missing: ["constructor"],
+        changed: [],
+        orphaned: [],
+        hasPendingChanges: true,
+      },
+    ];
+    const rows = keyTableRows({
+      locales,
+      index: keyStatusIndex(locales, { review: [], integrity: [] }),
+      localeValues: [{ locale: "de", keys: [], values: { constructor: { source: "Builder" } } }],
+      locale: "",
+      statuses: new Set(),
+      query: "builder",
+    });
+
+    expect(rows.items).toEqual(["constructor"]);
   });
 });
 
-describe("filter state", () => {
+describe("toggleStatus", () => {
   it("toggles a status on and off without touching the input", () => {
     const start: ReadonlySet<KeyStatus> = new Set(["missing"]);
 
@@ -190,63 +315,16 @@ describe("filter state", () => {
     expect([...toggleStatus(start, "missing")]).toEqual([]);
     expect([...start]).toEqual(["missing"]);
   });
-
-  it("counts a locale or any status as an active filter", () => {
-    expect(isKeyFilterActive(filter(null))).toBe(false);
-    expect(isKeyFilterActive(filter("de"))).toBe(true);
-    expect(isKeyFilterActive(filter(null, ["review"]))).toBe(true);
-  });
-});
-
-describe("key status filter: search", () => {
-  const values = [
-    {
-      locale: "de",
-      keys: ["a.missing", "a.changed"],
-      values: { "a.missing": { source: "Cart" }, "a.changed": { target: "Korb" } },
-    },
-    { locale: "fr", keys: ["a.old"], values: { "a.old": { target: "Panier" } } },
-  ];
-
-  it("matches keys, source and target text per locale, and everything for an empty query", () => {
-    const matches = queryMatcher(values, "korb");
-
-    expect(matches("de", "a.changed")).toBe(true);
-    expect(matches("de", "a.missing")).toBe(false);
-    expect(matches("fr", "a.changed")).toBe(false);
-    expect(queryMatcher(values, "  ")("fr", "anything")).toBe(true);
-  });
-
-  it("counts only the keys the search matches", () => {
-    const counts = statusCounts([DE, FR], SOURCES, null, queryMatcher(values, "cart"));
-
-    expect(counts.missing).toBe(1);
-    expect(counts.changed).toBe(0);
-    expect(counts.orphaned).toBe(0);
-  });
-
-  it("hides a locale without a match and lists only the groups that have one", () => {
-    const matches = queryMatcher(values, "panier");
-    const filter: KeyStatusFilter = { locale: null, statuses: new Set() };
-    const de = keyGroupsFor(DE, SOURCES, matches);
-    const fr = keyGroupsFor(FR, SOURCES, matches);
-
-    expect(isLocaleListed("de", de, filter, true)).toBe(false);
-    expect(isLocaleListed("fr", fr, filter, true)).toBe(true);
-    expect(listedStatuses(fr, filter, true)).toEqual(["orphaned"]);
-  });
 });
 
 describe("attentionEntryCount", () => {
-  it("equals the missing, changed and orphaned filter chip totals together", () => {
+  it("adds the missing, changed and orphaned entries of every locale", () => {
     const locales: readonly DiffLocale[] = [
       { ...DE, orphaned: ["a.old"] },
       { ...FR, orphaned: ["b.old", "b.older"] },
     ];
-    const chips = statusCounts(locales, { review: [], integrity: [] }, null);
 
-    expect(attentionEntryCount(locales)).toBe(chips.missing + chips.changed + chips.orphaned);
-    expect(attentionEntryCount(locales)).toBeGreaterThan(0);
+    expect(attentionEntryCount(locales)).toBe(7);
   });
 
   it("ignores the protected, review and integrity groups, which are not drift", () => {

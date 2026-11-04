@@ -1,15 +1,13 @@
-import { SearchInput, Select } from "@verbatra/ui";
+import { FilterBar, FilterChip, SearchInput, Select } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
 import { KEY_STATUS_LABELS, KEY_STATUSES, type KeyStatus } from "../client/key-status-filter.js";
-import { cn } from "./lib/cn.js";
-import { FilterBar } from "./Toolbar.js";
 
-export interface KeyStatusFilterBarProps {
+export interface KeyFiltersProps {
   readonly locales: readonly string[];
   readonly locale: string;
   readonly statuses: ReadonlySet<KeyStatus>;
   readonly counts: Readonly<Record<KeyStatus, number>>;
-  readonly unavailable: ReadonlySet<KeyStatus>;
+  readonly unavailable: ReadonlyMap<KeyStatus, string>;
   readonly query: string;
   readonly onLocaleChange: (locale: string) => void;
   readonly onToggleStatus: (status: KeyStatus) => void;
@@ -17,12 +15,7 @@ export interface KeyStatusFilterBarProps {
   readonly searchRef?: Ref<HTMLInputElement>;
 }
 
-const TOGGLE_CLASSNAME =
-  "inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:not-disabled:bg-accent hover:not-disabled:text-accent-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:cursor-default disabled:opacity-60";
-
-const PRESSED_CLASSNAME = "border-primary bg-accent text-accent-foreground";
-
-export function KeyStatusFilterBar({
+export function KeyFilters({
   locales,
   locale,
   statuses,
@@ -33,13 +26,13 @@ export function KeyStatusFilterBar({
   onToggleStatus,
   onQueryChange,
   searchRef,
-}: KeyStatusFilterBarProps): ReactNode {
+}: KeyFiltersProps): ReactNode {
   return (
     <FilterBar label="Key filters" className="mb-4">
       <SearchInput
         ref={searchRef}
         aria-label="Filter by key or translation text"
-        placeholder="Filter by key or text…"
+        placeholder="Filter keys…"
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
       />
@@ -58,22 +51,18 @@ export function KeyStatusFilterBar({
       <fieldset className="relative m-0 flex flex-wrap items-center gap-1.5 border-0 p-0">
         <legend className="sr-only">Show only keys that are</legend>
         {KEY_STATUSES.map((status) => {
-          const pressed = statuses.has(status);
-          const off = unavailable.has(status);
+          const reason = unavailable.get(status);
           return (
-            <button
+            <FilterChip
               key={status}
-              type="button"
-              className={cn(TOGGLE_CLASSNAME, pressed && PRESSED_CLASSNAME)}
-              aria-pressed={pressed}
-              disabled={off}
-              title={off ? "Not available right now" : undefined}
+              pressed={statuses.has(status)}
+              count={counts[status]}
+              {...(reason === undefined ? {} : { unavailable: reason })}
               data-status-filter={status}
               onClick={() => onToggleStatus(status)}
             >
               {KEY_STATUS_LABELS[status]}
-              <span className="font-mono tabular-nums">{off ? "…" : counts[status]}</span>
-            </button>
+            </FilterChip>
           );
         })}
       </fieldset>

@@ -13,6 +13,8 @@ export { Card, type CardPadding, type CardProps } from "./card.tsx";
 export { Checkbox, type CheckboxProps } from "./checkbox.tsx";
 export { cn } from "./cn.ts";
 export type { FieldSize } from "./field.ts";
+export { FilterBar } from "./filter-bar.tsx";
+export { FilterChip, type FilterChipProps } from "./filter-chip.tsx";
 export { Icon, type IconName } from "./icon.tsx";
 export {
   SearchInput,
@@ -33,11 +35,6 @@ export {
   Section,
   SectionCard,
 } from "./section.tsx";
-export {
-  SegmentedControl,
-  type SegmentedControlProps,
-  type SegmentedItem,
-} from "./segmented-control.tsx";
 export { Select, type SelectProps } from "./select.tsx";
 export {
   DialogCloseButton,
@@ -61,7 +58,12 @@ export {
 } from "./table.tsx";
 export { ThemeToggle, type ThemeToggleProps } from "./theme-toggle.tsx";
 export { Toast } from "./toast.tsx";
-export { Tooltip, type TooltipProps, type TooltipSide } from "./tooltip.tsx";
+export {
+  Tooltip,
+  type TooltipProps,
+  type TooltipSide,
+  type TooltipTrigger,
+} from "./tooltip.tsx";
 export { type DialogA11yOptions, useDialogA11y } from "./use-dialog-a11y.ts";
 
 export const THEMES = ["dark", "light"] as const;

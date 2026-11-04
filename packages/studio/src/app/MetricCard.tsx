@@ -39,7 +39,7 @@ export function MetricCard({
       <div className="flex items-center justify-between gap-2">
         <span className={microLabelClassName}>{label}</span>
         {icon !== undefined ? (
-          <span className="grid size-7 flex-none place-items-center rounded-md bg-accent text-accent-foreground">
+          <span className="grid size-7 flex-none place-items-center rounded-sm bg-accent text-accent-foreground">
             <Icon name={icon} size={14} />
           </span>
         ) : null}
