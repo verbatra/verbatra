@@ -13,7 +13,7 @@ export function AgentToolsAlert({ failures }: AgentToolsAlertProps): ReactNode {
   }
   return (
     <p
-      className="mb-4 flex items-start gap-2 rounded-md border-s-[3px] border-warning bg-warning-soft px-4 py-3 text-warning"
+      className="mb-4 flex items-start gap-2 rounded-lg border-s-[3px] border-warning bg-warning-soft px-4 py-3 text-warning"
       role="alert"
     >
       <Icon name="alert" className="mt-0.5 flex-none" />

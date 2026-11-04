@@ -54,7 +54,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             The dashboard stopped rendering. Reloading usually clears it. If it comes back, the
             browser console has the full details.
           </p>
-          <p className="mb-4 rounded-md border-s-[3px] border-danger bg-danger-soft px-4 py-3 text-start font-mono text-xs text-danger">
+          <p className="mb-4 rounded-lg border-s-[3px] border-danger bg-danger-soft px-4 py-3 text-start font-mono text-xs text-danger">
             {message}
           </p>
           <Button variant="primary" size="md" onClick={this.handleReload}>

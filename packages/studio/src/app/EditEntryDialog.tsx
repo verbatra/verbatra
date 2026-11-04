@@ -315,7 +315,7 @@ function TranslationColumn({
           maxLength={context.maxLength}
         />
         <figure
-          className="m-0 mt-3 rounded-md border border-border bg-muted px-3 py-2"
+          className="m-0 mt-3 rounded-sm border border-border bg-muted px-3 py-2"
           data-edit-preview=""
         >
           <figcaption className={cn("mb-1", microLabelClassName)}>Preview</figcaption>

@@ -15,7 +15,7 @@ function TouchedPaths({ paths }: { readonly paths: readonly string[] }): ReactNo
       {paths.map((path) => (
         <li
           key={path}
-          className="break-words rounded-md bg-neutral-soft px-2 py-0.5 font-mono text-xs text-muted-foreground"
+          className="break-words rounded-sm bg-neutral-soft px-2 py-0.5 font-mono text-xs text-muted-foreground"
         >
           {path}
         </li>
@@ -42,7 +42,7 @@ function CommitRow({ commit }: { readonly commit: HistoryCommit }): ReactNode {
       />
       <p className="m-0 mt-1 flex flex-wrap items-center gap-2">
         <span
-          className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
+          className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
           ref={(element) => {
             if (element !== null) {
               renderText(element, parts.shortHash);
