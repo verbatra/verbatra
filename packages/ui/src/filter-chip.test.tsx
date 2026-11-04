@@ -18,6 +18,23 @@ describe("FilterChip", () => {
     expect(chip.hasAttribute("aria-disabled")).toBe(false);
   });
 
+  it("marks an empty chip so it can be muted, and leaves a chip with keys unmarked", () => {
+    const empty = render(
+      <FilterChip pressed={false} count={0}>
+        Orphaned
+      </FilterChip>,
+    );
+    const full = render(
+      <FilterChip pressed={false} count={4}>
+        Missing
+      </FilterChip>,
+    );
+
+    expect(empty.get("button").dataset.count).toBe("0");
+    expect(empty.get("button").getAttribute("aria-pressed")).toBe("false");
+    expect(full.get("button").dataset.count).toBe("4");
+  });
+
   it("marks a pressed chip", () => {
     const view = render(
       <FilterChip pressed count={1}>
@@ -95,7 +112,7 @@ describe("FilterChip", () => {
 
       expect(onClick).toHaveBeenCalledTimes(1);
       expect(chip.hasAttribute("aria-disabled")).toBe(false);
-      expect(chip.textContent).toBe("Review queue9");
+      expect(chip.textContent).toBe("Review queue…");
       expect(view.get("[role='tooltip']").textContent).toBe("Not available right now");
     });
 
