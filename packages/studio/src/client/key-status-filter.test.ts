@@ -3,6 +3,7 @@ import { type DiffLocale, driftKeys } from "./diff-view.js";
 import {
   attentionEntryCount,
   attentionKeys,
+  emptyKeyCounts,
   type KeyStatus,
   type KeyStatusSources,
   type KeyTableInput,
@@ -232,6 +233,75 @@ describe("the overview attention link", () => {
 
     expect(rows.totalMatches).toBe(driftKeys(LOCALES).length);
     expect(rows.totalMatches).toBeGreaterThan(0);
+  });
+});
+
+describe("emptyKeyCounts", () => {
+  it("starts every status at zero, as a fresh object each time", () => {
+    const counts = emptyKeyCounts();
+
+    expect(Object.values(counts)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(Object.keys(counts)).toEqual([
+      "missing",
+      "changed",
+      "orphaned",
+      "protected",
+      "review",
+      "integrity",
+    ]);
+    counts.missing = 4;
+    expect(emptyKeyCounts().missing).toBe(0);
+  });
+});
+
+describe("keyTableRows value lookups", () => {
+  it("reads only a key a locale holds, never a property it inherits", () => {
+    const inherited = Object.getOwnPropertyDescriptor(Function.prototype, "source");
+    Object.defineProperty(Function.prototype, "source", {
+      value: "polluted needle",
+      configurable: true,
+    });
+    try {
+      const locales: readonly DiffLocale[] = [
+        { locale: "de", missing: ["toString"], changed: [], orphaned: [], hasPendingChanges: true },
+      ];
+      const rows = keyTableRows({
+        locales,
+        index: keyStatusIndex(locales, { review: [], integrity: [] }),
+        localeValues: [{ locale: "de", keys: [], values: {} }],
+        locale: "",
+        statuses: new Set(),
+        query: "needle",
+      });
+
+      expect(rows.items).toEqual([]);
+    } finally {
+      if (inherited === undefined) {
+        Reflect.deleteProperty(Function.prototype, "source");
+      }
+    }
+  });
+
+  it("finds a key named like an object property when the locale really holds it", () => {
+    const locales: readonly DiffLocale[] = [
+      {
+        locale: "de",
+        missing: ["constructor"],
+        changed: [],
+        orphaned: [],
+        hasPendingChanges: true,
+      },
+    ];
+    const rows = keyTableRows({
+      locales,
+      index: keyStatusIndex(locales, { review: [], integrity: [] }),
+      localeValues: [{ locale: "de", keys: [], values: { constructor: { source: "Builder" } } }],
+      locale: "",
+      statuses: new Set(),
+      query: "builder",
+    });
+
+    expect(rows.items).toEqual(["constructor"]);
   });
 });
 

@@ -34,14 +34,6 @@ export function toLocaleValuesOutcome(
   return { ok: true, result: response.result };
 }
 
-export function valuesForLocale(
-  data: LocaleValuesData,
-  locale: string,
-): ReadonlyMap<string, KeyValuePair> {
-  const entry = data.find((candidate) => candidate.locale === locale);
-  return new Map(Object.entries(entry?.values ?? {}));
-}
-
 export function valuesIndex(data: LocaleValuesData): ReadonlyMap<string, KeyValuePair> {
   const index = new Map<string, KeyValuePair>();
   for (const entry of data) {

@@ -30,6 +30,12 @@ export const KEY_STATUS_LABELS: Readonly<Record<KeyStatus, string>> = {
   integrity: "Integrity problems",
 };
 
+const NO_STATUSES: ReadonlySet<KeyStatus> = new Set();
+
+export function emptyKeyCounts(): Record<KeyStatus, number> {
+  return { missing: 0, changed: 0, orphaned: 0, protected: 0, review: 0, integrity: 0 };
+}
+
 export type LocaleIntegrityData = RpcResultFor<"locale.integrity">["locales"];
 
 export interface KeyStatusSources {
@@ -86,11 +92,14 @@ function heldByKey(
   const union = new Map<string, Set<KeyStatus>>();
   for (const locale of scope) {
     for (const [key, held] of index.get(locale) ?? []) {
-      const merged = union.get(key) ?? new Set<KeyStatus>();
+      let merged = union.get(key);
+      if (merged === undefined) {
+        merged = new Set<KeyStatus>();
+        union.set(key, merged);
+      }
       for (const status of held) {
         merged.add(status);
       }
-      union.set(key, merged);
     }
   }
   return union;
@@ -111,7 +120,9 @@ export interface KeyTableRows extends CappedKeyList {
 
 function lookupFor(localeValues: LocaleValuesData, locale: string): KeyPairLookup {
   const record = localeValues.find((entry) => entry.locale === locale)?.values;
-  return { get: (key) => record?.[key] };
+  return {
+    get: (key) => (record !== undefined && Object.hasOwn(record, key) ? record[key] : undefined),
+  };
 }
 
 function recordedKeys(localeValues: LocaleValuesData, scope: readonly string[]): readonly string[] {
@@ -131,14 +142,7 @@ export function keyTableRows(input: KeyTableInput): KeyTableRows {
     }
   }
   const lookups = scope.map((locale) => lookupFor(localeValues, locale));
-  const counts: Record<KeyStatus, number> = {
-    missing: 0,
-    changed: 0,
-    orphaned: 0,
-    protected: 0,
-    review: 0,
-    integrity: 0,
-  };
+  const counts = emptyKeyCounts();
   const narrowed: string[] = [];
   for (const key of universe) {
     if (!lookups.some((lookup) => keyMatchesQuery(key, query, lookup))) {
@@ -154,8 +158,6 @@ export function keyTableRows(input: KeyTableInput): KeyTableRows {
   }
   return { ...filterAndCapKeys(narrowed.sort(), ""), counts };
 }
-
-const NO_STATUSES: ReadonlySet<KeyStatus> = new Set();
 
 export function attentionEntryCount(locales: readonly DiffLocale[]): number {
   return locales.reduce(
