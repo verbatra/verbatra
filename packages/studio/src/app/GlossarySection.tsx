@@ -1,4 +1,4 @@
-import { Badge, Button } from "@verbatra/ui";
+import { Badge, Button, EmptyState, SectionCard, Select, TextField } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import {
@@ -17,9 +17,6 @@ import {
 import { rpcClient } from "./api.js";
 import { GlossaryDoNotTranslate, glossarySubheadingClassName } from "./GlossaryDoNotTranslate.js";
 import { GlossaryTermRow, type GlossaryWriter } from "./GlossaryTermRow.js";
-import { TextField } from "./Input.js";
-import { Select } from "./Select.js";
-import { EmptyState, SectionCard } from "./ui.js";
 
 function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void): GlossaryWriter {
   const [pending, setPending] = useState<string | undefined>(undefined);
@@ -111,7 +108,6 @@ function GlossaryAddForm({
         <TextField
           aria-label="New glossary term"
           placeholder="Source term"
-          className="max-w-none"
           value={term}
           disabled={busy}
           onChange={(event) => setTerm(event.target.value)}
@@ -122,17 +118,11 @@ function GlossaryAddForm({
             scope === ALL_LOCALES ? "Translation for all locales" : `Translation for ${scope}`
           }
           dir="auto"
-          className="max-w-none"
           value={translation}
           disabled={busy}
           onChange={(event) => setTranslation(event.target.value)}
         />
-        <Button
-          variant="primary"
-          className="min-h-9.5"
-          onClick={() => void add()}
-          disabled={busy || !ready}
-        >
+        <Button variant="primary" onClick={() => void add()} disabled={busy || !ready}>
           Add term
         </Button>
       </div>

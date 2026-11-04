@@ -98,4 +98,27 @@ describe("built SPA output", () => {
     const license = await readFile(join(outDir, "licenses", "OFL-Geist.txt"), "utf8");
     expect(license).toContain("SIL OPEN FONT LICENSE Version 1.1");
   });
+
+  it("compiles every utility class the shared ui fields are written with", async () => {
+    const source = await readFile(
+      fileURLToPath(new URL("../../../ui/src/field.ts", import.meta.url)),
+      "utf8",
+    );
+    const base = /FIELD_BASE =\s*"([^"]+)"/.exec(source)?.[1] ?? "";
+    const assets = await readdir(join(outDir, "assets"));
+    const css = (
+      await Promise.all(
+        assets
+          .filter((name) => name.endsWith(".css"))
+          .map((name) => readFile(join(outDir, "assets", name), "utf8")),
+      )
+    ).join("\n");
+    const classes = base.split(/\s+/).filter((name) => name.length > 0 && !name.startsWith("vk-"));
+
+    expect(classes.length).toBeGreaterThan(5);
+    const missing = classes.filter(
+      (name) => !css.includes(`.${name.replace(/[^\w-]/g, (char) => `\\${char}`)}`),
+    );
+    expect(missing).toEqual([]);
+  });
 });

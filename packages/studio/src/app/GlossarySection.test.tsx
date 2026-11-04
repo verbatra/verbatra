@@ -210,7 +210,6 @@ describe("GlossarySection, file-backed", () => {
     typeInto(field(view, "New glossary translation"), "x");
 
     expect(view.getByText("button", "Add term").hasAttribute("disabled")).toBe(true);
-    expect(view.getByText("button", "Add term").className.split(" ")).toContain("min-h-9.5");
   });
 
   it("measures a padded term at the cap by its trimmed length, the one it sends", async () => {

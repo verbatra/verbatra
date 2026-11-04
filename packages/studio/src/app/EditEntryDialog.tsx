@@ -1,9 +1,9 @@
 import type { GlossaryDraftCheck, LocaleGlossary, ReviewReasonCode } from "@verbatra/sdk";
-import { Badge, Button } from "@verbatra/ui";
+import { Badge, Button, DrawerShell, microLabelClassName, Section, TextArea } from "@verbatra/ui";
 import type { KeyboardEvent, ReactNode, Ref } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { deriveEditEntryOutcome, type EditEntryOutcome } from "../client/edit-entry-outcome.js";
-import { deriveIntegrityPillView } from "../client/integrity-pill.js";
+import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
 import {
   type DraftFlag,
   deriveKeyValueContext,
@@ -15,14 +15,12 @@ import {
 import { compareLength, lengthSummary } from "../client/length-compare.js";
 import { settledActionStatusLabel } from "../client/settled-action-status.js";
 import { rpcClient } from "./api.js";
-import { TextArea } from "./Input.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";
 import { cn } from "./lib/cn.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ReviewReasonChips } from "./ReviewReasonChips.js";
 import { TranslationValue, valueDirection } from "./TranslationValue.js";
-import { DrawerShell, microLabelClassName, Section } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
@@ -207,16 +205,11 @@ function SourceColumn({
 
 function SavedValueStatus({
   context,
-  locale,
-  keyName,
+  pill,
 }: {
   readonly context: LoadedContext;
-  readonly locale: string;
-  readonly keyName: string;
+  readonly pill: IntegrityPillView | null;
 }): ReactNode {
-  const integrity = useKeyIntegrity(keyName, 0);
-  const pill =
-    integrity.kind === "loaded" ? deriveIntegrityPillView(integrity.locales, locale) : null;
   if (context.target === undefined) {
     return null;
   }
@@ -276,10 +269,13 @@ function TranslationColumn({
   readonly textAreaRef: Ref<HTMLTextAreaElement>;
 }): ReactNode {
   const lengthId = useId();
+  const integrity = useKeyIntegrity(keyName, 0);
+  const pill =
+    integrity.kind === "loaded" ? deriveIntegrityPillView(integrity.locales, locale) : null;
   return (
     <div className="min-w-0">
       <Section title="Translation">
-        <SavedValueStatus context={context} locale={locale} keyName={keyName} />
+        <SavedValueStatus context={context} pill={pill} />
         {context.target === undefined ? (
           <p className="mb-2 text-sm text-muted-foreground">
             No translation exists yet for this locale.
@@ -289,8 +285,9 @@ function TranslationColumn({
           ref={textAreaRef}
           aria-label={`Translation (${locale})`}
           aria-describedby={lengthId}
+          aria-invalid={pill?.tone === "danger" && value === context.target ? true : undefined}
+          className="mt-1"
           aria-keyshortcuts="Control+Enter Meta+Enter"
-          className="max-w-none"
           lang={locale}
           dir={valueDirection(locale, value)}
           value={value}

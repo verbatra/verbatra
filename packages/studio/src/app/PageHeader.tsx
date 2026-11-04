@@ -1,5 +1,5 @@
+import { microLabelClassName } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { microLabelClassName } from "./ui.js";
 
 export function PageHeader({
   kicker = "Verbatra Studio",

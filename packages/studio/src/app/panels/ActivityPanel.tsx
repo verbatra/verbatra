@@ -1,5 +1,5 @@
 import type { BudgetStanding } from "@verbatra/sdk";
-import { Badge, type BadgeTone } from "@verbatra/ui";
+import { Badge, type BadgeTone, EmptyState, PageSection } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import type { BudgetDisplay, UsageDisplay } from "../../client/usage-ticker-data.js";
@@ -10,7 +10,6 @@ import { Loading } from "../Loading.js";
 import { MetricCard } from "../MetricCard.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
-import { EmptyState, PageSection } from "../ui.js";
 import { useHistoryList } from "../use-history-list.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
 

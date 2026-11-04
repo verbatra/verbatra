@@ -142,6 +142,7 @@
   --border-tile: hsl(240 22% 16%);
   --surface-hover: hsl(258 25% 20%);
   --border-default: hsl(240 23% 22%);
+  --border-field: hsl(240 12% 51%);
   --text-strong: hsl(240 30% 94%);
   --text-muted: hsl(240 13% 65%);
   --text-faint: hsl(240 13% 58%);
@@ -180,6 +181,7 @@
   --border-tile: var(--border-default);
   --surface-hover: hsl(258 40% 94%);
   --border-default: hsl(240 14% 86%);
+  --border-field: hsl(240 10% 56%);
   --text-strong: hsl(240 28% 9%);
   --text-muted: hsl(240 10% 36%);
   --text-faint: hsl(240 8% 40%);

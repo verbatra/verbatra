@@ -1,9 +1,8 @@
-import { Badge, Button, Icon } from "@verbatra/ui";
+import { Badge, Button, Icon, microLabelClassName } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { connectionStore } from "./api.js";
 import { ThemeSwitcher } from "./ThemeSwitcher.js";
-import { microLabelClassName } from "./ui.js";
 
 const DEGRADED_BADGE_DELAY_MS = 1500;
 

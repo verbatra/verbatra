@@ -189,7 +189,7 @@ describe("ActivityPanel", () => {
     expect(metricValue(view, "Budget")).toBe("250 / 800");
     expect(metricHint(view, "Budget")).toBe("Behavior: warn");
     expect(meter?.style.width).toBe("31%");
-    expect(meter?.className).toContain("bg-primary");
+    expect(meter?.dataset.tone).toBe("primary");
     expect(metricCard(view, "Budget status").textContent).toContain("Within budget");
   });
 
@@ -211,7 +211,7 @@ describe("ActivityPanel", () => {
     const meter = metricCard(view, "Budget").querySelector<HTMLElement>('[style*="width"]');
 
     expect(meter?.style.width).toBe("100%");
-    expect(meter?.className).toContain("bg-danger");
+    expect(meter?.dataset.tone).toBe("danger");
     expect(metricCard(view, "Budget status").textContent).toContain("Ceiling reached");
   });
 
@@ -254,8 +254,7 @@ describe("ActivityPanel", () => {
     const status = metricCard(view, "Budget status");
 
     expect(meter?.style.width).toBe("60%");
-    expect(meter?.className).toContain("bg-primary");
-    expect(meter?.className).not.toContain("bg-danger");
+    expect(meter?.dataset.tone).toBe("primary");
     expect(status.textContent).toContain("Stopped before the ceiling");
     expect(status.textContent).not.toContain("Ceiling reached");
     expect(status.querySelector("[data-tone=warning]")).not.toBeNull();

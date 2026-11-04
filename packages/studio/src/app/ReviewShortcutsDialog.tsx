@@ -1,6 +1,6 @@
+import { DrawerShell } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { keyCap, visibleShortcuts } from "../client/review-shortcuts.js";
-import { DrawerShell } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 
 function KeyCapView({ keyName }: { readonly keyName: string }): ReactNode {

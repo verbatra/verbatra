@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import { cn } from "./lib/cn.js";
+import { cn } from "./cn.ts";
+
+export type ProgressTone = "primary" | "danger";
+
+const TONE: Readonly<Record<ProgressTone, string>> = {
+  primary: "bg-(--accent-fill)",
+  danger: "bg-(--status-danger)",
+};
 
 export function ProgressBar({
   percent,
@@ -8,14 +15,17 @@ export function ProgressBar({
   className,
 }: {
   readonly percent: number;
-  readonly tone?: "primary" | "danger";
+  readonly tone?: ProgressTone;
   readonly ariaLabel?: string;
   readonly className?: string;
 }): ReactNode {
   const clamped = Math.min(100, Math.max(0, percent));
   return (
     <span
-      className={cn("block h-1.5 w-full overflow-hidden rounded-full bg-neutral-soft", className)}
+      className={cn(
+        "block h-1.5 w-full overflow-hidden rounded-(--radius-full) bg-(--status-neutral-soft)",
+        className,
+      )}
       {...(ariaLabel === undefined
         ? { "aria-hidden": true }
         : {
@@ -27,9 +37,10 @@ export function ProgressBar({
           })}
     >
       <span
+        data-tone={tone}
         className={cn(
-          "block h-full rounded-[inherit] transition-[width] duration-300",
-          tone === "danger" ? "bg-danger" : "bg-primary",
+          "block h-full rounded-[inherit] motion-safe:transition-[width] motion-safe:duration-(--duration-base)",
+          TONE[tone],
         )}
         style={{ width: `${clamped}%` }}
       />

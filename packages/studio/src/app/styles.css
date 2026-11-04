@@ -2,8 +2,8 @@
 @import "@verbatra/ui/tokens.css";
 @import "@verbatra/ui/fonts.css";
 @import "@verbatra/ui/components.css";
-@source "../../../ui/src/**/*.tsx";
-@source not "../../../ui/src/**/*.test.tsx";
+@source "../../../ui/src/**/*.{ts,tsx}";
+@source not "../../../ui/src/**/*.test.{ts,tsx}";
 @source not "../../../ui/src/test-support.tsx";
 
 :root[data-theme="light"] {

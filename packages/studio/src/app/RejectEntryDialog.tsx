@@ -1,4 +1,4 @@
-import { Button } from "@verbatra/ui";
+import { Button, DrawerShell, Section } from "@verbatra/ui";
 import type { ReactNode, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -11,7 +11,6 @@ import { rpcClient } from "./api.js";
 import { actionStatusTextClassName } from "./lib/action-status-classes.js";
 import { cn } from "./lib/cn.js";
 import { TranslationValue } from "./TranslationValue.js";
-import { DrawerShell, Section } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 
 type RejectState =

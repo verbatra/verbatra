@@ -1,9 +1,9 @@
+import { EmptyState } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { commitSummaryParts, renderText } from "../client/render-text.js";
 import type { HistoryCommit, HistoryUnavailableReason } from "../shared/rpc/history.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { Loading } from "./Loading.js";
-import { EmptyState } from "./ui.js";
 import type { HistoryState } from "./use-history-list.js";
 
 function TouchedPaths({ paths }: { readonly paths: readonly string[] }): ReactNode {

@@ -224,6 +224,32 @@ describe.each(THEMES)("status and diff tokens in the %s theme", (theme) => {
   });
 });
 
+describe.each(THEMES)("field border in the %s theme", (theme) => {
+  const tokens = rootTokens(theme);
+  const FIELD_BACKDROPS = [
+    "--surface-raised",
+    "--surface-tile",
+    "--surface-bg",
+    "--surface-card",
+  ] as const;
+
+  it.each(FIELD_BACKDROPS)("--border-field clears 3:1 on %s without being heavy", (surface) => {
+    const value = ratio(resolveColor(tokens, "--border-field"), resolveColor(tokens, surface));
+    expect(value).toBeGreaterThanOrEqual(3.2);
+    expect(value).toBeLessThan(5);
+  });
+
+  it("strengthens the edge on hover and keeps the invalid edge at 3:1", () => {
+    const fill = resolveColor(tokens, "--surface-raised");
+    const rest = ratio(resolveColor(tokens, "--border-field"), fill);
+    const hover = ratio(resolveColor(tokens, "--text-faint"), fill);
+    const invalid = ratio(resolveColor(tokens, "--status-danger"), fill);
+
+    expect(hover).toBeGreaterThan(rest + 0.5);
+    expect(invalid).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe.each(THEMES)("warning hue in the %s theme", (theme) => {
   const hue = (name: string): number => {
     const value = themeBlock(theme).declarations.get(name) ?? "";

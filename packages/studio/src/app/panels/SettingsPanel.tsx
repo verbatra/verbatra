@@ -1,4 +1,4 @@
-import { Badge } from "@verbatra/ui";
+import { Badge, DetailList, MonoValue, SectionCard } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { StructuredError } from "../../client/state.js";
@@ -10,7 +10,6 @@ import { GlossarySection } from "../GlossarySection.js";
 import { Loading } from "../Loading.js";
 import { MetricCard } from "../MetricCard.js";
 import { PageHeader } from "../PageHeader.js";
-import { DetailList, MonoValue, SectionCard } from "../ui.js";
 
 function ProjectMetrics({ snapshot }: { readonly snapshot: ProjectSnapshotResult }): ReactNode {
   return (

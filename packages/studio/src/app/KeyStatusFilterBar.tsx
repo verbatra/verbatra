@@ -1,8 +1,7 @@
+import { SearchInput, Select } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
 import { KEY_STATUS_LABELS, KEY_STATUSES, type KeyStatus } from "../client/key-status-filter.js";
-import { SearchInput } from "./Input.js";
 import { cn } from "./lib/cn.js";
-import { Select } from "./Select.js";
 import { FilterBar } from "./Toolbar.js";
 
 export interface KeyStatusFilterBarProps {
@@ -56,7 +55,7 @@ export function KeyStatusFilterBar({
           </option>
         ))}
       </Select>
-      <fieldset className="m-0 flex flex-wrap items-center gap-1.5 border-0 p-0">
+      <fieldset className="relative m-0 flex flex-wrap items-center gap-1.5 border-0 p-0">
         <legend className="sr-only">Show only keys that are</legend>
         {KEY_STATUSES.map((status) => {
           const pressed = statuses.has(status);

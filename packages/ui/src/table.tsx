@@ -1,7 +1,15 @@
-import { Card } from "@verbatra/ui";
 import type { HTMLAttributes, ReactNode, Ref, TdHTMLAttributes, ThHTMLAttributes } from "react";
-import { cn } from "./lib/cn.js";
-import { tableClasses } from "./ui.js";
+import { Card } from "./card.tsx";
+import { cn } from "./cn.ts";
+
+export const tableClasses = {
+  table: "w-full min-w-[480px] border-collapse text-sm",
+  th: "border-b border-(--border-default) bg-(--surface-muted)/60 px-3 py-2.5 text-start font-mono text-[11px] font-semibold uppercase tracking-(--tracking-wide) text-(--text-muted)",
+  tbody: "divide-y divide-(--border-default)",
+  td: "px-3 py-2.5 text-(--text-strong)",
+  rowHover: "hover:bg-(--surface-hover)/40",
+  numeric: "text-end tabular-nums",
+};
 
 export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>): ReactNode {
   return <table className={cn(tableClasses.table, className)} {...props} />;
@@ -35,7 +43,11 @@ export function TableHeaderCell({
   ...props
 }: ThHTMLAttributes<HTMLTableCellElement> & { readonly numeric?: boolean }): ReactNode {
   return (
-    <th className={cn(tableClasses.th, numeric && tableClasses.numeric, className)} {...props} />
+    <th
+      className={cn(tableClasses.th, numeric && tableClasses.numeric, className)}
+      data-numeric={numeric ? "" : undefined}
+      {...props}
+    />
   );
 }
 
@@ -56,6 +68,8 @@ export function TableCell({
         numeric && tableClasses.numeric,
         className,
       )}
+      data-mono={mono ? "" : undefined}
+      data-numeric={numeric ? "" : undefined}
       {...props}
     />
   );

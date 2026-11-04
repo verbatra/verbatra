@@ -30,7 +30,9 @@ export function FilterBar({
   readonly className?: string;
 }): ReactNode {
   return (
-    <fieldset className={cn("m-0 mb-6 flex flex-wrap items-center gap-3 border-0 p-0", className)}>
+    <fieldset
+      className={cn("relative m-0 mb-6 flex flex-wrap items-center gap-3 border-0 p-0", className)}
+    >
       <legend className="sr-only">{label}</legend>
       {children}
     </fieldset>

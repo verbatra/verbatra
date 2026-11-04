@@ -51,7 +51,7 @@ describe("ReviewShortcutsDialog", () => {
 
     pressKey("Escape");
     await flush();
-    click(view.get('button[aria-label="Close"]'));
+    click(view.get('button[aria-label="Close the keyboard shortcuts"]'));
 
     expect(onClose).toHaveBeenCalledTimes(2);
   });

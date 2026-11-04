@@ -1,9 +1,8 @@
-import { Icon, type IconName } from "@verbatra/ui";
+import { DialogCloseButton, Icon, type IconName, OverlayBackdrop } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { PageId } from "../client/routes.js";
 import { cn } from "./lib/cn.js";
 import { Tooltip } from "./Tooltip.js";
-import { DialogCloseButton, OverlayBackdrop } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 
 export interface SidebarNavProps {
@@ -296,7 +295,7 @@ export function MobileNavDrawer({
 
   return (
     <div className="fixed inset-0 z-20 flex md:hidden">
-      <OverlayBackdrop onClose={onClose} label="Close navigation" />
+      <OverlayBackdrop onClose={onClose} />
       <div
         className="relative z-10 flex h-full w-64 flex-col gap-6 bg-sidebar px-3 py-4 shadow-panel-lg"
         role="dialog"

@@ -329,17 +329,17 @@ describe("EditEntryDialog", () => {
     const onClose = vi.fn();
 
     const view = await renderAsync(dialog(vi.fn(), onClose));
-    click(view.get('button[aria-label="Close"]'));
+    click(view.get(`button[aria-label="Close the editor for ${KEY}"]`));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("closes from the backdrop, which is named after the editor it dismisses", async () => {
+  it("closes from the backdrop", async () => {
     stubRpc({ "key.context": keyValue("Hello", "Hallo") });
     const onClose = vi.fn();
 
     const view = await renderAsync(dialog(vi.fn(), onClose));
-    click(view.get(`button[aria-label="Close the editor for ${KEY}"]`));
+    click(view.get("[data-backdrop]"));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -359,7 +359,9 @@ describe("EditEntryDialog", () => {
 
     const view = await renderAsync(dialog());
 
-    expect(document.activeElement).toBe(view.get('button[aria-label="Close"]'));
+    expect(document.activeElement).toBe(
+      view.get(`button[aria-label="Close the editor for ${KEY}"]`),
+    );
   });
 
   it("wraps Tab from the last control back to the first, keeping focus inside the dialog", async () => {
@@ -371,7 +373,9 @@ describe("EditEntryDialog", () => {
     });
     pressKey("Tab");
 
-    expect(document.activeElement).toBe(view.get('button[aria-label="Close"]'));
+    expect(document.activeElement).toBe(
+      view.get(`button[aria-label="Close the editor for ${KEY}"]`),
+    );
   });
 
   it("wraps Shift+Tab from the first control back to the last", async () => {
@@ -658,6 +662,58 @@ describe("EditEntryDialog", () => {
     expect(status.textContent).toContain("Current value");
     expect(status.textContent).toContain("Machine");
     expect(status.textContent).toContain("Placeholder mismatch");
+    expect(editor(view).getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("marks the text area invalid only while the draft equals the failing saved value", async () => {
+    stubRpc({
+      "key.context": {
+        ok: true,
+        result: {
+          source: "Hello {name}",
+          target: "Hallo",
+          provenance: { origin: "machine", provider: "anthropic", reviewState: "unreviewed" },
+          glossary: NO_GLOSSARY,
+        },
+      },
+      "key.integrity": {
+        ok: true,
+        result: {
+          locales: [
+            {
+              locale: LOCALE,
+              hasPlaceholders: true,
+              matches: false,
+              missing: ["{name}"],
+              extra: [],
+              icuValid: true,
+              icuArmsMatch: true,
+              icuArmDetails: [],
+              markupMatches: true,
+              markupDetails: [],
+            },
+          ],
+        },
+      },
+    });
+    const view = await renderAsync(dialog());
+    await flush();
+    expect(editor(view).getAttribute("aria-invalid")).toBe("true");
+
+    typeInto(editor(view), "Hallo {name}");
+    expect(editor(view).hasAttribute("aria-invalid")).toBe(false);
+
+    typeInto(editor(view), "Hallo");
+    expect(editor(view).getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("does not mark the text area invalid while the saved value holds up", async () => {
+    stubRpc({ "key.context": keyValue("Hello", "Hallo") });
+
+    const view = await renderAsync(dialog());
+    await flush();
+
+    expect(editor(view).hasAttribute("aria-invalid")).toBe(false);
   });
 
   it("shows no saved-value status for a key with no translation yet", async () => {

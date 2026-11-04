@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
+import { microLabelClassName } from "@verbatra/ui";
 import { describe, expect, it } from "vitest";
 import { MetricCard } from "./MetricCard.js";
 import { render } from "./test-support.js";
-import { microLabelClassName } from "./ui.js";
 
 describe("MetricCard", () => {
   it("renders the label as the micro-label eyebrow and the figure under it", () => {
@@ -83,7 +83,7 @@ describe("MetricCard", () => {
     const view = render(<MetricCard label="Budget" value="60" progress={60} />);
     const fill = view.all("span").at(-1);
 
-    expect(fill?.className).toContain("bg-primary");
+    expect(fill?.dataset.tone).toBe("primary");
   });
 
   it("uses the danger meter tone for an exceeded budget", () => {
@@ -92,7 +92,7 @@ describe("MetricCard", () => {
     );
     const fill = view.all("span").at(-1);
 
-    expect(fill?.className).toContain("bg-danger");
+    expect(fill?.dataset.tone).toBe("danger");
   });
 
   it("renders no meter when progress is absent", () => {

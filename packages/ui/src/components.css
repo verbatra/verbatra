@@ -37,6 +37,11 @@
     outline-offset: 2px;
   }
 
+  .vk-field:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
   .vk-btn-reserve {
     display: inline-grid;
     justify-items: center;
@@ -82,5 +87,17 @@
   .vk-btn-danger:not(:focus-visible) {
     outline: 1px solid ButtonText;
     outline-offset: -1px;
+  }
+}
+
+@media (forced-colors: active) {
+  .vk-check:is(:checked, :indeterminate) {
+    background: Highlight;
+    border-color: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .vk-check-glyph {
+    color: HighlightText;
   }
 }
