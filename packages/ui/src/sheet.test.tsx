@@ -121,6 +121,12 @@ describe("Sheet", () => {
     expect(dialog.className).not.toContain("w-[min(480px,100%)]");
   });
 
+  it("ignores the narrow size on a top or bottom sheet", () => {
+    const dialog = sheet({ side: "top", size: "narrow" } as never).get("[role='dialog']");
+
+    expect(dialog.className).not.toContain("w-[min(320px,85%)]");
+  });
+
   it("reports the wide size", () => {
     expect(sheet({ size: "wide" }).get("[role='dialog']").dataset.size).toBe("wide");
   });

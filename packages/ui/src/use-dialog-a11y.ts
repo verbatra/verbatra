@@ -12,6 +12,24 @@ export interface DialogA11yOptions {
 
 const openDialogs: object[] = [];
 
+let scrollLocks = 0;
+let overflowBeforeLock = "";
+
+function lockDocumentScroll(): () => void {
+  const root = document.documentElement;
+  if (scrollLocks === 0) {
+    overflowBeforeLock = root.style.overflow;
+    root.style.overflow = "hidden";
+  }
+  scrollLocks += 1;
+  return () => {
+    scrollLocks -= 1;
+    if (scrollLocks === 0) {
+      root.style.overflow = overflowBeforeLock;
+    }
+  };
+}
+
 function trapTabKey(event: KeyboardEvent, container: HTMLElement): void {
   const items = focusableElements(container);
   const first = items[0];
@@ -72,6 +90,7 @@ export function useDialogA11y<T extends HTMLElement>({
     const container = containerRef.current;
     const token = {};
     openDialogs.push(token);
+    const unlockScroll = lockDocumentScroll();
     const initial = initialFocusRef.current?.current;
     if (initial !== null && initial !== undefined) {
       focusInitial(initial);
@@ -100,6 +119,7 @@ export function useDialogA11y<T extends HTMLElement>({
       initialPending.current = false;
       document.removeEventListener("keydown", onKeyDown);
       openDialogs.splice(openDialogs.indexOf(token), 1);
+      unlockScroll();
       if (shouldRestoreFocusRef.current?.() !== false && previouslyFocused?.isConnected === true) {
         previouslyFocused.focus();
       }

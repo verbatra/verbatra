@@ -470,4 +470,17 @@ describe("useDialogA11y: initial focus", () => {
     expect(outer).not.toHaveBeenCalled();
     expect(inner).toHaveBeenCalledTimes(1);
   });
+
+  it("locks document scroll while open, across nested dialogs, and restores it", () => {
+    document.documentElement.style.overflow = "";
+    const outer = render(<Dialog isOpen onClose={vi.fn()} />);
+    expect(document.documentElement.style.overflow).toBe("hidden");
+
+    const inner = render(<Dialog isOpen onClose={vi.fn()} />);
+    inner.unmount();
+    expect(document.documentElement.style.overflow).toBe("hidden");
+
+    outer.unmount();
+    expect(document.documentElement.style.overflow).toBe("");
+  });
 });

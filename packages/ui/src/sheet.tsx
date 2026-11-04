@@ -58,9 +58,7 @@ const PANEL: Readonly<Record<SheetSide, string>> = {
   bottom: "w-full max-h-[80vh] border-t",
 };
 
-export interface SheetProps {
-  readonly side?: SheetSide;
-  readonly size?: SheetSize;
+export interface SheetBaseProps {
   readonly kicker?: string;
   readonly title: ReactNode;
   readonly ariaLabel: string;
@@ -69,6 +67,12 @@ export interface SheetProps {
   readonly containerRef: Ref<HTMLDivElement>;
   readonly children: ReactNode;
 }
+
+export type SheetProps = SheetBaseProps &
+  (
+    | { readonly side?: "start" | "end"; readonly size?: SheetSize }
+    | { readonly side: "top" | "bottom"; readonly size?: Exclude<SheetSize, "narrow"> }
+  );
 
 export function Sheet({
   side = "end",
@@ -89,7 +93,7 @@ export function Sheet({
           "relative z-10 overflow-y-auto border-(--border-default) bg-(--surface-tile) shadow-(--shadow-panel)",
           PANEL[side],
           size === "wide" && WIDE_PANEL,
-          size === "narrow" && NARROW_PANEL,
+          size === "narrow" && (side === "start" || side === "end") && NARROW_PANEL,
         )}
         role="dialog"
         aria-modal="true"
@@ -116,6 +120,6 @@ export function Sheet({
   );
 }
 
-export function DrawerShell(props: Omit<SheetProps, "side">): ReactNode {
+export function DrawerShell(props: SheetBaseProps & { readonly size?: SheetSize }): ReactNode {
   return <Sheet side="end" {...props} />;
 }
