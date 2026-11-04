@@ -74,9 +74,12 @@ import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
 import { useReviewQueue } from "../use-review-queue.js";
 import { useStatusData } from "../use-status-data.js";
+import {
+  type DiffViewMode,
+  type KeyFilterSelection,
+  useTranslationsRoute,
+} from "../use-translations-route.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
-
-type DiffViewMode = "grid" | "flat";
 
 type DiffState =
   | { readonly kind: "loading" }
@@ -473,6 +476,9 @@ function statusSources(
 
 function KeyListView({
   locales,
+  locale,
+  statuses,
+  onFilterChange,
   query,
   onQueryChange,
   localeValues,
@@ -481,6 +487,9 @@ function KeyListView({
   integrity,
 }: {
   readonly locales: readonly DiffLocale[];
+  readonly locale: string;
+  readonly statuses: ReadonlySet<KeyStatus>;
+  readonly onFilterChange: (filter: KeyFilterSelection) => void;
   readonly query: string;
   readonly onQueryChange: (query: string) => void;
   readonly localeValues: LocaleValuesData;
@@ -488,8 +497,6 @@ function KeyListView({
   readonly refreshToken: number;
   readonly integrity: RefreshableView<LocaleIntegrityData>;
 }): ReactNode {
-  const [locale, setLocale] = useState("");
-  const [statuses, setStatuses] = useState<ReadonlySet<KeyStatus>>(new Set());
   const searchRef = useRef<HTMLInputElement | null>(null);
   const { sources, unavailable } = statusSources(useReviewQueue(refreshToken), integrity);
   const matches = useMemo(() => queryMatcher(localeValues, query), [localeValues, query]);
@@ -508,8 +515,10 @@ function KeyListView({
         counts={statusCounts(locales, sources, filter.locale, matches)}
         unavailable={unavailable}
         query={query}
-        onLocaleChange={setLocale}
-        onToggleStatus={(status) => setStatuses((current) => toggleStatus(current, status))}
+        onLocaleChange={(next) => onFilterChange({ locale: next, statuses })}
+        onToggleStatus={(status) =>
+          onFilterChange({ locale, statuses: toggleStatus(statuses, status) })
+        }
         onQueryChange={onQueryChange}
         searchRef={searchRef}
       />
@@ -520,8 +529,7 @@ function KeyListView({
           action={
             <Button
               onClick={() => {
-                setLocale("");
-                setStatuses(new Set());
+                onFilterChange({ locale: "", statuses: new Set() });
                 onQueryChange("");
                 searchRef.current?.focus();
               }}
@@ -560,6 +568,9 @@ const VIEW_MODE_ITEMS: ReadonlyArray<{ readonly id: DiffViewMode; readonly label
 
 function KeysSection({
   locales,
+  locale,
+  statuses,
+  onFilterChange,
   query,
   onQueryChange,
   viewMode,
@@ -571,6 +582,9 @@ function KeysSection({
   listOnly,
 }: {
   readonly locales: readonly DiffLocale[];
+  readonly locale: string;
+  readonly statuses: ReadonlySet<KeyStatus>;
+  readonly onFilterChange: (filter: KeyFilterSelection) => void;
   readonly query: string;
   readonly onQueryChange: (query: string) => void;
   readonly viewMode: DiffViewMode;
@@ -598,6 +612,9 @@ function KeysSection({
       ) : (
         <KeyListView
           locales={locales}
+          locale={locale}
+          statuses={statuses}
+          onFilterChange={onFilterChange}
           query={query}
           onQueryChange={onQueryChange}
           localeValues={localeValues}
@@ -781,13 +798,12 @@ function LocalesSection({
 export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const [diff, setDiff] = useState<DiffState>({ kind: "loading" });
   const [query, setQuery] = useState("");
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [editingLocale, setEditingLocale] = useState<string | null>(null);
   const [lastEditedLocale, setLastEditedLocale] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<DiffViewMode>("grid");
   const status = useStatusData(refreshToken);
   const lock = useLockState(refreshToken);
-  const localeValues = localeValuesOrEmpty(useLocaleValues(refreshToken));
+  const localeValuesView = useLocaleValues(refreshToken);
+  const localeValues = localeValuesOrEmpty(localeValuesView);
 
   useEffect(() => {
     let cancelled = false;
@@ -813,6 +829,12 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
       cancelled = true;
     };
   }, [refreshToken]);
+
+  const route = useTranslationsRoute(
+    diff.kind === "loaded" ? diff.locales.map((entry) => entry.locale) : [],
+    localeValuesView,
+  );
+  const { viewMode, selectedKey, setSelectedKey } = route;
 
   const allClear = diff.kind === "loaded" && isFullyInSync(diff.locales);
   const integrity = useLocaleIntegrity(refreshToken, needsIntegrity(diff, viewMode));
@@ -840,10 +862,13 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
       {diff.kind === "loaded" && (!allClear || brokenInSync) ? (
         <KeysSection
           locales={diff.locales}
+          locale={route.locale}
+          statuses={route.statuses}
+          onFilterChange={route.setFilter}
           query={query}
           onQueryChange={setQuery}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onViewModeChange={route.setViewMode}
           onSelectKey={setSelectedKey}
           refreshToken={refreshToken}
           localeValues={localeValues}

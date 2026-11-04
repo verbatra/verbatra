@@ -57,6 +57,7 @@ import {
   shortcutKeysFor,
   stepIndex,
 } from "../../client/review-shortcuts.js";
+import { routeParams } from "../../client/routes.js";
 import { MAX_RETRANSLATE_BATCH_ENTRIES } from "../../shared/rpc/retranslate-entries.js";
 import { MAX_REVIEW_BATCH_ENTRIES } from "../../shared/rpc/review-batch.js";
 import type { StudioCapabilities } from "../../shared/rpc/snapshot.js";
@@ -87,6 +88,7 @@ import {
   useReviewDecisions,
 } from "../use-review-decisions.js";
 import { useReviewQueue } from "../use-review-queue.js";
+import { useRouteParams } from "../use-route.js";
 
 interface EditingTarget {
   readonly locale: string;
@@ -938,6 +940,13 @@ function approveAllFor(
   return action;
 }
 
+function knownReviewLocale(locale: string | undefined, rows: readonly ReviewQueueRow[]): string {
+  if (locale === undefined) {
+    return "";
+  }
+  return rows.length === 0 || uniqueReviewLocales(rows).includes(locale) ? locale : "";
+}
+
 function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const [reloadToken, setReloadToken] = useState(0);
   const view = useReviewQueue(refreshToken, reloadToken);
@@ -948,7 +957,8 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const [editing, setEditing] = useState<EditingTarget | null>(null);
   const [rejecting, setRejecting] = useState<RejectingTarget | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [facets, setFacets] = useState<ReviewFacets>(ALL_FACETS);
+  const [params, setParams] = useRouteParams("review");
+  const [localFacets, setLocalFacets] = useState<ReviewFacets>(ALL_FACETS);
   const [query, setQuery] = useState("");
   const [approvingLocale, setApprovingLocale] = useState<ApproveAllAction | null>(null);
   const localeValues = localeValuesOrEmpty(useLocaleValues(refreshToken, reloadToken));
@@ -967,6 +977,14 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   }, [view, settleReload]);
 
   const rows = view.kind === "data" ? flattenReviewQueue(view.data) : [];
+  const urlLocale = knownReviewLocale(params.locale, rows);
+  const facets: ReviewFacets = { ...localFacets, locale: urlLocale };
+  const setFacets = (next: ReviewFacets): void => {
+    setLocalFacets(next);
+    if (next.locale !== urlLocale) {
+      setParams(routeParams({ locale: next.locale }));
+    }
+  };
   const filterOf = (search: string) => ({
     locale: facets.locale === "" ? null : facets.locale,
     query: search,

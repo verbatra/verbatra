@@ -2134,3 +2134,40 @@ describe("ReviewPanel: approving a whole locale within the budget", () => {
     );
   });
 });
+
+describe("ReviewPanel deep links", () => {
+  it("filters the queue to the locale of the hash", async () => {
+    window.history.replaceState(null, "", "#/review?locale=fr");
+    stubReview();
+    stubRpc({ "locale.values": { ok: true, result: LOCALE_VALUES } });
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(localeFilter(view).value).toBe("fr");
+    expect(rowKeys(view).every((key) => key !== "checkout.title")).toBe(true);
+  });
+
+  it("ignores a locale the queue holds no entry for", async () => {
+    window.history.replaceState(null, "", "#/review?locale=xx");
+    stubReview();
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(localeFilter(view).value).toBe("");
+    expect(rowKeys(view)).toContain("checkout.title");
+  });
+
+  it("writes the chosen locale into the hash and keeps the history length", async () => {
+    window.history.replaceState(null, "", "#/review");
+    stubReview();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const entries = window.history.length;
+
+    selectOption(localeFilter(view), "de");
+    expect(window.location.hash).toBe("#/review?locale=de");
+
+    selectOption(localeFilter(view), "");
+    expect(window.location.hash).toBe("#/review");
+    expect(window.history.length).toBe(entries);
+  });
+});

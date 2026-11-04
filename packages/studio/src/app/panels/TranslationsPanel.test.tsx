@@ -1618,3 +1618,136 @@ describe("TranslationsPanel key filters", () => {
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.body");
   });
 });
+
+function pointHashAt(hash: string): void {
+  window.history.replaceState(null, "", hash);
+}
+
+function KEY_VALUES_STUB(): StubRpcResult {
+  return {
+    ok: true,
+    result: [
+      {
+        locale: "de",
+        values: {
+          "app.title": { source: "Welcome", target: "Willkommen" },
+          "app.body": { source: "Body", target: "Inhalt" },
+        },
+      },
+    ],
+  };
+}
+
+describe("TranslationsPanel deep links", () => {
+  it("opens the list filtered to the locale and status of the hash", async () => {
+    pointHashAt("#/translations?locale=de&status=missing");
+    stubFilterPage();
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect((view.get('select[aria-label="Filter by locale"]') as HTMLSelectElement).value).toBe(
+      "de",
+    );
+    expect(statusToggle(view, "missing").getAttribute("aria-pressed")).toBe("true");
+    expect(statusToggle(view, "changed").getAttribute("aria-pressed")).toBe("false");
+    expect(listedSections(view)).toEqual(["de"]);
+  });
+
+  it("opens the drawer for the key of the hash", async () => {
+    pointHashAt("#/translations?locale=de&status=missing&key=app.title");
+    stubFilterPage({ ...drawerStubs(), "locale.values": KEY_VALUES_STUB() });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
+  });
+
+  it("ignores a key no locale holds", async () => {
+    pointHashAt("#/translations?key=does.not.exist");
+    stubFilterPage({ ...drawerStubs(), "locale.values": KEY_VALUES_STUB() });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+  });
+
+  it("ignores an unknown locale and unknown statuses", async () => {
+    pointHashAt("#/translations?locale=xx&status=bogus");
+    stubFilterPage();
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect((view.get("select[aria-label='Filter by locale']") as HTMLSelectElement).value).toBe("");
+    expect(listedSections(view)).toEqual(["de", "fr"]);
+  });
+
+  it("writes locale, statuses and key into the hash without adding history entries", async () => {
+    pointHashAt("#/translations");
+    stubFilterPage({ ...drawerStubs(), "locale.values": KEY_VALUES_STUB() });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+    const entries = window.history.length;
+
+    selectOption(view.get('select[aria-label="Filter by locale"]') as HTMLSelectElement, "de");
+    await clickAsync(statusToggle(view, "changed"));
+    await clickAsync(statusToggle(view, "missing"));
+    expect(window.location.hash).toBe("#/translations?locale=de&status=missing&status=changed");
+
+    await clickAsync(view.getByText("details ul button", "app.title"));
+    await flush();
+    expect(window.location.hash).toBe(
+      "#/translations?locale=de&status=missing&status=changed&key=app.title",
+    );
+
+    await clickAsync(view.get('button[aria-label="Close details for app.title"]'));
+    expect(window.location.hash).toBe("#/translations?locale=de&status=missing&status=changed");
+    expect(window.history.length).toBe(entries);
+  });
+
+  it("clears the filters from the hash with the clear button", async () => {
+    pointHashAt("#/translations?locale=fr&status=integrity");
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    await clickAsync(view.getByText("button", "Clear filters"));
+
+    expect(window.location.hash).toBe("#/translations");
+    expect(listedSections(view)).toEqual(["de", "fr"]);
+  });
+
+  it("drops the filters from the hash when the grid view is chosen", async () => {
+    pointHashAt("#/translations?locale=de&status=missing");
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    await clickAsync(view.getByText("button", "Grid"));
+
+    expect(window.location.hash).toBe("#/translations");
+    expect(view.query("[data-status-filter]")).toBeNull();
+  });
+
+  it("follows a hash change made outside the panel", async () => {
+    pointHashAt("#/translations?locale=de");
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    act(() => {
+      pointHashAt("#/translations?locale=fr&status=orphaned");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    await flush();
+
+    expect((view.get('select[aria-label="Filter by locale"]') as HTMLSelectElement).value).toBe(
+      "fr",
+    );
+    expect(statusToggle(view, "orphaned").getAttribute("aria-pressed")).toBe("true");
+  });
+});
