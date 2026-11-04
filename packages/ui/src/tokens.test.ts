@@ -263,11 +263,42 @@ describe.each(THEMES)("warning hue in the %s theme", (theme) => {
   });
 });
 
+describe.each(THEMES)("missing hue in the %s theme", (theme) => {
+  const tokens = rootTokens(theme);
+  const hueOf = (name: string): number => {
+    const [r, g, b] = resolveColor(tokens, name);
+    const max = Math.max(r, g, b);
+    const delta = max - Math.min(r, g, b);
+    if (delta === 0) return 0;
+    const sector =
+      max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+    return (sector * 60 + 360) % 360;
+  };
+  const NEIGHBOURS = [
+    "--diff-changed",
+    "--diff-protected",
+    "--accent",
+    "--status-danger",
+    "--status-success",
+    "--status-warning",
+  ] as const;
+
+  it.each(NEIGHBOURS)("keeps the missing hue at least 30 degrees from %s", (neighbour) => {
+    const gap = Math.abs(hueOf("--diff-missing") - hueOf(neighbour));
+
+    expect(Math.min(gap, 360 - gap), neighbour).toBeGreaterThanOrEqual(30);
+  });
+
+  it("leaves the new-badge colour on the accent", () => {
+    expect(tokens.get("--v-status-new")).toBe("var(--v-glow)");
+  });
+});
+
 describe("diff token mapping", () => {
   const root = rootTokens("dark");
 
   it.each([
-    ["--diff-missing", "var(--v-status-new)"],
+    ["--diff-missing", "var(--v-diff-missing)"],
     ["--diff-changed", "var(--v-status-changed)"],
     ["--diff-orphaned", "var(--v-neutral)"],
     ["--diff-protected", "var(--v-status-protected)"],

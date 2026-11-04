@@ -70,8 +70,8 @@
   --status-neutral: var(--v-neutral);
   --status-neutral-soft: color-mix(in srgb, var(--v-neutral) 12%, transparent);
 
-  --diff-missing: var(--v-status-new);
-  --diff-missing-soft: color-mix(in srgb, var(--v-status-new) 12%, transparent);
+  --diff-missing: var(--v-diff-missing);
+  --diff-missing-soft: color-mix(in srgb, var(--v-diff-missing) 12%, transparent);
   --diff-changed: var(--v-status-changed);
   --diff-changed-soft: color-mix(in srgb, var(--v-status-changed) 12%, transparent);
   --diff-orphaned: var(--v-neutral);
@@ -119,6 +119,7 @@
   --v-glow: hsl(258 60% 74%);
   --v-void: hsl(240 24% 4%);
   --v-status-changed: hsl(38 85% 62%);
+  --v-diff-missing: hsl(222 85% 74%);
   --v-status-unchanged: hsl(240 10% 58%);
   --v-danger: hsl(0 78% 70%);
   --v-success: hsl(142 66% 68%);
@@ -158,6 +159,7 @@
   --v-glow: hsl(258 55% 44%);
   --v-void: hsl(0 0% 100%);
   --v-status-changed: hsl(30 90% 30%);
+  --v-diff-missing: hsl(222 80% 38%);
   --v-status-unchanged: hsl(240 6% 42%);
   --v-danger: hsl(0 70% 42%);
   --v-success: hsl(150 85% 22%);
