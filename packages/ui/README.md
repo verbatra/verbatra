@@ -46,11 +46,9 @@ glow, the type, radius, shadow, motion and layout scales, and the heading font b
   `danger`, `missing`, `orphaned`, `protected`; `changed` carries the diff look; `verbatim` and `wrap`
   options), `Card`, `Icon` and `cn`. Components style through semantic tokens only, in
   class form (`text-(--text-muted)`), and carry `data-variant`, `data-size`, `data-tone` and
-  `data-padding` attributes. The overlay and navigation parts (`Popover`, `Dropdown`, `Tooltip`,
-  `SegmentedControl`, `Tabs`, `ThemeToggle`, `useDialogA11y`) use React hooks and begin with
-  `"use client"`; `client-boundary.test.ts` enforces that, so a server-rendered host can import the
-  barrel. Popover placement is CSP-safe: it measures and sets a `transform` and `max-height`
-  through the React style prop, never a style element. Sibling modules import each other with their real `.ts`/`.tsx`
+  `data-padding` attributes. The modules that use React hooks (`Tooltip`, `ThemeToggle`,
+  `useDialogA11y`) begin with `"use client"`; `client-boundary.test.ts` enforces that, so a
+  server-rendered host can import the barrel. Sibling modules import each other with their real `.ts`/`.tsx`
   extension, because the apps bundle this source directly.
 
 ## Fonts

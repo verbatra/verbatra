@@ -190,26 +190,30 @@ Rules that follow:
 
 - **Shared primitives (owned by `@verbatra/ui`, import from `@verbatra/ui`):** `Button`
   (`variant: "primary" | "secondary" | "outline" | "ghost" | "secondary-success" |
-  "secondary-danger" | "danger"`, `size: "xs" | "sm" | "md" | "lg"`, default `secondary`/`sm`, `xs` for dense row actions and
-  chip controls; the site
-  look, with `.vk-btn*` in `packages/ui/src/components.css`), `Card` (`padding: "none" | "sm" |
-  "md"`, `as: "div" | "section"`; the tile surface), `Badge` (`tone: "neutral" | "success" |
-  "warning" | "danger"`, the diff tones `missing`, `changed`, `orphaned`, `protected`, and the site
-  tones `glow`, `new`, `unchanged`, `solid`; `wrap` lets a long value break instead of
-  overflowing, `verbatim` keeps a locale code, version or any user value in its own case; badges
-  stay on one line and uppercase by default), `Icon`, the fields `TextField`, `TextArea`, `SearchInput` and
-  `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row aligns; `TextArea` takes no size;
-  the focus ring is `.vk-field:focus-visible`), `Checkbox`, `Accordion`, `Skeleton`, `ProgressBar`,
-  `Toast`, the `Table` family with `tableClasses`, `Sheet` and `DrawerShell`, `OverlayBackdrop`,
-  `DialogCloseButton`, the overlays `Popover`, `Dropdown` (a menu with arrow-key navigation) and
-  `Tooltip` (`aria-describedby`, shown on hover and focus, dismissed with Escape, absent on a
-  disabled control), `SegmentedControl` (a pressed-state group) and `Tabs`/`TabList` (a real
-  tablist with roving tabindex), `ThemeToggle` (a three-state cycle over a theme store, labelled
-  through a `label(current, next)` prop) and the `useDialogA11y` hook, and the layout parts `Container`, `Section`, `PageSection`, `SectionCard`,
-  `DetailList`, `EmptyState`, `MonoValue` and `microLabelClassName`. They theme through semantic tokens only and expose
-  `data-variant`, `data-size`, `data-tone` and `data-padding` for tests. Change them in
-  `packages/ui/src`, never as a Studio copy. Studio-local primitives:
-  `Loading`, `ErrorMessage`, `ErrorBoundary`.
+  "secondary-danger" | "danger"`, `size: "xs" | "sm" | "md" | "lg"`, default `secondary`/`sm`,
+  `xs` for dense row actions and chip controls; the site look, with `.vk-btn*` in
+  `packages/ui/src/components.css`), `Card` (`padding: "none" | "sm" | "md"`,
+  `as: "div" | "section"`; the tile surface), `Badge` (`tone: "neutral" | "success" | "warning" |
+  "danger"`, the diff tones `missing`, `changed`, `orphaned`, `protected`, and the site tones
+  `glow`, `new`, `unchanged`, `solid`; `wrap` lets a long value break instead of overflowing,
+  `verbatim` keeps a locale code, version or any user value in its own case; badges stay on one
+  line and uppercase by default), `Icon`, the fields `TextField`, `TextArea`, `SearchInput` and
+  `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row
+  aligns; `TextArea` takes no size; the focus ring is `.vk-field:focus-visible`), `Checkbox`,
+  `Accordion`, `Skeleton`, `ProgressBar`, `Toast`, the `Table` family with `tableClasses`,
+  `Sheet` and `DrawerShell`, `OverlayBackdrop`, `DialogCloseButton`, `Tooltip` (`aria-describedby`
+  on the control unless the label repeats its name, shown on hover and focus, dismissed with
+  Escape, none on a disabled control; `side`: `end`, `bottom`, `bottom-end`),
+  `SegmentedControl` (a pressed-state group), `ThemeToggle` (a cycle over a theme store that
+  leaves system for the opposite of the OS theme first, labelled through `label(current, next)`
+  and `announce(mode)` props, with its own tooltip and a polite live region), the
+  `useDialogA11y` hook (focus trap that holds from any start point, Escape, focus restore; only
+  the topmost of nested dialogs reacts), and the layout parts `Container`, `Section`,
+  `PageSection`, `SectionCard`, `DetailList`, `EmptyState`, `MonoValue` (`breakAnywhere` for long
+  values on a narrow screen) and `microLabelClassName`. They theme through semantic tokens only
+  and expose `data-variant`, `data-size`, `data-tone` and `data-padding` for tests. Change them in
+  `packages/ui/src`, never as a Studio copy. Studio-local primitives: `Loading`, `ErrorMessage`,
+  `ErrorBoundary`.
   Extend a variant union rather than passing ad hoc `className` overrides at call sites.
 - **Layout and shared class strings:** `@verbatra/ui` exports the layout parts listed above
   and the shared strings `tableClasses` and `microLabelClassName`. A new panel composes
