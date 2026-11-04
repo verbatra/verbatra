@@ -127,7 +127,7 @@ function KeysFrame({
   summary,
   children,
 }: {
-  readonly summary?: string;
+  readonly summary?: string | undefined;
   readonly children: ReactNode;
 }): ReactNode {
   return (
