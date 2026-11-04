@@ -130,11 +130,11 @@ When the source file changes while Studio runs, a toast names the file and the k
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Studio opens on Overview. It shows the coverage of each locale with its [lock file](/docs/the-lock-file) state, the git history of your locale files, and the token usage of the last recorded run, with the budget meter when a token budget is configured.
+Studio opens on Overview. It shows each locale's coverage with its [lock file](/docs/the-lock-file) state, the locale files' git history and the last run's token usage, with the budget meter when a budget is set.
 
 <StudioScreenshot
   shot="overview"
-  alt="The Verbatra Studio Overview page with three figures, Needs attention, Average coverage and Locales in sync, above a table with the coverage of the de, es and fr locales."
+  alt="The Verbatra Studio Overview page with three figures, Needs attention, Avg coverage and Locales in sync, above a table with the coverage of the de, es and fr locales."
   caption="The Overview page opens Studio. Switch the screenshot to compare light and dark."
 />
 
@@ -142,7 +142,7 @@ Studio opens on Overview. It shows the coverage of each locale with its [lock fi
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Before 0.7.0 it sat on Settings. If the glossary is a JSON file, you can add, edit and remove terms; each change is written straight to the file. An inline glossary in `verbatra.config.ts` stays read-only.
+Glossary has its own page, where it sat on Settings before 0.7.0. If the glossary is a JSON file, you can add, edit and remove terms; each change is written straight to the file. An inline glossary in `verbatra.config.ts` stays read-only.
 
 A glossary edit changes what the next run is told, never text already written; restart Studio for its own retranslations to use it.
 
