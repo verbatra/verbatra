@@ -35,11 +35,6 @@ export {
   Section,
   SectionCard,
 } from "./section.tsx";
-export {
-  SegmentedControl,
-  type SegmentedControlProps,
-  type SegmentedItem,
-} from "./segmented-control.tsx";
 export { Select, type SelectProps } from "./select.tsx";
 export {
   DialogCloseButton,
