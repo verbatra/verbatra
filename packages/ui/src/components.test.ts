@@ -33,7 +33,16 @@ describe("ui components resolve their custom properties", () => {
 
   it("covers the component sources it is meant to guard", () => {
     expect(consumers).toEqual(
-      expect.arrayContaining(["components.css", "button.tsx", "badge.tsx"]),
+      expect.arrayContaining([
+        "components.css",
+        "button.tsx",
+        "badge.tsx",
+        "input.tsx",
+        "select.tsx",
+        "table.tsx",
+        "sheet.tsx",
+        "section.tsx",
+      ]),
     );
   });
 
@@ -62,4 +71,23 @@ describe("ui components resolve their custom properties", () => {
     expect(rule).toContain("visibility: hidden");
     expect(rule).toContain("height: 0");
   });
+
+  it("gives fields the focus ring of the buttons", () => {
+    const css = read("./components.css");
+    const field = /\.vk-field:focus-visible \{([^}]*)\}/.exec(css)?.[1] ?? "";
+    const button = /\.vk-btn:focus-visible \{([^}]*)\}/.exec(css)?.[1] ?? "";
+
+    expect(field).toContain("outline: 2px solid var(--focus-ring)");
+    expect(field.replace(/\s+/g, "")).toBe(button.replace(/\s+/g, ""));
+  });
+
+  it.each(consumers.filter((file) => file.endsWith(".tsx")))(
+    "%s uses no app-defined theme alias a host may lack",
+    (file) => {
+      const aliases =
+        /(?<![-\w(])(?:bg|text|border|divide|ring|accent|shadow)-(?:background|foreground|muted-foreground|card|popover|border|input|primary|danger|success|warning|overlay|neutral-soft|panel(?:-lg)?)\b/;
+
+      expect(aliases.exec(read(`./${file}`))?.[0]).toBeUndefined();
+    },
+  );
 });

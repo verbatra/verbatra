@@ -48,6 +48,26 @@ export function click(element: Element): void {
   });
 }
 
+function setNativeValue(element: HTMLElement, prototype: object, value: string): void {
+  Object.getOwnPropertyDescriptor(prototype, "value")?.set?.call(element, value);
+}
+
+export function typeInto(element: HTMLInputElement | HTMLTextAreaElement, value: string): void {
+  const prototype =
+    element.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  act(() => {
+    setNativeValue(element, prototype, value);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+export function selectOption(element: HTMLSelectElement, value: string): void {
+  act(() => {
+    setNativeValue(element, HTMLSelectElement.prototype, value);
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
 afterEach(() => {
   for (const { container, root } of mounted.splice(0)) {
     act(() => {
