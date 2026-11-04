@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act } from "react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { pressKey, render } from "./test-support.tsx";
 import { Tooltip } from "./tooltip.tsx";
 
@@ -33,6 +33,10 @@ function mount(props: { side?: "end" | "bottom"; disabled?: boolean } = {}) {
 }
 
 const SLOT = "[data-slot]";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("Tooltip", () => {
   it("describes the control by the tooltip, so a screen reader announces it", () => {
@@ -83,18 +87,116 @@ describe("Tooltip", () => {
     );
   });
 
-  it("opens only from keyboard focus when told to, and ignores the pointer", () => {
-    const view = render(
-      <Tooltip label="Tip" trigger="focus">
-        <button type="button">c</button>
-      </Tooltip>,
-    );
+  describe("trigger focus", () => {
+    function focusOnly() {
+      return render(
+        <Tooltip label="Tip" trigger="focus">
+          <button type="button">c</button>
+        </Tooltip>,
+      );
+    }
 
-    hover(view.get("button"));
-    expect(view.get(SLOT).hasAttribute("data-open")).toBe(false);
+    it("ignores the pointer", () => {
+      const view = focusOnly();
 
-    fire(view.get("button"), "focusin");
-    expect(view.get(SLOT).hasAttribute("data-open")).toBe(true);
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).hasAttribute("data-open")).toBe(false);
+    });
+
+    it("opens when the focus is keyboard focus", () => {
+      vi.spyOn(Element.prototype, "matches").mockImplementation(
+        (selector) => selector === ":focus-visible",
+      );
+      const view = focusOnly();
+
+      fire(view.get("button"), "focusin");
+
+      expect(view.get(SLOT).hasAttribute("data-open")).toBe(true);
+    });
+
+    it("stays closed when a pointer press moved the focus, which is not focus-visible", () => {
+      vi.spyOn(Element.prototype, "matches").mockReturnValue(false);
+      const view = focusOnly();
+
+      fire(view.get("button"), "focusin");
+
+      expect(view.get(SLOT).hasAttribute("data-open")).toBe(false);
+    });
+  });
+
+  describe("flip", () => {
+    function rect(bottom: number): DOMRect {
+      return {
+        bottom,
+        top: bottom - 20,
+        left: 0,
+        right: 50,
+        width: 50,
+        height: 20,
+        x: 0,
+        y: 0,
+      } as DOMRect;
+    }
+
+    function mountFlip(controlBottom: number, clipBottom: number) {
+      const view = render(
+        <div data-clip="" style={{ overflowY: "auto" }}>
+          <Tooltip label="Tip" side="bottom" flip>
+            <button type="button">c</button>
+          </Tooltip>
+        </div>,
+      );
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        return this.matches("[data-clip]") ? rect(clipBottom) : rect(controlBottom);
+      });
+      vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(26);
+      return view;
+    }
+
+    it("keeps the chosen side while there is room below inside the clipping box", () => {
+      const view = mountFlip(100, 400);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("bottom");
+    });
+
+    it("opens upward when the bubble would be cut off by the clipping box", () => {
+      const view = mountFlip(390, 400);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("top");
+    });
+
+    it("measures against the viewport when nothing clips", () => {
+      const view = render(
+        <Tooltip label="Tip" side="bottom" flip>
+          <button type="button">c</button>
+        </Tooltip>,
+      );
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(
+        rect(window.innerHeight - 4),
+      );
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("top");
+    });
+
+    it("never flips unless asked to", () => {
+      const view = mount({ side: "bottom" });
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(
+        rect(window.innerHeight),
+      );
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("bottom");
+    });
   });
 
   it("merges a caller className onto the wrapper", () => {
