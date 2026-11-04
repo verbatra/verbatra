@@ -135,7 +135,17 @@ function resolveColor(tokens: ReadonlyMap<string, string>, name: string, depth =
   const value = tokens.get(name);
   if (value === undefined) throw new Error(`undeclared ${name}`);
   const reference = /^var\((--[\w-]+)\)$/.exec(value);
-  return reference?.[1] ? resolveColor(tokens, reference[1], depth + 1) : hslToRgb(value);
+  if (reference?.[1]) return resolveColor(tokens, reference[1], depth + 1);
+  const mix = /^color-mix\(in srgb, var\((--[\w-]+)\) (\d+)%, var\((--[\w-]+)\)\)$/.exec(value);
+  if (mix?.[1] && mix[2] && mix[3]) {
+    const share = Number(mix[2]) / 100;
+    const [from, onto] = [
+      resolveColor(tokens, mix[1], depth + 1),
+      resolveColor(tokens, mix[3], depth + 1),
+    ];
+    return from.map((c, i) => c * share + (onto[i] ?? 0) * (1 - share)) as unknown as Rgb;
+  }
+  return hslToRgb(value);
 }
 
 function relativeLuminance(color: Rgb): number {
@@ -300,6 +310,29 @@ describe.each(THEMES)("empty filter chip text in the %s theme", (theme) => {
     expect(
       ratio(resolveColor(tokens, "--text-faint"), resolveColor(tokens, "--surface-card")),
     ).toBeGreaterThanOrEqual(AA);
+  });
+});
+
+describe.each(THEMES)("table surfaces in the %s theme", (theme) => {
+  const tokens = rootTokens(theme);
+  const TEXTS = ["--text-strong", "--text-muted", "--diff-missing", "--status-success"] as const;
+
+  it.each(["--surface-table-head", "--surface-row-hover"] as const)(
+    "keeps the table text at AA on %s",
+    (surface) => {
+      for (const text of TEXTS) {
+        expect(
+          ratio(resolveColor(tokens, text), resolveColor(tokens, surface)),
+          `${text} on ${surface}`,
+        ).toBeGreaterThanOrEqual(AA);
+      }
+    },
+  );
+
+  it("keeps the header fill apart from the row fill", () => {
+    expect(resolveColor(tokens, "--surface-table-head")).not.toEqual(
+      resolveColor(tokens, "--surface-row-hover"),
+    );
   });
 });
 
