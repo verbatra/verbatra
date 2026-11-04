@@ -122,13 +122,14 @@ describe("hash changes made outside the app", () => {
     expect(onBlock).toHaveBeenCalledTimes(1);
   });
 
-  it("follows a clean address change made by the app itself", () => {
+  it("follows a clean address change made by the app itself, and restores to it later", async () => {
     window.history.replaceState(null, "", OTHER_KEY);
     window.dispatchEvent(new Event(ROUTE_CHANGE_EVENT));
     dirty = true;
-    window.location.hash = OTHER_KEY;
 
-    expect(routeChangeBlocked("#/review")).toBe(true);
+    await hashChange("#/review");
+
+    expect(window.location.hash).toBe(OTHER_KEY);
   });
 
   it("restores to the address the app last committed, not the one it started on", async () => {
@@ -138,6 +139,31 @@ describe("hash changes made outside the app", () => {
     await hashChange("#/review");
 
     expect(window.location.hash).toBe(OTHER_KEY);
+  });
+});
+
+describe("leaving the page", () => {
+  function leave(): Event {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    return event;
+  }
+
+  it("asks the browser to confirm while edits are unsaved", () => {
+    dirty = true;
+
+    expect(leave().defaultPrevented).toBe(true);
+  });
+
+  it("lets the page go when nothing is unsaved", () => {
+    expect(leave().defaultPrevented).toBe(false);
+  });
+
+  it("lets the page go once the guard is gone", () => {
+    dirty = true;
+    uninstall();
+
+    expect(leave().defaultPrevented).toBe(false);
   });
 });
 

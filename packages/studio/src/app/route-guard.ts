@@ -39,7 +39,14 @@ function handleHashChange(): void {
   guard.onBlock(() => commitHash(reached));
 }
 
+function handleBeforeUnload(event: BeforeUnloadEvent): void {
+  if (activeGuard?.isDirty() === true) {
+    event.preventDefault();
+  }
+}
+
 if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", handleBeforeUnload);
   window.addEventListener("hashchange", handleHashChange);
   window.addEventListener(ROUTE_CHANGE_EVENT, followHash);
 }
