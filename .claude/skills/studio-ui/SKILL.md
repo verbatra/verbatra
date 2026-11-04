@@ -215,8 +215,10 @@ Rules that follow:
   `selected` for `aria-selected` and `data-selected`; `TableCard` is a containing block, so
   visually hidden text inside it cannot widen the page),
   `Sheet` and `DrawerShell`, `OverlayBackdrop`, `DialogCloseButton`, `Tooltip` (`aria-describedby`
-  on the control unless the label repeats its name, shown on hover and focus, dismissed with
-  Escape, none on a disabled control; `side`: `end`, `bottom`, `bottom-end`),
+  on the control unless the label repeats its name or `decorative` says the control already
+  carries the words, shown on hover and focus, dismissed with Escape, none on a disabled control,
+  taking no layout while closed; `side`: `end`, `bottom`, `bottom-end`; `className` goes on the
+  wrapper),
   `ThemeToggle` (a cycle over a theme store that
   leaves system for the opposite of the OS theme first, labelled through `label(current, next)`
   and `announce(mode)` props, with its own tooltip and a polite live region), the
@@ -256,16 +258,21 @@ Rules that follow:
   means adding it to `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of
   those tables.
 
-**Key table rules.** The key column and the header row are sticky, with an opaque fill that
-follows the row's hover and selected state and a seam border on each cell (the table uses
-`border-separate`, since collapsed borders vanish on sticky cells); the corner cell sits above
-both. The card is a bounded scroll region, so the header stays in view with many rows. Column
-widths are fixed with `w-*` and `min-w-*` so the key column never jumps while filtering, and the
-Source column is hidden below `md` in the matrix. In sync is quiet text with a dot, never a
-bordered badge, so only states that need attention carry a badge. A review or integrity marker
-repeats its sr-only words in a `Tooltip` on the cell's own focus stop and adds no tab stop.
-`ScrollHint` shows only while the card actually overflows, at any width. A row is selected
-(`aria-selected`) while its key is open in the drawer or editor.
+**Key table rules.** The key column and the header row are sticky, with an opaque fill
+(`--surface-table-head`, `--surface-row-hover`, the selected row's `--surface-hover`) and a seam
+border on each cell (the table uses `border-separate`, since collapsed borders vanish on sticky
+cells); the corner cell sits above both. Below `md` the key column is 7rem and truncates, the
+Source column of the matrix is hidden, and the table flows in the page; from `md` up the card is
+a bounded scroll region (`max-h`), so the header stays in view with many rows. The region sets
+`scroll-padding` to the sticky column width and header height, and a focused stop is scrolled
+into view with `block` and `inline` set to `nearest`, so the focus ring is never under the sticky
+parts. Column widths are fixed with `w-*` and `min-w-*`, so the key column never jumps while
+filtering. In sync is quiet text with a dot, never a bordered badge. A matrix cell is named by its
+`aria-label` (key, locale, status, then each marker after a comma); its marker words also sit in
+a `decorative` `Tooltip` on the cell's own focus stop, which adds no tab stop. In the entries table
+the status marker has a hover-only tooltip, and its words reach assistive technology through
+visually hidden text. `ScrollHint` takes the scroll card's ref and shows only while it overflows,
+at any width. A row is selected (`aria-selected`) while its key is open in the drawer or editor.
 
 ## Capabilities are two flags, and the decision is a pure function
 

@@ -1,5 +1,5 @@
 ---
-"@verbatra/studio": patch
+"@verbatra/studio": minor
 ---
 
 Translations is one key table with working filters for every key state.
