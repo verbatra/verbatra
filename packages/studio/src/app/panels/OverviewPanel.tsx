@@ -60,14 +60,18 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
   const badge = STANDING_BADGE[budget.standing];
   return (
     <>
-      <MetricCard
-        label="Budget"
-        value={`${formatCount(budget.tokensUsed)} / ${formatCount(budget.maxTokens)}`}
-        hint={`Behavior: ${budget.behavior}${counting}`}
-        progress={budgetPercent(budget)}
-        progressTone={budget.standing === "reached" ? "danger" : "primary"}
-      />
-      <MetricCard label="Budget status" value={<Badge tone={badge.tone}>{badge.label}</Badge>} />
+      <div className="col-span-2 lg:col-span-1">
+        <MetricCard
+          label="Budget"
+          value={`${formatCount(budget.tokensUsed)} / ${formatCount(budget.maxTokens)}`}
+          hint={`Behavior: ${budget.behavior}${counting}`}
+          progress={budgetPercent(budget)}
+          progressTone={budget.standing === "reached" ? "danger" : "primary"}
+        />
+      </div>
+      <div className="col-span-2 lg:col-span-1">
+        <MetricCard label="Budget status" value={<Badge tone={badge.tone}>{badge.label}</Badge>} />
+      </div>
     </>
   );
 }
