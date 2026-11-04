@@ -216,7 +216,7 @@ Rules that follow:
   visually hidden text inside it cannot widen the page),
   `Sheet` and `DrawerShell`, `OverlayBackdrop`, `DialogCloseButton`, `Tooltip` (`aria-describedby`
   on the control unless the label repeats its name or `decorative` says the control already
-  carries the words, shown on hover and focus, dismissed with Escape, none on a disabled control,
+  carries the words, shown on hover and focus (or on focus alone with `trigger="focus"`), dismissed with Escape, none on a disabled control,
   taking no layout while closed; `side`: `end`, `bottom`, `bottom-end`; `className` goes on the
   wrapper),
   `ThemeToggle` (a cycle over a theme store that
@@ -263,16 +263,26 @@ Rules that follow:
 border on each cell (the table uses `border-separate`, since collapsed borders vanish on sticky
 cells); the corner cell sits above both. Below `md` the key column is 7rem and truncates, the
 Source column of the matrix is hidden, and the table flows in the page; from `md` up the card is
-a bounded scroll region (`max-h`), so the header stays in view with many rows. The region sets
-`scroll-padding` to the sticky column width and header height, and a focused stop is scrolled
-into view with `block` and `inline` set to `nearest`, so the focus ring is never under the sticky
-parts. Column widths are fixed with `w-*` and `min-w-*`, so the key column never jumps while
-filtering. In sync is quiet text with a dot, never a bordered badge. A matrix cell is named by its
-`aria-label` (key, locale, status, then each marker after a comma); its marker words also sit in
-a `decorative` `Tooltip` on the cell's own focus stop, which adds no tab stop. In the entries table
-the same words show on keyboard focus of the key button and on hover of the status marker, and
-reach assistive technology through visually hidden text in the status cell. `ScrollHint` takes the scroll card's ref and shows only while it overflows,
-at any width. A row is selected (`aria-selected`) while its key is open in the drawer or editor.
+a bounded scroll region sized from the viewport (`max-h` of `100dvh` minus the site header), so
+the header stays in view with many rows. The roving stops draw their focus ring inside
+(`-outline-offset-2`), the region sets `scroll-padding` to the sticky column width and header
+height plus 4px, with 4px at the end and bottom, and a focused stop is scrolled into view with
+`block` and `inline` set to `nearest`, so the ring is never clipped or under the sticky parts.
+ArrowLeft and ArrowRight stop at the row edges; ArrowUp and ArrowDown wrap. Column widths are
+fixed with `w-*` and `min-w-*`, so the key column never jumps while filtering. In sync is quiet
+text with a dot, never a bordered badge. A matrix cell is named by its `aria-label` (key, locale,
+status, then each marker after a comma); its marker words also sit in a `decorative` `Tooltip` on
+the cell's own focus stop, which adds no tab stop. In the entries table the same words open from
+keyboard focus on the key button only (`trigger="focus"`, so the native title of a truncated key
+and the tooltip never show together), the status marker carries a plain title, and the words reach
+assistive technology through visually hidden text in the status cell. `ScrollHint` takes the
+scroll card's ref and shows only while it overflows, at any width. A row is selected
+(`aria-selected`) while its key is open in the drawer or editor.
+
+**Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
+`color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they
+resolve against the theme of the root element, so do not use them inside a subtree that sets its
+own theme.
 
 ## Capabilities are two flags, and the decision is a pure function
 
