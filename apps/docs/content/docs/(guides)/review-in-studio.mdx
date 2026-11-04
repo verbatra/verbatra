@@ -57,11 +57,11 @@ The editor shows the key's description, the glossary terms your draft uses or mi
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-From 1280px wide the editor sits beside the table; below that it opens as a drawer. Leaving the key with unsaved edits, by choosing another key, filtering, searching or going Back, asks you to save, discard or keep editing.
+From 1280px wide the editor sits beside the table; below that it opens as a drawer. Leaving the key with unsaved edits, by choosing another key, filtering, searching or going Back, asks you to save, discard or keep editing; leaving Studio itself gets the browser's own confirmation.
 
 ## Work the Review queue
 
-The Review page lists every value a machine wrote that nobody has approved: one row per locale and key with source, translation, origin and any [review flags](/docs/translation-safety#review-flags) from the last run on this machine.
+The Review page lists every value a machine wrote that nobody approved: one row per locale and key with source, translation, origin and any [review flags](/docs/translation-safety#review-flags) from the last run on this machine.
 
 <StudioScreenshot
   shot="review"
@@ -89,7 +89,7 @@ Filter by locale or text, then:
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Both decisions are saved in `verbatra.provenance.json` under the [Review decisions](/docs/the-lock-file#review-decisions) rules, including what a rejection removes. An approval also needs the value to be up to date with its source. Commit the locale file, the lock file and the provenance file together; in an XLIFF project, edit instead of rejecting.
+Both decisions are saved in `verbatra.provenance.json` under the [Review decisions](/docs/the-lock-file#review-decisions) rules, including what a rejection removes. An approval also needs the value to be up to date with its source. Commit the locale, lock and provenance files together; in an XLIFF project, edit instead of rejecting.
 
 ### One queue for the whole team
 
@@ -162,7 +162,7 @@ A glossary edit changes what the next run is told, never text already written; r
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-**Show translations for** switches to one locale's [glossary](/docs/config-file#glossary) view, with its translation, forbidden renderings and note. The **Do not translate** list keeps brand names.
+**Show translations for** switches to one locale's [glossary](/docs/config-file#glossary) view: translation, forbidden renderings and note. The **Do not translate** list keeps brand names.
 
 ## Related
 
