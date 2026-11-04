@@ -53,8 +53,8 @@ La page Review liste chaque valeur écrite par une machine que personne n'a appr
 
 <StudioScreenshot
   shot="review"
-  alt="La page Review de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr, chaque ligne montrant la clé, ses raisons de relecture et les actions Edit, Approve et Reject."
-  caption="La file de relecture après une exécution. Studio existe en clair et en sombre ; change la capture pour comparer."
+  alt="La page Review de Verbatra Studio à l'état Needs review avec des entrées en allemand ; deux lignes portent des raisons de relecture, Matches source text et Unusual length, à côté de l'origine Machine, et chaque ligne a les actions Edit, Approve et Reject."
+  caption="La file de relecture après une exécution, avec les lignes signalées et leurs raisons. Studio existe en clair et en sombre ; change la capture pour comparer."
 />
 
 ### Libellés des signalements
@@ -130,13 +130,19 @@ Quand le fichier source change pendant que Studio tourne, une notification nomme
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Overview est la page sur laquelle Studio s'ouvre. Elle montre la couverture de chaque locale avec l'état de son [fichier de verrouillage](/fr/docs/the-lock-file), l'historique git de tes fichiers de locale et la consommation de tokens de la dernière exécution enregistrée, avec la jauge de budget quand un budget de tokens est configuré.
+Overview est la page sur laquelle Studio s'ouvre. Elle montre la couverture de chaque locale avec son état dans le [fichier de verrouillage](/fr/docs/the-lock-file), l'historique git de tes fichiers de locale et la consommation de tokens de la dernière exécution enregistrée, avec la jauge de budget quand un budget de tokens est configuré.
 
-## Garder le glossaire à jour dans Glossary
+<StudioScreenshot
+  shot="overview"
+  alt="La page Overview de Verbatra Studio avec trois chiffres, Needs attention, Average coverage et Locales in sync, au-dessus d'un tableau de la couverture des locales de, es et fr."
+  caption="La page Overview est celle sur laquelle Studio s'ouvre. Change la capture pour comparer clair et sombre."
+/>
+
+## Garder le glossaire à jour sur la page Glossary
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary a sa propre page. Si le glossaire est un fichier JSON, tu peux ajouter, modifier et supprimer des termes ; chaque changement est écrit directement dans le fichier. Un glossaire inline dans `verbatra.config.ts` reste en lecture seule.
+Glossary a sa propre page ; avant 0.7.0, le glossaire était dans Settings. Si le glossaire est un fichier JSON, tu peux ajouter, modifier et supprimer des termes ; chaque changement est écrit directement dans le fichier. Un glossaire inline dans `verbatra.config.ts` reste en lecture seule.
 
 Une modification du glossaire change ce que la prochaine exécution reçoit comme consigne, jamais un texte déjà écrit ; redémarre Studio pour que ses propres retraductions l'utilisent.
 

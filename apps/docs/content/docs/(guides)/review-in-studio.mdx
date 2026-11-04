@@ -53,8 +53,8 @@ The Review page lists every value a machine wrote that nobody has approved: one 
 
 <StudioScreenshot
   shot="review"
-  alt="The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
-  caption="The Review queue after a run. Studio ships in light and dark; switch the screenshot to compare."
+  alt="The Verbatra Studio Review page in the Needs review state, listing German entries; two rows carry review reasons, Matches source text and Unusual length, next to the Machine origin, and each row has Edit, Approve and Reject actions."
+  caption="The Review queue after a run, with flagged rows showing their reasons. Studio ships in light and dark; switch the screenshot to compare."
 />
 
 ### Flag labels
@@ -132,11 +132,17 @@ When the source file changes while Studio runs, a toast names the file and the k
 
 Overview is the page Studio opens on. It shows the coverage of each locale with its [lock file](/docs/the-lock-file) state, the git history of your locale files, and the token usage of the last recorded run, with the budget meter when a token budget is configured.
 
-## Keep the glossary current on Glossary
+<StudioScreenshot
+  shot="overview"
+  alt="The Verbatra Studio Overview page with three figures, Needs attention, Average coverage and Locales in sync, above a table with the coverage of the de, es and fr locales."
+  caption="The Overview page opens Studio. Switch the screenshot to compare light and dark."
+/>
+
+## Keep the glossary current on the Glossary page
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary has its own page. If the glossary is a JSON file, you can add, edit and remove terms; each change is written straight to the file. An inline glossary in `verbatra.config.ts` stays read-only.
+Glossary has its own page; before 0.7.0 the glossary sat on Settings. If the glossary is a JSON file, you can add, edit and remove terms; each change is written straight to the file. An inline glossary in `verbatra.config.ts` stays read-only.
 
 A glossary edit changes what the next run is told, never text already written; restart Studio for its own retranslations to use it.
 
