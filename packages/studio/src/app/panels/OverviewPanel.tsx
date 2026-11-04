@@ -1,7 +1,8 @@
 import type { BudgetStanding } from "@verbatra/sdk";
 import { Badge, type BadgeTone, Button, EmptyState, PageSection } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { HISTORY_MAX, HISTORY_PAGE_SIZE } from "../../client/history-limit.js";
 import type { RefreshableView } from "../../client/state.js";
 import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import type {
@@ -110,29 +111,45 @@ function LastRunRail({ view }: { readonly view: UsageView }): ReactNode {
   );
 }
 
-const HISTORY_PAGE_SIZE = 10;
-const HISTORY_MAX = 200;
-
 function LocaleFileHistory({ refreshToken }: PanelProps): ReactNode {
   const [limit, setLimit] = useState(HISTORY_PAGE_SIZE);
   const history = useHistoryList(refreshToken, limit);
-  const mayHaveMore =
-    history.kind === "loaded" && history.commits.length >= limit && limit < HISTORY_MAX;
+  const regionRef = useRef<HTMLDivElement>(null);
+  const askedForMore = useRef(false);
+  const settled = history.kind === "loaded" && history.requestedLimit === limit;
+  const full = history.kind === "loaded" && history.commits.length >= limit;
+  const pending = history.kind === "loaded" && !settled;
+  const showMore = pending || (full && limit < HISTORY_MAX);
+
+  useEffect(() => {
+    if (!showMore && askedForMore.current) {
+      askedForMore.current = false;
+      regionRef.current?.focus();
+    }
+  }, [showMore]);
+
+  function loadMore(): void {
+    if (pending) {
+      return;
+    }
+    askedForMore.current = true;
+    setLimit((current) => Math.min(current + HISTORY_PAGE_SIZE, HISTORY_MAX));
+  }
 
   return (
-    <>
+    <div ref={regionRef} tabIndex={-1} className="outline-none">
       <CommitList
         state={history}
         emptyMessage="No commit history yet for the source or target locale files."
       />
-      {mayHaveMore ? (
+      {showMore ? (
         <div className="mt-4">
-          <Button onClick={() => setLimit((current) => current + HISTORY_PAGE_SIZE)}>
+          <Button aria-disabled={pending} onClick={loadMore}>
             Show more commits
           </Button>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 import { Badge, DetailList, MonoValue, SectionCard } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { StructuredError } from "../../client/state.js";
 import type { ProjectSnapshotResult } from "../../shared/rpc/snapshot.js";
 import { rpcClient } from "../api.js";
@@ -29,14 +29,32 @@ type SettingsState =
   | { readonly status: "error"; readonly error: StructuredError }
   | { readonly status: "loaded"; readonly snapshot: ProjectSnapshotResult };
 
+function breakAfterSlashes(pattern: string): ReactNode {
+  return pattern.split("/").map((part, index, parts) => (
+    // biome-ignore lint/suspicious/noArrayIndexKey: the parts are positional and never reorder
+    <Fragment key={index}>
+      {part}
+      {index < parts.length - 1 ? (
+        <>
+          /<wbr />
+        </>
+      ) : null}
+    </Fragment>
+  ));
+}
+
 function ProviderActions({ snapshot }: { readonly snapshot: ProjectSnapshotResult }): ReactNode {
   if (snapshot.capabilities.spend) {
     return <Badge tone="success">Enabled</Badge>;
   }
-  const hint =
-    snapshot.capabilities.spendWithheld === "policy"
-      ? "machine translation disabled by policy"
-      : "start with --allow-spend";
+  const hint: ReactNode =
+    snapshot.capabilities.spendWithheld === "policy" ? (
+      "machine translation disabled by policy"
+    ) : (
+      <>
+        start with <span className="whitespace-nowrap">--allow-spend</span>
+      </>
+    );
   return (
     <span>
       Off <span className="text-muted-foreground">({hint})</span>
@@ -48,9 +66,7 @@ function ProjectDetails({ snapshot }: { readonly snapshot: ProjectSnapshotResult
   const items: Array<readonly [string, ReactNode]> = [
     [
       "File pattern",
-      <MonoValue key="file-pattern" breakAnywhere>
-        {snapshot.files.pattern}
-      </MonoValue>,
+      <MonoValue key="file-pattern">{breakAfterSlashes(snapshot.files.pattern)}</MonoValue>,
     ],
     ["Provider actions", <ProviderActions key="spend" snapshot={snapshot} />],
   ];

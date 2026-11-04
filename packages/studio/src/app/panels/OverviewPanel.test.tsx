@@ -662,7 +662,7 @@ describe("OverviewPanel metrics", () => {
 
     expect(metricTile(view, "Needs attention")).toMatchObject({
       value: "2",
-      hint: "2 keys missing, changed or orphaned across 2 of 2 target locales.",
+      hint: "2 keys need attention (3 entries across 2 of 2 target locales).",
     });
   });
 
@@ -675,7 +675,7 @@ describe("OverviewPanel metrics", () => {
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(metricTile(view, "Needs attention").hint).toBe(
-      "1 key missing, changed or orphaned across 1 of 1 target locale.",
+      "1 key needs attention (1 entry across 1 of 1 target locale).",
     );
     expect(metricTile(view, "Avg coverage").hint).toBe("Across 1 target locale.");
   });
@@ -686,7 +686,7 @@ describe("OverviewPanel metrics", () => {
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(metricTile(view, "Needs attention").hint).toBe(
-      "2 keys missing, changed or orphaned across 2 of 2 target locales.",
+      "2 keys need attention (3 entries across 2 of 2 target locales).",
     );
   });
 
@@ -926,7 +926,7 @@ describe("OverviewPanel locales section", () => {
 });
 
 describe("OverviewPanel attention link, notices, history paging and order", () => {
-  it("links the attention hint to the translations list filtered to missing and changed keys", async () => {
+  it("links the attention hint to the translations list filtered to missing, changed and orphaned keys", async () => {
     stubPage();
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
@@ -934,7 +934,7 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
     expect(
       view.get('a[href="#/translations?status=missing&status=changed&status=orphaned"]')
         .textContent,
-    ).toContain("keys missing, changed or orphaned");
+    ).toContain("keys need attention");
   });
 
   it("counts a locale whose only drift is orphaned keys, with a link that lists them", async () => {
@@ -946,7 +946,7 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
 
     expect(metricTile(view, "Needs attention")).toMatchObject({
       value: "1",
-      hint: "1 key missing, changed or orphaned across 1 of 2 target locales.",
+      hint: "1 key needs attention (1 entry across 1 of 2 target locales).",
     });
     expect(view.query('a[href*="status=orphaned"]')).not.toBeNull();
   });
@@ -973,22 +973,95 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
     ]);
   });
 
-  it("asks for ten commits first and shows more on request", async () => {
-    const commits = Array.from({ length: 10 }, (_, index) => ({
-      hash: `${String(index).padStart(2, "0")}f3ab19c7d5e4a2b`,
-      author: "Ada Lovelace",
-      authorDate: "2026-05-04T09:00:00.000Z",
-      subject: `commit ${index}`,
-      touchedPaths: [],
-    }));
-    stubOverview({ "history.list": historyAnswer({ available: true, commits }) });
+  function commitsOf(count: number): HistoryListResult {
+    return {
+      available: true,
+      commits: Array.from({ length: count }, (_, index) => ({
+        hash: `${String(index).padStart(2, "0")}f3ab19c7d5e4a2b`,
+        author: "Ada Lovelace",
+        authorDate: "2026-05-04T09:00:00.000Z",
+        subject: `commit ${index}`,
+        touchedPaths: [],
+      })),
+    };
+  }
+
+  function stubHistoryByLimit(available: number): void {
+    stubOverview({
+      "history.list": (params: unknown) => {
+        const asked = (params as { limit?: number }).limit ?? 50;
+        return historyAnswer(commitsOf(Math.min(asked, available)));
+      },
+    });
+  }
+
+  function feedRows(view: RenderResult): number {
+    return view.all("ul.max-w-3xl > li").length;
+  }
+
+  it("asks for ten commits first and renders twenty after Show more", async () => {
+    stubHistoryByLimit(60);
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(rpcCalls).toContainEqual({ method: "history.list", params: { limit: 10 } });
+    expect(feedRows(view)).toBe(10);
 
     await clickAsync(view.getByText("button", "Show more commits"));
+    await flush();
 
     expect(rpcCalls).toContainEqual({ method: "history.list", params: { limit: 20 } });
+    expect(feedRows(view)).toBe(20);
+  });
+
+  it("keeps the expanded limit when the page refreshes", async () => {
+    stubHistoryByLimit(60);
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    await clickAsync(view.getByText("button", "Show more commits"));
+    await flush();
+
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(rpcCalls.filter((call) => call.method === "history.list").at(-1)).toEqual({
+      method: "history.list",
+      params: { limit: 20 },
+    });
+    expect(feedRows(view)).toBe(20);
+  });
+
+  it("removes the button once a request returns fewer commits than asked for", async () => {
+    stubHistoryByLimit(14);
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    await clickAsync(view.getByText("button", "Show more commits"));
+    await flush();
+
+    expect(feedRows(view)).toBe(14);
+    expect(view.query("button")).toBeNull();
+  });
+
+  it("moves focus to the history region when the last page removes the button", async () => {
+    stubHistoryByLimit(14);
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    await clickAsync(view.getByText("button", "Show more commits"));
+    await flush();
+
+    const region = view.get("ul.max-w-3xl").parentElement;
+
+    expect(document.activeElement).toBe(region);
+    expect(region?.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("removes the button at the sdk cap even though a full page came back", async () => {
+    stubHistoryByLimit(1000);
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    for (let step = 0; step < 19; step += 1) {
+      await clickAsync(view.getByText("button", "Show more commits"));
+      await flush();
+    }
+
+    expect(rpcCalls).toContainEqual({ method: "history.list", params: { limit: 200 } });
+    expect(feedRows(view)).toBe(200);
+    expect(view.query("button")).toBeNull();
   });
 
   it("offers no show-more control when fewer commits than asked for came back", async () => {

@@ -20,6 +20,7 @@ import { provenanceSummaryParts } from "../client/provenance-view.js";
 import type { RefreshableView } from "../client/state.js";
 import { formatCount } from "../client/ui-format.js";
 import { ErrorMessage } from "./ErrorMessage.js";
+import { ScrollHint } from "./ScrollHint.js";
 import type { LockLocaleState, LockView } from "./use-lock-state.js";
 
 type LoadedLock = Extract<LockView, { readonly kind: "loaded" }>;
@@ -154,7 +155,7 @@ export function LocalesSection({
           {status.stale && (
             <ErrorMessage error={status.error} prefix="Showing the last known status." />
           )}
-          <TableCard>
+          <TableCard aria-label="Locale coverage">
             <Table>
               <TableHead>
                 <tr>
@@ -173,9 +174,7 @@ export function LocalesSection({
               </TableBody>
             </Table>
           </TableCard>
-          <p className="mt-2 text-xs text-muted-foreground md:hidden">
-            Scroll sideways to see every column.
-          </p>
+          <ScrollHint />
         </>
       ) : null}
       {lock.kind === "no-lock" ? (

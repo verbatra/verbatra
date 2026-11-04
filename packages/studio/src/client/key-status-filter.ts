@@ -154,6 +154,11 @@ export function statusCounts(
   return counts;
 }
 
+export function attentionEntryCount(locales: readonly DiffLocale[]): number {
+  const counts = statusCounts(locales, { review: [], integrity: [] }, null);
+  return counts.missing + counts.changed + counts.orphaned;
+}
+
 export function toggleStatus(
   statuses: ReadonlySet<KeyStatus>,
   status: KeyStatus,

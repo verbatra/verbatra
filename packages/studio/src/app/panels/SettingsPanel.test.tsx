@@ -214,4 +214,14 @@ describe("SettingsPanel", () => {
 
     expect(view.container.textContent).toBe("");
   });
+
+  it("keeps the spend flag unbroken and lets the file pattern break after each slash", async () => {
+    stubSettings({ ...SNAPSHOT, files: { pattern: "apps/web/locales/{locale}.json" } });
+
+    const view = await renderAsync(<SettingsPanel />);
+
+    expect(view.getByText("span", "--allow-spend").className).toContain("whitespace-nowrap");
+    expect(detailValue(view, "File pattern")).toBe("apps/web/locales/{locale}.json");
+    expect(view.all("dd wbr")).toHaveLength(3);
+  });
 });

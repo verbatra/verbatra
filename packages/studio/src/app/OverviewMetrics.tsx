@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { averageCoverage, type StatusData } from "../client/coverage.js";
 import { driftKeys, isFullyInSync } from "../client/diff-view.js";
+import { attentionEntryCount } from "../client/key-status-filter.js";
 import { routeHash } from "../client/routes.js";
 import type { RefreshableView } from "../client/state.js";
 import { MetricCard } from "./MetricCard.js";
@@ -30,9 +31,10 @@ function attentionTile(diff: DiffState): {
     (locale) => locale.missing.length + locale.changed.length + locale.orphaned.length > 0,
   ).length;
   const total = diff.locales.length;
+  const entries = attentionEntryCount(diff.locales);
   return {
     value: String(pending),
-    hint: `${pending} ${pending === 1 ? "key" : "keys"} missing, changed or orphaned across ${drifting} of ${total} target ${total === 1 ? "locale" : "locales"}.`,
+    hint: `${pending} ${pending === 1 ? "key needs" : "keys need"} attention (${entries} ${entries === 1 ? "entry" : "entries"} across ${drifting} of ${total} target ${total === 1 ? "locale" : "locales"}).`,
     tone: "danger",
     href: routeHash({
       page: "translations",
@@ -74,18 +76,20 @@ export function OverviewMetrics({
               : `Across ${rows.length} target ${rows.length === 1 ? "locale" : "locales"}.`
           }
         />
-        <MetricCard
-          label="Locales in sync"
-          icon="globe"
-          value={inSyncCount === null || rows === null ? "…" : `${inSyncCount} / ${rows.length}`}
-          hint={
-            status.kind === "data"
-              ? status.data.inSync
-                ? "All target locales are in sync."
-                : "At least one locale is out of sync."
-              : "Loading sync state."
-          }
-        />
+        <div className="col-span-2 grid md:col-span-1">
+          <MetricCard
+            label="Locales in sync"
+            icon="globe"
+            value={inSyncCount === null || rows === null ? "…" : `${inSyncCount} / ${rows.length}`}
+            hint={
+              status.kind === "data"
+                ? status.data.inSync
+                  ? "All target locales are in sync."
+                  : "At least one locale is out of sync."
+                : "Loading sync state."
+            }
+          />
+        </div>
       </div>
     </div>
   );

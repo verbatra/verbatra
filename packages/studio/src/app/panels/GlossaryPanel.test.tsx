@@ -126,6 +126,7 @@ describe("GlossaryPanel", () => {
     await clickAsync(view.getByText("button", "Add term"));
 
     expect(view.text()).toContain("Warenkorb");
+    expect(view.get("header").textContent).toContain("1 term");
   });
 
   it("drops a response that arrives after the page was left", async () => {
@@ -162,7 +163,7 @@ describe("GlossaryPanel", () => {
 
     const view = await renderAsync(<GlossaryPanel />);
 
-    expect(view.text()).toContain("2 terms");
+    expect(view.get("header").textContent).toContain("2 terms");
   });
 
   it("uses the singular term label for a one-entry glossary", async () => {
@@ -170,8 +171,8 @@ describe("GlossaryPanel", () => {
 
     const view = await renderAsync(<GlossaryPanel />);
 
-    expect(view.text()).toContain("1 term");
-    expect(view.text()).not.toContain("1 terms");
+    expect(view.get("header").textContent).toContain("1 term");
+    expect(view.get("header").textContent).not.toContain("1 terms");
   });
 
   it("shows an empty state and no count badge when no glossary is configured", async () => {
@@ -180,7 +181,7 @@ describe("GlossaryPanel", () => {
     const view = await renderAsync(<GlossaryPanel />);
 
     expect(view.text()).toContain("No glossary terms");
-    expect(view.query(".bg-neutral-soft")).toBeNull();
+    expect(view.get("header").textContent).not.toMatch(/\d+ terms?/);
     expect(view.query("ul li")).toBeNull();
   });
 
@@ -189,7 +190,7 @@ describe("GlossaryPanel", () => {
 
     const view = await renderAsync(<GlossaryPanel />);
 
-    expect(view.text()).toContain("Source: file (glossary.json)");
+    expect(view.get("header").textContent).toContain("Source: file (glossary.json)");
   });
 
   it("names an inline glossary's source without a path", async () => {
@@ -197,7 +198,7 @@ describe("GlossaryPanel", () => {
 
     const view = await renderAsync(<GlossaryPanel />);
 
-    expect(view.text()).toContain("Source: inline");
+    expect(view.get("header").textContent).toContain("Source: inline");
   });
 
   it("reads the glossary once, with no parameters", async () => {
