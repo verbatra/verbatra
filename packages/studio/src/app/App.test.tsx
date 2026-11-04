@@ -458,6 +458,34 @@ describe("App navigation chrome", () => {
 });
 
 describe("App header chrome", () => {
+  it("closes the open drawer when the viewport grows to the wide layout and keeps it closed", async () => {
+    let listener: (() => void) | undefined;
+    const list = {
+      matches: false,
+      addEventListener: (_type: string, next: () => void) => {
+        listener = next;
+      },
+      removeEventListener: () => {},
+    };
+    vi.stubGlobal("matchMedia", () => list);
+    const view = await mount();
+    await clickAsync(view.get('[aria-label="Open navigation"]'));
+    expect(view.query('[role="dialog"]')).not.toBeNull();
+
+    list.matches = true;
+    act(() => listener?.());
+    expect(view.query('[role="dialog"]')).toBeNull();
+
+    list.matches = false;
+    act(() => listener?.());
+    expect(view.query('[role="dialog"]')).toBeNull();
+    vi.stubGlobal("matchMedia", () => ({
+      matches: false,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+  });
+
   it("offers a first control that moves focus to the main region", async () => {
     const view = await mount();
     const skip = view.getByText("button", "Skip to main content");

@@ -20,6 +20,7 @@ import { SettingsPanel } from "./panels/SettingsPanel.js";
 import { TranslationsPanel } from "./panels/TranslationsPanel.js";
 import { RefreshToast } from "./RefreshToast.js";
 import { useAgentToolsFailures } from "./use-agent-tools-status.js";
+import { useMediaQuery } from "./use-media-query.js";
 import { useReviewQueue } from "./use-review-queue.js";
 import { useCanonicalHash, useRoute } from "./use-route.js";
 
@@ -30,6 +31,8 @@ const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = 
   glossary: GlossaryPanel,
   settings: SettingsPanel,
 };
+
+const WIDE_QUERY = "(min-width: 1024px)";
 
 function focusMain(): void {
   document.getElementById("main")?.focus();
@@ -118,6 +121,13 @@ function AppShell({
   const pageBadges: Readonly<Partial<Record<PageId, number>>> = { review: reviewCount };
 
   const ActivePanel = PAGE_PANELS[page];
+  const wide = useMediaQuery(WIDE_QUERY, false);
+
+  useEffect(() => {
+    if (wide) {
+      onSetMobileNavOpen(false);
+    }
+  }, [wide, onSetMobileNavOpen]);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
