@@ -971,6 +971,12 @@ describe("TranslationsPanel keyboard", () => {
 
     keyDownOn(document.activeElement as HTMLElement, "ArrowUp");
     expect(document.activeElement).toBe(first);
+
+    keyDownOn(first, "ArrowUp");
+    expect(document.activeElement).toBe(cellButton(view, "app.title", "de"));
+
+    keyDownOn(document.activeElement as HTMLElement, "ArrowDown");
+    expect(document.activeElement).toBe(first);
   });
 
   it("moves one row at a time in the entries table", async () => {

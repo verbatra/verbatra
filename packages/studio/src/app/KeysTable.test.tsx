@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DiffLocale } from "../client/diff-view.js";
 import { type KeyStatusIndex, keyStatusIndex } from "../client/key-status-filter.js";
 import type { LocaleValuesData } from "../client/locale-values.js";
@@ -61,6 +61,10 @@ function keyDownOn(element: Element, key: string): void {
     element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
   });
 }
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const NO_COVERAGE = { "status.check": { ok: true as const, result: checkResult([]) } };
 
@@ -304,6 +308,12 @@ describe("KeysTable markers", () => {
     });
     expect(slot.hasAttribute("data-open")).toBe(false);
 
+    const matches = vi.spyOn(Element.prototype, "matches").mockReturnValue(false);
+    act(() => key.focus());
+    expect(slot.hasAttribute("data-open")).toBe(false);
+
+    act(() => key.blur());
+    matches.mockImplementation((selector) => selector === ":focus-visible");
     act(() => key.focus());
     expect(slot.hasAttribute("data-open")).toBe(true);
     expect(slot.textContent).toBe("In the review queue");
@@ -396,7 +406,6 @@ describe("KeysTable activation", () => {
     act(() => view.get('[data-key="a.missing"] td').click());
 
     expect(onSelectKey).toHaveBeenCalledWith("a.missing");
-    vi.restoreAllMocks();
   });
 
   it("still opens the key when the selected text is in another row", async () => {

@@ -2,6 +2,7 @@ import type { KeyStatus } from "../client/key-status-filter.js";
 import type { LocaleValuesData } from "../client/locale-values.js";
 import { routeParams } from "../client/routes.js";
 import type { RefreshableView } from "../client/state.js";
+import type { DiffState } from "./use-diff-state.js";
 import { useRouteParams } from "./use-route.js";
 
 export interface KeyFilterSelection {
@@ -31,6 +32,10 @@ function selectableKey(
     return key;
   }
   return localeValues.data.some((entry) => Object.hasOwn(entry.values, key)) ? key : null;
+}
+
+export function knownLocalesOf(diff: DiffState): readonly string[] | null {
+  return diff.kind === "loaded" ? diff.locales.map((entry) => entry.locale) : null;
 }
 
 export function useTranslationsRoute(

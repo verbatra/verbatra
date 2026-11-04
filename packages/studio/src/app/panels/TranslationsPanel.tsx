@@ -32,7 +32,11 @@ import { type DiffState, useDiffState } from "../use-diff-state.js";
 import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
 import { useReviewQueue } from "../use-review-queue.js";
-import { type TranslationsRoute, useTranslationsRoute } from "../use-translations-route.js";
+import {
+  knownLocalesOf,
+  type TranslationsRoute,
+  useTranslationsRoute,
+} from "../use-translations-route.js";
 
 const COPY_CONFIRMATION_MS = 2000;
 
@@ -93,7 +97,11 @@ function hasIntegrityProblems(integrity: RefreshableView<LocaleIntegrityData>): 
 function statusSources(
   review: RefreshableView<ReviewQueueData>,
   integrity: RefreshableView<LocaleIntegrityData>,
-): { readonly sources: KeyStatusSources; readonly unavailable: ReadonlyMap<KeyStatus, string> } {
+): {
+  readonly sources: KeyStatusSources;
+  readonly unavailable: ReadonlyMap<KeyStatus, string>;
+  readonly trouble: SourceTrouble;
+} {
   const unavailable = new Map<KeyStatus, string>();
   if (review.kind !== "data") {
     unavailable.set("review", unavailableReason(review));
@@ -107,24 +115,23 @@ function statusSources(
       integrity: integrity.kind === "data" ? integrity.data : [],
     },
     unavailable,
+    trouble: sourceTrouble([review.kind, integrity.kind]),
   };
 }
 
 const LOADING_REASON = "Still loading";
 
-const FAILED_REASON = "Not available right now";
-
 function unavailableReason(view: { readonly kind: string }): string {
-  return view.kind === "loading" ? LOADING_REASON : FAILED_REASON;
+  return view.kind === "loading" ? LOADING_REASON : "Not available right now";
 }
 
 type SourceTrouble = "loading" | "failed" | null;
 
-function sourceTrouble(unavailable: ReadonlyMap<KeyStatus, string>): SourceTrouble {
-  if ([...unavailable.values()].includes(FAILED_REASON)) {
+function sourceTrouble(kinds: readonly string[]): SourceTrouble {
+  if (kinds.includes("error")) {
     return "failed";
   }
-  return unavailable.size > 0 ? "loading" : null;
+  return kinds.includes("loading") ? "loading" : null;
 }
 
 const NO_LOCALES: readonly DiffLocale[] = [];
@@ -191,7 +198,7 @@ function KeysSection({
   const searchRef = useRef<HTMLInputElement | null>(null);
   const { locale, statuses, query, selectedKey } = route;
   const localeValues = localeValuesOrEmpty(localeValuesView);
-  const { sources, unavailable } = useMemo(
+  const { sources, unavailable, trouble } = useMemo(
     () => statusSources(review, integrity),
     [review, integrity],
   );
@@ -203,7 +210,6 @@ function KeysSection({
   );
   const narrowed = statuses.size > 0 || query.trim() !== "";
   const loading = locales === null;
-  const trouble = sourceTrouble(unavailable);
   const incomplete = trouble !== null;
 
   return (
@@ -330,20 +336,13 @@ function DiffNotices({
   );
 }
 
-function knownLocalesFor(diff: DiffState): readonly string[] | null {
-  if (diff.kind === "loading") {
-    return null;
-  }
-  return diff.kind === "loaded" ? diff.locales.map((entry) => entry.locale) : [];
-}
-
 export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const diff = useDiffState(refreshToken);
   const [editingLocale, setEditingLocale] = useState<string | null>(null);
   const [lastEditedLocale, setLastEditedLocale] = useState<string | null>(null);
   const localeValuesView = useLocaleValues(refreshToken);
 
-  const route = useTranslationsRoute(knownLocalesFor(diff), localeValuesView);
+  const route = useTranslationsRoute(knownLocalesOf(diff), localeValuesView);
   const { selectedKey, setSelectedKey } = route;
   const review = useReviewQueue(refreshToken);
 

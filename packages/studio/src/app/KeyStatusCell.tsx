@@ -49,6 +49,7 @@ export function MarkerTip({
       label={sentence(texts.join(", "))}
       side={side}
       trigger={trigger}
+      flip
       decorative
       {...(fill ? { className: "flex w-full" } : {})}
     >

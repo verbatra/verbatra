@@ -143,7 +143,8 @@ function resolveColor(tokens: ReadonlyMap<string, string>, name: string, depth =
       resolveColor(tokens, mix[1], depth + 1),
       resolveColor(tokens, mix[3], depth + 1),
     ];
-    return from.map((c, i) => c * share + (onto[i] ?? 0) * (1 - share)) as unknown as Rgb;
+    const blend = (a: number, b: number): number => a * share + b * (1 - share);
+    return [blend(from[0], onto[0]), blend(from[1], onto[1]), blend(from[2], onto[2])];
   }
   return hslToRgb(value);
 }
