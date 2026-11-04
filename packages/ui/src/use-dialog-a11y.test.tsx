@@ -382,4 +382,63 @@ describe("useDialogA11y: initial focus", () => {
     view.rerender(<LateFieldDialog ready />);
     expect(document.activeElement).toBe(view.get("#close"));
   });
+
+  it("lets only the topmost of nested dialogs handle Escape and Tab", () => {
+    const outer = vi.fn();
+    const inner = vi.fn();
+    const view = render(
+      <>
+        <Dialog isOpen onClose={outer}>
+          <button type="button" id="outer-first">
+            Outer
+          </button>
+        </Dialog>
+        <Dialog isOpen onClose={inner}>
+          <button type="button" id="inner-first">
+            Inner one
+          </button>
+          <button type="button" id="inner-last">
+            Inner two
+          </button>
+        </Dialog>
+      </>,
+    );
+    view.get<HTMLButtonElement>("#inner-last").focus();
+
+    pressKey("Escape");
+    const tab = pressKey("Tab");
+
+    expect(inner).toHaveBeenCalledTimes(1);
+    expect(outer).not.toHaveBeenCalled();
+    expect(tab.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(view.get("#inner-first"));
+  });
+
+  it("hands Escape back to the outer dialog once the inner one closes", () => {
+    const outer = vi.fn();
+    const view = render(
+      <>
+        <Dialog isOpen onClose={outer}>
+          <button type="button">Outer</button>
+        </Dialog>
+        <Dialog isOpen onClose={vi.fn()}>
+          <button type="button">Inner</button>
+        </Dialog>
+      </>,
+    );
+
+    view.rerender(
+      <>
+        <Dialog isOpen onClose={outer}>
+          <button type="button">Outer</button>
+        </Dialog>
+        <Dialog isOpen={false} onClose={vi.fn()}>
+          <button type="button">Inner</button>
+        </Dialog>
+      </>,
+    );
+    pressKey("Escape");
+
+    expect(outer).toHaveBeenCalledTimes(1);
+  });
 });

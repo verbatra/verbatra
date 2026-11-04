@@ -10,6 +10,8 @@ export interface DialogA11yOptions {
   readonly initialFocus?: RefObject<HTMLElement | null>;
 }
 
+const openDialogs: object[] = [];
+
 function trapTabKey(event: KeyboardEvent, container: HTMLElement): void {
   const items = focusableElements(container);
   const first = items[0];
@@ -68,6 +70,8 @@ export function useDialogA11y<T extends HTMLElement>({
     const previouslyFocused =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const container = containerRef.current;
+    const token = {};
+    openDialogs.push(token);
     const initial = initialFocusRef.current?.current;
     if (initial !== null && initial !== undefined) {
       focusInitial(initial);
@@ -79,6 +83,9 @@ export function useDialogA11y<T extends HTMLElement>({
     }
 
     function onKeyDown(event: KeyboardEvent): void {
+      if (openDialogs[openDialogs.length - 1] !== token) {
+        return;
+      }
       if (event.key === "Escape") {
         onCloseRef.current();
         return;
@@ -92,6 +99,7 @@ export function useDialogA11y<T extends HTMLElement>({
     return () => {
       initialPending.current = false;
       document.removeEventListener("keydown", onKeyDown);
+      openDialogs.splice(openDialogs.indexOf(token), 1);
       if (shouldRestoreFocusRef.current?.() !== false && previouslyFocused?.isConnected === true) {
         previouslyFocused.focus();
       }
