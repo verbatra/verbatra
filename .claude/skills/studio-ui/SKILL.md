@@ -219,7 +219,8 @@ Rules that follow:
   carries the words, shown on hover and focus (or on keyboard focus alone with `trigger="focus"`,
   which ignores focus from a pointer press; `flip` opens it upward when the clipping box would cut it
   off, so an open bubble never grows the scroll area), dismissed with Escape, none on a disabled control,
-  taking no layout while closed; `side`: `end`, `bottom`, `bottom-end`; `className` goes on the
+  taking no layout while closed; `side`: `end`, `bottom`, `bottom-end`, and `top`, which only `flip`
+  reaches (`flip` applies to `bottom` and `bottom-end`, never to `end`); `className` goes on the
   wrapper),
   `ThemeToggle` (a cycle over a theme store that
   leaves system for the opposite of the OS theme first, labelled through `label(current, next)`
