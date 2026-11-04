@@ -29,7 +29,7 @@ function Wordmark(): ReactNode {
         />
       </svg>
       <span className="text-lg font-semibold tracking-tight text-(--text-strong)">verbatra</span>
-      <span className="text-sm text-(--text-muted)">Studio</span>
+      <span className="sr-only">Studio</span>
     </span>
   );
 }
@@ -58,7 +58,7 @@ export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps
           className="mx-auto hidden w-full max-w-64 md:block lg:max-w-80"
         />
         <div className="flex flex-1 items-center justify-end md:gap-2 md:ps-4">
-          <nav aria-label="Studio" className="hidden items-center gap-6 xl:me-4 xl:flex">
+          <nav aria-label="Studio" className="hidden items-center gap-5 xl:me-2 xl:flex">
             {NAV_GROUPS.flatMap((group) => group.pages).map((page) => (
               <NavLink
                 key={page}
