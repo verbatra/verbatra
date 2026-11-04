@@ -4,7 +4,7 @@ export const PAGE_IDS = ["overview", "translations", "review", "glossary", "sett
 
 export type PageId = (typeof PAGE_IDS)[number];
 
-export const DEFAULT_PAGE: PageId = "translations";
+export const DEFAULT_PAGE: PageId = "overview";
 
 const PAGE_ALIASES: ReadonlyMap<string, PageId> = new Map<string, PageId>([
   ["activity", "overview"],

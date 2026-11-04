@@ -7,10 +7,15 @@ import { budgetPercent, toUsageTickerDisplayState } from "../../client/usage-tic
 import { CommitList } from "../CommitList.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { Loading } from "../Loading.js";
+import { LocalesSection } from "../LocalesSection.js";
 import { MetricCard } from "../MetricCard.js";
+import { OverviewMetrics, type UsageView } from "../OverviewMetrics.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
+import { useDiffState } from "../use-diff-state.js";
 import { useHistoryList } from "../use-history-list.js";
+import { useLockState } from "../use-lock-state.js";
+import { useStatusData } from "../use-status-data.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
 
 function UsageCards({ usage }: { readonly usage: UsageDisplay }): ReactNode {
@@ -59,9 +64,7 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
   );
 }
 
-function LastRunRail({ refreshToken }: PanelProps): ReactNode {
-  const view = useUsageTicker(refreshToken);
-
+function LastRunRail({ view }: { readonly view: UsageView }): ReactNode {
   if (view.kind === "loading") {
     return <Loading />;
   }
@@ -93,15 +96,21 @@ function LastRunRail({ refreshToken }: PanelProps): ReactNode {
   );
 }
 
-export function ActivityPanel({ refreshToken }: PanelProps): ReactNode {
+export function OverviewPanel({ refreshToken }: PanelProps): ReactNode {
   const history = useHistoryList(refreshToken);
+  const diff = useDiffState(refreshToken);
+  const status = useStatusData(refreshToken);
+  const lock = useLockState(refreshToken);
+  const usage = useUsageTicker(refreshToken);
 
   return (
     <>
       <PageHeader
-        title="Activity"
-        description="What the last run did, and how the locale files have changed."
+        title="Overview"
+        description="How far along each locale is, what the last run did, and how the locale files have changed."
       />
+      <OverviewMetrics status={status} diff={diff} usage={usage} />
+      <LocalesSection status={status} lock={lock} />
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <PageSection title="Locale file history" className="mb-0 lg:col-start-1 lg:row-start-1">
           <CommitList
@@ -110,7 +119,7 @@ export function ActivityPanel({ refreshToken }: PanelProps): ReactNode {
           />
         </PageSection>
         <PageSection title="Last run" className="mb-0 lg:col-start-2 lg:row-start-1">
-          <LastRunRail refreshToken={refreshToken} />
+          <LastRunRail view={usage} />
         </PageSection>
       </div>
     </>

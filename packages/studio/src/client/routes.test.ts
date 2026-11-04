@@ -18,13 +18,13 @@ describe("parseRoute page", () => {
     expect(parseRoute(`#${page}`).page).toBe(page);
   });
 
-  it("falls back to the default workspace for an empty hash", () => {
+  it("falls back to the default page for an empty hash", () => {
     expect(parseRoute("").page).toBe(DEFAULT_PAGE);
     expect(parseRoute("#").page).toBe(DEFAULT_PAGE);
     expect(parseRoute("#/").page).toBe(DEFAULT_PAGE);
   });
 
-  it("falls back to the default workspace for an unknown or stale hash", () => {
+  it("falls back to the default page for an unknown or stale hash", () => {
     expect(parseRoute("#/diff").page).toBe(DEFAULT_PAGE);
     expect(parseRoute("#/status").page).toBe(DEFAULT_PAGE);
     expect(parseRoute("#/nonsense").page).toBe(DEFAULT_PAGE);
@@ -33,7 +33,7 @@ describe("parseRoute page", () => {
   it("treats names inherited from Object as unknown pages", () => {
     expect(parseRoute("#/constructor").page).toBe(DEFAULT_PAGE);
     expect(parseRoute("#/__proto__").page).toBe(DEFAULT_PAGE);
-    expect(canonicalPageHash("#/constructor")).toBe("#/translations");
+    expect(canonicalPageHash("#/constructor")).toBe("#/overview");
   });
 
   it("gives an unknown page no params and canonicalizes it to the default page", () => {
@@ -41,7 +41,7 @@ describe("parseRoute page", () => {
       page: DEFAULT_PAGE,
       params: {},
     });
-    expect(canonicalPageHash("#/nonsense?locale=de&key=x")).toBe("#/translations");
+    expect(canonicalPageHash("#/nonsense?locale=de&key=x")).toBe("#/overview");
   });
 
   it("ignores the query string when naming the page", () => {
@@ -55,8 +55,8 @@ describe("page ids", () => {
     expect([...PAGE_IDS]).toEqual(["overview", "translations", "review", "glossary", "settings"]);
   });
 
-  it("keeps the translations workspace as the default page", () => {
-    expect(DEFAULT_PAGE).toBe("translations");
+  it("opens on the overview by default", () => {
+    expect(DEFAULT_PAGE).toBe("overview");
     expect(PAGE_IDS).toContain(DEFAULT_PAGE);
   });
 });
@@ -77,7 +77,7 @@ describe("activity alias", () => {
   it("does not rewrite a canonical, unknown or empty hash", () => {
     expect(canonicalPageHash("#/overview")).toBeNull();
     expect(canonicalPageHash("#/translations?locale=de")).toBeNull();
-    expect(canonicalPageHash("#/nonsense")).toBe("#/translations");
+    expect(canonicalPageHash("#/nonsense")).toBe("#/overview");
     expect(canonicalPageHash("")).toBeNull();
   });
 });

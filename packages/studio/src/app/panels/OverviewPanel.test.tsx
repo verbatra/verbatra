@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it, vi } from "vitest";
+import type { DiffLocale } from "../../client/diff-view.js";
 import { formatTimestamp } from "../../client/ui-format.js";
 import type { HistoryCommit, HistoryListResult } from "../../shared/rpc/history.js";
 import type { UsageSummaryResult } from "../../shared/rpc/usage-summary.js";
-import type { RenderResult } from "../test-support.js";
+import type { RenderResult, StubRpcHandler, StubRpcResult } from "../test-support.js";
 import { flush, render, renderAsync, rpcCalls, rpcError, stubRpc } from "../test-support.js";
-import { ActivityPanel } from "./ActivityPanel.js";
+import { OverviewPanel } from "./OverviewPanel.js";
 
 vi.mock("../api.js", () => import("../test-support.js").then((module) => module.apiMock()));
 
@@ -52,11 +53,36 @@ function usageAnswer(result: UsageSummaryResult): {
   return { ok: true, result };
 }
 
+type Stubs = Readonly<Record<string, StubRpcResult | StubRpcHandler>>;
+
+function stubOverview(overrides: Stubs = {}): void {
+  stubRpc({
+    "status.diff": diffResult(DEFAULT_LOCALES),
+    "status.check": checkResult(DEFAULT_ROWS),
+    "lock.state": NO_LOCK,
+    "usage.summary": NO_USAGE,
+    "history.list": historyAnswer(LOADED_HISTORY),
+    ...overrides,
+  });
+}
+
 function stubActivity(
   usage: UsageSummaryResult,
   history: HistoryListResult = LOADED_HISTORY,
 ): void {
-  stubRpc({ "usage.summary": usageAnswer(usage), "history.list": historyAnswer(history) });
+  stubOverview({ "usage.summary": usageAnswer(usage), "history.list": historyAnswer(history) });
+}
+
+function stubPage(overrides: Stubs = {}): void {
+  stubOverview(overrides);
+}
+
+function stubSyncedPage(overrides: Stubs = {}): void {
+  stubOverview({
+    "status.diff": diffResult(IN_SYNC_LOCALES),
+    "status.check": checkResult(IN_SYNC_ROWS),
+    ...overrides,
+  });
 }
 
 function metricCard(view: RenderResult, label: string): HTMLElement {
@@ -79,59 +105,211 @@ function alertText(view: RenderResult): string {
   return view.get('[role="alert"]').textContent?.trim() ?? "";
 }
 
-describe("ActivityPanel", () => {
+interface KeyLists {
+  readonly missing?: readonly string[];
+  readonly changed?: readonly string[];
+  readonly orphaned?: readonly string[];
+  readonly protected?: readonly string[];
+}
+
+function localeDiff(locale: string, lists: KeyLists = {}): DiffLocale {
+  const missing = lists.missing ?? [];
+  const changed = lists.changed ?? [];
+  const orphaned = lists.orphaned ?? [];
+  return {
+    locale,
+    missing,
+    changed,
+    orphaned,
+    hasPendingChanges: missing.length > 0 || changed.length > 0,
+    ...(lists.protected !== undefined ? { protected: lists.protected } : {}),
+  };
+}
+
+function diffResult(locales: readonly DiffLocale[]): StubRpcResult {
+  return {
+    ok: true,
+    result: { hasPendingChanges: locales.some((locale) => locale.hasPendingChanges), locales },
+  };
+}
+
+interface CoverageCounts {
+  readonly locale: string;
+  readonly missing: number;
+  readonly stale: number;
+  readonly upToDate: number;
+}
+
+function checkResult(rows: readonly CoverageCounts[]): StubRpcResult {
+  const locales = rows.map((row) => ({ ...row, inSync: row.missing === 0 && row.stale === 0 }));
+  return { ok: true, result: { inSync: locales.every((locale) => locale.inSync), locales } };
+}
+
+interface LockCounts extends CoverageCounts {
+  readonly keyCount: number;
+}
+
+function lockResult(version: number, locales: readonly LockCounts[]): StubRpcResult {
+  return { ok: true, result: { exists: true, version, locales } };
+}
+
+const NO_LOCK: StubRpcResult = { ok: true, result: { exists: false } };
+const NO_USAGE: StubRpcResult = { ok: true, result: { available: false } };
+
+const PENDING: StubRpcHandler = () => new Promise<StubRpcResult>(() => {});
+
+const DEFAULT_LOCALES: readonly DiffLocale[] = [
+  localeDiff("de", { missing: ["app.title"], changed: ["app.body"] }),
+  localeDiff("fr", { missing: ["app.title"] }),
+];
+
+const DEFAULT_ROWS: readonly CoverageCounts[] = [
+  { locale: "de", missing: 1, stale: 1, upToDate: 8 },
+  { locale: "fr", missing: 1, stale: 0, upToDate: 9 },
+];
+
+const IN_SYNC_LOCALES: readonly DiffLocale[] = [localeDiff("de"), localeDiff("fr")];
+
+const IN_SYNC_ROWS: readonly CoverageCounts[] = [
+  { locale: "de", missing: 0, stale: 0, upToDate: 10 },
+  { locale: "fr", missing: 0, stale: 0, upToDate: 10 },
+];
+
+function answersInOrder(results: readonly [StubRpcResult, ...StubRpcResult[]]): StubRpcHandler {
+  let index = 0;
+  return () => {
+    const answer = results[Math.min(index, results.length - 1)] ?? results[0];
+    index += 1;
+    return answer;
+  };
+}
+
+function deferredAnswers(): {
+  readonly handler: StubRpcHandler;
+  answer(call: number, result: StubRpcResult): void;
+} {
+  const resolvers: Array<(result: StubRpcResult) => void> = [];
+  return {
+    handler: () =>
+      new Promise<StubRpcResult>((resolve) => {
+        resolvers.push(resolve);
+      }),
+    answer(call: number, result: StubRpcResult): void {
+      const resolve = resolvers[call];
+      if (resolve === undefined) {
+        throw new Error(`call ${call} was never made`);
+      }
+      resolve(result);
+    },
+  };
+}
+
+function coverageRows(view: RenderResult): HTMLElement[] {
+  const table = view.getByText("h2", "Locales").closest("section")?.querySelector("table") ?? null;
+  if (table === null) {
+    throw new Error("the Locales section rendered no coverage table");
+  }
+  return [...table.querySelectorAll<HTMLElement>("tbody tr")];
+}
+
+function cellTexts(row: HTMLElement | undefined): string[] {
+  if (row === undefined) {
+    throw new Error("the expected table row is missing");
+  }
+  return [...row.querySelectorAll("td")].map((cell) => cell.textContent ?? "");
+}
+
+function alertTexts(view: RenderResult): string[] {
+  return view.all('[role="alert"]').map((alert) => alert.textContent ?? "");
+}
+
+function metricTile(
+  view: RenderResult,
+  label: string,
+): { readonly value: string; readonly hint: string; readonly meterWidth: string | null } {
+  const card = view.getByText("span", label).parentElement?.parentElement ?? null;
+  if (card === null) {
+    throw new Error(`no metric tile is labelled ${label}`);
+  }
+  const meter = card.querySelector<HTMLElement>("span[style]");
+  return {
+    value: card.querySelector("div[title]")?.getAttribute("title") ?? "",
+    hint: card.querySelector("p")?.textContent ?? "",
+    meterWidth: meter === null ? null : meter.style.width,
+  };
+}
+
+const ONCE_EACH = {
+  "history.list": 1,
+  "lock.state": 1,
+  "status.check": 1,
+  "status.diff": 1,
+  "usage.summary": 1,
+};
+
+const TWICE_EACH = {
+  "history.list": 2,
+  "lock.state": 2,
+  "status.check": 2,
+  "status.diff": 2,
+  "usage.summary": 2,
+};
+
+function callCounts(): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const call of rpcCalls) {
+    counts[call.method] = (counts[call.method] ?? 0) + 1;
+  }
+  return counts;
+}
+
+describe("OverviewPanel", () => {
   it("names the page in its header", async () => {
     stubActivity(TRACKED_RUN);
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
-    expect(view.get("h1").textContent).toBe("Activity");
+    expect(view.get("h1").textContent).toBe("Overview");
   });
 
   it("shows both panes as loading while the two reads are still open", () => {
-    stubRpc({
+    stubOverview({
+      "status.diff": diffResult(DEFAULT_LOCALES),
+      "status.check": checkResult(DEFAULT_ROWS),
+      "lock.state": NO_LOCK,
       "usage.summary": () => new Promise(() => {}),
       "history.list": () => new Promise(() => {}),
     });
 
-    const view = render(<ActivityPanel refreshToken={0} />);
+    const view = render(<OverviewPanel refreshToken={0} />);
 
-    expect(view.all('[role="status"]').map((node) => node.textContent?.trim())).toEqual([
-      "Loading...",
-      "Loading...",
-    ]);
+    expect(
+      view.all('[role="status"]').filter((node) => node.textContent?.trim() === "Loading..."),
+    ).toHaveLength(2);
   });
 
-  it("reads the commit feed and the usage snapshot once each, with no parameters", async () => {
+  it("reads every source once, with no parameters, so the last run is read a single time", async () => {
     stubActivity(TRACKED_RUN);
 
-    await renderAsync(<ActivityPanel refreshToken={0} />);
+    await renderAsync(<OverviewPanel refreshToken={0} />);
 
-    expect(rpcCalls).toEqual([
-      { method: "usage.summary", params: {} },
-      { method: "history.list", params: {} },
-    ]);
+    expect(callCounts()).toEqual(ONCE_EACH);
   });
 
-  it("re-reads both sources when the refresh token changes", async () => {
+  it("re-reads every source when the refresh token changes", async () => {
     stubActivity(TRACKED_RUN);
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
-    view.rerender(<ActivityPanel refreshToken={1} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+    view.rerender(<OverviewPanel refreshToken={1} />);
     await flush();
 
-    expect(rpcCalls).toEqual([
-      { method: "usage.summary", params: {} },
-      { method: "history.list", params: {} },
-      { method: "usage.summary", params: {} },
-      { method: "history.list", params: {} },
-    ]);
+    expect(callCounts()).toEqual(TWICE_EACH);
   });
 
   it("renders one feed row per commit, with the short hash and calendar date", async () => {
     stubActivity(TRACKED_RUN);
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
     const rows = view.all("ul.max-w-3xl > li");
 
     expect(rows).toHaveLength(2);
@@ -143,7 +321,7 @@ describe("ActivityPanel", () => {
   it("lists the files a commit touched, and omits the list for a commit with none", async () => {
     stubActivity(TRACKED_RUN);
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
     const lists = view.all('ul[aria-label="Files changed"]');
 
     expect(lists).toHaveLength(1);
@@ -153,7 +331,7 @@ describe("ActivityPanel", () => {
   it("renders the run's token totals as two tiles", async () => {
     stubActivity(TRACKED_RUN);
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(metricValue(view, "Input tokens")).toBe("640");
     expect(metricValue(view, "Output tokens")).toBe("128");
@@ -162,7 +340,7 @@ describe("ActivityPanel", () => {
   it("stamps the rail with the run's own timestamp, so it never reads as a live counter", async () => {
     stubActivity(TRACKED_RUN);
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(view.text()).toContain(`As of ${formatTimestamp(GENERATED_AT)}`);
   });
@@ -170,7 +348,7 @@ describe("ActivityPanel", () => {
   it("says tokens were not reported rather than showing a fabricated zero", async () => {
     stubActivity({ available: true, generatedAt: GENERATED_AT });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(metricValue(view, "Tokens")).toBe("Not reported");
     expect(metricHint(view, "Tokens")).toBe(
@@ -182,7 +360,7 @@ describe("ActivityPanel", () => {
   it("renders a tracked budget as a meter plus a within-budget badge", async () => {
     stubActivity(TRACKED_RUN);
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
     const meter = metricCard(view, "Budget").querySelector<HTMLElement>('[style*="width"]');
 
     expect(metricValue(view, "Budget")).toBe("250 / 800");
@@ -206,7 +384,7 @@ describe("ActivityPanel", () => {
       },
     });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
     const meter = metricCard(view, "Budget").querySelector<HTMLElement>('[style*="width"]');
 
     expect(meter?.style.width).toBe("100%");
@@ -227,7 +405,7 @@ describe("ActivityPanel", () => {
       },
     });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(metricValue(view, "Budget")).toBe("794 / 800");
     expect(metricHint(view, "Budget")).toContain("estimated");
@@ -248,7 +426,7 @@ describe("ActivityPanel", () => {
       },
     });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
     const meter = metricCard(view, "Budget").querySelector<HTMLElement>('[style*="width"]');
     const status = metricCard(view, "Budget status");
 
@@ -272,7 +450,7 @@ describe("ActivityPanel", () => {
       },
     });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(metricValue(view, "Budget")).toBe("0 / 800");
     expect(metricHint(view, "Budget")).toBe("Behavior: warn");
@@ -292,7 +470,7 @@ describe("ActivityPanel", () => {
       },
     });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(metricHint(view, "Budget")).toBe("Behavior: stop");
   });
@@ -304,7 +482,7 @@ describe("ActivityPanel", () => {
       usage: { inputTokens: 640, outputTokens: 128 },
     });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(view.text()).not.toContain("Budget");
     expect(metricValue(view, "Input tokens")).toBe("640");
@@ -313,7 +491,7 @@ describe("ActivityPanel", () => {
   it("invites a first run when no usage snapshot has been recorded", async () => {
     stubActivity({ available: false });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(view.text()).toContain("No run recorded yet");
     expect(view.text()).toContain("to record one.");
@@ -321,12 +499,12 @@ describe("ActivityPanel", () => {
   });
 
   it("renders a first usage read that fails as a hard error, with no rail data", async () => {
-    stubRpc({
+    stubOverview({
       "usage.summary": rpcError("SNAPSHOT_UNREADABLE", "the run snapshot could not be read"),
       "history.list": historyAnswer(LOADED_HISTORY),
     });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(alertText(view)).toBe("the run snapshot could not be read");
     expect(view.text()).not.toContain("Input tokens");
@@ -334,7 +512,7 @@ describe("ActivityPanel", () => {
 
   it("keeps the last good usage data, marked stale, when a re-fetch fails", async () => {
     let attempts = 0;
-    stubRpc({
+    stubOverview({
       "history.list": historyAnswer(LOADED_HISTORY),
       "usage.summary": () => {
         attempts += 1;
@@ -344,8 +522,8 @@ describe("ActivityPanel", () => {
       },
     });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
-    view.rerender(<ActivityPanel refreshToken={1} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+    view.rerender(<OverviewPanel refreshToken={1} />);
     await flush();
 
     expect(alertText(view)).toBe(
@@ -357,7 +535,7 @@ describe("ActivityPanel", () => {
   it("renders history as unavailable, not an error, for a project without git", async () => {
     stubActivity(TRACKED_RUN, { available: false, reason: "not-a-repository" });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(view.text()).toContain("History unavailable");
     expect(view.text()).toContain("This project is not a git repository, or git is not installed.");
@@ -367,19 +545,19 @@ describe("ActivityPanel", () => {
   it("explains an empty commit feed with the panel's own message", async () => {
     stubActivity(TRACKED_RUN, { available: true, commits: [] });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(view.text()).toContain("No commits yet");
     expect(view.text()).toContain("No commit history yet for the source or target locale files.");
   });
 
   it("renders a failed history read as an error beside a healthy rail", async () => {
-    stubRpc({
+    stubOverview({
       "usage.summary": usageAnswer(TRACKED_RUN),
       "history.list": rpcError("INTERNAL"),
     });
 
-    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
     expect(alertText(view)).toBe(
       "An unexpected server error occurred. Check the terminal running Studio for details.",
@@ -389,7 +567,7 @@ describe("ActivityPanel", () => {
 
   it("ignores answers that arrive after the panel unmounted", async () => {
     let answer: (() => void) | undefined;
-    stubRpc({
+    stubOverview({
       "history.list": historyAnswer(LOADED_HISTORY),
       "usage.summary": () =>
         new Promise((resolve) => {
@@ -399,11 +577,517 @@ describe("ActivityPanel", () => {
         }),
     });
 
-    const view = render(<ActivityPanel refreshToken={0} />);
+    const view = render(<OverviewPanel refreshToken={0} />);
     view.unmount();
     answer?.();
     await flush();
 
     expect(view.container.textContent).toBe("");
+  });
+
+  it("re-reads the lock state on every refresh token change", async () => {
+    stubPage();
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(rpcCalls.filter((call) => call.method === "lock.state")).toHaveLength(2);
+  });
+
+  it("ignores a lock response that a later refresh already superseded", async () => {
+    const lock = deferredAnswers();
+    stubSyncedPage({ "lock.state": lock.handler });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
+
+    lock.answer(1, lockResult(9, []));
+    await flush();
+    lock.answer(0, lockResult(1, []));
+    await flush();
+
+    expect(view.getByText("h2", "Locales").parentElement?.textContent).toBe("LocalesLock v9");
+  });
+});
+
+describe("OverviewPanel metrics", () => {
+  const generatedAt = "2026-08-01T10:00:00.000Z";
+
+  it("withholds an attention figure while the diff is still loading", () => {
+    stubPage({ "status.diff": PENDING });
+
+    const view = render(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Needs attention")).toMatchObject({
+      value: "…",
+      hint: "Checking pending changes.",
+    });
+  });
+
+  it("marks the attention figure unavailable when the diff read failed", async () => {
+    stubPage({ "status.diff": rpcError("INTERNAL", "gone") });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Needs attention")).toMatchObject({
+      value: "N/A",
+      hint: "The pending-change check failed; details below.",
+    });
+  });
+
+  it("reads zero keys needing attention when every locale is in sync", async () => {
+    stubSyncedPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Needs attention")).toMatchObject({
+      value: "0",
+      hint: "Everything is in sync.",
+    });
+  });
+
+  it("counts the distinct drift keys across every locale", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Needs attention")).toMatchObject({
+      value: "2",
+      hint: "Across 2 of 2 target locales.",
+    });
+  });
+
+  it("says locale rather than locales for a single-locale project", async () => {
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { missing: ["app.title"] })]),
+      "status.check": checkResult([{ locale: "de", missing: 1, stale: 0, upToDate: 9 }]),
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Needs attention").hint).toBe("Across 1 of 1 target locale.");
+    expect(metricTile(view, "Avg coverage").hint).toBe("Across 1 target locale.");
+  });
+
+  it("falls back to a vague attention hint until the coverage read answers", async () => {
+    stubPage({ "status.check": PENDING });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Needs attention").hint).toBe("Across your target locales.");
+  });
+
+  it("withholds the coverage figure and its meter while the coverage read is open", async () => {
+    stubSyncedPage({ "status.check": PENDING });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Avg coverage")).toEqual({
+      value: "…",
+      hint: "Loading locale coverage.",
+      meterWidth: null,
+    });
+  });
+
+  it("meters the mean coverage once the rows are in", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Avg coverage")).toEqual({
+      value: "85%",
+      hint: "Across 2 target locales.",
+      meterWidth: "85%",
+    });
+  });
+
+  it("withholds the in-sync tally while the coverage read is open", async () => {
+    stubSyncedPage({ "status.check": PENDING });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Locales in sync")).toMatchObject({
+      value: "…",
+      hint: "Loading sync state.",
+    });
+  });
+
+  it("tallies how many locales are in sync when some are behind", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Locales in sync")).toMatchObject({
+      value: "0 / 2",
+      hint: "At least one locale is out of sync.",
+    });
+  });
+
+  it("tallies every locale as in sync when none is behind", async () => {
+    stubSyncedPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Locales in sync")).toMatchObject({
+      value: "2 / 2",
+      hint: "All target locales are in sync.",
+    });
+  });
+
+  it("withholds the last run while the usage read is open", async () => {
+    stubPage({ "usage.summary": PENDING });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run")).toMatchObject({
+      value: "…",
+      hint: "Loading the last recorded run.",
+    });
+  });
+
+  it("points at the CLI when no run has been recorded yet", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run")).toMatchObject({
+      value: "No run yet",
+      hint: "Run verbatra translate or watch to record one.",
+    });
+  });
+
+  it("summarizes the last run's tokens and flags a reached budget ceiling", async () => {
+    stubPage({
+      "usage.summary": {
+        ok: true,
+        result: {
+          available: true,
+          generatedAt,
+          usage: { inputTokens: 12345, outputTokens: 678 },
+          budget: {
+            maxTokens: 1000,
+            behavior: "warn",
+            supported: true,
+            tokensUsed: 1200,
+            exceeded: true,
+          },
+        },
+      },
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run")).toMatchObject({
+      value: "12,345 / 678",
+      hint: `Tokens in / out. Budget ceiling reached. As of ${formatTimestamp(generatedAt)}`,
+    });
+  });
+
+  it("reports a tracked budget that is still within its ceiling", async () => {
+    stubPage({
+      "usage.summary": {
+        ok: true,
+        result: {
+          available: true,
+          generatedAt,
+          usage: { inputTokens: 10, outputTokens: 20 },
+          budget: {
+            maxTokens: 1000,
+            behavior: "stop",
+            supported: true,
+            tokensUsed: 500,
+            exceeded: false,
+          },
+        },
+      },
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run").hint).toBe(
+      `Tokens in / out. Within budget. As of ${formatTimestamp(generatedAt)}`,
+    );
+  });
+
+  it("says a stop run refused under its ceiling stopped before it, not that it reached it", async () => {
+    stubPage({
+      "usage.summary": {
+        ok: true,
+        result: {
+          available: true,
+          generatedAt,
+          usage: { inputTokens: 4000, outputTokens: 2000 },
+          budget: {
+            maxTokens: 10000,
+            behavior: "stop",
+            supported: true,
+            tokensUsed: 6000,
+            exceeded: true,
+          },
+        },
+      },
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run").hint).toBe(
+      `Tokens in / out. Stopped before the budget ceiling. As of ${formatTimestamp(generatedAt)}`,
+    );
+  });
+
+  it("still reports where an estimated budget stopped, not silence", async () => {
+    stubPage({
+      "usage.summary": {
+        ok: true,
+        result: {
+          available: true,
+          generatedAt,
+          usage: { inputTokens: 10, outputTokens: 20 },
+          budget: {
+            maxTokens: 1000,
+            behavior: "stop",
+            supported: false,
+            tokensUsed: 994,
+            exceeded: true,
+          },
+        },
+      },
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run").hint).toBe(
+      `Tokens in / out. Stopped before the budget ceiling. As of ${formatTimestamp(generatedAt)}`,
+    );
+  });
+
+  it("reports within-budget for an estimated budget that never reached its ceiling", async () => {
+    stubPage({
+      "usage.summary": {
+        ok: true,
+        result: {
+          available: true,
+          generatedAt,
+          budget: {
+            maxTokens: 1000,
+            behavior: "warn",
+            supported: false,
+            tokensUsed: 120,
+            exceeded: false,
+          },
+        },
+      },
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run")).toMatchObject({
+      value: "Not reported",
+      hint: `No token usage was recorded: the run called no provider, or its provider does not report usage. Within budget. As of ${formatTimestamp(generatedAt)}`,
+    });
+  });
+
+  it("says so plainly when the provider reported no tokens and no budget was set", async () => {
+    stubPage({ "usage.summary": { ok: true, result: { available: true, generatedAt } } });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run")).toMatchObject({
+      value: "Not reported",
+      hint: `No token usage was recorded: the run called no provider, or its provider does not report usage. As of ${formatTimestamp(generatedAt)}`,
+    });
+  });
+
+  it("holds a placeholder line under the tiles while the diff loads", () => {
+    stubPage({ "status.diff": PENDING });
+
+    const view = render(<OverviewPanel refreshToken={1} />);
+
+    expect(view.query("span.h-5")).not.toBeNull();
+  });
+
+  it("drops the placeholder line once the diff has loaded", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(view.query("span.h-5")).toBeNull();
+  });
+
+  it("reads a project with no target locales as fully covered", async () => {
+    stubPage({ "status.diff": diffResult([]), "status.check": checkResult([]) });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Avg coverage")).toMatchObject({
+      value: "100%",
+      hint: "Across 0 target locales.",
+    });
+  });
+});
+
+describe("OverviewPanel locales section", () => {
+  it("announces the coverage table while the status read is open", async () => {
+    stubSyncedPage({ "status.check": PENDING });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    const section = view.getByText("h2", "Locales").closest("section");
+
+    expect(section?.querySelector('[role="status"]')?.textContent).toBe("Loading locale coverage…");
+  });
+
+  it("reports a failed status read in place of the coverage table", async () => {
+    stubSyncedPage({ "status.check": rpcError("SOURCE_UNREADABLE", "no source file") });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(alertTexts(view)).toEqual(["The source locale file could not be found on disk."]);
+  });
+
+  it("keeps the last known coverage rows when a status re-read fails", async () => {
+    stubSyncedPage({
+      "status.check": answersInOrder([
+        checkResult(IN_SYNC_ROWS),
+        rpcError("METHOD_RATE_LIMITED", "slow down"),
+      ]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(alertTexts(view)).toEqual([
+      "Showing the last known status. Studio is limiting how often this action can run. Wait a moment and try again.",
+    ]);
+    expect(coverageRows(view)).toHaveLength(2);
+  });
+
+  it("renders one coverage row per locale, with its percentage and key counts", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(cellTexts(coverageRows(view)[0])).toEqual(["de", "80%8 / 10 keys", "1", "1", "8"]);
+  });
+
+  it("names the lock version next to the section heading", async () => {
+    stubSyncedPage({ "lock.state": lockResult(3, []) });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(view.getByText("h2", "Locales").parentElement?.textContent).toBe("LocalesLock v3");
+  });
+
+  it("labels each locale's recorded lock entry against the current files", async () => {
+    stubSyncedPage({
+      "status.check": checkResult([
+        { locale: "de", missing: 0, stale: 0, upToDate: 10 },
+        { locale: "fr", missing: 0, stale: 0, upToDate: 10 },
+        { locale: "es", missing: 0, stale: 0, upToDate: 10 },
+        { locale: "it", missing: 0, stale: 0, upToDate: 10 },
+      ]),
+      "lock.state": lockResult(3, [
+        { locale: "de", keyCount: 10, missing: 2, stale: 0, upToDate: 8 },
+        { locale: "fr", keyCount: 10, missing: 0, stale: 3, upToDate: 7 },
+        { locale: "es", keyCount: 10, missing: 0, stale: 0, upToDate: 10 },
+      ]),
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(coverageRows(view).map((row) => cellTexts(row)[5])).toEqual([
+      "Drift",
+      "Drift",
+      "In step",
+      "Not recorded",
+    ]);
+  });
+
+  it("tabulates the lock file's own per-locale counts behind the detail disclosure", async () => {
+    stubSyncedPage({
+      "lock.state": lockResult(3, [
+        { locale: "de", keyCount: 10, missing: 2, stale: 1, upToDate: 7 },
+      ]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    const detail = view.getByText("summary", "Lock file details").parentElement;
+
+    expect(cellTexts(detail?.querySelector<HTMLElement>("tbody tr") ?? undefined)).toEqual([
+      "de",
+      "10",
+      "2",
+      "1",
+      "7",
+      "Unavailable",
+    ]);
+  });
+
+  it("summarizes who wrote each locale's current values in the lock file details", async () => {
+    const byOrigin = {
+      machine: 6,
+      memory: 0,
+      fuzzy: 0,
+      agent: 1,
+      human: 2,
+      import: 0,
+      unknown: 0,
+      unrecorded: 0,
+      external: 1,
+    };
+    stubSyncedPage({
+      "lock.state": {
+        ok: true,
+        result: {
+          exists: true,
+          version: 1,
+          locales: [
+            {
+              locale: "de",
+              keyCount: 10,
+              missing: 0,
+              stale: 0,
+              upToDate: 10,
+              provenance: {
+                byOrigin,
+                byReviewState: { unreviewed: 10, approved: 0, rejected: 0 },
+              },
+            },
+          ],
+        },
+      },
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    const detail = view.getByText("summary", "Lock file details").parentElement;
+
+    const items = [...(detail?.querySelectorAll("tbody tr td:last-child li") ?? [])];
+    expect(items.map((item) => item.textContent)).toEqual([
+      "6 machine",
+      "1 agent",
+      "2 human",
+      "1 edited outside verbatra",
+    ]);
+    expect(items.every((item) => item.className.includes("whitespace-nowrap"))).toBe(true);
+  });
+
+  it("explains the missing lock file instead of showing a lock column", async () => {
+    stubSyncedPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(view.text()).toContain("No lock file yet.");
+    expect(view.all("th").map((cell) => cell.textContent)).not.toContain("Lock");
+  });
+
+  it("reports a failed lock read under the coverage table", async () => {
+    stubSyncedPage({ "lock.state": rpcError("LOCK_FILE_INVALID", "corrupt") });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(alertTexts(view)).toEqual([
+      "The lock file is missing, corrupt, or at an unsupported version.",
+    ]);
   });
 });

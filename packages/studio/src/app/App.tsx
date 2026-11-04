@@ -13,8 +13,8 @@ import { AppHeader } from "./AppHeader.js";
 import { refreshBus, sessionStore } from "./api.js";
 import { NavDrawer } from "./NavDrawer.js";
 import type { PanelProps } from "./panel-props.js";
-import { ActivityPanel } from "./panels/ActivityPanel.js";
 import { GlossaryPanel } from "./panels/GlossaryPanel.js";
+import { OverviewPanel } from "./panels/OverviewPanel.js";
 import { ReviewPanel } from "./panels/ReviewPanel.js";
 import { SettingsPanel } from "./panels/SettingsPanel.js";
 import { TranslationsPanel } from "./panels/TranslationsPanel.js";
@@ -25,7 +25,7 @@ import { useReviewQueue } from "./use-review-queue.js";
 import { useCanonicalHash, useRoute } from "./use-route.js";
 
 const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = {
-  overview: ActivityPanel,
+  overview: OverviewPanel,
   translations: TranslationsPanel,
   review: ReviewPanel,
   glossary: GlossaryPanel,
