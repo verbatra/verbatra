@@ -18,7 +18,7 @@ export function KeyStatusCell({
       <KeyLocaleStatusBadge status={status} />
       {inReview ? (
         <span className="inline-flex text-warning" data-marker="review">
-          <Icon name="review" size={14} />
+          <Icon name="inbox" size={14} />
           <span className="sr-only">In the review queue</span>
         </span>
       ) : null}

@@ -75,7 +75,13 @@ function Coverage({
   );
 }
 
-function SourceText({ value }: { readonly value: string | undefined }): ReactNode {
+function SourceText({
+  value,
+  className,
+}: {
+  readonly value: string | undefined;
+  readonly className: string;
+}): ReactNode {
   if (value === undefined) {
     return <span className="text-muted-foreground">No source text</span>;
   }
@@ -83,7 +89,7 @@ function SourceText({ value }: { readonly value: string | undefined }): ReactNod
     <TranslationValue
       value={value}
       title={value}
-      className="block max-w-[22rem] truncate text-muted-foreground"
+      className={cn("block truncate text-muted-foreground", className)}
       data-source=""
     />
   );
@@ -131,7 +137,7 @@ function MatrixTable({
                   {key}
                 </th>
                 <TableCell>
-                  <SourceText value={sourceTextFor(localeValues, key)} />
+                  <SourceText value={sourceTextFor(localeValues, key)} className="max-w-[14rem]" />
                 </TableCell>
                 {deriveKeyLocaleStatus(locales, key).map((cell, col) => (
                   <TableCell key={cell.locale} className="px-2 py-1">
@@ -191,7 +197,10 @@ function EntriesTable({
                     </button>
                   </th>
                   <TableCell>
-                    <SourceText value={pair?.source ?? sourceTextFor(localeValues, key)} />
+                    <SourceText
+                      value={pair?.source ?? sourceTextFor(localeValues, key)}
+                      className="max-w-[22rem]"
+                    />
                   </TableCell>
                   <TableCell>
                     {pair?.target === undefined ? (
