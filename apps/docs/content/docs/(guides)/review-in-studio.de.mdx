@@ -29,7 +29,7 @@ Translations ist eine Tabelle aller Keys, die Aufmerksamkeit brauchen: fehlend, 
 
 ### Key-Details
 
-Klick auf einen Key, um den Wert jeder Locale mit einer Integritätsanzeige zu sehen: Platzhalter stimmen, eine Platzhalter-Abweichung mit den benannten Tokens oder ungültige Nachrichtensyntax. Außerdem angezeigt:
+Klick auf einen Key, um seinen Editor zu öffnen (ab 1280px Breite neben der Tabelle, darunter als Schublade). Er listet den Wert jeder Locale mit einer Integritätsanzeige: Platzhalter stimmen, eine Platzhalter-Abweichung mit den benannten Tokens oder ungültige Nachrichtensyntax. Außerdem angezeigt:
 
 | Detail | Zeigt |
 | --- | --- |
@@ -45,13 +45,13 @@ Die Chips neben der Suche grenzen die Tabelle nach Zustand ein, darunter **Revie
 
 ### Bearbeiten mit Integritäts-Gate
 
-**Edit** öffnet den Editor. Beim Speichern durchläuft der Wert das [Integritäts-Gate](/de/docs/translation-safety#das-integritäts-gate); ein abgelehnter Wert wird nicht geschrieben, und der Grund wird angezeigt. Eine angenommene Bearbeitung schreibt die Locale-Datei und aktualisiert die Lock-Datei. Bearbeiten braucht kein Flag und ruft nie einen Provider auf.
+**Edit** öffnet den Entwurf dieser Locale. Beim Speichern durchläuft der Wert das [Integritäts-Gate](/de/docs/translation-safety#das-integritäts-gate); ein abgelehnter Wert wird nicht geschrieben, und der Grund wird angezeigt. Eine angenommene Bearbeitung schreibt die Locale-Datei und aktualisiert die Lock-Datei. Bearbeiten braucht kein Flag und ruft nie einen Provider auf.
 
-#### Editor mit Vergleichsansicht
+#### Entwurfsprüfungen
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Der Editor zeigt Quelle und Entwurf nebeneinander, mit der Beschreibung des Keys, den Glossarbegriffen, die dein Entwurf verwendet oder verfehlt, und seiner Länge im Vergleich zur Quelle und zu `maxLength`. Strg oder Cmd mit Enter speichert.
+Der Editor zeigt die Beschreibung des Keys, den Glossarbegriffen, die dein Entwurf verwendet oder verfehlt, und seiner Länge im Vergleich zur Quelle und zu `maxLength`. Verlässt du den Key mit ungespeicherten Änderungen, fragt Studio, ob du speichern, verwerfen oder weiterbearbeiten willst. Strg oder Cmd mit Enter speichert.
 
 ## Arbeite die Review-Warteschlange ab
 

@@ -29,7 +29,7 @@ Translations est un tableau de toutes les clés qui demandent de l'attention : m
 
 ### Détails de la clé
 
-Clique sur une clé pour voir la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide. Également affiché :
+Clique sur une clé pour ouvrir son éditeur (à côté du tableau dès 1280px de large, en tiroir en dessous). Il liste la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide. Également affiché :
 
 | Détail | Affiche |
 | --- | --- |
@@ -45,13 +45,13 @@ Les puces à côté de la recherche restreignent le tableau par état, notamment
 
 ### Modifier avec la barrière d'intégrité
 
-**Edit** ouvre l'éditeur. L'enregistrement fait passer la valeur par la [barrière d'intégrité](/fr/docs/translation-safety#la-barrière-dintégrité) ; une valeur refusée n'est pas écrite, et la raison s'affiche. Une modification acceptée écrit le fichier de locale et met à jour le fichier de verrouillage. Modifier ne demande aucune option et n'appelle jamais de fournisseur.
+**Edit** ouvre le brouillon de cette locale. L'enregistrement fait passer la valeur par la [barrière d'intégrité](/fr/docs/translation-safety#la-barrière-dintégrité) ; une valeur refusée n'est pas écrite, et la raison s'affiche. Une modification acceptée écrit le fichier de locale et met à jour le fichier de verrouillage. Modifier ne demande aucune option et n'appelle jamais de fournisseur.
 
-#### Éditeur côte à côte
+#### Vérifications du brouillon
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-L'éditeur montre la source et ton brouillon côte à côte, avec la description de la clé, les termes du glossaire que ton brouillon utilise ou oublie, et sa longueur par rapport à la source et à `maxLength`. Ctrl ou Cmd avec Entrée enregistre.
+L'éditeur montre la description de la clé, les termes du glossaire que ton brouillon utilise ou oublie, et sa longueur par rapport à la source et à `maxLength`. Si tu quittes la clé avec des modifications non enregistrées, Studio demande d'enregistrer, d'abandonner ou de continuer à modifier. Ctrl ou Cmd avec Entrée enregistre.
 
 ## Traiter la file de relecture
 
