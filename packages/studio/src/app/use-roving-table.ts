@@ -99,6 +99,7 @@ export function useRovingTable(
         const stop = stopOf(event.target);
         if (stop !== null) {
           setPosition(positionOf(stop));
+          stop.scrollIntoView({ block: "nearest", inline: "nearest" });
         }
       },
       onClick(event) {

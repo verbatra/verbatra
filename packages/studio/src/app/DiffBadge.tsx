@@ -15,6 +15,16 @@ export function isDiffTone(value: string): value is DiffTone {
   return Object.hasOwn(DIFF_LABEL, value);
 }
 
+export function keyLocaleStatusLabel(status: KeyLocaleStatus): string {
+  if (status === "in-sync") {
+    return "In sync";
+  }
+  if (status === "absent") {
+    return "Absent";
+  }
+  return DIFF_LABEL[status];
+}
+
 export function DiffBadge({ tone }: { readonly tone: DiffTone }): ReactNode {
   return <Badge tone={tone}>{DIFF_LABEL[tone]}</Badge>;
 }

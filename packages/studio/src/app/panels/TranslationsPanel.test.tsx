@@ -161,7 +161,7 @@ function rowKeys(view: RenderResult): string[] {
 function cellButton(view: RenderResult, key: string, locale: string): HTMLButtonElement {
   const found = view
     .all("tbody button")
-    .find((button) => button.textContent?.startsWith(`${key} in ${locale}: `));
+    .find((button) => button.getAttribute("aria-label")?.startsWith(`${key} in ${locale}: `));
   if (!(found instanceof HTMLButtonElement)) {
     throw new Error(`no cell for ${key} in ${locale}`);
   }
@@ -169,7 +169,10 @@ function cellButton(view: RenderResult, key: string, locale: string): HTMLButton
 }
 
 function cellText(view: RenderResult, key: string, locale: string): string {
-  return (cellButton(view, key, locale).textContent ?? "").replace(`${key} in ${locale}: `, "");
+  return (cellButton(view, key, locale).getAttribute("aria-label") ?? "").replace(
+    `${key} in ${locale}: `,
+    "",
+  );
 }
 
 function chooseLocale(view: RenderResult, locale: string): void {
@@ -813,11 +816,13 @@ describe("TranslationsPanel key table", () => {
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
     await flush();
 
-    expect(cellButton(view, "app.title", "de").textContent).toBe("app.title in de: Missing");
-    expect(cellButton(view, "app.body", "de").textContent).toBe(
+    expect(cellButton(view, "app.title", "de").getAttribute("aria-label")).toBe(
+      "app.title in de: Missing",
+    );
+    expect(cellButton(view, "app.body", "de").getAttribute("aria-label")).toBe(
       "app.body in de: Changed, integrity problem",
     );
-    expect(cellButton(view, "app.subtitle", "fr").textContent).toBe(
+    expect(cellButton(view, "app.subtitle", "fr").getAttribute("aria-label")).toBe(
       "app.subtitle in fr: In sync, in the review queue",
     );
   });

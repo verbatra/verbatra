@@ -19,7 +19,7 @@ import type { LocaleValuesData } from "../client/locale-values.js";
 import { sourceTextFor } from "../client/locale-values.js";
 import type { RefreshableView } from "../client/state.js";
 import { ErrorMessage } from "./ErrorMessage.js";
-import { KeyStatusCell, MarkerTip } from "./KeyStatusCell.js";
+import { cellName, KeyStatusCell, MarkerTip } from "./KeyStatusCell.js";
 import { cn } from "./lib/cn.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ScrollHint } from "./ScrollHint.js";
@@ -101,7 +101,7 @@ function Coverage({
     );
   }
   return (
-    <div className="mt-1 flex items-center gap-2 font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">
+    <div className="mt-1 flex items-center gap-x-2 font-sans text-xs max-md:flex-wrap font-normal normal-case tracking-normal text-muted-foreground">
       <ProgressBar percent={percent} className="w-[60px] flex-none" />
       <span className="whitespace-nowrap">{percent}% up to date</span>
     </div>
@@ -168,7 +168,7 @@ function MatrixTable({
                 <TableHeaderCell
                   key={locale.locale}
                   scope="col"
-                  className={cn(HEAD_CELL, "h-16 w-44 min-w-44")}
+                  className={cn(HEAD_CELL, "h-16 w-[10.5rem] min-w-[10.5rem] md:w-44 md:min-w-44")}
                 >
                   <span className="font-mono">{locale.locale}</span>
                   <Coverage
@@ -198,9 +198,13 @@ function MatrixTable({
                   return (
                     <TableCell key={cell.locale} className={cn(BODY_CELL, "px-2")}>
                       <MarkerTip held={held}>
-                        <button type="button" className={STOP} {...roving.stopProps(row, col)}>
-                          <span className="sr-only">{`${key} in ${cell.locale}: `}</span>
-                          <KeyStatusCell status={cell.status} held={held} />
+                        <button
+                          type="button"
+                          className={STOP}
+                          aria-label={cellName(key, cell.locale, cell.status, held)}
+                          {...roving.stopProps(row, col)}
+                        >
+                          <KeyStatusCell status={cell.status} held={held} announce={false} />
                         </button>
                       </MarkerTip>
                     </TableCell>

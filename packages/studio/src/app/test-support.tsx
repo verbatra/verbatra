@@ -256,6 +256,10 @@ export function apiMock(): AppApiModule {
   };
 }
 
+if (typeof Element !== "undefined" && typeof Element.prototype.scrollIntoView !== "function") {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 afterEach(() => {
   for (const entry of mounted.splice(0)) {
     act(() => {

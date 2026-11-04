@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { DiffBadge, type DiffTone, isDiffTone, KeyLocaleStatusBadge } from "./DiffBadge.js";
+import {
+  DiffBadge,
+  type DiffTone,
+  isDiffTone,
+  KeyLocaleStatusBadge,
+  keyLocaleStatusLabel,
+} from "./DiffBadge.js";
 import { render } from "./test-support.js";
 
 const TONE_EXPECTATIONS: Readonly<Record<DiffTone, { readonly label: string }>> = {
@@ -63,6 +69,19 @@ describe("KeyLocaleStatusBadge", () => {
     ["missing", "Missing"],
   ] as const)("labels %s as %s", (status, label) => {
     expect(render(<KeyLocaleStatusBadge status={status} />).text()).toBe(label);
+  });
+});
+
+describe("keyLocaleStatusLabel", () => {
+  it.each([
+    ["in-sync", "In sync"],
+    ["absent", "Absent"],
+    ["missing", "Missing"],
+    ["changed", "Changed"],
+    ["orphaned", "Orphaned"],
+    ["protected", "Protected"],
+  ] as const)("words %s as %s, the same as its badge", (status, label) => {
+    expect(keyLocaleStatusLabel(status)).toBe(label);
   });
 });
 

@@ -127,7 +127,7 @@ describe("KeysTable cells", () => {
 
     const view = await renderAsync(table({ locales: [DE, FR] }));
 
-    expect(view.all("tbody button").map((cell) => cell.textContent)).toEqual([
+    expect(view.all("tbody button").map((cell) => cell.getAttribute("aria-label"))).toEqual([
       "a.missing in de: Missing",
       "a.missing in fr: In sync",
       "b.changed in de: Changed",
@@ -198,6 +198,18 @@ describe("KeysTable focus", () => {
     expect(tabStops(view)).toEqual(["1:1"]);
   });
 
+  it("scrolls a cell that takes focus fully into view, honouring the sticky column and header", async () => {
+    stubRpc(NO_COVERAGE);
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView");
+    const view = await renderAsync(table({ locales: [DE, FR] }));
+
+    act(() => view.get('[data-key="b.changed"] [data-col="1"]').focus());
+
+    expect(spy).toHaveBeenCalledWith({ block: "nearest", inline: "nearest" });
+    expect(spy.mock.instances.at(-1)).toBe(view.get('[data-key="b.changed"] [data-col="1"]'));
+    spy.mockRestore();
+  });
+
   it("moves focus with the arrow keys and to the cell the tab stop then names", async () => {
     stubRpc(NO_COVERAGE);
     const view = await renderAsync(table({ locales: [DE, FR] }));
@@ -246,13 +258,16 @@ describe("KeysTable markers", () => {
     stubRpc(NO_COVERAGE);
     const matrix = await renderAsync(table({ index: held }));
     expect(matrix.get("[role='tooltip']").textContent).toBe("In the review queue");
-    expect(matrix.get('[data-key="a.missing"] button').textContent).toBe(
+    expect(matrix.get('[data-key="a.missing"] button').getAttribute("aria-label")).toBe(
       "a.missing in de: Missing, in the review queue",
     );
     matrix.unmount();
 
     const entries = await renderAsync(table({ index: held, locale: "de" }));
     expect(entries.get("[role='tooltip']").textContent).toBe("In the review queue");
+    expect(entries.get('[data-key="a.missing"]').textContent).toContain(
+      "Missing, in the review queue",
+    );
   });
 
   it("keeps a marked cell the same width as an unmarked one, so the hit area matches", async () => {
