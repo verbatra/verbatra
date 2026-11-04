@@ -29,7 +29,7 @@ export function PageHeader({
         ) : null}
       </div>
       {actions !== undefined ? (
-        <div className="flex flex-none items-center gap-2">{actions}</div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>
       ) : null}
     </header>
   );

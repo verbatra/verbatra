@@ -53,14 +53,6 @@ describe("PageHeader", () => {
     expect(view.all("div")).toHaveLength(1);
   });
 
-  it("keeps the actions group from shrinking when the title wraps", () => {
-    const view = render(
-      <PageHeader title="Translations" actions={<button type="button">Refresh</button>} />,
-    );
-
-    expect(view.all("div")[1]?.className).toContain("flex-none");
-  });
-
   it("renders as a header element, so the block is a recognizable page banner", () => {
     const view = render(<PageHeader title="Translations" />);
 
@@ -77,5 +69,13 @@ describe("PageHeader", () => {
     const view = render(<PageHeader title="Glossary" />);
 
     expect(view.query("header div div")).toBeNull();
+  });
+
+  it("lets the actions wrap so a narrow screen never scrolls sideways", () => {
+    const view = render(
+      <PageHeader title="Translations" actions={<button type="button">Go</button>} />,
+    );
+
+    expect(view.get("header button").parentElement?.className).toContain("flex-wrap");
   });
 });
