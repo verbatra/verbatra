@@ -88,6 +88,20 @@ describe("hash changes made outside the app", () => {
     window.removeEventListener(ROUTE_CHANGE_EVENT, announced);
   });
 
+  it("restores the address before listeners registered after the module loaded get to read it", async () => {
+    dirty = true;
+    const seen: string[] = [];
+    const early = (): void => {
+      seen.push(window.location.hash);
+    };
+    window.addEventListener("hashchange", early);
+
+    await hashChange("#/review");
+    window.removeEventListener("hashchange", early);
+
+    expect(seen).toEqual([EDITOR]);
+  });
+
   it("applies the address that was reached when the caller proceeds", async () => {
     dirty = true;
     await hashChange("#/review");

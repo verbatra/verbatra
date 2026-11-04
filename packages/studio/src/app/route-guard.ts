@@ -39,14 +39,15 @@ function handleHashChange(): void {
   guard.onBlock(() => commitHash(reached));
 }
 
+if (typeof window !== "undefined") {
+  window.addEventListener("hashchange", handleHashChange);
+  window.addEventListener(ROUTE_CHANGE_EVENT, followHash);
+}
+
 export function installRouteGuard(guard: RouteGuard): () => void {
   activeGuard = guard;
   anchorHash = window.location.hash;
-  window.addEventListener("hashchange", handleHashChange);
-  window.addEventListener(ROUTE_CHANGE_EVENT, followHash);
   return () => {
-    window.removeEventListener("hashchange", handleHashChange);
-    window.removeEventListener(ROUTE_CHANGE_EVENT, followHash);
     if (activeGuard === guard) {
       activeGuard = null;
     }
