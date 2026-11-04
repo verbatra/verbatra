@@ -783,6 +783,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [editingLocale, setEditingLocale] = useState<string | null>(null);
+  const [lastEditedLocale, setLastEditedLocale] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<DiffViewMode>("grid");
   const status = useStatusData(refreshToken);
   const lock = useLockState(refreshToken);
@@ -856,11 +857,16 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
           keyName={selectedKey}
           locales={diff.locales}
           refreshToken={refreshToken}
+          focusLocale={lastEditedLocale}
           onClose={() => {
             setSelectedKey(null);
             setEditingLocale(null);
+            setLastEditedLocale(null);
           }}
-          onEditLocale={setEditingLocale}
+          onEditLocale={(locale) => {
+            setEditingLocale(locale);
+            setLastEditedLocale(locale);
+          }}
         />
       ) : null}
       {selectedKey !== null && editingLocale !== null ? (

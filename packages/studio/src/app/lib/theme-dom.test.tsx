@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { initTheme, THEME_OPTIONS, THEME_STORAGE_KEY, themeStore } from "./theme-dom.js";
+import {
+  initTheme,
+  THEME_LABELS,
+  THEME_MODES,
+  THEME_STORAGE_KEY,
+  themeStore,
+} from "./theme-dom.js";
 
 function installMatchMedia(prefersLight: boolean): void {
   vi.stubGlobal(
@@ -20,23 +26,23 @@ afterEach(() => {
   delete document.documentElement.dataset.theme;
 });
 
-describe("theme options", () => {
+describe("theme modes", () => {
   it("keeps the storage key the screenshot tooling and the head script read", () => {
     expect(THEME_STORAGE_KEY).toBe("verbatra-studio-theme");
   });
 
   it("covers every preference exactly once, system first", () => {
-    expect(THEME_OPTIONS.map((option) => option.value)).toEqual(["system", "light", "dark"]);
+    expect(THEME_MODES).toEqual(["system", "light", "dark"]);
   });
 
-  it("labels every option", () => {
-    for (const option of THEME_OPTIONS) {
-      expect(option.label.length).toBeGreaterThan(0);
+  it("labels every mode", () => {
+    for (const mode of THEME_MODES) {
+      expect(THEME_LABELS[mode].length).toBeGreaterThan(0);
     }
   });
 
   it("offers the store the same modes", () => {
-    expect(themeStore.modes).toEqual(THEME_OPTIONS.map((option) => option.value));
+    expect(themeStore.modes).toEqual(THEME_MODES);
   });
 });
 

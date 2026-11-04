@@ -16,6 +16,12 @@ import {
   stubRpc,
 } from "./test-support.js";
 
+vi.stubGlobal("matchMedia", () => ({
+  matches: false,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+}));
+
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
 const MACHINE = { origin: "machine", reviewState: "unreviewed" } as const;

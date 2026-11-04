@@ -217,13 +217,14 @@ describe("DesktopSidebar", () => {
     expect(collapsed.get('[aria-current="page"]').className).toContain("bg-sidebar-accent");
   });
 
-  it("describes each collapsed item by a tooltip bubble that screen readers can reach", () => {
+  it("shows each collapsed item's name in a tooltip without announcing it twice", () => {
     const view = renderDesktop({ collapsed: true });
     const bubble = view.getByText('[role="tooltip"]', "Review");
-    const control = view.get(`[aria-describedby~="${bubble.id}"]`);
+    const control = bubble.closest("[data-slot]")?.previousElementSibling;
 
-    expect(control.getAttribute("aria-label")).toContain("Review");
-    expect(bubble.closest("[aria-hidden]")).toBeNull();
+    expect(bubble.getAttribute("aria-hidden")).toBe("true");
+    expect(control?.getAttribute("aria-label")).toContain("Review");
+    expect(control?.hasAttribute("aria-describedby")).toBe(false);
   });
 });
 

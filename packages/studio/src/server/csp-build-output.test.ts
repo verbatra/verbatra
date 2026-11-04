@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -122,23 +123,37 @@ describe("built SPA output", () => {
     expect(missing).toEqual([]);
   });
 
-  it.each([
-    "popover.tsx",
-    "dropdown.tsx",
-    "tooltip.tsx",
-    "segmented-control.tsx",
-    "tabs.tsx",
-    "theme-toggle.tsx",
-  ])("compiles every utility class of the shared ui %s", async (file) => {
+  it.each(
+    readdirSync(fileURLToPath(new URL("../../../ui/src/", import.meta.url))).filter(
+      (file) => /\.tsx?$/.test(file) && !/\.test\.tsx?$|test-support|^index\.ts$/.test(file),
+    ),
+  )("compiles every utility class of the shared ui %s", async (file) => {
     const source = await readFile(
       fileURLToPath(new URL(`../../../ui/src/${file}`, import.meta.url)),
       "utf8",
     );
+    const SINGLE_WORD_UTILITIES = new Set([
+      "flex",
+      "block",
+      "inline",
+      "absolute",
+      "relative",
+      "invisible",
+      "truncate",
+      "grid",
+    ]);
+    const NOT_CLASSES = new Set(["bottom-end"]);
     const UTILITY =
-      /^(?:[a-z-]+:)*-?(?:p[xytblrse]?|m[xytblrse]?|gap|size|w|h|min-w|max-w|max-h|z|top|bottom|start|end|text|bg|border|rounded|shadow|opacity|translate|outline|flex|inline-flex|block|absolute|relative|invisible|overflow-y|items|justify|transition|delay|font|pointer-events|data)(?:-|$|\[)/;
+      /^(?:[a-z-]+:)*-?(?:p[xytblrse]?|m[xytblrse]?|gap|size|w|h|min-w|max-w|max-h|z|top|bottom|start|end|text|bg|border|rounded|shadow|opacity|translate|outline|flex|inline|inline-flex|block|absolute|relative|invisible|overflow|items|justify|transition|delay|font|pointer-events|whitespace|cursor|truncate|break|appearance|grid|space|leading|tracking|sr-only|data)(?:-|$|\[)/;
     const classes = [...source.matchAll(/"([^"\n]*)"/g)]
       .flatMap((match) => (match[1] ?? "").split(/\s+/))
-      .filter((name) => UTILITY.test(name) && !name.includes("\u0027"));
+      .filter(
+        (name) =>
+          UTILITY.test(name) &&
+          (/[-:]/.test(name) || SINGLE_WORD_UTILITIES.has(name)) &&
+          !NOT_CLASSES.has(name) &&
+          (!name.startsWith("data-") || name.startsWith("data-[")),
+      );
     const assets = await readdir(join(outDir, "assets"));
     const css = (
       await Promise.all(
@@ -148,7 +163,6 @@ describe("built SPA output", () => {
       )
     ).join("\n");
 
-    expect(classes.length).toBeGreaterThan(1);
     const missing = classes.filter(
       (name) => !css.includes(`.${name.replace(/[^\w-]/g, (char) => `\\${char}`)}`),
     );

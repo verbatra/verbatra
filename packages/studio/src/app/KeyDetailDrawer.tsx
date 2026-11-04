@@ -8,8 +8,8 @@ import {
   Section,
   useDialogA11y,
 } from "@verbatra/ui";
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import type { ReactNode, Ref } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DiffLocale, KeyLocaleStatusRow } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus } from "../client/diff-view.js";
 import {
@@ -37,6 +37,7 @@ export interface KeyDetailDrawerProps {
   readonly refreshToken: number;
   readonly onClose: () => void;
   readonly onEditLocale?: (locale: string) => void;
+  readonly focusLocale?: string | null;
 }
 
 type KeyValuesState =
@@ -183,7 +184,9 @@ function LocaleBlock({
   capabilities,
   values,
   onEditLocale,
+  editRef,
 }: {
+  readonly editRef: Ref<HTMLButtonElement> | undefined;
   readonly row: KeyLocaleStatusRow;
   readonly keyName: string;
   readonly integrity: readonly KeyIntegrityLocaleEntry[];
@@ -205,7 +208,11 @@ function LocaleBlock({
           capabilities={capabilities}
         />
         {canEdit ? (
-          <Button className="ms-auto" onClick={() => onEditLocale(row.locale)}>
+          <Button
+            {...(editRef === undefined ? {} : { ref: editRef })}
+            className="ms-auto"
+            onClick={() => onEditLocale(row.locale)}
+          >
             Edit
           </Button>
         ) : null}
@@ -223,11 +230,17 @@ export function KeyDetailDrawer({
   refreshToken,
   onClose,
   onEditLocale,
+  focusLocale = null,
 }: KeyDetailDrawerProps): ReactNode {
   const history = useHistoryList(refreshToken);
   const integrity = useKeyIntegrity(keyName, refreshToken);
   const capabilitiesState = useCapabilities();
-  const containerRef = useDialogA11y<HTMLDivElement>({ isOpen: true, onClose });
+  const editRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useDialogA11y<HTMLDivElement>({
+    isOpen: true,
+    onClose,
+    ...(focusLocale === null ? {} : { initialFocus: editRef }),
+  });
 
   const rows = deriveKeyLocaleStatus(locales, keyName);
   const values = useKeyValues(
@@ -272,6 +285,7 @@ export function KeyDetailDrawer({
               capabilities={capabilities}
               values={values}
               onEditLocale={onEditLocale}
+              editRef={row.locale === focusLocale ? editRef : undefined}
               key={row.locale}
             />
           ))}

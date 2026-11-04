@@ -9,6 +9,7 @@ import type { RenderResult, StubRpcHandler, StubRpcResult } from "../test-suppor
 import {
   clickAsync,
   flush,
+  pressKey,
   render,
   renderAsync,
   rpcCalls,
@@ -1328,6 +1329,20 @@ describe("TranslationsPanel key overlays", () => {
     await flush();
 
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
+  });
+
+  it("puts focus back on the Edit button of the edited locale after Escape from the editor", async () => {
+    stubPage(drawerStubs());
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await openKeyDrawer(view, "app.title", "de");
+    await clickAsync(view.getByText("button", "Edit"));
+    await flush();
+
+    pressKey("Escape");
+    await flush();
+
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
+    expect(document.activeElement).toBe(view.getByText("button", "Edit"));
   });
 
   it("returns to the drawer after an accepted edit", async () => {

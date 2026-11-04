@@ -6,8 +6,14 @@ import { Icon, type IconName } from "./icon.tsx";
 export const microLabelClassName =
   "font-mono text-[11px] font-semibold uppercase tracking-(--tracking-wide) text-(--text-muted)";
 
-export function MonoValue({ children }: { readonly children: ReactNode }): ReactNode {
-  return <span className="font-mono">{children}</span>;
+export function MonoValue({
+  children,
+  breakAnywhere = false,
+}: {
+  readonly children: ReactNode;
+  readonly breakAnywhere?: boolean;
+}): ReactNode {
+  return <span className={cn("font-mono", breakAnywhere && "break-all")}>{children}</span>;
 }
 
 export function Container({ children }: { readonly children: ReactNode }): ReactNode {

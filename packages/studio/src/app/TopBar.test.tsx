@@ -4,6 +4,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { TopBar } from "./TopBar.js";
 import { render, setConnectionStatus } from "./test-support.js";
 
+vi.stubGlobal("matchMedia", () => ({
+  matches: false,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+}));
+
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
 const DEGRADED_DELAY_MS = 1500;

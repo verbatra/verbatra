@@ -45,7 +45,7 @@ export function TopBar({ pageLabel, onOpenNav }: TopBarProps): ReactNode {
     <header className="flex h-14 flex-none items-center gap-3 border-b border-border bg-card px-4 md:px-6">
       <Button
         variant="ghost"
-        className="p-1.5 md:hidden"
+        className="min-h-11 min-w-11 p-1.5 md:hidden"
         onClick={onOpenNav}
         aria-label="Open navigation"
       >
@@ -54,7 +54,11 @@ export function TopBar({ pageLabel, onOpenNav }: TopBarProps): ReactNode {
       <span className={microLabelClassName}>{pageLabel}</span>
       <div className="ms-auto flex items-center gap-2">
         <LiveIndicator />
-        <ThemeToggle store={themeStore} label={describeThemeAction} />
+        <ThemeToggle
+          store={themeStore}
+          label={describeThemeAction}
+          announce={(mode) => `Theme set to ${THEME_LABELS[mode]}`}
+        />
       </div>
     </header>
   );
