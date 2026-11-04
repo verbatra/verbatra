@@ -59,6 +59,22 @@ describe("TopBar", () => {
     expect(view.get('[aria-label="Theme: System. Switch to Light."]')).not.toBeNull();
   });
 
+  it("announces each theme the toggle switches to", () => {
+    const view = mount();
+    const toggle = view.get("[data-theme-toggle]");
+    const region = view.all('[role="status"]').at(-1);
+
+    act(() => {
+      toggle.click();
+    });
+    expect(region?.textContent).toBe("Theme set to Light");
+
+    act(() => {
+      toggle.click();
+    });
+    expect(region?.textContent).toBe("Theme set to Dark");
+  });
+
   it("keeps the live-status region mounted but silent while the stream is healthy", () => {
     const view = mount();
 

@@ -441,4 +441,33 @@ describe("useDialogA11y: initial focus", () => {
 
     expect(outer).toHaveBeenCalledTimes(1);
   });
+
+  it("leaves Escape to the inner dialog when the outer one unmounts first", () => {
+    const outer = vi.fn();
+    const inner = vi.fn();
+    const both = (
+      <>
+        <Dialog isOpen onClose={outer}>
+          <button type="button">Outer</button>
+        </Dialog>
+        <Dialog isOpen onClose={inner}>
+          <button type="button">Inner</button>
+        </Dialog>
+      </>
+    );
+    const view = render(both);
+
+    view.rerender(
+      <>
+        {null}
+        <Dialog isOpen onClose={inner}>
+          <button type="button">Inner</button>
+        </Dialog>
+      </>,
+    );
+    pressKey("Escape");
+
+    expect(outer).not.toHaveBeenCalled();
+    expect(inner).toHaveBeenCalledTimes(1);
+  });
 });
