@@ -11,7 +11,7 @@ import {
 } from "react";
 import { cn } from "./cn.ts";
 
-export type TooltipSide = "end" | "bottom";
+export type TooltipSide = "end" | "bottom" | "bottom-end";
 
 export interface TooltipProps {
   readonly label: string;
@@ -21,6 +21,7 @@ export interface TooltipProps {
 
 interface DescribableProps {
   readonly disabled?: boolean;
+  readonly "aria-label"?: string;
   readonly "aria-describedby"?: string;
 }
 
@@ -29,7 +30,8 @@ const SLOT =
 
 const POSITION: Readonly<Record<TooltipSide, string>> = {
   end: "start-full top-1/2 ps-2 -translate-y-1/2",
-  bottom: "start-1/2 top-full pt-2 -translate-x-1/2",
+  bottom: "left-1/2 top-full pt-2 -translate-x-1/2",
+  "bottom-end": "end-0 top-full pt-2",
 };
 
 const BUBBLE =
@@ -44,7 +46,10 @@ export function Tooltip({ label, side = "end", children }: TooltipProps): ReactN
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const visible = (hovered || focused) && !dismissed;
+  const control = isValidElement<DescribableProps>(children) ? children : null;
+  const disabled = control?.props.disabled === true;
+  const visible = !disabled && (hovered || focused) && !dismissed;
+  const duplicatesName = control?.props["aria-label"] === label;
 
   useEffect(() => {
     if (!visible) {
@@ -59,15 +64,17 @@ export function Tooltip({ label, side = "end", children }: TooltipProps): ReactN
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [visible]);
 
-  const control = isValidElement<DescribableProps>(children) ? children : null;
-  if (control !== null && control.props.disabled === true) {
-    return children;
-  }
-
   function show(set: (value: boolean) => void): void {
     set(true);
     setDismissed(false);
   }
+
+  const described =
+    control === null || disabled || duplicatesName
+      ? children
+      : cloneElement(control as ReactElement<DescribableProps>, {
+          "aria-describedby": joinIds(control.props["aria-describedby"], id),
+        });
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: the wrapper only observes pointer and focus events bubbling from the control it describes
@@ -78,21 +85,24 @@ export function Tooltip({ label, side = "end", children }: TooltipProps): ReactN
       onFocus={() => show(setFocused)}
       onBlur={() => setFocused(false)}
     >
-      {control === null
-        ? children
-        : cloneElement(control as ReactElement<DescribableProps>, {
-            "aria-describedby": joinIds(control.props["aria-describedby"], id),
-          })}
-      <span
-        data-slot=""
-        data-side={side}
-        data-open={visible ? "" : undefined}
-        className={cn(SLOT, POSITION[side])}
-      >
-        <span id={id} role="tooltip" className={BUBBLE}>
-          {label}
+      {described}
+      {disabled ? null : (
+        <span
+          data-slot=""
+          data-side={side}
+          data-open={visible ? "" : undefined}
+          className={cn(SLOT, POSITION[side])}
+        >
+          <span
+            id={id}
+            role="tooltip"
+            aria-hidden={duplicatesName ? true : undefined}
+            className={BUBBLE}
+          >
+            {label}
+          </span>
         </span>
-      </span>
+      )}
     </span>
   );
 }
