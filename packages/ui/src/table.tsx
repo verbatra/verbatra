@@ -99,7 +99,7 @@ export function TableCard({
   return (
     <Card
       padding="none"
-      className={cn("overflow-x-auto", ariaLabel !== undefined && "vk-field", className)}
+      className={cn("relative overflow-x-auto", ariaLabel !== undefined && "vk-field", className)}
       {...labelled}
       {...props}
     />

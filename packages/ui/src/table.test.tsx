@@ -157,6 +157,12 @@ describe("TableCard", () => {
     expect(card.className).toContain("overflow-x-auto");
   });
 
+  it("is a containing block, so visually hidden text inside a scrolled table cannot widen the page", () => {
+    const view = render(<TableCard>x</TableCard>);
+
+    expect(view.get("[data-padding]").className.split(" ")).toContain("relative");
+  });
+
   it("becomes a focusable labelled region when it has a label, so a keyboard can scroll it", () => {
     const view = render(<TableCard aria-label="Keys table">x</TableCard>);
     const card = view.get("[data-padding]");
