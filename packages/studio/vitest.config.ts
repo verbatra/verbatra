@@ -26,4 +26,9 @@ const base = createVitestConfig({
   ],
 });
 
-export default { ...base, test: { ...base.test, setupFiles: ["./vitest.setup.ts"] } };
+const config: ReturnType<typeof createVitestConfig> = {
+  ...base,
+  test: { ...base.test, setupFiles: ["./vitest.setup.ts"] },
+};
+
+export default config;
