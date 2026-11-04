@@ -77,7 +77,7 @@ attribute, and no `javascript:` URL. Consequences for UI work:
 - **No `<style>` element and no literal `style="..."` in markup.** A React `style` prop
   is fine: React DOM writes through CSSOM, which CSP does not govern. Use it only for a
   value Tailwind cannot express, such as a computed percentage.
-  `src/app/ProgressBar.tsx` (`style={{ width: \`${clamped}%\` }}`) is the single
+  `packages/ui/src/progress-bar.tsx` (`style={{ width: \`${clamped}%\` }}`) is the single
   precedent in the app and should stay close to the only one.
 - Anything that wants to reach a third-party origin at runtime is blocked by
   `default-src 'none'` and `connect-src 'self'`. Do not design a feature that needs one.
@@ -143,8 +143,8 @@ Conventions carried by that list:
 - **The sidebar currently aliases the page background, text and hover surfaces.** It is no longer a separate
   dark palette; it is interim until the navigation shell is rebuilt.
 
-**The modal scrim has its own token.** `OverlayBackdrop` (`src/app/ui.tsx`) draws it with
-`bg-overlay`, which maps to `--scrim`: a dark, translucent fill in each theme. Do not use
+**The modal scrim has its own token.** `OverlayBackdrop` (`packages/ui/src/sheet.tsx`) draws it with
+`bg-(--scrim)`: a dark, translucent fill in each theme. Do not use
 `bg-foreground/40`: it brightens the page in dark theme, because a token whose polarity flips
 between themes is the failure mode to watch for.
 
@@ -186,9 +186,7 @@ Rules that follow:
 
 ## Reuse before you build
 
-`src/app/` holds 39 non-test `.tsx` files at its top level (that count includes `App.tsx`,
-`main.tsx`, `ui.tsx` and `test-support.tsx`; the rest are components, each with a
-co-located test). Compose these before writing anything new.
+`src/app/` holds the Studio composites at its top level, each with a co-located test. Compose these before writing anything new.
 
 - **Shared primitives (owned by `@verbatra/ui`, import from `@verbatra/ui`):** `Button`
   (`variant: "primary" | "secondary" | "outline" | "ghost" | "secondary-success" |
@@ -199,20 +197,22 @@ co-located test). Compose these before writing anything new.
   "warning" | "danger"`, the diff tones `missing`, `changed`, `orphaned`, `protected`, and the site
   tones `glow`, `new`, `unchanged`, `solid`; `wrap` lets a long value break instead of
   overflowing, `verbatim` keeps a locale code, version or any user value in its own case; badges
-  stay on one line and uppercase by default) and `Icon`. They theme through semantic tokens only and expose
+  stay on one line and uppercase by default), `Icon`, the fields `TextField`, `TextArea`, `SearchInput` and
+  `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row aligns;
+  the focus ring is `.vk-field:focus-visible`), `Checkbox`, `Accordion`, `Skeleton`, `ProgressBar`,
+  `Toast`, the `Table` family with `tableClasses`, `Sheet` and `DrawerShell`, `OverlayBackdrop`,
+  `DialogCloseButton`, and the layout parts `Container`, `Section`, `PageSection`, `SectionCard`,
+  `DetailList`, `EmptyState`, `MonoValue` and `microLabelClassName`. They theme through semantic tokens only and expose
   `data-variant`, `data-size`, `data-tone` and `data-padding` for tests. Change them in
   `packages/ui/src`, never as a Studio copy. Studio-local primitives:
-  `Input`, `Select`, `Dropdown`, `Popover`, `Tooltip`, `Tabs`, `Accordion`, `Table`,
-  `Sheet`, `Skeleton`, `Loading`, `ProgressBar`, `Toast`, `ErrorMessage`, `ErrorBoundary`.
+  `Dropdown`, `Popover`, `Tooltip`, `Tabs`, `Loading`, `ErrorMessage`, `ErrorBoundary`.
   Extend a variant union rather than passing ad hoc `className` overrides at call sites.
-- **Layout and shared class strings:** `src/app/ui.tsx` exports `Container`, `Section`,
-  `PageSection`, `SectionCard`, `DetailList`, `EmptyState`, `DrawerShell`,
-  `OverlayBackdrop`, `DialogCloseButton`, `MonoValue`, plus the shared strings `tableClasses`,
-  `pillClassName`, `pillDotClassName`, and `microLabelClassName`. A new panel composes
+- **Layout and shared class strings:** `@verbatra/ui` exports the layout parts listed above
+  and the shared strings `tableClasses` and `microLabelClassName`. A new panel composes
   `PageSection` or `SectionCard`; it does not re-derive page padding or heading rhythm.
   The uppercase tracked micro-label is already a token (`microLabelClassName`) and is
   meant for structural labels such as table headers, not decoration above every heading.
-  Be aware the shipped code does not fully honour that: `PageHeader.tsx` and `Sheet.tsx`
+  Be aware the shipped code does not fully honour that: `PageHeader.tsx` and `Sheet`
   apply it to a `kicker`, and on the Review and Translations panels that kicker reads
   "Workspace", restating the sidebar zone header sitting at the same height a few hundred
   pixels to the left. `SettingsPanel.tsx` shows the good case, where the kicker adds
