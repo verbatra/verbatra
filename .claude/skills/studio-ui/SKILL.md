@@ -270,8 +270,8 @@ parts. Column widths are fixed with `w-*` and `min-w-*`, so the key column never
 filtering. In sync is quiet text with a dot, never a bordered badge. A matrix cell is named by its
 `aria-label` (key, locale, status, then each marker after a comma); its marker words also sit in
 a `decorative` `Tooltip` on the cell's own focus stop, which adds no tab stop. In the entries table
-the status marker has a hover-only tooltip, and its words reach assistive technology through
-visually hidden text. `ScrollHint` takes the scroll card's ref and shows only while it overflows,
+the same words show on keyboard focus of the key button and on hover of the status marker, and
+reach assistive technology through visually hidden text in the status cell. `ScrollHint` takes the scroll card's ref and shows only while it overflows,
 at any width. A row is selected (`aria-selected`) while its key is open in the drawer or editor.
 
 ## Capabilities are two flags, and the decision is a pure function
