@@ -34,15 +34,18 @@ function selectableKey(
 }
 
 export function useTranslationsRoute(
-  knownLocales: readonly string[],
+  knownLocales: readonly string[] | null,
   localeValues: RefreshableView<LocaleValuesData>,
 ): TranslationsRoute {
   const [params, setParams] = useRouteParams("translations");
 
   const locale =
-    params.locale !== undefined && knownLocales.includes(params.locale) ? params.locale : "";
+    params.locale !== undefined && (knownLocales === null || knownLocales.includes(params.locale))
+      ? params.locale
+      : "";
   const statuses: ReadonlySet<KeyStatus> = new Set(params.statuses);
   const selectedKey = selectableKey(params.key, localeValues);
+  const keptKey = localeValues.kind === "loading" ? (params.key ?? null) : selectedKey;
   const query = params.query ?? "";
 
   return {
@@ -51,13 +54,13 @@ export function useTranslationsRoute(
     selectedKey,
     query,
     setFilter(filter) {
-      setParams(routeParams({ ...filter, key: selectedKey, query: filter.query ?? query }));
+      setParams(routeParams({ ...filter, key: keptKey, query: filter.query ?? query }));
     },
     setSelectedKey(key) {
       setParams(routeParams({ locale, statuses, key, query }));
     },
     setQuery(next) {
-      setParams(routeParams({ locale, statuses, key: selectedKey, query: next }));
+      setParams(routeParams({ locale, statuses, key: keptKey, query: next }));
     },
   };
 }

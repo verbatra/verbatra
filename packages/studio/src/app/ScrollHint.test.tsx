@@ -1,26 +1,34 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, createRef, type RefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ScrollHint } from "./ScrollHint.js";
 import { render } from "./test-support.js";
 
-function sizes(element: Element, scrollWidth: number, clientWidth: number): void {
+function sizes(element: Element | null, scrollWidth: number, clientWidth: number): void {
+  if (element === null) {
+    return;
+  }
   Object.defineProperty(element, "scrollWidth", { value: scrollWidth, configurable: true });
   Object.defineProperty(element, "clientWidth", { value: clientWidth, configurable: true });
 }
 
 function mount(scrollWidth: number, clientWidth: number) {
+  const ref: RefObject<HTMLDivElement | null> = createRef();
   const view = render(
     <div>
-      <div data-card="">
+      <div
+        data-card=""
+        ref={(element) => {
+          ref.current = element;
+          sizes(element, scrollWidth, clientWidth);
+        }}
+      >
         <table />
       </div>
-      <ScrollHint />
+      <ScrollHint targetRef={ref} />
     </div>,
   );
-  const card = view.get("[data-card]");
-  sizes(card, scrollWidth, clientWidth);
-  return { view, card };
+  return { view, card: view.get("[data-card]") };
 }
 
 class FakeObserver {
@@ -45,12 +53,7 @@ afterEach(() => {
 
 describe("ScrollHint", () => {
   it("stays hidden, and out of the accessibility tree, when the table fits", () => {
-    const view = render(
-      <div>
-        <div data-card="" />
-        <ScrollHint />
-      </div>,
-    );
+    const { view } = mount(900, 1000);
     const hint = view.get("p");
 
     expect(hint.hidden).toBe(true);
@@ -58,45 +61,34 @@ describe("ScrollHint", () => {
     expect(hint.textContent).toBe("Scroll sideways to see every column.");
   });
 
-  it("stays hidden when there is nothing before it to measure", () => {
-    const view = render(<ScrollHint />);
+  it("shows at mount when the card is already wider than its visible area, at any width", () => {
+    const { view } = mount(1200, 1000);
+
+    expect(view.get("p").hidden).toBe(false);
+  });
+
+  it("stays hidden when the ref points at nothing", () => {
+    const view = render(<ScrollHint targetRef={{ current: null }} />);
 
     expect(view.get("p").hidden).toBe(true);
   });
 
-  it("shows once the table card is wider than its visible area, at any viewport width", () => {
+  it("re-measures when the card or the table inside it resizes, and stops on unmount", () => {
     vi.stubGlobal("ResizeObserver", FakeObserver);
-    const { view, card } = mount(1200, 1000);
+    const { view, card } = mount(900, 1000);
+    const observer = FakeObserver.instances[0];
+    expect(observer?.observed).toEqual([card, card.firstElementChild]);
+    expect(view.get("p").hidden).toBe(true);
 
-    act(() => FakeObserver.instances[0]?.callback());
-
-    expect(view.get("p").hidden).toBe(false);
-    expect(FakeObserver.instances[0]?.observed).toContain(card);
-    expect(FakeObserver.instances[0]?.observed).toContain(card.firstElementChild);
-  });
-
-  it("follows the card as it stops overflowing, and stops observing on unmount", () => {
-    vi.stubGlobal("ResizeObserver", FakeObserver);
-    const { view, card } = mount(1200, 1000);
-    act(() => FakeObserver.instances[0]?.callback());
+    sizes(card, 1200, 1000);
+    act(() => observer?.callback());
     expect(view.get("p").hidden).toBe(false);
 
     sizes(card, 900, 1000);
-    act(() => FakeObserver.instances[0]?.callback());
+    act(() => observer?.callback());
     expect(view.get("p").hidden).toBe(true);
 
     view.unmount();
-    expect(FakeObserver.instances[0]?.disconnected).toBe(true);
-  });
-
-  it("measures once where no resize observer exists", () => {
-    const view = render(
-      <div>
-        <div data-card="" />
-        <ScrollHint />
-      </div>,
-    );
-
-    expect(view.get("p").hidden).toBe(true);
+    expect(observer?.disconnected).toBe(true);
   });
 });

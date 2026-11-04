@@ -5,6 +5,7 @@ import type { DiffLocale } from "../../client/diff-view.js";
 import { isFullyInSync } from "../../client/diff-view.js";
 import { MAX_RENDERED_KEYS } from "../../client/filter.js";
 import {
+  emptyKeyCounts,
   KEY_STATUSES,
   type KeyStatus,
   type KeyStatusSources,
@@ -127,55 +128,24 @@ function KeysFrame({
   summary,
   children,
 }: {
-  readonly summary?: string | undefined;
+  readonly summary: string;
   readonly children: ReactNode;
 }): ReactNode {
   return (
     <PageSection
       title="Keys"
-      {...(summary === undefined
-        ? {}
-        : {
-            meta: (
-              <p aria-live="polite" className="text-xs text-muted-foreground" data-key-count="">
-                {summary}
-              </p>
-            ),
-          })}
+      meta={
+        <p aria-live="polite" className="text-xs text-muted-foreground" data-key-count="">
+          {summary}
+        </p>
+      }
     >
       {children}
     </PageSection>
   );
 }
 
-function KeysLoading({ route }: { readonly route: TranslationsRoute }): ReactNode {
-  const unavailable = new Map(KEY_STATUSES.map((status) => [status, "Still loading"]));
-  const counts = Object.fromEntries(KEY_STATUSES.map((status) => [status, 0])) as Record<
-    KeyStatus,
-    number
-  >;
-  return (
-    <KeysFrame>
-      <KeyFilters
-        locales={[]}
-        locale=""
-        statuses={route.statuses}
-        counts={counts}
-        unavailable={unavailable}
-        query={route.query}
-        onLocaleChange={(next) => route.setFilter({ locale: next, statuses: route.statuses })}
-        onToggleStatus={(status) =>
-          route.setFilter({ locale: "", statuses: toggleStatus(route.statuses, status) })
-        }
-        onQueryChange={route.setQuery}
-      />
-      <div role="status" aria-busy="true">
-        <span className="sr-only">Loading...</span>
-        <TableSkeleton />
-      </div>
-    </KeysFrame>
-  );
-}
+const STILL_LOADING = new Map(KEY_STATUSES.map((status) => [status, "Still loading"]));
 
 function KeysSection({
   locales,
@@ -185,7 +155,7 @@ function KeysSection({
   review,
   integrity,
 }: {
-  readonly locales: readonly DiffLocale[];
+  readonly locales: readonly DiffLocale[] | null;
   readonly route: TranslationsRoute;
   readonly refreshToken: number;
   readonly localeValuesView: RefreshableView<LocaleValuesData>;
@@ -199,21 +169,28 @@ function KeysSection({
     () => statusSources(review, integrity),
     [review, integrity],
   );
-  const index = useMemo(() => keyStatusIndex(locales, sources), [locales, sources]);
+  const loaded = locales ?? NO_LOCALES;
+  const index = useMemo(() => keyStatusIndex(loaded, sources), [loaded, sources]);
   const rows = useMemo(
-    () => keyTableRows({ locales, index, localeValues, locale, statuses, query }),
-    [locales, index, localeValues, locale, statuses, query],
+    () => keyTableRows({ locales: loaded, index, localeValues, locale, statuses, query }),
+    [loaded, index, localeValues, locale, statuses, query],
   );
   const narrowed = statuses.size > 0 || query.trim() !== "";
+  const loading = locales === null;
+  const localeOptions = loading
+    ? locale === ""
+      ? []
+      : [locale]
+    : loaded.map((entry) => entry.locale);
 
   return (
-    <KeysFrame summary={rows.items.length === 0 ? undefined : keyCountText(rows, narrowed)}>
+    <KeysFrame summary={loading ? "" : keyCountText(rows, narrowed)}>
       <KeyFilters
-        locales={locales.map((entry) => entry.locale)}
+        locales={localeOptions}
         locale={locale}
         statuses={statuses}
-        counts={rows.counts}
-        unavailable={unavailable}
+        counts={loading ? emptyKeyCounts() : rows.counts}
+        unavailable={loading ? STILL_LOADING : unavailable}
         query={query}
         onLocaleChange={(next) => route.setFilter({ locale: next, statuses })}
         onToggleStatus={(status) =>
@@ -228,7 +205,12 @@ function KeysSection({
           prefix="Source and translation text could not be read, so search only matches key names."
         />
       ) : null}
-      {rows.items.length === 0 ? (
+      {loading ? (
+        <div role="status" aria-busy="true">
+          <span className="sr-only">Loading...</span>
+          <TableSkeleton />
+        </div>
+      ) : rows.items.length === 0 ? (
         <NoKeys
           narrowed={narrowed}
           searching={query.trim() !== ""}
@@ -240,7 +222,7 @@ function KeysSection({
       ) : (
         <>
           <KeysTable
-            locales={locales}
+            locales={loaded}
             keys={rows.items}
             locale={locale}
             index={index}
@@ -259,6 +241,8 @@ function KeysSection({
     </KeysFrame>
   );
 }
+
+const NO_LOCALES: readonly DiffLocale[] = [];
 
 function NoKeys({
   narrowed,
@@ -313,7 +297,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const localeValuesView = useLocaleValues(refreshToken);
 
   const route = useTranslationsRoute(
-    diff.kind === "loaded" ? diff.locales.map((entry) => entry.locale) : [],
+    diff.kind === "loaded" ? diff.locales.map((entry) => entry.locale) : null,
     localeValuesView,
   );
   const { selectedKey, setSelectedKey } = route;
@@ -331,10 +315,9 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
         actions={diff.kind === "loaded" ? <ReviewReportButton locales={diff.locales} /> : undefined}
       />
       <DiffNotices diff={diff} brokenInSync={brokenInSync} />
-      {diff.kind === "loading" ? <KeysLoading route={route} /> : null}
-      {diff.kind === "loaded" ? (
+      {diff.kind === "loading" || diff.kind === "loaded" ? (
         <KeysSection
-          locales={diff.locales}
+          locales={diff.kind === "loaded" ? diff.locales : null}
           route={route}
           refreshToken={refreshToken}
           localeValuesView={localeValuesView}

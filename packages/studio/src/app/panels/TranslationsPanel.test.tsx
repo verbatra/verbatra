@@ -366,7 +366,7 @@ describe("TranslationsPanel all-clear state", () => {
     expect(view.get('[role="status"]').textContent).toContain("integrity problems");
     expect(statusToggle(view, "integrity").textContent).toBe("Integrity problems1");
     expect(rowKeys(view)).toEqual(["app.body"]);
-    expect(cellText(view, "app.body", "de")).toContain("Integrity problem");
+    expect(cellText(view, "app.body", "de")).toBe("In sync, integrity problem");
   });
 
   it("lists a protected key of an otherwise clean project", async () => {
@@ -406,10 +406,10 @@ describe("TranslationsPanel all-clear state", () => {
 });
 
 describe("TranslationsPanel loading and value errors", () => {
-  it("shows the heading and the filters at once, with a skeleton only where the table goes", () => {
+  it("shows the heading and the filters at once, with a skeleton only where the table goes", async () => {
     stubPage({ "status.diff": PENDING });
 
-    const view = render(<TranslationsPanel refreshToken={1} />);
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
     expect(sectionTitles(view)).toContain("Keys");
     expect(filterInput(view)).not.toBeNull();
@@ -422,29 +422,82 @@ describe("TranslationsPanel loading and value errors", () => {
     expect(view.query("table")).toBeNull();
     expect(view.get('[role="status"]').textContent).toBe("Loading...");
     expect(view.all("[data-bar]").length).toBeGreaterThan(0);
+    expect(view.get("[data-key-count]").textContent).toBe("");
   });
 
-  it("keeps a status chosen in the address clickable while the diff loads", async () => {
-    pointHashAt("#/translations?status=missing");
-    stubPage({ "status.diff": PENDING });
-    const view = render(<TranslationsPanel refreshToken={1} />);
+  it("keeps the same search field, still focused, when the diff arrives", async () => {
+    const diff = deferredAnswers();
+    stubPage({ "status.diff": diff.handler });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    const field = filterInput(view);
+    act(() => field.focus());
+    typeInto(field, "ti");
 
-    expect(statusToggle(view, "missing").getAttribute("aria-pressed")).toBe("true");
-    await clickAsync(statusToggle(view, "missing"));
+    diff.answer(0, diffResult(DEFAULT_LOCALES));
+    await flush();
 
-    expect(window.location.hash).toBe("#/translations");
+    expect(filterInput(view)).toBe(field);
+    expect(document.activeElement).toBe(field);
+    expect(field.value).toBe("ti");
+    expect(rowKeys(view)).toEqual(["app.title"]);
     pointHashAt("#/translations");
   });
 
-  it("lets the locale choice be reset while the diff loads", () => {
+  it("keeps the locale and the open key of a deep link when a chosen chip is clicked during loading", async () => {
+    pointHashAt("#/translations?locale=de&status=missing&key=x");
+    stubPage({ "status.diff": PENDING, "locale.values": PENDING });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    expect(statusToggle(view, "missing").getAttribute("aria-pressed")).toBe("true");
+    expect((view.get('select[aria-label="Filter by locale"]') as HTMLSelectElement).value).toBe(
+      "de",
+    );
+    await clickAsync(statusToggle(view, "missing"));
+
+    expect(window.location.hash).toBe("#/translations?locale=de&key=x");
+    pointHashAt("#/translations");
+  });
+
+  it("keeps a typed search in the address with the rest of a deep link during loading", async () => {
+    pointHashAt("#/translations?locale=de&key=x");
+    stubPage({ "status.diff": PENDING, "locale.values": PENDING });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    typeInto(filterInput(view), "cart");
+
+    expect(window.location.hash).toBe("#/translations?locale=de&key=x&q=cart");
+    pointHashAt("#/translations");
+  });
+
+  it("lets the locale choice be reset while the diff loads", async () => {
     pointHashAt("#/translations?status=changed");
     stubPage({ "status.diff": PENDING });
-    const view = render(<TranslationsPanel refreshToken={1} />);
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
     chooseLocale(view, "");
 
     expect(window.location.hash).toBe("#/translations?status=changed");
     pointHashAt("#/translations");
+  });
+
+  it("still opens the key of a deep link when the translation values could not be read", async () => {
+    pointHashAt("#/translations?key=app.title");
+    stubPage({ ...drawerStubs(), "locale.values": rpcError("INTERNAL", "gone") });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
+    pointHashAt("#/translations");
+  });
+
+  it("keeps the count region in the page, with the empty wording, when nothing needs attention", async () => {
+    stubSyncedPage();
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    expect(view.get("[data-key-count]").getAttribute("aria-live")).toBe("polite");
+    expect(view.get("[data-key-count]").textContent).toBe("0 keys need attention");
   });
 
   it("says search can only match key names when the translation values cannot be read", async () => {
@@ -762,10 +815,10 @@ describe("TranslationsPanel key table", () => {
 
     expect(cellButton(view, "app.title", "de").textContent).toBe("app.title in de: Missing");
     expect(cellButton(view, "app.body", "de").textContent).toBe(
-      "app.body in de: Changed, Integrity problem",
+      "app.body in de: Changed, integrity problem",
     );
     expect(cellButton(view, "app.subtitle", "fr").textContent).toBe(
-      "app.subtitle in fr: In sync, In the review queue",
+      "app.subtitle in fr: In sync, in the review queue",
     );
   });
 
@@ -1104,11 +1157,11 @@ describe("TranslationsPanel key filters", () => {
       "app.subtitle",
       "app.title",
     ]);
-    expect(cellText(view, "app.body", "de")).toContain("Integrity problem");
-    expect(cellText(view, "app.subtitle", "fr")).toContain("In the review queue");
-    expect(view.get('[data-key="app.subtitle"] [data-marker="review"]').textContent).toContain(
-      "In the review queue",
-    );
+    expect(cellText(view, "app.body", "de")).toBe("Changed, integrity problem");
+    expect(cellText(view, "app.subtitle", "fr")).toBe("In sync, in the review queue");
+    expect(
+      view.get('[data-key="app.subtitle"] [data-marker="review"]').getAttribute("aria-hidden"),
+    ).toBe("true");
   });
 
   it("narrows the rows to the chosen status in the all-locales table", async () => {

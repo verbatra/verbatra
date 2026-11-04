@@ -247,12 +247,21 @@ describe("KeysTable markers", () => {
     const matrix = await renderAsync(table({ index: held }));
     expect(matrix.get("[role='tooltip']").textContent).toBe("In the review queue");
     expect(matrix.get('[data-key="a.missing"] button').textContent).toBe(
-      "a.missing in de: Missing, In the review queue",
+      "a.missing in de: Missing, in the review queue",
     );
     matrix.unmount();
 
     const entries = await renderAsync(table({ index: held, locale: "de" }));
     expect(entries.get("[role='tooltip']").textContent).toBe("In the review queue");
+  });
+
+  it("keeps a marked cell the same width as an unmarked one, so the hit area matches", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table({ index: held }));
+    const marked = view.get('[data-key="a.missing"] button');
+
+    expect(marked.parentElement?.className).toContain("w-full");
+    expect(marked.className).toContain("w-full");
   });
 
   it("does not announce the marker words twice", async () => {

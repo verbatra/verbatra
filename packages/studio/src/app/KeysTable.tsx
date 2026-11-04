@@ -10,6 +10,7 @@ import {
   tableClasses,
 } from "@verbatra/ui";
 import type { ReactNode } from "react";
+import { useRef } from "react";
 import type { StatusData } from "../client/coverage.js";
 import type { DiffLocale } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus, keyLocaleStatus } from "../client/diff-view.js";
@@ -39,23 +40,26 @@ export interface KeysTableProps {
 
 const SEAM = "border-b border-(--border-default)";
 
-const HEAD_FILL = "bg-[color-mix(in_srgb,var(--surface-muted)_60%,var(--surface-tile))]";
-
 const ROW_FILL = cn(
-  "bg-card group-hover:bg-[color-mix(in_srgb,var(--surface-hover)_40%,var(--surface-tile))]",
+  "bg-card group-hover:bg-(--surface-row-hover)",
   "group-data-[selected]:bg-(--surface-hover)",
 );
 
-const HEAD_CELL = cn("sticky top-0 z-20", HEAD_FILL);
+const HEAD_CELL = "sticky top-0 z-20 bg-(--surface-table-head)";
 
-const KEY_HEAD = cn(HEAD_CELL, "start-0 z-30 w-60 min-w-60");
+const KEY_COLUMN = "w-28 min-w-28 md:w-60 md:min-w-60";
+
+const KEY_HEAD = cn(HEAD_CELL, "start-0 z-30", KEY_COLUMN);
 
 const KEY_CELL = cn(
   tableClasses.td,
   SEAM,
   ROW_FILL,
-  "sticky start-0 z-10 h-12 w-60 min-w-60 py-0 text-start font-mono text-sm font-semibold whitespace-nowrap",
+  KEY_COLUMN,
+  "sticky start-0 z-10 h-12 py-0 text-start font-mono text-sm font-semibold whitespace-nowrap",
 );
+
+const KEY_TEXT = "block max-w-[5.5rem] truncate md:max-w-[13.5rem]";
 
 const BODY_CELL = cn(SEAM, "h-12 py-0");
 
@@ -65,9 +69,13 @@ const STOP =
   "block w-full rounded-(--radius-sm) p-1 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
 
 const KEY_STOP =
-  "-mx-1 block max-w-[13.5rem] truncate rounded-(--radius-sm) px-1 py-1 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
+  "-mx-1 block max-w-[6rem] truncate rounded-(--radius-sm) px-1 py-1 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring md:max-w-[14rem]";
 
-const REGION = "max-h-[calc(100dvh-12rem)] overflow-y-auto";
+const REGION = "scroll-ps-28 md:scroll-ps-60 md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto";
+
+const MATRIX_REGION = cn(REGION, "scroll-pt-16");
+
+const ENTRIES_REGION = cn(REGION, "scroll-pt-11");
 
 const WITHOUT_ORIGIN: ReadonlySet<string> = new Set(["missing", "orphaned", "absent"]);
 
@@ -130,6 +138,7 @@ function MatrixTable({
   onSelectKey,
 }: Omit<KeysTableProps, "locale">): ReactNode {
   const coverage = useStatusData(refreshToken);
+  const cardRef = useRef<HTMLDivElement>(null);
   const roving = useRovingTable({ rowCount: keys.length, colCount: locales.length }, onSelectKey);
 
   return (
@@ -137,7 +146,7 @@ function MatrixTable({
       {coverage.kind === "data" && coverage.stale && (
         <ErrorMessage error={coverage.error} prefix="Showing the last known coverage." />
       )}
-      <TableCard aria-label="Keys table" className={REGION}>
+      <TableCard aria-label="Keys table" className={MATRIX_REGION} ref={cardRef}>
         <Table
           aria-label="Key status by locale"
           role="grid"
@@ -146,12 +155,12 @@ function MatrixTable({
         >
           <TableHead>
             <tr>
-              <TableHeaderCell scope="col" className={KEY_HEAD}>
+              <TableHeaderCell scope="col" className={cn(KEY_HEAD, "h-16")}>
                 Key
               </TableHeaderCell>
               <TableHeaderCell
                 scope="col"
-                className={cn(HEAD_CELL, SOURCE_COLUMN, "w-56 min-w-56")}
+                className={cn(HEAD_CELL, SOURCE_COLUMN, "h-16 w-56 min-w-56")}
               >
                 Source
               </TableHeaderCell>
@@ -159,7 +168,7 @@ function MatrixTable({
                 <TableHeaderCell
                   key={locale.locale}
                   scope="col"
-                  className={cn(HEAD_CELL, "w-44 min-w-44")}
+                  className={cn(HEAD_CELL, "h-16 w-44 min-w-44")}
                 >
                   <span className="font-mono">{locale.locale}</span>
                   <Coverage
@@ -174,7 +183,7 @@ function MatrixTable({
             {keys.map((key, row) => (
               <TableRow key={key} data-key={key} selected={key === selectedKey} className="group">
                 <th scope="row" className={KEY_CELL}>
-                  <span className="block max-w-[13.5rem] truncate" title={key}>
+                  <span className={KEY_TEXT} title={key}>
                     {key}
                   </span>
                 </th>
@@ -202,7 +211,7 @@ function MatrixTable({
           </TableBody>
         </Table>
       </TableCard>
-      <ScrollHint />
+      <ScrollHint targetRef={cardRef} />
     </>
   );
 }
@@ -216,12 +225,13 @@ function EntriesTable({
   selectedKey,
   onSelectKey,
 }: Omit<KeysTableProps, "refreshToken">): ReactNode {
+  const cardRef = useRef<HTMLDivElement>(null);
   const roving = useRovingTable({ rowCount: keys.length, colCount: 1 }, onSelectKey);
   const values = localeValues.find((entry) => entry.locale === locale)?.values;
 
   return (
     <>
-      <TableCard aria-label="Keys table" className={REGION}>
+      <TableCard aria-label="Keys table" className={ENTRIES_REGION} ref={cardRef}>
         <Table
           aria-label={`Keys in ${locale}`}
           role="grid"
@@ -230,19 +240,22 @@ function EntriesTable({
         >
           <TableHead>
             <tr>
-              <TableHeaderCell scope="col" className={KEY_HEAD}>
+              <TableHeaderCell scope="col" className={cn(KEY_HEAD, "h-11")}>
                 Key
               </TableHeaderCell>
-              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "w-60 min-w-60")}>
+              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "h-11 w-60 min-w-60")}>
                 Source
               </TableHeaderCell>
-              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "w-60 min-w-60")}>
+              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "h-11 w-60 min-w-60")}>
                 Translation
               </TableHeaderCell>
-              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "w-[9.5rem] min-w-[9.5rem]")}>
+              <TableHeaderCell
+                scope="col"
+                className={cn(HEAD_CELL, "h-11 w-[9.5rem] min-w-[9.5rem]")}
+              >
                 Status
               </TableHeaderCell>
-              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "w-40 min-w-40")}>
+              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "h-11 w-40 min-w-40")}>
                 Origin
               </TableHeaderCell>
             </tr>
@@ -299,7 +312,7 @@ function EntriesTable({
           </TableBody>
         </Table>
       </TableCard>
-      <ScrollHint />
+      <ScrollHint targetRef={cardRef} />
     </>
   );
 }

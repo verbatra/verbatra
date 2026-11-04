@@ -4,14 +4,18 @@ import type { KeyLocaleStatus } from "../client/diff-view.js";
 import type { KeyStatus } from "../client/key-status-filter.js";
 import { KeyLocaleStatusBadge } from "./DiffBadge.js";
 
-const REVIEW_TEXT = "In the review queue";
-const INTEGRITY_TEXT = "Integrity problem";
+const REVIEW_TEXT = "in the review queue";
+const INTEGRITY_TEXT = "integrity problem";
 
 function markerTexts(held: ReadonlySet<KeyStatus> | undefined): readonly string[] {
   return [
     ...(held?.has("review") === true ? [REVIEW_TEXT] : []),
     ...(held?.has("integrity") === true ? [INTEGRITY_TEXT] : []),
   ];
+}
+
+function sentence(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export function MarkerTip({
@@ -25,7 +29,7 @@ export function MarkerTip({
   return texts.length === 0 ? (
     children
   ) : (
-    <Tooltip label={texts.join(", ")} side="bottom" decorative>
+    <Tooltip label={sentence(texts.join(", "))} side="bottom" decorative className="flex w-full">
       {children}
     </Tooltip>
   );
@@ -39,20 +43,29 @@ export function KeyStatusCell({
   readonly held: ReadonlySet<KeyStatus> | undefined;
 }): ReactNode {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-block whitespace-nowrap">
       <KeyLocaleStatusBadge status={status} />
       {held?.has("review") === true ? (
-        <span className="inline-flex text-warning" data-marker="review">
+        <span
+          aria-hidden="true"
+          className="ms-1.5 inline-flex align-middle text-warning"
+          data-marker="review"
+        >
           <Icon name="inbox" size={14} />
-          <span className="sr-only">{`, ${REVIEW_TEXT}`}</span>
         </span>
       ) : null}
       {held?.has("integrity") === true ? (
-        <span className="inline-flex text-danger" data-marker="integrity">
+        <span
+          aria-hidden="true"
+          className="ms-1.5 inline-flex align-middle text-danger"
+          data-marker="integrity"
+        >
           <Icon name="alert" size={14} />
-          <span className="sr-only">{`, ${INTEGRITY_TEXT}`}</span>
         </span>
       ) : null}
+      {markerTexts(held).map((text) => (
+        <span key={text} className="sr-only">{`, ${text}`}</span>
+      ))}
     </span>
   );
 }

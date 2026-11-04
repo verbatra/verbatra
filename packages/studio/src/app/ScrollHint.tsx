@@ -1,13 +1,16 @@
-import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { ReactNode, RefObject } from "react";
+import { useEffect, useState } from "react";
 
-export function ScrollHint(): ReactNode {
-  const hintRef = useRef<HTMLParagraphElement>(null);
+export function ScrollHint({
+  targetRef,
+}: {
+  readonly targetRef: RefObject<HTMLElement | null>;
+}): ReactNode {
   const [overflows, setOverflows] = useState(false);
 
   useEffect(() => {
-    const target = hintRef.current?.previousElementSibling;
-    if (!(target instanceof HTMLElement)) {
+    const target = targetRef.current;
+    if (target === null) {
       return;
     }
     const measure = (): void => setOverflows(target.scrollWidth > target.clientWidth);
@@ -21,15 +24,10 @@ export function ScrollHint(): ReactNode {
       observer.observe(child);
     }
     return () => observer.disconnect();
-  }, []);
+  }, [targetRef]);
 
   return (
-    <p
-      ref={hintRef}
-      hidden={!overflows}
-      aria-hidden="true"
-      className="mt-2 text-xs text-muted-foreground"
-    >
+    <p hidden={!overflows} aria-hidden="true" className="mt-2 text-xs text-muted-foreground">
       Scroll sideways to see every column.
     </p>
   );
