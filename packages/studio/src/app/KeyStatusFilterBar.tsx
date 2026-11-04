@@ -55,7 +55,7 @@ export function KeyStatusFilterBar({
           </option>
         ))}
       </Select>
-      <fieldset className="m-0 flex flex-wrap items-center gap-1.5 border-0 p-0">
+      <fieldset className="relative m-0 flex flex-wrap items-center gap-1.5 border-0 p-0">
         <legend className="sr-only">Show only keys that are</legend>
         {KEY_STATUSES.map((status) => {
           const pressed = statuses.has(status);
