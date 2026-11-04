@@ -17,7 +17,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra studio`](/docs/cli/studio) covers the port, the token and every flag. Every page refreshes live when a locale file, the lock file or the provenance file changes.
+Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra studio`](/docs/cli/studio) covers the port, the token and every flag. Every page refreshes live when a locale file, the lock file or provenance file changes.
 
 ## Read the Translations page
 
@@ -26,6 +26,8 @@ Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
 Translations is one table of every key that needs attention: missing, changed, orphaned, protected, in the review queue or failing an integrity check. Each row shows the key, source text and one status per locale; pick a locale for translation, status and origin. Search also finds in-sync keys.
+
+### Key details
 
 Click a key to see every locale's value with an integrity indicator: placeholders match, a placeholder mismatch with the tokens named, or invalid message syntax. Also shown:
 
@@ -95,7 +97,7 @@ The filter bar switches between **Needs review** and **Approved** and narrows by
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Press `j` or down arrow to highlight the first entry, then:
+Press `j` or the down arrow to highlight the first entry, then:
 
 | Key | Action |
 | --- | --- |
@@ -108,13 +110,13 @@ Press `j` or down arrow to highlight the first entry, then:
 | `x` | select or unselect it for a bulk action |
 | `?` | show or hide the shortcut list |
 
-Shortcuts pause while you type or in a dialog. After a decision the next entry is highlighted.
+Shortcuts pause while you type or a dialog is open. After a decision the next entry is highlighted.
 
 ### Act on several entries at once
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Tick rows (or the header box for everything the filter shows), then choose **Approve selected**, **Reject selected** or, with `--allow-spend`, **Retranslate selected**. Each entry is decided as it would be on its own; failures are listed by cause and stay selected for a retry. A batch holds at most 100 entries to approve or reject, or 20 to retranslate.
+Tick rows (or the header box for everything the filter shows), then choose **Approve selected**, **Reject selected** or, with `--allow-spend`, **Retranslate selected**. Each entry is decided as it would be on its own; failures are listed by cause and stay selected. A batch holds at most 100 entries to approve or reject, or 20 to retranslate.
 
 ## Retranslate a flagged key
 
