@@ -250,30 +250,31 @@ describe.each(THEMES)("field border in the %s theme", (theme) => {
   });
 });
 
+function hueOf(tokens: ReadonlyMap<string, string>, name: string): number {
+  const [r, g, b] = resolveColor(tokens, name);
+  const max = Math.max(r, g, b);
+  const delta = max - Math.min(r, g, b);
+  if (delta === 0) return 0;
+  const sector =
+    max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  return (sector * 60 + 360) % 360;
+}
+
+function hueGap(tokens: ReadonlyMap<string, string>, a: string, b: string): number {
+  const gap = Math.abs(hueOf(tokens, a) - hueOf(tokens, b));
+  return Math.min(gap, 360 - gap);
+}
+
 describe.each(THEMES)("warning hue in the %s theme", (theme) => {
-  const hue = (name: string): number => {
-    const value = themeBlock(theme).declarations.get(name) ?? "";
-    return Number(/^hsl\((\d+)/.exec(value)?.[1]);
-  };
-
   it("sits at least 30 degrees from the changed hue, so two bordered badges read apart", () => {
-    const gap = Math.abs(hue("--v-warning") - hue("--v-status-changed"));
-
-    expect(Math.min(gap, 360 - gap)).toBeGreaterThanOrEqual(30);
+    expect(hueGap(rootTokens(theme), "--v-warning", "--v-status-changed")).toBeGreaterThanOrEqual(
+      30,
+    );
   });
 });
 
 describe.each(THEMES)("missing hue in the %s theme", (theme) => {
   const tokens = rootTokens(theme);
-  const hueOf = (name: string): number => {
-    const [r, g, b] = resolveColor(tokens, name);
-    const max = Math.max(r, g, b);
-    const delta = max - Math.min(r, g, b);
-    if (delta === 0) return 0;
-    const sector =
-      max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
-    return (sector * 60 + 360) % 360;
-  };
   const NEIGHBOURS = [
     "--diff-changed",
     "--diff-protected",
@@ -284,9 +285,7 @@ describe.each(THEMES)("missing hue in the %s theme", (theme) => {
   ] as const;
 
   it.each(NEIGHBOURS)("keeps the missing hue at least 30 degrees from %s", (neighbour) => {
-    const gap = Math.abs(hueOf("--diff-missing") - hueOf(neighbour));
-
-    expect(Math.min(gap, 360 - gap), neighbour).toBeGreaterThanOrEqual(30);
+    expect(hueGap(tokens, "--diff-missing", neighbour), neighbour).toBeGreaterThanOrEqual(30);
   });
 
   it("leaves the new-badge colour on the accent", () => {
