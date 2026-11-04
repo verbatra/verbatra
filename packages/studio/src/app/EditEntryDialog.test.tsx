@@ -665,6 +665,48 @@ describe("EditEntryDialog", () => {
     expect(editor(view).getAttribute("aria-invalid")).toBe("true");
   });
 
+  it("marks the text area invalid only while the draft equals the failing saved value", async () => {
+    stubRpc({
+      "key.context": {
+        ok: true,
+        result: {
+          source: "Hello {name}",
+          target: "Hallo",
+          provenance: { origin: "machine", provider: "anthropic", reviewState: "unreviewed" },
+          glossary: NO_GLOSSARY,
+        },
+      },
+      "key.integrity": {
+        ok: true,
+        result: {
+          locales: [
+            {
+              locale: LOCALE,
+              hasPlaceholders: true,
+              matches: false,
+              missing: ["{name}"],
+              extra: [],
+              icuValid: true,
+              icuArmsMatch: true,
+              icuArmDetails: [],
+              markupMatches: true,
+              markupDetails: [],
+            },
+          ],
+        },
+      },
+    });
+    const view = await renderAsync(dialog());
+    await flush();
+    expect(editor(view).getAttribute("aria-invalid")).toBe("true");
+
+    typeInto(editor(view), "Hallo {name}");
+    expect(editor(view).hasAttribute("aria-invalid")).toBe(false);
+
+    typeInto(editor(view), "Hallo");
+    expect(editor(view).getAttribute("aria-invalid")).toBe("true");
+  });
+
   it("does not mark the text area invalid while the saved value holds up", async () => {
     stubRpc({ "key.context": keyValue("Hello", "Hallo") });
 
