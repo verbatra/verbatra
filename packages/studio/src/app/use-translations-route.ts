@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { KeyStatus } from "../client/key-status-filter.js";
 import type { LocaleValuesData } from "../client/locale-values.js";
 import { routeParams } from "../client/routes.js";
@@ -38,19 +38,13 @@ export function useTranslationsRoute(
   localeValues: RefreshableView<LocaleValuesData>,
 ): TranslationsRoute {
   const [params, setParams] = useRouteParams("translations");
-  const hasFilterParams = params.locale !== undefined || params.statuses !== undefined;
-  const [viewMode, setViewModeState] = useState<DiffViewMode>(hasFilterParams ? "flat" : "grid");
-
-  useEffect(() => {
-    if (hasFilterParams) {
-      setViewModeState("flat");
-    }
-  }, [hasFilterParams]);
+  const [chosenViewMode, setChosenViewMode] = useState<DiffViewMode>("grid");
 
   const locale =
     params.locale !== undefined && knownLocales.includes(params.locale) ? params.locale : "";
   const statuses: ReadonlySet<KeyStatus> = new Set(params.statuses);
   const selectedKey = selectableKey(params.key, localeValues);
+  const viewMode = locale !== "" || statuses.size > 0 ? "flat" : chosenViewMode;
 
   return {
     viewMode,
@@ -58,12 +52,13 @@ export function useTranslationsRoute(
     statuses,
     selectedKey,
     setViewMode(mode) {
-      setViewModeState(mode);
+      setChosenViewMode(mode);
       if (mode === "grid") {
         setParams(routeParams({ key: selectedKey }));
       }
     },
     setFilter(filter) {
+      setChosenViewMode("flat");
       setParams(routeParams({ ...filter, key: selectedKey }));
     },
     setSelectedKey(key) {

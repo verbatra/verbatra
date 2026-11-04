@@ -1681,8 +1681,8 @@ describe("TranslationsPanel deep links", () => {
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
     await flush();
 
-    expect((view.get("select[aria-label='Filter by locale']") as HTMLSelectElement).value).toBe("");
-    expect(listedSections(view)).toEqual(["de", "fr"]);
+    expect(view.query("[data-status-filter]")).toBeNull();
+    expect(view.getByText("button", "Grid").getAttribute("aria-pressed")).toBe("true");
   });
 
   it("writes locale, statuses and key into the hash without adding history entries", async () => {
