@@ -23,7 +23,7 @@ const SHOTS = [
     name: "studio-overview",
     hash: "overview",
     heading: "Overview",
-    ready: "Locales",
+    ready: "Up to date",
     height: 640,
   },
   { name: "studio-review", hash: "review", heading: "Review", ready: "Reasons", height: 692 },
