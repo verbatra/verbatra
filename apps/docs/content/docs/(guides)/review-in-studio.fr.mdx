@@ -21,7 +21,7 @@ Ouvre l'URL qu'il affiche, token compris, et arrête Studio avec Ctrl+C. [`verba
 
 ## Lire la page Translations
 
-Translations liste chaque clé manquante, modifiée et orpheline, sous forme de **List** par locale avec un filtre texte ou de **Grid** clé par locale.
+Translations est un tableau de toutes les clés qui demandent de l'attention : manquantes, modifiées, orphelines, protégées, dans la file de relecture ou en échec de contrôle d'intégrité. Chaque ligne montre la clé, le texte source et un statut par locale ; choisis une locale pour voir traduction, statut et origine.
 
 Clique sur une clé pour voir la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide. Également affiché :
 
@@ -35,7 +35,7 @@ Clique sur une clé pour voir la valeur de chaque locale avec un indicateur d'in
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-La vue List filtre aussi par locale et par état, notamment **Review queue** et **Integrity problems** (toute valeur qui échoue aux contrôles de placeholders, de balisage ou ICU). **Copy as review report** copie les clés en attente en Markdown pour une pull request.
+Les puces à côté de la recherche restreignent le tableau par état, notamment **Review queue** et **Integrity problems** (une valeur qui échoue aux contrôles de placeholders, de balisage ou ICU). La recherche trouve aussi les clés synchronisées. **Copy as review report** copie les clés en attente en Markdown pour une pull request.
 
 ### Modifier avec la barrière d'intégrité
 
@@ -67,7 +67,7 @@ Deux signalements de relecture s'affichent comme **Over length budget** et **Reu
 
 <AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
 
-Filtre par locale ou par texte dans la clé, la source ou la traduction, puis traite chaque ligne :
+Filtre par locale ou texte, puis traite chaque ligne :
 
 - **Edit** ouvre l'éditeur soumis à la barrière d'intégrité. Une modification acceptée retire la ligne.
 - **Approve** accepte la valeur telle quelle.
@@ -104,7 +104,7 @@ Appuie sur `j` ou la flèche bas pour mettre en surbrillance la première entré
 | `x` | la sélectionner ou désélectionner pour une action groupée |
 | `?` | afficher ou masquer la liste des raccourcis |
 
-Les raccourcis sont en pause pendant que tu tapes ou qu'une boîte de dialogue est ouverte. Après une décision, l'entrée suivante est mise en surbrillance, donc `a` à nouveau descend dans la file.
+Les raccourcis sont en pause pendant que tu tapes ou qu'une boîte de dialogue est ouverte. Après une décision, l'entrée suivante est mise en surbrillance.
 
 ### Agir sur plusieurs entrées à la fois
 
@@ -120,7 +120,7 @@ Démarre Studio avec la dépense autorisée ([comment la dépense est accordée]
 verbatra studio --allow-spend
 ```
 
-Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans la vue détaillée d'une clé pour une valeur avec un défaut d'intégrité. Il fait un appel au fournisseur, passe le résultat par la barrière d'intégrité et laisse la nouvelle valeur dans la file pour que tu l'approuves. Depuis une ligne de Review, une valeur écrite par une personne n'est jamais remplacée ; dans sa vue détaillée sur Translations, choisis **Replace anyway**. Sans `--allow-spend`, le serveur n'enregistre pas du tout le point d'accès, donc la dépense ne peut pas être activée depuis le navigateur.
+Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans la vue détaillée d'une clé pour une valeur avec un défaut d'intégrité. Il fait un appel au fournisseur, passe le résultat par la barrière d'intégrité et laisse la nouvelle valeur dans la file pour que tu l'approuves. Depuis une ligne de Review, une valeur écrite par une personne n'est jamais remplacée ; dans sa vue détaillée sur Translations, choisis **Replace anyway**. Sans `--allow-spend`, le serveur n'enregistre pas du tout le point d'accès.
 
 ## Traduire les changements en attente
 

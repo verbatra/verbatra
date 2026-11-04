@@ -21,7 +21,7 @@ Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra 
 
 ## Read the Translations page
 
-Translations lists every missing, changed and orphaned key, as a **List** per locale with a text filter or as a key-by-locale **Grid**.
+Translations is one table of every key that needs attention: missing, changed, orphaned, protected, in the review queue or failing an integrity check. Each row shows the key, source text and one status per locale; pick a locale for translation, status and origin.
 
 Click a key to see every locale's value with an integrity indicator: placeholders match, a placeholder mismatch with the tokens named, or invalid message syntax. Also shown:
 
@@ -35,7 +35,7 @@ Click a key to see every locale's value with an integrity indicator: placeholder
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-The List view also filters by locale and by state, including **Review queue** and **Integrity problems** (any value that fails the placeholder, markup or ICU checks). **Copy as review report** copies the pending keys as Markdown for a pull request.
+The chips beside the search narrow the table by state, including **Review queue** and **Integrity problems** (a value failing placeholder, markup or ICU checks). Search also finds in-sync keys. **Copy as review report** copies the pending keys as Markdown for a pull request.
 
 ### Edit with integrity gating
 
@@ -67,7 +67,7 @@ Two review flags read **Over length budget** and **Reused after source edit**.
 
 <AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
 
-Filter by locale or by text in the key, source or translation, then work each row:
+Filter by locale or text, then work each row:
 
 - **Edit** opens the integrity-gated editor. An accepted edit clears the row.
 - **Approve** accepts the value as it stands.
@@ -77,7 +77,7 @@ Filter by locale or by text in the key, source or translation, then work each ro
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Both decisions are saved in `verbatra.provenance.json` under the rules in [Review decisions](/docs/the-lock-file#review-decisions), including what a rejection removes. An approval also needs the value to be up to date with its source. Commit the locale file, the lock file and the provenance file together; in an XLIFF project, edit instead of rejecting.
+Both decisions are saved in `verbatra.provenance.json` under the [Review decisions](/docs/the-lock-file#review-decisions) rules, including what a rejection removes. An approval also needs the value to be up to date with its source. Commit the locale file, the lock file and the provenance file together; in an XLIFF project, edit instead of rejecting.
 
 ### One queue for the whole team
 
@@ -104,7 +104,7 @@ Press `j` or the down arrow to highlight the first entry, then:
 | `x` | select or unselect it for a bulk action |
 | `?` | show or hide the shortcut list |
 
-Shortcuts pause while you type or a dialog is open. After a decision the next entry is highlighted, so `a` again works down the queue.
+Shortcuts pause while you type or a dialog is open. After a decision the next entry is highlighted.
 
 ### Act on several entries at once
 
@@ -120,7 +120,7 @@ Start Studio with spend allowed ([how spend is granted](/docs/cli/studio#spend-a
 verbatra studio --allow-spend
 ```
 
-A **Retranslate** button then appears on each Review row, and in a key's detail view for a value with an integrity defect. It makes one provider call, runs the result through the integrity gate, and leaves the new value in the queue for you to approve. From a Review row, a value a person wrote is never replaced; in its detail view on Translations, choose **Replace anyway**. Without `--allow-spend` the server does not register the endpoint at all, so spend cannot be switched on from the browser.
+A **Retranslate** button then appears on each Review row, and in a key's detail view for a value with an integrity defect. It makes one provider call, runs the result through the integrity gate, and leaves the new value in the queue for you to approve. From a Review row, a value a person wrote is never replaced; in its detail view on Translations, choose **Replace anyway**. Without `--allow-spend` the server does not register the endpoint at all.
 
 ## Translate pending changes
 
