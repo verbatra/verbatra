@@ -1,4 +1,4 @@
-import { Icon, Tooltip, type TooltipSide } from "@verbatra/ui";
+import { Icon, Tooltip, type TooltipSide, type TooltipTrigger } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { KeyLocaleStatus } from "../client/diff-view.js";
 import type { KeyStatus } from "../client/key-status-filter.js";
@@ -31,17 +31,27 @@ export function cellName(
 export function MarkerTip({
   held,
   side = "bottom",
+  fill = true,
+  trigger = "hover-and-focus",
   children,
 }: {
   readonly held: ReadonlySet<KeyStatus> | undefined;
   readonly side?: TooltipSide;
+  readonly fill?: boolean;
+  readonly trigger?: TooltipTrigger;
   readonly children: ReactNode;
 }): ReactNode {
   const texts = markerTexts(held);
   return texts.length === 0 ? (
     children
   ) : (
-    <Tooltip label={sentence(texts.join(", "))} side={side} decorative className="flex w-full">
+    <Tooltip
+      label={sentence(texts.join(", "))}
+      side={side}
+      trigger={trigger}
+      decorative
+      {...(fill ? { className: "flex w-full" } : {})}
+    >
       {children}
     </Tooltip>
   );
@@ -51,10 +61,12 @@ export function KeyStatusCell({
   status,
   held,
   announce = true,
+  titled = false,
 }: {
   readonly status: KeyLocaleStatus;
   readonly held: ReadonlySet<KeyStatus> | undefined;
   readonly announce?: boolean;
+  readonly titled?: boolean;
 }): ReactNode {
   return (
     <span className="inline-block whitespace-nowrap">
@@ -64,6 +76,7 @@ export function KeyStatusCell({
           aria-hidden="true"
           className="ms-1.5 inline-flex align-middle text-warning"
           data-marker="review"
+          {...(titled ? { title: sentence(REVIEW_TEXT) } : {})}
         >
           <Icon name="inbox" size={14} />
         </span>
@@ -73,17 +86,13 @@ export function KeyStatusCell({
           aria-hidden="true"
           className="ms-1.5 inline-flex align-middle text-danger"
           data-marker="integrity"
+          {...(titled ? { title: sentence(INTEGRITY_TEXT) } : {})}
         >
           <Icon name="alert" size={14} />
         </span>
       ) : null}
       {announce
-        ? markerTexts(held).map((text) => (
-            <span
-              key={text}
-              className="overflow-hidden text-[0px] [clip-path:inset(50%)]"
-            >{`, ${text}`}</span>
-          ))
+        ? markerTexts(held).map((text) => <span key={text} className="sr-only">{`, ${text}`}</span>)
         : null}
     </span>
   );

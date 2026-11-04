@@ -14,8 +14,11 @@ function isArrowKey(key: string): key is GridArrowKey {
   return ARROW_KEYS.has(key);
 }
 
-function elementOf(target: EventTarget): Element | null {
-  return target instanceof Element ? target : (target as Node).parentElement;
+export function elementOf(target: EventTarget): Element | null {
+  if (target instanceof Element) {
+    return target;
+  }
+  return target instanceof Node ? target.parentElement : null;
 }
 
 function stopOf(target: EventTarget): HTMLElement | null {

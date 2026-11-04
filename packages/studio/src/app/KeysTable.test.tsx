@@ -248,50 +248,77 @@ describe("KeysTable selection", () => {
   });
 });
 
+describe("KeysTable own keys", () => {
+  it("shows no translation for a key whose name is an inherited property", async () => {
+    stubRpc(NO_COVERAGE);
+    const inherited = Object.getOwnPropertyDescriptor(Function.prototype, "target");
+    Object.defineProperty(Function.prototype, "target", {
+      value: "polluted translation",
+      configurable: true,
+    });
+    try {
+      const view = await renderAsync(
+        table({
+          locale: "de",
+          keys: ["toString"],
+          localeValues: [{ locale: "de", keys: [], values: {} }],
+        }),
+      );
+
+      expect(view.get('[data-key="toString"]').textContent).toContain("No translation");
+      expect(view.get('[data-key="toString"]').textContent).not.toContain("polluted");
+    } finally {
+      if (inherited === undefined) {
+        Reflect.deleteProperty(Function.prototype, "target");
+      } else {
+        Object.defineProperty(Function.prototype, "target", inherited);
+      }
+    }
+  });
+});
+
 describe("KeysTable markers", () => {
   const held = keyStatusIndex([DE], {
     review: [{ locale: "de", key: "a.missing" }],
     integrity: [],
   });
 
-  it("explains a marker with the words the cell already carries, in both tables", async () => {
+  it("explains a matrix marker in a tooltip on the cell and names the cell in full", async () => {
     stubRpc(NO_COVERAGE);
-    const matrix = await renderAsync(table({ index: held }));
-    expect(matrix.get("[role='tooltip']").textContent).toBe("In the review queue");
-    expect(matrix.get('[data-key="a.missing"] button').getAttribute("aria-label")).toBe(
-      "a.missing in de: Missing, in the review queue",
-    );
-    matrix.unmount();
+    const view = await renderAsync(table({ index: held }));
 
-    const entries = await renderAsync(table({ index: held, locale: "de" }));
-    expect(entries.get("[role='tooltip']").textContent).toBe("In the review queue");
-    expect(entries.get('[data-key="a.missing"]').textContent).toContain(
-      "Missing, in the review queue",
+    expect(view.get("[role='tooltip']").textContent).toBe("In the review queue");
+    expect(view.get('[data-key="a.missing"] button').getAttribute("aria-label")).toBe(
+      "a.missing in de: Missing, in the review queue",
     );
   });
 
-  it("opens the entries table's marker tooltip from keyboard focus on the key", async () => {
+  it("explains an entries marker from keyboard focus on the key, not from the pointer", async () => {
     stubRpc(NO_COVERAGE);
     const view = await renderAsync(table({ index: held, locale: "de" }));
     const key = view.get('[data-key="a.missing"] th button');
+    const slot = view.get('[data-key="a.missing"] th [data-slot]');
 
     act(() => {
-      key.focus();
-      key.dispatchEvent(new Event("focusin", { bubbles: true }));
+      key.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
     });
+    expect(slot.hasAttribute("data-open")).toBe(false);
 
-    const slot = view.get('[data-key="a.missing"] th [data-slot]');
+    act(() => key.focus());
     expect(slot.hasAttribute("data-open")).toBe(true);
     expect(slot.textContent).toBe("In the review queue");
   });
 
-  it("keeps a marked cell the same width as an unmarked one, so the hit area matches", async () => {
+  it("gives the entries status marker a plain title and no tooltip of its own", async () => {
     stubRpc(NO_COVERAGE);
-    const view = await renderAsync(table({ index: held }));
-    const marked = view.get('[data-key="a.missing"] button');
+    const view = await renderAsync(table({ index: held, locale: "de" }));
+    const row = view.get('[data-key="a.missing"]');
 
-    expect(marked.parentElement?.className).toContain("w-full");
-    expect(marked.className).toContain("w-full");
+    expect(row.querySelector("td [data-marker='review']")?.getAttribute("title")).toBe(
+      "In the review queue",
+    );
+    expect(row.querySelectorAll("[role='tooltip']")).toHaveLength(1);
+    expect(row.textContent).toContain("Missing, in the review queue");
   });
 
   it("does not announce the marker words twice", async () => {
@@ -330,7 +357,7 @@ describe("KeysTable activation", () => {
     const view = await renderAsync(table({ onSelectKey, locale: "de" }));
     const row = view.get('[data-key="a.missing"]');
     const range = document.createRange();
-    range.selectNodeContents(row.querySelector("[data-source], td") as Node);
+    range.selectNodeContents(row.querySelector("td") as Node);
     window.getSelection()?.removeAllRanges();
     window.getSelection()?.addRange(range);
 
@@ -340,6 +367,36 @@ describe("KeysTable activation", () => {
     window.getSelection()?.removeAllRanges();
     act(() => (row.querySelector("td") as HTMLElement).click());
     expect(onSelectKey).toHaveBeenCalledWith("a.missing");
+  });
+
+  it("does not open the key when a selection started outside the row and ends inside it", async () => {
+    stubRpc(NO_COVERAGE);
+    const onSelectKey = vi.fn();
+    const view = await renderAsync(table({ onSelectKey, locale: "de" }));
+    const outside = view.get('[data-key="a.missing"] td');
+    const inside = view.get('[data-key="b.changed"] td');
+    const range = document.createRange();
+    range.setStart(outside, 0);
+    range.setEnd(inside, 1);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    act(() => inside.click());
+
+    expect(onSelectKey).not.toHaveBeenCalled();
+    window.getSelection()?.removeAllRanges();
+  });
+
+  it("opens the key when the browser reports no selection object", async () => {
+    stubRpc(NO_COVERAGE);
+    vi.spyOn(window, "getSelection").mockReturnValue(null);
+    const onSelectKey = vi.fn();
+    const view = await renderAsync(table({ onSelectKey, locale: "de" }));
+
+    act(() => view.get('[data-key="a.missing"] td').click());
+
+    expect(onSelectKey).toHaveBeenCalledWith("a.missing");
+    vi.restoreAllMocks();
   });
 
   it("still opens the key when the selected text is in another row", async () => {

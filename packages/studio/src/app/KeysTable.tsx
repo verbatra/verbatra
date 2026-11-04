@@ -16,7 +16,7 @@ import type { DiffLocale } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus, keyLocaleStatus } from "../client/diff-view.js";
 import type { KeyStatusIndex } from "../client/key-status-filter.js";
 import type { LocaleValuesData } from "../client/locale-values.js";
-import { sourceTextFor } from "../client/locale-values.js";
+import { pairFor, sourceTextFor } from "../client/locale-values.js";
 import type { RefreshableView } from "../client/state.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { cellName, KeyStatusCell, MarkerTip } from "./KeyStatusCell.js";
@@ -66,10 +66,10 @@ const BODY_CELL = cn(SEAM, "h-12 py-0");
 const SOURCE_COLUMN = "hidden md:table-cell";
 
 const STOP =
-  "block w-full rounded-(--radius-sm) p-1 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
+  "block w-full rounded-(--radius-sm) p-1 text-start focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
 const KEY_STOP =
-  "-mx-1 block max-w-[6rem] truncate rounded-(--radius-sm) px-1 py-1 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring md:max-w-[14rem]";
+  "-mx-1 block max-w-[6rem] truncate rounded-(--radius-sm) px-1 py-1 text-start focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring md:max-w-[14rem]";
 
 const REGION = "scroll-ps-28 md:scroll-ps-60 md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto";
 
@@ -268,11 +268,11 @@ function EntriesTable({
             {keys.map((key, row) => {
               const status = keyLocaleStatus(locales, key, locale);
               const held = index.get(locale)?.get(key);
-              const pair = values?.[key];
+              const pair = pairFor(values, key);
               return (
                 <TableRow key={key} data-key={key} selected={key === selectedKey} className="group">
                   <th scope="row" className={KEY_CELL}>
-                    <MarkerTip held={held} side="end">
+                    <MarkerTip held={held} side="end" fill={false} trigger="focus">
                       <button
                         type="button"
                         className={KEY_STOP}
@@ -303,9 +303,7 @@ function EntriesTable({
                     )}
                   </TableCell>
                   <TableCell className={BODY_CELL}>
-                    <MarkerTip held={held}>
-                      <KeyStatusCell status={status} held={held} />
-                    </MarkerTip>
+                    <KeyStatusCell status={status} held={held} titled />
                   </TableCell>
                   <TableCell className={BODY_CELL}>
                     {WITHOUT_ORIGIN.has(status) ? null : (

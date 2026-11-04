@@ -85,6 +85,17 @@ describe("keyLocaleStatusLabel", () => {
   });
 });
 
+describe("KeyLocaleStatusBadge wording", () => {
+  it.each(["in-sync", "absent", "missing", "changed", "orphaned", "protected"] as const)(
+    "shows the %s state with exactly the words the cell name uses",
+    (status) => {
+      expect(render(<KeyLocaleStatusBadge status={status} />).text()).toBe(
+        keyLocaleStatusLabel(status),
+      );
+    },
+  );
+});
+
 describe("isDiffTone", () => {
   it.each(TONES)("accepts the diff tone %s", (tone) => {
     expect(isDiffTone(tone)).toBe(true);

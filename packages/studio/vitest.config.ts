@@ -1,6 +1,6 @@
 import { createVitestConfig } from "@verbatra/config/vitest";
 
-export default createVitestConfig({
+const base = createVitestConfig({
   testInclude: [
     "*.test.ts",
     "src/server/**/*.test.ts",
@@ -25,3 +25,5 @@ export default createVitestConfig({
     "src/app/css.d.ts",
   ],
 });
+
+export default { ...base, test: { ...base.test, setupFiles: ["./vitest.setup.ts"] } };

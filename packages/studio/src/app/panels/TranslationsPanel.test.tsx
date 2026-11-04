@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DiffLocale } from "../../client/diff-view.js";
 import { MAX_RENDERED_KEYS } from "../../client/filter.js";
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
@@ -25,6 +25,10 @@ const MACHINE = { origin: "machine", reviewState: "unreviewed" } as const;
 
 const writeText = vi.fn<(text: string) => Promise<void>>();
 Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+
+afterEach(() => {
+  window.history.replaceState(null, "", "#/translations");
+});
 
 beforeEach(() => {
   writeText.mockReset();
@@ -445,7 +449,6 @@ describe("TranslationsPanel loading and value errors", () => {
     expect(document.activeElement).toBe(field);
     expect(field.value).toBe("ti");
     expect(rowKeys(view)).toEqual(["app.title"]);
-    pointHashAt("#/translations");
   });
 
   it("keeps the locale and the open key of a deep link when a chosen chip is clicked during loading", async () => {
@@ -460,7 +463,6 @@ describe("TranslationsPanel loading and value errors", () => {
     await clickAsync(statusToggle(view, "missing"));
 
     expect(window.location.hash).toBe("#/translations?locale=de&key=x");
-    pointHashAt("#/translations");
   });
 
   it("keeps a typed search in the address with the rest of a deep link during loading", async () => {
@@ -471,7 +473,6 @@ describe("TranslationsPanel loading and value errors", () => {
     typeInto(filterInput(view), "cart");
 
     expect(window.location.hash).toBe("#/translations?locale=de&key=x&q=cart");
-    pointHashAt("#/translations");
   });
 
   it("lets the locale choice be reset while the diff loads", async () => {
@@ -482,7 +483,6 @@ describe("TranslationsPanel loading and value errors", () => {
     chooseLocale(view, "");
 
     expect(window.location.hash).toBe("#/translations?status=changed");
-    pointHashAt("#/translations");
   });
 
   it("still opens the key of a deep link when the translation values could not be read", async () => {
@@ -493,7 +493,6 @@ describe("TranslationsPanel loading and value errors", () => {
     await flush();
 
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
-    pointHashAt("#/translations");
   });
 
   it("does not claim nothing needs attention while a status source is unavailable", async () => {
@@ -505,6 +504,51 @@ describe("TranslationsPanel loading and value errors", () => {
     expect(view.get("[data-key-count]").textContent).toBe("0 keys need attention so far");
     expect(view.text()).toContain("No keys found so far");
     expect(view.text()).not.toContain("No keys need attention");
+  });
+
+  it("says it is still checking, not that a read failed, while a source loads", async () => {
+    stubSyncedPage({ "review.queue": PENDING });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.text()).toContain("Still checking");
+    expect(view.text()).toContain("are still loading");
+    expect(view.text()).not.toContain("could not be read");
+  });
+
+  it("says a read failed, not that it is loading, when a source errors", async () => {
+    stubSyncedPage({ "locale.integrity": rpcError("LOCK_FILE_INVALID") });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.text()).toContain("No keys found so far");
+    expect(view.text()).toContain("could not be read");
+    expect(view.text()).not.toContain("still loading");
+  });
+
+  it("marks a capped total as partial while a source is unavailable", async () => {
+    const keys = Array.from({ length: MAX_RENDERED_KEYS + 1 }, (_, index) => `app.key${index}`);
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { missing: keys })]),
+      "review.queue": rpcError("QUEUE_UNREADABLE"),
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    expect(view.get("[data-key-cap]").textContent).toBe(
+      `Showing ${MAX_RENDERED_KEYS} of ${keys.length} keys so far. Refine the filter to see more.`,
+    );
+  }, 15000);
+
+  it("marks a filtered count as partial too", async () => {
+    stubPage({ "review.queue": rpcError("QUEUE_UNREADABLE") });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    typeInto(filterInput(view), "body");
+
+    expect(view.get("[data-key-count]").textContent).toBe("1 matching key so far");
   });
 
   it("says so for a source that is still loading, and keeps the diff rows", async () => {
@@ -830,8 +874,6 @@ describe("TranslationsPanel key table", () => {
       ["app.body", "false"],
       ["app.title", "true"],
     ]);
-
-    pointHashAt("#/translations");
   });
 
   it("names a cell with its key, locale and status, then each marker after a comma", async () => {
@@ -906,7 +948,7 @@ describe("TranslationsPanel keyboard", () => {
     expect(stops(view).map((stop) => stop.tabIndex)).toEqual([0, -1, -1, -1]);
   });
 
-  it("moves between cells with the arrow keys and wraps at the edges", async () => {
+  it("moves between cells with the arrow keys, stopping at the row edges and wrapping rows", async () => {
     stubPage();
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
     const first = cellButton(view, "app.body", "de");
@@ -918,6 +960,10 @@ describe("TranslationsPanel keyboard", () => {
     expect(first.tabIndex).toBe(-1);
 
     keyDownOn(document.activeElement as HTMLElement, "ArrowRight");
+    expect(document.activeElement).toBe(cellButton(view, "app.body", "fr"));
+
+    keyDownOn(document.activeElement as HTMLElement, "ArrowLeft");
+    keyDownOn(document.activeElement as HTMLElement, "ArrowLeft");
     expect(document.activeElement).toBe(first);
 
     keyDownOn(first, "ArrowDown");

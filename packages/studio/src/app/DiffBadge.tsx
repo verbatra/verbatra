@@ -26,7 +26,7 @@ export function keyLocaleStatusLabel(status: KeyLocaleStatus): string {
 }
 
 export function DiffBadge({ tone }: { readonly tone: DiffTone }): ReactNode {
-  return <Badge tone={tone}>{DIFF_LABEL[tone]}</Badge>;
+  return <Badge tone={tone}>{keyLocaleStatusLabel(tone)}</Badge>;
 }
 
 export function KeyLocaleStatusBadge({ status }: { readonly status: KeyLocaleStatus }): ReactNode {
@@ -37,12 +37,12 @@ export function KeyLocaleStatusBadge({ status }: { readonly status: KeyLocaleSta
         data-status="in-sync"
       >
         <span aria-hidden="true" className="size-1.5 flex-none rounded-full bg-success" />
-        In sync
+        {keyLocaleStatusLabel(status)}
       </span>
     );
   }
   if (status === "absent") {
-    return <Badge tone="neutral">Absent</Badge>;
+    return <Badge tone="neutral">{keyLocaleStatusLabel(status)}</Badge>;
   }
   return <DiffBadge tone={status} />;
 }

@@ -110,19 +110,44 @@ function statusSources(
   };
 }
 
+const LOADING_REASON = "Still loading";
+
+const FAILED_REASON = "Not available right now";
+
 function unavailableReason(view: { readonly kind: string }): string {
-  return view.kind === "loading" ? "Still loading" : "Not available right now";
+  return view.kind === "loading" ? LOADING_REASON : FAILED_REASON;
+}
+
+type SourceTrouble = "loading" | "failed" | null;
+
+function sourceTrouble(unavailable: ReadonlyMap<KeyStatus, string>): SourceTrouble {
+  if ([...unavailable.values()].includes(FAILED_REASON)) {
+    return "failed";
+  }
+  return unavailable.size > 0 ? "loading" : null;
+}
+
+const NO_LOCALES: readonly DiffLocale[] = [];
+
+function localeOptionsFor(
+  locales: readonly DiffLocale[] | null,
+  chosen: string,
+): readonly string[] {
+  if (locales !== null) {
+    return locales.map((entry) => entry.locale);
+  }
+  return chosen === "" ? [] : [chosen];
 }
 
 function keyCountText(rows: KeyTableRows, narrowed: boolean, incomplete: boolean): string {
+  const soFar = incomplete ? " so far" : "";
   if (rows.truncated) {
-    return `Showing ${MAX_RENDERED_KEYS} of ${rows.totalMatches} keys. Refine the filter to see more.`;
+    return `Showing ${MAX_RENDERED_KEYS} of ${rows.totalMatches} keys${soFar}. Refine the filter to see more.`;
   }
   if (narrowed) {
-    return `${rows.totalMatches} matching ${rows.totalMatches === 1 ? "key" : "keys"}`;
+    return `${rows.totalMatches} matching ${rows.totalMatches === 1 ? "key" : "keys"}${soFar}`;
   }
-  const need = `${rows.totalMatches} ${rows.totalMatches === 1 ? "key needs" : "keys need"} attention`;
-  return incomplete ? `${need} so far` : need;
+  return `${rows.totalMatches} ${rows.totalMatches === 1 ? "key needs" : "keys need"} attention${soFar}`;
 }
 
 function KeysFrame({
@@ -146,7 +171,7 @@ function KeysFrame({
   );
 }
 
-const STILL_LOADING = new Map(KEY_STATUSES.map((status) => [status, "Still loading"]));
+const STILL_LOADING = new Map(KEY_STATUSES.map((status) => [status, LOADING_REASON]));
 
 function KeysSection({
   locales,
@@ -178,17 +203,13 @@ function KeysSection({
   );
   const narrowed = statuses.size > 0 || query.trim() !== "";
   const loading = locales === null;
-  const incomplete = unavailable.size > 0;
-  const localeOptions = loading
-    ? locale === ""
-      ? []
-      : [locale]
-    : loaded.map((entry) => entry.locale);
+  const trouble = sourceTrouble(unavailable);
+  const incomplete = trouble !== null;
 
   return (
     <KeysFrame summary={loading ? "" : keyCountText(rows, narrowed, incomplete)}>
       <KeyFilters
-        locales={localeOptions}
+        locales={localeOptionsFor(locales, locale)}
         locale={locale}
         statuses={statuses}
         counts={loading ? emptyKeyCounts() : rows.counts}
@@ -215,7 +236,7 @@ function KeysSection({
       ) : rows.items.length === 0 ? (
         <NoKeys
           narrowed={narrowed}
-          incomplete={incomplete}
+          trouble={trouble}
           searching={query.trim() !== ""}
           onClear={() => {
             route.setFilter({ locale: "", statuses: new Set(), query: "" });
@@ -245,24 +266,30 @@ function KeysSection({
   );
 }
 
-const NO_LOCALES: readonly DiffLocale[] = [];
-
 function NoKeys({
   narrowed,
-  incomplete,
+  trouble,
   searching,
   onClear,
 }: {
   readonly narrowed: boolean;
-  readonly incomplete: boolean;
+  readonly trouble: SourceTrouble;
   readonly searching: boolean;
   readonly onClear: () => void;
 }): ReactNode {
-  if (!narrowed && incomplete) {
+  if (!narrowed && trouble === "failed") {
     return (
       <EmptyState icon="alert" title="No keys found so far">
         The review queue or the integrity check could not be read, so keys that need attention there
         may be missing. Search for a key or text to browse every key.
+      </EmptyState>
+    );
+  }
+  if (!narrowed && trouble === "loading") {
+    return (
+      <EmptyState icon="search" title="Still checking">
+        The review queue and the integrity check are still loading, so keys that need attention
+        there may appear in a moment. Search for a key or text to browse every key.
       </EmptyState>
     );
   }
@@ -303,16 +330,20 @@ function DiffNotices({
   );
 }
 
+function knownLocalesFor(diff: DiffState): readonly string[] | null {
+  if (diff.kind === "loading") {
+    return null;
+  }
+  return diff.kind === "loaded" ? diff.locales.map((entry) => entry.locale) : [];
+}
+
 export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const diff = useDiffState(refreshToken);
   const [editingLocale, setEditingLocale] = useState<string | null>(null);
   const [lastEditedLocale, setLastEditedLocale] = useState<string | null>(null);
   const localeValuesView = useLocaleValues(refreshToken);
 
-  const route = useTranslationsRoute(
-    diff.kind === "loaded" ? diff.locales.map((entry) => entry.locale) : null,
-    localeValuesView,
-  );
+  const route = useTranslationsRoute(knownLocalesFor(diff), localeValuesView);
   const { selectedKey, setSelectedKey } = route;
   const review = useReviewQueue(refreshToken);
 
