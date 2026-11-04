@@ -14,6 +14,7 @@ export function OverlayBackdrop({
   return (
     <button
       type="button"
+      tabIndex={-1}
       className="absolute inset-0 z-0 cursor-default border-none bg-(--scrim)"
       onClick={onClose}
       aria-label={label}

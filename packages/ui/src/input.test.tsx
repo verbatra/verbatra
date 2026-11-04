@@ -48,7 +48,7 @@ describe("TextField", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
-  it("marks an invalid field through aria-invalid, which also drives its border", () => {
+  it("forwards aria-invalid, which the field styles as invalid", () => {
     const view = render(<TextField aria-label="Name" aria-invalid />);
 
     expect(view.get("input").getAttribute("aria-invalid")).toBe("true");
@@ -61,6 +61,12 @@ describe("TextArea", () => {
 
     expect(view.get("textarea").tagName).toBe("TEXTAREA");
     expect(view.get("textarea").className.split(" ")).toContain("vk-field");
+  });
+
+  it("merges a caller className", () => {
+    const view = render(<TextArea aria-label="Translation" className="mt-1" />);
+
+    expect(view.get("textarea").className.split(" ")).toContain("mt-1");
   });
 
   it("forwards native attributes and reports each edit", () => {
@@ -94,8 +100,26 @@ describe("SearchInput", () => {
   it.each(SIZES)("insets the text past the glyph at the %s size", (size) => {
     const view = render(<SearchInput aria-label="Filter" size={size} />);
 
-    expect(view.get("input").className).toMatch(/\bps-(7|8|10)\b/);
+    expect(view.get("input").className.split(" ")).toContain(
+      { xs: "ps-7", sm: "ps-8", md: "ps-10" }[size],
+    );
     expect(view.get("input").dataset.size).toBe(size);
+  });
+
+  it("merges a caller className onto the field and a wrapper className onto the wrapper", () => {
+    const view = render(
+      <SearchInput aria-label="Filter" className="mt-1" wrapperClassName="flex-1" />,
+    );
+
+    expect(view.get("input").className.split(" ")).toContain("mt-1");
+    expect(view.get("input").parentElement?.className.split(" ")).toContain("flex-1");
+  });
+
+  it("stays a search input whatever type a caller passes", () => {
+    const props = { type: "text" } as object;
+    const view = render(<SearchInput aria-label="Filter" {...props} />);
+
+    expect(view.get("input").getAttribute("type")).toBe("search");
   });
 
   it("reports each keystroke, which filter-as-you-type depends on", () => {

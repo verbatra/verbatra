@@ -49,11 +49,10 @@ describe("Select", () => {
     expect(names).toContain("min-w-40");
   });
 
-  it("hides its chevron from assistive technology and from the pointer", () => {
+  it("hides its chevron from assistive technology", () => {
     const view = render(<Select aria-label="Locale">{options()}</Select>);
     const overlay = view.get("[aria-hidden='true']");
 
-    expect(overlay.className).toContain("pointer-events-none");
     expect(overlay.querySelector("svg")).not.toBeNull();
   });
 

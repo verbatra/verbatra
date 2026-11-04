@@ -30,6 +30,16 @@ describe("TableSkeleton", () => {
     expect(render(<TableSkeleton rows={0} />).all("span[aria-hidden='true']")).toHaveLength(1);
   });
 
+  it("sizes the header bar differently from the body bars, so the shape reads as a table", () => {
+    const view = render(<TableSkeleton rows={2} />);
+
+    expect(view.all("[data-bar='header']")).toHaveLength(1);
+    expect(view.all("[data-bar='row']")).toHaveLength(2);
+    expect(view.get("[data-bar='header']").className).not.toBe(
+      view.get("[data-bar='row']").className,
+    );
+  });
+
   it("is not itself a live region, so the caller announces once", () => {
     const view = render(<TableSkeleton />);
 

@@ -65,6 +65,13 @@ describe("EmptyState", () => {
 
     expect(view.text()).toContain("Nothing yet");
     expect(view.get("svg").getAttribute("aria-hidden")).toBe("true");
+    expect(view.get("svg").dataset.icon).toBe("inbox");
+  });
+
+  it("takes a custom glyph", () => {
+    const view = render(<EmptyState icon="help">Nothing yet</EmptyState>);
+
+    expect(view.get("svg").dataset.icon).toBe("help");
   });
 
   it("renders a title and an action only when given", () => {

@@ -33,6 +33,12 @@ describe("OverlayBackdrop", () => {
     expect(backdrop.getAttribute("aria-label")).toBe("Close the key detail");
   });
 
+  it("keeps itself out of the tab order, leaving the header button as the control", () => {
+    const view = render(<OverlayBackdrop onClose={() => {}} label="Close" />);
+
+    expect(view.get<HTMLButtonElement>("button").tabIndex).toBe(-1);
+  });
+
   it("calls onClose when clicked", () => {
     const onClose = vi.fn();
     const view = render(<OverlayBackdrop onClose={onClose} label="Close" />);
@@ -130,6 +136,20 @@ describe("Sheet", () => {
 });
 
 describe("DrawerShell", () => {
+  it("passes its close handler to both the backdrop and the header button", () => {
+    const onClose = vi.fn();
+    const view = render(
+      <DrawerShell {...REQUIRED} onClose={onClose} containerRef={createRef<HTMLDivElement>()}>
+        <p>Body</p>
+      </DrawerShell>,
+    );
+
+    click(view.get("button[aria-label='Close the key detail']"));
+    click(view.get("button[aria-label='Close']"));
+
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
   it("anchors a named dialog to the inline-end edge", () => {
     const view = render(
       <DrawerShell {...REQUIRED} onClose={() => {}} containerRef={createRef<HTMLDivElement>()}>

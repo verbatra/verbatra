@@ -1,7 +1,7 @@
 export type FieldSize = "xs" | "sm" | "md";
 
 export const FIELD_BASE =
-  "vk-field block w-full rounded-(--radius-md) border border-(--border-default) bg-(--surface-raised) text-(--text-strong) placeholder:text-(--text-muted) disabled:opacity-60 aria-invalid:border-(--border-danger)";
+  "vk-field block w-full rounded-(--radius-md) border border-(--text-faint) bg-(--surface-raised) text-(--text-strong) placeholder:text-(--text-muted) motion-safe:transition-colors motion-safe:duration-(--duration-fast) hover:border-(--border-accent) disabled:opacity-60 aria-invalid:border-(--border-danger)";
 
 export const FIELD_SIZE: Readonly<Record<FieldSize, string>> = {
   xs: "px-2 py-1 text-xs",

@@ -89,3 +89,15 @@
     outline-offset: -1px;
   }
 }
+
+@media (forced-colors: active) {
+  .vk-check:is(:checked, :indeterminate) {
+    background: Highlight;
+    border-color: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .vk-check-glyph {
+    color: HighlightText;
+  }
+}

@@ -35,4 +35,15 @@ describe("Checkbox", () => {
 
     expect(onChange).toHaveBeenCalledTimes(1);
   });
+
+  it("draws a check glyph, and a dash glyph while mixed", () => {
+    const plain = render(<Checkbox aria-label="Select" checked onChange={() => {}} />);
+    expect(plain.get("[data-glyph]").dataset.glyph).toBe("check");
+
+    const mixed = render(
+      <Checkbox aria-label="All" checked={false} indeterminate onChange={() => {}} />,
+    );
+    expect(mixed.get("[data-glyph]").dataset.glyph).toBe("indeterminate");
+    expect(mixed.get("[data-glyph]").getAttribute("aria-hidden")).toBe("true");
+  });
 });

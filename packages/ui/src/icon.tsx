@@ -189,6 +189,7 @@ export function Icon({
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
+      data-icon={name}
       aria-hidden="true"
     >
       {ICON_PATHS[name]}

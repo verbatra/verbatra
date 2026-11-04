@@ -38,18 +38,27 @@ const SEARCH_PADDING: Readonly<Record<FieldSize, string>> = {
   md: "ps-10",
 };
 
-export function SearchInput({ className, size = "sm", ...props }: TextFieldProps): ReactNode {
+export interface SearchInputProps extends Omit<TextFieldProps, "type"> {
+  readonly wrapperClassName?: string;
+}
+
+export function SearchInput({
+  className,
+  wrapperClassName,
+  size = "sm",
+  ...props
+}: SearchInputProps): ReactNode {
   return (
-    <span className="relative block w-full max-w-[320px]">
+    <span className={cn("relative block w-full sm:max-w-[320px]", wrapperClassName)}>
       <Icon
         name="search"
         size={14}
         className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-(--text-muted)"
       />
       <input
-        type="search"
         className={cn(FIELD_BASE, FIELD_SIZE[size], SEARCH_PADDING[size], className)}
         {...props}
+        type="search"
         data-size={size}
       />
     </span>

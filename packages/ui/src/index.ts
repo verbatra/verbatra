@@ -12,14 +12,11 @@ export {
 export { Card, type CardPadding, type CardProps } from "./card.tsx";
 export { Checkbox, type CheckboxProps } from "./checkbox.tsx";
 export { cn } from "./cn.ts";
-export { Icon, type IconName } from "./icon.tsx";
-
-export const THEMES = ["dark", "light"] as const;
-
-export type ThemeName = (typeof THEMES)[number];
 export type { FieldSize } from "./field.ts";
+export { Icon, type IconName } from "./icon.tsx";
 export {
   SearchInput,
+  type SearchInputProps,
   TextArea,
   type TextAreaProps,
   TextField,
@@ -58,3 +55,7 @@ export {
   tableClasses,
 } from "./table.tsx";
 export { Toast } from "./toast.tsx";
+
+export const THEMES = ["dark", "light"] as const;
+
+export type ThemeName = (typeof THEMES)[number];

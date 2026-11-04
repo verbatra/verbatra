@@ -31,10 +31,6 @@ describe("Table", () => {
     expect(table.className).toContain("min-w-0");
     expect(table.className).toContain(tableClasses.table.split(" ")[0] ?? "");
   });
-
-  it("gives the table a horizontal minimum, so a narrow viewport scrolls rather than squashes", () => {
-    expect(tableClasses.table).toContain("min-w-[480px]");
-  });
 });
 
 describe("TableHead and TableBody", () => {

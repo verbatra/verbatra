@@ -44,7 +44,7 @@ export function EmptyState({
   readonly children: ReactNode;
 }): ReactNode {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-(--radius-lg) border border-dashed border-(--border-default) px-6 py-10 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-(--radius-lg) border border-dashed border-(--text-faint) px-6 py-10 text-center">
       <Icon name={icon} size={20} className="text-(--text-muted)/60" />
       {title !== undefined ? <p className="font-medium text-(--text-strong)">{title}</p> : null}
       <div className="max-w-md text-sm text-(--text-muted)">{children}</div>
