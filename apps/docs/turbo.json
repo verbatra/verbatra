@@ -3,6 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "dependsOn": ["^build", "generate", "typecheck"],
       "outputs": [
         ".next/**",
         "!.next/cache/**",
@@ -11,7 +12,16 @@
         "lib/translation-freshness.generated.json"
       ]
     },
+    "generate": {
+      "inputs": ["content/**", "source.config.ts", "package.json"],
+      "outputs": [".source/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "generate"],
+      "outputs": []
+    },
     "test": {
+      "dependsOn": ["^build", "typecheck", "build"],
       "outputs": []
     }
   }

@@ -16,6 +16,7 @@
     "test": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && vitest run",
     "docs:budget": "node scripts/docs-budget.mjs",
     "postinstall": "fumadocs-mdx",
+    "generate": "fumadocs-mdx",
     "i18n": "verbatra translate",
     "studio": "verbatra studio",
     "screenshots": "node scripts/capture-studio.mjs",
