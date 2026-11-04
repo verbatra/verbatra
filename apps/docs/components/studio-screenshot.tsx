@@ -9,8 +9,9 @@ import { useSiteTheme } from "@/lib/use-site-theme";
 import { cn } from "@/lib/utils";
 
 const SHOTS = {
-  review: { width: 2880, height: 1200 },
-  translations: { width: 2880, height: 2360 },
+  overview: { width: 2880, height: 1280 },
+  review: { width: 2880, height: 1384 },
+  translations: { width: 2880, height: 1812 },
 } as const;
 
 const THEME_BUTTON_CLASS = "vk-tap rounded-md px-2.5 py-1 text-xs transition-colors";

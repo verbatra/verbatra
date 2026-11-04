@@ -16,8 +16,6 @@
       },
       "nav.cart": {
         "origin": "human",
-        "provider": "gemini",
-        "model": "gemini-2.5-flash",
         "valueHash": "c35b15633952b1b0"
       },
       "nav.support": {
@@ -33,7 +31,7 @@
         "valueHash": "27c557081a0aa374"
       },
       "hero.subtitle": {
-        "origin": "human",
+        "origin": "machine",
         "provider": "gemini",
         "model": "gemini-2.5-flash",
         "valueHash": "219f9aa22195d776"
@@ -52,8 +50,6 @@
       },
       "checkout.shipping": {
         "origin": "human",
-        "provider": "gemini",
-        "model": "gemini-2.5-flash",
         "valueHash": "5f1b94191c48b477"
       },
       "checkout.promoApplied": {
@@ -70,8 +66,6 @@
       },
       "account.signIn": {
         "origin": "human",
-        "provider": "gemini",
-        "model": "gemini-2.5-flash",
         "valueHash": "4827a17f7be6ee2f"
       },
       "account.signOut": {
@@ -101,7 +95,7 @@
         "valueHash": "dd95eff1bd195cfe"
       },
       "nav.cart": {
-        "origin": "human",
+        "origin": "machine",
         "provider": "gemini",
         "model": "gemini-2.5-flash",
         "valueHash": "dfef5f9ce9ebd46f"
@@ -120,8 +114,6 @@
       },
       "hero.subtitle": {
         "origin": "human",
-        "provider": "gemini",
-        "model": "gemini-2.5-flash",
         "valueHash": "c63071d676a29c7a"
       },
       "checkout.submit": {
@@ -138,8 +130,6 @@
       },
       "checkout.shipping": {
         "origin": "human",
-        "provider": "gemini",
-        "model": "gemini-2.5-flash",
         "valueHash": "9b7d0640e4e2e1af"
       },
       "account.signIn": {
@@ -170,8 +160,6 @@
       },
       "nav.cart": {
         "origin": "human",
-        "provider": "gemini",
-        "model": "gemini-2.5-flash",
         "valueHash": "67ef7044d511fd74"
       },
       "nav.support": {
@@ -188,8 +176,6 @@
       },
       "hero.subtitle": {
         "origin": "human",
-        "provider": "gemini",
-        "model": "gemini-2.5-flash",
         "valueHash": "5e2c80c98ec24069"
       },
       "checkout.submit": {
@@ -206,8 +192,6 @@
       },
       "checkout.shipping": {
         "origin": "human",
-        "provider": "gemini",
-        "model": "gemini-2.5-flash",
         "valueHash": "37b24c21c2b90aba"
       },
       "checkout.promoApplied": {
@@ -224,8 +208,6 @@
       },
       "account.signIn": {
         "origin": "human",
-        "provider": "gemini",
-        "model": "gemini-2.5-flash",
         "valueHash": "884d1bd525221e20"
       },
       "account.signOut": {
@@ -241,7 +223,7 @@
         "valueHash": "7ae70caa4abae79e"
       },
       "errors.network": {
-        "origin": "human",
+        "origin": "machine",
         "provider": "gemini",
         "model": "gemini-2.5-flash",
         "valueHash": "2d6c33dafdc57993"

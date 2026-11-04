@@ -1,13 +1,7 @@
 {
-  "nav": {
-    "home": "Home",
-    "products": "Products",
-    "cart": "Cart",
-    "support": "Support"
-  },
   "hero": {
-    "title": "Everything the Northwind catalogue has to offer",
-    "subtitle": "Browse thousands of products, and check out in your own language."
+    "subtitle": "Browse thousands of products, and check out in your own language.",
+    "title": "Everything the Northwind catalogue has to offer"
   },
   "checkout": {
     "submit": "Place order",
@@ -15,6 +9,12 @@
     "shipping": "Shipping address",
     "promoApplied": "Promo code {code} applied",
     "itemCount": "{count, plural, one {# item} other {# items}} in your basket"
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "cart": "Cart",
+    "support": "Support"
   },
   "account": {
     "signIn": "Sign in",

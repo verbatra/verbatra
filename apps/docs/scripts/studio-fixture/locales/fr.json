@@ -1,13 +1,7 @@
 {
-  "nav": {
-    "home": "Accueil",
-    "products": "Produits",
-    "cart": "Panier",
-    "support": "Assistance"
-  },
   "hero": {
-    "title": "Tout ce que le catalogue Northwind peut t'offrir",
-    "subtitle": "Parcours des milliers de produits et paie dans ta propre langue."
+    "subtitle": "Parcours des milliers de produits et paie dans ta propre langue.",
+    "title": "Tout ce que le catalogue Northwind peut t'offrir"
   },
   "checkout": {
     "submit": "Passer la commande",
@@ -15,6 +9,12 @@
     "shipping": "Adresse de livraison",
     "promoApplied": "Code promo {code} appliqué",
     "itemCount": "{count, plural, one {# article} other {# articles}} dans ton panier"
+  },
+  "nav": {
+    "home": "Accueil",
+    "products": "Produits",
+    "cart": "Panier",
+    "support": "Assistance"
   },
   "account": {
     "signIn": "Se connecter",

@@ -19,14 +19,21 @@ const BOOT_TIMEOUT_MS = 60_000;
 
 const THEMES = ["dark", "light"];
 const SHOTS = [
-  { name: "studio-review", hash: "review", heading: "Review", ready: "Reasons", height: 600 },
+  {
+    name: "studio-overview",
+    hash: "overview",
+    heading: "Overview",
+    ready: "Locales",
+    height: 640,
+  },
+  { name: "studio-review", hash: "review", heading: "Review", ready: "Reasons", height: 692 },
   {
     name: "studio-translations",
     hash: "translations",
     heading: "Translations",
-    ready: "Keys",
+    ready: "Grid",
     listView: true,
-    height: 1180,
+    height: 906,
   },
 ];
 
