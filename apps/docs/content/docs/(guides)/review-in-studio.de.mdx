@@ -29,7 +29,7 @@ Translations ist eine Tabelle aller Keys, die Aufmerksamkeit brauchen: fehlend, 
 
 ### Key-Details
 
-Klick auf einen Key, um seinen Editor zu öffnen (ab 1280px Breite neben der Tabelle, darunter als Schublade). Er listet den Wert jeder Locale mit einer Integritätsanzeige: Platzhalter stimmen, eine Platzhalter-Abweichung mit den benannten Tokens oder ungültige Nachrichtensyntax. Außerdem angezeigt:
+Klick auf einen Key, um seinen Editor zu öffnen. Er listet den Wert jeder Locale mit einer Integritätsanzeige: Platzhalter stimmen, eine Platzhalter-Abweichung mit den benannten Tokens oder ungültige Nachrichtensyntax. Außerdem angezeigt:
 
 | Detail | Zeigt |
 | --- | --- |
@@ -51,7 +51,13 @@ Die Chips neben der Suche grenzen die Tabelle nach Zustand ein, darunter **Revie
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Der Editor zeigt die Beschreibung des Keys, den Glossarbegriffen, die dein Entwurf verwendet oder verfehlt, und seiner Länge im Vergleich zur Quelle und zu `maxLength`. Verlässt du den Key mit ungespeicherten Änderungen, fragt Studio, ob du speichern, verwerfen oder weiterbearbeiten willst. Strg oder Cmd mit Enter speichert.
+Der Editor zeigt die Beschreibung des Keys, den Glossarbegriffen, die dein Entwurf verwendet oder verfehlt, und seiner Länge im Vergleich zur Quelle und zu `maxLength`. Strg oder Cmd mit Enter speichert.
+
+#### Neben der Tabelle
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Ab 1280px Breite sitzt der Editor neben der Tabelle; darunter öffnet er sich als Schublade. Verlässt du den Key mit ungespeicherten Änderungen, ob per anderem Key, Filter, Suche oder Zurück, fragt Studio, ob du speichern, verwerfen oder weiterbearbeiten willst.
 
 ## Arbeite die Review-Warteschlange ab
 
@@ -126,7 +132,7 @@ Starte Studio mit erlaubten Ausgaben ([wie Ausgaben erlaubt werden](/de/docs/cli
 verbatra studio --allow-spend
 ```
 
-Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und in der Detailansicht eines Keys bei einem Wert mit Integritätsdefekt. Er macht einen Provider-Aufruf, schickt das Ergebnis durch das Integritäts-Gate und lässt den neuen Wert zur Freigabe in der Warteschlange. Aus einer Review-Zeile wird ein Wert, den eine Person geschrieben hat, nie ersetzt; wähl dafür in seiner Detailansicht unter Translations **Replace anyway**. Ohne `--allow-spend` registriert der Server den Endpunkt gar nicht.
+Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor eines Keys bei einem Wert mit Integritätsdefekt. Er macht einen Provider-Aufruf, schickt das Ergebnis durch das Integritäts-Gate und lässt den neuen Wert zur Freigabe in der Warteschlange. Aus einer Review-Zeile wird ein Wert, den eine Person geschrieben hat, nie ersetzt; wähl dafür in seinem Editor unter Translations **Replace anyway**. Ohne `--allow-spend` registriert der Server den Endpunkt gar nicht.
 
 ## Übersetze ausstehende Änderungen
 

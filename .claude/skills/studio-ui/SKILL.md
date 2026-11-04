@@ -297,6 +297,9 @@ the pane never takes a global letter shortcut. Every external route change goes 
 and an inline `UnsavedPrompt` (Save, Discard, Keep editing, never `window.confirm`) decides. A new
 control that changes the route needs no extra code, but it must honour the boolean the navigate
 helpers return before running its own side effects.
+The guard's `hashchange` listener registers when `route-guard.ts` loads, so it runs before the
+router's own listener and restores the address before the previous page can render; never move it
+into an effect. A dirty draft also asks the browser to confirm on `beforeunload`.
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they

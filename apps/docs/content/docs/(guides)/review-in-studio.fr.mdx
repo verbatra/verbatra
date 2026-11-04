@@ -29,7 +29,7 @@ Translations est un tableau de toutes les clés qui demandent de l'attention : m
 
 ### Détails de la clé
 
-Clique sur une clé pour ouvrir son éditeur (à côté du tableau dès 1280px de large, en tiroir en dessous). Il liste la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide. Également affiché :
+Clique sur une clé pour ouvrir son éditeur. Il liste la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide. Également affiché :
 
 | Détail | Affiche |
 | --- | --- |
@@ -51,7 +51,13 @@ Les puces à côté de la recherche restreignent le tableau par état, notamment
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-L'éditeur montre la description de la clé, les termes du glossaire que ton brouillon utilise ou oublie, et sa longueur par rapport à la source et à `maxLength`. Si tu quittes la clé avec des modifications non enregistrées, Studio demande d'enregistrer, d'abandonner ou de continuer à modifier. Ctrl ou Cmd avec Entrée enregistre.
+L'éditeur montre la description de la clé, les termes du glossaire que ton brouillon utilise ou oublie, et sa longueur par rapport à la source et à `maxLength`. Ctrl ou Cmd avec Entrée enregistre.
+
+#### À côté du tableau
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+À partir de 1280px de large, l'éditeur s'affiche à côté du tableau ; en dessous, il s'ouvre en tiroir. Si tu quittes la clé avec des modifications non enregistrées, que ce soit vers une autre clé, un filtre, une recherche ou Retour, Studio demande d'enregistrer, d'abandonner ou de continuer à modifier.
 
 ## Traiter la file de relecture
 
@@ -126,7 +132,7 @@ Démarre Studio avec la dépense autorisée ([comment la dépense est accordée]
 verbatra studio --allow-spend
 ```
 
-Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans la vue détaillée d'une clé pour une valeur avec un défaut d'intégrité. Il fait un appel au fournisseur, passe le résultat par la barrière d'intégrité et laisse la nouvelle valeur dans la file pour que tu l'approuves. Depuis une ligne de Review, une valeur écrite par une personne n'est jamais remplacée ; dans sa vue détaillée sur Translations, choisis **Replace anyway**. Sans `--allow-spend`, le serveur n'enregistre pas du tout le point d'accès.
+Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans l'éditeur d'une clé pour une valeur avec un défaut d'intégrité. Il fait un appel au fournisseur, passe le résultat par la barrière d'intégrité et laisse la nouvelle valeur dans la file pour que tu l'approuves. Depuis une ligne de Review, une valeur écrite par une personne n'est jamais remplacée ; dans son éditeur sur Translations, choisis **Replace anyway**. Sans `--allow-spend`, le serveur n'enregistre pas du tout le point d'accès.
 
 ## Traduire les changements en attente
 

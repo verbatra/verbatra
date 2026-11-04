@@ -4,20 +4,20 @@ seoTitle: "Review machine translations in Verbatra Studio"
 description: Start Verbatra Studio, work the needs-review queue, fix entries in place, and retranslate flagged keys from the local dashboard.
 type: how-to
 ---
-Check machine translations before they ship: find what is pending, fix values, and approve or reject what a provider wrote, in Verbatra Studio, a local dashboard over your project.
+Check machine translations before they ship: find what is pending, fix values, and approve or reject what a provider wrote, in Verbatra Studio, a local dashboard.
 
-Two rules hold. **Local editing is always on**, gated by the same integrity checks as every other write. **Provider spend is always off** unless you start Studio with `--allow-spend`.
+Two rules hold. **Local editing is always on**, gated by the same integrity checks as other writes. **Provider spend is always off** unless you start Studio with `--allow-spend`.
 
 ## Start Studio
 
-Studio ships as its own package, reached through the CLI:
+Studio ships as its own package, run via the CLI:
 
 ```bash
 npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra studio`](/docs/cli/studio) covers the port, token and flags. Every page refreshes live when a locale file, the lock file or provenance file changes.
+Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra studio`](/docs/cli/studio) covers the port, token and flags. Every page refreshes live when a locale, lock or provenance file changes.
 
 ## Read the Translations page
 
@@ -29,7 +29,7 @@ Translations is one table of every key that needs attention: missing, changed, o
 
 ### Key details
 
-Click a key to open its editor (beside the table from 1280px wide, a drawer below). It lists every locale's value with an integrity indicator: placeholders match, a placeholder mismatch with the tokens named, or invalid message syntax. Also shown:
+Click a key to open its editor. It lists every locale's value with an integrity indicator: placeholders match, a placeholder mismatch with the tokens named, or invalid message syntax. Also shown:
 
 | Detail | Shows |
 | --- | --- |
@@ -51,7 +51,13 @@ Chips beside the search narrow the table by state, including **Review queue** an
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-The editor shows the key's description, the glossary terms your draft uses or misses, and its length against the source and `maxLength`. Leaving the key with unsaved edits asks you to save, discard or keep editing. Ctrl or Cmd with Enter saves.
+The editor shows the key's description, the glossary terms your draft uses or misses, and its length against the source and `maxLength`. Ctrl or Cmd with Enter saves.
+
+#### Beside the table
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+From 1280px wide the editor sits beside the table; below that it opens as a drawer. Leaving the key with unsaved edits, by choosing another key, filtering, searching or going Back, asks you to save, discard or keep editing.
 
 ## Work the Review queue
 
@@ -76,8 +82,8 @@ Two review flags read **Over length budget** and **Reused after source edit**.
 Filter by locale or text, then:
 
 - **Edit** opens the integrity-gated editor. An accepted edit clears the row.
-- **Approve** accepts the value as it stands.
-- **Reject** removes the value so it gets replaced, after a confirmation.
+- **Approve** accepts the value.
+- **Reject** removes the value for replacement, after a confirmation.
 
 ### Saved decisions
 
@@ -126,7 +132,7 @@ Start Studio with spend allowed ([how spend is granted](/docs/cli/studio#spend-a
 verbatra studio --allow-spend
 ```
 
-A **Retranslate** button then appears on each Review row, and in a key's detail view for a value with an integrity defect. It makes one provider call, runs the result through the integrity gate, and leaves the new value in the queue for you to approve. From a Review row, a value a person wrote is never replaced; in its detail view on Translations, choose **Replace anyway**. Without `--allow-spend` the server registers no such endpoint.
+A **Retranslate** button then appears on each Review row, and in a key's editor for a value with an integrity defect. It makes one provider call, runs the result through the integrity gate, and leaves the new value in the queue to approve. From a Review row, a value a person wrote is never replaced; in its editor on Translations, choose **Replace anyway**. Without `--allow-spend` the server registers no such endpoint.
 
 ## Translate pending changes
 
@@ -136,7 +142,7 @@ When the source file changes while Studio runs, a toast names the file and the k
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Studio opens on Overview. It shows each locale's coverage with its [lock file](/docs/the-lock-file) state, the locale files' git history and the last run's token usage, with the budget meter when set.
+Studio opens on Overview: each locale's coverage with its [lock file](/docs/the-lock-file) state, the locale files' git history and the last run's token usage, with the budget meter when set.
 
 <StudioScreenshot
   shot="overview"
@@ -148,9 +154,9 @@ Studio opens on Overview. It shows each locale's coverage with its [lock file](/
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary has its own page, where it sat on Settings before 0.7.0. If the glossary is a JSON file, you can add, edit and remove terms; each change is written straight to the file. An inline glossary in `verbatra.config.ts` stays read-only.
+Glossary has its own page, where it sat on Settings before 0.7.0. If the glossary is a JSON file, you can add, edit and remove terms; each change is written to the file. An inline glossary in `verbatra.config.ts` stays read-only.
 
-A glossary edit changes what the next run is told, never text already written; restart Studio for its own retranslations to use it.
+A glossary edit changes what the next run is told, never text already written; restart Studio so its own retranslations use it.
 
 ### Per-locale view
 
