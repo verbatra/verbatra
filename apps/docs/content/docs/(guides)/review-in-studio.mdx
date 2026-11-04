@@ -21,7 +21,11 @@ Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra 
 
 ## Read the Translations page
 
-Translations is one table of every key that needs attention: missing, changed, orphaned, protected, in the review queue or failing an integrity check. Each row shows the key, source text and one status per locale; pick a locale for translation, status and origin.
+### One key table
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Translations is one table of every key that needs attention: missing, changed, orphaned, protected, in the review queue or failing an integrity check. Each row shows the key, source text and one status per locale; pick a locale for translation, status and origin. Search also finds in-sync keys.
 
 Click a key to see every locale's value with an integrity indicator: placeholders match, a placeholder mismatch with the tokens named, or invalid message syntax. Also shown:
 
@@ -35,7 +39,7 @@ Click a key to see every locale's value with an integrity indicator: placeholder
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-The chips beside the search narrow the table by state, including **Review queue** and **Integrity problems** (a value failing placeholder, markup or ICU checks). Search also finds in-sync keys. **Copy as review report** copies the pending keys as Markdown for a pull request.
+Chips beside the search narrow the table by state, including **Review queue** and **Integrity problems** (a value failing placeholder, markup or ICU checks). **Copy as review report** copies the pending keys as Markdown for a pull request.
 
 ### Edit with integrity gating
 
@@ -91,7 +95,7 @@ The filter bar switches between **Needs review** and **Approved** and narrows by
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Press `j` or the down arrow to highlight the first entry, then:
+Press `j` or down arrow to highlight the first entry, then:
 
 | Key | Action |
 | --- | --- |
@@ -104,7 +108,7 @@ Press `j` or the down arrow to highlight the first entry, then:
 | `x` | select or unselect it for a bulk action |
 | `?` | show or hide the shortcut list |
 
-Shortcuts pause while you type or a dialog is open. After a decision the next entry is highlighted.
+Shortcuts pause while you type or in a dialog. After a decision the next entry is highlighted.
 
 ### Act on several entries at once
 

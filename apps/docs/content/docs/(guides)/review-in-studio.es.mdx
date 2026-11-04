@@ -21,7 +21,11 @@ Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra 
 
 ## Lee la página Translations
 
-Translations es una tabla de todas las claves que necesitan atención: faltantes, modificadas, huérfanas, protegidas, en la cola de revisión o con una comprobación de integridad fallida. Cada fila muestra la clave, el texto de origen y un estado por locale; elige una locale para ver traducción, estado y origen.
+### Una tabla de claves
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Translations es una tabla de todas las claves que necesitan atención: faltantes, modificadas, huérfanas, protegidas, en la cola de revisión o con una comprobación de integridad fallida. Cada fila muestra la clave, el texto de origen y un estado por locale; elige una locale para ver traducción, estado y origen. La búsqueda también encuentra claves que están sincronizadas.
 
 Haz clic en una clave para ver el valor de cada locale con un indicador de integridad: los placeholders coinciden, un desajuste de placeholders con los tokens nombrados, o una sintaxis de mensaje no válida. También se muestra:
 
@@ -35,7 +39,7 @@ Haz clic en una clave para ver el valor de cada locale con un indicador de integ
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Los chips junto a la búsqueda acotan la tabla por estado, incluidos **Review queue** e **Integrity problems** (un valor que no pasa las comprobaciones de placeholders, marcado o ICU). La búsqueda también encuentra claves que están sincronizadas. **Copy as review report** copia las claves pendientes como Markdown para un pull request.
+Los chips junto a la búsqueda acotan la tabla por estado, incluidos **Review queue** e **Integrity problems** (un valor que no pasa las comprobaciones de placeholders, marcado o ICU). **Copy as review report** copia las claves pendientes como Markdown para un pull request.
 
 ### Edita con la puerta de integridad
 

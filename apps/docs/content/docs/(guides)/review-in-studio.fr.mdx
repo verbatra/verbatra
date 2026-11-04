@@ -21,7 +21,11 @@ Ouvre l'URL qu'il affiche, token compris, et arrête Studio avec Ctrl+C. [`verba
 
 ## Lire la page Translations
 
-Translations est un tableau de toutes les clés qui demandent de l'attention : manquantes, modifiées, orphelines, protégées, dans la file de relecture ou en échec de contrôle d'intégrité. Chaque ligne montre la clé, le texte source et un statut par locale ; choisis une locale pour voir traduction, statut et origine.
+### Un tableau de clés
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Translations est un tableau de toutes les clés qui demandent de l'attention : manquantes, modifiées, orphelines, protégées, dans la file de relecture ou en échec de contrôle d'intégrité. Chaque ligne montre la clé, le texte source et un statut par locale ; choisis une locale pour voir traduction, statut et origine. La recherche trouve aussi les clés synchronisées.
 
 Clique sur une clé pour voir la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide. Également affiché :
 
@@ -35,7 +39,7 @@ Clique sur une clé pour voir la valeur de chaque locale avec un indicateur d'in
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Les puces à côté de la recherche restreignent le tableau par état, notamment **Review queue** et **Integrity problems** (une valeur qui échoue aux contrôles de placeholders, de balisage ou ICU). La recherche trouve aussi les clés synchronisées. **Copy as review report** copie les clés en attente en Markdown pour une pull request.
+Les puces à côté de la recherche restreignent le tableau par état, notamment **Review queue** et **Integrity problems** (une valeur qui échoue aux contrôles de placeholders, de balisage ou ICU). **Copy as review report** copie les clés en attente en Markdown pour une pull request.
 
 ### Modifier avec la barrière d'intégrité
 

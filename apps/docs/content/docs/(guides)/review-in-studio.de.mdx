@@ -21,7 +21,11 @@ verbatra studio
 
 ## Lies die Seite Translations
 
-Translations ist eine Tabelle aller Keys, die Aufmerksamkeit brauchen: fehlend, geändert, verwaist, geschützt, in der Review-Warteschlange oder mit fehlgeschlagener Integritätsprüfung. Jede Zeile zeigt Key, Quelltext und einen Status pro Locale; wähl eine Locale für Übersetzung, Status und Herkunft.
+### Eine Key-Tabelle
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Translations ist eine Tabelle aller Keys, die Aufmerksamkeit brauchen: fehlend, geändert, verwaist, geschützt, in der Review-Warteschlange oder mit fehlgeschlagener Integritätsprüfung. Jede Zeile zeigt Key, Quelltext und einen Status pro Locale; wähl eine Locale für Übersetzung, Status und Herkunft. Die Suche findet auch Keys, die synchron sind.
 
 Klick auf einen Key, um den Wert jeder Locale mit einer Integritätsanzeige zu sehen: Platzhalter stimmen, eine Platzhalter-Abweichung mit den benannten Tokens oder ungültige Nachrichtensyntax. Außerdem angezeigt:
 
@@ -35,7 +39,7 @@ Klick auf einen Key, um den Wert jeder Locale mit einer Integritätsanzeige zu s
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Die Chips neben der Suche grenzen die Tabelle nach Zustand ein, darunter **Review queue** und **Integrity problems** (ein Wert, der die Prüfungen für Platzhalter, Markup oder ICU nicht besteht). Die Suche findet auch Keys, die synchron sind. **Copy as review report** kopiert die offenen Keys als Markdown für einen Pull Request.
+Die Chips neben der Suche grenzen die Tabelle nach Zustand ein, darunter **Review queue** und **Integrity problems** (ein Wert, der die Prüfungen für Platzhalter, Markup oder ICU nicht besteht). **Copy as review report** kopiert die offenen Keys als Markdown für einen Pull Request.
 
 ### Bearbeiten mit Integritäts-Gate
 
