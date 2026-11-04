@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import {
-  canonicalAliasHash,
+  canonicalPageHash,
   type PageId,
   pageHash,
   parseRoute,
@@ -39,6 +39,9 @@ export function replaceRoute(route: Route): void {
 }
 
 export function navigateToPage(page: PageId): void {
+  if (parseRoute(window.location.hash).page === page) {
+    return;
+  }
   window.location.hash = pageHash(page);
   announceRouteChange();
 }
@@ -48,10 +51,10 @@ export function useRoute(): Route {
   return useMemo(() => parseRoute(hash), [hash]);
 }
 
-export function useAliasRedirect(): void {
+export function useCanonicalHash(): void {
   const hash = useSyncExternalStore(subscribe, currentHash);
   useEffect(() => {
-    const canonical = canonicalAliasHash(hash);
+    const canonical = canonicalPageHash(hash);
     if (canonical !== null) {
       window.history.replaceState(window.history.state, "", canonical);
       announceRouteChange();

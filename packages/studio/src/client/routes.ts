@@ -89,7 +89,10 @@ function paramsForPage(page: PageId, search: URLSearchParams): RouteParams {
 
 export function parseRoute(hash: string): Route {
   const { name, query } = splitHash(hash);
-  const page = resolvePage(name) ?? DEFAULT_PAGE;
+  const page = resolvePage(name);
+  if (page === undefined) {
+    return { page: DEFAULT_PAGE, params: {} };
+  }
   return { page, params: paramsForPage(page, new URLSearchParams(query)) };
 }
 
@@ -111,16 +114,12 @@ export function routeHash(route: Route): string {
   return query === "" ? `#/${route.page}` : `#/${route.page}?${query}`;
 }
 
-export function canonicalAliasHash(hash: string): string | null {
+export function canonicalPageHash(hash: string): string | null {
   const { name } = splitHash(hash);
-  if (!PAGE_ALIASES.has(name)) {
+  if (name === "" || isPageId(name)) {
     return null;
   }
   return routeHash(parseRoute(hash));
-}
-
-export function parsePageHash(hash: string): PageId {
-  return parseRoute(hash).page;
 }
 
 export function pageHash(page: PageId): string {

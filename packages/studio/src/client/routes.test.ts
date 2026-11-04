@@ -1,45 +1,52 @@
 import { describe, expect, it } from "vitest";
 import {
-  canonicalAliasHash,
+  canonicalPageHash,
   DEFAULT_PAGE,
   PAGE_IDS,
   pageHash,
-  parsePageHash,
   parseRoute,
   routeHash,
   routeParams,
 } from "./routes.js";
 
-describe("parsePageHash", () => {
+describe("parseRoute page", () => {
   it.each(PAGE_IDS)("parses the canonical #/%s form", (page) => {
-    expect(parsePageHash(`#/${page}`)).toBe(page);
+    expect(parseRoute(`#/${page}`).page).toBe(page);
   });
 
   it.each(PAGE_IDS)("accepts the bare #%s form", (page) => {
-    expect(parsePageHash(`#${page}`)).toBe(page);
+    expect(parseRoute(`#${page}`).page).toBe(page);
   });
 
   it("falls back to the default workspace for an empty hash", () => {
-    expect(parsePageHash("")).toBe(DEFAULT_PAGE);
-    expect(parsePageHash("#")).toBe(DEFAULT_PAGE);
-    expect(parsePageHash("#/")).toBe(DEFAULT_PAGE);
+    expect(parseRoute("").page).toBe(DEFAULT_PAGE);
+    expect(parseRoute("#").page).toBe(DEFAULT_PAGE);
+    expect(parseRoute("#/").page).toBe(DEFAULT_PAGE);
   });
 
   it("falls back to the default workspace for an unknown or stale hash", () => {
-    expect(parsePageHash("#/diff")).toBe(DEFAULT_PAGE);
-    expect(parsePageHash("#/status")).toBe(DEFAULT_PAGE);
-    expect(parsePageHash("#/nonsense")).toBe(DEFAULT_PAGE);
+    expect(parseRoute("#/diff").page).toBe(DEFAULT_PAGE);
+    expect(parseRoute("#/status").page).toBe(DEFAULT_PAGE);
+    expect(parseRoute("#/nonsense").page).toBe(DEFAULT_PAGE);
   });
 
   it("treats names inherited from Object as unknown pages", () => {
-    expect(parsePageHash("#/constructor")).toBe(DEFAULT_PAGE);
-    expect(parsePageHash("#/__proto__")).toBe(DEFAULT_PAGE);
-    expect(canonicalAliasHash("#/constructor")).toBeNull();
+    expect(parseRoute("#/constructor").page).toBe(DEFAULT_PAGE);
+    expect(parseRoute("#/__proto__").page).toBe(DEFAULT_PAGE);
+    expect(canonicalPageHash("#/constructor")).toBe("#/translations");
+  });
+
+  it("gives an unknown page no params and canonicalizes it to the default page", () => {
+    expect(parseRoute("#/nonsense?locale=de&status=missing&key=x")).toEqual({
+      page: DEFAULT_PAGE,
+      params: {},
+    });
+    expect(canonicalPageHash("#/nonsense?locale=de&key=x")).toBe("#/translations");
   });
 
   it("ignores the query string when naming the page", () => {
-    expect(parsePageHash("#/review?locale=de")).toBe("review");
-    expect(parsePageHash("#/nonsense?locale=de")).toBe(DEFAULT_PAGE);
+    expect(parseRoute("#/review?locale=de").page).toBe("review");
+    expect(parseRoute("#/nonsense?locale=de").page).toBe(DEFAULT_PAGE);
   });
 });
 
@@ -63,15 +70,15 @@ describe("activity alias", () => {
   );
 
   it("names the canonical hash an alias should be rewritten to", () => {
-    expect(canonicalAliasHash("#/activity")).toBe("#/overview");
-    expect(canonicalAliasHash("#activity")).toBe("#/overview");
+    expect(canonicalPageHash("#/activity")).toBe("#/overview");
+    expect(canonicalPageHash("#activity")).toBe("#/overview");
   });
 
   it("does not rewrite a canonical, unknown or empty hash", () => {
-    expect(canonicalAliasHash("#/overview")).toBeNull();
-    expect(canonicalAliasHash("#/translations?locale=de")).toBeNull();
-    expect(canonicalAliasHash("#/nonsense")).toBeNull();
-    expect(canonicalAliasHash("")).toBeNull();
+    expect(canonicalPageHash("#/overview")).toBeNull();
+    expect(canonicalPageHash("#/translations?locale=de")).toBeNull();
+    expect(canonicalPageHash("#/nonsense")).toBe("#/translations");
+    expect(canonicalPageHash("")).toBeNull();
   });
 });
 
@@ -100,6 +107,11 @@ describe("parseRoute params", () => {
 
   it("decodes percent encoded keys", () => {
     expect(parseRoute("#/translations?key=nav%20bar%2Ftitle").params.key).toBe("nav bar/title");
+  });
+
+  it("decodes a plus sign in a value as a space, as URLSearchParams does", () => {
+    expect(parseRoute("#/translations?key=a+b").params.key).toBe("a b");
+    expect(parseRoute("#/translations?key=a%2Bb").params.key).toBe("a+b");
   });
 
   it("ignores unknown status values and keeps the valid ones", () => {

@@ -24,7 +24,7 @@ import { DesktopSidebar, MobileNavDrawer } from "./Sidebar.js";
 import { TopBar } from "./TopBar.js";
 import { useAgentToolsFailures } from "./use-agent-tools-status.js";
 import { useReviewQueue } from "./use-review-queue.js";
-import { navigateToPage, useAliasRedirect, useRoute } from "./use-route.js";
+import { navigateToPage, useCanonicalHash, useRoute } from "./use-route.js";
 
 const PAGE_LABELS: Readonly<Record<PageId, string>> = {
   overview: "Overview",
@@ -70,7 +70,7 @@ function isSessionExpired(): boolean {
 
 export function App(): ReactNode {
   const { page } = useRoute();
-  useAliasRedirect();
+  useCanonicalHash();
   const [sessionExpired, setSessionExpired] = useState(isSessionExpired());
   const [toast, setToast] = useState<RefreshToastView | undefined>(undefined);
   const [refreshToken, setRefreshToken] = useState(0);
