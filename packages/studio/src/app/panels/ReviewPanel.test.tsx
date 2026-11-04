@@ -2170,4 +2170,36 @@ describe("ReviewPanel deep links", () => {
     expect(window.location.hash).toBe("#/review");
     expect(window.history.length).toBe(entries);
   });
+
+  it("drops a locale the queue rejects from the hash", async () => {
+    window.history.replaceState(null, "", "#/review?locale=xx");
+    stubReview();
+
+    await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(window.location.hash).toBe("#/review");
+  });
+
+  it("keeps a locale in the hash while the queue is still loading", () => {
+    window.history.replaceState(null, "", "#/review?locale=de");
+    stubRpc({ "review.queue": () => new Promise(() => {}) });
+
+    render(<ReviewPanel refreshToken={0} />);
+
+    expect(window.location.hash).toBe("#/review?locale=de");
+  });
+
+  it("resets the hash to all locales when the chosen locale leaves the queue", async () => {
+    window.history.replaceState(null, "", "#/review?locale=fr");
+    stubReview();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    expect(localeFilter(view).value).toBe("fr");
+
+    stubReview({ ...QUEUE, locales: QUEUE.locales.filter((entry) => entry.locale !== "fr") });
+    view.rerender(<ReviewPanel refreshToken={1} />);
+    await flush();
+
+    expect(localeFilter(view).value).toBe("");
+    expect(window.location.hash).toBe("#/review");
+  });
 });

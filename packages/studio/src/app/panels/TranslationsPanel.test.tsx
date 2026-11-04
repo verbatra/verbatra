@@ -1664,6 +1664,26 @@ describe("TranslationsPanel deep links", () => {
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
   });
 
+  it("opens no drawer and reads no key until the locale values have loaded", async () => {
+    pointHashAt("#/translations?key=app.title");
+    let answerValues: (result: StubRpcResult) => void = () => {};
+    stubFilterPage({
+      ...drawerStubs(),
+      "locale.values": () => new Promise<StubRpcResult>((resolve) => (answerValues = resolve)),
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(rpcCalls.filter((call) => call.method === "key.value")).toEqual([]);
+
+    answerValues(KEY_VALUES_STUB());
+    await flush();
+
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
+  });
+
   it("ignores a key no locale holds", async () => {
     pointHashAt("#/translations?key=does.not.exist");
     stubFilterPage({ ...drawerStubs(), "locale.values": KEY_VALUES_STUB() });

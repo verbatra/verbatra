@@ -958,7 +958,10 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const [rejecting, setRejecting] = useState<RejectingTarget | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [params, setParams] = useRouteParams("review");
-  const [localFacets, setLocalFacets] = useState<ReviewFacets>(ALL_FACETS);
+  const [localFacets, setLocalFacets] = useState<Omit<ReviewFacets, "locale">>({
+    origin: ALL_FACETS.origin,
+    reviewState: ALL_FACETS.reviewState,
+  });
   const [query, setQuery] = useState("");
   const [approvingLocale, setApprovingLocale] = useState<ApproveAllAction | null>(null);
   const localeValues = localeValuesOrEmpty(useLocaleValues(refreshToken, reloadToken));
@@ -979,8 +982,13 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const rows = view.kind === "data" ? flattenReviewQueue(view.data) : [];
   const urlLocale = knownReviewLocale(params.locale, rows);
   const facets: ReviewFacets = { ...localFacets, locale: urlLocale };
+  useEffect(() => {
+    if (params.locale !== undefined && urlLocale === "") {
+      setParams(routeParams({}));
+    }
+  }, [params.locale, urlLocale, setParams]);
   const setFacets = (next: ReviewFacets): void => {
-    setLocalFacets(next);
+    setLocalFacets({ origin: next.origin, reviewState: next.reviewState });
     if (next.locale !== urlLocale) {
       setParams(routeParams({ locale: next.locale }));
     }

@@ -27,7 +27,10 @@ function selectableKey(
   if (key === undefined) {
     return null;
   }
-  if (localeValues.kind !== "data") {
+  if (localeValues.kind === "loading") {
+    return null;
+  }
+  if (localeValues.kind === "error") {
     return key;
   }
   return localeValues.data.some((entry) => Object.hasOwn(entry.values, key)) ? key : null;
