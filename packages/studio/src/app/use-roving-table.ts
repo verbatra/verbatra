@@ -15,7 +15,7 @@ function isArrowKey(key: string): key is GridArrowKey {
 }
 
 function stopOf(target: EventTarget): HTMLElement | null {
-  return target instanceof Element ? target.closest<HTMLElement>("[data-row][data-col]") : null;
+  return (target as Element).closest<HTMLElement>("[data-row][data-col]");
 }
 
 function positionOf(stop: HTMLElement): GridPosition {
@@ -53,10 +53,17 @@ export function useRovingTable(
   const tableRef = useRef<HTMLTableElement | null>(null);
   const current = clampGridPosition(position, dimensions);
 
+  function activate(target: EventTarget): void {
+    const key = keyOf(target);
+    if (key !== undefined) {
+      onActivate(key);
+    }
+  }
+
   function focusStop(next: GridPosition): void {
     setPosition(next);
-    tableRef.current
-      ?.querySelector<HTMLElement>(`[data-row="${next.row}"][data-col="${next.col}"]`)
+    (tableRef.current as HTMLTableElement)
+      .querySelector<HTMLElement>(`[data-row="${next.row}"][data-col="${next.col}"]`)
       ?.focus();
   }
 
@@ -73,10 +80,9 @@ export function useRovingTable(
           focusStop(moveGridFocus(positionOf(stop), event.key, dimensions));
           return;
         }
-        const key = keyOf(event.target);
-        if ((event.key === "Enter" || event.key === " ") && key !== undefined) {
+        if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          onActivate(key);
+          activate(event.target);
         }
       },
       onFocus(event) {
@@ -86,10 +92,7 @@ export function useRovingTable(
         }
       },
       onClick(event) {
-        const key = keyOf(event.target);
-        if (key !== undefined) {
-          onActivate(key);
-        }
+        activate(event.target);
       },
     },
     stopProps: (row, col) => ({

@@ -158,6 +158,26 @@ describe("KeysTable cells", () => {
   });
 });
 
+describe("KeysTable focus", () => {
+  it("keeps the roving position when focus lands on something that is not a cell", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table());
+    const tabStops = () =>
+      view.all("tbody [data-row][tabindex='0']").map((stop) => stop.dataset.key);
+    const before = view.all("tbody [data-row][tabindex='0']").length;
+
+    act(() => {
+      view
+        .get('[data-key="b.changed"] th')
+        .dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    });
+
+    expect(before).toBe(1);
+    expect(view.all("tbody [data-row][tabindex='0']")).toHaveLength(1);
+    expect(tabStops()).toHaveLength(1);
+  });
+});
+
 describe("KeysTable activation", () => {
   it("reports the row's key when a cell or the row is clicked", async () => {
     stubRpc(NO_COVERAGE);

@@ -11,7 +11,7 @@ import {
 } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { StatusData } from "../client/coverage.js";
-import type { DiffLocale } from "../client/diff-view.js";
+import type { DiffLocale, KeyLocaleStatusRow } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus } from "../client/diff-view.js";
 import type { KeyStatusIndex } from "../client/key-status-filter.js";
 import type { LocaleValuesData } from "../client/locale-values.js";
@@ -185,9 +185,9 @@ function EntriesTable({
           </TableHead>
           <TableBody>
             {keys.map((key, row) => {
-              const status =
-                deriveKeyLocaleStatus(locales, key).find((cell) => cell.locale === locale)
-                  ?.status ?? "absent";
+              const { status } = deriveKeyLocaleStatus(locales, key).find(
+                (cell) => cell.locale === locale,
+              ) as KeyLocaleStatusRow;
               const pair = values?.[key];
               return (
                 <TableRow key={key} data-key={key}>
