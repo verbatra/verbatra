@@ -10,6 +10,7 @@ import {
   MonoValue,
   PageSection,
   ProgressBar,
+  SegmentedControl,
   Skeleton,
   Table,
   TableBody,
@@ -68,7 +69,6 @@ import { PageHeader } from "../PageHeader.js";
 import { ProvenanceBadge } from "../ProvenanceBadge.js";
 import type { PanelProps } from "../panel-props.js";
 import { StatusGrid } from "../StatusGrid.js";
-import { Tabs } from "../Tabs.js";
 import { Toolbar } from "../Toolbar.js";
 import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
@@ -585,7 +585,7 @@ function KeysSection({
     <PageSection title="Keys">
       {listOnly ? null : (
         <Toolbar className="mb-4">
-          <Tabs
+          <SegmentedControl
             items={VIEW_MODE_ITEMS}
             active={viewMode}
             onChange={onViewModeChange}

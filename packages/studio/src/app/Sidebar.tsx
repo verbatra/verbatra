@@ -1,9 +1,14 @@
-import { DialogCloseButton, Icon, type IconName, OverlayBackdrop } from "@verbatra/ui";
+import {
+  DialogCloseButton,
+  Icon,
+  type IconName,
+  OverlayBackdrop,
+  Tooltip,
+  useDialogA11y,
+} from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { PageId } from "../client/routes.js";
 import { cn } from "./lib/cn.js";
-import { Tooltip } from "./Tooltip.js";
-import { useDialogA11y } from "./use-dialog-a11y.js";
 
 export interface SidebarNavProps {
   readonly workPages: readonly PageId[];

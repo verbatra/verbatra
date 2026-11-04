@@ -16,6 +16,9 @@ export interface RenderResult {
   get<T extends Element = HTMLElement>(selector: string): T;
   query(selector: string): Element | null;
   all(selector: string): HTMLElement[];
+  getByText(selector: string, text: string): HTMLElement;
+  rerender(node: ReactNode): void;
+  unmount(): void;
   text(): string;
 }
 
@@ -37,6 +40,31 @@ export function render(node: ReactNode): RenderResult {
       return element;
     },
     query: (selector) => container.querySelector(selector),
+    getByText(selector, text) {
+      const match = [...container.querySelectorAll<HTMLElement>(selector)].find(
+        (element) => element.textContent?.trim() === text,
+      );
+      if (match === undefined) {
+        throw new Error(`no ${selector} had the text ${JSON.stringify(text)}`);
+      }
+      return match;
+    },
+    rerender(next) {
+      act(() => {
+        root.render(next);
+      });
+    },
+    unmount() {
+      const index = mounted.findIndex((entry) => entry.root === root);
+      if (index === -1) {
+        return;
+      }
+      mounted.splice(index, 1);
+      act(() => {
+        root.unmount();
+      });
+      container.remove();
+    },
     all: (selector) => [...container.querySelectorAll<HTMLElement>(selector)],
     text: () => container.textContent ?? "",
   };
@@ -46,6 +74,14 @@ export function click(element: Element): void {
   act(() => {
     element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
   });
+}
+
+export function pressKey(key: string, init: KeyboardEventInit = {}): KeyboardEvent {
+  const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
+  act(() => {
+    document.dispatchEvent(event);
+  });
+  return event;
 }
 
 function setNativeValue(element: HTMLElement, prototype: object, value: string): void {

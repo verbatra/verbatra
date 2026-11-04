@@ -9,10 +9,16 @@ export interface ThemeOption {
   readonly label: string;
 }
 
+export const THEME_LABELS: Readonly<Record<ThemePreference, string>> = {
+  system: "System",
+  light: "Light",
+  dark: "Dark",
+};
+
 export const THEME_OPTIONS: readonly ThemeOption[] = [
-  { value: "system", label: "System" },
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
+  { value: "system", label: THEME_LABELS.system },
+  { value: "light", label: THEME_LABELS.light },
+  { value: "dark", label: THEME_LABELS.dark },
 ];
 
 export const themeStore = createThemeStore({

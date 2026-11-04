@@ -47,10 +47,10 @@ describe("TopBar", () => {
     expect(onOpenNav).toHaveBeenCalledTimes(1);
   });
 
-  it("offers the theme switcher, named with the preference it currently reflects", () => {
+  it("offers the theme toggle, named with the current mode and the next action", () => {
     const view = mount();
 
-    expect(view.get('[aria-label="Theme: System"]')).not.toBeNull();
+    expect(view.get('[aria-label="Theme: System. Switch to Light."]')).not.toBeNull();
   });
 
   it("keeps the live-status region mounted but silent while the stream is healthy", () => {

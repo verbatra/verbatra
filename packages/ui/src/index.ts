@@ -12,6 +12,7 @@ export {
 export { Card, type CardPadding, type CardProps } from "./card.tsx";
 export { Checkbox, type CheckboxProps } from "./checkbox.tsx";
 export { cn } from "./cn.ts";
+export { Dropdown, type DropdownItem, type DropdownProps } from "./dropdown.tsx";
 export type { FieldSize } from "./field.ts";
 export { Icon, type IconName } from "./icon.tsx";
 export {
@@ -22,6 +23,7 @@ export {
   TextField,
   type TextFieldProps,
 } from "./input.tsx";
+export { Popover, type PopoverProps, type PopoverRole } from "./popover.tsx";
 export { ProgressBar, type ProgressTone } from "./progress-bar.tsx";
 export {
   Container,
@@ -33,6 +35,11 @@ export {
   Section,
   SectionCard,
 } from "./section.tsx";
+export {
+  SegmentedControl,
+  type SegmentedControlProps,
+  type SegmentedItem,
+} from "./segmented-control.tsx";
 export { Select, type SelectProps } from "./select.tsx";
 export {
   DialogCloseButton,
@@ -54,7 +61,11 @@ export {
   TableRow,
   tableClasses,
 } from "./table.tsx";
+export { type TabItem, TabList, type TabListProps, Tabs, type TabsProps } from "./tabs.tsx";
+export { ThemeToggle, type ThemeToggleProps } from "./theme-toggle.tsx";
 export { Toast } from "./toast.tsx";
+export { Tooltip, type TooltipProps, type TooltipSide } from "./tooltip.tsx";
+export { type DialogA11yOptions, useDialogA11y } from "./use-dialog-a11y.ts";
 
 export const THEMES = ["dark", "light"] as const;
 

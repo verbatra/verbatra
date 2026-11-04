@@ -1,5 +1,13 @@
 import type { KeyProvenance } from "@verbatra/sdk";
-import { Badge, Button, DetailList, DrawerShell, MonoValue, Section } from "@verbatra/ui";
+import {
+  Badge,
+  Button,
+  DetailList,
+  DrawerShell,
+  MonoValue,
+  Section,
+  useDialogA11y,
+} from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { DiffLocale, KeyLocaleStatusRow } from "../client/diff-view.js";
@@ -20,7 +28,6 @@ import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { RetranslateButton } from "./RetranslateButton.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { useCapabilities } from "./use-capabilities.js";
-import { useDialogA11y } from "./use-dialog-a11y.js";
 import { useHistoryList } from "./use-history-list.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
 

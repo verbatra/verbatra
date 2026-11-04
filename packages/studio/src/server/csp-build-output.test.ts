@@ -121,4 +121,37 @@ describe("built SPA output", () => {
     );
     expect(missing).toEqual([]);
   });
+
+  it.each([
+    "popover.tsx",
+    "dropdown.tsx",
+    "tooltip.tsx",
+    "segmented-control.tsx",
+    "tabs.tsx",
+    "theme-toggle.tsx",
+  ])("compiles every utility class of the shared ui %s", async (file) => {
+    const source = await readFile(
+      fileURLToPath(new URL(`../../../ui/src/${file}`, import.meta.url)),
+      "utf8",
+    );
+    const UTILITY =
+      /^(?:[a-z-]+:)*-?(?:p[xytblrse]?|m[xytblrse]?|gap|size|w|h|min-w|max-w|max-h|z|top|bottom|start|end|text|bg|border|rounded|shadow|opacity|translate|outline|flex|inline-flex|block|absolute|relative|invisible|overflow-y|items|justify|transition|delay|font|pointer-events|data)(?:-|$|\[)/;
+    const classes = [...source.matchAll(/"([^"\n]*)"/g)]
+      .flatMap((match) => (match[1] ?? "").split(/\s+/))
+      .filter((name) => UTILITY.test(name) && !name.includes("\u0027"));
+    const assets = await readdir(join(outDir, "assets"));
+    const css = (
+      await Promise.all(
+        assets
+          .filter((name) => name.endsWith(".css"))
+          .map((name) => readFile(join(outDir, "assets", name), "utf8")),
+      )
+    ).join("\n");
+
+    expect(classes.length).toBeGreaterThan(1);
+    const missing = classes.filter(
+      (name) => !css.includes(`.${name.replace(/[^\w-]/g, (char) => `\\${char}`)}`),
+    );
+    expect(missing).toEqual([]);
+  });
 });

@@ -1,13 +1,7 @@
-import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
+"use client";
 
-const FOCUSABLE_SELECTOR = [
-  "a[href]",
-  "button:not([disabled])",
-  "textarea:not([disabled])",
-  "input:not([disabled])",
-  "select:not([disabled])",
-  '[tabindex]:not([tabindex="-1"])',
-].join(", ");
+import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
+import { focusableElements } from "./focusable.ts";
 
 export interface DialogA11yOptions {
   readonly isOpen: boolean;
@@ -16,21 +10,20 @@ export interface DialogA11yOptions {
   readonly initialFocus?: RefObject<HTMLElement | null>;
 }
 
-function focusableElements(container: HTMLElement): HTMLElement[] {
-  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-}
-
 function trapTabKey(event: KeyboardEvent, container: HTMLElement): void {
   const items = focusableElements(container);
   const first = items[0];
   const last = items[items.length - 1];
   if (first === undefined || last === undefined) {
+    event.preventDefault();
     return;
   }
-  if (event.shiftKey && document.activeElement === first) {
+  const active = document.activeElement;
+  const inside = active !== null && container.contains(active);
+  if (event.shiftKey && (!inside || active === first)) {
     event.preventDefault();
     last.focus();
-  } else if (!event.shiftKey && document.activeElement === last) {
+  } else if (!event.shiftKey && (!inside || active === last)) {
     event.preventDefault();
     first.focus();
   }
