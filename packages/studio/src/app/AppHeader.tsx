@@ -14,7 +14,7 @@ function describeThemeAction(current: ThemeMode, next: ThemeMode): string {
 }
 
 const ICON_LINK =
-  "inline-flex size-8 items-center justify-center rounded-(--radius-md) text-(--text-muted) transition-colors hover:bg-(--surface-hover) hover:text-(--text-strong) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  "hidden size-8 items-center justify-center rounded-(--radius-md) text-(--text-muted) transition-colors hover:bg-(--surface-hover) hover:text-(--text-strong) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 function Wordmark(): ReactNode {
   return (
@@ -45,7 +45,7 @@ export interface AppHeaderProps {
 export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps): ReactNode {
   return (
     <header className="sticky top-0 z-10 flex-none border-b border-(--border-default) bg-(--surface-chrome) backdrop-blur-sm">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 md:px-6">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 md:px-8">
         <a
           href="#/translations"
           className="inline-flex flex-none items-center rounded-(--radius-md) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -55,7 +55,7 @@ export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps
         <HeaderSearch className="mx-auto hidden min-w-24 max-w-xs flex-1 md:block" />
         <nav
           aria-label="Studio"
-          className="ms-auto hidden flex-none items-center gap-5 md:me-2 md:flex"
+          className="ms-auto hidden flex-none items-center gap-5 lg:me-2 lg:flex"
         >
           {NAV_GROUPS.flatMap((group) => group.pages).map((page) => (
             <NavLink
@@ -75,7 +75,7 @@ export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps
             target="_blank"
             rel="noreferrer"
             aria-label="Documentation (opens in a new tab)"
-            className={`${ICON_LINK} hidden lg:inline-flex`}
+            className={`${ICON_LINK} lg:inline-flex`}
           >
             <Icon name="book" size={18} />
           </a>
@@ -84,7 +84,7 @@ export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps
             target="_blank"
             rel="noreferrer"
             aria-label="GitHub (opens in a new tab)"
-            className={`${ICON_LINK} hidden lg:inline-flex`}
+            className={`${ICON_LINK} lg:inline-flex`}
           >
             <GithubGlyph />
           </a>
@@ -95,7 +95,7 @@ export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps
           />
           <Button
             variant="ghost"
-            className="min-h-11 min-w-11 p-1.5 md:hidden"
+            className="p-1.5 max-md:min-h-11 max-md:min-w-11 lg:hidden"
             aria-label="Open navigation"
             onClick={onOpenMenu}
           >

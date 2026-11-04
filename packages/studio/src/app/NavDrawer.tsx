@@ -19,9 +19,10 @@ export function NavDrawer({ activePage, pageBadges, onClose }: NavDrawerProps): 
   const containerRef = useDialogA11y<HTMLDivElement>({ isOpen: true, onClose });
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <Sheet
         side="start"
+        size="narrow"
         title="Menu"
         ariaLabel="Navigation"
         closeLabel="Close navigation"

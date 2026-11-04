@@ -19,7 +19,7 @@ const FOCUS =
 
 const HEADER_LINK = cn(
   "relative inline-flex items-center gap-1.5 whitespace-nowrap text-sm text-(--text-muted) transition-colors hover:text-(--text-strong) aria-[current=page]:text-(--accent)",
-  "after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:bg-[color-mix(in_srgb,var(--v-glow)_55%,transparent)] after:opacity-0 hover:after:opacity-100 aria-[current=page]:after:opacity-100 motion-safe:after:transition-opacity",
+  "after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:bg-(--accent) after:opacity-0 hover:after:opacity-100 aria-[current=page]:after:opacity-100 motion-safe:after:transition-opacity",
   FOCUS,
 );
 
