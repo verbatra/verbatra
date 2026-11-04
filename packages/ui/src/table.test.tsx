@@ -138,4 +138,21 @@ describe("TableCard", () => {
     expect(card.getAttribute("aria-label")).toBe("Keys table");
     expect(card.className).toContain("overflow-x-auto");
   });
+
+  it("becomes a focusable labelled region when it has a label, so a keyboard can scroll it", () => {
+    const view = render(<TableCard aria-label="Keys table">x</TableCard>);
+    const card = view.get("[data-padding]");
+
+    expect(card.getAttribute("role")).toBe("region");
+    expect(card.getAttribute("tabindex")).toBe("0");
+    expect(card.className).toContain("vk-field");
+  });
+
+  it("adds no tab stop or region role without a label", () => {
+    const view = render(<TableCard>x</TableCard>);
+    const card = view.get("[data-padding]");
+
+    expect(card.hasAttribute("role")).toBe(false);
+    expect(card.hasAttribute("tabindex")).toBe(false);
+  });
 });
