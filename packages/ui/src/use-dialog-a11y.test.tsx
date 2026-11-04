@@ -472,7 +472,7 @@ describe("useDialogA11y: initial focus", () => {
   });
 
   it("locks document scroll while open, across nested dialogs, and restores it", () => {
-    document.documentElement.style.overflow = "";
+    document.documentElement.style.overflow = "auto";
     const outer = render(<Dialog isOpen onClose={vi.fn()} />);
     expect(document.documentElement.style.overflow).toBe("hidden");
 
@@ -481,6 +481,27 @@ describe("useDialogA11y: initial focus", () => {
     expect(document.documentElement.style.overflow).toBe("hidden");
 
     outer.unmount();
-    expect(document.documentElement.style.overflow).toBe("");
+    expect(document.documentElement.style.overflow).toBe("auto");
+  });
+
+  it("reserves the scrollbar width while locked so the page does not shift", () => {
+    const root = document.documentElement;
+    const clientWidth = Object.getOwnPropertyDescriptor(Element.prototype, "clientWidth");
+    Object.defineProperty(root, "clientWidth", {
+      configurable: true,
+      value: window.innerWidth - 15,
+    });
+    root.style.paddingInlineEnd = "2px";
+
+    const view = render(<Dialog isOpen onClose={vi.fn()} />);
+    expect(root.style.paddingInlineEnd).toBe("15px");
+
+    view.unmount();
+    expect(root.style.paddingInlineEnd).toBe("2px");
+    Reflect.deleteProperty(root, "clientWidth");
+    if (clientWidth !== undefined) {
+      Object.defineProperty(Element.prototype, "clientWidth", clientWidth);
+    }
+    root.style.paddingInlineEnd = "";
   });
 });

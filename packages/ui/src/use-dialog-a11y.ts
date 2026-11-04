@@ -14,18 +14,25 @@ const openDialogs: object[] = [];
 
 let scrollLocks = 0;
 let overflowBeforeLock = "";
+let paddingBeforeLock = "";
 
 function lockDocumentScroll(): () => void {
   const root = document.documentElement;
   if (scrollLocks === 0) {
     overflowBeforeLock = root.style.overflow;
+    paddingBeforeLock = root.style.paddingInlineEnd;
+    const scrollbar = root.clientWidth > 0 ? window.innerWidth - root.clientWidth : 0;
     root.style.overflow = "hidden";
+    if (scrollbar > 0) {
+      root.style.paddingInlineEnd = `${scrollbar}px`;
+    }
   }
   scrollLocks += 1;
   return () => {
     scrollLocks -= 1;
     if (scrollLocks === 0) {
       root.style.overflow = overflowBeforeLock;
+      root.style.paddingInlineEnd = paddingBeforeLock;
     }
   };
 }
