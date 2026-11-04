@@ -21,7 +21,7 @@ Ouvre l'URL qu'il affiche, token compris, et arrête Studio avec Ctrl+C. [`verba
 
 ## Lire la page Translations
 
-Translations liste chaque clé manquante, modifiée et orpheline, sous forme de **List** par locale avec un filtre texte ou de **Grid** clé par locale, au-dessus d'un tableau de la couverture de chaque locale et de son état dans le [fichier de verrouillage](/fr/docs/the-lock-file).
+Translations liste chaque clé manquante, modifiée et orpheline, sous forme de **List** par locale avec un filtre texte ou de **Grid** clé par locale.
 
 Clique sur une clé pour voir la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide. Également affiché :
 
@@ -126,15 +126,17 @@ Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans la
 
 Quand le fichier source change pendant que Studio tourne, une notification nomme le fichier et les clés ajoutées, modifiées ou supprimées. Avec `--allow-spend`, elle propose aussi **Translate pending changes across all locales** : la même exécution que `verbatra translate`, avec le résultat affiché sur place.
 
-## Voir la dernière exécution sur Activity
+## Voir la couverture et la dernière exécution sur Overview
 
-Activity montre l'historique git de tes fichiers de locale et la consommation de tokens de la dernière exécution enregistrée, avec la jauge de budget quand un budget de tokens est configuré.
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-## Garder le glossaire à jour dans Settings
+Overview est la page sur laquelle Studio s'ouvre. Elle montre la couverture de chaque locale avec l'état de son [fichier de verrouillage](/fr/docs/the-lock-file), l'historique git de tes fichiers de locale et la consommation de tokens de la dernière exécution enregistrée, avec la jauge de budget quand un budget de tokens est configuré.
+
+## Garder le glossaire à jour dans Glossary
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Settings montre la configuration avec laquelle Studio a démarré, et le glossaire. Si le glossaire est un fichier JSON, tu peux ajouter, modifier et supprimer des termes ; chaque changement est écrit directement dans le fichier. Un glossaire inline dans `verbatra.config.ts` reste en lecture seule.
+Glossary a sa propre page. Si le glossaire est un fichier JSON, tu peux ajouter, modifier et supprimer des termes ; chaque changement est écrit directement dans le fichier. Un glossaire inline dans `verbatra.config.ts` reste en lecture seule.
 
 Une modification du glossaire change ce que la prochaine exécution reçoit comme consigne, jamais un texte déjà écrit ; redémarre Studio pour que ses propres retraductions l'utilisent.
 

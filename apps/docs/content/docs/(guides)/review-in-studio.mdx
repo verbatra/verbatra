@@ -21,7 +21,7 @@ Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra 
 
 ## Read the Translations page
 
-Translations lists every missing, changed and orphaned key, as a **List** per locale with a text filter or as a key-by-locale **Grid**, above a table of each locale's coverage and [lock file](/docs/the-lock-file) state.
+Translations lists every missing, changed and orphaned key, as a **List** per locale with a text filter or as a key-by-locale **Grid**.
 
 Click a key to see every locale's value with an integrity indicator: placeholders match, a placeholder mismatch with the tokens named, or invalid message syntax. Also shown:
 
@@ -126,15 +126,17 @@ A **Retranslate** button then appears on each Review row, and in a key's detail 
 
 When the source file changes while Studio runs, a toast names the file and the keys added, changed or removed. With `--allow-spend`, it also offers **Translate pending changes across all locales**: the same run `verbatra translate` would do, with the result reported inline.
 
-## Check the last run on Activity
+## Check coverage and the last run on Overview
 
-Activity shows the git history of your locale files and the token usage of the last recorded run, with the budget meter when a token budget is configured.
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-## Keep the glossary current on Settings
+Overview is the page Studio opens on. It shows the coverage of each locale with its [lock file](/docs/the-lock-file) state, the git history of your locale files, and the token usage of the last recorded run, with the budget meter when a token budget is configured.
+
+## Keep the glossary current on Glossary
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Settings shows the configuration Studio started with and the glossary. If the glossary is a JSON file, you can add, edit and remove terms; each change is written straight to the file. An inline glossary in `verbatra.config.ts` stays read-only.
+Glossary has its own page. If the glossary is a JSON file, you can add, edit and remove terms; each change is written straight to the file. An inline glossary in `verbatra.config.ts` stays read-only.
 
 A glossary edit changes what the next run is told, never text already written; restart Studio for its own retranslations to use it.
 

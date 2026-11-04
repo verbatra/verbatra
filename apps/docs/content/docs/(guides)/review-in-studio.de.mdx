@@ -21,7 +21,7 @@ verbatra studio
 
 ## Lies die Seite Translations
 
-Translations listet jeden fehlenden, geänderten und verwaisten Key, als **List** pro Locale mit Textfilter oder als **Grid** aus Keys und Locales, über einer Tabelle mit der Abdeckung jeder Locale und dem Zustand in der [Lock-Datei](/de/docs/the-lock-file).
+Translations listet jeden fehlenden, geänderten und verwaisten Key, als **List** pro Locale mit Textfilter oder als **Grid** aus Keys und Locales.
 
 Klick auf einen Key, um den Wert jeder Locale mit einer Integritätsanzeige zu sehen: Platzhalter stimmen, eine Platzhalter-Abweichung mit den benannten Tokens oder ungültige Nachrichtensyntax. Außerdem angezeigt:
 
@@ -126,15 +126,17 @@ Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und in der Detai
 
 Ändert sich die Quelldatei, während Studio läuft, nennt eine Benachrichtigung die Datei und die hinzugefügten, geänderten oder entfernten Keys. Mit `--allow-spend` bietet sie außerdem **Translate pending changes across all locales** an: denselben Lauf, den `verbatra translate` machen würde, mit dem Ergebnis direkt daneben.
 
-## Prüfe den letzten Lauf unter Activity
+## Prüfe Abdeckung und letzten Lauf unter Overview
 
-Activity zeigt die Git-Historie deiner Locale-Dateien und den Token-Verbrauch des letzten erfassten Laufs, mit der Budgetanzeige, wenn ein Token-Budget konfiguriert ist.
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-## Halte das Glossar unter Settings aktuell
+Overview ist die Seite, auf der Studio startet. Sie zeigt die Abdeckung jeder Locale mit ihrem Zustand in der [Lock-Datei](/de/docs/the-lock-file), die Git-Historie deiner Locale-Dateien und den Token-Verbrauch des letzten erfassten Laufs, mit der Budgetanzeige, wenn ein Token-Budget konfiguriert ist.
+
+## Halte das Glossar unter Glossary aktuell
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Settings zeigt die Konfiguration, mit der Studio gestartet wurde, und das Glossar. Ist das Glossar eine JSON-Datei, kannst du Begriffe hinzufügen, bearbeiten und entfernen; jede Änderung wird direkt in die Datei geschrieben. Ein Inline-Glossar in `verbatra.config.ts` bleibt schreibgeschützt.
+Glossary hat eine eigene Seite. Ist das Glossar eine JSON-Datei, kannst du Begriffe hinzufügen, bearbeiten und entfernen; jede Änderung wird direkt in die Datei geschrieben. Ein Inline-Glossar in `verbatra.config.ts` bleibt schreibgeschützt.
 
 Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits geschriebenen Text; starte Studio neu, damit seine eigenen Neuübersetzungen sie nutzen.
 
