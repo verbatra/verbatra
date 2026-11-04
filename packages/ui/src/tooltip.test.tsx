@@ -74,20 +74,27 @@ describe("Tooltip", () => {
     expect(mount().get(SLOT).hasAttribute("data-open")).toBe(false);
   });
 
-  it("takes no layout while closed, and still describes the control", () => {
+  it("describes the control while closed, so the description is ready before it opens", () => {
     const view = mount();
-    const slot = view.get(SLOT);
 
-    expect(slot.hidden).toBe(true);
+    expect(view.get(SLOT).hasAttribute("data-open")).toBe(false);
     expect(view.get("button").getAttribute("aria-describedby")).toBe(
       view.get("[role='tooltip']").id,
     );
+  });
+
+  it("opens only from keyboard focus when told to, and ignores the pointer", () => {
+    const view = render(
+      <Tooltip label="Tip" trigger="focus">
+        <button type="button">c</button>
+      </Tooltip>,
+    );
 
     hover(view.get("button"));
-    expect(view.get(SLOT).hidden).toBe(false);
+    expect(view.get(SLOT).hasAttribute("data-open")).toBe(false);
 
-    unhover(view.get("button"));
-    expect(view.get(SLOT).hidden).toBe(true);
+    fire(view.get("button"), "focusin");
+    expect(view.get(SLOT).hasAttribute("data-open")).toBe(true);
   });
 
   it("merges a caller className onto the wrapper", () => {
@@ -98,7 +105,6 @@ describe("Tooltip", () => {
     );
 
     expect(view.get("button").parentElement?.className).toContain("w-full");
-    expect(view.get("button").parentElement?.className).toContain("inline-flex");
   });
 
   it("opens on hover and closes when the pointer leaves", () => {

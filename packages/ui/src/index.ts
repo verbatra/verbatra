@@ -58,7 +58,12 @@ export {
 } from "./table.tsx";
 export { ThemeToggle, type ThemeToggleProps } from "./theme-toggle.tsx";
 export { Toast } from "./toast.tsx";
-export { Tooltip, type TooltipProps, type TooltipSide } from "./tooltip.tsx";
+export {
+  Tooltip,
+  type TooltipProps,
+  type TooltipSide,
+  type TooltipTrigger,
+} from "./tooltip.tsx";
 export { type DialogA11yOptions, useDialogA11y } from "./use-dialog-a11y.ts";
 
 export const THEMES = ["dark", "light"] as const;

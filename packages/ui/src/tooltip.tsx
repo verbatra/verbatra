@@ -11,12 +11,15 @@ import {
 } from "react";
 import { cn } from "./cn.ts";
 
+export type TooltipTrigger = "hover-and-focus" | "focus";
+
 export type TooltipSide = "end" | "bottom" | "bottom-end";
 
 export interface TooltipProps {
   readonly label: string;
   readonly side?: TooltipSide;
   readonly decorative?: boolean;
+  readonly trigger?: TooltipTrigger;
   readonly className?: string;
   readonly children: ReactNode;
 }
@@ -28,7 +31,7 @@ interface DescribableProps {
 }
 
 const SLOT =
-  "pointer-events-none invisible absolute z-40 opacity-0 motion-safe:transition-opacity motion-safe:delay-150 data-[open]:pointer-events-auto data-[open]:visible data-[open]:opacity-100";
+  "pointer-events-none invisible absolute z-40 size-0 overflow-hidden opacity-0 motion-safe:transition-opacity motion-safe:delay-150 data-[open]:pointer-events-auto data-[open]:visible data-[open]:size-auto data-[open]:overflow-visible data-[open]:opacity-100";
 
 const POSITION: Readonly<Record<TooltipSide, string>> = {
   end: "start-full top-1/2 ps-2 -translate-y-1/2",
@@ -37,7 +40,7 @@ const POSITION: Readonly<Record<TooltipSide, string>> = {
 };
 
 const BUBBLE =
-  "block whitespace-nowrap rounded-(--radius-md) border border-(--border-default) bg-(--surface-raised) px-2 py-1 text-xs text-(--text-strong) shadow-(--shadow-panel)";
+  "block whitespace-nowrap font-sans font-normal rounded-(--radius-md) border border-(--border-default) bg-(--surface-raised) px-2 py-1 text-xs text-(--text-strong) shadow-(--shadow-panel)";
 
 function joinIds(existing: string | undefined, id: string): string {
   return existing === undefined || existing === "" ? id : `${existing} ${id}`;
@@ -47,6 +50,7 @@ export function Tooltip({
   label,
   side = "end",
   decorative = false,
+  trigger = "hover-and-focus",
   className,
   children,
 }: TooltipProps): ReactNode {
@@ -88,7 +92,7 @@ export function Tooltip({
     // biome-ignore lint/a11y/noStaticElementInteractions: the wrapper only observes pointer and focus events bubbling from the control it describes
     <span
       className={cn("relative inline-flex", className)}
-      onMouseEnter={() => show(setHovered)}
+      onMouseEnter={() => (trigger === "focus" ? undefined : show(setHovered))}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => show(setFocused)}
       onBlur={() => setFocused(false)}
@@ -98,7 +102,6 @@ export function Tooltip({
         <span
           data-slot=""
           data-side={side}
-          hidden={visible ? undefined : true}
           data-open={visible ? "" : undefined}
           className={cn(SLOT, POSITION[side])}
         >
