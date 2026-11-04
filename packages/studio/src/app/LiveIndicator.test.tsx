@@ -54,7 +54,7 @@ describe("LiveIndicator", () => {
     setConnectionStatus("reconnecting");
     advance(DEGRADED_DELAY_MS);
 
-    expect(view.get('[role="status"] > span').dataset.tone).toBe("warning");
+    expect(view.get('[role="status"] [data-tone]').dataset.tone).toBe("warning");
   });
 
   it("clears the notice the moment the stream recovers, without waiting out a delay", () => {
@@ -97,5 +97,24 @@ describe("LiveIndicator", () => {
     advance(DEGRADED_DELAY_MS - 1);
 
     expect(view.query("[data-live]")).toBeNull();
+  });
+
+  it("shows the live label as screen-reader text below md and keeps the dot", () => {
+    const view = render(<LiveIndicator />);
+
+    expect(view.get("[data-live] span:last-child").className).toContain("max-md:sr-only");
+    expect(view.get("[data-live] span").getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("shows a warning dot below md while the label stays readable", () => {
+    vi.useFakeTimers();
+    const view = render(<LiveIndicator />);
+
+    setConnectionStatus("reconnecting");
+    advance(DEGRADED_DELAY_MS);
+
+    expect(view.get("[data-dot=warning]").className).toContain("md:hidden");
+    expect(view.get('[role="status"] > span').className).toContain("max-md:sr-only");
+    expect(view.get('[role="status"]').textContent).toBe("Reconnecting");
   });
 });

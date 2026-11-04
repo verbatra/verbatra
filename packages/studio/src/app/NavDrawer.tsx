@@ -39,7 +39,7 @@ export function NavDrawer({
         onClose={onClose}
         containerRef={containerRef}
       >
-        <HeaderSearch label="Drawer keys" className="mb-4 md:hidden" onSearch={onClose} />
+        <HeaderSearch label="Search in menu" className="mb-4 md:hidden" onSearch={onClose} />
         {NAV_GROUPS.map((group) => (
           <nav key={group.label} aria-label={group.label} className="mb-4 flex flex-col gap-1">
             <p className="mb-1 font-mono text-[11px] font-semibold uppercase tracking-(--tracking-wide) text-(--text-muted)">

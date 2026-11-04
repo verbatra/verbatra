@@ -464,6 +464,28 @@ describe("App navigation chrome", () => {
 });
 
 describe("App header chrome", () => {
+  it("leaves focus alone when the viewport grows while the drawer is closed", async () => {
+    let listener: (() => void) | undefined;
+    const list = {
+      matches: false,
+      addEventListener: (_type: string, next: () => void) => {
+        listener = next;
+      },
+      removeEventListener: () => {},
+    };
+    vi.stubGlobal("matchMedia", () => list);
+    const view = await mount();
+    const toggle = view.get("[data-theme-toggle]");
+    act(() => {
+      toggle.focus();
+    });
+
+    list.matches = true;
+    act(() => listener?.());
+
+    expect(document.activeElement).toBe(toggle);
+  });
+
   it("closes the open drawer when the viewport grows to the wide layout and keeps it closed", async () => {
     let listener: (() => void) | undefined;
     const list = {

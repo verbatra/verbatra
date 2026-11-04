@@ -22,7 +22,7 @@ describe("AppHeader", () => {
   it("names the product in a home link to the workspace", () => {
     const view = mount();
 
-    expect(view.get('header a[href="#/translations"]').textContent).toContain("verbatra");
+    expect(view.get('header a[href="#/translations"]').textContent).toBe("verbatra Studio");
     expect(view.text()).toContain("verbatra");
     expect(view.text()).toContain("Studio");
   });

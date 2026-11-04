@@ -79,7 +79,7 @@ describe("NavDrawer", () => {
     const view = mount();
 
     expect(view.get("search").className).toContain("md:hidden");
-    expect(view.get("search").getAttribute("aria-label")).toBe("Drawer keys");
+    expect(view.get("search").getAttribute("aria-label")).toBe("Search in menu");
   });
 
   it("opens on the end side, next to the menu button", () => {

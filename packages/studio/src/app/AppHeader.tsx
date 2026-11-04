@@ -1,6 +1,6 @@
 import { Button, Icon, ThemeToggle } from "@verbatra/ui";
 import type { ThemeMode } from "@verbatra/ui/theme";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import type { PageId } from "../client/routes.js";
 import { GithubGlyph } from "./GithubGlyph.js";
 import { HeaderSearch } from "./HeaderSearch.js";
@@ -28,7 +28,7 @@ function Wordmark(): ReactNode {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="text-lg font-semibold tracking-tight text-(--text-strong)">verbatra</span>
+      <span className="text-lg font-semibold tracking-tight text-(--text-strong)">verbatra</span>{" "}
       <span className="sr-only">Studio</span>
     </span>
   );
@@ -38,9 +38,15 @@ export interface AppHeaderProps {
   readonly activePage: PageId;
   readonly pageBadges: Readonly<Partial<Record<PageId, number>>>;
   readonly onOpenMenu: () => void;
+  readonly activeLinkRef?: Ref<HTMLAnchorElement>;
 }
 
-export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps): ReactNode {
+export function AppHeader({
+  activePage,
+  pageBadges,
+  onOpenMenu,
+  activeLinkRef,
+}: AppHeaderProps): ReactNode {
   const waiting = pageBadges.review ?? 0;
   return (
     <header className="sticky top-0 z-10 flex-none bg-(--surface-chrome) backdrop-blur-sm after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-(--border-default) after:content-['']">
@@ -67,6 +73,7 @@ export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps
                 active={page === activePage}
                 count={pageBadges[page]}
                 variant="header"
+                linkRef={page === activePage ? activeLinkRef : undefined}
               />
             ))}
           </nav>

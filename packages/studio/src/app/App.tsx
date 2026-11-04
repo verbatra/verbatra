@@ -1,6 +1,6 @@
 import { Container } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   handleRefreshEvent,
   nextToastSlot,
@@ -123,12 +123,16 @@ function AppShell({
   const ActivePanel = PAGE_PANELS[page];
   const wide = useMediaQuery(WIDE_QUERY, false);
   const wideRef = useRef(wide);
-  wideRef.current = wide;
+  const activeLinkRef = useRef<HTMLAnchorElement>(null);
+
+  useLayoutEffect(() => {
+    wideRef.current = wide;
+  });
 
   useEffect(() => {
     if (wide && mobileNavOpen) {
       onSetMobileNavOpen(false);
-      document.querySelector<HTMLElement>('header nav [aria-current="page"]')?.focus();
+      activeLinkRef.current?.focus();
     }
   }, [wide, mobileNavOpen, onSetMobileNavOpen]);
 
@@ -145,6 +149,7 @@ function AppShell({
         activePage={page}
         pageBadges={pageBadges}
         onOpenMenu={() => onSetMobileNavOpen(true)}
+        activeLinkRef={activeLinkRef}
       />
       {mobileNavOpen ? (
         <NavDrawer
