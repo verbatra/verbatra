@@ -27,15 +27,27 @@ export interface KeyEditorProps {
   readonly layout: KeyEditorLayout;
   readonly onClose: () => void;
   readonly onEscape: () => void;
+  readonly onRouteSettled: () => void;
 }
 
 interface Pending {
   readonly proceed: () => void;
+  readonly route: boolean;
 }
 
 interface EditTarget {
   readonly keyName: string;
   readonly locale: string | null;
+}
+
+const CONTROL = "button, a[href], input, select, textarea";
+
+const EDITOR_SURFACE = "[data-editor-pane], [role='dialog']";
+
+function isOutsideControl(element: HTMLElement): boolean {
+  return (
+    element.isConnected && element.matches(CONTROL) && element.closest(EDITOR_SURFACE) === null
+  );
 }
 
 function SourceValue({
@@ -72,6 +84,7 @@ export function KeyEditor({
   layout,
   onClose,
   onEscape,
+  onRouteSettled,
 }: KeyEditorProps): ReactNode {
   const history = useHistoryList(refreshToken);
   const integrity = useKeyIntegrity(keyName, refreshToken);
@@ -80,6 +93,7 @@ export function KeyEditor({
   const [pending, setPending] = useState<Pending | null>(null);
   const [saved, setSaved] = useState<EditTarget | null>(null);
   const [returnTo, setReturnTo] = useState<string | null>(null);
+  const originRef = useRef<HTMLElement | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const dirtyRef = useRef(false);
@@ -104,7 +118,11 @@ export function KeyEditor({
     () =>
       installRouteGuard({
         isDirty: () => dirtyRef.current,
-        onBlock: (proceed) => setPending({ proceed }),
+        onBlock: (proceed) => {
+          originRef.current =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          setPending({ proceed, route: true });
+        },
       }),
     [],
   );
@@ -118,19 +136,22 @@ export function KeyEditor({
     setReturnTo(null);
   }, [returnTo]);
 
-  function finishEditing(locale: string): void {
+  function cancelEditing(locale: string): void {
     setEditingLocale(null);
     setReturnTo(locale);
   }
 
-  async function saveEditing(): Promise<boolean> {
+  async function saveEditing(returnFocus: boolean): Promise<boolean> {
     if (editingLocale === null) {
       return false;
     }
     const saved = await edit.save();
     if (saved) {
       setSaved({ keyName, locale: editingLocale });
-      finishEditing(editingLocale);
+      setEditingLocale(null);
+      if (returnFocus) {
+        setReturnTo(editingLocale);
+      }
     }
     return saved;
   }
@@ -141,25 +162,41 @@ export function KeyEditor({
       setEditingLocale(locale);
     };
     if (edit.dirty) {
-      setPending({ proceed: open });
+      setPending({ proceed: open, route: false });
       return;
     }
     open();
   }
 
+  function returnFocusAfterRoute(): void {
+    const origin = originRef.current;
+    if (origin !== null && isOutsideControl(origin)) {
+      origin.focus();
+    } else if (layout === "pane") {
+      onRouteSettled();
+    }
+  }
+
+  function proceedWith(held: Pending | null): void {
+    held?.proceed();
+    if (held?.route === true) {
+      returnFocusAfterRoute();
+    }
+  }
+
   async function resolveSave(): Promise<void> {
-    const proceed = pending?.proceed;
+    const held = pending;
     setPending(null);
-    if ((await saveEditing()) && proceed !== undefined) {
-      proceed();
+    if (await saveEditing(held === null)) {
+      proceedWith(held);
     }
   }
 
   function resolveDiscard(): void {
-    const proceed = pending?.proceed;
+    const held = pending;
     setPending(null);
     setEditingLocale(null);
-    proceed?.();
+    proceedWith(held);
   }
 
   function keepEditing(): void {
@@ -207,8 +244,8 @@ export function KeyEditor({
                   edit={edit}
                   pill={deriveIntegrityPillView(integrityLocales, row.locale)}
                   textAreaRef={textAreaRef}
-                  onSave={() => void saveEditing()}
-                  onCancel={() => finishEditing(row.locale)}
+                  onSave={() => void saveEditing(true)}
+                  onCancel={() => cancelEditing(row.locale)}
                 />
               }
             />

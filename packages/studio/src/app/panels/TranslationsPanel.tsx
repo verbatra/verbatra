@@ -19,6 +19,7 @@ import type { LocaleValuesData } from "../../client/locale-values.js";
 import { localeValuesOrEmpty } from "../../client/locale-values.js";
 import { type ReviewQueueData, unreviewedRows } from "../../client/review-queue-data.js";
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
+import { parseRoute } from "../../client/routes.js";
 import type { RefreshableView } from "../../client/state.js";
 import { DiffErrorNotice } from "../DiffErrorNotice.js";
 import { ErrorMessage } from "../ErrorMessage.js";
@@ -351,6 +352,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const localeValuesView = useLocaleValues(refreshToken);
   const wide = useMediaQuery(XL_QUERY, false);
   const tableAreaRef = useRef<HTMLDivElement>(null);
+  const lastKeyRef = useRef<string | null>(null);
 
   const route = useTranslationsRoute(knownLocalesOf(diff), localeValuesView);
   const { selectedKey, setSelectedKey } = route;
@@ -360,6 +362,19 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const integrity = useLocaleIntegrity(refreshToken, diff.kind === "loaded");
   const brokenInSync = allClear && hasIntegrityProblems(integrity);
   const split = wide && selectedKey !== null && diff.kind === "loaded";
+
+  useEffect(() => {
+    if (selectedKey !== null) {
+      lastKeyRef.current = selectedKey;
+    }
+  }, [selectedKey]);
+
+  function focusSettledRow(): void {
+    const key = parseRoute(window.location.hash).params.key ?? lastKeyRef.current;
+    if (key !== null) {
+      focusRow(tableAreaRef.current, key);
+    }
+  }
 
   function closeEditor(): void {
     if (selectedKey !== null && setSelectedKey(null) && wide) {
@@ -399,6 +414,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
             layout={wide ? "pane" : "drawer"}
             onClose={closeEditor}
             onEscape={() => focusRow(tableAreaRef.current, selectedKey)}
+            onRouteSettled={focusSettledRow}
           />
         ) : null}
       </div>

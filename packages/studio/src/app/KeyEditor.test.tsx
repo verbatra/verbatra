@@ -98,8 +98,8 @@ function localeBlocks(view: { all(selector: string): HTMLElement[] }): HTMLEleme
   return view.all("ul li");
 }
 
-function Drawer(props: Omit<KeyEditorProps, "layout" | "onEscape">): ReactNode {
-  return <KeyEditor layout="drawer" onEscape={() => {}} {...props} />;
+function Drawer(props: Omit<KeyEditorProps, "layout" | "onEscape" | "onRouteSettled">): ReactNode {
+  return <KeyEditor layout="drawer" onEscape={() => {}} onRouteSettled={() => {}} {...props} />;
 }
 
 describe("KeyEditor drawer", () => {

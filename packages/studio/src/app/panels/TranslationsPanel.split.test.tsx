@@ -128,6 +128,36 @@ async function startDirtyEdit(view: RenderResult): Promise<void> {
   typeInto(textarea(view), "Hallo!");
 }
 
+function inputNamed(view: RenderResult, name: string): HTMLInputElement {
+  const found = view.get(`input[aria-label="${name}"]`);
+  if (!(found instanceof HTMLInputElement)) {
+    throw new Error(`${name} is not an input`);
+  }
+  return found;
+}
+
+function selectNamed(view: RenderResult, name: string): HTMLSelectElement {
+  const found = view.get(`select[aria-label="${name}"]`);
+  if (!(found instanceof HTMLSelectElement)) {
+    throw new Error(`${name} is not a select`);
+  }
+  return found;
+}
+
+function formOf(view: RenderResult): HTMLFormElement {
+  const found = view.get("search form");
+  if (!(found instanceof HTMLFormElement)) {
+    throw new Error("the header search is not a form");
+  }
+  return found;
+}
+
+function expectFocusWithin(view: RenderResult, trigger: { readonly focusWithin?: string }): void {
+  if (trigger.focusWithin !== undefined) {
+    expect(view.get(trigger.focusWithin).contains(document.activeElement)).toBe(true);
+  }
+}
+
 function nextHashChange(): Promise<void> {
   return new Promise((resolve) => {
     window.addEventListener("hashchange", () => resolve(), { once: true });
@@ -314,6 +344,7 @@ function keyDown(target: EventTarget, init: KeyboardEventInit): void {
 
 interface Trigger {
   readonly name: string;
+  readonly focusWithin?: string;
   readonly fire: (view: RenderResult) => Promise<void>;
   readonly proceeds: (view: RenderResult) => void;
 }
@@ -329,17 +360,23 @@ const TRIGGERS: readonly Trigger[] = [
   {
     name: "header search",
     fire: async (view) => {
-      typeInto(
-        view.get('search input[aria-label="Search keys and text"]') as HTMLInputElement,
-        "zzz",
-      );
-      act(() => (view.get("search form") as HTMLFormElement).requestSubmit());
+      typeInto(inputNamed(view, "Search keys and text"), "zzz");
+      act(() => formOf(view).requestSubmit());
       await flush();
     },
     proceeds: () => expect(window.location.hash).toContain("q=zzz"),
   },
   {
+    name: "typing in the key filter",
+    fire: async (view) => {
+      typeInto(inputNamed(view, "Filter by key or translation text"), "x");
+      await flush();
+    },
+    proceeds: () => expect(window.location.hash).toContain("q=x"),
+  },
+  {
     name: "a status chip",
+    focusWithin: '[aria-label="Keys table"]',
     fire: async (view) => {
       await clickAsync(view.get('[data-status-filter="changed"]'));
     },
@@ -348,13 +385,14 @@ const TRIGGERS: readonly Trigger[] = [
   {
     name: "the locale filter",
     fire: async (view) => {
-      selectOption(view.get('select[aria-label="Filter by locale"]') as HTMLSelectElement, "fr");
+      selectOption(selectNamed(view, "Filter by locale"), "fr");
       await flush();
     },
     proceeds: () => expect(window.location.hash).toContain("locale=fr"),
   },
   {
     name: "selecting another key",
+    focusWithin: '[data-key="app.body"]',
     fire: async (view) => {
       await clickAsync(view.get('[data-key="app.body"] th'));
     },
@@ -362,6 +400,7 @@ const TRIGGERS: readonly Trigger[] = [
   },
   {
     name: "closing the editor",
+    focusWithin: '[data-key="app.title"]',
     fire: async (view) => {
       await clickAsync(view.get('button[aria-label="Close details for app.title"]'));
     },
@@ -412,6 +451,7 @@ describe("split editor dirty guard", () => {
     trigger.proceeds(view);
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
     expect(rpcCalls.some((call) => call.method === "translation.editEntry")).toBe(false);
+    expectFocusWithin(view, trigger);
   });
 
   it.each(TRIGGERS)("saves, then goes on to $name, after Save", async (trigger) => {
@@ -425,6 +465,19 @@ describe("split editor dirty guard", () => {
 
     expect(rpcCalls.filter((call) => call.method === "translation.editEntry")).toHaveLength(1);
     trigger.proceeds(view);
+    expectFocusWithin(view, trigger);
+  });
+
+  it("puts focus on Keep editing, never on Save, so a keystroke cannot save by accident", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+
+    typeInto(inputNamed(view, "Filter by key or translation text"), "x");
+    await flush();
+
+    expect(document.activeElement?.textContent).toBe("Keep editing");
+    expect(rpcCalls.some((call) => call.method === "translation.editEntry")).toBe(false);
   });
 
   it("keeps the typed header search when the change is held back", async () => {
@@ -434,9 +487,7 @@ describe("split editor dirty guard", () => {
 
     await TRIGGERS[1]?.fire(view);
 
-    expect(
-      (view.get('search input[aria-label="Search keys and text"]') as HTMLInputElement).value,
-    ).toBe("zzz");
+    expect(inputNamed(view, "Search keys and text").value).toBe("zzz");
   });
 
   it("stays put and keeps the draft on Keep editing, with focus back in the field", async () => {

@@ -17,10 +17,10 @@ export function UnsavedPrompt({
   onDiscard,
   onKeepEditing,
 }: UnsavedPromptProps): ReactNode {
-  const saveRef: RefObject<HTMLButtonElement | null> = useRef(null);
+  const keepRef: RefObject<HTMLButtonElement | null> = useRef(null);
 
   useEffect(() => {
-    saveRef.current?.focus();
+    keepRef.current?.focus();
   }, []);
 
   return (
@@ -33,13 +33,13 @@ export function UnsavedPrompt({
         The <span className="font-mono">{locale}</span> translation has changes that are not saved.
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <Button ref={saveRef} variant="primary" size="sm" disabled={saving} onClick={onSave}>
+        <Button variant="primary" size="sm" disabled={saving} onClick={onSave}>
           Save
         </Button>
         <Button size="sm" disabled={saving} onClick={onDiscard}>
           Discard
         </Button>
-        <Button size="sm" variant="ghost" disabled={saving} onClick={onKeepEditing}>
+        <Button ref={keepRef} size="sm" variant="ghost" disabled={saving} onClick={onKeepEditing}>
           Keep editing
         </Button>
       </div>
