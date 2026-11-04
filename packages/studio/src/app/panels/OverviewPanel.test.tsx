@@ -662,7 +662,7 @@ describe("OverviewPanel metrics", () => {
 
     expect(metricTile(view, "Needs attention")).toMatchObject({
       value: "2",
-      hint: "2 keys missing or changed across 2 of 2 target locales.",
+      hint: "2 keys missing, changed or orphaned across 2 of 2 target locales.",
     });
   });
 
@@ -675,18 +675,18 @@ describe("OverviewPanel metrics", () => {
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(metricTile(view, "Needs attention").hint).toBe(
-      "1 key missing or changed across 1 of 1 target locale.",
+      "1 key missing, changed or orphaned across 1 of 1 target locale.",
     );
     expect(metricTile(view, "Avg coverage").hint).toBe("Across 1 target locale.");
   });
 
-  it("falls back to a vague attention hint until the coverage read answers", async () => {
+  it("states the attention hint without waiting for the coverage read", async () => {
     stubPage({ "status.check": PENDING });
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(metricTile(view, "Needs attention").hint).toBe(
-      "2 keys missing or changed across your target locales.",
+      "2 keys missing, changed or orphaned across 2 of 2 target locales.",
     );
   });
 
@@ -932,8 +932,23 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(
-      view.get('a[href="#/translations?status=missing&status=changed"]').textContent,
-    ).toContain("keys missing or changed");
+      view.get('a[href="#/translations?status=missing&status=changed&status=orphaned"]')
+        .textContent,
+    ).toContain("keys missing, changed or orphaned");
+  });
+
+  it("counts a locale whose only drift is orphaned keys, with a link that lists them", async () => {
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { orphaned: ["app.legacy"] }), localeDiff("fr")]),
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Needs attention")).toMatchObject({
+      value: "1",
+      hint: "1 key missing, changed or orphaned across 1 of 2 target locales.",
+    });
+    expect(view.query('a[href*="status=orphaned"]')).not.toBeNull();
   });
 
   it("offers no attention link when everything is in sync", async () => {

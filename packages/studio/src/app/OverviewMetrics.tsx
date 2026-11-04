@@ -1,20 +1,12 @@
 import type { ReactNode } from "react";
-import {
-  averageCoverage,
-  outOfSyncCount,
-  type StatusData,
-  type StatusRow,
-} from "../client/coverage.js";
+import { averageCoverage, type StatusData } from "../client/coverage.js";
 import { driftKeys, isFullyInSync } from "../client/diff-view.js";
 import { routeHash } from "../client/routes.js";
 import type { RefreshableView } from "../client/state.js";
 import { MetricCard } from "./MetricCard.js";
 import type { DiffState } from "./use-diff-state.js";
 
-function attentionTile(
-  diff: DiffState,
-  rows: readonly StatusRow[] | null,
-): {
+function attentionTile(diff: DiffState): {
   readonly value: string;
   readonly hint: string;
   readonly tone: "default" | "success" | "danger";
@@ -34,16 +26,18 @@ function attentionTile(
     return { value: "0", hint: "Everything is in sync.", tone: "success" };
   }
   const pending = driftKeys(diff.locales).length;
-  const keys = `${pending} ${pending === 1 ? "key" : "keys"} missing or changed`;
-  const across =
-    rows !== null
-      ? `${keys} across ${outOfSyncCount(rows)} of ${rows.length} target ${rows.length === 1 ? "locale" : "locales"}.`
-      : `${keys} across your target locales.`;
+  const drifting = diff.locales.filter(
+    (locale) => locale.missing.length + locale.changed.length + locale.orphaned.length > 0,
+  ).length;
+  const total = diff.locales.length;
   return {
     value: String(pending),
-    hint: across,
+    hint: `${pending} ${pending === 1 ? "key" : "keys"} missing, changed or orphaned across ${drifting} of ${total} target ${total === 1 ? "locale" : "locales"}.`,
     tone: "danger",
-    href: routeHash({ page: "translations", params: { statuses: ["missing", "changed"] } }),
+    href: routeHash({
+      page: "translations",
+      params: { statuses: ["missing", "changed", "orphaned"] },
+    }),
   };
 }
 
@@ -55,7 +49,7 @@ export function OverviewMetrics({
   readonly diff: DiffState;
 }): ReactNode {
   const rows = status.kind === "data" ? status.data.rows : null;
-  const attention = attentionTile(diff, rows);
+  const attention = attentionTile(diff);
   const inSyncCount = rows === null ? null : rows.filter((row) => row.inSync).length;
 
   return (

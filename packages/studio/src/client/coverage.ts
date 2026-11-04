@@ -34,10 +34,6 @@ export function averageCoverage(rows: readonly StatusRow[]): number {
   return Math.round(rows.reduce((sum, row) => sum + row.percent, 0) / rows.length);
 }
 
-export function outOfSyncCount(rows: readonly StatusRow[]): number {
-  return rows.filter((row) => !row.inSync).length;
-}
-
 export function toStatusData(result: RpcResultFor<"status.check">): StatusData {
   const rows = result.locales.map((locale) => ({ ...locale, percent: coveragePercent(locale) }));
   return { inSync: result.inSync, rows };
