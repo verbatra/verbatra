@@ -30,13 +30,6 @@
   --color-ring: var(--focus-ring);
   --color-input: var(--surface-raised);
 
-  --color-sidebar: var(--surface-bg);
-  --color-sidebar-foreground: var(--text-strong);
-  --color-sidebar-muted: var(--text-muted);
-  --color-sidebar-border: var(--border-default);
-  --color-sidebar-accent: var(--surface-hover);
-  --color-sidebar-active: var(--accent-fill);
-
   --color-success: var(--status-success);
   --color-success-soft: var(--status-success-soft);
   --color-warning: var(--status-warning);

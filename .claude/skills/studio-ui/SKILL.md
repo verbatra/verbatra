@@ -123,8 +123,6 @@ surface/base   background  card  popover  muted  border
                 foreground  muted-foreground
 brand          primary  primary-strong  primary-foreground  accent
                 accent-foreground  ring
-sidebar        sidebar  sidebar-foreground  sidebar-muted  sidebar-border
-                sidebar-accent  sidebar-active
 status          success  warning  danger  neutral (each with a -soft companion)
                 danger-foreground (text on a solid danger fill)
 diff            diff-missing  diff-changed  diff-orphaned  diff-protected (each with -soft)
@@ -140,8 +138,11 @@ Conventions carried by that list:
 - **Protected is not Changed.** `diff-protected` is teal, `diff-changed` amber; the pill carries a
   word as well, never color alone. Orphaned intentionally uses the neutral tone, and Missing
   currently shares the accent hue with links and focus.
-- **The sidebar currently aliases the page background, text and hover surfaces.** It is no longer a separate
-  dark palette; it is interim until the navigation shell is rebuilt.
+- **Navigation is a top header, not a sidebar.** `AppHeader.tsx` follows the docs site header: a
+  `--surface-chrome` bar with a `--border-default` bottom line, text links in `--text-muted` that
+  turn `--text-strong` on hover and `--accent` when `aria-current="page"`, with a 1px `--v-glow`
+  underline as the active mark. Below `md` the links move into a `Sheet` drawer. There are no
+  `sidebar-*` tokens.
 
 **The modal scrim has its own token.** `OverlayBackdrop` (`packages/ui/src/sheet.tsx`) draws it with
 `bg-(--scrim)`: a dark, translucent fill in each theme. Do not use
@@ -222,8 +223,7 @@ Rules that follow:
   meant for structural labels such as table headers, not decoration above every heading.
   Be aware the shipped code does not fully honour that: `PageHeader.tsx` and `Sheet`
   apply it to a `kicker`, and on the Review and Translations panels that kicker reads
-  "Workspace", restating the sidebar zone header sitting at the same height a few hundred
-  pixels to the left. `SettingsPanel.tsx` shows the good case, where the kicker adds
+  "Workspace", a group label that says nothing about the page. `SettingsPanel.tsx` shows the good case, where the kicker adds
   information. Treat a kicker that repeats its own navigation as the tell it is.
 - **Icons:** `packages/ui/src/icon.tsx` is a closed set of 24 inline SVG paths keyed by
   `IconName`. There is no icon package. A new icon is a new entry in `ICON_PATHS` and a
