@@ -29,10 +29,11 @@ const SHOTS = [
   { name: "studio-review", hash: "review", heading: "Review", ready: "Reasons", height: 692 },
   {
     name: "studio-translations",
-    hash: "translations",
+    hash: "translations?key=checkout.total",
     heading: "Translations",
     region: "Keys table",
     settled: [/% up to date/, "Your orders"],
+    pane: "Editor for checkout.total",
     height: 906,
   },
 ];
@@ -129,6 +130,9 @@ async function capture(browser, entryUrl, theme) {
       await page.getByText(shot.ready, { exact: true }).first().waitFor();
     } else {
       await page.getByRole("region", { name: shot.region, exact: true }).waitFor();
+      if (shot.pane !== undefined) {
+        await page.getByRole("region", { name: shot.pane, exact: true }).waitFor();
+      }
       for (const text of shot.settled ?? []) {
         await page
           .getByText(text, { exact: typeof text === "string" })
