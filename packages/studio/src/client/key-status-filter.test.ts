@@ -278,6 +278,8 @@ describe("keyTableRows value lookups", () => {
     } finally {
       if (inherited === undefined) {
         Reflect.deleteProperty(Function.prototype, "source");
+      } else {
+        Object.defineProperty(Function.prototype, "source", inherited);
       }
     }
   });

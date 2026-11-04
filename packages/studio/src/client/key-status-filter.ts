@@ -7,7 +7,7 @@ import {
   keyMatchesQuery,
 } from "./filter.js";
 import { hasIntegrityProblem } from "./integrity-pill.js";
-import type { LocaleValuesData } from "./locale-values.js";
+import { type LocaleValuesData, pairFor } from "./locale-values.js";
 import type { ReviewEntryRef } from "./review-queue-data.js";
 
 export type KeyStatus = "missing" | "changed" | "orphaned" | "protected" | "review" | "integrity";
@@ -121,7 +121,7 @@ export interface KeyTableRows extends CappedKeyList {
 function lookupFor(localeValues: LocaleValuesData, locale: string): KeyPairLookup {
   const record = localeValues.find((entry) => entry.locale === locale)?.values;
   return {
-    get: (key) => (record !== undefined && Object.hasOwn(record, key) ? record[key] : undefined),
+    get: (key) => pairFor(record, key),
   };
 }
 

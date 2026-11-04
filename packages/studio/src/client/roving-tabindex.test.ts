@@ -24,16 +24,16 @@ describe("moveGridFocus", () => {
     expect(moveGridFocus({ row: 1, col: 2 }, "ArrowLeft", GRID)).toEqual({ row: 1, col: 1 });
   });
 
-  it("wraps from the first column left to the last column", () => {
-    expect(moveGridFocus({ row: 1, col: 0 }, "ArrowLeft", GRID)).toEqual({ row: 1, col: 3 });
+  it("stops at the first column when moving left, instead of wrapping to the last", () => {
+    expect(moveGridFocus({ row: 1, col: 0 }, "ArrowLeft", GRID)).toEqual({ row: 1, col: 0 });
   });
 
   it("moves right within bounds", () => {
     expect(moveGridFocus({ row: 1, col: 0 }, "ArrowRight", GRID)).toEqual({ row: 1, col: 1 });
   });
 
-  it("wraps from the last column right to the first column", () => {
-    expect(moveGridFocus({ row: 1, col: 3 }, "ArrowRight", GRID)).toEqual({ row: 1, col: 0 });
+  it("stops at the last column when moving right, instead of wrapping to the first", () => {
+    expect(moveGridFocus({ row: 1, col: 3 }, "ArrowRight", GRID)).toEqual({ row: 1, col: 3 });
   });
 
   it("wraps a single row onto itself when moving up or down", () => {
@@ -42,7 +42,7 @@ describe("moveGridFocus", () => {
     expect(moveGridFocus({ row: 0, col: 1 }, "ArrowDown", singleRow)).toEqual({ row: 0, col: 1 });
   });
 
-  it("wraps a single column onto itself when moving left or right", () => {
+  it("keeps a single column where it is when moving left or right", () => {
     const singleCol: GridDimensions = { rowCount: 3, colCount: 1 };
     expect(moveGridFocus({ row: 1, col: 0 }, "ArrowLeft", singleCol)).toEqual({ row: 1, col: 0 });
     expect(moveGridFocus({ row: 1, col: 0 }, "ArrowRight", singleCol)).toEqual({ row: 1, col: 0 });

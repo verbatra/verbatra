@@ -44,9 +44,16 @@ export function valuesIndex(data: LocaleValuesData): ReadonlyMap<string, KeyValu
   return index;
 }
 
+export function pairFor(
+  values: LocaleValuesData[number]["values"] | undefined,
+  key: string,
+): KeyValuePair | undefined {
+  return values !== undefined && Object.hasOwn(values, key) ? values[key] : undefined;
+}
+
 export function sourceTextFor(data: LocaleValuesData, key: string): string | undefined {
   for (const entry of data) {
-    const source = entry.values[key]?.source;
+    const source = pairFor(entry.values, key)?.source;
     if (source !== undefined) {
       return source;
     }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type LocaleValuesData,
   localeValuesOrEmpty,
+  pairFor,
   sourceTextFor,
   toLocaleValuesOutcome,
   valuesIndex,
@@ -112,5 +113,24 @@ describe("sourceTextFor", () => {
   it("reads nothing for a key no locale holds a source for", () => {
     expect(sourceTextFor(data, "missing")).toBeUndefined();
     expect(sourceTextFor([], "a")).toBeUndefined();
+  });
+});
+
+describe("pairFor", () => {
+  it("reads a key the locale holds, even one named like an object property", () => {
+    const values = JSON.parse('{"constructor":{"source":"Builder"},"a":{"source":"A"}}');
+
+    expect(pairFor(values, "a")).toEqual({ source: "A" });
+    expect(pairFor(values, "constructor")).toEqual({ source: "Builder" });
+  });
+
+  it("reads nothing for an inherited property or a missing locale", () => {
+    expect(pairFor({}, "constructor")).toBeUndefined();
+    expect(pairFor({}, "toString")).toBeUndefined();
+    expect(pairFor(undefined, "a")).toBeUndefined();
+  });
+
+  it("keeps sourceTextFor from reading an inherited property", () => {
+    expect(sourceTextFor([{ locale: "de", keys: [], values: {} }], "constructor")).toBeUndefined();
   });
 });

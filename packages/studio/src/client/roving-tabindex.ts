@@ -29,9 +29,9 @@ export function moveGridFocus(
     case "ArrowDown":
       return { row: wrapIndex(position.row + 1, rowCount), col: position.col };
     case "ArrowLeft":
-      return { row: position.row, col: wrapIndex(position.col - 1, colCount) };
+      return { row: position.row, col: Math.max(0, position.col - 1) };
     case "ArrowRight":
-      return { row: position.row, col: wrapIndex(position.col + 1, colCount) };
+      return { row: position.row, col: Math.min(colCount - 1, position.col + 1) };
   }
 }
 
