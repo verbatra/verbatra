@@ -295,7 +295,7 @@ export function MobileNavDrawer({
 
   return (
     <div className="fixed inset-0 z-20 flex md:hidden">
-      <OverlayBackdrop onClose={onClose} label="Close navigation" />
+      <OverlayBackdrop onClose={onClose} />
       <div
         className="relative z-10 flex h-full w-64 flex-col gap-6 bg-sidebar px-3 py-4 shadow-panel-lg"
         role="dialog"

@@ -557,12 +557,12 @@ describe("KeyDetailDrawer", () => {
     const view = await renderAsync(
       <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={onClose} />,
     );
-    click(view.get('button[aria-label="Close"]'));
+    click(view.get(`button[aria-label="Close details for ${KEY}"]`));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("closes from the backdrop, which is named after the key it dismisses", async () => {
+  it("closes from the backdrop", async () => {
     stubBackground();
     stubRpc({ "key.value": value("Hello", "Hallo") });
     const onClose = vi.fn();
@@ -570,7 +570,7 @@ describe("KeyDetailDrawer", () => {
     const view = await renderAsync(
       <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={onClose} />,
     );
-    click(view.get(`button[aria-label="Close details for ${KEY}"]`));
+    click(view.get("[data-backdrop]"));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -596,7 +596,7 @@ describe("KeyDetailDrawer", () => {
       <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
-    expect(document.activeElement).toBe(view.get('button[aria-label="Close"]'));
+    expect(document.activeElement).toBe(view.get(`button[aria-label="Close details for ${KEY}"]`));
   });
 
   it("re-reads integrity and values when the refresh token changes", async () => {

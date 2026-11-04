@@ -329,17 +329,17 @@ describe("EditEntryDialog", () => {
     const onClose = vi.fn();
 
     const view = await renderAsync(dialog(vi.fn(), onClose));
-    click(view.get('button[aria-label="Close"]'));
+    click(view.get(`button[aria-label="Close the editor for ${KEY}"]`));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("closes from the backdrop, which is named after the editor it dismisses", async () => {
+  it("closes from the backdrop", async () => {
     stubRpc({ "key.context": keyValue("Hello", "Hallo") });
     const onClose = vi.fn();
 
     const view = await renderAsync(dialog(vi.fn(), onClose));
-    click(view.get(`button[aria-label="Close the editor for ${KEY}"]`));
+    click(view.get("[data-backdrop]"));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -359,7 +359,9 @@ describe("EditEntryDialog", () => {
 
     const view = await renderAsync(dialog());
 
-    expect(document.activeElement).toBe(view.get('button[aria-label="Close"]'));
+    expect(document.activeElement).toBe(
+      view.get(`button[aria-label="Close the editor for ${KEY}"]`),
+    );
   });
 
   it("wraps Tab from the last control back to the first, keeping focus inside the dialog", async () => {
@@ -371,7 +373,9 @@ describe("EditEntryDialog", () => {
     });
     pressKey("Tab");
 
-    expect(document.activeElement).toBe(view.get('button[aria-label="Close"]'));
+    expect(document.activeElement).toBe(
+      view.get(`button[aria-label="Close the editor for ${KEY}"]`),
+    );
   });
 
   it("wraps Shift+Tab from the first control back to the last", async () => {

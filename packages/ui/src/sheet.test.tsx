@@ -25,27 +25,32 @@ function sheet(props: Partial<Parameters<typeof Sheet>[0]> = {}) {
 }
 
 describe("OverlayBackdrop", () => {
-  it("is a real, named button, so dismissing outside stays keyboard-operable", () => {
-    const view = render(<OverlayBackdrop onClose={() => {}} label="Close the key detail" />);
-    const backdrop = view.get("button");
+  it("is non-interactive: hidden from assistive technology, never focusable", () => {
+    const view = render(<OverlayBackdrop onClose={() => {}} />);
+    const backdrop = view.get("[data-backdrop]");
 
-    expect(backdrop.getAttribute("type")).toBe("button");
-    expect(backdrop.getAttribute("aria-label")).toBe("Close the key detail");
+    expect(backdrop.getAttribute("aria-hidden")).toBe("true");
+    expect(backdrop.hasAttribute("tabindex")).toBe(false);
+    expect(view.query("button")).toBeNull();
   });
 
-  it("keeps itself out of the tab order, leaving the header button as the control", () => {
-    const view = render(<OverlayBackdrop onClose={() => {}} label="Close" />);
-
-    expect(view.get<HTMLButtonElement>("button").tabIndex).toBe(-1);
-  });
-
-  it("calls onClose when clicked", () => {
+  it("closes on click and never leaves focus on itself", () => {
     const onClose = vi.fn();
-    const view = render(<OverlayBackdrop onClose={onClose} label="Close" />);
+    const view = render(
+      <>
+        <button type="button" id="before">
+          before
+        </button>
+        <OverlayBackdrop onClose={onClose} />
+      </>,
+    );
+    view.get<HTMLButtonElement>("#before").focus();
 
-    click(view.get("button"));
+    click(view.get("[data-backdrop]"));
+    view.get<HTMLElement>("[data-backdrop]").focus();
 
     expect(onClose).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).not.toBe(view.get("[data-backdrop]"));
   });
 });
 
@@ -117,12 +122,12 @@ describe("Sheet", () => {
     expect(sheet().query("h2")?.previousElementSibling).toBeNull();
   });
 
-  it("names the backdrop and dismisses from the backdrop and the header button", () => {
+  it("names the header close button and dismisses from it and from the backdrop", () => {
     const onClose = vi.fn();
     const view = sheet({ onClose });
 
     click(view.get("button[aria-label='Close the key detail']"));
-    click(view.get("button[aria-label='Close']"));
+    click(view.get("[data-backdrop]"));
 
     expect(onClose).toHaveBeenCalledTimes(2);
   });
@@ -145,7 +150,7 @@ describe("DrawerShell", () => {
     );
 
     click(view.get("button[aria-label='Close the key detail']"));
-    click(view.get("button[aria-label='Close']"));
+    click(view.get("[data-backdrop]"));
 
     expect(onClose).toHaveBeenCalledTimes(2);
   });

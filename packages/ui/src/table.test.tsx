@@ -33,6 +33,12 @@ describe("Table", () => {
   });
 });
 
+describe("tableClasses", () => {
+  it("gives the table a horizontal minimum, so a narrow viewport scrolls rather than squashes", () => {
+    expect(tableClasses.table.split(" ")).toContain("min-w-[480px]");
+  });
+});
+
 describe("TableHead and TableBody", () => {
   it("render a thead and a tbody with their children", () => {
     const view = render(

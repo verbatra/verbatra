@@ -96,7 +96,7 @@ describe("RejectEntryDialog", () => {
 
     await clickAsync(view.getByText("button", "Reject and remove"));
     pressKey("Escape");
-    await clickAsync(view.get('button[aria-label="Keep greeting and close"]'));
+    await clickAsync(view.get("[data-backdrop]"));
 
     expect(onClose).not.toHaveBeenCalled();
     expect(view.text()).toContain("Rejecting…");

@@ -4,20 +4,13 @@ import { cn } from "./cn.ts";
 import { Icon } from "./icon.tsx";
 import { microLabelClassName } from "./section.tsx";
 
-export function OverlayBackdrop({
-  onClose,
-  label,
-}: {
-  readonly onClose: () => void;
-  readonly label: string;
-}): ReactNode {
+export function OverlayBackdrop({ onClose }: { readonly onClose: () => void }): ReactNode {
   return (
-    <button
-      type="button"
-      tabIndex={-1}
-      className="absolute inset-0 z-0 cursor-default border-none bg-(--scrim)"
+    <div
+      aria-hidden="true"
+      data-backdrop=""
+      className="absolute inset-0 z-0 cursor-default bg-(--scrim)"
       onClick={onClose}
-      aria-label={label}
     />
   );
 }
@@ -88,7 +81,7 @@ export function Sheet({
 }: SheetProps): ReactNode {
   return (
     <div className={cn("fixed inset-0 z-20 flex", CONTAINER[side])} data-side={side}>
-      <OverlayBackdrop onClose={onClose} label={closeLabel} />
+      <OverlayBackdrop onClose={onClose} />
       <div
         className={cn(
           "relative z-10 overflow-y-auto border-(--border-default) bg-(--surface-tile) shadow-(--shadow-panel)",
@@ -111,7 +104,7 @@ export function Sheet({
                 {title}
               </h2>
             </div>
-            <DialogCloseButton onClose={onClose} />
+            <DialogCloseButton onClose={onClose} label={closeLabel} />
           </div>
         </div>
         <div className="p-6">{children}</div>
