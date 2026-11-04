@@ -217,7 +217,7 @@ Rules that follow:
   `Sheet` and `DrawerShell`, `OverlayBackdrop`, `DialogCloseButton`, `Tooltip` (`aria-describedby`
   on the control unless the label repeats its name, shown on hover and focus, dismissed with
   Escape, none on a disabled control; `side`: `end`, `bottom`, `bottom-end`),
-  `SegmentedControl` (a pressed-state group), `ThemeToggle` (a cycle over a theme store that
+  `ThemeToggle` (a cycle over a theme store that
   leaves system for the opposite of the OS theme first, labelled through `label(current, next)`
   and `announce(mode)` props, with its own tooltip and a polite live region), the
   `useDialogA11y` hook (focus trap that holds from any start point, Escape, focus restore; only
@@ -238,20 +238,34 @@ Rules that follow:
 - **Icons:** `packages/ui/src/icon.tsx` is a closed set of 25 inline SVG paths keyed by
   `IconName`. There is no icon package. A new icon is a new entry in `ICON_PATHS` and a
   new member of the union, drawn on the same 24-unit stroked grid as its neighbours.
-- **Class composition:** always `cn()` from `src/app/lib/cn.ts` (re-exports `cn` from `@verbatra/ui/cn`, clsx plus tailwind-merge),
-  never string concatenation. It is what makes a caller's `className` override predictable.
+- **Class composition:** always `cn()` from `src/app/lib/cn.ts` (re-exports `cn` from
+  `@verbatra/ui/cn`, clsx plus tailwind-merge), never string concatenation. It is what makes a
+  caller's `className` override predictable.
 - **Accessibility:** `useDialogA11y` from `@verbatra/ui` (focus trap that also holds when focus
-  starts outside the dialog, Escape, focus restore) and
-  `src/client/roving-tabindex.ts` (used through `use-roving-table.ts` for the key table) already exist. Any new overlay, drawer, or keyboard
-  listbox uses them rather than hand-rolling focus management.
+  starts outside the dialog, Escape, focus restore) and `src/client/roving-tabindex.ts` (used
+  through `use-roving-table.ts` for the key table) already exist. Any new overlay, drawer, or
+  keyboard listbox uses them rather than hand-rolling focus management.
 - **Panels:** the five panels under `src/app/panels/` (Overview, Translations, Review, Glossary,
   Settings) all take `PanelProps` (`{ refreshToken: number }`, `src/app/panel-props.ts`) except
   Glossary and Settings, which read once, and are wired through `PAGE_PANELS` in `App.tsx` and
   `PAGE_LABELS`, `PAGE_ICONS` and `NAV_GROUPS` in `src/app/nav-groups.ts`. `DEFAULT_PAGE` in
   `src/client/routes.ts` is `overview`. Overview owns the metric row, the per-locale coverage
-  table, the last run and the locale file history; Translations is one `KeysTable` (the matrix of a status per locale, or one locale's
-  entries with source, translation, status and origin) under `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary. Adding a page means adding it to
-  `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of those tables.
+  table, the last run and the locale file history; Translations is one `KeysTable` (the matrix of
+  a status per locale, or one locale's entries with source, translation, status and origin) under
+  `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary. Adding a page
+  means adding it to `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of
+  those tables.
+
+**Key table rules.** The key column and the header row are sticky, with an opaque fill that
+follows the row's hover and selected state and a seam border on each cell (the table uses
+`border-separate`, since collapsed borders vanish on sticky cells); the corner cell sits above
+both. The card is a bounded scroll region, so the header stays in view with many rows. Column
+widths are fixed with `w-*` and `min-w-*` so the key column never jumps while filtering, and the
+Source column is hidden below `md` in the matrix. In sync is quiet text with a dot, never a
+bordered badge, so only states that need attention carry a badge. A review or integrity marker
+repeats its sr-only words in a `Tooltip` on the cell's own focus stop and adds no tab stop.
+`ScrollHint` shows only while the card actually overflows, at any width. A row is selected
+(`aria-selected`) while its key is open in the drawer or editor.
 
 ## Capabilities are two flags, and the decision is a pure function
 
