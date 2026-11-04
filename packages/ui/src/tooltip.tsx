@@ -4,6 +4,7 @@ import {
   cloneElement,
   type FocusEvent,
   isValidElement,
+  type MouseEvent,
   type ReactElement,
   type ReactNode,
   useEffect,
@@ -46,12 +47,31 @@ const POSITION: Readonly<Record<TooltipSide, string>> = {
 const BUBBLE_GAP_PX = 8;
 
 function clippingBottom(element: HTMLElement): number {
+  let bottom = window.innerHeight;
   for (let node = element.parentElement; node !== null; node = node.parentElement) {
     if (getComputedStyle(node).overflowY !== "visible") {
-      return Math.min(node.getBoundingClientRect().bottom, window.innerHeight);
+      bottom = Math.min(bottom, node.getBoundingClientRect().bottom);
     }
   }
-  return window.innerHeight;
+  return bottom;
+}
+
+function lacksRoomBelow(wrapper: HTMLElement, bubble: HTMLElement | null): boolean {
+  if (bubble === null) {
+    return false;
+  }
+  const room = clippingBottom(wrapper) - wrapper.getBoundingClientRect().bottom;
+  return room < bubble.offsetHeight + BUBBLE_GAP_PX;
+}
+
+const FLIPPABLE: ReadonlySet<TooltipSide> = new Set<TooltipSide>(["bottom", "bottom-end"]);
+
+function isKeyboardFocus(wrapper: HTMLElement): boolean {
+  try {
+    return wrapper.querySelector(":focus-visible") !== null;
+  } catch {
+    return true;
+  }
 }
 
 const BUBBLE =
@@ -75,7 +95,6 @@ export function Tooltip({
   const [focused, setFocused] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [flipped, setFlipped] = useState(false);
-  const wrapperRef = useRef<HTMLSpanElement>(null);
   const bubbleRef = useRef<HTMLSpanElement>(null);
   const control = isValidElement<DescribableProps>(children) ? children : null;
   const disabled = control?.props.disabled === true;
@@ -95,29 +114,30 @@ export function Tooltip({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [visible]);
 
-  function show(set: (value: boolean) => void): void {
-    const wrapper = wrapperRef.current as HTMLSpanElement;
-    const bubble = bubbleRef.current as HTMLSpanElement | null;
-    if (flip && bubble !== null) {
-      const room = clippingBottom(wrapper) - wrapper.getBoundingClientRect().bottom;
-      setFlipped(room < bubble.offsetHeight + BUBBLE_GAP_PX);
-    }
+  const canFlip = flip && FLIPPABLE.has(side);
+
+  function show(set: (value: boolean) => void, wrapper: HTMLElement): void {
+    setFlipped(canFlip && lacksRoomBelow(wrapper, bubbleRef.current));
     set(true);
     setDismissed(false);
   }
 
   function showFromFocus(event: FocusEvent<HTMLSpanElement>): void {
-    if (trigger === "focus" && !(event.target as Element).matches(":focus-visible")) {
+    if (trigger === "focus" && !isKeyboardFocus(event.currentTarget)) {
       return;
     }
-    show(setFocused);
+    show(setFocused, event.currentTarget);
   }
 
-  const placement = flip && flipped ? "top" : side;
+  const placement = canFlip && flipped ? "top" : side;
   const pointer =
     trigger === "focus"
       ? {}
-      : { onMouseEnter: () => show(setHovered), onMouseLeave: () => setHovered(false) };
+      : {
+          onMouseEnter: (event: MouseEvent<HTMLSpanElement>) =>
+            show(setHovered, event.currentTarget),
+          onMouseLeave: () => setHovered(false),
+        };
 
   const described =
     control === null || disabled || duplicatesName
@@ -130,7 +150,6 @@ export function Tooltip({
     // biome-ignore lint/a11y/noStaticElementInteractions: the wrapper only observes pointer and focus events bubbling from the control it describes
     <span
       className={cn("relative inline-flex", className)}
-      ref={wrapperRef}
       {...pointer}
       onFocus={showFromFocus}
       onBlur={() => setFocused(false)}

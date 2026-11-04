@@ -89,15 +89,16 @@ describe("Tooltip", () => {
 
   describe("trigger focus", () => {
     function focusOnly() {
-      return render(
+      const view = render(
         <Tooltip label="Tip" trigger="focus">
           <button type="button">c</button>
         </Tooltip>,
       );
+      return { view, wrapper: view.get("button").parentElement as HTMLElement };
     }
 
     it("ignores the pointer", () => {
-      const view = focusOnly();
+      const { view } = focusOnly();
 
       hover(view.get("button"));
 
@@ -105,10 +106,8 @@ describe("Tooltip", () => {
     });
 
     it("opens when the focus is keyboard focus", () => {
-      vi.spyOn(Element.prototype, "matches").mockImplementation(
-        (selector) => selector === ":focus-visible",
-      );
-      const view = focusOnly();
+      const { view, wrapper } = focusOnly();
+      vi.spyOn(wrapper, "querySelector").mockReturnValue(view.get("button"));
 
       fire(view.get("button"), "focusin");
 
@@ -116,48 +115,64 @@ describe("Tooltip", () => {
     });
 
     it("stays closed when a pointer press moved the focus, which is not focus-visible", () => {
-      vi.spyOn(Element.prototype, "matches").mockReturnValue(false);
-      const view = focusOnly();
+      const { view, wrapper } = focusOnly();
+      vi.spyOn(wrapper, "querySelector").mockReturnValue(null);
 
       fire(view.get("button"), "focusin");
 
       expect(view.get(SLOT).hasAttribute("data-open")).toBe(false);
     });
+
+    it("treats a browser that cannot answer the focus-visible question as keyboard focus", () => {
+      const { view, wrapper } = focusOnly();
+      vi.spyOn(wrapper, "querySelector").mockImplementation(() => {
+        throw new SyntaxError("unsupported pseudo-class");
+      });
+
+      fire(view.get("button"), "focusin");
+
+      expect(view.get(SLOT).hasAttribute("data-open")).toBe(true);
+    });
   });
 
   describe("flip", () => {
-    function rect(bottom: number): DOMRect {
-      return {
-        bottom,
-        top: bottom - 20,
-        left: 0,
-        right: 50,
-        width: 50,
-        height: 20,
-        x: 0,
-        y: 0,
-      } as DOMRect;
-    }
+    const rectAt = (bottom: number): DOMRect => new DOMRect(0, bottom - 20, 50, 20);
 
-    function mountFlip(controlBottom: number, clipBottom: number) {
-      const view = render(
-        <div data-clip="" style={{ overflowY: "auto" }}>
-          <Tooltip label="Tip" side="bottom" flip>
-            <button type="button">c</button>
-          </Tooltip>
-        </div>,
-      );
+    function geometry(controlBottom: number): void {
       vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
         this: HTMLElement,
       ) {
-        return this.matches("[data-clip]") ? rect(clipBottom) : rect(controlBottom);
+        const clip = this.dataset.clipBottom;
+        return rectAt(clip === undefined ? controlBottom : Number(clip));
       });
       vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(26);
+    }
+
+    function mountFlip(
+      side: "bottom" | "end" | "bottom-end" = "bottom",
+      clips: readonly number[] = [],
+    ) {
+      const tip = (
+        <Tooltip label="Tip" side={side} flip>
+          <button type="button">c</button>
+        </Tooltip>
+      );
+      const view = render(
+        clips.reduceRight(
+          (inner, bottom) => (
+            <div data-clip-bottom={bottom} style={{ overflowY: "auto" }}>
+              {inner}
+            </div>
+          ),
+          tip,
+        ),
+      );
       return view;
     }
 
     it("keeps the chosen side while there is room below inside the clipping box", () => {
-      const view = mountFlip(100, 400);
+      geometry(100);
+      const view = mountFlip("bottom", [400]);
 
       hover(view.get("button"));
 
@@ -165,33 +180,90 @@ describe("Tooltip", () => {
     });
 
     it("opens upward when the bubble would be cut off by the clipping box", () => {
-      const view = mountFlip(390, 400);
+      geometry(390);
+      const view = mountFlip("bottom", [400]);
 
       hover(view.get("button"));
 
       expect(view.get(SLOT).dataset.side).toBe("top");
+    });
+
+    it("flips a bottom-end bubble too", () => {
+      geometry(390);
+      const view = mountFlip("bottom-end", [400]);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("top");
+    });
+
+    it("never turns an end bubble upward, however little room there is below", () => {
+      geometry(390);
+      const view = mountFlip("end", [400]);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("end");
     });
 
     it("measures against the viewport when nothing clips", () => {
-      const view = render(
-        <Tooltip label="Tip" side="bottom" flip>
-          <button type="button">c</button>
-        </Tooltip>,
-      );
-      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(
-        rect(window.innerHeight - 4),
-      );
+      geometry(window.innerHeight - 4);
+      const near = mountFlip("bottom");
+      hover(near.get("button"));
+      expect(near.get(SLOT).dataset.side).toBe("top");
+
+      near.unmount();
+      geometry(window.innerHeight - 200);
+      const far = mountFlip("bottom");
+      hover(far.get("button"));
+      expect(far.get(SLOT).dataset.side).toBe("bottom");
+    });
+
+    it("caps a clipping box that reaches past the viewport at the viewport edge", () => {
+      geometry(window.innerHeight - 4);
+      const view = mountFlip("bottom", [window.innerHeight + 500]);
 
       hover(view.get("button"));
 
       expect(view.get(SLOT).dataset.side).toBe("top");
     });
 
-    it("never flips unless asked to", () => {
-      const view = mount({ side: "bottom" });
-      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(
-        rect(window.innerHeight),
+    it("honours a tight outer clipping box even when the box nearest the control is roomy", () => {
+      geometry(290);
+      const view = mountFlip("bottom", [300, 800]);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("top");
+    });
+
+    it("honours a tight inner clipping box when the outer one is roomy, with room to spare for the control", () => {
+      geometry(100);
+      const view = mountFlip("bottom", [800, 300]);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("bottom");
+    });
+
+    it("has nothing to measure for a disabled control, which renders no bubble", () => {
+      geometry(390);
+      const view = render(
+        <Tooltip label="Tip" side="bottom" flip>
+          <button type="button" disabled>
+            c
+          </button>
+        </Tooltip>,
       );
+
+      hover(view.get("button"));
+
+      expect(view.query(SLOT)).toBeNull();
+    });
+
+    it("never flips unless asked to", () => {
+      geometry(window.innerHeight);
+      const view = mount({ side: "bottom" });
 
       hover(view.get("button"));
 
