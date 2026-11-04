@@ -114,14 +114,15 @@ function unavailableReason(view: { readonly kind: string }): string {
   return view.kind === "loading" ? "Still loading" : "Not available right now";
 }
 
-function keyCountText(rows: KeyTableRows, narrowed: boolean): string {
+function keyCountText(rows: KeyTableRows, narrowed: boolean, incomplete: boolean): string {
   if (rows.truncated) {
     return `Showing ${MAX_RENDERED_KEYS} of ${rows.totalMatches} keys. Refine the filter to see more.`;
   }
   if (narrowed) {
     return `${rows.totalMatches} matching ${rows.totalMatches === 1 ? "key" : "keys"}`;
   }
-  return `${rows.totalMatches} ${rows.totalMatches === 1 ? "key needs" : "keys need"} attention`;
+  const need = `${rows.totalMatches} ${rows.totalMatches === 1 ? "key needs" : "keys need"} attention`;
+  return incomplete ? `${need} so far` : need;
 }
 
 function KeysFrame({
@@ -177,6 +178,7 @@ function KeysSection({
   );
   const narrowed = statuses.size > 0 || query.trim() !== "";
   const loading = locales === null;
+  const incomplete = unavailable.size > 0;
   const localeOptions = loading
     ? locale === ""
       ? []
@@ -184,7 +186,7 @@ function KeysSection({
     : loaded.map((entry) => entry.locale);
 
   return (
-    <KeysFrame summary={loading ? "" : keyCountText(rows, narrowed)}>
+    <KeysFrame summary={loading ? "" : keyCountText(rows, narrowed, incomplete)}>
       <KeyFilters
         locales={localeOptions}
         locale={locale}
@@ -213,6 +215,7 @@ function KeysSection({
       ) : rows.items.length === 0 ? (
         <NoKeys
           narrowed={narrowed}
+          incomplete={incomplete}
           searching={query.trim() !== ""}
           onClear={() => {
             route.setFilter({ locale: "", statuses: new Set(), query: "" });
@@ -233,7 +236,7 @@ function KeysSection({
           />
           {rows.truncated ? (
             <p className="mt-2 text-xs text-muted-foreground" data-key-cap="">
-              {keyCountText(rows, narrowed)}
+              {keyCountText(rows, narrowed, incomplete)}
             </p>
           ) : null}
         </>
@@ -246,13 +249,23 @@ const NO_LOCALES: readonly DiffLocale[] = [];
 
 function NoKeys({
   narrowed,
+  incomplete,
   searching,
   onClear,
 }: {
   readonly narrowed: boolean;
+  readonly incomplete: boolean;
   readonly searching: boolean;
   readonly onClear: () => void;
 }): ReactNode {
+  if (!narrowed && incomplete) {
+    return (
+      <EmptyState icon="alert" title="No keys found so far">
+        The review queue or the integrity check could not be read, so keys that need attention there
+        may be missing. Search for a key or text to browse every key.
+      </EmptyState>
+    );
+  }
   if (!narrowed) {
     return (
       <EmptyState icon="check" title="No keys need attention">

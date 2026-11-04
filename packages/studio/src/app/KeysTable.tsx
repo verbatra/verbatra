@@ -272,14 +272,16 @@ function EntriesTable({
               return (
                 <TableRow key={key} data-key={key} selected={key === selectedKey} className="group">
                   <th scope="row" className={KEY_CELL}>
-                    <button
-                      type="button"
-                      className={KEY_STOP}
-                      title={key}
-                      {...roving.stopProps(row, 0)}
-                    >
-                      {key}
-                    </button>
+                    <MarkerTip held={held} side="end">
+                      <button
+                        type="button"
+                        className={KEY_STOP}
+                        title={key}
+                        {...roving.stopProps(row, 0)}
+                      >
+                        {key}
+                      </button>
+                    </MarkerTip>
                   </th>
                   <TableCell className={BODY_CELL}>
                     <SourceText

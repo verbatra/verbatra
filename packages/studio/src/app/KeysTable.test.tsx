@@ -270,6 +270,21 @@ describe("KeysTable markers", () => {
     );
   });
 
+  it("opens the entries table's marker tooltip from keyboard focus on the key", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table({ index: held, locale: "de" }));
+    const key = view.get('[data-key="a.missing"] th button');
+
+    act(() => {
+      key.focus();
+      key.dispatchEvent(new Event("focusin", { bubbles: true }));
+    });
+
+    const slot = view.get('[data-key="a.missing"] th [data-slot]');
+    expect(slot.hasAttribute("data-open")).toBe(true);
+    expect(slot.textContent).toBe("In the review queue");
+  });
+
   it("keeps a marked cell the same width as an unmarked one, so the hit area matches", async () => {
     stubRpc(NO_COVERAGE);
     const view = await renderAsync(table({ index: held }));

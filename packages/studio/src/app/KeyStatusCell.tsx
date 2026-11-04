@@ -1,4 +1,4 @@
-import { Icon, Tooltip } from "@verbatra/ui";
+import { Icon, Tooltip, type TooltipSide } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { KeyLocaleStatus } from "../client/diff-view.js";
 import type { KeyStatus } from "../client/key-status-filter.js";
@@ -30,16 +30,18 @@ export function cellName(
 
 export function MarkerTip({
   held,
+  side = "bottom",
   children,
 }: {
   readonly held: ReadonlySet<KeyStatus> | undefined;
+  readonly side?: TooltipSide;
   readonly children: ReactNode;
 }): ReactNode {
   const texts = markerTexts(held);
   return texts.length === 0 ? (
     children
   ) : (
-    <Tooltip label={sentence(texts.join(", "))} side="bottom" decorative className="flex w-full">
+    <Tooltip label={sentence(texts.join(", "))} side={side} decorative className="flex w-full">
       {children}
     </Tooltip>
   );

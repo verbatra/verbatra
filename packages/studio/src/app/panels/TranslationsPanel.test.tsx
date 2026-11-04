@@ -91,6 +91,8 @@ function stubPage(overrides: Stubs = {}): void {
     "status.diff": diffResult(DEFAULT_LOCALES),
     "status.check": GRID_COVERAGE,
     "locale.values": { ok: true, result: DEFAULT_VALUES },
+    "review.queue": { ok: true, result: { available: true, locales: [] } },
+    "locale.integrity": { ok: true, result: { locales: [] } },
     ...overrides,
   });
 }
@@ -492,6 +494,27 @@ describe("TranslationsPanel loading and value errors", () => {
 
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
     pointHashAt("#/translations");
+  });
+
+  it("does not claim nothing needs attention while a status source is unavailable", async () => {
+    stubSyncedPage({ "review.queue": rpcError("QUEUE_UNREADABLE") });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.get("[data-key-count]").textContent).toBe("0 keys need attention so far");
+    expect(view.text()).toContain("No keys found so far");
+    expect(view.text()).not.toContain("No keys need attention");
+  });
+
+  it("says so for a source that is still loading, and keeps the diff rows", async () => {
+    stubPage({ "review.queue": PENDING });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.get("[data-key-count]").textContent).toBe("2 keys need attention so far");
+    expect(rowKeys(view)).toEqual(["app.body", "app.title"]);
   });
 
   it("keeps the count region in the page, with the empty wording, when nothing needs attention", async () => {
