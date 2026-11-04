@@ -7,12 +7,19 @@ export type KeyIntegrityState =
   | { readonly kind: "error"; readonly message: string }
   | { readonly kind: "loaded"; readonly locales: readonly KeyIntegrityLocaleEntry[] };
 
+interface KeyedIntegrity {
+  readonly key: string;
+  readonly state: KeyIntegrityState;
+}
+
+const LOADING: KeyIntegrityState = { kind: "loading" };
+
 export function useKeyIntegrity(key: string, refreshToken: number): KeyIntegrityState {
-  const [state, setState] = useState<KeyIntegrityState>({ kind: "loading" });
+  const [held, setHeld] = useState<KeyedIntegrity>({ key, state: LOADING });
 
   useEffect(() => {
     let cancelled = false;
-    setState({ kind: "loading" });
+    const setState = (state: KeyIntegrityState): void => setHeld({ key, state });
     void Promise.all([
       rpcClient.call("key.integrity", { key }),
       rpcClient.call("locale.integrity", {}),
@@ -36,5 +43,5 @@ export function useKeyIntegrity(key: string, refreshToken: number): KeyIntegrity
     };
   }, [key, refreshToken]);
 
-  return state;
+  return held.key === key ? held.state : LOADING;
 }

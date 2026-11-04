@@ -21,16 +21,17 @@ import { type ReviewQueueData, unreviewedRows } from "../../client/review-queue-
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
 import type { RefreshableView } from "../../client/state.js";
 import { DiffErrorNotice } from "../DiffErrorNotice.js";
-import { EditEntryDialog } from "../EditEntryDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
-import { KeyDetailDrawer } from "../KeyDetailDrawer.js";
+import { KeyEditor } from "../KeyEditor.js";
 import { KeyFilters } from "../KeyFilters.js";
 import { KeysTable } from "../KeysTable.js";
+import { cn } from "../lib/cn.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
 import { type DiffState, useDiffState } from "../use-diff-state.js";
 import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
+import { useMediaQuery, XL_QUERY } from "../use-media-query.js";
 import { useReviewQueue } from "../use-review-queue.js";
 import {
   knownLocalesOf,
@@ -336,11 +337,20 @@ function DiffNotices({
   );
 }
 
+function focusRow(area: HTMLElement | null, key: string): void {
+  const row = [...(area?.querySelectorAll<HTMLElement>("tr[data-key]") ?? [])].find(
+    (candidate) => candidate.dataset.key === key,
+  );
+  const stops = row?.querySelectorAll<HTMLElement>("[data-row][data-col]") ?? [];
+  const stop = [...stops].find((candidate) => candidate.tabIndex === 0) ?? stops[0];
+  stop?.focus();
+}
+
 export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const diff = useDiffState(refreshToken);
-  const [editingLocale, setEditingLocale] = useState<string | null>(null);
-  const [lastEditedLocale, setLastEditedLocale] = useState<string | null>(null);
   const localeValuesView = useLocaleValues(refreshToken);
+  const wide = useMediaQuery(XL_QUERY, false);
+  const tableAreaRef = useRef<HTMLDivElement>(null);
 
   const route = useTranslationsRoute(knownLocalesOf(diff), localeValuesView);
   const { selectedKey, setSelectedKey } = route;
@@ -349,6 +359,13 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const allClear = diff.kind === "loaded" && isFullyInSync(diff.locales);
   const integrity = useLocaleIntegrity(refreshToken, diff.kind === "loaded");
   const brokenInSync = allClear && hasIntegrityProblems(integrity);
+  const split = wide && selectedKey !== null && diff.kind === "loaded";
+
+  function closeEditor(): void {
+    if (selectedKey !== null && setSelectedKey(null) && wide) {
+      focusRow(tableAreaRef.current, selectedKey);
+    }
+  }
 
   return (
     <>
@@ -358,43 +375,33 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
         actions={diff.kind === "loaded" ? <ReviewReportButton locales={diff.locales} /> : undefined}
       />
       <DiffNotices diff={diff} brokenInSync={brokenInSync} />
-      {diff.kind === "loading" || diff.kind === "loaded" ? (
-        <KeysSection
-          locales={diff.kind === "loaded" ? diff.locales : null}
-          route={route}
-          refreshToken={refreshToken}
-          localeValuesView={localeValuesView}
-          review={review}
-          integrity={integrity}
-        />
-      ) : null}
-      {selectedKey !== null && editingLocale === null && diff.kind === "loaded" ? (
-        <KeyDetailDrawer
-          keyName={selectedKey}
-          locales={diff.locales}
-          refreshToken={refreshToken}
-          focusLocale={lastEditedLocale}
-          onClose={() => {
-            setSelectedKey(null);
-            setEditingLocale(null);
-            setLastEditedLocale(null);
-          }}
-          onEditLocale={(locale) => {
-            setEditingLocale(locale);
-            setLastEditedLocale(locale);
-          }}
-        />
-      ) : null}
-      {selectedKey !== null && editingLocale !== null ? (
-        <EditEntryDialog
-          locale={editingLocale}
-          keyName={selectedKey}
-          onClose={() => setEditingLocale(null)}
-          onAccepted={() => {
-            setEditingLocale(null);
-          }}
-        />
-      ) : null}
+      <div
+        className={cn(split && "grid grid-cols-[minmax(0,1fr)_24rem] items-start gap-6")}
+        data-split={split ? "" : undefined}
+      >
+        <div ref={tableAreaRef} className="min-w-0">
+          {diff.kind === "loading" || diff.kind === "loaded" ? (
+            <KeysSection
+              locales={diff.kind === "loaded" ? diff.locales : null}
+              route={route}
+              refreshToken={refreshToken}
+              localeValuesView={localeValuesView}
+              review={review}
+              integrity={integrity}
+            />
+          ) : null}
+        </div>
+        {selectedKey !== null && diff.kind === "loaded" ? (
+          <KeyEditor
+            keyName={selectedKey}
+            locales={diff.locales}
+            refreshToken={refreshToken}
+            layout={wide ? "pane" : "drawer"}
+            onClose={closeEditor}
+            onEscape={() => focusRow(tableAreaRef.current, selectedKey)}
+          />
+        ) : null}
+      </div>
     </>
   );
 }

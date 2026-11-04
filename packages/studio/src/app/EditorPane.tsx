@@ -1,0 +1,41 @@
+import { Card, DialogCloseButton, microLabelClassName } from "@verbatra/ui";
+import type { KeyboardEvent, ReactNode } from "react";
+import { cn } from "./lib/cn.js";
+
+export interface EditorPaneProps {
+  readonly keyName: string;
+  readonly onClose: () => void;
+  readonly onEscape: () => void;
+  readonly children: ReactNode;
+}
+
+export function EditorPane({ keyName, onClose, onEscape, children }: EditorPaneProps): ReactNode {
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>): void {
+    if (event.key === "Escape" && !event.defaultPrevented) {
+      event.stopPropagation();
+      onEscape();
+    }
+  }
+
+  return (
+    <Card
+      as="section"
+      padding="none"
+      aria-label={`Editor for ${keyName}`}
+      data-editor-pane=""
+      className="sticky top-[4.5rem] flex max-h-[calc(100dvh-5.5rem)] flex-col overflow-hidden"
+      onKeyDown={handleKeyDown}
+    >
+      <div className="flex flex-none items-start justify-between gap-3 border-b border-(--border-default) px-4 py-3">
+        <div className="min-w-0">
+          <p className={cn("mb-1", microLabelClassName)}>Key details</p>
+          <h2 className="m-0 break-words font-mono text-base font-semibold text-(--text-strong)">
+            {keyName}
+          </h2>
+        </div>
+        <DialogCloseButton onClose={onClose} label={`Close details for ${keyName}`} />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+    </Card>
+  );
+}

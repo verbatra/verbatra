@@ -8,7 +8,6 @@ import type { RenderResult, StubRpcHandler, StubRpcResult } from "../test-suppor
 import {
   clickAsync,
   flush,
-  pressKey,
   render,
   renderAsync,
   rpcCalls,
@@ -1082,7 +1081,7 @@ describe("TranslationsPanel key overlays", () => {
     expect(view.query('[role="dialog"]')).toBeNull();
   });
 
-  it("swaps the drawer for the entry editor rather than stacking both", async () => {
+  it("edits in place inside the one drawer rather than opening a second dialog", async () => {
     stubPage(drawerStubs());
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
     await openKeyDrawer(view, "app.title", "de");
@@ -1091,38 +1090,25 @@ describe("TranslationsPanel key overlays", () => {
     await flush();
 
     expect(view.all('[role="dialog"]').map((dialog) => dialog.getAttribute("aria-label"))).toEqual([
-      "Edit app.title in de",
+      "Details for app.title",
     ]);
+    expect(view.get('textarea[aria-label="Translation (de)"]')).toBe(document.activeElement);
   });
 
-  it("returns to the drawer when the editor is closed", async () => {
+  it("puts focus back on the Edit button of the edited locale when the edit is cancelled", async () => {
     stubPage(drawerStubs());
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
     await openKeyDrawer(view, "app.title", "de");
     await clickAsync(view.getByText("button", "Edit"));
     await flush();
 
-    await clickAsync(view.get('button[aria-label="Close the editor for app.title"]'));
-    await flush();
+    await clickAsync(view.getByText("button", "Cancel"));
 
-    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
-  });
-
-  it("puts focus back on the Edit button of the edited locale after Escape from the editor", async () => {
-    stubPage(drawerStubs());
-    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
-    await openKeyDrawer(view, "app.title", "de");
-    await clickAsync(view.getByText("button", "Edit"));
-    await flush();
-
-    pressKey("Escape");
-    await flush();
-
-    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
+    expect(view.query("textarea")).toBeNull();
     expect(document.activeElement).toBe(view.getByText("button", "Edit"));
   });
 
-  it("returns to the drawer after an accepted edit", async () => {
+  it("closes the edit form and keeps the drawer after an accepted edit", async () => {
     stubPage({
       ...drawerStubs(),
       "translation.editEntry": { ok: true, result: { accepted: true, value: "Hallo" } },
@@ -1136,6 +1122,8 @@ describe("TranslationsPanel key overlays", () => {
     await flush();
 
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
+    expect(view.query("textarea")).toBeNull();
+    expect(view.get("[data-saved]").textContent).toBe("Saved");
   });
 });
 

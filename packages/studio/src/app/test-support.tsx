@@ -256,7 +256,50 @@ export function apiMock(): AppApiModule {
   };
 }
 
+const viewportListeners = new Set<() => void>();
+let wideViewport = false;
+let restoreMatchMedia: (() => void) | null = null;
+
+function installMatchMedia(): void {
+  if (restoreMatchMedia === null) {
+    const original = window.matchMedia;
+    restoreMatchMedia = () => {
+      window.matchMedia = original;
+    };
+  }
+  window.matchMedia = ((query: string) => ({
+    media: query,
+    get matches(): boolean {
+      return wideViewport;
+    },
+    addEventListener(_type: string, listener: () => void): void {
+      viewportListeners.add(listener);
+    },
+    removeEventListener(_type: string, listener: () => void): void {
+      viewportListeners.delete(listener);
+    },
+  })) as unknown as typeof window.matchMedia;
+}
+
+export function stubViewport(wide: boolean): void {
+  wideViewport = wide;
+  installMatchMedia();
+}
+
+export function resizeViewport(wide: boolean): void {
+  wideViewport = wide;
+  act(() => {
+    for (const listener of [...viewportListeners]) {
+      listener();
+    }
+  });
+}
+
 afterEach(() => {
+  restoreMatchMedia?.();
+  restoreMatchMedia = null;
+  viewportListeners.clear();
+  wideViewport = false;
   for (const entry of mounted.splice(0)) {
     act(() => {
       entry.root.unmount();

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+export const XL_QUERY = "(min-width: 80rem)";
+
 function currentMatch(query: string, fallback: boolean): boolean {
   return typeof window.matchMedia === "function" ? window.matchMedia(query).matches : fallback;
 }

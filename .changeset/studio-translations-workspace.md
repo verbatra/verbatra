@@ -9,3 +9,4 @@ Translations is one key table with working filters for every key state.
 - **Filters:** the state chips and the locale choice work in both views, and a chip that cannot load names the reason on focus instead of going dead.
 - **Search:** searching finds any key by name, source text or translation, including keys that are already in sync. When more than 500 keys match, the table says how many it shows.
 - **Keyboard:** the arrow keys move between cells in the table, and Enter or Space opens the key.
+- **Editing beside the table:** from 1280px wide, a key opens in an editor next to the table; on narrower screens it opens in a drawer, and the translation form is part of it instead of a second dialog. Leaving a key with unsaved edits, by choosing another key, a filter, a search, a page or Back, asks whether to save, discard or keep editing.
