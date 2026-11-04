@@ -4,6 +4,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { TopBar } from "./TopBar.js";
 import { render, setConnectionStatus } from "./test-support.js";
 
+vi.stubGlobal("matchMedia", () => ({
+  matches: false,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+}));
+
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
 const DEGRADED_DELAY_MS = 1500;
@@ -47,10 +53,26 @@ describe("TopBar", () => {
     expect(onOpenNav).toHaveBeenCalledTimes(1);
   });
 
-  it("offers the theme switcher, named with the preference it currently reflects", () => {
+  it("offers the theme toggle, named with the current mode and the next action", () => {
     const view = mount();
 
-    expect(view.get('[aria-label="Theme: System"]')).not.toBeNull();
+    expect(view.get('[aria-label="Theme: System. Switch to Light."]')).not.toBeNull();
+  });
+
+  it("announces each theme the toggle switches to", () => {
+    const view = mount();
+    const toggle = view.get("[data-theme-toggle]");
+    const region = view.all('[role="status"]').at(-1);
+
+    act(() => {
+      toggle.click();
+    });
+    expect(region?.textContent).toBe("Theme set to Light");
+
+    act(() => {
+      toggle.click();
+    });
+    expect(region?.textContent).toBe("Theme set to Dark");
   });
 
   it("keeps the live-status region mounted but silent while the stream is healthy", () => {

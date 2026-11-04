@@ -10,6 +10,7 @@ import {
   MonoValue,
   PageSection,
   ProgressBar,
+  SegmentedControl,
   Skeleton,
   Table,
   TableBody,
@@ -68,7 +69,6 @@ import { PageHeader } from "../PageHeader.js";
 import { ProvenanceBadge } from "../ProvenanceBadge.js";
 import type { PanelProps } from "../panel-props.js";
 import { StatusGrid } from "../StatusGrid.js";
-import { Tabs } from "../Tabs.js";
 import { Toolbar } from "../Toolbar.js";
 import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
@@ -585,7 +585,7 @@ function KeysSection({
     <PageSection title="Keys">
       {listOnly ? null : (
         <Toolbar className="mb-4">
-          <Tabs
+          <SegmentedControl
             items={VIEW_MODE_ITEMS}
             active={viewMode}
             onChange={onViewModeChange}
@@ -783,6 +783,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [editingLocale, setEditingLocale] = useState<string | null>(null);
+  const [lastEditedLocale, setLastEditedLocale] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<DiffViewMode>("grid");
   const status = useStatusData(refreshToken);
   const lock = useLockState(refreshToken);
@@ -856,11 +857,16 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
           keyName={selectedKey}
           locales={diff.locales}
           refreshToken={refreshToken}
+          focusLocale={lastEditedLocale}
           onClose={() => {
             setSelectedKey(null);
             setEditingLocale(null);
+            setLastEditedLocale(null);
           }}
-          onEditLocale={setEditingLocale}
+          onEditLocale={(locale) => {
+            setEditingLocale(locale);
+            setLastEditedLocale(locale);
+          }}
         />
       ) : null}
       {selectedKey !== null && editingLocale !== null ? (

@@ -190,22 +190,30 @@ Rules that follow:
 
 - **Shared primitives (owned by `@verbatra/ui`, import from `@verbatra/ui`):** `Button`
   (`variant: "primary" | "secondary" | "outline" | "ghost" | "secondary-success" |
-  "secondary-danger" | "danger"`, `size: "xs" | "sm" | "md" | "lg"`, default `secondary`/`sm`, `xs` for dense row actions and
-  chip controls; the site
-  look, with `.vk-btn*` in `packages/ui/src/components.css`), `Card` (`padding: "none" | "sm" |
-  "md"`, `as: "div" | "section"`; the tile surface), `Badge` (`tone: "neutral" | "success" |
-  "warning" | "danger"`, the diff tones `missing`, `changed`, `orphaned`, `protected`, and the site
-  tones `glow`, `new`, `unchanged`, `solid`; `wrap` lets a long value break instead of
-  overflowing, `verbatim` keeps a locale code, version or any user value in its own case; badges
-  stay on one line and uppercase by default), `Icon`, the fields `TextField`, `TextArea`, `SearchInput` and
-  `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row aligns; `TextArea` takes no size;
-  the focus ring is `.vk-field:focus-visible`), `Checkbox`, `Accordion`, `Skeleton`, `ProgressBar`,
-  `Toast`, the `Table` family with `tableClasses`, `Sheet` and `DrawerShell`, `OverlayBackdrop`,
-  `DialogCloseButton`, and the layout parts `Container`, `Section`, `PageSection`, `SectionCard`,
-  `DetailList`, `EmptyState`, `MonoValue` and `microLabelClassName`. They theme through semantic tokens only and expose
-  `data-variant`, `data-size`, `data-tone` and `data-padding` for tests. Change them in
-  `packages/ui/src`, never as a Studio copy. Studio-local primitives:
-  `Dropdown`, `Popover`, `Tooltip`, `Tabs`, `Loading`, `ErrorMessage`, `ErrorBoundary`.
+  "secondary-danger" | "danger"`, `size: "xs" | "sm" | "md" | "lg"`, default `secondary`/`sm`,
+  `xs` for dense row actions and chip controls; the site look, with `.vk-btn*` in
+  `packages/ui/src/components.css`), `Card` (`padding: "none" | "sm" | "md"`,
+  `as: "div" | "section"`; the tile surface), `Badge` (`tone: "neutral" | "success" | "warning" |
+  "danger"`, the diff tones `missing`, `changed`, `orphaned`, `protected`, and the site tones
+  `glow`, `new`, `unchanged`, `solid`; `wrap` lets a long value break instead of overflowing,
+  `verbatim` keeps a locale code, version or any user value in its own case; badges stay on one
+  line and uppercase by default), `Icon`, the fields `TextField`, `TextArea`, `SearchInput` and
+  `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row
+  aligns; `TextArea` takes no size; the focus ring is `.vk-field:focus-visible`), `Checkbox`,
+  `Accordion`, `Skeleton`, `ProgressBar`, `Toast`, the `Table` family with `tableClasses`,
+  `Sheet` and `DrawerShell`, `OverlayBackdrop`, `DialogCloseButton`, `Tooltip` (`aria-describedby`
+  on the control unless the label repeats its name, shown on hover and focus, dismissed with
+  Escape, none on a disabled control; `side`: `end`, `bottom`, `bottom-end`),
+  `SegmentedControl` (a pressed-state group), `ThemeToggle` (a cycle over a theme store that
+  leaves system for the opposite of the OS theme first, labelled through `label(current, next)`
+  and `announce(mode)` props, with its own tooltip and a polite live region), the
+  `useDialogA11y` hook (focus trap that holds from any start point, Escape, focus restore; only
+  the topmost of nested dialogs reacts), and the layout parts `Container`, `Section`,
+  `PageSection`, `SectionCard`, `DetailList`, `EmptyState`, `MonoValue` (`breakAnywhere` for long
+  values on a narrow screen) and `microLabelClassName`. They theme through semantic tokens only
+  and expose `data-variant`, `data-size`, `data-tone` and `data-padding` for tests. Change them in
+  `packages/ui/src`, never as a Studio copy. Studio-local primitives: `Loading`, `ErrorMessage`,
+  `ErrorBoundary`.
   Extend a variant union rather than passing ad hoc `className` overrides at call sites.
 - **Layout and shared class strings:** `@verbatra/ui` exports the layout parts listed above
   and the shared strings `tableClasses` and `microLabelClassName`. A new panel composes
@@ -222,7 +230,8 @@ Rules that follow:
   new member of the union, drawn on the same 24-unit stroked grid as its neighbours.
 - **Class composition:** always `cn()` from `src/app/lib/cn.ts` (re-exports `cn` from `@verbatra/ui/cn`, clsx plus tailwind-merge),
   never string concatenation. It is what makes a caller's `className` override predictable.
-- **Accessibility:** `use-dialog-a11y.ts` (focus trap and restore) and
+- **Accessibility:** `useDialogA11y` from `@verbatra/ui` (focus trap that also holds when focus
+  starts outside the dialog, Escape, focus restore) and
   `src/client/roving-tabindex.ts` already exist. Any new overlay, drawer, or keyboard
   listbox uses them rather than hand-rolling focus management.
 - **Panels:** the four panels under `src/app/panels/` all take `PanelProps`

@@ -1,5 +1,13 @@
 import type { GlossaryDraftCheck, LocaleGlossary, ReviewReasonCode } from "@verbatra/sdk";
-import { Badge, Button, DrawerShell, microLabelClassName, Section, TextArea } from "@verbatra/ui";
+import {
+  Badge,
+  Button,
+  DrawerShell,
+  microLabelClassName,
+  Section,
+  TextArea,
+  useDialogA11y,
+} from "@verbatra/ui";
 import type { KeyboardEvent, ReactNode, Ref } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { deriveEditEntryOutcome, type EditEntryOutcome } from "../client/edit-entry-outcome.js";
@@ -21,7 +29,6 @@ import { cn } from "./lib/cn.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ReviewReasonChips } from "./ReviewReasonChips.js";
 import { TranslationValue, valueDirection } from "./TranslationValue.js";
-import { useDialogA11y } from "./use-dialog-a11y.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
 

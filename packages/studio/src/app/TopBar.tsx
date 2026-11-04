@@ -1,10 +1,15 @@
-import { Badge, Button, Icon, microLabelClassName } from "@verbatra/ui";
+import { Badge, Button, Icon, microLabelClassName, ThemeToggle } from "@verbatra/ui";
+import type { ThemeMode } from "@verbatra/ui/theme";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { connectionStore } from "./api.js";
-import { ThemeSwitcher } from "./ThemeSwitcher.js";
+import { THEME_LABELS, themeStore } from "./lib/theme-dom.js";
 
 const DEGRADED_BADGE_DELAY_MS = 1500;
+
+function describeThemeAction(current: ThemeMode, next: ThemeMode): string {
+  return `Theme: ${THEME_LABELS[current]}. Switch to ${THEME_LABELS[next]}.`;
+}
 
 function LiveIndicator(): ReactNode {
   const [status, setStatus] = useState(connectionStore.getStatus());
@@ -40,7 +45,7 @@ export function TopBar({ pageLabel, onOpenNav }: TopBarProps): ReactNode {
     <header className="flex h-14 flex-none items-center gap-3 border-b border-border bg-card px-4 md:px-6">
       <Button
         variant="ghost"
-        className="p-1.5 md:hidden"
+        className="min-h-11 min-w-11 p-1.5 md:hidden"
         onClick={onOpenNav}
         aria-label="Open navigation"
       >
@@ -49,7 +54,11 @@ export function TopBar({ pageLabel, onOpenNav }: TopBarProps): ReactNode {
       <span className={microLabelClassName}>{pageLabel}</span>
       <div className="ms-auto flex items-center gap-2">
         <LiveIndicator />
-        <ThemeSwitcher />
+        <ThemeToggle
+          store={themeStore}
+          label={describeThemeAction}
+          announce={(mode) => `Theme set to ${THEME_LABELS[mode]}`}
+        />
       </div>
     </header>
   );

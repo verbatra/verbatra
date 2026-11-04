@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { type ReactNode, useRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { pressKey, render } from "./test-support.js";
-import { useDialogA11y } from "./use-dialog-a11y.js";
+import { pressKey, render } from "./test-support.tsx";
+import { useDialogA11y } from "./use-dialog-a11y.ts";
 
 interface DialogProps {
   readonly isOpen: boolean;
@@ -107,7 +107,7 @@ describe("useDialogA11y", () => {
     expect(document.activeElement).toBe(middle);
   });
 
-  it("does nothing on Tab when the dialog holds no focusable element", () => {
+  it("keeps focus where it is on Tab when the dialog holds no focusable element", () => {
     render(
       <Dialog isOpen onClose={vi.fn()}>
         <p>Nothing to focus here.</p>
@@ -115,9 +115,97 @@ describe("useDialogA11y", () => {
     );
     const before = document.activeElement;
 
-    pressKey("Tab");
+    const event = pressKey("Tab");
 
     expect(document.activeElement).toBe(before);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("opens and closes without error when focus sat on a non-HTML element", () => {
+    const view = render(
+      <>
+        <svg id="graphic" aria-label="graphic" />
+        <Dialog isOpen={false} onClose={vi.fn()}>
+          {CONTENT}
+        </Dialog>
+      </>,
+    );
+    view.get("#graphic").setAttribute("tabindex", "0");
+    view.get<SVGElement & HTMLElement>("#graphic").focus();
+
+    view.rerender(
+      <>
+        <svg id="graphic" aria-label="graphic" />
+        <Dialog isOpen onClose={vi.fn()}>
+          {CONTENT}
+        </Dialog>
+      </>,
+    );
+    expect(() =>
+      view.rerender(
+        <>
+          <svg id="graphic" aria-label="graphic" />
+          <Dialog isOpen={false} onClose={vi.fn()}>
+            {CONTENT}
+          </Dialog>
+        </>,
+      ),
+    ).not.toThrow();
+  });
+
+  it("pulls Tab back to the first element when focus rests outside the dialog", () => {
+    const view = render(
+      <>
+        <button type="button" id="outside">
+          Outside
+        </button>
+        <Dialog isOpen onClose={vi.fn()}>
+          {CONTENT}
+        </Dialog>
+      </>,
+    );
+    view.get<HTMLButtonElement>("#outside").focus();
+
+    const event = pressKey("Tab");
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(view.get("#first"));
+  });
+
+  it("pulls Shift+Tab back to the last element when focus rests outside the dialog", () => {
+    const view = render(
+      <>
+        <button type="button" id="outside">
+          Outside
+        </button>
+        <Dialog isOpen onClose={vi.fn()}>
+          {CONTENT}
+        </Dialog>
+      </>,
+    );
+    view.get<HTMLButtonElement>("#outside").focus();
+
+    pressKey("Tab", { shiftKey: true });
+
+    expect(document.activeElement).toBe(view.get("#last"));
+  });
+
+  it("traps Tab when focus fell to the body after a pointer click on plain content", () => {
+    const view = render(
+      <Dialog isOpen onClose={vi.fn()}>
+        <p id="plain">Plain text</p>
+        {CONTENT}
+      </Dialog>,
+    );
+    view.get<HTMLButtonElement>("#last").focus();
+    (document.activeElement as HTMLElement).blur();
+
+    pressKey("Tab");
+    expect(document.activeElement).toBe(view.get("#first"));
+
+    (document.activeElement as HTMLElement).blur();
+    pressKey("Tab", { shiftKey: true });
+    expect(document.activeElement).toBe(view.get("#last"));
   });
 
   it("still closes on Escape when the container ref was never attached", () => {
@@ -293,5 +381,93 @@ describe("useDialogA11y: initial focus", () => {
     view.get("#close").focus();
     view.rerender(<LateFieldDialog ready />);
     expect(document.activeElement).toBe(view.get("#close"));
+  });
+
+  it("lets only the topmost of nested dialogs handle Escape and Tab", () => {
+    const outer = vi.fn();
+    const inner = vi.fn();
+    const view = render(
+      <>
+        <Dialog isOpen onClose={outer}>
+          <button type="button" id="outer-first">
+            Outer
+          </button>
+        </Dialog>
+        <Dialog isOpen onClose={inner}>
+          <button type="button" id="inner-first">
+            Inner one
+          </button>
+          <button type="button" id="inner-last">
+            Inner two
+          </button>
+        </Dialog>
+      </>,
+    );
+    view.get<HTMLButtonElement>("#inner-last").focus();
+
+    pressKey("Escape");
+    const tab = pressKey("Tab");
+
+    expect(inner).toHaveBeenCalledTimes(1);
+    expect(outer).not.toHaveBeenCalled();
+    expect(tab.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(view.get("#inner-first"));
+  });
+
+  it("hands Escape back to the outer dialog once the inner one closes", () => {
+    const outer = vi.fn();
+    const view = render(
+      <>
+        <Dialog isOpen onClose={outer}>
+          <button type="button">Outer</button>
+        </Dialog>
+        <Dialog isOpen onClose={vi.fn()}>
+          <button type="button">Inner</button>
+        </Dialog>
+      </>,
+    );
+
+    view.rerender(
+      <>
+        <Dialog isOpen onClose={outer}>
+          <button type="button">Outer</button>
+        </Dialog>
+        <Dialog isOpen={false} onClose={vi.fn()}>
+          <button type="button">Inner</button>
+        </Dialog>
+      </>,
+    );
+    pressKey("Escape");
+
+    expect(outer).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves Escape to the inner dialog when the outer one unmounts first", () => {
+    const outer = vi.fn();
+    const inner = vi.fn();
+    const both = (
+      <>
+        <Dialog isOpen onClose={outer}>
+          <button type="button">Outer</button>
+        </Dialog>
+        <Dialog isOpen onClose={inner}>
+          <button type="button">Inner</button>
+        </Dialog>
+      </>
+    );
+    const view = render(both);
+
+    view.rerender(
+      <>
+        {null}
+        <Dialog isOpen onClose={inner}>
+          <button type="button">Inner</button>
+        </Dialog>
+      </>,
+    );
+    pressKey("Escape");
+
+    expect(outer).not.toHaveBeenCalled();
+    expect(inner).toHaveBeenCalledTimes(1);
   });
 });

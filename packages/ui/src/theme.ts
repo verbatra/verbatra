@@ -11,6 +11,7 @@ export interface ThemeStore {
   readonly modes: readonly ThemeMode[];
   getMode(): ThemeMode;
   getResolved(): ResolvedTheme;
+  getSystem(): ResolvedTheme;
   setMode(mode: ThemeMode): void;
   subscribe(listener: () => void): () => void;
   init(): () => void;
@@ -31,6 +32,7 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
   const listeners = new Set<() => void>();
   let remembered: ThemeMode | null = null;
   let systemQuery: MediaQueryList | null = null;
+  let generation = 0;
 
   function parse(stored: string | null): ThemeMode {
     return modes.find((mode) => mode === stored) ?? fallback;
@@ -45,6 +47,10 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
     } catch {
       return fallback;
     }
+  }
+
+  function getSystem(): ResolvedTheme {
+    return window.matchMedia(LIGHT_QUERY).matches ? "light" : "dark";
   }
 
   function getResolved(): ResolvedTheme {
@@ -77,7 +83,9 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
   function onSystemChange(): void {
     if (getMode() === "system") {
       refresh();
+      return;
     }
+    notify();
   }
 
   function onStorage(event: StorageEvent): void {
@@ -91,6 +99,7 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
     modes,
     getMode,
     getResolved,
+    getSystem,
     setMode(mode) {
       if (!modes.includes(mode)) {
         return;
@@ -111,12 +120,17 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
     },
     init() {
       apply();
+      generation += 1;
+      const mine = generation;
       systemQuery?.removeEventListener("change", onSystemChange);
       systemQuery = window.matchMedia(LIGHT_QUERY);
       systemQuery.addEventListener("change", onSystemChange);
       window.removeEventListener("storage", onStorage);
       window.addEventListener("storage", onStorage);
       return () => {
+        if (mine !== generation) {
+          return;
+        }
         systemQuery?.removeEventListener("change", onSystemChange);
         systemQuery = null;
         window.removeEventListener("storage", onStorage);

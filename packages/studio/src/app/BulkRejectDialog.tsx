@@ -1,7 +1,6 @@
-import { Button, DrawerShell, Section } from "@verbatra/ui";
+import { Button, DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { TranslationValue } from "./TranslationValue.js";
-import { useDialogA11y } from "./use-dialog-a11y.js";
 
 export interface BulkRejectEntry {
   readonly locale: string;

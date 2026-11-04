@@ -54,9 +54,16 @@ function ProjectDetails({ snapshot }: { readonly snapshot: ProjectSnapshotResult
   const items: Array<readonly [string, ReactNode]> = [
     [
       "Target locales",
-      <MonoValue key="target-locales">{snapshot.targetLocales.join(", ")}</MonoValue>,
+      <MonoValue key="target-locales" breakAnywhere>
+        {snapshot.targetLocales.join(", ")}
+      </MonoValue>,
     ],
-    ["File pattern", <MonoValue key="file-pattern">{snapshot.files.pattern}</MonoValue>],
+    [
+      "File pattern",
+      <MonoValue key="file-pattern" breakAnywhere>
+        {snapshot.files.pattern}
+      </MonoValue>,
+    ],
     ["Provider actions", <ProviderActions key="spend" snapshot={snapshot} />],
   ];
   if (snapshot.prune !== undefined) {

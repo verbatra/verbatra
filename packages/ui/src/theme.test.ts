@@ -180,6 +180,37 @@ describe("createThemeStore", () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  it("reports the operating system theme whatever mode is chosen", () => {
+    const media = installMatchMedia(true);
+    const store = createThemeStore({ storageKey: KEY, modes: ALL });
+    store.setMode("dark");
+
+    expect(store.getSystem()).toBe("light");
+    expect(store.getResolved()).toBe("dark");
+
+    media.setPrefersLight(false);
+    expect(store.getSystem()).toBe("dark");
+  });
+
+  it("lets a stale init cleanup leave the newer init's listeners in place", () => {
+    const media = installMatchMedia(false);
+    const store = createThemeStore({ storageKey: KEY, modes: ALL });
+    const listener = vi.fn();
+    store.subscribe(listener);
+    const stale = store.init();
+    const current = store.init();
+
+    stale();
+
+    expect(media.listenerCount()).toBe(1);
+    window.localStorage.setItem(KEY, "light");
+    window.dispatchEvent(new StorageEvent("storage", { key: KEY }));
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    current();
+    expect(media.listenerCount()).toBe(0);
+  });
+
   it("re-applies when another tab changes the stored mode", () => {
     installMatchMedia(false);
     const store = createThemeStore({ storageKey: KEY, modes: ALL });

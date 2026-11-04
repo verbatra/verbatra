@@ -515,6 +515,48 @@ describe("KeyDetailDrawer", () => {
     expect(onEditLocale).toHaveBeenCalledWith("fr");
   });
 
+  it("puts focus on the Edit button of the locale that was just edited, not on Close", async () => {
+    stubBackground();
+    stubRpc({
+      "project.snapshot": capabilities(false, true),
+      "key.value": value("Hello", "Hallo"),
+    });
+
+    const view = await renderAsync(
+      <KeyDetailDrawer
+        keyName={KEY}
+        locales={[DE_CHANGED, FR_MISSING]}
+        refreshToken={0}
+        onClose={vi.fn()}
+        onEditLocale={vi.fn()}
+        focusLocale="fr"
+      />,
+    );
+    const editButtons = view.all("li button").filter((button) => button.textContent === "Edit");
+
+    expect(document.activeElement).toBe(editButtons[1]);
+  });
+
+  it("starts on the first control when no locale was edited", async () => {
+    stubBackground();
+    stubRpc({
+      "project.snapshot": capabilities(false, true),
+      "key.value": value("Hello", "Hallo"),
+    });
+
+    const view = await renderAsync(
+      <KeyDetailDrawer
+        keyName={KEY}
+        locales={[DE_CHANGED, FR_MISSING]}
+        refreshToken={0}
+        onClose={vi.fn()}
+        onEditLocale={vi.fn()}
+      />,
+    );
+
+    expect(document.activeElement).toBe(view.get("[aria-label^='Close details']"));
+  });
+
   it("omits the edit action when the caller passes no edit handler", async () => {
     stubBackground();
     stubRpc({

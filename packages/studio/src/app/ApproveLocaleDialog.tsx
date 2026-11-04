@@ -1,7 +1,6 @@
-import { Button, DrawerShell, Section } from "@verbatra/ui";
+import { Button, DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { useDialogA11y } from "./use-dialog-a11y.js";
 
 function entryCount(count: number): string {
   return `${count} ${count === 1 ? "entry" : "entries"}`;

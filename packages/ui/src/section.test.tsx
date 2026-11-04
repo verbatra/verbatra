@@ -19,6 +19,14 @@ describe("MonoValue and Container", () => {
     expect(view.get("span").textContent).toBe("de-DE");
   });
 
+  it("MonoValue breaks anywhere only when asked to", () => {
+    const plain = render(<MonoValue>locales/{"{locale}"}.json</MonoValue>).get("span");
+    const breaking = render(<MonoValue breakAnywhere>locales</MonoValue>).get("span");
+
+    expect(plain.className).not.toContain("break-all");
+    expect(breaking.className).toContain("break-all");
+  });
+
   it("Container wraps the page content", () => {
     const view = render(
       <Container>
