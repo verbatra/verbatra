@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { renderAsync, rpcError, stubRpc } from "../test-support.js";
+import { clickAsync, render, renderAsync, rpcError, stubRpc, typeInto } from "../test-support.js";
 import { GlossaryPanel } from "./GlossaryPanel.js";
 
 vi.mock("../api.js", () => import("../test-support.js").then((module) => module.apiMock()));
@@ -34,5 +34,65 @@ describe("GlossaryPanel", () => {
     const view = await renderAsync(<GlossaryPanel />);
 
     expect(view.get('[role="alert"]').textContent).toContain("unexpected server error");
+  });
+
+  it("shows the glossary a term write returns", async () => {
+    stubRpc({
+      "glossary.get": {
+        ok: true,
+        result: {
+          indicator: { source: "file", path: "glossary.json" },
+          version: 2,
+          locales: ["de"],
+          terms: [],
+          doNotTranslate: [],
+          redactedTerms: [],
+        },
+      },
+      "glossary.write": {
+        ok: true,
+        result: {
+          indicator: { source: "file", path: "glossary.json" },
+          version: 1,
+          locales: ["de"],
+          terms: [
+            {
+              source: "cart",
+              target: "Warenkorb",
+              targets: {},
+              forbidden: {},
+              caseSensitive: false,
+              byLocale: { de: { target: "Warenkorb", inherited: true, forbidden: [] } },
+            },
+          ],
+          doNotTranslate: [],
+          redactedTerms: [],
+        },
+      },
+    });
+    const view = await renderAsync(<GlossaryPanel />);
+
+    typeInto(view.get('input[aria-label="New glossary term"]') as HTMLInputElement, "cart");
+    typeInto(
+      view.get('input[aria-label="New glossary translation"]') as HTMLInputElement,
+      "Warenkorb",
+    );
+    await clickAsync(view.getByText("button", "Add term"));
+
+    expect(view.text()).toContain("Warenkorb");
+  });
+
+  it("drops a response that arrives after the page was left", async () => {
+    let answer: (value: typeof GLOSSARY) => void = () => {};
+    stubRpc({
+      "glossary.get": () => new Promise<typeof GLOSSARY>((resolve) => (answer = resolve)),
+    });
+    const view = render(<GlossaryPanel />);
+
+    view.unmount();
+    answer(GLOSSARY);
+    await Promise.resolve();
+
+    expect(view.container.isConnected).toBe(false);
   });
 });

@@ -25,10 +25,6 @@ function currentHash(): string {
   return window.location.hash;
 }
 
-function serverHash(): string {
-  return "";
-}
-
 function announceRouteChange(): void {
   window.dispatchEvent(new Event(ROUTE_CHANGE_EVENT));
 }
@@ -48,12 +44,12 @@ export function navigateToPage(page: PageId): void {
 }
 
 export function useRoute(): Route {
-  const hash = useSyncExternalStore(subscribe, currentHash, serverHash);
+  const hash = useSyncExternalStore(subscribe, currentHash);
   return useMemo(() => parseRoute(hash), [hash]);
 }
 
 export function useAliasRedirect(): void {
-  const hash = useSyncExternalStore(subscribe, currentHash, serverHash);
+  const hash = useSyncExternalStore(subscribe, currentHash);
   useEffect(() => {
     const canonical = canonicalAliasHash(hash);
     if (canonical !== null) {
