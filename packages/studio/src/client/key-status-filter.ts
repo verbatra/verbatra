@@ -1,8 +1,13 @@
 import type { RpcResultFor } from "../shared/rpc/contract.js";
 import type { DiffLocale } from "./diff-view.js";
-import { type CappedKeyList, filterAndCapKeys, keyMatchesQuery } from "./filter.js";
+import {
+  type CappedKeyList,
+  filterAndCapKeys,
+  type KeyPairLookup,
+  keyMatchesQuery,
+} from "./filter.js";
 import { hasIntegrityProblem } from "./integrity-pill.js";
-import { type LocaleValuesData, valuesForLocale } from "./locale-values.js";
+import type { LocaleValuesData } from "./locale-values.js";
 import type { ReviewEntryRef } from "./review-queue-data.js";
 
 export type KeyStatus = "missing" | "changed" | "orphaned" | "protected" | "review" | "integrity";
@@ -71,13 +76,24 @@ export function keyStatusIndex(
 }
 
 export function attentionKeys(index: KeyStatusIndex, scope: readonly string[]): readonly string[] {
-  const keys = new Set<string>();
+  return [...heldByKey(index, scope).keys()];
+}
+
+function heldByKey(
+  index: KeyStatusIndex,
+  scope: readonly string[],
+): ReadonlyMap<string, ReadonlySet<KeyStatus>> {
+  const union = new Map<string, Set<KeyStatus>>();
   for (const locale of scope) {
-    for (const key of index.get(locale)?.keys() ?? []) {
-      keys.add(key);
+    for (const [key, held] of index.get(locale) ?? []) {
+      const merged = union.get(key) ?? new Set<KeyStatus>();
+      for (const status of held) {
+        merged.add(status);
+      }
+      union.set(key, merged);
     }
   }
-  return [...keys];
+  return union;
 }
 
 export interface KeyTableInput {
@@ -93,31 +109,28 @@ export interface KeyTableRows extends CappedKeyList {
   readonly counts: Readonly<Record<KeyStatus, number>>;
 }
 
-function holdsStatus(
-  index: KeyStatusIndex,
-  scope: readonly string[],
-  key: string,
-  wanted: (status: KeyStatus) => boolean,
-): boolean {
-  return scope.some((locale) => [...(index.get(locale)?.get(key) ?? [])].some(wanted));
+function lookupFor(localeValues: LocaleValuesData, locale: string): KeyPairLookup {
+  const record = localeValues.find((entry) => entry.locale === locale)?.values;
+  return { get: (key) => record?.[key] };
+}
+
+function recordedKeys(localeValues: LocaleValuesData, scope: readonly string[]): readonly string[] {
+  return localeValues
+    .filter((entry) => scope.includes(entry.locale))
+    .flatMap((entry) => Object.keys(entry.values));
 }
 
 export function keyTableRows(input: KeyTableInput): KeyTableRows {
   const { index, localeValues, statuses, query } = input;
   const scope = input.locale === "" ? input.locales.map((entry) => entry.locale) : [input.locale];
-  const searching = query.trim() !== "";
-  const pairs = new Map(scope.map((locale) => [locale, valuesForLocale(localeValues, locale)]));
-  const universe = new Set(attentionKeys(index, scope));
-  if (searching) {
-    for (const pair of pairs.values()) {
-      for (const key of pair.keys()) {
-        universe.add(key);
-      }
+  const held = heldByKey(index, scope);
+  const universe = new Set(held.keys());
+  if (query.trim() !== "") {
+    for (const key of recordedKeys(localeValues, scope)) {
+      universe.add(key);
     }
   }
-  const matching = [...universe]
-    .filter((key) => scope.some((locale) => keyMatchesQuery(key, query, pairs.get(locale))))
-    .sort();
+  const lookups = scope.map((locale) => lookupFor(localeValues, locale));
   const counts: Record<KeyStatus, number> = {
     missing: 0,
     changed: 0,
@@ -126,17 +139,23 @@ export function keyTableRows(input: KeyTableInput): KeyTableRows {
     review: 0,
     integrity: 0,
   };
-  for (const status of KEY_STATUSES) {
-    counts[status] = matching.filter((key) =>
-      holdsStatus(index, scope, key, (held) => held === status),
-    ).length;
+  const narrowed: string[] = [];
+  for (const key of universe) {
+    if (!lookups.some((lookup) => keyMatchesQuery(key, query, lookup))) {
+      continue;
+    }
+    const keyStatuses = held.get(key) ?? NO_STATUSES;
+    for (const status of keyStatuses) {
+      counts[status] += 1;
+    }
+    if (statuses.size === 0 || [...keyStatuses].some((status) => statuses.has(status))) {
+      narrowed.push(key);
+    }
   }
-  const narrowed =
-    statuses.size === 0
-      ? matching
-      : matching.filter((key) => holdsStatus(index, scope, key, (held) => statuses.has(held)));
-  return { ...filterAndCapKeys(narrowed, ""), counts };
+  return { ...filterAndCapKeys(narrowed.sort(), ""), counts };
 }
+
+const NO_STATUSES: ReadonlySet<KeyStatus> = new Set();
 
 export function attentionEntryCount(locales: readonly DiffLocale[]): number {
   return locales.reduce(

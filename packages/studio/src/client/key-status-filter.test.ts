@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { DiffLocale } from "./diff-view.js";
+import { type DiffLocale, driftKeys } from "./diff-view.js";
 import {
   attentionEntryCount,
   attentionKeys,
@@ -220,6 +220,18 @@ describe("keyTableRows", () => {
     expect(capped.items).toHaveLength(500);
     expect(capped.totalMatches).toBe(520);
     expect(capped.truncated).toBe(true);
+  });
+});
+
+describe("the overview attention link", () => {
+  it("lands on a table with exactly as many rows as the overview counts pending keys", () => {
+    const rows = table({
+      statuses: new Set<KeyStatus>(["missing", "changed", "orphaned"]),
+      index: keyStatusIndex(LOCALES, { review: [], integrity: [] }),
+    });
+
+    expect(rows.totalMatches).toBe(driftKeys(LOCALES).length);
+    expect(rows.totalMatches).toBeGreaterThan(0);
   });
 });
 
