@@ -18,8 +18,8 @@ const FOCUS =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 const HEADER_LINK = cn(
-  "relative inline-flex items-center gap-1.5 whitespace-nowrap text-sm text-(--text-muted) transition-colors hover:text-(--text-strong) aria-[current=page]:text-(--accent)",
-  "after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:bg-(--accent) after:opacity-0 hover:after:opacity-100 aria-[current=page]:after:opacity-100 motion-safe:after:transition-opacity",
+  "relative inline-flex items-center gap-1.5 whitespace-nowrap rounded-(--radius-sm) text-sm text-(--text-muted) transition-colors hover:text-(--text-strong) aria-[current=page]:text-(--accent)",
+  "after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:bg-(--accent) after:opacity-0 hover:after:opacity-100 aria-[current=page]:after:opacity-100 focus-visible:after:opacity-0 motion-safe:after:transition-opacity",
   FOCUS,
 );
 

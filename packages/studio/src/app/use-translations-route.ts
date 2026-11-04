@@ -72,6 +72,7 @@ export function useTranslationsRoute(
       setParams(routeParams({ locale, statuses, key, query }));
     },
     setQuery(next) {
+      setChosenViewMode("flat");
       setParams(routeParams({ locale, statuses, key: selectedKey, query: next }));
     },
   };

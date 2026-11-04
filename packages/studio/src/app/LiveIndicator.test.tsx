@@ -20,10 +20,11 @@ afterEach(() => {
 });
 
 describe("LiveIndicator", () => {
-  it("keeps the live-status region mounted but silent while the stream is healthy", () => {
+  it("shows a quiet Live marker with a success dot while the stream is healthy", () => {
     const view = render(<LiveIndicator />);
 
-    expect(view.get('[role="status"]').textContent).toBe("");
+    expect(view.get('[role="status"]').textContent).toBe("Live");
+    expect(view.get("[data-live] span").getAttribute("aria-hidden")).toBe("true");
   });
 
   it("stays silent for the first moments of a degraded stream, so a normal handshake never flashes", () => {
@@ -64,6 +65,37 @@ describe("LiveIndicator", () => {
     advance(DEGRADED_DELAY_MS);
     setConnectionStatus("live");
 
-    expect(view.get('[role="status"]').textContent).toBe("");
+    expect(view.get('[role="status"]').textContent).toBe("Live");
+  });
+
+  it("never shows the notice for a blip that recovers inside the delay", () => {
+    vi.useFakeTimers();
+    const view = render(<LiveIndicator />);
+
+    setConnectionStatus("reconnecting");
+    advance(DEGRADED_DELAY_MS - 500);
+    setConnectionStatus("live");
+    advance(DEGRADED_DELAY_MS);
+
+    expect(view.get('[role="status"]').textContent).toBe("Live");
+  });
+
+  it("picks up a status that was already degraded before the header mounted", () => {
+    vi.useFakeTimers();
+    setConnectionStatus("reconnecting");
+    const view = render(<LiveIndicator />);
+    advance(DEGRADED_DELAY_MS);
+
+    expect(view.get('[role="status"]').textContent).toBe("Reconnecting");
+  });
+
+  it("shows neither marker during the first moments of a degraded stream", () => {
+    vi.useFakeTimers();
+    const view = render(<LiveIndicator />);
+
+    setConnectionStatus("reconnecting");
+    advance(DEGRADED_DELAY_MS - 1);
+
+    expect(view.query("[data-live]")).toBeNull();
   });
 });

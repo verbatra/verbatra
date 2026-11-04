@@ -841,7 +841,6 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   return (
     <>
       <PageHeader
-        kicker="Workspace"
         title="Translations"
         description="Every pending change across your target locales, and how far along each locale is."
         actions={diff.kind === "loaded" ? <ReviewReportButton locales={diff.locales} /> : undefined}

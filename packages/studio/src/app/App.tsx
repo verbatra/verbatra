@@ -1,6 +1,6 @@
 import { Container } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   handleRefreshEvent,
   nextToastSlot,
@@ -32,7 +32,7 @@ const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = 
   settings: SettingsPanel,
 };
 
-const WIDE_QUERY = "(min-width: 1024px)";
+const WIDE_QUERY = "(min-width: 80rem)";
 
 function focusMain(): void {
   document.getElementById("main")?.focus();
@@ -122,15 +122,18 @@ function AppShell({
 
   const ActivePanel = PAGE_PANELS[page];
   const wide = useMediaQuery(WIDE_QUERY, false);
+  const wideRef = useRef(wide);
+  wideRef.current = wide;
 
   useEffect(() => {
-    if (wide) {
+    if (wide && mobileNavOpen) {
       onSetMobileNavOpen(false);
+      document.querySelector<HTMLElement>('header nav [aria-current="page"]')?.focus();
     }
-  }, [wide, onSetMobileNavOpen]);
+  }, [wide, mobileNavOpen, onSetMobileNavOpen]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <button
         type="button"
         className="fixed start-2 top-2 z-50 -translate-y-24 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground focus-visible:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -148,9 +151,10 @@ function AppShell({
           activePage={page}
           pageBadges={pageBadges}
           onClose={() => onSetMobileNavOpen(false)}
+          shouldRestoreFocus={() => !wideRef.current}
         />
       ) : null}
-      <main id="main" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto outline-none">
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
         <Container>
           <AgentToolsAlert failures={agentToolsFailures} />
           <ActivePanel refreshToken={refreshToken} />

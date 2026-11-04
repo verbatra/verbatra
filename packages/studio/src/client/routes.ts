@@ -73,7 +73,7 @@ export function routeParams(input: RouteParamsInput): RouteParams {
     ...(input.key !== undefined && input.key !== null && input.key !== ""
       ? { key: input.key }
       : {}),
-    ...(input.query !== undefined && input.query !== "" ? { query: input.query } : {}),
+    ...(input.query !== undefined && input.query.trim() !== "" ? { query: input.query } : {}),
   };
 }
 

@@ -10,10 +10,10 @@ describe("PageHeader", () => {
     expect(view.get("h1").textContent).toBe("Translations");
   });
 
-  it("uses the product name as the eyebrow line by default", () => {
+  it("renders no eyebrow line unless the caller gives one", () => {
     const view = render(<PageHeader title="Translations" />);
 
-    expect(view.get("p").textContent).toBe("Verbatra Studio");
+    expect(view.query("p")).toBeNull();
   });
 
   it("takes a more specific eyebrow line when the caller gives one", () => {
@@ -28,14 +28,14 @@ describe("PageHeader", () => {
     );
     const lines = view.all("p");
 
-    expect(lines).toHaveLength(2);
-    expect(lines[1]?.textContent).toBe("Every key across every target locale.");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.textContent).toBe("Every key across every target locale.");
   });
 
   it("renders no description line when the caller passes none", () => {
     const view = render(<PageHeader title="Translations" />);
 
-    expect(view.all("p")).toHaveLength(1);
+    expect(view.all("p")).toHaveLength(0);
   });
 
   it("renders the actions slot at the inline end of the header", () => {

@@ -128,6 +128,8 @@ describe("parseRoute params", () => {
       query: "nav bar title",
     });
     expect(parseRoute("#/translations?q=").params).toEqual({});
+    expect(parseRoute("#/translations?q=%20").params).toEqual({});
+    expect(parseRoute("#/translations?q=%20%20").params).toEqual({});
   });
 
   it("writes the search text back and round-trips it", () => {

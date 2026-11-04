@@ -25,6 +25,18 @@ export function LiveIndicator(): ReactNode {
   }, [status]);
 
   return (
-    <span role="status">{showDegraded ? <Badge tone="warning">Reconnecting</Badge> : null}</span>
+    <span role="status" className="inline-flex items-center">
+      {showDegraded ? (
+        <Badge tone="warning">Reconnecting</Badge>
+      ) : status === "live" ? (
+        <span
+          className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-(--status-success)"
+          data-live=""
+        >
+          <span aria-hidden="true" className="size-1.5 rounded-full bg-(--status-success)" />
+          Live
+        </span>
+      ) : null}
+    </span>
   );
 }

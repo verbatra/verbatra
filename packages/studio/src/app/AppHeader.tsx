@@ -29,9 +29,7 @@ function Wordmark(): ReactNode {
         />
       </svg>
       <span className="text-lg font-semibold tracking-tight text-(--text-strong)">verbatra</span>
-      <span className="font-mono text-[11px] font-semibold uppercase tracking-(--tracking-wide) text-(--text-muted)">
-        Studio
-      </span>
+      <span className="text-sm text-(--text-muted)">Studio</span>
     </span>
   );
 }
@@ -43,39 +41,41 @@ export interface AppHeaderProps {
 }
 
 export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps): ReactNode {
+  const waiting = pageBadges.review ?? 0;
   return (
-    <header className="sticky top-0 z-10 flex-none border-b border-(--border-default) bg-(--surface-chrome) backdrop-blur-sm">
+    <header className="sticky top-0 z-10 flex-none bg-(--surface-chrome) backdrop-blur-sm after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-(--border-default) after:content-['']">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 md:px-8">
-        <a
-          href="#/translations"
-          className="inline-flex flex-none items-center rounded-(--radius-md) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          <Wordmark />
-        </a>
-        <HeaderSearch className="mx-auto hidden min-w-24 max-w-xs flex-1 md:block" />
-        <nav
-          aria-label="Studio"
-          className="ms-auto hidden flex-none items-center gap-5 lg:me-2 lg:flex"
-        >
-          {NAV_GROUPS.flatMap((group) => group.pages).map((page) => (
-            <NavLink
-              key={page}
-              page={page}
-              label={PAGE_LABELS[page]}
-              active={page === activePage}
-              count={pageBadges[page]}
-              variant="header"
-            />
-          ))}
-        </nav>
-        <div className="ms-auto flex flex-none items-center gap-1 md:ms-0">
-          <LiveIndicator />
+        <div className="flex flex-1 items-center pe-4">
+          <a
+            href="#/translations"
+            className="inline-flex items-center rounded-(--radius-md) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <Wordmark />
+          </a>
+        </div>
+        <HeaderSearch
+          label="Keys"
+          className="mx-auto hidden w-full max-w-64 md:block lg:max-w-80"
+        />
+        <div className="flex flex-1 items-center justify-end md:gap-2 md:ps-4">
+          <nav aria-label="Studio" className="hidden items-center gap-6 xl:me-4 xl:flex">
+            {NAV_GROUPS.flatMap((group) => group.pages).map((page) => (
+              <NavLink
+                key={page}
+                page={page}
+                label={PAGE_LABELS[page]}
+                active={page === activePage}
+                count={pageBadges[page]}
+                variant="header"
+              />
+            ))}
+          </nav>
           <a
             href={DOCS_URL}
             target="_blank"
             rel="noreferrer"
             aria-label="Documentation (opens in a new tab)"
-            className={`${ICON_LINK} lg:inline-flex`}
+            className={`${ICON_LINK} xl:inline-flex`}
           >
             <Icon name="book" size={18} />
           </a>
@@ -84,10 +84,11 @@ export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps
             target="_blank"
             rel="noreferrer"
             aria-label="GitHub (opens in a new tab)"
-            className={`${ICON_LINK} lg:inline-flex`}
+            className={`${ICON_LINK} xl:inline-flex`}
           >
             <GithubGlyph />
           </a>
+          <LiveIndicator />
           <ThemeToggle
             store={themeStore}
             label={describeThemeAction}
@@ -95,11 +96,18 @@ export function AppHeader({ activePage, pageBadges, onOpenMenu }: AppHeaderProps
           />
           <Button
             variant="ghost"
-            className="p-1.5 max-md:min-h-11 max-md:min-w-11 lg:hidden"
-            aria-label="Open navigation"
+            className="relative p-1.5 max-md:min-h-11 max-md:min-w-11 xl:hidden"
+            aria-label={waiting > 0 ? `Open navigation, ${waiting} waiting` : "Open navigation"}
             onClick={onOpenMenu}
           >
             <Icon name="menu" />
+            {waiting > 0 ? (
+              <span
+                aria-hidden="true"
+                data-count-dot=""
+                className="absolute end-1 top-1 size-2 rounded-full bg-primary"
+              />
+            ) : null}
           </Button>
         </div>
       </div>

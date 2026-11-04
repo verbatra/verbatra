@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PAGE_IDS, type PageId } from "../client/routes.js";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import { App } from "./App.js";
@@ -17,11 +17,13 @@ import {
   typeInto,
 } from "./test-support.js";
 
-vi.stubGlobal("matchMedia", () => ({
+const NARROW_MEDIA = () => ({
   matches: false,
   addEventListener: () => {},
   removeEventListener: () => {},
-}));
+});
+
+vi.stubGlobal("matchMedia", NARROW_MEDIA);
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
@@ -117,6 +119,10 @@ function navItem(view: RenderResult, label: string): HTMLElement {
   }
   return match;
 }
+
+afterEach(() => {
+  vi.stubGlobal("matchMedia", NARROW_MEDIA);
+});
 
 beforeEach(() => {
   goToHash("/");
@@ -415,14 +421,14 @@ describe("App navigation chrome", () => {
   it("opens the mobile nav drawer from the header trigger", async () => {
     const view = await mount();
 
-    await clickAsync(view.get('[aria-label="Open navigation"]'));
+    await clickAsync(view.get('[aria-label^="Open navigation"]'));
 
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Navigation");
   });
 
   it("closes the drawer once a page is chosen from it, and navigates", async () => {
     const view = await mount();
-    await clickAsync(view.get('[aria-label="Open navigation"]'));
+    await clickAsync(view.get('[aria-label^="Open navigation"]'));
 
     await clickAsync(view.getByText('[role="dialog"] nav a', "Settings"));
 
@@ -432,7 +438,7 @@ describe("App navigation chrome", () => {
 
   it("closes the drawer from its own close button, without navigating", async () => {
     const view = await mount();
-    await clickAsync(view.get('[aria-label="Open navigation"]'));
+    await clickAsync(view.get('[aria-label^="Open navigation"]'));
 
     await clickAsync(view.get('[role="dialog"] [aria-label="Close navigation"]'));
 
@@ -442,7 +448,7 @@ describe("App navigation chrome", () => {
 
   it("returns focus to the menu button when the drawer closes on Escape", async () => {
     const view = await mount();
-    const trigger = view.get('[aria-label="Open navigation"]');
+    const trigger = view.get('[aria-label^="Open navigation"]');
     act(() => {
       trigger.focus();
     });
@@ -469,21 +475,17 @@ describe("App header chrome", () => {
     };
     vi.stubGlobal("matchMedia", () => list);
     const view = await mount();
-    await clickAsync(view.get('[aria-label="Open navigation"]'));
+    await clickAsync(view.get('[aria-label^="Open navigation"]'));
     expect(view.query('[role="dialog"]')).not.toBeNull();
 
     list.matches = true;
     act(() => listener?.());
     expect(view.query('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(view.get('header nav [aria-current="page"]'));
 
     list.matches = false;
     act(() => listener?.());
     expect(view.query('[role="dialog"]')).toBeNull();
-    vi.stubGlobal("matchMedia", () => ({
-      matches: false,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    }));
   });
 
   it("offers a first control that moves focus to the main region", async () => {

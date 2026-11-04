@@ -1745,6 +1745,26 @@ describe("TranslationsPanel deep links", () => {
     expect(window.location.hash).toBe("#/translations?locale=de");
   });
 
+  it("keeps the list and the focused search field when the last search text is cleared", async () => {
+    pointHashAt("#/translations?q=app");
+    stubFilterPage({ ...drawerStubs(), "locale.values": KEY_VALUES_STUB() });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+    const field = view.get(
+      'input[aria-label="Filter by key or translation text"]',
+    ) as HTMLInputElement;
+    act(() => {
+      field.focus();
+    });
+
+    typeInto(field, "");
+
+    expect(window.location.hash).toBe("#/translations");
+    expect(view.get('input[aria-label="Filter by key or translation text"]')).toBe(field);
+    expect(document.activeElement).toBe(field);
+    expect(view.getByText("button", "List").getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("drops the key search from the hash when the grid view is chosen", async () => {
     pointHashAt("#/translations?q=app");
     stubFilterPage();

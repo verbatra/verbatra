@@ -75,6 +75,25 @@ describe("NavDrawer", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("hides its own search from the width where the header search is visible", () => {
+    const view = mount();
+
+    expect(view.get("search").className).toContain("md:hidden");
+    expect(view.get("search").getAttribute("aria-label")).toBe("Drawer keys");
+  });
+
+  it("opens on the end side, next to the menu button", () => {
+    expect(mount().get("[data-side]").dataset.side).toBe("end");
+  });
+
+  it("marks the help links as opening in a new tab", () => {
+    const names = mount()
+      .all('nav[aria-label="Help"] a')
+      .map((link) => link.getAttribute("aria-label"));
+
+    expect(names).toEqual(["Documentation (opens in a new tab)", "GitHub (opens in a new tab)"]);
+  });
+
   it("closes from the close button", () => {
     const onClose = vi.fn();
     const view = mount({ onClose });

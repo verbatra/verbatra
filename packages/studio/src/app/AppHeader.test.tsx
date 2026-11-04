@@ -22,7 +22,7 @@ describe("AppHeader", () => {
   it("names the product in a home link to the workspace", () => {
     const view = mount();
 
-    expect(view.get("header > div > a").getAttribute("href")).toBe("#/translations");
+    expect(view.get('header a[href="#/translations"]').textContent).toContain("verbatra");
     expect(view.text()).toContain("verbatra");
     expect(view.text()).toContain("Studio");
   });
@@ -49,7 +49,7 @@ describe("AppHeader", () => {
   });
 
   it("offers a key search", () => {
-    expect(mount().get('search input[aria-label="Search keys and translations"]')).not.toBeNull();
+    expect(mount().get('search input[aria-label="Search keys and text"]')).not.toBeNull();
   });
 
   it("links the documentation and GitHub in new tabs with names that say so", () => {
@@ -79,6 +79,20 @@ describe("AppHeader", () => {
       view.get("[data-theme-toggle]").click();
     });
     expect(region?.textContent).toBe("Theme set to Dark");
+  });
+
+  it("names the menu button with the waiting count and marks it with a dot", () => {
+    const view = mount({ pageBadges: { review: 4 } });
+
+    expect(
+      view.get('[aria-label="Open navigation, 4 waiting"]').querySelector("[data-count-dot]"),
+    ).not.toBeNull();
+  });
+
+  it("shows no dot on the menu button when nothing waits", () => {
+    const view = mount();
+
+    expect(view.get('[aria-label="Open navigation"]').querySelector("[data-count-dot]")).toBeNull();
   });
 
   it("opens the menu from a named button", () => {

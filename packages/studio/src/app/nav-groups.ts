@@ -23,7 +23,7 @@ export const PAGE_ICONS: Readonly<Record<PageId, IconName>> = {
   overview: "activity",
   translations: "diff",
   review: "review",
-  glossary: "book",
+  glossary: "glossary",
   settings: "settings",
 };
 

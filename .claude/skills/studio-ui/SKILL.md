@@ -140,8 +140,8 @@ Conventions carried by that list:
   currently shares the accent hue with links and focus.
 - **Navigation is a top header, not a sidebar.** `AppHeader.tsx` follows the docs site header: a
   `--surface-chrome` bar with a `--border-default` bottom line, text links in `--text-muted` that
-  turn `--text-strong` on hover and `--accent` when `aria-current="page"`, with a 1px `--v-glow`
-  underline as the active mark. Below `lg` the links move into a `Sheet` drawer. There are no
+  turn `--text-strong` on hover and `--accent` when `aria-current="page"`, with a 1px `--accent`
+  underline under the hovered and the current link. Below `xl` the links move into a `Sheet` drawer. There are no
   `sidebar-*` tokens.
 
 **The modal scrim has its own token.** `OverlayBackdrop` (`packages/ui/src/sheet.tsx`) draws it with

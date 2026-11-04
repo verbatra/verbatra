@@ -13,15 +13,25 @@ export interface NavDrawerProps {
   readonly activePage: PageId;
   readonly pageBadges: Readonly<Partial<Record<PageId, number>>>;
   readonly onClose: () => void;
+  readonly shouldRestoreFocus?: () => boolean;
 }
 
-export function NavDrawer({ activePage, pageBadges, onClose }: NavDrawerProps): ReactNode {
-  const containerRef = useDialogA11y<HTMLDivElement>({ isOpen: true, onClose });
+export function NavDrawer({
+  activePage,
+  pageBadges,
+  onClose,
+  shouldRestoreFocus,
+}: NavDrawerProps): ReactNode {
+  const containerRef = useDialogA11y<HTMLDivElement>({
+    isOpen: true,
+    onClose,
+    ...(shouldRestoreFocus !== undefined ? { shouldRestoreFocus } : {}),
+  });
 
   return (
-    <div className="lg:hidden">
+    <div className="xl:hidden">
       <Sheet
-        side="start"
+        side="end"
         size="narrow"
         title="Menu"
         ariaLabel="Navigation"
@@ -29,7 +39,7 @@ export function NavDrawer({ activePage, pageBadges, onClose }: NavDrawerProps): 
         onClose={onClose}
         containerRef={containerRef}
       >
-        <HeaderSearch className="mb-4" onSearch={onClose} />
+        <HeaderSearch label="Drawer keys" className="mb-4 md:hidden" onSearch={onClose} />
         {NAV_GROUPS.map((group) => (
           <nav key={group.label} aria-label={group.label} className="mb-4 flex flex-col gap-1">
             <p className="mb-1 font-mono text-[11px] font-semibold uppercase tracking-(--tracking-wide) text-(--text-muted)">
@@ -53,11 +63,23 @@ export function NavDrawer({ activePage, pageBadges, onClose }: NavDrawerProps): 
           aria-label="Help"
           className="flex flex-col gap-1 border-t border-(--border-default) pt-3"
         >
-          <a href={DOCS_URL} target="_blank" rel="noreferrer" className={EXTERNAL_LINK}>
+          <a
+            href={DOCS_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Documentation (opens in a new tab)"
+            className={EXTERNAL_LINK}
+          >
             <Icon name="book" className="flex-none" />
             Documentation
           </a>
-          <a href={GITHUB_URL} target="_blank" rel="noreferrer" className={EXTERNAL_LINK}>
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="GitHub (opens in a new tab)"
+            className={EXTERNAL_LINK}
+          >
             <GithubGlyph />
             GitHub
           </a>
