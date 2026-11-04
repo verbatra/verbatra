@@ -1,0 +1,9 @@
+---
+"@verbatra/studio": patch
+---
+
+Link straight to a locale, status filter or key (`#/translations?locale=de&status=missing&key=...`).
+
+- **Deep links:** `#/translations` takes `locale`, `status` (repeat it for several) and `key`, and opens the filtered list with the key's details. `#/review` takes `locale`. Unknown values are ignored.
+- **Shareable state:** changing a filter or opening a key updates the address in place, without adding browser history entries, so you can copy the address from the bar.
+- **Pages:** the sidebar now groups Overview, Translations and Review under Workspace and Glossary and Settings under Project. Overview shows the former Activity page, and `#/activity` links keep working.
