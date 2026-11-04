@@ -21,7 +21,7 @@ Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra 
 
 ## Lee la página Translations
 
-Translations lista cada clave que falta, modificada o huérfana, como una **List** por locale con un filtro de texto o como un **Grid** de claves por locale, sobre una tabla con la cobertura de cada locale y el estado del [archivo de bloqueo](/es/docs/the-lock-file).
+Translations lista cada clave que falta, modificada o huérfana, como una **List** por locale con un filtro de texto o como un **Grid** de claves por locale.
 
 Haz clic en una clave para ver el valor de cada locale con un indicador de integridad: los placeholders coinciden, un desajuste de placeholders con los tokens nombrados, o una sintaxis de mensaje no válida. También se muestra:
 
@@ -53,8 +53,8 @@ La página Review lista cada valor que escribió una máquina y que nadie ha apr
 
 <StudioScreenshot
   shot="review"
-  alt="La página Review de Verbatra Studio con cinco entradas marcadas en los locales de, es y fr; cada fila muestra la clave, sus motivos de revisión y las acciones Edit, Approve y Reject."
-  caption="La cola de Review tras una ejecución. Studio viene en claro y oscuro; cambia la captura para compararlos."
+  alt="La página Review de Verbatra Studio en el estado Needs review con entradas en alemán; dos filas llevan motivos de revisión, Matches source text y Unusual length, junto al origen Machine, y cada fila tiene las acciones Edit, Approve y Reject."
+  caption="La cola de Review tras una ejecución, con las filas marcadas y sus motivos. Studio viene en claro y oscuro; cambia la captura para compararlos."
 />
 
 ### Nombres de las señales
@@ -126,15 +126,23 @@ Aparece entonces un botón **Retranslate** en cada fila de Review, y en la vista
 
 Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nombra el archivo y las claves añadidas, modificadas o eliminadas. Con `--allow-spend`, además ofrece **Translate pending changes across all locales**: la misma ejecución que haría `verbatra translate`, con el resultado indicado en el propio aviso.
 
-## Revisa la última ejecución en Activity
+## Revisa la cobertura y la última ejecución en Overview
 
-Activity muestra el historial de git de tus archivos de locale y el uso de tokens de la última ejecución registrada, con el medidor de presupuesto cuando hay un presupuesto de tokens configurado.
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-## Mantén el glosario al día en Settings
+Overview es la página con la que arranca Studio. Muestra la cobertura de cada locale con su estado en el [archivo de bloqueo](/es/docs/the-lock-file), el historial de git de tus archivos de locale y el uso de tokens de la última ejecución registrada, con el medidor de presupuesto cuando hay un presupuesto de tokens configurado.
+
+<StudioScreenshot
+  shot="overview"
+  alt="La página Overview de Verbatra Studio con tres cifras, Needs attention, Avg coverage y Locales in sync, sobre una tabla con la cobertura de los locales de, es y fr."
+  caption="La página Overview es con la que arranca Studio. Cambia la captura para comparar claro y oscuro."
+/>
+
+## Mantén el glosario al día en la página Glossary
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Settings muestra la configuración con la que arrancó Studio y el glosario. Si el glosario es un archivo JSON, puedes añadir, editar y eliminar términos; cada cambio se escribe directamente en el archivo. Un glosario escrito dentro de `verbatra.config.ts` sigue siendo de solo lectura.
+Glossary tiene su propia página, donde antes de 0.7.0 estaba en Settings. Si el glosario es un archivo JSON, puedes añadir, editar y eliminar términos; cada cambio se escribe directamente en el archivo. Un glosario escrito dentro de `verbatra.config.ts` sigue siendo de solo lectura.
 
 Una edición del glosario cambia lo que se le indica a la siguiente ejecución, nunca el texto ya escrito; reinicia Studio para que sus propias retraducciones la usen.
 

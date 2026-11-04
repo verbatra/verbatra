@@ -21,7 +21,7 @@ Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra 
 
 ## Read the Translations page
 
-Translations lists every missing, changed and orphaned key, as a **List** per locale with a text filter or as a key-by-locale **Grid**, above a table of each locale's coverage and [lock file](/docs/the-lock-file) state.
+Translations lists every missing, changed and orphaned key, as a **List** per locale with a text filter or as a key-by-locale **Grid**.
 
 Click a key to see every locale's value with an integrity indicator: placeholders match, a placeholder mismatch with the tokens named, or invalid message syntax. Also shown:
 
@@ -53,8 +53,8 @@ The Review page lists every value a machine wrote that nobody has approved: one 
 
 <StudioScreenshot
   shot="review"
-  alt="The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
-  caption="The Review queue after a run. Studio ships in light and dark; switch the screenshot to compare."
+  alt="The Verbatra Studio Review page in the Needs review state, listing German entries; two rows carry review reasons, Matches source text and Unusual length, next to the Machine origin, and each row has Edit, Approve and Reject actions."
+  caption="The Review queue after a run, with flagged rows showing their reasons. Studio ships in light and dark; switch the screenshot to compare."
 />
 
 ### Flag labels
@@ -126,15 +126,23 @@ A **Retranslate** button then appears on each Review row, and in a key's detail 
 
 When the source file changes while Studio runs, a toast names the file and the keys added, changed or removed. With `--allow-spend`, it also offers **Translate pending changes across all locales**: the same run `verbatra translate` would do, with the result reported inline.
 
-## Check the last run on Activity
+## Check coverage and the last run on Overview
 
-Activity shows the git history of your locale files and the token usage of the last recorded run, with the budget meter when a token budget is configured.
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-## Keep the glossary current on Settings
+Studio opens on Overview. It shows each locale's coverage with its [lock file](/docs/the-lock-file) state, the locale files' git history and the last run's token usage, with the budget meter when a budget is set.
+
+<StudioScreenshot
+  shot="overview"
+  alt="The Verbatra Studio Overview page with three figures, Needs attention, Avg coverage and Locales in sync, above a table with the coverage of the de, es and fr locales."
+  caption="The Overview page opens Studio. Switch the screenshot to compare light and dark."
+/>
+
+## Keep the glossary current on the Glossary page
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Settings shows the configuration Studio started with and the glossary. If the glossary is a JSON file, you can add, edit and remove terms; each change is written straight to the file. An inline glossary in `verbatra.config.ts` stays read-only.
+Glossary has its own page, where it sat on Settings before 0.7.0. If the glossary is a JSON file, you can add, edit and remove terms; each change is written straight to the file. An inline glossary in `verbatra.config.ts` stays read-only.
 
 A glossary edit changes what the next run is told, never text already written; restart Studio for its own retranslations to use it.
 

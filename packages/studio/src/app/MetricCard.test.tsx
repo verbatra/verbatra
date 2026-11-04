@@ -100,4 +100,20 @@ describe("MetricCard", () => {
 
     expect(view.query("[aria-hidden='true']")).toBeNull();
   });
+
+  it("turns the hint into a link when the caller gives an address", () => {
+    const view = render(
+      <MetricCard label="Needs attention" value="2" hint="2 keys" hintHref="#/x" />,
+    );
+
+    expect(view.get('a[href="#/x"]').textContent).toBe("2 keys");
+  });
+
+  it("renders a quiet figure smaller and muted, with no mono weight", () => {
+    const view = render(<MetricCard label="Tokens" value="Not reported" quiet />);
+    const figure = view.getByText("div", "Not reported");
+
+    expect(figure.className).toContain("text-muted-foreground");
+    expect(figure.className).not.toContain("font-bold");
+  });
 });

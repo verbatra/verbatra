@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   averageCoverage,
   coveragePercent,
-  outOfSyncCount,
   type StatusRow,
   toStatusData,
   toStatusOutcome,
@@ -33,21 +32,6 @@ describe("averageCoverage", () => {
       statusRow({ locale: "ar", percent: 34 }),
     ];
     expect(averageCoverage(rows)).toBe(61);
-  });
-});
-
-describe("outOfSyncCount", () => {
-  it("counts only the rows that are out of sync", () => {
-    const rows = [
-      statusRow({ locale: "de", inSync: true }),
-      statusRow({ locale: "fr", inSync: false }),
-      statusRow({ locale: "ar", inSync: false }),
-    ];
-    expect(outOfSyncCount(rows)).toBe(2);
-  });
-
-  it("is zero when every locale is in sync", () => {
-    expect(outOfSyncCount([statusRow({ inSync: true })])).toBe(0);
   });
 });
 

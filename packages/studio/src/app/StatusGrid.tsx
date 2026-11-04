@@ -11,6 +11,7 @@ import type { RefreshableView } from "../client/state.js";
 import { KeyLocaleStatusBadge } from "./DiffBadge.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { cn } from "./lib/cn.js";
+import { ScrollHint } from "./ScrollHint.js";
 import { useStatusData } from "./use-status-data.js";
 
 const gridCellClassName = "px-3 py-2 text-start whitespace-nowrap";
@@ -216,7 +217,7 @@ export function StatusGrid({ locales, refreshToken, onSelectKey }: StatusGridPro
       {status.kind === "data" && status.stale && (
         <ErrorMessage error={status.error} prefix="Showing the last known coverage." />
       )}
-      <TableCard>
+      <TableCard aria-label="Key status by locale">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
@@ -261,6 +262,7 @@ export function StatusGrid({ locales, refreshToken, onSelectKey }: StatusGridPro
           </tbody>
         </table>
       </TableCard>
+      <ScrollHint />
       {capped.truncated ? (
         <p className="mt-2 text-xs text-muted-foreground">
           Showing the first {MAX_RENDERED_KEYS} of {capped.totalMatches} keys. Switch to the List

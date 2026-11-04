@@ -109,7 +109,7 @@ token, so you cannot guess the address. The proven boot sequence lives in
    expected and the session stays valid: every later navigation can use the bare
    `http://127.0.0.1:<port>/#/<panel>`. Do not re-add the token and do not treat the
    disappearance as a broken session.
-5. Panels are `#/translations`, `#/review`, `#/activity`, `#/settings`.
+5. Pages are `#/overview` (the default), `#/translations`, `#/review`, `#/glossary`, `#/settings`.
 
 Before you finish, close the browser and kill the server you spawned:
 `pkill -f "cli/dist/index.js studio --cwd apps/docs/scripts/studio-fixture"`. Leave the

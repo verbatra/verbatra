@@ -75,6 +75,19 @@ export function TableCell({
   );
 }
 
-export function TableCard({ className, ...props }: HTMLAttributes<HTMLDivElement>): ReactNode {
-  return <Card padding="none" className={cn("overflow-x-auto", className)} {...props} />;
+export function TableCard({
+  className,
+  "aria-label": ariaLabel,
+  ...props
+}: HTMLAttributes<HTMLDivElement>): ReactNode {
+  const labelled =
+    ariaLabel === undefined ? {} : { role: "region", tabIndex: 0, "aria-label": ariaLabel };
+  return (
+    <Card
+      padding="none"
+      className={cn("overflow-x-auto", ariaLabel !== undefined && "vk-field", className)}
+      {...labelled}
+      {...props}
+    />
+  );
 }

@@ -1,13 +1,7 @@
 {
-  "nav": {
-    "home": "Startseite",
-    "products": "Produkte",
-    "cart": "Warenkorb",
-    "support": "Support"
-  },
   "hero": {
-    "title": "Alles, was der Northwind-Katalog zu bieten hat",
-    "subtitle": "Browse thousands of products, and check out in your own language."
+    "subtitle": "Browse thousands of products, and check out in your own language.",
+    "title": "Alles, was der Northwind-Katalog zu bieten hat"
   },
   "checkout": {
     "submit": "Bestellung jetzt verbindlich und kostenpflichtig abschicken",
@@ -15,6 +9,12 @@
     "shipping": "Lieferadresse",
     "promoApplied": "Promo-Code {code} angewendet",
     "itemCount": "{count, plural, one {# Artikel} other {# Artikel}} in deinem Warenkorb"
+  },
+  "nav": {
+    "home": "Startseite",
+    "products": "Produkte",
+    "cart": "Warenkorb",
+    "support": "Support"
   },
   "account": {
     "signIn": "Anmelden",

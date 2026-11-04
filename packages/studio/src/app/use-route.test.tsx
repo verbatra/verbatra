@@ -90,7 +90,7 @@ describe("useCanonicalHash", () => {
 
     const probe = mountProbe();
 
-    expect(window.location.hash).toBe("#/translations");
+    expect(window.location.hash).toBe("#/overview");
     expect(window.history.length).toBe(entries);
     expect(probe.latest().params).toEqual({});
   });

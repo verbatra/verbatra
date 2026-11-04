@@ -19,13 +19,21 @@ const BOOT_TIMEOUT_MS = 60_000;
 
 const THEMES = ["dark", "light"];
 const SHOTS = [
-  { name: "studio-review", hash: "review", heading: "Review", ready: "Reasons", height: 600 },
+  {
+    name: "studio-overview",
+    hash: "overview",
+    heading: "Overview",
+    ready: "Up to date",
+    height: 640,
+  },
+  { name: "studio-review", hash: "review", heading: "Review", ready: "Reasons", height: 692 },
   {
     name: "studio-translations",
     hash: "translations",
     heading: "Translations",
-    ready: "Locales",
-    height: 1180,
+    ready: "Grid",
+    listView: true,
+    height: 906,
   },
 ];
 
@@ -118,6 +126,10 @@ async function capture(browser, entryUrl, theme) {
     }, shot.hash);
     await page.getByRole("heading", { level: 1, name: shot.heading, exact: true }).waitFor();
     await page.getByText(shot.ready, { exact: true }).first().waitFor();
+    if (shot.listView) {
+      await page.getByRole("button", { name: "List", exact: true }).click();
+      await page.getByText("Pending changes", { exact: true }).first().waitFor();
+    }
     await page.waitForTimeout(400);
 
     const png = await page.screenshot({ animations: "disabled" });

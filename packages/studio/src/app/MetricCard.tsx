@@ -12,7 +12,9 @@ export function MetricCard({
   label,
   value,
   hint,
+  hintHref,
   icon,
+  quiet = false,
   tone = "default",
   progress,
   progressTone = "primary",
@@ -20,14 +22,17 @@ export function MetricCard({
   readonly label: string;
   readonly value: ReactNode;
   readonly hint?: string;
+  readonly hintHref?: string;
   readonly icon?: IconName;
+  readonly quiet?: boolean;
   readonly tone?: "default" | "success" | "danger";
   readonly progress?: number;
   readonly progressTone?: "primary" | "danger";
 }): ReactNode {
   const valueClassName = cn(
-    "mt-2 font-mono text-2xl font-bold tabular-nums",
-    VALUE_TONE_CLASSNAME[tone],
+    "mt-2 tabular-nums",
+    quiet ? "text-base font-medium text-muted-foreground" : "font-mono text-2xl font-bold",
+    quiet ? undefined : VALUE_TONE_CLASSNAME[tone],
   );
   return (
     <Card padding="sm" className="min-w-0">
@@ -46,7 +51,20 @@ export function MetricCard({
       ) : (
         <div className={valueClassName}>{value}</div>
       )}
-      {hint !== undefined ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
+      {hint !== undefined ? (
+        <p className="mt-1 text-xs text-muted-foreground">
+          {hintHref !== undefined ? (
+            <a
+              href={hintHref}
+              className="underline underline-offset-2 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+            >
+              {hint}
+            </a>
+          ) : (
+            hint
+          )}
+        </p>
+      ) : null}
       {progress !== undefined ? (
         <ProgressBar percent={progress} tone={progressTone} className="mt-3" />
       ) : null}

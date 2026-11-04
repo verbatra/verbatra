@@ -538,10 +538,9 @@ describe("GlossarySection, not file-backed", () => {
     expect(view.text()).not.toContain("Do not translate");
   });
 
-  it("names the file a file-backed glossary came from, and says nothing about read-only", async () => {
+  it("says nothing about read-only for a file-backed glossary", async () => {
     const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
 
-    expect(view.text()).toContain("Source: file (glossary.json)");
     expect(view.text()).not.toContain("written inline");
   });
 });

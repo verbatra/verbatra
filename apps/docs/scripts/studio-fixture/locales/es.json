@@ -1,18 +1,18 @@
 {
-  "nav": {
-    "home": "Inicio",
-    "products": "Productos",
-    "cart": "Cart",
-    "support": "Soporte"
-  },
   "hero": {
-    "title": "Todo lo que el catálogo de Northwind puede ofrecerte",
-    "subtitle": "Explora miles de productos y paga en tu propio idioma."
+    "subtitle": "Explora miles de productos y paga en tu propio idioma.",
+    "title": "Todo lo que el catálogo de Northwind puede ofrecerte"
   },
   "checkout": {
     "submit": "Realizar pedido",
     "total": "Total: {amount}",
     "shipping": "Dirección de envío"
+  },
+  "nav": {
+    "home": "Inicio",
+    "products": "Productos",
+    "cart": "Cart",
+    "support": "Soporte"
   },
   "account": {
     "signIn": "Iniciar sesión",

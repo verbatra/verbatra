@@ -232,12 +232,14 @@ Rules that follow:
   starts outside the dialog, Escape, focus restore) and
   `src/client/roving-tabindex.ts` already exist. Any new overlay, drawer, or keyboard
   listbox uses them rather than hand-rolling focus management.
-- **Panels:** the four panels under `src/app/panels/` all take `PanelProps`
-  (`{ refreshToken: number }`, `src/app/panel-props.ts`) and are wired through
-  `PAGE_PANELS`, `PAGE_LABELS`, `PAGE_ICONS`, and the `WORK_PAGES` / `REFERENCE_PAGES`
-  split in `App.tsx`. Adding a page means adding it to `PAGE_IDS` in
-  `src/client/routes.ts` and to every one of those tables; `App.tsx` throws at module load
-  if the two zone arrays do not partition `PAGE_IDS` exactly.
+- **Panels:** the five panels under `src/app/panels/` (Overview, Translations, Review, Glossary,
+  Settings) all take `PanelProps` (`{ refreshToken: number }`, `src/app/panel-props.ts`) except
+  Glossary and Settings, which read once, and are wired through `PAGE_PANELS` in `App.tsx` and
+  `PAGE_LABELS`, `PAGE_ICONS` and `NAV_GROUPS` in `src/app/nav-groups.ts`. `DEFAULT_PAGE` in
+  `src/client/routes.ts` is `overview`. Overview owns the metric row, the per-locale coverage
+  table, the last run and the locale file history; Translations keeps the key list or grid and
+  the editor; the glossary editor lives only on Glossary. Adding a page means adding it to
+  `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of those tables.
 
 ## Capabilities are two flags, and the decision is a pure function
 

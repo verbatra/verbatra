@@ -5,11 +5,13 @@ export function PageHeader({
   kicker,
   title,
   description,
+  meta,
   actions,
 }: {
   readonly kicker?: string;
   readonly title: string;
   readonly description?: string;
+  readonly meta?: ReactNode;
   readonly actions?: ReactNode;
 }): ReactNode {
   return (
@@ -20,9 +22,14 @@ export function PageHeader({
         {description !== undefined ? (
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>
         ) : null}
+        {meta !== undefined ? (
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            {meta}
+          </div>
+        ) : null}
       </div>
       {actions !== undefined ? (
-        <div className="flex flex-none items-center gap-2">{actions}</div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>
       ) : null}
     </header>
   );

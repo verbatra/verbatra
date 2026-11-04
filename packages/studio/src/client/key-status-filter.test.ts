@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DiffLocale } from "./diff-view.js";
 import {
+  attentionEntryCount,
   isKeyFilterActive,
   isLocaleListed,
   type KeyGroups,
@@ -233,5 +234,24 @@ describe("key status filter: search", () => {
     expect(isLocaleListed("de", de, filter, true)).toBe(false);
     expect(isLocaleListed("fr", fr, filter, true)).toBe(true);
     expect(listedStatuses(fr, filter, true)).toEqual(["orphaned"]);
+  });
+});
+
+describe("attentionEntryCount", () => {
+  it("equals the missing, changed and orphaned filter chip totals together", () => {
+    const locales: readonly DiffLocale[] = [
+      { ...DE, orphaned: ["a.old"] },
+      { ...FR, orphaned: ["b.old", "b.older"] },
+    ];
+    const chips = statusCounts(locales, { review: [], integrity: [] }, null);
+
+    expect(attentionEntryCount(locales)).toBe(chips.missing + chips.changed + chips.orphaned);
+    expect(attentionEntryCount(locales)).toBeGreaterThan(0);
+  });
+
+  it("ignores the protected, review and integrity groups, which are not drift", () => {
+    expect(
+      attentionEntryCount([{ ...DE, missing: [], changed: [], protected: ["a.changed"] }]),
+    ).toBe(0);
   });
 });

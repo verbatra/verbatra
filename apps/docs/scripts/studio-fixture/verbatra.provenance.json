@@ -1,0 +1,239 @@
+{
+  "version": 1,
+  "locales": {
+    "de": {
+      "nav.home": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "4fd4cbaba40a5071"
+      },
+      "nav.products": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "e8096178c62ab4a3"
+      },
+      "nav.cart": {
+        "origin": "human",
+        "valueHash": "c35b15633952b1b0"
+      },
+      "nav.support": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "3736464cf8d6fa08"
+      },
+      "hero.title": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "27c557081a0aa374"
+      },
+      "hero.subtitle": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "219f9aa22195d776"
+      },
+      "checkout.submit": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "9cf0afd40d3b0e33"
+      },
+      "checkout.total": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "fa1f8f3516ce2b0a"
+      },
+      "checkout.shipping": {
+        "origin": "human",
+        "valueHash": "5f1b94191c48b477"
+      },
+      "checkout.promoApplied": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "7faeaba26642174f"
+      },
+      "checkout.itemCount": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "653504929b68d43e"
+      },
+      "account.signIn": {
+        "origin": "human",
+        "valueHash": "4827a17f7be6ee2f"
+      },
+      "account.signOut": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "f7421fc8f5906183"
+      },
+      "errors.network": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "33a63ba850555dd4"
+      }
+    },
+    "es": {
+      "nav.home": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "cfd2f6eeb05c057a"
+      },
+      "nav.products": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "dd95eff1bd195cfe"
+      },
+      "nav.cart": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "dfef5f9ce9ebd46f"
+      },
+      "nav.support": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "7d8308fe9e8440af"
+      },
+      "hero.title": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "22bb94399a0e5dca"
+      },
+      "hero.subtitle": {
+        "origin": "human",
+        "valueHash": "c63071d676a29c7a"
+      },
+      "checkout.submit": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "25680cd641c19ac6"
+      },
+      "checkout.total": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "54f9117abd19d027"
+      },
+      "checkout.shipping": {
+        "origin": "human",
+        "valueHash": "9b7d0640e4e2e1af"
+      },
+      "account.signIn": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "22497e4b0d28ef9b"
+      },
+      "account.signOut": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "98da0f9020a8db97"
+      }
+    },
+    "fr": {
+      "nav.home": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "e627415befeda34d"
+      },
+      "nav.products": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "f6b4b978cdb95887"
+      },
+      "nav.cart": {
+        "origin": "human",
+        "valueHash": "67ef7044d511fd74"
+      },
+      "nav.support": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "3ce86314614d5ee1"
+      },
+      "hero.title": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "321694f46bf09614"
+      },
+      "hero.subtitle": {
+        "origin": "human",
+        "valueHash": "5e2c80c98ec24069"
+      },
+      "checkout.submit": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "559f02d2ae127162"
+      },
+      "checkout.total": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "a8b215f338b22251"
+      },
+      "checkout.shipping": {
+        "origin": "human",
+        "valueHash": "37b24c21c2b90aba"
+      },
+      "checkout.promoApplied": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "0116107f8b1473d3"
+      },
+      "checkout.itemCount": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "21f04936e295151d"
+      },
+      "account.signIn": {
+        "origin": "human",
+        "valueHash": "884d1bd525221e20"
+      },
+      "account.signOut": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "4f21a223cc7f0a39"
+      },
+      "account.orders": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "7ae70caa4abae79e"
+      },
+      "errors.network": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "2d6c33dafdc57993"
+      },
+      "errors.outOfStock": {
+        "origin": "machine",
+        "provider": "gemini",
+        "model": "gemini-2.5-flash",
+        "valueHash": "77334784913cab0f"
+      }
+    }
+  }
+}

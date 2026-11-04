@@ -30,7 +30,7 @@ vi.mock("./api.js", () => import("./test-support.js").then((module) => module.ap
 const MACHINE = { origin: "machine", reviewState: "unreviewed" } as const;
 
 const PAGE_HEADINGS: Readonly<Record<PageId, string>> = {
-  overview: "Activity",
+  overview: "Overview",
   translations: "Translations",
   review: "Review",
   glossary: "Glossary",
@@ -131,10 +131,12 @@ beforeEach(() => {
 });
 
 describe("App routing", () => {
-  it("lands on the daily workspace when the URL carries no hash", async () => {
+  it.each(["/", ""])("lands on the overview when the URL carries the hash %j", async (hash) => {
+    goToHash(hash);
+
     const view = await mount();
 
-    expect(view.get("h1").textContent).toBe("Translations");
+    expect(view.get("h1").textContent).toBe("Overview");
   });
 
   for (const page of PAGE_IDS) {
@@ -152,7 +154,7 @@ describe("App routing", () => {
 
     const view = await mount();
 
-    expect(view.get("h1").textContent).toBe("Activity");
+    expect(view.get("h1").textContent).toBe("Overview");
   });
 
   it("sends the retired #/activity link to the overview without a new history entry", async () => {
@@ -163,7 +165,7 @@ describe("App routing", () => {
 
     expect(window.location.hash).toBe("#/overview");
     expect(window.history.length).toBe(entries);
-    expect(view.get("h1").textContent).toBe("Activity");
+    expect(view.get("h1").textContent).toBe("Overview");
     expect(view.get('header [aria-current="page"]').textContent).toContain("Overview");
   });
 
@@ -194,12 +196,12 @@ describe("App routing", () => {
     );
   });
 
-  it("falls back to the workspace for a hash no version of the dashboard knows", async () => {
+  it("falls back to the overview for a hash no version of the dashboard knows", async () => {
     goToHash("#/nonsense");
 
     const view = await mount();
 
-    expect(view.get("h1").textContent).toBe("Translations");
+    expect(view.get("h1").textContent).toBe("Overview");
   });
 
   it("follows a hash change made outside the app, such as browser back", async () => {
@@ -443,7 +445,7 @@ describe("App navigation chrome", () => {
     await clickAsync(view.get('[role="dialog"] [aria-label="Close navigation"]'));
 
     expect(view.query('[role="dialog"]')).toBeNull();
-    expect(view.get("h1").textContent).toBe("Translations");
+    expect(view.get("h1").textContent).toBe("Overview");
   });
 
   it("returns focus to the menu button when the drawer closes on Escape", async () => {

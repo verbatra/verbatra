@@ -21,7 +21,7 @@ verbatra studio
 
 ## Lies die Seite Translations
 
-Translations listet jeden fehlenden, geänderten und verwaisten Key, als **List** pro Locale mit Textfilter oder als **Grid** aus Keys und Locales, über einer Tabelle mit der Abdeckung jeder Locale und dem Zustand in der [Lock-Datei](/de/docs/the-lock-file).
+Translations listet jeden fehlenden, geänderten und verwaisten Key, als **List** pro Locale mit Textfilter oder als **Grid** aus Keys und Locales.
 
 Klick auf einen Key, um den Wert jeder Locale mit einer Integritätsanzeige zu sehen: Platzhalter stimmen, eine Platzhalter-Abweichung mit den benannten Tokens oder ungültige Nachrichtensyntax. Außerdem angezeigt:
 
@@ -53,8 +53,8 @@ Die Seite Review listet jeden Wert, den eine Maschine geschrieben und niemand fr
 
 <StudioScreenshot
   shot="review"
-  alt="Die Seite Review in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr, wobei jede Zeile den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject zeigt."
-  caption="Die Review-Warteschlange nach einem Lauf. Studio gibt es hell und dunkel; wechsle den Screenshot, um zu vergleichen."
+  alt="Die Seite Review in Verbatra Studio im Zustand Needs review mit deutschen Einträgen; zwei Zeilen tragen Review-Gründe, Matches source text und Unusual length, neben der Herkunft Machine, und jede Zeile hat die Aktionen Edit, Approve und Reject."
+  caption="Die Review-Warteschlange nach einem Lauf, markierte Zeilen mit ihren Gründen. Studio gibt es hell und dunkel; wechsle den Screenshot, um zu vergleichen."
 />
 
 ### Flag-Bezeichnungen
@@ -126,15 +126,23 @@ Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und in der Detai
 
 Ändert sich die Quelldatei, während Studio läuft, nennt eine Benachrichtigung die Datei und die hinzugefügten, geänderten oder entfernten Keys. Mit `--allow-spend` bietet sie außerdem **Translate pending changes across all locales** an: denselben Lauf, den `verbatra translate` machen würde, mit dem Ergebnis direkt daneben.
 
-## Prüfe den letzten Lauf unter Activity
+## Prüfe Abdeckung und letzten Lauf unter Overview
 
-Activity zeigt die Git-Historie deiner Locale-Dateien und den Token-Verbrauch des letzten erfassten Laufs, mit der Budgetanzeige, wenn ein Token-Budget konfiguriert ist.
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-## Halte das Glossar unter Settings aktuell
+Overview ist die Seite, auf der Studio startet. Sie zeigt die Abdeckung jeder Locale mit ihrem Zustand in der [Lock-Datei](/de/docs/the-lock-file), die Git-Historie deiner Locale-Dateien und den Token-Verbrauch des letzten erfassten Laufs, mit der Budgetanzeige, wenn ein Token-Budget konfiguriert ist.
+
+<StudioScreenshot
+  shot="overview"
+  alt="Die Seite Overview in Verbatra Studio mit drei Kennzahlen, Needs attention, Avg coverage und Locales in sync, über einer Tabelle mit der Abdeckung der Locales de, es und fr."
+  caption="Die Seite Overview ist der Start von Studio. Wechsle den Screenshot, um hell und dunkel zu vergleichen."
+/>
+
+## Halte das Glossar auf der Seite Glossary aktuell
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Settings zeigt die Konfiguration, mit der Studio gestartet wurde, und das Glossar. Ist das Glossar eine JSON-Datei, kannst du Begriffe hinzufügen, bearbeiten und entfernen; jede Änderung wird direkt in die Datei geschrieben. Ein Inline-Glossar in `verbatra.config.ts` bleibt schreibgeschützt.
+Glossary hat eine eigene Seite, auf der es vor 0.7.0 unter Settings lag. Ist das Glossar eine JSON-Datei, kannst du Begriffe hinzufügen, bearbeiten und entfernen; jede Änderung wird direkt in die Datei geschrieben. Ein Inline-Glossar in `verbatra.config.ts` bleibt schreibgeschützt.
 
 Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits geschriebenen Text; starte Studio neu, damit seine eigenen Neuübersetzungen sie nutzen.
 

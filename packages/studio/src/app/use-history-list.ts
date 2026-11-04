@@ -7,14 +7,18 @@ export type HistoryState =
   | { readonly kind: "loading" }
   | { readonly kind: "error"; readonly error: StructuredError }
   | { readonly kind: "unavailable"; readonly reason: HistoryUnavailableReason }
-  | { readonly kind: "loaded"; readonly commits: readonly HistoryCommit[] };
+  | {
+      readonly kind: "loaded";
+      readonly commits: readonly HistoryCommit[];
+      readonly requestedLimit?: number | undefined;
+    };
 
-export function useHistoryList(refreshToken?: unknown): HistoryState {
+export function useHistoryList(refreshToken?: unknown, limit?: number): HistoryState {
   const [state, setState] = useState<HistoryState>({ kind: "loading" });
 
   useEffect(() => {
     let cancelled = false;
-    void rpcClient.call("history.list", {}).then((response) => {
+    void rpcClient.call("history.list", limit === undefined ? {} : { limit }).then((response) => {
       if (cancelled) {
         return;
       }
@@ -26,12 +30,12 @@ export function useHistoryList(refreshToken?: unknown): HistoryState {
         setState({ kind: "unavailable", reason: response.result.reason });
         return;
       }
-      setState({ kind: "loaded", commits: response.result.commits });
+      setState({ kind: "loaded", commits: response.result.commits, requestedLimit: limit });
     });
     return () => {
       cancelled = true;
     };
-  }, [refreshToken]);
+  }, [refreshToken, limit]);
 
   return state;
 }

@@ -42,14 +42,15 @@ npx @verbatra/cli studio
 
 The command prints `Verbatra Studio running at http://127.0.0.1:5849/?token=...`. Open that URL; the token is required. Add `--port <n>` to change the port, and `--verbose` to also print one stderr line per request, with the token masked.
 
-<img src="https://raw.githubusercontent.com/verbatra/verbatra/main/apps/docs/public/screenshots/studio-translations-dark.webp" alt="The Translations page of Verbatra Studio in its dark theme, listing per-locale translation status beside a per-key detail view" width="100%" />
+<img src="https://raw.githubusercontent.com/verbatra/verbatra/main/apps/docs/public/screenshots/studio-overview-dark.webp" alt="The Overview page of Verbatra Studio in its dark theme, with coverage figures above a table of every locale" width="100%" />
 
 ## What it serves
 
-- **Translations**: per-locale status, the diff, and lock drift, filterable by state, locale, review queue entries, and integrity problems, down to a per-key detail view with the source value, every target's current translation, and who wrote it.
+- **Overview**: the page Studio opens on. Coverage and lock state per locale, the git commit history of the source and target locale files, and the last run's token usage and budget.
+- **Translations**: the diff, filterable by state, locale, review queue entries, and integrity problems, down to a per-key detail view with the source value, every target's current translation, and who wrote it.
 - **Review**: every machine-written translation nobody has approved yet, read from the committed files so the whole team sees the same queue. Approve, reject, or edit an entry side by side with its source, glossary terms, and integrity check, from the keyboard, in bulk, or a whole locale at once. Decisions are saved to `verbatra.provenance.json`, which `verbatra check --require-reviewed` gates on.
-- **Activity**: the git commit history of the source and target locale files, plus the last run's token usage and budget.
-- **Settings**: the resolved config, the glossary, and the session's capabilities. A glossary the project keeps in a JSON file is editable here.
+- **Glossary**: the project glossary. A glossary the project keeps in a JSON file is editable here.
+- **Settings**: the resolved config and the session's capabilities.
 
 Every page refreshes live as your locale files change. The config and its glossary are loaded once at startup, so a config change needs a restart. See [Review in Studio](https://verbatra.kreitz-webdev.de/docs/review-in-studio) for the review workflow.
 
