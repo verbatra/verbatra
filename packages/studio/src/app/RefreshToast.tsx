@@ -81,6 +81,7 @@ export function RefreshToast({ view, onDismiss }: RefreshToastProps): ReactNode 
           {showAction ? (
             <Button
               variant="primary"
+              className="max-w-full whitespace-normal text-start"
               disabled={state.kind === "loading"}
               onClick={() => void handleClick()}
             >

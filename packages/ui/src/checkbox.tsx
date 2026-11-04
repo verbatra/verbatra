@@ -27,7 +27,7 @@ export function Checkbox({
         type="checkbox"
         checked={checked}
         className={cn(
-          "vk-field vk-check peer size-4 cursor-pointer appearance-none rounded-(--radius-sm) border border-(--text-faint) bg-(--surface-raised) checked:border-(--accent-fill) checked:bg-(--accent-fill) indeterminate:border-(--accent-fill) indeterminate:bg-(--accent-fill) hover:border-(--border-accent) disabled:cursor-default disabled:opacity-60",
+          "vk-field vk-check peer size-4 cursor-pointer appearance-none rounded-(--radius-sm) border border-(--border-field) bg-(--surface-raised) hover:border-(--text-faint) checked:border-(--accent-fill) checked:bg-(--accent-fill) checked:hover:border-(--accent-fill) indeterminate:border-(--accent-fill) indeterminate:bg-(--accent-fill) indeterminate:hover:border-(--accent-fill) disabled:cursor-default disabled:opacity-60",
           className,
         )}
         {...props}
@@ -39,7 +39,7 @@ export function Checkbox({
           height={12}
           fill="none"
           stroke="currentColor"
-          strokeWidth={3}
+          strokeWidth={2.5}
           strokeLinecap="round"
           className={GLYPH}
           data-glyph="indeterminate"
