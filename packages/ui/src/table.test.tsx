@@ -157,6 +157,13 @@ describe("TableCard", () => {
     expect(card.className).toContain("overflow-x-auto");
   });
 
+  it("forwards a ref to the scrolling element, so a caller can measure it", () => {
+    const seen: Array<HTMLDivElement | null> = [];
+    const view = render(<TableCard ref={(element) => void seen.push(element)}>x</TableCard>);
+
+    expect(seen[0]).toBe(view.get("[data-padding]"));
+  });
+
   it("is a containing block, so visually hidden text inside a scrolled table cannot widen the page", () => {
     const view = render(<TableCard>x</TableCard>);
 

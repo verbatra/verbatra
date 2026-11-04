@@ -17,6 +17,7 @@ export interface TooltipProps {
   readonly label: string;
   readonly side?: TooltipSide;
   readonly decorative?: boolean;
+  readonly className?: string;
   readonly children: ReactNode;
 }
 
@@ -46,6 +47,7 @@ export function Tooltip({
   label,
   side = "end",
   decorative = false,
+  className,
   children,
 }: TooltipProps): ReactNode {
   const id = useId();
@@ -85,7 +87,7 @@ export function Tooltip({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: the wrapper only observes pointer and focus events bubbling from the control it describes
     <span
-      className="relative inline-flex"
+      className={cn("relative inline-flex", className)}
       onMouseEnter={() => show(setHovered)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => show(setFocused)}
@@ -96,6 +98,7 @@ export function Tooltip({
         <span
           data-slot=""
           data-side={side}
+          hidden={visible ? undefined : true}
           data-open={visible ? "" : undefined}
           className={cn(SLOT, POSITION[side])}
         >

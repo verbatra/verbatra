@@ -93,7 +93,7 @@ export function TableCard({
   className,
   "aria-label": ariaLabel,
   ...props
-}: HTMLAttributes<HTMLDivElement>): ReactNode {
+}: HTMLAttributes<HTMLDivElement> & { readonly ref?: Ref<HTMLDivElement> }): ReactNode {
   const labelled =
     ariaLabel === undefined ? {} : { role: "region", tabIndex: 0, "aria-label": ariaLabel };
   return (

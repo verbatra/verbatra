@@ -74,6 +74,33 @@ describe("Tooltip", () => {
     expect(mount().get(SLOT).hasAttribute("data-open")).toBe(false);
   });
 
+  it("takes no layout while closed, and still describes the control", () => {
+    const view = mount();
+    const slot = view.get(SLOT);
+
+    expect(slot.hidden).toBe(true);
+    expect(view.get("button").getAttribute("aria-describedby")).toBe(
+      view.get("[role='tooltip']").id,
+    );
+
+    hover(view.get("button"));
+    expect(view.get(SLOT).hidden).toBe(false);
+
+    unhover(view.get("button"));
+    expect(view.get(SLOT).hidden).toBe(true);
+  });
+
+  it("merges a caller className onto the wrapper", () => {
+    const view = render(
+      <Tooltip label="Tip" className="w-full">
+        <button type="button">c</button>
+      </Tooltip>,
+    );
+
+    expect(view.get("button").parentElement?.className).toContain("w-full");
+    expect(view.get("button").parentElement?.className).toContain("inline-flex");
+  });
+
   it("opens on hover and closes when the pointer leaves", () => {
     const view = mount();
 
