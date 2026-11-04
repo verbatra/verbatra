@@ -280,7 +280,23 @@ keyboard focus on the key button only (`trigger="focus"`, so the native title of
 and the tooltip never show together), the status marker carries a plain title, and the words reach
 assistive technology through visually hidden text in the status cell. `ScrollHint` takes the
 scroll card's ref and shows only while it overflows, at any width. A row is selected
-(`aria-selected`) while its key is open in the drawer or editor.
+(`aria-selected`) while its key is open in the editor.
+
+**Split editor.** One `KeyEditor` renders in two containers, chosen by a synchronous
+`matchMedia` read (`XL_QUERY`, 80rem) on the first render, never by an effect, so an `xl` deep link
+never mounts a modal: from `xl` it is `EditorPane`, a sticky `--radius-lg` card in a grid column
+beside the table that scrolls inside itself below the 3.5rem site header, and has no `aria-modal`;
+below `xl` it is the `DrawerShell` (side end). Editor state (the open locale, its draft, the unsaved
+prompt) lives in `KeyEditor`, above the container, so crossing `xl` keeps a draft. The translation
+form is inline in the locale block, built from the parts in `entry-editor-parts.tsx` that
+`EditEntryDialog` (Review only) shares; a second editor dialog or a copy of those parts is a defect.
+Roving focus stays on the row when a key opens, Escape in the pane moves focus back to the row, and
+the pane never takes a global letter shortcut. Every external route change goes through
+`route-guard.ts`: while a draft is dirty, `replaceRoute`, `navigateToPage`, `navigateToRoute` and a
+`hashchange` (back, forward, a typed hash) are held, the address is restored with `replaceState`,
+and an inline `UnsavedPrompt` (Save, Discard, Keep editing, never `window.confirm`) decides. A new
+control that changes the route needs no extra code, but it must honour the boolean the navigate
+helpers return before running its own side effects.
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they
@@ -306,7 +322,7 @@ The eligibility decision lives in `src/client/` as a tested pure function, never
 in a component: `canRetranslate` (`src/client/retranslate-eligibility.ts`, requires
 `spend`) and `canTranslatePending` (`src/client/refresh-toast.ts`, requires `spend` and
 `writeToDisk`). The component reads `useCapabilities()` and calls the helper.
-`KeyDetailDrawer.tsx` is the precedent for both shapes: `canRetranslate(capabilities, pill)`
+`KeyEditorLocale.tsx` is the precedent for both shapes: `canRetranslate(capabilities, pill)`
 for the spend-gated action and a direct `capabilities?.writeToDisk === true` check for
 edit. `RefreshToast.tsx` is the precedent for a gated toast action, and
 `SettingsPanel.tsx` is the only place that renders `spend` as visible status.
