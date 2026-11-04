@@ -32,6 +32,7 @@ const SHOTS = [
     hash: "translations",
     heading: "Translations",
     region: "Keys table",
+    settled: [/% up to date/, "Your orders"],
     height: 906,
   },
 ];
@@ -128,6 +129,12 @@ async function capture(browser, entryUrl, theme) {
       await page.getByText(shot.ready, { exact: true }).first().waitFor();
     } else {
       await page.getByRole("region", { name: shot.region, exact: true }).waitFor();
+      for (const text of shot.settled ?? []) {
+        await page
+          .getByText(text, { exact: typeof text === "string" })
+          .first()
+          .waitFor();
+      }
     }
     await page.waitForTimeout(400);
 
