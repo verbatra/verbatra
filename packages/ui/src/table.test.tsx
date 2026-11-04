@@ -170,6 +170,12 @@ describe("TableCard", () => {
     expect(view.get("[data-padding]").className.split(" ")).toContain("relative");
   });
 
+  it("is its own stacking context, so its sticky cells never rise above a drawer scrim", () => {
+    const view = render(<TableCard>x</TableCard>);
+
+    expect(view.get("[data-padding]").className.split(" ")).toContain("isolate");
+  });
+
   it("becomes a focusable labelled region when it has a label, so a keyboard can scroll it", () => {
     const view = render(<TableCard aria-label="Keys table">x</TableCard>);
     const card = view.get("[data-padding]");
