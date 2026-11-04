@@ -31,8 +31,7 @@ const SHOTS = [
     name: "studio-translations",
     hash: "translations",
     heading: "Translations",
-    ready: "Grid",
-    listView: true,
+    region: "Keys table",
     height: 906,
   },
 ];
@@ -125,10 +124,10 @@ async function capture(browser, entryUrl, theme) {
       window.location.hash = `#/${hash}`;
     }, shot.hash);
     await page.getByRole("heading", { level: 1, name: shot.heading, exact: true }).waitFor();
-    await page.getByText(shot.ready, { exact: true }).first().waitFor();
-    if (shot.listView) {
-      await page.getByRole("button", { name: "List", exact: true }).click();
-      await page.getByText("Pending changes", { exact: true }).first().waitFor();
+    if (shot.region === undefined) {
+      await page.getByText(shot.ready, { exact: true }).first().waitFor();
+    } else {
+      await page.getByRole("region", { name: shot.region, exact: true }).waitFor();
     }
     await page.waitForTimeout(400);
 
