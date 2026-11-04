@@ -25,7 +25,7 @@ export function MarkerTip({
   return texts.length === 0 ? (
     children
   ) : (
-    <Tooltip label={texts.join(", ")} side="bottom">
+    <Tooltip label={texts.join(", ")} side="bottom" decorative>
       {children}
     </Tooltip>
   );

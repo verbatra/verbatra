@@ -16,6 +16,7 @@ export type TooltipSide = "end" | "bottom" | "bottom-end";
 export interface TooltipProps {
   readonly label: string;
   readonly side?: TooltipSide;
+  readonly decorative?: boolean;
   readonly children: ReactNode;
 }
 
@@ -41,7 +42,12 @@ function joinIds(existing: string | undefined, id: string): string {
   return existing === undefined || existing === "" ? id : `${existing} ${id}`;
 }
 
-export function Tooltip({ label, side = "end", children }: TooltipProps): ReactNode {
+export function Tooltip({
+  label,
+  side = "end",
+  decorative = false,
+  children,
+}: TooltipProps): ReactNode {
   const id = useId();
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -49,7 +55,7 @@ export function Tooltip({ label, side = "end", children }: TooltipProps): ReactN
   const control = isValidElement<DescribableProps>(children) ? children : null;
   const disabled = control?.props.disabled === true;
   const visible = !disabled && (hovered || focused) && !dismissed;
-  const duplicatesName = control?.props["aria-label"] === label;
+  const duplicatesName = decorative || control?.props["aria-label"] === label;
 
   useEffect(() => {
     if (!visible) {

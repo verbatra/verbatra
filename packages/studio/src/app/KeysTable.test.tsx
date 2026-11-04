@@ -255,6 +255,15 @@ describe("KeysTable markers", () => {
     expect(entries.get("[role='tooltip']").textContent).toBe("In the review queue");
   });
 
+  it("does not announce the marker words twice", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table({ index: held }));
+    const button = view.get('[data-key="a.missing"] button');
+
+    expect(button.hasAttribute("aria-describedby")).toBe(false);
+    expect(view.get("[role='tooltip']").getAttribute("aria-hidden")).toBe("true");
+  });
+
   it("adds no tooltip to a cell without markers", async () => {
     stubRpc(NO_COVERAGE);
     const view = await renderAsync(table());

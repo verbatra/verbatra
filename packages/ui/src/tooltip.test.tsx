@@ -44,6 +44,18 @@ describe("Tooltip", () => {
     expect(view.query("[aria-hidden]")).toBeNull();
   });
 
+  it("adds no description and hides the bubble when it only repeats what the control already says", () => {
+    const view = render(
+      <Tooltip label="In the review queue" decorative>
+        <button type="button">key in de: Missing, In the review queue</button>
+      </Tooltip>,
+    );
+
+    expect(view.get("button").hasAttribute("aria-describedby")).toBe(false);
+    expect(view.get("[role='tooltip']").getAttribute("aria-hidden")).toBe("true");
+    expect(view.get("[role='tooltip']").textContent).toBe("In the review queue");
+  });
+
   it("keeps a describedby the control already has", () => {
     const view = render(
       <Tooltip label="Tip">
