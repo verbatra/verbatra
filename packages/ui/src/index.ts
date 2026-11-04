@@ -13,6 +13,8 @@ export { Card, type CardPadding, type CardProps } from "./card.tsx";
 export { Checkbox, type CheckboxProps } from "./checkbox.tsx";
 export { cn } from "./cn.ts";
 export type { FieldSize } from "./field.ts";
+export { FilterBar } from "./filter-bar.tsx";
+export { FilterChip, type FilterChipProps } from "./filter-chip.tsx";
 export { Icon, type IconName } from "./icon.tsx";
 export {
   SearchInput,
