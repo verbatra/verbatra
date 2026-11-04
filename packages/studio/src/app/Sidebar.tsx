@@ -9,10 +9,10 @@ import {
 import type { ReactNode } from "react";
 import type { PageId } from "../client/routes.js";
 import { cn } from "./lib/cn.js";
+import type { NavGroup } from "./nav-groups.js";
 
 export interface SidebarNavProps {
-  readonly workPages: readonly PageId[];
-  readonly referencePages: readonly PageId[];
+  readonly groups: readonly NavGroup[];
   readonly pageLabels: Readonly<Record<PageId, string>>;
   readonly pageIcons: Readonly<Record<PageId, IconName>>;
   readonly pageBadges?: Readonly<Partial<Record<PageId, number>>>;
@@ -170,6 +170,18 @@ function NavList({
   );
 }
 
+function NavGroups({
+  groups,
+  collapsed,
+  ...itemProps
+}: SidebarNavProps & { readonly collapsed: boolean }): ReactNode {
+  return groups.map((group, index) => (
+    <div key={group.label} className={index === 0 ? undefined : "mt-5"}>
+      <NavList pages={group.pages} navLabel={group.label} collapsed={collapsed} {...itemProps} />
+    </div>
+  ));
+}
+
 function HelpLinks({ collapsed }: { readonly collapsed: boolean }): ReactNode {
   const links: ReadonlyArray<{
     readonly label: string;
@@ -267,20 +279,7 @@ export function DesktopSidebar({
     >
       <SidebarBrand collapsed={collapsed} />
       <div className={cn("mt-5 min-h-0 flex-1", !collapsed && "overflow-y-auto")}>
-        <NavList
-          pages={navProps.workPages}
-          navLabel="Workspace"
-          collapsed={collapsed}
-          {...navProps}
-        />
-        <div className="mt-5">
-          <NavList
-            pages={navProps.referencePages}
-            navLabel="Reference"
-            collapsed={collapsed}
-            {...navProps}
-          />
-        </div>
+        <NavGroups collapsed={collapsed} {...navProps} />
       </div>
       <div className="flex flex-col gap-1 border-t border-sidebar-border pt-3">
         <HelpLinks collapsed={collapsed} />
@@ -317,20 +316,7 @@ export function MobileNavDrawer({
           />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <NavList
-            pages={navProps.workPages}
-            navLabel="Workspace"
-            collapsed={false}
-            {...navProps}
-          />
-          <div className="mt-5">
-            <NavList
-              pages={navProps.referencePages}
-              navLabel="Reference"
-              collapsed={false}
-              {...navProps}
-            />
-          </div>
+          <NavGroups collapsed={false} {...navProps} />
         </div>
         <div className="flex flex-col gap-1 border-t border-sidebar-border pt-3">
           <HelpLinks collapsed={false} />

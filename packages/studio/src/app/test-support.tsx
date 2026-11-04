@@ -269,6 +269,7 @@ afterEach(() => {
   connectionListeners.clear();
   connectionStatus = "live";
   stores = freshStores();
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
 });
 
 export function callerClasses(button: HTMLElement): readonly string[] {

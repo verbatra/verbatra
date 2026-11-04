@@ -27,9 +27,10 @@ vi.mock("./api.js", () => import("./test-support.js").then((module) => module.ap
 const MACHINE = { origin: "machine", reviewState: "unreviewed" } as const;
 
 const PAGE_HEADINGS: Readonly<Record<PageId, string>> = {
+  overview: "Activity",
   translations: "Translations",
   review: "Review",
-  activity: "Activity",
+  glossary: "Glossary",
   settings: "Settings",
 };
 
@@ -140,11 +141,52 @@ describe("App routing", () => {
   }
 
   it("accepts the bare hash form an older link may carry", async () => {
-    goToHash("#activity");
+    goToHash("#overview");
 
     const view = await mount();
 
     expect(view.get("h1").textContent).toBe("Activity");
+  });
+
+  it("sends the retired #/activity link to the overview without a new history entry", async () => {
+    goToHash("#/activity");
+    const entries = window.history.length;
+
+    const view = await mount();
+
+    expect(window.location.hash).toBe("#/overview");
+    expect(window.history.length).toBe(entries);
+    expect(view.get("h1").textContent).toBe("Activity");
+    expect(view.get('aside [aria-current="page"]').textContent).toContain("Overview");
+  });
+
+  it("groups the sidebar into Workspace and Project", async () => {
+    const view = await mount();
+    const labels = (group: string) =>
+      view
+        .all(`aside nav[aria-label="${group}"] button`)
+        .map((button) => button.textContent?.replace(/\d.*$/, ""));
+
+    expect(labels("Workspace")).toEqual(["Overview", "Translations", "Review"]);
+    expect(labels("Project")).toEqual(["Glossary", "Settings"]);
+  });
+
+  it("restores the filters of a deep link when browser back returns to the page", async () => {
+    goToHash("#/review?locale=de");
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Settings"));
+    expect(view.get("h1").textContent).toBe("Settings");
+    act(() => {
+      goToHash("#/review?locale=de");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    await flush();
+
+    expect(view.get("h1").textContent).toBe("Review");
+    expect((view.get('select[aria-label="Filter by locale"]') as HTMLSelectElement).value).toBe(
+      "de",
+    );
   });
 
   it("falls back to the workspace for a hash no version of the dashboard knows", async () => {
@@ -170,9 +212,9 @@ describe("App routing", () => {
   it("writes the canonical hash when a nav item is chosen", async () => {
     const view = await mount();
 
-    await clickAsync(navItem(view, "Activity"));
+    await clickAsync(navItem(view, "Glossary"));
 
-    expect(window.location.hash).toBe("#/activity");
+    expect(window.location.hash).toBe("#/glossary");
   });
 
   it("swaps the rendered panel when a nav item is chosen", async () => {
