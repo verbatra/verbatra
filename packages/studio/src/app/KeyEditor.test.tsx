@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import type { ReactNode } from "react";
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { DiffLocale } from "../client/diff-view.js";
 import type { KeyIntegrityLocaleEntry } from "../client/integrity-pill.js";
@@ -17,6 +18,7 @@ import {
   rpcError,
   type StubRpcResult,
   stubRpc,
+  typeInto,
 } from "./test-support.js";
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
@@ -809,5 +811,149 @@ describe("KeyEditor drawer: source context", () => {
     );
 
     expect(view.query("[data-key-description]")).toBeNull();
+  });
+});
+
+const NO_GLOSSARY = { terms: [], doNotTranslate: [] };
+
+function context(target?: string, extra: Record<string, unknown> = {}): StubRpcResult {
+  return {
+    ok: true,
+    result: {
+      source: "Hello",
+      glossary: NO_GLOSSARY,
+      ...(target === undefined ? {} : { target }),
+      ...extra,
+    },
+  };
+}
+
+function stubWritable(): void {
+  stubBackground();
+  stubRpc({
+    "project.snapshot": capabilities(false, true),
+    "key.value": value("Hello", "Hallo"),
+  });
+}
+
+async function startEditing(
+  view: Awaited<ReturnType<typeof renderAsync>>,
+  locale = "de",
+): Promise<void> {
+  await clickAsync(view.get(`button[data-edit-locale="${locale}"]`));
+  await flush();
+}
+
+function field(view: Awaited<ReturnType<typeof renderAsync>>, locale = "de"): HTMLTextAreaElement {
+  const found = view.get(`textarea[aria-label="Translation (${locale})"]`);
+  if (!(found instanceof HTMLTextAreaElement)) {
+    throw new Error("the translation field is not a textarea");
+  }
+  return found;
+}
+
+describe("KeyEditor editing", () => {
+  it("starts an empty draft and says so for a locale with no translation yet", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context() });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[FR_MISSING]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view, "fr");
+
+    expect(view.text()).toContain("No translation exists yet for this locale.");
+    expect(field(view, "fr").value).toBe("");
+  });
+
+  it("shows the server's message and no field when the context cannot be read", async () => {
+    stubWritable();
+    stubRpc({ "key.context": rpcError("INTERNAL", "the context is gone") });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+
+    expect(view.text()).toContain("the context is gone");
+    expect(view.query("textarea")).toBeNull();
+  });
+
+  it("lists the glossary terms of the key beside the field, including one with no forbidden rendering", async () => {
+    stubWritable();
+    stubRpc({
+      "key.context": context("Hallo", {
+        glossary: {
+          terms: [{ source: "Hello", target: "Hallo", forbidden: [], caseSensitive: false }],
+          doNotTranslate: [],
+        },
+      }),
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+
+    expect(view.get("[data-glossary-hits]").textContent).toContain("Hello");
+    expect(view.query("[data-glossary-forbidden]")).toBeNull();
+  });
+
+  it("marks the field invalid only while the draft equals a saved value that fails its checks", async () => {
+    stubWritable();
+    stubRpc({
+      "key.context": context("Hallo"),
+      "key.integrity": {
+        ok: true,
+        result: integrityResult([integrityEntry("de", { matches: false, missing: ["{{name}}"] })]),
+      },
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+
+    expect(field(view).getAttribute("aria-invalid")).toBe("true");
+
+    typeInto(field(view), "Hallo {{name}}");
+
+    expect(field(view).hasAttribute("aria-invalid")).toBe(false);
+  });
+
+  it("ignores a context read that answers after another locale took over the form", async () => {
+    stubWritable();
+    const answers = new Map<string, (result: StubRpcResult) => void>();
+    stubRpc({
+      "key.context": (params) =>
+        new Promise<StubRpcResult>((resolve) => {
+          answers.set(localeOf(params), resolve);
+        }),
+    });
+
+    const view = await renderAsync(
+      <Drawer
+        keyName={KEY}
+        locales={[DE_CHANGED, FR_MISSING]}
+        refreshToken={0}
+        onClose={vi.fn()}
+      />,
+    );
+    await startEditing(view, "de");
+    await startEditing(view, "fr");
+    await act(async () => {
+      answers.get("de")?.(context("Hallo"));
+      await Promise.resolve();
+    });
+
+    expect(view.text()).toContain("Loading current value…");
+    expect(view.query('textarea[aria-label="Translation (de)"]')).toBeNull();
+
+    await act(async () => {
+      answers.get("fr")?.(context("Bonjour"));
+      await Promise.resolve();
+    });
+
+    expect(field(view, "fr").value).toBe("Bonjour");
   });
 });

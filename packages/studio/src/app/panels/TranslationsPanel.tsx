@@ -338,21 +338,18 @@ function DiffNotices({
   );
 }
 
-function focusRow(area: HTMLElement | null, key: string): void {
-  const row = [...(area?.querySelectorAll<HTMLElement>("tr[data-key]") ?? [])].find(
-    (candidate) => candidate.dataset.key === key,
-  );
-  const stops = row?.querySelectorAll<HTMLElement>("[data-row][data-col]") ?? [];
-  const stop = [...stops].find((candidate) => candidate.tabIndex === 0) ?? stops[0];
-  stop?.focus();
+function focusRow(key: string): void {
+  const stops = [
+    ...document.querySelectorAll<HTMLElement>("tr[data-key] [data-row][data-col]"),
+  ].filter((stop) => stop.closest("tr")?.dataset.key === key);
+  (stops.find((stop) => stop.tabIndex === 0) ?? stops[0])?.focus();
 }
 
 export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const diff = useDiffState(refreshToken);
   const localeValuesView = useLocaleValues(refreshToken);
   const wide = useMediaQuery(XL_QUERY, false);
-  const tableAreaRef = useRef<HTMLDivElement>(null);
-  const lastKeyRef = useRef<string | null>(null);
+  const lastKeyRef = useRef("");
 
   const route = useTranslationsRoute(knownLocalesOf(diff), localeValuesView);
   const { selectedKey, setSelectedKey } = route;
@@ -370,15 +367,12 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   }, [selectedKey]);
 
   function focusSettledRow(): void {
-    const key = parseRoute(window.location.hash).params.key ?? lastKeyRef.current;
-    if (key !== null) {
-      focusRow(tableAreaRef.current, key);
-    }
+    focusRow(parseRoute(window.location.hash).params.key ?? lastKeyRef.current);
   }
 
   function closeEditor(): void {
     if (selectedKey !== null && setSelectedKey(null) && wide) {
-      focusRow(tableAreaRef.current, selectedKey);
+      focusRow(selectedKey);
     }
   }
 
@@ -394,7 +388,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
         className={cn(split && "grid grid-cols-[minmax(0,1fr)_24rem] items-start gap-6")}
         data-split={split ? "" : undefined}
       >
-        <div ref={tableAreaRef} className="min-w-0">
+        <div className="min-w-0">
           {diff.kind === "loading" || diff.kind === "loaded" ? (
             <KeysSection
               locales={diff.kind === "loaded" ? diff.locales : null}
@@ -413,7 +407,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
             refreshToken={refreshToken}
             layout={wide ? "pane" : "drawer"}
             onClose={closeEditor}
-            onEscape={() => focusRow(tableAreaRef.current, selectedKey)}
+            onEscape={() => focusRow(selectedKey)}
             onRouteSettled={focusSettledRow}
           />
         ) : null}

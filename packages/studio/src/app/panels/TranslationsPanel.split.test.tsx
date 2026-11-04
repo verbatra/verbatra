@@ -571,6 +571,33 @@ describe("split editor dirty guard", () => {
     expect(view.get('[role="dialog"]')).not.toBeNull();
   });
 
+  it("closes the drawer once Discard lets the held close through", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, false);
+    await startDirtyEdit(view);
+    await clickAsync(view.get('button[aria-label="Close details for app.title"]'));
+
+    await clickAsync(view.getByText("button", "Discard"));
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(window.location.hash).toBe("#/translations");
+  });
+
+  it("sends focus back to the control that was used once the held change goes through", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    const chip = view.get('[data-status-filter="changed"]');
+    chip.focus();
+    await clickAsync(chip);
+
+    await clickAsync(view.getByText("button", "Discard"));
+    await flush();
+
+    expect(document.activeElement).toBe(view.get('[data-status-filter="changed"]'));
+  });
+
   it("asks on Escape below xl instead of dropping the draft", async () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, false);

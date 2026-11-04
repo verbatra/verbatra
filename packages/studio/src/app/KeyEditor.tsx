@@ -44,9 +44,12 @@ const CONTROL = "button, a[href], input, select, textarea";
 
 const EDITOR_SURFACE = "[data-editor-pane], [role='dialog']";
 
-function isOutsideControl(element: HTMLElement): boolean {
+function isOutsideControl(element: Element | null): element is HTMLElement {
   return (
-    element.isConnected && element.matches(CONTROL) && element.closest(EDITOR_SURFACE) === null
+    element instanceof HTMLElement &&
+    element.isConnected &&
+    element.matches(CONTROL) &&
+    element.closest(EDITOR_SURFACE) === null
   );
 }
 
@@ -93,9 +96,8 @@ export function KeyEditor({
   const [pending, setPending] = useState<Pending | null>(null);
   const [saved, setSaved] = useState<EditTarget | null>(null);
   const [returnTo, setReturnTo] = useState<string | null>(null);
-  const originRef = useRef<HTMLElement | null>(null);
+  const originRef = useRef<Element | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
-  const bodyRef = useRef<HTMLDivElement | null>(null);
   const dirtyRef = useRef(false);
   const edit = useLocaleEdit(editingLocale, keyName, refreshToken);
   const dialogRef = useDialogA11y<HTMLDivElement>({ isOpen: layout === "drawer", onClose });
@@ -119,8 +121,7 @@ export function KeyEditor({
       installRouteGuard({
         isDirty: () => dirtyRef.current,
         onBlock: (proceed) => {
-          originRef.current =
-            document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          originRef.current = document.activeElement;
           setPending({ proceed, route: true });
         },
       }),
@@ -131,8 +132,9 @@ export function KeyEditor({
     if (returnTo === null) {
       return;
     }
-    const buttons = bodyRef.current?.querySelectorAll<HTMLElement>("[data-edit-locale]") ?? [];
-    [...buttons].find((button) => button.dataset.editLocale === returnTo)?.focus();
+    [...document.querySelectorAll<HTMLElement>("[data-edit-locale]")]
+      .find((button) => button.dataset.editLocale === returnTo)
+      ?.focus();
     setReturnTo(null);
   }, [returnTo]);
 
@@ -141,16 +143,13 @@ export function KeyEditor({
     setReturnTo(locale);
   }
 
-  async function saveEditing(returnFocus: boolean): Promise<boolean> {
-    if (editingLocale === null) {
-      return false;
-    }
-    const saved = await edit.save();
+  async function saveEditing(locale: string, returnFocus: boolean): Promise<boolean> {
+    const saved = await edit.save(locale);
     if (saved) {
-      setSaved({ keyName, locale: editingLocale });
+      setSaved({ keyName, locale });
       setEditingLocale(null);
       if (returnFocus) {
-        setReturnTo(editingLocale);
+        setReturnTo(locale);
       }
     }
     return saved;
@@ -170,7 +169,7 @@ export function KeyEditor({
 
   function returnFocusAfterRoute(): void {
     const origin = originRef.current;
-    if (origin !== null && isOutsideControl(origin)) {
+    if (isOutsideControl(origin)) {
       origin.focus();
     } else if (layout === "pane") {
       onRouteSettled();
@@ -184,10 +183,10 @@ export function KeyEditor({
     }
   }
 
-  async function resolveSave(): Promise<void> {
+  async function resolveSave(locale: string): Promise<void> {
     const held = pending;
     setPending(null);
-    if (await saveEditing(held === null)) {
+    if (await saveEditing(locale, held === null)) {
       proceedWith(held);
     }
   }
@@ -205,12 +204,12 @@ export function KeyEditor({
   }
 
   const body = (
-    <div ref={bodyRef}>
+    <>
       {pending !== null && editingLocale !== null ? (
         <UnsavedPrompt
           locale={editingLocale}
           saving={edit.submit.kind === "submitting"}
-          onSave={() => void resolveSave()}
+          onSave={() => void resolveSave(editingLocale)}
           onDiscard={resolveDiscard}
           onKeepEditing={keepEditing}
         />
@@ -244,7 +243,7 @@ export function KeyEditor({
                   edit={edit}
                   pill={deriveIntegrityPillView(integrityLocales, row.locale)}
                   textAreaRef={textAreaRef}
-                  onSave={() => void saveEditing(true)}
+                  onSave={() => void saveEditing(row.locale, true)}
                   onCancel={() => cancelEditing(row.locale)}
                 />
               }
@@ -262,7 +261,7 @@ export function KeyEditor({
           emptyMessage="No commit history yet for the locale files."
         />
       </Section>
-    </div>
+    </>
   );
 
   if (layout === "pane") {

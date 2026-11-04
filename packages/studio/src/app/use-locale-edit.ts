@@ -31,7 +31,7 @@ export interface LocaleEdit {
   readonly dirty: boolean;
   readonly submit: SubmitState;
   setDraft(next: string): void;
-  save(): Promise<boolean>;
+  save(target: string): Promise<boolean>;
 }
 
 function useHeldContext(
@@ -77,13 +77,10 @@ export function useLocaleEdit(
   }
   const submit = heldSubmit.identity === identity ? heldSubmit.state : IDLE;
 
-  async function save(): Promise<boolean> {
-    if (locale === null) {
-      return false;
-    }
+  async function save(target: string): Promise<boolean> {
     setHeldSubmit({ identity, state: { kind: "submitting" } });
     const response = await rpcClient.call("translation.editEntry", {
-      locale,
+      locale: target,
       key: keyName,
       value: current.text,
     });

@@ -19,14 +19,11 @@ export type SubmitState =
   | { readonly kind: "submitting" }
   | { readonly kind: "settled"; readonly outcome: EditEntryOutcome };
 
-export function submitStatusLabel(state: SubmitState): string {
+export function submitStatusLabel(state: Exclude<SubmitState, { kind: "idle" }>): string {
   if (state.kind === "submitting") {
     return "Saving…";
   }
-  if (state.kind === "settled") {
-    return settledActionStatusLabel(state.outcome, "Saved");
-  }
-  return "";
+  return settledActionStatusLabel(state.outcome, "Saved");
 }
 
 export function submitStatusClassName(state: SubmitState): string {
