@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type LocaleValuesData,
   localeValuesOrEmpty,
+  sourceTextFor,
   toLocaleValuesOutcome,
   valuesForLocale,
   valuesIndex,
@@ -118,5 +119,22 @@ describe("locale values: prototype-named keys parsed from the RPC response", () 
     const index = valuesIndex(parsed);
     expect(index.get("de\t__proto__")).toEqual({ source: "P", target: "Pd" });
     expect(index.get("de\tconstructor")).toEqual({ source: "C" });
+  });
+});
+
+describe("sourceTextFor", () => {
+  const data = [
+    { locale: "de", keys: ["a", "b"], values: { a: { target: "A" }, b: { source: "Bee" } } },
+    { locale: "fr", keys: ["a"], values: { a: { source: "Ay", target: "Aa" } } },
+  ];
+
+  it("reads the source text from the first locale that holds it", () => {
+    expect(sourceTextFor(data, "a")).toBe("Ay");
+    expect(sourceTextFor(data, "b")).toBe("Bee");
+  });
+
+  it("reads nothing for a key no locale holds a source for", () => {
+    expect(sourceTextFor(data, "missing")).toBeUndefined();
+    expect(sourceTextFor([], "a")).toBeUndefined();
   });
 });

@@ -3,6 +3,7 @@ import {
   Button,
   Checkbox,
   EmptyState,
+  FilterBar,
   microLabelClassName,
   SearchInput,
   Select,
@@ -75,7 +76,7 @@ import { ReviewDecisionStatus } from "../ReviewDecisionStatus.js";
 import { ReviewReasonChips } from "../ReviewReasonChips.js";
 import { ReviewRowActions, type RowBusy } from "../ReviewRowActions.js";
 import { ReviewShortcutsDialog } from "../ReviewShortcutsDialog.js";
-import { FilterBar } from "../Toolbar.js";
+
 import { TranslationValue } from "../TranslationValue.js";
 import { useCapabilities } from "../use-capabilities.js";
 import { useLocaleValues } from "../use-locale-values.js";

@@ -49,3 +49,13 @@ export function valuesIndex(data: LocaleValuesData): ReadonlyMap<string, KeyValu
   }
   return index;
 }
+
+export function sourceTextFor(data: LocaleValuesData, key: string): string | undefined {
+  for (const entry of data) {
+    const source = entry.values[key]?.source;
+    if (source !== undefined) {
+      return source;
+    }
+  }
+  return undefined;
+}
