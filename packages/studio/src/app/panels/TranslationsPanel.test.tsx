@@ -59,21 +59,6 @@ function diffResult(locales: readonly DiffLocale[]): StubRpcResult {
   };
 }
 
-interface CoverageCounts {
-  readonly locale: string;
-  readonly missing: number;
-  readonly stale: number;
-  readonly upToDate: number;
-}
-
-function checkResult(rows: readonly CoverageCounts[]): StubRpcResult {
-  const locales = rows.map((row) => ({ ...row, inSync: row.missing === 0 && row.stale === 0 }));
-  return { ok: true, result: { inSync: locales.every((locale) => locale.inSync), locales } };
-}
-
-const NO_LOCK: StubRpcResult = { ok: true, result: { exists: false } };
-const NO_USAGE: StubRpcResult = { ok: true, result: { available: false } };
-
 const PENDING: StubRpcHandler = () => new Promise<StubRpcResult>(() => {});
 
 const DEFAULT_LOCALES: readonly DiffLocale[] = [
@@ -81,26 +66,25 @@ const DEFAULT_LOCALES: readonly DiffLocale[] = [
   localeDiff("fr", { missing: ["app.title"] }),
 ];
 
-const DEFAULT_ROWS: readonly CoverageCounts[] = [
-  { locale: "de", missing: 1, stale: 1, upToDate: 8 },
-  { locale: "fr", missing: 1, stale: 0, upToDate: 9 },
-];
-
 const IN_SYNC_LOCALES: readonly DiffLocale[] = [localeDiff("de"), localeDiff("fr")];
 
-const IN_SYNC_ROWS: readonly CoverageCounts[] = [
-  { locale: "de", missing: 0, stale: 0, upToDate: 10 },
-  { locale: "fr", missing: 0, stale: 0, upToDate: 10 },
-];
-
 type Stubs = Readonly<Record<string, StubRpcResult | StubRpcHandler>>;
+
+const GRID_COVERAGE: StubRpcResult = {
+  ok: true,
+  result: {
+    inSync: false,
+    locales: [
+      { locale: "de", missing: 1, stale: 1, upToDate: 8, inSync: false },
+      { locale: "fr", missing: 1, stale: 0, upToDate: 9, inSync: false },
+    ],
+  },
+};
 
 function stubPage(overrides: Stubs = {}): void {
   stubRpc({
     "status.diff": diffResult(DEFAULT_LOCALES),
-    "status.check": checkResult(DEFAULT_ROWS),
-    "lock.state": NO_LOCK,
-    "usage.summary": NO_USAGE,
+    "status.check": GRID_COVERAGE,
     ...overrides,
   });
 }
@@ -108,7 +92,6 @@ function stubPage(overrides: Stubs = {}): void {
 function stubSyncedPage(overrides: Stubs = {}): void {
   stubPage({
     "status.diff": diffResult(IN_SYNC_LOCALES),
-    "status.check": checkResult(IN_SYNC_ROWS),
     ...overrides,
   });
 }
@@ -156,7 +139,7 @@ function deferredAnswers(): {
 }
 
 function sectionTitles(view: RenderResult): string[] {
-  return view.all("h2").map((heading) => heading.textContent ?? "");
+  return view.all("section[aria-label]").map((section) => section.getAttribute("aria-label") ?? "");
 }
 
 function alertTexts(view: RenderResult): string[] {
@@ -212,7 +195,17 @@ describe("TranslationsPanel", () => {
 
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
-    expect(view.query("header button")?.textContent).toBe("Copy as review report");
+    expect(view.getByText("header button", "Copy as review report")).toBeTruthy();
+  });
+
+  it("never reads lock state or usage, which live on the overview", async () => {
+    stubPage();
+
+    await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    const methods = rpcCalls.map((call) => call.method);
+    expect(methods).not.toContain("lock.state");
+    expect(methods).not.toContain("usage.summary");
   });
 
   it("reads the whole project's diff, with no locale filter", async () => {
@@ -284,7 +277,7 @@ describe("TranslationsPanel", () => {
 
 describe("TranslationsPanel all-clear state", () => {
   it("banners an empty project as fully in sync", async () => {
-    stubPage({ "status.diff": diffResult([]), "status.check": checkResult([]) });
+    stubPage({ "status.diff": diffResult([]) });
 
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
@@ -340,7 +333,6 @@ describe("TranslationsPanel all-clear state", () => {
   it("still explores keys for a locale whose only drift is orphaned", async () => {
     stubPage({
       "status.diff": diffResult([localeDiff("de", { orphaned: ["app.legacy"] })]),
-      "status.check": checkResult([{ locale: "de", missing: 0, stale: 0, upToDate: 10 }]),
     });
 
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
@@ -432,7 +424,6 @@ describe("TranslationsPanel key explorer", () => {
           orphaned: ["app.legacy"],
         }),
       ]),
-      "status.check": checkResult([{ locale: "de", missing: 2, stale: 1, upToDate: 7 }]),
     });
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
@@ -456,7 +447,6 @@ describe("TranslationsPanel key explorer", () => {
       "status.diff": diffResult([
         localeDiff("de", { changed: ["app.cta", "app.terms"], protected: ["app.terms"] }),
       ]),
-      "status.check": checkResult([{ locale: "de", missing: 0, stale: 2, upToDate: 8 }]),
     });
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
@@ -480,7 +470,6 @@ describe("TranslationsPanel key explorer", () => {
           orphaned: ["app.legacy"],
         }),
       ]),
-      "status.check": checkResult([{ locale: "de", missing: 2, stale: 1, upToDate: 7 }]),
     });
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
     await switchToList(view);
@@ -495,7 +484,6 @@ describe("TranslationsPanel key explorer", () => {
   it("matches a query found only in a key's value, not its key name", async () => {
     stubPage({
       "status.diff": diffResult([localeDiff("de", { missing: ["app.title", "app.body"] })]),
-      "status.check": checkResult([{ locale: "de", missing: 2, stale: 0, upToDate: 8 }]),
       "locale.values": {
         ok: true,
         result: [
@@ -520,7 +508,6 @@ describe("TranslationsPanel key explorer", () => {
   it("labels each listed key with the origin of its current value", async () => {
     stubPage({
       "status.diff": diffResult([localeDiff("de", { changed: ["app.title", "app.body"] })]),
-      "status.check": checkResult([{ locale: "de", missing: 0, stale: 2, upToDate: 8 }]),
       "locale.values": {
         ok: true,
         result: [
@@ -550,7 +537,6 @@ describe("TranslationsPanel key explorer", () => {
   it("labels only changed keys, not orphaned ones, matching the lock file's counts", async () => {
     stubPage({
       "status.diff": diffResult([localeDiff("de", { orphaned: ["app.old"] })]),
-      "status.check": checkResult([{ locale: "de", missing: 0, stale: 0, upToDate: 10 }]),
       "locale.values": {
         ok: true,
         result: [
@@ -575,7 +561,6 @@ describe("TranslationsPanel key explorer", () => {
   it("still matches a query found in the key name when no value matches", async () => {
     stubPage({
       "status.diff": diffResult([localeDiff("de", { missing: ["app.title", "app.body"] })]),
-      "status.check": checkResult([{ locale: "de", missing: 2, stale: 0, upToDate: 8 }]),
       "locale.values": {
         ok: true,
         result: [
@@ -602,7 +587,6 @@ describe("TranslationsPanel key explorer", () => {
   it("produces no false positive for a key whose value and name both miss the query", async () => {
     stubPage({
       "status.diff": diffResult([localeDiff("de", { missing: ["app.title", "app.body"] })]),
-      "status.check": checkResult([{ locale: "de", missing: 2, stale: 0, upToDate: 8 }]),
       "locale.values": {
         ok: true,
         result: [
@@ -628,9 +612,6 @@ describe("TranslationsPanel key explorer", () => {
     const decoyKeys = Array.from({ length: MAX_RENDERED_KEYS }, (_, index) => `app.key${index}`);
     stubPage({
       "status.diff": diffResult([localeDiff("de", { missing: [...decoyKeys, "app.needle"] })]),
-      "status.check": checkResult([
-        { locale: "de", missing: decoyKeys.length + 1, stale: 0, upToDate: 0 },
-      ]),
       "locale.values": {
         ok: true,
         result: [
@@ -659,7 +640,6 @@ describe("TranslationsPanel key explorer", () => {
         diffResult([localeDiff("de", { missing: ["app.title"] })]),
         diffResult([localeDiff("de", { missing: keys })]),
       ]),
-      "status.check": checkResult([{ locale: "de", missing: keys.length, stale: 0, upToDate: 0 }]),
     });
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
     await switchToList(view);
@@ -677,10 +657,6 @@ describe("TranslationsPanel key explorer", () => {
       "status.diff": diffResult([
         localeDiff("ar-EG", { missing: ["app.title"] }),
         localeDiff("de", { missing: ["app.title"] }),
-      ]),
-      "status.check": checkResult([
-        { locale: "ar-EG", missing: 1, stale: 0, upToDate: 9 },
-        { locale: "de", missing: 1, stale: 0, upToDate: 9 },
       ]),
     });
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);

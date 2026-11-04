@@ -1,15 +1,22 @@
 import type { BudgetStanding } from "@verbatra/sdk";
-import { Badge, type BadgeTone, EmptyState, PageSection } from "@verbatra/ui";
+import { Badge, type BadgeTone, Button, EmptyState, PageSection } from "@verbatra/ui";
 import type { ReactNode } from "react";
+import { useState } from "react";
+import type { RefreshableView } from "../../client/state.js";
 import { formatCount, formatTimestamp } from "../../client/ui-format.js";
-import type { BudgetDisplay, UsageDisplay } from "../../client/usage-ticker-data.js";
+import type {
+  BudgetDisplay,
+  UsageDisplay,
+  UsageTickerData,
+} from "../../client/usage-ticker-data.js";
 import { budgetPercent, toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
 import { CommitList } from "../CommitList.js";
+import { DiffErrorNotice } from "../DiffErrorNotice.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { Loading } from "../Loading.js";
 import { LocalesSection } from "../LocalesSection.js";
 import { MetricCard } from "../MetricCard.js";
-import { OverviewMetrics, type UsageView } from "../OverviewMetrics.js";
+import { OverviewMetrics } from "../OverviewMetrics.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
 import { useDiffState } from "../use-diff-state.js";
@@ -25,6 +32,7 @@ function UsageCards({ usage }: { readonly usage: UsageDisplay }): ReactNode {
         label="Tokens"
         icon="gauge"
         value="Not reported"
+        quiet
         hint="No token usage was recorded: the run called no provider, or its provider does not report usage."
       />
     );
@@ -64,6 +72,8 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
   );
 }
 
+type UsageView = RefreshableView<UsageTickerData>;
+
 function LastRunRail({ view }: { readonly view: UsageView }): ReactNode {
   if (view.kind === "loading") {
     return <Loading />;
@@ -88,7 +98,7 @@ function LastRunRail({ view }: { readonly view: UsageView }): ReactNode {
       <p className="mb-3 text-xs text-muted-foreground">
         As of {formatTimestamp(state.generatedAt)}
       </p>
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
         <UsageCards usage={state.usage} />
         <BudgetCards budget={state.budget} />
       </div>
@@ -96,8 +106,33 @@ function LastRunRail({ view }: { readonly view: UsageView }): ReactNode {
   );
 }
 
+const HISTORY_PAGE_SIZE = 10;
+const HISTORY_MAX = 200;
+
+function LocaleFileHistory({ refreshToken }: PanelProps): ReactNode {
+  const [limit, setLimit] = useState(HISTORY_PAGE_SIZE);
+  const history = useHistoryList(refreshToken, limit);
+  const mayHaveMore =
+    history.kind === "loaded" && history.commits.length >= limit && limit < HISTORY_MAX;
+
+  return (
+    <>
+      <CommitList
+        state={history}
+        emptyMessage="No commit history yet for the source or target locale files."
+      />
+      {mayHaveMore ? (
+        <div className="mt-4">
+          <Button onClick={() => setLimit((current) => current + HISTORY_PAGE_SIZE)}>
+            Show more commits
+          </Button>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export function OverviewPanel({ refreshToken }: PanelProps): ReactNode {
-  const history = useHistoryList(refreshToken);
   const diff = useDiffState(refreshToken);
   const status = useStatusData(refreshToken);
   const lock = useLockState(refreshToken);
@@ -109,17 +144,15 @@ export function OverviewPanel({ refreshToken }: PanelProps): ReactNode {
         title="Overview"
         description="How far along each locale is, what the last run did, and how the locale files have changed."
       />
-      <OverviewMetrics status={status} diff={diff} usage={usage} />
+      <OverviewMetrics status={status} diff={diff} />
+      <DiffErrorNotice diff={diff} />
       <LocalesSection status={status} lock={lock} />
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <PageSection title="Locale file history" className="mb-0 lg:col-start-1 lg:row-start-1">
-          <CommitList
-            state={history}
-            emptyMessage="No commit history yet for the source or target locale files."
-          />
-        </PageSection>
         <PageSection title="Last run" className="mb-0 lg:col-start-2 lg:row-start-1">
           <LastRunRail view={usage} />
+        </PageSection>
+        <PageSection title="Locale file history" className="mb-0 lg:col-start-1 lg:row-start-1">
+          <LocaleFileHistory refreshToken={refreshToken} />
         </PageSection>
       </div>
     </>

@@ -62,4 +62,16 @@ describe("AccordionItem", () => {
     expect(view.get("summary em").textContent).toBe("Rich");
     expect(view.get("details").className.split(" ")).toContain("mb-2");
   });
+
+  it("lets the caller restyle the summary", () => {
+    const view = render(
+      <AccordionItem summary="Title" summaryClassName="font-sans text-sm">
+        Body
+      </AccordionItem>,
+    );
+    const summary = view.get("summary");
+
+    expect(summary.className).toContain("font-sans");
+    expect(summary.className).not.toContain("font-mono");
+  });
 });

@@ -22,10 +22,9 @@ import { formatCount } from "../client/ui-format.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import type { LockLocaleState, LockView } from "./use-lock-state.js";
 
-function lockCell(lock: LockView, locale: string): ReactNode {
-  if (lock.kind !== "loaded") {
-    return null;
-  }
+type LoadedLock = Extract<LockView, { readonly kind: "loaded" }>;
+
+function lockCell(lock: LoadedLock, locale: string): ReactNode {
   const entry = lock.locales.find((candidate) => candidate.locale === locale);
   if (entry === undefined) {
     return <Badge tone="neutral">Not recorded</Badge>;
@@ -80,6 +79,7 @@ function LockDetail({ locales }: { readonly locales: readonly LockLocaleState[] 
   return (
     <AccordionItem
       className="mt-4"
+      summaryClassName="font-sans text-sm font-medium"
       summary={
         <span className="inline-flex items-center gap-2">
           <Icon name="lock" size={14} className="text-muted-foreground" />
@@ -173,6 +173,9 @@ export function LocalesSection({
               </TableBody>
             </Table>
           </TableCard>
+          <p className="mt-2 text-xs text-muted-foreground md:hidden">
+            Scroll sideways to see every column.
+          </p>
         </>
       ) : null}
       {lock.kind === "no-lock" ? (

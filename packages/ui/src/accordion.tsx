@@ -9,11 +9,13 @@ export function AccordionItem({
   summary,
   defaultOpen = false,
   className,
+  summaryClassName,
   children,
 }: {
   readonly summary: ReactNode;
   readonly defaultOpen?: boolean;
   readonly className?: string;
+  readonly summaryClassName?: string;
   readonly children: ReactNode;
 }): ReactNode {
   return (
@@ -24,7 +26,12 @@ export function AccordionItem({
         className,
       )}
     >
-      <summary className="vk-field cursor-pointer list-none rounded-(--radius-sm) font-mono text-base marker:content-none [&::-webkit-details-marker]:hidden">
+      <summary
+        className={cn(
+          "vk-field cursor-pointer list-none rounded-(--radius-sm) font-mono text-base marker:content-none [&::-webkit-details-marker]:hidden",
+          summaryClassName,
+        )}
+      >
         {summary}
       </summary>
       <div className="mt-3">{children}</div>

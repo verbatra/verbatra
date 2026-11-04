@@ -6,7 +6,6 @@ import {
   Card,
   EmptyState,
   Icon,
-  PageSection,
   SegmentedControl,
 } from "@verbatra/ui";
 import type { ReactNode } from "react";
@@ -36,8 +35,8 @@ import { type ReviewQueueData, unreviewedRows } from "../../client/review-queue-
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
 import type { RefreshableView } from "../../client/state.js";
 import { DiffBadge, isDiffTone } from "../DiffBadge.js";
+import { DiffErrorNotice } from "../DiffErrorNotice.js";
 import { EditEntryDialog } from "../EditEntryDialog.js";
-import { ErrorMessage } from "../ErrorMessage.js";
 import { KeyDetailDrawer } from "../KeyDetailDrawer.js";
 import { KeyStatusFilterBar } from "../KeyStatusFilterBar.js";
 import { Loading } from "../Loading.js";
@@ -45,7 +44,6 @@ import { PageHeader } from "../PageHeader.js";
 import { ProvenanceBadge } from "../ProvenanceBadge.js";
 import type { PanelProps } from "../panel-props.js";
 import { StatusGrid } from "../StatusGrid.js";
-import { Toolbar } from "../Toolbar.js";
 import { type DiffState, useDiffState } from "../use-diff-state.js";
 import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
@@ -367,7 +365,6 @@ function KeysSection({
   query,
   onQueryChange,
   viewMode,
-  onViewModeChange,
   onSelectKey,
   refreshToken,
   localeValues,
@@ -381,7 +378,6 @@ function KeysSection({
   readonly query: string;
   readonly onQueryChange: (query: string) => void;
   readonly viewMode: DiffViewMode;
-  readonly onViewModeChange: (mode: DiffViewMode) => void;
   readonly onSelectKey: (key: string) => void;
   readonly refreshToken: number;
   readonly localeValues: LocaleValuesData;
@@ -389,17 +385,7 @@ function KeysSection({
   readonly listOnly: boolean;
 }): ReactNode {
   return (
-    <PageSection title="Keys">
-      {listOnly ? null : (
-        <Toolbar className="mb-4">
-          <SegmentedControl
-            items={VIEW_MODE_ITEMS}
-            active={viewMode}
-            onChange={onViewModeChange}
-            label="Keys view"
-          />
-        </Toolbar>
-      )}
+    <section aria-label="Keys" className="mb-10">
       {viewMode === "grid" && !listOnly ? (
         <StatusGrid locales={locales} refreshToken={refreshToken} onSelectKey={onSelectKey} />
       ) : (
@@ -416,7 +402,7 @@ function KeysSection({
           integrity={integrity}
         />
       )}
-    </PageSection>
+    </section>
   );
 }
 
@@ -430,15 +416,12 @@ function DiffNotices({
   if (diff.kind === "loading") {
     return <Loading />;
   }
-  if (diff.kind === "error") {
-    return <ErrorMessage error={diff.error} />;
-  }
   return (
     <>
-      {isFullyInSync(diff.locales) ? <AllClearCard brokenInSync={brokenInSync} /> : null}
-      {diff.staleError !== undefined ? (
-        <ErrorMessage error={diff.staleError} prefix="Showing the last known pending changes." />
+      {diff.kind === "loaded" && isFullyInSync(diff.locales) ? (
+        <AllClearCard brokenInSync={brokenInSync} />
       ) : null}
+      <DiffErrorNotice diff={diff} />
     </>
   );
 }
@@ -465,7 +448,21 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
       <PageHeader
         title="Translations"
         description="Every pending change across your target locales, and the keys behind it."
-        actions={diff.kind === "loaded" ? <ReviewReportButton locales={diff.locales} /> : undefined}
+        actions={
+          diff.kind === "loaded" ? (
+            <>
+              {allClear ? null : (
+                <SegmentedControl
+                  items={VIEW_MODE_ITEMS}
+                  active={viewMode}
+                  onChange={route.setViewMode}
+                  label="Keys view"
+                />
+              )}
+              <ReviewReportButton locales={diff.locales} />
+            </>
+          ) : undefined
+        }
       />
       <DiffNotices diff={diff} brokenInSync={brokenInSync} />
       {diff.kind === "loaded" && (!allClear || brokenInSync) ? (
@@ -477,7 +474,6 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
           query={query}
           onQueryChange={setQuery}
           viewMode={viewMode}
-          onViewModeChange={route.setViewMode}
           onSelectKey={setSelectedKey}
           refreshToken={refreshToken}
           localeValues={localeValues}

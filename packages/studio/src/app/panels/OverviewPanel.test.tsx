@@ -6,7 +6,15 @@ import { formatTimestamp } from "../../client/ui-format.js";
 import type { HistoryCommit, HistoryListResult } from "../../shared/rpc/history.js";
 import type { UsageSummaryResult } from "../../shared/rpc/usage-summary.js";
 import type { RenderResult, StubRpcHandler, StubRpcResult } from "../test-support.js";
-import { flush, render, renderAsync, rpcCalls, rpcError, stubRpc } from "../test-support.js";
+import {
+  clickAsync,
+  flush,
+  render,
+  renderAsync,
+  rpcCalls,
+  rpcError,
+  stubRpc,
+} from "../test-support.js";
 import { OverviewPanel } from "./OverviewPanel.js";
 
 vi.mock("../api.js", () => import("../test-support.js").then((module) => module.apiMock()));
@@ -611,8 +619,6 @@ describe("OverviewPanel", () => {
 });
 
 describe("OverviewPanel metrics", () => {
-  const generatedAt = "2026-08-01T10:00:00.000Z";
-
   it("withholds an attention figure while the diff is still loading", () => {
     stubPage({ "status.diff": PENDING });
 
@@ -631,8 +637,11 @@ describe("OverviewPanel metrics", () => {
 
     expect(metricTile(view, "Needs attention")).toMatchObject({
       value: "N/A",
-      hint: "The pending-change check failed; details below.",
+      hint: "The pending-change check failed.",
     });
+    expect(alertTexts(view)).toContain(
+      "An unexpected server error occurred. Check the terminal running Studio for details.",
+    );
   });
 
   it("reads zero keys needing attention when every locale is in sync", async () => {
@@ -653,7 +662,7 @@ describe("OverviewPanel metrics", () => {
 
     expect(metricTile(view, "Needs attention")).toMatchObject({
       value: "2",
-      hint: "Across 2 of 2 target locales.",
+      hint: "2 keys missing or changed across 2 of 2 target locales.",
     });
   });
 
@@ -665,7 +674,9 @@ describe("OverviewPanel metrics", () => {
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    expect(metricTile(view, "Needs attention").hint).toBe("Across 1 of 1 target locale.");
+    expect(metricTile(view, "Needs attention").hint).toBe(
+      "1 key missing or changed across 1 of 1 target locale.",
+    );
     expect(metricTile(view, "Avg coverage").hint).toBe("Across 1 target locale.");
   });
 
@@ -674,7 +685,9 @@ describe("OverviewPanel metrics", () => {
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    expect(metricTile(view, "Needs attention").hint).toBe("Across your target locales.");
+    expect(metricTile(view, "Needs attention").hint).toBe(
+      "2 keys missing or changed across your target locales.",
+    );
   });
 
   it("withholds the coverage figure and its meter while the coverage read is open", async () => {
@@ -732,186 +745,6 @@ describe("OverviewPanel metrics", () => {
       value: "2 / 2",
       hint: "All target locales are in sync.",
     });
-  });
-
-  it("withholds the last run while the usage read is open", async () => {
-    stubPage({ "usage.summary": PENDING });
-
-    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
-
-    expect(metricTile(view, "Last run")).toMatchObject({
-      value: "…",
-      hint: "Loading the last recorded run.",
-    });
-  });
-
-  it("points at the CLI when no run has been recorded yet", async () => {
-    stubPage();
-
-    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
-
-    expect(metricTile(view, "Last run")).toMatchObject({
-      value: "No run yet",
-      hint: "Run verbatra translate or watch to record one.",
-    });
-  });
-
-  it("summarizes the last run's tokens and flags a reached budget ceiling", async () => {
-    stubPage({
-      "usage.summary": {
-        ok: true,
-        result: {
-          available: true,
-          generatedAt,
-          usage: { inputTokens: 12345, outputTokens: 678 },
-          budget: {
-            maxTokens: 1000,
-            behavior: "warn",
-            supported: true,
-            tokensUsed: 1200,
-            exceeded: true,
-          },
-        },
-      },
-    });
-
-    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
-
-    expect(metricTile(view, "Last run")).toMatchObject({
-      value: "12,345 / 678",
-      hint: `Tokens in / out. Budget ceiling reached. As of ${formatTimestamp(generatedAt)}`,
-    });
-  });
-
-  it("reports a tracked budget that is still within its ceiling", async () => {
-    stubPage({
-      "usage.summary": {
-        ok: true,
-        result: {
-          available: true,
-          generatedAt,
-          usage: { inputTokens: 10, outputTokens: 20 },
-          budget: {
-            maxTokens: 1000,
-            behavior: "stop",
-            supported: true,
-            tokensUsed: 500,
-            exceeded: false,
-          },
-        },
-      },
-    });
-
-    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
-
-    expect(metricTile(view, "Last run").hint).toBe(
-      `Tokens in / out. Within budget. As of ${formatTimestamp(generatedAt)}`,
-    );
-  });
-
-  it("says a stop run refused under its ceiling stopped before it, not that it reached it", async () => {
-    stubPage({
-      "usage.summary": {
-        ok: true,
-        result: {
-          available: true,
-          generatedAt,
-          usage: { inputTokens: 4000, outputTokens: 2000 },
-          budget: {
-            maxTokens: 10000,
-            behavior: "stop",
-            supported: true,
-            tokensUsed: 6000,
-            exceeded: true,
-          },
-        },
-      },
-    });
-
-    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
-
-    expect(metricTile(view, "Last run").hint).toBe(
-      `Tokens in / out. Stopped before the budget ceiling. As of ${formatTimestamp(generatedAt)}`,
-    );
-  });
-
-  it("still reports where an estimated budget stopped, not silence", async () => {
-    stubPage({
-      "usage.summary": {
-        ok: true,
-        result: {
-          available: true,
-          generatedAt,
-          usage: { inputTokens: 10, outputTokens: 20 },
-          budget: {
-            maxTokens: 1000,
-            behavior: "stop",
-            supported: false,
-            tokensUsed: 994,
-            exceeded: true,
-          },
-        },
-      },
-    });
-
-    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
-
-    expect(metricTile(view, "Last run").hint).toBe(
-      `Tokens in / out. Stopped before the budget ceiling. As of ${formatTimestamp(generatedAt)}`,
-    );
-  });
-
-  it("reports within-budget for an estimated budget that never reached its ceiling", async () => {
-    stubPage({
-      "usage.summary": {
-        ok: true,
-        result: {
-          available: true,
-          generatedAt,
-          budget: {
-            maxTokens: 1000,
-            behavior: "warn",
-            supported: false,
-            tokensUsed: 120,
-            exceeded: false,
-          },
-        },
-      },
-    });
-
-    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
-
-    expect(metricTile(view, "Last run")).toMatchObject({
-      value: "Not reported",
-      hint: `No token usage was recorded: the run called no provider, or its provider does not report usage. Within budget. As of ${formatTimestamp(generatedAt)}`,
-    });
-  });
-
-  it("says so plainly when the provider reported no tokens and no budget was set", async () => {
-    stubPage({ "usage.summary": { ok: true, result: { available: true, generatedAt } } });
-
-    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
-
-    expect(metricTile(view, "Last run")).toMatchObject({
-      value: "Not reported",
-      hint: `No token usage was recorded: the run called no provider, or its provider does not report usage. As of ${formatTimestamp(generatedAt)}`,
-    });
-  });
-
-  it("holds a placeholder line under the tiles while the diff loads", () => {
-    stubPage({ "status.diff": PENDING });
-
-    const view = render(<OverviewPanel refreshToken={1} />);
-
-    expect(view.query("span.h-5")).not.toBeNull();
-  });
-
-  it("drops the placeholder line once the diff has loaded", async () => {
-    stubPage();
-
-    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
-
-    expect(view.query("span.h-5")).toBeNull();
   });
 
   it("reads a project with no target locales as fully covered", async () => {
@@ -1089,5 +922,83 @@ describe("OverviewPanel locales section", () => {
     expect(alertTexts(view)).toEqual([
       "The lock file is missing, corrupt, or at an unsupported version.",
     ]);
+  });
+});
+
+describe("OverviewPanel attention link, notices, history paging and order", () => {
+  it("links the attention hint to the translations list filtered to missing and changed keys", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(
+      view.get('a[href="#/translations?status=missing&status=changed"]').textContent,
+    ).toContain("keys missing or changed");
+  });
+
+  it("offers no attention link when everything is in sync", async () => {
+    stubSyncedPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(view.query('a[href^="#/translations"]')).toBeNull();
+  });
+
+  it("keeps the last known pending changes and says so when a diff re-read fails", async () => {
+    stubPage({
+      "status.diff": answersInOrder([diffResult(DEFAULT_LOCALES), rpcError("INTERNAL", "gone")]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(alertTexts(view)).toEqual([
+      "Showing the last known pending changes. An unexpected server error occurred. Check the terminal running Studio for details.",
+    ]);
+  });
+
+  it("asks for ten commits first and shows more on request", async () => {
+    const commits = Array.from({ length: 10 }, (_, index) => ({
+      hash: `${String(index).padStart(2, "0")}f3ab19c7d5e4a2b`,
+      author: "Ada Lovelace",
+      authorDate: "2026-05-04T09:00:00.000Z",
+      subject: `commit ${index}`,
+      touchedPaths: [],
+    }));
+    stubOverview({ "history.list": historyAnswer({ available: true, commits }) });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(rpcCalls).toContainEqual({ method: "history.list", params: { limit: 10 } });
+
+    await clickAsync(view.getByText("button", "Show more commits"));
+
+    expect(rpcCalls).toContainEqual({ method: "history.list", params: { limit: 20 } });
+  });
+
+  it("offers no show-more control when fewer commits than asked for came back", async () => {
+    stubActivity(TRACKED_RUN);
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(view.query("button")).toBeNull();
+  });
+
+  it("places the last run before the file history in document order", async () => {
+    stubActivity(TRACKED_RUN);
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    const titles = view.all("h2").map((heading) => heading.textContent);
+
+    expect(titles.indexOf("Last run")).toBeGreaterThan(-1);
+    expect(titles.indexOf("Last run")).toBeLessThan(titles.indexOf("Locale file history"));
+  });
+
+  it("hints that the coverage table scrolls sideways on narrow screens", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(view.text()).toContain("Scroll sideways to see every column.");
   });
 });

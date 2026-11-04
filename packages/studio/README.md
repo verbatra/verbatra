@@ -42,7 +42,7 @@ npx @verbatra/cli studio
 
 The command prints `Verbatra Studio running at http://127.0.0.1:5849/?token=...`. Open that URL; the token is required. Add `--port <n>` to change the port, and `--verbose` to also print one stderr line per request, with the token masked.
 
-<img src="https://raw.githubusercontent.com/verbatra/verbatra/main/apps/docs/public/screenshots/studio-translations-dark.webp" alt="The Translations page of Verbatra Studio in its dark theme, listing every locale's pending keys by state" width="100%" />
+<img src="https://raw.githubusercontent.com/verbatra/verbatra/main/apps/docs/public/screenshots/studio-overview-dark.webp" alt="The Overview page of Verbatra Studio in its dark theme, with coverage figures above a table of every locale" width="100%" />
 
 ## What it serves
 
