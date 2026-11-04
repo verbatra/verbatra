@@ -7,6 +7,7 @@ const base = createVitestConfig({
     "src/client/**/*.test.ts",
     "src/shared/**/*.test.ts",
     "src/webmcp/**/*.test.ts",
+    "src/app/**/*.test.ts",
     "src/app/**/*.test.tsx",
   ],
   coverageInclude: [

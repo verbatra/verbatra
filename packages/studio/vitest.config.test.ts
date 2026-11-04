@@ -21,6 +21,7 @@ describe("the studio vitest config", () => {
 
   it("discovers the React layer's tests, which are .test.tsx rather than .test.ts", () => {
     expect(testInclude).toContain("src/app/**/*.test.tsx");
+    expect(testInclude).toContain("src/app/**/*.test.ts");
   });
 
   it("discovers this file, so the config it pins cannot drop its own guard", () => {

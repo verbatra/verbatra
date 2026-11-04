@@ -127,7 +127,7 @@ function unavailableReason(view: { readonly kind: string }): string {
 
 type SourceTrouble = "loading" | "failed" | null;
 
-function sourceTrouble(kinds: readonly string[]): SourceTrouble {
+function sourceTrouble(kinds: readonly RefreshableView<unknown>["kind"][]): SourceTrouble {
   if (kinds.includes("error")) {
     return "failed";
   }

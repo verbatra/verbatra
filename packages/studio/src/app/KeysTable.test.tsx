@@ -308,12 +308,13 @@ describe("KeysTable markers", () => {
     });
     expect(slot.hasAttribute("data-open")).toBe(false);
 
-    const matches = vi.spyOn(Element.prototype, "matches").mockReturnValue(false);
+    const wrapper = key.parentElement as HTMLElement;
+    const focusVisible = vi.spyOn(wrapper, "querySelector").mockReturnValue(null);
     act(() => key.focus());
     expect(slot.hasAttribute("data-open")).toBe(false);
 
     act(() => key.blur());
-    matches.mockImplementation((selector) => selector === ":focus-visible");
+    focusVisible.mockReturnValue(key);
     act(() => key.focus());
     expect(slot.hasAttribute("data-open")).toBe(true);
     expect(slot.textContent).toBe("In the review queue");
