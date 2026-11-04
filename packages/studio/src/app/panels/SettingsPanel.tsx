@@ -31,7 +31,6 @@ type SettingsState =
 
 function breakAfterSlashes(pattern: string): ReactNode {
   return pattern.split("/").map((part, index, parts) => (
-    // biome-ignore lint/suspicious/noArrayIndexKey: the parts are positional and never reorder
     <Fragment key={index}>
       {part}
       {index < parts.length - 1 ? (
