@@ -1,4 +1,5 @@
 import type { IconName } from "@verbatra/ui";
+import { Container } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -19,7 +20,6 @@ import { TranslationsPanel } from "./panels/TranslationsPanel.js";
 import { RefreshToast } from "./RefreshToast.js";
 import { DesktopSidebar, MobileNavDrawer } from "./Sidebar.js";
 import { TopBar } from "./TopBar.js";
-import { Container } from "./ui.js";
 import { useAgentToolsFailures } from "./use-agent-tools-status.js";
 import { useReviewQueue } from "./use-review-queue.js";
 

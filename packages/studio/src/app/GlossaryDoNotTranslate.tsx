@@ -1,4 +1,4 @@
-import { Badge, Button } from "@verbatra/ui";
+import { Badge, Button, TextField } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -6,7 +6,6 @@ import {
   MAX_GLOSSARY_TERM_LENGTH,
 } from "../shared/rpc/glossary.js";
 import { CaseSensitiveToggle, type GlossaryWriter } from "./GlossaryTermRow.js";
-import { TextField } from "./Input.js";
 
 export const glossarySubheadingClassName = "m-0 mb-2 text-sm font-medium text-foreground";
 
@@ -79,7 +78,6 @@ function KeepForm({
         aria-label="New do-not-translate term"
         placeholder="Brand or product name"
         dir="auto"
-        className="max-w-none"
         value={term}
         disabled={busy}
         onChange={(event) => setTerm(event.target.value)}

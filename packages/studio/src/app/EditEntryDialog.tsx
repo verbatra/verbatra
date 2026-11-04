@@ -1,5 +1,5 @@
 import type { GlossaryDraftCheck, LocaleGlossary, ReviewReasonCode } from "@verbatra/sdk";
-import { Badge, Button } from "@verbatra/ui";
+import { Badge, Button, DrawerShell, microLabelClassName, Section, TextArea } from "@verbatra/ui";
 import type { KeyboardEvent, ReactNode, Ref } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { deriveEditEntryOutcome, type EditEntryOutcome } from "../client/edit-entry-outcome.js";
@@ -15,14 +15,12 @@ import {
 import { compareLength, lengthSummary } from "../client/length-compare.js";
 import { settledActionStatusLabel } from "../client/settled-action-status.js";
 import { rpcClient } from "./api.js";
-import { TextArea } from "./Input.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";
 import { cn } from "./lib/cn.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ReviewReasonChips } from "./ReviewReasonChips.js";
 import { TranslationValue, valueDirection } from "./TranslationValue.js";
-import { DrawerShell, microLabelClassName, Section } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
@@ -290,7 +288,6 @@ function TranslationColumn({
           aria-label={`Translation (${locale})`}
           aria-describedby={lengthId}
           aria-keyshortcuts="Control+Enter Meta+Enter"
-          className="max-w-none"
           lang={locale}
           dir={valueDirection(locale, value)}
           value={value}

@@ -1,3 +1,4 @@
+import { EmptyState, ProgressBar, TableCard } from "@verbatra/ui";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { useMemo, useRef, useState } from "react";
 import type { StatusData } from "../client/coverage.js";
@@ -10,9 +11,6 @@ import type { RefreshableView } from "../client/state.js";
 import { KeyLocaleStatusBadge } from "./DiffBadge.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { cn } from "./lib/cn.js";
-import { ProgressBar } from "./ProgressBar.js";
-import { TableCard } from "./Table.js";
-import { EmptyState } from "./ui.js";
 import { useStatusData } from "./use-status-data.js";
 
 const gridCellClassName = "px-3 py-2 text-start whitespace-nowrap";

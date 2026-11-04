@@ -1,5 +1,5 @@
+import { Section } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { Section } from "./ui.js";
 
 export function KeyDescription({
   description,

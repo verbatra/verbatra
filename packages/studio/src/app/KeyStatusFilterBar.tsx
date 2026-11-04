@@ -1,8 +1,7 @@
+import { SearchInput, Select } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
 import { KEY_STATUS_LABELS, KEY_STATUSES, type KeyStatus } from "../client/key-status-filter.js";
-import { SearchInput } from "./Input.js";
 import { cn } from "./lib/cn.js";
-import { Select } from "./Select.js";
 import { FilterBar } from "./Toolbar.js";
 
 export interface KeyStatusFilterBarProps {

@@ -1,5 +1,20 @@
 import type { MachineClassOrigin } from "@verbatra/sdk";
-import { Button } from "@verbatra/ui";
+import {
+  Button,
+  Checkbox,
+  EmptyState,
+  microLabelClassName,
+  SearchInput,
+  Select,
+  Table,
+  TableBody,
+  TableCard,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+  TableSkeleton,
+} from "@verbatra/ui";
 import type { ChangeEvent, ReactNode, Ref } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyValuePair } from "../../client/filter.js";
@@ -47,10 +62,8 @@ import { MAX_REVIEW_BATCH_ENTRIES } from "../../shared/rpc/review-batch.js";
 import type { StudioCapabilities } from "../../shared/rpc/snapshot.js";
 import { ApproveLocaleDialog } from "../ApproveLocaleDialog.js";
 import { BulkRejectDialog, type BulkRejectEntry } from "../BulkRejectDialog.js";
-import { Checkbox } from "../Checkbox.js";
 import { EditEntryDialog } from "../EditEntryDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
-import { SearchInput } from "../Input.js";
 import { cn } from "../lib/cn.js";
 import { PageHeader } from "../PageHeader.js";
 import { ProvenanceBadge } from "../ProvenanceBadge.js";
@@ -61,20 +74,8 @@ import { ReviewDecisionStatus } from "../ReviewDecisionStatus.js";
 import { ReviewReasonChips } from "../ReviewReasonChips.js";
 import { ReviewRowActions, type RowBusy } from "../ReviewRowActions.js";
 import { ReviewShortcutsDialog } from "../ReviewShortcutsDialog.js";
-import { Select } from "../Select.js";
-import { TableSkeleton } from "../Skeleton.js";
-import {
-  Table,
-  TableBody,
-  TableCard,
-  TableCell,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-} from "../Table.js";
 import { FilterBar } from "../Toolbar.js";
 import { TranslationValue } from "../TranslationValue.js";
-import { EmptyState, microLabelClassName } from "../ui.js";
 import { useCapabilities } from "../use-capabilities.js";
 import { useLocaleValues } from "../use-locale-values.js";
 import { useMediaQuery } from "../use-media-query.js";

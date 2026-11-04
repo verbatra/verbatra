@@ -1,4 +1,4 @@
-import { Badge, Button } from "@verbatra/ui";
+import { Badge, Button, microLabelClassName, TextField } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import {
@@ -18,8 +18,6 @@ import {
   MAX_GLOSSARY_PART_OF_SPEECH_LENGTH,
   MAX_GLOSSARY_TRANSLATION_LENGTH,
 } from "../shared/rpc/glossary.js";
-import { TextField } from "./Input.js";
-import { microLabelClassName } from "./ui.js";
 
 export interface GlossaryWriter {
   readonly pending: string | undefined;
@@ -91,7 +89,7 @@ function LabeledField({
         placeholder={placeholder}
         maxLength={maxLength}
         disabled={disabled}
-        className="max-w-none"
+        className="mt-1"
         onChange={(event) => onChange(event.target.value)}
       />
     </div>
