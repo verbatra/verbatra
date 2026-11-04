@@ -4,8 +4,8 @@
 @import "tw-animate-css";
 @import "@verbatra/ui/tokens.css";
 @import "@verbatra/ui/components.css";
-@source "../../../packages/ui/src/**/*.tsx";
-@source not "../../../packages/ui/src/**/*.test.tsx";
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
+@source not "../../../packages/ui/src/**/*.test.{ts,tsx}";
 @source not "../../../packages/ui/src/test-support.tsx";
 
 @source "../node_modules/fumadocs-ui/dist/**/*.js";

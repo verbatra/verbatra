@@ -81,7 +81,7 @@ describe("ui components resolve their custom properties", () => {
     expect(field.replace(/\s+/g, "")).toBe(button.replace(/\s+/g, ""));
   });
 
-  it.each(consumers.filter((file) => file.endsWith(".tsx")))(
+  it.each(consumers.filter((file) => /\.tsx?$/.test(file)))(
     "%s uses no app-defined theme alias a host may lack",
     (file) => {
       const aliases =
