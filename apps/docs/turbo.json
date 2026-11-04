@@ -11,7 +11,16 @@
         "lib/translation-freshness.generated.json"
       ]
     },
+    "generate": {
+      "inputs": ["content/**", "source.config.ts", "package.json"],
+      "outputs": [".source/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "generate"],
+      "outputs": []
+    },
     "test": {
+      "dependsOn": ["^build", "typecheck"],
       "outputs": []
     }
   }
