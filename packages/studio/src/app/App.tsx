@@ -8,12 +8,14 @@ import {
   type RefreshToastView,
 } from "../client/refresh-toast.js";
 import { unreviewedRows } from "../client/review-queue-data.js";
-import { PAGE_IDS, type PageId, pageHash, parsePageHash } from "../client/routes.js";
+import type { PageId } from "../client/routes.js";
 import { AgentToolsAlert } from "./AgentToolsAlert.js";
 import { refreshBus, sessionStore } from "./api.js";
 import { readStoredSidebarCollapsed, storeSidebarCollapsed } from "./lib/sidebar-dom.js";
+import { NAV_GROUPS } from "./nav-groups.js";
 import type { PanelProps } from "./panel-props.js";
 import { ActivityPanel } from "./panels/ActivityPanel.js";
+import { GlossaryPanel } from "./panels/GlossaryPanel.js";
 import { ReviewPanel } from "./panels/ReviewPanel.js";
 import { SettingsPanel } from "./panels/SettingsPanel.js";
 import { TranslationsPanel } from "./panels/TranslationsPanel.js";
@@ -22,33 +24,29 @@ import { DesktopSidebar, MobileNavDrawer } from "./Sidebar.js";
 import { TopBar } from "./TopBar.js";
 import { useAgentToolsFailures } from "./use-agent-tools-status.js";
 import { useReviewQueue } from "./use-review-queue.js";
+import { navigateToPage, useCanonicalHash, useRoute } from "./use-route.js";
 
 const PAGE_LABELS: Readonly<Record<PageId, string>> = {
+  overview: "Overview",
   translations: "Translations",
   review: "Review",
-  activity: "Activity",
+  glossary: "Glossary",
   settings: "Settings",
 };
 
 const PAGE_ICONS: Readonly<Record<PageId, IconName>> = {
+  overview: "activity",
   translations: "diff",
   review: "review",
-  activity: "activity",
+  glossary: "book",
   settings: "settings",
 };
 
-const WORK_PAGES: readonly PageId[] = ["translations", "review"];
-const REFERENCE_PAGES: readonly PageId[] = ["activity", "settings"];
-
-const ZONED_PAGES = new Set([...WORK_PAGES, ...REFERENCE_PAGES]);
-if (ZONED_PAGES.size !== PAGE_IDS.length || PAGE_IDS.some((page) => !ZONED_PAGES.has(page))) {
-  throw new Error("WORK_PAGES and REFERENCE_PAGES must partition PAGE_IDS exactly");
-}
-
 const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = {
+  overview: ActivityPanel,
   translations: TranslationsPanel,
   review: ReviewPanel,
-  activity: ActivityPanel,
+  glossary: GlossaryPanel,
   settings: SettingsPanel,
 };
 
@@ -71,20 +69,13 @@ function isSessionExpired(): boolean {
 }
 
 export function App(): ReactNode {
-  const [page, setPage] = useState<PageId>(() => parsePageHash(window.location.hash));
+  const { page } = useRoute();
+  useCanonicalHash();
   const [sessionExpired, setSessionExpired] = useState(isSessionExpired());
   const [toast, setToast] = useState<RefreshToastView | undefined>(undefined);
   const [refreshToken, setRefreshToken] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readStoredSidebarCollapsed);
-
-  useEffect(() => {
-    function onHashChange(): void {
-      setPage(parsePageHash(window.location.hash));
-    }
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
 
   useEffect(
     () => sessionStore.subscribe((state) => setSessionExpired(state.kind === "session-expired")),
@@ -120,7 +111,6 @@ export function App(): ReactNode {
   return (
     <AppShell
       page={page}
-      onNavigate={setPage}
       refreshToken={refreshToken}
       toast={toast}
       onDismissToast={handleDismissToast}
@@ -134,7 +124,6 @@ export function App(): ReactNode {
 
 function AppShell({
   page,
-  onNavigate,
   refreshToken,
   toast,
   onDismissToast,
@@ -144,7 +133,6 @@ function AppShell({
   onToggleSidebar,
 }: {
   readonly page: PageId;
-  readonly onNavigate: (page: PageId) => void;
   readonly refreshToken: number;
   readonly toast: RefreshToastView | undefined;
   readonly onDismissToast: () => void;
@@ -161,16 +149,14 @@ function AppShell({
   const ActivePanel = PAGE_PANELS[page];
 
   function navigate(next: PageId): void {
-    window.location.hash = pageHash(next);
-    onNavigate(next);
+    navigateToPage(next);
     onSetMobileNavOpen(false);
   }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
       <DesktopSidebar
-        workPages={WORK_PAGES}
-        referencePages={REFERENCE_PAGES}
+        groups={NAV_GROUPS}
         pageLabels={PAGE_LABELS}
         pageIcons={PAGE_ICONS}
         pageBadges={pageBadges}
@@ -181,8 +167,7 @@ function AppShell({
       />
       {mobileNavOpen ? (
         <MobileNavDrawer
-          workPages={WORK_PAGES}
-          referencePages={REFERENCE_PAGES}
+          groups={NAV_GROUPS}
           pageLabels={PAGE_LABELS}
           pageIcons={PAGE_ICONS}
           pageBadges={pageBadges}

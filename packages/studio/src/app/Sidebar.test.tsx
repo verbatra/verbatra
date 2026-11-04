@@ -4,30 +4,29 @@ import type { IconName } from "@verbatra/ui";
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { PageId } from "../client/routes.js";
+import { NAV_GROUPS } from "./nav-groups.js";
 import { DesktopSidebar, MobileNavDrawer, type SidebarNavProps } from "./Sidebar.js";
 import { click, pressKey, type RenderResult, render } from "./test-support.js";
 
 const PAGE_LABELS: Readonly<Record<PageId, string>> = {
+  overview: "Overview",
   translations: "Translations",
   review: "Review",
-  activity: "Activity",
+  glossary: "Glossary",
   settings: "Settings",
 };
 
 const PAGE_ICONS: Readonly<Record<PageId, IconName>> = {
+  overview: "activity",
   translations: "diff",
   review: "review",
-  activity: "activity",
+  glossary: "book",
   settings: "settings",
 };
 
-const WORK_PAGES: readonly PageId[] = ["translations", "review"];
-const REFERENCE_PAGES: readonly PageId[] = ["activity", "settings"];
-
 function navProps(overrides: Partial<SidebarNavProps> = {}): SidebarNavProps {
   return {
-    workPages: WORK_PAGES,
-    referencePages: REFERENCE_PAGES,
+    groups: NAV_GROUPS,
     pageLabels: PAGE_LABELS,
     pageIcons: PAGE_ICONS,
     activePage: "translations",
@@ -61,11 +60,11 @@ function renderDrawer(
 }
 
 describe("DesktopSidebar", () => {
-  it("groups the nav into a named workspace zone and a named reference zone", () => {
+  it("groups the nav into a named Workspace zone and a named Project zone", () => {
     const view = renderDesktop();
 
     expect(view.get('nav[aria-label="Workspace"]')).not.toBeNull();
-    expect(view.get('nav[aria-label="Reference"]')).not.toBeNull();
+    expect(view.get('nav[aria-label="Project"]')).not.toBeNull();
   });
 
   it("lists each zone's pages in the order the caller gave them", () => {
@@ -73,6 +72,7 @@ describe("DesktopSidebar", () => {
     const workspace = view.get('nav[aria-label="Workspace"]');
 
     expect([...workspace.querySelectorAll("button")].map((item) => item.textContent)).toEqual([
+      "Overview",
       "Translations",
       "Review",
     ]);
@@ -82,7 +82,7 @@ describe("DesktopSidebar", () => {
     const view = renderDesktop();
 
     expect(view.getByText("p", "Workspace")).not.toBeNull();
-    expect(view.getByText("p", "Reference")).not.toBeNull();
+    expect(view.getByText("p", "Project")).not.toBeNull();
   });
 
   it("drops the zone labels from the collapsed rail, where there is no room for them", () => {
@@ -103,9 +103,9 @@ describe("DesktopSidebar", () => {
     const onSelectPage = vi.fn();
     const view = renderDesktop({ nav: { onSelectPage } });
 
-    click(view.getByText("button", "Activity"));
+    click(view.getByText("button", "Glossary"));
 
-    expect(onSelectPage).toHaveBeenCalledWith("activity");
+    expect(onSelectPage).toHaveBeenCalledWith("glossary");
   });
 
   it("shows the product wordmark while expanded", () => {
@@ -243,7 +243,7 @@ describe("MobileNavDrawer", () => {
     const view = renderDrawer();
 
     expect(view.get('nav[aria-label="Workspace"]')).not.toBeNull();
-    expect(view.get('nav[aria-label="Reference"]')).not.toBeNull();
+    expect(view.get('nav[aria-label="Project"]')).not.toBeNull();
     expect(view.getByText("button", "Translations")).not.toBeNull();
   });
 
