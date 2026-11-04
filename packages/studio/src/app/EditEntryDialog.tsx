@@ -285,9 +285,7 @@ function TranslationColumn({
           ref={textAreaRef}
           aria-label={`Translation (${locale})`}
           aria-describedby={lengthId}
-          aria-invalid={
-            pill?.tone === "danger" && value === (context.target ?? "") ? true : undefined
-          }
+          aria-invalid={pill?.tone === "danger" && value === context.target ? true : undefined}
           className="mt-1"
           aria-keyshortcuts="Control+Enter Meta+Enter"
           lang={locale}

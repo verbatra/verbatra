@@ -76,18 +76,16 @@ export function RefreshToast({ view, onDismiss }: RefreshToastProps): ReactNode 
           <Icon name="close" size={14} />
         </Button>
       </div>
-      {showAction || state.kind !== "idle" ? (
+      {showAction ? (
         <div className="flex flex-wrap items-center gap-2">
-          {showAction ? (
-            <Button
-              variant="primary"
-              className="max-w-full whitespace-normal text-start"
-              disabled={state.kind === "loading"}
-              onClick={() => void handleClick()}
-            >
-              Translate pending changes across all locales
-            </Button>
-          ) : null}
+          <Button
+            variant="primary"
+            className="max-w-full whitespace-normal text-start"
+            disabled={state.kind === "loading"}
+            onClick={() => void handleClick()}
+          >
+            Translate pending changes across all locales
+          </Button>
           {state.kind !== "idle" ? (
             <span className={actionStatusClassName(state)}>{actionStatusLabel(state)}</span>
           ) : null}
