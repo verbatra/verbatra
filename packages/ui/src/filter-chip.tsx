@@ -22,7 +22,7 @@ export function FilterChip({
   children,
   ...props
 }: FilterChipProps): ReactNode {
-  const off = unavailable !== undefined;
+  const off = unavailable !== undefined && !pressed;
   const chip = (
     <button
       type="button"
@@ -37,7 +37,7 @@ export function FilterChip({
       <span className="font-mono tabular-nums">{off ? "…" : count}</span>
     </button>
   );
-  return off ? (
+  return unavailable !== undefined ? (
     <Tooltip label={unavailable} side="bottom">
       {chip}
     </Tooltip>

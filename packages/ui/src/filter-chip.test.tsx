@@ -82,6 +82,23 @@ describe("FilterChip", () => {
       expect(view.get("[data-slot]").hasAttribute("data-open")).toBe(true);
     });
 
+    it("keeps a pressed chip clickable, so a status chosen before its source failed can be removed", () => {
+      const onClick = vi.fn();
+      const view = render(
+        <FilterChip pressed count={9} unavailable="Not available right now" onClick={onClick}>
+          Review queue
+        </FilterChip>,
+      );
+      const chip = view.get("button");
+
+      click(chip);
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(chip.hasAttribute("aria-disabled")).toBe(false);
+      expect(chip.textContent).toBe("Review queue9");
+      expect(view.get("[role='tooltip']").textContent).toBe("Not available right now");
+    });
+
     it("ignores clicks and hides the count", () => {
       const onClick = vi.fn();
       const view = mount(onClick);
