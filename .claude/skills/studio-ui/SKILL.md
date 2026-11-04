@@ -136,8 +136,10 @@ Conventions carried by that list:
   low-alpha background (`--status-success-soft`). A new semantic hue ships both, with a contrast
   test in `packages/ui/src/tokens.test.ts`, or it is not finished.
 - **Protected is not Changed.** `diff-protected` is teal, `diff-changed` amber; the pill carries a
-  word as well, never color alone. Orphaned intentionally uses the neutral tone, and Missing
-  currently shares the accent hue with links and focus.
+  word as well, never color alone. Orphaned intentionally uses the neutral tone. Missing has its own
+  blue (`--v-diff-missing`, hue 222), no longer the accent hue of links and focus; a test in
+  `packages/ui/src/tokens.test.ts` keeps it at least 30 degrees from changed, protected, accent,
+  danger, success and warning in both themes.
 - **Navigation is a top header, not a sidebar.** `AppHeader.tsx` follows the docs site header: a
   `--surface-chrome` bar with a `--border-default` bottom line, text links in `--text-muted` that
   turn `--text-strong` on hover and `--accent` when `aria-current="page"`, with a 1px `--accent`
@@ -157,6 +159,12 @@ a destructive confirmation, not for an ordinary row action, which stays a tinted
 The scales come from ui and are not Studio's to override: radii `--radius-sm` 6px, `--radius-md`
 10px, `--radius-lg` and `--radius-xl` 12px; shadows `--shadow-panel` and `--shadow-sm`, each
 redefined per theme.
+
+**Radius hierarchy.** Containers (cards, table cards, callouts, empty states) use `--radius-lg`.
+Controls (buttons, fields, chips, selects) use `--radius-md`. Anything nested inside a container
+or a control (a cell hit area, a badge, a code preview, a `kbd`) uses `--radius-sm`.
+`rounded-full` is for dots and the pill search field only. Tailwind's `rounded-sm`, `rounded-md`
+and `rounded-lg` resolve to these tokens, so either spelling is fine; a bare `rounded` is not.
 
 ## Both themes, every time
 
@@ -201,7 +209,11 @@ Rules that follow:
   line and uppercase by default), `Icon`, the fields `TextField`, `TextArea`, `SearchInput` and
   `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row
   aligns; `TextArea` takes no size; the focus ring is `.vk-field:focus-visible`), `Checkbox`,
-  `Accordion`, `Skeleton`, `ProgressBar`, `Toast`, the `Table` family with `tableClasses`,
+  `Accordion`, `Skeleton`, `ProgressBar`, `Toast`, `FilterBar` and `FilterChip` (`pressed`, `count`,
+  and `unavailable` with the reason, which keeps the chip focusable and shows the reason in a
+  `Tooltip` instead of disabling it), the `Table` family with `tableClasses` (`TableRow` takes
+  `selected` for `aria-selected` and `data-selected`; `TableCard` is a containing block, so
+  visually hidden text inside it cannot widen the page),
   `Sheet` and `DrawerShell`, `OverlayBackdrop`, `DialogCloseButton`, `Tooltip` (`aria-describedby`
   on the control unless the label repeats its name, shown on hover and focus, dismissed with
   Escape, none on a disabled control; `side`: `end`, `bottom`, `bottom-end`),
@@ -230,15 +242,15 @@ Rules that follow:
   never string concatenation. It is what makes a caller's `className` override predictable.
 - **Accessibility:** `useDialogA11y` from `@verbatra/ui` (focus trap that also holds when focus
   starts outside the dialog, Escape, focus restore) and
-  `src/client/roving-tabindex.ts` already exist. Any new overlay, drawer, or keyboard
+  `src/client/roving-tabindex.ts` (used through `use-roving-table.ts` for the key table) already exist. Any new overlay, drawer, or keyboard
   listbox uses them rather than hand-rolling focus management.
 - **Panels:** the five panels under `src/app/panels/` (Overview, Translations, Review, Glossary,
   Settings) all take `PanelProps` (`{ refreshToken: number }`, `src/app/panel-props.ts`) except
   Glossary and Settings, which read once, and are wired through `PAGE_PANELS` in `App.tsx` and
   `PAGE_LABELS`, `PAGE_ICONS` and `NAV_GROUPS` in `src/app/nav-groups.ts`. `DEFAULT_PAGE` in
   `src/client/routes.ts` is `overview`. Overview owns the metric row, the per-locale coverage
-  table, the last run and the locale file history; Translations keeps the key list or grid and
-  the editor; the glossary editor lives only on Glossary. Adding a page means adding it to
+  table, the last run and the locale file history; Translations is one `KeysTable` (the matrix of a status per locale, or one locale's
+  entries with source, translation, status and origin) under `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary. Adding a page means adding it to
   `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of those tables.
 
 ## Capabilities are two flags, and the decision is a pure function

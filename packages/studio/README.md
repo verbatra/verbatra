@@ -47,7 +47,7 @@ The command prints `Verbatra Studio running at http://127.0.0.1:5849/?token=...`
 ## What it serves
 
 - **Overview**: the page Studio opens on. Coverage and lock state per locale, the git commit history of the source and target locale files, and the last run's token usage and budget.
-- **Translations**: the diff, filterable by state, locale, review queue entries, and integrity problems, down to a per-key detail view with the source value, every target's current translation, and who wrote it.
+- **Translations**: one table of every key that needs attention, with a status per locale. Pick a locale for its translation, status and origin; filter by state, review queue entries and integrity problems, or search any key's text, down to a per-key detail view with the source value, every target's current translation, and who wrote it.
 - **Review**: every machine-written translation nobody has approved yet, read from the committed files so the whole team sees the same queue. Approve, reject, or edit an entry side by side with its source, glossary terms, and integrity check, from the keyboard, in bulk, or a whole locale at once. Decisions are saved to `verbatra.provenance.json`, which `verbatra check --require-reviewed` gates on.
 - **Glossary**: the project glossary. A glossary the project keeps in a JSON file is editable here.
 - **Settings**: the resolved config and the session's capabilities.
