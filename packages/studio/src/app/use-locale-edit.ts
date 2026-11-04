@@ -13,6 +13,8 @@ import type { SubmitState } from "./entry-editor-parts.js";
 
 const LOADING: KeyValueContext = { kind: "loading" };
 
+const UNHELD: HeldContext = { identity: null, context: LOADING };
+
 interface HeldContext {
   readonly identity: string | null;
   readonly context: KeyValueContext;
@@ -40,10 +42,11 @@ function useHeldContext(
   keyName: string,
   refreshToken: number,
 ): KeyValueContext {
-  const [held, setHeld] = useState<HeldContext>({ identity: null, context: LOADING });
+  const [held, setHeld] = useState<HeldContext>(UNHELD);
 
   useEffect(() => {
     if (locale === null) {
+      setHeld(UNHELD);
       return;
     }
     let cancelled = false;

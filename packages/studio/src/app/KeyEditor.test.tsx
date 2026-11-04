@@ -921,6 +921,27 @@ describe("KeyEditor editing", () => {
     expect(field(view).hasAttribute("aria-invalid")).toBe(false);
   });
 
+  it("starts every edit in loading, never showing the value read for an earlier edit of the same locale", async () => {
+    stubWritable();
+    let reads = 0;
+    stubRpc({
+      "key.context": () => {
+        reads += 1;
+        return reads === 1 ? context("Hallo") : new Promise<StubRpcResult>(() => {});
+      },
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Cancel"));
+
+    await startEditing(view);
+
+    expect(view.text()).toContain("Loading current value…");
+    expect(view.query("textarea")).toBeNull();
+  });
+
   it("ignores a context read that answers after another locale took over the form", async () => {
     stubWritable();
     const answers = new Map<string, (result: StubRpcResult) => void>();
