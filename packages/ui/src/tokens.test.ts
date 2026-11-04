@@ -293,6 +293,16 @@ describe.each(THEMES)("missing hue in the %s theme", (theme) => {
   });
 });
 
+describe.each(THEMES)("empty filter chip text in the %s theme", (theme) => {
+  it("keeps the muted text-faint readable at AA on the chip fill", () => {
+    const tokens = rootTokens(theme);
+
+    expect(
+      ratio(resolveColor(tokens, "--text-faint"), resolveColor(tokens, "--surface-card")),
+    ).toBeGreaterThanOrEqual(AA);
+  });
+});
+
 describe("diff token mapping", () => {
   const root = rootTokens("dark");
 

@@ -18,7 +18,7 @@ describe("FilterChip", () => {
     expect(chip.hasAttribute("aria-disabled")).toBe(false);
   });
 
-  it("marks an empty chip so it can be muted, and leaves a chip with keys unmarked", () => {
+  it("exposes its count as data-count, zero for an empty chip, without changing its pressed state", () => {
     const empty = render(
       <FilterChip pressed={false} count={0}>
         Orphaned
