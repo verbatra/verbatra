@@ -216,7 +216,9 @@ Rules that follow:
   visually hidden text inside it cannot widen the page),
   `Sheet` and `DrawerShell`, `OverlayBackdrop`, `DialogCloseButton`, `Tooltip` (`aria-describedby`
   on the control unless the label repeats its name or `decorative` says the control already
-  carries the words, shown on hover and focus (or on focus alone with `trigger="focus"`), dismissed with Escape, none on a disabled control,
+  carries the words, shown on hover and focus (or on keyboard focus alone with `trigger="focus"`,
+  which ignores focus from a pointer press; `flip` opens it upward when the clipping box would cut it
+  off, so an open bubble never grows the scroll area), dismissed with Escape, none on a disabled control,
   taking no layout while closed; `side`: `end`, `bottom`, `bottom-end`; `className` goes on the
   wrapper),
   `ThemeToggle` (a cycle over a theme store that
@@ -263,12 +265,12 @@ Rules that follow:
 border on each cell (the table uses `border-separate`, since collapsed borders vanish on sticky
 cells); the corner cell sits above both. Below `md` the key column is 7rem and truncates, the
 Source column of the matrix is hidden, and the table flows in the page; from `md` up the card is
-a bounded scroll region sized from the viewport (`max-h` of `100dvh` minus the site header), so
-the header stays in view with many rows. The roving stops draw their focus ring inside
-(`-outline-offset-2`), the region sets `scroll-padding` to the sticky column width and header
-height plus 4px, with 4px at the end and bottom, and a focused stop is scrolled into view with
-`block` and `inline` set to `nearest`, so the ring is never clipped or under the sticky parts.
-ArrowLeft and ArrowRight stop at the row edges; ArrowUp and ArrowDown wrap. Column widths are
+a bounded scroll region (`md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto`), so the header stays in
+view with many rows. The roving stops draw their focus ring inside (`-outline-offset-2`), so it is
+never clipped by the card edge. The region sets `scroll-ps-28 md:scroll-ps-60` (the sticky key
+column's width) and `scroll-pt-16` in the matrix or `scroll-pt-11` in the entries table (the
+header's height), and a focused stop is scrolled into view with `block` and `inline` set to
+`nearest`, so the ring is never under the sticky parts. ArrowLeft and ArrowRight stop at the row edges; ArrowUp and ArrowDown wrap. Column widths are
 fixed with `w-*` and `min-w-*`, so the key column never jumps while filtering. In sync is quiet
 text with a dot, never a bordered badge. A matrix cell is named by its `aria-label` (key, locale,
 status, then each marker after a comma); its marker words also sit in a `decorative` `Tooltip` on
