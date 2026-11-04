@@ -66,6 +66,11 @@ const DEFAULT_LOCALES: readonly DiffLocale[] = [
   localeDiff("fr", { missing: ["app.title"] }),
 ];
 
+const DEFAULT_VALUES = ["de", "fr"].map((locale) => ({
+  locale,
+  values: { "app.title": { source: "Welcome" }, "app.body": { source: "Body" } },
+}));
+
 const IN_SYNC_LOCALES: readonly DiffLocale[] = [localeDiff("de"), localeDiff("fr")];
 
 type Stubs = Readonly<Record<string, StubRpcResult | StubRpcHandler>>;
@@ -85,6 +90,7 @@ function stubPage(overrides: Stubs = {}): void {
   stubRpc({
     "status.diff": diffResult(DEFAULT_LOCALES),
     "status.check": GRID_COVERAGE,
+    "locale.values": { ok: true, result: DEFAULT_VALUES },
     ...overrides,
   });
 }
@@ -145,7 +151,7 @@ function keyDownOn(element: HTMLElement, key: string): void {
 }
 
 function sectionTitles(view: RenderResult): string[] {
-  return view.all("section > h2").map((heading) => heading.textContent ?? "");
+  return view.all("section h2").map((heading) => heading.textContent ?? "");
 }
 
 function rowKeys(view: RenderResult): string[] {
@@ -399,6 +405,68 @@ describe("TranslationsPanel all-clear state", () => {
   });
 });
 
+describe("TranslationsPanel loading and value errors", () => {
+  it("shows the heading and the filters at once, with a skeleton only where the table goes", () => {
+    stubPage({ "status.diff": PENDING });
+
+    const view = render(<TranslationsPanel refreshToken={1} />);
+
+    expect(sectionTitles(view)).toContain("Keys");
+    expect(filterInput(view)).not.toBeNull();
+    expect(view.all("[data-status-filter]")).toHaveLength(6);
+    expect(
+      view
+        .all("[data-status-filter]")
+        .every((chip) => chip.getAttribute("aria-disabled") === "true"),
+    ).toBe(true);
+    expect(view.query("table")).toBeNull();
+    expect(view.get('[role="status"]').textContent).toBe("Loading...");
+    expect(view.all("[data-bar]").length).toBeGreaterThan(0);
+  });
+
+  it("keeps a status chosen in the address clickable while the diff loads", async () => {
+    pointHashAt("#/translations?status=missing");
+    stubPage({ "status.diff": PENDING });
+    const view = render(<TranslationsPanel refreshToken={1} />);
+
+    expect(statusToggle(view, "missing").getAttribute("aria-pressed")).toBe("true");
+    await clickAsync(statusToggle(view, "missing"));
+
+    expect(window.location.hash).toBe("#/translations");
+    pointHashAt("#/translations");
+  });
+
+  it("lets the locale choice be reset while the diff loads", () => {
+    pointHashAt("#/translations?status=changed");
+    stubPage({ "status.diff": PENDING });
+    const view = render(<TranslationsPanel refreshToken={1} />);
+
+    chooseLocale(view, "");
+
+    expect(window.location.hash).toBe("#/translations?status=changed");
+    pointHashAt("#/translations");
+  });
+
+  it("says search can only match key names when the translation values cannot be read", async () => {
+    stubPage({ "locale.values": rpcError("INTERNAL", "gone") });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    expect(alertTexts(view)).toEqual([
+      "Source and translation text could not be read, so search only matches key names. An unexpected server error occurred. Check the terminal running Studio for details.",
+    ]);
+    expect(rowKeys(view)).toEqual(["app.body", "app.title"]);
+  });
+
+  it("shows no such notice when the values loaded", async () => {
+    stubPage({ "locale.values": KEY_VALUES_STUB() });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    expect(alertTexts(view)).toEqual([]);
+  });
+});
+
 describe("TranslationsPanel review report", () => {
   it("copies the full loaded diff, not the on-screen view, to the clipboard", async () => {
     stubPage();
@@ -634,9 +702,10 @@ describe("TranslationsPanel key table", () => {
     await flush();
 
     expect(rowKeys(view)).toHaveLength(MAX_RENDERED_KEYS);
-    expect(view.get("[data-key-count]").textContent).toBe(
-      `Showing ${MAX_RENDERED_KEYS} of ${keys.length} keys, refine the filter to see more.`,
-    );
+    const note = `Showing ${MAX_RENDERED_KEYS} of ${keys.length} keys. Refine the filter to see more.`;
+    expect(view.get("[data-key-count]").textContent).toBe(note);
+    expect(view.get("[data-key-cap]").textContent).toBe(note);
+    expect(view.get("[data-key-cap]").previousElementSibling?.tagName).toBe("P");
   }, 15000);
 
   it("counts the rows in words, for the keys that need attention and for a search", async () => {
@@ -647,6 +716,68 @@ describe("TranslationsPanel key table", () => {
 
     typeInto(filterInput(view), "body");
     expect(view.get("[data-key-count]").textContent).toBe("1 matching key");
+  });
+
+  it("says the same thing about the same default filter in both tables", async () => {
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { missing: ["a", "b"] })]),
+    });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    const matrix = view.get("[data-key-count]").textContent;
+
+    chooseLocale(view, "de");
+    await flush();
+
+    expect(matrix).toBe("2 keys need attention");
+    expect(view.get("[data-key-count]").textContent).toBe(matrix);
+  });
+
+  it("names the key filter differently from the header search", async () => {
+    stubPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    expect(filterInput(view).placeholder).toBe("Filter keys…");
+  });
+
+  it("marks only the row whose key is open as selected", async () => {
+    pointHashAt("#/translations?key=app.title");
+    stubPage({ ...drawerStubs(), "locale.values": KEY_VALUES_STUB() });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(
+      view.all("tbody tr").map((row) => [row.dataset.key, row.getAttribute("aria-selected")]),
+    ).toEqual([
+      ["app.body", "false"],
+      ["app.title", "true"],
+    ]);
+
+    pointHashAt("#/translations");
+  });
+
+  it("names a cell with its key, locale and status, then each marker after a comma", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(cellButton(view, "app.title", "de").textContent).toBe("app.title in de: Missing");
+    expect(cellButton(view, "app.body", "de").textContent).toBe(
+      "app.body in de: Changed, Integrity problem",
+    );
+    expect(cellButton(view, "app.subtitle", "fr").textContent).toBe(
+      "app.subtitle in fr: In sync, In the review queue",
+    );
+  });
+
+  it("explains a marker in a tooltip with the same words", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.all("[role='tooltip']").map((tip) => tip.textContent)).toEqual([
+      "Integrity problem",
+      "In the review queue",
+    ]);
   });
 
   it("keeps the page chrome in the page direction and sets each value in its own direction", async () => {

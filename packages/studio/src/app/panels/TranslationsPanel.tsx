@@ -1,10 +1,11 @@
-import { Button, Card, EmptyState, Icon, TableSkeleton } from "@verbatra/ui";
+import { Button, Card, EmptyState, Icon, PageSection, TableSkeleton } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DiffLocale } from "../../client/diff-view.js";
 import { isFullyInSync } from "../../client/diff-view.js";
 import { MAX_RENDERED_KEYS } from "../../client/filter.js";
 import {
+  KEY_STATUSES,
   type KeyStatus,
   type KeyStatusSources,
   type KeyTableRows,
@@ -20,6 +21,7 @@ import { buildReviewReportMarkdown } from "../../client/review-report.js";
 import type { RefreshableView } from "../../client/state.js";
 import { DiffErrorNotice } from "../DiffErrorNotice.js";
 import { EditEntryDialog } from "../EditEntryDialog.js";
+import { ErrorMessage } from "../ErrorMessage.js";
 import { KeyDetailDrawer } from "../KeyDetailDrawer.js";
 import { KeyFilters } from "../KeyFilters.js";
 import { KeysTable } from "../KeysTable.js";
@@ -111,47 +113,88 @@ function unavailableReason(view: { readonly kind: string }): string {
   return view.kind === "loading" ? "Still loading" : "Not available right now";
 }
 
-function KeyCountSummary({
-  rows,
-  narrowed,
-}: {
-  readonly rows: KeyTableRows;
-  readonly narrowed: boolean;
-}): ReactNode {
-  const noun = rows.totalMatches === 1 ? "key" : "keys";
-  let text = `${rows.totalMatches} matching ${noun}`;
+function keyCountText(rows: KeyTableRows, narrowed: boolean): string {
   if (rows.truncated) {
-    text = `Showing ${MAX_RENDERED_KEYS} of ${rows.totalMatches} keys, refine the filter to see more.`;
-  } else if (!narrowed) {
-    text = `${rows.totalMatches} ${rows.totalMatches === 1 ? "key needs" : "keys need"} attention`;
+    return `Showing ${MAX_RENDERED_KEYS} of ${rows.totalMatches} keys. Refine the filter to see more.`;
   }
+  if (narrowed) {
+    return `${rows.totalMatches} matching ${rows.totalMatches === 1 ? "key" : "keys"}`;
+  }
+  return `${rows.totalMatches} ${rows.totalMatches === 1 ? "key needs" : "keys need"} attention`;
+}
+
+function KeysFrame({
+  summary,
+  children,
+}: {
+  readonly summary?: string;
+  readonly children: ReactNode;
+}): ReactNode {
   return (
-    <p aria-live="polite" className="mb-3 text-xs text-muted-foreground" data-key-count="">
-      {text}
-    </p>
+    <PageSection
+      title="Keys"
+      {...(summary === undefined
+        ? {}
+        : {
+            meta: (
+              <p aria-live="polite" className="text-xs text-muted-foreground" data-key-count="">
+                {summary}
+              </p>
+            ),
+          })}
+    >
+      {children}
+    </PageSection>
+  );
+}
+
+function KeysLoading({ route }: { readonly route: TranslationsRoute }): ReactNode {
+  const unavailable = new Map(KEY_STATUSES.map((status) => [status, "Still loading"]));
+  const counts = Object.fromEntries(KEY_STATUSES.map((status) => [status, 0])) as Record<
+    KeyStatus,
+    number
+  >;
+  return (
+    <KeysFrame>
+      <KeyFilters
+        locales={[]}
+        locale=""
+        statuses={route.statuses}
+        counts={counts}
+        unavailable={unavailable}
+        query={route.query}
+        onLocaleChange={(next) => route.setFilter({ locale: next, statuses: route.statuses })}
+        onToggleStatus={(status) =>
+          route.setFilter({ locale: "", statuses: toggleStatus(route.statuses, status) })
+        }
+        onQueryChange={route.setQuery}
+      />
+      <div role="status" aria-busy="true">
+        <span className="sr-only">Loading...</span>
+        <TableSkeleton />
+      </div>
+    </KeysFrame>
   );
 }
 
 function KeysSection({
   locales,
   route,
-  onSelectKey,
   refreshToken,
-  localeValues,
+  localeValuesView,
   review,
   integrity,
 }: {
   readonly locales: readonly DiffLocale[];
   readonly route: TranslationsRoute;
-  readonly onSelectKey: (key: string) => void;
   readonly refreshToken: number;
-  readonly localeValues: LocaleValuesData;
+  readonly localeValuesView: RefreshableView<LocaleValuesData>;
   readonly review: RefreshableView<ReviewQueueData>;
   readonly integrity: RefreshableView<LocaleIntegrityData>;
 }): ReactNode {
-  const headingId = useId();
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const { locale, statuses, query } = route;
+  const { locale, statuses, query, selectedKey } = route;
+  const localeValues = localeValuesOrEmpty(localeValuesView);
   const { sources, unavailable } = useMemo(
     () => statusSources(review, integrity),
     [review, integrity],
@@ -161,13 +204,10 @@ function KeysSection({
     () => keyTableRows({ locales, index, localeValues, locale, statuses, query }),
     [locales, index, localeValues, locale, statuses, query],
   );
-  const narrowed = locale !== "" || statuses.size > 0 || query.trim() !== "";
+  const narrowed = statuses.size > 0 || query.trim() !== "";
 
   return (
-    <section aria-labelledby={headingId} className="mb-10">
-      <h2 id={headingId} className="mb-3 text-base font-semibold text-foreground">
-        Keys
-      </h2>
+    <KeysFrame summary={rows.items.length === 0 ? undefined : keyCountText(rows, narrowed)}>
       <KeyFilters
         locales={locales.map((entry) => entry.locale)}
         locale={locale}
@@ -182,6 +222,12 @@ function KeysSection({
         onQueryChange={route.setQuery}
         searchRef={searchRef}
       />
+      {localeValuesView.kind === "error" ? (
+        <ErrorMessage
+          error={localeValuesView.error}
+          prefix="Source and translation text could not be read, so search only matches key names."
+        />
+      ) : null}
       {rows.items.length === 0 ? (
         <NoKeys
           narrowed={narrowed}
@@ -193,19 +239,24 @@ function KeysSection({
         />
       ) : (
         <>
-          <KeyCountSummary rows={rows} narrowed={narrowed} />
           <KeysTable
             locales={locales}
             keys={rows.items}
             locale={locale}
             index={index}
             localeValues={localeValues}
+            selectedKey={selectedKey}
             refreshToken={refreshToken}
-            onSelectKey={onSelectKey}
+            onSelectKey={route.setSelectedKey}
           />
+          {rows.truncated ? (
+            <p className="mt-2 text-xs text-muted-foreground" data-key-cap="">
+              {keyCountText(rows, narrowed)}
+            </p>
+          ) : null}
         </>
       )}
-    </section>
+    </KeysFrame>
   );
 }
 
@@ -245,14 +296,6 @@ function DiffNotices({
   readonly diff: DiffState;
   readonly brokenInSync: boolean;
 }): ReactNode {
-  if (diff.kind === "loading") {
-    return (
-      <div role="status" aria-busy="true">
-        <span className="sr-only">Loading...</span>
-        <TableSkeleton />
-      </div>
-    );
-  }
   return (
     <>
       {diff.kind === "loaded" && isFullyInSync(diff.locales) ? (
@@ -268,7 +311,6 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const [editingLocale, setEditingLocale] = useState<string | null>(null);
   const [lastEditedLocale, setLastEditedLocale] = useState<string | null>(null);
   const localeValuesView = useLocaleValues(refreshToken);
-  const localeValues = localeValuesOrEmpty(localeValuesView);
 
   const route = useTranslationsRoute(
     diff.kind === "loaded" ? diff.locales.map((entry) => entry.locale) : [],
@@ -289,13 +331,13 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
         actions={diff.kind === "loaded" ? <ReviewReportButton locales={diff.locales} /> : undefined}
       />
       <DiffNotices diff={diff} brokenInSync={brokenInSync} />
+      {diff.kind === "loading" ? <KeysLoading route={route} /> : null}
       {diff.kind === "loaded" ? (
         <KeysSection
           locales={diff.locales}
           route={route}
-          onSelectKey={setSelectedKey}
           refreshToken={refreshToken}
-          localeValues={localeValues}
+          localeValuesView={localeValuesView}
           review={review}
           integrity={integrity}
         />

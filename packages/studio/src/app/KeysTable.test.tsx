@@ -48,6 +48,7 @@ function table(overrides: Partial<KeysTableProps> = {}) {
       locale=""
       index={EMPTY_INDEX}
       localeValues={NO_VALUES}
+      selectedKey={null}
       refreshToken={0}
       onSelectKey={vi.fn()}
       {...overrides}
@@ -159,22 +160,106 @@ describe("KeysTable cells", () => {
 });
 
 describe("KeysTable focus", () => {
-  it("keeps the roving position when focus lands on something that is not a cell", async () => {
+  function tabStops(view: { all(selector: string): HTMLElement[] }): string[] {
+    return view
+      .all("tbody [data-row][tabindex='0']")
+      .map((stop) => `${stop.dataset.row}:${stop.dataset.col}`);
+  }
+
+  it("starts with the first cell as the only tab stop", async () => {
     stubRpc(NO_COVERAGE);
     const view = await renderAsync(table());
-    const tabStops = () =>
-      view.all("tbody [data-row][tabindex='0']").map((stop) => stop.dataset.key);
-    const before = view.all("tbody [data-row][tabindex='0']").length;
+
+    expect(tabStops(view)).toEqual(["0:0"]);
+  });
+
+  it("moves the tab stop to the cell that takes focus, and focus is on it", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table({ locales: [DE, FR] }));
+    const target = view.get('[data-key="b.changed"] [data-col="1"]');
+
+    act(() => target.focus());
+
+    expect(document.activeElement).toBe(target);
+    expect(tabStops(view)).toEqual(["1:1"]);
+  });
+
+  it("keeps the tab stop where it was when focus lands on something that is not a cell", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table({ locales: [DE, FR] }));
+    act(() => view.get('[data-key="b.changed"] [data-col="1"]').focus());
 
     act(() => {
       view
-        .get('[data-key="b.changed"] th')
+        .get('[data-key="a.missing"] th')
         .dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     });
 
-    expect(before).toBe(1);
-    expect(view.all("tbody [data-row][tabindex='0']")).toHaveLength(1);
-    expect(tabStops()).toHaveLength(1);
+    expect(tabStops(view)).toEqual(["1:1"]);
+  });
+
+  it("moves focus with the arrow keys and to the cell the tab stop then names", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table({ locales: [DE, FR] }));
+    const first = view.get('[data-key="a.missing"] [data-col="0"]');
+    act(() => first.focus());
+
+    keyDownOn(first, "ArrowRight");
+    expect(document.activeElement).toBe(view.get('[data-key="a.missing"] [data-col="1"]'));
+    expect(tabStops(view)).toEqual(["0:1"]);
+
+    keyDownOn(document.activeElement as Element, "ArrowDown");
+    expect(tabStops(view)).toEqual(["1:1"]);
+  });
+});
+
+describe("KeysTable selection", () => {
+  it("marks the open key's row as selected and no other", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table({ selectedKey: "b.changed" }));
+
+    expect(
+      view.all("tbody tr").map((row) => [row.dataset.key, row.getAttribute("aria-selected")]),
+    ).toEqual([
+      ["a.missing", "false"],
+      ["b.changed", "true"],
+      ["c.orphaned", "false"],
+    ]);
+    expect(view.get('[data-key="b.changed"]').hasAttribute("data-selected")).toBe(true);
+  });
+
+  it("marks the open key's row in the entries table too", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table({ locale: "de", selectedKey: "a.missing" }));
+
+    expect(view.get('[data-key="a.missing"]').getAttribute("aria-selected")).toBe("true");
+  });
+});
+
+describe("KeysTable markers", () => {
+  const held = keyStatusIndex([DE], {
+    review: [{ locale: "de", key: "a.missing" }],
+    integrity: [],
+  });
+
+  it("explains a marker with the words the cell already carries, in both tables", async () => {
+    stubRpc(NO_COVERAGE);
+    const matrix = await renderAsync(table({ index: held }));
+    expect(matrix.get("[role='tooltip']").textContent).toBe("In the review queue");
+    expect(matrix.get('[data-key="a.missing"] button').textContent).toBe(
+      "a.missing in de: Missing, In the review queue",
+    );
+    matrix.unmount();
+
+    const entries = await renderAsync(table({ index: held, locale: "de" }));
+    expect(entries.get("[role='tooltip']").textContent).toBe("In the review queue");
+  });
+
+  it("adds no tooltip to a cell without markers", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table());
+
+    expect(view.query("[role='tooltip']")).toBeNull();
   });
 });
 
@@ -189,6 +274,53 @@ describe("KeysTable activation", () => {
     act(() => view.get("thead th").click());
 
     expect(onSelectKey.mock.calls).toEqual([["a.missing"], ["c.orphaned"]]);
+  });
+
+  it("does not open the key when the click ended a text selection inside its row", async () => {
+    stubRpc(NO_COVERAGE);
+    const onSelectKey = vi.fn();
+    const view = await renderAsync(table({ onSelectKey, locale: "de" }));
+    const row = view.get('[data-key="a.missing"]');
+    const range = document.createRange();
+    range.selectNodeContents(row.querySelector("[data-source], td") as Node);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    act(() => (row.querySelector("td") as HTMLElement).click());
+    expect(onSelectKey).not.toHaveBeenCalled();
+
+    window.getSelection()?.removeAllRanges();
+    act(() => (row.querySelector("td") as HTMLElement).click());
+    expect(onSelectKey).toHaveBeenCalledWith("a.missing");
+  });
+
+  it("still opens the key when the selected text is in another row", async () => {
+    stubRpc(NO_COVERAGE);
+    const onSelectKey = vi.fn();
+    const view = await renderAsync(table({ onSelectKey, locale: "de" }));
+    const range = document.createRange();
+    range.selectNodeContents(view.get('[data-key="b.changed"] td'));
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    act(() => view.get('[data-key="a.missing"] td').click());
+
+    expect(onSelectKey).toHaveBeenCalledWith("a.missing");
+    window.getSelection()?.removeAllRanges();
+  });
+
+  it("reads a click on a text node and a click on the table itself", async () => {
+    stubRpc(NO_COVERAGE);
+    const onSelectKey = vi.fn();
+    const view = await renderAsync(table({ onSelectKey }));
+    const text = view.get('[data-key="c.orphaned"] th span').firstChild as Node;
+
+    act(() => {
+      text.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    act(() => view.get("table").click());
+
+    expect(onSelectKey.mock.calls).toEqual([["c.orphaned"]]);
   });
 
   it("activates a cell with Enter and with Space and ignores other keys and non-cell targets", async () => {

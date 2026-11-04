@@ -16,8 +16,10 @@ function isEveryLocaleValue(result: RpcResultFor<"locale.values">): result is Lo
   return Array.isArray(result);
 }
 
+const NO_VALUES: LocaleValuesData = [];
+
 export function localeValuesOrEmpty(view: RefreshableView<LocaleValuesData>): LocaleValuesData {
-  return view.kind === "data" ? view.data : [];
+  return view.kind === "data" ? view.data : NO_VALUES;
 }
 
 export function toLocaleValuesOutcome(

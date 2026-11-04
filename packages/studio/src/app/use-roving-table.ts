@@ -1,5 +1,5 @@
-import type { FocusEvent, KeyboardEvent, MouseEvent, RefObject } from "react";
-import { useRef, useState } from "react";
+import type { FocusEvent, KeyboardEvent, MouseEvent } from "react";
+import { useState } from "react";
 import type { GridArrowKey, GridDimensions, GridPosition } from "../client/roving-tabindex.js";
 import { clampGridPosition, moveGridFocus } from "../client/roving-tabindex.js";
 
@@ -14,8 +14,12 @@ function isArrowKey(key: string): key is GridArrowKey {
   return ARROW_KEYS.has(key);
 }
 
+function elementOf(target: EventTarget): Element {
+  return target instanceof Element ? target : ((target as Node).parentElement as Element);
+}
+
 function stopOf(target: EventTarget): HTMLElement | null {
-  return (target as Element).closest<HTMLElement>("[data-row][data-col]");
+  return elementOf(target).closest<HTMLElement>("[data-row][data-col]");
 }
 
 function positionOf(stop: HTMLElement): GridPosition {
@@ -23,14 +27,17 @@ function positionOf(stop: HTMLElement): GridPosition {
 }
 
 function keyOf(target: EventTarget): string | undefined {
-  return target instanceof Element
-    ? target.closest<HTMLElement>("[data-key]")?.dataset.key
-    : undefined;
+  return elementOf(target).closest<HTMLElement>("[data-key]")?.dataset.key;
+}
+
+function selectsTextInRow(target: EventTarget): boolean {
+  const selection = window.getSelection() as Selection;
+  const row = elementOf(target).closest("tr");
+  return !selection.isCollapsed && row?.contains(selection.anchorNode) === true;
 }
 
 export interface RovingTable {
   readonly tableProps: {
-    readonly ref: RefObject<HTMLTableElement | null>;
     readonly onKeyDown: (event: KeyboardEvent<HTMLTableElement>) => void;
     readonly onFocus: (event: FocusEvent<HTMLTableElement>) => void;
     readonly onClick: (event: MouseEvent<HTMLTableElement>) => void;
@@ -50,7 +57,6 @@ export function useRovingTable(
   onActivate: (key: string) => void,
 ): RovingTable {
   const [position, setPosition] = useState<GridPosition>({ row: 0, col: 0 });
-  const tableRef = useRef<HTMLTableElement | null>(null);
   const current = clampGridPosition(position, dimensions);
 
   function activate(target: EventTarget): void {
@@ -60,16 +66,17 @@ export function useRovingTable(
     }
   }
 
-  function focusStop(next: GridPosition): void {
+  function focusStop(table: HTMLTableElement, next: GridPosition): void {
     setPosition(next);
-    (tableRef.current as HTMLTableElement)
-      .querySelector<HTMLElement>(`[data-row="${next.row}"][data-col="${next.col}"]`)
-      ?.focus();
+    for (const stop of table.querySelectorAll<HTMLElement>(
+      `[data-row="${next.row}"][data-col="${next.col}"]`,
+    )) {
+      stop.focus();
+    }
   }
 
   return {
     tableProps: {
-      ref: tableRef,
       onKeyDown(event) {
         const stop = stopOf(event.target);
         if (stop === null) {
@@ -77,7 +84,7 @@ export function useRovingTable(
         }
         if (isArrowKey(event.key)) {
           event.preventDefault();
-          focusStop(moveGridFocus(positionOf(stop), event.key, dimensions));
+          focusStop(event.currentTarget, moveGridFocus(positionOf(stop), event.key, dimensions));
           return;
         }
         if (event.key === "Enter" || event.key === " ") {
@@ -92,7 +99,9 @@ export function useRovingTable(
         }
       },
       onClick(event) {
-        activate(event.target);
+        if (!selectsTextInRow(event.target)) {
+          activate(event.target);
+        }
       },
     },
     stopProps: (row, col) => ({

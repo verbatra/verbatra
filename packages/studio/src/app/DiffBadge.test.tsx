@@ -39,6 +39,24 @@ describe("DiffBadge", () => {
 });
 
 describe("KeyLocaleStatusBadge", () => {
+  it("renders in sync as quiet text with a dot, with no border or fill", () => {
+    const view = render(<KeyLocaleStatusBadge status="in-sync" />);
+    const quiet = view.get('[data-status="in-sync"]');
+
+    expect(quiet.textContent).toBe("In sync");
+    expect(view.query("[data-tone]")).toBeNull();
+    expect(quiet.querySelector("[aria-hidden]")).not.toBeNull();
+  });
+
+  it("keeps every other state as a full badge", () => {
+    expect(render(<KeyLocaleStatusBadge status="missing" />).get("[data-tone]").dataset.tone).toBe(
+      "missing",
+    );
+    expect(render(<KeyLocaleStatusBadge status="absent" />).get("[data-tone]").dataset.tone).toBe(
+      "neutral",
+    );
+  });
+
   it.each([
     ["in-sync", "In sync"],
     ["absent", "Absent"],

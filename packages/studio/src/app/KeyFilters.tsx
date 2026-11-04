@@ -32,7 +32,7 @@ export function KeyFilters({
       <SearchInput
         ref={searchRef}
         aria-label="Filter by key or translation text"
-        placeholder="Filter by key or text…"
+        placeholder="Filter keys…"
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
       />

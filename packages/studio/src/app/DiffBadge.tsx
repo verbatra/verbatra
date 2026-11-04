@@ -21,7 +21,15 @@ export function DiffBadge({ tone }: { readonly tone: DiffTone }): ReactNode {
 
 export function KeyLocaleStatusBadge({ status }: { readonly status: KeyLocaleStatus }): ReactNode {
   if (status === "in-sync") {
-    return <Badge tone="success">In sync</Badge>;
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+        data-status="in-sync"
+      >
+        <span aria-hidden="true" className="size-1.5 flex-none rounded-full bg-success" />
+        In sync
+      </span>
+    );
   }
   if (status === "absent") {
     return <Badge tone="neutral">Absent</Badge>;

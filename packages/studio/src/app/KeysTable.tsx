@@ -11,14 +11,14 @@ import {
 } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { StatusData } from "../client/coverage.js";
-import type { DiffLocale, KeyLocaleStatusRow } from "../client/diff-view.js";
-import { deriveKeyLocaleStatus } from "../client/diff-view.js";
+import type { DiffLocale } from "../client/diff-view.js";
+import { deriveKeyLocaleStatus, keyLocaleStatus } from "../client/diff-view.js";
 import type { KeyStatusIndex } from "../client/key-status-filter.js";
 import type { LocaleValuesData } from "../client/locale-values.js";
 import { sourceTextFor } from "../client/locale-values.js";
 import type { RefreshableView } from "../client/state.js";
 import { ErrorMessage } from "./ErrorMessage.js";
-import { KeyStatusCell } from "./KeyStatusCell.js";
+import { KeyStatusCell, MarkerTip } from "./KeyStatusCell.js";
 import { cn } from "./lib/cn.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ScrollHint } from "./ScrollHint.js";
@@ -32,17 +32,42 @@ export interface KeysTableProps {
   readonly locale: string;
   readonly index: KeyStatusIndex;
   readonly localeValues: LocaleValuesData;
+  readonly selectedKey: string | null;
   readonly refreshToken: number;
   readonly onSelectKey: (key: string) => void;
 }
 
+const SEAM = "border-b border-(--border-default)";
+
+const HEAD_FILL = "bg-[color-mix(in_srgb,var(--surface-muted)_60%,var(--surface-tile))]";
+
+const ROW_FILL = cn(
+  "bg-card group-hover:bg-[color-mix(in_srgb,var(--surface-hover)_40%,var(--surface-tile))]",
+  "group-data-[selected]:bg-(--surface-hover)",
+);
+
+const HEAD_CELL = cn("sticky top-0 z-20", HEAD_FILL);
+
+const KEY_HEAD = cn(HEAD_CELL, "start-0 z-30 w-60 min-w-60");
+
 const KEY_CELL = cn(
   tableClasses.td,
-  "sticky start-0 bg-card text-start font-mono text-sm font-semibold whitespace-nowrap",
+  SEAM,
+  ROW_FILL,
+  "sticky start-0 z-10 h-12 w-60 min-w-60 py-0 text-start font-mono text-sm font-semibold whitespace-nowrap",
 );
+
+const BODY_CELL = cn(SEAM, "h-12 py-0");
+
+const SOURCE_COLUMN = "hidden md:table-cell";
 
 const STOP =
   "block w-full rounded-(--radius-sm) p-1 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
+
+const KEY_STOP =
+  "-mx-1 block max-w-[13.5rem] truncate rounded-(--radius-sm) px-1 py-1 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
+
+const REGION = "max-h-[calc(100dvh-12rem)] overflow-y-auto";
 
 const WITHOUT_ORIGIN: ReadonlySet<string> = new Set(["missing", "orphaned", "absent"]);
 
@@ -62,13 +87,13 @@ function Coverage({
 }): ReactNode {
   if (percent === null) {
     return (
-      <span className="mt-1 block text-xs font-normal normal-case tracking-normal text-muted-foreground">
+      <span className="mt-1 block font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">
         {unavailable ? "Coverage unavailable" : "Loading coverage"}
       </span>
     );
   }
   return (
-    <div className="mt-1 flex items-center gap-2 text-xs font-normal normal-case tracking-normal text-muted-foreground">
+    <div className="mt-1 flex items-center gap-2 font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">
       <ProgressBar percent={percent} className="w-[60px] flex-none" />
       <span className="whitespace-nowrap">{percent}% up to date</span>
     </div>
@@ -100,6 +125,7 @@ function MatrixTable({
   keys,
   index,
   localeValues,
+  selectedKey,
   refreshToken,
   onSelectKey,
 }: Omit<KeysTableProps, "locale">): ReactNode {
@@ -111,16 +137,30 @@ function MatrixTable({
       {coverage.kind === "data" && coverage.stale && (
         <ErrorMessage error={coverage.error} prefix="Showing the last known coverage." />
       )}
-      <TableCard aria-label="Keys table">
-        <Table aria-label="Key status by locale" role="grid" {...roving.tableProps}>
+      <TableCard aria-label="Keys table" className={REGION}>
+        <Table
+          aria-label="Key status by locale"
+          role="grid"
+          className="border-separate border-spacing-0"
+          {...roving.tableProps}
+        >
           <TableHead>
             <tr>
-              <TableHeaderCell scope="col" className="min-w-[160px]">
+              <TableHeaderCell scope="col" className={KEY_HEAD}>
                 Key
               </TableHeaderCell>
-              <TableHeaderCell scope="col">Source</TableHeaderCell>
+              <TableHeaderCell
+                scope="col"
+                className={cn(HEAD_CELL, SOURCE_COLUMN, "w-56 min-w-56")}
+              >
+                Source
+              </TableHeaderCell>
               {locales.map((locale) => (
-                <TableHeaderCell key={locale.locale} scope="col" className="min-w-[140px]">
+                <TableHeaderCell
+                  key={locale.locale}
+                  scope="col"
+                  className={cn(HEAD_CELL, "w-44 min-w-44")}
+                >
                   <span className="font-mono">{locale.locale}</span>
                   <Coverage
                     percent={percentForLocale(coverage, locale.locale)}
@@ -132,21 +172,31 @@ function MatrixTable({
           </TableHead>
           <TableBody>
             {keys.map((key, row) => (
-              <TableRow key={key} data-key={key}>
+              <TableRow key={key} data-key={key} selected={key === selectedKey} className="group">
                 <th scope="row" className={KEY_CELL}>
-                  {key}
+                  <span className="block max-w-[13.5rem] truncate" title={key}>
+                    {key}
+                  </span>
                 </th>
-                <TableCell>
-                  <SourceText value={sourceTextFor(localeValues, key)} className="max-w-[14rem]" />
+                <TableCell className={cn(BODY_CELL, SOURCE_COLUMN)}>
+                  <SourceText
+                    value={sourceTextFor(localeValues, key)}
+                    className="max-w-[12.5rem]"
+                  />
                 </TableCell>
-                {deriveKeyLocaleStatus(locales, key).map((cell, col) => (
-                  <TableCell key={cell.locale} className="px-2 py-1">
-                    <button type="button" className={STOP} {...roving.stopProps(row, col)}>
-                      <span className="sr-only">{`${key} in ${cell.locale}: `}</span>
-                      <KeyStatusCell status={cell.status} held={index.get(cell.locale)?.get(key)} />
-                    </button>
-                  </TableCell>
-                ))}
+                {deriveKeyLocaleStatus(locales, key).map((cell, col) => {
+                  const held = index.get(cell.locale)?.get(key);
+                  return (
+                    <TableCell key={cell.locale} className={cn(BODY_CELL, "px-2")}>
+                      <MarkerTip held={held}>
+                        <button type="button" className={STOP} {...roving.stopProps(row, col)}>
+                          <span className="sr-only">{`${key} in ${cell.locale}: `}</span>
+                          <KeyStatusCell status={cell.status} held={held} />
+                        </button>
+                      </MarkerTip>
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             ))}
           </TableBody>
@@ -163,6 +213,7 @@ function EntriesTable({
   locale,
   index,
   localeValues,
+  selectedKey,
   onSelectKey,
 }: Omit<KeysTableProps, "refreshToken">): ReactNode {
   const roving = useRovingTable({ rowCount: keys.length, colCount: 1 }, onSelectKey);
@@ -170,39 +221,56 @@ function EntriesTable({
 
   return (
     <>
-      <TableCard aria-label="Keys table">
-        <Table aria-label={`Keys in ${locale}`} role="grid" {...roving.tableProps}>
+      <TableCard aria-label="Keys table" className={REGION}>
+        <Table
+          aria-label={`Keys in ${locale}`}
+          role="grid"
+          className="border-separate border-spacing-0"
+          {...roving.tableProps}
+        >
           <TableHead>
             <tr>
-              <TableHeaderCell scope="col" className="min-w-[160px]">
+              <TableHeaderCell scope="col" className={KEY_HEAD}>
                 Key
               </TableHeaderCell>
-              <TableHeaderCell scope="col">Source</TableHeaderCell>
-              <TableHeaderCell scope="col">Translation</TableHeaderCell>
-              <TableHeaderCell scope="col">Status</TableHeaderCell>
-              <TableHeaderCell scope="col">Origin</TableHeaderCell>
+              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "w-60 min-w-60")}>
+                Source
+              </TableHeaderCell>
+              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "w-60 min-w-60")}>
+                Translation
+              </TableHeaderCell>
+              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "w-[9.5rem] min-w-[9.5rem]")}>
+                Status
+              </TableHeaderCell>
+              <TableHeaderCell scope="col" className={cn(HEAD_CELL, "w-40 min-w-40")}>
+                Origin
+              </TableHeaderCell>
             </tr>
           </TableHead>
           <TableBody>
             {keys.map((key, row) => {
-              const { status } = deriveKeyLocaleStatus(locales, key).find(
-                (cell) => cell.locale === locale,
-              ) as KeyLocaleStatusRow;
+              const status = keyLocaleStatus(locales, key, locale);
+              const held = index.get(locale)?.get(key);
               const pair = values?.[key];
               return (
-                <TableRow key={key} data-key={key}>
+                <TableRow key={key} data-key={key} selected={key === selectedKey} className="group">
                   <th scope="row" className={KEY_CELL}>
-                    <button type="button" className={STOP} {...roving.stopProps(row, 0)}>
+                    <button
+                      type="button"
+                      className={KEY_STOP}
+                      title={key}
+                      {...roving.stopProps(row, 0)}
+                    >
                       {key}
                     </button>
                   </th>
-                  <TableCell>
+                  <TableCell className={BODY_CELL}>
                     <SourceText
                       value={pair?.source ?? sourceTextFor(localeValues, key)}
-                      className="max-w-[22rem]"
+                      className="max-w-[13.5rem]"
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={BODY_CELL}>
                     {pair?.target === undefined ? (
                       <span className="text-muted-foreground">No translation</span>
                     ) : (
@@ -210,15 +278,17 @@ function EntriesTable({
                         value={pair.target}
                         locale={locale}
                         title={pair.target}
-                        className="block max-w-[22rem] truncate"
+                        className="block max-w-[13.5rem] truncate"
                         data-translation=""
                       />
                     )}
                   </TableCell>
-                  <TableCell>
-                    <KeyStatusCell status={status} held={index.get(locale)?.get(key)} />
+                  <TableCell className={BODY_CELL}>
+                    <MarkerTip held={held}>
+                      <KeyStatusCell status={status} held={held} />
+                    </MarkerTip>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={BODY_CELL}>
                     {WITHOUT_ORIGIN.has(status) ? null : (
                       <ProvenanceBadge provenance={pair?.provenance} />
                     )}
