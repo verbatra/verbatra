@@ -66,4 +66,16 @@ describe("PageHeader", () => {
 
     expect(view.get("header").tagName).toBe("HEADER");
   });
+
+  it("renders a meta row under the description when there is one", () => {
+    const view = render(<PageHeader title="Glossary" meta={<span>Source: file</span>} />);
+
+    expect(view.getByText("span", "Source: file")).not.toBeNull();
+  });
+
+  it("renders no meta row unless the caller gives one", () => {
+    const view = render(<PageHeader title="Glossary" />);
+
+    expect(view.query("header div div")).toBeNull();
+  });
 });

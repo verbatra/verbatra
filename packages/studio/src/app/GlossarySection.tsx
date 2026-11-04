@@ -1,4 +1,4 @@
-import { Badge, Button, EmptyState, SectionCard, Select, TextField } from "@verbatra/ui";
+import { Button, EmptyState, Select, TextField } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import {
@@ -144,18 +144,7 @@ export function GlossarySection({
   const count = glossary.terms.length;
 
   return (
-    <SectionCard
-      title="Glossary"
-      intro={`Source: ${glossaryIndicatorLabel(glossary.indicator)}`}
-      className="mb-0"
-      meta={
-        count > 0 ? (
-          <Badge tone="neutral">
-            {count} {count === 1 ? "term" : "terms"}
-          </Badge>
-        ) : undefined
-      }
-    >
+    <div>
       {readOnlyReason !== undefined ? (
         <p className="m-0 mb-3 text-sm text-muted-foreground">{readOnlyReason}</p>
       ) : null}
@@ -192,6 +181,6 @@ export function GlossarySection({
           {writer.error}
         </p>
       ) : null}
-    </SectionCard>
+    </div>
   );
 }
