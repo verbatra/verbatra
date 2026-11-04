@@ -1,0 +1,133 @@
+"use client";
+
+import { type KeyboardEvent, type ReactNode, useState } from "react";
+import { cn } from "@/lib/utils";
+
+type TabItem = { id: string; label: string };
+
+type TabListProps = {
+  tabs: ReadonlyArray<TabItem>;
+  active: string;
+  onSelect: (id: string) => void;
+  ariaLabel?: string;
+  ariaLabelledBy?: string;
+  className?: string;
+  tabClassName?: string;
+};
+
+const STEP_BY_KEY: Readonly<Record<string, number>> = { ArrowRight: 1, ArrowLeft: -1 };
+
+function targetIndex(key: string, current: number, count: number): number | undefined {
+  if (key === "Home") return 0;
+  if (key === "End") return count - 1;
+  const step = STEP_BY_KEY[key];
+  if (step === undefined) return undefined;
+  return (current + step + count) % count;
+}
+
+function focusSibling(
+  event: KeyboardEvent<HTMLDivElement>,
+  tabs: ReadonlyArray<TabItem>,
+  active: string,
+): string | undefined {
+  const index = targetIndex(
+    event.key,
+    tabs.findIndex((tab) => tab.id === active),
+    tabs.length,
+  );
+  if (index === undefined) return undefined;
+  const next = tabs[index];
+  if (!next) return undefined;
+  event.preventDefault();
+  const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+  buttons[index]?.focus();
+  return next.id;
+}
+
+export function TabList({
+  tabs,
+  active,
+  onSelect,
+  ariaLabel,
+  ariaLabelledBy,
+  className,
+  tabClassName,
+}: TabListProps): ReactNode {
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const next = focusSibling(event, tabs, active);
+    if (next !== undefined) onSelect(next);
+  }
+
+  return (
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
+      className={className}
+      onKeyDown={onKeyDown}
+    >
+      {tabs.map((tab) => {
+        const selected = tab.id === active;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onSelect(tab.id)}
+            className={cn(
+              tabClassName,
+              selected ? "text-(--text-strong)" : "text-(--text-muted) hover:text-(--text-strong)",
+            )}
+            style={selected ? { boxShadow: "inset 0 -2px 0 var(--accent)" } : undefined}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+type TabsProps = {
+  tabs: ReadonlyArray<TabItem>;
+  value?: string;
+  defaultValue?: string;
+  onChange?: (id: string) => void;
+  children?: ReactNode;
+};
+
+const TAB_LIST_CLASS = "flex gap-4 border-b border-(--border-default)";
+const TAB_CLASS = "pb-2 font-mono lowercase text-sm transition-colors";
+
+export default function Tabs({
+  tabs,
+  value,
+  defaultValue,
+  onChange,
+  children,
+}: TabsProps): ReactNode {
+  const [internal, setInternal] = useState(defaultValue ?? tabs[0]?.id ?? "");
+  const active = value ?? internal;
+
+  function select(id: string) {
+    if (value === undefined) {
+      setInternal(id);
+    }
+    onChange?.(id);
+  }
+
+  return (
+    <div className="not-prose">
+      <TabList
+        tabs={tabs}
+        active={active}
+        onSelect={select}
+        className={TAB_LIST_CLASS}
+        tabClassName={TAB_CLASS}
+      />
+      {children}
+    </div>
+  );
+}

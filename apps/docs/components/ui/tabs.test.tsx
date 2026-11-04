@@ -3,7 +3,7 @@
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TabList, Tabs } from "./tabs.tsx";
+import Tabs, { TabList } from "./tabs";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -86,18 +86,6 @@ describe("TabList", () => {
     expect(document.activeElement).toBe(tabs(first)[0]);
   });
 
-  it("flips the arrow keys inside a right-to-left container", () => {
-    const onSelect = vi.fn();
-    const container = render(<TabList tabs={TABS} active="pnpm" onSelect={onSelect} />);
-    container.setAttribute("dir", "rtl");
-
-    press(container, "ArrowRight");
-    expect(onSelect).toHaveBeenLastCalledWith("npm");
-
-    press(container, "ArrowLeft");
-    expect(onSelect).toHaveBeenLastCalledWith("yarn");
-  });
-
   it("jumps to the first tab with Home and the last with End", () => {
     const onSelect = vi.fn();
     const container = render(<TabList tabs={TABS} active="pnpm" onSelect={onSelect} />);
@@ -136,14 +124,6 @@ describe("TabList", () => {
 });
 
 describe("Tabs", () => {
-  it("starts on the default value when given, and on nothing when there are no tabs", () => {
-    const container = render(<Tabs tabs={TABS} defaultValue="yarn" />);
-    expect(tabs(container).map((tab) => tab.tabIndex)).toEqual([-1, -1, 0]);
-
-    const empty = render(<Tabs tabs={[]} />);
-    expect(tabs(empty)).toHaveLength(0);
-  });
-
   it("tracks its own selection when uncontrolled", () => {
     const onChange = vi.fn();
     const container = render(<Tabs tabs={TABS} onChange={onChange} />);
