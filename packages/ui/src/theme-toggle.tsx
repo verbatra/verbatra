@@ -1,19 +1,35 @@
 "use client";
 
-import { type ReactNode, useSyncExternalStore } from "react";
+import { type ReactNode, useState, useSyncExternalStore } from "react";
 import { Button } from "./button.tsx";
 import { cn } from "./cn.ts";
-import type { ThemeMode, ThemeStore } from "./theme.ts";
+import type { ResolvedTheme, ThemeMode, ThemeStore } from "./theme.ts";
+import { Tooltip } from "./tooltip.tsx";
 
-const NEXT_MODE: Readonly<Record<ThemeMode, ThemeMode>> = {
-  system: "light",
-  light: "dark",
-  dark: "system",
-};
+export function nextThemeMode(
+  mode: ThemeMode,
+  modes: readonly ThemeMode[],
+  system: ResolvedTheme,
+): ThemeMode {
+  const explicit = modes.filter((candidate) => candidate !== "system");
+  const hasSystem = modes.includes("system");
+  const opposite: ResolvedTheme = system === "light" ? "dark" : "light";
+  if (mode === "system") {
+    return explicit.includes(opposite) ? opposite : (explicit[0] ?? "system");
+  }
+  if (mode === system) {
+    return hasSystem ? "system" : (explicit.find((candidate) => candidate !== mode) ?? mode);
+  }
+  if (explicit.includes(system)) {
+    return system;
+  }
+  return hasSystem ? "system" : (explicit[0] ?? mode);
+}
 
 export interface ThemeToggleProps {
   readonly store: ThemeStore;
   readonly label: (current: ThemeMode, next: ThemeMode) => string;
+  readonly announce: (mode: ThemeMode) => string;
   readonly className?: string;
 }
 
@@ -73,22 +89,38 @@ function ModeIcon({ mode }: { readonly mode: ThemeMode }): ReactNode {
   );
 }
 
-export function ThemeToggle({ store, label, className }: ThemeToggleProps): ReactNode {
-  const mode = useSyncExternalStore(store.subscribe, store.getMode);
-  const next = NEXT_MODE[mode];
+const SERVER_MODE: ThemeMode = "system";
+const SERVER_SYSTEM: ResolvedTheme = "light";
+
+export function ThemeToggle({ store, label, announce, className }: ThemeToggleProps): ReactNode {
+  const mode = useSyncExternalStore(store.subscribe, store.getMode, () => SERVER_MODE);
+  const [announcement, setAnnouncement] = useState("");
+  const system = useSyncExternalStore(store.subscribe, store.getSystem, () => SERVER_SYSTEM);
+  const next = nextThemeMode(mode, store.modes, system);
   const name = label(mode, next);
 
+  function cycle(): void {
+    store.setMode(next);
+    setAnnouncement(announce(next));
+  }
+
   return (
-    <Button
-      variant="ghost"
-      className={cn("p-1.5", className)}
-      aria-label={name}
-      title={name}
-      data-theme-toggle=""
-      data-mode={mode}
-      onClick={() => store.setMode(next)}
-    >
-      <ModeIcon mode={mode} />
-    </Button>
+    <span className="relative inline-flex">
+      <Tooltip label={name} side="bottom-end">
+        <Button
+          variant="ghost"
+          className={cn("p-1.5 max-md:min-h-11 max-md:min-w-11", className)}
+          aria-label={name}
+          data-theme-toggle=""
+          data-mode={mode}
+          onClick={cycle}
+        >
+          <ModeIcon mode={mode} />
+        </Button>
+      </Tooltip>
+      <span role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </span>
+    </span>
   );
 }

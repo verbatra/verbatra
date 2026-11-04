@@ -11,6 +11,7 @@ export interface ThemeStore {
   readonly modes: readonly ThemeMode[];
   getMode(): ThemeMode;
   getResolved(): ResolvedTheme;
+  getSystem(): ResolvedTheme;
   setMode(mode: ThemeMode): void;
   subscribe(listener: () => void): () => void;
   init(): () => void;
@@ -48,6 +49,10 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
     }
   }
 
+  function getSystem(): ResolvedTheme {
+    return window.matchMedia(LIGHT_QUERY).matches ? "light" : "dark";
+  }
+
   function getResolved(): ResolvedTheme {
     return resolveThemeMode(getMode(), window.matchMedia(LIGHT_QUERY).matches);
   }
@@ -78,7 +83,9 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
   function onSystemChange(): void {
     if (getMode() === "system") {
       refresh();
+      return;
     }
+    notify();
   }
 
   function onStorage(event: StorageEvent): void {
@@ -92,6 +99,7 @@ export function createThemeStore({ storageKey, modes }: ThemeStoreOptions): Them
     modes,
     getMode,
     getResolved,
+    getSystem,
     setMode(mode) {
       if (!modes.includes(mode)) {
         return;

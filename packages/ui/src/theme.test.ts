@@ -180,6 +180,18 @@ describe("createThemeStore", () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  it("reports the operating system theme whatever mode is chosen", () => {
+    const media = installMatchMedia(true);
+    const store = createThemeStore({ storageKey: KEY, modes: ALL });
+    store.setMode("dark");
+
+    expect(store.getSystem()).toBe("light");
+    expect(store.getResolved()).toBe("dark");
+
+    media.setPrefersLight(false);
+    expect(store.getSystem()).toBe("dark");
+  });
+
   it("lets a stale init cleanup leave the newer init's listeners in place", () => {
     const media = installMatchMedia(false);
     const store = createThemeStore({ storageKey: KEY, modes: ALL });
