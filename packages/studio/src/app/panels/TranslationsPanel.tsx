@@ -489,7 +489,7 @@ function KeyListView({
   readonly locales: readonly DiffLocale[];
   readonly locale: string;
   readonly statuses: ReadonlySet<KeyStatus>;
-  readonly onFilterChange: (filter: KeyFilterSelection) => void;
+  readonly onFilterChange: (filter: KeyFilterSelection & { readonly query?: string }) => void;
   readonly query: string;
   readonly onQueryChange: (query: string) => void;
   readonly localeValues: LocaleValuesData;
@@ -529,8 +529,7 @@ function KeyListView({
           action={
             <Button
               onClick={() => {
-                onFilterChange({ locale: "", statuses: new Set() });
-                onQueryChange("");
+                onFilterChange({ locale: "", statuses: new Set(), query: "" });
                 searchRef.current?.focus();
               }}
             >
@@ -584,7 +583,7 @@ function KeysSection({
   readonly locales: readonly DiffLocale[];
   readonly locale: string;
   readonly statuses: ReadonlySet<KeyStatus>;
-  readonly onFilterChange: (filter: KeyFilterSelection) => void;
+  readonly onFilterChange: (filter: KeyFilterSelection & { readonly query?: string }) => void;
   readonly query: string;
   readonly onQueryChange: (query: string) => void;
   readonly viewMode: DiffViewMode;
@@ -797,7 +796,6 @@ function LocalesSection({
 
 export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const [diff, setDiff] = useState<DiffState>({ kind: "loading" });
-  const [query, setQuery] = useState("");
   const [editingLocale, setEditingLocale] = useState<string | null>(null);
   const [lastEditedLocale, setLastEditedLocale] = useState<string | null>(null);
   const status = useStatusData(refreshToken);
@@ -834,7 +832,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
     diff.kind === "loaded" ? diff.locales.map((entry) => entry.locale) : [],
     localeValuesView,
   );
-  const { viewMode, selectedKey, setSelectedKey } = route;
+  const { viewMode, selectedKey, setSelectedKey, query, setQuery } = route;
 
   const allClear = diff.kind === "loaded" && isFullyInSync(diff.locales);
   const integrity = useLocaleIntegrity(refreshToken, needsIntegrity(diff, viewMode));

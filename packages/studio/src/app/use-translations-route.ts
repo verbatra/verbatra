@@ -15,9 +15,11 @@ export interface KeyFilterSelection {
 export interface TranslationsRoute extends KeyFilterSelection {
   readonly viewMode: DiffViewMode;
   readonly selectedKey: string | null;
+  readonly query: string;
   setViewMode(mode: DiffViewMode): void;
-  setFilter(filter: KeyFilterSelection): void;
+  setFilter(filter: KeyFilterSelection & { readonly query?: string }): void;
   setSelectedKey(key: string | null): void;
+  setQuery(query: string): void;
 }
 
 function selectableKey(
@@ -47,13 +49,15 @@ export function useTranslationsRoute(
     params.locale !== undefined && knownLocales.includes(params.locale) ? params.locale : "";
   const statuses: ReadonlySet<KeyStatus> = new Set(params.statuses);
   const selectedKey = selectableKey(params.key, localeValues);
-  const viewMode = locale !== "" || statuses.size > 0 ? "flat" : chosenViewMode;
+  const query = params.query ?? "";
+  const viewMode = locale !== "" || statuses.size > 0 || query !== "" ? "flat" : chosenViewMode;
 
   return {
     viewMode,
     locale,
     statuses,
     selectedKey,
+    query,
     setViewMode(mode) {
       setChosenViewMode(mode);
       if (mode === "grid") {
@@ -62,10 +66,13 @@ export function useTranslationsRoute(
     },
     setFilter(filter) {
       setChosenViewMode("flat");
-      setParams(routeParams({ ...filter, key: selectedKey }));
+      setParams(routeParams({ ...filter, key: selectedKey, query: filter.query ?? query }));
     },
     setSelectedKey(key) {
-      setParams(routeParams({ locale, statuses, key }));
+      setParams(routeParams({ locale, statuses, key, query }));
+    },
+    setQuery(next) {
+      setParams(routeParams({ locale, statuses, key: selectedKey, query: next }));
     },
   };
 }

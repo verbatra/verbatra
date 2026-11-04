@@ -123,7 +123,22 @@ describe("parseRoute params", () => {
     expect(parseRoute("#/translations?locale=&key=&other=1&status=").params).toEqual({});
   });
 
+  it("reads the search text of a translations link and keeps it as typed", () => {
+    expect(parseRoute("#/translations?q=nav+bar%20title").params).toEqual({
+      query: "nav bar title",
+    });
+    expect(parseRoute("#/translations?q=").params).toEqual({});
+  });
+
+  it("writes the search text back and round-trips it", () => {
+    const params = routeParams({ locale: "de", query: "a b" });
+
+    expect(routeHash({ page: "translations", params })).toBe("#/translations?locale=de&q=a+b");
+    expect(parseRoute(routeHash({ page: "translations", params })).params).toEqual(params);
+  });
+
   it("ignores parameters a page does not take", () => {
+    expect(parseRoute("#/review?q=a").params).toEqual({});
     expect(parseRoute("#/review?status=missing&key=a").params).toEqual({});
     expect(parseRoute("#/settings?locale=de").params).toEqual({});
     expect(parseRoute("#/overview?locale=de").params).toEqual({});
