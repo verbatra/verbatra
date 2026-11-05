@@ -760,7 +760,7 @@ describe("split editor drawer focus after a held Back", () => {
     await settle();
     await flush();
     await clickAsync(getRole(view, "button", "Save", "[data-unsaved-prompt]"));
-    const elsewhere = view.get<HTMLElement>('[data-edit-locale="fr"]');
+    const elsewhere = view.get('[data-edit-locale="fr"]');
     elsewhere.focus();
 
     await act(async () => {
