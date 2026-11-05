@@ -13,6 +13,7 @@ import {
   resizeViewport,
   rpcCalls,
   selectOption,
+  settleHistory as settle,
   stubRpc,
   stubViewport,
   typeInto,
@@ -84,10 +85,6 @@ function modalNodesIn(record: MutationRecord): Element[] {
       ? [record.target]
       : [];
   return [...added, ...changed];
-}
-
-function settle(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 60));
 }
 
 function resetTargets(): void {

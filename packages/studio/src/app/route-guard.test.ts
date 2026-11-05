@@ -9,6 +9,7 @@ import {
   visibleHash,
   writeRoute,
 } from "./route-guard.js";
+import { settleHistory as settle } from "./test-support.js";
 
 let dirty = false;
 const onBlock = vi.fn<(proceed: () => Promise<void>) => void>();
@@ -18,10 +19,6 @@ let uninstall: () => void = () => {};
 function idx(): unknown {
   const state: unknown = window.history.state;
   return typeof state === "object" && state !== null && "idx" in state ? state.idx : null;
-}
-
-function settle(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 60));
 }
 
 function startAt(first: string, second: string): void {

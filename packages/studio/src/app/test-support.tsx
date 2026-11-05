@@ -289,6 +289,26 @@ function installMatchMedia(): void {
   window.matchMedia = mediaList;
 }
 
+const HISTORY_FIRST_WAIT_MS = 400;
+const HISTORY_QUIET_MS = 150;
+
+export function settleHistory(): Promise<void> {
+  return new Promise((resolve) => {
+    let timer = setTimeout(done, HISTORY_FIRST_WAIT_MS);
+    function bump(): void {
+      clearTimeout(timer);
+      timer = setTimeout(done, HISTORY_QUIET_MS);
+    }
+    function done(): void {
+      window.removeEventListener("popstate", bump);
+      window.removeEventListener("hashchange", bump);
+      resolve();
+    }
+    window.addEventListener("popstate", bump);
+    window.addEventListener("hashchange", bump);
+  });
+}
+
 export function stubViewport(wide: boolean): void {
   wideViewport = wide;
   installMatchMedia();
