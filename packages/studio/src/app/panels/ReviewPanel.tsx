@@ -63,19 +63,17 @@ import { MAX_RETRANSLATE_BATCH_ENTRIES } from "../../shared/rpc/retranslate-entr
 import { MAX_REVIEW_BATCH_ENTRIES } from "../../shared/rpc/review-batch.js";
 import type { StudioCapabilities } from "../../shared/rpc/snapshot.js";
 import { ApproveLocaleDialog } from "../ApproveLocaleDialog.js";
-import { BulkRejectDialog, type BulkRejectEntry } from "../BulkRejectDialog.js";
-import { EditEntryDialog } from "../EditEntryDialog.js";
+import type { BulkRejectEntry } from "../BulkRejectDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { cn } from "../lib/cn.js";
 import { PageHeader } from "../PageHeader.js";
 import { ProvenanceBadge } from "../ProvenanceBadge.js";
 import type { PanelProps } from "../panel-props.js";
-import { RejectEntryDialog } from "../RejectEntryDialog.js";
 import { ReviewBulkBar, type ReviewBulkBarProps } from "../ReviewBulkBar.js";
 import { ReviewDecisionStatus } from "../ReviewDecisionStatus.js";
+import { type EditingTarget, type RejectingTarget, ReviewDialogs } from "../ReviewDialogs.js";
 import { ReviewReasonChips } from "../ReviewReasonChips.js";
 import { ReviewRowActions, type RowBusy } from "../ReviewRowActions.js";
-import { ReviewShortcutsDialog } from "../ReviewShortcutsDialog.js";
 import { TranslationValue } from "../TranslationValue.js";
 import { useCapabilities } from "../use-capabilities.js";
 import { useLocaleValues } from "../use-locale-values.js";
@@ -89,19 +87,6 @@ import {
 } from "../use-review-decisions.js";
 import { useReviewQueue } from "../use-review-queue.js";
 import { useRouteParams } from "../use-route.js";
-
-interface EditingTarget {
-  readonly locale: string;
-  readonly key: string;
-  readonly reasons: ReviewQueueRow["reasons"];
-  readonly viaShortcut: boolean;
-}
-
-interface RejectingTarget {
-  readonly locale: string;
-  readonly key: string;
-  readonly value: string;
-}
 
 interface RowActions {
   readonly onEdit: (row: ReviewQueueRow, viaShortcut: boolean) => void;
@@ -614,74 +599,6 @@ function runRowShortcut(
   } else if (value !== undefined) {
     actions.onReject({ locale: row.locale, key: row.key, value });
   }
-}
-
-function ReviewDialogs({
-  helpOpen,
-  spend,
-  editing,
-  rejecting,
-  decisions,
-  onCloseHelp,
-  onCloseEditor,
-  onCloseReject,
-  bulkRejecting,
-  onConfirmBulkReject,
-  onCloseBulkReject,
-}: {
-  readonly helpOpen: boolean;
-  readonly spend: boolean;
-  readonly editing: EditingTarget | null;
-  readonly rejecting: RejectingTarget | null;
-  readonly decisions: ReviewDecisions;
-  readonly onCloseHelp: () => void;
-  readonly onCloseEditor: () => void;
-  readonly onCloseReject: () => void;
-  readonly bulkRejecting: readonly BulkRejectEntry[] | null;
-  readonly onConfirmBulkReject: (entries: readonly BulkRejectEntry[]) => void;
-  readonly onCloseBulkReject: () => void;
-}): ReactNode {
-  return (
-    <>
-      {bulkRejecting !== null ? (
-        <BulkRejectDialog
-          entries={bulkRejecting}
-          onConfirm={() => onConfirmBulkReject(bulkRejecting)}
-          onClose={onCloseBulkReject}
-        />
-      ) : null}
-      {helpOpen ? <ReviewShortcutsDialog spend={spend} onClose={onCloseHelp} /> : null}
-      {editing !== null ? (
-        <EditEntryDialog
-          locale={editing.locale}
-          keyName={editing.key}
-          focusTranslation={editing.viaShortcut}
-          reviewReasons={editing.reasons}
-          onClose={onCloseEditor}
-          onAccepted={(acceptedLocale, key) => {
-            decisions.updated({ locale: acceptedLocale, key });
-            onCloseEditor();
-          }}
-        />
-      ) : null}
-      {rejecting !== null ? (
-        <RejectEntryDialog
-          locale={rejecting.locale}
-          keyName={rejecting.key}
-          value={rejecting.value}
-          onClose={onCloseReject}
-          onRejected={() => {
-            decisions.rejected(rejecting);
-            onCloseReject();
-          }}
-          onValueChanged={(message) => {
-            decisions.rejectStale({ locale: rejecting.locale, key: rejecting.key }, message);
-            onCloseReject();
-          }}
-        />
-      ) : null}
-    </>
-  );
 }
 
 interface BulkSelection {
