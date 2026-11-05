@@ -290,7 +290,11 @@ below `xl` it is the `DrawerShell` (side end). While the pane is open the page u
 (the app root switches `--page-max` from `--container-6xl` to `--width-layout` through
 `has-[[data-split]]`, and both the header's inner box and the page box, marked `data-page-width`,
 read it, so their edges line up; `Container` in ui stays generic), so the matrix keeps three locale
-columns at 1440. Editor state (the open locale, its draft, the unsaved prompt) lives in
+columns at 1440. The filter bar stays above the split grid at full page width, so opening a key
+never moves the table; only the table and the pane share the grid. While the split is open the
+refresh toast moves to the start edge (`group/page` with `group-has-[[data-split]]/page`), so it
+never covers the pane's Save row. While a save runs the field is `readOnly` with `aria-busy`, never
+`disabled`, so focus stays in it, and a rejected save puts focus back in the field. Editor state (the open locale, its draft, the unsaved prompt) lives in
 `KeyEditor`, above the container, so crossing `xl` keeps a draft, and focus and the selection in the
 field are restored after the swap. The translation form is inline in the locale block, built from
 the parts in `entry-editor-parts.tsx` and the `useLocaleEdit` hook, both shared with `EditEntryDialog`
