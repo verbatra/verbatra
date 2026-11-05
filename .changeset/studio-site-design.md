@@ -11,3 +11,5 @@ Studio uses the verbatra site palette and the Geist typeface, and follows the sy
 - **Tooltips:** tooltips show on keyboard focus as well as hover and close with Escape.
 - **Dialogs:** Tab and Shift+Tab stay inside an open drawer or dialog even after a click on plain text moved focus out of it.
 - **Key details:** closing the entry editor with Escape puts focus back on the Edit button of the locale you edited, and the header buttons are 44px tall on small screens.
+- **Review rows:** the highlighted row uses the shared active-row tone, and a row's source and translation open in full in a tooltip on hover instead of the browser title. A row only unfolds on keyboard focus, so on a narrow screen pressing Edit with a mouse or finger no longer moves the button under it.
+- **Keycaps:** the shortcut keys in the Review toolbar and the shortcuts dialog share one keycap style.

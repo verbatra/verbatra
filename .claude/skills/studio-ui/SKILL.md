@@ -209,19 +209,22 @@ Rules that follow:
   line and uppercase by default), `Icon`, the fields `TextField`, `TextArea`, `SearchInput` and
   `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row
   aligns; `TextArea` takes no size; the focus ring is `.vk-field:focus-visible`), `Checkbox`,
-  `Accordion`, `Skeleton`, `ProgressBar`, `Toast`, `FilterBar` and `FilterChip` (`pressed`, `count`,
+  `Accordion`, `Kbd` (`tone: "muted" | "strong"`, the one keycap; sets `data-tone`), `Skeleton`,
+  `ProgressBar`, `Toast`, `FilterBar` and `FilterChip` (`pressed`, `count`,
   and `unavailable` with the reason, which keeps the chip focusable and shows the reason in a
   `Tooltip` instead of disabling it), the `Table` family with `tableClasses` (`TableRow` takes
-  `selected` for `aria-selected` and `data-selected`; `TableCard` is a containing block, so
+  `selected` for `aria-selected` and `data-selected`, and `active` for the row a keyboard queue
+  highlights: `aria-current="true"`, `data-active` and `tableClasses.rowActive`, never `aria-selected`,
+  so a table with selection checkboxes keeps the two apart; `TableCard` is a containing block, so
   visually hidden text inside it cannot widen the page),
   `Sheet` and `DrawerShell`, `OverlayBackdrop`, `DialogCloseButton`, `Tooltip` (`aria-describedby`
   on the control unless the label repeats its name or `decorative` says the control already
   carries the words, shown on hover and focus (or on keyboard focus alone with `trigger="focus"`,
   which ignores focus from a pointer press; `flip` opens it upward when the clipping box would cut it
   off, so an open bubble never grows the scroll area), dismissed with Escape, none on a disabled control,
-  taking no layout while closed; `side`: `end`, `bottom`, `bottom-end`, and `top`, which only `flip`
-  reaches (`flip` applies to `bottom` and `bottom-end`, never to `end`); `className` goes on the
-  wrapper),
+  taking no layout while closed; `side`: `end`, `bottom`, `bottom-start`, `bottom-end`, and `top` and
+  `top-start`, which only `flip` reaches (`flip` applies to the three `bottom` sides, never to `end`);
+  `wide` lets a long label wrap in a bubble capped at 28rem; `className` goes on the wrapper),
   `ThemeToggle` (a cycle over a theme store that
   leaves system for the opposite of the OS theme first, labelled through `label(current, next)`
   and `announce(mode)` props, with its own tooltip and a polite live region), the
@@ -357,6 +360,20 @@ a control in the dialog stays), and on the nearest row in the pane or when the l
 released (Forward back onto the entry) puts focus on the Edit button of the saved locale. A new
 control that changes the route needs no extra code, but it must honour the boolean the navigate
 helpers return before running its own side effects.
+
+**Review queue.** `ReviewPanel.tsx` composes `ReviewFilterBar`, `ReviewTable`, `ReviewDialogs`,
+`use-review-keyboard.ts` and `use-bulk-selection.ts`; the panel itself holds only the wiring. The
+highlighted row is `TableRow active` (a `useActiveRow` index, not the table's roving stop), never a
+class written at the call site. Review state is two `FilterChip`s with counts (`data-state-filter`),
+exclusive, beside the locale and origin `Select`s; the counts come from `reviewStateCounts` and ignore
+the chosen state. A row's source and translation sit in a `wide` `Tooltip` (`decorative`, since the text is
+already in the row) instead of `title`, so the full value shows on hover; keyboard users get it by
+the row unfolding (`group-focus-visible` and `group-has-[:focus-visible]`), never `group-focus-within`:
+a pointer press on a button inside a row focuses it without `:focus-visible`, so the row must not
+reflow on it, or the button moves between press and release and the click is lost at 375px. The
+shortcut keys `j`, `k`, arrows, `a`, `r`, `e`, `Enter`, `t`, `x` and `?` act on the highlighted row, pause in
+a field, and keep their spend and write gates in `retranslate-eligibility.ts` and the panel.
+`ReviewRowActions` stays presentational (`data-layout`, `data-reserves-busy`).
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they
