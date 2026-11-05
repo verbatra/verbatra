@@ -264,30 +264,32 @@ Rules that follow:
 **Key table rules.** The key column and the header row are sticky, with an opaque fill
 (`--surface-table-head`, `--surface-row-hover`, the selected row's `--surface-hover`) and a seam
 border on each cell (the table uses `border-separate`, since collapsed borders vanish on sticky
-cells); the corner cell sits above both. Below `md` the key column is 7rem and truncates, the
-Source column of the matrix is hidden, and the table flows in the page; from `md` up the card is
-a bounded scroll region (`md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto`), so the header stays in
-view with many rows. The roving stops draw their focus ring inside (`-outline-offset-2`), so it is
-never clipped by the card edge. The region sets `scroll-ps-28 md:scroll-ps-60` (the sticky key
-column's width) and `scroll-pt-16` in the matrix or `scroll-pt-11` in the entries table (the
-header's height), and a focused stop is scrolled into view with `block` and `inline` set to
-`nearest`, so the ring is never under the sticky parts. ArrowLeft and ArrowRight stop at the row edges; ArrowUp and ArrowDown wrap. Column widths are
-fixed with `w-*` and `min-w-*`, so the key column never jumps while filtering. In sync is quiet
-text with a dot, never a bordered badge. A matrix cell is named by its `aria-label` (key, locale,
-status, then each marker after a comma); its marker words also sit in a `decorative` `Tooltip` on
-the cell's own focus stop, which adds no tab stop. In the entries table the same words open from
-keyboard focus on the key button only (`trigger="focus"`, so the native title of a truncated key
-and the tooltip never show together), the status marker carries a plain title, and the words reach
-assistive technology through visually hidden text in the status cell. `ScrollHint` takes the
-scroll card's ref and shows only while it overflows, at any width. A row is selected
-(`aria-selected`) while its key is open in the editor.
+cells); the corner cell sits above both. Below `md` the key column is 7rem and truncates, the Source
+column of the matrix is hidden, and the table flows in the page; from `md` up the card is a bounded
+scroll region (`md:max-h-[calc(100dvh-12rem)] md:overflow-y-auto`), so the header stays in view with
+many rows. The roving stops draw their focus ring inside (`-outline-offset-2`), so it is never
+clipped by the card edge. The region sets `scroll-ps-28 md:scroll-ps-60` (the sticky key column's
+width) and `scroll-pt-16` in the matrix or `scroll-pt-11` in the entries table (the header's
+height), and a focused stop is scrolled into view with `block` and `inline` set to `nearest`, so the
+ring is never under the sticky parts. ArrowLeft and ArrowRight stop at the row edges; ArrowUp and
+ArrowDown wrap. Column widths are fixed with `w-*` and `min-w-*`, so the key column never jumps
+while filtering. In sync is quiet text with a dot, never a bordered badge. A matrix cell is named by
+its `aria-label` (key, locale, status, then each marker after a comma); its marker words also sit in
+a `decorative` `Tooltip` on the cell's own focus stop, which adds no tab stop. In the entries table
+the same words open from keyboard focus on the key button only (`trigger="focus"`, so the native
+title of a truncated key and the tooltip never show together), the status marker carries a plain
+title, and the words reach assistive technology through visually hidden text in the status cell. The
+marker tooltip wrapper is always rendered and only its label is empty when no marker is held (an
+empty label draws no bubble), so a focused cell is not remounted when its marker clears.
+`ScrollHint` takes the scroll card's ref and shows only while it overflows, at any width. A row is
+selected (`aria-selected`) while its key is open in the editor.
 
 **Split editor.** One `KeyEditor` renders in two containers, chosen by a synchronous `matchMedia`
 read (`XL_QUERY`, 80rem) on the first render, never by an effect, so an `xl` deep link never mounts
 a modal. From `xl` it is `EditorPane`: a `--radius-lg` card in a grid cell beside the table,
 `self-start` and sticky at 4.5rem below the 3.5rem site header, at most the viewport minus that
-offset and the page's bottom padding (`100dvh - 9rem`: the header offset plus the space the page
-leaves below the split, so the pane still pins at the offset at maximum scroll) tall, scrolling
+offset and a fixed bottom reserve (`100dvh - 9rem`: 4.5rem for the sticky offset plus a 4.5rem
+allowance for what the page leaves below the split, not a measurement) tall, scrolling
 inside itself, with no `aria-modal`. It is independent of the table's height: it pins at the header
 offset for the whole scroll of a tall table, and on a table shorter than the pane the page grows to
 fit the pane (so a key can add page height). Below `xl` it is the `DrawerShell` (side end), with
@@ -307,7 +309,10 @@ after the swap. The translation form is inline in the locale block, built from
 a second editor dialog or a copy of either is a defect. A failed read shows `ErrorMessage` with
 Retry (and Cancel in the form), never an empty state, and after a successful Retry focus moves to
 the recovered content (a `data-recovery-target` container with the standard focus ring, or the
-field). Roving focus stays on the row when a key opens, Escape in the pane moves focus back to the
+field). That target is disarmed only by the answer to its own Retry, never by the other read
+landing first or by a refresh. While a Retry runs it shows "Retrying…" with `aria-busy` and
+`aria-disabled`, never `disabled`, ignores a second press, and keeps focus even when it fails
+again. Roving focus stays on the row when a key opens, Escape in the pane moves focus back to the
 row, and the pane never takes a global letter shortcut. While a save runs the field is `readOnly`
 with `aria-busy`, never `disabled`, so focus stays in it, a rejected save puts focus back in the
 field, and its status scrolls into view.
@@ -321,7 +326,8 @@ so fast repeated Backs and Forwards cannot loop. The router keeps showing the he
 
 The invariant: a held route exists only while its prompt is on screen, and every way the prompt ends
 resolves the hold exactly once. Save, Discard, the form's Save or Cancel, and an in-flight save that
-finishes adopt the held entry (`adoptHeldRoute`); typing the draft back to clean, Keep editing and a
+finishes let the held entry through (`adoptHeldRoute`, private to `route-guard.ts`), and so does
+the missing-key Discard; typing the draft back to clean, Keep editing and a
 new prompt that replaces the old one (another key, another locale, a filter, a chip, header
 navigation) call `restoreHeldRoute()`, the one place that issues a single `history.go(position -
 idx)` (or a `replaceState` when a hash push truncated the position entry). While a restore is on its
@@ -342,9 +348,12 @@ under the pane header; in the drawer it sits in the sticky header (`data-sticky`
 action while it is shown, and a rejected save keeps it, with the reason, and puts focus back in the
 field. A save that finishes never closes the form of a different locale or key. A refresh that
 removes the open key while the draft is dirty keeps the editor, with a notice and a Discard. After a
-route change the focus is returned once the new route has rendered. A new control that changes the
-route needs no extra code, but it must honour the boolean the navigate helpers return before running
-its own side effects.
+route change the focus is returned once the new route has rendered, the same way for the prompt's
+Save and Discard, the form's Save and Cancel and the notice's Discard: on the control that was used
+when it is outside the editor, otherwise on the nearest row. A save that finishes after the hold was
+released (Forward back onto the entry) puts focus on the Edit button of the saved locale. A new
+control that changes the route needs no extra code, but it must honour the boolean the navigate
+helpers return before running its own side effects.
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they
