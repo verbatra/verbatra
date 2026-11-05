@@ -1,71 +1,123 @@
 export const ROUTE_CHANGE_EVENT = "verbatra:route-change";
 
+export type RouteWrite = "push" | "replace";
+
 export interface RouteGuard {
   isDirty(): boolean;
   onBlock(proceed: () => void): void;
 }
 
 let activeGuard: RouteGuard | null = null;
-let anchorHash = "";
+let position: number | null = null;
+let positionHash = "";
+let undoing = false;
+let admitting = false;
+
+function readIdx(): number | null {
+  const state: unknown = window.history.state;
+  if (typeof state === "object" && state !== null && "idx" in state) {
+    return typeof state.idx === "number" ? state.idx : null;
+  }
+  return null;
+}
 
 export function announceRouteChange(): void {
   window.dispatchEvent(new Event(ROUTE_CHANGE_EVENT));
 }
 
-export function commitHash(next: string): void {
-  anchorHash = next;
-  window.history.replaceState(window.history.state, "", next);
+export function visibleHash(): string {
+  return undoing ? positionHash : window.location.hash;
+}
+
+export function writeRoute(kind: RouteWrite, next: string): void {
+  const base = readIdx() ?? 0;
+  const idx = kind === "push" ? base + 1 : base;
+  if (kind === "push") {
+    window.history.pushState({ idx }, "", next);
+  } else {
+    window.history.replaceState({ idx }, "", next);
+  }
+  position = idx;
+  positionHash = next;
   announceRouteChange();
 }
 
-function followHash(): void {
-  if (activeGuard !== null && !activeGuard.isDirty()) {
-    anchorHash = window.location.hash;
+function adopt(idx: number | null): void {
+  const known = idx ?? (position === null ? null : position + 1);
+  if (idx === null && known !== null) {
+    window.history.replaceState({ idx: known }, "", window.location.href);
   }
+  position = known;
+  positionHash = window.location.hash;
 }
 
-function handleHashChange(): void {
+function handleTraversal(): void {
+  const idx = readIdx();
+  if (undoing) {
+    undoing = idx !== position;
+    return;
+  }
+  if (idx !== null && idx === position) {
+    return;
+  }
   const guard = activeGuard;
-  const reached = window.location.hash;
-  if (guard === null || reached === anchorHash) {
+  const admitted = admitting;
+  admitting = false;
+  if (guard === null || admitted || !guard.isDirty() || position === null) {
+    adopt(idx);
     return;
   }
-  if (!guard.isDirty()) {
-    anchorHash = reached;
-    return;
-  }
-  window.history.replaceState(window.history.state, "", anchorHash);
-  announceRouteChange();
-  guard.onBlock(() => commitHash(reached));
+  const delta = (idx ?? position + 1) - position;
+  undoing = true;
+  window.history.go(-delta);
+  guard.onBlock(() => {
+    admitting = true;
+    window.history.go(delta);
+  });
 }
 
 function handleBeforeUnload(event: BeforeUnloadEvent): void {
-  if (activeGuard?.isDirty() === true) {
-    event.preventDefault();
+  event.preventDefault();
+  event.returnValue = "";
+}
+
+export function setUnloadWarning(active: boolean): void {
+  window.removeEventListener("beforeunload", handleBeforeUnload);
+  if (active) {
+    window.addEventListener("beforeunload", handleBeforeUnload);
   }
 }
 
 if (typeof window !== "undefined") {
-  window.addEventListener("beforeunload", handleBeforeUnload);
-  window.addEventListener("hashchange", handleHashChange);
-  window.addEventListener(ROUTE_CHANGE_EVENT, followHash);
+  position = readIdx();
+  if (position === null) {
+    position = 0;
+    window.history.replaceState({ idx: 0 }, "", window.location.href);
+  }
+  positionHash = window.location.hash;
+  window.addEventListener("popstate", handleTraversal);
+  window.addEventListener("hashchange", handleTraversal);
 }
 
 export function installRouteGuard(guard: RouteGuard): () => void {
   activeGuard = guard;
-  anchorHash = window.location.hash;
+  position = readIdx();
+  positionHash = window.location.hash;
+  undoing = false;
+  admitting = false;
   return () => {
     if (activeGuard === guard) {
       activeGuard = null;
+      setUnloadWarning(false);
     }
   };
 }
 
-export function routeChangeBlocked(next: string): boolean {
+export function routeChangeBlocked(next: string, kind: RouteWrite): boolean {
   const guard = activeGuard;
-  if (guard === null || next === window.location.hash || !guard.isDirty()) {
+  if (guard === null || next === visibleHash() || !guard.isDirty()) {
     return false;
   }
-  guard.onBlock(() => commitHash(next));
+  guard.onBlock(() => writeRoute(kind, next));
   return true;
 }

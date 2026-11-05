@@ -8,12 +8,7 @@ import {
   type RouteParams,
   routeHash,
 } from "../client/routes.js";
-import {
-  announceRouteChange,
-  commitHash,
-  ROUTE_CHANGE_EVENT,
-  routeChangeBlocked,
-} from "./route-guard.js";
+import { ROUTE_CHANGE_EVENT, routeChangeBlocked, visibleHash, writeRoute } from "./route-guard.js";
 
 const EMPTY_PARAMS: RouteParams = {};
 
@@ -27,38 +22,36 @@ function subscribe(onChange: () => void): () => void {
 }
 
 function currentHash(): string {
-  return window.location.hash;
+  return visibleHash();
 }
 
 export function replaceRoute(route: Route): boolean {
   const next = routeHash(route);
-  if (next === window.location.hash || routeChangeBlocked(next)) {
+  if (next === visibleHash() || routeChangeBlocked(next, "replace")) {
     return false;
   }
-  commitHash(next);
+  writeRoute("replace", next);
   return true;
 }
 
 export function navigateToPage(page: PageId): boolean {
-  if (parseRoute(window.location.hash).page === page) {
+  if (parseRoute(visibleHash()).page === page) {
     return true;
   }
   const next = pageHash(page);
-  if (routeChangeBlocked(next)) {
+  if (routeChangeBlocked(next, "push")) {
     return false;
   }
-  window.location.hash = next;
-  announceRouteChange();
+  writeRoute("push", next);
   return true;
 }
 
 export function navigateToRoute(route: Route): boolean {
   const next = routeHash(route);
-  if (routeChangeBlocked(next)) {
+  if (routeChangeBlocked(next, "push")) {
     return false;
   }
-  window.location.hash = next;
-  announceRouteChange();
+  writeRoute("push", next);
   return true;
 }
 
@@ -72,8 +65,7 @@ export function useCanonicalHash(): void {
   useEffect(() => {
     const canonical = canonicalPageHash(hash);
     if (canonical !== null) {
-      window.history.replaceState(window.history.state, "", canonical);
-      announceRouteChange();
+      writeRoute("replace", canonical);
     }
   }, [hash]);
 }
