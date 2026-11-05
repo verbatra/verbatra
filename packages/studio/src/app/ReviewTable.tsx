@@ -45,7 +45,7 @@ const ROW_FOCUS_CLASSNAME =
   "focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
 const ROW_TEXT_CLASSNAME =
-  "block w-fit min-w-0 max-w-full truncate group-has-[:focus-visible]:whitespace-pre-wrap group-has-[:focus-visible]:break-words";
+  "block w-fit min-w-0 max-w-full truncate group-focus-visible:whitespace-pre-wrap group-focus-visible:break-words group-has-[:focus-visible]:whitespace-pre-wrap group-has-[:focus-visible]:break-words";
 
 function RowText({
   value,
