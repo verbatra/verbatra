@@ -1298,6 +1298,264 @@ describe("split editor brand link", () => {
   });
 });
 
+function pendingEditEntry(): {
+  readonly stub: () => Promise<StubRpcResult>;
+  answer(r: StubRpcResult): void;
+} {
+  let resolver: (result: StubRpcResult) => void = () => {};
+  return {
+    stub: () =>
+      new Promise<StubRpcResult>((resolve) => {
+        resolver = resolve;
+      }),
+    answer: (result) => resolver(result),
+  };
+}
+
+describe("split editor edit sessions", () => {
+  it("B1: a late save from an earlier session never closes or rewrites a new draft of the same key and locale", async () => {
+    const late = pendingEditEntry();
+    stubServer();
+    stubRpc({ "translation.editEntry": late.stub });
+    const view = await mountAt(TITLE_HASH, true);
+    await clickAsync(view.get('[data-edit-locale="de"]'));
+    await flush();
+    await clickAsync(getRole(view, "button", "Save", "[data-locale-edit]"));
+
+    await clickAsync(getRole(view, "rowheader", "app.body"));
+    await clickAsync(getRole(view, "rowheader", "app.title"));
+    await clickAsync(view.get('[data-edit-locale="de"]'));
+    await flush();
+    typeInto(textarea(view), "New text");
+    await act(async () => {
+      late.answer({ ok: true, result: { accepted: true, value: "Willkommen {name}" } });
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(textarea(view).value).toBe("New text");
+    expect(rpcCalls.filter((call) => call.method === "translation.editEntry")).toHaveLength(1);
+    expect(view.query("[data-saved]")).toBeNull();
+  });
+});
+
+describe("one rule: every control lets a held change through", () => {
+  it.each([
+    ["S1 overview", "#/overview"],
+    ["S1 status filter", "#/translations?status=review"],
+  ])(
+    "%s: the missing-key Discard lands on the held address and keeps it in history",
+    async (_name, prior) => {
+      stubServer();
+      const view = await mountAt(TITLE_HASH, true, prior);
+      await startDirtyEdit(view);
+      keyGone = true;
+      view.rerender(<Harness token={2} />);
+      await flush();
+      await flush();
+      window.history.back();
+      await settle();
+      expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+      const length = window.history.length;
+
+      await clickAsync(getRole(view, "button", "Discard", "[data-key-missing]"));
+      await settle();
+      await flush();
+
+      expect(window.location.hash).toBe(prior);
+      expect(visibleHash()).toBe(prior);
+      expect(window.history.length).toBe(length);
+      expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    },
+  );
+
+  it.each([
+    ["S2 same page, other filter", "#/translations?locale=fr"],
+    ["S2 route that closes the editor", "#/translations"],
+  ])("%s: the form Cancel returns focus like the prompt's buttons", async (_name, prior) => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true, prior);
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+
+    await clickAsync(getRole(view, "button", "Cancel"));
+    await settle();
+    await flush();
+
+    expect(window.location.hash).toBe(prior);
+    expect(document.activeElement?.closest("tr[data-key]")).not.toBeNull();
+  });
+
+  it("D1: the form Save lets a blocked in-app change through", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    await clickAsync(getRole(view, "rowheader", "app.body"));
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    await clickAsync(getRole(view, "button", "Save", "[data-locale-edit]"));
+    await settle();
+    await flush();
+
+    expect(window.location.hash).toBe(NEXT_KEY);
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+  });
+
+  it("D2: the form Cancel lets a blocked in-app change through", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    await clickAsync(getRole(view, "rowheader", "app.body"));
+
+    await clickAsync(getRole(view, "button", "Cancel"));
+    await settle();
+    await flush();
+
+    expect(window.location.hash).toBe(NEXT_KEY);
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+  });
+
+  it("E1: a save that fails after a newer prompt opened leaves that prompt alone", async () => {
+    const late = pendingEditEntry();
+    stubServer();
+    stubRpc({ "translation.editEntry": late.stub });
+    const view = await mountAt(TITLE_HASH, true, "#/translations?key=app.cta");
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+    await clickAsync(getRole(view, "button", "Save", "[data-unsaved-prompt]"));
+    await clickAsync(getRole(view, "link", "Review", "nav"));
+    expect(view.all("[data-unsaved-prompt]")).toHaveLength(1);
+
+    await act(async () => {
+      late.answer({ ok: true, result: { accepted: false, reason: "placeholder" } });
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(view.all("[data-unsaved-prompt]")).toHaveLength(1);
+    expect(window.location.hash).not.toBe("#/review");
+  });
+
+  it("E2: a save that succeeds after a newer prompt opened lets that newer change through", async () => {
+    const late = pendingEditEntry();
+    stubServer();
+    stubRpc({ "translation.editEntry": late.stub });
+    const view = await mountAt(TITLE_HASH, true, "#/translations?key=app.cta");
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+    await clickAsync(getRole(view, "button", "Save", "[data-unsaved-prompt]"));
+    await clickAsync(getRole(view, "link", "Review", "nav"));
+    targets.de = "Hallo!";
+    view.rerender(<Harness token={2} />);
+    await flush();
+    await flush();
+
+    await act(async () => {
+      late.answer({ ok: true, result: { accepted: true, value: "Hallo!" } });
+      await Promise.resolve();
+    });
+    await settle();
+    await flush();
+
+    expect(window.location.hash).toBe("#/review");
+  });
+});
+
+describe("failed retries keep focus", () => {
+  it.each([
+    ["pane", true],
+    ["drawer", false],
+  ])(
+    "%s: the Retry of a read that fails again stays focused, busy while it runs",
+    async (_name, wide) => {
+      stubServer();
+      stubRpc({
+        "key.value": { ok: false, error: { code: "INTERNAL", message: "x" } },
+        "key.integrity": { ok: false, error: { code: "PROJECT_UNREADABLE", message: "y" } },
+      });
+      const view = await mountAt(TITLE_HASH, wide);
+      for (const retry of view.all("[data-error-actions] button")) {
+        expect(retry.textContent).toBe("Retry");
+      }
+      const first = view.all("[data-error-actions] button")[0];
+      first?.focus();
+
+      await clickAsync(first as HTMLElement);
+      await flush();
+
+      expect(document.activeElement).toBe(first);
+      expect(view.query("[data-error-actions]")).not.toBeNull();
+    },
+  );
+
+  it.each([
+    ["pane", true],
+    ["drawer", false],
+  ])("%s: the Retry of a context read that fails again stays focused", async (_name, wide) => {
+    stubServer();
+    stubRpc({ "key.context": { ok: false, error: { code: "INTERNAL", message: "z" } } });
+    const view = await mountAt(TITLE_HASH, wide);
+    await clickAsync(view.get('[data-edit-locale="de"]'));
+    await flush();
+    const retry = getRole(view, "button", "Retry", "[data-locale]");
+    retry.focus();
+
+    await clickAsync(retry);
+    await flush();
+
+    expect(document.activeElement?.textContent).toBe("Retry");
+    expect(view.get("[data-locale] [data-error-actions]")).not.toBeNull();
+  });
+
+  it("the Retry shows busy and ignores a second press while it runs", async () => {
+    let calls = 0;
+    stubServer();
+    stubRpc({
+      "key.value": () => {
+        calls += 1;
+        return calls <= 4
+          ? { ok: false, error: { code: "INTERNAL", message: "x" } }
+          : new Promise<StubRpcResult>(() => {});
+      },
+    });
+    const view = await mountAt(TITLE_HASH, true);
+    const retry = view.all("[data-error-actions] button")[0] as HTMLElement;
+
+    await clickAsync(retry);
+    const busy = view.all("[data-error-actions] button")[0] as HTMLElement;
+    const during = calls;
+    await clickAsync(busy);
+
+    expect(busy.textContent).toBe("Retrying…");
+    expect(busy.getAttribute("aria-busy")).toBe("true");
+    expect(calls).toBe(during);
+  });
+});
+
+describe("rejection scrolling", () => {
+  it("scrolls a rejection into view once, and not again when the container swaps", async () => {
+    const seen: string[] = [];
+    vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) {
+      seen.push(this.textContent ?? "");
+    });
+    stubServer({ ok: true, result: { accepted: false, reason: "placeholder" } });
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    await clickAsync(getRole(view, "button", "Save", "[data-locale-edit]"));
+    await flush();
+    const rejections = (): number => seen.filter((text) => text.startsWith("Rejected")).length;
+    expect(rejections()).toBe(1);
+
+    resizeViewport(false);
+    await flush();
+
+    expect(rejections()).toBe(1);
+  });
+});
+
 describe("split editor saves in flight", () => {
   it("does not close the form of another locale when an earlier save finishes", async () => {
     let answer: (result: StubRpcResult) => void = () => {};

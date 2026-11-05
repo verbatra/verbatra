@@ -148,7 +148,12 @@ function useEditSession(keyName: string): {
 } {
   const [target, setTarget] = useState<EditSession>({ keyName, locale: null, session: 0 });
   const counter = useRef(0);
-  const current = target.keyName === keyName ? target : { keyName, locale: null, session: 0 };
+  let current = target;
+  if (target.keyName !== keyName) {
+    counter.current += 1;
+    current = { keyName, locale: null, session: counter.current };
+    setTarget(current);
+  }
   return {
     locale: current.locale,
     session: current.session,
