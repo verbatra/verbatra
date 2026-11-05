@@ -5,15 +5,19 @@ export type RouteWrite = "push" | "replace";
 export interface RouteGuard {
   isDirty(): boolean;
   onBlock(proceed: () => Promise<void>): void;
+  onRelease?(): void;
+}
+
+interface Held {
+  readonly idx: number;
+  readonly hash: string;
+  readonly positionGone: boolean;
 }
 
 let activeGuard: RouteGuard | null = null;
 let position: number | null = null;
 let positionHash = "";
-let undoing = false;
-let correctedFrom: number | null = null;
-let admitting = false;
-let landings: Array<() => void> = [];
+let held: Held | null = null;
 
 function readIdx(): number | null {
   const state: unknown = window.history.state;
@@ -28,7 +32,7 @@ export function announceRouteChange(): void {
 }
 
 export function visibleHash(): string {
-  return undoing ? positionHash : window.location.hash;
+  return held === null ? window.location.hash : positionHash;
 }
 
 export function writeRoute(kind: RouteWrite, next: string): void {
@@ -39,73 +43,80 @@ export function writeRoute(kind: RouteWrite, next: string): void {
   } else {
     window.history.replaceState({ idx }, "", next);
   }
+  held = null;
   position = idx;
   positionHash = next;
   announceRouteChange();
 }
 
-function adopt(idx: number | null): void {
-  const known = idx ?? (position === null ? null : position + 1);
-  if (idx === null && known !== null) {
-    window.history.replaceState({ idx: known }, "", window.location.href);
-  }
-  position = known;
+function adopt(idx: number): void {
+  held = null;
+  position = idx;
   positionHash = window.location.hash;
 }
 
-function continueUndo(idx: number | null, home: number): void {
-  if (idx === home) {
-    undoing = false;
-    correctedFrom = null;
-  } else if (idx !== correctedFrom) {
-    correctedFrom = idx;
-    window.history.go(home - (idx ?? home + 1));
+function proceedHeld(): Promise<void> {
+  if (held !== null) {
+    position = readIdx() ?? held.idx;
+    positionHash = window.location.hash;
+    held = null;
+    announceRouteChange();
   }
+  return Promise.resolve();
 }
 
-function releaseLandings(): void {
-  const waiting = landings;
-  landings = [];
-  for (const resolve of waiting) {
-    resolve();
-  }
-}
-
-function holdTraversal(guard: RouteGuard, idx: number | null, home: number): void {
-  const delta = (idx ?? home + 1) - home;
-  undoing = true;
-  correctedFrom = idx;
-  window.history.go(-delta);
-  guard.onBlock(
-    () =>
-      new Promise<void>((resolve) => {
-        admitting = true;
-        landings.push(resolve);
-        window.history.go(delta);
-      }),
-  );
-}
-
-function handleTraversal(): void {
+function stampLanding(): { readonly idx: number; readonly truncated: boolean } {
   const idx = readIdx();
-  if (undoing && position !== null) {
-    continueUndo(idx, position);
+  if (idx !== null) {
+    return { idx, truncated: false };
+  }
+  const known = (held?.idx ?? position ?? 0) + 1;
+  window.history.replaceState({ idx: known }, "", window.location.href);
+  return { idx: known, truncated: position !== null && known <= position };
+}
+
+function handleLanding(): void {
+  const here = window.location.hash;
+  if (held !== null && held.idx === readIdx() && held.hash === here) {
     return;
   }
-  if (idx !== null && idx === position) {
-    return;
-  }
-  const guard = activeGuard;
-  const admitted = admitting;
-  admitting = false;
-  if (guard === null || admitted || !guard.isDirty() || position === null) {
-    adopt(idx);
-    if (admitted) {
-      releaseLandings();
+  const { idx, truncated } = stampLanding();
+  const gone = truncated || (held?.positionGone ?? false);
+  if (!gone && idx === position) {
+    if (held !== null) {
+      held = null;
+      activeGuard?.onRelease?.();
     }
     return;
   }
-  holdTraversal(guard, idx, position);
+  const guard = activeGuard;
+  if (guard === null || !guard.isDirty() || position === null) {
+    adopt(idx);
+    return;
+  }
+  const wasIdle = held === null;
+  held = { idx, hash: here, positionGone: gone };
+  if (wasIdle) {
+    guard.onBlock(proceedHeld);
+  }
+}
+
+export function restoreHeldRoute(): void {
+  const target = held;
+  held = null;
+  if (target === null || position === null) {
+    return;
+  }
+  if (target.positionGone) {
+    const current = readIdx() ?? target.idx;
+    window.history.replaceState({ idx: current }, "", positionHash);
+    position = current;
+    return;
+  }
+  const delta = position - target.idx;
+  if (delta !== 0) {
+    window.history.go(delta);
+  }
 }
 
 function handleBeforeUnload(event: BeforeUnloadEvent): void {
@@ -127,21 +138,19 @@ if (typeof window !== "undefined") {
     window.history.replaceState({ idx: 0 }, "", window.location.href);
   }
   positionHash = window.location.hash;
-  window.addEventListener("popstate", handleTraversal);
-  window.addEventListener("hashchange", handleTraversal);
+  window.addEventListener("popstate", handleLanding);
+  window.addEventListener("hashchange", handleLanding);
 }
 
 export function installRouteGuard(guard: RouteGuard): () => void {
   activeGuard = guard;
   position = readIdx();
   positionHash = window.location.hash;
-  undoing = false;
-  correctedFrom = null;
-  admitting = false;
+  held = null;
   return () => {
     if (activeGuard === guard) {
       activeGuard = null;
-      undoing = false;
+      held = null;
       setUnloadWarning(false);
     }
   };

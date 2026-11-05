@@ -291,15 +291,22 @@ function installMatchMedia(): void {
 
 const HISTORY_FIRST_WAIT_MS = 400;
 const HISTORY_QUIET_MS = 150;
+const HISTORY_MAX_MS = 3000;
+const HISTORY_MAX_EVENTS = 200;
 
 export function settleHistory(): Promise<void> {
   return new Promise((resolve) => {
+    let events = 0;
     let timer = setTimeout(done, HISTORY_FIRST_WAIT_MS);
+    const cap = setTimeout(done, HISTORY_MAX_MS);
     function bump(): void {
+      events += 1;
       clearTimeout(timer);
-      timer = setTimeout(done, HISTORY_QUIET_MS);
+      timer = setTimeout(done, events >= HISTORY_MAX_EVENTS ? 0 : HISTORY_QUIET_MS);
     }
     function done(): void {
+      clearTimeout(timer);
+      clearTimeout(cap);
       window.removeEventListener("popstate", bump);
       window.removeEventListener("hashchange", bump);
       resolve();

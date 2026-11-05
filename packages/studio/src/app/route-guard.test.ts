@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import {
   installRouteGuard,
   ROUTE_CHANGE_EVENT,
   type RouteGuard,
+  restoreHeldRoute,
   routeChangeBlocked,
   setUnloadWarning,
   visibleHash,
@@ -13,12 +14,22 @@ import { settleHistory as settle } from "./test-support.js";
 
 let dirty = false;
 const onBlock = vi.fn<(proceed: () => Promise<void>) => void>();
-const guard: RouteGuard = { isDirty: () => dirty, onBlock };
+const onRelease = vi.fn<() => void>();
+const guard: RouteGuard = { isDirty: () => dirty, onBlock, onRelease };
 let uninstall: () => void = () => {};
+let goSpy: MockInstance<History["go"]>;
 
 function idx(): unknown {
   const state: unknown = window.history.state;
   return typeof state === "object" && state !== null && "idx" in state ? state.idx : null;
+}
+
+function proceedOf(call: number): () => Promise<void> {
+  const proceed = onBlock.mock.calls[call]?.[0];
+  if (proceed === undefined) {
+    throw new Error(`no hold number ${call}`);
+  }
+  return proceed;
 }
 
 function startAt(first: string, second: string): void {
@@ -30,106 +41,276 @@ function startAt(first: string, second: string): void {
 beforeEach(() => {
   dirty = false;
   onBlock.mockReset();
+  onRelease.mockReset();
+  goSpy = vi.spyOn(window.history, "go").mockImplementation(() => {});
 });
 
 afterEach(() => {
   uninstall();
   setUnloadWarning(false);
+  vi.restoreAllMocks();
 });
 
-describe("a held Back", () => {
-  it("returns to the entry it left, with no lost and no duplicate entry", async () => {
-    startAt("#/a", "#/b");
-    const length = window.history.length;
+describe("a stack with forward entries", () => {
+  let hashes: readonly string[] = [];
+  let cursor = 0;
+
+  function land(target: number): void {
+    cursor = target;
+    window.history.replaceState({ idx: 10 + target }, "", hashes[target]);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  }
+
+  function userTraverses(delta: number): void {
+    const target = cursor + delta;
+    if (target >= 0 && target < hashes.length) {
+      land(target);
+    }
+  }
+
+  function hashPush(hash: string): void {
+    cursor += 1;
+    window.history.replaceState(null, "", hash);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  }
+
+  function startOn(entries: readonly string[], current: number): void {
+    hashes = entries;
+    cursor = current;
+    window.history.replaceState({ idx: 10 + current }, "", entries[current]);
+    uninstall = installRouteGuard(guard);
     dirty = true;
+  }
 
-    window.history.back();
-    await settle();
+  it("holds a run of Backs and Forwards, unstamped landings included, without ever calling go", () => {
+    startOn(["#/a", "#/b", "#/c", "#/d", "#/e", "#/f", "#/g"], 2);
 
-    expect(window.location.hash).toBe("#/b");
-    expect(idx()).toBe(11);
-    expect(window.history.length).toBe(length);
+    userTraverses(-1);
+    userTraverses(-1);
+    userTraverses(3);
+    userTraverses(-2);
+    hashPush("#/x");
+    userTraverses(1);
+
+    expect(goSpy).not.toHaveBeenCalled();
     expect(onBlock).toHaveBeenCalledTimes(1);
+    expect(visibleHash()).toBe("#/c");
   });
 
-  it("goes back for real once the held change is allowed to proceed", async () => {
-    startAt("#/a", "#/b");
-    const length = window.history.length;
-    dirty = true;
-    window.history.back();
-    await settle();
+  it("gives one hold for a landing delivered as popstate and hashchange", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
 
-    onBlock.mock.calls[0]?.[0]();
+    userTraverses(-1);
+
+    expect(onBlock).toHaveBeenCalledTimes(1);
+    expect(visibleHash()).toBe("#/c");
+    expect(window.location.hash).toBe("#/b");
+  });
+
+  it("restores a Back Back with exactly one go, never go(0), and then lets a clean Back through", () => {
+    startOn(["#/a", "#/b", "#/c", "#/d", "#/e"], 2);
+    userTraverses(-1);
+    userTraverses(-1);
+
+    restoreHeldRoute();
+    restoreHeldRoute();
+
+    expect(goSpy).toHaveBeenCalledTimes(1);
+    expect(goSpy).toHaveBeenCalledWith(2);
+
+    land(2);
+    expect(onRelease).not.toHaveBeenCalled();
     dirty = false;
-    await settle();
+    userTraverses(-1);
 
-    expect(window.location.hash).toBe("#/a");
-    expect(idx()).toBe(10);
-    expect(window.history.length).toBe(length);
     expect(onBlock).toHaveBeenCalledTimes(1);
+    expect(visibleHash()).toBe("#/b");
+    expect(goSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the router on the entry it was on while the undo is still in flight", async () => {
-    startAt("#/a", "#/b");
-    dirty = true;
-    const seen: string[] = [];
-    const record = (): void => {
-      seen.push(visibleHash());
-    };
-    window.addEventListener("hashchange", record);
+  it("never calls go(0) when the held landing is the position itself", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
 
-    window.history.back();
-    await settle();
-    window.removeEventListener("hashchange", record);
+    restoreHeldRoute();
 
-    expect(seen.length).toBeGreaterThan(0);
-    expect(seen.every((hash) => hash === "#/b")).toBe(true);
+    expect(goSpy).not.toHaveBeenCalled();
   });
-});
 
-describe("a held Forward", () => {
-  it("returns to the entry it left and goes forward for real on proceed", async () => {
-    startAt("#/a", "#/b");
-    window.history.back();
-    await settle();
-    expect(idx()).toBe(10);
-    const length = window.history.length;
-    dirty = true;
+  it("opens a new hold for a Back queued before the restore lands, and issues no further go", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
 
-    window.history.forward();
-    await settle();
+    restoreHeldRoute();
+    userTraverses(-1);
+    land(1);
 
-    expect(window.location.hash).toBe("#/a");
-    expect(window.history.length).toBe(length);
-
-    onBlock.mock.calls[0]?.[0]();
-    await settle();
-
-    expect(window.location.hash).toBe("#/b");
-    expect(idx()).toBe(11);
-    expect(window.history.length).toBe(length);
+    expect(onBlock).toHaveBeenCalledTimes(2);
+    expect(goSpy).toHaveBeenCalledTimes(1);
+    expect(goSpy).toHaveBeenCalledWith(1);
   });
-});
 
-describe("an entry created outside the app", () => {
-  it("is held as a push, and proceeding reaches it and stamps it", async () => {
-    startAt("#/a", "#/b");
-    const length = window.history.length;
-    dirty = true;
+  it("stamps a landing nobody stamped as the last position plus one, and restores it with replaceState alone", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
 
-    window.location.hash = "#/typed";
-    await settle();
+    hashPush("#/x");
 
-    expect(window.location.hash).toBe("#/b");
-    expect(onBlock).toHaveBeenCalledTimes(1);
-
-    onBlock.mock.calls[0]?.[0]();
-    dirty = false;
-    await settle();
-
-    expect(window.location.hash).toBe("#/typed");
     expect(idx()).toBe(12);
+    expect(visibleHash()).toBe("#/c");
+
+    restoreHeldRoute();
+
+    expect(goSpy).not.toHaveBeenCalled();
+    expect(window.location.hash).toBe("#/c");
+    expect(idx()).toBe(12);
+    expect(visibleHash()).toBe("#/c");
+  });
+
+  it("keeps the hold when the hashchange echo of an unstamped landing reads the stamp it just got", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+
+    hashPush("#/x");
+
+    expect(onRelease).not.toHaveBeenCalled();
+    expect(onBlock).toHaveBeenCalledTimes(1);
+    expect(visibleHash()).toBe("#/c");
+  });
+
+  it("restores a Back Back and a hash push from d with replaceState alone, never an out-of-range go", () => {
+    startOn(["#/a", "#/b", "#/c", "#/d"], 3);
+    userTraverses(-1);
+    userTraverses(-1);
+    hashPush("#/x");
+    userTraverses(-1);
+
+    restoreHeldRoute();
+
+    expect(goSpy).not.toHaveBeenCalled();
+    expect(window.location.hash).toBe("#/d");
+    expect(visibleHash()).toBe("#/d");
+  });
+
+  it("does not treat the entry that replaced the position as the position, even with the same index", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    hashPush("#/x");
+    userTraverses(-1);
+
+    userTraverses(1);
+
+    expect(onRelease).not.toHaveBeenCalled();
+    expect(onBlock).toHaveBeenCalledTimes(1);
+    expect(visibleHash()).toBe("#/c");
+    expect(goSpy).not.toHaveBeenCalled();
+  });
+
+  it("adopts the current entry when a proceed follows two Backs", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    userTraverses(-1);
+
+    proceedOf(0)();
+
+    expect(visibleHash()).toBe("#/a");
+    expect(window.location.hash).toBe("#/a");
+    expect(idx()).toBe(10);
+  });
+
+  it("restores an unstamped push that sits after the position with a go back", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+
+    hashPush("#/x");
+    restoreHeldRoute();
+
+    expect(idx()).toBe(13);
+    expect(goSpy).toHaveBeenCalledTimes(1);
+    expect(goSpy).toHaveBeenCalledWith(-1);
+  });
+
+  it("clears the hold and tells the guard when a landing returns to the position", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+
+    userTraverses(1);
+
+    expect(onRelease).toHaveBeenCalledTimes(1);
+    expect(goSpy).not.toHaveBeenCalled();
+    expect(visibleHash()).toBe("#/c");
+    restoreHeldRoute();
+    expect(goSpy).not.toHaveBeenCalled();
+  });
+
+  it("resolves a proceed in the same tick, with the router on the real address and the position moved", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+
+    const resolved = proceedOf(0)();
+
+    expect(visibleHash()).toBe(window.location.hash);
+    expect(visibleHash()).toBe("#/b");
+    expect(goSpy).not.toHaveBeenCalled();
+    userTraverses(1);
+    expect(onBlock).toHaveBeenCalledTimes(2);
+    return expect(resolved).resolves.toBeUndefined();
+  });
+
+  it("chains an in-app push made during a hold from the held entry, adding exactly one entry", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    const length = window.history.length;
+
+    expect(routeChangeBlocked("#/n", "push")).toBe(true);
+    proceedOf(1)();
+
     expect(window.history.length).toBe(length + 1);
+    expect(window.location.hash).toBe("#/n");
+    expect(idx()).toBe(12);
+    expect(goSpy).not.toHaveBeenCalled();
+    expect(visibleHash()).toBe("#/n");
+  });
+
+  it("drops the hold and the unload warning when the guard goes away, without any go", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    setUnloadWarning(true);
+
+    uninstall();
+
+    expect(visibleHash()).toBe(window.location.hash);
+    expect(goSpy).not.toHaveBeenCalled();
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    userTraverses(-1);
+    expect(onBlock).toHaveBeenCalledTimes(1);
+  });
+
+  it("adopts a clean traversal and never prompts", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    dirty = false;
+
+    userTraverses(-1);
+    userTraverses(-1);
+
+    expect(onBlock).not.toHaveBeenCalled();
+    expect(visibleHash()).toBe("#/a");
+    expect(idx()).toBe(10);
+  });
+
+  it("adopts a landing once the draft is no longer dirty, dropping the hold", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    dirty = false;
+
+    userTraverses(-1);
+
+    expect(visibleHash()).toBe("#/a");
+    expect(onBlock).toHaveBeenCalledTimes(1);
+    restoreHeldRoute();
+    expect(goSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -147,19 +328,27 @@ describe("an entry without a position", () => {
   });
 });
 
-describe("a clean traversal", () => {
-  it("goes through and is then guarded from where it landed", async () => {
+describe("a real back in the browser model", () => {
+  it("is held, shows the target while held, and goes back for real on restore", async () => {
+    goSpy.mockRestore();
     startAt("#/a", "#/b");
-    window.history.back();
-    await settle();
-    expect(window.location.hash).toBe("#/a");
+    const length = window.history.length;
     dirty = true;
 
-    window.history.forward();
+    window.history.back();
     await settle();
 
-    expect(window.location.hash).toBe("#/a");
     expect(onBlock).toHaveBeenCalledTimes(1);
+    expect(window.location.hash).toBe("#/a");
+    expect(visibleHash()).toBe("#/b");
+
+    restoreHeldRoute();
+    await settle();
+
+    expect(window.location.hash).toBe("#/b");
+    expect(idx()).toBe(11);
+    expect(window.history.length).toBe(length);
+    expect(visibleHash()).toBe("#/b");
   });
 });
 
@@ -174,7 +363,7 @@ describe("a held push or replace", () => {
     expect(window.history.length).toBe(length);
     expect(window.location.hash).toBe("#/b");
 
-    onBlock.mock.calls[0]?.[0]();
+    proceedOf(0)();
 
     expect(window.history.length).toBe(length + 1);
     expect(window.location.hash).toBe("#/c");
@@ -187,7 +376,7 @@ describe("a held push or replace", () => {
     dirty = true;
     routeChangeBlocked("#/c", "replace");
 
-    onBlock.mock.calls[0]?.[0]();
+    proceedOf(0)();
 
     expect(window.history.length).toBe(length);
     expect(window.location.hash).toBe("#/c");
@@ -270,109 +459,5 @@ describe("leaving the page", () => {
     uninstall();
 
     expect(leave().defaultPrevented).toBe(false);
-  });
-});
-
-describe("rapid traversals before the undo has landed", () => {
-  let hashes: readonly string[] = [];
-  let cursor = 0;
-  let queue: number[] = [];
-
-  function land(target: number): void {
-    cursor = target;
-    window.history.replaceState({ idx: 10 + target }, "", hashes[target]);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-    window.dispatchEvent(new HashChangeEvent("hashchange"));
-  }
-
-  function userTraverses(delta: number): void {
-    land(cursor + delta);
-  }
-
-  function drain(): void {
-    for (let guardRail = 0; queue.length > 0; guardRail += 1) {
-      expect(guardRail).toBeLessThan(50);
-      const delta = queue.shift() ?? 0;
-      const target = cursor + delta;
-      if (target >= 0 && target < hashes.length) {
-        land(target);
-      }
-    }
-  }
-
-  function startOn(entries: readonly string[], current: number): void {
-    hashes = entries;
-    cursor = current;
-    queue = [];
-    vi.spyOn(window.history, "go").mockImplementation((delta) => {
-      queue.push(delta ?? 0);
-    });
-    window.history.replaceState({ idx: 10 + current }, "", entries[current]);
-    uninstall = installRouteGuard(guard);
-    dirty = true;
-  }
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("returns to the held entry after a double Back, and then lets a clean Back through", () => {
-    startOn(["#/a", "#/b", "#/c"], 2);
-
-    userTraverses(-1);
-    userTraverses(-1);
-    drain();
-
-    expect(window.location.hash).toBe("#/c");
-    expect(idx()).toBe(12);
-    expect(visibleHash()).toBe("#/c");
-    expect(onBlock).toHaveBeenCalledTimes(1);
-
-    dirty = false;
-    userTraverses(-1);
-
-    expect(window.location.hash).toBe("#/b");
-    expect(visibleHash()).toBe("#/b");
-    expect(onBlock).toHaveBeenCalledTimes(1);
-  });
-
-  it("returns to the held entry after a Back and a Forward before the echo", () => {
-    startOn(["#/a", "#/b", "#/c", "#/d"], 2);
-
-    userTraverses(-1);
-    userTraverses(2);
-    drain();
-
-    expect(window.location.hash).toBe("#/c");
-    expect(idx()).toBe(12);
-    expect(visibleHash()).toBe("#/c");
-    expect(onBlock).toHaveBeenCalledTimes(1);
-  });
-
-  it("returns to the held entry after three rapid Backs", () => {
-    startOn(["#/a", "#/b", "#/c", "#/d"], 3);
-
-    userTraverses(-1);
-    userTraverses(-1);
-    userTraverses(-1);
-    drain();
-
-    expect(window.location.hash).toBe("#/d");
-    expect(idx()).toBe(13);
-    expect(visibleHash()).toBe("#/d");
-    expect(onBlock).toHaveBeenCalledTimes(1);
-  });
-
-  it("holds the next traversal again once the earlier one has settled", () => {
-    startOn(["#/a", "#/b", "#/c"], 2);
-    userTraverses(-1);
-    userTraverses(-1);
-    drain();
-
-    userTraverses(-1);
-    drain();
-
-    expect(window.location.hash).toBe("#/c");
-    expect(onBlock).toHaveBeenCalledTimes(2);
   });
 });
