@@ -115,7 +115,9 @@ export function Sheet({
             </div>
             <DialogCloseButton onClose={onClose} label={closeLabel} />
           </div>
-          {banner !== undefined ? <div data-sheet-banner="">{banner}</div> : null}
+          {banner !== undefined && banner !== null ? (
+            <div data-sheet-banner="">{banner}</div>
+          ) : null}
         </div>
         <div className="p-6">{children}</div>
       </div>

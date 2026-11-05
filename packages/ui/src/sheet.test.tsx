@@ -108,8 +108,9 @@ describe("Sheet", () => {
     expect(view.get('[role="dialog"]').contains(header)).toBe(true);
   });
 
-  it("draws no banner slot when none is given", () => {
+  it("draws no banner slot when none is given, or when the banner is null", () => {
     expect(sheet().query("[data-sheet-banner]")).toBeNull();
+    expect(sheet({ banner: null }).query("[data-sheet-banner]")).toBeNull();
   });
 
   it("anchors to the inline-end edge at the default width", () => {
