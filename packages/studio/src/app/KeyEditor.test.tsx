@@ -233,6 +233,34 @@ describe("KeyEditor drawer", () => {
     expect(document.activeElement).not.toBe(view.get('[data-recovery-target="source"]'));
   });
 
+  it("does not move focus later when an integrity Retry failed and a refresh then succeeds", async () => {
+    stubBackground();
+    let reads = 0;
+    stubRpc({
+      "key.value": value("Hello", "Hallo"),
+      "key.integrity": () => {
+        reads += 1;
+        return reads <= 2
+          ? rpcError("PROJECT_UNREADABLE", "files unreadable")
+          : { ok: true, result: integrityResult([integrityEntry("de")]) };
+      },
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+    view.rerender(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+    );
+    await flush();
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(document.activeElement).not.toBe(view.get('[data-recovery-target="locales"]'));
+  });
+
   it("hides a not-found read error only for a key that is gone, and shows any other", async () => {
     stubBackground();
     stubRpc({ "key.value": rpcError("INTERNAL", "values down") });
@@ -257,7 +285,10 @@ describe("KeyEditor drawer", () => {
 
   it("hides the not-found error of a key that is gone, with no Retry", async () => {
     stubBackground();
-    stubRpc({ "key.value": rpcError("UNKNOWN_KEY", "not found") });
+    stubRpc({
+      "key.value": rpcError("UNKNOWN_KEY", "not found"),
+      "key.integrity": rpcError("UNKNOWN_KEY", "not found"),
+    });
 
     const view = await renderAsync(
       <KeyEditor

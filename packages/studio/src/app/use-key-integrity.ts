@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type KeyIntegrityLocaleEntry, withFullIntegrity } from "../client/integrity-pill.js";
 import type { StructuredError } from "../client/state.js";
 import { rpcClient } from "./api.js";
@@ -18,7 +18,13 @@ const LOADING: KeyIntegrityState = { kind: "loading" };
 export function useKeyIntegrity(key: string, refreshToken: number, attempt = 0): KeyIntegrityState {
   const [held, setHeld] = useState<KeyedIntegrity>({ key, state: LOADING });
 
+  const lastAttempt = useRef(attempt);
+
   useEffect(() => {
+    if (lastAttempt.current !== attempt) {
+      lastAttempt.current = attempt;
+      setHeld({ key, state: LOADING });
+    }
     let cancelled = false;
     const setState = (state: KeyIntegrityState): void => setHeld({ key, state });
     void Promise.all([
