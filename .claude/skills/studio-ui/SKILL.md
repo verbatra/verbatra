@@ -366,14 +366,19 @@ helpers return before running its own side effects.
 highlighted row is `TableRow active` (a `useActiveRow` index, not the table's roving stop), never a
 class written at the call site. Review state is two `FilterChip`s with counts (`data-state-filter`),
 exclusive, beside the locale and origin `Select`s; the counts come from `reviewStateCounts` and ignore
-the chosen state. A row's source and translation sit in a `wide` `Tooltip` (`decorative`, since the text is
-already in the row) instead of `title`, so the full value shows on hover; keyboard users get it by
-the row unfolding (`group-focus-visible` and `group-has-[:focus-visible]`), never `group-focus-within`:
-a pointer press on a button inside a row focuses it without `:focus-visible`, so the row must not
-reflow on it, or the button moves between press and release and the click is lost at 375px. The
-shortcut keys `j`, `k`, arrows, `a`, `r`, `e`, `Enter`, `t`, `x` and `?` act on the highlighted row, pause in
-a field, and keep their spend and write gates in `retranslate-eligibility.ts` and the panel.
-`ReviewRowActions` stays presentational (`data-layout`, `data-reserves-busy`).
+the chosen state. With no needs-review entry left the list is the All clear message (a
+`tabIndex={-1}` focus target for the end of a batch), with Clear filters only while a filter differs
+from the default. Values always wrap: a row's source and translation are `TranslationValue`s with
+`whitespace-pre-wrap` and `wrap-anywhere`, no truncation, no tooltip and no per-row control, so a
+row is as tall as its text and never changes height on focus, hover or press (a height that moved
+between press and release lost the click at 375px). The only bubble in a row is the provenance
+description, which opens above the badge in the stacked layout so it never covers the actions. The
+shortcut keys `j`, `k`, arrows, `a`, `r`, `e`, `Enter`, `t`, `x` and `?` act on the highlighted row,
+pause in a field and anywhere inside the filter bar (`data-shortcuts-paused`, so Enter and Space
+still work on a chip), and keep their gates: `canWrite` and the spend check in
+`use-review-keyboard.ts` and `ReviewPanel.tsx`, the spend rule itself in `retranslate-eligibility.ts`.
+`ReviewRowActions` stays presentational (`data-layout`, `data-reserves-busy`). `EditEntryDialog` asks
+through `UnsavedPrompt` before Escape, the backdrop, Close or a route change drops a dirty draft.
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they

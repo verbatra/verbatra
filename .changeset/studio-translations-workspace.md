@@ -12,4 +12,5 @@ Translations is one key table with working filters for every key state.
 - **Editing beside the table:** from 1280px wide, a key opens in an editor next to the table; on narrower screens it opens in a drawer, and the translation form is part of it instead of a second dialog. Leaving a key with unsaved edits, by choosing another key, a filter, a search, a page or Back, asks whether to save, discard or keep editing; leaving Studio itself gets the browser's own confirmation.
 - **Review editor focus:** after an edit saved from a Review row, focus moves to the next row instead of the page.
 - **Edit retry:** a failed read of a key's context in the edit dialog offers a Retry.
-- **Review filters:** Needs review and Approved are chips with a count each, next to the locale and origin choices, instead of a select.
+- **Review filters:** Needs review and Approved are chips with a count each, next to the locale and origin choices, instead of a select. With nothing left to review the queue says All clear and keeps Approved one click away, and the queue letters (`j`, `a`, `r` and the rest) pause while focus is in the filter bar.
+- **Edit dialog:** closing the Review edit dialog with Escape, the backdrop, Close or browser Back while the draft is unsaved asks you to save, discard or keep editing.
