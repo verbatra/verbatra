@@ -2505,3 +2505,41 @@ describe("ReviewPanel: nothing to review", () => {
     expect(document.activeElement).toBe(view.get("[data-all-clear]"));
   });
 });
+
+describe("ReviewPanel: a draft while the review state breaks", () => {
+  it("keeps the open editor and its draft when the provenance file becomes unreadable", async () => {
+    stubReview();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await openEditor(view, "checkout.title");
+    await flush();
+    typeInto(view.get('[role="dialog"] textarea') as HTMLTextAreaElement, "my draft");
+
+    stubReview({ available: false, reason: "provenance-unreadable" });
+    view.rerender(<ReviewPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.text()).toContain("Review state cannot be read");
+    expect((view.get('[role="dialog"] textarea') as HTMLTextAreaElement).value).toBe("my draft");
+  });
+
+  it("keeps a held Back and its prompt when the provenance file becomes unreadable", async () => {
+    window.history.replaceState({ idx: 0 }, "", "#/review");
+    stubReview();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await openEditor(view, "checkout.title");
+    await flush();
+    typeInto(view.get('[role="dialog"] textarea') as HTMLTextAreaElement, "my draft");
+    act(() => {
+      window.history.pushState({ idx: 1 }, "", "#/overview");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    stubReview({ available: false, reason: "provenance-unreadable" });
+    view.rerender(<ReviewPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+    expect(view.query('[role="dialog"]')).not.toBeNull();
+  });
+});

@@ -343,6 +343,21 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
       }),
   );
 
+  const dialogs = (
+    <ReviewDialogs
+      helpOpen={helpOpen}
+      spend={spend}
+      editing={editing}
+      rejecting={rejecting}
+      decisions={decisions}
+      onCloseHelp={() => setHelpOpen(false)}
+      onCloseEditor={() => setEditing(null)}
+      onCloseReject={() => setRejecting(null)}
+      bulkRejecting={bulk.rejecting}
+      onConfirmBulkReject={bulk.confirmReject}
+      onCloseBulkReject={bulk.closeReject}
+    />
+  );
   if (view.kind === "loading") {
     return (
       <div role="status">
@@ -352,64 +367,62 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
     );
   }
   if (view.kind === "error") {
-    return <ErrorMessage error={view.error} />;
+    return (
+      <div>
+        <ErrorMessage error={view.error} />
+        {dialogs}
+      </div>
+    );
   }
   if (!view.data.available) {
     return (
-      <EmptyState icon="review" title="Review state cannot be read">
-        <code>verbatra.provenance.json</code> is corrupt or was written by a newer verbatra. Restore
-        it from version control or upgrade verbatra.
-      </EmptyState>
+      <div>
+        <EmptyState icon="review" title="Review state cannot be read">
+          <code>verbatra.provenance.json</code> is corrupt or was written by a newer verbatra.
+          Restore it from version control or upgrade verbatra.
+        </EmptyState>
+        {dialogs}
+      </div>
     );
   }
 
   return (
     <div>
-      {view.stale && <ErrorMessage error={view.error} prefix="Showing the last known queue." />}
-      <ReviewDecisionStatus notice={decisions.notice} />
-      <ReviewQueueContent
-        rows={rows}
-        filtered={filtered}
-        stateCounts={stateCounts}
-        facets={facets}
-        query={query}
-        onFacetsChange={setFacets}
-        onQueryChange={setQuery}
-        onShowShortcuts={() => setHelpOpen(true)}
-        bulk={bulk}
-        capabilities={capabilities}
-        actions={actions}
-        approveAll={approveAll}
-        clearRef={clearRef}
-      />
-      {approvingLocale !== null ? (
-        <ApproveLocaleDialog
-          locale={approvingLocale.locale}
-          count={approvingLocale.count}
-          originLabel={facets.origin === "" ? null : REVIEW_ORIGIN_LABELS[facets.origin]}
-          onConfirm={(settled) =>
-            decisions.approveLocale(
-              approvingLocale.locale,
-              facets.origin === "" ? undefined : [facets.origin],
-              settled,
-            )
-          }
-          onClose={() => setApprovingLocale(null)}
+      <div>
+        {view.stale && <ErrorMessage error={view.error} prefix="Showing the last known queue." />}
+        <ReviewDecisionStatus notice={decisions.notice} />
+        <ReviewQueueContent
+          rows={rows}
+          filtered={filtered}
+          stateCounts={stateCounts}
+          facets={facets}
+          query={query}
+          onFacetsChange={setFacets}
+          onQueryChange={setQuery}
+          onShowShortcuts={() => setHelpOpen(true)}
+          bulk={bulk}
+          capabilities={capabilities}
+          actions={actions}
+          approveAll={approveAll}
+          clearRef={clearRef}
         />
-      ) : null}
-      <ReviewDialogs
-        helpOpen={helpOpen}
-        spend={spend}
-        editing={editing}
-        rejecting={rejecting}
-        decisions={decisions}
-        onCloseHelp={() => setHelpOpen(false)}
-        onCloseEditor={() => setEditing(null)}
-        onCloseReject={() => setRejecting(null)}
-        bulkRejecting={bulk.rejecting}
-        onConfirmBulkReject={bulk.confirmReject}
-        onCloseBulkReject={bulk.closeReject}
-      />
+        {approvingLocale !== null ? (
+          <ApproveLocaleDialog
+            locale={approvingLocale.locale}
+            count={approvingLocale.count}
+            originLabel={facets.origin === "" ? null : REVIEW_ORIGIN_LABELS[facets.origin]}
+            onConfirm={(settled) =>
+              decisions.approveLocale(
+                approvingLocale.locale,
+                facets.origin === "" ? undefined : [facets.origin],
+                settled,
+              )
+            }
+            onClose={() => setApprovingLocale(null)}
+          />
+        ) : null}
+      </div>
+      {dialogs}
     </div>
   );
 }
