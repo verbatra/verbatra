@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { DiffLocale } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus } from "../client/diff-view.js";
 import { deriveIntegrityPillView } from "../client/integrity-pill.js";
+import { parseRoute } from "../client/routes.js";
 import { settledActionStatusLabel } from "../client/settled-action-status.js";
 import type { StructuredError } from "../client/state.js";
 import { CommitList } from "./CommitList.js";
@@ -19,6 +20,7 @@ import {
   installRouteGuard,
   restoreHeldRoute,
   setUnloadWarning,
+  visibleHash,
 } from "./route-guard.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
@@ -64,6 +66,20 @@ const NOT_FOUND = "UNKNOWN_KEY";
 const CONTROL = "button, a[href], input, select, textarea";
 
 const EDITOR_SURFACE = "[data-editor-pane], [role='dialog']";
+
+const SETTLING_SURFACE = "[data-unsaved-prompt], [data-locale-edit], [data-key-missing]";
+
+function restsInDialog(dialog: HTMLElement | null): boolean {
+  const active = document.activeElement;
+  return (
+    dialog !== null &&
+    active instanceof HTMLElement &&
+    active.isConnected &&
+    dialog.contains(active) &&
+    active.matches(CONTROL) &&
+    active.closest(SETTLING_SURFACE) === null
+  );
+}
 
 function isOutsideControl(element: Element | null): element is HTMLElement {
   return (
@@ -150,21 +166,18 @@ function useEditSession(keyName: string): {
   close(): void;
 } {
   const [target, setTarget] = useState<EditSession>({ keyName, locale: null, session: 0 });
-  const counter = useRef(0);
   let current = target;
   if (target.keyName !== keyName) {
-    counter.current += 1;
-    current = { keyName, locale: null, session: counter.current };
+    current = { keyName, locale: null, session: target.session + 1 };
     setTarget(current);
   }
   return {
     locale: current.locale,
     session: current.session,
     open: (locale) => {
-      counter.current += 1;
-      setTarget({ keyName, locale, session: counter.current });
+      setTarget((previous) => ({ keyName, locale, session: previous.session + 1 }));
     },
-    close: () => setTarget({ keyName, locale: null, session: current.session }),
+    close: () => setTarget((previous) => ({ keyName, locale: null, session: previous.session })),
   };
 }
 
@@ -196,7 +209,6 @@ export function KeyEditor({
   } = useEditSession(keyName);
   const [pending, setPending] = useState<Pending | null>(null);
   const pendingRef = useRef<Pending | null>(null);
-  pendingRef.current = pending;
   const [saved, setSaved] = useState<EditTarget | null>(null);
   const [returnTo, setReturnTo] = useState<string | null>(null);
   const originRef = useRef<Element | null>(null);
@@ -241,6 +253,7 @@ export function KeyEditor({
     editingRef.current = { keyName, locale: editingLocale, session };
     dirtyRef.current = edit.dirty;
     dirtyReportRef.current = onDirtyChange;
+    pendingRef.current = pending;
   });
 
   useEffect(() => {
@@ -305,7 +318,6 @@ export function KeyEditor({
           setPending({ proceed, route: true });
         },
         onRelease: () => {
-          pendingRef.current = null;
           setPending(null);
           textAreaRef.current?.focus();
         },
@@ -372,10 +384,12 @@ export function KeyEditor({
     const origin = originRef.current;
     if (isOutsideControl(origin)) {
       origin.focus();
-    } else if (layout === "pane" || missing) {
-      onRouteSettled();
+    } else if (layout === "drawer" && parseRoute(visibleHash()).params.key !== undefined) {
+      if (!restsInDialog(dialogRef.current)) {
+        dialogRef.current?.querySelector<HTMLElement>(CONTROL)?.focus();
+      }
     } else {
-      dialogRef.current?.querySelector<HTMLElement>(CONTROL)?.focus();
+      onRouteSettled();
     }
   }
 

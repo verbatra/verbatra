@@ -712,8 +712,94 @@ describe("split editor drawer focus after a held Back", () => {
     await flush();
 
     expect(view.query('[role="dialog"]')).toBeNull();
-    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement?.closest("tr")?.dataset.key).toBe("app.body");
   });
+
+  const MISSING_ACTIONS = [
+    ...ACTIONS,
+    { name: "notice Discard", scope: "[data-key-missing]", label: "Discard" },
+  ] as const;
+
+  it.each(MISSING_ACTIONS)(
+    "keeps focus in the drawer a missing key's $name leaves open",
+    async (action) => {
+      stubServer();
+      const view = await mountAt(TITLE_HASH, false, BODY_HASH);
+      await startDirtyEdit(view);
+      keyGone = true;
+      view.rerender(<Harness token={2} />);
+      await flush();
+      await flush();
+      window.history.back();
+      await settle();
+      await flush();
+
+      await clickAsync(getRole(view, "button", action.label, action.scope));
+      await settle();
+      await flush();
+
+      expect(window.location.hash).toBe(BODY_HASH);
+      const dialog = view.get('[role="dialog"]');
+      expect(dialog.getAttribute("aria-label")).toBe("Details for app.body");
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    },
+  );
+
+  it("keeps focus where the user moved it during a save that was in flight", async () => {
+    let answer: (result: StubRpcResult) => void = () => {};
+    stubServer();
+    stubRpc({
+      "translation.editEntry": () =>
+        new Promise<StubRpcResult>((resolve) => {
+          answer = resolve;
+        }),
+    });
+    const view = await mountAt(TITLE_HASH, false, BODY_HASH);
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+    await flush();
+    await clickAsync(getRole(view, "button", "Save", "[data-unsaved-prompt]"));
+    const elsewhere = view.get<HTMLElement>('[data-edit-locale="fr"]');
+    elsewhere.focus();
+
+    await act(async () => {
+      answer({ ok: true, result: { accepted: true, value: "saved" } });
+      await Promise.resolve();
+    });
+    await settle();
+    await flush();
+
+    expect(window.location.hash).toBe(BODY_HASH);
+    expect(document.activeElement).toBe(view.get('[data-edit-locale="fr"]'));
+  });
+
+  it.each([
+    ["Back", async () => window.history.back()],
+    [
+      "Close",
+      async (view: RenderResult) =>
+        clickAsync(getRole(view, "button", "Close details for app.title")),
+    ],
+    ["Escape", async () => keyDown(document, { key: "Escape" })],
+  ] as const)(
+    "puts focus on a row when %s closes a deep-linked drawer after Discard",
+    async (_name, leave) => {
+      stubServer();
+      const view = await mountAt(TITLE_HASH, false, "#/translations?locale=fr");
+      await startDirtyEdit(view);
+      await leave(view);
+      await settle();
+      await flush();
+
+      await clickAsync(getRole(view, "button", "Discard", "[data-unsaved-prompt]"));
+      await settle();
+      await flush();
+
+      expect(view.query('[role="dialog"]')).toBeNull();
+      expect(document.activeElement?.closest("tr")?.dataset.key).toBeDefined();
+    },
+  );
 });
 
 describe("split editor live updates", () => {
@@ -1592,10 +1678,10 @@ describe("failed retries keep focus", () => {
       },
     });
     const view = await mountAt(TITLE_HASH, true);
-    const retry = view.all("[data-error-actions] button")[0] as HTMLElement;
+    const retry = getRole(view, "button", /^Retry/);
 
     await clickAsync(retry);
-    const busy = view.all("[data-error-actions] button")[0] as HTMLElement;
+    const busy = getRole(view, "button", /^Retry/);
     const during = calls;
     await clickAsync(busy);
 
@@ -1729,7 +1815,7 @@ describe("recovery focus answers only its own retry", () => {
         ),
       });
       const view = await mountAt(TITLE_HASH, true);
-      const retry = view.all("[data-error-actions] button")[0] as HTMLElement;
+      const retry = getRole(view, "button", /^Retry/);
       retry.focus();
       values.failing = false;
       values.held = true;
@@ -1754,7 +1840,7 @@ describe("recovery focus answers only its own retry", () => {
       }),
     });
     const view = await mountAt(TITLE_HASH, true);
-    const retry = view.all("[data-error-actions] button")[0] as HTMLElement;
+    const retry = getRole(view, "button", /^Retry/);
     retry.focus();
     integrity.failing = false;
     integrity.held = true;
@@ -1815,7 +1901,7 @@ describe("the missing-key Discard returns focus", () => {
     await settle();
     await flush();
 
-    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement?.closest("tr")?.dataset.key).toBeDefined();
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
   });
 });
