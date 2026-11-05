@@ -19,18 +19,21 @@ import type { LocaleValuesData } from "../../client/locale-values.js";
 import { localeValuesOrEmpty } from "../../client/locale-values.js";
 import { type ReviewQueueData, unreviewedRows } from "../../client/review-queue-data.js";
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
+import { parseRoute } from "../../client/routes.js";
 import type { RefreshableView } from "../../client/state.js";
 import { DiffErrorNotice } from "../DiffErrorNotice.js";
-import { EditEntryDialog } from "../EditEntryDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
-import { KeyDetailDrawer } from "../KeyDetailDrawer.js";
+import { KeyEditor } from "../KeyEditor.js";
 import { KeyFilters } from "../KeyFilters.js";
 import { KeysTable } from "../KeysTable.js";
+import { cn } from "../lib/cn.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
+import { visibleHash } from "../route-guard.js";
 import { type DiffState, useDiffState } from "../use-diff-state.js";
 import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
+import { useMediaQuery, XL_QUERY } from "../use-media-query.js";
 import { useReviewQueue } from "../use-review-queue.js";
 import {
   knownLocalesOf,
@@ -187,7 +190,11 @@ function KeysSection({
   localeValuesView,
   review,
   integrity,
+  split,
+  editor,
 }: {
+  readonly split: boolean;
+  readonly editor: ReactNode;
   readonly locales: readonly DiffLocale[] | null;
   readonly route: TranslationsRoute;
   readonly refreshToken: number;
@@ -234,40 +241,48 @@ function KeysSection({
           prefix="Source and translation text could not be read, so search only matches key names."
         />
       ) : null}
-      {loading ? (
-        <div role="status" aria-busy="true">
-          <span className="sr-only">Loading...</span>
-          <TableSkeleton />
+      <div
+        className={cn(split && "grid grid-cols-[minmax(0,1fr)_22rem] items-start gap-6")}
+        data-split={split ? "" : undefined}
+      >
+        <div className="min-w-0">
+          {loading ? (
+            <div role="status" aria-busy="true">
+              <span className="sr-only">Loading...</span>
+              <TableSkeleton />
+            </div>
+          ) : rows.items.length === 0 ? (
+            <NoKeys
+              narrowed={narrowed}
+              trouble={trouble}
+              searching={query.trim() !== ""}
+              onClear={() => {
+                route.setFilter({ locale: "", statuses: new Set(), query: "" });
+                searchRef.current?.focus();
+              }}
+            />
+          ) : (
+            <>
+              <KeysTable
+                locales={loaded}
+                keys={rows.items}
+                locale={locale}
+                index={index}
+                localeValues={localeValues}
+                selectedKey={selectedKey}
+                refreshToken={refreshToken}
+                onSelectKey={route.setSelectedKey}
+              />
+              {rows.truncated ? (
+                <p className="mt-2 text-xs text-muted-foreground" data-key-cap="">
+                  {keyCountText(rows, narrowed, incomplete)}
+                </p>
+              ) : null}
+            </>
+          )}
         </div>
-      ) : rows.items.length === 0 ? (
-        <NoKeys
-          narrowed={narrowed}
-          trouble={trouble}
-          searching={query.trim() !== ""}
-          onClear={() => {
-            route.setFilter({ locale: "", statuses: new Set(), query: "" });
-            searchRef.current?.focus();
-          }}
-        />
-      ) : (
-        <>
-          <KeysTable
-            locales={loaded}
-            keys={rows.items}
-            locale={locale}
-            index={index}
-            localeValues={localeValues}
-            selectedKey={selectedKey}
-            refreshToken={refreshToken}
-            onSelectKey={route.setSelectedKey}
-          />
-          {rows.truncated ? (
-            <p className="mt-2 text-xs text-muted-foreground" data-key-cap="">
-              {keyCountText(rows, narrowed, incomplete)}
-            </p>
-          ) : null}
-        </>
-      )}
+        {editor}
+      </div>
     </KeysFrame>
   );
 }
@@ -336,11 +351,31 @@ function DiffNotices({
   );
 }
 
+function focusRow(key: string): void {
+  const stops = [
+    ...document.querySelectorAll<HTMLElement>("tr[data-key] [data-row][data-col]"),
+  ].filter((stop) => stop.closest("tr")?.dataset.key === key);
+  (stops.find((stop) => stop.tabIndex === 0) ?? stops[0])?.focus();
+}
+
+function focusNearestRow(key: string): void {
+  const stops = [...document.querySelectorAll<HTMLElement>("tr[data-key] [data-row][data-col]")];
+  const own = stops.filter((stop) => stop.closest("tr")?.dataset.key === key);
+  const target =
+    own.find((stop) => stop.tabIndex === 0) ??
+    own[0] ??
+    stops[0] ??
+    document.querySelector<HTMLElement>("[data-key-filter]");
+  target?.focus();
+}
+
 export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const diff = useDiffState(refreshToken);
-  const [editingLocale, setEditingLocale] = useState<string | null>(null);
-  const [lastEditedLocale, setLastEditedLocale] = useState<string | null>(null);
   const localeValuesView = useLocaleValues(refreshToken);
+  const wide = useMediaQuery(XL_QUERY, false);
+  const lastKeyRef = useRef("");
+  const [dirtyKey, setDirtyKey] = useState<string | null>(null);
+  const [focusRequest, setFocusRequest] = useState(0);
 
   const route = useTranslationsRoute(knownLocalesOf(diff), localeValuesView);
   const { selectedKey, setSelectedKey } = route;
@@ -349,6 +384,26 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const allClear = diff.kind === "loaded" && isFullyInSync(diff.locales);
   const integrity = useLocaleIntegrity(refreshToken, diff.kind === "loaded");
   const brokenInSync = allClear && hasIntegrityProblems(integrity);
+  const editorKey = selectedKey ?? dirtyKey;
+  const split = wide && editorKey !== null && diff.kind === "loaded";
+
+  useEffect(() => {
+    if (selectedKey !== null) {
+      lastKeyRef.current = selectedKey;
+    }
+  }, [selectedKey]);
+
+  useEffect(() => {
+    if (focusRequest > 0) {
+      focusNearestRow(parseRoute(visibleHash()).params.key ?? lastKeyRef.current);
+    }
+  }, [focusRequest]);
+
+  function closeEditor(): void {
+    if (editorKey !== null && setSelectedKey(null) && (wide || selectedKey === null)) {
+      focusNearestRow(editorKey);
+    }
+  }
 
   return (
     <>
@@ -366,33 +421,22 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
           localeValuesView={localeValuesView}
           review={review}
           integrity={integrity}
-        />
-      ) : null}
-      {selectedKey !== null && editingLocale === null && diff.kind === "loaded" ? (
-        <KeyDetailDrawer
-          keyName={selectedKey}
-          locales={diff.locales}
-          refreshToken={refreshToken}
-          focusLocale={lastEditedLocale}
-          onClose={() => {
-            setSelectedKey(null);
-            setEditingLocale(null);
-            setLastEditedLocale(null);
-          }}
-          onEditLocale={(locale) => {
-            setEditingLocale(locale);
-            setLastEditedLocale(locale);
-          }}
-        />
-      ) : null}
-      {selectedKey !== null && editingLocale !== null ? (
-        <EditEntryDialog
-          locale={editingLocale}
-          keyName={selectedKey}
-          onClose={() => setEditingLocale(null)}
-          onAccepted={() => {
-            setEditingLocale(null);
-          }}
+          split={split}
+          editor={
+            editorKey !== null && diff.kind === "loaded" ? (
+              <KeyEditor
+                keyName={editorKey}
+                locales={diff.locales}
+                refreshToken={refreshToken}
+                layout={wide ? "pane" : "drawer"}
+                onClose={closeEditor}
+                onEscape={() => focusRow(editorKey)}
+                onRouteSettled={() => setFocusRequest((count) => count + 1)}
+                missing={selectedKey === null}
+                onDirtyChange={(dirty) => setDirtyKey(dirty ? editorKey : null)}
+              />
+            ) : null
+          }
         />
       ) : null}
     </>

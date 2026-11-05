@@ -197,6 +197,23 @@ describe("Tooltip", () => {
       expect(view.get(SLOT).dataset.side).toBe("top");
     });
 
+    it("places a bubble that mounts while the control is already hovered", () => {
+      geometry(390);
+      const tree = (label: string) => (
+        <div data-clip-bottom={400} style={{ overflowY: "auto" }}>
+          <Tooltip label={label} side="bottom" flip>
+            <button type="button">c</button>
+          </Tooltip>
+        </div>
+      );
+      const view = render(tree(""));
+      hover(view.get("button"));
+
+      view.rerender(tree("Tip"));
+
+      expect(view.get(SLOT).dataset.side).toBe("top");
+    });
+
     it("never turns an end bubble upward, however little room there is below", () => {
       geometry(390);
       const view = mountFlip("end", [400]);
@@ -359,6 +376,24 @@ describe("Tooltip", () => {
 
     expect(view.get("button")).toBe(button);
     expect(view.query("[role='tooltip']")).not.toBeNull();
+  });
+
+  it("keeps the same control element when the label becomes empty, which renders no bubble", () => {
+    const tree = (label: string) => (
+      <Tooltip label={label}>
+        <button type="button">c</button>
+      </Tooltip>
+    );
+    const view = render(tree("Held for review"));
+    const button = view.get<HTMLButtonElement>("button");
+    button.focus();
+
+    view.rerender(tree(""));
+
+    expect(view.get("button")).toBe(button);
+    expect(document.activeElement).toBe(button);
+    expect(view.query("[role='tooltip']")).toBeNull();
+    expect(button.hasAttribute("aria-describedby")).toBe(false);
   });
 
   it("skips the description when the label repeats the control's own name", () => {

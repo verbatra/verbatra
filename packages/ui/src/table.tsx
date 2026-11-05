@@ -40,7 +40,7 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        hover && tableClasses.rowHover,
+        hover && selected !== true && tableClasses.rowHover,
         selected === true && tableClasses.rowSelected,
         className,
       )}
@@ -99,7 +99,11 @@ export function TableCard({
   return (
     <Card
       padding="none"
-      className={cn("relative overflow-x-auto", ariaLabel !== undefined && "vk-field", className)}
+      className={cn(
+        "relative isolate overflow-x-auto",
+        ariaLabel !== undefined && "vk-field",
+        className,
+      )}
       {...labelled}
       {...props}
     />

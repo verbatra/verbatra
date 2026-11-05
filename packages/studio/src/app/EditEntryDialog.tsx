@@ -1,41 +1,18 @@
-import type { GlossaryDraftCheck, LocaleGlossary, ReviewReasonCode } from "@verbatra/sdk";
-import {
-  Badge,
-  Button,
-  DrawerShell,
-  microLabelClassName,
-  Section,
-  TextArea,
-  useDialogA11y,
-} from "@verbatra/ui";
-import type { KeyboardEvent, ReactNode, Ref } from "react";
-import { useEffect, useId, useRef, useState } from "react";
-import { deriveEditEntryOutcome, type EditEntryOutcome } from "../client/edit-entry-outcome.js";
+import type { GlossaryDraftCheck, ReviewReasonCode } from "@verbatra/sdk";
+import { Badge, DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
+import type { ReactNode, Ref } from "react";
+import { useEffect, useRef } from "react";
 import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
-import {
-  type DraftFlag,
-  deriveKeyValueContext,
-  draftFixedTermFlags,
-  draftTermFlags,
-  hasGlossaryHits,
-  type KeyValueContext,
-} from "../client/key-value-context.js";
-import { compareLength, lengthSummary } from "../client/length-compare.js";
-import { settledActionStatusLabel } from "../client/settled-action-status.js";
-import { rpcClient } from "./api.js";
+import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-context.js";
+import { ErrorMessage } from "./ErrorMessage.js";
+import { GlossaryHitList, SaveRow, TranslationField } from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
-import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";
-import { cn } from "./lib/cn.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ReviewReasonChips } from "./ReviewReasonChips.js";
-import { TranslationValue, valueDirection } from "./TranslationValue.js";
+import { TranslationValue } from "./TranslationValue.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
-
-type SubmitState =
-  | { readonly kind: "idle" }
-  | { readonly kind: "submitting" }
-  | { readonly kind: "settled"; readonly outcome: EditEntryOutcome };
+import { useLocaleEdit } from "./use-locale-edit.js";
 
 type LoadedContext = Extract<KeyValueContext, { kind: "loaded" }>;
 
@@ -46,131 +23,6 @@ export interface EditEntryDialogProps {
   readonly onAccepted: (locale: string, keyName: string) => void;
   readonly focusTranslation?: boolean;
   readonly reviewReasons?: readonly ReviewReasonCode[];
-}
-
-function useKeyValueContext(locale: string, keyName: string): KeyValueContext {
-  const [state, setState] = useState<KeyValueContext>({ kind: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-    setState({ kind: "loading" });
-    void rpcClient.call("key.context", { locale, key: keyName }).then((response) => {
-      if (!cancelled) {
-        setState(deriveKeyValueContext(response));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [locale, keyName]);
-
-  return state;
-}
-
-function submitStatusLabel(state: SubmitState): string {
-  if (state.kind === "submitting") {
-    return "Saving…";
-  }
-  if (state.kind === "settled") {
-    return settledActionStatusLabel(state.outcome, "Saved");
-  }
-  return "";
-}
-
-function submitStatusClassName(state: SubmitState): string {
-  return actionStatusTextClassName(
-    settledOutcomeTone(state.kind === "settled" ? state.outcome : undefined),
-  );
-}
-
-function clearRemediationHint(state: SubmitState): string | undefined {
-  if (state.kind !== "settled" || state.outcome.kind !== "rejected") {
-    return undefined;
-  }
-  if (state.outcome.reason !== "empty") {
-    return undefined;
-  }
-  return (
-    "To clear this translation, run verbatra export, type [[CLEAR]] in its Translation cell, " +
-    "then run verbatra import."
-  );
-}
-
-function isSaveShortcut(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
-  return event.key === "Enter" && (event.ctrlKey || event.metaKey);
-}
-
-function DraftFlags({ flags }: { readonly flags: readonly DraftFlag[] }): ReactNode {
-  if (flags.length === 0) {
-    return null;
-  }
-  return (
-    <span className="ms-2 inline-flex flex-wrap gap-1 align-middle" data-draft-flags="">
-      {flags.map((flag) => (
-        <Badge key={flag.label} tone={flag.tone} verbatim={flag.verbatim === true}>
-          {flag.label}
-        </Badge>
-      ))}
-    </span>
-  );
-}
-
-function GlossaryHitList({
-  glossary,
-  locale,
-  check,
-}: {
-  readonly glossary: LocaleGlossary;
-  readonly locale: string;
-  readonly check: GlossaryDraftCheck | undefined;
-}): ReactNode {
-  return (
-    <ul className="m-0 list-none space-y-2 p-0" data-glossary-hits="">
-      {glossary.terms.map((term) => (
-        <li key={`term ${term.source}`} className="text-sm">
-          <span className="font-semibold text-foreground" dir="auto">
-            {term.source}
-          </span>
-          {term.target !== undefined ? (
-            <span className="text-muted-foreground">
-              {" "}
-              use{" "}
-              <span className="text-foreground" lang={locale} dir="auto">
-                {term.target}
-              </span>
-            </span>
-          ) : null}
-          <DraftFlags
-            flags={draftTermFlags(check?.terms.find((entry) => entry.source === term.source))}
-          />
-          {term.forbidden.length > 0 ? (
-            <span className="block text-xs text-muted-foreground" data-glossary-forbidden="">
-              Never{" "}
-              <span lang={locale} dir="auto">
-                {term.forbidden.join(", ")}
-              </span>
-            </span>
-          ) : null}
-          {term.note !== undefined ? (
-            <span className="block text-xs text-muted-foreground">{term.note}</span>
-          ) : null}
-        </li>
-      ))}
-      {glossary.doNotTranslate.map((entry) => (
-        <li key={`fixed ${entry.term}`} className="text-sm">
-          <span className="font-semibold text-foreground" dir="auto">
-            {entry.term}
-          </span>
-          <span className="text-muted-foreground"> keep as written</span>
-          <DraftFlags
-            flags={draftFixedTermFlags(
-              check?.doNotTranslate.find((candidate) => candidate.term === entry.term),
-            )}
-          />
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 function SourceColumn({
@@ -229,33 +81,6 @@ function SavedValueStatus({
   );
 }
 
-function LengthLine({
-  id,
-  source,
-  value,
-  maxLength,
-}: {
-  readonly id: string;
-  readonly source: string;
-  readonly value: string;
-  readonly maxLength: number | undefined;
-}): ReactNode {
-  const summary = lengthSummary(compareLength(source, value), maxLength);
-  return (
-    <p
-      id={id}
-      className={cn(
-        "m-0 mt-1 text-xs",
-        summary.overBudget ? "font-semibold text-danger" : "text-muted-foreground",
-      )}
-      data-edit-length=""
-      data-over-budget={summary.overBudget ? "" : undefined}
-    >
-      {summary.text}
-    </p>
-  );
-}
-
 function TranslationColumn({
   locale,
   keyName,
@@ -263,7 +88,7 @@ function TranslationColumn({
   value,
   onChangeValue,
   onSave,
-  disabled,
+  busy,
   textAreaRef,
 }: {
   readonly locale: string;
@@ -272,10 +97,9 @@ function TranslationColumn({
   readonly value: string;
   readonly onChangeValue: (next: string) => void;
   readonly onSave: () => void;
-  readonly disabled: boolean;
+  readonly busy: boolean;
   readonly textAreaRef: Ref<HTMLTextAreaElement>;
 }): ReactNode {
-  const lengthId = useId();
   const integrity = useKeyIntegrity(keyName, 0);
   const pill =
     integrity.kind === "loaded" ? deriveIntegrityPillView(integrity.locales, locale) : null;
@@ -288,76 +112,20 @@ function TranslationColumn({
             No translation exists yet for this locale.
           </p>
         ) : null}
-        <TextArea
-          ref={textAreaRef}
-          aria-label={`Translation (${locale})`}
-          aria-describedby={lengthId}
-          aria-invalid={pill?.tone === "danger" && value === context.target ? true : undefined}
-          className="mt-1"
-          aria-keyshortcuts="Control+Enter Meta+Enter"
-          lang={locale}
-          dir={valueDirection(locale, value)}
+        <TranslationField
+          locale={locale}
           value={value}
-          onChange={(event) => onChangeValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (isSaveShortcut(event) && !disabled) {
-              event.preventDefault();
-              onSave();
-            }
-          }}
-          disabled={disabled}
-          rows={6}
-        />
-        <LengthLine
-          id={lengthId}
           source={context.source}
-          value={value}
           maxLength={context.maxLength}
+          invalid={pill?.tone === "danger" && value === context.target}
+          busy={busy}
+          textAreaRef={textAreaRef}
+          rows={6}
+          onChange={onChangeValue}
+          onSave={onSave}
         />
-        <figure
-          className="m-0 mt-3 rounded-sm border border-border bg-muted px-3 py-2"
-          data-edit-preview=""
-        >
-          <figcaption className={cn("mb-1", microLabelClassName)}>Preview</figcaption>
-          <TranslationValue
-            as="p"
-            value={value}
-            locale={locale}
-            highlightTokens
-            className="m-0 min-h-5 whitespace-pre-wrap break-words text-sm text-muted-foreground"
-          />
-        </figure>
       </Section>
     </div>
-  );
-}
-
-function SaveRow({
-  submit,
-  onSave,
-}: {
-  readonly submit: SubmitState;
-  readonly onSave: () => void;
-}): ReactNode {
-  const hint = clearRemediationHint(submit);
-  return (
-    <>
-      <span className="flex flex-wrap items-center gap-3">
-        <Button
-          variant="primary"
-          size="md"
-          disabled={submit.kind === "submitting"}
-          onClick={onSave}
-        >
-          Save
-        </Button>
-        <span className="text-xs text-muted-foreground">or press Ctrl or Cmd with Enter</span>
-        {submit.kind !== "idle" ? (
-          <span className={submitStatusClassName(submit)}>{submitStatusLabel(submit)}</span>
-        ) : null}
-      </span>
-      {hint !== undefined ? <p className="mt-2 text-sm text-muted-foreground">{hint}</p> : null}
-    </>
   );
 }
 
@@ -369,9 +137,9 @@ export function EditEntryDialog({
   focusTranslation = false,
   reviewReasons,
 }: EditEntryDialogProps): ReactNode {
-  const context = useKeyValueContext(locale, keyName);
-  const [value, setValue] = useState("");
-  const [submit, setSubmit] = useState<SubmitState>({ kind: "idle" });
+  const edit = useLocaleEdit(locale, keyName, 0);
+  const { context, submit } = edit;
+  const value = edit.draft;
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const containerRef = useDialogA11y<HTMLDivElement>({
     isOpen: true,
@@ -385,25 +153,23 @@ export function EditEntryDialog({
     context.kind === "loaded" && hasGlossaryHits(context.glossary),
   );
 
-  useEffect(() => {
-    if (context.kind === "loaded") {
-      setValue(context.target ?? "");
-    }
-  }, [context]);
-
   async function handleSubmit(): Promise<void> {
-    setSubmit({ kind: "submitting" });
-    const response = await rpcClient.call("translation.editEntry", {
-      locale,
-      key: keyName,
-      value,
-    });
-    const outcome = deriveEditEntryOutcome(response);
-    setSubmit({ kind: "settled", outcome });
-    if (outcome.kind === "success") {
+    if (await edit.save(locale)) {
       onAccepted(locale, keyName);
+      return;
     }
+    textAreaRef.current?.focus();
   }
+
+  const recoveredRef = useRef(false);
+  useEffect(() => {
+    if (context.kind === "error") {
+      recoveredRef.current = true;
+    } else if (context.kind === "loaded" && recoveredRef.current) {
+      recoveredRef.current = false;
+      textAreaRef.current?.focus();
+    }
+  }, [context.kind]);
 
   return (
     <DrawerShell
@@ -423,7 +189,7 @@ export function EditEntryDialog({
         <p className="mb-3 text-sm text-muted-foreground">Loading current value…</p>
       ) : null}
       {context.kind === "error" ? (
-        <p className="mb-3 text-sm text-muted-foreground">{context.message}</p>
+        <ErrorMessage error={context.error} retrying={edit.retrying} onRetry={edit.retry} />
       ) : null}
       {context.kind === "loaded" ? (
         <>
@@ -439,9 +205,9 @@ export function EditEntryDialog({
               keyName={keyName}
               context={context}
               value={value}
-              onChangeValue={setValue}
+              onChangeValue={edit.setDraft}
               onSave={() => void handleSubmit()}
-              disabled={submit.kind === "submitting"}
+              busy={submit.kind === "submitting"}
               textAreaRef={textAreaRef}
             />
           </div>

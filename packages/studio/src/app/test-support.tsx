@@ -256,7 +256,90 @@ export function apiMock(): AppApiModule {
   };
 }
 
+const viewportListeners = new Set<EventListenerOrEventListenerObject>();
+let wideViewport = false;
+let restoreMatchMedia: (() => void) | null = null;
+
+function mediaList(query: string): MediaQueryList {
+  return {
+    media: query,
+    get matches(): boolean {
+      return wideViewport;
+    },
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener(_type: string, listener: EventListenerOrEventListenerObject): void {
+      viewportListeners.add(listener);
+    },
+    removeEventListener(_type: string, listener: EventListenerOrEventListenerObject): void {
+      viewportListeners.delete(listener);
+    },
+    dispatchEvent: () => false,
+  };
+}
+
+function installMatchMedia(): void {
+  if (restoreMatchMedia === null) {
+    const original = window.matchMedia;
+    restoreMatchMedia = () => {
+      window.matchMedia = original;
+    };
+  }
+  window.matchMedia = mediaList;
+}
+
+const HISTORY_FIRST_WAIT_MS = 400;
+const HISTORY_QUIET_MS = 150;
+const HISTORY_MAX_MS = 3000;
+const HISTORY_MAX_EVENTS = 200;
+
+export function settleHistory(): Promise<void> {
+  return new Promise((resolve) => {
+    let events = 0;
+    let timer = setTimeout(done, HISTORY_FIRST_WAIT_MS);
+    const cap = setTimeout(done, HISTORY_MAX_MS);
+    function bump(): void {
+      events += 1;
+      clearTimeout(timer);
+      timer = setTimeout(done, events >= HISTORY_MAX_EVENTS ? 0 : HISTORY_QUIET_MS);
+    }
+    function done(): void {
+      clearTimeout(timer);
+      clearTimeout(cap);
+      window.removeEventListener("popstate", bump);
+      window.removeEventListener("hashchange", bump);
+      resolve();
+    }
+    window.addEventListener("popstate", bump);
+    window.addEventListener("hashchange", bump);
+  });
+}
+
+export function stubViewport(wide: boolean): void {
+  wideViewport = wide;
+  installMatchMedia();
+}
+
+export function resizeViewport(wide: boolean): void {
+  wideViewport = wide;
+  act(() => {
+    for (const listener of [...viewportListeners]) {
+      const change = new Event("change");
+      if (typeof listener === "function") {
+        listener(change);
+      } else {
+        listener.handleEvent(change);
+      }
+    }
+  });
+}
+
 afterEach(() => {
+  restoreMatchMedia?.();
+  restoreMatchMedia = null;
+  viewportListeners.clear();
+  wideViewport = false;
   for (const entry of mounted.splice(0)) {
     act(() => {
       entry.root.unmount();

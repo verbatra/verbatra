@@ -65,6 +65,7 @@ export interface SheetBaseProps {
   readonly closeLabel: string;
   readonly onClose: () => void;
   readonly containerRef: Ref<HTMLDivElement>;
+  readonly banner?: ReactNode;
   readonly children: ReactNode;
 }
 
@@ -83,6 +84,7 @@ export function Sheet({
   closeLabel,
   onClose,
   containerRef,
+  banner,
   children,
 }: SheetProps): ReactNode {
   return (
@@ -101,7 +103,10 @@ export function Sheet({
         data-size={size}
         ref={containerRef}
       >
-        <div className="sticky top-0 z-10 border-b border-(--border-default) bg-(--surface-tile) px-6 py-4">
+        <div
+          data-sticky=""
+          className="sticky top-0 z-10 border-b border-(--border-default) bg-(--surface-tile) px-6 py-4"
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               {kicker !== undefined ? (
@@ -113,6 +118,9 @@ export function Sheet({
             </div>
             <DialogCloseButton onClose={onClose} label={closeLabel} />
           </div>
+          {banner !== undefined && banner !== null ? (
+            <div data-sheet-banner="">{banner}</div>
+          ) : null}
         </div>
         <div className="p-6">{children}</div>
       </div>

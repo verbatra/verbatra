@@ -81,6 +81,10 @@ function joinIds(existing: string | undefined, id: string): string {
   return existing === undefined || existing === "" ? id : `${existing} ${id}`;
 }
 
+function hasNoBubble(label: string, control: ReactElement<DescribableProps> | null): boolean {
+  return label === "" || control?.props.disabled === true;
+}
+
 export function Tooltip({
   label,
   side = "end",
@@ -96,8 +100,9 @@ export function Tooltip({
   const [dismissed, setDismissed] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const bubbleRef = useRef<HTMLSpanElement>(null);
+  const wrapperRef = useRef<HTMLSpanElement>(null);
   const control = isValidElement<DescribableProps>(children) ? children : null;
-  const disabled = control?.props.disabled === true;
+  const disabled = hasNoBubble(label, control);
   const visible = !disabled && (hovered || focused) && !dismissed;
   const duplicatesName = decorative || control?.props["aria-label"] === label;
 
@@ -115,6 +120,13 @@ export function Tooltip({
   }, [visible]);
 
   const canFlip = flip && FLIPPABLE.has(side);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (visible && canFlip && wrapper !== null) {
+      setFlipped(lacksRoomBelow(wrapper, bubbleRef.current));
+    }
+  }, [visible, canFlip, label]);
 
   function show(set: (value: boolean) => void, wrapper: HTMLElement): void {
     setFlipped(canFlip && lacksRoomBelow(wrapper, bubbleRef.current));
@@ -149,6 +161,7 @@ export function Tooltip({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: the wrapper only observes pointer and focus events bubbling from the control it describes
     <span
+      ref={wrapperRef}
       className={cn("relative inline-flex", className)}
       {...pointer}
       onFocus={showFromFocus}

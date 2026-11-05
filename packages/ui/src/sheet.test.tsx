@@ -99,6 +99,20 @@ describe("Sheet", () => {
     expect(view.text()).toContain("Body");
   });
 
+  it("keeps a banner inside the sticky header, so it stays in view while the body scrolls", () => {
+    const view = sheet({ banner: <p>Unsaved</p> });
+    const header = view.get("[data-sheet-banner]");
+
+    expect(header.textContent).toBe("Unsaved");
+    expect(header.parentElement?.nextElementSibling?.textContent).toBe("Body");
+    expect(view.get('[role="dialog"]').contains(header)).toBe(true);
+  });
+
+  it("draws no banner slot when none is given, or when the banner is null", () => {
+    expect(sheet().query("[data-sheet-banner]")).toBeNull();
+    expect(sheet({ banner: null }).query("[data-sheet-banner]")).toBeNull();
+  });
+
   it("anchors to the inline-end edge at the default width", () => {
     const view = sheet();
 

@@ -1,16 +1,30 @@
 import { Button, Icon, ThemeToggle } from "@verbatra/ui";
 import type { ThemeMode } from "@verbatra/ui/theme";
-import type { ReactNode, Ref } from "react";
-import type { PageId } from "../client/routes.js";
+import type { MouseEvent, ReactNode, Ref } from "react";
+import { type PageId, pageHash } from "../client/routes.js";
 import { GithubGlyph } from "./GithubGlyph.js";
 import { HeaderSearch } from "./HeaderSearch.js";
 import { LiveIndicator } from "./LiveIndicator.js";
+import { cn } from "./lib/cn.js";
+import { PAGE_MAX_CLASS } from "./lib/page-width.js";
+import { isPlainLeftClick } from "./lib/plain-click.js";
 import { THEME_LABELS, themeStore } from "./lib/theme-dom.js";
 import { NavLink } from "./NavLink.js";
 import { DOCS_URL, GITHUB_URL, NAV_GROUPS, PAGE_LABELS } from "./nav-groups.js";
+import { navigateToRoute } from "./use-route.js";
 
 function describeThemeAction(current: ThemeMode, next: ThemeMode): string {
   return `Theme: ${THEME_LABELS[current]}. Switch to ${THEME_LABELS[next]}.`;
+}
+
+const HOME_ROUTE = { page: "translations", params: {} } as const;
+
+function goHome(event: MouseEvent<HTMLAnchorElement>): void {
+  if (event.defaultPrevented || !isPlainLeftClick(event)) {
+    return;
+  }
+  event.preventDefault();
+  navigateToRoute(HOME_ROUTE);
 }
 
 const ICON_LINK =
@@ -50,10 +64,14 @@ export function AppHeader({
   const waiting = pageBadges.review ?? 0;
   return (
     <header className="sticky top-0 z-10 flex-none bg-(--surface-chrome) backdrop-blur-sm after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-(--border-default) after:content-['']">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 md:px-8">
+      <div
+        data-page-width=""
+        className={cn(PAGE_MAX_CLASS, "mx-auto flex h-14 w-full items-center gap-2 px-4 md:px-8")}
+      >
         <div className="flex flex-1 items-center pe-4">
           <a
-            href="#/translations"
+            href={pageHash("translations")}
+            onClick={goHome}
             className="inline-flex items-center rounded-(--radius-md) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <Wordmark />

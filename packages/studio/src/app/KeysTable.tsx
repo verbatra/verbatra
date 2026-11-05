@@ -42,7 +42,7 @@ const SEAM = "border-b border-(--border-default)";
 
 const ROW_FILL = cn(
   "bg-card group-hover:bg-(--surface-row-hover)",
-  "group-data-[selected]:bg-(--surface-hover)",
+  "group-data-[selected]:bg-(--surface-hover) group-data-[selected]:group-hover:bg-(--surface-hover)",
 );
 
 const HEAD_CELL = "sticky top-0 z-20 bg-(--surface-table-head)";

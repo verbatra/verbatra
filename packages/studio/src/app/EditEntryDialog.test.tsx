@@ -85,6 +85,26 @@ describe("EditEntryDialog", () => {
     expect(view.query("textarea")).toBeNull();
   });
 
+  it("offers a Retry that reads the context again after a failed read", async () => {
+    let reads = 0;
+    stubRpc({
+      "key.context": () => {
+        reads += 1;
+        return reads === 1
+          ? rpcError("KEY_UNKNOWN", "no such key in the source locale")
+          : keyValue("Hello", "Hallo");
+      },
+    });
+    const view = await renderAsync(dialog());
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(editor(view).value).toBe("Hallo");
+    expect(document.activeElement).toBe(editor(view));
+  });
+
   it("reads the key's context once, for exactly this locale and key, and its integrity", async () => {
     stubRpc({ "key.context": keyValue("Hello", "Hallo") });
 
@@ -229,7 +249,7 @@ describe("EditEntryDialog", () => {
     expect(view.text()).not.toContain("Saved");
   });
 
-  it("disables the editor and the Save action while the write is in flight", async () => {
+  it("locks the editor read-only and busy, and disables Save, while the write is in flight", async () => {
     stubRpc({
       "key.context": keyValue("Hello", "Hallo"),
       "translation.editEntry": () => new Promise(() => {}),
@@ -240,7 +260,50 @@ describe("EditEntryDialog", () => {
 
     expect(view.text()).toContain("Saving");
     expect(saveButton(view).hasAttribute("disabled")).toBe(true);
-    expect(editor(view).disabled).toBe(true);
+    expect(editor(view).readOnly).toBe(true);
+    expect(editor(view).getAttribute("aria-busy")).toBe("true");
+    expect(editor(view).disabled).toBe(false);
+  });
+
+  it("keeps focus in the editor through a rejected save started from the keyboard", async () => {
+    let answer: (result: StubRpcResult) => void = () => {};
+    stubRpc({
+      "key.context": keyValue("Hello", "Hallo"),
+      "translation.editEntry": () =>
+        new Promise<StubRpcResult>((resolve) => {
+          answer = resolve;
+        }),
+    });
+    const view = await renderAsync(dialog());
+    editor(view).focus();
+
+    act(() => {
+      editor(view).dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true }),
+      );
+    });
+
+    expect(document.activeElement).toBe(editor(view));
+    await act(async () => {
+      answer({ ok: true, result: { accepted: false, reason: "placeholder" } });
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(document.activeElement).toBe(editor(view));
+  });
+
+  it("puts focus back in the editor after a rejected save started from the Save button", async () => {
+    stubRpc({
+      "key.context": keyValue("Hello", "Hallo"),
+      "translation.editEntry": { ok: true, result: { accepted: false, reason: "placeholder" } },
+    });
+    const view = await renderAsync(dialog());
+
+    await clickAsync(saveButton(view));
+    await flush();
+
+    expect(document.activeElement).toBe(editor(view));
   });
 
   it("names the failed check when the server rejects the value on placeholders", async () => {

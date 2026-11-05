@@ -29,7 +29,7 @@ Translations es una tabla de todas las claves que necesitan atención: faltantes
 
 ### Detalles de la clave
 
-Haz clic en una clave para ver el valor de cada locale con un indicador de integridad: los placeholders coinciden, un desajuste de placeholders con los tokens nombrados, o una sintaxis de mensaje no válida. También se muestra:
+Haz clic en una clave para abrir su editor. Lista el valor de cada locale con un indicador de integridad: los placeholders coinciden, un desajuste de placeholders con los tokens nombrados, o una sintaxis de mensaje no válida. También se muestra:
 
 | Detalle | Muestra |
 | --- | --- |
@@ -45,13 +45,19 @@ Los chips junto a la búsqueda acotan la tabla por estado, incluidos **Review qu
 
 ### Edita con la puerta de integridad
 
-**Edit** abre el editor. Guardar pasa el valor por la [puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad); un valor rechazado no se escribe, y se muestra el motivo. Una edición aceptada escribe el archivo de locale y actualiza el archivo de bloqueo. Editar no necesita ninguna opción y nunca llama a un proveedor.
+**Edit** abre el borrador de ese locale. Guardar pasa el valor por la [puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad); un valor rechazado no se escribe, y se muestra el motivo. Una edición aceptada escribe el archivo de locale y actualiza el archivo de bloqueo. Editar no necesita ninguna opción y nunca llama a un proveedor.
 
-#### Editor lado a lado
+#### Comprobaciones del borrador
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-El editor muestra el origen y tu borrador lado a lado, con la descripción de la clave, los términos del glosario que tu borrador usa u omite, y su longitud frente al origen y a `maxLength`. Ctrl o Cmd con Enter guarda.
+El editor muestra la descripción de la clave, los términos del glosario que tu borrador usa u omite, y su longitud frente al origen y a `maxLength`. Ctrl o Cmd con Enter guarda.
+
+#### Junto a la tabla
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Desde 1280px de ancho el editor se coloca junto a la tabla; por debajo se abre como cajón. Si sales de la clave con cambios sin guardar, ya sea a otra clave, un filtro, una búsqueda, otra página o Atrás, Studio pregunta si guardar, descartar o seguir editando; al salir de Studio en sí, confirma el navegador.
 
 ## Trabaja la cola de Review
 
@@ -126,7 +132,7 @@ Arranca Studio con el gasto permitido ([cómo se concede el gasto](/es/docs/cli/
 verbatra studio --allow-spend
 ```
 
-Aparece entonces un botón **Retranslate** en cada fila de Review, y en la vista de detalle de una clave para un valor con un defecto de integridad. Hace una sola llamada al proveedor, pasa el resultado por la puerta de integridad y deja el nuevo valor en la cola para que lo apruebes. Desde una fila de Review, un valor que escribió una persona nunca se sustituye; en su vista de detalle en Translations, elige **Replace anyway**. Sin `--allow-spend` el servidor ni siquiera registra el endpoint.
+Aparece entonces un botón **Retranslate** en cada fila de Review, y en el editor de una clave para un valor con un defecto de integridad. Hace una sola llamada al proveedor, pasa el resultado por la puerta de integridad y deja el nuevo valor en la cola para que lo apruebes. Desde una fila de Review, un valor que escribió una persona nunca se sustituye; en su editor en Translations, elige **Replace anyway**. Sin `--allow-spend` el servidor ni siquiera registra el endpoint.
 
 ## Traduce los cambios pendientes
 

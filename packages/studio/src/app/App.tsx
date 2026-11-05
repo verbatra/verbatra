@@ -1,4 +1,3 @@
-import { Container } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -11,6 +10,8 @@ import type { PageId } from "../client/routes.js";
 import { AgentToolsAlert } from "./AgentToolsAlert.js";
 import { AppHeader } from "./AppHeader.js";
 import { refreshBus, sessionStore } from "./api.js";
+import { cn } from "./lib/cn.js";
+import { PAGE_MAX_CLASS } from "./lib/page-width.js";
 import { NavDrawer } from "./NavDrawer.js";
 import type { PanelProps } from "./panel-props.js";
 import { GlossaryPanel } from "./panels/GlossaryPanel.js";
@@ -20,7 +21,7 @@ import { SettingsPanel } from "./panels/SettingsPanel.js";
 import { TranslationsPanel } from "./panels/TranslationsPanel.js";
 import { RefreshToast } from "./RefreshToast.js";
 import { useAgentToolsFailures } from "./use-agent-tools-status.js";
-import { useMediaQuery } from "./use-media-query.js";
+import { useMediaQuery, XL_QUERY } from "./use-media-query.js";
 import { useReviewQueue } from "./use-review-queue.js";
 import { useCanonicalHash, useRoute } from "./use-route.js";
 
@@ -31,8 +32,6 @@ const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = 
   glossary: GlossaryPanel,
   settings: SettingsPanel,
 };
-
-const WIDE_QUERY = "(min-width: 80rem)";
 
 function focusMain(): void {
   document.getElementById("main")?.focus();
@@ -121,7 +120,7 @@ function AppShell({
   const pageBadges: Readonly<Partial<Record<PageId, number>>> = { review: reviewCount };
 
   const ActivePanel = PAGE_PANELS[page];
-  const wide = useMediaQuery(WIDE_QUERY, false);
+  const wide = useMediaQuery(XL_QUERY, false);
   const wideRef = useRef(wide);
   const activeLinkRef = useRef<HTMLAnchorElement>(null);
 
@@ -137,7 +136,7 @@ function AppShell({
   }, [wide, mobileNavOpen, onSetMobileNavOpen]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="group/page flex min-h-screen flex-col bg-background text-foreground [--page-max:var(--container-6xl)] has-[[data-split]]:[--page-max:var(--width-layout)]">
       <button
         type="button"
         className="fixed start-2 top-2 z-50 -translate-y-24 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground focus-visible:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -160,10 +159,13 @@ function AppShell({
         />
       ) : null}
       <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-        <Container>
+        <div
+          data-page-width=""
+          className={cn(PAGE_MAX_CLASS, "mx-auto w-full px-4 py-6 md:px-8 md:py-8")}
+        >
           <AgentToolsAlert failures={agentToolsFailures} />
           <ActivePanel refreshToken={refreshToken} />
-        </Container>
+        </div>
       </main>
       {toast !== undefined ? <RefreshToast view={toast} onDismiss={onDismissToast} /> : null}
     </div>

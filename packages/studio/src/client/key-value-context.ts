@@ -6,10 +6,11 @@ import type {
   LocaleGlossary,
 } from "@verbatra/sdk";
 import type { RpcCallResult } from "./rpc-client.js";
+import type { StructuredError } from "./state.js";
 
 export type KeyValueContext =
   | { readonly kind: "loading" }
-  | { readonly kind: "error"; readonly message: string }
+  | { readonly kind: "error"; readonly message: string; readonly error: StructuredError }
   | {
       readonly kind: "loaded";
       readonly source: string;
@@ -22,7 +23,7 @@ export type KeyValueContext =
 
 export function deriveKeyValueContext(response: RpcCallResult<"key.context">): KeyValueContext {
   if (!response.ok) {
-    return { kind: "error", message: response.error.message };
+    return { kind: "error", message: response.error.message, error: response.error };
   }
   const result = response.result;
   return {

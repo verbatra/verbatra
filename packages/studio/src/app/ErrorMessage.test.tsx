@@ -5,6 +5,23 @@ import { render } from "./test-support.js";
 
 const SESSION_EXPIRED_COPY = "The session has expired. Reload the page to start a new one.";
 
+describe("ErrorMessage actions", () => {
+  const error = { code: "INTERNAL", message: "x" };
+
+  it("offers only the actions it is given, on their own row", () => {
+    const retryOnly = render(<ErrorMessage error={error} onRetry={() => {}} />);
+    const cancelOnly = render(<ErrorMessage error={error} onCancel={() => {}} />);
+    const neither = render(<ErrorMessage error={error} />);
+
+    expect(
+      retryOnly.all("[data-error-actions] button").map((button) => button.textContent),
+    ).toEqual(["Retry"]);
+    expect(retryOnly.get("[data-error-actions]").parentElement?.getAttribute("role")).toBe("alert");
+    expect(cancelOnly.all("button").map((button) => button.textContent)).toEqual(["Cancel"]);
+    expect(neither.all("button")).toHaveLength(0);
+  });
+});
+
 describe("ErrorMessage", () => {
   it("announces the failure through an alert region", () => {
     const view = render(

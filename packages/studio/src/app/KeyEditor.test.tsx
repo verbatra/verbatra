@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
+import type { ReactNode } from "react";
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { DiffLocale } from "../client/diff-view.js";
 import type { KeyIntegrityLocaleEntry } from "../client/integrity-pill.js";
 import type { RpcResultFor } from "../shared/rpc/contract.js";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
-import { KeyDetailDrawer } from "./KeyDetailDrawer.js";
+import { KeyEditor, type KeyEditorProps } from "./KeyEditor.js";
 import {
   click,
   clickAsync,
@@ -16,6 +18,7 @@ import {
   rpcError,
   type StubRpcResult,
   stubRpc,
+  typeInto,
 } from "./test-support.js";
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
@@ -97,13 +100,31 @@ function localeBlocks(view: { all(selector: string): HTMLElement[] }): HTMLEleme
   return view.all("ul li");
 }
 
-describe("KeyDetailDrawer", () => {
+function Drawer(
+  props: Omit<
+    KeyEditorProps,
+    "layout" | "onEscape" | "onRouteSettled" | "missing" | "onDirtyChange"
+  >,
+): ReactNode {
+  return (
+    <KeyEditor
+      layout="drawer"
+      onEscape={() => {}}
+      onRouteSettled={() => {}}
+      missing={false}
+      onDirtyChange={() => {}}
+      {...props}
+    />
+  );
+}
+
+describe("KeyEditor drawer", () => {
   it("is a modal dialog named after the key it reports on", async () => {
     stubBackground();
     stubRpc({ "key.value": value("Hello", "Hallo") });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
     const dialog = view.get('[role="dialog"]');
 
@@ -116,7 +137,7 @@ describe("KeyDetailDrawer", () => {
     stubRpc({ "key.value": () => new Promise(() => {}) });
 
     const view = render(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.text()).toContain("Loading value");
@@ -127,7 +148,7 @@ describe("KeyDetailDrawer", () => {
     stubRpc({ "key.value": value("Hello there", "Hallo") });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.getByText("p", "Hello there").getAttribute("dir")).toBe("auto");
@@ -138,7 +159,7 @@ describe("KeyDetailDrawer", () => {
     stubRpc({ "key.value": value("Order #{orderId} is <b>ready</b>", "Hallo") });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.all("bdi[data-value-token]").map((node) => node.textContent)).toContain(
@@ -146,15 +167,205 @@ describe("KeyDetailDrawer", () => {
     );
   });
 
-  it("says there is no source value when every locale's read failed", async () => {
+  it("says the read failed, with a Retry that reads again, when every locale's read failed", async () => {
     stubBackground();
-    stubRpc({ "key.value": rpcError("KEY_UNKNOWN", "no such key") });
+    let answers = 0;
+    stubRpc({
+      "key.value": () => {
+        answers += 1;
+        return answers === 1 ? rpcError("KEY_UNKNOWN", "no such key") : value("Hello", "Hallo");
+      },
+    });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
-    expect(view.text()).toContain("No current source value.");
+    expect(view.get('[role="alert"]').textContent).toContain("no such key");
+    expect(view.text()).not.toContain("No current source value.");
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.text()).toContain("Hello");
+    expect(document.activeElement).toBe(view.get('[data-recovery-target="source"]'));
+  });
+
+  it("shows both alerts, each with its own Retry, when two different reads fail", async () => {
+    stubBackground();
+    stubRpc({
+      "key.value": rpcError("INTERNAL", "values down"),
+      "key.integrity": rpcError("PROJECT_UNREADABLE", "files unreadable"),
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    expect(view.all('[role="alert"]')).toHaveLength(2);
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(2);
+  });
+
+  it("does not move focus later when a Retry failed and a refresh then succeeds", async () => {
+    stubBackground();
+    let reads = 0;
+    stubRpc({
+      "key.value": () => {
+        reads += 1;
+        return reads <= 2 ? rpcError("INTERNAL", "down") : value("Hello", "Hallo");
+      },
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+    expect(view.query('[role="alert"]')).not.toBeNull();
+    view.rerender(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+    );
+    await flush();
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(document.activeElement).not.toBe(view.get('[data-recovery-target="source"]'));
+  });
+
+  it("does not move focus later when an integrity Retry failed and a refresh then succeeds", async () => {
+    stubBackground();
+    let reads = 0;
+    stubRpc({
+      "key.value": value("Hello", "Hallo"),
+      "key.integrity": () => {
+        reads += 1;
+        return reads <= 2
+          ? rpcError("PROJECT_UNREADABLE", "files unreadable")
+          : { ok: true, result: integrityResult([integrityEntry("de")]) };
+      },
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+    view.rerender(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+    );
+    await flush();
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(document.activeElement).not.toBe(view.get('[data-recovery-target="locales"]'));
+  });
+
+  it("hides a not-found read error only for a key that is gone, and shows any other", async () => {
+    stubBackground();
+    stubRpc({ "key.value": rpcError("INTERNAL", "values down") });
+    const gone = (
+      <KeyEditor
+        layout="drawer"
+        keyName={KEY}
+        locales={[DE_CHANGED]}
+        refreshToken={0}
+        onClose={vi.fn()}
+        onEscape={() => {}}
+        onRouteSettled={() => {}}
+        missing
+        onDirtyChange={() => {}}
+      />
+    );
+
+    const view = await renderAsync(gone);
+
+    expect(view.get('[role="alert"]').textContent).toContain("unexpected server error");
+  });
+
+  it("hides the not-found error of a key that is gone, with no Retry", async () => {
+    stubBackground();
+    stubRpc({
+      "key.value": rpcError("UNKNOWN_KEY", "not found"),
+      "key.integrity": rpcError("UNKNOWN_KEY", "not found"),
+    });
+
+    const view = await renderAsync(
+      <KeyEditor
+        layout="drawer"
+        keyName={KEY}
+        locales={[DE_CHANGED]}
+        refreshToken={0}
+        onClose={vi.fn()}
+        onEscape={() => {}}
+        onRouteSettled={() => {}}
+        missing
+        onDirtyChange={() => {}}
+      />,
+    );
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(0);
+  });
+
+  it("shows one combined error, with one Retry for both reads, when both fail", async () => {
+    stubBackground();
+    let valueReads = 0;
+    let integrityReads = 0;
+    stubRpc({
+      "key.value": () => {
+        valueReads += 1;
+        return valueReads === 1 ? rpcError("INTERNAL", "down") : value("Hello", "Hallo");
+      },
+      "key.integrity": () => {
+        integrityReads += 1;
+        return integrityReads === 1
+          ? rpcError("INTERNAL", "down")
+          : { ok: true, result: integrityResult([integrityEntry("de")]) };
+      },
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    expect(view.all('[role="alert"]')).toHaveLength(1);
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(valueReads).toBe(2);
+    expect(integrityReads).toBe(2);
+    expect(localeBlocks(view)[0]?.textContent).toContain("Placeholders match");
+  });
+
+  it("says the integrity read failed, with a Retry that reads again", async () => {
+    stubBackground();
+    let answers = 0;
+    stubRpc({
+      "key.value": value("Hello", "Hallo"),
+      "key.integrity": () => {
+        answers += 1;
+        return answers === 1
+          ? rpcError("INTERNAL", "integrity is down")
+          : { ok: true, result: integrityResult([integrityEntry("de")]) };
+      },
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    expect(view.get('[role="alert"]').textContent).toContain("unexpected server error");
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(localeBlocks(view)[0]?.textContent).toContain("Placeholders match");
+    expect(document.activeElement).toBe(view.get('[data-recovery-target="locales"]'));
   });
 
   it("reads the source from the first locale that answered and keeps it across the rest", async () => {
@@ -167,7 +378,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[DE_CHANGED, FR_MISSING]}
         refreshToken={0}
@@ -183,7 +394,7 @@ describe("KeyDetailDrawer", () => {
     stubRpc({ "key.value": value("Hello", "Hallo") });
 
     await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[DE_CHANGED, FR_MISSING]}
         refreshToken={0}
@@ -203,7 +414,7 @@ describe("KeyDetailDrawer", () => {
     stubRpc({ "key.value": value("Hello", "Hallo") });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(rpcCalls.some((call) => call.method === "key.value")).toBe(false);
@@ -215,7 +426,7 @@ describe("KeyDetailDrawer", () => {
     stubRpc({ "key.value": value("Hello", "Hallo") });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[
           DE_CHANGED,
@@ -241,7 +452,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[DE_CHANGED, FR_MISSING]}
         refreshToken={0}
@@ -263,7 +474,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[DE_CHANGED, FR_MISSING]}
         refreshToken={0}
@@ -287,7 +498,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.getByText("span", "Placeholder mismatch").textContent).toBe("Placeholder mismatch");
@@ -310,7 +521,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[localeDiff("ar", [], [KEY])]}
         refreshToken={0}
@@ -339,7 +550,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.getByText("span", "Invalid message syntax")).toBeTruthy();
@@ -356,7 +567,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.getByText("span", "No placeholders").dataset.tone).toBe("neutral");
@@ -370,7 +581,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.getByText("span", "Placeholders match").dataset.tone).toBe("success");
@@ -384,7 +595,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[DE_CHANGED, FR_MISSING]}
         refreshToken={0}
@@ -404,7 +615,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.text()).not.toContain("Placeholder");
@@ -425,7 +636,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[DE_CHANGED, FR_MISSING]}
         refreshToken={0}
@@ -453,12 +664,11 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[localeDiff("de", [], [])]}
         refreshToken={0}
         onClose={vi.fn()}
-        onEditLocale={vi.fn()}
       />,
     );
     const block = localeBlocks(view)[0];
@@ -481,63 +691,34 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.text()).not.toContain("Retranslate");
   });
 
-  it("offers an edit action per locale when the session can write and the caller handles it", async () => {
+  it("offers an edit action per locale when the session can write", async () => {
     stubBackground();
     stubRpc({
       "project.snapshot": capabilities(false, true),
       "key.value": value("Hello", "Hallo"),
     });
-    const onEditLocale = vi.fn();
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[DE_CHANGED, FR_MISSING]}
         refreshToken={0}
         onClose={vi.fn()}
-        onEditLocale={onEditLocale}
       />,
     );
-    const editButtons = view.all("li button").filter((button) => button.textContent === "Edit");
-    const secondLocaleEdit = editButtons[1];
-    if (secondLocaleEdit === undefined) {
-      throw new Error("expected an Edit action on every locale block");
-    }
-    click(secondLocaleEdit);
 
-    expect(editButtons).toHaveLength(2);
-    expect(onEditLocale).toHaveBeenCalledWith("fr");
-  });
-
-  it("puts focus on the Edit button of the locale that was just edited, not on Close", async () => {
-    stubBackground();
-    stubRpc({
-      "project.snapshot": capabilities(false, true),
-      "key.value": value("Hello", "Hallo"),
-    });
-
-    const view = await renderAsync(
-      <KeyDetailDrawer
-        keyName={KEY}
-        locales={[DE_CHANGED, FR_MISSING]}
-        refreshToken={0}
-        onClose={vi.fn()}
-        onEditLocale={vi.fn()}
-        focusLocale="fr"
-      />,
+    expect(view.all("button[data-edit-locale]").map((button) => button.dataset.editLocale)).toEqual(
+      ["de", "fr"],
     );
-    const editButtons = view.all("li button").filter((button) => button.textContent === "Edit");
-
-    expect(document.activeElement).toBe(editButtons[1]);
   });
 
-  it("starts on the first control when no locale was edited", async () => {
+  it("starts on the first control when nothing is being edited", async () => {
     stubBackground();
     stubRpc({
       "project.snapshot": capabilities(false, true),
@@ -545,30 +726,15 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[DE_CHANGED, FR_MISSING]}
         refreshToken={0}
         onClose={vi.fn()}
-        onEditLocale={vi.fn()}
       />,
     );
 
     expect(document.activeElement).toBe(view.get("[aria-label^='Close details']"));
-  });
-
-  it("omits the edit action when the caller passes no edit handler", async () => {
-    stubBackground();
-    stubRpc({
-      "project.snapshot": capabilities(false, true),
-      "key.value": value("Hello", "Hallo"),
-    });
-
-    const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
-    );
-
-    expect(view.text()).not.toContain("Edit");
   });
 
   it("omits the edit action while the capabilities read has not succeeded", async () => {
@@ -579,16 +745,10 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
-        keyName={KEY}
-        locales={[DE_CHANGED]}
-        refreshToken={0}
-        onClose={vi.fn()}
-        onEditLocale={vi.fn()}
-      />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
-    expect(view.text()).not.toContain("Edit");
+    expect(view.all("button[data-edit-locale]")).toHaveLength(0);
   });
 
   it("closes from the header close button", async () => {
@@ -597,7 +757,7 @@ describe("KeyDetailDrawer", () => {
     const onClose = vi.fn();
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={onClose} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={onClose} />,
     );
     click(view.get(`button[aria-label="Close details for ${KEY}"]`));
 
@@ -610,7 +770,7 @@ describe("KeyDetailDrawer", () => {
     const onClose = vi.fn();
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={onClose} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={onClose} />,
     );
     click(view.get("[data-backdrop]"));
 
@@ -623,7 +783,7 @@ describe("KeyDetailDrawer", () => {
     const onClose = vi.fn();
 
     await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={onClose} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={onClose} />,
     );
     pressKey("Escape");
 
@@ -635,7 +795,7 @@ describe("KeyDetailDrawer", () => {
     stubRpc({ "key.value": value("Hello", "Hallo") });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(document.activeElement).toBe(view.get(`button[aria-label="Close details for ${KEY}"]`));
@@ -647,11 +807,11 @@ describe("KeyDetailDrawer", () => {
     stubRpc({ "key.value": () => value("Hello", target) });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
     target = "Guten Tag";
     view.rerender(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
     );
     await flush();
 
@@ -670,20 +830,10 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
-        keyName="first.key"
-        locales={[DE_CHANGED]}
-        refreshToken={0}
-        onClose={vi.fn()}
-      />,
+      <Drawer keyName="first.key" locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
     view.rerender(
-      <KeyDetailDrawer
-        keyName="second.key"
-        locales={[DE_CHANGED]}
-        refreshToken={0}
-        onClose={vi.fn()}
-      />,
+      <Drawer keyName="second.key" locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
     await flush();
     pending[1]?.(value("Second source", "Zweiter Wert"));
@@ -700,7 +850,7 @@ describe("KeyDetailDrawer", () => {
     stubRpc({ "key.value": value("Hello", "مرحبا") });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[localeDiff("ar", [], [KEY]), DE_CHANGED]}
         refreshToken={0}
@@ -722,7 +872,7 @@ describe("KeyDetailDrawer", () => {
     stubRpc({ "key.value": value("Order #{orderId}", "طلب #{orderId} <b>جاهز</b>") });
 
     const view = await renderAsync(
-      <KeyDetailDrawer
+      <Drawer
         keyName={KEY}
         locales={[localeDiff("ar", [], [KEY])]}
         refreshToken={0}
@@ -759,7 +909,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.text()).toContain("chore(i18n): sync German");
@@ -779,7 +929,7 @@ describe("KeyDetailDrawer", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
     await clickAsync(view.getByText("button", "Retranslate"));
 
@@ -790,7 +940,7 @@ describe("KeyDetailDrawer", () => {
   });
 });
 
-describe("KeyDetailDrawer: provenance", () => {
+describe("KeyEditor drawer: provenance", () => {
   it("shows the origin badge and the full record for a locale whose value has one", async () => {
     stubBackground();
     stubRpc({
@@ -810,7 +960,7 @@ describe("KeyDetailDrawer: provenance", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
     const block = localeBlocks(view)[0];
 
@@ -830,7 +980,7 @@ describe("KeyDetailDrawer: provenance", () => {
     stubRpc({ "key.value": value("Hello", "Hallo") });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
     const block = localeBlocks(view)[0];
 
@@ -839,7 +989,7 @@ describe("KeyDetailDrawer: provenance", () => {
   });
 });
 
-describe("KeyDetailDrawer: source context", () => {
+describe("KeyEditor drawer: source context", () => {
   it("shows the description the source file gives for the key, as the editor does", async () => {
     stubBackground();
     stubRpc({
@@ -850,7 +1000,7 @@ describe("KeyDetailDrawer: source context", () => {
     });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.get("[data-key-description]").textContent).toBe("Shown on the home page");
@@ -861,9 +1011,225 @@ describe("KeyDetailDrawer: source context", () => {
     stubRpc({ "key.value": value("Hello", "Hallo") });
 
     const view = await renderAsync(
-      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
     expect(view.query("[data-key-description]")).toBeNull();
+  });
+});
+
+const NO_GLOSSARY = { terms: [], doNotTranslate: [] };
+
+function context(target?: string, extra: Record<string, unknown> = {}): StubRpcResult {
+  return {
+    ok: true,
+    result: {
+      source: "Hello",
+      glossary: NO_GLOSSARY,
+      ...(target === undefined ? {} : { target }),
+      ...extra,
+    },
+  };
+}
+
+function stubWritable(): void {
+  stubBackground();
+  stubRpc({
+    "project.snapshot": capabilities(false, true),
+    "key.value": value("Hello", "Hallo"),
+  });
+}
+
+async function startEditing(
+  view: Awaited<ReturnType<typeof renderAsync>>,
+  locale = "de",
+): Promise<void> {
+  await clickAsync(view.get(`button[data-edit-locale="${locale}"]`));
+  await flush();
+}
+
+function field(view: Awaited<ReturnType<typeof renderAsync>>, locale = "de"): HTMLTextAreaElement {
+  const found = view.get(`textarea[aria-label="Translation (${locale})"]`);
+  if (!(found instanceof HTMLTextAreaElement)) {
+    throw new Error("the translation field is not a textarea");
+  }
+  return found;
+}
+
+describe("KeyEditor editing", () => {
+  it("starts an empty draft and says so for a locale with no translation yet", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context() });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[FR_MISSING]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view, "fr");
+
+    expect(view.text()).toContain("No translation exists yet for this locale.");
+    expect(field(view, "fr").value).toBe("");
+  });
+
+  it("shows an alert with Retry and Cancel, and no field, when the context cannot be read", async () => {
+    stubWritable();
+    let answers = 0;
+    stubRpc({
+      "key.context": () => {
+        answers += 1;
+        return answers === 1 ? rpcError("INTERNAL", "the context is gone") : context("Hallo");
+      },
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+
+    expect(view.get('[role="alert"]').textContent).toContain("unexpected server error");
+    expect(view.query("textarea")).toBeNull();
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(field(view).value).toBe("Hallo");
+    expect(document.activeElement).toBe(field(view));
+  });
+
+  it("closes the form from the Cancel of a failed context read", async () => {
+    stubWritable();
+    stubRpc({ "key.context": rpcError("INTERNAL", "the context is gone") });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+
+    await clickAsync(view.getByText("button", "Cancel"));
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.query("button[data-edit-locale]")).not.toBeNull();
+  });
+
+  it("lists the glossary terms of the key beside the field, including one with no forbidden rendering", async () => {
+    stubWritable();
+    stubRpc({
+      "key.context": context("Hallo", {
+        glossary: {
+          terms: [{ source: "Hello", target: "Hallo", forbidden: [], caseSensitive: false }],
+          doNotTranslate: [],
+        },
+      }),
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+
+    expect(view.get("[data-glossary-hits]").textContent).toContain("Hello");
+    expect(view.query("[data-glossary-forbidden]")).toBeNull();
+  });
+
+  it("marks the field invalid only while the draft equals a saved value that fails its checks", async () => {
+    stubWritable();
+    stubRpc({
+      "key.context": context("Hallo"),
+      "key.integrity": {
+        ok: true,
+        result: integrityResult([integrityEntry("de", { matches: false, missing: ["{{name}}"] })]),
+      },
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+
+    expect(field(view).getAttribute("aria-invalid")).toBe("true");
+
+    typeInto(field(view), "Hallo {{name}}");
+
+    expect(field(view).hasAttribute("aria-invalid")).toBe(false);
+  });
+
+  it("starts every edit in loading, never showing the value read for an earlier edit of the same locale", async () => {
+    stubWritable();
+    let reads = 0;
+    stubRpc({
+      "key.context": () => {
+        reads += 1;
+        return reads === 1 ? context("Hallo") : new Promise<StubRpcResult>(() => {});
+      },
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Cancel"));
+
+    await startEditing(view);
+
+    expect(view.text()).toContain("Loading current value…");
+    expect(view.query("textarea")).toBeNull();
+  });
+
+  it("keeps the open form and its draft when a refresh cannot read the context again", async () => {
+    stubWritable();
+    let reads = 0;
+    stubRpc({
+      "key.context": () => {
+        reads += 1;
+        return reads === 1 ? context("Hallo") : rpcError("INTERNAL", "gone for a moment");
+      },
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+    typeInto(field(view), "Hallo!");
+
+    view.rerender(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+    );
+    await flush();
+    await flush();
+
+    expect(field(view).value).toBe("Hallo!");
+    expect(view.query('[role="alert"]')).toBeNull();
+  });
+
+  it("ignores a context read that answers after another locale took over the form", async () => {
+    stubWritable();
+    const answers = new Map<string, (result: StubRpcResult) => void>();
+    stubRpc({
+      "key.context": (params) =>
+        new Promise<StubRpcResult>((resolve) => {
+          answers.set(localeOf(params), resolve);
+        }),
+    });
+
+    const view = await renderAsync(
+      <Drawer
+        keyName={KEY}
+        locales={[DE_CHANGED, FR_MISSING]}
+        refreshToken={0}
+        onClose={vi.fn()}
+      />,
+    );
+    await startEditing(view, "de");
+    await startEditing(view, "fr");
+    await act(async () => {
+      answers.get("de")?.(context("Hallo"));
+      await Promise.resolve();
+    });
+
+    expect(view.text()).toContain("Loading current value…");
+    expect(view.query('textarea[aria-label="Translation (de)"]')).toBeNull();
+
+    await act(async () => {
+      answers.get("fr")?.(context("Bonjour"));
+      await Promise.resolve();
+    });
+
+    expect(field(view, "fr").value).toBe("Bonjour");
   });
 });

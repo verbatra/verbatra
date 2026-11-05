@@ -22,6 +22,14 @@ describe("Toast", () => {
     expect(view.get("[role='status'] p").textContent).toBe("Three keys updated");
   });
 
+  it("lets a caller add placement classes without losing the base ones", () => {
+    const view = render(<Toast className="custom-placement">Saved</Toast>);
+    const classes = view.get("[role='status']").className.split(" ");
+
+    expect(classes).toContain("custom-placement");
+    expect(classes).toContain("fixed");
+  });
+
   it("builds on the small-padded card", () => {
     const view = render(<Toast>Saved</Toast>);
 

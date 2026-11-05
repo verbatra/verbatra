@@ -14,7 +14,7 @@ export interface TranslationsRoute extends KeyFilterSelection {
   readonly selectedKey: string | null;
   readonly query: string;
   setFilter(filter: KeyFilterSelection & { readonly query?: string }): void;
-  setSelectedKey(key: string | null): void;
+  setSelectedKey(key: string | null): boolean;
   setQuery(query: string): void;
 }
 
@@ -62,7 +62,7 @@ export function useTranslationsRoute(
       setParams(routeParams({ ...filter, key: keptKey, query: filter.query ?? query }));
     },
     setSelectedKey(key) {
-      setParams(routeParams({ locale, statuses, key, query }));
+      return setParams(routeParams({ locale, statuses, key, query }));
     },
     setQuery(next) {
       setParams(routeParams({ locale, statuses, key: keptKey, query: next }));

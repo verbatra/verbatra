@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PAGE_IDS, type PageId } from "../client/routes.js";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import { App } from "./App.js";
+import { PAGE_MAX_CLASS } from "./lib/page-width.js";
 import {
   agentToolsStatusStore,
   clickAsync,
@@ -148,6 +149,19 @@ describe("App routing", () => {
       expect(view.get("h1").textContent).toBe(PAGE_HEADINGS[page]);
     });
   }
+
+  it("gives the header and the page the same width rule, so their edges line up", async () => {
+    goToHash("#/overview");
+
+    const view = await mount();
+
+    expect(view.all("[data-page-width]")).toHaveLength(2);
+    for (const element of view.all("[data-page-width]")) {
+      expect(element.classList.contains(PAGE_MAX_CLASS)).toBe(true);
+    }
+    expect(view.get("header").contains(view.all("[data-page-width]")[0] ?? null)).toBe(true);
+    expect(view.get("main").contains(view.all("[data-page-width]")[1] ?? null)).toBe(true);
+  });
 
   it("accepts the bare hash form an older link may carry", async () => {
     goToHash("#overview");

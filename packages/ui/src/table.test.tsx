@@ -82,6 +82,11 @@ describe("TableRow", () => {
     expect(row({ className: "group" }).className).toContain("group");
   });
 
+  it("keeps a selected row one tone, so hovering it adds no tint", () => {
+    expect(row({ selected: true }).className).not.toContain(tableClasses.rowHover);
+    expect(row({ selected: false }).className).toContain(tableClasses.rowHover);
+  });
+
   it("marks a selected row for assistive technology and for styling hooks", () => {
     const selected = row({ selected: true });
 

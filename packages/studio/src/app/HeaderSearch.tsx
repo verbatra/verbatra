@@ -20,7 +20,7 @@ export function HeaderSearch({
     event.preventDefault();
     const query = value.trim();
     const current = route.page === "translations" ? route.params : {};
-    navigateToRoute({
+    const navigated = navigateToRoute({
       page: "translations",
       params: routeParams({
         locale: current.locale,
@@ -29,8 +29,10 @@ export function HeaderSearch({
         query,
       }),
     });
-    setValue("");
-    onSearch?.();
+    if (navigated) {
+      setValue("");
+      onSearch?.();
+    }
   }
 
   return (
