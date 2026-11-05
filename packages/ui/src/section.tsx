@@ -17,7 +17,11 @@ export function MonoValue({
 }
 
 export function Container({ children }: { readonly children: ReactNode }): ReactNode {
-  return <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">{children}</div>;
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 has-[[data-split]]:max-w-(--width-layout) md:px-8 md:py-8">
+      {children}
+    </div>
+  );
 }
 
 export function Section({

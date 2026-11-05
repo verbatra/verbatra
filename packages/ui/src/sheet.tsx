@@ -65,6 +65,7 @@ export interface SheetBaseProps {
   readonly closeLabel: string;
   readonly onClose: () => void;
   readonly containerRef: Ref<HTMLDivElement>;
+  readonly banner?: ReactNode;
   readonly children: ReactNode;
 }
 
@@ -83,6 +84,7 @@ export function Sheet({
   closeLabel,
   onClose,
   containerRef,
+  banner,
   children,
 }: SheetProps): ReactNode {
   return (
@@ -113,6 +115,7 @@ export function Sheet({
             </div>
             <DialogCloseButton onClose={onClose} label={closeLabel} />
           </div>
+          {banner !== undefined ? <div data-sheet-banner="">{banner}</div> : null}
         </div>
         <div className="p-6">{children}</div>
       </div>
