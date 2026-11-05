@@ -156,10 +156,13 @@ function Harness({ token }: { readonly token: number }): ReactNode {
   );
 }
 
-async function mountAt(hash: string, wide: boolean): Promise<RenderResult> {
+let stackBase = 100;
+
+async function mountAt(hash: string, wide: boolean, prior = "#/overview"): Promise<RenderResult> {
   stubViewport(wide);
-  window.history.replaceState({ idx: 5 }, "", "#/overview");
-  window.history.pushState({ idx: 6 }, "", hash);
+  stackBase += 10;
+  window.history.replaceState({ idx: stackBase }, "", prior);
+  window.history.pushState({ idx: stackBase + 1 }, "", hash);
   const view = await renderAsync(<Harness token={1} />);
   await flush();
   return view;
@@ -942,6 +945,10 @@ describe("split editor held history traversals", () => {
     window.history.back();
     await settle();
     await clickAsync(getRole(view, "rowheader", "app.body"));
+    await settle();
+
+    expect(window.location.hash).toBe(TITLE_HASH);
+    expect(visibleHash()).toBe(TITLE_HASH);
 
     await clickAsync(getRole(view, "button", "Keep editing"));
     await settle();
@@ -964,6 +971,25 @@ describe("split editor held history traversals", () => {
     expect(visibleHash()).toBe(window.location.hash);
     expect(window.location.hash).toBe("#/overview");
     expect(view.query("[data-editor-pane]")).toBeNull();
+  });
+
+  it("focuses the row of the new address, with its different filter, once that route has rendered", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true, "#/translations?locale=fr");
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+
+    await clickAsync(getRole(view, "button", "Discard"));
+    await settle();
+    await flush();
+
+    expect(window.location.hash).toBe("#/translations?locale=fr");
+    expect(view.query("[data-editor-pane]")).toBeNull();
+
+    expect(document.activeElement?.closest("tr[data-key]")?.getAttribute("data-key")).toBe(
+      "app.title",
+    );
   });
 });
 
@@ -1032,6 +1058,168 @@ describe("split editor held Back released", () => {
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
     expect(window.location.hash).toBe(TITLE_HASH);
     expect(textarea(view).value).toBe("Hallo!");
+    expect(document.activeElement).toBe(textarea(view));
+  });
+});
+
+const NEXT_KEY = "#/translations?key=app.body";
+
+async function expectEndedCleanly(view: RenderResult, address: string): Promise<void> {
+  await settle();
+  await flush();
+  expect(visibleHash()).toBe(window.location.hash);
+  expect(window.location.hash).toBe(address);
+  expect(view.query("[data-unsaved-prompt]")).toBeNull();
+}
+
+async function expectNextDirtyBackHeld(view: RenderResult, key: string): Promise<void> {
+  await clickAsync(view.get('[data-edit-locale="de"]'));
+  await flush();
+  typeInto(textarea(view), "Again different");
+  const here = window.location.hash;
+  window.history.back();
+  await settle();
+  await flush();
+  expect(view.all("[data-unsaved-prompt]")).toHaveLength(1);
+  expect(visibleHash()).toBe(here);
+  expect(here).toContain(key);
+}
+
+describe("split editor holds always end with the prompt", () => {
+  it("P1: restores the address when the draft is typed back to clean, and holds the next dirty Back once", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true, NEXT_KEY);
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    typeInto(textarea(view), "Willkommen {name}");
+    await expectEndedCleanly(view, TITLE_HASH);
+
+    typeInto(textarea(view), "Hallo again");
+    window.history.back();
+    await settle();
+    await flush();
+    expect(view.all("[data-unsaved-prompt]")).toHaveLength(1);
+    expect(visibleHash()).toBe(TITLE_HASH);
+  });
+
+  it("P2: goes on to the held address when the form Save is used", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true, NEXT_KEY);
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+
+    await clickAsync(getRole(view, "button", "Save", "[data-locale-edit]"));
+    await expectEndedCleanly(view, NEXT_KEY);
+
+    await expectNextDirtyBackHeld(view, "app.body");
+  });
+
+  it("P3: goes on to the held address when the form Cancel is used", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true, NEXT_KEY);
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+
+    await clickAsync(getRole(view, "button", "Cancel"));
+    await expectEndedCleanly(view, NEXT_KEY);
+
+    await expectNextDirtyBackHeld(view, "app.body");
+  });
+
+  it("P5: settles a replaced prompt from the true position, and Discard then goes on", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true, "#/translations?key=app.cta");
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+    await clickAsync(getRole(view, "rowheader", "app.body"));
+    await settle();
+    expect(window.location.hash).toBe(TITLE_HASH);
+
+    await clickAsync(getRole(view, "button", "Discard"));
+    await expectEndedCleanly(view, NEXT_KEY);
+
+    await expectNextDirtyBackHeld(view, "app.body");
+  });
+
+  it("P6: waits for an in-flight save, then goes on to the held address", async () => {
+    let answer: (result: StubRpcResult) => void = () => {};
+    stubServer();
+    stubRpc({
+      "translation.editEntry": () =>
+        new Promise<StubRpcResult>((resolve) => {
+          answer = resolve;
+        }),
+    });
+    const view = await mountAt(TITLE_HASH, true, NEXT_KEY);
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+    await clickAsync(getRole(view, "button", "Save", "[data-unsaved-prompt]"));
+    targets.de = "Hallo!";
+    view.rerender(<Harness token={2} />);
+    await flush();
+    await flush();
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    await act(async () => {
+      answer({ ok: true, result: { accepted: true, value: "Hallo!" } });
+      await Promise.resolve();
+    });
+    await expectEndedCleanly(view, NEXT_KEY);
+  });
+
+  it("P11: a late save never closes the form of another key", async () => {
+    let answer: (result: StubRpcResult) => void = () => {};
+    stubServer();
+    stubRpc({
+      "translation.editEntry": () =>
+        new Promise<StubRpcResult>((resolve) => {
+          answer = resolve;
+        }),
+    });
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    await clickAsync(getRole(view, "button", "Save", "[data-locale-edit]"));
+    targets.de = "Hallo!";
+    view.rerender(<Harness token={2} />);
+    await flush();
+    await flush();
+    await clickAsync(getRole(view, "rowheader", "app.body"));
+    await clickAsync(view.get('[data-edit-locale="de"]'));
+    await flush();
+    expect(getRole(view, "textbox", "Translation (de)")).not.toBeNull();
+
+    await act(async () => {
+      answer({ ok: true, result: { accepted: true, value: "Hallo!" } });
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(window.location.hash).toBe(NEXT_KEY);
+    expect(findRole(view, "textbox", "Translation (de)")).not.toBeNull();
+  });
+
+  it("P12: shows no earlier rejection when the same locale is opened again after another one", async () => {
+    stubServer({ ok: true, result: { accepted: false, reason: "placeholder" } });
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    await clickAsync(getRole(view, "button", "Save", "[data-locale-edit]"));
+    expect(view.text()).toContain("Rejected: placeholder mismatch");
+    await clickAsync(getRole(view, "button", "Cancel"));
+    await clickAsync(view.get('[data-edit-locale="fr"]'));
+    await flush();
+    await clickAsync(getRole(view, "button", "Cancel"));
+
+    await clickAsync(view.get('[data-edit-locale="de"]'));
+    await flush();
+
+    expect(view.text()).not.toContain("Rejected");
   });
 });
 
@@ -1061,6 +1249,27 @@ describe("split editor brand link", () => {
     expect(window.history.length).toBe(length);
     expect(window.location.hash).toBe(TITLE_HASH);
     expect(textarea(view).value).toBe("Hallo!");
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    await clickAsync(getRole(view, "button", "Discard"));
+    await settle();
+
+    expect(window.location.hash).toBe("#/translations");
+    expect(view.query("[data-editor-pane]")).toBeNull();
+  });
+
+  it("clears the key and the filters on main's terms when nothing is unsaved, and does nothing on a bare address", async () => {
+    stubServer();
+    const view = await mountAt("#/translations?key=app.title&locale=fr&q=ti", true);
+
+    await clickAsync(getRole(view, "link", "verbatra Studio"));
+    expect(window.location.hash).toBe("#/translations");
+
+    const length = window.history.length;
+    await clickAsync(getRole(view, "link", "verbatra Studio"));
+
+    expect(window.history.length).toBe(length);
+    expect(window.location.hash).toBe("#/translations");
   });
 });
 

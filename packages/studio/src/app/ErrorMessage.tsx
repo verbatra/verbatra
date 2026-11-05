@@ -22,7 +22,7 @@ export function ErrorMessage({ error, prefix, onRetry, onCancel }: ErrorMessageP
         {resolveErrorCopy(error)}
       </span>
       {onRetry !== undefined || onCancel !== undefined ? (
-        <span className="flex w-full justify-end gap-2">
+        <span data-error-actions="" className="flex w-full justify-end gap-2">
           {onRetry !== undefined ? (
             <Button size="xs" onClick={onRetry}>
               Retry

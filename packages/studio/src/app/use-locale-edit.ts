@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   type DraftState,
   draftIdentity,
@@ -97,11 +97,15 @@ export function useLocaleEdit(
   }
   const submit = heldSubmit.identity === identity ? heldSubmit.state : IDLE;
 
+  const identityRef = useRef(identity);
+
+  useLayoutEffect(() => {
+    identityRef.current = identity;
+  });
+
   useEffect(() => {
-    if (locale === null) {
-      setHeldSubmit(NO_SUBMIT);
-    }
-  }, [locale]);
+    setHeldSubmit(NO_SUBMIT);
+  }, [identity]);
 
   async function save(target: string): Promise<boolean> {
     setHeldSubmit({ identity, state: { kind: "submitting" } });
@@ -111,7 +115,9 @@ export function useLocaleEdit(
       value: current.text,
     });
     const outcome = deriveEditEntryOutcome(response);
-    setHeldSubmit({ identity, state: { kind: "settled", outcome } });
+    if (identityRef.current === identity) {
+      setHeldSubmit({ identity, state: { kind: "settled", outcome } });
+    }
     return outcome.kind === "success";
   }
 

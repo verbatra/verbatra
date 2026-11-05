@@ -13,7 +13,10 @@ describe("ErrorMessage actions", () => {
     const cancelOnly = render(<ErrorMessage error={error} onCancel={() => {}} />);
     const neither = render(<ErrorMessage error={error} />);
 
-    expect(retryOnly.all("button").map((button) => button.textContent)).toEqual(["Retry"]);
+    expect(
+      retryOnly.all("[data-error-actions] button").map((button) => button.textContent),
+    ).toEqual(["Retry"]);
+    expect(retryOnly.get("[data-error-actions]").parentElement?.getAttribute("role")).toBe("alert");
     expect(cancelOnly.all("button").map((button) => button.textContent)).toEqual(["Cancel"]);
     expect(neither.all("button")).toHaveLength(0);
   });

@@ -1,7 +1,7 @@
 import type { GlossaryDraftCheck, LocaleGlossary } from "@verbatra/sdk";
 import { Badge, Button, microLabelClassName, TextArea } from "@verbatra/ui";
 import type { KeyboardEvent, ReactNode, Ref } from "react";
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { EditEntryOutcome } from "../client/edit-entry-outcome.js";
 import {
   type DraftFlag,
@@ -239,6 +239,14 @@ export function SaveRow({
 }): ReactNode {
   const hint = clearRemediationHint(submit);
   const saving = submit.kind === "submitting";
+  const statusRef = useRef<HTMLSpanElement | null>(null);
+  const failed = submit.kind === "settled" && submit.outcome.kind !== "success";
+
+  useEffect(() => {
+    if (failed) {
+      statusRef.current?.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [failed]);
   return (
     <>
       <span className="flex flex-wrap items-center gap-3">
@@ -257,7 +265,7 @@ export function SaveRow({
         ) : null}
         <span className="text-xs text-muted-foreground">or press Ctrl or Cmd with Enter</span>
         {submit.kind !== "idle" ? (
-          <span aria-live="polite" className={submitStatusClassName(submit)}>
+          <span ref={statusRef} aria-live="polite" className={submitStatusClassName(submit)}>
             {submitStatusLabel(submit)}
           </span>
         ) : null}

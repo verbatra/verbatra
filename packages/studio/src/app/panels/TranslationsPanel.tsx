@@ -375,6 +375,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const wide = useMediaQuery(XL_QUERY, false);
   const lastKeyRef = useRef("");
   const [dirtyKey, setDirtyKey] = useState<string | null>(null);
+  const [focusRequest, setFocusRequest] = useState(0);
 
   const route = useTranslationsRoute(knownLocalesOf(diff), localeValuesView);
   const { selectedKey, setSelectedKey } = route;
@@ -392,9 +393,11 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
     }
   }, [selectedKey]);
 
-  function focusSettledRow(): void {
-    focusRow(parseRoute(visibleHash()).params.key ?? lastKeyRef.current);
-  }
+  useEffect(() => {
+    if (focusRequest > 0) {
+      focusNearestRow(parseRoute(visibleHash()).params.key ?? lastKeyRef.current);
+    }
+  }, [focusRequest]);
 
   function closeEditor(): void {
     if (editorKey !== null && setSelectedKey(null) && (wide || selectedKey === null)) {
@@ -428,7 +431,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
                 layout={wide ? "pane" : "drawer"}
                 onClose={closeEditor}
                 onEscape={() => focusRow(editorKey)}
-                onRouteSettled={focusSettledRow}
+                onRouteSettled={() => setFocusRequest((count) => count + 1)}
                 missing={selectedKey === null}
                 onDirtyChange={(dirty) => setDirtyKey(dirty ? editorKey : null)}
               />

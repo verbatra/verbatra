@@ -13,7 +13,14 @@ import type { SubmitState } from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { LocaleBlock } from "./KeyEditorLocale.js";
 import { LocaleEditForm } from "./LocaleEditForm.js";
-import { installRouteGuard, restoreHeldRoute, setUnloadWarning } from "./route-guard.js";
+import { cn } from "./lib/cn.js";
+import {
+  adoptHeldRoute,
+  hasHeldRoute,
+  installRouteGuard,
+  restoreHeldRoute,
+  setUnloadWarning,
+} from "./route-guard.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
 import { useCapabilities } from "./use-capabilities.js";
@@ -46,6 +53,11 @@ interface EditTarget {
   readonly locale: string | null;
 }
 
+const RECOVERY_FOCUS =
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+
+const NOT_FOUND = "UNKNOWN_KEY";
+
 const CONTROL = "button, a[href], input, select, textarea";
 
 const EDITOR_SURFACE = "[data-editor-pane], [role='dialog']";
@@ -69,7 +81,9 @@ function SourceValue({
   readonly onRetry: () => void;
 }): ReactNode {
   if (values.kind === "error") {
-    return suppressError ? null : <ErrorMessage error={values.error} onRetry={onRetry} />;
+    return suppressError && values.error.code === NOT_FOUND ? null : (
+      <ErrorMessage error={values.error} onRetry={onRetry} />
+    );
   }
   if (values.kind === "loaded" && values.source !== undefined) {
     return (
@@ -151,7 +165,8 @@ export function KeyEditor({
   const originRef = useRef<Element | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const dirtyRef = useRef(false);
-  const editingRef = useRef<string | null>(null);
+  const editingRef = useRef<EditTarget>({ keyName, locale: null });
+  const resolvedRef = useRef(false);
   const recoveryRef = useRef<"source" | "locales" | null>(null);
   const sourceTargetRef = useRef<HTMLDivElement | null>(null);
   const localesTargetRef = useRef<HTMLUListElement | null>(null);
@@ -182,7 +197,7 @@ export function KeyEditor({
   }, []);
 
   useLayoutEffect(() => {
-    editingRef.current = editingLocale;
+    editingRef.current = { keyName, locale: editingLocale };
     dirtyRef.current = edit.dirty;
     dirtyReportRef.current = onDirtyChange;
   });
@@ -205,16 +220,33 @@ export function KeyEditor({
     } else if (target === "locales" && integrity.kind === "loaded") {
       recoveryRef.current = null;
       localesTargetRef.current?.focus();
+    } else if (
+      (target === "source" && values.kind === "error") ||
+      (target === "locales" && integrity.kind === "error")
+    ) {
+      recoveryRef.current = null;
     }
   }, [values.kind, integrity.kind]);
 
   useEffect(() => {
     dirtyReportRef.current(edit.dirty);
     setUnloadWarning(edit.dirty);
-    if (!edit.dirty) {
-      setPending(null);
-    }
   }, [edit.dirty]);
+
+  useEffect(() => {
+    if (edit.dirty || edit.submit.kind === "submitting") {
+      return;
+    }
+    setPending(null);
+    if (hasHeldRoute()) {
+      if (resolvedRef.current) {
+        adoptHeldRoute();
+      } else {
+        restoreHeldRoute();
+      }
+    }
+    resolvedRef.current = false;
+  }, [edit.dirty, edit.submit.kind]);
 
   useEffect(() => () => dirtyReportRef.current(false), []);
 
@@ -224,9 +256,13 @@ export function KeyEditor({
         isDirty: () => dirtyRef.current,
         onBlock: (proceed) => {
           originRef.current = document.activeElement;
+          resolvedRef.current = false;
           setPending({ proceed, route: true });
         },
-        onRelease: () => setPending(null),
+        onRelease: () => {
+          setPending(null);
+          textAreaRef.current?.focus();
+        },
       }),
     [],
   );
@@ -242,25 +278,28 @@ export function KeyEditor({
   }, [returnTo]);
 
   function cancelEditing(locale: string): void {
+    resolvedRef.current = true;
     setEditingLocale(null);
     setReturnTo(locale);
   }
 
   async function saveEditing(locale: string, returnFocus: boolean): Promise<boolean> {
     const saved = await edit.save(locale);
-    if (!saved && editingRef.current === locale) {
+    const here = editingRef.current.keyName === keyName && editingRef.current.locale === locale;
+    if (!here) {
+      return false;
+    }
+    if (!saved) {
       textAreaRef.current?.focus();
+      return false;
     }
-    if (saved) {
-      setSaved({ keyName, locale });
-      if (editingRef.current === locale) {
-        setEditingLocale(null);
-        if (returnFocus) {
-          setReturnTo(locale);
-        }
-      }
+    resolvedRef.current = true;
+    setSaved({ keyName, locale });
+    setEditingLocale(null);
+    if (returnFocus) {
+      setReturnTo(locale);
     }
-    return saved;
+    return true;
   }
 
   function startEditing(locale: string): void {
@@ -270,6 +309,8 @@ export function KeyEditor({
       return Promise.resolve();
     };
     if (edit.dirty) {
+      restoreHeldRoute();
+      resolvedRef.current = false;
       setPending({ proceed: open, route: false });
       return;
     }
@@ -300,12 +341,14 @@ export function KeyEditor({
   }
 
   function resolveDiscard(held: Pending): void {
+    resolvedRef.current = true;
     setPending(null);
     setEditingLocale(null);
     proceedWith(held);
   }
 
   function discardMissing(): void {
+    resolvedRef.current = true;
     dirtyRef.current = false;
     setEditingLocale(null);
     onClose();
@@ -338,7 +381,7 @@ export function KeyEditor({
           ref={sourceTargetRef}
           tabIndex={-1}
           data-recovery-target="source"
-          className="outline-none"
+          className={RECOVERY_FOCUS}
         >
           <SourceValue
             values={values}
@@ -355,7 +398,9 @@ export function KeyEditor({
       </Section>
       <KeyDescription description={values.kind === "loaded" ? values.description : undefined} />
       <Section title="Locales">
-        {integrity.kind === "error" && !missing && !sameFailure(values, integrity.error) ? (
+        {integrity.kind === "error" &&
+        !(missing && integrity.error.code === NOT_FOUND) &&
+        !sameFailure(values, integrity.error) ? (
           <ErrorMessage
             error={integrity.error}
             onRetry={() => {
@@ -368,7 +413,7 @@ export function KeyEditor({
           ref={localesTargetRef}
           tabIndex={-1}
           data-recovery-target="locales"
-          className="m-0 list-none p-0 outline-none"
+          className={cn("m-0 list-none p-0", RECOVERY_FOCUS)}
         >
           {rows.map((row) => (
             <LocaleBlock
@@ -429,7 +474,9 @@ export function KeyEditor({
       containerRef={dialogRef}
       banner={prompt}
     >
-      {body}
+      <div data-drawer-tail="" className="pb-40">
+        {body}
+      </div>
     </DrawerShell>
   );
 }

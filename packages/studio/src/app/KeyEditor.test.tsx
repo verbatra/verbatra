@@ -192,6 +192,91 @@ describe("KeyEditor drawer", () => {
     expect(document.activeElement).toBe(view.get('[data-recovery-target="source"]'));
   });
 
+  it("shows both alerts, each with its own Retry, when two different reads fail", async () => {
+    stubBackground();
+    stubRpc({
+      "key.value": rpcError("INTERNAL", "values down"),
+      "key.integrity": rpcError("PROJECT_UNREADABLE", "files unreadable"),
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    expect(view.all('[role="alert"]')).toHaveLength(2);
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(2);
+  });
+
+  it("does not move focus later when a Retry failed and a refresh then succeeds", async () => {
+    stubBackground();
+    let reads = 0;
+    stubRpc({
+      "key.value": () => {
+        reads += 1;
+        return reads <= 2 ? rpcError("INTERNAL", "down") : value("Hello", "Hallo");
+      },
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+    expect(view.query('[role="alert"]')).not.toBeNull();
+    view.rerender(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+    );
+    await flush();
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(document.activeElement).not.toBe(view.get('[data-recovery-target="source"]'));
+  });
+
+  it("hides a not-found read error only for a key that is gone, and shows any other", async () => {
+    stubBackground();
+    stubRpc({ "key.value": rpcError("INTERNAL", "values down") });
+    const gone = (
+      <KeyEditor
+        layout="drawer"
+        keyName={KEY}
+        locales={[DE_CHANGED]}
+        refreshToken={0}
+        onClose={vi.fn()}
+        onEscape={() => {}}
+        onRouteSettled={() => {}}
+        missing
+        onDirtyChange={() => {}}
+      />
+    );
+
+    const view = await renderAsync(gone);
+
+    expect(view.get('[role="alert"]').textContent).toContain("unexpected server error");
+  });
+
+  it("hides the not-found error of a key that is gone, with no Retry", async () => {
+    stubBackground();
+    stubRpc({ "key.value": rpcError("UNKNOWN_KEY", "not found") });
+
+    const view = await renderAsync(
+      <KeyEditor
+        layout="drawer"
+        keyName={KEY}
+        locales={[DE_CHANGED]}
+        refreshToken={0}
+        onClose={vi.fn()}
+        onEscape={() => {}}
+        onRouteSettled={() => {}}
+        missing
+        onDirtyChange={() => {}}
+      />,
+    );
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(0);
+  });
+
   it("shows one combined error, with one Retry for both reads, when both fail", async () => {
     stubBackground();
     let valueReads = 0;
