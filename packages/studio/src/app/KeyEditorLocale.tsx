@@ -141,7 +141,11 @@ export function LocaleBlock({
   const canEdit = capabilities?.writeToDisk === true && !editing;
   const pill = deriveIntegrityPillView(integrity, row.locale);
   return (
-    <li className="border-b border-border py-3 last:border-b-0" data-locale={row.locale}>
+    <li
+      tabIndex={-1}
+      className="border-b border-border py-3 last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+      data-locale={row.locale}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-sm font-semibold text-foreground">{row.locale}</span>
         <KeyLocaleStatusBadge status={row.status} />

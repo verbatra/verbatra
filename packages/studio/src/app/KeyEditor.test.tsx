@@ -495,7 +495,7 @@ describe("KeyEditor drawer", () => {
     ).toBe(true);
   });
 
-  it("reads again on that locale's Retry and moves focus to the recovered locales", async () => {
+  it("reads again on that locale's Retry and moves focus to the recovered locale", async () => {
     stubBackground();
     let frenchAnswers = 0;
     stubRpc({
@@ -524,7 +524,67 @@ describe("KeyEditor drawer", () => {
     const french = localeBlocks(view)[1];
     expect(french?.querySelector('[role="alert"]')).toBeNull();
     expect(french?.textContent).toContain("Bonjour");
-    expect(document.activeElement).toBe(view.get('[data-recovery-target="locales"]'));
+    expect(document.activeElement).toBe(french);
+  });
+
+  it("keeps focus on that locale's Retry when the read fails again", async () => {
+    stubBackground();
+    stubRpc({
+      "key.value": keyValuePerLocale({
+        de: value("Hello", "Hallo"),
+        fr: rpcError("LOCALE_UNREADABLE", "the file is unreadable"),
+      }),
+    });
+
+    const view = await renderAsync(
+      <Drawer
+        keyName={KEY}
+        locales={[DE_CHANGED, FR_MISSING]}
+        refreshToken={0}
+        onClose={vi.fn()}
+      />,
+    );
+    const retry = view.getByText("button", "Retry");
+    retry.focus();
+    await clickAsync(retry);
+    await flush();
+
+    expect(document.activeElement).toBe(view.getByText("button", "Retry"));
+    expect(localeBlocks(view)[1]?.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  it("moves focus to a Retry that exists when every locale then fails and the focused one goes away", async () => {
+    stubBackground();
+    let round = 0;
+    stubRpc({
+      "key.value": (params) => {
+        if (round === 0) {
+          return localeOf(params) === "de"
+            ? value("Hello", "Hallo")
+            : rpcError("LOCALE_UNREADABLE", "the file is unreadable");
+        }
+        return rpcError("INTERNAL", "values down");
+      },
+    });
+
+    const view = await renderAsync(
+      <Drawer
+        keyName={KEY}
+        locales={[DE_CHANGED, FR_MISSING]}
+        refreshToken={0}
+        onClose={vi.fn()}
+      />,
+    );
+    const retry = view.getByText("button", "Retry");
+    retry.focus();
+    round = 1;
+    await clickAsync(retry);
+    await flush();
+
+    const active = document.activeElement;
+    expect(active?.tagName).toBe("BUTTON");
+    expect(active?.textContent).toBe("Retry");
+    expect(view.container.contains(active)).toBe(true);
   });
 
   it("spells out a placeholder mismatch, including which tokens differ", async () => {

@@ -5,12 +5,11 @@ import type { DiffLocale } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus } from "../client/diff-view.js";
 import { deriveIntegrityPillView } from "../client/integrity-pill.js";
 import { parseRoute } from "../client/routes.js";
-import { settledActionStatusLabel } from "../client/settled-action-status.js";
 import type { StructuredError } from "../client/state.js";
 import { CommitList } from "./CommitList.js";
 import { EditorPane } from "./EditorPane.js";
 import { ErrorMessage } from "./ErrorMessage.js";
-import type { SubmitState } from "./entry-editor-parts.js";
+import { submitFailure } from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { LocaleBlock } from "./KeyEditorLocale.js";
 import { LocaleEditForm } from "./LocaleEditForm.js";
@@ -125,7 +124,11 @@ function SourceValue({
 type Recovery =
   | { readonly target: "source"; readonly from: KeyValuesState }
   | { readonly target: "locales"; readonly from: KeyIntegrityState }
-  | { readonly target: "localeValues"; readonly from: KeyValuesState };
+  | {
+      readonly target: "localeValues";
+      readonly from: KeyValuesState;
+      readonly locale: string;
+    };
 
 function sameFailure(values: KeyValuesState, error: StructuredError): boolean {
   return (
@@ -133,13 +136,6 @@ function sameFailure(values: KeyValuesState, error: StructuredError): boolean {
     values.error.code === error.code &&
     values.error.message === error.message
   );
-}
-
-function submitFailure(submit: SubmitState): StructuredError | null {
-  if (submit.kind !== "settled" || submit.outcome.kind === "success") {
-    return null;
-  }
-  return { code: "SAVE_NOT_ACCEPTED", message: settledActionStatusLabel(submit.outcome, "Saved") };
 }
 
 function MissingKeyNotice({ onDiscard }: { readonly onDiscard: () => void }): ReactNode {
@@ -277,11 +273,25 @@ export function KeyEditor({
       return;
     }
     recoveryRef.current = null;
+    if (armed.target === "localeValues") {
+      focusAfterLocaleRetry(armed.locale, values);
+      return;
+    }
     if (answer.kind !== "loaded") {
       return;
     }
     (armed.target === "source" ? sourceTargetRef : localesTargetRef).current?.focus();
   }, [values, integrity]);
+
+  function focusAfterLocaleRetry(locale: string, answer: KeyValuesState): void {
+    if (answer.kind === "error") {
+      sourceTargetRef.current?.querySelector("button")?.focus();
+    } else if (answer.kind === "loaded" && !answer.failures.has(locale)) {
+      localesTargetRef.current
+        ?.querySelector<HTMLElement>(`[data-locale="${CSS.escape(locale)}"]`)
+        ?.focus();
+    }
+  }
 
   useEffect(() => {
     setIntegrityRetrying(false);
@@ -489,7 +499,7 @@ export function KeyEditor({
               values={values}
               valuesRetrying={valuesRetrying}
               onRetryValues={() => {
-                recoveryRef.current = { target: "localeValues", from: values };
+                recoveryRef.current = { target: "localeValues", from: values, locale: row.locale };
                 retryValues();
               }}
               editing={row.locale === editingLocale}
