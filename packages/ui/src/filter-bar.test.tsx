@@ -48,4 +48,15 @@ describe("FilterBar", () => {
 
     expect(view.get("fieldset").className).toContain("mb-2");
   });
+
+  it("passes other attributes to the fieldset", () => {
+    const view = render(
+      <FilterBar data-shortcuts-paused="" id="bar">
+        controls
+      </FilterBar>,
+    );
+
+    expect(view.get("fieldset").dataset.shortcutsPaused).toBe("");
+    expect(view.get("fieldset").id).toBe("bar");
+  });
 });
