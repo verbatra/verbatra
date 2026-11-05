@@ -284,30 +284,32 @@ scroll card's ref and shows only while it overflows, at any width. A row is sele
 
 **Split editor.** One `KeyEditor` renders in two containers, chosen by a synchronous `matchMedia`
 read (`XL_QUERY`, 80rem) on the first render, never by an effect, so an `xl` deep link never mounts
-a modal. From `xl` it is `EditorPane`: a `--radius-lg` card in a grid cell beside the table, sticky
-at 4.5rem below the 3.5rem site header, scrolling inside itself, with no `aria-modal`. The cell
-stretches to the table's height and the card is capped at that height, so opening a key adds no
-page height. Below `xl` it is the `DrawerShell` (side end), with room under its last row so the toast
-can be scrolled clear. While the pane is open the page uses the wide layout: the app root switches
-`--page-max` from `--container-6xl` to `--width-layout` through `has-[[data-split]]`, and both the
-header's inner box and the page box, marked `data-page-width` and sharing `PAGE_MAX_CLASS`, read it,
-so their edges line up (`Container` in ui stays generic). The filter bar stays above the split grid
-at full page width, so opening a key never moves the table; only the table and the pane share the
-grid. While the split is open the refresh toast moves to the content edge (`group/page` with
-`group-has-[[data-split]]/page`), so it may cover table cells but never the pane. The toast has no
-auto-hide; it stays until dismissed.
+a modal. From `xl` it is `EditorPane`: a `--radius-lg` card in a grid cell beside the table,
+`self-start` and sticky at 4.5rem below the 3.5rem site header, at most the viewport minus that
+offset and the page's bottom padding (`100dvh - 6.5rem`) tall, scrolling inside itself, with no
+`aria-modal`. It is independent of the table's height: it pins at the header offset for the whole
+scroll of a tall table, and on a table shorter than the pane the page grows to fit the pane (so a
+key can add page height). Below `xl` it is the `DrawerShell` (side end), with room under its last
+row so the toast can be scrolled clear. While the pane is open the page uses the wide layout: the
+app root switches `--page-max` from `--container-6xl` to `--width-layout` through
+`has-[[data-split]]`, and both the header's inner box and the page box, marked `data-page-width` and
+sharing `PAGE_MAX_CLASS`, read it, so their edges line up (`Container` in ui stays generic). The
+filter bar stays above the split grid at full page width, so opening a key never moves the table;
+only the table and the pane share the grid. While the split is open the refresh toast moves to the
+content edge (`group/page` with `group-has-[[data-split]]/page`), so it may cover table cells but
+never the pane. The toast has no auto-hide; it stays until dismissed.
 
 Editor state (the open locale, its draft, the unsaved prompt) lives in `KeyEditor`, above the
 container, so crossing `xl` keeps a draft, and focus and the selection in the field are restored
 after the swap. The translation form is inline in the locale block, built from
-`entry-editor-parts.tsx` and the `useLocaleEdit` hook, both shared with `EditEntryDialog` (Review); a second editor dialog or
-a copy of either is a defect. A failed read shows `ErrorMessage` with Retry (and Cancel in the
-form), never an empty state, and after a successful Retry focus moves to the recovered content
-(a `data-recovery-target` container with the standard focus ring, or the field). Roving focus stays on
-the row when a key opens, Escape in the pane moves focus back to the row, and the pane never takes a
-global letter shortcut. While a save runs the field is `readOnly` with `aria-busy`, never
-`disabled`, so focus stays in it, a rejected save puts focus back in the field, and its status
-scrolls into view.
+`entry-editor-parts.tsx` and the `useLocaleEdit` hook, both shared with `EditEntryDialog` (Review);
+a second editor dialog or a copy of either is a defect. A failed read shows `ErrorMessage` with
+Retry (and Cancel in the form), never an empty state, and after a successful Retry focus moves to
+the recovered content (a `data-recovery-target` container with the standard focus ring, or the
+field). Roving focus stays on the row when a key opens, Escape in the pane moves focus back to the
+row, and the pane never takes a global letter shortcut. While a save runs the field is `readOnly`
+with `aria-busy`, never `disabled`, so focus stays in it, a rejected save puts focus back in the
+field, and its status scrolls into view.
 
 **Unsaved prompt.** Every external route change goes through `route-guard.ts`, which tracks history
 by index, like a router blocker: every entry carries `{ idx }`, `navigate*` pushes `idx + 1` and
@@ -316,21 +318,21 @@ entry typed or linked) is only held, never undone by code: no `history.go` is is
 so fast repeated Backs and Forwards cannot loop. The router keeps showing the held entry
 (`visibleHash`) and the prompt opens while the address bar already shows the target.
 
-The invariant: a held route exists only while its prompt is on screen, and every way the prompt
-ends resolves the hold exactly once. Save, Discard, the form's Save or Cancel, and an in-flight save
-that finishes adopt the held entry (`adoptHeldRoute`); typing the draft back to clean, Keep editing
-and a new prompt that replaces the old one (another key, another locale, a filter, a chip, header
-navigation) call `restoreHeldRoute()`, the one place that issues a single
-`history.go(position - idx)` (or a `replaceState` when a hash push truncated the position entry).
-While a restore is on its way `visibleHash` keeps the SPA on the position, so a live refresh in that
-window never shows the target; a full page reload can still load the target URL after the
-`beforeunload` prompt. A held push or replace is replayed as the same push or replace. Typing
-(filter text, chips, selects, locale) replaces, a header search or page link pushes once, and the
-brand link goes through `navigateToRoute` with the bare Translations route, so it clears the key and
-filters as it always did and a dirty draft gets the prompt. An entry without an index falls back to
-the `beforeunload` confirmation, which is attached only while a draft is dirty. The guard's
-`popstate` and `hashchange` listeners register when `route-guard.ts` loads, so they run before the
-router's; never move them into an effect.
+The invariant: a held route exists only while its prompt is on screen, and every way the prompt ends
+resolves the hold exactly once. Save, Discard, the form's Save or Cancel, and an in-flight save that
+finishes adopt the held entry (`adoptHeldRoute`); typing the draft back to clean, Keep editing and a
+new prompt that replaces the old one (another key, another locale, a filter, a chip, header
+navigation) call `restoreHeldRoute()`, the one place that issues a single `history.go(position -
+idx)` (or a `replaceState` when a hash push truncated the position entry). While a restore is on its
+way `visibleHash` keeps the SPA on the position, so a live refresh in that window never shows the
+target; a full page reload can still load the target URL after the `beforeunload` prompt. A held
+push or replace is replayed as the same push or replace. Typing (filter text, chips, selects,
+locale) replaces, a header search or page link pushes once, and the brand link goes through
+`navigateToRoute` with the bare Translations route, so it clears the key and filters as it always
+did and a dirty draft gets the prompt. An entry without an index falls back to the `beforeunload`
+confirmation, which is attached only while a draft is dirty. The guard's `popstate` and `hashchange`
+listeners register when `route-guard.ts` loads, so they run before the router's; never move them
+into an effect.
 
 An inline `UnsavedPrompt` (Save, Discard, Keep editing, never `window.confirm`) decides. In the pane
 it sits in an opaque sticky wrapper (`data-sticky`) at the top of the scroller with a small gap
@@ -338,10 +340,10 @@ under the pane header; in the drawer it sits in the sticky header (`data-sticky`
 `banner` slot. It scrolls itself into view and focuses Keep editing, its Save is the only primary
 action while it is shown, and a rejected save keeps it, with the reason, and puts focus back in the
 field. A save that finishes never closes the form of a different locale or key. A refresh that
-removes the open key while the draft is dirty keeps the editor, with a notice and a Discard. After
-a route change the focus is returned once the new route has rendered. A new control that changes
-the route needs no extra code, but it must honour the boolean the navigate helpers return before
-running its own side effects.
+removes the open key while the draft is dirty keeps the editor, with a notice and a Discard. After a
+route change the focus is returned once the new route has rendered. A new control that changes the
+route needs no extra code, but it must honour the boolean the navigate helpers return before running
+its own side effects.
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they
