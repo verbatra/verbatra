@@ -322,8 +322,9 @@ that finishes adopt the held entry (`adoptHeldRoute`); typing the draft back to 
 and a new prompt that replaces the old one (another key, another locale, a filter, a chip, header
 navigation) call `restoreHeldRoute()`, the one place that issues a single
 `history.go(position - idx)` (or a `replaceState` when a hash push truncated the position entry).
-While a restore is on its way `visibleHash` keeps showing the position, so a refresh in that window
-never shows the target. A held push or replace is replayed as the same push or replace. Typing
+While a restore is on its way `visibleHash` keeps the SPA on the position, so a live refresh in that
+window never shows the target; a full page reload can still load the target URL after the
+`beforeunload` prompt. A held push or replace is replayed as the same push or replace. Typing
 (filter text, chips, selects, locale) replaces, a header search or page link pushes once, and the
 brand link goes through `navigateToRoute` with the bare Translations route, so it clears the key and
 filters as it always did and a dirty draft gets the prompt. An entry without an index falls back to
