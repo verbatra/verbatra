@@ -13,10 +13,6 @@ export interface ReviewFacets {
 
 export const ALL_FACETS: ReviewFacets = { locale: "", origin: "", reviewState: "unreviewed" };
 
-export function isReviewDone(facets: ReviewFacets, query: string): boolean {
-  return facets.origin === "" && facets.reviewState === "unreviewed" && query.trim() === "";
-}
-
 export function isDefaultFacets(facets: ReviewFacets, query: string): boolean {
   return (
     facets.locale === ALL_FACETS.locale &&

@@ -2449,7 +2449,7 @@ describe("ReviewPanel: nothing to review", () => {
     expect(rowKeys(view)).toHaveLength(3);
   });
 
-  it("says all clear for a locale with nothing left, and offers Clear filters because the locale differs from the default", async () => {
+  it("shows No matching entries, not All clear, for a locale with nothing left while another still waits", async () => {
     stubReview({
       available: true,
       locales: [
@@ -2474,16 +2474,36 @@ describe("ReviewPanel: nothing to review", () => {
 
     selectOption(localeFilter(view), "fr");
 
-    expect(view.get("[data-all-clear]").textContent).toContain("All clear");
+    expect(view.query("[data-all-clear]")).toBeNull();
+    expect(view.get("[data-no-match]").textContent).toContain("No matching entries");
+    expect(view.query('[aria-label="Bulk actions"]')).toBeNull();
     click(view.getByText("button", "Clear filters"));
     expect(rowKeys(view)).toEqual(["checkout.title"]);
     expect(document.activeElement).toBe(keyFilter(view));
   });
 
-  it("moves focus to the all-clear message after the last entry was approved for a locale", async () => {
+  it("hides the idle bulk bar under All clear", async () => {
+    stubReview(ONLY_APPROVED);
+    stubRpc({ "locale.values": { ok: true, result: APPROVED_VALUES } });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(view.get("[data-all-clear]")).not.toBeNull();
+    expect(view.query('[aria-label="Bulk actions"]')).toBeNull();
+  });
+
+  it("moves focus to the empty message after the last entry of a deep-linked locale was approved, with other locales waiting", async () => {
+    window.history.replaceState(null, "", "#/review?locale=de");
     let approved = false;
+    const fr = {
+      locale: "fr",
+      needsReview: [{ key: "cart.badge", reasons: [], provenance: MACHINE }],
+    };
     stubRpc({
-      "review.queue": () => queueAnswer(approved ? ONLY_APPROVED : ONE_PENDING),
+      "review.queue": () =>
+        queueAnswer({
+          available: true,
+          locales: [...(approved ? ONLY_APPROVED : ONE_PENDING).locales, fr],
+        }),
       "project.snapshot": snapshotAnswer(SNAPSHOT),
       "locale.values": { ok: true, result: LOCALE_VALUES },
       "review.approveLocale": () => {
@@ -2496,14 +2516,65 @@ describe("ReviewPanel: nothing to review", () => {
     });
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
 
-    selectOption(localeFilter(view), "de");
     await clickAsync(approveAllButton(view) as HTMLButtonElement);
     await clickAsync(view.getByText("button", "Approve 1 entry"));
     await flush();
     await flush();
 
-    expect(document.activeElement).toBe(view.get("[data-all-clear]"));
+    expect(document.activeElement).toBe(view.get("[data-no-match]"));
   });
+
+  it.each([
+    [
+      "an origin filter",
+      (view: RenderResult) => selectOption(facetSelect(view, "Filter by origin"), "fuzzy"),
+    ],
+    ["a text search", (view: RenderResult) => typeInto(keyFilter(view), "subtitle")],
+  ])(
+    "moves focus to the empty message when approving the last row left by %s",
+    async (_name, narrow) => {
+      let approved = false;
+      const queue = (): ReviewQueueResult => ({
+        available: true,
+        locales: [
+          {
+            locale: "de",
+            needsReview: [
+              { key: "checkout.title", reasons: [], provenance: MACHINE },
+              ...(approved
+                ? []
+                : [
+                    {
+                      key: "checkout.subtitle",
+                      reasons: [],
+                      provenance: { origin: "fuzzy", reviewState: "unreviewed" } as const,
+                    },
+                  ]),
+            ],
+          },
+        ],
+      });
+      stubRpc({
+        "review.queue": () => queueAnswer(queue()),
+        "project.snapshot": snapshotAnswer(SNAPSHOT),
+        "locale.values": { ok: true, result: LOCALE_VALUES },
+        "review.approve": () => {
+          approved = true;
+          return { ok: true, result: decided("de", "checkout.subtitle", "approved") };
+        },
+      });
+      const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+      narrow(view);
+      expect(rowKeys(view)).toEqual(["checkout.subtitle"]);
+
+      await clickAsync(rowAction(view, "checkout.subtitle", "Approve"));
+      await flush();
+      await flush();
+
+      expect(rowKeys(view)).toEqual([]);
+      expect(document.activeElement).toBe(view.get("[data-no-match]"));
+    },
+  );
 });
 
 describe("ReviewPanel: a draft while the review state breaks", () => {

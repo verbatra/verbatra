@@ -33,7 +33,6 @@ import {
   ALL_FACETS,
   type ApproveAllAction,
   isDefaultFacets,
-  isReviewDone,
   type ReviewFacets,
   ReviewFilterBar,
 } from "../ReviewFilterBar.js";
@@ -65,26 +64,40 @@ export function ReviewPanel({ refreshToken }: PanelProps): ReactNode {
   );
 }
 
-function AllClear({
+function EmptyFocusTarget({
   clearRef,
-  action,
+  marker,
   children,
 }: {
   readonly clearRef: RefObject<HTMLDivElement | null>;
-  readonly action?: ReactNode;
+  readonly marker: "data-all-clear" | "data-no-match";
   readonly children: ReactNode;
 }): ReactNode {
   return (
     <div
       ref={clearRef}
       tabIndex={-1}
-      data-all-clear=""
+      {...{ [marker]: "" }}
       className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
-      <EmptyState icon="review" title="All clear" action={action}>
+      {children}
+    </div>
+  );
+}
+
+function AllClear({
+  clearRef,
+  children,
+}: {
+  readonly clearRef: RefObject<HTMLDivElement | null>;
+  readonly children: ReactNode;
+}): ReactNode {
+  return (
+    <EmptyFocusTarget clearRef={clearRef} marker="data-all-clear">
+      <EmptyState icon="review" title="All clear">
         {children}
       </EmptyState>
-    </div>
+    </EmptyFocusTarget>
   );
 }
 
@@ -135,14 +148,19 @@ function ReviewQueueContent({
         searchRef={searchRef}
         approveAll={approveAll}
       />
-      {capabilities?.writeToDisk === true ? (
+      {capabilities?.writeToDisk === true && filtered.length > 0 ? (
         <ReviewBulkBar {...bulk.bar} approveDisabled={facets.reviewState === "approved"} />
       ) : null}
-      {filtered.length === 0 && isReviewDone(facets, query) ? (
-        <AllClear
-          clearRef={clearRef}
-          action={
-            isDefaultFacets(facets, query) ? undefined : (
+      {filtered.length === 0 && isDefaultFacets(facets, query) ? (
+        <AllClear clearRef={clearRef}>
+          Nothing to review right now. Choose Approved to see what was decided.
+        </AllClear>
+      ) : filtered.length === 0 ? (
+        <EmptyFocusTarget clearRef={clearRef} marker="data-no-match">
+          <EmptyState
+            icon="search"
+            title="No matching entries"
+            action={
               <Button
                 onClick={() => {
                   onFacetsChange(ALL_FACETS);
@@ -152,29 +170,11 @@ function ReviewQueueContent({
               >
                 Clear filters
               </Button>
-            )
-          }
-        >
-          Nothing to review right now. Choose Approved to see what was decided.
-        </AllClear>
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon="search"
-          title="No matching entries"
-          action={
-            <Button
-              onClick={() => {
-                onFacetsChange(ALL_FACETS);
-                onQueryChange("");
-                searchRef.current?.focus();
-              }}
-            >
-              Clear filters
-            </Button>
-          }
-        >
-          No entry matches the current filters.
-        </EmptyState>
+            }
+          >
+            No entry matches the current filters.
+          </EmptyState>
+        </EmptyFocusTarget>
       ) : (
         <ReviewTable
           rows={filtered}
