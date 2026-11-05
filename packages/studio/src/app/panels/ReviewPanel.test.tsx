@@ -1933,6 +1933,39 @@ describe("ReviewPanel: origin and review state", () => {
     selectOption(facetSelect(view, "Filter by origin"), "fuzzy");
 
     expect(rowKeys(view)).toEqual(["checkout.subtitle"]);
+    selectOption(facetSelect(view, "Filter by origin"), "");
+    expect(rowKeys(view)).toHaveLength(3);
+  });
+
+  it("lists a row with no source value without a Source line", async () => {
+    stubReview();
+    stubRpc({
+      "locale.values": {
+        ok: true,
+        result: [
+          { locale: "fr", keys: ["cart.badge"], values: { "cart.badge": { target: "Panier" } } },
+        ],
+      },
+    });
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
+
+    expect(row?.querySelector("[data-row-source]")).toBeNull();
+    expect(row?.querySelector("[data-row-value]")?.textContent).toBe("Panier");
+  });
+
+  it("stacks the entry without actions on a narrow screen when the session may not write", async () => {
+    stubMatchMedia(false);
+    try {
+      stubKeyboardReady({ ...SNAPSHOT, capabilities: { spend: false, writeToDisk: false } });
+      const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+      expect(view.all("[data-row-stacked]")).toHaveLength(3);
+      expect(view.query("[data-row-stacked] button")).toBeNull();
+    } finally {
+      Reflect.deleteProperty(window, "matchMedia");
+    }
   });
 
   it("lists the approved values under the Approved state, where Approve is off and Reject stays", async () => {

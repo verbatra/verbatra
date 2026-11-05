@@ -960,4 +960,23 @@ describe("EditEntryDialog: an unsaved draft", () => {
     click(view.getByText("button", "Discard"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("drops the prompt and returns focus to the field when the held route is released", async () => {
+    window.history.replaceState({ idx: 0 }, "", "#/review");
+    const view = await dirtyDialog();
+
+    act(() => {
+      window.history.pushState({ idx: 1 }, "", "#/overview");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    act(() => {
+      window.history.replaceState({ idx: 0 }, "", "#/review");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(document.activeElement).toBe(editor(view));
+  });
 });
