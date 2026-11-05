@@ -30,7 +30,7 @@ export function EditorPane({
       padding="none"
       aria-label={`Editor for ${keyName}`}
       data-editor-pane=""
-      className="sticky top-[4.5rem] flex max-h-[calc(100dvh-6.5rem)] flex-col self-start overflow-hidden"
+      className="sticky top-[4.5rem] flex max-h-[calc(100dvh-9rem)] flex-col self-start overflow-hidden"
       onKeyDown={handleKeyDown}
     >
       <div className="flex flex-none items-start justify-between gap-3 border-b border-(--border-default) px-4 py-3">
@@ -42,7 +42,10 @@ export function EditorPane({
         </div>
         <DialogCloseButton onClose={onClose} label={`Close details for ${keyName}`} />
       </div>
-      <div data-editor-scroller="" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+      <div
+        data-editor-scroller=""
+        className="min-h-0 flex-1 scroll-pt-40 overflow-y-auto px-4 pb-4"
+      >
         {banner !== null ? (
           <div data-editor-banner="" data-sticky="" className="sticky top-0 z-10 bg-card py-2">
             {banner}

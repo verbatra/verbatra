@@ -286,12 +286,13 @@ scroll card's ref and shows only while it overflows, at any width. A row is sele
 read (`XL_QUERY`, 80rem) on the first render, never by an effect, so an `xl` deep link never mounts
 a modal. From `xl` it is `EditorPane`: a `--radius-lg` card in a grid cell beside the table,
 `self-start` and sticky at 4.5rem below the 3.5rem site header, at most the viewport minus that
-offset and the page's bottom padding (`100dvh - 6.5rem`) tall, scrolling inside itself, with no
-`aria-modal`. It is independent of the table's height: it pins at the header offset for the whole
-scroll of a tall table, and on a table shorter than the pane the page grows to fit the pane (so a
-key can add page height). Below `xl` it is the `DrawerShell` (side end), with room under its last
-row so the toast can be scrolled clear. While the pane is open the page uses the wide layout: the
-app root switches `--page-max` from `--container-6xl` to `--width-layout` through
+offset and the page's bottom padding (`100dvh - 9rem`: the header offset plus the space the page
+leaves below the split, so the pane still pins at the offset at maximum scroll) tall, scrolling
+inside itself, with no `aria-modal`. It is independent of the table's height: it pins at the header
+offset for the whole scroll of a tall table, and on a table shorter than the pane the page grows to
+fit the pane (so a key can add page height). Below `xl` it is the `DrawerShell` (side end), with
+room under its last row so the toast can be scrolled clear. While the pane is open the page uses the
+wide layout: the app root switches `--page-max` from `--container-6xl` to `--width-layout` through
 `has-[[data-split]]`, and both the header's inner box and the page box, marked `data-page-width` and
 sharing `PAGE_MAX_CLASS`, read it, so their edges line up (`Container` in ui stays generic). The
 filter bar stays above the split grid at full page width, so opening a key never moves the table;
