@@ -15,7 +15,6 @@ import { LocaleBlock } from "./KeyEditorLocale.js";
 import { LocaleEditForm } from "./LocaleEditForm.js";
 import { cn } from "./lib/cn.js";
 import {
-  adoptHeldRoute,
   hasHeldRoute,
   installRouteGuard,
   restoreHeldRoute,
@@ -280,8 +279,6 @@ export function KeyEditor({
     if (resolvedRef.current) {
       if (pending !== null) {
         proceedWith(pending);
-      } else if (hasHeldRoute()) {
-        adoptHeldRoute();
       }
     } else {
       restoreHeldRoute();

@@ -62,7 +62,7 @@ export function hasHeldRoute(): boolean {
   return held !== null;
 }
 
-export function adoptHeldRoute(): void {
+function adoptHeldRoute(): void {
   if (held !== null) {
     position = readIdx() ?? held.idx;
     positionHash = window.location.hash;
