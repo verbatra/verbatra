@@ -100,6 +100,7 @@ export function Tooltip({
   const [dismissed, setDismissed] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const bubbleRef = useRef<HTMLSpanElement>(null);
+  const wrapperRef = useRef<HTMLSpanElement>(null);
   const control = isValidElement<DescribableProps>(children) ? children : null;
   const disabled = hasNoBubble(label, control);
   const visible = !disabled && (hovered || focused) && !dismissed;
@@ -119,6 +120,13 @@ export function Tooltip({
   }, [visible]);
 
   const canFlip = flip && FLIPPABLE.has(side);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (visible && canFlip && wrapper !== null) {
+      setFlipped(lacksRoomBelow(wrapper, bubbleRef.current));
+    }
+  }, [visible, canFlip, label]);
 
   function show(set: (value: boolean) => void, wrapper: HTMLElement): void {
     setFlipped(canFlip && lacksRoomBelow(wrapper, bubbleRef.current));
@@ -153,6 +161,7 @@ export function Tooltip({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: the wrapper only observes pointer and focus events bubbling from the control it describes
     <span
+      ref={wrapperRef}
       className={cn("relative inline-flex", className)}
       {...pointer}
       onFocus={showFromFocus}

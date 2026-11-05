@@ -197,6 +197,23 @@ describe("Tooltip", () => {
       expect(view.get(SLOT).dataset.side).toBe("top");
     });
 
+    it("places a bubble that mounts while the control is already hovered", () => {
+      geometry(390);
+      const tree = (label: string) => (
+        <div data-clip-bottom={400} style={{ overflowY: "auto" }}>
+          <Tooltip label={label} side="bottom" flip>
+            <button type="button">c</button>
+          </Tooltip>
+        </div>
+      );
+      const view = render(tree(""));
+      hover(view.get("button"));
+
+      view.rerender(tree("Tip"));
+
+      expect(view.get(SLOT).dataset.side).toBe("top");
+    });
+
     it("never turns an end bubble upward, however little room there is below", () => {
       geometry(390);
       const view = mountFlip("end", [400]);
