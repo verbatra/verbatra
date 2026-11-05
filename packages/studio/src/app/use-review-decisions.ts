@@ -359,7 +359,7 @@ export function useReviewDecisions(
     },
     updated: (target) => {
       settle({ kind: "updated", locale: target.locale, key: target.key });
-      onDecided();
+      reloadThenSettle([target]);
     },
     reloaded,
     awaitingReload: () => awaitingReload.current.size > 0,

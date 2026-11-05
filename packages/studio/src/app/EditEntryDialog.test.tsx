@@ -85,6 +85,25 @@ describe("EditEntryDialog", () => {
     expect(view.query("textarea")).toBeNull();
   });
 
+  it("offers a Retry that reads the context again after a failed read", async () => {
+    let reads = 0;
+    stubRpc({
+      "key.context": () => {
+        reads += 1;
+        return reads === 1
+          ? rpcError("KEY_UNKNOWN", "no such key in the source locale")
+          : keyValue("Hello", "Hallo");
+      },
+    });
+    const view = await renderAsync(dialog());
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(editor(view).value).toBe("Hallo");
+  });
+
   it("reads the key's context once, for exactly this locale and key, and its integrity", async () => {
     stubRpc({ "key.context": keyValue("Hello", "Hallo") });
 

@@ -4,6 +4,7 @@ import type { ReactNode, Ref } from "react";
 import { useRef } from "react";
 import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
 import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-context.js";
+import { ErrorMessage } from "./ErrorMessage.js";
 import { GlossaryHitList, SaveRow, TranslationField } from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
@@ -176,7 +177,7 @@ export function EditEntryDialog({
         <p className="mb-3 text-sm text-muted-foreground">Loading current value…</p>
       ) : null}
       {context.kind === "error" ? (
-        <p className="mb-3 text-sm text-muted-foreground">{context.message}</p>
+        <ErrorMessage error={context.error} onRetry={edit.retry} />
       ) : null}
       {context.kind === "loaded" ? (
         <>

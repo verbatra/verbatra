@@ -1762,6 +1762,25 @@ describe("ReviewPanel: review workflow", () => {
     expect(rowKeyOf(document.activeElement as Element)).toBe("checkout.subtitle");
   });
 
+  it("focuses the next row, not the page, after an editor save from the Edit button", async () => {
+    stubKeyboardReady();
+    stubRpc({
+      "key.context": { ok: true, result: KEY_VALUE },
+      "translation.editEntry": { ok: true, result: { accepted: true, value: "Zur Kasse" } },
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowAction(view, "checkout.title", "Edit"));
+    await flush();
+    stubRpc({ "review.queue": queueAnswer(without("checkout.title")) });
+
+    await clickAsync(view.getByText("button", "Save"));
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(rowKeyOf(document.activeElement as Element)).toBe("checkout.subtitle");
+  });
+
   it("stacks the reasons and actions under the key on a narrow screen", async () => {
     stubMatchMedia(false);
     try {
