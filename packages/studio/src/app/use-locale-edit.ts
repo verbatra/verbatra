@@ -35,6 +35,7 @@ export interface LocaleEdit {
   readonly dirty: boolean;
   readonly submit: SubmitState;
   setDraft(next: string): void;
+  readonly retrying: boolean;
   retry(): void;
   save(target: string): Promise<boolean>;
 }
@@ -44,9 +45,10 @@ function useHeldContext(
   locale: string | null,
   keyName: string,
   refreshToken: number,
-): { readonly context: KeyValueContext; retry(): void } {
+): { readonly context: KeyValueContext; readonly retrying: boolean; retry(): void } {
   const [held, setHeld] = useState<HeldContext>(UNHELD);
   const [attempt, setAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     if (locale === null) {
@@ -64,6 +66,7 @@ function useHeldContext(
             ? previous
             : { identity, context: next },
         );
+        setRetrying(false);
       }
     });
     return () => {
@@ -73,8 +76,9 @@ function useHeldContext(
 
   return {
     context: held.identity === identity ? held.context : LOADING,
+    retrying,
     retry: () => {
-      setHeld(UNHELD);
+      setRetrying(true);
       setAttempt((count) => count + 1);
     },
   };
@@ -84,9 +88,10 @@ export function useLocaleEdit(
   locale: string | null,
   keyName: string,
   refreshToken: number,
+  session = 0,
 ): LocaleEdit {
-  const identity = draftIdentity(locale, keyName);
-  const { context, retry } = useHeldContext(identity, locale, keyName, refreshToken);
+  const identity = draftIdentity(locale, keyName, session);
+  const { context, retrying, retry } = useHeldContext(identity, locale, keyName, refreshToken);
   const [draftState, setDraftState] = useState<DraftState>(EMPTY_DRAFT);
   const [heldSubmit, setHeldSubmit] = useState<HeldSubmit>(NO_SUBMIT);
 
@@ -127,6 +132,7 @@ export function useLocaleEdit(
     dirty: context.kind === "loaded" && isDraftDirty(current),
     submit,
     setDraft: (next) => setDraftState({ ...current, text: next }),
+    retrying,
     retry,
     save,
   };

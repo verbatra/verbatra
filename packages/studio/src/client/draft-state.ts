@@ -6,8 +6,8 @@ export interface DraftState {
 
 export const EMPTY_DRAFT: DraftState = { identity: null, baseline: "", text: "" };
 
-export function draftIdentity(locale: string | null, key: string): string | null {
-  return locale === null ? null : JSON.stringify([locale, key]);
+export function draftIdentity(locale: string | null, key: string, session = 0): string | null {
+  return locale === null ? null : JSON.stringify([locale, key, session]);
 }
 
 export function isDraftDirty(state: DraftState): boolean {

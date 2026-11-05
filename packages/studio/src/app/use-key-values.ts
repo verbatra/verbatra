@@ -25,9 +25,10 @@ export function useKeyValues(
   keyName: string,
   locales: readonly string[],
   refreshToken: number,
-): { readonly values: KeyValuesState; retry(): void } {
+): { readonly values: KeyValuesState; readonly retrying: boolean; retry(): void } {
   const [held, setHeld] = useState<HeldValues>({ keyName, state: LOADING });
   const [attempt, setAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   const localesKey = locales.join(" ");
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export function useKeyValues(
       const failure = responses.find((response) => !response.ok);
       if (failure !== undefined && !failure.ok && responses.every((response) => !response.ok)) {
         setHeld({ keyName, state: { kind: "error", error: failure.error } });
+        setRetrying(false);
         return;
       }
       let source: string | undefined;
@@ -61,6 +63,7 @@ export function useKeyValues(
         }
       });
       setHeld({ keyName, state: { kind: "loaded", source, description, targets, provenance } });
+      setRetrying(false);
     });
     return () => {
       cancelled = true;
@@ -69,8 +72,9 @@ export function useKeyValues(
 
   return {
     values: held.keyName === keyName ? held.state : LOADING,
+    retrying,
     retry: () => {
-      setHeld({ keyName, state: LOADING });
+      setRetrying(true);
       setAttempt((count) => count + 1);
     },
   };

@@ -226,6 +226,8 @@ export function TranslationField({
   );
 }
 
+const SCROLLED_REJECTIONS = new WeakSet<SubmitState>();
+
 export function SaveRow({
   submit,
   onSave,
@@ -243,10 +245,11 @@ export function SaveRow({
   const failed = submit.kind === "settled" && submit.outcome.kind !== "success";
 
   useEffect(() => {
-    if (failed) {
+    if (failed && !SCROLLED_REJECTIONS.has(submit)) {
+      SCROLLED_REJECTIONS.add(submit);
       statusRef.current?.scrollIntoView?.({ block: "nearest" });
     }
-  }, [failed]);
+  }, [failed, submit]);
   return (
     <>
       <span className="flex flex-wrap items-center gap-3">

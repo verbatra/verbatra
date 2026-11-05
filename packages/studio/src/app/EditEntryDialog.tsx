@@ -189,7 +189,7 @@ export function EditEntryDialog({
         <p className="mb-3 text-sm text-muted-foreground">Loading current value…</p>
       ) : null}
       {context.kind === "error" ? (
-        <ErrorMessage error={context.error} onRetry={edit.retry} />
+        <ErrorMessage error={context.error} retrying={edit.retrying} onRetry={edit.retry} />
       ) : null}
       {context.kind === "loaded" ? (
         <>

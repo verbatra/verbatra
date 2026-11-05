@@ -53,7 +53,12 @@ export function LocaleEditForm({
   if (context.kind === "error") {
     return (
       <div className="mt-2">
-        <ErrorMessage error={context.error} onRetry={edit.retry} onCancel={onCancel} />
+        <ErrorMessage
+          error={context.error}
+          retrying={edit.retrying}
+          onRetry={edit.retry}
+          onCancel={onCancel}
+        />
       </div>
     );
   }

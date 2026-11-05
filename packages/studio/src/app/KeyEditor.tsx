@@ -53,8 +53,12 @@ interface EditTarget {
   readonly locale: string | null;
 }
 
+interface EditSession extends EditTarget {
+  readonly session: number;
+}
+
 const RECOVERY_FOCUS =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  "scroll-mt-28 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
 const NOT_FOUND = "UNKNOWN_KEY";
 
@@ -74,15 +78,17 @@ function isOutsideControl(element: Element | null): element is HTMLElement {
 function SourceValue({
   values,
   suppressError,
+  retrying,
   onRetry,
 }: {
   readonly values: KeyValuesState;
   readonly suppressError: boolean;
+  readonly retrying: boolean;
   readonly onRetry: () => void;
 }): ReactNode {
   if (values.kind === "error") {
     return suppressError && values.error.code === NOT_FOUND ? null : (
-      <ErrorMessage error={values.error} onRetry={onRetry} />
+      <ErrorMessage error={values.error} retrying={retrying} onRetry={onRetry} />
     );
   }
   if (values.kind === "loaded" && values.source !== undefined) {
@@ -134,12 +140,24 @@ function MissingKeyNotice({ onDiscard }: { readonly onDiscard: () => void }): Re
   );
 }
 
-function useEditTarget(keyName: string): readonly [string | null, (locale: string | null) => void] {
-  const [target, setTarget] = useState<EditTarget>({ keyName, locale: null });
-  return [
-    target.keyName === keyName ? target.locale : null,
-    (locale) => setTarget({ keyName, locale }),
-  ];
+function useEditSession(keyName: string): {
+  readonly locale: string | null;
+  readonly session: number;
+  open(locale: string): void;
+  close(): void;
+} {
+  const [target, setTarget] = useState<EditSession>({ keyName, locale: null, session: 0 });
+  const counter = useRef(0);
+  const current = target.keyName === keyName ? target : { keyName, locale: null, session: 0 };
+  return {
+    locale: current.locale,
+    session: current.session,
+    open: (locale) => {
+      counter.current += 1;
+      setTarget({ keyName, locale, session: counter.current });
+    },
+    close: () => setTarget({ keyName, locale: null, session: current.session }),
+  };
 }
 
 export function KeyEditor({
@@ -155,26 +173,39 @@ export function KeyEditor({
 }: KeyEditorProps): ReactNode {
   const history = useHistoryList(refreshToken);
   const [integrityAttempt, setIntegrityAttempt] = useState(0);
-  const retryIntegrity = (): void => setIntegrityAttempt((count) => count + 1);
+  const [integrityRetrying, setIntegrityRetrying] = useState(false);
+  const retryIntegrity = (): void => {
+    setIntegrityRetrying(true);
+    setIntegrityAttempt((count) => count + 1);
+  };
   const integrity = useKeyIntegrity(keyName, refreshToken, integrityAttempt);
   const capabilitiesState = useCapabilities();
-  const [editingLocale, setEditingLocale] = useEditTarget(keyName);
+  const {
+    locale: editingLocale,
+    session,
+    open: openLocale,
+    close: closeLocale,
+  } = useEditSession(keyName);
   const [pending, setPending] = useState<Pending | null>(null);
   const [saved, setSaved] = useState<EditTarget | null>(null);
   const [returnTo, setReturnTo] = useState<string | null>(null);
   const originRef = useRef<Element | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const dirtyRef = useRef(false);
-  const editingRef = useRef<EditTarget>({ keyName, locale: null });
+  const editingRef = useRef<EditSession>({ keyName, locale: null, session: 0 });
   const resolvedRef = useRef(false);
   const recoveryRef = useRef<"source" | "locales" | null>(null);
   const sourceTargetRef = useRef<HTMLDivElement | null>(null);
   const localesTargetRef = useRef<HTMLUListElement | null>(null);
-  const edit = useLocaleEdit(editingLocale, keyName, refreshToken);
+  const edit = useLocaleEdit(editingLocale, keyName, refreshToken, session);
   const dialogRef = useDialogA11y<HTMLDivElement>({ isOpen: layout === "drawer", onClose });
 
   const rows = deriveKeyLocaleStatus(locales, keyName);
-  const { values, retry: retryValues } = useKeyValues(
+  const {
+    values,
+    retrying: valuesRetrying,
+    retry: retryValues,
+  } = useKeyValues(
     keyName,
     rows.map((row) => row.locale),
     refreshToken,
@@ -197,7 +228,7 @@ export function KeyEditor({
   }, []);
 
   useLayoutEffect(() => {
-    editingRef.current = { keyName, locale: editingLocale };
+    editingRef.current = { keyName, locale: editingLocale, session };
     dirtyRef.current = edit.dirty;
     dirtyReportRef.current = onDirtyChange;
   });
@@ -226,7 +257,11 @@ export function KeyEditor({
     ) {
       recoveryRef.current = null;
     }
-  }, [values.kind, integrity.kind]);
+  }, [values, integrity]);
+
+  useEffect(() => {
+    setIntegrityRetrying(false);
+  }, [integrity]);
 
   useEffect(() => {
     dirtyReportRef.current(edit.dirty);
@@ -237,14 +272,16 @@ export function KeyEditor({
     if (edit.dirty || edit.submit.kind === "submitting") {
       return;
     }
-    setPending(null);
-    if (hasHeldRoute()) {
-      if (resolvedRef.current) {
+    if (resolvedRef.current) {
+      if (pending !== null) {
+        proceedWith(pending);
+      } else if (hasHeldRoute()) {
         adoptHeldRoute();
-      } else {
-        restoreHeldRoute();
       }
+    } else {
+      restoreHeldRoute();
     }
+    setPending(null);
     resolvedRef.current = false;
   }, [edit.dirty, edit.submit.kind]);
 
@@ -279,13 +316,16 @@ export function KeyEditor({
 
   function cancelEditing(locale: string): void {
     resolvedRef.current = true;
-    setEditingLocale(null);
+    closeLocale();
     setReturnTo(locale);
   }
 
   async function saveEditing(locale: string, returnFocus: boolean): Promise<boolean> {
     const saved = await edit.save(locale);
-    const here = editingRef.current.keyName === keyName && editingRef.current.locale === locale;
+    const here =
+      editingRef.current.session === session &&
+      editingRef.current.keyName === keyName &&
+      editingRef.current.locale === locale;
     if (!here) {
       return false;
     }
@@ -295,7 +335,7 @@ export function KeyEditor({
     }
     resolvedRef.current = true;
     setSaved({ keyName, locale });
-    setEditingLocale(null);
+    closeLocale();
     if (returnFocus) {
       setReturnTo(locale);
     }
@@ -305,7 +345,7 @@ export function KeyEditor({
   function startEditing(locale: string): void {
     const open = (): Promise<void> => {
       setSaved(null);
-      setEditingLocale(locale);
+      openLocale(locale);
       return Promise.resolve();
     };
     if (edit.dirty) {
@@ -333,25 +373,19 @@ export function KeyEditor({
     }
   }
 
-  async function resolveSave(locale: string, held: Pending): Promise<void> {
-    if (await saveEditing(locale, false)) {
-      setPending(null);
-      proceedWith(held);
-    }
-  }
-
-  function resolveDiscard(held: Pending): void {
+  function resolveDiscard(): void {
     resolvedRef.current = true;
-    setPending(null);
-    setEditingLocale(null);
-    proceedWith(held);
+    closeLocale();
   }
 
   function discardMissing(): void {
+    const waiting = pending !== null || hasHeldRoute();
     resolvedRef.current = true;
-    dirtyRef.current = false;
-    setEditingLocale(null);
-    onClose();
+    closeLocale();
+    if (!waiting) {
+      dirtyRef.current = false;
+      onClose();
+    }
   }
 
   function keepEditing(): void {
@@ -367,8 +401,8 @@ export function KeyEditor({
         saving={edit.submit.kind === "submitting"}
         error={submitFailure(edit.submit)}
         placement={layout}
-        onSave={() => void resolveSave(editingLocale, pending)}
-        onDiscard={() => resolveDiscard(pending)}
+        onSave={() => void saveEditing(editingLocale, false)}
+        onDiscard={resolveDiscard}
         onKeepEditing={keepEditing}
       />
     ) : null;
@@ -386,6 +420,7 @@ export function KeyEditor({
           <SourceValue
             values={values}
             suppressError={missing}
+            retrying={valuesRetrying}
             onRetry={() => {
               recoveryRef.current = "source";
               retryValues();
@@ -403,6 +438,7 @@ export function KeyEditor({
         !sameFailure(values, integrity.error) ? (
           <ErrorMessage
             error={integrity.error}
+            retrying={integrityRetrying}
             onRetry={() => {
               recoveryRef.current = "locales";
               retryIntegrity();
