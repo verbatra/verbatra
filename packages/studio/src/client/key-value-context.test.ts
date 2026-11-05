@@ -50,7 +50,11 @@ describe("deriveKeyValueContext", () => {
       ok: false,
       error: { code: "UNKNOWN_KEY", message: "The key was not found." },
     });
-    expect(context).toEqual({ kind: "error", message: "The key was not found." });
+    expect(context).toEqual({
+      kind: "error",
+      message: "The key was not found.",
+      error: { code: "UNKNOWN_KEY", message: "The key was not found." },
+    });
   });
 });
 
