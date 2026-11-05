@@ -1,7 +1,6 @@
 import { Button, EmptyState, TableSkeleton } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { KeyValuePair } from "../../client/filter.js";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { localeValuesOrEmpty, valuesIndex } from "../../client/locale-values.js";
 import { canRetranslateReviewed } from "../../client/retranslate-eligibility.js";
 import {
@@ -13,7 +12,6 @@ import {
   elapsedSeconds,
   hasRunningRetranslation,
   type PendingRow,
-  type RowBusyAction,
 } from "../../client/review-in-flight.js";
 import type { ReviewQueueRow } from "../../client/review-queue-data.js";
 import {
@@ -21,34 +19,13 @@ import {
   reviewedSourceFor,
   reviewedValueFor,
 } from "../../client/review-queue-data.js";
-import {
-  bulkBusyNote,
-  bulkDecisionBlocker,
-  bulkRetranslateBlocker,
-  type SelectionState,
-  selectedAmong,
-  selectionState,
-  toggleSelected,
-  withAllSelected,
-} from "../../client/review-selection.js";
-import {
-  clampIndex,
-  classifyShortcutTarget,
-  type ReviewShortcutAction,
-  resolveReviewShortcut,
-  type ShortcutTargetShape,
-  stepIndex,
-} from "../../client/review-shortcuts.js";
 import { routeParams } from "../../client/routes.js";
-import { MAX_RETRANSLATE_BATCH_ENTRIES } from "../../shared/rpc/retranslate-entries.js";
-import { MAX_REVIEW_BATCH_ENTRIES } from "../../shared/rpc/review-batch.js";
 import type { StudioCapabilities } from "../../shared/rpc/snapshot.js";
 import { ApproveLocaleDialog } from "../ApproveLocaleDialog.js";
-import type { BulkRejectEntry } from "../BulkRejectDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
-import { ReviewBulkBar, type ReviewBulkBarProps } from "../ReviewBulkBar.js";
+import { ReviewBulkBar } from "../ReviewBulkBar.js";
 import { ReviewDecisionStatus } from "../ReviewDecisionStatus.js";
 import { type EditingTarget, type RejectingTarget, ReviewDialogs } from "../ReviewDialogs.js";
 import {
@@ -59,15 +36,17 @@ import {
 } from "../ReviewFilterBar.js";
 import type { RowBusy } from "../ReviewRowActions.js";
 import { ReviewTable, type RowActions } from "../ReviewTable.js";
+import { type BulkSelection, useBulkSelection } from "../use-bulk-selection.js";
 import { useCapabilities } from "../use-capabilities.js";
 import { useLocaleValues } from "../use-locale-values.js";
 import { useNow } from "../use-now.js";
+import { rowId, useReviewDecisions } from "../use-review-decisions.js";
 import {
-  type BatchSettled,
-  type ReviewDecisions,
-  rowId,
-  useReviewDecisions,
-} from "../use-review-decisions.js";
+  handleShortcut,
+  useActiveRow,
+  useReviewShortcuts,
+  useSettledFocus,
+} from "../use-review-keyboard.js";
 import { useReviewQueue } from "../use-review-queue.js";
 import { useRouteParams } from "../use-route.js";
 
@@ -81,245 +60,6 @@ export function ReviewPanel({ refreshToken }: PanelProps): ReactNode {
       <ReviewPanelBody refreshToken={refreshToken} />
     </>
   );
-}
-
-interface ActiveRow {
-  readonly activeRow: ReviewQueueRow | undefined;
-  readonly rowRefs: Map<string, HTMLTableRowElement>;
-  readonly activate: (row: ReviewQueueRow) => void;
-  readonly move: (delta: number) => void;
-  readonly focusActive: () => void;
-}
-
-function resolveActiveIndex(
-  rows: readonly ReviewQueueRow[],
-  active: { readonly id: string; readonly index: number } | null,
-): number {
-  if (active === null || rows.length === 0) {
-    return -1;
-  }
-  const found = rows.findIndex((row) => rowId(row) === active.id);
-  return found >= 0 ? found : clampIndex(active.index, rows.length);
-}
-
-function useActiveRow(rows: readonly ReviewQueueRow[]): ActiveRow {
-  const [active, setActive] = useState<{ readonly id: string; readonly index: number } | null>(
-    null,
-  );
-  const rowRefs = useRef(new Map<string, HTMLTableRowElement>()).current;
-  const index = resolveActiveIndex(rows, active);
-  const activeRow = rows[index];
-
-  function select(next: number): ReviewQueueRow | undefined {
-    const row = rows[next];
-    if (row !== undefined) {
-      setActive({ id: rowId(row), index: next });
-    }
-    return row;
-  }
-
-  return {
-    activeRow,
-    rowRefs,
-    activate: (row) => {
-      select(rows.indexOf(row));
-    },
-    move: (delta) => {
-      const row = select(activeRow === undefined ? 0 : stepIndex(index, delta, rows.length));
-      if (row !== undefined) {
-        rowRefs.get(rowId(row))?.focus();
-      }
-    },
-    focusActive: () => {
-      const row = activeRow ?? rows[0];
-      if (row !== undefined) {
-        rowRefs.get(rowId(row))?.focus();
-      }
-    },
-  };
-}
-
-function shortcutTargetOf(target: EventTarget | null): ShortcutTargetShape | null {
-  if (!(target instanceof HTMLElement)) {
-    return null;
-  }
-  return {
-    tagName: target.tagName,
-    type: target.getAttribute("type") ?? "",
-    isContentEditable: target.isContentEditable === true,
-  };
-}
-
-function useReviewShortcuts(
-  enabled: boolean,
-  onAction: (action: ReviewShortcutAction) => void,
-): void {
-  const handler = useRef(onAction);
-  useLayoutEffect(() => {
-    handler.current = onAction;
-  });
-  useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-    function onKeyDown(event: KeyboardEvent): void {
-      const action = resolveReviewShortcut({
-        key: event.key,
-        ctrlKey: event.ctrlKey,
-        metaKey: event.metaKey,
-        altKey: event.altKey,
-        target: classifyShortcutTarget(shortcutTargetOf(event.target)),
-      });
-      if (action === null) {
-        return;
-      }
-      event.preventDefault();
-      handler.current(action);
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [enabled]);
-}
-
-function runRowShortcut(
-  action: Exclude<ReviewShortcutAction, "next" | "previous" | "help" | "select">,
-  row: ReviewQueueRow,
-  actions: RowActions,
-): void {
-  if (
-    actions.busyOf(row) !== undefined ||
-    (action === "approve" && row.reviewState === "approved")
-  ) {
-    return;
-  }
-  const value = actions.currentValueOf(row);
-  if (action === "edit") {
-    actions.onEdit(row, true);
-  } else if (action === "retranslate") {
-    actions.onRetranslate?.(row);
-  } else if (value !== undefined && action === "approve") {
-    actions.onApprove(row, value);
-  } else if (value !== undefined) {
-    actions.onReject({ locale: row.locale, key: row.key, value });
-  }
-}
-
-interface BulkSelection {
-  readonly selected: ReadonlySet<string>;
-  readonly state: SelectionState;
-  readonly toggle: (row: ReviewQueueRow) => void;
-  readonly setAll: (on: boolean) => void;
-  readonly bar: ReviewBulkBarProps;
-  readonly rejecting: readonly BulkRejectEntry[] | null;
-  readonly confirmReject: (entries: readonly BulkRejectEntry[]) => void;
-  readonly closeReject: () => void;
-}
-
-function bulkTargetsOf(
-  rows: readonly ReviewQueueRow[],
-  values: ReadonlyMap<string, KeyValuePair>,
-): readonly BulkRejectEntry[] {
-  return rows.flatMap((row) => {
-    const value = reviewedValueFor(values, row);
-    return value === undefined ? [] : [{ locale: row.locale, key: row.key, value }];
-  });
-}
-
-function useBulkSelection(
-  rows: readonly ReviewQueueRow[],
-  values: ReadonlyMap<string, KeyValuePair>,
-  decisions: ReviewDecisions,
-  spend: boolean,
-  onCleared: () => void,
-): BulkSelection {
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-  const [rejecting, setRejecting] = useState<readonly BulkRejectEntry[] | null>(null);
-  const [running, setRunning] = useState<RowBusyAction | undefined>(undefined);
-  const ids = rows.map(rowId);
-  const selectedIds = new Set(selectedAmong(ids, selected));
-  const selectedRows = rows.filter((row) => selectedIds.has(rowId(row)));
-  const actionableRows = selectedRows.filter((row) => !decisions.pending.has(rowId(row)));
-  const targets = bulkTargetsOf(actionableRows, values);
-  const keepFailures: BatchSettled = (failed) => {
-    setRunning(undefined);
-    setSelected((current) => new Set([...current].filter((id) => failed.has(id))));
-  };
-  return {
-    selected,
-    state: selectionState(ids, selected),
-    toggle: (row) => setSelected((current) => toggleSelected(current, rowId(row))),
-    setAll: (on) => setSelected((current) => withAllSelected(current, ids, on)),
-    bar: {
-      count: selectedRows.length,
-      actionable: actionableRows.length,
-      busyAction: running,
-      busyNote:
-        running === undefined ? bulkBusyNote(selectedRows.length - actionableRows.length) : null,
-      decisionBlocker: bulkDecisionBlocker(
-        actionableRows.length,
-        targets.length,
-        MAX_REVIEW_BATCH_ENTRIES,
-      ),
-      retranslateBlocker: bulkRetranslateBlocker(
-        actionableRows.length,
-        MAX_RETRANSLATE_BATCH_ENTRIES,
-      ),
-      onApprove: () => {
-        setRunning("approve");
-        decisions.approveMany(targets, keepFailures);
-      },
-      onReject: () => setRejecting(targets),
-      onRetranslate: spend
-        ? () => {
-            setRunning("retranslate");
-            decisions.retranslateMany(actionableRows, keepFailures);
-          }
-        : undefined,
-      onClear: () => {
-        setSelected(new Set());
-        onCleared();
-      },
-    },
-    rejecting,
-    confirmReject: (entries) => {
-      setRunning("reject");
-      decisions.rejectMany(entries, keepFailures);
-      setRejecting(null);
-    },
-    closeReject: () => setRejecting(null),
-  };
-}
-
-interface ShortcutContext {
-  readonly helpOpen: boolean;
-  readonly setHelpOpen: (open: boolean) => void;
-  readonly active: ActiveRow;
-  readonly canWrite: boolean;
-  readonly actions: RowActions;
-  readonly toggleSelected: (row: ReviewQueueRow) => void;
-}
-
-function handleShortcut(action: ReviewShortcutAction, context: ShortcutContext): void {
-  if (action === "help") {
-    context.setHelpOpen(!context.helpOpen);
-    return;
-  }
-  if (context.helpOpen) {
-    return;
-  }
-  if (action === "next" || action === "previous") {
-    context.active.move(action === "next" ? 1 : -1);
-    return;
-  }
-  const row = context.active.activeRow;
-  if (row === undefined || !context.canWrite) {
-    return;
-  }
-  if (action === "select") {
-    context.toggleSelected(row);
-  } else {
-    runRowShortcut(action, row, context.actions);
-  }
 }
 
 function ReviewQueueContent({
@@ -400,31 +140,6 @@ function ReviewQueueContent({
       )}
     </>
   );
-}
-
-function isTypingElsewhere(active: Element | null): boolean {
-  if (!(active instanceof HTMLElement) || active.closest("tr") !== null) {
-    return false;
-  }
-  return classifyShortcutTarget(shortcutTargetOf(active)) === "editable";
-}
-
-function useSettledFocus(
-  ready: boolean,
-  focusActive: () => void,
-): { readonly request: () => void } {
-  const [requested, setRequested] = useState(0);
-  const handled = useRef(0);
-  useEffect(() => {
-    if (requested === handled.current || !ready) {
-      return;
-    }
-    handled.current = requested;
-    if (!isTypingElsewhere(document.activeElement)) {
-      focusActive();
-    }
-  });
-  return { request: () => setRequested((count) => count + 1) };
 }
 
 function busyFor(
