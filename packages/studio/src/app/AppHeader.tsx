@@ -7,28 +7,24 @@ import { HeaderSearch } from "./HeaderSearch.js";
 import { LiveIndicator } from "./LiveIndicator.js";
 import { cn } from "./lib/cn.js";
 import { PAGE_MAX_CLASS } from "./lib/page-width.js";
+import { isPlainLeftClick } from "./lib/plain-click.js";
 import { THEME_LABELS, themeStore } from "./lib/theme-dom.js";
 import { NavLink } from "./NavLink.js";
 import { DOCS_URL, GITHUB_URL, NAV_GROUPS, PAGE_LABELS } from "./nav-groups.js";
-import { navigateToPage } from "./use-route.js";
+import { navigateToRoute } from "./use-route.js";
 
 function describeThemeAction(current: ThemeMode, next: ThemeMode): string {
   return `Theme: ${THEME_LABELS[current]}. Switch to ${THEME_LABELS[next]}.`;
 }
 
+const HOME_ROUTE = { page: "translations", params: {} } as const;
+
 function goHome(event: MouseEvent<HTMLAnchorElement>): void {
-  if (
-    event.defaultPrevented ||
-    event.button !== 0 ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.shiftKey ||
-    event.altKey
-  ) {
+  if (event.defaultPrevented || !isPlainLeftClick(event)) {
     return;
   }
   event.preventDefault();
-  navigateToPage("translations");
+  navigateToRoute(HOME_ROUTE);
 }
 
 const ICON_LINK =

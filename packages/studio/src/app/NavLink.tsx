@@ -2,6 +2,7 @@ import { Icon, type IconName } from "@verbatra/ui";
 import type { MouseEvent, ReactNode, Ref } from "react";
 import { type PageId, pageHash } from "../client/routes.js";
 import { cn } from "./lib/cn.js";
+import { isPlainLeftClick } from "./lib/plain-click.js";
 import { navigateToPage } from "./use-route.js";
 
 export interface NavLinkProps {
@@ -31,10 +32,6 @@ const DRAWER_LINK = cn(
 
 function formatCount(count: number): string {
   return count > 99 ? "99+" : String(count);
-}
-
-function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>): boolean {
-  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
 
 export function NavLink({
