@@ -61,13 +61,16 @@ export function ReviewRowActions({
     running === action ? rowBusyLabel(action) : idle;
   const reserve = (action: RowBusyAction, idle: string): string =>
     running === action ? idle : rowBusyLabel(action);
+  const reservesBusyWidth = !wrap && onRetranslate !== undefined;
   return (
     <span
       className={cn(
         "relative inline-flex items-center gap-2 whitespace-nowrap",
         wrap ? "flex-wrap" : "flex-nowrap",
-        !wrap && onRetranslate !== undefined && RETRANSLATE_ACTIONS_RESERVED_CLASSNAME,
+        reservesBusyWidth && RETRANSLATE_ACTIONS_RESERVED_CLASSNAME,
       )}
+      data-layout={wrap ? "wrap" : "inline"}
+      data-reserves-busy={reservesBusyWidth ? "" : undefined}
     >
       <Button
         size="xs"

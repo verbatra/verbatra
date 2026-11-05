@@ -15,16 +15,18 @@ describe("ProvenanceBadge", () => {
       <ProvenanceBadge provenance={{ origin: "external", reviewState: "unreviewed" }} />,
     );
 
-    expect(view.text()).toBe(
+    expect(view.get("[data-tone]").textContent).toBe(
       " Origin: Edited outside verbatra. Changed since verbatra recorded who wrote it.",
     );
-    expect(view.all(".sr-only").map((node) => node.textContent)).toEqual([
+    expect(view.all("[data-tone] .sr-only").map((node) => node.textContent)).toEqual([
       " Origin: ",
       ". Changed since verbatra recorded who wrote it.",
     ]);
-    expect(view.get("[title]").getAttribute("title")).toBe(
+    expect(view.get('[role="tooltip"]').textContent).toBe(
       "Changed since verbatra recorded who wrote it.",
     );
+    expect(view.get('[role="tooltip"]').getAttribute("aria-hidden")).toBe("true");
+    expect(view.query("[title]")).toBeNull();
   });
 
   it("uses the paired status tokens of its tone", () => {

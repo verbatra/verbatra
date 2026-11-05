@@ -1007,7 +1007,7 @@ describe("KeyEditor drawer: provenance", () => {
     const block = localeBlocks(view)[0];
 
     expect(block?.querySelectorAll("dt")).toHaveLength(4);
-    expect(block?.querySelector("dd")?.textContent).toBe(
+    expect(block?.querySelector("dd [data-tone]")?.textContent).toBe(
       " Origin: Machine. Written by a translation provider.",
     );
     expect(block?.querySelector("dd:nth-of-type(2) .font-mono")?.textContent).toBe("anthropic");

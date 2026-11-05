@@ -6,6 +6,7 @@ import { canRetranslateReviewed } from "../../client/retranslate-eligibility.js"
 import {
   filterReviewRows,
   REVIEW_ORIGIN_LABELS,
+  reviewStateCounts,
   uniqueReviewLocales,
 } from "../../client/review-filter.js";
 import {
@@ -13,7 +14,7 @@ import {
   hasRunningRetranslation,
   type PendingRow,
 } from "../../client/review-in-flight.js";
-import type { ReviewQueueRow } from "../../client/review-queue-data.js";
+import type { QueueReviewState, ReviewQueueRow } from "../../client/review-queue-data.js";
 import {
   flattenReviewQueue,
   reviewedSourceFor,
@@ -65,6 +66,7 @@ export function ReviewPanel({ refreshToken }: PanelProps): ReactNode {
 function ReviewQueueContent({
   rows,
   filtered,
+  stateCounts,
   facets,
   query,
   onFacetsChange,
@@ -77,6 +79,7 @@ function ReviewQueueContent({
 }: {
   readonly rows: readonly ReviewQueueRow[];
   readonly filtered: readonly ReviewQueueRow[];
+  readonly stateCounts: Readonly<Record<QueueReviewState, number>>;
   readonly facets: ReviewFacets;
   readonly query: string;
   readonly onFacetsChange: (facets: ReviewFacets) => void;
@@ -105,6 +108,7 @@ function ReviewQueueContent({
         onQueryChange={(event) => onQueryChange(event.target.value)}
         onShowShortcuts={onShowShortcuts}
         matchCount={filtered.length}
+        stateCounts={stateCounts}
         searchRef={searchRef}
         approveAll={approveAll}
       />
@@ -234,6 +238,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
     reviewState: facets.reviewState,
   });
   const filtered = filterReviewRows(rows, filterOf(query), values);
+  const stateCounts = reviewStateCounts(rows, filterOf(query), values);
   const approveAll = approveAllFor(
     facets,
     filterReviewRows(rows, filterOf("")).length,
@@ -316,6 +321,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
       <ReviewQueueContent
         rows={rows}
         filtered={filtered}
+        stateCounts={stateCounts}
         facets={facets}
         query={query}
         onFacetsChange={setFacets}

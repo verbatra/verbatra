@@ -9,6 +9,7 @@ import type { ReviewQueueResult } from "../../shared/rpc/review-queue.js";
 import type { ProjectSnapshotResult } from "../../shared/rpc/snapshot.js";
 import type { RenderResult } from "../test-support.js";
 import {
+  click,
   clickAsync,
   flush,
   pressKey,
@@ -129,6 +130,10 @@ function keyFilter(view: RenderResult): HTMLInputElement {
     throw new Error("the key filter is not an input element");
   }
   return element;
+}
+
+function stateChip(view: RenderResult, state: "unreviewed" | "approved"): HTMLElement {
+  return view.get(`[data-state-filter="${state}"]`);
 }
 
 function rowAction(view: RenderResult, key: string, name: string): HTMLElement {
@@ -331,17 +336,17 @@ describe("ReviewPanel", () => {
   it("sizes the actions column for a running retranslation up front, so a busy row never shifts the table", async () => {
     stubReview(QUEUE, SPEND_SNAPSHOT);
     const withSpend = await renderAsync(<ReviewPanel refreshToken={0} />);
-    const actionsOf = (view: RenderResult): string[] =>
-      (rowAction(view, "cart.badge", "Edit").parentElement?.className ?? "").split(" ");
+    const reservesOf = (view: RenderResult): boolean =>
+      rowAction(view, "cart.badge", "Edit").parentElement?.hasAttribute("data-reserves-busy") ??
+      false;
 
-    expect(actionsOf(withSpend)).toContain("min-w-106");
-    expect(withSpend.get("th[data-actions-column]").className).not.toContain("w-110");
+    expect(reservesOf(withSpend)).toBe(true);
     withSpend.unmount();
 
     stubReview();
     const withoutSpend = await renderAsync(<ReviewPanel refreshToken={0} />);
 
-    expect(actionsOf(withoutSpend)).not.toContain("min-w-106");
+    expect(reservesOf(withoutSpend)).toBe(false);
   });
 
   it("hides the row actions when the server would refuse a write", async () => {
@@ -588,45 +593,60 @@ describe("ReviewPanel", () => {
     expect(view.get('[role="alert"]').textContent).toContain("Could not reject cart.badge (fr)");
   });
 
-  it("shows each row's current translation under its key, in full on hover", async () => {
+  it("shows each row's current translation under its key, in full in a tooltip", async () => {
     stubDecisionReady();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
     const shown = row?.querySelector("[data-row-value]");
+    const bubble = shown?.parentElement?.querySelector('[role="tooltip"]');
 
     expect(shown?.textContent).toBe("Panier");
-    expect(shown?.getAttribute("title")).toBe("Panier");
-    expect(shown?.className).toContain("truncate");
+    expect(shown?.hasAttribute("title")).toBe(false);
+    expect(bubble?.textContent).toBe("Panier");
+    expect(bubble?.getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("shows each row's source text beside its translation, labelled, in full on hover", async () => {
+  it("shows each row's source text beside its translation, labelled, in full in a tooltip", async () => {
     stubDecisionReady();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
     const source = row?.querySelector("[data-row-source]");
+    const bubble = source?.parentElement?.querySelector('[role="tooltip"]');
     const labels = Array.from(row?.querySelectorAll("dt") ?? []).map((node) => node.textContent);
 
-    expect(source?.textContent).toBe(source?.getAttribute("title"));
+    expect(source?.hasAttribute("title")).toBe(false);
+    expect(bubble?.textContent).toBe(source?.textContent);
     expect(source?.textContent).not.toBe("");
-    expect(source?.className).toContain("truncate");
     expect(labels).toEqual(["Source", "Target"]);
     expect(source?.getAttribute("lang")).toBe(SNAPSHOT.sourceLocale);
   });
 
-  it("unfolds a row's source and translation in full while the row has keyboard focus", async () => {
+  it("opens a row's full value in a wide tooltip on a pointer hover", async () => {
+    stubDecisionReady();
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
+    const wrapper = row?.querySelector("[data-row-value]")?.parentElement;
+    const slot = wrapper?.querySelector("[data-slot]");
+
+    expect(slot?.hasAttribute("data-open")).toBe(false);
+    act(() => {
+      wrapper?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    });
+    expect(slot?.hasAttribute("data-open")).toBe(true);
+    expect(slot?.getAttribute("data-wide")).toBe("");
+  });
+
+  it("keeps a truncated row's source and translation whole in the document for assistive technology", async () => {
     stubDecisionReady();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
 
-    expect(row?.className).toContain("group");
-    for (const selector of ["[data-row-source]", "[data-row-value]"]) {
-      const text = row?.querySelector(selector);
-      expect(text?.className).toContain("group-focus-within:whitespace-pre-wrap");
-      expect(text?.className).toContain("group-focus-within:break-words");
-    }
+    expect(row?.querySelector("[data-row-source]")?.textContent).toBe("Cart");
+    expect(row?.querySelector("[data-row-value]")?.textContent).toBe("Panier");
   });
 
   it("gives a right-to-left value its own direction, isolates its tokens, and starts it at the key's edge", async () => {
@@ -662,10 +682,6 @@ describe("ReviewPanel", () => {
 
     expect(shown.getAttribute("dir")).toBe("rtl");
     expect(shown.getAttribute("lang")).toBe("ar");
-    expect(shown.className).toContain("w-fit");
-    expect(shown.className).toContain("text-start");
-    expect(shown.className).toContain("max-w-full");
-    expect(shown.className).not.toContain("font-mono");
     expect(
       Array.from(shown.querySelectorAll("bdi[dir='ltr']")).map((node) => node.textContent),
     ).toEqual(["#{orderId}", "{count, plural,", "one {", "#", "} other {", "#", "}", "}"]);
@@ -1788,8 +1804,7 @@ describe("ReviewPanel: review workflow", () => {
       const view = await renderAsync(<ReviewPanel refreshToken={0} />);
 
       expect(view.all("thead th").map((cell) => cell.textContent)).toEqual(["", "Locale", "Entry"]);
-      expect(view.get("table").className.split(" ")).toContain("min-w-0");
-      expect(view.get("table").className).not.toContain("480px");
+      expect(view.get("table").dataset.layout).toBe("stacked");
       expect(view.all("[data-row-stacked]")).toHaveLength(3);
       expect(rowAction(view, "cart.badge", "Approve")).toBeDefined();
     } finally {
@@ -1935,7 +1950,7 @@ describe("ReviewPanel: origin and review state", () => {
     stubReview(MIXED_QUEUE);
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
 
-    selectOption(facetSelect(view, "Filter by review state"), "approved");
+    click(stateChip(view, "approved"));
 
     expect(rowKeys(view)).toEqual(["cart.total"]);
     expect(rowAction(view, "cart.total", "Approve").hasAttribute("disabled")).toBe(true);
@@ -2044,7 +2059,7 @@ describe("ReviewPanel: shortcuts on approved entries", () => {
       "review.approve": { ok: true, result: decided("de", "cart.total", "approved") },
     });
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    selectOption(facetSelect(view, "Filter by review state"), "approved");
+    click(stateChip(view, "approved"));
     await flush();
 
     pressKey("j");
@@ -2219,5 +2234,115 @@ describe("ReviewPanel deep links", () => {
 
     expect(localeFilter(view).value).toBe("");
     expect(window.location.hash).toBe("#/review");
+  });
+});
+
+describe("ReviewPanel: shortcut contract after the filter redesign", () => {
+  it("opens the editor for the highlighted row with Enter, as it does with e", async () => {
+    stubKeyboardReady();
+    stubRpc({ "key.context": { ok: true, result: KEY_VALUE } });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j");
+    pressKey("Enter");
+    await flush();
+
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe(
+      "Edit checkout.title in de",
+    );
+  });
+
+  it.each([
+    ["a select", () => document.createElement("select")],
+    ["a text area", () => document.createElement("textarea")],
+  ])("pauses every shortcut while %s has focus", async (_name, create) => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const field = create();
+    document.body.appendChild(field);
+
+    for (const key of ["j", "ArrowDown", "k", "a", "r", "e", "Enter", "t", "x", "?"]) {
+      pressOn(field, key);
+    }
+    field.remove();
+
+    expect(activeRowKey(view)).toBeNull();
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(rpcCalls.some((call) => call.method === "review.approve")).toBe(false);
+  });
+
+  it("keeps the queue shortcuts live while a state chip has focus, and leaves Enter to the chip", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const chip = stateChip(view, "unreviewed");
+    chip.focus();
+
+    pressOn(chip, "Enter");
+    expect(view.query('[role="dialog"]')).toBeNull();
+    pressOn(chip, "j");
+
+    expect(activeRowKey(view)).toBe("checkout.title");
+  });
+});
+
+describe("ReviewPanel: review state chips", () => {
+  it("counts the entries of each review state and presses the current one", async () => {
+    stubDecisionReady();
+    stubReview(MIXED_QUEUE);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const needs = stateChip(view, "unreviewed");
+    const approved = stateChip(view, "approved");
+
+    expect(needs.textContent).toBe("Needs review3");
+    expect(approved.textContent).toBe("Approved1");
+    expect(needs.getAttribute("aria-pressed")).toBe("true");
+    expect(approved.getAttribute("aria-pressed")).toBe("false");
+    expect(view.all("legend").map((legend) => legend.textContent)).toContain(
+      "Show entries that are",
+    );
+  });
+
+  it("switches the queue to the approved entries and back", async () => {
+    stubDecisionReady();
+    stubReview(MIXED_QUEUE);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    click(stateChip(view, "approved"));
+    expect(rowKeys(view)).toEqual(["cart.total"]);
+    expect(stateChip(view, "approved").getAttribute("aria-pressed")).toBe("true");
+
+    click(stateChip(view, "unreviewed"));
+    expect(rowKeys(view)).toHaveLength(3);
+  });
+
+  it("keeps the chosen chip when it is pressed again", async () => {
+    stubDecisionReady();
+    stubReview(MIXED_QUEUE);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    click(stateChip(view, "unreviewed"));
+
+    expect(stateChip(view, "unreviewed").getAttribute("aria-pressed")).toBe("true");
+    expect(rowKeys(view)).toHaveLength(3);
+  });
+
+  it("counts within the locale and text filters, whatever state is chosen", async () => {
+    stubDecisionReady();
+    stubReview(MIXED_QUEUE);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    typeInto(keyFilter(view), "cart.total");
+
+    expect(stateChip(view, "unreviewed").textContent).toBe("Needs review0");
+    expect(stateChip(view, "approved").textContent).toBe("Approved1");
+  });
+
+  it("names the keyboard shortcuts button with the ? key as a keycap", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const button = view.getByText("button", "Keyboard shortcuts?");
+
+    expect(button.getAttribute("aria-keyshortcuts")).toBe("?");
+    expect(button.querySelector("kbd")?.textContent).toBe("?");
   });
 });

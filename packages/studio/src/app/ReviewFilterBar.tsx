@@ -1,5 +1,5 @@
 import type { MachineClassOrigin } from "@verbatra/sdk";
-import { Button, FilterBar, SearchInput, Select } from "@verbatra/ui";
+import { Button, FilterBar, FilterChip, Kbd, SearchInput, Select } from "@verbatra/ui";
 import type { ChangeEvent, ReactNode, Ref } from "react";
 import { REVIEW_ORIGIN_LABELS, REVIEW_STATE_LABELS } from "../client/review-filter.js";
 import type { QueueReviewState } from "../client/review-queue-data.js";
@@ -21,6 +21,33 @@ function isOrigin(value: string): value is MachineClassOrigin {
   return (ORIGIN_OPTIONS as readonly string[]).includes(value);
 }
 
+function StateChips({
+  facets,
+  counts,
+  onFacetsChange,
+}: {
+  readonly facets: ReviewFacets;
+  readonly counts: Readonly<Record<QueueReviewState, number>>;
+  readonly onFacetsChange: (facets: ReviewFacets) => void;
+}): ReactNode {
+  return (
+    <fieldset className="relative m-0 flex flex-wrap items-center gap-1.5 border-0 p-0">
+      <legend className="sr-only">Show entries that are</legend>
+      {STATE_OPTIONS.map((state) => (
+        <FilterChip
+          key={state}
+          pressed={facets.reviewState === state}
+          count={counts[state]}
+          data-state-filter={state}
+          onClick={() => onFacetsChange({ ...facets, reviewState: state })}
+        >
+          {REVIEW_STATE_LABELS[state]}
+        </FilterChip>
+      ))}
+    </fieldset>
+  );
+}
+
 function FacetSelects({
   locales,
   facets,
@@ -32,22 +59,6 @@ function FacetSelects({
 }): ReactNode {
   return (
     <>
-      <Select
-        aria-label="Filter by review state"
-        value={facets.reviewState}
-        onChange={(event) =>
-          onFacetsChange({
-            ...facets,
-            reviewState: event.target.value === "approved" ? "approved" : "unreviewed",
-          })
-        }
-      >
-        {STATE_OPTIONS.map((state) => (
-          <option key={state} value={state}>
-            {REVIEW_STATE_LABELS[state]}
-          </option>
-        ))}
-      </Select>
       <Select
         aria-label="Filter by locale"
         value={facets.locale}
@@ -95,6 +106,7 @@ export function ReviewFilterBar({
   onQueryChange,
   onShowShortcuts,
   matchCount,
+  stateCounts,
   searchRef,
   approveAll,
 }: {
@@ -105,11 +117,13 @@ export function ReviewFilterBar({
   readonly onQueryChange: (event: ChangeEvent<HTMLInputElement>) => void;
   readonly onShowShortcuts: () => void;
   readonly matchCount: number;
+  readonly stateCounts: Readonly<Record<QueueReviewState, number>>;
   readonly searchRef: Ref<HTMLInputElement>;
   readonly approveAll: ApproveAllAction | undefined;
 }): ReactNode {
   return (
     <FilterBar label="Review queue filters">
+      <StateChips facets={facets} counts={stateCounts} onFacetsChange={onFacetsChange} />
       <FacetSelects locales={locales} facets={facets} onFacetsChange={onFacetsChange} />
       <SearchInput
         ref={searchRef}
@@ -133,9 +147,7 @@ export function ReviewFilterBar({
         aria-keyshortcuts={shortcutKeysFor("help")}
       >
         Keyboard shortcuts
-        <kbd className="rounded-sm border border-border bg-muted px-1 font-mono text-xs text-muted-foreground">
-          ?
-        </kbd>
+        <Kbd>?</Kbd>
       </Button>
     </FilterBar>
   );

@@ -1,5 +1,5 @@
 import type { KeyProvenance } from "@verbatra/sdk";
-import { Badge } from "@verbatra/ui";
+import { Badge, Tooltip } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { provenanceBadgeView } from "../client/provenance-view.js";
 
@@ -13,12 +13,12 @@ export function ProvenanceBadge({
     return null;
   }
   return (
-    <span title={view.description} className="inline-flex">
+    <Tooltip label={view.description} side="bottom-start" flip wide decorative>
       <Badge tone={view.tone}>
         <span className="sr-only"> Origin: </span>
         {view.label}
         <span className="sr-only">. {view.description}</span>
       </Badge>
-    </span>
+    </Tooltip>
   );
 }

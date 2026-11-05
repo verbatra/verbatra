@@ -8,6 +8,7 @@ import {
   TableHead,
   TableHeaderCell,
   TableRow,
+  Tooltip,
 } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { ReviewQueueRow } from "../client/review-queue-data.js";
@@ -40,13 +41,34 @@ export interface RowActions {
 
 const WIDE_LAYOUT_QUERY = "(min-width: 1280px)";
 
-const ACTIVE_ROW_CLASSNAME = "bg-accent/60";
-
 const ROW_FOCUS_CLASSNAME =
   "focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
 const ROW_TEXT_CLASSNAME =
-  "block w-fit max-w-full truncate group-focus-within:whitespace-pre-wrap group-focus-within:break-words";
+  "block w-fit min-w-0 max-w-full truncate group-has-[:focus-visible]:whitespace-pre-wrap group-has-[:focus-visible]:break-words";
+
+function RowText({
+  value,
+  locale,
+  className,
+  dataAttribute,
+}: {
+  readonly value: string;
+  readonly locale: string | undefined;
+  readonly className: string;
+  readonly dataAttribute: "data-row-source" | "data-row-value";
+}): ReactNode {
+  return (
+    <Tooltip label={value} side="bottom-start" flip wide decorative className="min-w-0 max-w-full">
+      <TranslationValue
+        value={value}
+        locale={locale}
+        className={cn(ROW_TEXT_CLASSNAME, className)}
+        {...{ [dataAttribute]: "" }}
+      />
+    </Tooltip>
+  );
+}
 
 function ReviewEntry({
   row,
@@ -74,24 +96,22 @@ function ReviewEntry({
             <>
               <dt className={microLabelClassName}>Source</dt>
               <dd className="m-0 min-w-0">
-                <TranslationValue
+                <RowText
                   value={source}
                   locale={sourceLocale}
-                  className={cn(ROW_TEXT_CLASSNAME, "text-muted-foreground")}
-                  title={source}
-                  data-row-source=""
+                  className="text-muted-foreground"
+                  dataAttribute="data-row-source"
                 />
               </dd>
             </>
           )}
           <dt className={microLabelClassName}>Target</dt>
           <dd className="m-0 min-w-0">
-            <TranslationValue
+            <RowText
               value={value}
               locale={row.locale}
-              className={cn(ROW_TEXT_CLASSNAME, "text-foreground")}
-              title={value}
-              data-row-value=""
+              className="text-foreground"
+              dataAttribute="data-row-value"
             />
           </dd>
         </dl>
@@ -168,9 +188,8 @@ function ReviewRow({
         }
       }}
       tabIndex={active ? 0 : -1}
-      aria-current={active ? "true" : undefined}
-      data-active={active ? "" : undefined}
-      className={cn("group align-top", ROW_FOCUS_CLASSNAME, active && ACTIVE_ROW_CLASSNAME)}
+      active={active}
+      className={cn("group align-top", ROW_FOCUS_CLASSNAME)}
       onFocus={() => actions.onActivate(row)}
       onClick={() => actions.onActivate(row)}
     >
@@ -229,7 +248,7 @@ export function ReviewTable({
   const wide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
   return (
     <TableCard>
-      <Table className={wide ? undefined : "min-w-0"}>
+      <Table className={wide ? undefined : "min-w-0"} data-layout={wide ? "wide" : "stacked"}>
         <TableHead>
           <tr>
             {canWrite ? (
