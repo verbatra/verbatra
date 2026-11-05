@@ -191,6 +191,39 @@ describe("KeyEditor drawer", () => {
     expect(view.text()).toContain("Hello");
   });
 
+  it("shows one combined error, with one Retry for both reads, when both fail", async () => {
+    stubBackground();
+    let valueReads = 0;
+    let integrityReads = 0;
+    stubRpc({
+      "key.value": () => {
+        valueReads += 1;
+        return valueReads === 1 ? rpcError("INTERNAL", "down") : value("Hello", "Hallo");
+      },
+      "key.integrity": () => {
+        integrityReads += 1;
+        return integrityReads === 1
+          ? rpcError("INTERNAL", "down")
+          : { ok: true, result: integrityResult([integrityEntry("de")]) };
+      },
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    expect(view.all('[role="alert"]')).toHaveLength(1);
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(valueReads).toBe(2);
+    expect(integrityReads).toBe(2);
+    expect(localeBlocks(view)[0]?.textContent).toContain("Placeholders match");
+  });
+
   it("says the integrity read failed, with a Retry that reads again", async () => {
     stubBackground();
     let answers = 0;

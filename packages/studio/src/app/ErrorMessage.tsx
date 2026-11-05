@@ -13,23 +13,27 @@ export interface ErrorMessageProps {
 export function ErrorMessage({ error, prefix, onRetry, onCancel }: ErrorMessageProps): ReactNode {
   return (
     <p
-      className="mb-4 flex items-start gap-2 rounded-lg border-s-[3px] border-danger bg-danger-soft px-4 py-3 text-danger"
+      className="mb-4 flex flex-wrap items-start gap-x-2 gap-y-2 rounded-lg border-s-[3px] border-danger bg-danger-soft px-4 py-3 text-danger"
       role="alert"
     >
       <Icon name="alert" className="mt-0.5 flex-none" />
-      <span className="min-w-0 flex-1">
+      <span className="min-w-0 flex-1 basis-40">
         {prefix !== undefined ? `${prefix} ` : null}
         {resolveErrorCopy(error)}
       </span>
-      {onRetry !== undefined ? (
-        <Button size="xs" onClick={onRetry}>
-          Retry
-        </Button>
-      ) : null}
-      {onCancel !== undefined ? (
-        <Button size="xs" onClick={onCancel}>
-          Cancel
-        </Button>
+      {onRetry !== undefined || onCancel !== undefined ? (
+        <span className="ms-auto flex gap-2" data-error-actions="">
+          {onRetry !== undefined ? (
+            <Button size="xs" onClick={onRetry}>
+              Retry
+            </Button>
+          ) : null}
+          {onCancel !== undefined ? (
+            <Button size="xs" onClick={onCancel}>
+              Cancel
+            </Button>
+          ) : null}
+        </span>
       ) : null}
     </p>
   );

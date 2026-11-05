@@ -29,6 +29,7 @@ import { KeysTable } from "../KeysTable.js";
 import { cn } from "../lib/cn.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
+import { visibleHash } from "../route-guard.js";
 import { type DiffState, useDiffState } from "../use-diff-state.js";
 import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
@@ -369,7 +370,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   }, [selectedKey]);
 
   function focusSettledRow(): void {
-    focusRow(parseRoute(window.location.hash).params.key ?? lastKeyRef.current);
+    focusRow(parseRoute(visibleHash()).params.key ?? lastKeyRef.current);
   }
 
   function closeEditor(): void {

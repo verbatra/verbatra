@@ -3,11 +3,13 @@ import type { ReactNode, RefObject } from "react";
 import { useEffect, useRef } from "react";
 import type { StructuredError } from "../client/state.js";
 import { ErrorMessage } from "./ErrorMessage.js";
+import { cn } from "./lib/cn.js";
 
 export interface UnsavedPromptProps {
   readonly locale: string;
   readonly saving: boolean;
   readonly error: StructuredError | null;
+  readonly placement: "pane" | "drawer";
   readonly onSave: () => void;
   readonly onDiscard: () => void;
   readonly onKeepEditing: () => void;
@@ -17,6 +19,7 @@ export function UnsavedPrompt({
   locale,
   saving,
   error,
+  placement,
   onSave,
   onDiscard,
   onKeepEditing,
@@ -34,7 +37,10 @@ export function UnsavedPrompt({
       ref={rootRef}
       data-unsaved-prompt=""
       data-sticky=""
-      className="sticky top-0 z-10 m-0 mb-6 min-w-0 rounded-(--radius-lg) border border-(--status-warning) bg-(--surface-tile) p-3"
+      className={cn(
+        "m-0 min-w-0 rounded-lg border border-warning bg-card p-3",
+        placement === "drawer" && "mt-3",
+      )}
     >
       <legend className="sr-only">Unsaved changes</legend>
       <p className="m-0 mb-3 text-sm text-foreground">

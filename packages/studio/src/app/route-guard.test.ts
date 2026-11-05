@@ -11,7 +11,7 @@ import {
 } from "./route-guard.js";
 
 let dirty = false;
-const onBlock = vi.fn<(proceed: () => void) => void>();
+const onBlock = vi.fn<(proceed: () => Promise<void>) => void>();
 const guard: RouteGuard = { isDirty: () => dirty, onBlock };
 let uninstall: () => void = () => {};
 

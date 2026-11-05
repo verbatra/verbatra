@@ -4,7 +4,7 @@ export type RouteWrite = "push" | "replace";
 
 export interface RouteGuard {
   isDirty(): boolean;
-  onBlock(proceed: () => void): void;
+  onBlock(proceed: () => Promise<void>): void;
 }
 
 let activeGuard: RouteGuard | null = null;
@@ -13,6 +13,7 @@ let positionHash = "";
 let undoing = false;
 let correctedFrom: number | null = null;
 let admitting = false;
+let landings: Array<() => void> = [];
 
 function readIdx(): number | null {
   const state: unknown = window.history.state;
@@ -52,16 +53,43 @@ function adopt(idx: number | null): void {
   positionHash = window.location.hash;
 }
 
+function continueUndo(idx: number | null, home: number): void {
+  if (idx === home) {
+    undoing = false;
+    correctedFrom = null;
+  } else if (idx !== correctedFrom) {
+    correctedFrom = idx;
+    window.history.go(home - (idx ?? home + 1));
+  }
+}
+
+function releaseLandings(): void {
+  const waiting = landings;
+  landings = [];
+  for (const resolve of waiting) {
+    resolve();
+  }
+}
+
+function holdTraversal(guard: RouteGuard, idx: number | null, home: number): void {
+  const delta = (idx ?? home + 1) - home;
+  undoing = true;
+  correctedFrom = idx;
+  window.history.go(-delta);
+  guard.onBlock(
+    () =>
+      new Promise<void>((resolve) => {
+        admitting = true;
+        landings.push(resolve);
+        window.history.go(delta);
+      }),
+  );
+}
+
 function handleTraversal(): void {
   const idx = readIdx();
   if (undoing && position !== null) {
-    if (idx === position) {
-      undoing = false;
-      correctedFrom = null;
-    } else if (idx !== correctedFrom) {
-      correctedFrom = idx;
-      window.history.go(position - (idx ?? position + 1));
-    }
+    continueUndo(idx, position);
     return;
   }
   if (idx !== null && idx === position) {
@@ -72,16 +100,12 @@ function handleTraversal(): void {
   admitting = false;
   if (guard === null || admitted || !guard.isDirty() || position === null) {
     adopt(idx);
+    if (admitted) {
+      releaseLandings();
+    }
     return;
   }
-  const delta = (idx ?? position + 1) - position;
-  undoing = true;
-  correctedFrom = idx;
-  window.history.go(-delta);
-  guard.onBlock(() => {
-    admitting = true;
-    window.history.go(delta);
-  });
+  holdTraversal(guard, idx, position);
 }
 
 function handleBeforeUnload(event: BeforeUnloadEvent): void {
@@ -128,6 +152,9 @@ export function routeChangeBlocked(next: string, kind: RouteWrite): boolean {
   if (guard === null || next === visibleHash() || !guard.isDirty()) {
     return false;
   }
-  guard.onBlock(() => writeRoute(kind, next));
+  guard.onBlock(() => {
+    writeRoute(kind, next);
+    return Promise.resolve();
+  });
   return true;
 }

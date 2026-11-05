@@ -841,8 +841,12 @@ describe("split editor when its key disappears", () => {
     expect(textarea(view).value).toBe("Hallo!");
     expect(view.get("[data-key-missing]").textContent).toContain("no longer exists");
 
+    expect(window.location.hash).toContain("key=app.title");
+
     await clickAsync(getRole(view, "button", "Discard", "[data-key-missing]"));
     await flush();
+
+    expect(window.location.hash).toBe("#/translations");
 
     expect(view.query("[data-locale-edit]")).toBeNull();
     expect(view.query("[data-key-missing]")).toBeNull();

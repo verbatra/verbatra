@@ -37,7 +37,7 @@ export interface KeyEditorProps {
 }
 
 interface Pending {
-  readonly proceed: () => void;
+  readonly proceed: () => Promise<void>;
   readonly route: boolean;
 }
 
@@ -97,7 +97,7 @@ function MissingKeyNotice({ onDiscard }: { readonly onDiscard: () => void }): Re
     <div
       role="status"
       data-key-missing=""
-      className="mb-6 flex flex-wrap items-center gap-3 rounded-(--radius-lg) border border-(--status-warning) p-3 text-sm text-foreground"
+      className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-warning p-3 text-sm text-foreground"
     >
       <span className="min-w-0 flex-1">
         This key no longer exists in the source or the locale files. Your draft is kept until you
@@ -131,6 +131,7 @@ export function KeyEditor({
 }: KeyEditorProps): ReactNode {
   const history = useHistoryList(refreshToken);
   const [integrityAttempt, setIntegrityAttempt] = useState(0);
+  const retryIntegrity = (): void => setIntegrityAttempt((count) => count + 1);
   const integrity = useKeyIntegrity(keyName, refreshToken, integrityAttempt);
   const capabilitiesState = useCapabilities();
   const [editingLocale, setEditingLocale] = useEditTarget(keyName);
@@ -234,9 +235,10 @@ export function KeyEditor({
   }
 
   function startEditing(locale: string): void {
-    const open = (): void => {
+    const open = (): Promise<void> => {
       setSaved(null);
       setEditingLocale(locale);
+      return Promise.resolve();
     };
     if (edit.dirty) {
       setPending({ proceed: open, route: false });
@@ -254,8 +256,8 @@ export function KeyEditor({
     }
   }
 
-  function proceedWith(held: Pending): void {
-    held.proceed();
+  async function proceedWith(held: Pending): Promise<void> {
+    await held.proceed();
     if (held.route) {
       returnFocusAfterRoute();
     }
@@ -264,7 +266,7 @@ export function KeyEditor({
   async function resolveSave(locale: string, held: Pending): Promise<void> {
     if (await saveEditing(locale, false)) {
       setPending(null);
-      proceedWith(held);
+      await proceedWith(held);
       return;
     }
     textAreaRef.current?.focus();
@@ -273,7 +275,13 @@ export function KeyEditor({
   function resolveDiscard(held: Pending): void {
     setPending(null);
     setEditingLocale(null);
-    proceedWith(held);
+    void proceedWith(held);
+  }
+
+  function discardMissing(): void {
+    dirtyRef.current = false;
+    setEditingLocale(null);
+    onClose();
   }
 
   function keepEditing(): void {
@@ -287,6 +295,7 @@ export function KeyEditor({
         locale={editingLocale}
         saving={edit.submit.kind === "submitting"}
         error={submitFailure(edit.submit)}
+        placement={layout}
         onSave={() => void resolveSave(editingLocale, pending)}
         onDiscard={() => resolveDiscard(pending)}
         onKeepEditing={keepEditing}
@@ -295,17 +304,22 @@ export function KeyEditor({
 
   const body = (
     <>
-      {missing ? <MissingKeyNotice onDiscard={() => setEditingLocale(null)} /> : null}
+      {missing ? <MissingKeyNotice onDiscard={discardMissing} /> : null}
       <Section title="Source">
-        <SourceValue values={values} onRetry={retryValues} />
+        <SourceValue
+          values={values}
+          onRetry={() => {
+            retryValues();
+            if (integrity.kind === "error") {
+              retryIntegrity();
+            }
+          }}
+        />
       </Section>
       <KeyDescription description={values.kind === "loaded" ? values.description : undefined} />
       <Section title="Locales">
-        {integrity.kind === "error" ? (
-          <ErrorMessage
-            error={integrity.error}
-            onRetry={() => setIntegrityAttempt((count) => count + 1)}
-          />
+        {integrity.kind === "error" && values.kind !== "error" ? (
+          <ErrorMessage error={integrity.error} onRetry={retryIntegrity} />
         ) : null}
         <ul className="m-0 list-none p-0">
           {rows.map((row) => (
