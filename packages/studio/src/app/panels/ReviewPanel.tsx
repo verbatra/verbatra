@@ -155,9 +155,7 @@ function ReviewQueueContent({
             )
           }
         >
-          {stateCounts.approved > 0
-            ? "Nothing to review right now. Choose Approved to see what was decided."
-            : "Nothing to review right now."}
+          Nothing to review right now. Choose Approved to see what was decided.
         </AllClear>
       ) : filtered.length === 0 ? (
         <EmptyState

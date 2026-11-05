@@ -34,9 +34,6 @@ function LocaleValue({
   if (failure !== undefined) {
     return <ErrorMessage error={failure} retrying={retrying} onRetry={onRetry} />;
   }
-  if (!values.targets.has(locale)) {
-    return null;
-  }
   const value = values.targets.get(locale);
   if (value === undefined) {
     return <p className="m-0 mt-2 text-sm text-muted-foreground">No translation yet.</p>;
