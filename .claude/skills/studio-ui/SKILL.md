@@ -299,8 +299,8 @@ auto-hide; it stays until dismissed.
 
 Editor state (the open locale, its draft, the unsaved prompt) lives in `KeyEditor`, above the
 container, so crossing `xl` keeps a draft, and focus and the selection in the field are restored
-after the swap. The translation form is inline in the locale block, built from `entry-editor-parts.tsx`
-and the `useLocaleEdit` hook, both shared with `EditEntryDialog` (Review); a second editor dialog or
+after the swap. The translation form is inline in the locale block, built from
+`entry-editor-parts.tsx` and the `useLocaleEdit` hook, both shared with `EditEntryDialog` (Review); a second editor dialog or
 a copy of either is a defect. A failed read shows `ErrorMessage` with Retry (and Cancel in the
 form), never an empty state, and after a successful Retry focus moves to the recovered content
 (a `data-recovery-target` container with the standard focus ring, or the field). Roving focus stays on
