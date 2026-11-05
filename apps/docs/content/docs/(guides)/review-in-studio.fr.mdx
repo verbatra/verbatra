@@ -17,7 +17,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Ouvre l'URL qu'il affiche, token compris, et arrête Studio avec Ctrl+C. [`verbatra studio`](/fr/docs/cli/studio) couvre le port, le token et toutes les options. Chaque page se rafraîchit en direct quand un fichier de locale, le fichier de verrouillage ou le fichier de provenance change.
+Ouvre l'URL qu'il affiche et arrête Studio avec Ctrl+C. [`verbatra studio`](/fr/docs/cli/studio) couvre le port, le token et toutes les options. Chaque page se rafraîchit en direct quand un fichier de locale, le fichier de verrouillage ou le fichier de provenance change.
 
 ## Lire la page Translations
 
@@ -61,7 +61,7 @@ L'éditeur montre la description de la clé, les termes du glossaire que ton bro
 
 ## Traiter la file de relecture
 
-La page Review liste chaque valeur écrite par une machine que personne n'a approuvée : une ligne par locale et par clé, avec le texte source au-dessus de la traduction, son origine et les éventuels [signalements de relecture](/fr/docs/translation-safety#signalements-de-relecture) de la dernière exécution sur cette machine.
+La page Review liste chaque valeur écrite par une machine que personne n'a approuvée : une ligne par locale et par clé, avec le texte source complet au-dessus de la traduction (les longues valeurs passent à la ligne), son origine et les éventuels [signalements de relecture](/fr/docs/translation-safety#signalements-de-relecture) de la dernière exécution sur cette machine.
 
 <StudioScreenshot
   shot="review"
@@ -116,7 +116,7 @@ Appuie sur `j` ou la flèche bas pour mettre en surbrillance la première entré
 | `x` | la sélectionner ou désélectionner pour une action groupée |
 | `?` | afficher ou masquer la liste des raccourcis |
 
-Les raccourcis sont en pause pendant que tu tapes ou qu'une boîte de dialogue est ouverte. Après une décision, l'entrée suivante est mise en surbrillance.
+Les raccourcis sont en pause pendant que tu tapes, que le focus est dans la barre de filtres ou qu'une boîte de dialogue est ouverte. Après une décision, l'entrée suivante est mise en surbrillance.
 
 ### Agir sur plusieurs entrées à la fois
 
@@ -132,7 +132,7 @@ Démarre Studio avec la dépense autorisée ([comment la dépense est accordée]
 verbatra studio --allow-spend
 ```
 
-Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans l'éditeur d'une clé pour une valeur avec un défaut d'intégrité. Il fait un appel au fournisseur, passe le résultat par la barrière d'intégrité et laisse la nouvelle valeur dans la file pour que tu l'approuves. Depuis une ligne de Review, une valeur écrite par une personne n'est jamais remplacée ; dans son éditeur sur Translations, choisis **Replace anyway**. Sans `--allow-spend`, le serveur n'enregistre pas du tout le point d'accès.
+Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans l'éditeur d'une clé pour une valeur avec un défaut d'intégrité. Il fait un appel au fournisseur, passe le résultat par la barrière d'intégrité et laisse la nouvelle valeur dans la file pour que tu l'approuves. Depuis une ligne de Review, une valeur écrite par une personne n'est jamais remplacée ; dans son éditeur sur Translations, choisis **Replace anyway**.
 
 ## Traduire les changements en attente
 

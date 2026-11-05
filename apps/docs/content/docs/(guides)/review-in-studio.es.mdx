@@ -17,7 +17,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token y cada opción. Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo o el archivo de procedencia.
+Abre la URL que imprime y detén Studio con Ctrl+C. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token y cada opción. Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo o el archivo de procedencia.
 
 ## Lee la página Translations
 
@@ -61,7 +61,7 @@ Desde 1280px de ancho el editor se coloca junto a la tabla; por debajo se abre c
 
 ## Trabaja la cola de Review
 
-La página Review lista cada valor que escribió una máquina y que nadie ha aprobado: una fila por locale y clave, con el texto de origen sobre la traducción, su origen y cualquier [señal de revisión](/es/docs/translation-safety#señales-de-revisión) de la última ejecución en esta máquina.
+La página Review lista cada valor que escribió una máquina y que nadie ha aprobado: una fila por locale y clave, con el texto de origen completo sobre la traducción (los valores largos se ajustan), su origen y cualquier [señal de revisión](/es/docs/translation-safety#señales-de-revisión) de la última ejecución en esta máquina.
 
 <StudioScreenshot
   shot="review"
@@ -116,7 +116,7 @@ Pulsa `j` o la flecha abajo para resaltar la primera entrada, y luego:
 | `x` | seleccionarla o quitarla de la selección para una acción en bloque |
 | `?` | mostrar u ocultar la lista de atajos |
 
-Los atajos se pausan mientras escribes o hay un diálogo abierto. Tras una decisión se resalta la entrada siguiente.
+Los atajos se pausan mientras escribes, el foco está en la barra de filtros o hay un diálogo abierto. Tras una decisión se resalta la entrada siguiente.
 
 ### Actúa sobre varias entradas a la vez
 
@@ -132,7 +132,7 @@ Arranca Studio con el gasto permitido ([cómo se concede el gasto](/es/docs/cli/
 verbatra studio --allow-spend
 ```
 
-Aparece entonces un botón **Retranslate** en cada fila de Review, y en el editor de una clave para un valor con un defecto de integridad. Hace una sola llamada al proveedor, pasa el resultado por la puerta de integridad y deja el nuevo valor en la cola para que lo apruebes. Desde una fila de Review, un valor que escribió una persona nunca se sustituye; en su editor en Translations, elige **Replace anyway**. Sin `--allow-spend` el servidor ni siquiera registra el endpoint.
+Aparece entonces un botón **Retranslate** en cada fila de Review, y en el editor de una clave para un valor con un defecto de integridad. Hace una sola llamada al proveedor, pasa el resultado por la puerta de integridad y deja el nuevo valor en la cola para que lo apruebes. Desde una fila de Review, un valor que escribió una persona nunca se sustituye; en su editor en Translations, elige **Replace anyway**.
 
 ## Traduce los cambios pendientes
 
