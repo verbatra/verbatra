@@ -9,6 +9,7 @@ export const tableClasses = {
   td: "px-3 py-2.5 text-(--text-strong)",
   rowHover: "hover:bg-(--surface-hover)/40",
   rowSelected: "bg-(--surface-hover)",
+  rowActive: "bg-(--surface-hover)",
   numeric: "text-end tabular-nums",
 };
 
@@ -31,21 +32,26 @@ export function TableRow({
   className,
   hover = true,
   selected,
+  active = false,
   ...props
 }: HTMLAttributes<HTMLTableRowElement> & {
   readonly hover?: boolean;
   readonly selected?: boolean;
+  readonly active?: boolean;
   readonly ref?: Ref<HTMLTableRowElement>;
 }): ReactNode {
   return (
     <tr
       className={cn(
-        hover && selected !== true && tableClasses.rowHover,
+        hover && selected !== true && !active && tableClasses.rowHover,
         selected === true && tableClasses.rowSelected,
+        active && selected !== true && tableClasses.rowActive,
         className,
       )}
       aria-selected={selected}
+      aria-current={active ? "true" : undefined}
       data-selected={selected === true ? "" : undefined}
+      data-active={active ? "" : undefined}
       {...props}
     />
   );

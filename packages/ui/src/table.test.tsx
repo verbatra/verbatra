@@ -63,7 +63,12 @@ describe("TableHead and TableBody", () => {
 });
 
 describe("TableRow", () => {
-  function row(props: { hover?: boolean; selected?: boolean; className?: string }) {
+  function row(props: {
+    hover?: boolean;
+    selected?: boolean;
+    active?: boolean;
+    className?: string;
+  }) {
     return render(
       <table>
         <tbody>
@@ -76,6 +81,27 @@ describe("TableRow", () => {
   it("tints on hover by default and drops the tint for a non-interactive row", () => {
     expect(row({}).className).toContain(tableClasses.rowHover);
     expect(row({ hover: false }).className).not.toContain(tableClasses.rowHover);
+  });
+
+  it("marks the active row as current, not selected, and keeps it one tone under the pointer", () => {
+    const active = row({ active: true });
+
+    expect(active.getAttribute("aria-current")).toBe("true");
+    expect(active.hasAttribute("data-active")).toBe(true);
+    expect(active.hasAttribute("aria-selected")).toBe(false);
+    expect(active.hasAttribute("data-selected")).toBe(false);
+    expect(active.className).toContain(tableClasses.rowActive);
+    expect(active.className).not.toContain(tableClasses.rowHover);
+  });
+
+  it("marks no row as current by default, and lets a selected row keep its own tone", () => {
+    const plain = row({});
+    expect(plain.hasAttribute("aria-current")).toBe(false);
+    expect(plain.hasAttribute("data-active")).toBe(false);
+
+    const both = row({ active: true, selected: true });
+    expect(both.className).toContain(tableClasses.rowSelected);
+    expect(both.hasAttribute("data-active")).toBe(true);
   });
 
   it("merges a caller className", () => {

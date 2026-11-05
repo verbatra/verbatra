@@ -149,7 +149,7 @@ describe("Tooltip", () => {
     }
 
     function mountFlip(
-      side: "bottom" | "end" | "bottom-end" = "bottom",
+      side: "bottom" | "end" | "bottom-end" | "bottom-start" = "bottom",
       clips: readonly number[] = [],
     ) {
       const tip = (
@@ -195,6 +195,15 @@ describe("Tooltip", () => {
       hover(view.get("button"));
 
       expect(view.get(SLOT).dataset.side).toBe("top");
+    });
+
+    it("flips a bottom-start bubble to the matching top-start side", () => {
+      geometry(390);
+      const view = mountFlip("bottom-start", [400]);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("top-start");
     });
 
     it("places a bubble that mounts while the control is already hovered", () => {
@@ -463,5 +472,20 @@ describe("Tooltip", () => {
 
     expect(view.text()).toContain("plain text");
     expect(view.get("[role='tooltip']").textContent).toBe("Tip");
+  });
+
+  it("marks a wide bubble, which wraps a long label instead of keeping it on one line", () => {
+    const plain = mount();
+    expect(plain.get(SLOT).hasAttribute("data-wide")).toBe(false);
+    plain.unmount();
+
+    const view = render(
+      <Tooltip label="A long translated value" side="bottom-start" wide>
+        <button type="button">c</button>
+      </Tooltip>,
+    );
+
+    expect(view.get(SLOT).hasAttribute("data-wide")).toBe(true);
+    expect(view.get(SLOT).dataset.side).toBe("bottom-start");
   });
 });
