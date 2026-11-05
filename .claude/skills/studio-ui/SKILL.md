@@ -336,8 +336,9 @@ target; a full page reload can still load the target URL after the `beforeunload
 push or replace is replayed as the same push or replace. Typing (filter text, chips, selects,
 locale) replaces, a header search or page link pushes once, and the brand link goes through
 `navigateToRoute` with the bare Translations route, so it clears the key and filters as it always
-did and a dirty draft gets the prompt. An entry without an index falls back to the `beforeunload`
-confirmation, which is attached only while a draft is dirty. The guard's `popstate` and `hashchange`
+did and a dirty draft gets the prompt. A same-document landing without an index (a pasted hash or an
+outside link) is stamped by `stampLanding()` and held by the guard like any other; `beforeunload` is
+attached only while a draft is dirty and covers a full page unload. The guard's `popstate` and `hashchange`
 listeners register when `route-guard.ts` loads, so they run before the router's; never move them
 into an effect.
 
@@ -350,7 +351,9 @@ field. A save that finishes never closes the form of a different locale or key. 
 removes the open key while the draft is dirty keeps the editor, with a notice and a Discard. After a
 route change the focus is returned once the new route has rendered, the same way for the prompt's
 Save and Discard, the form's Save and Cancel and the notice's Discard: on the control that was used
-when it is outside the editor, otherwise on the nearest row. A save that finishes after the hold was
+when it is outside the editor; otherwise, in the drawer, on the first control of the dialog while the
+landing route still has a key (never on a row behind the modal, and focus the user already moved to
+a control in the dialog stays), and on the nearest row in the pane or when the landing has no key. A save that finishes after the hold was
 released (Forward back onto the entry) puts focus on the Edit button of the saved locale. A new
 control that changes the route needs no extra code, but it must honour the boolean the navigate
 helpers return before running its own side effects.
