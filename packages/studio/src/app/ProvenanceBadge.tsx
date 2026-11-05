@@ -1,19 +1,21 @@
 import type { KeyProvenance } from "@verbatra/sdk";
-import { Badge, Tooltip } from "@verbatra/ui";
+import { Badge, Tooltip, type TooltipSide } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { provenanceBadgeView } from "../client/provenance-view.js";
 
 export function ProvenanceBadge({
   provenance,
+  tooltipSide = "bottom-start",
 }: {
   readonly provenance: KeyProvenance | undefined;
+  readonly tooltipSide?: TooltipSide;
 }): ReactNode {
   const view = provenanceBadgeView(provenance);
   if (view === null) {
     return null;
   }
   return (
-    <Tooltip label={view.description} side="bottom-start" flip wide decorative>
+    <Tooltip label={view.description} side={tooltipSide} flip wide decorative>
       <Badge tone={view.tone}>
         <span className="sr-only"> Origin: </span>
         {view.label}

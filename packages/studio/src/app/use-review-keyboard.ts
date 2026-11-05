@@ -75,6 +75,7 @@ function shortcutTargetOf(target: EventTarget | null): ShortcutTargetShape | nul
     tagName: target.tagName,
     type: target.getAttribute("type") ?? "",
     isContentEditable: target.isContentEditable === true,
+    inPausedRegion: target.closest("[data-shortcuts-paused]") !== null,
   };
 }
 

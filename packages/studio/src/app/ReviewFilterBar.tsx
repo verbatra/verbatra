@@ -13,6 +13,19 @@ export interface ReviewFacets {
 
 export const ALL_FACETS: ReviewFacets = { locale: "", origin: "", reviewState: "unreviewed" };
 
+export function isReviewDone(facets: ReviewFacets, query: string): boolean {
+  return facets.origin === "" && facets.reviewState === "unreviewed" && query.trim() === "";
+}
+
+export function isDefaultFacets(facets: ReviewFacets, query: string): boolean {
+  return (
+    facets.locale === ALL_FACETS.locale &&
+    facets.origin === ALL_FACETS.origin &&
+    facets.reviewState === ALL_FACETS.reviewState &&
+    query.trim() === ""
+  );
+}
+
 const ORIGIN_OPTIONS = Object.keys(REVIEW_ORIGIN_LABELS) as readonly MachineClassOrigin[];
 
 const STATE_OPTIONS = Object.keys(REVIEW_STATE_LABELS) as readonly QueueReviewState[];
@@ -122,7 +135,7 @@ export function ReviewFilterBar({
   readonly approveAll: ApproveAllAction | undefined;
 }): ReactNode {
   return (
-    <FilterBar label="Review queue filters">
+    <FilterBar label="Review queue filters" data-shortcuts-paused="">
       <StateChips facets={facets} counts={stateCounts} onFacetsChange={onFacetsChange} />
       <FacetSelects locales={locales} facets={facets} onFacetsChange={onFacetsChange} />
       <SearchInput

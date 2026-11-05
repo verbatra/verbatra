@@ -1,5 +1,5 @@
 import { Button, EmptyState, TableSkeleton } from "@verbatra/ui";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { localeValuesOrEmpty, valuesIndex } from "../../client/locale-values.js";
 import { canRetranslateReviewed } from "../../client/retranslate-eligibility.js";
@@ -32,6 +32,8 @@ import { type EditingTarget, type RejectingTarget, ReviewDialogs } from "../Revi
 import {
   ALL_FACETS,
   type ApproveAllAction,
+  isDefaultFacets,
+  isReviewDone,
   type ReviewFacets,
   ReviewFilterBar,
 } from "../ReviewFilterBar.js";
@@ -63,6 +65,29 @@ export function ReviewPanel({ refreshToken }: PanelProps): ReactNode {
   );
 }
 
+function AllClear({
+  clearRef,
+  action,
+  children,
+}: {
+  readonly clearRef: RefObject<HTMLDivElement | null>;
+  readonly action?: ReactNode;
+  readonly children: ReactNode;
+}): ReactNode {
+  return (
+    <div
+      ref={clearRef}
+      tabIndex={-1}
+      data-all-clear=""
+      className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    >
+      <EmptyState icon="review" title="All clear" action={action}>
+        {children}
+      </EmptyState>
+    </div>
+  );
+}
+
 function ReviewQueueContent({
   rows,
   filtered,
@@ -76,6 +101,7 @@ function ReviewQueueContent({
   capabilities,
   actions,
   approveAll,
+  clearRef,
 }: {
   readonly rows: readonly ReviewQueueRow[];
   readonly filtered: readonly ReviewQueueRow[];
@@ -89,14 +115,11 @@ function ReviewQueueContent({
   readonly capabilities: StudioCapabilities | undefined;
   readonly actions: RowActions;
   readonly approveAll: ApproveAllAction | undefined;
+  readonly clearRef: RefObject<HTMLDivElement | null>;
 }): ReactNode {
   const searchRef = useRef<HTMLInputElement | null>(null);
   if (rows.length === 0) {
-    return (
-      <EmptyState icon="review" title="All clear">
-        Nothing to review right now.
-      </EmptyState>
-    );
+    return <AllClear clearRef={clearRef}>Nothing to review right now.</AllClear>;
   }
   return (
     <>
@@ -115,7 +138,28 @@ function ReviewQueueContent({
       {capabilities?.writeToDisk === true ? (
         <ReviewBulkBar {...bulk.bar} approveDisabled={facets.reviewState === "approved"} />
       ) : null}
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && isReviewDone(facets, query) ? (
+        <AllClear
+          clearRef={clearRef}
+          action={
+            isDefaultFacets(facets, query) ? undefined : (
+              <Button
+                onClick={() => {
+                  onFacetsChange(ALL_FACETS);
+                  onQueryChange("");
+                  searchRef.current?.focus();
+                }}
+              >
+                Clear filters
+              </Button>
+            )
+          }
+        >
+          {stateCounts.approved > 0
+            ? "Nothing to review right now. Choose Approved to see what was decided."
+            : "Nothing to review right now."}
+        </AllClear>
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon="search"
           title="No matching entries"
@@ -245,6 +289,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
     capabilities?.writeToDisk === true,
     setApprovingLocale,
   );
+  const clearRef = useRef<HTMLDivElement | null>(null);
   const active = useActiveRow(filtered);
   const settledFocus = useSettledFocus(
     view.kind === "data" &&
@@ -252,7 +297,13 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
       editing === null &&
       rejecting === null &&
       approvingLocale === null,
-    active.focusActive,
+    () => {
+      if (filtered.length > 0) {
+        active.focusActive();
+      } else {
+        clearRef.current?.focus();
+      }
+    },
   );
   const settledCount = decisions.settledCount;
   const requestFocus = settledFocus.request;
@@ -331,6 +382,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
         capabilities={capabilities}
         actions={actions}
         approveAll={approveAll}
+        clearRef={clearRef}
       />
       {approvingLocale !== null ? (
         <ApproveLocaleDialog

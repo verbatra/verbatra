@@ -96,6 +96,25 @@ describe("classifyShortcutTarget", () => {
     expect(classifyShortcutTarget(element("DIV", "", true))).toBe("editable");
   });
 
+  it("classifies any element inside a paused region as editable, a button included", () => {
+    expect(
+      classifyShortcutTarget({
+        tagName: "BUTTON",
+        type: "button",
+        isContentEditable: false,
+        inPausedRegion: true,
+      }),
+    ).toBe("editable");
+    expect(
+      classifyShortcutTarget({
+        tagName: "BUTTON",
+        type: "button",
+        isContentEditable: false,
+        inPausedRegion: false,
+      }),
+    ).toBe("control");
+  });
+
   it("classifies a missing element as other", () => {
     expect(classifyShortcutTarget(null)).toBe("other");
   });

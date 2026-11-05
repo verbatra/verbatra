@@ -36,4 +36,16 @@ describe("ProvenanceBadge", () => {
 
     expect(view.get("[data-tone]").dataset.tone).toBe("success");
   });
+
+  it("opens its bubble below by default and on the side a caller names", () => {
+    const provenance = { origin: "human", reviewState: "unreviewed" } as const;
+
+    expect(
+      render(<ProvenanceBadge provenance={provenance} />).get("[data-slot]").dataset.side,
+    ).toBe("bottom-start");
+    expect(
+      render(<ProvenanceBadge provenance={provenance} tooltipSide="top-start" />).get("[data-slot]")
+        .dataset.side,
+    ).toBe("top-start");
+  });
 });

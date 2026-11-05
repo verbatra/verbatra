@@ -99,6 +99,7 @@ export interface ShortcutTargetShape {
   readonly tagName: string;
   readonly type: string;
   readonly isContentEditable: boolean;
+  readonly inPausedRegion?: boolean;
 }
 
 export function classifyShortcutTarget(target: ShortcutTargetShape | null): ShortcutTarget {
@@ -106,6 +107,9 @@ export function classifyShortcutTarget(target: ShortcutTargetShape | null): Shor
     return "other";
   }
   const tag = target.tagName.toUpperCase();
+  if (target.inPausedRegion === true) {
+    return "editable";
+  }
   if (tag === "INPUT" && TOGGLE_INPUT_TYPES.has(target.type.toLowerCase())) {
     return "control";
   }

@@ -8,7 +8,6 @@ import {
   TableHead,
   TableHeaderCell,
   TableRow,
-  Tooltip,
 } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import type { ReviewQueueRow } from "../client/review-queue-data.js";
@@ -44,31 +43,7 @@ const WIDE_LAYOUT_QUERY = "(min-width: 1280px)";
 const ROW_FOCUS_CLASSNAME =
   "focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
-const ROW_TEXT_CLASSNAME =
-  "block w-fit min-w-0 max-w-full truncate group-focus-visible:whitespace-pre-wrap group-focus-visible:break-words group-has-[:focus-visible]:whitespace-pre-wrap group-has-[:focus-visible]:break-words";
-
-function RowText({
-  value,
-  locale,
-  className,
-  dataAttribute,
-}: {
-  readonly value: string;
-  readonly locale: string | undefined;
-  readonly className: string;
-  readonly dataAttribute: "data-row-source" | "data-row-value";
-}): ReactNode {
-  return (
-    <Tooltip label={value} side="bottom-start" flip wide decorative className="min-w-0 max-w-full">
-      <TranslationValue
-        value={value}
-        locale={locale}
-        className={cn(ROW_TEXT_CLASSNAME, className)}
-        {...{ [dataAttribute]: "" }}
-      />
-    </Tooltip>
-  );
-}
+const ROW_TEXT_CLASSNAME = "block w-fit min-w-0 max-w-full whitespace-pre-wrap wrap-anywhere";
 
 function ReviewEntry({
   row,
@@ -96,22 +71,22 @@ function ReviewEntry({
             <>
               <dt className={microLabelClassName}>Source</dt>
               <dd className="m-0 min-w-0">
-                <RowText
+                <TranslationValue
                   value={source}
                   locale={sourceLocale}
-                  className="text-muted-foreground"
-                  dataAttribute="data-row-source"
+                  className={cn(ROW_TEXT_CLASSNAME, "text-muted-foreground")}
+                  data-row-source=""
                 />
               </dd>
             </>
           )}
           <dt className={microLabelClassName}>Target</dt>
           <dd className="m-0 min-w-0">
-            <RowText
+            <TranslationValue
               value={value}
               locale={row.locale}
-              className="text-foreground"
-              dataAttribute="data-row-value"
+              className={cn(ROW_TEXT_CLASSNAME, "text-foreground")}
+              data-row-value=""
             />
           </dd>
         </dl>
@@ -155,10 +130,19 @@ function RowActionsFor({
   );
 }
 
-function RowWhy({ row }: { readonly row: ReviewQueueRow }): ReactNode {
+function RowWhy({
+  row,
+  stacked,
+}: {
+  readonly row: ReviewQueueRow;
+  readonly stacked: boolean;
+}): ReactNode {
   return (
     <span className="flex flex-wrap items-center gap-1">
-      <ProvenanceBadge provenance={{ origin: row.origin, reviewState: row.reviewState }} />
+      <ProvenanceBadge
+        provenance={{ origin: row.origin, reviewState: row.reviewState }}
+        tooltipSide={stacked ? "top-start" : "bottom-start"}
+      />
       <ReviewReasonChips reasons={row.reasons} />
     </span>
   );
@@ -212,14 +196,14 @@ function ReviewRow({
         />
         {wide ? null : (
           <div className="mt-2 space-y-2" data-row-stacked="">
-            <RowWhy row={row} />
+            <RowWhy row={row} stacked />
             {canWrite ? <RowActionsFor row={row} value={value} actions={actions} wrap /> : null}
           </div>
         )}
       </TableCell>
       {wide ? (
         <TableCell>
-          <RowWhy row={row} />
+          <RowWhy row={row} stacked={false} />
         </TableCell>
       ) : null}
       {wide && canWrite ? (

@@ -331,6 +331,7 @@ describe("ReviewPanel", () => {
       "Select every shown entry",
     );
     expect(rowAction(view, "cart.badge", "Approve")).toBeTruthy();
+    expect(view.get("tbody tr [data-slot]").dataset.side).toBe("bottom-start");
   });
 
   it("sizes the actions column for a running retranslation up front, so a busy row never shifts the table", async () => {
@@ -593,60 +594,48 @@ describe("ReviewPanel", () => {
     expect(view.get('[role="alert"]').textContent).toContain("Could not reject cart.badge (fr)");
   });
 
-  it("shows each row's current translation under its key, in full in a tooltip", async () => {
+  it("shows each row's current translation under its key, in full", async () => {
     stubDecisionReady();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
     const shown = row?.querySelector("[data-row-value]");
-    const bubble = shown?.parentElement?.querySelector('[role="tooltip"]');
 
     expect(shown?.textContent).toBe("Panier");
-    expect(shown?.hasAttribute("title")).toBe(false);
-    expect(bubble?.textContent).toBe("Panier");
-    expect(bubble?.getAttribute("aria-hidden")).toBe("true");
+    expect(shown?.getAttribute("lang")).toBe("fr");
   });
 
-  it("shows each row's source text beside its translation, labelled, in full in a tooltip", async () => {
+  it("shows each row's source text beside its translation, labelled, in full", async () => {
     stubDecisionReady();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
     const source = row?.querySelector("[data-row-source]");
-    const bubble = source?.parentElement?.querySelector('[role="tooltip"]');
     const labels = Array.from(row?.querySelectorAll("dt") ?? []).map((node) => node.textContent);
 
-    expect(source?.hasAttribute("title")).toBe(false);
-    expect(bubble?.textContent).toBe(source?.textContent);
-    expect(source?.textContent).not.toBe("");
+    expect(source?.textContent).toBe("Cart");
     expect(labels).toEqual(["Source", "Target"]);
     expect(source?.getAttribute("lang")).toBe(SNAPSHOT.sourceLocale);
   });
 
-  it("opens a row's full value in a wide tooltip on a pointer hover", async () => {
+  it("reads a value in full with no hidden copy: no title, no tooltip, no expander in the entry", async () => {
     stubDecisionReady();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
-    const wrapper = row?.querySelector("[data-row-value]")?.parentElement;
-    const slot = wrapper?.querySelector("[data-slot]");
 
-    expect(slot?.hasAttribute("data-open")).toBe(false);
-    act(() => {
-      wrapper?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
-    });
-    expect(slot?.hasAttribute("data-open")).toBe(true);
-    expect(slot?.getAttribute("data-wide")).toBe("");
-  });
-
-  it("keeps a truncated row's source and translation whole in the document for assistive technology", async () => {
-    stubDecisionReady();
-
-    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
-
-    expect(row?.querySelector("[data-row-source]")?.textContent).toBe("Cart");
-    expect(row?.querySelector("[data-row-value]")?.textContent).toBe("Panier");
+    for (const row of view.all("tbody tr")) {
+      const entry = row.querySelector("dl");
+      for (const value of ["[data-row-value]", "[data-row-source]"]) {
+        const text = row.querySelector(value)?.textContent ?? "";
+        expect(
+          Array.from(row.querySelectorAll("[title]")).some(
+            (node) => node.getAttribute("title") === text,
+          ),
+        ).toBe(false);
+      }
+      expect(entry?.querySelector('[role="tooltip"]')).toBeNull();
+      expect(row.querySelector("[aria-expanded]")).toBeNull();
+    }
   });
 
   it("gives a right-to-left value its own direction, isolates its tokens, and starts it at the key's edge", async () => {
@@ -1805,6 +1794,7 @@ describe("ReviewPanel: review workflow", () => {
 
       expect(view.all("thead th").map((cell) => cell.textContent)).toEqual(["", "Locale", "Entry"]);
       expect(view.get("table").dataset.layout).toBe("stacked");
+      expect(view.get("tbody tr [data-slot]").dataset.side).toBe("top-start");
       expect(view.all("[data-row-stacked]")).toHaveLength(3);
       expect(rowAction(view, "cart.badge", "Approve")).toBeDefined();
     } finally {
@@ -2271,17 +2261,37 @@ describe("ReviewPanel: shortcut contract after the filter redesign", () => {
     expect(rpcCalls.some((call) => call.method === "review.approve")).toBe(false);
   });
 
-  it("keeps the queue shortcuts live while a state chip has focus, and leaves Enter to the chip", async () => {
+  it("pauses the action letters while focus is in the filter bar, and leaves Enter to the chip", async () => {
     stubKeyboardReady();
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    const chip = stateChip(view, "unreviewed");
+    const chip = stateChip(view, "approved");
     chip.focus();
+
+    for (const key of ["j", "k", "a", "r", "e", "t", "x", "?"]) {
+      pressOn(chip, key);
+    }
+    expect(activeRowKey(view)).toBeNull();
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(rpcCalls.some((call) => call.method === "review.approve")).toBe(false);
 
     pressOn(chip, "Enter");
     expect(view.query('[role="dialog"]')).toBeNull();
-    pressOn(chip, "j");
+    expect(chip.getAttribute("aria-pressed")).toBe("false");
+    click(chip);
+    expect(chip.getAttribute("aria-pressed")).toBe("true");
+  });
 
-    expect(activeRowKey(view)).toBe("checkout.title");
+  it("pauses the letters on the Keyboard shortcuts button too, since it sits in the filter bar", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const button = view.getByText("button", "Keyboard shortcuts?");
+    button.focus();
+
+    pressOn(button, "j");
+    pressOn(button, "?");
+
+    expect(activeRowKey(view)).toBeNull();
+    expect(view.query('[role="dialog"]')).toBeNull();
   });
 });
 
@@ -2344,5 +2354,121 @@ describe("ReviewPanel: review state chips", () => {
 
     expect(button.getAttribute("aria-keyshortcuts")).toBe("?");
     expect(button.querySelector("kbd")?.textContent).toBe("?");
+  });
+});
+
+const ONLY_APPROVED: ReviewQueueResult = {
+  available: true,
+  locales: [
+    {
+      locale: "de",
+      needsReview: [],
+      approved: [
+        {
+          key: "cart.total",
+          reasons: [],
+          provenance: { origin: "agent", reviewState: "approved", reviewer: "mk" },
+        },
+      ],
+    },
+  ],
+};
+
+const ONE_PENDING: ReviewQueueResult = {
+  available: true,
+  locales: [
+    { locale: "de", needsReview: [{ key: "checkout.title", reasons: [], provenance: MACHINE }] },
+  ],
+};
+
+describe("ReviewPanel: nothing to review", () => {
+  it("says all clear under the default filters when only approved entries remain, and reaches them from the chip", async () => {
+    stubReview(ONLY_APPROVED);
+    stubRpc({ "locale.values": { ok: true, result: APPROVED_VALUES } });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(view.get("[data-all-clear]").textContent).toContain("All clear");
+    expect(view.get("[data-all-clear]").textContent).toContain("Choose Approved");
+    expect(view.query("tbody tr")).toBeNull();
+    expect(view.query('[data-state-filter="approved"]')).not.toBeNull();
+    expect(view.all("button").some((button) => button.textContent === "Clear filters")).toBe(false);
+
+    click(stateChip(view, "approved"));
+
+    expect(rowKeys(view)).toEqual(["cart.total"]);
+    expect(view.query("[data-all-clear]")).toBeNull();
+  });
+
+  it("offers Clear filters only once a filter differs from the default", async () => {
+    stubReview(MIXED_QUEUE);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const clearButtons = (): HTMLElement[] =>
+      view.all("button").filter((button) => button.textContent === "Clear filters");
+
+    expect(clearButtons()).toHaveLength(0);
+    typeInto(keyFilter(view), "no such key");
+    expect(view.query("[data-all-clear]")).toBeNull();
+    expect(view.text()).toContain("No matching entries");
+    expect(clearButtons()).toHaveLength(1);
+
+    click(clearButtons()[0] as HTMLElement);
+    expect(clearButtons()).toHaveLength(0);
+    expect(rowKeys(view)).toHaveLength(3);
+  });
+
+  it("says all clear for a locale with nothing left, and offers Clear filters because the locale differs from the default", async () => {
+    stubReview({
+      available: true,
+      locales: [
+        {
+          locale: "de",
+          needsReview: [{ key: "checkout.title", reasons: [], provenance: MACHINE }],
+        },
+        {
+          locale: "fr",
+          needsReview: [],
+          approved: [
+            {
+              key: "cart.total",
+              reasons: [],
+              provenance: { origin: "agent", reviewState: "approved", reviewer: "mk" },
+            },
+          ],
+        },
+      ],
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    selectOption(localeFilter(view), "fr");
+
+    expect(view.get("[data-all-clear]").textContent).toContain("All clear");
+    click(view.getByText("button", "Clear filters"));
+    expect(rowKeys(view)).toEqual(["checkout.title"]);
+    expect(document.activeElement).toBe(keyFilter(view));
+  });
+
+  it("moves focus to the all-clear message after the last entry was approved for a locale", async () => {
+    let approved = false;
+    stubRpc({
+      "review.queue": () => queueAnswer(approved ? ONLY_APPROVED : ONE_PENDING),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": { ok: true, result: LOCALE_VALUES },
+      "review.approveLocale": () => {
+        approved = true;
+        return {
+          ok: true,
+          result: { locale: "de", approved: ["checkout.title"], sourceChanged: [] },
+        };
+      },
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    selectOption(localeFilter(view), "de");
+    await clickAsync(approveAllButton(view) as HTMLButtonElement);
+    await clickAsync(view.getByText("button", "Approve 1 entry"));
+    await flush();
+    await flush();
+
+    expect(document.activeElement).toBe(view.get("[data-all-clear]"));
   });
 });
