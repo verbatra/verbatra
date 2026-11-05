@@ -173,12 +173,9 @@ export function KeyEditor({
 
   const attachField = useCallback((node: HTMLTextAreaElement | null) => {
     textAreaRef.current = node;
-    if (node === null) {
-      return undefined;
-    }
     return () => {
       selectionRef.current =
-        document.activeElement === node
+        node !== null && document.activeElement === node
           ? { start: node.selectionStart, end: node.selectionEnd }
           : null;
     };

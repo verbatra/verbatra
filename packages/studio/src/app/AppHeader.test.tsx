@@ -19,6 +19,28 @@ function mount(overrides: Partial<AppHeaderProps> = {}): RenderResult {
 }
 
 describe("AppHeader", () => {
+  it("sends a plain click on the home link through the router, and leaves a modified click to the browser", () => {
+    window.history.replaceState({ idx: 3 }, "", "#/glossary");
+    const view = mount({ activePage: "glossary" });
+    const home = view.get('header a[href="#/translations"]');
+    const plain = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+    const modified = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      ctrlKey: true,
+    });
+
+    act(() => {
+      home.dispatchEvent(plain);
+      home.dispatchEvent(modified);
+    });
+
+    expect(plain.defaultPrevented).toBe(true);
+    expect(modified.defaultPrevented).toBe(false);
+    expect(window.location.hash).toBe("#/translations");
+  });
+
   it("names the product in a home link to the workspace", () => {
     const view = mount();
 

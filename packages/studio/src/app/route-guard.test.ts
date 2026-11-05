@@ -314,6 +314,71 @@ describe("a stack with forward entries", () => {
   });
 });
 
+describe("positions that are not numbers or not there", () => {
+  function land(hash: string, state: unknown): void {
+    window.history.replaceState(state, "", hash);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }
+
+  it("treats a state without a numeric index as an unstamped landing", () => {
+    startAt("#/a", "#/b");
+    dirty = true;
+
+    land("#/z", { idx: "bad" });
+
+    expect(idx()).toBe(12);
+    expect(onBlock).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves a proceed that finds nothing held and changes nothing", async () => {
+    startAt("#/a", "#/b");
+    dirty = true;
+    land("#/a", { idx: 10 });
+    land("#/b", { idx: 11 });
+
+    await proceedOf(0)();
+
+    expect(visibleHash()).toBe("#/b");
+    expect(onRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the held index when the entry has lost its state by the time of the proceed", () => {
+    startAt("#/a", "#/b");
+    dirty = true;
+    land("#/a", { idx: 10 });
+
+    window.history.replaceState(null, "", "#/a");
+    void proceedOf(0)();
+
+    expect(visibleHash()).toBe("#/a");
+    land("#/b", { idx: 11 });
+    expect(onBlock).toHaveBeenCalledTimes(2);
+  });
+
+  it("restores a truncated position over an entry that has lost its state", () => {
+    startAt("#/a", "#/b");
+    dirty = true;
+    land("#/a", { idx: 10 });
+    land("#/x", null);
+
+    window.history.replaceState(null, "", "#/x");
+    restoreHeldRoute();
+
+    expect(window.location.hash).toBe("#/b");
+    expect(idx()).toBe(11);
+    expect(goSpy).not.toHaveBeenCalled();
+  });
+
+  it("keeps a position that is already stamped when the module loads", async () => {
+    window.history.replaceState({ idx: 7 }, "", "#/a");
+    vi.resetModules();
+
+    await import("./route-guard.js");
+
+    expect(idx()).toBe(7);
+  });
+});
+
 describe("an entry without a position", () => {
   it("falls back to the unload confirmation alone and holds nothing", async () => {
     window.history.replaceState(null, "", "#/a");

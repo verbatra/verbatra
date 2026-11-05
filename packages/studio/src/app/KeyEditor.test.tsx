@@ -1056,6 +1056,31 @@ describe("KeyEditor editing", () => {
     expect(view.query("textarea")).toBeNull();
   });
 
+  it("keeps the open form and its draft when a refresh cannot read the context again", async () => {
+    stubWritable();
+    let reads = 0;
+    stubRpc({
+      "key.context": () => {
+        reads += 1;
+        return reads === 1 ? context("Hallo") : rpcError("INTERNAL", "gone for a moment");
+      },
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+    typeInto(field(view), "Hallo!");
+
+    view.rerender(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+    );
+    await flush();
+    await flush();
+
+    expect(field(view).value).toBe("Hallo!");
+    expect(view.query('[role="alert"]')).toBeNull();
+  });
+
   it("ignores a context read that answers after another locale took over the form", async () => {
     stubWritable();
     const answers = new Map<string, (result: StubRpcResult) => void>();

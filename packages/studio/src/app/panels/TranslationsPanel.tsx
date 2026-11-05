@@ -361,12 +361,12 @@ function focusRow(key: string): void {
 function focusNearestRow(key: string): void {
   const stops = [...document.querySelectorAll<HTMLElement>("tr[data-key] [data-row][data-col]")];
   const own = stops.filter((stop) => stop.closest("tr")?.dataset.key === key);
-  const target = own.find((stop) => stop.tabIndex === 0) ?? own[0] ?? stops[0];
-  if (target !== undefined) {
-    target.focus();
-    return;
-  }
-  document.querySelector<HTMLElement>("[data-key-filter]")?.focus();
+  const target =
+    own.find((stop) => stop.tabIndex === 0) ??
+    own[0] ??
+    stops[0] ??
+    document.querySelector<HTMLElement>("[data-key-filter]");
+  target?.focus();
 }
 
 export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {

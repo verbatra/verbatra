@@ -1017,6 +1017,37 @@ describe("split editor focus", () => {
   });
 });
 
+describe("split editor held Back released", () => {
+  it("drops the prompt when the traversal comes back to the entry it left", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    window.history.forward();
+    await settle();
+
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(window.location.hash).toBe(TITLE_HASH);
+    expect(textarea(view).value).toBe("Hallo!");
+  });
+});
+
+describe("split editor close with an empty table", () => {
+  it("moves focus to the filter field when no row is left to land on", async () => {
+    stubServer();
+    const view = await mountAt(`${TITLE_HASH}&q=zzzz`, true);
+
+    await clickAsync(getRole(view, "button", "Close details for app.title"));
+
+    expect(document.activeElement).toBe(
+      getRole(view, "textbox", "Filter by key or translation text"),
+    );
+  });
+});
+
 describe("split editor brand link", () => {
   it("goes through the router, so it adds no unstamped entry and never drops a draft", async () => {
     stubServer();

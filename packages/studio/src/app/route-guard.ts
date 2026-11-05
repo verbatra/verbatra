@@ -113,10 +113,7 @@ export function restoreHeldRoute(): void {
     position = current;
     return;
   }
-  const delta = position - target.idx;
-  if (delta !== 0) {
-    window.history.go(delta);
-  }
+  window.history.go(position - target.idx);
 }
 
 function handleBeforeUnload(event: BeforeUnloadEvent): void {
