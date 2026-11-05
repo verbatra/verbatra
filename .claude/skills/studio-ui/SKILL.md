@@ -299,25 +299,32 @@ with Retry (and Cancel in the form), never an empty state. Roving focus stays on
 opens, Escape in the pane moves focus back to the row, and the pane never takes a global letter
 shortcut.
 
-**Unsaved prompt.** Every external route change goes through `route-guard.ts`, which blocks by
-history index, like a router blocker: every entry carries `{ idx }`, `navigate*` pushes `idx + 1`
-and `replaceRoute` replaces with the same `idx`. While a draft is dirty, a held traversal (back,
-forward, an entry typed or linked) is undone with `history.go(-delta)`, the echo is ignored, and
-proceeding replays it with `history.go(delta)`; a held push or replace is replayed as the same push
-or replace. Typing (filter text, chips, selects, locale) replaces, a header search or page link
-pushes once. An entry without an index falls back to the `beforeunload` confirmation, which is
-attached only while a draft is dirty. The guard's `popstate` and `hashchange` listeners register
-when `route-guard.ts` loads, so they run before the router's and the router keeps showing the held
-address (`visibleHash`) until the undo lands; never move them into an effect. An inline
-`UnsavedPrompt` (Save, Discard, Keep editing, never `window.confirm`) decides: it is a sticky element
-at the top of the pane's scroller inside an opaque sticky wrapper with a small gap under the
-pane header (`data-sticky`), in the drawer it sits in the sticky header
-through `Sheet`'s `banner` slot, it scrolls itself into view and focuses Keep editing, its Save is
-the only primary action while it is shown, and a rejected save keeps it, with the reason, and puts
-focus back in the field. It clears itself when the draft stops being dirty. A refresh that removes
-the open key while the draft is dirty keeps the editor, with a notice and a Discard. A new control
-that changes the route needs no extra code, but it must honour the boolean the navigate helpers
-return before running its own side effects.
+**Unsaved prompt.** Every external route change goes through `route-guard.ts`, which tracks history
+by index, like a router blocker: every entry carries `{ idx }`, `navigate*` pushes `idx + 1` and
+`replaceRoute` replaces with the same `idx`. While a draft is dirty, a traversal (back, forward, an
+entry typed or linked) is only held, never undone by code: no `history.go` is issued on a landing,
+so fast repeated Backs and Forwards cannot loop. The router keeps showing the held entry
+(`visibleHash`) and the prompt opens while the address bar already shows the target. Keep editing
+calls `restoreHeldRoute()`, the one place that issues a single `history.go(position - idx)` (or a
+`replaceState` when a hash push truncated the position entry), and it does so even when a
+navigation prompt replaced the traversal prompt. Save and Discard proceed synchronously: the guard
+adopts the current entry, the router is notified, and focus is returned against the real address. A
+held push or replace is replayed as the same push or replace and chains from the current entry.
+Typing (filter text, chips, selects, locale) replaces, a header search or page link pushes once, and
+the brand link goes through `navigateToPage` so the app never creates an unstamped entry. An entry
+without an index falls back to the `beforeunload` confirmation, which is attached only while a draft
+is dirty. The guard's `popstate` and `hashchange` listeners register when `route-guard.ts` loads, so
+they run before the router's; never move them into an effect. An inline `UnsavedPrompt` (Save,
+Discard, Keep editing, never `window.confirm`) decides: in the pane it sits in an opaque sticky
+wrapper (`data-sticky`) at the top of the scroller with a small gap under the pane header, in the
+drawer it sits in the sticky header (`data-sticky`) through `Sheet`'s `banner` slot, it scrolls itself
+into view and focuses Keep editing, its Save is the only primary action while it is shown, and a
+rejected save keeps it, with the reason, and puts focus back in the field. It clears itself when the
+draft stops being dirty or the hold is released by a landing on the position. A save that finishes
+never closes the form of a different locale. A refresh that removes the open key while the draft is
+dirty keeps the editor, with a notice and a Discard. A new control that changes the route needs no
+extra code, but it must honour the boolean the navigate helpers return before running its own side
+effects.
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they
