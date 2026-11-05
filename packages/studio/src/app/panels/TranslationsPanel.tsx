@@ -350,6 +350,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const localeValuesView = useLocaleValues(refreshToken);
   const wide = useMediaQuery(XL_QUERY, false);
   const lastKeyRef = useRef("");
+  const [dirtyKey, setDirtyKey] = useState<string | null>(null);
 
   const route = useTranslationsRoute(knownLocalesOf(diff), localeValuesView);
   const { selectedKey, setSelectedKey } = route;
@@ -358,7 +359,8 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const allClear = diff.kind === "loaded" && isFullyInSync(diff.locales);
   const integrity = useLocaleIntegrity(refreshToken, diff.kind === "loaded");
   const brokenInSync = allClear && hasIntegrityProblems(integrity);
-  const split = wide && selectedKey !== null && diff.kind === "loaded";
+  const editorKey = selectedKey ?? dirtyKey;
+  const split = wide && editorKey !== null && diff.kind === "loaded";
 
   useEffect(() => {
     if (selectedKey !== null) {
@@ -371,8 +373,8 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   }
 
   function closeEditor(): void {
-    if (selectedKey !== null && setSelectedKey(null) && wide) {
-      focusRow(selectedKey);
+    if (editorKey !== null && setSelectedKey(null) && wide) {
+      focusRow(editorKey);
     }
   }
 
@@ -385,7 +387,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
       />
       <DiffNotices diff={diff} brokenInSync={brokenInSync} />
       <div
-        className={cn(split && "grid grid-cols-[minmax(0,1fr)_24rem] items-start gap-6")}
+        className={cn(split && "grid grid-cols-[minmax(0,1fr)_22rem] items-start gap-6")}
         data-split={split ? "" : undefined}
       >
         <div className="min-w-0">
@@ -400,15 +402,17 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
             />
           ) : null}
         </div>
-        {selectedKey !== null && diff.kind === "loaded" ? (
+        {editorKey !== null && diff.kind === "loaded" ? (
           <KeyEditor
-            keyName={selectedKey}
+            keyName={editorKey}
             locales={diff.locales}
             refreshToken={refreshToken}
             layout={wide ? "pane" : "drawer"}
             onClose={closeEditor}
-            onEscape={() => focusRow(selectedKey)}
+            onEscape={() => focusRow(editorKey)}
             onRouteSettled={focusSettledRow}
+            missing={selectedKey === null}
+            onDirtyChange={(dirty) => setDirtyKey(dirty ? editorKey : null)}
           />
         ) : null}
       </div>

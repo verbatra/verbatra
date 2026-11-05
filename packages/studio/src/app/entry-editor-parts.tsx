@@ -19,20 +19,20 @@ export type SubmitState =
   | { readonly kind: "submitting" }
   | { readonly kind: "settled"; readonly outcome: EditEntryOutcome };
 
-export function submitStatusLabel(state: Exclude<SubmitState, { kind: "idle" }>): string {
+function submitStatusLabel(state: Exclude<SubmitState, { kind: "idle" }>): string {
   if (state.kind === "submitting") {
     return "Saving…";
   }
   return settledActionStatusLabel(state.outcome, "Saved");
 }
 
-export function submitStatusClassName(state: SubmitState): string {
+function submitStatusClassName(state: SubmitState): string {
   return actionStatusTextClassName(
     settledOutcomeTone(state.kind === "settled" ? state.outcome : undefined),
   );
 }
 
-export function clearRemediationHint(state: SubmitState): string | undefined {
+function clearRemediationHint(state: SubmitState): string | undefined {
   if (state.kind !== "settled" || state.outcome.kind !== "rejected") {
     return undefined;
   }
@@ -45,11 +45,11 @@ export function clearRemediationHint(state: SubmitState): string | undefined {
   );
 }
 
-export function isSaveShortcut(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
+function isSaveShortcut(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
   return event.key === "Enter" && (event.ctrlKey || event.metaKey);
 }
 
-export function DraftFlags({ flags }: { readonly flags: readonly DraftFlag[] }): ReactNode {
+function DraftFlags({ flags }: { readonly flags: readonly DraftFlag[] }): ReactNode {
   if (flags.length === 0) {
     return null;
   }
@@ -122,7 +122,7 @@ export function GlossaryHitList({
   );
 }
 
-export function LengthLine({
+function LengthLine({
   id,
   source,
   value,
@@ -149,7 +149,7 @@ export function LengthLine({
   );
 }
 
-export function DraftPreview({
+function DraftPreview({
   value,
   locale,
 }: {
@@ -229,17 +229,24 @@ export function SaveRow({
   submit,
   onSave,
   onCancel,
+  primary = true,
 }: {
   readonly submit: SubmitState;
   readonly onSave: () => void;
   readonly onCancel?: () => void;
+  readonly primary?: boolean;
 }): ReactNode {
   const hint = clearRemediationHint(submit);
   const saving = submit.kind === "submitting";
   return (
     <>
       <span className="flex flex-wrap items-center gap-3">
-        <Button variant="primary" size="md" disabled={saving} onClick={onSave}>
+        <Button
+          variant={primary ? "primary" : "secondary"}
+          size="md"
+          disabled={saving}
+          onClick={onSave}
+        >
           Save
         </Button>
         {onCancel !== undefined ? (

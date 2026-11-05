@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { type KeyIntegrityLocaleEntry, withFullIntegrity } from "../client/integrity-pill.js";
+import type { StructuredError } from "../client/state.js";
 import { rpcClient } from "./api.js";
 
 export type KeyIntegrityState =
   | { readonly kind: "loading" }
-  | { readonly kind: "error"; readonly message: string }
+  | { readonly kind: "error"; readonly message: string; readonly error: StructuredError }
   | { readonly kind: "loaded"; readonly locales: readonly KeyIntegrityLocaleEntry[] };
 
 interface KeyedIntegrity {
@@ -14,7 +15,7 @@ interface KeyedIntegrity {
 
 const LOADING: KeyIntegrityState = { kind: "loading" };
 
-export function useKeyIntegrity(key: string, refreshToken: number): KeyIntegrityState {
+export function useKeyIntegrity(key: string, refreshToken: number, attempt = 0): KeyIntegrityState {
   const [held, setHeld] = useState<KeyedIntegrity>({ key, state: LOADING });
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export function useKeyIntegrity(key: string, refreshToken: number): KeyIntegrity
         return;
       }
       if (!changed.ok) {
-        setState({ kind: "error", message: changed.error.message });
+        setState({ kind: "error", message: changed.error.message, error: changed.error });
         return;
       }
       setState({
@@ -41,7 +42,7 @@ export function useKeyIntegrity(key: string, refreshToken: number): KeyIntegrity
     return () => {
       cancelled = true;
     };
-  }, [key, refreshToken]);
+  }, [key, refreshToken, attempt]);
 
   return held.key === key ? held.state : LOADING;
 }

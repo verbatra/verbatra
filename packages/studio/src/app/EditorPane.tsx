@@ -4,12 +4,19 @@ import { cn } from "./lib/cn.js";
 
 export interface EditorPaneProps {
   readonly keyName: string;
+  readonly banner: ReactNode;
   readonly onClose: () => void;
   readonly onEscape: () => void;
   readonly children: ReactNode;
 }
 
-export function EditorPane({ keyName, onClose, onEscape, children }: EditorPaneProps): ReactNode {
+export function EditorPane({
+  keyName,
+  banner,
+  onClose,
+  onEscape,
+  children,
+}: EditorPaneProps): ReactNode {
   function handleKeyDown(event: KeyboardEvent<HTMLElement>): void {
     if (event.key === "Escape" && !event.defaultPrevented) {
       event.stopPropagation();
@@ -35,7 +42,10 @@ export function EditorPane({ keyName, onClose, onEscape, children }: EditorPaneP
         </div>
         <DialogCloseButton onClose={onClose} label={`Close details for ${keyName}`} />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+      <div data-editor-scroller="" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+        {banner}
+        <div className="pt-4">{children}</div>
+      </div>
     </Card>
   );
 }

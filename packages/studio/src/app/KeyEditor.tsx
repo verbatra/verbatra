@@ -1,21 +1,25 @@
-import { DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
+import { Button, DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DiffLocale } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus } from "../client/diff-view.js";
 import { deriveIntegrityPillView } from "../client/integrity-pill.js";
+import { settledActionStatusLabel } from "../client/settled-action-status.js";
+import type { StructuredError } from "../client/state.js";
 import { CommitList } from "./CommitList.js";
 import { EditorPane } from "./EditorPane.js";
+import { ErrorMessage } from "./ErrorMessage.js";
+import type { SubmitState } from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { LocaleBlock } from "./KeyEditorLocale.js";
 import { LocaleEditForm } from "./LocaleEditForm.js";
-import { installRouteGuard } from "./route-guard.js";
+import { installRouteGuard, setUnloadWarning } from "./route-guard.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
 import { useCapabilities } from "./use-capabilities.js";
 import { useHistoryList } from "./use-history-list.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
-import { useKeyValues } from "./use-key-values.js";
+import { type KeyValuesState, useKeyValues } from "./use-key-values.js";
 import { useLocaleEdit } from "./use-locale-edit.js";
 
 export type KeyEditorLayout = "pane" | "drawer";
@@ -28,6 +32,8 @@ export interface KeyEditorProps {
   readonly onClose: () => void;
   readonly onEscape: () => void;
   readonly onRouteSettled: () => void;
+  readonly missing: boolean;
+  readonly onDirtyChange: (dirty: boolean) => void;
 }
 
 interface Pending {
@@ -54,21 +60,53 @@ function isOutsideControl(element: Element | null): element is HTMLElement {
 }
 
 function SourceValue({
-  source,
-  loading,
+  values,
+  onRetry,
 }: {
-  readonly source: string | undefined;
-  readonly loading: boolean;
+  readonly values: KeyValuesState;
+  readonly onRetry: () => void;
 }): ReactNode {
-  if (source !== undefined) {
+  if (values.kind === "error") {
+    return <ErrorMessage error={values.error} onRetry={onRetry} />;
+  }
+  if (values.kind === "loaded" && values.source !== undefined) {
     return (
-      <TranslationValue as="p" value={source} className="m-0 break-words text-sm text-foreground" />
+      <TranslationValue
+        as="p"
+        value={values.source}
+        className="m-0 break-words text-sm text-foreground"
+      />
     );
   }
   return (
     <p className="m-0 text-sm text-muted-foreground">
-      {loading ? "Loading value…" : "No current source value."}
+      {values.kind === "loading" ? "Loading value…" : "No current source value."}
     </p>
+  );
+}
+
+function submitFailure(submit: SubmitState): StructuredError | null {
+  if (submit.kind !== "settled" || submit.outcome.kind === "success") {
+    return null;
+  }
+  return { code: "SAVE_NOT_ACCEPTED", message: settledActionStatusLabel(submit.outcome, "Saved") };
+}
+
+function MissingKeyNotice({ onDiscard }: { readonly onDiscard: () => void }): ReactNode {
+  return (
+    <div
+      role="status"
+      data-key-missing=""
+      className="mb-6 flex flex-wrap items-center gap-3 rounded-(--radius-lg) border border-(--status-warning) p-3 text-sm text-foreground"
+    >
+      <span className="min-w-0 flex-1">
+        This key no longer exists in the source or the locale files. Your draft is kept until you
+        discard it.
+      </span>
+      <Button size="sm" onClick={onDiscard}>
+        Discard
+      </Button>
+    </div>
   );
 }
 
@@ -88,9 +126,12 @@ export function KeyEditor({
   onClose,
   onEscape,
   onRouteSettled,
+  missing,
+  onDirtyChange,
 }: KeyEditorProps): ReactNode {
   const history = useHistoryList(refreshToken);
-  const integrity = useKeyIntegrity(keyName, refreshToken);
+  const [integrityAttempt, setIntegrityAttempt] = useState(0);
+  const integrity = useKeyIntegrity(keyName, refreshToken, integrityAttempt);
   const capabilitiesState = useCapabilities();
   const [editingLocale, setEditingLocale] = useEditTarget(keyName);
   const [pending, setPending] = useState<Pending | null>(null);
@@ -103,7 +144,7 @@ export function KeyEditor({
   const dialogRef = useDialogA11y<HTMLDivElement>({ isOpen: layout === "drawer", onClose });
 
   const rows = deriveKeyLocaleStatus(locales, keyName);
-  const values = useKeyValues(
+  const { values, retry: retryValues } = useKeyValues(
     keyName,
     rows.map((row) => row.locale),
     refreshToken,
@@ -112,9 +153,43 @@ export function KeyEditor({
   const capabilities =
     capabilitiesState.kind === "loaded" ? capabilitiesState.capabilities : undefined;
 
+  const dirtyReportRef = useRef(onDirtyChange);
+  const layoutRef = useRef(layout);
+  const selectionRef = useRef<{ readonly start: number; readonly end: number } | null>(null);
+
+  if (layoutRef.current !== layout) {
+    layoutRef.current = layout;
+    const field = textAreaRef.current;
+    selectionRef.current =
+      field !== null && document.activeElement === field
+        ? { start: field.selectionStart, end: field.selectionEnd }
+        : null;
+  }
+
   useLayoutEffect(() => {
     dirtyRef.current = edit.dirty;
+    dirtyReportRef.current = onDirtyChange;
   });
+
+  useEffect(() => {
+    const selection = selectionRef.current;
+    const field = textAreaRef.current;
+    if (selection !== null && field !== null) {
+      field.focus();
+      field.setSelectionRange(selection.start, selection.end);
+    }
+    selectionRef.current = null;
+  }, [layout]);
+
+  useEffect(() => {
+    dirtyReportRef.current(edit.dirty);
+    setUnloadWarning(edit.dirty);
+    if (!edit.dirty) {
+      setPending(null);
+    }
+  }, [edit.dirty]);
+
+  useEffect(() => () => dirtyReportRef.current(false), []);
 
   useEffect(
     () =>
@@ -176,23 +251,23 @@ export function KeyEditor({
     }
   }
 
-  function proceedWith(held: Pending | null): void {
-    held?.proceed();
-    if (held?.route === true) {
+  function proceedWith(held: Pending): void {
+    held.proceed();
+    if (held.route) {
       returnFocusAfterRoute();
     }
   }
 
-  async function resolveSave(locale: string): Promise<void> {
-    const held = pending;
-    setPending(null);
-    if (await saveEditing(locale, held === null)) {
+  async function resolveSave(locale: string, held: Pending): Promise<void> {
+    if (await saveEditing(locale, false)) {
+      setPending(null);
       proceedWith(held);
+      return;
     }
+    textAreaRef.current?.focus();
   }
 
-  function resolveDiscard(): void {
-    const held = pending;
+  function resolveDiscard(held: Pending): void {
     setPending(null);
     setEditingLocale(null);
     proceedWith(held);
@@ -203,25 +278,32 @@ export function KeyEditor({
     textAreaRef.current?.focus();
   }
 
+  const prompt =
+    pending !== null && editingLocale !== null ? (
+      <UnsavedPrompt
+        locale={editingLocale}
+        saving={edit.submit.kind === "submitting"}
+        error={submitFailure(edit.submit)}
+        onSave={() => void resolveSave(editingLocale, pending)}
+        onDiscard={() => resolveDiscard(pending)}
+        onKeepEditing={keepEditing}
+      />
+    ) : null;
+
   const body = (
     <>
-      {pending !== null && editingLocale !== null ? (
-        <UnsavedPrompt
-          locale={editingLocale}
-          saving={edit.submit.kind === "submitting"}
-          onSave={() => void resolveSave(editingLocale)}
-          onDiscard={resolveDiscard}
-          onKeepEditing={keepEditing}
-        />
-      ) : null}
+      {missing ? <MissingKeyNotice onDiscard={() => setEditingLocale(null)} /> : null}
       <Section title="Source">
-        <SourceValue
-          source={values.kind === "loaded" ? values.source : undefined}
-          loading={values.kind === "loading"}
-        />
+        <SourceValue values={values} onRetry={retryValues} />
       </Section>
       <KeyDescription description={values.kind === "loaded" ? values.description : undefined} />
       <Section title="Locales">
+        {integrity.kind === "error" ? (
+          <ErrorMessage
+            error={integrity.error}
+            onRetry={() => setIntegrityAttempt((count) => count + 1)}
+          />
+        ) : null}
         <ul className="m-0 list-none p-0">
           {rows.map((row) => (
             <LocaleBlock
@@ -243,6 +325,7 @@ export function KeyEditor({
                   edit={edit}
                   pill={deriveIntegrityPillView(integrityLocales, row.locale)}
                   textAreaRef={textAreaRef}
+                  promptOpen={prompt !== null}
                   onSave={() => void saveEditing(row.locale, true)}
                   onCancel={() => cancelEditing(row.locale)}
                 />
@@ -266,7 +349,7 @@ export function KeyEditor({
 
   if (layout === "pane") {
     return (
-      <EditorPane keyName={keyName} onClose={onClose} onEscape={onEscape}>
+      <EditorPane keyName={keyName} banner={prompt} onClose={onClose} onEscape={onEscape}>
         {body}
       </EditorPane>
     );
@@ -279,6 +362,7 @@ export function KeyEditor({
       closeLabel={`Close details for ${keyName}`}
       onClose={onClose}
       containerRef={dialogRef}
+      banner={prompt}
     >
       {body}
     </DrawerShell>

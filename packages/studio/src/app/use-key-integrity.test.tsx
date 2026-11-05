@@ -139,7 +139,11 @@ describe("useKeyIntegrity", () => {
     const view = await renderAsync(probe("app.title", 1));
 
     expect(view.text()).toBe("error");
-    expect(seen).toEqual({ kind: "error", message: "no such key in the source file" });
+    expect(seen).toEqual({
+      kind: "error",
+      message: "no such key in the source file",
+      error: { code: "KEY_NOT_FOUND", message: "no such key in the source file" },
+    });
   });
 
   it("re-reads for the newly opened key, and asks for that key", async () => {
@@ -201,14 +205,19 @@ describe("useKeyIntegrity", () => {
       };
     });
     stubRpc({ "key.integrity": () => pending });
+    const untouched: KeyIntegrityState = {
+      kind: "error",
+      message: "untouched",
+      error: { code: "X", message: "untouched" },
+    };
 
     const view = await renderAsync(probe("app.title", 1));
     view.unmount();
-    seen = { kind: "error", message: "untouched" };
+    seen = untouched;
     answer?.();
     await pending;
     await flush();
 
-    expect(seen).toEqual({ kind: "error", message: "untouched" });
+    expect(seen).toEqual(untouched);
   });
 });

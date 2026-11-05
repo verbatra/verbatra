@@ -2,6 +2,7 @@ import type { ReactNode, RefObject } from "react";
 import { useEffect } from "react";
 import type { IntegrityPillView } from "../client/integrity-pill.js";
 import { hasGlossaryHits } from "../client/key-value-context.js";
+import { ErrorMessage } from "./ErrorMessage.js";
 import { GlossaryHitList, SaveRow, TranslationField } from "./entry-editor-parts.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import type { LocaleEdit } from "./use-locale-edit.js";
@@ -12,6 +13,7 @@ export interface LocaleEditFormProps {
   readonly edit: LocaleEdit;
   readonly pill: IntegrityPillView | null;
   readonly textAreaRef: RefObject<HTMLTextAreaElement | null>;
+  readonly promptOpen: boolean;
   readonly onSave: () => void;
   readonly onCancel: () => void;
 }
@@ -22,6 +24,7 @@ export function LocaleEditForm({
   edit,
   pill,
   textAreaRef,
+  promptOpen,
   onSave,
   onCancel,
 }: LocaleEditFormProps): ReactNode {
@@ -40,7 +43,11 @@ export function LocaleEditForm({
     return <p className="m-0 mt-2 text-sm text-muted-foreground">Loading current value…</p>;
   }
   if (context.kind === "error") {
-    return <p className="m-0 mt-2 text-sm text-muted-foreground">{context.message}</p>;
+    return (
+      <div className="mt-2">
+        <ErrorMessage error={context.error} onRetry={edit.retry} onCancel={onCancel} />
+      </div>
+    );
   }
   return (
     <div className="mt-2" data-locale-edit={locale}>
@@ -67,7 +74,7 @@ export function LocaleEditForm({
         onSave={onSave}
       />
       <div className="mt-3">
-        <SaveRow submit={submit} onSave={onSave} onCancel={onCancel} />
+        <SaveRow submit={submit} onSave={onSave} onCancel={onCancel} primary={!promptOpen} />
       </div>
     </div>
   );

@@ -100,8 +100,22 @@ function localeBlocks(view: { all(selector: string): HTMLElement[] }): HTMLEleme
   return view.all("ul li");
 }
 
-function Drawer(props: Omit<KeyEditorProps, "layout" | "onEscape" | "onRouteSettled">): ReactNode {
-  return <KeyEditor layout="drawer" onEscape={() => {}} onRouteSettled={() => {}} {...props} />;
+function Drawer(
+  props: Omit<
+    KeyEditorProps,
+    "layout" | "onEscape" | "onRouteSettled" | "missing" | "onDirtyChange"
+  >,
+): ReactNode {
+  return (
+    <KeyEditor
+      layout="drawer"
+      onEscape={() => {}}
+      onRouteSettled={() => {}}
+      missing={false}
+      onDirtyChange={() => {}}
+      {...props}
+    />
+  );
 }
 
 describe("KeyEditor drawer", () => {
@@ -153,15 +167,54 @@ describe("KeyEditor drawer", () => {
     );
   });
 
-  it("says there is no source value when every locale's read failed", async () => {
+  it("says the read failed, with a Retry that reads again, when every locale's read failed", async () => {
     stubBackground();
-    stubRpc({ "key.value": rpcError("KEY_UNKNOWN", "no such key") });
+    let answers = 0;
+    stubRpc({
+      "key.value": () => {
+        answers += 1;
+        return answers === 1 ? rpcError("KEY_UNKNOWN", "no such key") : value("Hello", "Hallo");
+      },
+    });
 
     const view = await renderAsync(
       <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
-    expect(view.text()).toContain("No current source value.");
+    expect(view.get('[role="alert"]').textContent).toContain("no such key");
+    expect(view.text()).not.toContain("No current source value.");
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.text()).toContain("Hello");
+  });
+
+  it("says the integrity read failed, with a Retry that reads again", async () => {
+    stubBackground();
+    let answers = 0;
+    stubRpc({
+      "key.value": value("Hello", "Hallo"),
+      "key.integrity": () => {
+        answers += 1;
+        return answers === 1
+          ? rpcError("INTERNAL", "integrity is down")
+          : { ok: true, result: integrityResult([integrityEntry("de")]) };
+      },
+    });
+
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    expect(view.get('[role="alert"]').textContent).toContain("unexpected server error");
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(localeBlocks(view)[0]?.textContent).toContain("Placeholders match");
   });
 
   it("reads the source from the first locale that answered and keeps it across the rest", async () => {
@@ -866,17 +919,42 @@ describe("KeyEditor editing", () => {
     expect(field(view, "fr").value).toBe("");
   });
 
-  it("shows the server's message and no field when the context cannot be read", async () => {
+  it("shows an alert with Retry and Cancel, and no field, when the context cannot be read", async () => {
     stubWritable();
-    stubRpc({ "key.context": rpcError("INTERNAL", "the context is gone") });
+    let answers = 0;
+    stubRpc({
+      "key.context": () => {
+        answers += 1;
+        return answers === 1 ? rpcError("INTERNAL", "the context is gone") : context("Hallo");
+      },
+    });
 
     const view = await renderAsync(
       <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
     await startEditing(view);
 
-    expect(view.text()).toContain("the context is gone");
+    expect(view.get('[role="alert"]').textContent).toContain("unexpected server error");
     expect(view.query("textarea")).toBeNull();
+
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(field(view).value).toBe("Hallo");
+  });
+
+  it("closes the form from the Cancel of a failed context read", async () => {
+    stubWritable();
+    stubRpc({ "key.context": rpcError("INTERNAL", "the context is gone") });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+
+    await clickAsync(view.getByText("button", "Cancel"));
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.query("button[data-edit-locale]")).not.toBeNull();
   });
 
   it("lists the glossary terms of the key beside the field, including one with no forbidden rendering", async () => {

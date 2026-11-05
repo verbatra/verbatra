@@ -34,8 +34,64 @@ const LOCALES: readonly DiffLocale[] = ["de", "fr", "ar"].map((locale) => ({
 const SOURCE = "Welcome {name}";
 
 let targets: Record<string, string> = {};
+let keyGone = false;
+
+const ROLE_SELECTORS = {
+  button: "button",
+  textbox: "textarea, input:not([type]), input[type=text], input[type=search]",
+  combobox: "select",
+  link: "a[href]",
+  region: "[role=region], section[aria-label]",
+  rowheader: "th[scope=row]",
+} as const;
+
+function findRole(
+  view: RenderResult,
+  role: keyof typeof ROLE_SELECTORS,
+  name: string | RegExp,
+  scope = "",
+): HTMLElement | null {
+  const root = scope === "" ? view.container : view.get(scope);
+  const nameOf = (element: HTMLElement): string =>
+    element.getAttribute("aria-label") ?? element.textContent?.trim() ?? "";
+  const found = [...root.querySelectorAll<HTMLElement>(ROLE_SELECTORS[role])].find((element) =>
+    typeof name === "string" ? nameOf(element) === name : name.test(nameOf(element)),
+  );
+  return found ?? null;
+}
+
+function getRole(
+  view: RenderResult,
+  role: keyof typeof ROLE_SELECTORS,
+  name: string | RegExp,
+  scope = "",
+): HTMLElement {
+  const found = findRole(view, role, name, scope);
+  if (found === null) {
+    throw new Error(`no ${role} named ${String(name)}`);
+  }
+  return found;
+}
+
+function modalNodesIn(record: MutationRecord): Element[] {
+  const added = [...record.addedNodes].filter(
+    (node): node is Element =>
+      node instanceof Element &&
+      (node.matches("[aria-modal]") || node.querySelector("[aria-modal]") !== null),
+  );
+  const changed =
+    record.attributeName === "aria-modal" && record.target instanceof Element
+      ? [record.target]
+      : [];
+  return [...added, ...changed];
+}
+
+function settle(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 60));
+}
 
 function resetTargets(): void {
+  keyGone = false;
   targets = { de: "Willkommen {name}", fr: "Bienvenue {name}", ar: "مرحبا {name}" };
 }
 
@@ -59,16 +115,16 @@ function stubServer(editEntry?: StubRpcResult): void {
         })),
       },
     },
-    "locale.values": {
+    "locale.values": () => ({
       ok: true,
       result: LOCALES.map((entry) => ({
         locale: entry.locale,
         values: {
-          "app.title": { source: SOURCE, target: targets[entry.locale] },
+          ...(keyGone ? {} : { "app.title": { source: SOURCE, target: targets[entry.locale] } }),
           "app.body": { source: "Body", target: "Text" },
         },
       })),
-    },
+    }),
     "review.queue": { ok: true, result: { available: true, locales: [] } },
     "locale.integrity": { ok: true, result: { locales: [] } },
     "key.integrity": { ok: true, result: { locales: [] } },
@@ -104,18 +160,19 @@ function Harness({ token }: { readonly token: number }): ReactNode {
 
 async function mountAt(hash: string, wide: boolean): Promise<RenderResult> {
   stubViewport(wide);
-  window.history.replaceState(null, "", hash);
+  window.history.replaceState({ idx: 5 }, "", "#/overview");
+  window.history.pushState({ idx: 6 }, "", hash);
   const view = await renderAsync(<Harness token={1} />);
   await flush();
   return view;
 }
 
 function pane(view: RenderResult, key = "app.title"): HTMLElement {
-  return view.get(`section[aria-label="Editor for ${key}"]`);
+  return getRole(view, "region", `Editor for ${key}`);
 }
 
 function textarea(view: RenderResult): HTMLTextAreaElement {
-  const found = view.get('textarea[aria-label="Translation (de)"]');
+  const found = getRole(view, "textbox", "Translation (de)");
   if (!(found instanceof HTMLTextAreaElement)) {
     throw new Error("the translation field is not a textarea");
   }
@@ -123,13 +180,13 @@ function textarea(view: RenderResult): HTMLTextAreaElement {
 }
 
 async function startDirtyEdit(view: RenderResult): Promise<void> {
-  await clickAsync(view.get('button[data-edit-locale="de"]'));
+  await clickAsync(view.get('[data-edit-locale="de"]'));
   await flush();
   typeInto(textarea(view), "Hallo!");
 }
 
 function inputNamed(view: RenderResult, name: string): HTMLInputElement {
-  const found = view.get(`input[aria-label="${name}"]`);
+  const found = getRole(view, "textbox", name);
   if (!(found instanceof HTMLInputElement)) {
     throw new Error(`${name} is not an input`);
   }
@@ -137,17 +194,9 @@ function inputNamed(view: RenderResult, name: string): HTMLInputElement {
 }
 
 function selectNamed(view: RenderResult, name: string): HTMLSelectElement {
-  const found = view.get(`select[aria-label="${name}"]`);
+  const found = getRole(view, "combobox", name);
   if (!(found instanceof HTMLSelectElement)) {
     throw new Error(`${name} is not a select`);
-  }
-  return found;
-}
-
-function formOf(view: RenderResult): HTMLFormElement {
-  const found = view.get("search form");
-  if (!(found instanceof HTMLFormElement)) {
-    throw new Error("the header search is not a form");
   }
   return found;
 }
@@ -158,43 +207,44 @@ function expectFocusWithin(view: RenderResult, trigger: { readonly focusWithin?:
   }
 }
 
-function nextHashChange(): Promise<void> {
-  return new Promise((resolve) => {
-    window.addEventListener("hashchange", () => resolve(), { once: true });
-  });
-}
-
 let confirmSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
+  Object.defineProperty(Element.prototype, "scrollIntoView", {
+    value: () => {},
+    configurable: true,
+    writable: true,
+  });
   resetTargets();
   confirmSpy = vi.spyOn(window, "confirm");
 });
 
 afterEach(() => {
   confirmSpy.mockRestore();
+  Reflect.deleteProperty(Element.prototype, "scrollIntoView");
 });
 
 describe("split editor layout", () => {
   it("renders no modal at any point of an xl deep link", async () => {
-    const seen: Element[] = [];
-    const observer = new MutationObserver(() => {
-      seen.push(...document.body.querySelectorAll("[aria-modal]"));
-    });
+    const modalNodes: Element[] = [];
+    const inspect = (records: readonly MutationRecord[]): void => {
+      modalNodes.push(...records.flatMap(modalNodesIn));
+    };
+    const observer = new MutationObserver(inspect);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true });
     stubServer();
     stubViewport(true);
-    window.history.replaceState(null, "", TITLE_HASH);
+    window.history.replaceState({ idx: 5 }, "", "#/overview");
+    window.history.pushState({ idx: 6 }, "", TITLE_HASH);
 
     const view = render(<Harness token={1} />);
-    seen.push(...document.body.querySelectorAll("[aria-modal]"));
     await flush();
     await flush();
-    observer.takeRecords();
+    inspect(observer.takeRecords());
     observer.disconnect();
 
     expect(pane(view)).not.toBeNull();
-    expect(seen).toEqual([]);
+    expect(modalNodes).toEqual([]);
     expect(view.query("[aria-modal]")).toBeNull();
     expect(view.query('[role="dialog"]')).toBeNull();
   });
@@ -221,7 +271,7 @@ describe("split editor layout", () => {
     stubServer();
     const view = await mountAt("#/translations", true);
 
-    await clickAsync(view.get('[data-key="app.body"] th'));
+    await clickAsync(getRole(view, "rowheader", "app.body"));
     await flush();
 
     expect(pane(view, "app.body")).not.toBeNull();
@@ -232,9 +282,9 @@ describe("split editor layout", () => {
   it("shows the source, every locale with its own direction, and keeps placeholders left to right", async () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
-    const arabic = view.get('li[data-locale="ar"] [dir="rtl"]');
+    const arabic = view.get('[data-locale="ar"] [dir="rtl"]');
 
-    expect(view.all("li[data-locale]").map((block) => block.dataset.locale)).toEqual([
+    expect(view.all("[data-locale]").map((block) => block.dataset.locale)).toEqual([
       "de",
       "fr",
       "ar",
@@ -248,9 +298,9 @@ describe("split editor layout", () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
 
-    await clickAsync(view.get('button[data-edit-locale="ar"]'));
+    await clickAsync(view.get('[data-edit-locale="ar"]'));
     await flush();
-    const field = view.get('textarea[aria-label="Translation (ar)"]');
+    const field = getRole(view, "textbox", "Translation (ar)");
 
     expect(field.getAttribute("dir")).toBe("rtl");
     expect(field.getAttribute("lang")).toBe("ar");
@@ -273,14 +323,14 @@ describe("split editor layout", () => {
         params: { locale: "de", key: "app.title", value: "Hallo!" },
       },
     ]);
-    expect(view.query("textarea")).toBeNull();
+    expect(view.query("[data-locale-edit]")).toBeNull();
     expect(view.get("[data-saved]").textContent).toBe("Saved");
   });
 
   it("returns focus to the row on Escape and keeps the editor open", async () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
-    const closeButton = view.get('button[aria-label="Close details for app.title"]');
+    const closeButton = getRole(view, "button", "Close details for app.title");
     closeButton.focus();
 
     keyDown(closeButton, { key: "Escape" });
@@ -308,9 +358,9 @@ describe("split editor layout", () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
 
-    await clickAsync(view.get('button[aria-label="Close details for app.title"]'));
+    await clickAsync(getRole(view, "button", "Close details for app.title"));
 
-    expect(view.query('section[aria-label^="Editor for"]')).toBeNull();
+    expect(findRole(view, "region", /^Editor for/)).toBeNull();
     expect(window.location.hash).toBe("#/translations");
     expect(view.all('[data-key="app.title"] [data-row]')).toContain(document.activeElement);
   });
@@ -353,7 +403,7 @@ const TRIGGERS: readonly Trigger[] = [
   {
     name: "header navigation",
     fire: async (view) => {
-      await clickAsync(view.get('nav a[href="#/review"]'));
+      await clickAsync(getRole(view, "link", "Review", "nav"));
     },
     proceeds: () => expect(window.location.hash).toBe("#/review"),
   },
@@ -361,7 +411,7 @@ const TRIGGERS: readonly Trigger[] = [
     name: "header search",
     fire: async (view) => {
       typeInto(inputNamed(view, "Search keys and text"), "zzz");
-      act(() => formOf(view).requestSubmit());
+      act(() => inputNamed(view, "Search keys and text").form?.requestSubmit());
       await flush();
     },
     proceeds: () => expect(window.location.hash).toContain("q=zzz"),
@@ -394,7 +444,7 @@ const TRIGGERS: readonly Trigger[] = [
     name: "selecting another key",
     focusWithin: '[data-key="app.body"]',
     fire: async (view) => {
-      await clickAsync(view.get('[data-key="app.body"] th'));
+      await clickAsync(getRole(view, "rowheader", "app.body"));
     },
     proceeds: () => expect(window.location.hash).toContain("key=app.body"),
   },
@@ -402,21 +452,28 @@ const TRIGGERS: readonly Trigger[] = [
     name: "closing the editor",
     focusWithin: '[data-key="app.title"]',
     fire: async (view) => {
-      await clickAsync(view.get('button[aria-label="Close details for app.title"]'));
+      await clickAsync(getRole(view, "button", "Close details for app.title"));
     },
     proceeds: () => expect(window.location.hash).toBe("#/translations"),
   },
   {
     name: "back or forward",
     fire: async () => {
-      const changed = nextHashChange();
-      window.location.hash = "#/overview";
-      await changed;
+      window.history.back();
+      await settle();
       await flush();
     },
     proceeds: () => expect(window.location.hash).toBe("#/overview"),
   },
 ];
+
+function triggerNamed(name: string): Trigger {
+  const found = TRIGGERS.find((trigger) => trigger.name === name);
+  if (found === undefined) {
+    throw new Error(`no trigger named ${name}`);
+  }
+  return found;
+}
 
 describe("split editor dirty guard", () => {
   it.each(TRIGGERS)("holds the draft and asks before $name", async (trigger) => {
@@ -445,7 +502,8 @@ describe("split editor dirty guard", () => {
     await startDirtyEdit(view);
     await trigger.fire(view);
 
-    await clickAsync(view.getByText("button", "Discard"));
+    await clickAsync(getRole(view, "button", "Discard"));
+    await settle();
     await flush();
 
     trigger.proceeds(view);
@@ -460,7 +518,8 @@ describe("split editor dirty guard", () => {
     await startDirtyEdit(view);
     await trigger.fire(view);
 
-    await clickAsync(view.getByText("button", "Save"));
+    await clickAsync(getRole(view, "button", "Save"));
+    await settle();
     await flush();
 
     expect(rpcCalls.filter((call) => call.method === "translation.editEntry")).toHaveLength(1);
@@ -485,7 +544,7 @@ describe("split editor dirty guard", () => {
     const view = await mountAt(TITLE_HASH, true);
     await startDirtyEdit(view);
 
-    await TRIGGERS[1]?.fire(view);
+    await triggerNamed("header search").fire(view);
 
     expect(inputNamed(view, "Search keys and text").value).toBe("zzz");
   });
@@ -494,9 +553,9 @@ describe("split editor dirty guard", () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
     await startDirtyEdit(view);
-    await TRIGGERS[4]?.fire(view);
+    await triggerNamed("selecting another key").fire(view);
 
-    await clickAsync(view.getByText("button", "Keep editing"));
+    await clickAsync(getRole(view, "button", "Keep editing"));
 
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
     expect(window.location.hash).toBe(TITLE_HASH);
@@ -508,9 +567,9 @@ describe("split editor dirty guard", () => {
     stubServer({ ok: true, result: { accepted: false, reason: "placeholder" } });
     const view = await mountAt(TITLE_HASH, true);
     await startDirtyEdit(view);
-    await TRIGGERS[4]?.fire(view);
+    await triggerNamed("selecting another key").fire(view);
 
-    await clickAsync(view.getByText("button", "Save"));
+    await clickAsync(getRole(view, "button", "Save"));
     await flush();
 
     expect(window.location.hash).toBe(TITLE_HASH);
@@ -523,25 +582,25 @@ describe("split editor dirty guard", () => {
     const view = await mountAt(TITLE_HASH, true);
     await startDirtyEdit(view);
 
-    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+    await clickAsync(view.get('[data-edit-locale="fr"]'));
 
     expect(view.get("[data-unsaved-prompt]")).not.toBeNull();
     expect(textarea(view).value).toBe("Hallo!");
 
-    await clickAsync(view.getByText("button", "Discard"));
+    await clickAsync(getRole(view, "button", "Discard"));
     await flush();
 
-    expect(view.query('textarea[aria-label="Translation (de)"]')).toBeNull();
-    expect(view.get('textarea[aria-label="Translation (fr)"]')).not.toBeNull();
+    expect(findRole(view, "textbox", "Translation (de)")).toBeNull();
+    expect(getRole(view, "textbox", "Translation (fr)")).not.toBeNull();
   });
 
   it("does not ask when the form was opened and nothing was typed", async () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
-    await clickAsync(view.get('button[data-edit-locale="de"]'));
+    await clickAsync(view.get('[data-edit-locale="de"]'));
     await flush();
 
-    await clickAsync(view.get('[data-key="app.body"] th'));
+    await clickAsync(getRole(view, "rowheader", "app.body"));
 
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
     expect(window.location.hash).toContain("key=app.body");
@@ -553,7 +612,7 @@ describe("split editor dirty guard", () => {
     await startDirtyEdit(view);
     typeInto(textarea(view), "Willkommen {name}");
 
-    await clickAsync(view.get('[data-key="app.body"] th'));
+    await clickAsync(getRole(view, "rowheader", "app.body"));
 
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
     expect(window.location.hash).toContain("key=app.body");
@@ -564,7 +623,7 @@ describe("split editor dirty guard", () => {
     const view = await mountAt(TITLE_HASH, false);
     await startDirtyEdit(view);
 
-    await clickAsync(view.get('button[aria-label="Close details for app.title"]'));
+    await clickAsync(getRole(view, "button", "Close details for app.title"));
 
     expect(view.get("[data-unsaved-prompt]")).not.toBeNull();
     expect(window.location.hash).toBe(TITLE_HASH);
@@ -575,9 +634,9 @@ describe("split editor dirty guard", () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, false);
     await startDirtyEdit(view);
-    await clickAsync(view.get('button[aria-label="Close details for app.title"]'));
+    await clickAsync(getRole(view, "button", "Close details for app.title"));
 
-    await clickAsync(view.getByText("button", "Discard"));
+    await clickAsync(getRole(view, "button", "Discard"));
     await flush();
 
     expect(view.query('[role="dialog"]')).toBeNull();
@@ -592,7 +651,7 @@ describe("split editor dirty guard", () => {
     chip.focus();
     await clickAsync(chip);
 
-    await clickAsync(view.getByText("button", "Discard"));
+    await clickAsync(getRole(view, "button", "Discard"));
     await flush();
 
     expect(document.activeElement).toBe(view.get('[data-status-filter="changed"]'));
@@ -615,7 +674,7 @@ describe("split editor live updates", () => {
   it("reads the context and the integrity of the open key again on every refresh", async () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
-    await clickAsync(view.get('button[data-edit-locale="de"]'));
+    await clickAsync(view.get('[data-edit-locale="de"]'));
     await flush();
     const before = (method: string): number =>
       rpcCalls.filter((call) => call.method === method).length;
@@ -632,7 +691,7 @@ describe("split editor live updates", () => {
   it("replaces a clean draft when the saved value changes on disk", async () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
-    await clickAsync(view.get('button[data-edit-locale="de"]'));
+    await clickAsync(view.get('[data-edit-locale="de"]'));
     await flush();
     targets.de = "Servus {name}";
 
@@ -657,14 +716,191 @@ describe("split editor live updates", () => {
   it("starts a fresh draft for the next key", async () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
-    await clickAsync(view.get('button[data-edit-locale="de"]'));
+    await clickAsync(view.get('[data-edit-locale="de"]'));
     await flush();
 
-    await clickAsync(view.get('[data-key="app.body"] th'));
+    await clickAsync(getRole(view, "rowheader", "app.body"));
     await flush();
 
     expect(pane(view, "app.body")).not.toBeNull();
-    expect(view.query("textarea")).toBeNull();
+    expect(view.query("[data-locale-edit]")).toBeNull();
     expect(view.query("[data-saved]")).toBeNull();
+  });
+});
+
+describe("split editor unsaved prompt", () => {
+  it("sits in the pane's scroller as a sticky element and scrolls itself into view", async () => {
+    const scroll = vi.fn();
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      value: scroll,
+      configurable: true,
+    });
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+
+    await clickAsync(getRole(view, "rowheader", "app.body"));
+
+    const prompt = view.get("[data-unsaved-prompt]");
+    expect(prompt.closest("[data-editor-scroller]")).not.toBeNull();
+    expect(prompt.hasAttribute("data-sticky")).toBe(true);
+    expect(scroll).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
+  it("sits in the drawer's sticky header, above the scrolling body", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, false);
+    await startDirtyEdit(view);
+
+    await clickAsync(getRole(view, "button", "Close details for app.title"));
+
+    const prompt = view.get("[data-unsaved-prompt]");
+    expect(prompt.closest("[data-sheet-banner]")).not.toBeNull();
+    expect(prompt.hasAttribute("data-sticky")).toBe(true);
+  });
+
+  it("makes its Save the only primary action while it is shown", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    const formSave = (): HTMLElement => getRole(view, "button", "Save", "[data-locale-edit]");
+    expect(formSave().dataset.variant).toBe("primary");
+
+    await clickAsync(getRole(view, "rowheader", "app.body"));
+
+    expect(getRole(view, "button", "Save", "[data-unsaved-prompt]").dataset.variant).toBe(
+      "primary",
+    );
+    expect(formSave().dataset.variant).toBe("secondary");
+  });
+
+  it("goes away on its own when the draft is typed back to the saved value", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    await clickAsync(getRole(view, "rowheader", "app.body"));
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    typeInto(textarea(view), "Willkommen {name}");
+    await flush();
+
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+  });
+
+  it("keeps the held change, shows why, and keeps focus in the field when the save is rejected", async () => {
+    stubServer({ ok: true, result: { accepted: false, reason: "placeholder" } });
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    await clickAsync(getRole(view, "rowheader", "app.body"));
+
+    await clickAsync(getRole(view, "button", "Save", "[data-unsaved-prompt]"));
+    await settle();
+    await flush();
+
+    const prompt = view.get("[data-unsaved-prompt]");
+    expect(prompt.querySelector('[role="alert"]')?.textContent).toContain(
+      "Rejected: placeholder mismatch",
+    );
+    expect(window.location.hash).toBe(TITLE_HASH);
+    expect(document.activeElement).toBe(textarea(view));
+
+    await clickAsync(getRole(view, "button", "Discard"));
+    await settle();
+
+    expect(window.location.hash).toContain("key=app.body");
+  });
+});
+
+describe("split editor focus across a resize", () => {
+  it("puts focus and the selection back in the field after the container changes", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    textarea(view).focus();
+    textarea(view).setSelectionRange(1, 3);
+
+    resizeViewport(false);
+    await flush();
+
+    expect(document.activeElement).toBe(textarea(view));
+    expect([textarea(view).selectionStart, textarea(view).selectionEnd]).toEqual([1, 3]);
+  });
+});
+
+describe("split editor when its key disappears", () => {
+  it("keeps the draft, says the key is gone, and drops it only on Discard", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    keyGone = true;
+
+    view.rerender(<Harness token={2} />);
+    await flush();
+    await flush();
+
+    expect(textarea(view).value).toBe("Hallo!");
+    expect(view.get("[data-key-missing]").textContent).toContain("no longer exists");
+
+    await clickAsync(getRole(view, "button", "Discard", "[data-key-missing]"));
+    await flush();
+
+    expect(view.query("[data-locale-edit]")).toBeNull();
+    expect(view.query("[data-key-missing]")).toBeNull();
+    expect(view.query("[data-editor-pane]")).toBeNull();
+  });
+
+  it("closes the editor without a notice when the key disappears and nothing is unsaved", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    keyGone = true;
+
+    view.rerender(<Harness token={2} />);
+    await flush();
+    await flush();
+
+    expect(view.query("[data-editor-pane]")).toBeNull();
+    expect(view.query("[data-key-missing]")).toBeNull();
+  });
+});
+
+describe("history entries", () => {
+  it("adds at most one entry for a header search, and Back leaves the page as it was", async () => {
+    stubServer();
+    const view = await mountAt("#/translations", true);
+    const before = window.history.length;
+    const hashBefore = window.location.hash;
+    const input = inputNamed(view, "Search keys and text");
+
+    typeInto(input, "a");
+    typeInto(input, "ab");
+    typeInto(input, "abc");
+    expect(window.history.length).toBe(before);
+
+    act(() => inputNamed(view, "Search keys and text").form?.requestSubmit());
+    await flush();
+    expect(window.location.hash).toContain("q=abc");
+    expect(window.history.length).toBeLessThanOrEqual(before + 1);
+
+    window.history.back();
+    await settle();
+    await flush();
+
+    expect(window.location.hash).toBe(hashBefore);
+    expect(inputNamed(view, "Filter by key or translation text").value).toBe("");
+  });
+
+  it("adds no entry while typing in the key filter, a chip, or the locale choice", async () => {
+    stubServer();
+    const view = await mountAt("#/translations", true);
+    const before = window.history.length;
+
+    typeInto(inputNamed(view, "Filter by key or translation text"), "abc");
+    await clickAsync(view.get('[data-status-filter="changed"]'));
+    selectOption(selectNamed(view, "Filter by locale"), "fr");
+    await flush();
+
+    expect(window.location.hash).toContain("q=abc");
+    expect(window.location.hash).toContain("locale=fr");
+    expect(window.history.length).toBe(before);
   });
 });

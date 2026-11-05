@@ -1,27 +1,17 @@
 import type { GlossaryDraftCheck, ReviewReasonCode } from "@verbatra/sdk";
 import { Badge, DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
-import { useEffect, useRef, useState } from "react";
-import { deriveEditEntryOutcome } from "../client/edit-entry-outcome.js";
+import { useRef } from "react";
 import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
-import {
-  deriveKeyValueContext,
-  hasGlossaryHits,
-  type KeyValueContext,
-} from "../client/key-value-context.js";
-import { rpcClient } from "./api.js";
-import {
-  GlossaryHitList,
-  SaveRow,
-  type SubmitState,
-  TranslationField,
-} from "./entry-editor-parts.js";
+import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-context.js";
+import { GlossaryHitList, SaveRow, TranslationField } from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ReviewReasonChips } from "./ReviewReasonChips.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
+import { useLocaleEdit } from "./use-locale-edit.js";
 
 type LoadedContext = Extract<KeyValueContext, { kind: "loaded" }>;
 
@@ -32,25 +22,6 @@ export interface EditEntryDialogProps {
   readonly onAccepted: (locale: string, keyName: string) => void;
   readonly focusTranslation?: boolean;
   readonly reviewReasons?: readonly ReviewReasonCode[];
-}
-
-function useKeyValueContext(locale: string, keyName: string): KeyValueContext {
-  const [state, setState] = useState<KeyValueContext>({ kind: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-    setState({ kind: "loading" });
-    void rpcClient.call("key.context", { locale, key: keyName }).then((response) => {
-      if (!cancelled) {
-        setState(deriveKeyValueContext(response));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [locale, keyName]);
-
-  return state;
 }
 
 function SourceColumn({
@@ -165,9 +136,9 @@ export function EditEntryDialog({
   focusTranslation = false,
   reviewReasons,
 }: EditEntryDialogProps): ReactNode {
-  const context = useKeyValueContext(locale, keyName);
-  const [value, setValue] = useState("");
-  const [submit, setSubmit] = useState<SubmitState>({ kind: "idle" });
+  const edit = useLocaleEdit(locale, keyName, 0);
+  const { context, submit } = edit;
+  const value = edit.draft;
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const containerRef = useDialogA11y<HTMLDivElement>({
     isOpen: true,
@@ -181,22 +152,8 @@ export function EditEntryDialog({
     context.kind === "loaded" && hasGlossaryHits(context.glossary),
   );
 
-  useEffect(() => {
-    if (context.kind === "loaded") {
-      setValue(context.target ?? "");
-    }
-  }, [context]);
-
   async function handleSubmit(): Promise<void> {
-    setSubmit({ kind: "submitting" });
-    const response = await rpcClient.call("translation.editEntry", {
-      locale,
-      key: keyName,
-      value,
-    });
-    const outcome = deriveEditEntryOutcome(response);
-    setSubmit({ kind: "settled", outcome });
-    if (outcome.kind === "success") {
+    if (await edit.save(locale)) {
       onAccepted(locale, keyName);
     }
   }
@@ -235,7 +192,7 @@ export function EditEntryDialog({
               keyName={keyName}
               context={context}
               value={value}
-              onChangeValue={setValue}
+              onChangeValue={edit.setDraft}
               onSave={() => void handleSubmit()}
               disabled={submit.kind === "submitting"}
               textAreaRef={textAreaRef}

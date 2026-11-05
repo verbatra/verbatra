@@ -33,6 +33,7 @@ export interface LocaleEdit {
   readonly dirty: boolean;
   readonly submit: SubmitState;
   setDraft(next: string): void;
+  retry(): void;
   save(target: string): Promise<boolean>;
 }
 
@@ -41,8 +42,9 @@ function useHeldContext(
   locale: string | null,
   keyName: string,
   refreshToken: number,
-): KeyValueContext {
+): { readonly context: KeyValueContext; retry(): void } {
   const [held, setHeld] = useState<HeldContext>(UNHELD);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (locale === null) {
@@ -52,15 +54,28 @@ function useHeldContext(
     let cancelled = false;
     void rpcClient.call("key.context", { locale, key: keyName }).then((response) => {
       if (!cancelled) {
-        setHeld({ identity, context: deriveKeyValueContext(response) });
+        const next = deriveKeyValueContext(response);
+        setHeld((previous) =>
+          next.kind === "error" &&
+          previous.identity === identity &&
+          previous.context.kind === "loaded"
+            ? previous
+            : { identity, context: next },
+        );
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [identity, locale, keyName, refreshToken]);
+  }, [identity, locale, keyName, refreshToken, attempt]);
 
-  return held.identity === identity ? held.context : LOADING;
+  return {
+    context: held.identity === identity ? held.context : LOADING,
+    retry: () => {
+      setHeld(UNHELD);
+      setAttempt((count) => count + 1);
+    },
+  };
 }
 
 export function useLocaleEdit(
@@ -69,7 +84,7 @@ export function useLocaleEdit(
   refreshToken: number,
 ): LocaleEdit {
   const identity = draftIdentity(locale, keyName);
-  const context = useHeldContext(identity, locale, keyName, refreshToken);
+  const { context, retry } = useHeldContext(identity, locale, keyName, refreshToken);
   const [draftState, setDraftState] = useState<DraftState>(EMPTY_DRAFT);
   const [heldSubmit, setHeldSubmit] = useState<HeldSubmit>({ identity: null, state: IDLE });
 
@@ -98,6 +113,7 @@ export function useLocaleEdit(
     dirty: context.kind === "loaded" && isDraftDirty(current),
     submit,
     setDraft: (next) => setDraftState({ ...current, text: next }),
+    retry,
     save,
   };
 }

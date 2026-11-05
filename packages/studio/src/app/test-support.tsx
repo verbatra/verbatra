@@ -256,9 +256,28 @@ export function apiMock(): AppApiModule {
   };
 }
 
-const viewportListeners = new Set<() => void>();
+const viewportListeners = new Set<EventListenerOrEventListenerObject>();
 let wideViewport = false;
 let restoreMatchMedia: (() => void) | null = null;
+
+function mediaList(query: string): MediaQueryList {
+  return {
+    media: query,
+    get matches(): boolean {
+      return wideViewport;
+    },
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener(_type: string, listener: EventListenerOrEventListenerObject): void {
+      viewportListeners.add(listener);
+    },
+    removeEventListener(_type: string, listener: EventListenerOrEventListenerObject): void {
+      viewportListeners.delete(listener);
+    },
+    dispatchEvent: () => false,
+  };
+}
 
 function installMatchMedia(): void {
   if (restoreMatchMedia === null) {
@@ -267,18 +286,7 @@ function installMatchMedia(): void {
       window.matchMedia = original;
     };
   }
-  window.matchMedia = ((query: string) => ({
-    media: query,
-    get matches(): boolean {
-      return wideViewport;
-    },
-    addEventListener(_type: string, listener: () => void): void {
-      viewportListeners.add(listener);
-    },
-    removeEventListener(_type: string, listener: () => void): void {
-      viewportListeners.delete(listener);
-    },
-  })) as unknown as typeof window.matchMedia;
+  window.matchMedia = mediaList;
 }
 
 export function stubViewport(wide: boolean): void {
@@ -290,7 +298,12 @@ export function resizeViewport(wide: boolean): void {
   wideViewport = wide;
   act(() => {
     for (const listener of [...viewportListeners]) {
-      listener();
+      const change = new Event("change");
+      if (typeof listener === "function") {
+        listener(change);
+      } else {
+        listener.handleEvent(change);
+      }
     }
   });
 }

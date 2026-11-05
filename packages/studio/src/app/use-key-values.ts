@@ -1,9 +1,11 @@
 import type { KeyProvenance } from "@verbatra/sdk";
 import { useEffect, useState } from "react";
+import type { StructuredError } from "../client/state.js";
 import { rpcClient } from "./api.js";
 
 export type KeyValuesState =
   | { readonly kind: "loading" }
+  | { readonly kind: "error"; readonly error: StructuredError }
   | {
       readonly kind: "loaded";
       readonly source: string | undefined;
@@ -23,8 +25,9 @@ export function useKeyValues(
   keyName: string,
   locales: readonly string[],
   refreshToken: number,
-): KeyValuesState {
+): { readonly values: KeyValuesState; retry(): void } {
   const [held, setHeld] = useState<HeldValues>({ keyName, state: LOADING });
+  const [attempt, setAttempt] = useState(0);
   const localesKey = locales.join(" ");
 
   useEffect(() => {
@@ -34,6 +37,11 @@ export function useKeyValues(
       localeList.map((locale) => rpcClient.call("key.value", { locale, key: keyName })),
     ).then((responses) => {
       if (cancelled) {
+        return;
+      }
+      const failure = responses.find((response) => !response.ok);
+      if (failure !== undefined && !failure.ok && responses.every((response) => !response.ok)) {
+        setHeld({ keyName, state: { kind: "error", error: failure.error } });
         return;
       }
       let source: string | undefined;
@@ -57,7 +65,13 @@ export function useKeyValues(
     return () => {
       cancelled = true;
     };
-  }, [keyName, localesKey, refreshToken]);
+  }, [keyName, localesKey, refreshToken, attempt]);
 
-  return held.keyName === keyName ? held.state : LOADING;
+  return {
+    values: held.keyName === keyName ? held.state : LOADING,
+    retry: () => {
+      setHeld({ keyName, state: LOADING });
+      setAttempt((count) => count + 1);
+    },
+  };
 }
