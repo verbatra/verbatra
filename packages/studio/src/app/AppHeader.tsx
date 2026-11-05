@@ -1,16 +1,34 @@
 import { Button, Icon, ThemeToggle } from "@verbatra/ui";
 import type { ThemeMode } from "@verbatra/ui/theme";
-import type { ReactNode, Ref } from "react";
-import type { PageId } from "../client/routes.js";
+import type { MouseEvent, ReactNode, Ref } from "react";
+import { type PageId, pageHash } from "../client/routes.js";
 import { GithubGlyph } from "./GithubGlyph.js";
 import { HeaderSearch } from "./HeaderSearch.js";
 import { LiveIndicator } from "./LiveIndicator.js";
+import { cn } from "./lib/cn.js";
+import { PAGE_MAX_CLASS } from "./lib/page-width.js";
 import { THEME_LABELS, themeStore } from "./lib/theme-dom.js";
 import { NavLink } from "./NavLink.js";
 import { DOCS_URL, GITHUB_URL, NAV_GROUPS, PAGE_LABELS } from "./nav-groups.js";
+import { navigateToPage } from "./use-route.js";
 
 function describeThemeAction(current: ThemeMode, next: ThemeMode): string {
   return `Theme: ${THEME_LABELS[current]}. Switch to ${THEME_LABELS[next]}.`;
+}
+
+function goHome(event: MouseEvent<HTMLAnchorElement>): void {
+  if (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) {
+    return;
+  }
+  event.preventDefault();
+  navigateToPage("translations");
 }
 
 const ICON_LINK =
@@ -52,11 +70,12 @@ export function AppHeader({
     <header className="sticky top-0 z-10 flex-none bg-(--surface-chrome) backdrop-blur-sm after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-(--border-default) after:content-['']">
       <div
         data-page-width=""
-        className="mx-auto flex h-14 w-full max-w-(--page-max) items-center gap-2 px-4 md:px-8"
+        className={cn(PAGE_MAX_CLASS, "mx-auto flex h-14 w-full items-center gap-2 px-4 md:px-8")}
       >
         <div className="flex flex-1 items-center pe-4">
           <a
-            href="#/translations"
+            href={pageHash("translations")}
+            onClick={goHome}
             className="inline-flex items-center rounded-(--radius-md) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <Wordmark />

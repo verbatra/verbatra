@@ -27,6 +27,8 @@ interface HeldSubmit {
 
 const IDLE: SubmitState = { kind: "idle" };
 
+const NO_SUBMIT: HeldSubmit = { identity: null, state: IDLE };
+
 export interface LocaleEdit {
   readonly context: KeyValueContext;
   readonly draft: string;
@@ -86,7 +88,7 @@ export function useLocaleEdit(
   const identity = draftIdentity(locale, keyName);
   const { context, retry } = useHeldContext(identity, locale, keyName, refreshToken);
   const [draftState, setDraftState] = useState<DraftState>(EMPTY_DRAFT);
-  const [heldSubmit, setHeldSubmit] = useState<HeldSubmit>({ identity: null, state: IDLE });
+  const [heldSubmit, setHeldSubmit] = useState<HeldSubmit>(NO_SUBMIT);
 
   const baseline = context.kind === "loaded" ? (context.target ?? "") : null;
   const current = reconcileDraft(draftState, identity, baseline);
@@ -94,6 +96,12 @@ export function useLocaleEdit(
     setDraftState(current);
   }
   const submit = heldSubmit.identity === identity ? heldSubmit.state : IDLE;
+
+  useEffect(() => {
+    if (locale === null) {
+      setHeldSubmit(NO_SUBMIT);
+    }
+  }, [locale]);
 
   async function save(target: string): Promise<boolean> {
     setHeldSubmit({ identity, state: { kind: "submitting" } });

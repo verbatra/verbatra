@@ -36,7 +36,6 @@ export function UnsavedPrompt({
     <fieldset
       ref={rootRef}
       data-unsaved-prompt=""
-      data-sticky=""
       className={cn(
         "m-0 min-w-0 rounded-lg border border-warning bg-card p-3",
         placement === "drawer" && "mt-3",

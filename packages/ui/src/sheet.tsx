@@ -103,7 +103,10 @@ export function Sheet({
         data-size={size}
         ref={containerRef}
       >
-        <div className="sticky top-0 z-10 border-b border-(--border-default) bg-(--surface-tile) px-6 py-4">
+        <div
+          data-sticky=""
+          className="sticky top-0 z-10 border-b border-(--border-default) bg-(--surface-tile) px-6 py-4"
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               {kicker !== undefined ? (

@@ -13,7 +13,7 @@ import type { SubmitState } from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { LocaleBlock } from "./KeyEditorLocale.js";
 import { LocaleEditForm } from "./LocaleEditForm.js";
-import { installRouteGuard, setUnloadWarning } from "./route-guard.js";
+import { installRouteGuard, restoreHeldRoute, setUnloadWarning } from "./route-guard.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
 import { useCapabilities } from "./use-capabilities.js";
@@ -85,6 +85,14 @@ function SourceValue({
   );
 }
 
+function sameFailure(values: KeyValuesState, error: StructuredError): boolean {
+  return (
+    values.kind === "error" &&
+    values.error.code === error.code &&
+    values.error.message === error.message
+  );
+}
+
 function submitFailure(submit: SubmitState): StructuredError | null {
   if (submit.kind !== "settled" || submit.outcome.kind === "success") {
     return null;
@@ -141,6 +149,7 @@ export function KeyEditor({
   const originRef = useRef<Element | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const dirtyRef = useRef(false);
+  const editingRef = useRef<string | null>(null);
   const edit = useLocaleEdit(editingLocale, keyName, refreshToken);
   const dialogRef = useDialogA11y<HTMLDivElement>({ isOpen: layout === "drawer", onClose });
 
@@ -171,6 +180,7 @@ export function KeyEditor({
   }, []);
 
   useLayoutEffect(() => {
+    editingRef.current = editingLocale;
     dirtyRef.current = edit.dirty;
     dirtyReportRef.current = onDirtyChange;
   });
@@ -203,6 +213,7 @@ export function KeyEditor({
           originRef.current = document.activeElement;
           setPending({ proceed, route: true });
         },
+        onRelease: () => setPending(null),
       }),
     [],
   );
@@ -226,9 +237,11 @@ export function KeyEditor({
     const saved = await edit.save(locale);
     if (saved) {
       setSaved({ keyName, locale });
-      setEditingLocale(null);
-      if (returnFocus) {
-        setReturnTo(locale);
+      if (editingRef.current === locale) {
+        setEditingLocale(null);
+        if (returnFocus) {
+          setReturnTo(locale);
+        }
       }
     }
     return saved;
@@ -256,8 +269,8 @@ export function KeyEditor({
     }
   }
 
-  async function proceedWith(held: Pending): Promise<void> {
-    await held.proceed();
+  function proceedWith(held: Pending): void {
+    void held.proceed();
     if (held.route) {
       returnFocusAfterRoute();
     }
@@ -266,7 +279,7 @@ export function KeyEditor({
   async function resolveSave(locale: string, held: Pending): Promise<void> {
     if (await saveEditing(locale, false)) {
       setPending(null);
-      await proceedWith(held);
+      proceedWith(held);
       return;
     }
     textAreaRef.current?.focus();
@@ -275,7 +288,7 @@ export function KeyEditor({
   function resolveDiscard(held: Pending): void {
     setPending(null);
     setEditingLocale(null);
-    void proceedWith(held);
+    proceedWith(held);
   }
 
   function discardMissing(): void {
@@ -285,6 +298,7 @@ export function KeyEditor({
   }
 
   function keepEditing(): void {
+    restoreHeldRoute();
     setPending(null);
     textAreaRef.current?.focus();
   }
@@ -310,7 +324,7 @@ export function KeyEditor({
           values={values}
           onRetry={() => {
             retryValues();
-            if (integrity.kind === "error") {
+            if (integrity.kind === "error" && sameFailure(values, integrity.error)) {
               retryIntegrity();
             }
           }}
@@ -318,7 +332,7 @@ export function KeyEditor({
       </Section>
       <KeyDescription description={values.kind === "loaded" ? values.description : undefined} />
       <Section title="Locales">
-        {integrity.kind === "error" && values.kind !== "error" ? (
+        {integrity.kind === "error" && !sameFailure(values, integrity.error) ? (
           <ErrorMessage error={integrity.error} onRetry={retryIntegrity} />
         ) : null}
         <ul className="m-0 list-none p-0">

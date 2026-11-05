@@ -10,6 +10,8 @@ import type { PageId } from "../client/routes.js";
 import { AgentToolsAlert } from "./AgentToolsAlert.js";
 import { AppHeader } from "./AppHeader.js";
 import { refreshBus, sessionStore } from "./api.js";
+import { cn } from "./lib/cn.js";
+import { PAGE_MAX_CLASS } from "./lib/page-width.js";
 import { NavDrawer } from "./NavDrawer.js";
 import type { PanelProps } from "./panel-props.js";
 import { GlossaryPanel } from "./panels/GlossaryPanel.js";
@@ -159,7 +161,7 @@ function AppShell({
       <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
         <div
           data-page-width=""
-          className="mx-auto w-full max-w-(--page-max) px-4 py-6 md:px-8 md:py-8"
+          className={cn(PAGE_MAX_CLASS, "mx-auto w-full px-4 py-6 md:px-8 md:py-8")}
         >
           <AgentToolsAlert failures={agentToolsFailures} />
           <ActivePanel refreshToken={refreshToken} />

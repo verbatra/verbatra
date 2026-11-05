@@ -44,7 +44,7 @@ export function EditorPane({
       </div>
       <div data-editor-scroller="" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {banner !== null ? (
-          <div data-editor-banner="" className="sticky top-0 z-10 bg-card pt-2">
+          <div data-editor-banner="" data-sticky="" className="sticky top-0 z-10 bg-card pt-2">
             {banner}
           </div>
         ) : null}
