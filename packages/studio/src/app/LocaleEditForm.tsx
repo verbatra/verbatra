@@ -1,5 +1,5 @@
-import type { ReactNode, RefObject } from "react";
-import { useEffect } from "react";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { IntegrityPillView } from "../client/integrity-pill.js";
 import { hasGlossaryHits } from "../client/key-value-context.js";
 import { ErrorMessage } from "./ErrorMessage.js";
@@ -12,7 +12,7 @@ export interface LocaleEditFormProps {
   readonly keyName: string;
   readonly edit: LocaleEdit;
   readonly pill: IntegrityPillView | null;
-  readonly textAreaRef: RefObject<HTMLTextAreaElement | null>;
+  readonly attachField: (node: HTMLTextAreaElement | null) => undefined | (() => void);
   readonly promptOpen: boolean;
   readonly onSave: () => void;
   readonly onCancel: () => void;
@@ -23,7 +23,7 @@ export function LocaleEditForm({
   keyName,
   edit,
   pill,
-  textAreaRef,
+  attachField,
   promptOpen,
   onSave,
   onCancel,
@@ -32,12 +32,20 @@ export function LocaleEditForm({
   const loaded = context.kind === "loaded";
   const glossaryHits = loaded && hasGlossaryHits(context.glossary);
   const check = useDraftCheck(locale, keyName, draft, glossaryHits);
+  const fieldRef = useRef<HTMLTextAreaElement | null>(null);
+  const attach = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      fieldRef.current = node;
+      return attachField(node);
+    },
+    [attachField],
+  );
 
   useEffect(() => {
     if (loaded) {
-      textAreaRef.current?.focus();
+      fieldRef.current?.focus();
     }
-  }, [loaded, textAreaRef]);
+  }, [loaded]);
 
   if (context.kind === "loading") {
     return <p className="m-0 mt-2 text-sm text-muted-foreground">Loading current value…</p>;
@@ -68,7 +76,7 @@ export function LocaleEditForm({
         maxLength={context.maxLength}
         invalid={pill?.tone === "danger" && draft === context.target}
         disabled={submit.kind === "submitting"}
-        textAreaRef={textAreaRef}
+        textAreaRef={attach}
         rows={5}
         onChange={edit.setDraft}
         onSave={onSave}

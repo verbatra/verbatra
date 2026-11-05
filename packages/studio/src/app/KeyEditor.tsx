@@ -1,6 +1,6 @@
 import { Button, DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DiffLocale } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus } from "../client/diff-view.js";
 import { deriveIntegrityPillView } from "../client/integrity-pill.js";
@@ -154,17 +154,20 @@ export function KeyEditor({
     capabilitiesState.kind === "loaded" ? capabilitiesState.capabilities : undefined;
 
   const dirtyReportRef = useRef(onDirtyChange);
-  const layoutRef = useRef(layout);
   const selectionRef = useRef<{ readonly start: number; readonly end: number } | null>(null);
 
-  if (layoutRef.current !== layout) {
-    layoutRef.current = layout;
-    const field = textAreaRef.current;
-    selectionRef.current =
-      field !== null && document.activeElement === field
-        ? { start: field.selectionStart, end: field.selectionEnd }
-        : null;
-  }
+  const attachField = useCallback((node: HTMLTextAreaElement | null) => {
+    textAreaRef.current = node;
+    if (node === null) {
+      return undefined;
+    }
+    return () => {
+      selectionRef.current =
+        document.activeElement === node
+          ? { start: node.selectionStart, end: node.selectionEnd }
+          : null;
+    };
+  }, []);
 
   useLayoutEffect(() => {
     dirtyRef.current = edit.dirty;
@@ -324,7 +327,7 @@ export function KeyEditor({
                   keyName={keyName}
                   edit={edit}
                   pill={deriveIntegrityPillView(integrityLocales, row.locale)}
-                  textAreaRef={textAreaRef}
+                  attachField={attachField}
                   promptOpen={prompt !== null}
                   onSave={() => void saveEditing(row.locale, true)}
                   onCancel={() => cancelEditing(row.locale)}
