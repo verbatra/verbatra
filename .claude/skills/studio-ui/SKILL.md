@@ -287,8 +287,10 @@ scroll card's ref and shows only while it overflows, at any width. A row is sele
 never mounts a modal: from `xl` it is `EditorPane`, a sticky `--radius-lg` card in a grid column
 beside the table that scrolls inside itself below the 3.5rem site header, and has no `aria-modal`;
 below `xl` it is the `DrawerShell` (side end). While the pane is open the page uses the wide layout
-(`Container` widens to `--width-layout` through `has-[[data-split]]`), so the matrix keeps three
-locale columns at 1440. Editor state (the open locale, its draft, the unsaved prompt) lives in
+(the app root switches `--page-max` from `--container-6xl` to `--width-layout` through
+`has-[[data-split]]`, and both the header's inner box and the page box, marked `data-page-width`,
+read it, so their edges line up; `Container` in ui stays generic), so the matrix keeps three locale
+columns at 1440. Editor state (the open locale, its draft, the unsaved prompt) lives in
 `KeyEditor`, above the container, so crossing `xl` keeps a draft, and focus and the selection in the
 field are restored after the swap. The translation form is inline in the locale block, built from
 the parts in `entry-editor-parts.tsx` and the `useLocaleEdit` hook, both shared with `EditEntryDialog`
@@ -308,7 +310,8 @@ attached only while a draft is dirty. The guard's `popstate` and `hashchange` li
 when `route-guard.ts` loads, so they run before the router's and the router keeps showing the held
 address (`visibleHash`) until the undo lands; never move them into an effect. An inline
 `UnsavedPrompt` (Save, Discard, Keep editing, never `window.confirm`) decides: it is a sticky element
-at the top of the pane's scroller (`data-sticky`), in the drawer it sits in the sticky header
+at the top of the pane's scroller inside an opaque sticky wrapper with a small gap under the
+pane header (`data-sticky`), in the drawer it sits in the sticky header
 through `Sheet`'s `banner` slot, it scrolls itself into view and focuses Keep editing, its Save is
 the only primary action while it is shown, and a rejected save keeps it, with the reason, and puts
 focus back in the field. It clears itself when the draft stops being dirty. A refresh that removes
