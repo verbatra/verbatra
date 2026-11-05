@@ -50,7 +50,10 @@ export function AppHeader({
   const waiting = pageBadges.review ?? 0;
   return (
     <header className="sticky top-0 z-10 flex-none bg-(--surface-chrome) backdrop-blur-sm after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-(--border-default) after:content-['']">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 md:px-8">
+      <div
+        data-page-width=""
+        className="mx-auto flex h-14 w-full max-w-(--page-max) items-center gap-2 px-4 md:px-8"
+      >
         <div className="flex flex-1 items-center pe-4">
           <a
             href="#/translations"

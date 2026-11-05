@@ -149,6 +149,16 @@ describe("App routing", () => {
     });
   }
 
+  it("gives the header and the page the same width rule, so their edges line up", async () => {
+    goToHash("#/overview");
+
+    const view = await mount();
+
+    expect(view.all("[data-page-width]")).toHaveLength(2);
+    expect(view.get("header").contains(view.all("[data-page-width]")[0] ?? null)).toBe(true);
+    expect(view.get("main").contains(view.all("[data-page-width]")[1] ?? null)).toBe(true);
+  });
+
   it("accepts the bare hash form an older link may carry", async () => {
     goToHash("#overview");
 

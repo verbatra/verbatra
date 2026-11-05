@@ -1,4 +1,3 @@
-import { Container } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -135,7 +134,7 @@ function AppShell({
   }, [wide, mobileNavOpen, onSetMobileNavOpen]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground [--page-max:var(--container-6xl)] has-[[data-split]]:[--page-max:var(--width-layout)]">
       <button
         type="button"
         className="fixed start-2 top-2 z-50 -translate-y-24 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground focus-visible:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -158,10 +157,13 @@ function AppShell({
         />
       ) : null}
       <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-        <Container>
+        <div
+          data-page-width=""
+          className="mx-auto w-full max-w-(--page-max) px-4 py-6 md:px-8 md:py-8"
+        >
           <AgentToolsAlert failures={agentToolsFailures} />
           <ActivePanel refreshToken={refreshToken} />
-        </Container>
+        </div>
       </main>
       {toast !== undefined ? <RefreshToast view={toast} onDismiss={onDismissToast} /> : null}
     </div>
