@@ -12,6 +12,7 @@ export type KeyValuesState =
       readonly description: string | undefined;
       readonly targets: ReadonlyMap<string, string | undefined>;
       readonly provenance: ReadonlyMap<string, KeyProvenance>;
+      readonly failures: ReadonlyMap<string, StructuredError>;
     };
 
 interface HeldValues {
@@ -50,9 +51,14 @@ export function useKeyValues(
       let description: string | undefined;
       const targets = new Map<string, string | undefined>();
       const provenance = new Map<string, KeyProvenance>();
+      const failures = new Map<string, StructuredError>();
       responses.forEach((response, index) => {
         const locale = localeList[index];
-        if (locale === undefined || !response.ok) {
+        if (locale === undefined) {
+          return;
+        }
+        if (!response.ok) {
+          failures.set(locale, response.error);
           return;
         }
         source ??= response.result.source;
@@ -62,7 +68,10 @@ export function useKeyValues(
           provenance.set(locale, response.result.provenance);
         }
       });
-      setHeld({ keyName, state: { kind: "loaded", source, description, targets, provenance } });
+      setHeld({
+        keyName,
+        state: { kind: "loaded", source, description, targets, provenance, failures },
+      });
       setRetrying(false);
     });
     return () => {

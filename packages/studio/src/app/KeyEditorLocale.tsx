@@ -10,6 +10,7 @@ import { provenanceDetailItems } from "../client/provenance-view.js";
 import { canRetranslate } from "../client/retranslate-eligibility.js";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
 import { KeyLocaleStatusBadge } from "./DiffBadge.js";
+import { ErrorMessage } from "./ErrorMessage.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { RetranslateButton } from "./RetranslateButton.js";
 import { TranslationValue } from "./TranslationValue.js";
@@ -18,11 +19,22 @@ import type { KeyValuesState } from "./use-key-values.js";
 function LocaleValue({
   values,
   locale,
+  retrying,
+  onRetry,
 }: {
   readonly values: KeyValuesState;
   readonly locale: string;
+  readonly retrying: boolean;
+  readonly onRetry: () => void;
 }): ReactNode {
-  if (values.kind !== "loaded" || !values.targets.has(locale)) {
+  if (values.kind !== "loaded") {
+    return null;
+  }
+  const failure = values.failures.get(locale);
+  if (failure !== undefined) {
+    return <ErrorMessage error={failure} retrying={retrying} onRetry={onRetry} />;
+  }
+  if (!values.targets.has(locale)) {
     return null;
   }
   const value = values.targets.get(locale);
@@ -105,6 +117,8 @@ export interface LocaleBlockProps {
   readonly integrity: readonly KeyIntegrityLocaleEntry[];
   readonly capabilities: StudioCapabilities | undefined;
   readonly values: KeyValuesState;
+  readonly valuesRetrying: boolean;
+  readonly onRetryValues: () => void;
   readonly editing: boolean;
   readonly savedNote: boolean;
   readonly onEdit: () => void;
@@ -117,6 +131,8 @@ export function LocaleBlock({
   integrity,
   capabilities,
   values,
+  valuesRetrying,
+  onRetryValues,
   editing,
   savedNote,
   onEdit,
@@ -146,7 +162,12 @@ export function LocaleBlock({
         form
       ) : (
         <>
-          <LocaleValue values={values} locale={row.locale} />
+          <LocaleValue
+            values={values}
+            locale={row.locale}
+            retrying={valuesRetrying}
+            onRetry={onRetryValues}
+          />
           <LocaleProvenance values={values} locale={row.locale} />
         </>
       )}

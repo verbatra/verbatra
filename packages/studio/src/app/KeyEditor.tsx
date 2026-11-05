@@ -124,7 +124,8 @@ function SourceValue({
 
 type Recovery =
   | { readonly target: "source"; readonly from: KeyValuesState }
-  | { readonly target: "locales"; readonly from: KeyIntegrityState };
+  | { readonly target: "locales"; readonly from: KeyIntegrityState }
+  | { readonly target: "localeValues"; readonly from: KeyValuesState };
 
 function sameFailure(values: KeyValuesState, error: StructuredError): boolean {
   return (
@@ -271,7 +272,7 @@ export function KeyEditor({
     if (armed === null) {
       return;
     }
-    const answer = armed.target === "source" ? values : integrity;
+    const answer = armed.target === "locales" ? integrity : values;
     if (answer === armed.from) {
       return;
     }
@@ -486,6 +487,11 @@ export function KeyEditor({
               integrity={integrityLocales}
               capabilities={capabilities}
               values={values}
+              valuesRetrying={valuesRetrying}
+              onRetryValues={() => {
+                recoveryRef.current = { target: "localeValues", from: values };
+                retryValues();
+              }}
               editing={row.locale === editingLocale}
               savedNote={
                 saved?.keyName === keyName && saved.locale === row.locale && editingLocale === null

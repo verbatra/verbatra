@@ -464,7 +464,7 @@ describe("KeyEditor drawer", () => {
     expect(localeBlocks(view)[1]?.querySelector("p")?.textContent).toBe("No translation yet.");
   });
 
-  it("leaves out the value line entirely for a locale whose read failed", async () => {
+  it("shows the failed locale's own alert with a Retry while the other locale keeps its value", async () => {
     stubBackground();
     stubRpc({
       "key.value": keyValuePerLocale({
@@ -482,7 +482,49 @@ describe("KeyEditor drawer", () => {
       />,
     );
 
-    expect(localeBlocks(view)[1]?.querySelector("p")).toBeNull();
+    const [german, french] = localeBlocks(view);
+    expect(german?.textContent).toContain("Hallo");
+    expect(german?.querySelector('[role="alert"]')).toBeNull();
+    expect(french?.querySelector('[role="alert"]')?.textContent).toContain(
+      "the file is unreadable",
+    );
+    expect(
+      Array.from(french?.querySelectorAll("button") ?? []).some(
+        (button) => button.textContent === "Retry",
+      ),
+    ).toBe(true);
+  });
+
+  it("reads again on that locale's Retry and moves focus to the recovered locales", async () => {
+    stubBackground();
+    let frenchAnswers = 0;
+    stubRpc({
+      "key.value": (params) => {
+        if (localeOf(params) === "de") {
+          return value("Hello", "Hallo");
+        }
+        frenchAnswers += 1;
+        return frenchAnswers === 1
+          ? rpcError("LOCALE_UNREADABLE", "the file is unreadable")
+          : value("Hello", "Bonjour");
+      },
+    });
+
+    const view = await renderAsync(
+      <Drawer
+        keyName={KEY}
+        locales={[DE_CHANGED, FR_MISSING]}
+        refreshToken={0}
+        onClose={vi.fn()}
+      />,
+    );
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    const french = localeBlocks(view)[1];
+    expect(french?.querySelector('[role="alert"]')).toBeNull();
+    expect(french?.textContent).toContain("Bonjour");
+    expect(document.activeElement).toBe(view.get('[data-recovery-target="locales"]'));
   });
 
   it("spells out a placeholder mismatch, including which tokens differ", async () => {
