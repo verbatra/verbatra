@@ -1391,7 +1391,9 @@ describe("one rule: every control lets a held change through", () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
     await startDirtyEdit(view);
-    await clickAsync(getRole(view, "rowheader", "app.body"));
+    const stop = getRole(view, "button", /^app\.body in fr:/);
+    stop.focus();
+    await clickAsync(stop);
     expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
 
     await clickAsync(getRole(view, "button", "Save", "[data-locale-edit]"));
@@ -1400,16 +1402,16 @@ describe("one rule: every control lets a held change through", () => {
 
     expect(window.location.hash).toBe(NEXT_KEY);
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
-    expect(document.activeElement?.closest("tr[data-key]")?.getAttribute("data-key")).toBe(
-      "app.body",
-    );
+    expect(document.activeElement).toBe(getRole(view, "button", /^app\.body in fr:/));
   });
 
   it("D2: the form Cancel lets a blocked in-app change through", async () => {
     stubServer();
     const view = await mountAt(TITLE_HASH, true);
     await startDirtyEdit(view);
-    await clickAsync(getRole(view, "rowheader", "app.body"));
+    const stop = getRole(view, "button", /^app\.body in fr:/);
+    stop.focus();
+    await clickAsync(stop);
 
     await clickAsync(getRole(view, "button", "Cancel"));
     await settle();
@@ -1417,9 +1419,7 @@ describe("one rule: every control lets a held change through", () => {
 
     expect(window.location.hash).toBe(NEXT_KEY);
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
-    expect(document.activeElement?.closest("tr[data-key]")?.getAttribute("data-key")).toBe(
-      "app.body",
-    );
+    expect(document.activeElement).toBe(getRole(view, "button", /^app\.body in fr:/));
   });
 
   it.each([
