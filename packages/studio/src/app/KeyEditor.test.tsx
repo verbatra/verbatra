@@ -189,6 +189,7 @@ describe("KeyEditor drawer", () => {
 
     expect(view.query('[role="alert"]')).toBeNull();
     expect(view.text()).toContain("Hello");
+    expect(document.activeElement).toBe(view.get('[data-recovery-target="source"]'));
   });
 
   it("shows one combined error, with one Retry for both reads, when both fail", async () => {
@@ -248,6 +249,7 @@ describe("KeyEditor drawer", () => {
 
     expect(view.query('[role="alert"]')).toBeNull();
     expect(localeBlocks(view)[0]?.textContent).toContain("Placeholders match");
+    expect(document.activeElement).toBe(view.get('[data-recovery-target="locales"]'));
   });
 
   it("reads the source from the first locale that answered and keeps it across the rest", async () => {
@@ -974,6 +976,7 @@ describe("KeyEditor editing", () => {
     await flush();
 
     expect(field(view).value).toBe("Hallo");
+    expect(document.activeElement).toBe(field(view));
   });
 
   it("closes the form from the Cancel of a failed context read", async () => {

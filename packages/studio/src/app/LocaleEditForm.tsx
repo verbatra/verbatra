@@ -75,7 +75,7 @@ export function LocaleEditForm({
         source={context.source}
         maxLength={context.maxLength}
         invalid={pill?.tone === "danger" && draft === context.target}
-        disabled={submit.kind === "submitting"}
+        busy={submit.kind === "submitting"}
         textAreaRef={attach}
         rows={5}
         onChange={edit.setDraft}

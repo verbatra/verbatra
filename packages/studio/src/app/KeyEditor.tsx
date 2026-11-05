@@ -61,13 +61,15 @@ function isOutsideControl(element: Element | null): element is HTMLElement {
 
 function SourceValue({
   values,
+  suppressError,
   onRetry,
 }: {
   readonly values: KeyValuesState;
+  readonly suppressError: boolean;
   readonly onRetry: () => void;
 }): ReactNode {
   if (values.kind === "error") {
-    return <ErrorMessage error={values.error} onRetry={onRetry} />;
+    return suppressError ? null : <ErrorMessage error={values.error} onRetry={onRetry} />;
   }
   if (values.kind === "loaded" && values.source !== undefined) {
     return (
@@ -150,6 +152,9 @@ export function KeyEditor({
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const dirtyRef = useRef(false);
   const editingRef = useRef<string | null>(null);
+  const recoveryRef = useRef<"source" | "locales" | null>(null);
+  const sourceTargetRef = useRef<HTMLDivElement | null>(null);
+  const localesTargetRef = useRef<HTMLUListElement | null>(null);
   const edit = useLocaleEdit(editingLocale, keyName, refreshToken);
   const dialogRef = useDialogA11y<HTMLDivElement>({ isOpen: layout === "drawer", onClose });
 
@@ -196,6 +201,17 @@ export function KeyEditor({
   }, [layout]);
 
   useEffect(() => {
+    const target = recoveryRef.current;
+    if (target === "source" && values.kind === "loaded") {
+      recoveryRef.current = null;
+      sourceTargetRef.current?.focus();
+    } else if (target === "locales" && integrity.kind === "loaded") {
+      recoveryRef.current = null;
+      localesTargetRef.current?.focus();
+    }
+  }, [values.kind, integrity.kind]);
+
+  useEffect(() => {
     dirtyReportRef.current(edit.dirty);
     setUnloadWarning(edit.dirty);
     if (!edit.dirty) {
@@ -235,6 +251,9 @@ export function KeyEditor({
 
   async function saveEditing(locale: string, returnFocus: boolean): Promise<boolean> {
     const saved = await edit.save(locale);
+    if (!saved && editingRef.current === locale) {
+      textAreaRef.current?.focus();
+    }
     if (saved) {
       setSaved({ keyName, locale });
       if (editingRef.current === locale) {
@@ -280,9 +299,7 @@ export function KeyEditor({
     if (await saveEditing(locale, false)) {
       setPending(null);
       proceedWith(held);
-      return;
     }
-    textAreaRef.current?.focus();
   }
 
   function resolveDiscard(held: Pending): void {
@@ -320,22 +337,42 @@ export function KeyEditor({
     <>
       {missing ? <MissingKeyNotice onDiscard={discardMissing} /> : null}
       <Section title="Source">
-        <SourceValue
-          values={values}
-          onRetry={() => {
-            retryValues();
-            if (integrity.kind === "error" && sameFailure(values, integrity.error)) {
-              retryIntegrity();
-            }
-          }}
-        />
+        <div
+          ref={sourceTargetRef}
+          tabIndex={-1}
+          data-recovery-target="source"
+          className="outline-none"
+        >
+          <SourceValue
+            values={values}
+            suppressError={missing}
+            onRetry={() => {
+              recoveryRef.current = "source";
+              retryValues();
+              if (integrity.kind === "error" && sameFailure(values, integrity.error)) {
+                retryIntegrity();
+              }
+            }}
+          />
+        </div>
       </Section>
       <KeyDescription description={values.kind === "loaded" ? values.description : undefined} />
       <Section title="Locales">
-        {integrity.kind === "error" && !sameFailure(values, integrity.error) ? (
-          <ErrorMessage error={integrity.error} onRetry={retryIntegrity} />
+        {integrity.kind === "error" && !missing && !sameFailure(values, integrity.error) ? (
+          <ErrorMessage
+            error={integrity.error}
+            onRetry={() => {
+              recoveryRef.current = "locales";
+              retryIntegrity();
+            }}
+          />
         ) : null}
-        <ul className="m-0 list-none p-0">
+        <ul
+          ref={localesTargetRef}
+          tabIndex={-1}
+          data-recovery-target="locales"
+          className="m-0 list-none p-0 outline-none"
+        >
           {rows.map((row) => (
             <LocaleBlock
               key={row.locale}

@@ -128,10 +128,10 @@ function stubServer(editEntry?: StubRpcResult): void {
     "key.integrity": { ok: true, result: { locales: [] } },
     "project.snapshot": { ok: true, result: { capabilities: { spend: false, writeToDisk: true } } },
     "history.list": { ok: true, result: { available: false } },
-    "key.value": (params) => ({
-      ok: true,
-      result: { source: SOURCE, target: targets[localeOf(params)] },
-    }),
+    "key.value": (params) =>
+      keyGone
+        ? { ok: false, error: { code: "UNKNOWN_KEY", message: "The key was not found." } }
+        : { ok: true, result: { source: SOURCE, target: targets[localeOf(params)] } },
     "key.context": (params) => ({
       ok: true,
       result: {
@@ -839,6 +839,7 @@ describe("split editor when its key disappears", () => {
 
     expect(textarea(view).value).toBe("Hallo!");
     expect(view.get("[data-key-missing]").textContent).toContain("no longer exists");
+    expect(view.query('[data-editor-pane] [role="alert"]')).toBeNull();
 
     expect(window.location.hash).toContain("key=app.title");
     const length = window.history.length;
@@ -848,6 +849,7 @@ describe("split editor when its key disappears", () => {
 
     expect(window.location.hash).toBe("#/translations");
     expect(window.history.length).toBe(length);
+    expect(document.activeElement?.closest("tr[data-key]")).not.toBeNull();
 
     expect(view.query("[data-locale-edit]")).toBeNull();
     expect(view.query("[data-key-missing]")).toBeNull();
@@ -962,6 +964,56 @@ describe("split editor held history traversals", () => {
     expect(visibleHash()).toBe(window.location.hash);
     expect(window.location.hash).toBe("#/overview");
     expect(view.query("[data-editor-pane]")).toBeNull();
+  });
+});
+
+describe("split editor layout stability", () => {
+  it("keeps the filter bar outside the split, so opening a key never moves the table", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    const filter = getRole(view, "textbox", "Filter by key or translation text");
+
+    expect(view.get("[data-split]").contains(filter)).toBe(false);
+    expect(view.get("[data-split]").contains(view.get('[aria-label="Keys table"]'))).toBe(true);
+  });
+});
+
+describe("split editor focus", () => {
+  it("keeps focus in the field through a rejected save started from the keyboard", async () => {
+    let answer: (result: StubRpcResult) => void = () => {};
+    stubServer();
+    stubRpc({
+      "translation.editEntry": () =>
+        new Promise<StubRpcResult>((resolve) => {
+          answer = resolve;
+        }),
+    });
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    textarea(view).focus();
+
+    keyDown(textarea(view), { ctrlKey: true });
+    expect(document.activeElement).toBe(textarea(view));
+    expect(textarea(view).readOnly).toBe(true);
+    expect(textarea(view).getAttribute("aria-busy")).toBe("true");
+    await act(async () => {
+      answer({ ok: true, result: { accepted: false, reason: "placeholder" } });
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(document.activeElement).toBe(textarea(view));
+  });
+
+  it("puts focus back in the field after a rejected save started from the Save button", async () => {
+    stubServer({ ok: true, result: { accepted: false, reason: "placeholder" } });
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+
+    await clickAsync(getRole(view, "button", "Save", "[data-locale-edit]"));
+    await flush();
+
+    expect(document.activeElement).toBe(textarea(view));
   });
 });
 

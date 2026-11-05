@@ -179,7 +179,7 @@ export function TranslationField({
   source,
   maxLength,
   invalid,
-  disabled,
+  busy,
   textAreaRef,
   rows,
   onChange,
@@ -190,7 +190,7 @@ export function TranslationField({
   readonly source: string;
   readonly maxLength: number | undefined;
   readonly invalid: boolean;
-  readonly disabled: boolean;
+  readonly busy: boolean;
   readonly textAreaRef: Ref<HTMLTextAreaElement>;
   readonly rows: number;
   readonly onChange: (next: string) => void;
@@ -211,12 +211,13 @@ export function TranslationField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {
-          if (isSaveShortcut(event) && !disabled) {
+          if (isSaveShortcut(event) && !busy) {
             event.preventDefault();
             onSave();
           }
         }}
-        disabled={disabled}
+        readOnly={busy}
+        aria-busy={busy ? true : undefined}
         rows={rows}
       />
       <LengthLine id={lengthId} source={source} value={value} maxLength={maxLength} />

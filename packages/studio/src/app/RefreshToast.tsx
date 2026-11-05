@@ -61,7 +61,7 @@ export function RefreshToast({ view, onDismiss }: RefreshToastProps): ReactNode 
   }
 
   return (
-    <Toast>
+    <Toast className="group-has-[[data-split]]/page:end-auto group-has-[[data-split]]/page:start-6">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-1">
           <span className="text-sm font-semibold text-foreground">{view.label}</span>

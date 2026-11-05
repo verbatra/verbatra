@@ -1,7 +1,7 @@
 import type { GlossaryDraftCheck, ReviewReasonCode } from "@verbatra/sdk";
 import { Badge, DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
 import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-context.js";
 import { ErrorMessage } from "./ErrorMessage.js";
@@ -88,7 +88,7 @@ function TranslationColumn({
   value,
   onChangeValue,
   onSave,
-  disabled,
+  busy,
   textAreaRef,
 }: {
   readonly locale: string;
@@ -97,7 +97,7 @@ function TranslationColumn({
   readonly value: string;
   readonly onChangeValue: (next: string) => void;
   readonly onSave: () => void;
-  readonly disabled: boolean;
+  readonly busy: boolean;
   readonly textAreaRef: Ref<HTMLTextAreaElement>;
 }): ReactNode {
   const integrity = useKeyIntegrity(keyName, 0);
@@ -118,7 +118,7 @@ function TranslationColumn({
           source={context.source}
           maxLength={context.maxLength}
           invalid={pill?.tone === "danger" && value === context.target}
-          disabled={disabled}
+          busy={busy}
           textAreaRef={textAreaRef}
           rows={6}
           onChange={onChangeValue}
@@ -156,8 +156,20 @@ export function EditEntryDialog({
   async function handleSubmit(): Promise<void> {
     if (await edit.save(locale)) {
       onAccepted(locale, keyName);
+      return;
     }
+    textAreaRef.current?.focus();
   }
+
+  const recoveredRef = useRef(false);
+  useEffect(() => {
+    if (context.kind === "error") {
+      recoveredRef.current = true;
+    } else if (context.kind === "loaded" && recoveredRef.current) {
+      recoveredRef.current = false;
+      textAreaRef.current?.focus();
+    }
+  }, [context.kind]);
 
   return (
     <DrawerShell
@@ -195,7 +207,7 @@ export function EditEntryDialog({
               value={value}
               onChangeValue={edit.setDraft}
               onSave={() => void handleSubmit()}
-              disabled={submit.kind === "submitting"}
+              busy={submit.kind === "submitting"}
               textAreaRef={textAreaRef}
             />
           </div>

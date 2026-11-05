@@ -136,7 +136,7 @@ function AppShell({
   }, [wide, mobileNavOpen, onSetMobileNavOpen]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground [--page-max:var(--container-6xl)] has-[[data-split]]:[--page-max:var(--width-layout)]">
+    <div className="group/page flex min-h-screen flex-col bg-background text-foreground [--page-max:var(--container-6xl)] has-[[data-split]]:[--page-max:var(--width-layout)]">
       <button
         type="button"
         className="fixed start-2 top-2 z-50 -translate-y-24 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground focus-visible:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

@@ -190,7 +190,11 @@ function KeysSection({
   localeValuesView,
   review,
   integrity,
+  split,
+  editor,
 }: {
+  readonly split: boolean;
+  readonly editor: ReactNode;
   readonly locales: readonly DiffLocale[] | null;
   readonly route: TranslationsRoute;
   readonly refreshToken: number;
@@ -237,40 +241,48 @@ function KeysSection({
           prefix="Source and translation text could not be read, so search only matches key names."
         />
       ) : null}
-      {loading ? (
-        <div role="status" aria-busy="true">
-          <span className="sr-only">Loading...</span>
-          <TableSkeleton />
+      <div
+        className={cn(split && "grid grid-cols-[minmax(0,1fr)_22rem] items-start gap-6")}
+        data-split={split ? "" : undefined}
+      >
+        <div className="min-w-0">
+          {loading ? (
+            <div role="status" aria-busy="true">
+              <span className="sr-only">Loading...</span>
+              <TableSkeleton />
+            </div>
+          ) : rows.items.length === 0 ? (
+            <NoKeys
+              narrowed={narrowed}
+              trouble={trouble}
+              searching={query.trim() !== ""}
+              onClear={() => {
+                route.setFilter({ locale: "", statuses: new Set(), query: "" });
+                searchRef.current?.focus();
+              }}
+            />
+          ) : (
+            <>
+              <KeysTable
+                locales={loaded}
+                keys={rows.items}
+                locale={locale}
+                index={index}
+                localeValues={localeValues}
+                selectedKey={selectedKey}
+                refreshToken={refreshToken}
+                onSelectKey={route.setSelectedKey}
+              />
+              {rows.truncated ? (
+                <p className="mt-2 text-xs text-muted-foreground" data-key-cap="">
+                  {keyCountText(rows, narrowed, incomplete)}
+                </p>
+              ) : null}
+            </>
+          )}
         </div>
-      ) : rows.items.length === 0 ? (
-        <NoKeys
-          narrowed={narrowed}
-          trouble={trouble}
-          searching={query.trim() !== ""}
-          onClear={() => {
-            route.setFilter({ locale: "", statuses: new Set(), query: "" });
-            searchRef.current?.focus();
-          }}
-        />
-      ) : (
-        <>
-          <KeysTable
-            locales={loaded}
-            keys={rows.items}
-            locale={locale}
-            index={index}
-            localeValues={localeValues}
-            selectedKey={selectedKey}
-            refreshToken={refreshToken}
-            onSelectKey={route.setSelectedKey}
-          />
-          {rows.truncated ? (
-            <p className="mt-2 text-xs text-muted-foreground" data-key-cap="">
-              {keyCountText(rows, narrowed, incomplete)}
-            </p>
-          ) : null}
-        </>
-      )}
+        {editor}
+      </div>
     </KeysFrame>
   );
 }
@@ -346,6 +358,17 @@ function focusRow(key: string): void {
   (stops.find((stop) => stop.tabIndex === 0) ?? stops[0])?.focus();
 }
 
+function focusNearestRow(key: string): void {
+  const stops = [...document.querySelectorAll<HTMLElement>("tr[data-key] [data-row][data-col]")];
+  const own = stops.filter((stop) => stop.closest("tr")?.dataset.key === key);
+  const target = own.find((stop) => stop.tabIndex === 0) ?? own[0] ?? stops[0];
+  if (target !== undefined) {
+    target.focus();
+    return;
+  }
+  document.querySelector<HTMLElement>("[data-key-filter]")?.focus();
+}
+
 export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const diff = useDiffState(refreshToken);
   const localeValuesView = useLocaleValues(refreshToken);
@@ -374,8 +397,8 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   }
 
   function closeEditor(): void {
-    if (editorKey !== null && setSelectedKey(null) && wide) {
-      focusRow(editorKey);
+    if (editorKey !== null && setSelectedKey(null) && (wide || selectedKey === null)) {
+      focusNearestRow(editorKey);
     }
   }
 
@@ -387,36 +410,32 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
         actions={diff.kind === "loaded" ? <ReviewReportButton locales={diff.locales} /> : undefined}
       />
       <DiffNotices diff={diff} brokenInSync={brokenInSync} />
-      <div
-        className={cn(split && "grid grid-cols-[minmax(0,1fr)_22rem] items-start gap-6")}
-        data-split={split ? "" : undefined}
-      >
-        <div className="min-w-0">
-          {diff.kind === "loading" || diff.kind === "loaded" ? (
-            <KeysSection
-              locales={diff.kind === "loaded" ? diff.locales : null}
-              route={route}
-              refreshToken={refreshToken}
-              localeValuesView={localeValuesView}
-              review={review}
-              integrity={integrity}
-            />
-          ) : null}
-        </div>
-        {editorKey !== null && diff.kind === "loaded" ? (
-          <KeyEditor
-            keyName={editorKey}
-            locales={diff.locales}
-            refreshToken={refreshToken}
-            layout={wide ? "pane" : "drawer"}
-            onClose={closeEditor}
-            onEscape={() => focusRow(editorKey)}
-            onRouteSettled={focusSettledRow}
-            missing={selectedKey === null}
-            onDirtyChange={(dirty) => setDirtyKey(dirty ? editorKey : null)}
-          />
-        ) : null}
-      </div>
+      {diff.kind === "loading" || diff.kind === "loaded" ? (
+        <KeysSection
+          locales={diff.kind === "loaded" ? diff.locales : null}
+          route={route}
+          refreshToken={refreshToken}
+          localeValuesView={localeValuesView}
+          review={review}
+          integrity={integrity}
+          split={split}
+          editor={
+            editorKey !== null && diff.kind === "loaded" ? (
+              <KeyEditor
+                keyName={editorKey}
+                locales={diff.locales}
+                refreshToken={refreshToken}
+                layout={wide ? "pane" : "drawer"}
+                onClose={closeEditor}
+                onEscape={() => focusRow(editorKey)}
+                onRouteSettled={focusSettledRow}
+                missing={selectedKey === null}
+                onDirtyChange={(dirty) => setDirtyKey(dirty ? editorKey : null)}
+              />
+            ) : null
+          }
+        />
+      ) : null}
     </>
   );
 }
