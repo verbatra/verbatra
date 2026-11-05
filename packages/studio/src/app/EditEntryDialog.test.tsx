@@ -837,3 +837,127 @@ describe("EditEntryDialog", () => {
     expect(rpcCalls.filter((call) => call.method === "translation.editEntry")).toHaveLength(1);
   });
 });
+
+describe("EditEntryDialog: an unsaved draft", () => {
+  const CLOSE = `button[aria-label="Close the editor for ${KEY}"]`;
+
+  async function dirtyDialog(onAccepted = vi.fn(), onClose = vi.fn()) {
+    stubRpc({
+      "key.context": keyValue("Hello", "Hallo"),
+      "translation.editEntry": accepted("Guten Tag"),
+    });
+    const view = await renderAsync(dialog(onAccepted, onClose));
+    typeInto(editor(view), "Guten Tag");
+    return view;
+  }
+
+  it.each([
+    ["Escape", () => pressKey("Escape")],
+    ["the backdrop", (view: { get(s: string): HTMLElement }) => click(view.get("[data-backdrop]"))],
+    ["the close button", (view: { get(s: string): HTMLElement }) => click(view.get(CLOSE))],
+  ])("asks before %s drops it, and keeps the dialog open", async (_name, dismiss) => {
+    const onClose = vi.fn();
+    const view = await dirtyDialog(vi.fn(), onClose);
+
+    dismiss(view);
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(view.get("[data-unsaved-prompt]").textContent).toContain("not saved");
+    expect(editor(view).value).toBe("Guten Tag");
+    expect(document.activeElement?.textContent).toBe("Keep editing");
+    expect(view.container.contains(document.activeElement)).toBe(true);
+  });
+
+  it.each([
+    ["Escape", () => pressKey("Escape")],
+    ["the backdrop", (view: { get(s: string): HTMLElement }) => click(view.get("[data-backdrop]"))],
+    ["the close button", (view: { get(s: string): HTMLElement }) => click(view.get(CLOSE))],
+  ])("closes at once on %s while the draft is clean", async (_name, dismiss) => {
+    stubRpc({ "key.context": keyValue("Hello", "Hallo") });
+    const onClose = vi.fn();
+    const view = await renderAsync(dialog(vi.fn(), onClose));
+
+    dismiss(view);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+  });
+
+  it("closes without saving on Discard", async () => {
+    const onClose = vi.fn();
+    const onAccepted = vi.fn();
+    const view = await dirtyDialog(onAccepted, onClose);
+    pressKey("Escape");
+
+    click(view.getByText("button", "Discard"));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onAccepted).not.toHaveBeenCalled();
+    expect(rpcCalls.some((call) => call.method === "translation.editEntry")).toBe(false);
+  });
+
+  it("keeps the draft and returns focus to the field on Keep editing, and on a second Escape", async () => {
+    const onClose = vi.fn();
+    const view = await dirtyDialog(vi.fn(), onClose);
+    pressKey("Escape");
+
+    click(view.getByText("button", "Keep editing"));
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(document.activeElement).toBe(editor(view));
+
+    pressKey("Escape");
+    pressKey("Escape");
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(editor(view).value).toBe("Guten Tag");
+  });
+
+  it("saves, then reports the edit and closes through the caller, on Save", async () => {
+    const onAccepted = vi.fn();
+    const view = await dirtyDialog(onAccepted);
+    pressKey("Escape");
+
+    await clickAsync(view.get("[data-unsaved-prompt]").querySelector("button") as HTMLElement);
+    await flush();
+
+    expect(rpcCalls).toContainEqual({
+      method: "translation.editEntry",
+      params: { locale: LOCALE, key: KEY, value: "Guten Tag" },
+    });
+    expect(onAccepted).toHaveBeenCalledWith(LOCALE, KEY);
+  });
+
+  it("keeps the prompt with the reason, and focus in the dialog, when the save is rejected", async () => {
+    stubRpc({
+      "key.context": keyValue("Hello {name}", "Hallo {name}"),
+      "translation.editEntry": rejected("placeholder-mismatch" as IntegrityGateReason, "Hallo"),
+    });
+    const onAccepted = vi.fn();
+    const view = await renderAsync(dialog(onAccepted));
+    typeInto(editor(view), "Hallo");
+    pressKey("Escape");
+
+    await clickAsync(view.get("[data-unsaved-prompt]").querySelector("button") as HTMLElement);
+    await flush();
+
+    expect(onAccepted).not.toHaveBeenCalled();
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+    expect(view.container.contains(document.activeElement)).toBe(true);
+  });
+
+  it("holds browser Back while dirty and lets it through on Discard", async () => {
+    window.history.replaceState({ idx: 0 }, "", "#/review");
+    const onClose = vi.fn();
+    const view = await dirtyDialog(vi.fn(), onClose);
+
+    act(() => {
+      window.history.pushState({ idx: 1 }, "", "#/overview");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+
+    click(view.getByText("button", "Discard"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
