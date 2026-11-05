@@ -11,6 +11,7 @@ let activeGuard: RouteGuard | null = null;
 let position: number | null = null;
 let positionHash = "";
 let undoing = false;
+let correctedFrom: number | null = null;
 let admitting = false;
 
 function readIdx(): number | null {
@@ -53,8 +54,14 @@ function adopt(idx: number | null): void {
 
 function handleTraversal(): void {
   const idx = readIdx();
-  if (undoing) {
-    undoing = idx !== position;
+  if (undoing && position !== null) {
+    if (idx === position) {
+      undoing = false;
+      correctedFrom = null;
+    } else if (idx !== correctedFrom) {
+      correctedFrom = idx;
+      window.history.go(position - (idx ?? position + 1));
+    }
     return;
   }
   if (idx !== null && idx === position) {
@@ -69,6 +76,7 @@ function handleTraversal(): void {
   }
   const delta = (idx ?? position + 1) - position;
   undoing = true;
+  correctedFrom = idx;
   window.history.go(-delta);
   guard.onBlock(() => {
     admitting = true;
@@ -104,10 +112,12 @@ export function installRouteGuard(guard: RouteGuard): () => void {
   position = readIdx();
   positionHash = window.location.hash;
   undoing = false;
+  correctedFrom = null;
   admitting = false;
   return () => {
     if (activeGuard === guard) {
       activeGuard = null;
+      undoing = false;
       setUnloadWarning(false);
     }
   };

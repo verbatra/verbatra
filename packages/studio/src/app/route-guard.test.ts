@@ -275,3 +275,107 @@ describe("leaving the page", () => {
     expect(leave().defaultPrevented).toBe(false);
   });
 });
+
+describe("rapid traversals before the undo has landed", () => {
+  let hashes: readonly string[] = [];
+  let cursor = 0;
+  let queue: number[] = [];
+
+  function land(target: number): void {
+    cursor = target;
+    window.history.replaceState({ idx: 10 + target }, "", hashes[target]);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  }
+
+  function userTraverses(delta: number): void {
+    land(cursor + delta);
+  }
+
+  function drain(): void {
+    for (let guardRail = 0; queue.length > 0; guardRail += 1) {
+      expect(guardRail).toBeLessThan(50);
+      const delta = queue.shift() ?? 0;
+      const target = cursor + delta;
+      if (target >= 0 && target < hashes.length) {
+        land(target);
+      }
+    }
+  }
+
+  function startOn(entries: readonly string[], current: number): void {
+    hashes = entries;
+    cursor = current;
+    queue = [];
+    vi.spyOn(window.history, "go").mockImplementation((delta) => {
+      queue.push(delta ?? 0);
+    });
+    window.history.replaceState({ idx: 10 + current }, "", entries[current]);
+    uninstall = installRouteGuard(guard);
+    dirty = true;
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns to the held entry after a double Back, and then lets a clean Back through", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+
+    userTraverses(-1);
+    userTraverses(-1);
+    drain();
+
+    expect(window.location.hash).toBe("#/c");
+    expect(idx()).toBe(12);
+    expect(visibleHash()).toBe("#/c");
+    expect(onBlock).toHaveBeenCalledTimes(1);
+
+    dirty = false;
+    userTraverses(-1);
+
+    expect(window.location.hash).toBe("#/b");
+    expect(visibleHash()).toBe("#/b");
+    expect(onBlock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns to the held entry after a Back and a Forward before the echo", () => {
+    startOn(["#/a", "#/b", "#/c", "#/d"], 2);
+
+    userTraverses(-1);
+    userTraverses(2);
+    drain();
+
+    expect(window.location.hash).toBe("#/c");
+    expect(idx()).toBe(12);
+    expect(visibleHash()).toBe("#/c");
+    expect(onBlock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns to the held entry after three rapid Backs", () => {
+    startOn(["#/a", "#/b", "#/c", "#/d"], 3);
+
+    userTraverses(-1);
+    userTraverses(-1);
+    userTraverses(-1);
+    drain();
+
+    expect(window.location.hash).toBe("#/d");
+    expect(idx()).toBe(13);
+    expect(visibleHash()).toBe("#/d");
+    expect(onBlock).toHaveBeenCalledTimes(1);
+  });
+
+  it("holds the next traversal again once the earlier one has settled", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    userTraverses(-1);
+    drain();
+
+    userTraverses(-1);
+    drain();
+
+    expect(window.location.hash).toBe("#/c");
+    expect(onBlock).toHaveBeenCalledTimes(2);
+  });
+});
