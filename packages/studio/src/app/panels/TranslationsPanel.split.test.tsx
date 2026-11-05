@@ -1236,6 +1236,31 @@ describe("split editor close with an empty table", () => {
   });
 });
 
+describe("split editor status and drawer room", () => {
+  it("scrolls the status of a rejected save into view while focus stays in the field", async () => {
+    const scroll = vi.spyOn(Element.prototype, "scrollIntoView");
+    stubServer({ ok: true, result: { accepted: false, reason: "placeholder" } });
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    scroll.mockClear();
+
+    await clickAsync(getRole(view, "button", "Save", "[data-locale-edit]"));
+    await flush();
+
+    expect(scroll).toHaveBeenCalledWith({ block: "nearest" });
+    expect(document.activeElement).toBe(textarea(view));
+  });
+
+  it("leaves the drawer room under its last row, so the toast can be scrolled clear", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, false);
+
+    expect(view.get('[role="dialog"] [data-drawer-tail]').contains(view.get("[data-locale]"))).toBe(
+      true,
+    );
+  });
+});
+
 describe("split editor brand link", () => {
   it("goes through the router, so it adds no unstamped entry and never drops a draft", async () => {
     stubServer();
