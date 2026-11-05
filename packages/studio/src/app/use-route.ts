@@ -48,6 +48,9 @@ export function navigateToPage(page: PageId): boolean {
 
 export function navigateToRoute(route: Route): boolean {
   const next = routeHash(route);
+  if (next === visibleHash()) {
+    return true;
+  }
   if (routeChangeBlocked(next, "push")) {
     return false;
   }

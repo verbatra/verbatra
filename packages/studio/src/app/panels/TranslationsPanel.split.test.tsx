@@ -879,7 +879,12 @@ describe("history entries", () => {
     act(() => inputNamed(view, "Search keys and text").form?.requestSubmit());
     await flush();
     expect(window.location.hash).toContain("q=abc");
-    expect(window.history.length).toBeLessThanOrEqual(before + 1);
+    expect(window.history.length).toBe(before + 1);
+
+    typeInto(inputNamed(view, "Search keys and text"), "abc");
+    act(() => inputNamed(view, "Search keys and text").form?.requestSubmit());
+    await flush();
+    expect(window.history.length).toBe(before + 1);
 
     window.history.back();
     await settle();
