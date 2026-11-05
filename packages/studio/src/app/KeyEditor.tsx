@@ -374,6 +374,8 @@ export function KeyEditor({
       origin.focus();
     } else if (layout === "pane" || missing) {
       onRouteSettled();
+    } else {
+      dialogRef.current?.querySelector<HTMLElement>(CONTROL)?.focus();
     }
   }
 

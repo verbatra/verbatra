@@ -671,6 +671,51 @@ describe("split editor dirty guard", () => {
   });
 });
 
+describe("split editor drawer focus after a held Back", () => {
+  const BODY_HASH = "#/translations?key=app.body";
+
+  async function holdBack(wide: boolean): Promise<RenderResult> {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, wide, BODY_HASH);
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+    await flush();
+    return view;
+  }
+
+  const ACTIONS = [
+    { name: "prompt Discard", scope: "[data-unsaved-prompt]", label: "Discard" },
+    { name: "prompt Save", scope: "[data-unsaved-prompt]", label: "Save" },
+    { name: "form Save", scope: "[data-locale-edit]", label: "Save" },
+    { name: "form Cancel", scope: "[data-locale-edit]", label: "Cancel" },
+  ] as const;
+
+  it.each(ACTIONS)("keeps focus inside the open drawer after $name", async (action) => {
+    const view = await holdBack(false);
+
+    await clickAsync(getRole(view, "button", action.label, action.scope));
+    await settle();
+    await flush();
+
+    expect(window.location.hash).toBe(BODY_HASH);
+    const dialog = view.get('[role="dialog"]');
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).toBe(getRole(view, "button", "Close details for app.body"));
+  });
+
+  it("leaves the pane's focus as it was at xl", async () => {
+    const view = await holdBack(true);
+
+    await clickAsync(getRole(view, "button", "Discard", "[data-unsaved-prompt]"));
+    await settle();
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).not.toBe(document.body);
+  });
+});
+
 describe("split editor live updates", () => {
   it("reads the context and the integrity of the open key again on every refresh", async () => {
     stubServer();
