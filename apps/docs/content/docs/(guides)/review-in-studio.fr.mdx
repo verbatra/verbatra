@@ -65,7 +65,7 @@ La page Review liste chaque valeur écrite par une machine que personne n'a appr
 
 <StudioScreenshot
   shot="review"
-  alt="La page Review de Verbatra Studio à l'état Needs review avec des entrées en allemand ; deux lignes portent des raisons de relecture, Matches source text et Unusual length, à côté de l'origine Machine, et chaque ligne a les actions Edit, Approve et Reject."
+  alt="La page Review de Verbatra Studio avec la puce Needs review activée et des entrées en allemand ; deux lignes portent des raisons de relecture, Matches source text et Unusual length, à côté de l'origine Machine, et chaque ligne a les actions Edit, Approve et Reject."
   caption="La file de relecture après une exécution, avec les lignes signalées et leurs raisons. Studio existe en clair et en sombre ; change la capture pour comparer."
 />
 
@@ -97,7 +97,7 @@ Les deux décisions sont enregistrées dans `verbatra.provenance.json` selon les
 
 La file est lue depuis les fichiers commités, donc un coéquipier qui les récupère voit la même file. Une valeur la quitte dès qu'une personne l'approuve, la rejette, l'écrit ou l'importe ; une valeur approuvée qu'une machine réécrit y revient.
 
-La barre de filtres bascule entre **Needs review** et **Approved** et restreint par origine ; une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) en CI.
+Les puces **Needs review** et **Approved** basculent la liste et affichent des compteurs ; la barre restreint par origine ; une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) en CI.
 
 ### Traiter la file au clavier
 

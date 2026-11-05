@@ -65,7 +65,7 @@ La página Review lista cada valor que escribió una máquina y que nadie ha apr
 
 <StudioScreenshot
   shot="review"
-  alt="La página Review de Verbatra Studio en el estado Needs review con entradas en alemán; dos filas llevan motivos de revisión, Matches source text y Unusual length, junto al origen Machine, y cada fila tiene las acciones Edit, Approve y Reject."
+  alt="La página Review de Verbatra Studio con el chip Needs review activado y entradas en alemán; dos filas llevan motivos de revisión, Matches source text y Unusual length, junto al origen Machine, y cada fila tiene las acciones Edit, Approve y Reject."
   caption="La cola de Review tras una ejecución, con las filas marcadas y sus motivos. Studio viene en claro y oscuro; cambia la captura para compararlos."
 />
 
@@ -97,7 +97,7 @@ Ambas decisiones se guardan en `verbatra.provenance.json` según las reglas de [
 
 La cola se lee de los archivos confirmados, así que un compañero que los descarga ve la misma cola. Un valor sale de ella en cuanto una persona lo aprueba, lo rechaza, lo escribe o lo importa; un valor aprobado que una máquina reescribe vuelve a entrar.
 
-La barra de filtros cambia entre **Needs review** y **Approved** y acota por origen; con un locale elegido, **Approve all in** lo aprueba entero tras una confirmación. Para que un pull request falle mientras haya traducciones automáticas esperando, ejecuta [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas) en la CI.
+Los chips **Needs review** y **Approved** cambian la lista y muestran contadores; la barra acota por origen; con un locale elegido, **Approve all in** lo aprueba entero tras una confirmación. Para que un pull request falle mientras haya traducciones automáticas esperando, ejecuta [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas) en la CI.
 
 ### Trabaja la cola con el teclado
 

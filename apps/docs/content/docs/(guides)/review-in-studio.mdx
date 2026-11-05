@@ -65,7 +65,7 @@ The Review page lists every value a machine wrote that nobody approved: one row 
 
 <StudioScreenshot
   shot="review"
-  alt="The Verbatra Studio Review page in the Needs review state, listing German entries; two rows carry review reasons, Matches source text and Unusual length, next to the Machine origin, and each row has Edit, Approve and Reject actions."
+  alt="The Verbatra Studio Review page with the Needs review chip pressed, listing German entries; two rows carry review reasons, Matches source text and Unusual length, next to the Machine origin, and each row has Edit, Approve and Reject actions."
   caption="The Review queue after a run, with flagged rows showing their reasons. Studio ships in light and dark; switch the screenshot to compare."
 />
 
@@ -97,7 +97,7 @@ Both decisions are saved in `verbatra.provenance.json` under the [Review decisio
 
 The queue is read from the committed files, so a teammate who pulls them sees it too. A value leaves it once a person approves, rejects, writes or imports it; an approved value that a machine rewrites comes back.
 
-The filter bar switches between **Needs review** and **Approved** and narrows by origin; with a locale chosen, **Approve all in** approves all of it after a confirmation. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
+The **Needs review** and **Approved** chips switch the list and show counts; the bar narrows by origin; with a locale chosen, **Approve all in** approves all of it after a confirmation. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
 
 ### Work the queue from the keyboard
 

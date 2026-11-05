@@ -65,7 +65,7 @@ Die Seite Review listet jeden Wert, den eine Maschine geschrieben und niemand fr
 
 <StudioScreenshot
   shot="review"
-  alt="Die Seite Review in Verbatra Studio im Zustand Needs review mit deutschen Einträgen; zwei Zeilen tragen Review-Gründe, Matches source text und Unusual length, neben der Herkunft Machine, und jede Zeile hat die Aktionen Edit, Approve und Reject."
+  alt="Die Seite Review in Verbatra Studio mit gedrücktem Chip Needs review und deutschen Einträgen; zwei Zeilen tragen Review-Gründe, Matches source text und Unusual length, neben der Herkunft Machine, und jede Zeile hat die Aktionen Edit, Approve und Reject."
   caption="Die Review-Warteschlange nach einem Lauf, markierte Zeilen mit ihren Gründen. Studio gibt es hell und dunkel; wechsle den Screenshot, um zu vergleichen."
 />
 
@@ -97,7 +97,7 @@ Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter 
 
 Die Warteschlange wird aus den committeten Dateien gelesen, sodass eine Teamkollegin, die sie pullt, dieselbe Warteschlange sieht. Ein Wert verlässt sie, sobald eine Person ihn freigibt, ablehnt, schreibt oder importiert; ein freigegebener Wert, den eine Maschine neu schreibt, kommt zurück.
 
-Die Filterleiste wechselt zwischen **Needs review** und **Approved** und grenzt nach Herkunft ein; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
+Die Chips **Needs review** und **Approved** wechseln die Liste und zeigen Zähler; die Leiste grenzt nach Herkunft ein; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
 
 ### Arbeite die Warteschlange mit der Tastatur ab
 
