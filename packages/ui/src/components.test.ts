@@ -7,7 +7,7 @@ const read = (name: string): string => readFileSync(new URL(name, SRC), "utf8");
 const tokens = read("./tokens.css");
 const declared = new Set([...tokens.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((match) => match[1]));
 
-const APP_PROVIDED = new Set<string>(["--font-geist-sans", "--font-geist-mono"]);
+const APP_PROVIDED = new Set<string>(["--font-geist-sans", "--font-geist-mono", "--tooltip-x"]);
 
 const consumers = [
   "components.css",
