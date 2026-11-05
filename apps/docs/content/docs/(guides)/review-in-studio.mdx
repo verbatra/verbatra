@@ -17,7 +17,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra studio`](/docs/cli/studio) covers the port, token and flags. Every page refreshes live when a locale, lock or provenance file changes.
+Open the URL it prints, token included; stop Studio with Ctrl+C. [`verbatra studio`](/docs/cli/studio) covers the port, token and flags. Every page refreshes live when a locale, lock or provenance file changes.
 
 ## Read the Translations page
 
@@ -57,7 +57,7 @@ The editor shows the key's description, the glossary terms your draft uses or mi
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-From 1280px wide the editor sits beside the table; below that it opens as a drawer. Leaving the key with unsaved edits, by choosing another key, filtering, searching or going Back, asks you to save, discard or keep editing; leaving Studio itself gets the browser's own confirmation.
+From 1280px wide the editor sits beside the table; below that it opens as a drawer. Leaving the key with unsaved edits, by choosing another key, filtering, searching, opening another page or going Back, asks you to save, discard or keep editing; leaving Studio itself gets the browser's own confirmation.
 
 ## Work the Review queue
 
@@ -83,7 +83,7 @@ Filter by locale or text, then:
 
 - **Edit** opens the integrity-gated editor. An accepted edit clears the row.
 - **Approve** accepts the value.
-- **Reject** removes the value for replacement, after a confirmation.
+- **Reject** removes the value for replacement, after confirming.
 
 ### Saved decisions
 
@@ -97,7 +97,7 @@ Both decisions are saved in `verbatra.provenance.json` under the [Review decisio
 
 The queue is read from the committed files, so a teammate who pulls them sees it too. A value leaves it once a person approves, rejects, writes or imports it; an approved value that a machine rewrites comes back.
 
-The filter bar switches between **Needs review** and **Approved** and narrows by origin; with a locale chosen, **Approve all in** approves all of it after a confirmation. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
+The filter bar switches between **Needs review** and **Approved** and narrows by origin; with a locale chosen, **Approve all in** approves all of it after a confirmation. To fail a pull request while translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
 
 ### Work the queue from the keyboard
 
@@ -122,7 +122,7 @@ Shortcuts pause while you type or a dialog is open. After a decision the next en
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Tick rows (or the header box for everything the filter shows), then choose **Approve selected**, **Reject selected** or, with `--allow-spend`, **Retranslate selected**. Each entry is decided as it would be on its own; failures are listed by cause and stay selected. A batch holds at most 100 entries to approve or reject, or 20 to retranslate.
+Tick rows (or the header box for all the filter shows), then choose **Approve selected**, **Reject selected** or, with `--allow-spend`, **Retranslate selected**. Each entry is decided as it would be on its own; failures are listed by cause and stay selected. A batch holds at most 100 entries to approve or reject, or 20 to retranslate.
 
 ## Retranslate a flagged key
 

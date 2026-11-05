@@ -286,20 +286,35 @@ scroll card's ref and shows only while it overflows, at any width. A row is sele
 `matchMedia` read (`XL_QUERY`, 80rem) on the first render, never by an effect, so an `xl` deep link
 never mounts a modal: from `xl` it is `EditorPane`, a sticky `--radius-lg` card in a grid column
 beside the table that scrolls inside itself below the 3.5rem site header, and has no `aria-modal`;
-below `xl` it is the `DrawerShell` (side end). Editor state (the open locale, its draft, the unsaved
-prompt) lives in `KeyEditor`, above the container, so crossing `xl` keeps a draft. The translation
-form is inline in the locale block, built from the parts in `entry-editor-parts.tsx` that
-`EditEntryDialog` (Review only) shares; a second editor dialog or a copy of those parts is a defect.
-Roving focus stays on the row when a key opens, Escape in the pane moves focus back to the row, and
-the pane never takes a global letter shortcut. Every external route change goes through
-`route-guard.ts`: while a draft is dirty, `replaceRoute`, `navigateToPage`, `navigateToRoute` and a
-`hashchange` (back, forward, a typed hash) are held, the address is restored with `replaceState`,
-and an inline `UnsavedPrompt` (Save, Discard, Keep editing, never `window.confirm`) decides. A new
-control that changes the route needs no extra code, but it must honour the boolean the navigate
-helpers return before running its own side effects.
-The guard's `hashchange` listener registers when `route-guard.ts` loads, so it runs before the
-router's own listener and restores the address before the previous page can render; never move it
-into an effect. A dirty draft also asks the browser to confirm on `beforeunload`.
+below `xl` it is the `DrawerShell` (side end). While the pane is open the page uses the wide layout
+(`Container` widens to `--width-layout` through `has-[[data-split]]`), so the matrix keeps three
+locale columns at 1440. Editor state (the open locale, its draft, the unsaved prompt) lives in
+`KeyEditor`, above the container, so crossing `xl` keeps a draft, and focus and the selection in the
+field are restored after the swap. The translation form is inline in the locale block, built from
+the parts in `entry-editor-parts.tsx` and the `useLocaleEdit` hook, both shared with `EditEntryDialog`
+(Review); a second editor dialog or a copy of either is a defect. A failed read shows `ErrorMessage`
+with Retry (and Cancel in the form), never an empty state. Roving focus stays on the row when a key
+opens, Escape in the pane moves focus back to the row, and the pane never takes a global letter
+shortcut.
+
+**Unsaved prompt.** Every external route change goes through `route-guard.ts`, which blocks by
+history index, like a router blocker: every entry carries `{ idx }`, `navigate*` pushes `idx + 1`
+and `replaceRoute` replaces with the same `idx`. While a draft is dirty, a held traversal (back,
+forward, an entry typed or linked) is undone with `history.go(-delta)`, the echo is ignored, and
+proceeding replays it with `history.go(delta)`; a held push or replace is replayed as the same push
+or replace. Typing (filter text, chips, selects, locale) replaces, a header search or page link
+pushes once. An entry without an index falls back to the `beforeunload` confirmation, which is
+attached only while a draft is dirty. The guard's `popstate` and `hashchange` listeners register
+when `route-guard.ts` loads, so they run before the router's and the router keeps showing the held
+address (`visibleHash`) until the undo lands; never move them into an effect. An inline
+`UnsavedPrompt` (Save, Discard, Keep editing, never `window.confirm`) decides: it is a sticky element
+at the top of the pane's scroller (`data-sticky`), in the drawer it sits in the sticky header
+through `Sheet`'s `banner` slot, it scrolls itself into view and focuses Keep editing, its Save is
+the only primary action while it is shown, and a rejected save keeps it, with the reason, and puts
+focus back in the field. It clears itself when the draft stops being dirty. A refresh that removes
+the open key while the draft is dirty keeps the editor, with a notice and a Discard. A new control
+that changes the route needs no extra code, but it must honour the boolean the navigate helpers
+return before running its own side effects.
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they
