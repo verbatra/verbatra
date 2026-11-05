@@ -341,6 +341,20 @@ describe("KeysTable markers", () => {
     expect(view.get("[role='tooltip']").getAttribute("aria-hidden")).toBe("true");
   });
 
+  it("keeps the focused cell mounted when its marker goes away", async () => {
+    stubRpc(NO_COVERAGE);
+    const view = await renderAsync(table({ index: held }));
+    const button = view.get('[data-key="a.missing"] button');
+    act(() => button.focus());
+
+    view.rerender(table());
+    await flush();
+
+    expect(view.get('[data-key="a.missing"] button')).toBe(button);
+    expect(document.activeElement).toBe(button);
+    expect(view.query("[role='tooltip']")).toBeNull();
+  });
+
   it("adds no tooltip to a cell without markers", async () => {
     stubRpc(NO_COVERAGE);
     const view = await renderAsync(table());

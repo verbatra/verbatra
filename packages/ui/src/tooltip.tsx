@@ -81,6 +81,10 @@ function joinIds(existing: string | undefined, id: string): string {
   return existing === undefined || existing === "" ? id : `${existing} ${id}`;
 }
 
+function hasNoBubble(label: string, control: ReactElement<DescribableProps> | null): boolean {
+  return label === "" || control?.props.disabled === true;
+}
+
 export function Tooltip({
   label,
   side = "end",
@@ -97,7 +101,7 @@ export function Tooltip({
   const [flipped, setFlipped] = useState(false);
   const bubbleRef = useRef<HTMLSpanElement>(null);
   const control = isValidElement<DescribableProps>(children) ? children : null;
-  const disabled = control?.props.disabled === true;
+  const disabled = hasNoBubble(label, control);
   const visible = !disabled && (hovered || focused) && !dismissed;
   const duplicatesName = decorative || control?.props["aria-label"] === label;
 

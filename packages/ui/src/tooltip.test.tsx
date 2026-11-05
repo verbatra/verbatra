@@ -361,6 +361,24 @@ describe("Tooltip", () => {
     expect(view.query("[role='tooltip']")).not.toBeNull();
   });
 
+  it("keeps the same control element when the label becomes empty, which renders no bubble", () => {
+    const tree = (label: string) => (
+      <Tooltip label={label}>
+        <button type="button">c</button>
+      </Tooltip>
+    );
+    const view = render(tree("Held for review"));
+    const button = view.get<HTMLButtonElement>("button");
+    button.focus();
+
+    view.rerender(tree(""));
+
+    expect(view.get("button")).toBe(button);
+    expect(document.activeElement).toBe(button);
+    expect(view.query("[role='tooltip']")).toBeNull();
+    expect(button.hasAttribute("aria-describedby")).toBe(false);
+  });
+
   it("skips the description when the label repeats the control's own name", () => {
     const view = render(
       <Tooltip label="Expand sidebar">

@@ -42,11 +42,9 @@ export function MarkerTip({
   readonly children: ReactNode;
 }): ReactNode {
   const texts = markerTexts(held);
-  return texts.length === 0 ? (
-    children
-  ) : (
+  return (
     <Tooltip
-      label={sentence(texts.join(", "))}
+      label={texts.length === 0 ? "" : sentence(texts.join(", "))}
       side={side}
       trigger={trigger}
       flip
