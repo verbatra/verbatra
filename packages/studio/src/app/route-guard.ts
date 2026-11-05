@@ -18,6 +18,7 @@ let activeGuard: RouteGuard | null = null;
 let position: number | null = null;
 let positionHash = "";
 let held: Held | null = null;
+let returning = false;
 
 function readIdx(): number | null {
   const state: unknown = window.history.state;
@@ -32,7 +33,7 @@ export function announceRouteChange(): void {
 }
 
 export function visibleHash(): string {
-  return held === null ? window.location.hash : positionHash;
+  return held === null && !returning ? window.location.hash : positionHash;
 }
 
 export function writeRoute(kind: RouteWrite, next: string): void {
@@ -44,6 +45,7 @@ export function writeRoute(kind: RouteWrite, next: string): void {
     window.history.replaceState({ idx }, "", next);
   }
   held = null;
+  returning = false;
   position = idx;
   positionHash = next;
   announceRouteChange();
@@ -51,17 +53,27 @@ export function writeRoute(kind: RouteWrite, next: string): void {
 
 function adopt(idx: number): void {
   held = null;
+  returning = false;
   position = idx;
   positionHash = window.location.hash;
 }
 
-function proceedHeld(): Promise<void> {
+export function hasHeldRoute(): boolean {
+  return held !== null;
+}
+
+export function adoptHeldRoute(): void {
   if (held !== null) {
     position = readIdx() ?? held.idx;
     positionHash = window.location.hash;
     held = null;
+    returning = false;
     announceRouteChange();
   }
+}
+
+function proceedHeld(): Promise<void> {
+  adoptHeldRoute();
   return Promise.resolve();
 }
 
@@ -77,6 +89,13 @@ function stampLanding(): { readonly idx: number; readonly truncated: boolean } {
 
 function handleLanding(): void {
   const here = window.location.hash;
+  if (returning) {
+    const settledAt = readIdx();
+    returning = false;
+    if (settledAt !== null && settledAt === position) {
+      return;
+    }
+  }
   if (held !== null && held.idx === readIdx() && held.hash === here) {
     return;
   }
@@ -113,6 +132,7 @@ export function restoreHeldRoute(): void {
     position = current;
     return;
   }
+  returning = true;
   window.history.go(position - target.idx);
 }
 
@@ -144,10 +164,12 @@ export function installRouteGuard(guard: RouteGuard): () => void {
   position = readIdx();
   positionHash = window.location.hash;
   held = null;
+  returning = false;
   return () => {
     if (activeGuard === guard) {
       activeGuard = null;
       held = null;
+      returning = false;
       setUnloadWarning(false);
     }
   };
@@ -158,6 +180,7 @@ export function routeChangeBlocked(next: string, kind: RouteWrite): boolean {
   if (guard === null || next === visibleHash() || !guard.isDirty()) {
     return false;
   }
+  restoreHeldRoute();
   guard.onBlock(() => {
     writeRoute(kind, next);
     return Promise.resolve();

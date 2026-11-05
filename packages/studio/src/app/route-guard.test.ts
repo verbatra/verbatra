@@ -130,6 +130,34 @@ describe("a stack with forward entries", () => {
     expect(goSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps showing the position until the landing that follows a restore, and then follows the address", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+
+    restoreHeldRoute();
+
+    expect(window.location.hash).toBe("#/b");
+    expect(visibleHash()).toBe("#/c");
+    window.dispatchEvent(new Event(ROUTE_CHANGE_EVENT));
+    expect(visibleHash()).toBe("#/c");
+
+    land(2);
+
+    expect(visibleHash()).toBe("#/c");
+    expect(window.location.hash).toBe("#/c");
+  });
+
+  it("opens a new hold for a landing elsewhere while a restore is still on its way", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    restoreHeldRoute();
+
+    userTraverses(-1);
+
+    expect(onBlock).toHaveBeenCalledTimes(2);
+    expect(visibleHash()).toBe("#/c");
+  });
+
   it("never calls go(0) when the held landing is the position itself", () => {
     startOn(["#/a", "#/b", "#/c"], 2);
 
@@ -257,7 +285,7 @@ describe("a stack with forward entries", () => {
     return expect(resolved).resolves.toBeUndefined();
   });
 
-  it("chains an in-app push made during a hold from the held entry, adding exactly one entry", () => {
+  it("restores the held traversal first when an in-app navigation replaces its prompt", () => {
     startOn(["#/a", "#/b", "#/c"], 2);
     userTraverses(-1);
     const length = window.history.length;
@@ -268,7 +296,8 @@ describe("a stack with forward entries", () => {
     expect(window.history.length).toBe(length + 1);
     expect(window.location.hash).toBe("#/n");
     expect(idx()).toBe(12);
-    expect(goSpy).not.toHaveBeenCalled();
+    expect(goSpy).toHaveBeenCalledTimes(1);
+    expect(goSpy).toHaveBeenCalledWith(1);
     expect(visibleHash()).toBe("#/n");
   });
 
