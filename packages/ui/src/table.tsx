@@ -40,7 +40,7 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        hover && tableClasses.rowHover,
+        hover && selected !== true && tableClasses.rowHover,
         selected === true && tableClasses.rowSelected,
         className,
       )}
