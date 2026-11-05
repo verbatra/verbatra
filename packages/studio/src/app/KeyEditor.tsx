@@ -24,7 +24,7 @@ import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
 import { useCapabilities } from "./use-capabilities.js";
 import { useHistoryList } from "./use-history-list.js";
-import { useKeyIntegrity } from "./use-key-integrity.js";
+import { type KeyIntegrityState, useKeyIntegrity } from "./use-key-integrity.js";
 import { type KeyValuesState, useKeyValues } from "./use-key-values.js";
 import { useLocaleEdit } from "./use-locale-edit.js";
 
@@ -105,6 +105,10 @@ function SourceValue({
     </p>
   );
 }
+
+type Recovery =
+  | { readonly target: "source"; readonly from: KeyValuesState }
+  | { readonly target: "locales"; readonly from: KeyIntegrityState };
 
 function sameFailure(values: KeyValuesState, error: StructuredError): boolean {
   return (
@@ -191,6 +195,8 @@ export function KeyEditor({
     close: closeLocale,
   } = useEditSession(keyName);
   const [pending, setPending] = useState<Pending | null>(null);
+  const pendingRef = useRef<Pending | null>(null);
+  pendingRef.current = pending;
   const [saved, setSaved] = useState<EditTarget | null>(null);
   const [returnTo, setReturnTo] = useState<string | null>(null);
   const originRef = useRef<Element | null>(null);
@@ -198,7 +204,7 @@ export function KeyEditor({
   const dirtyRef = useRef(false);
   const editingRef = useRef<EditSession>({ keyName, locale: null, session: 0 });
   const resolvedRef = useRef(false);
-  const recoveryRef = useRef<"source" | "locales" | null>(null);
+  const recoveryRef = useRef<Recovery | null>(null);
   const sourceTargetRef = useRef<HTMLDivElement | null>(null);
   const localesTargetRef = useRef<HTMLUListElement | null>(null);
   const edit = useLocaleEdit(editingLocale, keyName, refreshToken, session);
@@ -248,19 +254,19 @@ export function KeyEditor({
   }, [layout]);
 
   useEffect(() => {
-    const target = recoveryRef.current;
-    if (target === "source" && values.kind === "loaded") {
-      recoveryRef.current = null;
-      sourceTargetRef.current?.focus();
-    } else if (target === "locales" && integrity.kind === "loaded") {
-      recoveryRef.current = null;
-      localesTargetRef.current?.focus();
-    } else if (
-      (target === "source" && values.kind === "error") ||
-      (target === "locales" && integrity.kind === "error")
-    ) {
-      recoveryRef.current = null;
+    const armed = recoveryRef.current;
+    if (armed === null) {
+      return;
     }
+    const answer = armed.target === "source" ? values : integrity;
+    if (answer === armed.from) {
+      return;
+    }
+    recoveryRef.current = null;
+    if (answer.kind !== "loaded") {
+      return;
+    }
+    (armed.target === "source" ? sourceTargetRef : localesTargetRef).current?.focus();
   }, [values, integrity]);
 
   useEffect(() => {
@@ -299,6 +305,7 @@ export function KeyEditor({
           setPending({ proceed, route: true });
         },
         onRelease: () => {
+          pendingRef.current = null;
           setPending(null);
           textAreaRef.current?.focus();
         },
@@ -319,10 +326,12 @@ export function KeyEditor({
   function cancelEditing(locale: string): void {
     resolvedRef.current = true;
     closeLocale();
-    setReturnTo(locale);
+    if (pendingRef.current === null) {
+      setReturnTo(locale);
+    }
   }
 
-  async function saveEditing(locale: string, returnFocus: boolean): Promise<boolean> {
+  async function saveEditing(locale: string): Promise<boolean> {
     const saved = await edit.save(locale);
     const here =
       editingRef.current.session === session &&
@@ -338,7 +347,7 @@ export function KeyEditor({
     resolvedRef.current = true;
     setSaved({ keyName, locale });
     closeLocale();
-    if (returnFocus) {
+    if (pendingRef.current === null) {
       setReturnTo(locale);
     }
     return true;
@@ -363,7 +372,7 @@ export function KeyEditor({
     const origin = originRef.current;
     if (isOutsideControl(origin)) {
       origin.focus();
-    } else if (layout === "pane") {
+    } else if (layout === "pane" || missing) {
       onRouteSettled();
     }
   }
@@ -403,7 +412,7 @@ export function KeyEditor({
         saving={edit.submit.kind === "submitting"}
         error={submitFailure(edit.submit)}
         placement={layout}
-        onSave={() => void saveEditing(editingLocale, false)}
+        onSave={() => void saveEditing(editingLocale)}
         onDiscard={resolveDiscard}
         onKeepEditing={keepEditing}
       />
@@ -424,7 +433,7 @@ export function KeyEditor({
             suppressError={missing}
             retrying={valuesRetrying}
             onRetry={() => {
-              recoveryRef.current = "source";
+              recoveryRef.current = { target: "source", from: values };
               retryValues();
               if (integrity.kind === "error" && sameFailure(values, integrity.error)) {
                 retryIntegrity();
@@ -442,7 +451,7 @@ export function KeyEditor({
             error={integrity.error}
             retrying={integrityRetrying}
             onRetry={() => {
-              recoveryRef.current = "locales";
+              recoveryRef.current = { target: "locales", from: integrity };
               retryIntegrity();
             }}
           />
@@ -474,7 +483,7 @@ export function KeyEditor({
                   pill={deriveIntegrityPillView(integrityLocales, row.locale)}
                   attachField={attachField}
                   promptOpen={prompt !== null}
-                  onSave={() => void saveEditing(row.locale, true)}
+                  onSave={() => void saveEditing(row.locale)}
                   onCancel={() => cancelEditing(row.locale)}
                 />
               }

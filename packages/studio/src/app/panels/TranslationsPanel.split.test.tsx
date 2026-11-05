@@ -1400,6 +1400,9 @@ describe("one rule: every control lets a held change through", () => {
 
     expect(window.location.hash).toBe(NEXT_KEY);
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(document.activeElement?.closest("tr[data-key]")?.getAttribute("data-key")).toBe(
+      "app.body",
+    );
   });
 
   it("D2: the form Cancel lets a blocked in-app change through", async () => {
@@ -1414,6 +1417,28 @@ describe("one rule: every control lets a held change through", () => {
 
     expect(window.location.hash).toBe(NEXT_KEY);
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(document.activeElement?.closest("tr[data-key]")?.getAttribute("data-key")).toBe(
+      "app.body",
+    );
+  });
+
+  it.each([
+    ["form Save", "Save", "[data-locale-edit]"],
+    ["form Cancel", "Cancel", ""],
+  ])("D3: the %s ends on the origin chip of a blocked chip change", async (_name, label, scope) => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    const chip = view.get('[data-status-filter="changed"]');
+    chip.focus();
+    await clickAsync(chip);
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    await clickAsync(getRole(view, "button", label, scope));
+    await settle();
+    await flush();
+
+    expect(document.activeElement).toBe(view.get('[data-status-filter="changed"]'));
   });
 
   it("E1: a save that fails after a newer prompt opened leaves that prompt alone", async () => {
@@ -1597,5 +1622,155 @@ describe("split editor saves in flight", () => {
     await flush();
 
     expect(view.text()).not.toContain("Rejected");
+  });
+});
+
+interface GatedRead {
+  failing: boolean;
+  held: boolean;
+  readonly waiters: Array<() => void>;
+}
+
+function gatedRead(read: GatedRead, ok: () => StubRpcResult, bad: StubRpcResult) {
+  return (): StubRpcResult | Promise<StubRpcResult> => {
+    if (read.failing) {
+      return bad;
+    }
+    if (!read.held) {
+      return ok();
+    }
+    return new Promise<StubRpcResult>((resolve) => {
+      read.waiters.push(() => resolve(ok()));
+    });
+  };
+}
+
+async function release(read: GatedRead): Promise<void> {
+  await act(async () => {
+    for (const answer of read.waiters.splice(0)) {
+      answer();
+    }
+    await Promise.resolve();
+  });
+  await flush();
+}
+
+function newRead(): GatedRead {
+  return { failing: true, held: false, waiters: [] };
+}
+
+describe("recovery focus answers only its own retry", () => {
+  const FAILURE = { ok: false, error: { code: "INTERNAL", message: "x" } } as const;
+
+  it.each([
+    ["the integrity read answers first", true],
+    ["the values read answers first", false],
+  ])(
+    "%s, and the source still takes focus once its own read lands",
+    async (_name, integrityFirst) => {
+      const values = newRead();
+      const integrity = newRead();
+      stubServer();
+      stubRpc({
+        "key.value": gatedRead(
+          values,
+          () => ({ ok: true, result: { source: SOURCE, target: targets.de } }),
+          FAILURE,
+        ),
+        "key.integrity": gatedRead(
+          integrity,
+          () => ({ ok: true, result: { locales: [] } }),
+          FAILURE,
+        ),
+      });
+      const view = await mountAt(TITLE_HASH, true);
+      const retry = view.all("[data-error-actions] button")[0] as HTMLElement;
+      retry.focus();
+      values.failing = false;
+      values.held = true;
+      integrity.failing = false;
+      integrity.held = true;
+
+      await clickAsync(retry);
+      await release(integrityFirst ? integrity : values);
+      await release(integrityFirst ? values : integrity);
+
+      expect(document.activeElement).toBe(view.get('[data-recovery-target="source"]'));
+    },
+  );
+
+  it("keeps the locales target armed when a refresh reloads the values during its Retry", async () => {
+    const integrity = newRead();
+    stubServer();
+    stubRpc({
+      "key.integrity": gatedRead(integrity, () => ({ ok: true, result: { locales: [] } }), {
+        ok: false,
+        error: { code: "PROJECT_UNREADABLE", message: "y" },
+      }),
+    });
+    const view = await mountAt(TITLE_HASH, true);
+    const retry = view.all("[data-error-actions] button")[0] as HTMLElement;
+    retry.focus();
+    integrity.failing = false;
+    integrity.held = true;
+
+    await clickAsync(retry);
+    view.rerender(<Harness token={2} />);
+    await flush();
+    await release(integrity);
+
+    expect(document.activeElement).toBe(view.get('[data-recovery-target="locales"]'));
+  });
+});
+
+describe("a settled save still returns focus", () => {
+  it("W: a Forward during an in-flight prompt Save ends on the edit button of the saved locale", async () => {
+    const late = pendingEditEntry();
+    stubServer();
+    stubRpc({ "translation.editEntry": late.stub });
+    const view = await mountAt(TITLE_HASH, true, NEXT_KEY);
+    await startDirtyEdit(view);
+    window.history.back();
+    await settle();
+    await clickAsync(getRole(view, "button", "Save", "[data-unsaved-prompt]"));
+    window.history.forward();
+    await settle();
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+
+    targets.de = "Hallo!";
+    await act(async () => {
+      late.answer({ ok: true, result: { accepted: true, value: "Hallo!" } });
+      await Promise.resolve();
+    });
+    await settle();
+    await flush();
+
+    expect(window.location.hash).toBe(TITLE_HASH);
+    expect(document.activeElement).toBe(view.get('[data-edit-locale="de"]'));
+  });
+});
+
+describe("the missing-key Discard returns focus", () => {
+  it.each([
+    ["pane", true],
+    ["drawer", false],
+  ])("%s: after a held Back, focus does not drop to the page", async (_name, wide) => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, wide, "#/translations?locale=fr");
+    await startDirtyEdit(view);
+    keyGone = true;
+    view.rerender(<Harness token={2} />);
+    await flush();
+    await flush();
+    window.history.back();
+    await settle();
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    await clickAsync(getRole(view, "button", "Discard", "[data-key-missing]"));
+    await settle();
+    await flush();
+
+    expect(document.activeElement).not.toBe(document.body);
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
   });
 });
