@@ -5,13 +5,21 @@ import {
   buildTermEdit,
   deriveGlossaryWriteOutcome,
   draftFor,
+  editEmptiesTerm,
+  exceedsForbiddenCap,
+  filterTerms,
   forbiddenRuleCount,
   glossaryReadOnlyReason,
   hasPerLocaleData,
   isGlossaryEditable,
+  isRetryableWriteError,
   isTargetLocale,
+  keptTermEntry,
+  nextFocusSource,
   parseRenderings,
   scopeValue,
+  termExistsInScope,
+  termLoss,
 } from "./glossary-editing.js";
 
 const RESULT: GlossaryWriteResult = {
@@ -59,7 +67,11 @@ describe("deriveGlossaryWriteOutcome", () => {
       error: { code: "CONFIG_INVALID", message: "A glossary term must not be blank." },
     });
 
-    expect(outcome).toEqual({ kind: "error", message: "A glossary term must not be blank." });
+    expect(outcome).toEqual({
+      kind: "error",
+      message: "A glossary term must not be blank.",
+      error: { code: "CONFIG_INVALID", message: "A glossary term must not be blank." },
+    });
   });
 });
 
@@ -125,6 +137,10 @@ describe("scopeValue", () => {
 describe("parseRenderings", () => {
   it("splits on commas and new lines, trims, and drops blanks and repeats", () => {
     expect(parseRenderings(" Tafel, Brett\nTafel ,, ")).toEqual(["Tafel", "Brett"]);
+  });
+
+  it("splits on the Arabic comma too", () => {
+    expect(parseRenderings("لوحة، قائمة ,  لوحة")).toEqual(["لوحة", "قائمة"]);
   });
 });
 
@@ -210,5 +226,153 @@ describe("isTargetLocale", () => {
   it("matches a configured target locale regardless of case", () => {
     expect(isTargetLocale(["de", "fr"], "DE")).toBe(true);
     expect(isTargetLocale(["de", "fr"], "de-AT")).toBe(false);
+  });
+});
+
+const ONLY_SHARED: GlossaryTermView = {
+  source: "Shop",
+  target: "Laden",
+  targets: {},
+  forbidden: {},
+  caseSensitive: true,
+  note: "Storefront",
+  partOfSpeech: "noun",
+  byLocale: {},
+};
+
+const ONLY_GERMAN: GlossaryTermView = {
+  source: "Shop",
+  targets: { DE: "Laden" },
+  forbidden: {},
+  caseSensitive: true,
+  note: "Storefront",
+  partOfSpeech: "noun",
+  byLocale: {},
+};
+
+describe("editEmptiesTerm", () => {
+  it("is true when clearing the shared translation leaves nothing else", () => {
+    expect(editEmptiesTerm(ONLY_SHARED, { term: "Shop", translation: null })).toBe(true);
+  });
+
+  it("is false while a per-locale translation or rule remains", () => {
+    expect(editEmptiesTerm(TERM, { term: "Dashboard", translation: null })).toBe(false);
+    const ruleOnly = { ...ONLY_SHARED, forbidden: { de: ["x"] } };
+    expect(editEmptiesTerm(ruleOnly, { term: "Shop", translation: null })).toBe(false);
+  });
+
+  it("is true when clearing a locale's last entry, whatever the case of its key", () => {
+    expect(editEmptiesTerm(ONLY_GERMAN, { term: "Shop", locale: "de", translation: null })).toBe(
+      true,
+    );
+  });
+
+  it("is false when clearing a locale that is not the last entry", () => {
+    const both = { ...ONLY_GERMAN, targets: { DE: "Laden", fr: "Boutique" } };
+    expect(editEmptiesTerm(both, { term: "Shop", locale: "de", translation: null })).toBe(false);
+  });
+
+  it("counts clearing the last forbidden list in a locale as emptying", () => {
+    const ruleOnly: GlossaryTermView = { ...ONLY_GERMAN, targets: {}, forbidden: { de: ["x"] } };
+    expect(editEmptiesTerm(ruleOnly, { term: "Shop", locale: "de", forbidden: null })).toBe(true);
+    expect(editEmptiesTerm(ruleOnly, { term: "Shop", locale: "de", forbidden: [] })).toBe(true);
+    expect(editEmptiesTerm(ruleOnly, { term: "Shop", locale: "de", forbidden: ["y"] })).toBe(false);
+  });
+
+  it("is false for an edit that touches neither translation nor rules", () => {
+    expect(editEmptiesTerm(ONLY_SHARED, { term: "Shop", note: null })).toBe(false);
+  });
+});
+
+describe("termLoss", () => {
+  it("lists every translation, the rule count, the note, the part of speech and the case flag", () => {
+    expect(termLoss(TERM)).toEqual({
+      translations: [
+        { locale: undefined, value: "Dashboard" },
+        { locale: "DE", value: "Übersicht" },
+      ],
+      forbiddenRules: 1,
+      note: "Start page",
+      partOfSpeech: undefined,
+      caseSensitive: false,
+    });
+  });
+});
+
+describe("termExistsInScope", () => {
+  const terms = [ONLY_SHARED, ONLY_GERMAN, { ...ONLY_SHARED, source: "shop" }];
+
+  it("matches the source exactly, case included", () => {
+    expect(termExistsInScope(terms, "Shop", ALL_LOCALES)).toBe(ONLY_SHARED);
+    expect(termExistsInScope(terms, "SHOP", ALL_LOCALES)).toBeUndefined();
+  });
+
+  it("only counts a term that already holds a translation for the scope", () => {
+    expect(termExistsInScope([ONLY_GERMAN], "Shop", ALL_LOCALES)).toBeUndefined();
+    expect(termExistsInScope([ONLY_GERMAN], "Shop", "de")).toBe(ONLY_GERMAN);
+    expect(termExistsInScope([ONLY_GERMAN], "Shop", "fr")).toBeUndefined();
+  });
+});
+
+describe("keptTermEntry", () => {
+  it("finds a do-not-translate entry by its exact term", () => {
+    const entries = [{ term: "Northwind", caseSensitive: true }];
+    expect(keptTermEntry(entries, "Northwind")).toBe(entries[0]);
+    expect(keptTermEntry(entries, "northwind")).toBeUndefined();
+  });
+});
+
+describe("filterTerms", () => {
+  const terms = [TERM, ONLY_SHARED];
+
+  it("returns every term for a blank query", () => {
+    expect(filterTerms(terms, "   ")).toBe(terms);
+  });
+
+  it("matches the source, any translation, a forbidden rendering, the note and the part of speech", () => {
+    expect(filterTerms(terms, "dash")).toEqual([TERM]);
+    expect(filterTerms(terms, "übersicht")).toEqual([TERM]);
+    expect(filterTerms(terms, "instrumenten")).toEqual([TERM]);
+    expect(filterTerms(terms, "start page")).toEqual([TERM]);
+    expect(filterTerms(terms, "NOUN")).toEqual([ONLY_SHARED]);
+  });
+
+  it("finds an Arabic value and returns nothing for a miss", () => {
+    const arabic = { ...ONLY_SHARED, source: "Cart", target: "عربة التسوق {count}" };
+    expect(filterTerms([arabic, TERM], "عربة")).toEqual([arabic]);
+    expect(filterTerms(terms, "zzz")).toEqual([]);
+  });
+});
+
+describe("nextFocusSource", () => {
+  it("prefers the following term, then the previous one, then nothing", () => {
+    expect(nextFocusSource(["a", "b", "c"], "b")).toBe("c");
+    expect(nextFocusSource(["a", "b", "c"], "c")).toBe("b");
+    expect(nextFocusSource(["a"], "a")).toBeUndefined();
+    expect(nextFocusSource(["a"], "zzz")).toBeUndefined();
+  });
+});
+
+describe("exceedsForbiddenCap", () => {
+  it("allows exactly 50 distinct renderings and refuses 51", () => {
+    const fifty = Array.from({ length: 50 }, (_, index) => `r${index}`).join(", ");
+    expect(exceedsForbiddenCap(fifty)).toBe(false);
+    expect(exceedsForbiddenCap(`${fifty}, extra`)).toBe(true);
+  });
+
+  it("does not count repeats or blanks", () => {
+    expect(exceedsForbiddenCap(`${"a, ".repeat(80)}b`)).toBe(false);
+  });
+});
+
+describe("isRetryableWriteError", () => {
+  it("retries transient failures only", () => {
+    for (const code of ["LOCK_CONTENDED", "METHOD_RATE_LIMITED", "INTERNAL", "NETWORK_ERROR"]) {
+      expect(isRetryableWriteError({ code, message: "m" })).toBe(true);
+    }
+    expect(isRetryableWriteError({ code: "GLOSSARY_UNWRITABLE", message: "m" })).toBe(true);
+    for (const code of ["CONFIG_INVALID", "PARAMS_INVALID", "GLOSSARY_NOT_FILE_BACKED"]) {
+      expect(isRetryableWriteError({ code, message: "m" })).toBe(false);
+    }
   });
 });
