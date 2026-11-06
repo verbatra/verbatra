@@ -155,6 +155,14 @@ export interface StudioServerDeps {
   readonly previewIcuRateLimitWindowMs?: number;
   /** How many `key.previewIcu` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 240. */
   readonly previewIcuRateLimitMax?: number;
+  /** Rolling window in milliseconds for `git.status`'s rate limit. Defaults to 60000. */
+  readonly gitStatusRateLimitWindowMs?: number;
+  /** How many `git.status` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 120. */
+  readonly gitStatusRateLimitMax?: number;
+  /** Rolling window in milliseconds for `git.localeDiff`'s rate limit. Defaults to 60000. */
+  readonly gitLocaleDiffRateLimitWindowMs?: number;
+  /** How many `git.localeDiff` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 240. */
+  readonly gitLocaleDiffRateLimitMax?: number;
   /**
    * Rolling window in milliseconds for the rate limits of `review.approve`, `review.reject`,
    * `review.approveMany`, `review.rejectMany`, and `review.approveLocale`, each counted on its

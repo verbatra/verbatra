@@ -9,6 +9,8 @@ const EXPECTED_METHOD_NAMES = [
   "glossary.write",
   "lock.state",
   "history.list",
+  "git.status",
+  "git.localeDiff",
   "key.integrity",
   "translation.retranslateEntry",
   "review.queue",
@@ -31,7 +33,7 @@ const EXPECTED_METHOD_NAMES = [
 ];
 
 describe("RPC_METHOD_NAMES", () => {
-  it("contains exactly the twenty-six agreed method names, no more, no fewer", () => {
+  it("contains exactly the twenty-eight agreed method names, no more, no fewer", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(new Set(EXPECTED_METHOD_NAMES));
     expect(RPC_METHOD_NAMES).toHaveLength(EXPECTED_METHOD_NAMES.length);
   });
@@ -56,6 +58,8 @@ describe("rpcParamsSchemas", () => {
     ],
     ["lock.state", {}, { extra: true }],
     ["history.list", { limit: 5 }, { limit: 0 }],
+    ["git.status", {}, { path: "locales/de.json" }],
+    ["git.localeDiff", { locale: "de" }, { locale: "de", path: "../x" }],
     ["key.integrity", { key: "greeting" }, { key: "" }],
     [
       "translation.retranslateEntry",

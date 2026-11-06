@@ -4,6 +4,14 @@ import { STATUS_DIFF_METHOD, type StatusDiffResult, statusDiffParamsSchema } fro
 import { EDIT_ENTRY_METHOD, type EditEntryResult, editEntryParamsSchema } from "./edit-entry.js";
 import { ESTIMATE_METHOD, type EstimateResult, estimateParamsSchema } from "./estimate.js";
 import {
+  GIT_LOCALE_DIFF_METHOD,
+  GIT_STATUS_METHOD,
+  type GitLocaleDiffResult,
+  type GitStatusResult,
+  gitLocaleDiffParamsSchema,
+  gitStatusParamsSchema,
+} from "./git.js";
+import {
   GLOSSARY_GET_METHOD,
   GLOSSARY_WRITE_METHOD,
   type GlossaryGetResult,
@@ -96,6 +104,8 @@ export const rpcParamsSchemas = {
   [GLOSSARY_WRITE_METHOD]: glossaryWriteParamsSchema,
   [LOCK_STATE_METHOD]: lockStateParamsSchema,
   [HISTORY_LIST_METHOD]: historyListParamsSchema,
+  [GIT_STATUS_METHOD]: gitStatusParamsSchema,
+  [GIT_LOCALE_DIFF_METHOD]: gitLocaleDiffParamsSchema,
   [KEY_INTEGRITY_METHOD]: keyIntegrityParamsSchema,
   [RETRANSLATE_ENTRY_METHOD]: retranslateEntryParamsSchema,
   [REVIEW_QUEUE_METHOD]: reviewQueueParamsSchema,
@@ -129,6 +139,8 @@ export interface RpcResultMap {
   readonly [GLOSSARY_WRITE_METHOD]: GlossaryWriteResult;
   readonly [LOCK_STATE_METHOD]: LockStateResult;
   readonly [HISTORY_LIST_METHOD]: HistoryListResult;
+  readonly [GIT_STATUS_METHOD]: GitStatusResult;
+  readonly [GIT_LOCALE_DIFF_METHOD]: GitLocaleDiffResult;
   readonly [KEY_INTEGRITY_METHOD]: KeyIntegrityResult;
   readonly [RETRANSLATE_ENTRY_METHOD]: RetranslateEntryResult;
   readonly [REVIEW_QUEUE_METHOD]: ReviewQueueResult;
