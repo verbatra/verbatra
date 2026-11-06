@@ -41,7 +41,7 @@ const ROW_LINK =
 
 function RowLinks({ locale }: { readonly locale: string }): ReactNode {
   return (
-    <span className="flex items-center gap-1 whitespace-nowrap">
+    <span className="-ms-1.5 flex flex-wrap items-center gap-x-1">
       <a href={routeHash({ page: "translations", params: { locale } })} className={ROW_LINK}>
         Translations<span className="sr-only"> for {locale}</span>
       </a>
@@ -56,8 +56,11 @@ function LocaleRow({ row, lock }: { readonly row: StatusRow; readonly lock: Lock
   const total = row.missing + row.stale + row.upToDate;
   return (
     <TableRow>
-      <TableCell mono dir="ltr" className="font-semibold">
-        {row.locale}
+      <TableCell className="min-w-28 max-w-56">
+        <span dir="ltr" data-locale-tag="" className="block font-mono font-semibold wrap-anywhere">
+          {row.locale}
+        </span>
+        <RowLinks locale={row.locale} />
       </TableCell>
       <TableCell>
         <span className="block min-w-40 max-w-60">
@@ -77,9 +80,6 @@ function LocaleRow({ row, lock }: { readonly row: StatusRow; readonly lock: Lock
       <TableCell numeric>{row.stale}</TableCell>
       <TableCell numeric>{row.upToDate}</TableCell>
       {lock.kind === "loaded" ? <TableCell>{lockCell(lock, row.locale)}</TableCell> : null}
-      <TableCell>
-        <RowLinks locale={row.locale} />
-      </TableCell>
     </TableRow>
   );
 }
@@ -206,7 +206,6 @@ export function LocalesSection({
                   {lock.kind === "loaded" ? (
                     <TableHeaderCell className="whitespace-nowrap">Lock</TableHeaderCell>
                   ) : null}
-                  <TableHeaderCell className="whitespace-nowrap">Open</TableHeaderCell>
                 </tr>
               </TableHead>
               <TableBody>

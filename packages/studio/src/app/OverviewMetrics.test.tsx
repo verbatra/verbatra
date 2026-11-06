@@ -69,6 +69,16 @@ describe("OverviewMetrics", () => {
     }
   });
 
+  it("stacks the three tiles in one column on the narrowest screens so a label never splits", () => {
+    const view = render(<OverviewMetrics status={STATUS} diff={LOADED_DIFF} />);
+    const grid = metricCard(view, "Needs attention").parentElement;
+    const syncWrapper = metricCard(view, "Locales in sync").parentElement;
+
+    expect(grid?.className).toContain("grid-cols-1");
+    expect(grid?.className).toContain("min-[360px]:grid-cols-2");
+    expect(syncWrapper?.className).toContain("min-[360px]:col-span-2");
+  });
+
   it("states a locale count that reads in the singular for one locale", () => {
     const view = render(<OverviewMetrics status={STATUS} diff={LOADED_DIFF} />);
 

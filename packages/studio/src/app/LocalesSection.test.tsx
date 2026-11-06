@@ -85,7 +85,7 @@ describe("LocalesSection", () => {
     };
     const view = render(<LocalesSection status={dataView([row("ar")])} lock={lock} />);
 
-    const tagCells = view.all("td[data-mono]");
+    const tagCells = view.all("[data-locale-tag], td[data-mono]");
 
     expect(tagCells).toHaveLength(2);
     for (const cell of tagCells) {
@@ -135,7 +135,7 @@ describe("LocalesSection", () => {
     const view = render(<LocalesSection status={dataView([row("de")])} lock={NO_LOCK} />);
 
     expect(view.getByText("th", "Up to date")).not.toBeNull();
-    expect(view.getByText("th", "Open")).not.toBeNull();
+    expect(view.all("thead th").map((cell) => cell.textContent)).not.toContain("Open");
   });
 
   it("shows the loading state while the status read is open", () => {

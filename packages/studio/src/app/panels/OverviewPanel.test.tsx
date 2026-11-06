@@ -798,12 +798,11 @@ describe("OverviewPanel locales section", () => {
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(cellTexts(coverageRows(view)[0])).toEqual([
-      "de",
+      "deTranslations for deReview for de",
       "80%8 / 10 keys",
       "1",
       "1",
       "8",
-      "Translations for deReview for de",
     ]);
   });
 
@@ -1159,8 +1158,10 @@ describe("OverviewPanel figures, links and text direction", () => {
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    expect(cellTexts(coverageRows(view)[0])[0]).toBe("ar");
-    expect(coverageRows(view)[0]?.querySelector("td")?.getAttribute("dir")).toBe("ltr");
+    expect(coverageRows(view)[0]?.querySelector("[data-locale-tag]")?.textContent).toBe("ar");
+    expect(coverageRows(view)[0]?.querySelector("[data-locale-tag]")?.getAttribute("dir")).toBe(
+      "ltr",
+    );
     expect(commitRows(view)[0]?.querySelector("p")?.getAttribute("dir")).toBe("auto");
     expect(commitRows(view)[0]?.querySelector("time")?.getAttribute("datetime")).toBe(
       "2026-06-01T08:00:00.000Z",
