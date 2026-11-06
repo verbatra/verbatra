@@ -3,6 +3,7 @@ import { type AdapterFs, createDefaultRegistry } from "@verbatra/format-adapters
 import { COMMIT_HASH } from "./git-exec.js";
 import { type GitWorkTree, type LocaleGitUnavailableReason, unavailable } from "./git-worktree.js";
 
+/** The largest committed locale file {@link localeGitDiff} reads, in bytes: 8 MiB. */
 export const LOCALE_GIT_BLOB_MAX_BYTES = 8_388_608;
 
 const REGULAR_FILE_MODES: ReadonlySet<string> = new Set(["100644", "100755"]);
