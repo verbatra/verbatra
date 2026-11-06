@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   dirtyEditorSources,
+  type EditorEntry,
   EMPTY_ADD_DRAFT,
   EMPTY_KEEP_DRAFT,
   isAddDirty,
   isKeepDirty,
+  orphanedSources,
   type TermDrafts,
 } from "../client/glossary-drafts.js";
 import {
@@ -22,29 +24,40 @@ import type {
   GlossaryWriteParams,
   GlossaryWriteResult,
 } from "../shared/rpc/glossary.js";
+import { rpcClient } from "./api.js";
 import type { RemovalRequest } from "./GlossaryRemoveDialog.js";
 import {
   ADD_FIELD,
+  ADD_KEY,
   editorFieldKey,
   type GlossaryBench,
   KEEP_KEY,
   keptKey,
+  SEARCH_FIELD,
   termKey,
 } from "./glossary-bench.js";
 import { useFocusRegistry } from "./use-focus-registry.js";
 import { type GlossaryHold, useGlossaryHold } from "./use-glossary-hold.js";
 import { useGlossaryWriter } from "./use-glossary-writer.js";
 
+export const LIST_CAP = 50;
+
 export interface GlossaryWorkspace {
   readonly bench: GlossaryBench;
   readonly hold: GlossaryHold;
   readonly readOnlyReason: string | undefined;
   readonly shown: readonly GlossaryTermView[];
+  readonly orphans: ReadonlySet<string>;
+  readonly matchCount: number;
+  readonly capped: boolean;
+  readonly showAll: () => void;
   readonly query: string;
   readonly setQuery: (next: string) => void;
+  readonly clearSearch: () => void;
   readonly removal: RemovalRequest | undefined;
   readonly dismissRemoval: () => void;
   readonly confirmRemoval: (request: RemovalRequest) => Promise<void>;
+  readonly promptEpoch: number;
   readonly dirty: {
     readonly editors: readonly string[];
     readonly add: boolean;
@@ -52,21 +65,33 @@ export interface GlossaryWorkspace {
   };
 }
 
-function useTermDrafts(): {
-  readonly editors: TermDrafts;
-  readonly setEditor: (source: string, draft: TermDraft | undefined) => void;
-  readonly clearEditors: () => void;
-} {
-  const [editors, setEditors] = useState<TermDrafts>({});
-  return {
-    editors,
-    setEditor: (source, draft) =>
-      setEditors((current) => {
-        const { [source]: _dropped, ...rest } = current;
-        return draft === undefined ? rest : { ...rest, [source]: draft };
-      }),
-    clearEditors: () => setEditors({}),
-  };
+function withEntry(
+  editors: TermDrafts,
+  source: string,
+  entry: EditorEntry | undefined,
+): TermDrafts {
+  const next = new Map(editors);
+  if (entry === undefined) {
+    next.delete(source);
+  } else {
+    next.set(source, entry);
+  }
+  return next;
+}
+
+function focusKeysAfterRemoval(
+  visible: readonly GlossaryTermView[],
+  editors: TermDrafts,
+  removed: string,
+): readonly string[] {
+  const next = nextFocusSource(
+    visible.map((term) => term.source),
+    removed,
+  );
+  if (next === undefined) {
+    return [ADD_FIELD];
+  }
+  return [termKey(next), ...(editors.has(next) ? [editorFieldKey(next)] : []), ADD_FIELD];
 }
 
 export function useGlossaryWorkspace({
@@ -80,37 +105,54 @@ export function useGlossaryWorkspace({
 }): GlossaryWorkspace {
   const writer = useGlossaryWriter(onChange);
   const focus = useFocusRegistry();
-  const { editors, setEditor, clearEditors } = useTermDrafts();
-  const [add, setAdd] = useState(EMPTY_ADD_DRAFT);
-  const [keep, setKeep] = useState(EMPTY_KEEP_DRAFT);
+  const [editors, setEditors] = useState<TermDrafts>(new Map());
+  const [add, setAddState] = useState(EMPTY_ADD_DRAFT);
+  const [keep, setKeepState] = useState(EMPTY_KEEP_DRAFT);
   const [scope, setScope] = useState<string>(ALL_LOCALES);
   const [query, setQuery] = useState("");
+  const [expanded, setExpanded] = useState(false);
   const [removal, setRemoval] = useState<RemovalRequest | undefined>(undefined);
+  const [promptEpoch, setPromptEpoch] = useState(0);
+  const removalRef = useRef(removal);
+  removalRef.current = removal;
   const readOnlyReason = glossaryReadOnlyReason(glossary.indicator);
   const { terms } = glossary;
 
   const matching = useMemo(() => new Set(filterTerms(terms, query)), [terms, query]);
-  const shown = terms.filter((term) => matching.has(term) || editors[term.source] !== undefined);
+  const wanted = terms.filter((term) => matching.has(term) || editors.has(term.source));
+  const capped = !expanded && wanted.length > LIST_CAP;
+  const listed = capped
+    ? wanted.filter((term, index) => index < LIST_CAP || editors.has(term.source))
+    : wanted;
+  const orphanSources = orphanedSources(terms, editors);
+  const orphanTerms = orphanSources.flatMap((source) => {
+    const entry = editors.get(source);
+    return entry === undefined ? [] : [entry.base];
+  });
+  const shown = [...listed, ...orphanTerms];
   const dirtySources = dirtyEditorSources(terms, scope, editors);
   const addDirty = isAddDirty(add);
   const keepDirty = isKeepDirty(keep);
   const dirtyScoped = dirtySources.length > 0 || addDirty;
-  const holding = Object.keys(editors).length > 0 || addDirty || keepDirty || removal !== undefined;
+  const liveEditors = editors.size - orphanSources.length;
+  const holding = liveEditors > 0 || addDirty || keepDirty || removal !== undefined;
 
   useEffect(() => {
     onHoldChange?.(holding);
   }, [holding, onHoldChange]);
 
   function discardAll(): void {
-    clearEditors();
-    setAdd(EMPTY_ADD_DRAFT);
-    setKeep(EMPTY_KEEP_DRAFT);
+    setEditors(new Map());
+    setAddState(EMPTY_ADD_DRAFT);
+    setKeepState(EMPTY_KEEP_DRAFT);
+    writer.dismissAll();
   }
 
   function applyScope(next: string): void {
-    clearEditors();
-    setAdd(EMPTY_ADD_DRAFT);
+    setEditors(new Map());
+    setAddState(EMPTY_ADD_DRAFT);
     setScope(next);
+    writer.dismissAll();
     focus.request(["scope"]);
   }
 
@@ -123,26 +165,45 @@ export function useGlossaryWorkspace({
     }
   }
 
+  function closeEditor(source: string): void {
+    setEditors((current) => withEntry(current, source, undefined));
+    writer.dismiss(termKey(source));
+    focus.request([termKey(source), SEARCH_FIELD, ADD_FIELD]);
+  }
+
   const hold = useGlossaryHold({
     dirtyAll: dirtyScoped || keepDirty,
     dirtyScoped,
+    saving: writer.anyBusy,
+    isSourceDirty: (source) => dirtySources.includes(source),
     discardAll,
+    discardSource: closeEditor,
     applyScope,
     focusDirty,
     currentScope: scope,
   });
 
-  function afterTermWrite(term: GlossaryTermView, edit: GlossaryWriteParams): void {
-    setEditor(term.source, undefined);
-    if (!editEmptiesTerm(term, edit)) {
-      focus.request([termKey(term.source)]);
-      return;
+  useEffect(() => {
+    if (hold.visible && removalRef.current !== undefined) {
+      setRemoval(undefined);
+      setPromptEpoch((epoch) => epoch + 1);
     }
-    const next = nextFocusSource(
-      shown.map((candidate) => candidate.source),
-      term.source,
+  }, [hold.visible]);
+
+  function setDraft(term: GlossaryTermView, draft: TermDraft): void {
+    setEditors((current) =>
+      withEntry(current, term.source, { draft, base: current.get(term.source)?.base ?? term }),
     );
-    focus.request([...(next === undefined ? [] : [termKey(next)]), ADD_FIELD]);
+    writer.dismiss(termKey(term.source));
+  }
+
+  function afterTermWrite(term: GlossaryTermView, edit: GlossaryWriteParams): void {
+    setEditors((current) => withEntry(current, term.source, undefined));
+    if (editEmptiesTerm(term, edit)) {
+      focus.request(focusKeysAfterRemoval(shown, editors, term.source));
+    } else {
+      focus.request([termKey(term.source), SEARCH_FIELD, ADD_FIELD]);
+    }
   }
 
   function openEditor(source: string): void {
@@ -150,34 +211,42 @@ export function useGlossaryWorkspace({
     if (term === undefined) {
       return;
     }
-    if (editors[source] === undefined) {
-      setEditor(source, draftFor(term, scope));
-    } else {
+    if (editors.has(source)) {
       focus.request([editorFieldKey(source)]);
+      return;
     }
-  }
-
-  function closeEditor(source: string): void {
-    setEditor(source, undefined);
+    setEditors((current) =>
+      withEntry(current, source, { draft: draftFor(term, scope), base: term }),
+    );
     writer.dismiss(termKey(source));
-    focus.request([termKey(source)]);
   }
 
   async function confirmKept(request: Extract<RemovalRequest, { kind: "kept" }>): Promise<void> {
     const entries = glossary.doNotTranslate.map((entry) => entry.term);
     const next = nextFocusSource(entries, request.entry.term);
-    if (await writer.write(keptKey(request.entry.term), request.edit)) {
-      focus.request([...(next === undefined ? [] : [keptKey(next)]), KEEP_KEY]);
-    }
+    await writer.write(keptKey(request.entry.term), request.edit, () =>
+      focus.request([...(next === undefined ? [] : [keptKey(next)]), KEEP_KEY]),
+    );
   }
 
   async function confirmRemoval(request: RemovalRequest): Promise<void> {
     if (request.kind === "kept") {
       await confirmKept(request);
-    } else if (await writer.write(termKey(request.term.source), request.edit)) {
-      afterTermWrite(request.term, request.edit);
+    } else {
+      await writer.write(termKey(request.term.source), request.edit, () =>
+        afterTermWrite(request.term, request.edit),
+      );
     }
     setRemoval(undefined);
+  }
+
+  async function readFresh(): Promise<GlossaryGetResult | undefined> {
+    const response = await rpcClient.call("glossary.get", {});
+    if (!response.ok) {
+      return undefined;
+    }
+    onChange(response.result);
+    return response.result;
   }
 
   const bench: GlossaryBench = {
@@ -189,13 +258,21 @@ export function useGlossaryWorkspace({
     editors,
     add,
     keep,
-    setEditor,
-    setAdd,
-    setKeep,
+    setDraft,
+    setAdd: (draft) => {
+      setAddState(draft);
+      writer.dismiss(ADD_KEY);
+    },
+    setKeep: (draft) => {
+      setKeepState(draft);
+      writer.dismiss(KEEP_KEY);
+    },
     openEditor,
     closeEditor,
+    escapeEditor: hold.requestClose,
     askRemoval: setRemoval,
     afterTermWrite,
+    readFresh,
   };
 
   return {
@@ -203,11 +280,26 @@ export function useGlossaryWorkspace({
     hold,
     readOnlyReason,
     shown,
+    orphans: new Set(orphanSources),
+    matchCount: wanted.length,
+    capped,
+    showAll: () => {
+      setExpanded(true);
+      const first = wanted[LIST_CAP];
+      if (first !== undefined) {
+        focus.request([termKey(first.source), SEARCH_FIELD]);
+      }
+    },
     query,
     setQuery,
+    clearSearch: () => {
+      setQuery("");
+      focus.request([SEARCH_FIELD]);
+    },
     removal,
     dismissRemoval: () => setRemoval(undefined),
     confirmRemoval,
+    promptEpoch,
     dirty: { editors: dirtySources, add: addDirty, keep: keepDirty },
   };
 }

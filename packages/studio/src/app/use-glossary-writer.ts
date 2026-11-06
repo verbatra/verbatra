@@ -13,9 +13,11 @@ export interface GlossaryWriter {
   readonly anyBusy: boolean;
   busy(key: string): boolean;
   failure(key: string): WriteFailure | undefined;
-  write(key: string, edit: GlossaryWriteParams): Promise<boolean>;
-  retry(key: string): Promise<boolean>;
+  firstFailure(): WriteFailure | undefined;
+  write(key: string, edit: GlossaryWriteParams, onDone?: () => void): Promise<boolean>;
+  retry(key: string, onDone?: () => void): Promise<boolean>;
   dismiss(key: string): void;
+  dismissAll(): void;
 }
 
 function withCount(
@@ -43,29 +45,47 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
   const [pending, setPending] = useState<ReadonlyMap<string, number>>(new Map());
   const [failures, setFailures] = useState<ReadonlyMap<string, WriteFailure>>(new Map());
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const epochs = useRef({ all: 0, keys: new Map<string, number>() });
   const onChangeRef = useRef(onChange);
   useLayoutEffect(() => {
     onChangeRef.current = onChange;
   });
 
-  async function perform(key: string, edit: GlossaryWriteParams): Promise<boolean> {
+  function epochOf(key: string): string {
+    return `${epochs.current.all}:${epochs.current.keys.get(key) ?? 0}`;
+  }
+
+  async function perform(
+    key: string,
+    edit: GlossaryWriteParams,
+    epoch: string,
+    onDone: (() => void) | undefined,
+  ): Promise<boolean> {
     try {
       const outcome = deriveGlossaryWriteOutcome(await rpcClient.call("glossary.write", edit));
       if (outcome.kind === "error") {
-        setFailures((current) => new Map(current).set(key, { error: outcome.error, edit }));
+        if (epoch === epochOf(key)) {
+          setFailures((current) => new Map(current).set(key, { error: outcome.error, edit }));
+        }
         return false;
       }
       setFailures((current) => withoutKey(current, key));
       onChangeRef.current(outcome.glossary);
+      onDone?.();
       return true;
     } finally {
       setPending((current) => withCount(current, key, -1));
     }
   }
 
-  function enqueue(key: string, edit: GlossaryWriteParams): Promise<boolean> {
+  function enqueue(
+    key: string,
+    edit: GlossaryWriteParams,
+    onDone: (() => void) | undefined,
+  ): Promise<boolean> {
     setPending((current) => withCount(current, key, 1));
-    const result = queue.current.then(() => perform(key, edit));
+    const epoch = epochOf(key);
+    const result = queue.current.then(() => perform(key, edit, epoch, onDone));
     queue.current = result.then(
       () => undefined,
       () => undefined,
@@ -73,18 +93,28 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
     return result;
   }
 
+  function dismiss(key: string): void {
+    epochs.current.keys.set(key, (epochs.current.keys.get(key) ?? 0) + 1);
+    setFailures((current) => withoutKey(current, key));
+  }
+
   return {
     anyBusy: pending.size > 0,
     busy: (key) => pending.has(key),
     failure: (key) => failures.get(key),
-    write(key, edit) {
-      setFailures((current) => withoutKey(current, key));
-      return enqueue(key, edit);
+    firstFailure: () => failures.values().next().value,
+    write(key, edit, onDone) {
+      dismiss(key);
+      return enqueue(key, edit, onDone);
     },
-    dismiss: (key) => setFailures((current) => withoutKey(current, key)),
-    retry(key) {
+    dismiss,
+    dismissAll() {
+      epochs.current.all += 1;
+      setFailures(new Map());
+    },
+    retry(key, onDone) {
       const failed = failures.get(key);
-      return failed === undefined ? Promise.resolve(false) : enqueue(key, failed.edit);
+      return failed === undefined ? Promise.resolve(false) : enqueue(key, failed.edit, onDone);
     },
   };
 }

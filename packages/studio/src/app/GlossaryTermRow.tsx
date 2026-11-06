@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import {
   ALL_LOCALES,
   buildTermEdit,
-  draftFor,
   editEmptiesTerm,
   forbiddenRuleCount,
   hasPerLocaleData,
@@ -16,7 +15,8 @@ import { ErrorMessage } from "./ErrorMessage.js";
 import { GlossaryTermEditor } from "./GlossaryTermEditor.js";
 import { editorFieldKey, termKey, useGlossaryBench } from "./glossary-bench.js";
 import { cn } from "./lib/cn.js";
-import { TranslationValue } from "./TranslationValue.js";
+import { TranslationValue, valueDirection } from "./TranslationValue.js";
+import type { WriteFailure } from "./use-glossary-writer.js";
 
 const WRAP_TEXT = "min-w-0 wrap-anywhere";
 
@@ -37,7 +37,12 @@ function ScopedTranslation({
   }
   const own = scope !== ALL_LOCALES && value.inheritedFrom !== "all locales";
   return (
-    <p className="m-0 mt-0.5 text-sm text-foreground">
+    <p
+      className="m-0 mt-0.5 text-sm text-foreground"
+      dir={
+        scope === ALL_LOCALES ? "auto" : valueDirection(own ? scope : undefined, value.translation)
+      }
+    >
       {scope === ALL_LOCALES ? (
         <span dir="auto" className={WRAP_TEXT}>
           {value.translation}
@@ -170,22 +175,66 @@ function RowActions({
   );
 }
 
-export function GlossaryTermRow({
+function RowNotes({
   term,
   redacted,
+  showRemoveReason,
+  failure,
+  busy,
+  onRetry,
 }: {
   readonly term: GlossaryTermView;
   readonly redacted: boolean;
+  readonly showRemoveReason: boolean;
+  readonly failure: WriteFailure | undefined;
+  readonly busy: boolean;
+  readonly onRetry: (failed: WriteFailure) => void;
+}): ReactNode {
+  return (
+    <>
+      {showRemoveReason ? (
+        <p data-remove-reason="" className="m-0 mt-1 text-xs text-muted-foreground">
+          This term cannot be removed while a locale holds its own translation or rules. Clear those
+          first, and it goes with the last one.
+        </p>
+      ) : null}
+      {failure !== undefined ? (
+        <div className="mt-2">
+          <ErrorMessage
+            error={failure.error}
+            retrying={busy}
+            {...(isRetryableWriteError(failure.error) ? { onRetry: () => onRetry(failure) } : {})}
+          />
+        </div>
+      ) : null}
+      {redacted ? (
+        <p className="m-0 mt-1 text-xs text-muted-foreground">
+          A stored value for {term.source} looks like a secret, so it is hidden here and the term
+          cannot be edited. Change it in the glossary file itself.
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+export function GlossaryTermRow({
+  term,
+  redacted,
+  orphaned,
+}: {
+  readonly term: GlossaryTermView;
+  readonly redacted: boolean;
+  readonly orphaned: boolean;
 }): ReactNode {
   const bench = useGlossaryBench();
   const { scope, locales, editable, writer, focus } = bench;
   const key = termKey(term.source);
-  const draft = bench.editors[term.source];
+  const draft = bench.editors.get(term.source)?.draft;
   const busy = writer.busy(key);
   const failure = writer.failure(key);
   const perLocale = hasPerLocaleData(term);
   const removable = scope === ALL_LOCALES && !perLocale;
-  const actionable = editable && !redacted;
+  const actionable = editable && !redacted && !orphaned;
 
   async function save(): Promise<void> {
     const edit = draft === undefined ? undefined : buildTermEdit(term, scope, draft);
@@ -194,15 +243,13 @@ export function GlossaryTermRow({
     }
     if (editEmptiesTerm(term, edit)) {
       bench.askRemoval({ kind: "term", term, cause: "clear", edit });
-    } else if (await writer.write(key, edit)) {
-      bench.afterTermWrite(term, edit);
+    } else {
+      await writer.write(key, edit, () => bench.afterTermWrite(term, edit));
     }
   }
 
-  async function retry(): Promise<void> {
-    if (failure !== undefined && (await writer.retry(key))) {
-      bench.afterTermWrite(term, failure.edit);
-    }
+  async function retry(failed: WriteFailure): Promise<void> {
+    await writer.retry(key, () => bench.afterTermWrite(term, failed.edit));
   }
 
   return (
@@ -232,7 +279,7 @@ export function GlossaryTermRow({
             term={term}
             busy={busy}
             removable={removable}
-            onEdit={() => bench.setEditor(term.source, draftFor(term, scope))}
+            onEdit={() => bench.openEditor(term.source)}
             onRemove={() =>
               bench.askRemoval({
                 kind: "term",
@@ -244,6 +291,11 @@ export function GlossaryTermRow({
           />
         ) : null}
       </div>
+      {orphaned ? (
+        <p data-orphan-notice="" className="m-0 mt-1 text-sm text-warning">
+          This term no longer exists in the glossary. Your draft stays until you discard it.
+        </p>
+      ) : null}
       {draft === undefined ? (
         <TermDetails term={term} scope={scope} locales={locales} />
       ) : (
@@ -253,32 +305,21 @@ export function GlossaryTermRow({
           draft={draft}
           busy={busy}
           translationRef={focus.register(editorFieldKey(term.source))}
-          onDraft={(next) => bench.setEditor(term.source, next)}
+          orphaned={orphaned}
+          onDraft={(next) => bench.setDraft(term, next)}
           onCancel={() => bench.closeEditor(term.source)}
+          onEscape={() => bench.escapeEditor(term.source)}
           onSave={() => void save()}
         />
       )}
-      {actionable && draft === undefined && scope === ALL_LOCALES && perLocale ? (
-        <p data-remove-reason="" className="m-0 mt-1 text-xs text-muted-foreground">
-          This term cannot be removed while a locale holds its own translation or rules. Clear those
-          first, and it goes with the last one.
-        </p>
-      ) : null}
-      {failure !== undefined ? (
-        <div className="mt-2">
-          <ErrorMessage
-            error={failure.error}
-            retrying={busy}
-            {...(isRetryableWriteError(failure.error) ? { onRetry: () => void retry() } : {})}
-          />
-        </div>
-      ) : null}
-      {redacted ? (
-        <p className="m-0 mt-1 text-xs text-muted-foreground">
-          A stored value for {term.source} looks like a secret, so it is hidden here and the term
-          cannot be edited. Change it in the glossary file itself.
-        </p>
-      ) : null}
+      <RowNotes
+        term={term}
+        redacted={redacted}
+        showRemoveReason={actionable && draft === undefined && scope === ALL_LOCALES && perLocale}
+        failure={failure}
+        busy={busy}
+        onRetry={(failed) => void retry(failed)}
+      />
     </li>
   );
 }

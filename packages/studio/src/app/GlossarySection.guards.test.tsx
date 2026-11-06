@@ -459,7 +459,7 @@ describe("GlossarySection, removing a term", () => {
     expect(document.activeElement).toBe(buttonNamed(view, "Edit Dashboard"));
   });
 
-  it("moves focus to the previous term when the last one goes, and to the add field when none is left", async () => {
+  it("moves focus to the add field when the removed term was the last one, and when none is left", async () => {
     const two: GlossaryGetResult = {
       ...FILE_BACKED_GLOSSARY,
       terms: [sharedTerm("a", "A"), sharedTerm("b", "B")],
@@ -474,7 +474,7 @@ describe("GlossarySection, removing a term", () => {
 
     await clickAsync(buttonNamed(view, "Remove b"));
     await clickAsync(buttonNamed(view, "Remove term"));
-    expect(document.activeElement).toBe(buttonNamed(view, "Edit a"));
+    expect(document.activeElement).toBe(textboxNamed(view, "New glossary term"));
 
     await clickAsync(buttonNamed(view, "Remove a"));
     await clickAsync(buttonNamed(view, "Remove term"));

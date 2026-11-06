@@ -518,12 +518,16 @@ export function findNamed(
   return view.all(selector).find((element) => accessibleName(element, view) === name);
 }
 
+export function glossaryWrites(): readonly unknown[] {
+  return rpcCalls.filter((call) => call.method === "glossary.write");
+}
+
 export function buttonNamed(view: RenderResult, name: string): HTMLElement {
   return elementNamed(view, "button", name);
 }
 
 export function textboxNamed(view: RenderResult, name: string): HTMLInputElement {
-  return elementNamed(view, "input", name) as HTMLInputElement;
+  return elementNamed(view, "input, textarea", name) as HTMLInputElement;
 }
 
 export function answersInOrder(

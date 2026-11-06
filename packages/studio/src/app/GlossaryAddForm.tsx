@@ -1,5 +1,6 @@
 import { Button, TextField } from "@verbatra/ui";
 import type { FormEvent, ReactNode } from "react";
+import { useRef } from "react";
 import { EMPTY_ADD_DRAFT } from "../client/glossary-drafts.js";
 import {
   ALL_LOCALES,
@@ -53,6 +54,9 @@ export function GlossaryAddForm({
 }): ReactNode {
   const bench = useGlossaryBench();
   const { scope, add, writer, focus } = bench;
+  const latest = useRef(add);
+  latest.current = add;
+  const checking = useRef(false);
   const busy = writer.busy(ADD_KEY);
   const failure = writer.failure(ADD_KEY);
   const trimmedTerm = add.term.trim();
@@ -63,7 +67,8 @@ export function GlossaryAddForm({
     trimmedTerm.length > 0 && !tooLong && trimmedTranslation.length > 0 && existing === undefined;
 
   function settle(sent: GlossaryWriteParams): void {
-    const unchanged = sent.term === add.term.trim() && sent.translation === add.translation.trim();
+    const now = latest.current;
+    const unchanged = sent.term === now.term.trim() && sent.translation === now.translation.trim();
     if (unchanged) {
       bench.setAdd(EMPTY_ADD_DRAFT);
       focus.request([ADD_FIELD]);
@@ -72,7 +77,7 @@ export function GlossaryAddForm({
 
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault();
-    if (!ready || busy) {
+    if (!ready || busy || checking.current) {
       return;
     }
     const edit: GlossaryWriteParams = {
@@ -80,20 +85,23 @@ export function GlossaryAddForm({
       translation: trimmedTranslation,
       ...(scope === ALL_LOCALES ? {} : { locale: scope }),
     };
-    if (await writer.write(ADD_KEY, edit)) {
-      settle(edit);
+    checking.current = true;
+    try {
+      const fresh = await bench.readFresh();
+      if (fresh === undefined || termExistsInScope(fresh.terms, trimmedTerm, scope) === undefined) {
+        await writer.write(ADD_KEY, edit, () => settle(edit));
+      }
+    } finally {
+      checking.current = false;
     }
   }
 
-  async function retry(): Promise<void> {
-    const sent = failure?.edit;
-    if (sent !== undefined && (await writer.retry(ADD_KEY))) {
-      settle(sent);
-    }
+  async function retry(sent: GlossaryWriteParams): Promise<void> {
+    await writer.retry(ADD_KEY, () => settle(sent));
   }
 
   return (
-    <div className="mt-4 border-border border-t pt-4">
+    <div className="mb-4 border-border border-b pb-4">
       <h3 className={glossarySubheadingClassName}>
         {scope === ALL_LOCALES ? "Add a term" : `Add a term for ${scope}`}
       </h3>
@@ -160,7 +168,9 @@ export function GlossaryAddForm({
           <ErrorMessage
             error={failure.error}
             retrying={busy}
-            {...(isRetryableWriteError(failure.error) ? { onRetry: () => void retry() } : {})}
+            {...(isRetryableWriteError(failure.error)
+              ? { onRetry: () => void retry(failure.edit) }
+              : {})}
           />
         </div>
       ) : null}

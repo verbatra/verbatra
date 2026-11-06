@@ -1,4 +1,4 @@
-import { Button, Checkbox, microLabelClassName, TextField } from "@verbatra/ui";
+import { Button, Checkbox, microLabelClassName, TextArea, TextField } from "@verbatra/ui";
 import type { FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
 import { useEffect, useId, useRef } from "react";
 import {
@@ -76,17 +76,21 @@ function LabeledField({
   placeholder,
   inputRef,
   note,
+  hint,
+  multiline = false,
   onChange,
 }: {
   readonly label: string;
   readonly accessibleName?: string;
   readonly value: string;
-  readonly maxLength: number;
+  readonly maxLength?: number;
   readonly busy: boolean;
   readonly autoDirection: boolean;
   readonly placeholder?: string;
   readonly inputRef?: Ref<HTMLInputElement>;
   readonly note?: ReactNode;
+  readonly hint?: string;
+  readonly multiline?: boolean;
   readonly onChange: (next: string) => void;
 }): ReactNode {
   const id = useId();
@@ -95,19 +99,39 @@ function LabeledField({
       <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
         {label}
       </label>
-      <TextField
-        id={id}
-        ref={inputRef}
-        aria-label={accessibleName}
-        aria-busy={busy || undefined}
-        readOnly={busy}
-        dir={autoDirection ? "auto" : undefined}
-        value={value}
-        placeholder={placeholder}
-        maxLength={maxLength}
-        className="mt-1"
-        onChange={(event) => onChange(event.target.value)}
-      />
+      {multiline ? (
+        <TextArea
+          id={id}
+          aria-label={accessibleName}
+          aria-busy={busy || undefined}
+          readOnly={busy}
+          dir={autoDirection ? "auto" : undefined}
+          value={value}
+          placeholder={placeholder}
+          rows={3}
+          className="mt-1 h-auto py-1.5"
+          onChange={(event) => onChange(event.target.value)}
+        />
+      ) : (
+        <TextField
+          id={id}
+          ref={inputRef}
+          aria-label={accessibleName}
+          aria-busy={busy || undefined}
+          readOnly={busy}
+          dir={autoDirection ? "auto" : undefined}
+          value={value}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          className="mt-1"
+          onChange={(event) => onChange(event.target.value)}
+        />
+      )}
+      {hint !== undefined ? (
+        <p data-field-hint="" className="m-0 mt-1 text-xs text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
       {note}
     </div>
   );
@@ -147,7 +171,9 @@ export function GlossaryTermEditor({
   busy,
   translationRef,
   onDraft,
+  orphaned,
   onCancel,
+  onEscape,
   onSave,
 }: {
   readonly term: GlossaryTermView;
@@ -156,7 +182,9 @@ export function GlossaryTermEditor({
   readonly busy: boolean;
   readonly translationRef: (element: HTMLInputElement | null) => void;
   readonly onDraft: (next: TermDraft) => void;
+  readonly orphaned: boolean;
   readonly onCancel: () => void;
+  readonly onEscape: () => void;
   readonly onSave: () => void;
 }): ReactNode {
   const ownRef = useRef<HTMLInputElement | null>(null);
@@ -169,14 +197,14 @@ export function GlossaryTermEditor({
 
   function submit(event: FormEvent): void {
     event.preventDefault();
-    if (!busy && !unchanged && !overCap) {
+    if (!busy && !unchanged && !overCap && !orphaned) {
       onSave();
     }
   }
 
   function cancelOnEscape(event: KeyboardEvent): void {
-    if (event.key === "Escape" && !busy) {
-      onCancel();
+    if (event.key === "Escape" && !busy && !event.nativeEvent.isComposing) {
+      onEscape();
     }
   }
 
@@ -208,10 +236,10 @@ export function GlossaryTermEditor({
             label="Never use"
             accessibleName={`Never use (${scope})`}
             value={draft.forbidden}
-            maxLength={MAX_GLOSSARY_TRANSLATION_LENGTH}
             busy={busy}
             autoDirection
-            placeholder="Separate with commas"
+            multiline
+            hint="One per line. A comma stays part of the rendering."
             note={<ForbiddenNote text={draft.forbidden} />}
             onChange={(forbidden) => onDraft({ ...draft, forbidden })}
           />
@@ -257,14 +285,14 @@ export function GlossaryTermEditor({
         <Button
           type="submit"
           variant="primary"
-          disabled={unchanged || overCap}
+          disabled={unchanged || overCap || orphaned}
           aria-busy={busy || undefined}
           aria-disabled={busy || undefined}
         >
           Save
         </Button>
         <Button aria-disabled={busy || undefined} onClick={busy ? undefined : onCancel}>
-          Cancel
+          {orphaned ? "Discard draft" : "Cancel"}
         </Button>
       </div>
     </form>

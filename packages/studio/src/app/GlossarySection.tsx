@@ -13,8 +13,9 @@ import { GlossaryAddForm } from "./GlossaryAddForm.js";
 import { GlossaryDoNotTranslate } from "./GlossaryDoNotTranslate.js";
 import { GlossaryRemoveDialog } from "./GlossaryRemoveDialog.js";
 import { GlossaryTermRow } from "./GlossaryTermRow.js";
-import { GlossaryBenchContext } from "./glossary-bench.js";
+import { GlossaryBenchContext, SEARCH_FIELD } from "./glossary-bench.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
+import type { PendingHold } from "./use-glossary-hold.js";
 import { type GlossaryWorkspace, useGlossaryWorkspace } from "./use-glossary-workspace.js";
 
 function ScopeSelect({
@@ -59,33 +60,46 @@ function emptyCopy(indicator: GlossaryIndicator): string {
   return "There is no glossary to show.";
 }
 
+function holdLead(pending: PendingHold | undefined): string {
+  if (pending === undefined) {
+    return "The glossary has changes that are not saved: ";
+  }
+  if (pending.kind === "close") {
+    return "Closing this editor drops the changes that are not saved: ";
+  }
+  const where = pending.next === ALL_LOCALES ? "all locales" : pending.next;
+  return `Showing ${where} drops the changes that are not saved: `;
+}
+
 function HoldPrompt({ workspace }: { readonly workspace: GlossaryWorkspace }): ReactNode {
-  const { hold, dirty } = workspace;
+  const { hold, dirty, bench } = workspace;
   if (!hold.visible) {
     return null;
   }
-  const lead =
-    hold.pendingScope === undefined
-      ? "The glossary has changes that are not saved: "
-      : `Showing ${hold.pendingScope === ALL_LOCALES ? "all locales" : hold.pendingScope} drops the changes that are not saved: `;
+  const pendingKind = hold.pending?.kind;
   return (
     <div className="mb-4">
       <UnsavedPrompt
+        key={workspace.promptEpoch}
         subject={
-          <>
-            {lead}
-            <span className="wrap-anywhere">
-              {describeDirtyDrafts({
-                editors: dirty.editors,
-                add: dirty.add,
-                keep: dirty.keep && hold.pendingScope === undefined,
-              })}
-            </span>
-            .
-          </>
+          hold.saving ? (
+            "Saving the glossary. Leaving waits until the writes finish."
+          ) : (
+            <>
+              {holdLead(hold.pending)}
+              <span className="wrap-anywhere">
+                {describeDirtyDrafts({
+                  editors: pendingKind === "close" ? [] : dirty.editors,
+                  add: dirty.add && pendingKind !== "close",
+                  keep: dirty.keep && hold.pending === undefined,
+                })}
+              </span>
+              .
+            </>
+          )
         }
-        saving={false}
-        error={null}
+        saving={hold.saving}
+        error={bench.writer.firstFailure()?.error ?? null}
         placement="pane"
         onDiscard={hold.discard}
         onKeepEditing={hold.keepEditing}
@@ -101,7 +115,7 @@ function TermList({
   readonly glossary: GlossaryGetResult;
   readonly workspace: GlossaryWorkspace;
 }): ReactNode {
-  const { shown, setQuery } = workspace;
+  const { shown, orphans, clearSearch } = workspace;
   const count = glossary.terms.length;
   if (count === 0) {
     return (
@@ -116,7 +130,7 @@ function TermList({
         icon="search"
         title="No terms match"
         action={
-          <Button size="sm" onClick={() => setQuery("")}>
+          <Button size="sm" onClick={clearSearch}>
             Clear search
           </Button>
         }
@@ -128,9 +142,9 @@ function TermList({
   return (
     <>
       <p role="status" className="m-0 mb-2 text-xs text-muted-foreground">
-        {shown.length === count
+        {workspace.matchCount === count
           ? `${count} ${count === 1 ? "term" : "terms"}`
-          : `${shown.length} of ${count} terms`}
+          : `${workspace.matchCount} of ${count} terms`}
       </p>
       <ul className="m-0 flex min-w-0 list-none flex-col gap-2 p-0">
         {shown.map((term: GlossaryTermView) => (
@@ -138,9 +152,17 @@ function TermList({
             key={`${workspace.bench.scope}:${term.source}`}
             term={term}
             redacted={glossary.redactedTerms.includes(term.source)}
+            orphaned={orphans.has(term.source)}
           />
         ))}
       </ul>
+      {workspace.capped ? (
+        <div className="mt-3">
+          <Button size="sm" onClick={workspace.showAll}>
+            Show all {workspace.matchCount} terms
+          </Button>
+        </div>
+      ) : null}
     </>
   );
 }
@@ -159,6 +181,7 @@ function Toolbar({
   return (
     <FilterBar label="Filter terms" className="mb-4">
       <SearchInput
+        ref={bench.focus.register(SEARCH_FIELD)}
         aria-label="Search terms"
         placeholder="Search terms"
         value={query}
@@ -195,14 +218,14 @@ export function GlossarySection({
         ) : null}
         <HoldPrompt workspace={workspace} />
         <Toolbar glossary={glossary} workspace={workspace} />
+        {bench.editable ? (
+          <GlossaryAddForm terms={glossary.terms} redactedTerms={glossary.redactedTerms} />
+        ) : null}
         <TermList glossary={glossary} workspace={workspace} />
         {bench.editable && bench.scope !== ALL_LOCALES && glossary.terms.length > 0 ? (
           <p data-remove-reason="" className="m-0 mt-2 text-xs text-muted-foreground">
             A term is removed from All locales, where it is shared by every locale.
           </p>
-        ) : null}
-        {bench.editable ? (
-          <GlossaryAddForm terms={glossary.terms} redactedTerms={glossary.redactedTerms} />
         ) : null}
         <GlossaryDoNotTranslate entries={glossary.doNotTranslate} />
         {removal !== undefined ? (

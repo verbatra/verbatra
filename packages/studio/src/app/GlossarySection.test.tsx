@@ -16,6 +16,7 @@ import {
   FILE_BACKED_GLOSSARY,
   findNamed,
   flush,
+  glossaryWrites,
   render,
   renderAsync,
   rpcCalls,
@@ -194,7 +195,7 @@ describe("GlossarySection, adding a term", () => {
     typeInto(textboxNamed(view, "New glossary translation"), "  Warenkorb  ");
     await clickAsync(buttonNamed(view, "Add term"));
 
-    expect(rpcCalls).toEqual([
+    expect(glossaryWrites()).toEqual([
       { method: "glossary.write", params: { term: "cart", translation: "Warenkorb" } },
     ]);
     expect(onChange).toHaveBeenCalledWith(next);
@@ -228,7 +229,7 @@ describe("GlossarySection, adding a term", () => {
     });
     await flush();
 
-    expect(rpcCalls).toHaveLength(1);
+    expect(glossaryWrites()).toHaveLength(1);
   });
 
   it("adds a term for the locale being shown", async () => {
@@ -240,7 +241,7 @@ describe("GlossarySection, adding a term", () => {
     typeInto(textboxNamed(view, "New glossary translation"), "Panier");
     await clickAsync(buttonNamed(view, "Add term"));
 
-    expect(rpcCalls).toEqual([
+    expect(glossaryWrites()).toEqual([
       { method: "glossary.write", params: { term: "cart", translation: "Panier", locale: "fr" } },
     ]);
   });
@@ -280,7 +281,7 @@ describe("GlossarySection, adding a term", () => {
 
     await clickAsync(buttonNamed(view, "Retry"));
 
-    expect(rpcCalls).toHaveLength(2);
+    expect(glossaryWrites()).toHaveLength(2);
     expect(view.query('[role="alert"]')).toBeNull();
     expect(textboxNamed(view, "New glossary term").value).toBe("");
   });
@@ -300,9 +301,9 @@ describe("GlossarySection, adding a term", () => {
     expect(rpcCalls).toEqual([]);
   });
 
-  it("matches an existing source exactly, so a differently cased term is a new term", async () => {
+  it("treats a differently cased source as new only when the existing term matches case", async () => {
     const view = await renderAsync(section());
-    typeInto(textboxNamed(view, "New glossary term"), "Checkout");
+    typeInto(textboxNamed(view, "New glossary term"), "dashboard");
     typeInto(textboxNamed(view, "New glossary translation"), "Bezahlen");
 
     expect(view.query("[data-exists-note]")).toBeNull();
@@ -391,7 +392,7 @@ describe("GlossarySection, editing a term", () => {
     await clickAsync(buttonNamed(view, "Edit Dashboard"));
     expect(textboxNamed(view, "Translation (de)").value).toBe("Übersicht");
     typeInto(textboxNamed(view, "Translation (de)"), "Startseite");
-    typeInto(textboxNamed(view, "Never use (de)"), "Instrumententafel, Tafel");
+    typeInto(textboxNamed(view, "Never use (de)"), "Instrumententafel\nTafel");
     typeInto(textboxNamed(view, "Part of speech"), "");
     await clickAsync(buttonNamed(view, "Save"));
 
@@ -409,18 +410,18 @@ describe("GlossarySection, editing a term", () => {
     ]);
   });
 
-  it("splits never-use renderings on the Arabic comma as well", async () => {
+  it("keeps an Arabic comma inside one never-use rendering", async () => {
     stubRpc({ "glossary.write": writeAnswer(ARABIC_GLOSSARY) });
     const view = render(section(ARABIC_GLOSSARY));
     showLocale(view, "ar");
     await clickAsync(buttonNamed(view, "Edit Cart"));
-    typeInto(textboxNamed(view, "Never use (ar)"), "سلة، حقيبة");
+    typeInto(textboxNamed(view, "Never use (ar)"), "سلة، حقيبة\nعربة");
     await clickAsync(buttonNamed(view, "Save"));
 
     expect(rpcCalls).toEqual([
       {
         method: "glossary.write",
-        params: { term: "Cart", locale: "ar", forbidden: ["سلة", "حقيبة"] },
+        params: { term: "Cart", locale: "ar", forbidden: ["سلة، حقيبة", "عربة"] },
       },
     ]);
   });
@@ -503,7 +504,7 @@ describe("GlossarySection, editing a term", () => {
     await clickAsync(buttonNamed(view, "Edit Dashboard"));
     typeInto(
       textboxNamed(view, "Never use (de)"),
-      Array.from({ length: 51 }, (_, index) => `r${index}`).join(", "),
+      Array.from({ length: 51 }, (_, index) => `r${index}`).join("\n"),
     );
 
     expect(view.get("[data-cap-note]").textContent).toContain("At most 50 never-use renderings");
@@ -511,7 +512,7 @@ describe("GlossarySection, editing a term", () => {
 
     typeInto(
       textboxNamed(view, "Never use (de)"),
-      Array.from({ length: 50 }, (_, index) => `r${index}`).join(", "),
+      Array.from({ length: 50 }, (_, index) => `r${index}`).join("\n"),
     );
 
     expect(view.query("[data-cap-note]")).toBeNull();
@@ -558,11 +559,21 @@ describe("GlossarySection, search", () => {
     terms: Array.from({ length: 500 }, (_, index) => sharedTerm(`term-${index}`, `Wert ${index}`)),
   };
 
-  it("lists every term of a long glossary and narrows it by source, translation or note", async () => {
+  it("lists the first fifty terms of a long glossary and reveals the rest on request, focusing the first new row", async () => {
     const view = await renderAsync(section(MANY));
 
-    expect(view.all("[data-glossary-row]")).toHaveLength(500);
+    expect(view.all("[data-glossary-row]")).toHaveLength(50);
     expect(view.get('[role="status"]').textContent).toBe("500 terms");
+
+    await clickAsync(buttonNamed(view, "Show all 500 terms"));
+
+    expect(view.all("[data-glossary-row]")).toHaveLength(500);
+    expect(findNamed(view, "button", "Show all 500 terms")).toBeUndefined();
+    expect(document.activeElement).toBe(buttonNamed(view, "Edit term-50"));
+  });
+
+  it("searches every term, not only the listed ones, by source, translation or note", async () => {
+    const view = await renderAsync(section(MANY));
 
     typeInto(textboxNamed(view, "Search terms"), "term-49");
     expect(view.all("[data-glossary-row]")).toHaveLength(11);
@@ -570,6 +581,35 @@ describe("GlossarySection, search", () => {
 
     typeInto(textboxNamed(view, "Search terms"), "wert 3");
     expect(view.all("[data-glossary-row]").length).toBeGreaterThan(1);
+  });
+
+  it("caps a long search result too and offers the rest", async () => {
+    const view = await renderAsync(section(MANY));
+    typeInto(textboxNamed(view, "Search terms"), "term-");
+
+    expect(view.all("[data-glossary-row]")).toHaveLength(50);
+    expect(buttonNamed(view, "Show all 500 terms")).toBeTruthy();
+  });
+
+  it("lists a row being edited even beyond the cap, which the exists note can open", async () => {
+    const view = await renderAsync(section(MANY));
+    typeInto(textboxNamed(view, "New glossary term"), "term-300");
+    typeInto(textboxNamed(view, "New glossary translation"), "x");
+
+    await clickAsync(elementNamed(view, "[data-exists-note] button", "Edit term-300"));
+
+    expect(view.all("[data-glossary-row]")).toHaveLength(51);
+    expect(textboxNamed(view, "Translation (all locales)").value).toBe("Wert 300");
+    expect(document.activeElement).toBe(textboxNamed(view, "Translation (all locales)"));
+  });
+
+  it("puts the add form above the list so it stays reachable with many terms", async () => {
+    const view = await renderAsync(section(MANY));
+    const add = textboxNamed(view, "New glossary term");
+    const first = view.get("[data-glossary-row]");
+
+    expect(add.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(textboxNamed(view, "New do-not-translate term")).toBeTruthy();
   });
 
   it("says nothing matches and clears the search from the empty state", async () => {
