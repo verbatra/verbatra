@@ -18,7 +18,7 @@ export function useDialogDraftGuard({
   readonly dirty: boolean;
   readonly saving: boolean;
   readonly onClose: () => void;
-  readonly fieldRef: RefObject<HTMLElement | null>;
+  readonly fieldRef: RefObject<{ focus(): void } | null>;
 }): DialogDraftGuard {
   const [confirming, setConfirming] = useState(false);
   const heldRoute = useRef<(() => Promise<void>) | null>(null);

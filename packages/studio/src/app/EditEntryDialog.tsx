@@ -218,7 +218,12 @@ export function EditEntryDialog({
       banner={
         confirming ? (
           <UnsavedPrompt
-            locale={locale}
+            subject={
+              <>
+                The <span className="font-mono">{locale}</span> translation has changes that are not
+                saved.
+              </>
+            }
             saving={submit.kind === "submitting"}
             error={submitFailure(submit)}
             placement="drawer"
