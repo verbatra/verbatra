@@ -46,6 +46,7 @@
     "@types/node": "catalog:",
     "@verbatra/config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
+    "intl-messageformat": "12.1.4",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
