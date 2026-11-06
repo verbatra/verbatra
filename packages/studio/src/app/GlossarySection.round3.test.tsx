@@ -172,6 +172,8 @@ describe("a background change never moves focus", () => {
     expect(view.query("[data-orphan-block]")).not.toBeNull();
     expect(document.activeElement).toBe(own);
     expect(field(view, "Translation (all locales)")).toBe(own);
+    const row = own.closest("li") as HTMLElement;
+    expect([...(row.parentElement?.children ?? [])].indexOf(row)).toBe(0);
 
     await bump(G);
     expect(field(view, "Translation (all locales)")).toBe(own);
@@ -222,6 +224,34 @@ describe("a queued write under the real scheduler", () => {
     await flush();
 
     expect(glossaryWrites()).toHaveLength(1);
+  });
+});
+
+describe("a queued removal", () => {
+  it("is not sent for a term an outside read removed while it waited", async () => {
+    const { view, bump } = await panel();
+    await clickAsync(buttonNamed(view, "Edit verbatra"));
+    typeInto(field(view, "Translation (all locales)"), "A2");
+    const first = deferredAnswer();
+    let writes = 0;
+    stubRpc({
+      "glossary.write": () => {
+        writes += 1;
+        return writes === 1 ? first.promise : writeAnswer(G);
+      },
+    });
+    await clickAsync(buttonNamed(view, "Save"));
+    await clickAsync(buttonNamed(view, "Remove checkout"));
+    await clickAsync(buttonNamed(view, "Remove term"));
+
+    await bump(without("checkout"));
+    await act(async () => {
+      first.resolve(writeAnswer(without("checkout")));
+      await wait(30);
+    });
+    await flush();
+
+    expect(writes).toBe(1);
   });
 });
 
