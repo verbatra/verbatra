@@ -451,8 +451,8 @@ describe("Tooltip", () => {
     );
     const className = view.get(SLOT).className;
 
-    expect(className).toContain("left-1/2");
-    expect(className).toContain("[translate:var(--tooltip-x,-50%)_0]");
+    expect(className).toContain("left-[calc(50%+var(--tooltip-x,0px))]");
+    expect(className).toContain("-translate-x-1/2");
     expect(className).not.toContain("start-1/2");
   });
 
@@ -461,10 +461,10 @@ describe("Tooltip", () => {
     const bottom = mount({ side: "bottom" });
 
     expect(end.get(SLOT).dataset.side).toBe("end");
-    expect(end.get(SLOT).className).toContain("start-full");
+    expect(end.get(SLOT).className).toContain("start-[calc(100%+var(--tooltip-x,0px))]");
     expect(bottom.get(SLOT).dataset.side).toBe("bottom");
     expect(bottom.get(SLOT).className).toContain("top-full");
-    expect(bottom.get(SLOT).className).not.toContain("start-full");
+    expect(bottom.get(SLOT).className).not.toContain("start-[calc(100%");
   });
 
   it("wraps a non-element child without trying to describe it", () => {
@@ -534,7 +534,7 @@ describe("Tooltip", () => {
 
       hover(view.get("button"));
 
-      expect(shiftOf(view)).toBe("calc(0px + 34px)");
+      expect(shiftOf(view)).toBe("34px");
     });
 
     it("shifts a bubble that ends past the clipping box back inside it", () => {
@@ -543,7 +543,7 @@ describe("Tooltip", () => {
 
       hover(view.get("button"));
 
-      expect(shiftOf(view)).toBe("calc(-50% + -34px)");
+      expect(shiftOf(view)).toBe("-34px");
     });
 
     it("leaves a bubble that already fits where it is", () => {
@@ -552,7 +552,7 @@ describe("Tooltip", () => {
 
       hover(view.get("button"));
 
-      expect(shiftOf(view)).toBe("calc(0px + 0px)");
+      expect(shiftOf(view)).toBe("0px");
     });
 
     it("caps a wide bubble to the clipping box, and a plain one not at all", () => {
@@ -586,6 +586,36 @@ describe("Tooltip", () => {
 
       expect(shiftOf(view)).toBe("");
       expect(view.get("[role='tooltip']").style.getPropertyValue("max-width")).toBe("");
+    });
+
+    it("reads the inline direction, so a start-anchored shift flips in a right-to-left page", () => {
+      layout({ wrapper: [260, 10, 280, 30], bubble: [250, 40, 330, 66], clip: [0, 0, 300, 300] });
+      const view = render(
+        <div data-clip="" dir="rtl" style={{ overflowX: "auto", overflowY: "auto" }}>
+          <Tooltip label="Tip" side="bottom-start">
+            <button type="button">c</button>
+          </Tooltip>
+        </div>,
+      );
+
+      hover(view.get("button"));
+
+      expect(shiftOf(view)).toBe("34px");
+    });
+
+    it("shifts an end-anchored bubble the other way along the inline axis", () => {
+      layout({ wrapper: [260, 10, 280, 30], bubble: [250, 40, 330, 66], clip: [0, 0, 300, 300] });
+      const view = render(
+        <div data-clip="" style={{ overflowX: "auto", overflowY: "auto" }}>
+          <Tooltip label="Tip" side="bottom-end">
+            <button type="button">c</button>
+          </Tooltip>
+        </div>,
+      );
+
+      hover(view.get("button"));
+
+      expect(shiftOf(view)).toBe("34px");
     });
 
     it("flips a top-start bubble below when there is no room above it", () => {

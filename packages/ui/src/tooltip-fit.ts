@@ -32,7 +32,14 @@ const FLIPPABLE: ReadonlySet<TooltipSide> = new Set<TooltipSide>([
   "top-start",
 ]);
 
-const CENTERED: ReadonlySet<TooltipSide> = new Set<TooltipSide>(["bottom", "top"]);
+const ANCHOR: Readonly<Record<TooltipSide, "start" | "end" | "left">> = {
+  end: "start",
+  bottom: "left",
+  "bottom-start": "start",
+  "bottom-end": "end",
+  top: "left",
+  "top-start": "start",
+};
 
 function clippingBox(element: HTMLElement): Box {
   let box: Box = { top: 0, bottom: window.innerHeight, left: 0, right: window.innerWidth };
@@ -78,10 +85,9 @@ function fitBubble(
   const rect = bubble.getBoundingClientRect();
   const shift =
     Math.max(0, box.left + EDGE_PX - rect.left) || Math.min(0, box.right - EDGE_PX - rect.right);
-  slot.style.setProperty(
-    "--tooltip-x",
-    `calc(${CENTERED.has(placement) ? "-50%" : "0px"} + ${shift}px)`,
-  );
+  const inline = getComputedStyle(slot).direction === "rtl" ? -1 : 1;
+  const offset = { left: shift, start: inline * shift, end: -inline * shift }[ANCHOR[placement]];
+  slot.style.setProperty("--tooltip-x", `${offset}px`);
 }
 
 export function useBubblePlacement({

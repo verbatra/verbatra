@@ -40,12 +40,12 @@ const SLOT =
   "pointer-events-none invisible absolute z-40 size-0 overflow-hidden opacity-0 motion-safe:transition-opacity motion-safe:delay-150 data-[open]:pointer-events-auto data-[open]:visible data-[open]:size-auto data-[open]:overflow-visible data-[open]:opacity-100";
 
 const POSITION: Readonly<Record<TooltipSide, string>> = {
-  end: "start-full top-1/2 ps-2 [translate:var(--tooltip-x,0px)_-50%]",
-  bottom: "left-1/2 top-full pt-2 [translate:var(--tooltip-x,-50%)_0]",
-  "bottom-start": "start-0 top-full pt-2 [translate:var(--tooltip-x,0px)_0]",
-  "bottom-end": "end-0 top-full pt-2 [translate:var(--tooltip-x,0px)_0]",
-  top: "left-1/2 bottom-full pb-2 [translate:var(--tooltip-x,-50%)_0]",
-  "top-start": "start-0 bottom-full pb-2 [translate:var(--tooltip-x,0px)_0]",
+  end: "start-[calc(100%+var(--tooltip-x,0px))] top-1/2 ps-2 -translate-y-1/2",
+  bottom: "left-[calc(50%+var(--tooltip-x,0px))] top-full pt-2 -translate-x-1/2",
+  "bottom-start": "start-[var(--tooltip-x,0px)] top-full pt-2",
+  "bottom-end": "end-[var(--tooltip-x,0px)] top-full pt-2",
+  top: "left-[calc(50%+var(--tooltip-x,0px))] bottom-full pb-2 -translate-x-1/2",
+  "top-start": "start-[var(--tooltip-x,0px)] bottom-full pb-2",
 };
 
 function isKeyboardFocus(wrapper: HTMLElement): boolean {
