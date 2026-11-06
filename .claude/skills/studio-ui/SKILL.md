@@ -439,9 +439,10 @@ can be named `constructor`), the add form and the keep form live above the rows,
 refresh never drop one, and an open editor stays listed when search stops matching it, and a draft whose term
 has gone becomes an orphan at once: it keeps its row, node, caret and focus (CSS `order-first` pins it
 above the others, also with zero terms and before the empty state, announced through a live region)
-with a notice, Save and Retry send nothing, its failure is dropped for good, navigation stays held and
-Discard drops it. A background change never moves focus or scroll: an editor takes focus only when
-the user opens it, and a finished save moves focus only when it was on that row, on the body or in a dialog. The list shows the first 50 terms
+with a notice, Save and Retry send nothing, its failure is dropped for good, a dirty one holds navigation (a clean one does not) and
+Discard drops it. A background change never moves focus: an editor takes focus only when the user
+opens it, and a finished save moves focus only when it was on that row, on the body or in a dialog.
+The page may shift when rows above change, since scroll anchoring is off on the list on purpose. The list shows the first 50 terms
 with Show all N (focus on the first new row), the add form sits above it, and an editor opened from the
 exists note is always listed. One route guard covers all drafts through `useDialogDraftGuard`, and `UnsavedPrompt` (Discard and
 Keep editing, no Save, Keep editing primary) names what is unsaved, and while any write is queued or in
