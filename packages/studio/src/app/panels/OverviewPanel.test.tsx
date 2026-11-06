@@ -1907,3 +1907,90 @@ describe("OverviewPanel Retry stays disabled until every read it started has ans
     expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
+
+describe("OverviewPanel focus when the banner leaves mid-round and returns", () => {
+  it("focuses the new Retry when a slower read fails after the banner went away", async () => {
+    let release: ((result: StubRpcResult) => void) | undefined;
+    let usageReads = 0;
+    stubPage({
+      "lock.state": answersInOrder([LOCK_BAD, NO_LOCK]),
+      "usage.summary": () => {
+        usageReads += 1;
+        return usageReads === 1
+          ? NO_USAGE
+          : new Promise<StubRpcResult>((resolve) => {
+              release = resolve;
+            });
+      },
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    retryButton(view).focus();
+
+    await clickAsync(retryButton(view));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(document.activeElement).toBe(document.body);
+
+    release?.(rpcError("NETWORK_ERROR"));
+    await flush();
+
+    expect(alertTexts(view)).toHaveLength(1);
+    expect(document.activeElement).toBe(retryButton(view));
+    expect(document.activeElement?.hasAttribute("data-retry")).toBe(true);
+  });
+
+  it("focuses the metric row when the slower read recovers instead", async () => {
+    let release: ((result: StubRpcResult) => void) | undefined;
+    let usageReads = 0;
+    stubPage({
+      "lock.state": answersInOrder([LOCK_BAD, NO_LOCK]),
+      "usage.summary": () => {
+        usageReads += 1;
+        return usageReads === 1
+          ? NO_USAGE
+          : new Promise<StubRpcResult>((resolve) => {
+              release = resolve;
+            });
+      },
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    retryButton(view).focus();
+
+    await clickAsync(retryButton(view));
+    await flush();
+    release?.(NO_USAGE);
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(document.activeElement).toBe(view.get("[data-overview-recovery]"));
+  });
+
+  it("leaves focus alone when the user moved it elsewhere before the round ended", async () => {
+    let release: ((result: StubRpcResult) => void) | undefined;
+    let usageReads = 0;
+    stubPage({
+      "lock.state": answersInOrder([LOCK_BAD, NO_LOCK]),
+      "usage.summary": () => {
+        usageReads += 1;
+        return usageReads === 1
+          ? NO_USAGE
+          : new Promise<StubRpcResult>((resolve) => {
+              release = resolve;
+            });
+      },
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    await clickAsync(retryButton(view));
+    await flush();
+    const elsewhere = document.createElement("button");
+    document.body.append(elsewhere);
+    elsewhere.focus();
+
+    release?.(rpcError("NETWORK_ERROR"));
+    await flush();
+
+    expect(document.activeElement).toBe(elsewhere);
+    elsewhere.remove();
+  });
+});

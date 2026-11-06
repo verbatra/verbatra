@@ -286,6 +286,44 @@ describe("a stack with forward entries", () => {
     expect(goSpy).toHaveBeenCalledWith(-1);
   });
 
+  it("tells hold watchers when a hold is cancelled, and stops after they unsubscribe", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    const watcher = vi.fn();
+    const stop = onHoldDropped(watcher);
+
+    restoreHeldRoute();
+    stop();
+    restoreHeldRoute();
+
+    expect(watcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("tells hold watchers when a landing back on the position releases the hold", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    const watcher = vi.fn();
+    const stop = onHoldDropped(watcher);
+
+    userTraverses(1);
+    stop();
+
+    expect(onRelease).toHaveBeenCalledTimes(1);
+    expect(watcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not tell hold watchers when a held landing proceeds", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    const watcher = vi.fn();
+    const stop = onHoldDropped(watcher);
+
+    proceedOf(0)();
+    stop();
+
+    expect(watcher).not.toHaveBeenCalled();
+  });
+
   it("clears the hold and tells the guard when a landing returns to the position", () => {
     startOn(["#/a", "#/b", "#/c"], 2);
     userTraverses(-1);
@@ -528,16 +566,15 @@ describe("a held push or replace", () => {
     expect(onProceed).not.toHaveBeenCalled();
   });
 
-  it("tells hold watchers when a hold is dropped, and stops after they unsubscribe", () => {
+  it("tells hold watchers nothing when there was no hold to drop", () => {
     startAt("#/a", "#/b");
     const watcher = vi.fn();
     const stop = onHoldDropped(watcher);
 
     restoreHeldRoute();
     stop();
-    restoreHeldRoute();
 
-    expect(watcher).toHaveBeenCalledTimes(1);
+    expect(watcher).not.toHaveBeenCalled();
   });
 
   it("lets a change through while nothing is unsaved", () => {

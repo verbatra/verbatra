@@ -2,7 +2,7 @@
 import { act, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { markLinkNavigation, useScrollToTopOnLinkNavigation } from "./link-scroll.js";
-import { restoreHeldRoute } from "./route-guard.js";
+import { installRouteGuard, restoreHeldRoute } from "./route-guard.js";
 import { flush, render } from "./test-support.js";
 import { useRoute } from "./use-route.js";
 
@@ -99,11 +99,40 @@ describe("useScrollToTopOnLinkNavigation", () => {
     expect(scrollTo).toHaveBeenCalledTimes(1);
   });
 
-  it("drops the mark when the hold that kept the navigation is dropped", async () => {
+  it("drops the mark when the hold that kept the navigation is cancelled", async () => {
+    window.history.replaceState({ idx: 0 }, "", "#/glossary");
     render(<Host />);
+    const uninstall = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
 
-    markLinkNavigation("#/review");
+    await act(async () => {
+      anchorTo("#/review").click();
+    });
+    await flush();
     restoreHeldRoute();
+    uninstall();
+    await goTo("#/review");
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("drops the mark when a held landing is released by going back to the position", async () => {
+    window.history.replaceState({ idx: 0 }, "", "#/glossary");
+    render(<Host />);
+    let dirty = true;
+    const uninstall = installRouteGuard({ isDirty: () => dirty, onBlock: () => {} });
+
+    await act(async () => {
+      anchorTo("#/review").click();
+    });
+    await flush();
+    await act(async () => {
+      window.history.replaceState({ idx: 0 }, "", "#/glossary");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    await flush();
+    dirty = false;
+    uninstall();
     await goTo("#/review");
 
     expect(scrollTo).not.toHaveBeenCalled();
