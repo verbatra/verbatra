@@ -1,5 +1,5 @@
-import { type IcuAxisStep, icuExactArmValue } from "@verbatra/format-adapters";
-import { CANDIDATE_SAMPLES } from "./icu-preview-samples.js";
+import { type IcuAxisKind, type IcuAxisStep, icuExactArmValue } from "@verbatra/format-adapters";
+import { CANDIDATE_SAMPLES, WHOLE_CANDIDATES } from "./icu-preview-samples.js";
 
 export type PreviewSample = string | number;
 
@@ -12,14 +12,14 @@ export type Solution = ReadonlyMap<string, PreviewSample>;
 
 export type Solver = (constraints: readonly ArmConstraint[]) => Solution | undefined;
 
-function ruleTypeOf(step: IcuAxisStep): "cardinal" | "ordinal" {
-  return step.kind === "ordinal" ? "ordinal" : "cardinal";
+export function ruleTypeOf(kind: IcuAxisKind): "cardinal" | "ordinal" {
+  return kind === "ordinal" ? "ordinal" : "cardinal";
 }
 
 function createCategoryOf(locale: string): (step: IcuAxisStep, count: number) => string {
   const cache = new Map<string, Intl.PluralRules>();
   return (step, count) => {
-    const type = ruleTypeOf(step);
+    const type = ruleTypeOf(step.kind);
     let rules = cache.get(type);
     if (rules === undefined) {
       rules = new Intl.PluralRules(locale, { type });
@@ -29,7 +29,7 @@ function createCategoryOf(locale: string): (step: IcuAxisStep, count: number) =>
   };
 }
 
-function exactValuesOf(options: readonly string[]): readonly number[] {
+export function exactValuesOf(options: readonly string[]): readonly number[] {
   return options.flatMap((option) => {
     const value = icuExactArmValue(option);
     return value === undefined ? [] : [value];
@@ -42,7 +42,11 @@ function candidatesFor(constraints: readonly ArmConstraint[]): readonly PreviewS
   );
   const numeric = constraints.filter(({ step }) => step.kind !== "select");
   const offsets = new Set(numeric.map(({ step }) => step.offset));
-  const counts = [...offsets].flatMap((offset) => CANDIDATE_SAMPLES.map((count) => count + offset));
+  const counts = [
+    ...[...offsets].flatMap((offset) => CANDIDATE_SAMPLES.map((count) => count + offset)),
+    0,
+    ...WHOLE_CANDIDATES,
+  ];
   const exact = numeric.flatMap(({ step }) => exactValuesOf(step.options));
   return [...new Set<PreviewSample>([...strings, ...counts, ...exact])];
 }
@@ -50,24 +54,30 @@ function candidatesFor(constraints: readonly ArmConstraint[]): readonly PreviewS
 export function createSolver(locale: string): Solver {
   const categoryOf = createCategoryOf(locale);
 
-  function selected(constraint: ArmConstraint, sample: PreviewSample): boolean {
+  function pluralSelected(constraint: ArmConstraint, sample: number, lenient: boolean): boolean {
     const { step, byCategory } = constraint;
-    if (step.kind === "select") {
-      const key = String(sample);
-      return (step.options.includes(key) ? key : "other") === step.selector;
-    }
-    if (typeof sample !== "number") {
-      return false;
-    }
     const exactKey = `=${sample}`;
     if (step.options.includes(exactKey)) {
       return !byCategory && step.selector === exactKey;
     }
     const category = categoryOf(step, sample);
     if (byCategory) {
-      return category === step.selector;
+      const falls = lenient && step.selector === "other" && !step.options.includes(category);
+      return category === step.selector || falls;
     }
     return (step.options.includes(category) ? category : "other") === step.selector;
+  }
+
+  function selected(constraint: ArmConstraint, sample: PreviewSample, lenient: boolean): boolean {
+    const { step, byCategory } = constraint;
+    if (step.kind === "select") {
+      const key = String(sample);
+      return (step.options.includes(key) ? key : "other") === step.selector;
+    }
+    if (typeof sample !== "number") {
+      return (lenient || !byCategory) && step.selector === "other";
+    }
+    return pluralSelected(constraint, sample, lenient);
   }
 
   return (constraints) => {
@@ -79,9 +89,14 @@ export function createSolver(locale: string): Solver {
     }
     const solution = new Map<string, PreviewSample>();
     for (const [argument, list] of byArgument) {
-      const sample = candidatesFor(list).find((candidate) =>
-        list.every((constraint) => selected(constraint, candidate)),
-      );
+      const candidates = candidatesFor(list);
+      const sample = [false, true]
+        .map((lenient) =>
+          candidates.find((candidate) =>
+            list.every((constraint) => selected(constraint, candidate, lenient)),
+          ),
+        )
+        .find((found) => found !== undefined);
       if (sample === undefined) {
         return undefined;
       }
