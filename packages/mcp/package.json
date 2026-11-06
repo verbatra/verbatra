@@ -58,12 +58,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "2.3.1",
+    "@modelcontextprotocol/server": "2.4.0",
     "@verbatra/sdk": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "2.3.1",
+    "@modelcontextprotocol/client": "2.4.0",
     "@types/node": "catalog:",
     "@verbatra/ai-providers": "workspace:*",
     "@verbatra/config": "workspace:*",
