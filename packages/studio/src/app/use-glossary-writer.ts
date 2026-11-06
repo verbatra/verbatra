@@ -45,28 +45,20 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
   const [pending, setPending] = useState<ReadonlyMap<string, number>>(new Map());
   const [failures, setFailures] = useState<ReadonlyMap<string, WriteFailure>>(new Map());
   const queue = useRef<Promise<unknown>>(Promise.resolve());
-  const epochs = useRef({ all: 0, keys: new Map<string, number>() });
   const onChangeRef = useRef(onChange);
   useLayoutEffect(() => {
     onChangeRef.current = onChange;
   });
 
-  function epochOf(key: string): string {
-    return `${epochs.current.all}:${epochs.current.keys.get(key) ?? 0}`;
-  }
-
   async function perform(
     key: string,
     edit: GlossaryWriteParams,
-    epoch: string,
     onDone: (() => void) | undefined,
   ): Promise<boolean> {
     try {
       const outcome = deriveGlossaryWriteOutcome(await rpcClient.call("glossary.write", edit));
       if (outcome.kind === "error") {
-        if (epoch === epochOf(key)) {
-          setFailures((current) => new Map(current).set(key, { error: outcome.error, edit }));
-        }
+        setFailures((current) => new Map(current).set(key, { error: outcome.error, edit }));
         return false;
       }
       setFailures((current) => withoutKey(current, key));
@@ -84,8 +76,7 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
     onDone: (() => void) | undefined,
   ): Promise<boolean> {
     setPending((current) => withCount(current, key, 1));
-    const epoch = epochOf(key);
-    const result = queue.current.then(() => perform(key, edit, epoch, onDone));
+    const result = queue.current.then(() => perform(key, edit, onDone));
     queue.current = result.then(
       () => undefined,
       () => undefined,
@@ -94,7 +85,6 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
   }
 
   function dismiss(key: string): void {
-    epochs.current.keys.set(key, (epochs.current.keys.get(key) ?? 0) + 1);
     setFailures((current) => withoutKey(current, key));
   }
 
@@ -109,7 +99,6 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
     },
     dismiss,
     dismissAll() {
-      epochs.current.all += 1;
       setFailures(new Map());
     },
     retry(key, onDone) {

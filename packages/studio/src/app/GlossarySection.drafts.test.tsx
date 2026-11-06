@@ -307,6 +307,7 @@ describe("saving is real", () => {
 
   it("says it is saving, busies the prompt and lets the held route through when the write succeeds", async () => {
     const pending = deferredAnswer();
+    const go = vi.spyOn(window.history, "go").mockImplementation(() => {});
     stubRpc({ "glossary.write": () => pending.promise });
     const view = await renderAsync(<Stateful initial={FILE_BACKED_GLOSSARY} />);
     await dirtyCheckout(view);
@@ -327,6 +328,7 @@ describe("saving is real", () => {
     expect(prompt(view)).toBeNull();
     expect(hasHeldRoute()).toBe(false);
     expect(window.location.hash).toBe("#/settings");
+    expect(go).not.toHaveBeenCalled();
   });
 
   it("keeps the prompt with the reason when the write fails", async () => {
