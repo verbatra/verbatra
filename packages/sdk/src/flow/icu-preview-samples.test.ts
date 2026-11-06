@@ -91,7 +91,14 @@ describe("pluralSamples", () => {
       const missing: string[] = [];
       for (const locale of LOCALES) {
         const categories = pluralCategoriesFor(locale, ruleType);
-        const found = pluralSamples({ locale, ruleType, offset: 0, avoid: new Set(), categories });
+        const { samples: found, unreached } = pluralSamples({
+          locale,
+          ruleType,
+          offset: 0,
+          avoid: new Set(),
+          categories,
+        });
+        missing.push(...unreached.map((category) => `${locale}:${category}:unreached`));
         for (const category of categories) {
           if (!found.has(category)) {
             missing.push(`${locale}:${category}`);
@@ -104,7 +111,7 @@ describe("pluralSamples", () => {
 
   it("selects the category it reports for each sample", () => {
     const rules = new Intl.PluralRules("ar");
-    const found = pluralSamples({
+    const { samples: found } = pluralSamples({
       locale: "ar",
       ruleType: "cardinal",
       offset: 0,

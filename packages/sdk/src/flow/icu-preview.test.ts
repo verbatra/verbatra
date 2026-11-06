@@ -106,10 +106,18 @@ describe("previewIcuMessage: refusals", () => {
     }
   });
 
-  it("refuses output past the cap", () => {
-    const value = `{a, plural, other {{b, plural, other {${"#".repeat(18_000)}}}}}`;
-    expect(refusalOf(value, "en", { b: 1e20 })).toBe("too-large");
-    expect(refusalOf(value, "en", { b: 1 })).toBeUndefined();
+  it("refuses a preview whose first row alone is past the output budget", () => {
+    const value = `{n, plural, one {${"#".repeat(6000)}} other {x}}`;
+    expect(refusalOf(value, "en")).toBe("too-large");
+  });
+
+  it("returns the rows that fit when a later row runs the shared budget out", () => {
+    const value = `{n, plural, one {${"#".repeat(4000)}} other {${"#".repeat(4000)}}}`;
+    const result = preview(value);
+    expect(result).toMatchObject({ valid: true, truncated: true });
+    expect(result.supported && result.valid && result.rows.map((row) => row.category)).toEqual([
+      "one",
+    ]);
   });
 
   it("copes with non-finite and hostile samples", () => {
@@ -189,7 +197,7 @@ describe("previewIcuMessage: rows", () => {
     expect(rows.map((row) => [row.category, row.sample, textOf(row)])).toEqual([
       ["=0", 0, "nobody"],
       ["one", 2, "you and 1 other"],
-      ["other", 1, "you and 0 others"],
+      ["other", 3, "you and 2 others"],
     ]);
   });
 
@@ -312,5 +320,159 @@ describe("previewIcuMessage: rows", () => {
   it("does not modify the supplied samples", () => {
     const args = Object.freeze({ n: 4 });
     expect(() => preview("{n, plural, one {a} other {b}}", "en", args)).not.toThrow();
+  });
+});
+
+function summary(value: string, locale = "en"): string[] {
+  return rowsOf(value, locale).map((row) => `${row.argument}=${row.category}: ${textOf(row)}`);
+}
+
+describe("previewIcuMessage: nested axes show the arm they name", () => {
+  const MESSAGES = {
+    outerPlural:
+      "{count, plural, =0 {No messages} one {{gender, select, female {She has one} male {He has one} other {They have one}}} other {# messages}}",
+    outerSelect:
+      "{gender, select, female {{n, plural, one {She has # cat} other {She has # cats}}} other {They have pets}}",
+    threeLevels:
+      "{a, select, x {{b, plural, one {{c, select, p {P} other {Q}}} other {B}}} other {A}}",
+  } as const;
+
+  it("holds the enclosing plural at the arm that contains the select", () => {
+    expect(summary(MESSAGES.outerPlural)).toEqual([
+      "count==0: No messages",
+      "count=one: They have one",
+      "count=other: 2 messages",
+      "gender=female: She has one",
+      "gender=male: He has one",
+      "gender=other: They have one",
+    ]);
+  });
+
+  it("holds the enclosing select at the arm that contains the plural", () => {
+    expect(summary(MESSAGES.outerSelect)).toEqual([
+      "gender=female: She has 2 cats",
+      "gender=other: They have pets",
+      "n=one: She has 1 cat",
+      "n=other: She has 2 cats",
+    ]);
+  });
+
+  it("holds every ancestor of an axis three levels down", () => {
+    expect(summary(MESSAGES.threeLevels)).toEqual([
+      "a=x: B",
+      "a=other: A",
+      "b=one: Q",
+      "b=other: B",
+      "c=p: P",
+      "c=other: Q",
+    ]);
+  });
+
+  it("shows each row's own arm text across locales", () => {
+    const armText: Readonly<Record<string, readonly [string, string]>> = {
+      outerPlural: ["gender=female", "She has one"],
+      outerSelect: ["n=one", "She has 1 cat"],
+      threeLevels: ["c=p", "P"],
+    };
+    for (const locale of ["en", "de", "pl", "ar"]) {
+      for (const [name, [row, literal]] of Object.entries(armText)) {
+        const found = summary(MESSAGES[name as keyof typeof MESSAGES], locale).find((line) =>
+          line.startsWith(`${row}:`),
+        );
+        expect(found, `${name} in ${locale}`).toContain(literal);
+      }
+    }
+  });
+
+  it("uses the first place an arm appears when an argument has several parents", () => {
+    const lines = summary(
+      "{a, select, x {{g, select, f {F1} other {O1}}} y {{g, select, f {F2} m {M2} other {O2}}} other {z}}",
+    );
+    expect(lines.filter((line) => line.startsWith("g="))).toEqual([
+      "g=f: F1",
+      "g=other: O1",
+      "g=m: M2",
+    ]);
+  });
+
+  it("takes an exact arm's enclosing arm from where that arm first appears", () => {
+    const lines = summary(
+      "{a, select, x {{n, plural, one {A} other {Ao}}} y {{n, plural, =0 {zero} one {B} other {Bo}}} other {z}}",
+    );
+    expect(lines.filter((line) => line.startsWith("n="))).toEqual([
+      "n==0: zero",
+      "n=one: A",
+      "n=other: Ao",
+    ]);
+  });
+
+  it("leaves out rows whose enclosing arm this locale can never select", () => {
+    const lines = summary("{n, plural, few {{g, select, f {x} other {y}}} other {z}}");
+    expect(lines).toEqual(["n=one: z", "n=other: z"]);
+  });
+
+  it("leaves out rows that would need one argument at two values", () => {
+    expect(summary("{n, plural, one {{n, selectordinal, one {a} other {b}}} other {c}}")).toEqual([
+      "n=one: a",
+      "n=other: c",
+    ]);
+    const lines = summary(
+      "{n, plural, one {{n, select, a {{m, select, x {X} other {Y}}} other {z}}} other {w}}",
+    );
+    expect(lines.some((line) => line.startsWith("m="))).toBe(false);
+  });
+
+  it("holds an enclosing argument at its arm even when the caller supplied a sample", () => {
+    expect(summary(MESSAGES.outerSelect).slice(2)).toEqual([
+      "n=one: She has 1 cat",
+      "n=other: She has 2 cats",
+    ]);
+    const supplied = rowsOf(MESSAGES.outerSelect, "en", { gender: "other", n: 7 });
+    expect(supplied.map(textOf)).toEqual([
+      "She has 7 cats",
+      "They have pets",
+      "She has 1 cat",
+      "She has 2 cats",
+    ]);
+  });
+});
+
+describe("previewIcuMessage: row selection and flags", () => {
+  it("shares the row cap across axes instead of starving later ones", () => {
+    const options = Array.from({ length: 30 }, (_unused, index) => `o${index} {v${index}}`).join(
+      " ",
+    );
+    const result = preview(`{s, select, ${options} other {x}} {n, plural, one {# a} other {# b}}`);
+    const rows = result.supported && result.valid ? result.rows : [];
+    expect(result).toMatchObject({ truncated: true });
+    expect(rows).toHaveLength(ICU_PREVIEW_MAX_ROWS);
+    expect(rows.filter((row) => row.argument === "n").map((row) => row.category)).toEqual([
+      "one",
+      "other",
+    ]);
+    expect(rows.filter((row) => row.argument === "s")).toHaveLength(ICU_PREVIEW_MAX_ROWS - 2);
+  });
+
+  it("gives a negative exact arm a row and matches an arm with a leading zero by value", () => {
+    const rows = rowsOf("{n, plural, =-1 {minus} =01 {first} one {one} other {other}}");
+    expect(rows.map((row) => [row.category, row.sample, textOf(row)])).toEqual([
+      ["=-1", -1, "minus"],
+      ["=01", 1, "first"],
+      ["other", 2, "other"],
+    ]);
+  });
+
+  it("previews a message under a locale extension the skeleton parser rejects", () => {
+    expect(rowsOf("{d, time, ::jmm}", "en-u-nu-bogus")).toHaveLength(1);
+  });
+
+  it("counts a nested row in the budget rather than failing the preview", () => {
+    const body = "#".repeat(1500);
+    const value = `{n, plural, one {${body}} other {${body}}} {m, plural, one {${body}} other {${body}}}`;
+    const result = preview(value);
+    expect(result).toMatchObject({ valid: true, truncated: true });
+    const rows = result.supported && result.valid ? result.rows : [];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThan(4);
   });
 });
