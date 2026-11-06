@@ -84,10 +84,11 @@ function missing(path: string): Error {
   });
 }
 
-export function singleFileFs(servedPath: string, content: string): AdapterFs {
+export function memoryFileFs(files: ReadonlyMap<string, string>): AdapterFs {
   return {
     async readBounded(path, maxBytes) {
-      if (path !== servedPath) {
+      const content = files.get(path);
+      if (content === undefined) {
         throw missing(path);
       }
       return Buffer.byteLength(content, "utf8") > maxBytes
@@ -100,17 +101,24 @@ export function singleFileFs(servedPath: string, content: string): AdapterFs {
   };
 }
 
+export function singleFileFs(servedPath: string, content: string): AdapterFs {
+  return memoryFileFs(new Map([[servedPath, content]]));
+}
+
 export interface ParseRevisionInput {
   readonly format: FormatId;
   readonly locale: string;
   readonly absolutePath: string;
   readonly content: string;
+  readonly siblings?: ReadonlyMap<string, string>;
 }
 
 export async function parseRevisionContent(
   input: ParseRevisionInput,
 ): Promise<LocaleResource | undefined> {
-  const registry = createDefaultRegistry(singleFileFs(input.absolutePath, input.content));
+  const registry = createDefaultRegistry(
+    memoryFileFs(new Map([...(input.siblings ?? []), [input.absolutePath, input.content]])),
+  );
   const resolution = registry.resolve("", { format: input.format });
   if (resolution.status !== "resolved") {
     return undefined;

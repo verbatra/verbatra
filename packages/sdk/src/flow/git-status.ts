@@ -10,6 +10,7 @@ import {
   resolveWatchedPaths,
   sanitizeGitText,
 } from "./git-exec.js";
+import { siblingPaths } from "./git-siblings.js";
 import {
   type GitWorkTree,
   type LocaleGitUnavailableReason,
@@ -88,6 +89,7 @@ export interface LocaleGitStatusDeps {
 export interface WatchedFile {
   readonly path: string;
   readonly locales: readonly string[];
+  readonly siblingOf?: string;
 }
 
 const CONFLICT_CODES: ReadonlySet<string> = new Set(["DD", "AU", "UD", "UA", "DU", "AA", "UU"]);
@@ -105,12 +107,25 @@ export function watchedFiles(cwd: string, config: VerbatraConfig): WatchedFile[]
     const path = resolver.pathFor(locale);
     byPath.set(path, [...(byPath.get(path) ?? []), locale]);
   }
-  for (const name of [LOCK_FILE_NAME, PROVENANCE_FILE_NAME]) {
-    byPath.set(resolvePath(root, name), []);
+  const entries: { path: string; locales: string[]; siblingOf?: string }[] = [];
+  for (const [path, locales] of byPath) {
+    entries.push({ path, locales });
+    for (const sibling of siblingPaths(config.format, path)) {
+      entries.push({ path: sibling, locales, siblingOf: path });
+    }
   }
-  return [...byPath]
-    .filter(([path]) => resolveWatchedPaths(root, [path]).length === 1)
-    .map(([path, locales]) => ({ path: toPosix(relative(root, path)), locales }))
+  for (const name of [LOCK_FILE_NAME, PROVENANCE_FILE_NAME]) {
+    entries.push({ path: resolvePath(root, name), locales: [] });
+  }
+  return entries
+    .filter((entry) => resolveWatchedPaths(root, [entry.path]).length === 1)
+    .map((entry) => ({
+      path: toPosix(relative(root, entry.path)),
+      locales: entry.locales,
+      ...(entry.siblingOf === undefined
+        ? {}
+        : { siblingOf: toPosix(relative(root, entry.siblingOf)) }),
+    }))
     .filter((file) => file.path.length > 0);
 }
 
@@ -244,7 +259,9 @@ export async function currentBranch(
  * command is stopped after {@link LOCALE_GIT_TIMEOUT_MS} and may write at most
  * {@link LOCALE_GIT_MAX_OUTPUT_BYTES}. A path beyond the project directory, or starting with a dash,
  * is never passed to git. The branch name is stripped of control and bidirectional formatting
- * characters. Renames are reported as a deleted and an added file.
+ * characters. Renames are reported as a deleted and an added file. A file behind a symbolic link or
+ * inside a submodule is never listed, and the call does not say so. The `apple-strings` format also
+ * watches each locale's `.stringsdict` file, listed with the same locales as its `.strings` file.
  *
  * @param input - The config and the project directory.
  * @param deps - Optional process runner override.

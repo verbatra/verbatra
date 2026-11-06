@@ -17,6 +17,7 @@ import {
   readBlobAtHead,
   singleFileFs,
 } from "./git-revision.js";
+import { siblingPaths } from "./git-siblings.js";
 import { openGitWorkTree } from "./git-worktree.js";
 
 const fixtures: GitFixture[] = [];
@@ -174,9 +175,18 @@ describe("parseRevisionContent reads every supported format from memory", () => 
       }
     }
 
+    const declared: Record<string, string[]> = {};
+    for (const format of SUPPORTED_FORMATS) {
+      const siblings = siblingPaths(format, join(fx.root, SAMPLES[format].path));
+      if (siblings.length > 0) {
+        declared[format] = siblings.map((sibling) => sibling.slice(fx.root.length + 1));
+      }
+    }
+
     expect(extraReads).toEqual({
       "apple-strings": ["locales/en.lproj/Localizable.stringsdict"],
     });
+    expect(declared).toEqual(extraReads);
   });
 
   it("reads one locale of a shared catalogue and finds nothing for another", async () => {
