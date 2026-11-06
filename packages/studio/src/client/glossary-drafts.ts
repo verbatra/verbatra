@@ -45,16 +45,9 @@ export function isKeepDirty(draft: KeepDraft): boolean {
   return draft.term.trim().length > 0;
 }
 
-export function dirtyEditorSources(
-  terms: readonly GlossaryTermView[],
-  scope: string,
-  editors: TermDrafts,
-): readonly string[] {
+export function dirtyEditorSources(editors: TermDrafts, scope: string): readonly string[] {
   return [...editors.entries()]
-    .filter(
-      ([source, entry]) =>
-        buildTermEdit(editorTerm(terms, source, entry), scope, entry.draft) !== undefined,
-    )
+    .filter(([, entry]) => buildTermEdit(entry.base, scope, entry.draft) !== undefined)
     .map(([source]) => source);
 }
 

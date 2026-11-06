@@ -5,6 +5,7 @@ import {
   type GlossaryWriteParams,
   type GlossaryWriteResult,
   MAX_FORBIDDEN_RENDERINGS,
+  MAX_GLOSSARY_TRANSLATION_LENGTH,
 } from "../shared/rpc/glossary.js";
 import { resolveErrorCopy } from "./error-copy.js";
 import type { RpcCallResult } from "./rpc-client.js";
@@ -273,6 +274,33 @@ export function nextFocusSource(sources: readonly string[], removed: string): st
 
 export function exceedsForbiddenCap(text: string): boolean {
   return parseRenderings(text).length > MAX_FORBIDDEN_RENDERINGS;
+}
+
+export function exceedsRenderingLength(text: string): boolean {
+  return parseRenderings(text).some(
+    (rendering) => rendering.length > MAX_GLOSSARY_TRANSLATION_LENGTH,
+  );
+}
+
+export function forbiddenBlocksSave(text: string, initial: string): boolean {
+  return text !== initial && (exceedsForbiddenCap(text) || exceedsRenderingLength(text));
+}
+
+export function isRemovalEdit(edit: GlossaryWriteParams): boolean {
+  if (edit.doNotTranslate === false) {
+    return true;
+  }
+  return edit.translation === null && edit.locale === undefined && Object.keys(edit).length === 2;
+}
+
+export function existingTermFor(
+  terms: readonly GlossaryTermView[],
+  redactedTerms: readonly string[],
+  source: string,
+  scope: string,
+): GlossaryTermView | undefined {
+  const redacted = terms.find((term) => term.source === source && redactedTerms.includes(source));
+  return redacted ?? termExistsInScope(terms, source, scope);
 }
 
 const RETRYABLE_WRITE_CODES: ReadonlySet<string> = new Set([

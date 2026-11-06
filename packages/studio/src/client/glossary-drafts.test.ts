@@ -36,30 +36,33 @@ describe("isKeepDirty", () => {
 });
 
 describe("dirtyEditorSources", () => {
-  const terms = [term("a"), term("b"), term("c")];
-  const [a, b] = terms as [GlossaryTermView, GlossaryTermView];
+  const [a, b] = [term("a"), term("b")] as [GlossaryTermView, GlossaryTermView];
 
-  it("lists only open editors whose draft differs from the term", () => {
+  it("lists only open editors whose draft differs from where they started", () => {
     const editors = new Map([
       ["a", { draft: draftFor(a, ALL_LOCALES), base: a }],
       ["b", { draft: { ...draftFor(b, ALL_LOCALES), translation: "changed" }, base: b }],
     ]);
 
-    expect(dirtyEditorSources(terms, ALL_LOCALES, editors)).toEqual(["b"]);
+    expect(dirtyEditorSources(editors, ALL_LOCALES)).toEqual(["b"]);
   });
 
   it("is empty with no drafts", () => {
-    expect(dirtyEditorSources(terms, ALL_LOCALES, new Map())).toEqual([]);
+    expect(dirtyEditorSources(new Map(), ALL_LOCALES)).toEqual([]);
   });
 
-  it("measures a draft against the saved term when the term is gone from the list", () => {
-    const gone = term("gone");
-    const editors = new Map([
-      ["gone", { draft: { ...draftFor(gone, ALL_LOCALES), translation: "mine" }, base: gone }],
-    ]);
+  it("measures a draft against where it started, so an outside change leaves it clean", () => {
+    const editors = new Map([["a", { draft: draftFor(a, ALL_LOCALES), base: a }]]);
 
-    expect(dirtyEditorSources(terms, ALL_LOCALES, editors)).toEqual(["gone"]);
-    expect(orphanedSources(terms, editors)).toEqual(["gone"]);
+    expect(dirtyEditorSources(editors, ALL_LOCALES)).toEqual([]);
+  });
+
+  it("finds orphans among the open editors", () => {
+    const gone = term("gone");
+    const editors = new Map([["gone", { draft: draftFor(gone, ALL_LOCALES), base: gone }]]);
+
+    expect(orphanedSources([a, b], editors)).toEqual(["gone"]);
+    expect(editorTerm([a, b], "gone", editors.get("gone") as never)).toBe(gone);
   });
 
   it.each(["constructor", "toString", "__proto__"])(
@@ -71,7 +74,7 @@ describe("dirtyEditorSources", () => {
       expect(editors.get(name)?.base).toBe(odd);
       expect(editorTerm([odd], name, editors.get(name) as never)).toBe(odd);
       expect(orphanedSources([odd], editors)).toEqual([]);
-      expect(dirtyEditorSources([odd], ALL_LOCALES, new Map())).toEqual([]);
+      expect(dirtyEditorSources(editors, ALL_LOCALES)).toEqual([]);
     },
   );
 });

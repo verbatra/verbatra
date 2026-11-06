@@ -7,11 +7,15 @@ import {
   draftFor,
   editEmptiesTerm,
   exceedsForbiddenCap,
+  exceedsRenderingLength,
+  existingTermFor,
   filterTerms,
+  forbiddenBlocksSave,
   forbiddenRuleCount,
   glossaryReadOnlyReason,
   hasPerLocaleData,
   isGlossaryEditable,
+  isRemovalEdit,
   isRetryableWriteError,
   isTargetLocale,
   keptTermEntry,
@@ -408,5 +412,43 @@ describe("an untouched editor is clean", () => {
   it("leaves the stored renderings alone when only the note changes", () => {
     const edit = buildTermEdit(comma, "de", { ...draftFor(comma, "de"), note: "new" });
     expect(edit).toEqual({ term: "Acme", note: "new" });
+  });
+});
+
+describe("rendering caps", () => {
+  it("flags a rendering over 2000 characters", () => {
+    expect(exceedsRenderingLength(`ok\n${"x".repeat(2_001)}`)).toBe(true);
+    expect(exceedsRenderingLength(`ok\n${"x".repeat(2_000)}`)).toBe(false);
+  });
+
+  it("only blocks a Save when the text was touched", () => {
+    const many = Array.from({ length: 60 }, (_, index) => `r${index}`).join("\n");
+    expect(forbiddenBlocksSave(many, many)).toBe(false);
+    expect(forbiddenBlocksSave(`${many}\nextra`, many)).toBe(true);
+    expect(forbiddenBlocksSave("x".repeat(2_001), "")).toBe(true);
+    expect(forbiddenBlocksSave("short", "")).toBe(false);
+  });
+});
+
+describe("isRemovalEdit", () => {
+  it("recognises the two removals and nothing else", () => {
+    expect(isRemovalEdit({ term: "a", translation: null })).toBe(true);
+    expect(isRemovalEdit({ term: "a", doNotTranslate: false })).toBe(true);
+    expect(isRemovalEdit({ term: "a", translation: null, locale: "de" })).toBe(false);
+    expect(isRemovalEdit({ term: "a", translation: null, note: "x" })).toBe(false);
+    expect(isRemovalEdit({ term: "a", translation: "b" })).toBe(false);
+  });
+});
+
+describe("existingTermFor", () => {
+  const redacted = { ...ONLY_GERMAN, source: "secret" };
+
+  it("reports a redacted term in any scope, even without a translation there", () => {
+    expect(existingTermFor([redacted], ["secret"], "secret", "fr")).toBe(redacted);
+    expect(existingTermFor([redacted], [], "secret", "fr")).toBeUndefined();
+  });
+
+  it("falls back to the scope rule for a normal term", () => {
+    expect(existingTermFor([ONLY_SHARED], [], "Shop", ALL_LOCALES)).toBe(ONLY_SHARED);
   });
 });
