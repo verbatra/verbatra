@@ -39,6 +39,12 @@ describe("icuVariationAxes", () => {
     expect(axes?.[1]?.exact).toEqual([0]);
   });
 
+  it("refuses a message over the length cap even when it parses", () => {
+    const value = `{n, plural, other {${"x".repeat(ICU_MAX_VALUE_LENGTH)}}}`;
+    expect(icuVariationAxes(value)).toEqual([]);
+    expect(icuVariationAxes("{n, plural, other {x}}")).toHaveLength(1);
+  });
+
   it("finds nothing in an invalid or refused message", () => {
     expect(icuVariationAxes("{n, plural, one {x}}")).toEqual([]);
     expect(icuVariationAxes("{")).toEqual([]);

@@ -145,8 +145,12 @@ describe("renderIcuMessage differential against intl-messageformat", () => {
       "{d, time, long}",
       "{d, time, full}",
       "{d, time, ::hhmm}",
+      "{d, time, ::jmm}",
+      "{d, time, ::Jmm}",
+      "{d, time, ::Cmm}",
+      "{d, date, ::yMMMd}",
     ];
-    for (const locale of ["en", "de", "ar", "ja", "fr"]) {
+    for (const locale of ["en", "de", "ar", "ja", "fr", "en-GB", "hi"]) {
       for (const value of values) {
         expect(rendered(value, locale)).toBe(oracle(value, locale, {}));
       }
@@ -381,11 +385,6 @@ describe("renderIcuMessage hostile input", () => {
     expect(refusal(value, "en", { n: 1e20 })).toBe("too-large");
     expect(refusal(value, "en", { n: 1 })).toBe("rendered");
     expect(ICU_MAX_OUTPUT_LENGTH).toBeLessThan(19_000 * 30);
-  });
-
-  it("stops rendering once the cap is exceeded", () => {
-    const value = `{n, plural, other {${"#".repeat(19_000)}<b>x</b>}}`;
-    expect(refusal(value, "en", { n: 1e20 })).toBe("too-large");
   });
 
   it("never throws on a mixed hostile corpus", () => {
