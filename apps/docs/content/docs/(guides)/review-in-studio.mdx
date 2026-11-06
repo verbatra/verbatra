@@ -4,20 +4,18 @@ seoTitle: "Review machine translations in Verbatra Studio"
 description: Start Verbatra Studio, work the needs-review queue, fix entries in place, and retranslate flagged keys from the local dashboard.
 type: how-to
 ---
-Check machine translations before they ship: fix values, and approve or reject what a provider wrote, in Verbatra Studio, a local dashboard.
+Check machine translations before they ship: find what is pending, fix values, and approve or reject what a provider wrote, in Verbatra Studio, a local dashboard.
 
 Two rules hold. **Local editing is always on**, gated by the same integrity checks as other writes. **Provider spend is always off** unless you start Studio with `--allow-spend`.
 
 ## Start Studio
-
-Studio ships as its own package, run via the CLI:
 
 ```bash
 npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Open the URL it prints; stop Studio with Ctrl+C. [`verbatra studio`](/docs/cli/studio) covers the port, token and flags. Every page refreshes live when a locale, lock or provenance file changes.
+Open the URL it prints, token included; stop Studio with Ctrl+C. [`verbatra studio`](/docs/cli/studio) covers the port, token and flags. Every page refreshes live when a locale, lock or provenance file changes.
 
 ## Read the Translations page
 
