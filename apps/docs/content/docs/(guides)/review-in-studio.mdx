@@ -51,6 +51,12 @@ Chips beside the search narrow the table by state, including **Review queue** an
 
 The editor shows the key's description, the glossary terms your draft uses or misses, and its length against the source and `maxLength`. Ctrl or Cmd with Enter saves.
 
+#### Preview ICU messages
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+With `next-intl-json` or `arb`, the editor has a collapsed **ICU preview** under the draft. Open it to see your draft rendered once per plural category, exact arm and select option, in the locale's own language and direction. Type sample values to try other numbers or names. Rows beyond the first 24 are left out, and a message that is not valid ICU says so. Numbers and dates use this machine's Node CLDR data, not your app's runtime.
+
 #### Beside the table
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />

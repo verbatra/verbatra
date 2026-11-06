@@ -51,6 +51,12 @@ Les puces à côté de la recherche restreignent le tableau par état, notamment
 
 L'éditeur montre la description de la clé, les termes du glossaire que ton brouillon utilise ou oublie, et sa longueur par rapport à la source et à `maxLength`. Ctrl ou Cmd avec Entrée enregistre.
 
+#### Aperçu des messages ICU
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Avec `next-intl-json` ou `arb`, l'éditeur propose sous le brouillon un **aperçu ICU** replié. Ouvre-le pour voir ton brouillon rendu une fois par catégorie de pluriel, branche exacte et option de select, dans la langue et le sens d'écriture de la locale. Saisis des valeurs d'exemple pour essayer d'autres nombres ou noms. Les lignes au-delà des 24 premières sont omises, et un message qui n'est pas un ICU valide le signale. Les nombres et les dates utilisent les données CLDR de Node de cette machine, pas l'environnement d'exécution de ton application.
+
 #### À côté du tableau
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />

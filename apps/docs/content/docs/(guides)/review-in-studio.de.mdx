@@ -51,6 +51,12 @@ Die Chips neben der Suche grenzen die Tabelle nach Zustand ein, darunter **Revie
 
 Der Editor zeigt dir die Beschreibung des Keys, welche Glossarbegriffe dein Entwurf trifft oder auslässt und wie lang er im Vergleich zur Quelle und zu `maxLength` ist. Strg oder Cmd mit Enter speichert.
 
+#### ICU-Nachrichten in der Vorschau
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Mit `next-intl-json` oder `arb` hat der Editor unter dem Entwurf eine eingeklappte **ICU-Vorschau**. Öffne sie, um deinen Entwurf je Plural-Kategorie, exaktem Zweig und Select-Option dargestellt zu sehen, in Sprache und Schreibrichtung der Locale. Gib Beispielwerte ein, um andere Zahlen oder Namen auszuprobieren. Zeilen nach den ersten 24 werden ausgelassen, und eine Nachricht, die kein gültiges ICU ist, sagt das. Zahlen und Datumsangaben nutzen die Node-CLDR-Daten dieses Rechners, nicht die Laufzeit deiner App.
+
 #### Neben der Tabelle
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />

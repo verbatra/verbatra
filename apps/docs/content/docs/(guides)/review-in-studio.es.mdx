@@ -51,6 +51,12 @@ Los chips junto a la búsqueda acotan la tabla por estado, incluidos **Review qu
 
 El editor muestra la descripción de la clave, los términos del glosario que tu borrador usa u omite, y su longitud frente al origen y a `maxLength`. Ctrl o Cmd con Enter guarda.
 
+#### Vista previa de mensajes ICU
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Con `next-intl-json` o `arb`, el editor tiene una **vista previa ICU** plegada bajo el borrador. Ábrela para ver tu borrador renderizado una vez por categoría de plural, rama exacta y opción de select, en el idioma y la dirección de la configuración regional. Escribe valores de ejemplo para probar otros números o nombres. Las filas posteriores a las 24 primeras se omiten, y un mensaje que no es ICU válido lo indica. Los números y las fechas usan los datos CLDR de Node de esta máquina, no el entorno de ejecución de tu app.
+
 #### Junto a la tabla
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
