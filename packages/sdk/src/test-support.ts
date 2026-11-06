@@ -449,8 +449,13 @@ export async function makeGitFixture(options: GitFixtureOptions = {}): Promise<G
   const base = await realpath(await mkdtemp(join(tmpdir(), "verbatra-sdk-gitfx-")));
   const root = join(base, "repo");
   const home = join(base, "home");
-  await mkdir(root);
-  await mkdir(home);
+  try {
+    await mkdir(root);
+    await mkdir(home);
+  } catch (error) {
+    await rm(base, { recursive: true, force: true });
+    throw error;
+  }
   isolateGitHome(home);
   const env = hardenedGitEnv(process.env, {
     HOME: home,
@@ -462,10 +467,16 @@ export async function makeGitFixture(options: GitFixtureOptions = {}): Promise<G
     return stdout;
   };
   if (options.init !== false) {
-    await git(["init", "-q", "-b", "main"]);
-    await git(["config", "user.email", "test@example.com"]);
-    await git(["config", "user.name", "Test User"]);
-    await git(["config", "commit.gpgsign", "false"]);
+    try {
+      await git(["init", "-q", "-b", "main"]);
+      await git(["config", "user.email", "test@example.com"]);
+      await git(["config", "user.name", "Test User"]);
+      await git(["config", "commit.gpgsign", "false"]);
+    } catch (error) {
+      restoreGitHome();
+      await rm(base, { recursive: true, force: true });
+      throw error;
+    }
   }
   return {
     base,

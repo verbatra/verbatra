@@ -1,5 +1,8 @@
+import { execFile as execFileCb } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
+import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
 import { localeGitDiff } from "./git-diff.js";
@@ -7,6 +10,7 @@ import { defaultGitExecFile, type GitExecFile, SAFE_GIT_PREFIX } from "./git-exe
 import { localeGitStatus } from "./git-status.js";
 import { localeHistory } from "./locale-history.js";
 
+const execFileAsync = promisify(execFileCb);
 const fixtures: GitFixture[] = [];
 
 afterEach(async () => {
@@ -96,32 +100,61 @@ describe("every git invocation", () => {
     }
   });
 
-  it("also asks a partial clone not to fetch lazily, on every command after the first two", async () => {
+  it("asks every command but the first probe not to fetch lazily, in any repository", async () => {
     const fx = await project();
-    await fx.git(["config", "core.repositoryformatversion", "1"]);
-    await fx.git(["config", "extensions.partialclone", "origin"]);
-    await fx.git(["config", "remote.origin.promisor", "true"]);
-    await fx.git(["config", "remote.origin.url", join(fx.base, "nowhere")]);
     const calls: Recorded[] = [];
     const execFile = recording(calls);
 
     await localeGitStatus({ config: baseConfig(), cwd: fx.root }, { execFile });
-    const statusCalls = calls.splice(0);
-    await localeGitDiff({ config: baseConfig(), cwd: fx.root, locale: "de" }, { execFile });
-    const diffCalls = calls.splice(0);
+    await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root }, { execFile });
     await localeHistory({ config: baseConfig(), cwd: fx.root }, { execFile });
-    const historyCalls = calls.splice(0);
 
-    for (const call of statusCalls.slice(2)) {
-      expect(call.args).toContain("--no-lazy-fetch");
+    const without = calls.filter((call) => !call.args.includes("--no-lazy-fetch"));
+    expect(calls.length).toBeGreaterThan(10);
+    expect(without.length).toBe(2);
+    for (const call of without) {
+      expect(call.args).toContain("--is-inside-work-tree");
     }
-    for (const call of diffCalls.slice(2)) {
-      expect(call.args).toContain("--no-lazy-fetch");
-    }
-    expect(statusCalls.length).toBeGreaterThan(3);
-    expect(diffCalls.length).toBeGreaterThan(3);
-    expect(historyCalls.slice(1).map((call) => subcommand(call.args))).toEqual(["log"]);
-    expect(historyCalls[1]?.args).toContain("--no-lazy-fetch");
+  });
+
+  it("stops the attack of a remote with only a partial clone filter, with no environment variable", async () => {
+    const fx = await project();
+    const marker = join(fx.base, "pcfmark");
+    const script = join(fx.base, "uploadpack.sh");
+    await writeFile(script, `#!/bin/sh\necho ran >> "${marker}"\nexit 1\n`, { mode: 0o755 });
+    await fx.commitAll("edit");
+    const hash = (await fx.git(["rev-parse", "HEAD:locales/de.json"])).trim();
+    await rm(join(fx.root, ".git", "objects", hash.slice(0, 2), hash.slice(2)));
+    await fx.git(["config", "remote.evil.url", join(fx.base, "nowhere")]);
+    await fx.git(["config", "remote.evil.uploadpack", script]);
+    await fx.git(["config", "remote.evil.partialclonefilter", "blob:none"]);
+    await fx.write("locales/de.json", '{"a":"c"}\n');
+    const bareEnv: GitExecFile = async (file, args, options) =>
+      execFileAsync(file, args as string[], {
+        cwd: options.cwd,
+        encoding: "utf8",
+        env: { PATH: process.env.PATH ?? "", HOME: fx.home, LC_ALL: "C" },
+      });
+
+    await execFileAsync("git", ["cat-file", "blob", "HEAD:locales/de.json"], {
+      cwd: fx.root,
+      env: { PATH: process.env.PATH ?? "", HOME: fx.home },
+    }).catch(() => undefined);
+    const plainRan = await fx.exists("pcfmark");
+    await rm(marker, { force: true });
+    const diff = await localeGitDiff(
+      { config: baseConfig(), locale: "de", cwd: fx.root },
+      { execFile: bareEnv },
+    );
+    const history = await localeHistory(
+      { config: baseConfig(), cwd: fx.root },
+      { execFile: bareEnv },
+    );
+
+    expect(plainRan).toBe(true);
+    expect(diff).toEqual({ available: false, reason: "revision-unreadable" });
+    expect(history).toMatchObject({ available: true });
+    expect(await fx.exists("pcfmark")).toBe(false);
   });
 });
 
@@ -147,9 +180,12 @@ describe("the source of the git calls", () => {
     }
     const logSource = readFileSync(join(import.meta.dirname, "git-log.ts"), "utf8");
 
+    const execSource = readFileSync(join(import.meta.dirname, "git-exec.ts"), "utf8");
+
     expect([...subcommands].sort()).toEqual(
-      ["cat-file", "config", "ls-tree", "rev-parse", "show-ref", "status", "symbolic-ref"].sort(),
+      ["cat-file", "ls-tree", "rev-parse", "show-ref", "status", "symbolic-ref"].sort(),
     );
+    expect(execSource).toMatch(/CONFIG_LIST = \["config", "--list"/);
     expect(logSource).toMatch(/buildSafeGitArgs\(/);
     expect(logSource).not.toMatch(/execFile\("git",\s*buildGitLogArgs/);
   });

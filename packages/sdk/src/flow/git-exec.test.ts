@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { makeGitFixture } from "../test-support.js";
+import { type GitFixture, makeGitFixture } from "../test-support.js";
 import {
   buildSafeGitArgs,
   classifyGitFailure,
@@ -197,6 +197,71 @@ describe("hardenedGitEnv", () => {
     });
   });
 
+  it("drops every variable a .env file could use to steer where git reads or writes", () => {
+    const env = hardenedGitEnv({
+      PATH: "/bin",
+      HOME: "/h",
+      TMPDIR: "/evil/tmp",
+      XDG_CONFIG_HOME: "/evil/xdg",
+      XDG_CACHE_HOME: "/evil/cache",
+      USER: "x",
+      LOGNAME: "x",
+      LANG: "de_DE.UTF-8",
+      LANGUAGE: "de",
+      LC_ALL: "de_DE.UTF-8",
+      EDITOR: "/evil",
+      PAGER: "/evil",
+      SSH_ASKPASS: "/evil",
+      TERM: "xterm",
+    });
+
+    expect(env).toEqual({
+      PATH: "/bin",
+      HOME: "/h",
+      GIT_TERMINAL_PROMPT: "0",
+      GIT_NO_LAZY_FETCH: "1",
+      LC_ALL: "C",
+    });
+  });
+
+  it("does not read an XDG_CONFIG_HOME git configuration, absolute or relative", async () => {
+    const base = await mkdtemp(join(tmpdir(), "verbatra-sdk-xdg-"));
+    try {
+      const home = join(base, "home");
+      const absolute = join(base, "xdg");
+      await mkdir(join(absolute, "git"), { recursive: true });
+      await writeFile(join(absolute, "git", "config"), "[evil]\n\tkey = absolute\n");
+      await mkdir(join(base, "work", "rel", "git"), { recursive: true });
+      await writeFile(join(base, "work", "rel", "git", "config"), "[evil]\n\tkey = relative\n");
+      await mkdir(home);
+      const ask = (run: GitExecFile) =>
+        run("git", ["config", "--global", "--get", "evil.key"], {
+          cwd: join(base, "work"),
+          timeout: 5000,
+          maxBuffer: 4096,
+        }).then(
+          (result) => result.stdout.trim(),
+          () => "unset",
+        );
+      const plain =
+        (xdg: string): GitExecFile =>
+        async (file, args, options) =>
+          execFileAsync(file, args as string[], {
+            cwd: options.cwd,
+            env: { PATH: process.env.PATH ?? "", HOME: home, XDG_CONFIG_HOME: xdg },
+          });
+      vi.stubEnv("HOME", home);
+
+      expect(await ask(plain(absolute))).toBe("absolute");
+      vi.stubEnv("XDG_CONFIG_HOME", absolute);
+      expect(await ask(defaultGitExecFile)).toBe("unset");
+      vi.stubEnv("XDG_CONFIG_HOME", "rel");
+      expect(await ask(defaultGitExecFile)).toBe("unset");
+    } finally {
+      await rm(base, { recursive: true, force: true });
+    }
+  });
+
   it("lets a caller add variables on top, for a runner of its own", () => {
     expect(hardenedGitEnv({}, { HOME: "/h" })).toMatchObject({ HOME: "/h", LC_ALL: "C" });
   });
@@ -317,6 +382,7 @@ describe("planGitConfig", () => {
     expect(
       planGitConfig(
         "core.bare\0filter.lfs.clean\0filter.lfs.smudge\0filter.lfs.required\0filter.Evil.process\0",
+        false,
       ),
     ).toEqual({
       ok: true,
@@ -356,7 +422,7 @@ describe("planGitConfig", () => {
   });
 
   it("returns no overrides when no filter is configured", () => {
-    expect(planGitConfig("core.bare\0user.name\0")).toEqual({ ok: true, configArgs: [] });
+    expect(planGitConfig("core.bare\0user.name\0", false)).toEqual({ ok: true, configArgs: [] });
   });
 
   it.each(["filter.a=b.clean\0", "filter.a\uFFFDb.clean\0"])(
@@ -373,19 +439,32 @@ describe("planGitConfig", () => {
     expect(planGitConfig(keys.split("\0").slice(0, 128).join("\0"))).toMatchObject({ ok: true });
   });
 
-  it("asks git not to fetch lazily when the repository is a partial clone", () => {
+  it("always asks a git that knows the flag not to fetch lazily", () => {
+    expect(planGitConfig("core.bare\0")).toEqual({ ok: true, configArgs: ["--no-lazy-fetch"] });
     expect(planGitConfig("extensions.partialclone\0")).toEqual({
       ok: true,
       configArgs: ["--no-lazy-fetch"],
     });
-    expect(planGitConfig("remote.origin.promisor\0")).toEqual({
+  });
+
+  it.each([
+    "extensions.partialclone",
+    "remote.origin.promisor",
+    "remote.a.b.promisor",
+    "remote.evil.partialclonefilter",
+    "remote.a.b.partialclonefilter",
+  ])("refuses a partial clone on a git without the flag: %s", (key) => {
+    expect(planGitConfig(`${key}\0`, false)).toMatchObject({
+      ok: false,
+      failure: { kind: "git-too-old" },
+    });
+  });
+
+  it("lets a repository that is not a partial clone through on a git without the flag", () => {
+    expect(planGitConfig("remote.origin.url\0remote.origin.fetch\0", false)).toEqual({
       ok: true,
-      configArgs: ["--no-lazy-fetch"],
+      configArgs: [],
     });
-    expect(planGitConfig("remote.a.b.promisor\0")).toMatchObject({
-      configArgs: ["--no-lazy-fetch"],
-    });
-    expect(planGitConfig("remote.origin.url\0")).toEqual({ ok: true, configArgs: [] });
   });
 });
 
@@ -399,6 +478,66 @@ describe("prepareGit", () => {
       ok: false,
       failure: { kind: "git-missing" },
     });
+  });
+
+  it("asks for the flag on the listing itself, so a supporting git needs one call", async () => {
+    const execFile = vi.fn(async (..._args: unknown[]) => ({ stdout: "core.bare\0", stderr: "" }));
+
+    const plan = await prepareGit(execFile as unknown as GitExecFile, "/p");
+
+    expect(plan).toEqual({ ok: true, configArgs: ["--no-lazy-fetch"] });
+    expect(execFile).toHaveBeenCalledTimes(1);
+    const args = (execFile.mock.calls[0]?.[1] ?? []) as string[];
+    expect(args.slice(SAFE_GIT_PREFIX.length)).toEqual([
+      "--no-lazy-fetch",
+      "config",
+      "--list",
+      "-z",
+      "--name-only",
+    ]);
+  });
+
+  function oldGit(listing: string): ReturnType<typeof vi.fn> {
+    return vi.fn(async (_file: string, args: readonly string[]) => {
+      if (args.includes("--no-lazy-fetch")) {
+        throw Object.assign(new Error("x"), {
+          code: 129,
+          stderr: "unknown option: --no-lazy-fetch",
+        });
+      }
+      return { stdout: listing, stderr: "" };
+    });
+  }
+
+  it("falls back once per runner on a git older than 2.45, and refuses a partial clone", async () => {
+    const execFile = oldGit("extensions.partialclone\0");
+
+    const first = await prepareGit(execFile as unknown as GitExecFile, "/p");
+    const second = await prepareGit(execFile as unknown as GitExecFile, "/p");
+
+    expect(first).toMatchObject({ ok: false, failure: { kind: "git-too-old" } });
+    expect(second).toMatchObject({ ok: false, failure: { kind: "git-too-old" } });
+    expect(execFile).toHaveBeenCalledTimes(3);
+  });
+
+  it("lets a repository that is not a partial clone through, without the flag", async () => {
+    const execFile = oldGit("core.bare\0");
+
+    expect(await prepareGit(execFile as unknown as GitExecFile, "/p")).toEqual({
+      ok: true,
+      configArgs: [],
+    });
+  });
+
+  it("does not take any other failure for a git without the flag", async () => {
+    const execFile = vi.fn(async () => {
+      throw Object.assign(new Error("x"), { code: 128, stderr: "fatal: other" });
+    });
+
+    await prepareGit(execFile as unknown as GitExecFile, "/p");
+    await prepareGit(execFile as unknown as GitExecFile, "/p");
+
+    expect(execFile).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -454,7 +593,7 @@ describe("git runs repository-configured commands unless they are neutralised", 
 
 describe("a partial clone fetches a missing object from its promisor remote", () => {
   async function partialClone(): Promise<{
-    base: string;
+    fx: GitFixture;
     root: string;
     marker: string;
   }> {
@@ -472,11 +611,11 @@ describe("a partial clone fetches a missing object from its promisor remote", ()
     await fx.git(["config", "remote.origin.promisor", "true"]);
     await fx.git(["config", "remote.origin.url", join(base, "nowhere")]);
     await fx.git(["config", "remote.origin.uploadpack", script]);
-    return { base, root, marker };
+    return { fx, root, marker };
   }
 
   it("runs the remote's configured command on a plain read", async () => {
-    const { base, root, marker } = await partialClone();
+    const { fx, root, marker } = await partialClone();
     try {
       await execFileAsync("git", ["cat-file", "blob", "HEAD:f.json"], { cwd: root }).catch(
         () => undefined,
@@ -484,12 +623,12 @@ describe("a partial clone fetches a missing object from its promisor remote", ()
 
       expect(await exists(marker)).toBe(true);
     } finally {
-      await rm(base, { recursive: true, force: true });
+      await fx.cleanup();
     }
   });
 
   it("does not through a prepared runner, and the read fails closed", async () => {
-    const { base, root, marker } = await partialClone();
+    const { fx, root, marker } = await partialClone();
     try {
       const plan = await prepareGit(defaultGitExecFile, root);
       const configArgs = plan.ok ? plan.configArgs : [];
@@ -504,18 +643,18 @@ describe("a partial clone fetches a missing object from its promisor remote", ()
       expect(read).toMatchObject({ ok: false, failure: { kind: "git-failed" } });
       expect(await exists(marker)).toBe(false);
     } finally {
-      await rm(base, { recursive: true, force: true });
+      await fx.cleanup();
     }
   });
 
   it("does not even with only the environment variable", async () => {
-    const { base, root, marker } = await partialClone();
+    const { fx, root, marker } = await partialClone();
     try {
       await createGitRunner(defaultGitExecFile, root).run(["cat-file", "blob", "HEAD:f.json"]);
 
       expect(await exists(marker)).toBe(false);
     } finally {
-      await rm(base, { recursive: true, force: true });
+      await fx.cleanup();
     }
   });
 });

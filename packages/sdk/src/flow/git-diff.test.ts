@@ -11,6 +11,7 @@ import {
   LOCALE_GIT_DIFF_MAX_ENTRIES,
   LOCALE_GIT_DIFF_MAX_VALUE_CHARS,
   localeGitDiff,
+  locateFile,
   readWorkingContent,
   workingFileKind,
 } from "./git-diff.js";
@@ -115,6 +116,12 @@ describe("compareResources", () => {
   });
 });
 
+async function caseSensitive(base: string): Promise<boolean> {
+  await mkdir(join(base, "probe-a"));
+  await mkdir(join(base, "probe-A")).catch(() => undefined);
+  return (await readdir(base)).filter((name) => name.toLowerCase() === "probe-a").length === 2;
+}
+
 describe("fileKind", () => {
   it("tells a regular file from a symbolic link, a directory and a missing path", async () => {
     const fx = await repo();
@@ -141,18 +148,41 @@ describe("fileKind", () => {
     }
   });
 
-  it("matches a differently cased name only when exactly one entry folds to it", async () => {
+  it("matches a name exactly after normalization, never by case", async () => {
     const fx = await repo();
+    const decomposed = "u\u0308.json";
+    await fx.write(`only/${decomposed}`, "{}\n");
     await fx.write("only/De.json", "{}\n");
-    await fx.write("both/De.json", "{}\n");
-    await fx.write("both/dE.json", "{}\n");
-    const names = await readdir(join(fx.root, "both"));
-    const caseSensitive = names.length === 2;
 
-    expect(await fileKind(join(fx.root, "only", "de.json"))).toBe("file");
-    expect(await fileKind(join(fx.root, "both", "de.json"))).toBe(
-      caseSensitive ? "missing" : "file",
+    expect(await fileKind(join(fx.root, "only", "\u00fc.json"))).toBe("file");
+    expect(await fileKind(join(fx.root, "only", decomposed))).toBe("file");
+    expect(await fileKind(join(fx.root, "only", "de.json"))).toBe("missing");
+    expect(await fileKind(join(fx.root, "only", "De.json"))).toBe("file");
+  });
+
+  it("locates the entry under the name the disk has", async () => {
+    const fx = await repo();
+    await fx.write("only/u\u0308.json", "{}\n");
+
+    const located = await locateFile(join(fx.root, "only", "\u00fc.json"));
+
+    expect(located.kind).toBe("file");
+    expect(located.path.normalize("NFC")).toBe(
+      join(fx.root, "only", "\u00fc.json").normalize("NFC"),
     );
+  });
+
+  it("reads a directory it may not list as unreadable, not as missing", async () => {
+    const fx = await repo();
+    await fx.write("closed/a.json", "{}\n");
+    await chmod(join(fx.root, "closed"), 0o111);
+    try {
+      const unreadable = process.getuid?.() !== 0;
+
+      expect(await fileKind(join(fx.root, "closed", "a.json"))).toBe(unreadable ? "other" : "file");
+    } finally {
+      await chmod(join(fx.root, "closed"), 0o755);
+    }
   });
 });
 
@@ -164,6 +194,20 @@ describe("readWorkingContent", () => {
 
     expect(await readWorkingContent(join(fx.root, "small.json"))).toBe("{}\n");
     expect(await readWorkingContent(join(fx.root, "big.json"))).toBeUndefined();
+  });
+
+  it("answers nothing, instead of rejecting, when the read itself fails", async () => {
+    const fx = await repo();
+    await fx.write("a.json", "{}\n");
+    const original = defaultFs.readFileBounded;
+    defaultFs.readFileBounded = async () => {
+      throw new Error("EIO");
+    };
+    try {
+      expect(await readWorkingContent(join(fx.root, "a.json"))).toBeUndefined();
+    } finally {
+      defaultFs.readFileBounded = original;
+    }
   });
 });
 
@@ -177,10 +221,13 @@ describe("workingFileKind", () => {
     await fx.write("deep/real/de.json", "{}\n");
     await symlink(join(fx.root, "deep", "real"), join(fx.root, "deep", "link"));
 
-    expect(await workingFileKind(fx.root, join(fx.root, "real", "de.json"))).toBe("file");
-    expect(await workingFileKind(fx.root, join(fx.root, "inside", "de.json"))).toBe("other");
-    expect(await workingFileKind(fx.root, join(fx.root, "out", "de.json"))).toBe("other");
-    expect(await workingFileKind(fx.root, join(fx.root, "deep", "link", "de.json"))).toBe("other");
+    const kind = async (...parts: string[]) =>
+      (await workingFileKind(fx.root, join(fx.root, ...parts))).kind;
+
+    expect(await kind("real", "de.json")).toBe("file");
+    expect(await kind("inside", "de.json")).toBe("other");
+    expect(await kind("out", "de.json")).toBe("other");
+    expect(await kind("deep", "link", "de.json")).toBe("other");
   });
 
   it("reads a missing directory as missing, and a project root reached through a link as fine", async () => {
@@ -189,8 +236,58 @@ describe("workingFileKind", () => {
     const alias = join(fx.base, "alias");
     await symlink(fx.root, alias);
 
-    expect(await workingFileKind(fx.root, join(fx.root, "nope", "de.json"))).toBe("missing");
-    expect(await workingFileKind(alias, join(alias, "real", "de.json"))).toBe("file");
+    expect((await workingFileKind(fx.root, join(fx.root, "nope", "de.json"))).kind).toBe("missing");
+    expect((await workingFileKind(alias, join(alias, "real", "de.json"))).kind).toBe("file");
+  });
+
+  it("refuses a link whose target differs only in case, on a case-sensitive disk", async () => {
+    const fx = await repo();
+    if (!(await caseSensitive(fx.base))) {
+      return;
+    }
+    await fx.write("LOCALES/de.json", "{}\n");
+    await symlink(join(fx.root, "LOCALES"), join(fx.root, "locales"));
+
+    expect((await workingFileKind(fx.root, join(fx.root, "locales", "de.json"))).kind).toBe(
+      "other",
+    );
+    expect((await workingFileKind(fx.root, join(fx.root, "LOCALES", "de.json"))).kind).toBe("file");
+  });
+
+  it("accepts a decomposed parent directory name written composed", async () => {
+    const fx = await repo();
+    await fx.write("lo\u0308cales/de.json", "{}\n");
+
+    const located = await workingFileKind(fx.root, join(fx.root, "l\u00f6cales", "de.json"));
+
+    expect(["file", "missing"]).toContain(located.kind);
+  });
+
+  it("accepts a project root written in a different case than the disk has", async () => {
+    const fx = await repo();
+    await fx.write("real/de.json", "{}\n");
+    const rewritten = fx.root.replace("/repo", "/REPO");
+    const sameDirectory = !(await caseSensitive(fx.base));
+    if (!sameDirectory) {
+      return;
+    }
+
+    expect((await workingFileKind(rewritten, join(rewritten, "real", "de.json"))).kind).toBe(
+      "file",
+    );
+  });
+
+  it("reads any failure other than a missing path as unreadable", async () => {
+    const fx = await repo();
+    const original = defaultFs.realpath;
+    defaultFs.realpath = async () => {
+      throw Object.assign(new Error("denied"), { code: "EACCES" });
+    };
+    try {
+      expect((await workingFileKind(fx.root, join(fx.root, "real", "de.json"))).kind).toBe("other");
+    } finally {
+      (defaultFs as { realpath?: unknown }).realpath = original;
+    }
   });
 });
 
@@ -313,6 +410,21 @@ describe("localeGitDiff against a real repository", () => {
     const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
 
     expect(diff).toEqual({ available: false, reason: "working-file-unreadable" });
+  });
+
+  it("does not report every key as removed when the locale directory cannot be listed", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "a", b: "b" }));
+    await fx.commitAll();
+    await fx.write("locales/de.json", json({ a: "a2", b: "b" }));
+    await chmod(join(fx.root, "locales"), 0o111);
+    try {
+      const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
+
+      expect(diff.available ? diff.removed.length : 0).not.toBe(2);
+    } finally {
+      await chmod(join(fx.root, "locales"), 0o755);
+    }
   });
 
   it("cuts a very long key and says so", async () => {
