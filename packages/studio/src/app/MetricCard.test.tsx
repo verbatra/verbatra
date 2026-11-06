@@ -80,13 +80,13 @@ describe("MetricCard", () => {
   it("tints the figure for an all-clear reading", () => {
     const view = render(<MetricCard label="Failures" value="0" tone="success" />);
 
-    expect(metricFigure(view, "Failures").className).toContain("text-success");
+    expect(metricFigure(view, "Failures").dataset.valueTone).toBe("success");
   });
 
   it("tints the figure for an alarming reading", () => {
     const view = render(<MetricCard label="Failures" value="7" tone="danger" />);
 
-    expect(metricFigure(view, "Failures").className).toContain("text-danger");
+    expect(metricFigure(view, "Failures").dataset.valueTone).toBe("danger");
   });
 
   it("renders a decorative glyph when an icon is named", () => {

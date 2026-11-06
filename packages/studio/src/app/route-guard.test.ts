@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import {
   installRouteGuard,
+  onHoldDropped,
   ROUTE_CHANGE_EVENT,
   type RouteGuard,
   restoreHeldRoute,
@@ -502,6 +503,41 @@ describe("a held push or replace", () => {
     expect(window.history.length).toBe(length);
     expect(window.location.hash).toBe("#/c");
     expect(idx()).toBe(11);
+  });
+
+  it("runs the proceed callback only when a held push proceeds, before the route is written", () => {
+    startAt("#/a", "#/b");
+    dirty = true;
+    const seen: string[] = [];
+    const onProceed = vi.fn(() => seen.push(window.location.hash));
+
+    expect(routeChangeBlocked("#/c", "push", onProceed)).toBe(true);
+    expect(onProceed).not.toHaveBeenCalled();
+    proceedOf(0)();
+
+    expect(onProceed).toHaveBeenCalledTimes(1);
+    expect(seen).toEqual(["#/b"]);
+    expect(window.location.hash).toBe("#/c");
+  });
+
+  it("never runs the proceed callback of a change that is not held", () => {
+    startAt("#/a", "#/b");
+    const onProceed = vi.fn();
+
+    expect(routeChangeBlocked("#/c", "push", onProceed)).toBe(false);
+    expect(onProceed).not.toHaveBeenCalled();
+  });
+
+  it("tells hold watchers when a hold is dropped, and stops after they unsubscribe", () => {
+    startAt("#/a", "#/b");
+    const watcher = vi.fn();
+    const stop = onHoldDropped(watcher);
+
+    restoreHeldRoute();
+    stop();
+    restoreHeldRoute();
+
+    expect(watcher).toHaveBeenCalledTimes(1);
   });
 
   it("lets a change through while nothing is unsaved", () => {

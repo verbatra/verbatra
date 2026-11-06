@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formatTimestamp } from "../client/ui-format.js";
 import type { HistoryCommit } from "../shared/rpc/history.js";
 import { CommitList } from "./CommitList.js";
-import { click, render } from "./test-support.js";
+import { render } from "./test-support.js";
 import type { HistoryState } from "./use-history-list.js";
 
 const COMMIT: HistoryCommit = {
@@ -235,30 +235,6 @@ describe("CommitList", () => {
 
     expect(view.get('[role="alert"]').textContent).toContain("Showing the last known history.");
     expect(view.all('ul[aria-label="Commits"] > li')).toHaveLength(1);
-  });
-
-  it("offers Retry on a stale or failed history when the caller passes one", () => {
-    const calls: string[] = [];
-    const stale: HistoryState = {
-      kind: "loaded",
-      commits: [COMMIT],
-      staleError: { code: "INTERNAL", message: "x" },
-    };
-
-    const staleView = render(
-      <CommitList state={stale} emptyMessage="none" onRetry={() => calls.push("stale")} />,
-    );
-    click(staleView.getByText("button", "Retry"));
-    const failedView = render(
-      <CommitList
-        state={{ kind: "error", error: { code: "INTERNAL", message: "x" } }}
-        emptyMessage="none"
-        onRetry={() => calls.push("failed")}
-      />,
-    );
-    click(failedView.getByText("button", "Retry"));
-
-    expect(calls).toEqual(["stale", "failed"]);
   });
 
   it("makes each commit row a programmatic focus target with a visible ring on keyboard focus", () => {

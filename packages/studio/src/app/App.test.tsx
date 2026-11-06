@@ -5,7 +5,7 @@ import { PAGE_IDS, type PageId } from "../client/routes.js";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import { App } from "./App.js";
 import { PAGE_MAX_CLASS } from "./lib/page-width.js";
-import { installRouteGuard } from "./route-guard.js";
+import { installRouteGuard, restoreHeldRoute } from "./route-guard.js";
 import {
   agentToolsStatusStore,
   answersInOrder,
@@ -622,7 +622,7 @@ describe("App review tile", () => {
     expect(metricHint(view, "Waiting for review")).toBe(
       "verbatra.provenance.json is corrupt or too new to read.",
     );
-    expect(metricFigure(view, "Waiting for review").className).not.toContain("text-success");
+    expect(metricFigure(view, "Waiting for review").dataset.valueTone).toBe("default");
     expect(view.query("[data-count-dot]")).toBeNull();
     expect(navItem(view, "Review").textContent).toBe("Review");
   });
@@ -763,17 +763,108 @@ describe("App scroll on navigation", () => {
     expect(scrollTo).toHaveBeenCalledWith(0, 0);
   });
 
-  it("does not scroll for a later route change after a held navigation was cancelled", async () => {
+  it("does not scroll when a cancelled held navigation is later reached by Back or Forward", async () => {
     const uninstall = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
     const view = await mount();
 
     await clickAsync(navItem(view, "Glossary"));
+    restoreHeldRoute();
     uninstall();
     await act(async () => {
-      window.location.hash = "#/settings";
+      window.location.hash = "#/glossary";
     });
     await flush();
 
+    expect(window.location.hash).toBe("#/glossary");
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("does not scroll for a replace onto the target of a cancelled held navigation", async () => {
+    const uninstall = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Glossary"));
+    restoreHeldRoute();
+    uninstall();
+    await act(async () => {
+      replaceRoute({ page: "glossary", params: {} });
+    });
+    await flush();
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("scrolls when the prompt was open for a long time before the navigation proceeded", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    let proceed: (() => Promise<void>) | undefined;
+    const uninstall = installRouteGuard({
+      isDirty: () => true,
+      onBlock: (next) => {
+        proceed = next;
+      },
+    });
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Glossary"));
+    vi.setSystemTime(Date.now() + 3_600_000);
+    await act(async () => {
+      await proceed?.();
+    });
+    await flush();
+    uninstall();
+
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("scrolls once a plain link held by the prompt proceeds", async () => {
+    let proceed: (() => Promise<void>) | undefined;
+    window.history.replaceState({ idx: 0 }, "", "#/glossary");
+    const uninstall = installRouteGuard({
+      isDirty: () => true,
+      onBlock: (next) => {
+        proceed = next;
+      },
+    });
+    await mount();
+    const anchor = linkTo("#/review");
+
+    await act(async () => {
+      anchor.click();
+    });
+    await flush();
+    expect(scrollTo).not.toHaveBeenCalled();
+    await act(async () => {
+      await proceed?.();
+    });
+    await flush();
+    uninstall();
+    anchor.remove();
+
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not scroll when a plain link held by the prompt is cancelled and reached again", async () => {
+    window.history.replaceState({ idx: 0 }, "", "#/glossary");
+    const uninstall = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
+    await mount();
+    const anchor = linkTo("#/review");
+
+    await act(async () => {
+      anchor.click();
+    });
+    await flush();
+    await act(async () => {
+      restoreHeldRoute();
+    });
+    await flush();
+    uninstall();
+    await act(async () => {
+      window.location.hash = "#/review";
+    });
+    await flush();
+    anchor.remove();
+
+    expect(window.location.hash).toBe("#/review");
     expect(scrollTo).not.toHaveBeenCalled();
   });
 });

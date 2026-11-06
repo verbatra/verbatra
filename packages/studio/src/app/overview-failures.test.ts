@@ -28,6 +28,12 @@ function reads(over: Partial<OverviewReads>): OverviewReads {
   return { ...CALM, ...over };
 }
 
+const CALM_DIFF: Extract<DiffState, { readonly kind: "loaded" }> = {
+  kind: "loaded",
+  hasPendingChanges: false,
+  locales: [],
+};
+
 const staleStatus = (error: StructuredError): RefreshableView<StatusData> => ({
   kind: "data",
   data: DATA,
@@ -134,6 +140,32 @@ describe("pageFailure", () => {
       error: OTHER,
       prefix: "Showing the last known pending changes, status, review queue, usage and history.",
     });
+  });
+
+  it("names a stale review queue even when the hard error has another code", () => {
+    const staleReview: RefreshableView<ReviewQueueData> = {
+      kind: "data",
+      data: { available: true, locales: [] },
+      stale: true,
+      error: BAD,
+    };
+
+    expect(
+      pageFailure(reads({ status: { kind: "error", error: OTHER }, review: staleReview })),
+    ).toEqual({ error: OTHER, prefix: "Showing the last known review queue." });
+  });
+
+  it("names a stale review queue beside a stale source of another code", () => {
+    const staleReview: RefreshableView<ReviewQueueData> = {
+      kind: "data",
+      data: { available: true, locales: [] },
+      stale: true,
+      error: BAD,
+    };
+
+    expect(
+      pageFailure(reads({ diff: { ...CALM_DIFF, staleError: OTHER }, review: staleReview })),
+    ).toEqual({ error: OTHER, prefix: "Showing the last known pending changes and review queue." });
   });
 
   it("reports a stale lock alone", () => {

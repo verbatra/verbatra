@@ -136,7 +136,7 @@ describe("OverviewMetrics", () => {
     );
 
     expect(metricFigure(view, "Waiting for review").textContent).toBe("N/A");
-    expect(metricFigure(view, "Waiting for review").className).not.toContain("text-success");
+    expect(metricFigure(view, "Waiting for review").dataset.valueTone).toBe("default");
     expect(metricHint(view, "Waiting for review")).toBe(
       "verbatra.provenance.json is corrupt or too new to read.",
     );
@@ -182,5 +182,76 @@ describe("OverviewMetrics", () => {
 
     expect(metricHint(view, "Needs attention")).toContain("1,500 keys are missing");
     expect(metricHint(view, "Waiting for review")).toBe("1,200 translations wait for review.");
+  });
+
+  describe("the Locales in sync hint once every locale is translated", () => {
+    const synced: RefreshableView<StatusData> = {
+      kind: "data",
+      stale: false,
+      data: { inSync: true, rows: [] },
+    };
+    const keysIn = (locale: string, lists: Partial<DiffLocale>): DiffLocale => ({
+      locale,
+      missing: [],
+      changed: [],
+      orphaned: [],
+      hasPendingChanges: false,
+      ...lists,
+    });
+
+    it("waits for the pending-change check", () => {
+      const view = render(<OverviewMetrics status={synced} diff={{ kind: "loading" }} />);
+
+      expect(metricHint(view, "Locales in sync")).toBe("Checking pending changes.");
+    });
+
+    it("says the pending-change check failed", () => {
+      const view = render(
+        <OverviewMetrics
+          status={synced}
+          diff={{ kind: "error", error: { code: "INTERNAL", message: "x" } }}
+        />,
+      );
+
+      expect(metricHint(view, "Locales in sync")).toBe("The pending-change check failed.");
+    });
+
+    it("says changes remain when keys are pending but none is orphaned", () => {
+      const diff: DiffState = {
+        kind: "loaded",
+        hasPendingChanges: true,
+        locales: [keysIn("de", { changed: ["a"], hasPendingChanges: true })],
+      };
+
+      const view = render(<OverviewMetrics status={synced} diff={diff} />);
+
+      expect(metricHint(view, "Locales in sync")).toBe("Pending changes remain.");
+    });
+
+    it("counts several distinct orphaned keys in the plural", () => {
+      const diff: DiffState = {
+        kind: "loaded",
+        hasPendingChanges: false,
+        locales: [keysIn("de", { orphaned: ["a", "b"] }), keysIn("fr", { orphaned: ["b", "c"] })],
+      };
+
+      const view = render(<OverviewMetrics status={synced} diff={diff} />);
+
+      expect(metricHint(view, "Locales in sync")).toBe(
+        "Every key is translated; 3 orphaned keys are left over.",
+      );
+    });
+
+    it("says all target locales are in sync with nothing pending", () => {
+      const diff: DiffState = {
+        kind: "loaded",
+        hasPendingChanges: false,
+        locales: [keysIn("de", {})],
+      };
+
+      const view = render(<OverviewMetrics status={synced} diff={diff} />);
+
+      expect(metricHint(view, "Locales in sync")).toBe("All target locales are in sync.");
+    });
   });
 });

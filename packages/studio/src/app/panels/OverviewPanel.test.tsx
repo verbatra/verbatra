@@ -1662,3 +1662,139 @@ function COMMITS_OF(count: number): readonly HistoryCommit[] {
     touchedPaths: [],
   }));
 }
+
+describe("OverviewPanel one Retry and focus after a failed Retry", () => {
+  it("carries one Retry when a lock failure and a usage failure have different codes", async () => {
+    stubPage({ "lock.state": LOCK_BAD, "usage.summary": rpcError("NETWORK_ERROR") });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(alertTexts(view)).toHaveLength(2);
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
+  });
+
+  it("carries one Retry when a lock failure and a history failure have different codes", async () => {
+    stubPage({ "lock.state": LOCK_BAD, "history.list": rpcError("NETWORK_ERROR") });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(alertTexts(view)).toHaveLength(2);
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
+  });
+
+  it("carries one Retry when a stale history of another code follows a hard lock failure", async () => {
+    stubPage({
+      "lock.state": LOCK_BAD,
+      "history.list": answersInOrder([historyAnswer(LOADED_HISTORY), rpcError("NETWORK_ERROR")]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(alertTexts(view)).toHaveLength(2);
+    expect(commitRows(view)).toHaveLength(2);
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
+  });
+
+  it("does not move focus when a failure clears in the background after a failed Retry", async () => {
+    stubPage({ "lock.state": answersInOrder([LOCK_BAD, LOCK_BAD, NO_LOCK]) });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    retryButton(view).focus();
+    await clickAsync(retryButton(view));
+    await flush();
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(focus).not.toHaveBeenCalled();
+    focus.mockRestore();
+  });
+
+  it("does not move focus from the body when a failure clears after a failed Retry", async () => {
+    stubPage({ "lock.state": answersInOrder([LOCK_BAD, LOCK_BAD, NO_LOCK]) });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    await clickAsync(retryButton(view));
+    await flush();
+    (document.activeElement as HTMLElement | null)?.blur();
+
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("waits for every read to answer before it decides about focus", async () => {
+    let answer: ((result: StubRpcResult) => void) | undefined;
+    let statusReads = 0;
+    stubPage({
+      "lock.state": answersInOrder([LOCK_BAD, NO_LOCK]),
+      "status.check": () => {
+        statusReads += 1;
+        return statusReads === 1
+          ? checkResult(DEFAULT_ROWS)
+          : new Promise<StubRpcResult>((resolve) => {
+              answer = resolve;
+            });
+      },
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    retryButton(view).focus();
+
+    await clickAsync(retryButton(view));
+    await flush();
+    answer?.(checkResult(DEFAULT_ROWS));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(document.activeElement).toBe(view.get("[data-overview-recovery]"));
+  });
+});
+
+describe("OverviewPanel repeated and edge notices", () => {
+  it("hides a stale usage notice that repeats the page-level error, but names usage in it", async () => {
+    stubPage({
+      "status.diff": rpcError("INTERNAL"),
+      "usage.summary": answersInOrder([usageAnswer(TRACKED_RUN), rpcError("INTERNAL")]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(alertTexts(view)).toHaveLength(1);
+    expect(alertText(view)).toContain("Showing the last known usage.");
+    expect(metricValue(view, "Input tokens")).toBe("640");
+  });
+
+  it("moves focus to the last commit when Show more brings no new commit", async () => {
+    stubOverview({
+      "history.list": (params: unknown) => {
+        const asked = (params as { limit?: number }).limit ?? 50;
+        return historyAnswer({ available: true, commits: COMMITS_OF(Math.min(asked, 10)) });
+      },
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    await clickAsync(view.getByText("button", "Show more commits"));
+    await flush();
+
+    expect(commitRows(view)).toHaveLength(10);
+    expect(document.activeElement).toBe(commitRows(view)[9]);
+  });
+
+  it("shows its own stale usage notice, without a Retry, when the page error has another code", async () => {
+    stubPage({
+      "status.diff": rpcError("INTERNAL"),
+      "usage.summary": answersInOrder([usageAnswer(TRACKED_RUN), rpcError("NETWORK_ERROR")]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(alertTexts(view)).toHaveLength(2);
+    expect(alertTexts(view)[1]).toContain("Showing the last known usage.");
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
+  });
+});

@@ -322,4 +322,25 @@ describe("LocalesSection", () => {
 
     expect(view.all("[data-locale-tag]").map((node) => node.textContent)).toEqual(["fr", "de"]);
   });
+
+  it("makes the lock file locales region a tab stop only when it really overflows", () => {
+    const lock: LockView = {
+      kind: "loaded",
+      version: 2,
+      locales: [{ locale: "de", keyCount: 4, missing: 0, stale: 0, upToDate: 4 }],
+    };
+    const calm = render(<LocalesSection status={dataView([row("de")])} lock={lock} />);
+
+    expect(calm.get('[aria-label="Lock file locales"]').hasAttribute("tabindex")).toBe(false);
+
+    vi.spyOn(Element.prototype, "scrollWidth", "get").mockReturnValue(600);
+    vi.spyOn(Element.prototype, "clientWidth", "get").mockReturnValue(300);
+    try {
+      const wide = render(<LocalesSection status={dataView([row("fr")])} lock={lock} />);
+
+      expect(wide.get('[aria-label="Lock file locales"]').getAttribute("tabindex")).toBe("0");
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
 });

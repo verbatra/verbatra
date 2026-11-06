@@ -2,6 +2,7 @@
 import { act, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { markLinkNavigation, useScrollToTopOnLinkNavigation } from "./link-scroll.js";
+import { restoreHeldRoute } from "./route-guard.js";
 import { flush, render } from "./test-support.js";
 import { useRoute } from "./use-route.js";
 
@@ -87,12 +88,22 @@ describe("useScrollToTopOnLinkNavigation", () => {
     expect(scrollTo).not.toHaveBeenCalled();
   });
 
-  it("ignores a mark that has waited too long", async () => {
+  it("keeps a mark for as long as the navigation takes, however slowly the page renders", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     render(<Host />);
 
     markLinkNavigation("#/review");
-    vi.setSystemTime(Date.now() + 121_000);
+    vi.setSystemTime(Date.now() + 600_000);
+    await goTo("#/review");
+
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops the mark when the hold that kept the navigation is dropped", async () => {
+    render(<Host />);
+
+    markLinkNavigation("#/review");
+    restoreHeldRoute();
     await goTo("#/review");
 
     expect(scrollTo).not.toHaveBeenCalled();
