@@ -120,6 +120,31 @@ describe("previewIcuMessage: refusals", () => {
     ]);
   });
 
+  it("refuses a message with nothing to vary when its text outgrows the budget", () => {
+    const value = "{n, number}".repeat(256);
+    expect(refusalOf(value, "en", { n: 1e308 })).toBe("too-large");
+    expect(refusalOf(value, "en", { n: 1 })).toBeUndefined();
+  });
+
+  it("returns a sample for every row it builds", () => {
+    const values = [
+      "{n, plural, one {a} other {b}}",
+      "{g, select, f {F} other {O}} {n, plural, =0 {z} other {#}}",
+      "{a, select, x {{n, plural, one {A} other {Ao}}} other {z}}",
+    ];
+    for (const value of values) {
+      expect(rowsOf(value).every((row) => row.sample !== null && row.sample !== undefined)).toBe(
+        true,
+      );
+    }
+  });
+
+  it("renders the Unix epoch in UTC when a number sets the instant", () => {
+    expect(textOf(rowsOf("{d, date, ::yyyyMMdd}", "en", { d: 0 })[0] as IcuPreviewRow)).toBe(
+      "01/01/1970",
+    );
+  });
+
   it("copes with non-finite and hostile samples", () => {
     const value = "{x, number} {y} {d, date} {n, plural, one {# a} other {# b}}";
     const result = preview(value, "en", {

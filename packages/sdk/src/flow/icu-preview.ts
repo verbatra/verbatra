@@ -4,7 +4,6 @@ import {
   type IcuAxisStep,
   type IcuMessageArguments,
   type IcuPreparedMessage,
-  type IcuRenderResult,
   type IcuSampleValue,
   type IcuSegment,
   type IcuVariationAxis,
@@ -319,15 +318,20 @@ function renderCandidates(
   return { rows: kept.map((entry) => entry.row), truncated };
 }
 
-function renderUnvarying(prepared: IcuPreparedMessage, base: SampleArguments): RenderedRows {
-  const rendered = renderPreparedIcuMessage(prepared, base, createIcuRenderBudget());
-  const { segments } = rendered as Extract<IcuRenderResult, { readonly valid: true }>;
+function renderUnvarying(
+  prepared: IcuPreparedMessage,
+  base: SampleArguments,
+): RenderedRows | { readonly reason: IcuPreviewFailure } {
+  const result = renderPreparedIcuMessage(prepared, base, createIcuRenderBudget());
+  if (!result.valid) {
+    return { reason: result.reason };
+  }
   const row: IcuPreviewRow = {
     axis: "none",
     argument: null,
     category: null,
     sample: null,
-    segments,
+    segments: result.segments,
   };
   return { rows: [row], truncated: false };
 }
@@ -340,7 +344,7 @@ function renderUnvarying(prepared: IcuPreparedMessage, base: SampleArguments): R
  * format, including a `custom:` one, answers `supported: false`. The message is untrusted text and
  * the call never throws on it: an over-long, over-nested, malformed or otherwise unusable message,
  * or an unknown locale, comes back as `valid: false` with a reason. Numbers and dates are formatted
- * with this runtime's Node CLDR data, dates at a fixed instant in UTC, so the text can differ from
+ * with this runtime's Node CLDR data, dates at a fixed instant in UTC unless a number in `args` sets the instant, so the text can differ from
  * what an application's own runtime prints. Nothing is read from or written to disk.
  *
  * Each row varies one argument and holds the others at `args` or a default. A row for an argument
