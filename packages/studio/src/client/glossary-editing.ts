@@ -102,7 +102,7 @@ export interface TermDraft {
 
 export function parseRenderings(text: string): readonly string[] {
   const renderings = text
-    .split(/[,\u060C\n]/)
+    .split("\n")
     .map((rendering) => rendering.trim())
     .filter((rendering) => rendering.length > 0);
   return [...new Set(renderings)];
@@ -119,7 +119,7 @@ function ownForbidden(term: GlossaryTermView, scope: string): readonly string[] 
 export function draftFor(term: GlossaryTermView, scope: string): TermDraft {
   return {
     translation: ownTranslation(term, scope),
-    forbidden: ownForbidden(term, scope).join(", "),
+    forbidden: ownForbidden(term, scope).join("\n"),
     note: term.note ?? "",
     partOfSpeech: term.partOfSpeech ?? "",
     caseSensitive: term.caseSensitive,
@@ -128,7 +128,7 @@ export function draftFor(term: GlossaryTermView, scope: string): TermDraft {
 
 function clearable(next: string, current: string): string | null | undefined {
   const trimmed = next.trim();
-  if (trimmed === current) {
+  if (trimmed === current.trim()) {
     return undefined;
   }
   return trimmed.length === 0 ? null : trimmed;
@@ -143,7 +143,7 @@ function forbiddenEdit(
     return undefined;
   }
   const next = parseRenderings(draft.forbidden);
-  const current = ownForbidden(term, scope);
+  const current = parseRenderings(ownForbidden(term, scope).join("\n"));
   if (next.join("\n") === current.join("\n")) {
     return undefined;
   }
@@ -225,7 +225,10 @@ export function termExistsInScope(
   source: string,
   scope: string,
 ): GlossaryTermView | undefined {
-  const existing = terms.find((term) => term.source === source);
+  const lowered = source.toLowerCase();
+  const existing =
+    terms.find((term) => term.source === source) ??
+    terms.find((term) => !term.caseSensitive && term.source.toLowerCase() === lowered);
   return existing !== undefined && ownTranslation(existing, scope) !== "" ? existing : undefined;
 }
 
@@ -265,7 +268,7 @@ export function nextFocusSource(sources: readonly string[], removed: string): st
   if (index < 0) {
     return undefined;
   }
-  return sources[index + 1] ?? sources[index - 1];
+  return sources[index + 1];
 }
 
 export function exceedsForbiddenCap(text: string): boolean {

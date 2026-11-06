@@ -15,7 +15,27 @@ export const EMPTY_ADD_DRAFT: AddDraft = { term: "", translation: "" };
 
 export const EMPTY_KEEP_DRAFT: KeepDraft = { term: "", caseSensitive: true };
 
-export type TermDrafts = Readonly<Record<string, TermDraft>>;
+export interface EditorEntry {
+  readonly draft: TermDraft;
+  readonly base: GlossaryTermView;
+}
+
+export type TermDrafts = ReadonlyMap<string, EditorEntry>;
+
+export function editorTerm(
+  terms: readonly GlossaryTermView[],
+  source: string,
+  entry: EditorEntry,
+): GlossaryTermView {
+  return terms.find((term) => term.source === source) ?? entry.base;
+}
+
+export function orphanedSources(
+  terms: readonly GlossaryTermView[],
+  editors: TermDrafts,
+): readonly string[] {
+  return [...editors.keys()].filter((source) => !terms.some((term) => term.source === source));
+}
 
 export function isAddDirty(draft: AddDraft): boolean {
   return draft.term.trim().length > 0 || draft.translation.trim().length > 0;
@@ -28,14 +48,14 @@ export function isKeepDirty(draft: KeepDraft): boolean {
 export function dirtyEditorSources(
   terms: readonly GlossaryTermView[],
   scope: string,
-  drafts: TermDrafts,
+  editors: TermDrafts,
 ): readonly string[] {
-  return terms
-    .filter((term) => {
-      const draft = drafts[term.source];
-      return draft !== undefined && buildTermEdit(term, scope, draft) !== undefined;
-    })
-    .map((term) => term.source);
+  return [...editors.entries()]
+    .filter(
+      ([source, entry]) =>
+        buildTermEdit(editorTerm(terms, source, entry), scope, entry.draft) !== undefined,
+    )
+    .map(([source]) => source);
 }
 
 const LISTED_LIMIT = 3;

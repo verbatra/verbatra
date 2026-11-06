@@ -135,12 +135,12 @@ describe("scopeValue", () => {
 });
 
 describe("parseRenderings", () => {
-  it("splits on commas and new lines, trims, and drops blanks and repeats", () => {
-    expect(parseRenderings(" Tafel, Brett\nTafel ,, ")).toEqual(["Tafel", "Brett"]);
+  it("splits on new lines only, trims, and drops blanks and repeats", () => {
+    expect(parseRenderings(" Tafel\nBrett\nTafel \n\n ")).toEqual(["Tafel", "Brett"]);
   });
 
-  it("splits on the Arabic comma too", () => {
-    expect(parseRenderings("لوحة، قائمة ,  لوحة")).toEqual(["لوحة", "قائمة"]);
+  it("keeps a comma, Latin or Arabic, inside one rendering", () => {
+    expect(parseRenderings("Foo, Inc.\nلوحة، قائمة")).toEqual(["Foo, Inc.", "لوحة، قائمة"]);
   });
 });
 
@@ -307,6 +307,14 @@ describe("termExistsInScope", () => {
     expect(termExistsInScope(terms, "SHOP", ALL_LOCALES)).toBeUndefined();
   });
 
+  it("treats a differently cased source as the same term when the term ignores case", () => {
+    const loose = { ...ONLY_SHARED, source: "Cart", caseSensitive: false };
+    expect(termExistsInScope([loose], "CART", ALL_LOCALES)).toBe(loose);
+    expect(
+      termExistsInScope([{ ...loose, caseSensitive: true }], "CART", ALL_LOCALES),
+    ).toBeUndefined();
+  });
+
   it("only counts a term that already holds a translation for the scope", () => {
     expect(termExistsInScope([ONLY_GERMAN], "Shop", ALL_LOCALES)).toBeUndefined();
     expect(termExistsInScope([ONLY_GERMAN], "Shop", "de")).toBe(ONLY_GERMAN);
@@ -345,9 +353,9 @@ describe("filterTerms", () => {
 });
 
 describe("nextFocusSource", () => {
-  it("prefers the following term, then the previous one, then nothing", () => {
+  it("returns the following term, and nothing for the last or an unknown one", () => {
     expect(nextFocusSource(["a", "b", "c"], "b")).toBe("c");
-    expect(nextFocusSource(["a", "b", "c"], "c")).toBe("b");
+    expect(nextFocusSource(["a", "b", "c"], "c")).toBeUndefined();
     expect(nextFocusSource(["a"], "a")).toBeUndefined();
     expect(nextFocusSource(["a"], "zzz")).toBeUndefined();
   });
@@ -355,13 +363,13 @@ describe("nextFocusSource", () => {
 
 describe("exceedsForbiddenCap", () => {
   it("allows exactly 50 distinct renderings and refuses 51", () => {
-    const fifty = Array.from({ length: 50 }, (_, index) => `r${index}`).join(", ");
+    const fifty = Array.from({ length: 50 }, (_, index) => `r${index}`).join("\n");
     expect(exceedsForbiddenCap(fifty)).toBe(false);
-    expect(exceedsForbiddenCap(`${fifty}, extra`)).toBe(true);
+    expect(exceedsForbiddenCap(`${fifty}\nextra`)).toBe(true);
   });
 
   it("does not count repeats or blanks", () => {
-    expect(exceedsForbiddenCap(`${"a, ".repeat(80)}b`)).toBe(false);
+    expect(exceedsForbiddenCap(`${"a\n".repeat(80)}b`)).toBe(false);
   });
 });
 
@@ -374,5 +382,31 @@ describe("isRetryableWriteError", () => {
     for (const code of ["CONFIG_INVALID", "PARAMS_INVALID", "GLOSSARY_NOT_FILE_BACKED"]) {
       expect(isRetryableWriteError({ code, message: "m" })).toBe(false);
     }
+  });
+});
+
+describe("an untouched editor is clean", () => {
+  const comma: GlossaryTermView = {
+    source: "Acme",
+    target: " Acme ",
+    targets: {},
+    forbidden: { de: ["Foo, Inc.", " padded "], ar: ["شركة، محدودة"] },
+    caseSensitive: false,
+    note: " a note ",
+    byLocale: {},
+  };
+
+  it("sends nothing for a stored rendering with a comma, in any script", () => {
+    expect(buildTermEdit(comma, "de", draftFor(comma, "de"))).toBeUndefined();
+    expect(buildTermEdit(comma, "ar", draftFor(comma, "ar"))).toBeUndefined();
+  });
+
+  it("ignores whitespace the form itself trims, in translations, notes and renderings", () => {
+    expect(buildTermEdit(comma, ALL_LOCALES, draftFor(comma, ALL_LOCALES))).toBeUndefined();
+  });
+
+  it("leaves the stored renderings alone when only the note changes", () => {
+    const edit = buildTermEdit(comma, "de", { ...draftFor(comma, "de"), note: "new" });
+    expect(edit).toEqual({ term: "Acme", note: "new" });
   });
 });

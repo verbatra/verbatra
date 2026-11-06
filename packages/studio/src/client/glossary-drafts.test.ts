@@ -5,8 +5,10 @@ import {
   dirtyEditorSources,
   EMPTY_ADD_DRAFT,
   EMPTY_KEEP_DRAFT,
+  editorTerm,
   isAddDirty,
   isKeepDirty,
+  orphanedSources,
 } from "./glossary-drafts.js";
 import { ALL_LOCALES, draftFor } from "./glossary-editing.js";
 
@@ -35,19 +37,43 @@ describe("isKeepDirty", () => {
 
 describe("dirtyEditorSources", () => {
   const terms = [term("a"), term("b"), term("c")];
+  const [a, b] = terms as [GlossaryTermView, GlossaryTermView];
 
   it("lists only open editors whose draft differs from the term", () => {
-    const drafts = {
-      a: draftFor(terms[0] as GlossaryTermView, ALL_LOCALES),
-      b: { ...draftFor(terms[1] as GlossaryTermView, ALL_LOCALES), translation: "changed" },
-    };
+    const editors = new Map([
+      ["a", { draft: draftFor(a, ALL_LOCALES), base: a }],
+      ["b", { draft: { ...draftFor(b, ALL_LOCALES), translation: "changed" }, base: b }],
+    ]);
 
-    expect(dirtyEditorSources(terms, ALL_LOCALES, drafts)).toEqual(["b"]);
+    expect(dirtyEditorSources(terms, ALL_LOCALES, editors)).toEqual(["b"]);
   });
 
   it("is empty with no drafts", () => {
-    expect(dirtyEditorSources(terms, ALL_LOCALES, {})).toEqual([]);
+    expect(dirtyEditorSources(terms, ALL_LOCALES, new Map())).toEqual([]);
   });
+
+  it("measures a draft against the saved term when the term is gone from the list", () => {
+    const gone = term("gone");
+    const editors = new Map([
+      ["gone", { draft: { ...draftFor(gone, ALL_LOCALES), translation: "mine" }, base: gone }],
+    ]);
+
+    expect(dirtyEditorSources(terms, ALL_LOCALES, editors)).toEqual(["gone"]);
+    expect(orphanedSources(terms, editors)).toEqual(["gone"]);
+  });
+
+  it.each(["constructor", "toString", "__proto__"])(
+    "keeps a term named %s like any other",
+    (name) => {
+      const odd = term(name);
+      const editors = new Map([[name, { draft: draftFor(odd, ALL_LOCALES), base: odd }]]);
+
+      expect(editors.get(name)?.base).toBe(odd);
+      expect(editorTerm([odd], name, editors.get(name) as never)).toBe(odd);
+      expect(orphanedSources([odd], editors)).toEqual([]);
+      expect(dirtyEditorSources([odd], ALL_LOCALES, new Map())).toEqual([]);
+    },
+  );
 });
 
 describe("describeDirtyDrafts", () => {
