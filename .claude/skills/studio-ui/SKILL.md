@@ -275,8 +275,9 @@ Rules that follow:
   in one trailing column: quiet links (table text, underline and a `-outline-offset-2` ring only on
   hover and focus), a visible word plus an sr-only locale suffix, 44px tall below `md`. Failed reads (diff,
   status, lock, review, usage, history)
-  collapse into one page-level `ErrorMessage` with the page's only Retry (`App.tsx` owns the one
-  counter), which states the server's own reason (`errorDetail`) and names the stale sources that
+  collapse into one page-level `ErrorMessage`, placed above the metric tiles so it stays above the
+  fold, with the page's only Retry (`App.tsx` owns the one counter; it stays disabled until every
+  read that Retry started has answered), which states the server's own reason (`errorDetail`) and names the stale sources that
   share its code plus the review queue, which has no section of its own. A section keeps its own
   alert, without a Retry, only when it failed for a different code. A failed
   refresh keeps the last diff, status, lock, usage and history with a stale notice. Figures
