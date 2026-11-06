@@ -79,7 +79,7 @@ export interface IcuPreviewInput {
   readonly locale: string;
   /** The message text. Untrusted: a value over 20,000 characters, nested deeper than 16 braces, or with more than 256 `{` and `<` characters is refused rather than parsed. */
   readonly value: string;
-  /** Sample values for the message's arguments, by name. Numbers drive plural and number arguments, and a number given for a date argument is read as milliseconds since the epoch. Names the message does not use are ignored. A value for a plural, ordinal or select argument adds a row showing it for each place that value reaches an arm of that argument, and in the ordinary rows is replaced by the arm each row shows. A number text such as `"5"` reads as the number, as the runtime does. */
+  /** Sample values for the message's arguments, by name. Numbers drive plural and number arguments, and a number given for a date argument is read as milliseconds since the epoch. Names the message does not use are ignored. A value for a plural, ordinal or select argument adds one row showing it for each axis it drives, at the first place it reaches an arm of that argument (a place that agrees with your other values comes first), and in the ordinary rows is replaced by the arm each row shows. A number text such as `"5"` reads as the number, as the runtime does. */
   readonly args?: Readonly<Record<string, string | number>>;
 }
 
@@ -200,19 +200,40 @@ function armLabelOf(
   return occurrence.options.includes(category) ? category : "other";
 }
 
+type TypedValues = Readonly<Record<string, string | number>>;
+
 function reachedBy(
   solve: Solver,
   selects: ArmSelector,
   axis: IcuVariationAxis,
   occurrence: IcuAxisOccurrence,
   value: IcuSampleValue,
+  typed: TypedValues | undefined,
 ): Solution | undefined {
   const own = occurrence.path.filter((step) => step.argument === axis.argument);
   if (!own.every((step) => selects(step, value))) {
     return undefined;
   }
   const others = occurrence.path.filter((step) => step.argument !== axis.argument);
-  return solve(others.map((step) => ({ step, byCategory: false })));
+  const pinned = others.filter(
+    (step) => typed !== undefined && Object.hasOwn(typed, step.argument),
+  );
+  if (
+    !pinned.every((step) => selects(step, (typed as TypedValues)[step.argument] as IcuSampleValue))
+  ) {
+    return undefined;
+  }
+  const solved = solve(
+    others.filter((step) => !pinned.includes(step)).map((step) => ({ step, byCategory: false })),
+  );
+  if (solved === undefined) {
+    return undefined;
+  }
+  const held = new Map(solved);
+  for (const step of pinned) {
+    held.set(step.argument, (typed as TypedValues)[step.argument] as IcuSampleValue);
+  }
+  return held;
 }
 
 function suppliedCandidate(
@@ -221,21 +242,24 @@ function suppliedCandidate(
   axis: IcuVariationAxis,
   value: IcuSampleValue,
   locale: string,
+  typed: TypedValues | undefined,
 ): readonly Candidate[] {
-  for (const occurrence of axis.occurrences) {
-    const held = reachedBy(solve, selects, axis, occurrence, value);
-    if (held !== undefined) {
-      return [
-        {
-          axis,
-          label: armLabelOf(axis, occurrence, value, locale),
-          solution: new Map(held).set(axis.argument, value),
-          sample: value,
-          rank: -1,
-          held: heldOf(held, axis.argument),
-          supplied: true,
-        },
-      ];
+  for (const agreeing of [typed, undefined]) {
+    for (const occurrence of axis.occurrences) {
+      const held = reachedBy(solve, selects, axis, occurrence, value, agreeing);
+      if (held !== undefined) {
+        return [
+          {
+            axis,
+            label: armLabelOf(axis, occurrence, value, locale),
+            solution: new Map(held).set(axis.argument, value),
+            sample: value,
+            rank: -1,
+            held: heldOf(held, axis.argument),
+            supplied: true,
+          },
+        ];
+      }
     }
   }
   return [];
@@ -266,7 +290,7 @@ function candidatesOf(
         : undefined;
     return given === undefined
       ? arms
-      : [...arms, ...suppliedCandidate(solve, selects, axis, given, locale)];
+      : [...arms, ...suppliedCandidate(solve, selects, axis, given, locale, supplied)];
   });
 }
 

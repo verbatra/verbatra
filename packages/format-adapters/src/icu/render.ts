@@ -230,7 +230,7 @@ function dateOptionsOf(
 }
 
 function renderNumber(context: RenderContext, element: NumberElement): void {
-  const value = numberSampleOf(context, element.value);
+  const value = icuPluralSampleOf(sampleOf(context, element.value))?.count;
   if (value === undefined) {
     emit(context, "argument", placeholder(element.value));
     return;
