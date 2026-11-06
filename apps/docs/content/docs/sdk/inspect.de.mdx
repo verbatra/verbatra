@@ -506,3 +506,20 @@ function provenanceReportPage(
 **Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/de/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/de/docs/error-codes#page_limit_invalid)
 
 Eine Locale trägt `entries` nur auf den Seiten, die einen ihrer Einträge enthalten. Eine Seite hält höchstens `limit` Einträge, standardmäßig `PAGE_LIMIT_DEFAULT`; gib `nextCursor` mit denselben `locales` und `buckets` als `cursor` zurück, bis er fehlt. Er ist genau dann nicht verfügbar oder schlägt fehl, wenn `provenanceReport` es tut.
+
+
+### previewIcuMessage
+
+<AvailableFrom version="0.13.0" />
+
+Rendert eine ICU-Nachricht so, wie sie sich für eine Locale liest: eine Zeile je Plural-Kategorie, exaktem Zweig oder Select-Option; es variiert immer ein Argument, die übrigen bleiben auf Beispielwerten. Es zeigt nur die Formate, deren Nachrichten ICU-Syntax verwenden, `next-intl-json` und `arb`; jedes andere Format, auch ein `custom:`-Format, antwortet mit `supported: false`. Die Nachricht ist nicht vertrauenswürdiger Text, und der Aufruf wirft dafür nie: Eine Nachricht über 20.000 Zeichen, tiefer als 16 Klammern verschachtelt, mit mehr als 256 Argumenten und Tags oder ohne gültiges ICU kommt als `valid: false` mit einem `reason` zurück, ebenso eine unbekannte Locale. Er liest und schreibt keine Datei und stellt keine Anfrage.
+
+```ts title="Signatur"
+function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult;
+```
+
+<SdkTypeTable name="IcuPreviewInput" />
+
+**Rückgabe:** `IcuPreviewResult`
+
+Zahlen und Daten nutzen die CLDR-Daten dieser Node-Laufzeit, Daten zu einem festen Zeitpunkt in UTC, deshalb kann der Text von dem abweichen, was die Laufzeit deiner Anwendung ausgibt. Eine Zeile hält `segments` aus reinem Text der Art `text`, `argument` oder `tag`, nie Markup zum Interpretieren. Es kommen höchstens 24 Zeilen zurück, `truncated` ist gesetzt, wenn es mehr gab.

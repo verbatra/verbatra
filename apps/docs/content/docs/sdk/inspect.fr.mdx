@@ -405,3 +405,20 @@ function provenanceReportPage(
 **Lève :** [`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/fr/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/fr/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/fr/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/fr/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/fr/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/fr/docs/error-codes#page_limit_invalid)
 
 Une locale ne porte `entries` que sur les pages qui contiennent une de ses entrées. Une page contient au plus `limit` entrées, `PAGE_LIMIT_DEFAULT` par défaut ; repasse `nextCursor` comme `cursor`, avec les mêmes `locales` et `buckets`, jusqu'à ce qu'il soit absent. Il est indisponible, ou échoue, exactement quand `provenanceReport` l'est.
+
+
+### previewIcuMessage
+
+<AvailableFrom version="0.13.0" />
+
+Rend un message ICU tel qu'il se lit pour une locale : une ligne par catégorie de pluriel, branche exacte ou option de select, en faisant varier un argument à la fois et en laissant les autres à des valeurs d'exemple. Il n'aperçoit que les formats dont les messages utilisent la syntaxe ICU, `next-intl-json` et `arb` ; tout autre format, y compris un format `custom:`, répond `supported: false`. Le message est un texte non fiable et l'appel ne lève jamais à cause de lui : un message de plus de 20 000 caractères, imbriqué au-delà de 16 accolades, avec plus de 256 arguments et balises ou sans ICU valide revient en `valid: false` avec un `reason`, tout comme une locale inconnue. Il ne lit ni n'écrit aucun fichier et n'envoie aucune requête.
+
+```ts title="Signature"
+function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult;
+```
+
+<SdkTypeTable name="IcuPreviewInput" />
+
+**Renvoie :** `IcuPreviewResult`
+
+Les nombres et les dates utilisent les données CLDR de cet environnement Node, les dates à un instant fixe en UTC, si bien que le texte peut différer de ce qu'affiche l'environnement de ton application. Une ligne contient des `segments` de texte brut, de type `text`, `argument` ou `tag`, jamais du balisage à interpréter. Au plus 24 lignes reviennent, avec `truncated` activé quand il y en avait davantage.

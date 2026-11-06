@@ -505,3 +505,20 @@ function provenanceReportPage(
 **Lanza:** [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/es/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/es/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/es/docs/error-codes#page_limit_invalid)
 
 Un locale lleva `entries` solo en las páginas que contienen alguna de sus entradas. Una página tiene como mucho `limit` entradas, `PAGE_LIMIT_DEFAULT` por defecto; pasa `nextCursor` como `cursor`, con los mismos `locales` y `buckets`, hasta que falte. No está disponible, o falla, exactamente cuando `provenanceReport` lo hace.
+
+
+### previewIcuMessage
+
+<AvailableFrom version="0.13.0" />
+
+Renderiza un mensaje ICU tal como se lee en una configuración regional: una fila por categoría plural, rama exacta u opción de select, variando un argumento cada vez y manteniendo el resto en valores de ejemplo. Solo previsualiza los formatos cuyos mensajes usan sintaxis ICU, `next-intl-json` y `arb`; cualquier otro formato, también uno `custom:`, responde `supported: false`. El mensaje es texto no fiable y la llamada nunca lanza por él: un mensaje de más de 20.000 caracteres, anidado más allá de 16 llaves, con más de 256 argumentos y etiquetas o que no es ICU válido vuelve como `valid: false` con un `reason`, igual que una configuración regional desconocida. No lee ni escribe ningún archivo y no hace ninguna petición.
+
+```ts title="Firma"
+function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult;
+```
+
+<SdkTypeTable name="IcuPreviewInput" />
+
+**Devuelve:** `IcuPreviewResult`
+
+Los números y las fechas usan los datos CLDR de este entorno de Node, las fechas en un instante fijo en UTC, así que el texto puede diferir de lo que imprime el entorno de tu aplicación. Una fila contiene `segments` de texto plano, de tipo `text`, `argument` o `tag`, nunca marcado para interpretar. Vuelven como máximo 24 filas, con `truncated` activado cuando había más.
