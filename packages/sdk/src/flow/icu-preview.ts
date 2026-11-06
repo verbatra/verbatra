@@ -4,6 +4,7 @@ import {
   type IcuAxisStep,
   type IcuMessageArguments,
   type IcuPreparedMessage,
+  type IcuRenderResult,
   type IcuSampleValue,
   type IcuSegment,
   type IcuVariationAxis,
@@ -318,20 +319,15 @@ function renderCandidates(
   return { rows: kept.map((entry) => entry.row), truncated };
 }
 
-function renderUnvarying(
-  prepared: IcuPreparedMessage,
-  base: SampleArguments,
-): RenderedRows | { readonly reason: IcuPreviewFailure } {
-  const result = renderPreparedIcuMessage(prepared, base, createIcuRenderBudget());
-  if (!result.valid) {
-    return { reason: result.reason };
-  }
+function renderUnvarying(prepared: IcuPreparedMessage, base: SampleArguments): RenderedRows {
+  const rendered = renderPreparedIcuMessage(prepared, base, createIcuRenderBudget());
+  const { segments } = rendered as Extract<IcuRenderResult, { readonly valid: true }>;
   const row: IcuPreviewRow = {
     axis: "none",
     argument: null,
     category: null,
     sample: null,
-    segments: result.segments,
+    segments,
   };
   return { rows: [row], truncated: false };
 }
