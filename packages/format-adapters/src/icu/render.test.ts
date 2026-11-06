@@ -479,11 +479,11 @@ describe("renderIcuMessage hostile input", () => {
     expect(refusal("{", "en-u-nu-bogus")).toBe("invalid-message");
   });
 
-  it("picks an exact arm by numeric value, including negatives and leading zeros", () => {
-    const value = "{n, plural, =-1 {minus one} =01 {one by value} other {other}}";
+  it("picks an exact arm by the string key the runtime builds", () => {
+    const value = "{n, plural, =-1 {minus one} =01 {leading zero} other {other}}";
     expect(rendered(value, "en", { n: -1 })).toBe("minus one");
-    expect(rendered(value, "en", { n: 1 })).toBe("one by value");
-    expect(rendered(value, "en", { n: 2 })).toBe("other");
+    expect(rendered(value, "en", { n: 1 })).toBe("other");
+    expect(rendered(value, "en", { n: 1 })).toBe(oracle(value, "en", { n: 1 }));
   });
 
   it("never throws on a mixed hostile corpus", () => {
