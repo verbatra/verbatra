@@ -293,8 +293,10 @@ Rules that follow:
   to the top once, from `link-scroll.ts`, for the navigation that link started and nothing else: a
   held navigation scrolls when its own proceed runs, and back, forward, a replace or a cancelled
   hold never scroll, however long the prompt stayed open. After a Retry in which every read answered and none failed,
-  focus moves to the metric row (`data-overview-recovery`) if it was lost; a failed Retry keeps it on
-  Retry and a later background recovery never moves it. Translations is one `KeysTable` (the matrix of
+  focus moves to the metric row (`data-overview-recovery`) if it was lost, or back to the new Retry
+  when a slower read brings the banner back; a failed Retry keeps it on Retry and a later
+  background recovery never moves it. Every hold that ends without proceeding (Keep editing, or a
+  landing back on the position) drops a pending link mark. Translations is one `KeysTable` (the matrix of
   a status per locale, or one locale's entries with source, translation, status and origin) under
   `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary. Adding a page
   means adding it to `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of
