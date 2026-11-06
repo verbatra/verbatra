@@ -255,13 +255,19 @@ export function planGitConfig(configKeysZ: string, lazyFetchOffSupported = true)
 
 const CONFIG_LIST = ["config", "--list", "-z", "--name-only"] as const;
 const USAGE_ERROR_EXIT_CODE = 129;
+const UNSUPPORTED_FLAG = /unknown option.*no-lazy-fetch/i;
 const withoutLazyFetchFlag = new WeakSet<GitExecFile>();
 
 export async function prepareGit(execFile: GitExecFile, cwd: string): Promise<GitConfigPlan> {
   const runner = createGitRunner(execFile, cwd);
   const tryFlag = !withoutLazyFetchFlag.has(execFile);
   let listed = await runner.run(tryFlag ? ["--no-lazy-fetch", ...CONFIG_LIST] : [...CONFIG_LIST]);
-  if (tryFlag && !listed.ok && listed.failure.exitCode === USAGE_ERROR_EXIT_CODE) {
+  if (
+    tryFlag &&
+    !listed.ok &&
+    listed.failure.exitCode === USAGE_ERROR_EXIT_CODE &&
+    UNSUPPORTED_FLAG.test(listed.failure.stderr)
+  ) {
     withoutLazyFetchFlag.add(execFile);
     listed = await runner.run([...CONFIG_LIST]);
   }

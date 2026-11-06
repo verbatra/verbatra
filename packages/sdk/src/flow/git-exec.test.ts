@@ -241,7 +241,17 @@ describe("hardenedGitEnv", () => {
           maxBuffer: 4096,
         }).then(
           (result) => result.stdout.trim(),
-          () => "unset",
+          (error: unknown) => {
+            if (
+              typeof error === "object" &&
+              error !== null &&
+              "code" in error &&
+              error.code === 1
+            ) {
+              return "unset";
+            }
+            throw error;
+          },
         );
       const plain =
         (xdg: string): GitExecFile =>
@@ -253,6 +263,7 @@ describe("hardenedGitEnv", () => {
       vi.stubEnv("HOME", home);
 
       expect(await ask(plain(absolute))).toBe("absolute");
+      expect(await ask(plain("rel"))).toBe("relative");
       vi.stubEnv("XDG_CONFIG_HOME", absolute);
       expect(await ask(defaultGitExecFile)).toBe("unset");
       vi.stubEnv("XDG_CONFIG_HOME", "rel");
@@ -527,6 +538,20 @@ describe("prepareGit", () => {
       ok: true,
       configArgs: [],
     });
+  });
+
+  it("does not take an unrelated usage error for a git without the flag", async () => {
+    const execFile = vi.fn(async () => {
+      throw Object.assign(new Error("x"), { code: 129, stderr: "usage: something else" });
+    });
+
+    const first = await prepareGit(execFile as unknown as GitExecFile, "/p");
+    await prepareGit(execFile as unknown as GitExecFile, "/p");
+
+    expect(first).toMatchObject({ ok: false, failure: { exitCode: 129 } });
+    expect(execFile).toHaveBeenCalledTimes(2);
+    const args = (execFile.mock.calls[1] as unknown as [string, string[]])[1];
+    expect(args).toContain("--no-lazy-fetch");
   });
 
   it("does not take any other failure for a git without the flag", async () => {

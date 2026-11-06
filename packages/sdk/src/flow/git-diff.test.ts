@@ -427,6 +427,24 @@ describe("localeGitDiff against a real repository", () => {
     }
   });
 
+  it("refuses when the locale directory listing is rejected", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "a" }));
+    await fx.commitAll();
+    await fx.write("locales/de.json", json({ a: "a2" }));
+    const original = defaultFs.readDirectory;
+    defaultFs.readDirectory = async () => {
+      throw Object.assign(new Error("denied"), { code: "EACCES" });
+    };
+    try {
+      const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
+
+      expect(diff).toEqual({ available: false, reason: "working-file-unreadable" });
+    } finally {
+      (defaultFs as { readDirectory?: unknown }).readDirectory = original;
+    }
+  });
+
   it("cuts a very long key and says so", async () => {
     const fx = await repo();
     await fx.write("locales/de.json", json({}));
