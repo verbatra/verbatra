@@ -818,7 +818,7 @@ describe("App scroll on navigation", () => {
 
   it("scrolls once a plain link held by the prompt proceeds", async () => {
     let proceed: (() => Promise<void>) | undefined;
-    window.history.replaceState({ idx: 0 }, "", "#/glossary");
+    window.history.replaceState({ idx: 0 }, "", "#/settings");
     const uninstall = installRouteGuard({
       isDirty: () => true,
       onBlock: (next) => {
@@ -844,7 +844,7 @@ describe("App scroll on navigation", () => {
   });
 
   it("does not scroll when a plain link held by the prompt is cancelled and reached again", async () => {
-    window.history.replaceState({ idx: 0 }, "", "#/glossary");
+    window.history.replaceState({ idx: 0 }, "", "#/settings");
     const uninstall = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
     await mount();
     const anchor = linkTo("#/review");

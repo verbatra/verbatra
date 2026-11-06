@@ -1,13 +1,18 @@
 // @vitest-environment jsdom
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { GlossaryGetResult } from "../../shared/rpc/glossary.js";
 import {
+  buttonNamed,
   clickAsync,
+  deferredAnswer,
+  flush,
   render,
   renderAsync,
   rpcCalls,
   rpcError,
   stubRpc,
+  textboxNamed,
   typeInto,
 } from "../test-support.js";
 import { GlossaryPanel } from "./GlossaryPanel.js";
@@ -67,7 +72,7 @@ describe("GlossaryPanel", () => {
   it("names the page and shows the glossary once it has loaded", async () => {
     stubRpc({ "glossary.get": GLOSSARY });
 
-    const view = await renderAsync(<GlossaryPanel />);
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
 
     expect(view.get("h1").textContent).toBe("Glossary");
     expect(view.text()).toContain("Glossary");
@@ -77,7 +82,7 @@ describe("GlossaryPanel", () => {
   it("shows the structured error when the glossary cannot be read", async () => {
     stubRpc({ "glossary.get": rpcError("INTERNAL", "glossary unreadable") });
 
-    const view = await renderAsync(<GlossaryPanel />);
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
 
     expect(view.get('[role="alert"]').textContent).toContain("unexpected server error");
   });
@@ -116,7 +121,7 @@ describe("GlossaryPanel", () => {
         },
       },
     });
-    const view = await renderAsync(<GlossaryPanel />);
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
 
     typeInto(view.get('input[aria-label="New glossary term"]') as HTMLInputElement, "cart");
     typeInto(
@@ -134,7 +139,7 @@ describe("GlossaryPanel", () => {
     stubRpc({
       "glossary.get": () => new Promise<typeof GLOSSARY>((resolve) => (answer = resolve)),
     });
-    const view = render(<GlossaryPanel />);
+    const view = render(<GlossaryPanel refreshToken={0} />);
 
     view.unmount();
     answer(GLOSSARY);
@@ -146,7 +151,7 @@ describe("GlossaryPanel", () => {
   it("lists the glossary terms with their translations, direction inferred per value", async () => {
     stubGlossary(TERMS);
 
-    const view = await renderAsync(<GlossaryPanel />);
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
     const terms = view.all("ul li");
 
     expect(terms).toHaveLength(2);
@@ -161,7 +166,7 @@ describe("GlossaryPanel", () => {
   it("counts the glossary terms in a badge, pluralized", async () => {
     stubGlossary(TERMS);
 
-    const view = await renderAsync(<GlossaryPanel />);
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
 
     expect(view.get("header").textContent).toContain("2 terms");
   });
@@ -169,7 +174,7 @@ describe("GlossaryPanel", () => {
   it("uses the singular term label for a one-entry glossary", async () => {
     stubGlossary(glossaryOf({ source: "inline" }, { verbatra: "Verbatra" }));
 
-    const view = await renderAsync(<GlossaryPanel />);
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
 
     expect(view.get("header").textContent).toContain("1 term");
     expect(view.get("header").textContent).not.toContain("1 terms");
@@ -178,7 +183,7 @@ describe("GlossaryPanel", () => {
   it("shows an empty state and no count badge when no glossary is configured", async () => {
     stubGlossary(glossaryOf({ source: "none" }, {}));
 
-    const view = await renderAsync(<GlossaryPanel />);
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
 
     expect(view.text()).toContain("No glossary terms");
     expect(view.get("header").textContent).not.toMatch(/\d+ terms?/);
@@ -188,7 +193,7 @@ describe("GlossaryPanel", () => {
   it("names a file-backed glossary's path as its source", async () => {
     stubGlossary(TERMS);
 
-    const view = await renderAsync(<GlossaryPanel />);
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
 
     expect(view.get("header").textContent).toContain("Source: file (glossary.json)");
   });
@@ -196,7 +201,7 @@ describe("GlossaryPanel", () => {
   it("names an inline glossary's source without a path", async () => {
     stubGlossary(glossaryOf({ source: "inline" }, { verbatra: "Verbatra" }));
 
-    const view = await renderAsync(<GlossaryPanel />);
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
 
     expect(view.get("header").textContent).toContain("Source: inline");
   });
@@ -204,8 +209,212 @@ describe("GlossaryPanel", () => {
   it("reads the glossary once, with no parameters", async () => {
     stubGlossary(TERMS);
 
-    await renderAsync(<GlossaryPanel />);
+    await renderAsync(<GlossaryPanel refreshToken={0} />);
 
     expect(rpcCalls).toEqual([{ method: "glossary.get", params: {} }]);
+  });
+});
+
+describe("GlossaryPanel, loading and recovering", () => {
+  it("shows a skeleton of the list while the first read is open", () => {
+    stubRpc({ "glossary.get": () => new Promise(() => {}) });
+
+    const view = render(<GlossaryPanel refreshToken={0} />);
+
+    const status = view.get('[role="status"]');
+    expect(status.textContent?.trim()).toBe("Loading the glossary");
+    expect(status.getAttribute("data-skeleton")).toBe("list");
+  });
+
+  it("offers Retry for a failed read, and a successful Retry moves focus to the glossary", async () => {
+    let calls = 0;
+    stubRpc({
+      "glossary.get": () =>
+        calls++ === 0 ? rpcError("INTERNAL", "unreadable") : glossaryAnswer(TERMS),
+    });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    const retry = buttonNamed(view, "Retry");
+    retry.focus();
+
+    await clickAsync(retry);
+
+    expect(rpcCalls).toHaveLength(2);
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.text()).toContain("Verbatra");
+    expect(document.activeElement).toBe(view.get("[data-recovery-target]"));
+  });
+
+  it("keeps Retry where it is, inert while running, when the repeat fails again", async () => {
+    stubRpc({ "glossary.get": rpcError("INTERNAL", "unreadable") });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    const retry = buttonNamed(view, "Retry");
+    retry.focus();
+
+    await clickAsync(retry);
+
+    expect(rpcCalls).toHaveLength(2);
+    expect(document.activeElement).toBe(buttonNamed(view, "Retry"));
+  });
+
+  it("states a corrupt glossary file in the server's own words", async () => {
+    stubRpc({ "glossary.get": rpcError("CONFIG_INVALID", "glossary.json is not valid JSON") });
+
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+
+    expect(view.get('[role="alert"]').textContent).toContain("glossary.json is not valid JSON");
+    expect(view.query("[data-recovery-target]")).toBeNull();
+  });
+});
+
+describe("GlossaryPanel, live refresh", () => {
+  it("re-reads when the refresh token changes, without a skeleton or a focus move", async () => {
+    let version = 0;
+    stubRpc({
+      "glossary.get": () =>
+        glossaryAnswer(
+          version++ === 0
+            ? TERMS
+            : glossaryOf({ source: "file", path: "glossary.json" }, { verbatra: "Neu" }),
+        ),
+    });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    const search = textboxNamed(view, "Search terms");
+    search.focus();
+
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    await flush();
+
+    expect(rpcCalls).toHaveLength(2);
+    expect(view.text()).toContain("Neu");
+    expect(view.query("[data-skeleton]")).toBeNull();
+    expect(document.activeElement).toBe(textboxNamed(view, "Search terms"));
+  });
+
+  it("defers a refresh while an editor is open and applies it once the editor closes", async () => {
+    let version = 0;
+    stubRpc({
+      "glossary.get": () =>
+        glossaryAnswer(
+          version++ === 0
+            ? TERMS
+            : glossaryOf({ source: "file", path: "glossary.json" }, { verbatra: "Neu" }),
+        ),
+    });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    await clickAsync(buttonNamed(view, "Edit verbatra"));
+    typeInto(textboxNamed(view, "Translation (all locales)"), "Draft");
+
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    await flush();
+
+    expect(rpcCalls).toHaveLength(1);
+    expect(view.get('[role="status"]').textContent).toContain("A refresh is waiting");
+    expect(textboxNamed(view, "Translation (all locales)").value).toBe("Draft");
+
+    await clickAsync(buttonNamed(view, "Cancel"));
+    await flush();
+    await clickAsync(view.get("h1"));
+    await flush();
+
+    expect(rpcCalls).toHaveLength(2);
+    expect(view.text()).toContain("Neu");
+    expect(view.text()).not.toContain("A refresh is waiting");
+  });
+
+  it("defers a refresh while the add form holds text", async () => {
+    stubGlossary(TERMS);
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    typeInto(textboxNamed(view, "New glossary term"), "cart");
+
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    await flush();
+
+    expect(rpcCalls).toHaveLength(1);
+    expect(textboxNamed(view, "New glossary term").value).toBe("cart");
+
+    typeInto(textboxNamed(view, "New glossary term"), "");
+    await flush();
+
+    expect(rpcCalls).toHaveLength(2);
+  });
+
+  it("keeps the last glossary and says so when a refresh fails, with a Retry that does not steal focus", async () => {
+    let calls = 0;
+    stubRpc({
+      "glossary.get": () => (calls++ === 1 ? rpcError("INTERNAL", "gone") : glossaryAnswer(TERMS)),
+    });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    const search = textboxNamed(view, "Search terms");
+    search.focus();
+
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.get('[role="alert"]').textContent).toContain("Could not refresh the glossary");
+    expect(view.text()).toContain("Verbatra");
+    expect(document.activeElement).toBe(search);
+
+    await clickAsync(buttonNamed(view, "Retry"));
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(rpcCalls).toHaveLength(3);
+  });
+
+  it("lets a finished write win over a read that started before it", async () => {
+    const stale = deferredAnswer();
+    let reads = 0;
+    stubRpc({
+      "glossary.get": () => (reads++ === 0 ? glossaryAnswer(TERMS) : stale.promise),
+      "glossary.write": glossaryAnswer(
+        glossaryOf({ source: "file", path: "glossary.json" }, { verbatra: "Written" }),
+      ),
+    });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    await flush();
+    await clickAsync(buttonNamed(view, "Edit verbatra"));
+    typeInto(textboxNamed(view, "Translation (all locales)"), "Written");
+    await clickAsync(buttonNamed(view, "Save"));
+    await act(async () => {
+      stale.resolve(glossaryAnswer(TERMS));
+      await flush();
+    });
+
+    expect(view.text()).toContain("Written");
+    expect(view.text()).not.toContain("Kasse");
+  });
+
+  it("applies only the newest of two overlapping reads", async () => {
+    const first = deferredAnswer();
+    const second = deferredAnswer();
+    const answers = [undefined, first, second];
+    stubRpc({
+      "glossary.get": () => {
+        const next = answers.shift();
+        return next === undefined ? glossaryAnswer(TERMS) : next.promise;
+      },
+    });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    view.rerender(<GlossaryPanel refreshToken={2} />);
+    await act(async () => {
+      second.resolve(
+        glossaryAnswer(
+          glossaryOf({ source: "file", path: "glossary.json" }, { verbatra: "Newest" }),
+        ),
+      );
+      await flush();
+      first.resolve(
+        glossaryAnswer(
+          glossaryOf({ source: "file", path: "glossary.json" }, { verbatra: "Older" }),
+        ),
+      );
+      await flush();
+    });
+
+    expect(view.text()).toContain("Newest");
+    expect(view.text()).not.toContain("Older");
   });
 });
