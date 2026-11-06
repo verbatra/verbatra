@@ -563,7 +563,7 @@ describe("GlossarySection, search", () => {
     const view = await renderAsync(section(MANY));
 
     expect(view.all("[data-glossary-row]")).toHaveLength(50);
-    expect(view.get('[role="status"]').textContent).toBe("500 terms");
+    expect(view.get("[data-term-count]").textContent).toBe("500 terms");
 
     await clickAsync(buttonNamed(view, "Show all 500 terms"));
 
@@ -577,7 +577,7 @@ describe("GlossarySection, search", () => {
 
     typeInto(textboxNamed(view, "Search terms"), "term-49");
     expect(view.all("[data-glossary-row]")).toHaveLength(11);
-    expect(view.get('[role="status"]').textContent).toBe("11 of 500 terms");
+    expect(view.get("[data-term-count]").textContent).toBe("11 of 500 terms");
 
     typeInto(textboxNamed(view, "Search terms"), "wert 3");
     expect(view.all("[data-glossary-row]").length).toBeGreaterThan(1);
@@ -813,7 +813,9 @@ describe("GlossarySection, not file-backed", () => {
     );
 
     expect(view.text()).toContain("written inline in the verbatra config");
-    expect(view.all("button")).toHaveLength(0);
+    expect(view.all("button").map((button) => button.textContent)).toEqual([
+      "Jump to Do not translate",
+    ]);
     expect(view.all("input").map((input) => input.getAttribute("aria-label"))).toEqual([
       "Search terms",
     ]);

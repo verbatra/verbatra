@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const HEADER_GAP = 12;
+
+function revealBelowHeader(element: HTMLElement): void {
+  const header = document.querySelector("header");
+  const covered = header === null ? 0 : header.getBoundingClientRect().bottom;
+  const { top, bottom } = element.getBoundingClientRect();
+  if (top < covered + HEADER_GAP) {
+    window.scrollBy?.(0, top - covered - HEADER_GAP);
+  } else if (bottom > window.innerHeight) {
+    window.scrollBy?.(0, bottom - window.innerHeight + HEADER_GAP);
+  }
+}
+
 export interface FocusRegistry {
   register(key: string): (element: HTMLElement | null) => void;
   request(keys: readonly string[]): void;
@@ -15,7 +28,10 @@ export function useFocusRegistry(): FocusRegistry {
       return;
     }
     const target = wanted.map((key) => elements.current.get(key)).find((element) => element);
-    target?.focus();
+    if (target !== undefined) {
+      target.focus({ preventScroll: true });
+      revealBelowHeader(target);
+    }
     setWanted(undefined);
   }, [wanted]);
 

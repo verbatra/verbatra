@@ -9,13 +9,22 @@ import {
 } from "../shared/rpc/glossary.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { CaseSensitiveToggle } from "./GlossaryTermEditor.js";
-import { KEEP_KEY, keptKey, useGlossaryBench } from "./glossary-bench.js";
+import { DNT_HEADING, KEEP_KEY, keptKey, useGlossaryBench } from "./glossary-bench.js";
+import { cn } from "./lib/cn.js";
 
 export const glossarySubheadingClassName = "m-0 mb-2 text-sm font-medium text-foreground";
 
-function KeptTerm({ entry }: { readonly entry: GlossaryDoNotTranslateView }): ReactNode {
+function KeptTerm({
+  entry,
+  next,
+}: {
+  readonly entry: GlossaryDoNotTranslateView;
+  readonly next: GlossaryDoNotTranslateView | undefined;
+}): ReactNode {
   const bench = useGlossaryBench();
-  const busy = bench.writer.busy(keptKey(entry.term));
+  const key = keptKey(entry.term);
+  const busy = bench.writer.busy(key);
+  const failure = bench.writer.failure(key);
   return (
     <li className="flex max-w-full min-w-0 flex-wrap items-center gap-2 rounded-(--radius-lg) border border-border bg-muted/40 px-2.5 py-1.5">
       <span
@@ -45,6 +54,27 @@ function KeptTerm({ entry }: { readonly entry: GlossaryDoNotTranslateView }): Re
           Remove
         </Button>
       ) : null}
+      {failure !== undefined ? (
+        <div className="w-full">
+          <ErrorMessage
+            error={failure.error}
+            prefix={`Could not stop keeping ${entry.term} untranslated.`}
+            retrying={busy}
+            {...(isRetryableWriteError(failure.error)
+              ? {
+                  onRetry: () =>
+                    void bench.writer.retry(key, {
+                      onDone: () =>
+                        bench.focus.request([
+                          ...(next === undefined ? [] : [keptKey(next.term)]),
+                          KEEP_KEY,
+                        ]),
+                    }),
+                }
+              : {})}
+          />
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -73,7 +103,7 @@ function KeepForm({
     const edit = keep.caseSensitive
       ? { term: trimmed, doNotTranslate: true }
       : { term: trimmed, doNotTranslate: true, caseSensitive: false };
-    await writer.write(KEEP_KEY, edit, () => settle(trimmed));
+    await writer.write(KEEP_KEY, edit, { onDone: () => settle(trimmed) });
   }
 
   function settle(sent: string): void {
@@ -84,7 +114,7 @@ function KeepForm({
   }
 
   async function retry(sent: string): Promise<void> {
-    await writer.retry(KEEP_KEY, () => settle(sent));
+    await writer.retry(KEEP_KEY, { onDone: () => settle(sent) });
   }
 
   return (
@@ -149,51 +179,24 @@ function KeepForm({
   );
 }
 
-function KeptFailures({
-  entries,
-}: {
-  readonly entries: readonly GlossaryDoNotTranslateView[];
-}): ReactNode {
-  const { writer, focus } = useGlossaryBench();
-  return entries.map((entry, index) => {
-    const key = keptKey(entry.term);
-    const failure = writer.failure(key);
-    if (failure === undefined) {
-      return null;
-    }
-    const next = entries[index + 1];
-    return (
-      <div key={key} className="mt-2">
-        <ErrorMessage
-          error={failure.error}
-          prefix={`Could not stop keeping ${entry.term} untranslated.`}
-          retrying={writer.busy(key)}
-          {...(isRetryableWriteError(failure.error)
-            ? {
-                onRetry: () =>
-                  void writer.retry(key, () =>
-                    focus.request([...(next === undefined ? [] : [keptKey(next.term)]), KEEP_KEY]),
-                  ),
-              }
-            : {})}
-        />
-      </div>
-    );
-  });
-}
-
 export function GlossaryDoNotTranslate({
   entries,
 }: {
   readonly entries: readonly GlossaryDoNotTranslateView[];
 }): ReactNode {
-  const { editable } = useGlossaryBench();
+  const { editable, focus } = useGlossaryBench();
   if (entries.length === 0 && !editable) {
     return null;
   }
   return (
     <div className="mt-4 border-border border-t pt-4">
-      <h3 className={glossarySubheadingClassName}>Do not translate</h3>
+      <h3
+        ref={focus.register(DNT_HEADING)}
+        tabIndex={-1}
+        className={cn(glossarySubheadingClassName, "outline-none focus-visible:underline")}
+      >
+        Do not translate
+      </h3>
       {entries.length === 0 ? (
         <p className="m-0 text-sm text-muted-foreground">
           No term is kept untranslated yet. Add brand and product names here so every locale keeps
@@ -201,13 +204,12 @@ export function GlossaryDoNotTranslate({
         </p>
       ) : (
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-          {entries.map((entry) => (
-            <KeptTerm key={entry.term} entry={entry} />
+          {entries.map((entry, index) => (
+            <KeptTerm key={entry.term} entry={entry} next={entries[index + 1]} />
           ))}
         </ul>
       )}
       {editable ? <KeepForm entries={entries} /> : null}
-      <KeptFailures entries={entries} />
     </div>
   );
 }

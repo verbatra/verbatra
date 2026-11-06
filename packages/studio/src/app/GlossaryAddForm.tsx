@@ -2,11 +2,7 @@ import { Button, TextField } from "@verbatra/ui";
 import type { FormEvent, ReactNode } from "react";
 import { useRef } from "react";
 import { EMPTY_ADD_DRAFT } from "../client/glossary-drafts.js";
-import {
-  ALL_LOCALES,
-  isRetryableWriteError,
-  termExistsInScope,
-} from "../client/glossary-editing.js";
+import { ALL_LOCALES, existingTermFor, isRetryableWriteError } from "../client/glossary-editing.js";
 import {
   type GlossaryTermView,
   type GlossaryWriteParams,
@@ -56,12 +52,14 @@ export function GlossaryAddForm({
   const { scope, add, writer, focus } = bench;
   const latest = useRef(add);
   latest.current = add;
-  const checking = useRef(false);
   const busy = writer.busy(ADD_KEY);
   const failure = writer.failure(ADD_KEY);
   const trimmedTerm = add.term.trim();
   const trimmedTranslation = add.translation.trim();
-  const existing = termExistsInScope(terms, trimmedTerm, scope);
+  const existing = existingTermFor(terms, redactedTerms, trimmedTerm, scope);
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const waiting = busy || bench.addChecking;
   const tooLong = trimmedTerm.length > MAX_GLOSSARY_TERM_LENGTH;
   const ready =
     trimmedTerm.length > 0 && !tooLong && trimmedTranslation.length > 0 && existing === undefined;
@@ -77,7 +75,7 @@ export function GlossaryAddForm({
 
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault();
-    if (!ready || busy || checking.current) {
+    if (!ready || waiting) {
       return;
     }
     const edit: GlossaryWriteParams = {
@@ -85,19 +83,29 @@ export function GlossaryAddForm({
       translation: trimmedTranslation,
       ...(scope === ALL_LOCALES ? {} : { locale: scope }),
     };
-    checking.current = true;
+    bench.setAddChecking(true);
+    let pending: Promise<boolean> | undefined;
     try {
       const fresh = await bench.readFresh();
-      if (fresh === undefined || termExistsInScope(fresh.terms, trimmedTerm, scope) === undefined) {
-        await writer.write(ADD_KEY, edit, () => settle(edit));
+      const now = latest.current;
+      const unchanged =
+        now.term.trim() === edit.term &&
+        now.translation.trim() === edit.translation &&
+        scopeRef.current === scope;
+      const taken =
+        fresh !== undefined &&
+        existingTermFor(fresh.terms, fresh.redactedTerms, trimmedTerm, scope) !== undefined;
+      if (unchanged && !taken) {
+        pending = writer.write(ADD_KEY, edit, { onDone: () => settle(edit) });
       }
     } finally {
-      checking.current = false;
+      bench.setAddChecking(false);
     }
+    await pending;
   }
 
   async function retry(sent: GlossaryWriteParams): Promise<void> {
-    await writer.retry(ADD_KEY, () => settle(sent));
+    await writer.retry(ADD_KEY, { onDone: () => settle(sent) });
   }
 
   return (
@@ -115,8 +123,8 @@ export function GlossaryAddForm({
             aria-label="New glossary term"
             placeholder="Source term"
             dir="auto"
-            readOnly={busy}
-            aria-busy={busy || undefined}
+            readOnly={waiting}
+            aria-busy={waiting || undefined}
             value={add.term}
             onChange={(event) => bench.setAdd({ ...add, term: event.target.value })}
           />
@@ -134,8 +142,8 @@ export function GlossaryAddForm({
               scope === ALL_LOCALES ? "Translation for all locales" : `Translation for ${scope}`
             }
             dir="auto"
-            readOnly={busy}
-            aria-busy={busy || undefined}
+            readOnly={waiting}
+            aria-busy={waiting || undefined}
             maxLength={MAX_GLOSSARY_TRANSLATION_LENGTH}
             value={add.translation}
             onChange={(event) => bench.setAdd({ ...add, translation: event.target.value })}
@@ -150,8 +158,8 @@ export function GlossaryAddForm({
           type="submit"
           variant="primary"
           disabled={!ready}
-          aria-busy={busy || undefined}
-          aria-disabled={busy || undefined}
+          aria-busy={waiting || undefined}
+          aria-disabled={waiting || undefined}
         >
           Add term
         </Button>

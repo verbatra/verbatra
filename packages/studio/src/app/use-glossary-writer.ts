@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { deriveGlossaryWriteOutcome } from "../client/glossary-editing.js";
+import { deriveGlossaryWriteOutcome, isRemovalEdit } from "../client/glossary-editing.js";
 import type { StructuredError } from "../client/state.js";
 import type { GlossaryWriteParams, GlossaryWriteResult } from "../shared/rpc/glossary.js";
 import { rpcClient } from "./api.js";
@@ -9,15 +9,20 @@ export interface WriteFailure {
   readonly edit: GlossaryWriteParams;
 }
 
+export interface WriteOptions {
+  readonly onDone?: () => void;
+  readonly stillWanted?: () => boolean;
+}
+
 export interface GlossaryWriter {
   readonly anyBusy: boolean;
   busy(key: string): boolean;
   failure(key: string): WriteFailure | undefined;
   firstFailure(): WriteFailure | undefined;
-  write(key: string, edit: GlossaryWriteParams, onDone?: () => void): Promise<boolean>;
-  retry(key: string, onDone?: () => void): Promise<boolean>;
+  write(key: string, edit: GlossaryWriteParams, options?: WriteOptions): Promise<boolean>;
+  retry(key: string, options?: WriteOptions): Promise<boolean>;
   dismiss(key: string): void;
-  dismissAll(): void;
+  dismissDrafts(): void;
 }
 
 function withCount(
@@ -53,9 +58,12 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
   async function perform(
     key: string,
     edit: GlossaryWriteParams,
-    onDone: (() => void) | undefined,
+    options: WriteOptions | undefined,
   ): Promise<boolean> {
     try {
+      if (options?.stillWanted?.() === false) {
+        return false;
+      }
       const outcome = deriveGlossaryWriteOutcome(await rpcClient.call("glossary.write", edit));
       if (outcome.kind === "error") {
         setFailures((current) => new Map(current).set(key, { error: outcome.error, edit }));
@@ -63,7 +71,7 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
       }
       setFailures((current) => withoutKey(current, key));
       onChangeRef.current(outcome.glossary);
-      onDone?.();
+      options?.onDone?.();
       return true;
     } finally {
       setPending((current) => withCount(current, key, -1));
@@ -73,10 +81,10 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
   function enqueue(
     key: string,
     edit: GlossaryWriteParams,
-    onDone: (() => void) | undefined,
+    options: WriteOptions | undefined,
   ): Promise<boolean> {
     setPending((current) => withCount(current, key, 1));
-    const result = queue.current.then(() => perform(key, edit, onDone));
+    const result = queue.current.then(() => perform(key, edit, options));
     queue.current = result.then(
       () => undefined,
       () => undefined,
@@ -93,17 +101,19 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
     busy: (key) => pending.has(key),
     failure: (key) => failures.get(key),
     firstFailure: () => failures.values().next().value,
-    write(key, edit, onDone) {
+    write(key, edit, options) {
       dismiss(key);
-      return enqueue(key, edit, onDone);
+      return enqueue(key, edit, options);
     },
     dismiss,
-    dismissAll() {
-      setFailures(new Map());
+    dismissDrafts() {
+      setFailures(
+        (current) => new Map([...current].filter(([, failure]) => isRemovalEdit(failure.edit))),
+      );
     },
-    retry(key, onDone) {
+    retry(key, options) {
       const failed = failures.get(key);
-      return failed === undefined ? Promise.resolve(false) : enqueue(key, failed.edit, onDone);
+      return failed === undefined ? Promise.resolve(false) : enqueue(key, failed.edit, options);
     },
   };
 }

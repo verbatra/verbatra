@@ -74,16 +74,7 @@ export function GlossaryPanel({ refreshToken }: PanelProps): ReactNode {
               onRetry={model.retry}
             />
           ) : null}
-          {model.deferred ? (
-            <p role="status" className="m-0 mb-3 text-sm text-muted-foreground">
-              A refresh is waiting. Studio re-reads the glossary when you finish editing.
-            </p>
-          ) : null}
-          <GlossarySection
-            glossary={state.value}
-            onChange={model.replace}
-            onHoldChange={model.setHolding}
-          />
+          <GlossarySection glossary={state.value} onChange={model.replace} />
         </div>
       ) : null}
     </>

@@ -229,32 +229,41 @@ export function GlossaryTermRow({
   const bench = useGlossaryBench();
   const { scope, locales, editable, writer, focus } = bench;
   const key = termKey(term.source);
-  const draft = bench.editors.get(term.source)?.draft;
+  const entry = bench.editors.get(term.source);
+  const draft = entry?.draft;
+  const base = entry?.base ?? term;
   const busy = writer.busy(key);
-  const failure = writer.failure(key);
+  const failure = orphaned ? undefined : writer.failure(key);
+  const stillWanted = (): boolean => !bench.isOrphan(term.source);
   const perLocale = hasPerLocaleData(term);
   const removable = scope === ALL_LOCALES && !perLocale;
   const actionable = editable && !redacted && !orphaned;
 
   async function save(): Promise<void> {
-    const edit = draft === undefined ? undefined : buildTermEdit(term, scope, draft);
+    const edit = draft === undefined ? undefined : buildTermEdit(base, scope, draft);
     if (edit === undefined) {
       return;
     }
     if (editEmptiesTerm(term, edit)) {
       bench.askRemoval({ kind: "term", term, cause: "clear", edit });
     } else {
-      await writer.write(key, edit, () => bench.afterTermWrite(term, edit));
+      await writer.write(key, edit, {
+        onDone: () => bench.afterTermWrite(term, edit),
+        stillWanted,
+      });
     }
   }
 
   async function retry(failed: WriteFailure): Promise<void> {
-    await writer.retry(key, () => bench.afterTermWrite(term, failed.edit));
+    await writer.retry(key, {
+      onDone: () => bench.afterTermWrite(term, failed.edit),
+      stillWanted,
+    });
   }
 
   return (
     <li
-      data-glossary-row=""
+      data-glossary-row={term.source}
       ref={redacted ? focus.register(key) : undefined}
       tabIndex={redacted ? -1 : undefined}
       className="min-w-0 rounded-(--radius-lg) border border-border bg-muted/40 px-3 py-2.5"
@@ -300,7 +309,7 @@ export function GlossaryTermRow({
         <TermDetails term={term} scope={scope} locales={locales} />
       ) : (
         <GlossaryTermEditor
-          term={term}
+          term={base}
           scope={scope}
           draft={draft}
           busy={busy}

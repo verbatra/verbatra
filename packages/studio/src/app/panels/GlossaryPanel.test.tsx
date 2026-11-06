@@ -290,52 +290,144 @@ describe("GlossaryPanel, live refresh", () => {
     expect(document.activeElement).toBe(textboxNamed(view, "Search terms"));
   });
 
-  it("defers a refresh while an editor is open and applies it once the editor closes", async () => {
-    let version = 0;
-    stubRpc({
-      "glossary.get": () =>
-        glossaryAnswer(
-          version++ === 0
-            ? TERMS
-            : glossaryOf({ source: "file", path: "glossary.json" }, { verbatra: "Neu" }),
-        ),
-    });
+  const FILE = { source: "file", path: "glossary.json" } as const;
+
+  it("applies a different read at once: other rows update, an edited row keeps its draft", async () => {
+    let served = TERMS;
+    stubRpc({ "glossary.get": () => glossaryAnswer(served) });
     const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
     await clickAsync(buttonNamed(view, "Edit verbatra"));
     typeInto(textboxNamed(view, "Translation (all locales)"), "Draft");
 
+    served = glossaryOf(FILE, { verbatra: "Outside", checkout: "Kasse neu" });
     view.rerender(<GlossaryPanel refreshToken={1} />);
     await flush();
 
-    expect(rpcCalls).toHaveLength(1);
-    expect(view.get('[role="status"]').textContent).toContain("A refresh is waiting");
     expect(textboxNamed(view, "Translation (all locales)").value).toBe("Draft");
-
-    await clickAsync(buttonNamed(view, "Cancel"));
-    await flush();
-    await clickAsync(view.get("h1"));
-    await flush();
-
-    expect(rpcCalls).toHaveLength(2);
-    expect(view.text()).toContain("Neu");
+    expect(view.text()).toContain("Kasse neu");
     expect(view.text()).not.toContain("A refresh is waiting");
+    expect(rpcCalls.filter((call) => call.method === "glossary.get")).toHaveLength(2);
   });
 
-  it("defers a refresh while the add form holds text", async () => {
+  it("keeps an unedited row's elements when an identical read arrives, as after a Studio save", async () => {
     stubGlossary(TERMS);
     const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
-    typeInto(textboxNamed(view, "New glossary term"), "cart");
+    const row = view.get("[data-glossary-row]");
 
     view.rerender(<GlossaryPanel refreshToken={1} />);
     await flush();
 
-    expect(rpcCalls).toHaveLength(1);
-    expect(textboxNamed(view, "New glossary term").value).toBe("cart");
+    expect(view.get("[data-glossary-row]")).toBe(row);
+    expect(view.query('[role="alert"]')).toBeNull();
+  });
 
-    typeInto(textboxNamed(view, "New glossary term"), "");
+  it("clears a stale notice when an identical read succeeds again", async () => {
+    let calls = 0;
+    stubRpc({
+      "glossary.get": () => (calls++ === 1 ? rpcError("INTERNAL", "gone") : glossaryAnswer(TERMS)),
+    });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    await flush();
+    expect(view.get('[role="alert"]')).toBeTruthy();
+    const row = view.get("[data-glossary-row]");
+
+    view.rerender(<GlossaryPanel refreshToken={2} />);
     await flush();
 
-    expect(rpcCalls).toHaveLength(2);
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.get("[data-glossary-row]")).toBe(row);
+  });
+
+  it("turns a draft into an orphan at once when its term goes, with no waiting state", async () => {
+    let served = TERMS;
+    stubRpc({ "glossary.get": () => glossaryAnswer(served) });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    await clickAsync(buttonNamed(view, "Edit checkout"));
+    typeInto(textboxNamed(view, "Translation (all locales)"), "Mein Entwurf");
+
+    served = glossaryOf(FILE, { verbatra: "Verbatra" });
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    await flush();
+
+    const block = view.get("[data-orphan-block]");
+    expect(block.textContent).toContain("no longer exists");
+    expect(textboxNamed(view, "Translation (all locales)").value).toBe("Mein Entwurf");
+    expect((buttonNamed(view, "Save") as HTMLButtonElement).disabled).toBe(true);
+    expect(view.text()).not.toContain("A refresh is waiting");
+    expect(view.get("[aria-live]").textContent).toContain("no longer exists");
+  });
+
+  it("shows the orphan and Discard before the empty state when the glossary has no terms left", async () => {
+    let served = glossaryOf(FILE, { checkout: "Kasse" });
+    stubRpc({ "glossary.get": () => glossaryAnswer(served) });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    await clickAsync(buttonNamed(view, "Edit checkout"));
+    typeInto(textboxNamed(view, "Translation (all locales)"), "Entwurf");
+
+    served = glossaryOf(FILE, {});
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    await flush();
+
+    const orphan = view.get("[data-orphan-block]");
+    const empty = view.getByText("p", "No glossary terms");
+    expect(orphan.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(buttonNamed(view, "Discard draft")).toBeTruthy();
+  });
+
+  it("drops the failure and Retry of a term that went away, so Retry cannot recreate it", async () => {
+    let served = TERMS;
+    stubRpc({
+      "glossary.get": () => glossaryAnswer(served),
+      "glossary.write": rpcError("LOCK_CONTENDED", "busy"),
+    });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    await clickAsync(buttonNamed(view, "Edit checkout"));
+    typeInto(textboxNamed(view, "Translation (all locales)"), "Neu");
+    await clickAsync(buttonNamed(view, "Save"));
+    expect(buttonNamed(view, "Retry")).toBeTruthy();
+
+    served = glossaryOf(FILE, { verbatra: "Verbatra" });
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.query("[data-orphan-block]")).not.toBeNull();
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(rpcCalls.filter((call) => call.method === "glossary.write")).toHaveLength(1);
+  });
+
+  it("does not send a queued write for a term that has gone away in the meantime", async () => {
+    const first = deferredAnswer();
+    let served = TERMS;
+    let writes = 0;
+    stubRpc({
+      "glossary.get": () => glossaryAnswer(served),
+      "glossary.write": () => {
+        writes += 1;
+        return writes === 1 ? first.promise : glossaryAnswer(TERMS);
+      },
+    });
+    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    await clickAsync(buttonNamed(view, "Edit verbatra"));
+    typeInto(textboxNamed(view, "Translation (all locales)"), "A");
+    await clickAsync(buttonNamed(view, "Save"));
+    await clickAsync(buttonNamed(view, "Edit checkout"));
+    typeInto(
+      view.all('input[aria-label="Translation (all locales)"]').at(-1) as HTMLInputElement,
+      "B",
+    );
+    await clickAsync(view.all("form button[type=submit]").at(-1) as HTMLElement);
+
+    served = glossaryOf(FILE, { verbatra: "Verbatra" });
+    view.rerender(<GlossaryPanel refreshToken={1} />);
+    await flush();
+    await act(async () => {
+      first.resolve(glossaryAnswer(glossaryOf(FILE, { verbatra: "A" })));
+      await flush();
+      await flush();
+    });
+
+    expect(writes).toBe(1);
   });
 
   it("keeps the last glossary and says so when a refresh fails, with a Retry that does not steal focus", async () => {

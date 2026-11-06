@@ -13,11 +13,13 @@ export type ReadState<T> =
 
 export interface ReadModel<T> {
   readonly state: ReadState<T>;
-  readonly deferred: boolean;
   readonly recovered: number;
   retry(): void;
   replace(value: T): void;
-  setHolding(holding: boolean): void;
+}
+
+function sameValue(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 export function useReadModel<T>(
@@ -26,13 +28,9 @@ export function useReadModel<T>(
 ): ReadModel<T> {
   const loadRef = useRef(load);
   const [state, setState] = useState<ReadState<T>>({ status: "loading" });
-  const [deferred, setDeferred] = useState(false);
   const [recovered, setRecovered] = useState(0);
   const latestRead = useRef(0);
   const writes = useRef(0);
-  const holding = useRef(false);
-  const deferredRef = useRef(false);
-  const loaded = useRef(false);
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -55,8 +53,14 @@ export function useReadModel<T>(
       return;
     }
     if (outcome.ok) {
-      loaded.current = true;
-      setState({ status: "loaded", value: outcome.result, stale: undefined, retrying: false });
+      setState((current) => {
+        if (current.status !== "loaded" || !sameValue(current.value, outcome.result)) {
+          return { status: "loaded", value: outcome.result, stale: undefined, retrying: false };
+        }
+        return current.stale === undefined && !current.retrying
+          ? current
+          : { ...current, stale: undefined, retrying: false };
+      });
       if (byUser) {
         setRecovered((count) => count + 1);
       }
@@ -70,25 +74,8 @@ export function useReadModel<T>(
   }, []);
 
   useEffect(() => {
-    if (holding.current && loaded.current) {
-      deferredRef.current = true;
-      setDeferred(true);
-      return;
-    }
     void read(false);
   }, [refreshToken, read]);
-
-  const setHolding = useCallback(
-    (next: boolean): void => {
-      holding.current = next;
-      if (!next && deferredRef.current) {
-        deferredRef.current = false;
-        setDeferred(false);
-        void read(false);
-      }
-    },
-    [read],
-  );
 
   const retry = useCallback((): void => {
     setState((current) =>
@@ -99,9 +86,8 @@ export function useReadModel<T>(
 
   const replace = useCallback((value: T): void => {
     writes.current += 1;
-    loaded.current = true;
     setState({ status: "loaded", value, stale: undefined, retrying: false });
   }, []);
 
-  return { state, deferred, recovered, retry, replace, setHolding };
+  return { state, recovered, retry, replace };
 }

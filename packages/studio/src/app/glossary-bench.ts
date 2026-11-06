@@ -25,6 +25,9 @@ export interface GlossaryBench {
   openEditor(source: string): void;
   closeEditor(source: string): void;
   escapeEditor(source: string): void;
+  isOrphan(source: string): boolean;
+  readonly addChecking: boolean;
+  setAddChecking(checking: boolean): void;
   readFresh(): Promise<GlossaryGetResult | undefined>;
   askRemoval(request: RemovalRequest): void;
   afterTermWrite(term: GlossaryTermView, edit: GlossaryWriteParams): void;
@@ -51,5 +54,7 @@ export const KEEP_KEY = "keep";
 export const ADD_FIELD = "add-field";
 
 export const SEARCH_FIELD = "search";
+
+export const DNT_HEADING = "dnt-heading";
 
 export const editorFieldKey = (source: string): string => `field:${source}`;

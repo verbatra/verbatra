@@ -19,21 +19,25 @@ export function useGlossaryHold({
   dirtyAll,
   dirtyScoped,
   saving,
+  failed,
   isSourceDirty,
   discardAll,
   discardSource,
   applyScope,
   focusDirty,
+  focusSource,
   currentScope,
 }: {
   readonly dirtyAll: boolean;
   readonly dirtyScoped: boolean;
   readonly saving: boolean;
+  readonly failed: boolean;
   readonly isSourceDirty: (source: string) => boolean;
   readonly discardAll: () => void;
   readonly discardSource: (source: string) => void;
   readonly applyScope: (next: string) => void;
   readonly focusDirty: () => void;
+  readonly focusSource: (source: string) => void;
   readonly currentScope: string;
 }): GlossaryHold {
   const focusLatest = useRef(focusDirty);
@@ -47,6 +51,7 @@ export function useGlossaryHold({
     onClose: discardAll,
     fieldRef,
     proceedOnSettled: true,
+    blocked: failed,
   });
   const [pending, setPending] = useState<PendingHold | undefined>(undefined);
   const sawSaving = useRef(false);
@@ -63,8 +68,10 @@ export function useGlossaryHold({
       sawSaving.current = false;
     } else if (saving) {
       sawSaving.current = true;
+    } else if (failed) {
+      sawSaving.current = false;
     }
-  }, [pending, saving]);
+  }, [pending, saving, failed]);
 
   useEffect(() => {
     if (pending === undefined) {
@@ -72,13 +79,13 @@ export function useGlossaryHold({
     }
     if (guard.confirming) {
       setPending(undefined);
-    } else if (!pendingDirty && !saving) {
+    } else if (!pendingDirty && !saving && !(failed && pending.kind === "scope")) {
       setPending(undefined);
       if (pending.kind === "scope" && sawSaving.current) {
         applyScope(pending.next);
       }
     }
-  }, [pending, pendingDirty, saving, guard.confirming, applyScope]);
+  }, [pending, pendingDirty, saving, failed, guard.confirming, applyScope]);
 
   function request(next: PendingHold): void {
     if (guard.confirming) {
@@ -125,7 +132,11 @@ export function useGlossaryHold({
       return;
     }
     setPending(undefined);
-    focusDirty();
+    if (pending.kind === "close") {
+      focusSource(pending.source);
+    } else {
+      focusDirty();
+    }
   }
 
   return {

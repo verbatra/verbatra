@@ -13,7 +13,7 @@ import { GlossaryAddForm } from "./GlossaryAddForm.js";
 import { GlossaryDoNotTranslate } from "./GlossaryDoNotTranslate.js";
 import { GlossaryRemoveDialog } from "./GlossaryRemoveDialog.js";
 import { GlossaryTermRow } from "./GlossaryTermRow.js";
-import { GlossaryBenchContext, SEARCH_FIELD } from "./glossary-bench.js";
+import { DNT_HEADING, GlossaryBenchContext, SEARCH_FIELD } from "./glossary-bench.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
 import type { PendingHold } from "./use-glossary-hold.js";
 import { type GlossaryWorkspace, useGlossaryWorkspace } from "./use-glossary-workspace.js";
@@ -76,7 +76,12 @@ function HoldPrompt({ workspace }: { readonly workspace: GlossaryWorkspace }): R
   if (!hold.visible) {
     return null;
   }
-  const pendingKind = hold.pending?.kind;
+  const closing = hold.pending?.kind === "close" ? hold.pending.source : undefined;
+  const summary = describeDirtyDrafts({
+    editors: closing === undefined ? dirty.editors : [closing],
+    add: dirty.add && closing === undefined,
+    keep: dirty.keep && hold.pending === undefined,
+  });
   return (
     <div className="mb-4">
       <UnsavedPrompt
@@ -84,17 +89,12 @@ function HoldPrompt({ workspace }: { readonly workspace: GlossaryWorkspace }): R
         subject={
           hold.saving ? (
             "Saving the glossary. Leaving waits until the writes finish."
+          ) : summary === "" ? (
+            "A glossary change could not be saved."
           ) : (
             <>
               {holdLead(hold.pending)}
-              <span className="wrap-anywhere">
-                {describeDirtyDrafts({
-                  editors: pendingKind === "close" ? [] : dirty.editors,
-                  add: dirty.add && pendingKind !== "close",
-                  keep: dirty.keep && hold.pending === undefined,
-                })}
-              </span>
-              .
+              <span className="wrap-anywhere">{summary}</span>.
             </>
           )
         }
@@ -108,6 +108,29 @@ function HoldPrompt({ workspace }: { readonly workspace: GlossaryWorkspace }): R
   );
 }
 
+function OrphanDrafts({ workspace }: { readonly workspace: GlossaryWorkspace }): ReactNode {
+  const { orphanTerms } = workspace;
+  const count = orphanTerms.length;
+  return (
+    <>
+      <p aria-live="polite" className="sr-only">
+        {count === 0
+          ? ""
+          : `${count} unsaved ${count === 1 ? "draft belongs" : "drafts belong"} to a term that no longer exists.`}
+      </p>
+      {count > 0 ? (
+        <section aria-label="Drafts for removed terms" data-orphan-block="" className="mb-4">
+          <ul className="m-0 flex min-w-0 list-none flex-col gap-2 p-0">
+            {orphanTerms.map((term) => (
+              <GlossaryTermRow key={term.source} term={term} redacted={false} orphaned />
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </>
+  );
+}
+
 function TermList({
   glossary,
   workspace,
@@ -115,7 +138,7 @@ function TermList({
   readonly glossary: GlossaryGetResult;
   readonly workspace: GlossaryWorkspace;
 }): ReactNode {
-  const { shown, orphans, clearSearch } = workspace;
+  const { shown, clearSearch } = workspace;
   const count = glossary.terms.length;
   if (count === 0) {
     return (
@@ -141,7 +164,18 @@ function TermList({
   }
   return (
     <>
-      <p role="status" className="m-0 mb-2 text-xs text-muted-foreground">
+      {glossary.doNotTranslate.length > 0 || workspace.bench.editable ? (
+        <div className="mb-2">
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => workspace.bench.focus.request([DNT_HEADING])}
+          >
+            Jump to Do not translate
+          </Button>
+        </div>
+      ) : null}
+      <p data-term-count="" role="status" className="m-0 mb-2 text-xs text-muted-foreground">
         {workspace.matchCount === count
           ? `${count} ${count === 1 ? "term" : "terms"}`
           : `${workspace.matchCount} of ${count} terms`}
@@ -152,7 +186,7 @@ function TermList({
             key={`${workspace.bench.scope}:${term.source}`}
             term={term}
             redacted={glossary.redactedTerms.includes(term.source)}
-            orphaned={orphans.has(term.source)}
+            orphaned={false}
           />
         ))}
       </ul>
@@ -202,13 +236,11 @@ function Toolbar({
 export function GlossarySection({
   glossary,
   onChange,
-  onHoldChange,
 }: {
   readonly glossary: GlossaryGetResult;
   readonly onChange: (next: GlossaryWriteResult) => void;
-  readonly onHoldChange?: (holding: boolean) => void;
 }): ReactNode {
-  const workspace = useGlossaryWorkspace({ glossary, onChange, onHoldChange });
+  const workspace = useGlossaryWorkspace({ glossary, onChange });
   const { bench, removal } = workspace;
   return (
     <GlossaryBenchContext value={bench}>
@@ -217,10 +249,17 @@ export function GlossarySection({
           <p className="m-0 mb-3 text-sm text-muted-foreground">{workspace.readOnlyReason}</p>
         ) : null}
         <HoldPrompt workspace={workspace} />
+        {workspace.missingFile && glossary.indicator.source === "file" ? (
+          <p role="status" data-missing-file="" className="m-0 mb-3 text-sm text-warning">
+            The glossary file {glossary.indicator.path} is missing, so nothing is listed. Restore it
+            from version control; Studio cannot create it.
+          </p>
+        ) : null}
         <Toolbar glossary={glossary} workspace={workspace} />
         {bench.editable ? (
           <GlossaryAddForm terms={glossary.terms} redactedTerms={glossary.redactedTerms} />
         ) : null}
+        <OrphanDrafts workspace={workspace} />
         <TermList glossary={glossary} workspace={workspace} />
         {bench.editable && bench.scope !== ALL_LOCALES && glossary.terms.length > 0 ? (
           <p data-remove-reason="" className="m-0 mt-2 text-xs text-muted-foreground">
