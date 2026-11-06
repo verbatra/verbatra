@@ -1081,4 +1081,37 @@ describe("EditEntryDialog: an unsaved draft", () => {
     expect(editor(view).style.getPropertyValue("scroll-margin-top")).toBe("");
     expect(document.activeElement).toBe(editor(view));
   });
+
+  it("keeps focus on Keep editing when the prompt opens over an earlier rejection", async () => {
+    stubRpc({
+      "key.context": keyValue("Hello {name}", "Hallo {name}"),
+      "translation.editEntry": rejected("placeholder" as IntegrityGateReason, "Hallo"),
+    });
+    const view = await renderAsync(dialog());
+    typeInto(editor(view), "Hallo");
+    await clickAsync(saveButton(view));
+    await flush();
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+
+    pressKey("Escape");
+
+    expect(document.activeElement).toBe(promptButton(view, "Keep editing"));
+    expect(editor(view).style.getPropertyValue("scroll-margin-top")).toBe("");
+  });
+
+  it("reveals the field again when the prompt's own Save is rejected", async () => {
+    stubRpc({
+      "key.context": keyValue("Hello {name}", "Hallo {name}"),
+      "translation.editEntry": rejected("placeholder" as IntegrityGateReason, "Hallo"),
+    });
+    const view = await renderAsync(dialog());
+    typeInto(editor(view), "Hallo");
+    pressKey("Escape");
+
+    await clickAsync(promptButton(view, "Save"));
+    await flush();
+
+    expect(document.activeElement).toBe(editor(view));
+    expect(editor(view).style.getPropertyValue("scroll-margin-top")).toBe("8px");
+  });
 });

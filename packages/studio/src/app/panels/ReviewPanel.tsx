@@ -38,7 +38,6 @@ import {
 } from "../ReviewFilterBar.js";
 import type { RowBusy } from "../ReviewRowActions.js";
 import { ReviewTable, type RowActions } from "../ReviewTable.js";
-import { routeGuardBusy } from "../route-guard.js";
 import { type BulkSelection, useBulkSelection } from "../use-bulk-selection.js";
 import { useCapabilities } from "../use-capabilities.js";
 import { useLocaleValues } from "../use-locale-values.js";
@@ -243,7 +242,7 @@ function useDeferredLocaleCleanup(
     cleanRef.current = clean;
   });
   useEffect(() => {
-    if (urlLocale !== undefined && knownLocale === "" && !editorOpen && !routeGuardBusy()) {
+    if (urlLocale !== undefined && knownLocale === "" && !editorOpen) {
       cleanRef.current();
     }
   }, [urlLocale, knownLocale, editorOpen]);

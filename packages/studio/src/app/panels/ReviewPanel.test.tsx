@@ -2687,6 +2687,21 @@ describe("ReviewPanel: background URL cleanup while a draft is open", () => {
     expect(view.query('[role="dialog"]')).toBeNull();
   });
 
+  it("cleans the URL once the editor closes after Keep editing", async () => {
+    const view = await dirtyDeepLinkedEditor();
+    await reloadWithoutDe(view);
+    pressKey("Escape");
+    click(view.getByText("button", "Keep editing"));
+    expect(window.location.hash).toContain("locale=de");
+
+    pressKey("Escape");
+    click(view.getByText("button", "Discard"));
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(window.location.hash).not.toContain("locale=");
+  });
+
   it("still cleans a stale locale at once when no draft is open", async () => {
     window.history.replaceState(null, "", "#/review?locale=xx");
     stubReview();

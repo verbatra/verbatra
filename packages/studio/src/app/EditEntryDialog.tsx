@@ -172,15 +172,15 @@ export function EditEntryDialog({
   }
 
   const rejected = submitFailure(submit) !== null;
-  const revealRef = useRef(revealField);
+  const revealRef = useRef({ reveal: revealField, confirming });
   useLayoutEffect(() => {
-    revealRef.current = revealField;
+    revealRef.current = { reveal: revealField, confirming };
   });
   useEffect(() => {
-    if (rejected && confirming) {
-      revealRef.current();
+    if (rejected && revealRef.current.confirming) {
+      revealRef.current.reveal();
     }
-  }, [rejected, confirming, submit]);
+  }, [rejected, submit]);
 
   async function handleSubmit(): Promise<void> {
     if (await edit.save(locale)) {

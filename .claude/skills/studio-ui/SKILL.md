@@ -385,7 +385,7 @@ Enter and Space still work on a chip; they keep their gates: `canWrite` and the 
 `use-review-keyboard.ts` and `ReviewPanel.tsx`, the spend rule itself in `retranslate-eligibility.ts`.
 `ReviewRowActions` stays presentational (`data-layout`, `data-reserves-busy`). `EditEntryDialog` asks
 through `UnsavedPrompt` before Escape, the backdrop, Close or a route change drops a dirty draft; a
-background URL cleanup waits for a clean draft and no held route.
+background URL cleanup waits until the editor closes.
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they
