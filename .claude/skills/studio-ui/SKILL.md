@@ -262,7 +262,15 @@ Rules that follow:
   Glossary and Settings, which read once, and are wired through `PAGE_PANELS` in `App.tsx` and
   `PAGE_LABELS`, `PAGE_ICONS` and `NAV_GROUPS` in `src/app/nav-groups.ts`. `DEFAULT_PAGE` in
   `src/client/routes.ts` is `overview`. Overview owns the metric row, the per-locale coverage
-  table, the last run and the locale file history; Translations is one `KeysTable` (the matrix of
+  table, the last run and the locale file history, in that order. Each coverage row links to
+  `#/translations?locale=` and `#/review?locale=` through `routeHash`, with a visible word and an
+  sr-only locale suffix so every link name is unique, and a `-outline-offset-2` focus ring because
+  the table card clips an outer one. Figures (`MetricCard` values, the coverage percentage and key
+  counts) are set in sans with `tabular-nums` and carry `data-figure`; mono is for identifiers
+  (keys, locale tags, hashes, paths). Text that is not focusable never gets a `title` or a
+  `Tooltip`: it wraps (`break-words` or `wrap-anywhere`) and shows its full value. Git text
+  (commit subject, author, paths) takes `dir="auto"`, locale tags and hashes `dir="ltr"`, and a
+  commit date is visible text inside `<time datetime>`. Translations is one `KeysTable` (the matrix of
   a status per locale, or one locale's entries with source, translation, status and origin) under
   `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary. Adding a page
   means adding it to `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of
