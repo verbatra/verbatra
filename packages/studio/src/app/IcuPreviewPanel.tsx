@@ -110,7 +110,7 @@ function SampleInputs({
 }): ReactNode {
   const baseId = useId();
   return (
-    <fieldset className="m-0 mb-3 min-w-0 border-0 p-0" data-icu-samples="">
+    <fieldset className="m-0 mb-1 min-w-0 border-0 p-0" data-icu-samples="">
       <legend className="mb-1 p-0 text-xs font-semibold text-foreground">Sample values</legend>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-3 gap-y-2">
         {fields.map((field, index) => {
