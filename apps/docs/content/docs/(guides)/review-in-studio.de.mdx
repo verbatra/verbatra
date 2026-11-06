@@ -152,9 +152,9 @@ Overview ist die Seite, auf der Studio startet. Sie zeigt die Abdeckung jeder Lo
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary hat eine eigene Seite, auf der es vor 0.7.0 unter Settings lag. Ist das Glossar eine JSON-Datei, kannst du Begriffe hinzufügen, bearbeiten und entfernen; jede Änderung wird direkt in die Datei geschrieben. Beim Entfernen eines Begriffs oder beim Leeren seiner letzten Übersetzung wird zuerst nachgefragt und genannt, was verloren geht; ungespeicherte Änderungen fragen nach, bevor du die Seite verlässt oder die Sprache wechselst. Die Suche grenzt die Liste ein. Ein Inline-Glossar in `verbatra.config.ts` bleibt schreibgeschützt.
+Glossary hat eine eigene Seite, auf der es vor 0.7.0 unter Settings lag. Bei einem JSON-Glossar kannst du Begriffe suchen, hinzufügen, bearbeiten und entfernen, jeweils direkt in die Datei geschrieben. Entfernen fragt zuerst; ungespeicherte Änderungen fragen vor dem Verlassen nach. Ein Inline-Glossar in `verbatra.config.ts` bleibt schreibgeschützt.
 
-Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits geschriebenen Text; starte Studio neu, damit seine eigenen Neuübersetzungen sie nutzen.
+Eine Änderung betrifft nur, was dem nächsten Lauf gesagt wird, nie bereits geschriebenen Text.
 
 ### Ansicht pro Locale
 

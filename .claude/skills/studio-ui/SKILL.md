@@ -428,12 +428,19 @@ failed refresh keeps the last data under a stale notice with its own Retry. A us
 moves focus to the `data-recovery-target` container only when focus was lost; a background refresh
 never moves focus. Glossary takes `refreshToken` and re-reads on a bump, deferring while any editor is
 open or any add form holds text (a status line says a refresh is waiting, and it runs when the last
-draft ends); a read that started before a finished write is dropped. The glossary file itself is not
-watched, so only locale, lock and provenance events bump the token. `GlossarySection` owns the drafts
-(`use-glossary-workspace.ts`): row editors, the add form and the keep form live above the rows, so
-search, scope and refresh never drop one, and an open editor stays listed when search stops matching
-it. One route guard covers all drafts through `useDialogDraftGuard`, and `UnsavedPrompt` (Discard and
-Keep editing, no Save, Keep editing primary) names what is unsaved; a scope switch with a dirty editor
+draft ends); a read that started before a finished write is dropped. A file-backed glossary file is
+watched too (`server/watcher.ts`, reason `lock`), so an external edit, a Studio write and a WebMCP write
+all bump the token; an open draft defers it as for any event. `GlossarySection` owns the drafts
+(`use-glossary-workspace.ts`): row editors (a `Map` keyed by source, never a plain object, since a term
+can be named `constructor`), the add form and the keep form live above the rows, so search, scope and
+refresh never drop one, and an open editor stays listed when search stops matching it or when its term
+has gone (a notice says so, navigation stays held, Discard drops it). The list shows the first 50 terms
+with Show all N (focus on the first new row), the add form sits above it, and an editor opened from the
+exists note is always listed. One route guard covers all drafts through `useDialogDraftGuard`, and `UnsavedPrompt` (Discard and
+Keep editing, no Save, Keep editing primary) names what is unsaved, and while any write is queued or in
+flight it says it is saving, busies its buttons and lets the held change through when the writes
+succeed (a failure keeps it, with the reason); Escape in a dirty editor opens it for that editor only
+(not during IME composition), and a hold arriving while a removal dialog is open closes the dialog first; a scope switch with a dirty editor
 or add form holds in the same prompt, with Keep editing reverting the select, Discard applying the
 scope and focusing the select, and typing back to clean releasing it, and a route hold replaces a scope
 hold and the reverse. Removing a term or a do-not-translate entry, and any Save that would leave a term
@@ -443,7 +450,10 @@ confirm are ignored while it submits; on success it closes in the same update th
 next visible term (else the add field), on failure it closes, the failure shows on the row with Retry,
 and focus stays on the control that opened it. Writes go through `use-glossary-writer.ts`: one request
 at a time in send order, busy and failure kept per key, `aria-disabled` and `readOnly` instead of
-`disabled` so focus stays, Retry only for transient codes (`isRetryableWriteError`). Add says when the
+`disabled` so focus stays, Retry only for transient codes (`isRetryableWriteError`) and only for an unchanged, still wanted action:
+typing into the draft, Discard, a scope change and closing the form dismiss the failure. Never-use
+renderings are one per line (a comma stays inside a rendering), and values are compared after the
+form's own trimming, so an untouched editor is clean. Add says when the
 source term already holds a translation in the scope (exact match) and offers Edit instead of
 overwriting. Values with a known locale render through `TranslationValue`; the shared translation and
 the note keep `dir="auto"`. Settings shows spend, writes, the two rate limits and the glossary source.

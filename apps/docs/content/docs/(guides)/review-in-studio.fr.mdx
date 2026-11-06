@@ -152,9 +152,9 @@ Overview est la page sur laquelle Studio s'ouvre. Elle montre la couverture de c
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary a sa propre page, où il se trouvait dans Settings avant 0.7.0. Si le glossaire est un fichier JSON, tu peux ajouter, modifier et supprimer des termes ; chaque changement est écrit directement dans le fichier. Supprimer un terme, ou vider sa dernière traduction, demande d'abord confirmation et indique ce qui est perdu ; les modifications non enregistrées demandent avant que tu quittes la page ou changes de langue. La recherche réduit la liste. Un glossaire inline dans `verbatra.config.ts` reste en lecture seule.
+Glossary a sa propre page, où il se trouvait dans Settings avant 0.7.0. Avec un glossaire JSON, tu peux chercher, ajouter, modifier et supprimer des termes, chacun écrit dans le fichier. Supprimer demande d'abord confirmation ; les modifications non enregistrées demandent avant de quitter. Un glossaire inline dans `verbatra.config.ts` reste en lecture seule.
 
-Une modification du glossaire change ce que la prochaine exécution reçoit comme consigne, jamais un texte déjà écrit ; redémarre Studio pour que ses propres retraductions l'utilisent.
+Une modification change ce qu'on dit à la prochaine exécution, jamais le texte déjà écrit.
 
 ### Vue par locale
 

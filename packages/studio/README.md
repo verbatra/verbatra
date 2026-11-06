@@ -52,7 +52,7 @@ The command prints `Verbatra Studio running at http://127.0.0.1:5849/?token=...`
 - **Glossary**: the project glossary. A glossary the project keeps in a JSON file is editable here.
 - **Settings**: the resolved config and the session's capabilities.
 
-Every page refreshes live as your locale files change. The config is loaded once at startup, so a config change needs a restart. A file-backed glossary is read from disk each time the Glossary page loads or refreshes. See [Review in Studio](https://verbatra.kreitz-webdev.de/docs/review-in-studio) for the review workflow.
+Every page refreshes live as your locale files change. The config is loaded once at startup, so a config change needs a restart. A file-backed glossary is read from disk each time the Glossary page loads or refreshes, and the page refreshes when that file changes. See [Review in Studio](https://verbatra.kreitz-webdev.de/docs/review-in-studio) for the review workflow.
 
 ## Editing and provider spend
 
