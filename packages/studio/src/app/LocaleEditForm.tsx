@@ -42,7 +42,7 @@ export function LocaleEditForm({
   );
 
   useEffect(() => {
-    if (loaded && document.activeElement?.closest("[data-icu-preview]") == null) {
+    if (loaded) {
       fieldRef.current?.focus();
     }
   }, [loaded]);

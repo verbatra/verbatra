@@ -287,21 +287,26 @@ function IcuPreviewBody({
     icuSampleSessions.setSamples(sessionKey, held);
   }, [sessionKey, held]);
 
-  useLayoutEffect(() => {
-    const region = regionRef.current;
+  useEffect(() => {
     const restore = icuSampleSessions.takeFocus(sessionKey, Date.now());
-    const field =
-      restore === undefined
-        ? undefined
-        : [
-            ...(region?.querySelectorAll<HTMLInputElement>("input[data-icu-sample-input]") ?? []),
-          ].find((input) => input.dataset.icuSampleInput === restore.name);
-    if (restore !== undefined && field !== undefined) {
-      field.focus();
-      if (restore.start !== null && restore.end !== null) {
+    if (restore === undefined) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const field = [
+        ...(regionRef.current?.querySelectorAll<HTMLInputElement>("input[data-icu-sample-input]") ??
+          []),
+      ].find((input) => input.dataset.icuSampleInput === restore.name);
+      field?.focus();
+      if (field !== undefined && restore.start !== null && restore.end !== null) {
         field.setSelectionRange(restore.start, restore.end);
       }
-    }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [sessionKey]);
+
+  useLayoutEffect(() => {
+    const region = regionRef.current;
     return () => {
       const active = document.activeElement;
       if (

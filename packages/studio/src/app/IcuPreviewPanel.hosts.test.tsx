@@ -177,23 +177,30 @@ describe("Escape in a sample input", () => {
 });
 
 describe("samples across the pane and drawer swap", () => {
-  it("keep their values, the open panel and the focus with its selection", async () => {
-    stubHost();
-    const view = await renderAsync(editor("drawer"));
-    const sample = await openSampleInKeyEditor(view);
-    sample.focus();
-    typeInto(sample, "1234");
-    sample.setSelectionRange(1, 3);
+  it.each([
+    ["drawer", "pane"],
+    ["pane", "drawer"],
+  ] as const)(
+    "keep their values, the open panel and the focus with its selection from the %s to the %s",
+    async (from, to) => {
+      stubHost();
+      const view = await renderAsync(editor(from));
+      const sample = await openSampleInKeyEditor(view);
+      sample.focus();
+      typeInto(sample, "1234");
+      sample.setSelectionRange(1, 3);
 
-    view.rerender(editor("pane"));
-    await flush();
+      view.rerender(editor(to));
+      await flush();
+      await settle();
 
-    const after = view.get('[data-icu-sample="n"] input') as HTMLInputElement;
-    expect(after.value).toBe("1234");
-    expect(view.get("[data-icu-preview] button").getAttribute("aria-expanded")).toBe("true");
-    expect(document.activeElement).toBe(after);
-    expect([after.selectionStart, after.selectionEnd]).toEqual([1, 3]);
-  });
+      const after = view.get('[data-icu-sample="n"] input') as HTMLInputElement;
+      expect(after.value).toBe("1234");
+      expect(view.get("[data-icu-preview] button").getAttribute("aria-expanded")).toBe("true");
+      expect(document.activeElement).toBe(after);
+      expect([after.selectionStart, after.selectionEnd]).toEqual([1, 3]);
+    },
+  );
 
   it("do not pull focus into a sample when focus was elsewhere", async () => {
     stubHost();
