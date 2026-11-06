@@ -148,7 +148,11 @@ describe("gitLocaleDiffHandler", () => {
 
         await expect(
           gitLocaleDiffHandler({ locale }, deps(project, execFileImpl)),
-        ).rejects.toMatchObject({ name: "SdkError", code: "UNKNOWN_LOCALE" });
+        ).rejects.toMatchObject({
+          name: "SdkError",
+          code: "UNKNOWN_LOCALE",
+          message: "The locale is not one of this project's configured locales.",
+        });
         expect(execFileImpl).not.toHaveBeenCalled();
       } finally {
         await project.cleanup();

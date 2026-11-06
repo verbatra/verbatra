@@ -215,6 +215,28 @@ describe("OverviewPanel Changes section", () => {
     expect(retryButtons(view)[0]?.getAttribute("aria-busy")).toBeNull();
   });
 
+  it("keeps Retry busy until the open key diff of that round has answered", async () => {
+    const diff = deferred();
+    stubPage({
+      "git.localeDiff": diff.handler,
+      "lock.state": rpcError("INTERNAL", "boom"),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+    await clickAsync(view.get('[data-git-toggle="de"]'));
+    diff.answer(0, diffOf());
+    await flush();
+
+    click(retryButtons(view)[0] as HTMLElement);
+    await flush();
+    expect(retryButtons(view)[0]?.getAttribute("aria-busy")).toBe("true");
+
+    diff.answer(1, diffOf());
+    await flush();
+    await flush();
+
+    expect(retryButtons(view)[0]?.getAttribute("aria-busy")).toBeNull();
+  });
+
   it("never moves focus or scroll when a background refresh brings a new answer", async () => {
     stubPage({
       "git.status": inOrder([
