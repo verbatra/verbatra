@@ -493,12 +493,11 @@ function provenanceReportPage(
 
 Each locale carries `entries` only on the pages that hold one of them. A page holds at most `limit` entries, `PAGE_LIMIT_DEFAULT` by default; pass `nextCursor` back as `cursor`, with the same `locales` and `buckets`, until it is absent. It is unavailable, or fails, exactly when `provenanceReport` is.
 
-
 ### previewIcuMessage
 
 <AvailableFrom version="0.13.0" />
 
-Renders one ICU message as it reads for a locale: one row per plural category, exact arm or select option, varying one argument at a time and holding the rest at samples. It previews only the formats whose messages use ICU syntax, `next-intl-json` and `arb`; any other format, a `custom:` one included, answers `supported: false`. The message is untrusted text and the call never throws on it: a message over 20,000 characters, nested past 16 braces, holding more than 256 arguments and tags, or not valid ICU comes back as `valid: false` with a `reason`, as does an unknown locale. It reads and writes no file and makes no request.
+Renders one ICU message as it reads for a locale: one row per plural category, exact arm or select option, varying one argument at a time and holding the rest at samples. It previews only the formats whose messages use ICU syntax, `next-intl-json` and `arb`; any other format, a `custom:` one included, answers `supported: false`. The message is untrusted text and the call never throws on it: a message over 20,000 characters, nested past 16 braces, with more than 256 `{` and `<` characters, or not valid ICU comes back as `valid: false` with a `reason`, as does an unknown locale. It reads and writes no file and makes no request.
 
 ```ts title="Signature"
 function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult;
@@ -508,4 +507,4 @@ function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult;
 
 **Returns:** `IcuPreviewResult`
 
-Numbers and dates use this runtime's Node CLDR data, dates at a fixed instant in UTC, so the text can differ from what your application's own runtime prints. A row holds `segments` of plain text, kind `text`, `argument` or `tag`, never markup to interpret. At most 24 rows come back, with `truncated` set when more existed.
+Numbers and dates use this runtime's Node CLDR data, dates at a fixed instant in UTC, so the text can differ from what your application's own runtime prints. A row holds `segments` of plain text, kind `text`, `argument` or `tag`, never markup to interpret. A row for a nested argument holds the enclosing argument at the arm that contains it, so it shows the arm it names. At most 24 rows come back, within one output budget, with `truncated` set when rows were left out.
