@@ -33,18 +33,27 @@ export {
   icuMessageArguments,
 } from "./icu/arguments.js";
 export {
+  type IcuAxisArm,
   type IcuAxisKind,
+  type IcuAxisPath,
+  type IcuAxisStep,
   type IcuVariationAxis,
-  icuVariationAxes,
+  icuVariationAxesOf,
 } from "./icu/axes.js";
 export {
+  createIcuRenderBudget,
+  type IcuPreparedMessage,
+  type IcuPrepareResult,
   type IcuRenderArguments,
+  type IcuRenderBudget,
   type IcuRenderFailure,
   type IcuRenderResult,
   type IcuSampleValue,
   type IcuSegment,
   type IcuSegmentKind,
+  prepareIcuMessage,
   renderIcuMessage,
+  renderPreparedIcuMessage,
 } from "./icu/render.js";
 export { createIniAdapter } from "./ini/ini-adapter.js";
 export type { DeriveEntry, KeyMode } from "./json/flatten.js";

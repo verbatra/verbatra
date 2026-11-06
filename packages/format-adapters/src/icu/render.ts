@@ -33,6 +33,23 @@ export type IcuRenderResult =
   | { readonly valid: true; readonly locale: string; readonly segments: readonly IcuSegment[] }
   | { readonly valid: false; readonly reason: IcuRenderFailure };
 
+export interface IcuRenderBudget {
+  characters: number;
+  segments: number;
+}
+
+export interface IcuPreparedMessage {
+  readonly locale: string;
+  readonly ast: readonly MessageFormatElement[];
+  readonly numberFormats: Map<string, Intl.NumberFormat | null>;
+  readonly dateFormats: Map<string, Intl.DateTimeFormat | null>;
+  readonly pluralRules: Map<string, Intl.PluralRules>;
+}
+
+export type IcuPrepareResult =
+  | { readonly valid: true; readonly prepared: IcuPreparedMessage }
+  | { readonly valid: false; readonly reason: IcuRenderFailure };
+
 export const ICU_SAMPLE_INSTANT = Date.UTC(2024, 2, 15, 14, 30, 45);
 
 export const ICU_MAX_SAMPLE_TEXT = 256;
@@ -40,6 +57,8 @@ export const ICU_MAX_SAMPLE_TEXT = 256;
 export const ICU_MAX_LOCALE_LENGTH = 64;
 
 export const ICU_MAX_OUTPUT_LENGTH = 100_000;
+
+export const ICU_MAX_OUTPUT_SEGMENTS = 5000;
 
 const NUMBER_STYLES: ReadonlyMap<string, Intl.NumberFormatOptions> = new Map([
   ["integer", { maximumFractionDigits: 0 }],
@@ -60,15 +79,19 @@ const TIME_STYLES: ReadonlyMap<string, Intl.DateTimeFormatOptions> = new Map([
   ["full", { hour: "numeric", minute: "numeric", second: "numeric", timeZoneName: "short" }],
 ]);
 
+const EXACT_SELECTOR = /^=-?\d+$/;
+
 const DEFAULT_TIME_STYLE = TIME_STYLES.get("medium");
 
 interface RenderContext {
-  readonly locale: string;
+  readonly prepared: IcuPreparedMessage;
   readonly args: IcuRenderArguments;
   readonly segments: IcuSegment[];
-  readonly numberFormats: Map<string, Intl.NumberFormat>;
-  readonly pluralRules: Map<string, Intl.PluralRules>;
-  remaining: number;
+  readonly budget: IcuRenderBudget;
+}
+
+export function createIcuRenderBudget(): IcuRenderBudget {
+  return { characters: ICU_MAX_OUTPUT_LENGTH, segments: ICU_MAX_OUTPUT_SEGMENTS };
 }
 
 export function resolveIcuLocale(locale: string): string | undefined {
@@ -86,16 +109,21 @@ function emit(context: RenderContext, kind: IcuSegment["kind"], text: string): v
   if (text.length === 0) {
     return;
   }
-  context.remaining -= text.length;
-  if (context.remaining < 0) {
+  const { budget, segments } = context;
+  budget.characters -= text.length;
+  const last = segments.at(-1);
+  const merges = kind === "text" && last?.kind === "text";
+  if (!merges) {
+    budget.segments -= 1;
+  }
+  if (budget.characters < 0 || budget.segments < 0) {
     return;
   }
-  const last = context.segments.at(-1);
-  if (kind === "text" && last?.kind === "text") {
-    context.segments[context.segments.length - 1] = { kind, text: last.text + text };
+  if (merges && last !== undefined) {
+    segments[segments.length - 1] = { kind, text: last.text + text };
     return;
   }
-  context.segments.push({ kind, text });
+  segments.push({ kind, text });
 }
 
 function sampleOf(context: RenderContext, name: string): IcuSampleValue | undefined {
@@ -120,14 +148,27 @@ function formatNumber(
   value: number,
   options: Intl.NumberFormatOptions | undefined,
 ): string | undefined {
+  const { numberFormats, locale } = context.prepared;
   const cacheKey = JSON.stringify(options ?? null);
+  let format = numberFormats.get(cacheKey);
+  if (format === undefined) {
+    format = constructOrNull(() => new Intl.NumberFormat(locale, options));
+    numberFormats.set(cacheKey, format);
+  }
+  return format === null ? undefined : formatOrUndefined(() => format.format(value));
+}
+
+function constructOrNull<T>(construct: () => T): T | null {
   try {
-    let format = context.numberFormats.get(cacheKey);
-    if (format === undefined) {
-      format = new Intl.NumberFormat(context.locale, options);
-      context.numberFormats.set(cacheKey, format);
-    }
-    return format.format(value);
+    return construct();
+  } catch {
+    return null;
+  }
+}
+
+function formatOrUndefined(format: () => string): string | undefined {
+  try {
+    return format();
   } catch {
     return undefined;
   }
@@ -138,11 +179,16 @@ function formatInstant(
   instant: number,
   options: Intl.DateTimeFormatOptions | undefined,
 ): string | undefined {
-  try {
-    return new Intl.DateTimeFormat(context.locale, { ...options, timeZone: "UTC" }).format(instant);
-  } catch {
-    return undefined;
+  const { dateFormats, locale } = context.prepared;
+  const cacheKey = JSON.stringify(options ?? null);
+  let format = dateFormats.get(cacheKey);
+  if (format === undefined) {
+    format = constructOrNull(
+      () => new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }),
+    );
+    dateFormats.set(cacheKey, format);
   }
+  return format === null ? undefined : formatOrUndefined(() => format.format(instant));
 }
 
 function parsedStyle<T extends object>(style: unknown): T | undefined {
@@ -196,8 +242,17 @@ function renderArgument(context: RenderContext, name: string): void {
   emit(
     context,
     "argument",
-    sample === undefined ? placeholder(name) : String(sample).slice(0, ICU_MAX_SAMPLE_TEXT),
+    sample === undefined ? placeholder(name) : truncateSample(String(sample)),
   );
+}
+
+function truncateSample(text: string): string {
+  if (text.length <= ICU_MAX_SAMPLE_TEXT) {
+    return text;
+  }
+  const lastUnit = text.charCodeAt(ICU_MAX_SAMPLE_TEXT - 1);
+  const splitsPair = lastUnit >= 0xd800 && lastUnit <= 0xdbff;
+  return text.slice(0, splitsPair ? ICU_MAX_SAMPLE_TEXT - 1 : ICU_MAX_SAMPLE_TEXT);
 }
 
 function ownOption(
@@ -207,12 +262,25 @@ function ownOption(
   return Object.hasOwn(options, selector) ? options[selector] : undefined;
 }
 
+function exactOption(
+  options: Readonly<Record<string, PluralOrSelectOption>>,
+  count: number,
+): PluralOrSelectOption | undefined {
+  for (const [selector, option] of Object.entries(options)) {
+    if (EXACT_SELECTOR.test(selector) && Number(selector.slice(1)) === count) {
+      return option;
+    }
+  }
+  return undefined;
+}
+
 function pluralCategoryOf(context: RenderContext, element: PluralElement, count: number): string {
   const type = element.pluralType === "ordinal" ? "ordinal" : "cardinal";
-  let rules = context.pluralRules.get(type);
+  const { pluralRules, locale } = context.prepared;
+  let rules = pluralRules.get(type);
   if (rules === undefined) {
-    rules = new Intl.PluralRules(context.locale, { type });
-    context.pluralRules.set(type, rules);
+    rules = new Intl.PluralRules(locale, { type });
+    pluralRules.set(type, rules);
   }
   return rules.select(count - element.offset);
 }
@@ -223,7 +291,7 @@ function pluralArm(
   count: number,
 ): PluralOrSelectOption | undefined {
   return (
-    ownOption(element.options, `=${count}`) ??
+    exactOption(element.options, count) ??
     ownOption(element.options, pluralCategoryOf(context, element, count)) ??
     ownOption(element.options, "other")
   );
@@ -303,23 +371,30 @@ function renderElements(
   pound: number | undefined,
 ): void {
   for (const element of elements) {
+    if (context.budget.characters < 0 || context.budget.segments < 0) {
+      return;
+    }
     renderElement(context, element, pound);
   }
 }
 
-function parseOrUndefined(value: string, locale: string): MessageFormatElement[] | undefined {
+function parseWithoutLocale(value: string): MessageFormatElement[] | undefined {
   try {
-    return parse(value, { locale: new Intl.Locale(locale) });
+    return parse(value);
   } catch {
     return undefined;
   }
 }
 
-export function renderIcuMessage(
-  value: string,
-  locale: string,
-  args: IcuRenderArguments,
-): IcuRenderResult {
+function parseMessage(value: string, locale: string): MessageFormatElement[] | undefined {
+  try {
+    return parse(value, { locale: new Intl.Locale(locale) });
+  } catch {
+    return parseWithoutLocale(value);
+  }
+}
+
+export function prepareIcuMessage(value: string, locale: string): IcuPrepareResult {
   const refusal = icuRefusal(value);
   if (refusal !== undefined) {
     return { valid: false, reason: refusal };
@@ -328,20 +403,41 @@ export function renderIcuMessage(
   if (resolved === undefined) {
     return { valid: false, reason: "unsupported-locale" };
   }
-  const ast = parseOrUndefined(value, resolved);
+  const ast = parseMessage(value, resolved);
   if (ast === undefined) {
     return { valid: false, reason: "invalid-message" };
   }
-  const context: RenderContext = {
-    locale: resolved,
-    args,
-    segments: [],
-    numberFormats: new Map(),
-    pluralRules: new Map(),
-    remaining: ICU_MAX_OUTPUT_LENGTH,
+  return {
+    valid: true,
+    prepared: {
+      locale: resolved,
+      ast,
+      numberFormats: new Map(),
+      dateFormats: new Map(),
+      pluralRules: new Map(),
+    },
   };
-  renderElements(context, ast, undefined);
-  return context.remaining < 0
+}
+
+export function renderPreparedIcuMessage(
+  prepared: IcuPreparedMessage,
+  args: IcuRenderArguments,
+  budget: IcuRenderBudget,
+): IcuRenderResult {
+  const context: RenderContext = { prepared, args, segments: [], budget };
+  renderElements(context, prepared.ast, undefined);
+  return budget.characters < 0 || budget.segments < 0
     ? { valid: false, reason: "too-large" }
-    : { valid: true, locale: resolved, segments: context.segments };
+    : { valid: true, locale: prepared.locale, segments: context.segments };
+}
+
+export function renderIcuMessage(
+  value: string,
+  locale: string,
+  args: IcuRenderArguments,
+): IcuRenderResult {
+  const preparation = prepareIcuMessage(value, locale);
+  return preparation.valid
+    ? renderPreparedIcuMessage(preparation.prepared, args, createIcuRenderBudget())
+    : preparation;
 }
