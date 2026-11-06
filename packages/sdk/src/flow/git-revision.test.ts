@@ -7,9 +7,9 @@ import {
   type TranslationEntry,
 } from "@verbatra/core";
 import { createDefaultRegistry } from "@verbatra/format-adapters";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { type GitFixture, makeGitFixture } from "../test-support.js";
-import { inspectionGitExecFile } from "./git-exec.js";
+import { defaultGitExecFile } from "./git-exec.js";
 import {
   blobSpec,
   LOCALE_GIT_BLOB_MAX_BYTES,
@@ -258,7 +258,7 @@ describe("blobSpec", () => {
 
 describe("readBlobAtHead", () => {
   async function open(fx: GitFixture, cwd = fx.root) {
-    const opened = await openGitWorkTree(inspectionGitExecFile, cwd);
+    const opened = await openGitWorkTree(defaultGitExecFile, cwd);
     if (!opened.ok) {
       throw new Error(opened.reason);
     }
@@ -340,6 +340,44 @@ describe("readBlobAtHead", () => {
     });
   });
 
+  it("treats a blob whose size git cannot give as unreadable, without reading it", async () => {
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true as const,
+        stdout: `100644 blob ${"b".repeat(40)}     BAD\tde.json\0`,
+      })
+      .mockResolvedValue({ ok: true as const, stdout: "content" });
+
+    const read = await readBlobAtHead(
+      { runner: { run }, prefix: "", head: "a".repeat(40) },
+      "de.json",
+    );
+
+    expect(read).toEqual({ kind: "unreadable" });
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats a read git cannot complete after a good listing as an unreadable revision", async () => {
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true as const,
+        stdout: `100644 blob ${"b".repeat(40)}       3\tde.json\0`,
+      })
+      .mockResolvedValue({
+        ok: false as const,
+        failure: { kind: "git-failed" as const, exitCode: 128, stderr: "fatal: bad file" },
+      });
+
+    const read = await readBlobAtHead(
+      { runner: { run }, prefix: "", head: "a".repeat(40) },
+      "de.json",
+    );
+
+    expect(read).toEqual({ kind: "unreadable" });
+  });
+
   it("reports a failure of the read after a successful listing", async () => {
     const hash = "a".repeat(40);
     const listing = `100644 blob ${"b".repeat(40)}       3\tde.json\0`;
@@ -361,14 +399,17 @@ describe("readBlobAtHead", () => {
     expect(read).toEqual({ kind: "failed", reason: "timeout" });
   });
 
-  it("reports a git failure while listing", async () => {
+  it("reports a repository that stops being one while listing", async () => {
     const fx = await repo();
     await fx.write("a.json", "{}\n");
     await fx.commitAll();
     const tree = await open(fx);
     await rm(join(fx.root, ".git", "objects"), { recursive: true, force: true });
 
-    expect(await readBlobAtHead(tree, "a.json")).toMatchObject({ kind: "failed" });
+    expect(await readBlobAtHead(tree, "a.json")).toEqual({
+      kind: "failed",
+      reason: "not-a-repository",
+    });
   });
 
   it("does not apply a text conversion driver to the committed content", async () => {

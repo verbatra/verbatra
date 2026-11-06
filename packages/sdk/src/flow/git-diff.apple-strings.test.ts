@@ -107,6 +107,28 @@ describe("localeGitDiff for apple-strings and its .stringsdict sibling", () => {
     ]);
   });
 
+  it("reports what is really there when the .strings file is deleted and the sibling stays", async () => {
+    const fx = await committed();
+    await rm(join(fx.root, STRINGS));
+
+    const diff = await diffOf(fx);
+
+    expect(diff).toMatchObject({ state: "deleted", added: [], changed: [] });
+    expect(diff.available && diff.removed.map((entry) => entry.key)).toEqual(["greeting"]);
+  });
+
+  it("reports a sibling taken out of the index but still on disk as modified", async () => {
+    const fx = await committed();
+    await fx.git(["rm", "-q", "--cached", DICT]);
+
+    expect(await diffOf(fx)).toMatchObject({
+      state: "modified",
+      added: [],
+      removed: [],
+      changed: [],
+    });
+  });
+
   it("lists nothing when neither file changed", async () => {
     const fx = await committed();
 

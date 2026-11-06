@@ -1,12 +1,13 @@
 import { execFile as execFileCb } from "node:child_process";
-import { chmod, rm, writeFile } from "node:fs/promises";
+import { appendFile, chmod, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
-import { type GitExecFile, inspectionGitExecFile } from "./git-exec.js";
+import { localeGitDiff } from "./git-diff.js";
+import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
 import { localeGitStatus } from "./git-status.js";
-import { neutralizeFilters, openGitWorkTree } from "./git-worktree.js";
+import { openGitWorkTree } from "./git-worktree.js";
 
 const execFileAsync = promisify(execFileCb);
 const fixtures: GitFixture[] = [];
@@ -38,47 +39,6 @@ async function clearMarker(fx: GitFixture): Promise<void> {
 function markerBody(fx: GitFixture, tail: string): string {
   return `echo ran >> "${join(fx.base, "marker")}"\n${tail}`;
 }
-
-describe("neutralizeFilters", () => {
-  it("blanks clean and process and clears required for every named driver once", () => {
-    const result = neutralizeFilters(
-      "core.bare\0filter.lfs.clean\0filter.lfs.smudge\0filter.lfs.required\0filter.Evil.process\0",
-    );
-
-    expect(result).toEqual({
-      ok: true,
-      args: [
-        "-c",
-        "filter.lfs.clean=",
-        "-c",
-        "filter.lfs.process=",
-        "-c",
-        "filter.lfs.required=false",
-        "-c",
-        "filter.Evil.clean=",
-        "-c",
-        "filter.Evil.process=",
-        "-c",
-        "filter.Evil.required=false",
-      ],
-    });
-  });
-
-  it("keeps a dotted driver name whole", () => {
-    expect(neutralizeFilters("filter.a.b.clean\0")).toMatchObject({
-      ok: true,
-      args: expect.arrayContaining(["filter.a.b.clean="]),
-    });
-  });
-
-  it("returns no overrides when no filter is configured", () => {
-    expect(neutralizeFilters("core.bare\0user.name\0")).toEqual({ ok: true, args: [] });
-  });
-
-  it("refuses a driver name that -c would split at an equals sign", () => {
-    expect(neutralizeFilters("filter.a=b.clean\0")).toEqual({ ok: false });
-  });
-});
 
 describe("a repository that configures commands to run", () => {
   it("does not run a clean filter, even a required one, while reading status", async () => {
@@ -198,7 +158,7 @@ describe("openGitWorkTree", () => {
   it("opens a repository with the commit at HEAD and an empty prefix at the root", async () => {
     const fx = await committedProject();
 
-    const opened = await openGitWorkTree(inspectionGitExecFile, fx.root);
+    const opened = await openGitWorkTree(defaultGitExecFile, fx.root);
 
     expect(opened.ok && opened.tree.prefix).toBe("");
     expect(opened.ok && opened.tree.head).toMatch(/^[0-9a-f]{40,64}$/);
@@ -208,7 +168,7 @@ describe("openGitWorkTree", () => {
     const fx = await committedProject();
     await fx.write("sub\ndir/x.txt", "x\n");
 
-    const opened = await openGitWorkTree(inspectionGitExecFile, join(fx.root, "sub\ndir"));
+    const opened = await openGitWorkTree(defaultGitExecFile, join(fx.root, "sub\ndir"));
 
     expect(opened.ok && opened.tree.prefix).toBe("sub\ndir/");
   });
@@ -226,8 +186,164 @@ describe("openGitWorkTree", () => {
     const fx = await makeGitFixture();
     fixtures.push(fx);
 
-    const opened = await openGitWorkTree(inspectionGitExecFile, fx.root);
+    const opened = await openGitWorkTree(defaultGitExecFile, fx.root);
 
     expect(opened.ok && opened.tree.head).toBeUndefined();
+  });
+});
+
+describe("a filter named so that a -c override could miss it", () => {
+  const SAME_SIZE_EDIT = '{"a":"b"}\n';
+
+  async function trapped(name: Buffer, attribute: Buffer): Promise<GitFixture> {
+    const fx = await committedProject();
+    const clean = await script(fx, "clean.sh", markerBody(fx, "cat"));
+    await writeFile(
+      join(fx.root, ".gitattributes"),
+      Buffer.concat([Buffer.from("*.json filter="), attribute, Buffer.from("\n")]),
+    );
+    await fx.commitAll();
+    await appendFile(
+      join(fx.root, ".git", "config"),
+      Buffer.concat([
+        Buffer.from('[filter "'),
+        name,
+        Buffer.from(`"]\n\tclean = ${clean}\n\trequired = true\n`),
+      ]),
+    );
+    await fx.write("locales/de.json", SAME_SIZE_EDIT);
+    return fx;
+  }
+
+  it.each([
+    ["an empty name", Buffer.from("")],
+    ["a line separator", Buffer.from("a b")],
+    ["a dot", Buffer.from("a.b")],
+  ])("is neutralised with %s, and a plain status runs it", async (_label, name) => {
+    const fx = await trapped(name, name);
+    await clearMarker(fx);
+    await fx.git(["status", "--porcelain"]).catch(() => undefined);
+    const plainRan = await fx.exists("marker");
+    await clearMarker(fx);
+
+    const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root });
+
+    expect(plainRan).toBe(true);
+    expect(status).toMatchObject({ files: [{ path: "locales/de.json", state: "modified" }] });
+    expect(await fx.exists("marker")).toBe(false);
+  });
+
+  it("is refused when the name is not valid text, and nothing runs", async () => {
+    const bytes = Buffer.from([0x61, 0xff, 0x62]);
+    const fx = await trapped(bytes, bytes);
+    await clearMarker(fx);
+    await fx.git(["status", "--porcelain"]).catch(() => undefined);
+    const plainRan = await fx.exists("marker");
+    await clearMarker(fx);
+
+    const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root });
+
+    expect(plainRan).toBe(true);
+    expect(status).toEqual({ available: false, reason: "unsafe-config" });
+    expect(await fx.exists("marker")).toBe(false);
+  });
+});
+
+describe("a head that is not a branch with no commits", () => {
+  async function broken(corrupt: (fx: GitFixture) => Promise<void>): Promise<GitFixture> {
+    const fx = await committedProject();
+    await corrupt(fx);
+    return fx;
+  }
+
+  const CORRUPTIONS: readonly [string, (fx: GitFixture) => Promise<void>][] = [
+    ["an empty branch file", (fx) => writeFile(join(fx.root, ".git", "refs", "heads", "main"), "")],
+    [
+      "a branch pointing at nothing",
+      (fx) => writeFile(join(fx.root, ".git", "refs", "heads", "main"), `${"1".repeat(40)}\n`),
+    ],
+    [
+      "a detached head pointing at nothing",
+      (fx) => writeFile(join(fx.root, ".git", "HEAD"), `${"1".repeat(40)}\n`),
+    ],
+  ];
+
+  it.each(CORRUPTIONS)("is a failure, for status and diff alike: %s", async (_label, corrupt) => {
+    const fx = await broken(corrupt);
+
+    const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root });
+    const diff = await localeGitDiff({ config: baseConfig(), cwd: fx.root, locale: "de" });
+
+    expect(status).toEqual({ available: false, reason: "git-failed" });
+    expect(diff).toEqual({ available: false, reason: "git-failed" });
+  });
+
+  it("is told apart from a real unborn branch, which both calls answer", async () => {
+    const fx = await makeGitFixture();
+    fixtures.push(fx);
+    await fx.write("locales/de.json", '{"a":"a"}\n');
+
+    const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root });
+    const diff = await localeGitDiff({ config: baseConfig(), cwd: fx.root, locale: "de" });
+
+    expect(status).toMatchObject({ available: true, branch: "main" });
+    expect(diff).toMatchObject({ available: true, state: "untracked" });
+  });
+
+  it("is not a branch with no commits when the head names something outside refs", async () => {
+    const execFile: GitExecFile = vi
+      .fn()
+      .mockResolvedValueOnce({ stdout: "true\n", stderr: "" })
+      .mockResolvedValueOnce({ stdout: "", stderr: "" })
+      .mockRejectedValueOnce(Object.assign(new Error("x"), { code: 1, stderr: "" }))
+      .mockResolvedValueOnce({ stdout: "HEAD-elsewhere\n", stderr: "" });
+
+    expect(await openGitWorkTree(execFile, "/p")).toEqual({ ok: false, reason: "git-failed" });
+  });
+
+  it("reports a failure of the reference lookup", async () => {
+    const execFile: GitExecFile = vi
+      .fn()
+      .mockResolvedValueOnce({ stdout: "true\n", stderr: "" })
+      .mockResolvedValueOnce({ stdout: "", stderr: "" })
+      .mockRejectedValueOnce(Object.assign(new Error("x"), { code: 1, stderr: "" }))
+      .mockResolvedValueOnce({ stdout: "refs/heads/main\n", stderr: "" })
+      .mockRejectedValueOnce(Object.assign(new Error("x"), { killed: true, signal: "SIGKILL" }));
+
+    expect(await openGitWorkTree(execFile, "/p")).toEqual({ ok: false, reason: "timeout" });
+  });
+
+  it("reports a failure of the symbolic reference lookup", async () => {
+    const execFile: GitExecFile = vi
+      .fn()
+      .mockResolvedValueOnce({ stdout: "true\n", stderr: "" })
+      .mockResolvedValueOnce({ stdout: "", stderr: "" })
+      .mockRejectedValueOnce(Object.assign(new Error("x"), { code: 1, stderr: "" }))
+      .mockRejectedValueOnce(Object.assign(new Error("x"), { code: "ENOENT" }));
+
+    expect(await openGitWorkTree(execFile, "/p")).toEqual({ ok: false, reason: "git-missing" });
+  });
+
+  it("is not a branch with no commits when the symbolic lookup exits silently", async () => {
+    const execFile: GitExecFile = vi
+      .fn()
+      .mockResolvedValueOnce({ stdout: "true\n", stderr: "" })
+      .mockResolvedValueOnce({ stdout: "", stderr: "" })
+      .mockRejectedValueOnce(Object.assign(new Error("x"), { code: 1, stderr: "" }))
+      .mockRejectedValueOnce(Object.assign(new Error("x"), { code: 1, stderr: "" }));
+
+    expect(await openGitWorkTree(execFile, "/p")).toEqual({ ok: false, reason: "git-failed" });
+  });
+
+  it("is not a branch with no commits when the reference exists after all", async () => {
+    const execFile: GitExecFile = vi
+      .fn()
+      .mockResolvedValueOnce({ stdout: "true\n", stderr: "" })
+      .mockResolvedValueOnce({ stdout: "", stderr: "" })
+      .mockRejectedValueOnce(Object.assign(new Error("x"), { code: 1, stderr: "" }))
+      .mockResolvedValueOnce({ stdout: "refs/heads/main\n", stderr: "" })
+      .mockResolvedValueOnce({ stdout: "", stderr: "" });
+
+    expect(await openGitWorkTree(execFile, "/p")).toEqual({ ok: false, reason: "git-failed" });
   });
 });

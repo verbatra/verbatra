@@ -2,10 +2,11 @@ import { chmod, mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
-import { type GitExecFile, hasLeadingDash } from "./git-exec.js";
+import { type GitExecFile, gitExecFileWith, hasLeadingDash } from "./git-exec.js";
 import {
   localeGitStatus,
   matchWatched,
+  mergeStates,
   parsePorcelainZ,
   stateOfCode,
   toPosix,
@@ -77,6 +78,23 @@ describe("parsePorcelainZ", () => {
 
   it("ignores empty and malformed entries", () => {
     expect(parsePorcelainZ("\0ab\0XY\0 M\0M-a.json\0")).toEqual([]);
+  });
+});
+
+describe("mergeStates", () => {
+  const entry = (state: "deleted" | "untracked" | "modified" | "added") => ({
+    state,
+    repoPath: "p",
+  });
+
+  it("reads a staged deletion plus an untracked file as modified", () => {
+    expect(mergeStates(entry("deleted"), entry("untracked")).state).toBe("modified");
+    expect(mergeStates(entry("untracked"), entry("deleted")).state).toBe("modified");
+  });
+
+  it("otherwise keeps the later entry", () => {
+    expect(mergeStates(entry("added"), entry("modified")).state).toBe("modified");
+    expect(mergeStates(entry("deleted"), entry("deleted")).state).toBe("deleted");
   });
 });
 
@@ -341,6 +359,19 @@ describe("localeGitStatus against a real repository", () => {
     expect(status).toEqual({ available: true, branch: "main", files: [] });
   });
 
+  it("keeps a staged deletion visible when the file is back on disk untracked", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", "{}\n");
+    await fx.commitAll();
+    await fx.git(["rm", "-q", "--cached", "locales/de.json"]);
+
+    const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root });
+
+    expect(status).toMatchObject({
+      files: [{ path: "locales/de.json", state: "modified" }],
+    });
+  });
+
   it("reads a path matching a glob character literally", async () => {
     const fx = await fixture();
     await fx.write("d.json", "{}\n");
@@ -484,13 +515,13 @@ describe("localeGitStatus environment failures", () => {
     expect(status).toEqual({ available: false, reason: "not-a-repository" });
   });
 
-  it("reports a bare repository as not a work tree", async () => {
+  it("refuses a bare repository planted in the project folder", async () => {
     const fx = await fixture({ init: false });
     await fx.git(["init", "-q", "--bare"]);
 
     const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root });
 
-    expect(status).toEqual({ available: false, reason: "not-a-repository" });
+    expect(status).toEqual({ available: false, reason: "bare-repository" });
   });
 
   it("reports the inside of a git directory as not a work tree", async () => {
@@ -505,9 +536,9 @@ describe("localeGitStatus environment failures", () => {
     const fx = await fixture();
     await seed(fx);
     await fx.commitAll();
-    vi.stubEnv("GIT_TEST_ASSUME_DIFFERENT_OWNER", "1");
+    const execFile = gitExecFileWith({ GIT_TEST_ASSUME_DIFFERENT_OWNER: "1", HOME: fx.home });
 
-    const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root });
+    const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root }, { execFile });
 
     expect(status).toEqual({ available: false, reason: "dubious-ownership" });
   });

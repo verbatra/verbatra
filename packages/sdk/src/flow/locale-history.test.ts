@@ -38,7 +38,7 @@ describe("localeHistory", () => {
         },
       ],
     });
-    const [file, args, options] = execFile.mock.calls[0] as [string, string[], { cwd: string }];
+    const [file, args, options] = execFile.mock.calls.at(-1) as [string, string[], { cwd: string }];
     expect(file).toBe("git");
     expect(options).toMatchObject({ cwd: "/project" });
     expect(args.slice(args.indexOf("--") + 1)).toEqual([
@@ -53,7 +53,7 @@ describe("localeHistory", () => {
 
     await localeHistory({ config: baseConfig(), cwd: "/project" }, { execFile });
 
-    const args = execFile.mock.calls[0]?.[1] as string[];
+    const args = execFile.mock.calls.at(-1)?.[1] as string[];
     expect(args.join(" ")).not.toMatch(/%a[eE]|%c[eE]/);
   });
 
@@ -62,7 +62,7 @@ describe("localeHistory", () => {
 
     await localeHistory({ config: baseConfig(), cwd: "/project", limit: 5000 }, { execFile });
 
-    expect(execFile.mock.calls[0]?.[1]).toContain(`--max-count=${LOCALE_HISTORY_LIMIT_CAP}`);
+    expect(execFile.mock.calls.at(-1)?.[1]).toContain(`--max-count=${LOCALE_HISTORY_LIMIT_CAP}`);
   });
 
   it("returns an empty history for a repository with no commits on the locale files", async () => {
@@ -103,7 +103,7 @@ describe("localeHistory", () => {
       { execFile },
     );
 
-    const args = execFile.mock.calls[0]?.[1] as string[];
+    const args = execFile.mock.calls.at(-1)?.[1] as string[];
     const paths = args.slice(args.indexOf("--") + 1);
     expect(paths).toEqual(["/project/-xen.json", "/project/-xde.json"]);
     expect(args.slice(0, args.indexOf("--")).some((arg) => arg.startsWith("-x"))).toBe(false);

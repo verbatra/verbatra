@@ -7,12 +7,13 @@ import { defaultFs } from "../fs.js";
 import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
 import {
   compareResources,
-  isRegularFile,
+  fileKind,
   LOCALE_GIT_DIFF_MAX_ENTRIES,
   LOCALE_GIT_DIFF_MAX_VALUE_CHARS,
   localeGitDiff,
+  workingFileKind,
 } from "./git-diff.js";
-import { type GitExecFile, inspectionGitExecFile } from "./git-exec.js";
+import { defaultGitExecFile, type GitExecFile, gitExecFileWith } from "./git-exec.js";
 import { LOCALE_GIT_BLOB_MAX_BYTES } from "./git-revision.js";
 
 const fixtures: GitFixture[] = [];
@@ -113,27 +114,27 @@ describe("compareResources", () => {
   });
 });
 
-describe("isRegularFile", () => {
-  it("accepts a regular file and refuses a symbolic link, a directory and a missing path", async () => {
+describe("fileKind", () => {
+  it("tells a regular file from a symbolic link, a directory and a missing path", async () => {
     const fx = await repo();
     await fx.write("a.json", "{}\n");
     await fx.write("dir/x.json", "{}\n");
     await symlink(join(fx.root, "a.json"), join(fx.root, "link.json"));
 
-    expect(await isRegularFile(join(fx.root, "a.json"))).toBe(true);
-    expect(await isRegularFile(join(fx.root, "link.json"))).toBe(false);
-    expect(await isRegularFile(join(fx.root, "dir"))).toBe(false);
-    expect(await isRegularFile(join(fx.root, "none.json"))).toBe(false);
-    expect(await isRegularFile(join(fx.root, "missing-dir", "a.json"))).toBe(false);
+    expect(await fileKind(join(fx.root, "a.json"))).toBe("file");
+    expect(await fileKind(join(fx.root, "link.json"))).toBe("other");
+    expect(await fileKind(join(fx.root, "dir"))).toBe("other");
+    expect(await fileKind(join(fx.root, "none.json"))).toBe("missing");
+    expect(await fileKind(join(fx.root, "missing-dir", "a.json"))).toBe("missing");
   });
 
-  it("refuses when the file-system seam cannot list a directory", async () => {
+  it("reads a file as missing when the file-system seam cannot list a directory", async () => {
     const fx = await repo();
     await fx.write("a.json", "{}\n");
     const original = defaultFs.readDirectory;
     delete (defaultFs as { readDirectory?: unknown }).readDirectory;
     try {
-      expect(await isRegularFile(join(fx.root, "a.json"))).toBe(false);
+      expect(await fileKind(join(fx.root, "a.json"))).toBe("missing");
     } finally {
       (defaultFs as { readDirectory?: unknown }).readDirectory = original;
     }
@@ -147,8 +148,37 @@ describe("isRegularFile", () => {
     const names = await readdir(join(fx.root, "both"));
     const caseSensitive = names.length === 2;
 
-    expect(await isRegularFile(join(fx.root, "only", "de.json"))).toBe(true);
-    expect(await isRegularFile(join(fx.root, "both", "de.json"))).toBe(!caseSensitive);
+    expect(await fileKind(join(fx.root, "only", "de.json"))).toBe("file");
+    expect(await fileKind(join(fx.root, "both", "de.json"))).toBe(
+      caseSensitive ? "missing" : "file",
+    );
+  });
+});
+
+describe("workingFileKind", () => {
+  it("refuses a file behind a symbolic link in any parent, inside the project or out of it", async () => {
+    const fx = await repo();
+    await fx.write("real/de.json", "{}\n");
+    await fx.write("outside/de.json", "{}\n", fx.base);
+    await symlink(join(fx.root, "real"), join(fx.root, "inside"));
+    await symlink(join(fx.base, "outside"), join(fx.root, "out"));
+    await fx.write("deep/real/de.json", "{}\n");
+    await symlink(join(fx.root, "deep", "real"), join(fx.root, "deep", "link"));
+
+    expect(await workingFileKind(fx.root, join(fx.root, "real", "de.json"))).toBe("file");
+    expect(await workingFileKind(fx.root, join(fx.root, "inside", "de.json"))).toBe("other");
+    expect(await workingFileKind(fx.root, join(fx.root, "out", "de.json"))).toBe("other");
+    expect(await workingFileKind(fx.root, join(fx.root, "deep", "link", "de.json"))).toBe("other");
+  });
+
+  it("reads a missing directory as missing, and a project root reached through a link as fine", async () => {
+    const fx = await repo();
+    await fx.write("real/de.json", "{}\n");
+    const alias = join(fx.base, "alias");
+    await symlink(fx.root, alias);
+
+    expect(await workingFileKind(fx.root, join(fx.root, "nope", "de.json"))).toBe("missing");
+    expect(await workingFileKind(alias, join(alias, "real", "de.json"))).toBe("file");
   });
 });
 
@@ -208,11 +238,91 @@ describe("localeGitDiff against a real repository", () => {
     const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
 
     expect(diff).toMatchObject({
-      state: "untracked",
+      state: "modified",
       added: [],
       removed: [],
       changed: [{ key: "b", before: "b", after: "b2" }],
     });
+  });
+
+  it("shows a file taken out of the index as modified even when its content is unchanged", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "a" }));
+    await fx.commitAll();
+    await fx.git(["rm", "-q", "--cached", "locales/de.json"]);
+
+    const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
+
+    expect(diff).toMatchObject({ state: "modified", added: [], removed: [], changed: [] });
+  });
+
+  it("refuses a file whose parent directory became a symbolic link to outside", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "a" }));
+    await fx.write("locales/en.json", json({ a: "A" }));
+    await fx.commitAll();
+    await fx.write("stolen/de.json", json({ a: "outside secret" }), fx.base);
+    await rm(join(fx.root, "locales"), { recursive: true });
+    await symlink(join(fx.base, "stolen"), join(fx.root, "locales"));
+
+    const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
+
+    expect(JSON.stringify(diff)).not.toContain("outside secret");
+  });
+
+  it("reads a committed file missing from a partial clone as unreadable and fetches nothing", async () => {
+    const fx = await repo();
+    const marker = join(fx.base, "pcmark");
+    const script = join(fx.base, "uploadpack.sh");
+    await fx.write("locales/de.json", json({ a: "a" }));
+    await fx.commitAll();
+    const hash = (await fx.git(["rev-parse", "HEAD:locales/de.json"])).trim();
+    await rm(join(fx.root, ".git", "objects", hash.slice(0, 2), hash.slice(2)));
+    await writeFile(script, `#!/bin/sh\necho ran >> "${marker}"\nexit 1\n`, { mode: 0o755 });
+    await fx.git(["config", "core.repositoryformatversion", "1"]);
+    await fx.git(["config", "extensions.partialclone", "origin"]);
+    await fx.git(["config", "remote.origin.promisor", "true"]);
+    await fx.git(["config", "remote.origin.url", join(fx.base, "nowhere")]);
+    await fx.git(["config", "remote.origin.uploadpack", script]);
+    await fx.write("locales/de.json", json({ a: "b" }));
+
+    const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
+
+    expect(diff).toEqual({ available: false, reason: "revision-unreadable" });
+    expect(await fx.exists("pcmark")).toBe(false);
+  });
+
+  it("cuts a very long key and says so", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({}));
+    await fx.commitAll();
+    await fx.write("locales/de.json", json({ ["k".repeat(10_000)]: "v" }));
+
+    const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
+
+    expect(diff.available && diff.added[0]?.key).toHaveLength(LOCALE_GIT_DIFF_MAX_VALUE_CHARS);
+    expect(diff.available && diff.truncated).toBe(true);
+  });
+
+  it("bounds the whole result however many long keys and values differ", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({}));
+    await fx.commitAll();
+    const many = Object.fromEntries(
+      Array.from({ length: LOCALE_GIT_DIFF_MAX_ENTRIES + 50 }, (_, index) => [
+        `${index}${"k".repeat(5000)}`,
+        "v".repeat(5000),
+      ]),
+    );
+    await fx.write("locales/de.json", json(many));
+
+    const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
+
+    expect(diff.available && diff.added).toHaveLength(LOCALE_GIT_DIFF_MAX_ENTRIES);
+    expect(JSON.stringify(diff).length).toBeLessThan(
+      LOCALE_GIT_DIFF_MAX_ENTRIES * 2 * (LOCALE_GIT_DIFF_MAX_VALUE_CHARS + 50),
+    );
+    expect(diff.available && diff.truncated).toBe(true);
   });
 
   it("reads a staged new file as added against nothing", async () => {
@@ -340,7 +450,7 @@ describe("localeGitDiff against a real repository", () => {
     const calls: string[][] = [];
     const execFile: GitExecFile = (file, args, options) => {
       calls.push([...args]);
-      return inspectionGitExecFile(file, args, options);
+      return defaultGitExecFile(file, args, options);
     };
 
     const diff = await localeGitDiff(
@@ -493,10 +603,12 @@ describe("localeGitDiff refusals", () => {
     const fx = await repo();
     await fx.write("locales/de.json", json({ a: "a" }));
     await fx.commitAll();
-    vi.stubEnv("GIT_TEST_ASSUME_DIFFERENT_OWNER", "1");
+    const execFile = gitExecFileWith({ GIT_TEST_ASSUME_DIFFERENT_OWNER: "1", HOME: fx.home });
 
-    const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
-    vi.unstubAllEnvs();
+    const diff = await localeGitDiff(
+      { config: baseConfig(), locale: "de", cwd: fx.root },
+      { execFile },
+    );
 
     expect(diff).toEqual({ available: false, reason: "dubious-ownership" });
   });
