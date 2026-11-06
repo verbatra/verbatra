@@ -28,6 +28,7 @@ interface Row {
   readonly category?: string | null;
   readonly sample?: string | number | null;
   readonly held?: Readonly<Record<string, string | number>>;
+  readonly supplied?: boolean;
   readonly text: string;
 }
 
@@ -49,6 +50,7 @@ function validAnswer(
         category: row.category === undefined ? "other" : row.category,
         sample: row.sample === undefined ? 5 : row.sample,
         held: row.held ?? {},
+        supplied: row.supplied ?? false,
         segments: [{ kind: "text", text: row.text }],
       })),
     },
@@ -733,14 +735,14 @@ describe("IcuPreviewPanel held arguments and sample rows", () => {
     stubRpc({
       "key.previewIcu": validAnswer([
         { category: "one", sample: 1, text: "1 plik" },
-        { axis: "sample", category: "few", sample: 22, text: "22 pliki" },
+        { supplied: true, category: "few", sample: 22, text: "22 pliki" },
       ]),
     });
     const view = await renderAsync(panel("x", "pl"));
 
     await openPanel(view);
 
-    const row = view.get('[data-axis="sample"]');
+    const row = view.get("[data-supplied]");
     expect(row.textContent).toContain("Your value");
     expect(row.textContent).toContain("few");
     expect(row.textContent).toContain("= 22");
@@ -776,10 +778,12 @@ describe("IcuPreviewPanel mid-typing refusals", () => {
 
     const reason = view.get("[data-icu-refusal]");
     const stale = view.get("[data-icu-stale]");
+    const note = view.get("[data-icu-stale-note]");
     expect(reason.textContent).toContain("not valid ICU");
-    expect(stale.textContent).toContain("These rows are from the last valid text.");
+    expect(note.textContent).toContain("These rows are from the last valid text.");
     expect(stale.textContent).toContain("GOOD");
-    expect(stale.querySelector(".opacity-60")).not.toBeNull();
+    expect(stale.querySelector(".text-muted-foreground")).not.toBeNull();
+    expect(stale.querySelector(".opacity-60")).toBeNull();
     expect(reason.compareDocumentPosition(stale) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
@@ -987,6 +991,235 @@ describe("IcuPreviewPanel sample typing", () => {
     await settle();
 
     expect(previewCalls().slice(before)[0]?.params.args).toEqual({ 0: 3 });
+  });
+});
+
+describe("IcuPreviewPanel round two", () => {
+  const FIELDS = [{ name: "n", type: "number" }];
+
+  it("puts the typed value's row first, with the arms it holds, above every other row", async () => {
+    stubRpc({
+      "key.previewIcu": validAnswer(
+        [
+          { category: "one", sample: 1, text: "ONE" },
+          {
+            supplied: true,
+            argument: "n",
+            category: "few",
+            sample: 22,
+            held: { gender: "female" },
+            text: "TYPED",
+          },
+        ],
+        { named: FIELDS },
+      ),
+    });
+    const view = await renderAsync(panel("x", "pl"));
+
+    await openPanel(view);
+
+    expect(rowsOf(view)[0]?.textContent).toContain("TYPED");
+    expect(rowsOf(view)[0]?.textContent).toContain("Your value");
+    expect(rowsOf(view)[0]?.textContent).toContain("gender");
+    expect(rowsOf(view)[0]?.textContent).toContain("female");
+    expect(rowsOf(view)[0]?.closest("[data-icu-supplied]")).not.toBeNull();
+    expect(view.all("[data-icu-group]")).toHaveLength(0);
+  });
+
+  it("lets a long typed value wrap instead of scrolling sideways", async () => {
+    const long = "w".repeat(60);
+    stubRpc({
+      "key.previewIcu": validAnswer([
+        {
+          supplied: true,
+          axis: "select",
+          argument: "g",
+          category: "other",
+          sample: long,
+          text: "x",
+        },
+      ]),
+    });
+    const view = await renderAsync(panel("x"));
+
+    await openPanel(view);
+
+    const value = [...view.get("[data-supplied]").querySelectorAll("span")].find((span) =>
+      span.textContent?.includes(long),
+    );
+    expect(value?.className).toContain("wrap-anywhere");
+    expect(value?.className).toContain("min-w-0");
+  });
+
+  it("sets rendered argument text in sans and keeps mono for tags", async () => {
+    stubRpc({
+      "key.previewIcu": {
+        ok: true,
+        result: {
+          supported: true,
+          valid: true,
+          arguments: { style: "none" },
+          truncated: false,
+          rows: [
+            {
+              axis: "none",
+              argument: null,
+              category: null,
+              sample: null,
+              held: {},
+              supplied: false,
+              segments: [
+                { kind: "argument", text: "15 March" },
+                { kind: "tag", text: "<b>" },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const view = await renderAsync(panel("x"));
+
+    await openPanel(view);
+
+    expect(view.get('[data-icu-segment="argument"]').className).not.toContain("font-mono");
+    expect(view.get('[data-icu-segment="tag"]').className).toContain("font-mono");
+  });
+
+  it("keeps one reserved block, the same shape, whether the draft is valid or not", async () => {
+    const answers: StubRpcResult[] = [validAnswer([{ text: "GOOD" }]), refusal("invalid-message")];
+    stubRpc({ "key.previewIcu": () => answers.shift() ?? validAnswer([]) });
+    const view = await renderAsync(panel("a"));
+    await openPanel(view);
+    const shape = (): number => view.get("[data-icu-notice]").children.length;
+    const valid = shape();
+
+    view.rerender(panel("{"));
+    await settle();
+
+    expect(shape()).toBe(valid);
+    expect(view.all("[data-icu-notice] .invisible").length).toBeGreaterThan(0);
+    expect(
+      view
+        .all("[data-icu-notice] [aria-hidden]")
+        .every((node) => node.classList.contains("invisible")),
+    ).toBe(true);
+    expect(view.all("[data-icu-refusal]")).toHaveLength(1);
+  });
+
+  it("does not claim there is nothing to preview in a refusal", async () => {
+    stubRpc({ "key.previewIcu": refusal("invalid-message") });
+    const view = await renderAsync(panel("{"));
+
+    await openPanel(view);
+
+    expect(view.get("[data-icu-refusal]").textContent).not.toContain("nothing to preview");
+  });
+
+  it("keeps the last good rows, muted, under a failed read too", async () => {
+    const answers: StubRpcResult[] = [validAnswer([{ text: "GOOD" }]), rpcError("INTERNAL")];
+    stubRpc({ "key.previewIcu": () => answers.shift() ?? validAnswer([]) });
+    const view = await renderAsync(panel("a"));
+    await openPanel(view);
+
+    view.rerender(panel("b"));
+    await settle();
+
+    expect(view.get('[role="alert"]')).toBeDefined();
+    const stale = view.get("[data-icu-stale]");
+    expect(stale.textContent).toContain("GOOD");
+    expect(stale.textContent).toContain("These rows are from the last valid text.");
+    expect(stale.querySelector(".text-muted-foreground")).not.toBeNull();
+  });
+
+  async function failedThenRecovering(): Promise<{
+    readonly view: RenderResult;
+    readonly recover: () => Promise<void>;
+  }> {
+    const retry = deferredAnswer();
+    const answers: (StubRpcResult | Promise<StubRpcResult>)[] = [
+      rpcError("INTERNAL"),
+      retry.promise,
+    ];
+    stubRpc({
+      "key.previewIcu": () => answers.shift() ?? validAnswer([{ text: "BACK" }], { named: FIELDS }),
+    });
+    const view = await renderAsync(panel("x"));
+    await openPanel(view);
+    return {
+      view,
+      recover: async () => {
+        retry.resolve(validAnswer([{ text: "BACK" }], { named: FIELDS }));
+        await flush();
+      },
+    };
+  }
+
+  it("does not pull focus out of a sample input when the retried read answers", async () => {
+    const { view, recover } = await failedThenRecovering();
+    const before = previewCalls().length;
+    click(buttonNamed(view, "Retry"));
+    await settle(0);
+    expect(previewCalls().length).toBe(before + 1);
+    await recover();
+    const sample = textboxNamed(view, "n");
+    sample.focus();
+    click(buttonNamed(view, "ICU preview"));
+    click(buttonNamed(view, "ICU preview"));
+
+    expect(document.activeElement).not.toBe(view.get('[data-recovery-target="icu-preview"]'));
+  });
+});
+
+describe("IcuPreviewPanel Retry focus and samples", () => {
+  it("does not count a focused sample input as still being in the panel", async () => {
+    const retry = deferredAnswer();
+    const answers: (StubRpcResult | Promise<StubRpcResult>)[] = [
+      validAnswer([{ text: "FIRST" }], { named: [{ name: "n", type: "number" }] }),
+      rpcError("INTERNAL"),
+      retry.promise,
+    ];
+    stubRpc({ "key.previewIcu": () => answers.shift() ?? validAnswer([]) });
+    const view = await renderAsync(panel("a"));
+    await openPanel(view);
+    view.rerender(panel("b"));
+    await settle();
+    click(buttonNamed(view, "Retry"));
+    await settle(0);
+    const sample = textboxNamed(view, "n");
+    sample.focus();
+
+    retry.resolve(validAnswer([{ text: "BACK" }], { named: [{ name: "n", type: "number" }] }));
+    await flush();
+
+    expect(rowsOf(view)[0]?.textContent).toContain("BACK");
+    expect(document.activeElement).toBe(sample);
+  });
+
+  it("treats a sample edit as leaving the Retry: the recovery does not move focus", async () => {
+    const retry = deferredAnswer();
+    const named = [{ name: "n", type: "number" }];
+    const answers: (StubRpcResult | Promise<StubRpcResult>)[] = [
+      validAnswer([{ text: "FIRST" }], { named }),
+      rpcError("INTERNAL"),
+      retry.promise,
+    ];
+    stubRpc({
+      "key.previewIcu": () => answers.shift() ?? validAnswer([{ text: "AGAIN" }], { named }),
+    });
+    const view = await renderAsync(panel("a"));
+    await openPanel(view);
+    view.rerender(panel("b"));
+    await settle();
+    click(buttonNamed(view, "Retry"));
+    await settle(0);
+    typeInto(textboxNamed(view, "n"), "3");
+    (document.activeElement as HTMLElement | null)?.blur();
+
+    retry.resolve(validAnswer([{ text: "BACK" }], { named }));
+    await flush();
+    await settle();
+
+    expect(document.activeElement).not.toBe(view.get('[data-recovery-target="icu-preview"]'));
   });
 });
 

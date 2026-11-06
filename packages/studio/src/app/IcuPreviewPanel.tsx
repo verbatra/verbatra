@@ -1,4 +1,4 @@
-import type { IcuPreviewRow, IcuSegment } from "@verbatra/sdk";
+import type { IcuPreviewFailure, IcuPreviewRow, IcuSegment } from "@verbatra/sdk";
 import { Badge, Button, Icon, TextField } from "@verbatra/ui";
 import type { KeyboardEvent, ReactNode } from "react";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -30,11 +30,18 @@ import { useIcuPreview } from "./use-icu-preview.js";
 const FOCUS_TARGET =
   "scroll-mt-28 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
-const ARGUMENT_CLASSES =
-  "rounded-sm bg-accent px-0.5 font-mono text-[0.92em] text-accent-foreground";
+const ARGUMENT_CLASSES = "rounded-sm bg-accent px-0.5 text-accent-foreground";
+const STALE_ARGUMENT_CLASSES = "rounded-sm bg-muted px-0.5 text-muted-foreground";
+const STALE_NOTE = "These rows are from the last valid text.";
 const TAG_CLASSES = "font-mono text-[0.92em] text-muted-foreground";
 
-function SegmentText({ segments }: { readonly segments: readonly IcuSegment[] }): ReactNode {
+function SegmentText({
+  segments,
+  stale,
+}: {
+  readonly segments: readonly IcuSegment[];
+  readonly stale: boolean;
+}): ReactNode {
   return segments.map((segment, index) =>
     segment.kind === "text" ? (
       <span key={index}>{segment.text}</span>
@@ -45,7 +52,11 @@ function SegmentText({ segments }: { readonly segments: readonly IcuSegment[] })
         data-icu-segment={segment.kind}
         className={cn(
           "whitespace-pre-wrap",
-          segment.kind === "argument" ? ARGUMENT_CLASSES : TAG_CLASSES,
+          segment.kind === "argument"
+            ? stale
+              ? STALE_ARGUMENT_CLASSES
+              : ARGUMENT_CLASSES
+            : TAG_CLASSES,
         )}
       >
         {segment.text}
@@ -58,14 +69,29 @@ function heldText(held: RowGroup["held"]): string {
   return held.map(([name, value]) => `${name}=${value}`).join(",");
 }
 
+function HeldPairs({ held }: { readonly held: RowGroup["held"] }): ReactNode {
+  return held.map(([name, value]) => (
+    <span key={name} className="inline-flex min-w-0 items-baseline gap-1">
+      <span dir="ltr" className="font-mono wrap-anywhere">
+        {name}
+      </span>
+      <span aria-hidden="true">=</span>
+      <bdi dir="auto" className="wrap-anywhere">
+        {String(value)}
+      </bdi>
+    </span>
+  ));
+}
+
 function RowHeader({ row }: { readonly row: IcuPreviewRow }): ReactNode {
   if (row.argument === null) {
     return <span>Rendered text</span>;
   }
-  const numeric = row.axis === "plural" || row.axis === "ordinal" || row.axis === "sample";
+  const numeric = row.axis === "plural" || row.axis === "ordinal" || row.supplied;
   return (
     <>
-      {row.axis === "sample" ? <span>Your value</span> : null}
+      {row.supplied ? <span className="font-semibold text-foreground">Your value</span> : null}
+      {row.supplied ? <HeldPairs held={Object.entries(row.held)} /> : null}
       <span dir="ltr" className="font-mono wrap-anywhere">
         {row.argument}
       </span>
@@ -73,7 +99,7 @@ function RowHeader({ row }: { readonly row: IcuPreviewRow }): ReactNode {
         {row.category}
       </Badge>
       {numeric ? (
-        <span dir="auto" className="font-mono">
+        <span dir="auto" className="min-w-0 font-mono wrap-anywhere">
           {`= ${row.sample}`}
         </span>
       ) : null}
@@ -84,9 +110,11 @@ function RowHeader({ row }: { readonly row: IcuPreviewRow }): ReactNode {
 function PreviewRow({
   row,
   locale,
+  stale,
 }: {
   readonly row: IcuPreviewRow;
   readonly locale: string;
+  readonly stale: boolean;
 }): ReactNode {
   const text = row.segments.map((segment) => segment.text).join("");
   return (
@@ -94,6 +122,7 @@ function PreviewRow({
       className="min-w-0 rounded-sm border border-border bg-card px-3 py-2"
       data-icu-row=""
       data-axis={row.axis}
+      data-supplied={row.supplied ? "" : undefined}
       data-argument={row.argument ?? undefined}
       data-category={row.category ?? undefined}
     >
@@ -101,12 +130,15 @@ function PreviewRow({
         <RowHeader row={row} />
       </p>
       <p
-        className="m-0 whitespace-pre-wrap text-start text-sm wrap-anywhere"
+        className={cn(
+          "m-0 whitespace-pre-wrap text-start text-sm wrap-anywhere",
+          stale && "text-muted-foreground",
+        )}
         lang={locale}
         dir={valueDirection(locale, text)}
         data-icu-text=""
       >
-        <SegmentText segments={row.segments} />
+        <SegmentText segments={row.segments} stale={stale} />
       </p>
     </li>
   );
@@ -118,17 +150,7 @@ function HeldHeading({ held }: { readonly held: RowGroup["held"] }): ReactNode {
       className="m-0 mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-foreground"
       data-icu-held={heldText(held)}
     >
-      {held.map(([name, value]) => (
-        <span key={name} className="inline-flex min-w-0 items-baseline gap-1">
-          <span dir="ltr" className="font-mono font-normal wrap-anywhere">
-            {name}
-          </span>
-          <span aria-hidden="true">=</span>
-          <bdi dir="auto" className="wrap-anywhere">
-            {String(value)}
-          </bdi>
-        </span>
-      ))}
+      <HeldPairs held={held} />
     </p>
   );
 }
@@ -136,9 +158,11 @@ function HeldHeading({ held }: { readonly held: RowGroup["held"] }): ReactNode {
 function Rows({
   answer,
   locale,
+  stale = false,
 }: {
   readonly answer: ValidIcuPreview;
   readonly locale: string;
+  readonly stale?: boolean;
 }): ReactNode {
   if (isBlankPreview(answer.rows)) {
     return (
@@ -155,11 +179,12 @@ function Rows({
             key={groupIndex}
             className={cn("min-w-0", group.held.length > 0 && "border-s-2 border-border ps-2")}
             data-icu-group={group.held.length > 0 ? heldText(group.held) : undefined}
+            data-icu-supplied={group.supplied ? "" : undefined}
           >
             {group.held.length > 0 ? <HeldHeading held={group.held} /> : null}
             <ul className="m-0 flex list-none flex-col gap-2 p-0">
               {group.rows.map((row, index) => (
-                <PreviewRow key={index} row={row} locale={locale} />
+                <PreviewRow key={index} row={row} locale={locale} stale={stale} />
               ))}
             </ul>
           </li>
@@ -172,6 +197,52 @@ function Rows({
         </p>
       ) : null}
     </>
+  );
+}
+
+const REFUSAL_REASONS = Object.keys(ICU_FAILURE_COPY) as readonly IcuPreviewFailure[];
+
+function NoticeBlock({
+  refusal,
+  staleShown,
+  updating,
+}: {
+  readonly refusal: IcuPreviewFailure | null;
+  readonly staleShown: boolean;
+  readonly updating: boolean;
+}): ReactNode {
+  return (
+    <div className="mb-2 grid min-w-0" data-icu-notice="">
+      <p
+        role="status"
+        className="col-start-1 row-start-1 m-0 min-h-5 text-xs text-muted-foreground"
+        data-icu-status=""
+      >
+        {updating && refusal === null ? "Updating…" : ""}
+      </p>
+      {REFUSAL_REASONS.map((reason) => {
+        const active = refusal === reason;
+        return (
+          <div
+            key={reason}
+            className={cn("col-start-1 row-start-1 min-w-0", !active && "invisible")}
+            aria-hidden={active ? undefined : true}
+            data-icu-refusal={active ? reason : undefined}
+          >
+            <p className="m-0 text-sm text-muted-foreground">{ICU_FAILURE_COPY[reason]}</p>
+            <p
+              className={cn(
+                "m-0 mt-1 text-xs text-muted-foreground",
+                !(active && staleShown) && "invisible",
+              )}
+              data-icu-stale-note={active && staleShown ? "" : undefined}
+            >
+              {STALE_NOTE}
+            </p>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -357,13 +428,15 @@ function IcuPreviewBody({
     }
     const region = regionRef.current;
     const active = document.activeElement;
-    if (active === document.body || region?.contains(active) === true) {
+    const inSamples = active instanceof Element && active.closest("[data-icu-samples]") !== null;
+    if (active === document.body || (region?.contains(active) === true && !inSamples)) {
       region?.focus();
     }
   }, [retrying, view.kind]);
 
   const refusal = view.kind === "answer" && !view.answer.valid ? view.answer : null;
   const answer = view.kind === "answer" && view.answer.valid ? view.answer : null;
+  const staleRows = (refusal !== null || view.kind === "error") && lastValid !== undefined;
 
   return (
     <div
@@ -375,28 +448,27 @@ function IcuPreviewBody({
       <p className="m-0 mb-2 text-xs text-muted-foreground">
         Uses this computer&apos;s language data, so your app may differ.
       </p>
+      <NoticeBlock
+        refusal={refusal?.reason ?? null}
+        staleShown={staleRows}
+        updating={pending || view.kind === "loading"}
+      />
       {shown.length > 0 ? (
         <SampleInputs
           fields={shown}
           total={fields.length}
           inputs={inputs}
           problems={samples.problems}
-          onChange={(name, text) =>
+          onChange={(name, text) => {
+            retryPressed.current = false;
             setHeld((current) => ({
               inputs: new Map(current.inputs).set(name, text),
               fields: current.fields,
-            }))
-          }
+            }));
+          }}
           onEscape={onEscape}
         />
       ) : null}
-      <p
-        role="status"
-        className="m-0 mb-2 min-h-5 text-xs text-muted-foreground"
-        data-icu-status=""
-      >
-        {pending || view.kind === "loading" ? "Updating…" : ""}
-      </p>
       {view.kind === "error" ? (
         <ErrorMessage
           error={view.error}
@@ -407,19 +479,12 @@ function IcuPreviewBody({
           }}
         />
       ) : null}
-      {refusal !== null ? (
-        <p className="m-0 text-sm text-muted-foreground" data-icu-refusal={refusal.reason}>
-          {ICU_FAILURE_COPY[refusal.reason]}
-        </p>
-      ) : null}
-      {refusal !== null && lastValid !== undefined ? (
-        <div className="mt-2" data-icu-stale="">
-          <p className="m-0 mb-2 text-xs text-muted-foreground">
-            These rows are from the last valid text.
-          </p>
-          <div className="opacity-60">
-            <Rows answer={lastValid} locale={locale} />
-          </div>
+      {staleRows ? (
+        <div data-icu-stale="">
+          {view.kind === "error" ? (
+            <p className="m-0 mb-2 text-xs text-muted-foreground">{STALE_NOTE}</p>
+          ) : null}
+          <Rows answer={lastValid} locale={locale} stale />
         </div>
       ) : null}
       {answer !== null ? <Rows answer={answer} locale={locale} /> : null}

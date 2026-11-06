@@ -16,9 +16,8 @@ export const ICU_PREVIEW_FIELD_LIMIT = 24;
 export const ICU_FAILURE_COPY: Readonly<Record<IcuPreviewFailure, string>> = {
   "too-long": "This message is over 20,000 characters, too long to preview.",
   "too-complex": "This message nests too deeply or has too many braces and tags to preview.",
-  "invalid-message": "This is not valid ICU message syntax, so there is nothing to preview.",
-  "unsupported-locale":
-    "This machine's locale data does not know this locale, so it cannot be previewed.",
+  "invalid-message": "This is not valid ICU message syntax.",
+  "unsupported-locale": "This computer's language data does not know this locale.",
   "too-large": "The rendered message would be too large to show.",
 };
 
@@ -43,7 +42,8 @@ export function sampleFields(described: MessageArguments): readonly SampleField[
 export type SampleProblem = "number" | "date" | "range" | "long";
 
 export const SAMPLE_PROBLEM_COPY: Readonly<Record<SampleProblem, string>> = {
-  number: "Not a number. The default is used.",
+  number:
+    "Not a number, or a comma before exactly three digits, which could mean thousands. The default is used.",
   date: "Not a date as 2024-03-15 or a number of milliseconds since 1970-01-01 UTC. The default is used.",
   range: "Outside the dates a computer can show. The default is used.",
   long: `Over ${ICU_PREVIEW_ARG_TEXT_MAX_LENGTH} characters. The default is used.`,
@@ -59,8 +59,22 @@ const DECIMAL_COMMA = /^-?\d+([.,]\d+)?$/;
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MAX_DATE_MS = 8.64e15;
 
-function decimalOf(text: string, allowComma: boolean): number | undefined {
-  if (!(allowComma ? DECIMAL_COMMA : DECIMAL).test(text)) {
+const DIGIT_BLOCKS: readonly (readonly [number, number])[] = [
+  [0x0660, 0x0669],
+  [0x06f0, 0x06f9],
+];
+
+function asciiDigits(text: string): string {
+  return text.replace(/\u066b/g, ".").replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (digit) => {
+    const code = digit.charCodeAt(0);
+    const block = DIGIT_BLOCKS.find(([start, end]) => code >= start && code <= end);
+    return String(code - (block?.[0] ?? code));
+  });
+}
+
+function decimalOf(raw: string, allowComma: boolean): number | undefined {
+  const text = asciiDigits(raw);
+  if (!(allowComma ? DECIMAL_COMMA : DECIMAL).test(text) || /,\d{3}$/.test(text)) {
     return undefined;
   }
   const parsed = Number(text.replace(",", "."));
@@ -155,19 +169,25 @@ export function samplesKey(samples: PreparedSamples): string {
 
 export interface RowGroup {
   readonly held: readonly (readonly [string, string | number])[];
+  readonly supplied: boolean;
   readonly rows: readonly IcuPreviewRow[];
 }
 
 export function groupRows(rows: readonly IcuPreviewRow[]): readonly RowGroup[] {
-  const groups = new Map<string, { held: RowGroup["held"]; rows: IcuPreviewRow[] }>();
-  for (const row of rows) {
+  const typed = rows.filter((row) => row.supplied);
+  const groups = new Map<
+    string,
+    { held: RowGroup["held"]; supplied: boolean; rows: IcuPreviewRow[] }
+  >();
+  for (const row of rows.filter((candidate) => !candidate.supplied)) {
     const held = Object.entries(row.held);
     const key = JSON.stringify(held);
-    const group = groups.get(key) ?? { held, rows: [] };
+    const group = groups.get(key) ?? { held, supplied: false, rows: [] };
     group.rows.push(row);
     groups.set(key, group);
   }
-  return [...groups.values()];
+  const lead = typed.length > 0 ? [{ held: [], supplied: true, rows: typed }] : [];
+  return [...lead, ...groups.values()];
 }
 
 export function isBlankPreview(rows: readonly IcuPreviewRow[]): boolean {

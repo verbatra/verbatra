@@ -94,7 +94,6 @@ describe("prepareSamples", () => {
     ".5",
     "5.",
     "+5",
-    "٣",
     "1 2",
     "9".repeat(400),
   ])("leaves %j unset and flags it for a number", (text) => {
@@ -245,6 +244,64 @@ describe("prepareSamples: decimal comma, dates and ranges", () => {
   });
 });
 
+describe("prepareSamples: thousands commas and other digits", () => {
+  it.each([
+    ["1,5", 1.5],
+    ["1,50", 1.5],
+    ["1,2345", 1.2345],
+    ["0,5", 0.5],
+  ])("reads %j as %s", (text, expected) => {
+    expect(prepareSamples(NUMBER, inputs({ n: text })).args).toEqual({ n: expected });
+  });
+
+  it.each(["1,000", "12,345", "1,000,000", "-1,000", "0,500"])(
+    "flags %j rather than reading it as a number",
+    (text) => {
+      const prepared = prepareSamples(NUMBER, inputs({ n: text }));
+
+      expect(prepared.args).toBeUndefined();
+      expect(prepared.problems.get("n")).toBe("number");
+    },
+  );
+
+  it.each([
+    ["٣", 3],
+    ["١٢", 12],
+    ["۱۲۳", 123],
+    ["١٫٥", 1.5],
+    ["-٧", -7],
+  ])("reads the digits of %j as %s", (text, expected) => {
+    expect(prepareSamples(NUMBER, inputs({ n: text })).args).toEqual({ n: expected });
+  });
+});
+
+describe("groupRows: typed values first", () => {
+  const typed = (argument: string): IcuPreviewRow => ({
+    axis: "plural",
+    argument,
+    category: "few",
+    sample: 22,
+    held: { g: "f" },
+    supplied: true,
+    segments: [{ kind: "text", text: "22" }],
+  });
+  const plain = (argument: string): IcuPreviewRow => ({ ...typed(argument), supplied: false });
+
+  it("leads with one group of the typed rows, whatever they hold", () => {
+    const groups = groupRows([plain("a"), typed("n"), plain("b"), typed("m")]);
+
+    expect(groups.map((group) => [group.supplied, group.rows.map((row) => row.argument)])).toEqual([
+      [true, ["n", "m"]],
+      [false, ["a", "b"]],
+    ]);
+    expect(groups[0]?.held).toEqual([]);
+  });
+
+  it("adds no lead group when nothing was typed", () => {
+    expect(groupRows([plain("a")]).map((group) => group.supplied)).toEqual([false]);
+  });
+});
+
 describe("groupRows and isBlankPreview", () => {
   const row = (
     argument: string | null,
@@ -256,6 +313,7 @@ describe("groupRows and isBlankPreview", () => {
     category: argument === null ? null : "one",
     sample: argument === null ? null : 1,
     held,
+    supplied: false,
     segments: [{ kind: "text", text }],
   });
 
