@@ -221,6 +221,50 @@ describe("previewIcuMessage: a supplied row never names an arm its text does not
   });
 });
 
+describe("previewIcuMessage: a typed row agrees with the other typed values", () => {
+  const BY_GENDER =
+    "{gender, select, female {{n, plural, one {sie 1} other {sie #}}} male {{n, plural, one {er 1} other {er #}}} other {{n, plural, one {x 1} other {x #}}}}";
+
+  it("reads the place the other typed value picks, as the runtime does", () => {
+    const args = { gender: "male", n: 3 };
+
+    const rows = sampleRows(BY_GENDER, "en", args);
+
+    expect(rows.find((row) => row.argument === "n")).toMatchObject({
+      category: "other",
+      held: { gender: "male" },
+    });
+    expect(textOf(rows.find((row) => row.argument === "n") as IcuPreviewRow)).toBe("er 3");
+    expect(String(new IntlMessageFormat(BY_GENDER, "en").format(args))).toBe("er 3");
+  });
+
+  it("keeps the typed argument itself in the typed row and holds the rest at the typed values", () => {
+    const message =
+      "{a, plural, one {x {b, select, p {P} other {Q}}} other {y {b, select, p {P2} other {Q2}}}}";
+    const args = { a: 2, b: "p" };
+
+    const rows = sampleRows(message, "en", args);
+
+    expect(rows.find((row) => row.argument === "b")).toMatchObject({
+      category: "p",
+      held: { a: 2 },
+    });
+    expect(textOf(rows.find((row) => row.argument === "b") as IcuPreviewRow)).toBe("y P2");
+    expect(String(new IntlMessageFormat(message, "en").format(args))).toBe("y P2");
+  });
+
+  it("falls back to the first reachable place when no place agrees with the other value", () => {
+    const message = "{g, select, a {{n, plural, one {x} other {y}}} other {z}}";
+
+    const rows = sampleRows(message, "en", { g: "b", n: 1 });
+
+    expect(rows.find((row) => row.argument === "n")).toMatchObject({
+      category: "one",
+      held: { g: "a" },
+    });
+  });
+});
+
 describe("previewIcuMessage: held arguments", () => {
   it("is empty for an argument that is not nested and for a message with nothing to vary", () => {
     expect(rowsOf(POLISH, "pl").rows.every((row) => Object.keys(row.held).length === 0)).toBe(true);

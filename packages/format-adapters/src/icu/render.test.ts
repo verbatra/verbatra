@@ -522,6 +522,19 @@ describe("number text given for a plural argument", () => {
     },
   );
 
+  it.each(["5", "1234.5", " 7 ", "01"])(
+    "formats %j for a number element as the runtime does",
+    (text) => {
+      expect(rendered("{n, number}", "en", { n: text })).toBe(
+        oracle("{n, number}", "en", { n: text }),
+      );
+    },
+  );
+
+  it("leaves a number element with text that is not a number as its placeholder", () => {
+    expect(rendered("{n, number}", "en", { n: "abc" })).toBe("{n}");
+  });
+
   it("sends text that is not a number to other and leaves the # as it is", () => {
     expect(rendered("{n, plural, one {# x} other {# y}}", "en", { n: "abc" })).toBe("# y");
   });
