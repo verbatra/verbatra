@@ -1,6 +1,6 @@
 import { Button, Checkbox, microLabelClassName, TextArea, TextField } from "@verbatra/ui";
 import type { FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
-import { useEffect, useId, useRef } from "react";
+import { useId } from "react";
 import {
   ALL_LOCALES,
   buildTermEdit,
@@ -192,10 +192,6 @@ export function GlossaryTermEditor({
   readonly onEscape: () => void;
   readonly onSave: () => void;
 }): ReactNode {
-  const ownRef = useRef<HTMLInputElement | null>(null);
-  useEffect(() => {
-    ownRef.current?.focus();
-  }, []);
   const scopeLabel = scope === ALL_LOCALES ? "all locales" : scope;
   const unchanged = buildTermEdit(term, scope, draft) === undefined;
   const overCap = forbiddenBlocksSave(draft.forbidden, draftFor(term, scope).forbidden);
@@ -223,10 +219,7 @@ export function GlossaryTermEditor({
           maxLength={MAX_GLOSSARY_TRANSLATION_LENGTH}
           busy={busy}
           autoDirection
-          inputRef={(element) => {
-            ownRef.current = element;
-            translationRef(element);
-          }}
+          inputRef={translationRef}
           note={
             <CapNote
               length={draft.translation.length}

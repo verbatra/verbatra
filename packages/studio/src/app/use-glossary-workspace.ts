@@ -19,6 +19,7 @@ import {
   type TermDraft,
 } from "../client/glossary-editing.js";
 import type {
+  GlossaryDoNotTranslateView,
   GlossaryGetResult,
   GlossaryTermView,
   GlossaryWriteParams,
@@ -42,12 +43,57 @@ import { useGlossaryWriter } from "./use-glossary-writer.js";
 
 export const LIST_CAP = 50;
 
+export interface ListRow {
+  readonly term: GlossaryTermView;
+  readonly orphan: boolean;
+}
+
+function withOrphans(
+  listed: readonly GlossaryTermView[],
+  editors: TermDrafts,
+  orphanSources: readonly string[],
+): readonly ListRow[] {
+  const rows: ListRow[] = listed.map((term) => ({ term, orphan: false }));
+  for (const [source, entry] of editors) {
+    if (orphanSources.includes(source)) {
+      const at = rows.findIndex((row) => row.term.source === entry.after);
+      rows.splice(at + 1, 0, { term: entry.base, orphan: true });
+    }
+  }
+  return rows;
+}
+
+function sameValue(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function liveRemoval(
+  removal: RemovalRequest | undefined,
+  terms: readonly GlossaryTermView[],
+  kept: readonly GlossaryDoNotTranslateView[],
+): RemovalRequest | undefined {
+  if (removal === undefined) {
+    return undefined;
+  }
+  if (removal.kind === "term") {
+    const term = terms.find((candidate) => candidate.source === removal.term.source);
+    return term === undefined ? removal : { ...removal, term };
+  }
+  const entry = kept.find((candidate) => candidate.term === removal.entry.term);
+  return entry === undefined ? removal : { ...removal, entry };
+}
+
+function sameDraft(left: TermDraft, right: TermDraft): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 export interface GlossaryWorkspace {
   readonly bench: GlossaryBench;
   readonly hold: GlossaryHold;
   readonly readOnlyReason: string | undefined;
   readonly shown: readonly GlossaryTermView[];
-  readonly orphanTerms: readonly GlossaryTermView[];
+  readonly rows: readonly ListRow[];
+  readonly orphanCount: number;
   readonly matchCount: number;
   readonly capped: boolean;
   readonly showAll: () => void;
@@ -101,7 +147,16 @@ export function useGlossaryWorkspace({
   readonly glossary: GlossaryGetResult;
   readonly onChange: (next: GlossaryWriteResult) => void;
 }): GlossaryWorkspace {
-  const writer = useGlossaryWriter(onChange);
+  const termsRef = useRef(glossary.terms);
+  const seenTerms = useRef(glossary.terms);
+  if (seenTerms.current !== glossary.terms) {
+    seenTerms.current = glossary.terms;
+    termsRef.current = glossary.terms;
+  }
+  const writer = useGlossaryWriter((next) => {
+    termsRef.current = next.terms;
+    onChange(next);
+  });
   const focus = useFocusRegistry();
   const [editors, setEditors] = useState<TermDrafts>(new Map());
   const [add, setAddState] = useState(EMPTY_ADD_DRAFT);
@@ -124,12 +179,7 @@ export function useGlossaryWorkspace({
     ? wanted.filter((term, index) => index < LIST_CAP || editors.has(term.source))
     : wanted;
   const orphanSources = orphanedSources(terms, editors);
-  const orphanTerms = orphanSources.flatMap((source) => {
-    const entry = editors.get(source);
-    return entry === undefined ? [] : [entry.base];
-  });
-  const orphanRef = useRef<ReadonlySet<string>>(new Set());
-  orphanRef.current = new Set(orphanSources);
+  const rows = withOrphans(listed, editors, orphanSources);
   const dirtySources = dirtyEditorSources(editors, scope);
   const addDirty = isAddDirty(add);
   const keepDirty = isKeepDirty(keep);
@@ -158,10 +208,13 @@ export function useGlossaryWorkspace({
 
   function focusDirty(): void {
     const first = dirtySources[0];
+    const failedKey = writer.firstFailure()?.key;
     if (first !== undefined) {
       focus.request([editorFieldKey(first)]);
-    } else {
+    } else if (addDirty || keepDirty) {
       focus.request([addDirty ? ADD_FIELD : KEEP_KEY]);
+    } else if (failedKey !== undefined) {
+      focus.request([failedKey === ADD_KEY ? ADD_FIELD : failedKey]);
     }
   }
 
@@ -195,6 +248,26 @@ export function useGlossaryWorkspace({
       setPromptEpoch((epoch) => epoch + 1);
     }
   }, [hold.visible]);
+
+  useEffect(() => {
+    setEditors((current) => {
+      const next = new Map(current);
+      for (const [source, entry] of current) {
+        const term = terms.find((candidate) => candidate.source === source);
+        const clean = sameDraft(entry.draft, draftFor(entry.base, scope));
+        if (term !== undefined && clean && term !== entry.base && !sameValue(term, entry.base)) {
+          next.set(source, { ...entry, draft: draftFor(term, scope), base: term });
+        }
+      }
+      return [...next].some(([source, entry]) => entry !== current.get(source)) ? next : current;
+    });
+    for (const key of writer.failureKeys()) {
+      const gone = key.startsWith("term:") && !terms.some((term) => termKey(term.source) === key);
+      if (gone) {
+        writer.dismiss(key);
+      }
+    }
+  }, [terms, scope, writer.failureKeys, writer.dismiss]);
 
   function setDraft(term: GlossaryTermView, draft: TermDraft): void {
     setEditors((current) =>
@@ -235,10 +308,16 @@ export function useGlossaryWorkspace({
       focus.request([editorFieldKey(source)]);
       return;
     }
+    const index = listed.findIndex((candidate) => candidate.source === source);
     setEditors((current) =>
-      withEntry(current, source, { draft: draftFor(term, scope), base: term }),
+      withEntry(current, source, {
+        draft: draftFor(term, scope),
+        base: term,
+        after: listed[index - 1]?.source,
+      }),
     );
     writer.dismiss(termKey(source));
+    focus.request([editorFieldKey(source)]);
   }
 
   async function confirmKept(request: Extract<RemovalRequest, { kind: "kept" }>): Promise<void> {
@@ -255,7 +334,7 @@ export function useGlossaryWorkspace({
     } else {
       await writer.write(termKey(request.term.source), request.edit, {
         onDone: () => afterTermWrite(request.term, request.edit),
-        stillWanted: () => !orphanRef.current.has(request.term.source),
+        stillWanted: () => termsRef.current.some((term) => term.source === request.term.source),
       });
     }
     setRemoval(undefined);
@@ -266,7 +345,6 @@ export function useGlossaryWorkspace({
     if (!response.ok) {
       return undefined;
     }
-    onChange(response.result);
     return response.result;
   }
 
@@ -291,7 +369,7 @@ export function useGlossaryWorkspace({
     openEditor,
     closeEditor,
     escapeEditor: hold.requestClose,
-    isOrphan: (source) => orphanRef.current.has(source),
+    isStillListed: (source) => termsRef.current.some((term) => term.source === source),
     addChecking,
     setAddChecking,
     askRemoval: setRemoval,
@@ -304,7 +382,8 @@ export function useGlossaryWorkspace({
     hold,
     readOnlyReason,
     shown: listed,
-    orphanTerms,
+    rows,
+    orphanCount: orphanSources.length,
     matchCount: wanted.length,
     capped,
     showAll: () => {
@@ -320,7 +399,7 @@ export function useGlossaryWorkspace({
       setQuery("");
       focus.request([SEARCH_FIELD]);
     },
-    removal,
+    removal: liveRemoval(removal, terms, glossary.doNotTranslate),
     dismissRemoval: () => setRemoval(undefined),
     confirmRemoval,
     promptEpoch,

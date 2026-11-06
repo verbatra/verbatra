@@ -845,7 +845,7 @@ describe("GlossarySection, not file-backed", () => {
   it("invites the first term of an empty glossary file, and an inline one just says it is empty", async () => {
     const empty: GlossaryGetResult = { ...FILE_BACKED_GLOSSARY, terms: [], doNotTranslate: [] };
     const file = await renderAsync(section(empty));
-    expect(file.text()).toContain("Add the first one below");
+    expect(file.text()).toContain("Add the first one above");
 
     const inline = await renderAsync(section({ ...empty, indicator: { source: "inline" } }));
     expect(inline.text()).toContain("The inline glossary in the config holds no terms.");

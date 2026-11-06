@@ -5,6 +5,7 @@ import type { GlossaryWriteParams, GlossaryWriteResult } from "../shared/rpc/glo
 import { rpcClient } from "./api.js";
 
 export interface WriteFailure {
+  readonly key: string;
   readonly error: StructuredError;
   readonly edit: GlossaryWriteParams;
 }
@@ -19,6 +20,7 @@ export interface GlossaryWriter {
   busy(key: string): boolean;
   failure(key: string): WriteFailure | undefined;
   firstFailure(): WriteFailure | undefined;
+  failureKeys(): readonly string[];
   write(key: string, edit: GlossaryWriteParams, options?: WriteOptions): Promise<boolean>;
   retry(key: string, options?: WriteOptions): Promise<boolean>;
   dismiss(key: string): void;
@@ -66,7 +68,7 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
       }
       const outcome = deriveGlossaryWriteOutcome(await rpcClient.call("glossary.write", edit));
       if (outcome.kind === "error") {
-        setFailures((current) => new Map(current).set(key, { error: outcome.error, edit }));
+        setFailures((current) => new Map(current).set(key, { key, error: outcome.error, edit }));
         return false;
       }
       setFailures((current) => withoutKey(current, key));
@@ -101,6 +103,7 @@ export function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void)
     busy: (key) => pending.has(key),
     failure: (key) => failures.get(key),
     firstFailure: () => failures.values().next().value,
+    failureKeys: () => [...failures.keys()],
     write(key, edit, options) {
       dismiss(key);
       return enqueue(key, edit, options);

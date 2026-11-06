@@ -25,7 +25,7 @@ export interface GlossaryBench {
   openEditor(source: string): void;
   closeEditor(source: string): void;
   escapeEditor(source: string): void;
-  isOrphan(source: string): boolean;
+  isStillListed(source: string): boolean;
   readonly addChecking: boolean;
   setAddChecking(checking: boolean): void;
   readFresh(): Promise<GlossaryGetResult | undefined>;

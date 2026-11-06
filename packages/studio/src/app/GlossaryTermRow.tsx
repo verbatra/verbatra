@@ -6,6 +6,7 @@ import {
   editEmptiesTerm,
   forbiddenRuleCount,
   hasPerLocaleData,
+  isRemovalEdit,
   isRetryableWriteError,
   isTargetLocale,
   scopeValue,
@@ -202,6 +203,9 @@ function RowNotes({
         <div className="mt-2">
           <ErrorMessage
             error={failure.error}
+            {...(isRemovalEdit(failure.edit)
+              ? { prefix: "Removing this term failed. Retry removes it again." }
+              : {})}
             retrying={busy}
             {...(isRetryableWriteError(failure.error) ? { onRetry: () => onRetry(failure) } : {})}
           />
@@ -234,7 +238,7 @@ export function GlossaryTermRow({
   const base = entry?.base ?? term;
   const busy = writer.busy(key);
   const failure = orphaned ? undefined : writer.failure(key);
-  const stillWanted = (): boolean => !bench.isOrphan(term.source);
+  const stillWanted = (): boolean => bench.isStillListed(term.source);
   const perLocale = hasPerLocaleData(term);
   const removable = scope === ALL_LOCALES && !perLocale;
   const actionable = editable && !redacted && !orphaned;
@@ -264,9 +268,13 @@ export function GlossaryTermRow({
   return (
     <li
       data-glossary-row={term.source}
+      {...(orphaned ? { "data-orphan-block": "" } : {})}
       ref={redacted ? focus.register(key) : undefined}
       tabIndex={redacted ? -1 : undefined}
-      className="min-w-0 rounded-(--radius-lg) border border-border bg-muted/40 px-3 py-2.5"
+      className={cn(
+        "min-w-0 rounded-(--radius-lg) border border-border bg-muted/40 px-3 py-2.5",
+        orphaned && "order-first border-warning",
+      )}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex min-w-0 flex-1 basis-0 flex-wrap items-center gap-2">

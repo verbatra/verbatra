@@ -11,6 +11,7 @@ import { ErrorMessage } from "./ErrorMessage.js";
 import { CaseSensitiveToggle } from "./GlossaryTermEditor.js";
 import { DNT_HEADING, KEEP_KEY, keptKey, useGlossaryBench } from "./glossary-bench.js";
 import { cn } from "./lib/cn.js";
+import { focusIsFree } from "./use-focus-registry.js";
 
 export const glossarySubheadingClassName = "m-0 mb-2 text-sm font-medium text-foreground";
 
@@ -86,6 +87,7 @@ function KeepForm({
 }): ReactNode {
   const bench = useGlossaryBench();
   const { keep, writer, focus } = bench;
+  const box = useRef<HTMLFormElement>(null);
   const latest = useRef(keep);
   latest.current = keep;
   const busy = writer.busy(KEEP_KEY);
@@ -109,7 +111,9 @@ function KeepForm({
   function settle(sent: string): void {
     if (latest.current.term.trim() === sent) {
       bench.setKeep(EMPTY_KEEP_DRAFT);
-      focus.request([KEEP_KEY]);
+      if (focusIsFree(box.current)) {
+        focus.request([KEEP_KEY]);
+      }
     }
   }
 
@@ -120,6 +124,7 @@ function KeepForm({
   return (
     <>
       <form
+        ref={box}
         className="mt-2 grid items-end gap-2 sm:grid-cols-[1fr_auto_auto]"
         onSubmit={(event) => void submit(event)}
       >

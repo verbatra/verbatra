@@ -2,11 +2,10 @@ import { Button, EmptyState, FilterBar, SearchInput, Select } from "@verbatra/ui
 import type { ReactNode } from "react";
 import { useId } from "react";
 import { describeDirtyDrafts } from "../client/glossary-drafts.js";
-import { ALL_LOCALES } from "../client/glossary-editing.js";
+import { ALL_LOCALES, describeFailedEdit } from "../client/glossary-editing.js";
 import type {
   GlossaryGetResult,
   GlossaryIndicator,
-  GlossaryTermView,
   GlossaryWriteResult,
 } from "../shared/rpc/glossary.js";
 import { GlossaryAddForm } from "./GlossaryAddForm.js";
@@ -14,9 +13,11 @@ import { GlossaryDoNotTranslate } from "./GlossaryDoNotTranslate.js";
 import { GlossaryRemoveDialog } from "./GlossaryRemoveDialog.js";
 import { GlossaryTermRow } from "./GlossaryTermRow.js";
 import { DNT_HEADING, GlossaryBenchContext, SEARCH_FIELD } from "./glossary-bench.js";
+import { cn } from "./lib/cn.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
 import type { PendingHold } from "./use-glossary-hold.js";
 import { type GlossaryWorkspace, useGlossaryWorkspace } from "./use-glossary-workspace.js";
+import type { WriteFailure } from "./use-glossary-writer.js";
 
 function ScopeSelect({
   locales,
@@ -52,7 +53,7 @@ function ScopeSelect({
 
 function emptyCopy(indicator: GlossaryIndicator): string {
   if (indicator.source === "file") {
-    return "The glossary file holds no terms yet. Add the first one below to keep brand terms and fixed vocabulary consistent across locales.";
+    return "The glossary file holds no terms yet. Add the first one above to keep brand terms and fixed vocabulary consistent across locales.";
   }
   if (indicator.source === "inline") {
     return "The inline glossary in the config holds no terms.";
@@ -69,6 +70,12 @@ function holdLead(pending: PendingHold | undefined): string {
   }
   const where = pending.next === ALL_LOCALES ? "all locales" : pending.next;
   return `Showing ${where} drops the changes that are not saved: `;
+}
+
+function failedWhat(failure: WriteFailure | undefined): string {
+  return failure === undefined
+    ? "A glossary change"
+    : describeFailedEdit(failure.key, failure.edit);
 }
 
 function HoldPrompt({ workspace }: { readonly workspace: GlossaryWorkspace }): ReactNode {
@@ -90,7 +97,7 @@ function HoldPrompt({ workspace }: { readonly workspace: GlossaryWorkspace }): R
           hold.saving ? (
             "Saving the glossary. Leaving waits until the writes finish."
           ) : summary === "" ? (
-            "A glossary change could not be saved."
+            `${failedWhat(bench.writer.firstFailure())} could not be saved.`
           ) : (
             <>
               {holdLead(hold.pending)}
@@ -108,26 +115,13 @@ function HoldPrompt({ workspace }: { readonly workspace: GlossaryWorkspace }): R
   );
 }
 
-function OrphanDrafts({ workspace }: { readonly workspace: GlossaryWorkspace }): ReactNode {
-  const { orphanTerms } = workspace;
-  const count = orphanTerms.length;
+function OrphanAnnouncement({ count }: { readonly count: number }): ReactNode {
   return (
-    <>
-      <p aria-live="polite" className="sr-only">
-        {count === 0
-          ? ""
-          : `${count} unsaved ${count === 1 ? "draft belongs" : "drafts belong"} to a term that no longer exists.`}
-      </p>
-      {count > 0 ? (
-        <section aria-label="Drafts for removed terms" data-orphan-block="" className="mb-4">
-          <ul className="m-0 flex min-w-0 list-none flex-col gap-2 p-0">
-            {orphanTerms.map((term) => (
-              <GlossaryTermRow key={term.source} term={term} redacted={false} orphaned />
-            ))}
-          </ul>
-        </section>
-      ) : null}
-    </>
+    <p aria-live="polite" className="sr-only">
+      {count === 0
+        ? ""
+        : `${count} unsaved ${count === 1 ? "draft belongs" : "drafts belong"} to a term that no longer exists.`}
+    </p>
   );
 }
 
@@ -138,55 +132,40 @@ function TermList({
   readonly glossary: GlossaryGetResult;
   readonly workspace: GlossaryWorkspace;
 }): ReactNode {
-  const { shown, clearSearch } = workspace;
+  const { rows, shown, clearSearch } = workspace;
   const count = glossary.terms.length;
-  if (count === 0) {
-    return (
-      <EmptyState icon="glossary" title="No glossary terms">
-        {emptyCopy(glossary.indicator)}
-      </EmptyState>
-    );
-  }
-  if (shown.length === 0) {
-    return (
-      <EmptyState
-        icon="search"
-        title="No terms match"
-        action={
-          <Button size="sm" onClick={clearSearch}>
-            Clear search
-          </Button>
-        }
-      >
-        Nothing in the glossary matches this search.
-      </EmptyState>
-    );
-  }
   return (
     <>
-      {glossary.doNotTranslate.length > 0 || workspace.bench.editable ? (
+      {shown.length > 0 && (glossary.doNotTranslate.length > 0 || workspace.bench.editable) ? (
         <div className="mb-2">
           <Button
             size="xs"
             variant="ghost"
-            onClick={() => workspace.bench.focus.request([DNT_HEADING])}
+            onClick={() => workspace.bench.focus.request([DNT_HEADING], { align: "top" })}
           >
             Jump to Do not translate
           </Button>
         </div>
       ) : null}
-      <p data-term-count="" role="status" className="m-0 mb-2 text-xs text-muted-foreground">
-        {workspace.matchCount === count
-          ? `${count} ${count === 1 ? "term" : "terms"}`
-          : `${workspace.matchCount} of ${count} terms`}
-      </p>
-      <ul className="m-0 flex min-w-0 list-none flex-col gap-2 p-0">
-        {shown.map((term: GlossaryTermView) => (
+      {shown.length > 0 ? (
+        <p data-term-count="" role="status" className="m-0 mb-2 text-xs text-muted-foreground">
+          {workspace.matchCount === count
+            ? `${count} ${count === 1 ? "term" : "terms"}`
+            : `${workspace.matchCount} of ${count} terms`}
+        </p>
+      ) : null}
+      <ul
+        className={cn(
+          "m-0 flex min-w-0 list-none flex-col gap-2 p-0",
+          rows.length === 0 && "hidden",
+        )}
+      >
+        {rows.map(({ term, orphan }) => (
           <GlossaryTermRow
             key={`${workspace.bench.scope}:${term.source}`}
             term={term}
             redacted={glossary.redactedTerms.includes(term.source)}
-            orphaned={false}
+            orphaned={orphan}
           />
         ))}
       </ul>
@@ -196,6 +175,24 @@ function TermList({
             Show all {workspace.matchCount} terms
           </Button>
         </div>
+      ) : null}
+      {count === 0 ? (
+        <EmptyState icon="glossary" title="No glossary terms">
+          {emptyCopy(glossary.indicator)}
+        </EmptyState>
+      ) : null}
+      {count > 0 && shown.length === 0 ? (
+        <EmptyState
+          icon="search"
+          title="No terms match"
+          action={
+            <Button size="sm" onClick={clearSearch}>
+              Clear search
+            </Button>
+          }
+        >
+          Nothing in the glossary matches this search.
+        </EmptyState>
       ) : null}
     </>
   );
@@ -253,7 +250,7 @@ export function GlossarySection({
         {bench.editable ? (
           <GlossaryAddForm terms={glossary.terms} redactedTerms={glossary.redactedTerms} />
         ) : null}
-        <OrphanDrafts workspace={workspace} />
+        <OrphanAnnouncement count={workspace.orphanCount} />
         <TermList glossary={glossary} workspace={workspace} />
         {bench.editable && bench.scope !== ALL_LOCALES && glossary.terms.length > 0 ? (
           <p data-remove-reason="" className="m-0 mt-2 text-xs text-muted-foreground">

@@ -2,7 +2,7 @@
 import { act, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "./test-support.js";
-import { type FocusRegistry, useFocusRegistry } from "./use-focus-registry.js";
+import { type FocusRegistry, focusIsFree, useFocusRegistry } from "./use-focus-registry.js";
 
 let registry: FocusRegistry | undefined;
 
@@ -58,5 +58,72 @@ describe("useFocusRegistry reveal", () => {
     act(() => registry?.request(["field"]));
     expect(scrollBy).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it("reveals the field again after the browser restores the scroll on a landing", () => {
+    const scrollBy = vi.fn();
+    vi.stubGlobal("scrollBy", scrollBy);
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 0;
+    });
+    rects(56, 10, 40);
+    render(<Probe />);
+    act(() => registry?.request(["field"]));
+    expect(scrollBy).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    expect(scrollBy).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
+  it("stops listening for a landing after a short window", () => {
+    vi.useFakeTimers();
+    const scrollBy = vi.fn();
+    vi.stubGlobal("scrollBy", scrollBy);
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 0;
+    });
+    rects(56, 10, 40);
+    render(<Probe />);
+    act(() => registry?.request(["field"]));
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+    scrollBy.mockClear();
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("hashchange"));
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    expect(scrollBy).not.toHaveBeenCalled();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("brings the field to the top below the header when asked, not only into view", () => {
+    const scrollBy = vi.fn();
+    vi.stubGlobal("scrollBy", scrollBy);
+    rects(56, 300, 340);
+    render(<Probe />);
+
+    act(() => registry?.request(["field"], { align: "top" }));
+
+    expect(scrollBy).toHaveBeenCalledWith(0, 300 - 56 - 12);
+    vi.unstubAllGlobals();
+  });
+
+  it("knows whether focus is free to move", () => {
+    render(<Probe />);
+    expect(focusIsFree(null)).toBe(true);
+    const input = document.querySelector("input") as HTMLInputElement;
+    input.focus();
+    expect(focusIsFree(null)).toBe(false);
+    expect(focusIsFree(input.parentElement)).toBe(true);
   });
 });
