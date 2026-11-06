@@ -1,19 +1,26 @@
 import {
   createIcuRenderBudget,
-  type IcuAxisPath,
+  type IcuAxisOccurrence,
   type IcuAxisStep,
   type IcuMessageArguments,
   type IcuPreparedMessage,
   type IcuSampleValue,
   type IcuSegment,
   type IcuVariationAxis,
+  icuExactArmValue,
   icuMessageArguments,
   icuVariationAxesOf,
   prepareIcuMessage,
   renderPreparedIcuMessage,
 } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
-import { NUMBER_ARGUMENT_SAMPLE, pluralSamples } from "./icu-preview-samples.js";
+import { defaultPluralSample, NUMBER_ARGUMENT_SAMPLE } from "./icu-preview-samples.js";
+import {
+  type ArmConstraint,
+  createSolver,
+  type Solution,
+  type Solver,
+} from "./icu-preview-solve.js";
 import {
   describeIcuAnalysis,
   isIcuMessageFormat,
@@ -42,7 +49,7 @@ export type IcuPreviewFailure =
   | "unsupported-locale"
   | "too-large";
 
-/** One rendering of a message with a single argument set to a sample. */
+/** One rendering of a message with one argument varied. Arguments that enclose it are held at the arm that contains it. */
 export interface IcuPreviewRow {
   /** What the row varies: a cardinal plural, an ordinal plural, a select, or `none`. */
   readonly axis: IcuPreviewAxis;
@@ -90,33 +97,18 @@ export type IcuPreviewResult =
       readonly truncated: boolean;
     };
 
-interface Variant {
-  readonly category: string;
-  readonly sample: IcuSampleValue;
-  readonly path: IcuAxisPath;
-}
-
-interface PlannedAxis {
-  readonly axis: IcuVariationAxis;
-  readonly variants: readonly Variant[];
-}
-
 interface Candidate {
   readonly axis: IcuVariationAxis;
-  readonly variant: Variant;
-  readonly held: ReadonlyMap<string, IcuSampleValue>;
+  readonly label: string;
+  readonly solution: Solution;
 }
+
+type Resolution =
+  | { readonly kind: "found"; readonly solution: Solution }
+  | { readonly kind: "unreachable" }
+  | { readonly kind: "lost" };
 
 type SampleArguments = Readonly<Record<string, IcuSampleValue>>;
-
-type AxisIndex = ReadonlyMap<string, PlannedAxis>;
-
-const EXACT_ARM = /^=(-?\d+)$/;
-
-function exactValue(selector: string): number | undefined {
-  const digits = EXACT_ARM.exec(selector)?.[1];
-  return digits === undefined ? undefined : Number(digits);
-}
 
 function withSamples(
   base: SampleArguments,
@@ -129,72 +121,123 @@ function withSamples(
   return next;
 }
 
-function exactArmsOf(axes: readonly IcuVariationAxis[], argument: string): ReadonlySet<number> {
+function ruleTypeOf(axis: IcuVariationAxis): "cardinal" | "ordinal" {
+  return axis.kind === "ordinal" ? "ordinal" : "cardinal";
+}
+
+function labelsOf(axis: IcuVariationAxis, locale: string): readonly string[] {
+  const written = new Set(axis.occurrences.flatMap((occurrence) => occurrence.options));
+  if (axis.kind === "select") {
+    return [...written];
+  }
+  const exact = [...written].filter((option) => icuExactArmValue(option) !== undefined);
+  return [...exact, ...pluralCategoriesFor(locale, ruleTypeOf(axis))];
+}
+
+function occurrencesFor(
+  axis: IcuVariationAxis,
+  label: string,
+  byCategory: boolean,
+): readonly IcuAxisOccurrence[] {
+  const naming = axis.occurrences.filter((occurrence) => occurrence.options.includes(label));
+  if (!byCategory) {
+    return naming;
+  }
+  return [...naming, ...axis.occurrences.filter((occurrence) => !naming.includes(occurrence))];
+}
+
+function targetStep(
+  axis: IcuVariationAxis,
+  occurrence: IcuAxisOccurrence,
+  label: string,
+): IcuAxisStep {
+  return {
+    argument: axis.argument,
+    kind: axis.kind,
+    offset: occurrence.offset,
+    options: occurrence.options,
+    selector: label,
+  };
+}
+
+function withoutExactArms(step: IcuAxisStep): IcuAxisStep {
+  return {
+    ...step,
+    options: step.options.filter((option) => icuExactArmValue(option) === undefined),
+  };
+}
+
+function classify(
+  solve: Solver,
+  ancestors: readonly ArmConstraint[],
+  target: ArmConstraint,
+): Resolution {
+  if (ancestors.some((constraint) => solve([constraint]) === undefined)) {
+    return { kind: "unreachable" };
+  }
+  if (solve([target]) === undefined) {
+    const intercepted =
+      target.byCategory &&
+      solve([{ ...target, step: withoutExactArms(target.step) }]) !== undefined;
+    return { kind: intercepted ? "unreachable" : "lost" };
+  }
+  return { kind: "lost" };
+}
+
+function resolveLabel(solve: Solver, axis: IcuVariationAxis, label: string): Resolution {
+  const byCategory = axis.kind !== "select" && icuExactArmValue(label) === undefined;
+  let lost = false;
+  for (const occurrence of occurrencesFor(axis, label, byCategory)) {
+    const ancestors = occurrence.path.map((step) => ({ step, byCategory: false }));
+    const target = { step: targetStep(axis, occurrence, label), byCategory };
+    const solution = solve([...ancestors, target]);
+    if (solution !== undefined) {
+      return { kind: "found", solution };
+    }
+    lost = lost || classify(solve, ancestors, target).kind === "lost";
+  }
+  return lost ? { kind: "lost" } : { kind: "unreachable" };
+}
+
+function candidatesOf(
+  axes: readonly IcuVariationAxis[],
+  locale: string,
+): { readonly groups: readonly (readonly Candidate[])[]; readonly incomplete: boolean } {
+  const solve = createSolver(locale);
+  let incomplete = false;
+  const groups = axes.map((axis) => {
+    const found: Candidate[] = [];
+    for (const label of labelsOf(axis, locale)) {
+      const resolution = resolveLabel(solve, axis, label);
+      if (resolution.kind === "found") {
+        found.push({ axis, label, solution: resolution.solution });
+      }
+      incomplete = incomplete || resolution.kind === "lost";
+    }
+    return found;
+  });
+  return { groups, incomplete };
+}
+
+function exactValuesOf(axes: readonly IcuVariationAxis[], argument: string): ReadonlySet<number> {
   const exact = new Set<number>();
   for (const axis of axes) {
-    for (const arm of axis.kind === "select" ? [] : axis.arms) {
-      const value = exactValue(arm.selector);
-      if (axis.argument === argument && value !== undefined) {
-        exact.add(value);
+    for (const occurrence of axis.occurrences) {
+      for (const option of axis.argument === argument ? occurrence.options : []) {
+        const value = icuExactArmValue(option);
+        if (value !== undefined) {
+          exact.add(value);
+        }
       }
     }
   }
   return exact;
 }
 
-function armPathOf(axis: IcuVariationAxis, selector: string): IcuAxisPath {
-  return axis.arms.find((arm) => arm.selector === selector)?.path ?? axis.path;
-}
-
-function pluralVariants(
-  axis: IcuVariationAxis,
-  locale: string,
-  avoid: ReadonlySet<number>,
-): { readonly variants: readonly Variant[]; readonly incomplete: boolean } {
-  const ruleType = axis.kind === "ordinal" ? "ordinal" : "cardinal";
-  const categories = pluralCategoriesFor(locale, ruleType);
-  const { samples, unreached } = pluralSamples({
-    locale,
-    ruleType,
-    offset: axis.offset,
-    avoid,
-    categories,
-  });
-  const exact = axis.arms.flatMap((arm) => {
-    const value = exactValue(arm.selector);
-    return value === undefined ? [] : [{ category: arm.selector, sample: value, path: arm.path }];
-  });
-  const byCategory = categories.flatMap((category) => {
-    const sample = samples.get(category);
-    return sample === undefined ? [] : [{ category, sample, path: armPathOf(axis, category) }];
-  });
-  return { variants: [...exact, ...byCategory], incomplete: unreached.length > 0 };
-}
-
-function planAxes(
-  axes: readonly IcuVariationAxis[],
-  locale: string,
-): { readonly planned: readonly PlannedAxis[]; readonly incomplete: boolean } {
-  let incomplete = false;
-  const planned = axes.map((axis) => {
-    if (axis.kind === "select") {
-      const variants = axis.arms.map((arm) => ({
-        category: arm.selector,
-        sample: arm.selector,
-        path: arm.path,
-      }));
-      return { axis, variants };
-    }
-    const plural = pluralVariants(axis, locale, exactArmsOf(axes, axis.argument));
-    incomplete = incomplete || plural.incomplete;
-    return { axis, variants: plural.variants };
-  });
-  return { planned, incomplete };
-}
-
 function defaultSamples(
   analysis: IcuMessageArguments,
-  planned: readonly PlannedAxis[],
+  axes: readonly IcuVariationAxis[],
+  locale: string,
 ): { readonly defaults: SampleArguments; readonly names: ReadonlySet<string> } {
   const defaults = Object.create(null) as Record<string, IcuSampleValue>;
   const names = new Set<string>();
@@ -204,10 +247,15 @@ function defaultSamples(
       defaults[argument.name] = NUMBER_ARGUMENT_SAMPLE;
     }
   }
-  for (const { axis, variants } of planned) {
-    const other = variants.find((variant) => variant.category === "other");
-    if (axis.kind !== "select" && other !== undefined) {
-      defaults[axis.argument] = other.sample;
+  for (const axis of axes) {
+    const first = axis.occurrences[0];
+    if (axis.kind !== "select" && first !== undefined && !Object.hasOwn(defaults, axis.argument)) {
+      defaults[axis.argument] = defaultPluralSample(
+        locale,
+        ruleTypeOf(axis),
+        first.offset,
+        exactValuesOf(axes, axis.argument),
+      );
     }
   }
   return { defaults, names };
@@ -227,48 +275,6 @@ function baseArguments(
     }
   }
   return withSamples(defaults, given);
-}
-
-function stepSample(step: IcuAxisStep, index: AxisIndex): IcuSampleValue | undefined {
-  if (step.kind === "select") {
-    return step.selector;
-  }
-  return (
-    exactValue(step.selector) ??
-    index
-      .get(`${step.kind}:${step.argument}`)
-      ?.variants.find((variant) => variant.category === step.selector)?.sample
-  );
-}
-
-function heldAncestors(
-  path: IcuAxisPath,
-  argument: string,
-  index: AxisIndex,
-): ReadonlyMap<string, IcuSampleValue> | undefined {
-  const held = new Map<string, IcuSampleValue>();
-  for (const step of path) {
-    const sample = stepSample(step, index);
-    const prior = held.get(step.argument);
-    const conflicts = step.argument === argument || (prior !== undefined && prior !== sample);
-    if (sample === undefined || conflicts) {
-      return undefined;
-    }
-    held.set(step.argument, sample);
-  }
-  return held;
-}
-
-function candidatesOf(planned: readonly PlannedAxis[]): readonly (readonly Candidate[])[] {
-  const index: AxisIndex = new Map(
-    planned.map((entry) => [`${entry.axis.kind}:${entry.axis.argument}`, entry]),
-  );
-  return planned.map(({ axis, variants }) =>
-    variants.flatMap((variant) => {
-      const held = heldAncestors(variant.path, axis.argument, index);
-      return held === undefined ? [] : [{ axis, variant, held }];
-    }),
-  );
 }
 
 function chooseRows(groups: readonly (readonly Candidate[])[]): {
@@ -303,8 +309,8 @@ function renderChosen(
 ): RenderedRows | { readonly reason: IcuPreviewFailure } {
   const budget = createIcuRenderBudget();
   const rows: IcuPreviewRow[] = [];
-  for (const { axis, variant, held } of chosen) {
-    const args = withSamples(base, [...held, [axis.argument, variant.sample]]);
+  for (const { axis, label, solution } of chosen) {
+    const args = withSamples(base, solution);
     const result = renderPreparedIcuMessage(prepared, args, budget);
     if (!result.valid) {
       return rows.length === 0 ? { reason: result.reason } : { rows, exhausted: true };
@@ -312,8 +318,8 @@ function renderChosen(
     rows.push({
       axis: axis.kind,
       argument: axis.argument,
-      category: variant.category,
-      sample: variant.sample,
+      category: label,
+      sample: solution.get(axis.argument) ?? null,
       segments: result.segments,
     });
   }
@@ -352,7 +358,7 @@ function renderUnvarying(
  * nested inside another argument's arm also holds that enclosing argument at the arm, so the row
  * shows the arm it names; the `args` value for an argument a row varies or holds this way is
  * ignored in that row. An argument that appears in several places gets one row per arm, using the
- * first place that arm appears. The rows share one output budget; when it runs out, or more than
+ * first place that can show it. The rows share one output budget; when it runs out, or more than
  * 24 rows exist, the rest are left out and `truncated` is set.
  *
  * @param input - The config, locale, message and optional sample values.
@@ -367,11 +373,12 @@ export function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult {
     return { supported: true, valid: false, reason: preparation.reason };
   }
   const { prepared } = preparation;
-  const { planned, incomplete } = planAxes(icuVariationAxesOf(prepared.ast), prepared.locale);
+  const axes = icuVariationAxesOf(prepared.ast);
+  const { groups, incomplete } = candidatesOf(axes, prepared.locale);
   const analysis = icuMessageArguments(input.value);
-  const { defaults, names } = defaultSamples(analysis, planned);
+  const { defaults, names } = defaultSamples(analysis, axes, prepared.locale);
   const base = baseArguments(defaults, names, input.args);
-  const selection = chooseRows(candidatesOf(planned));
+  const selection = chooseRows(groups);
   const outcome =
     selection.chosen.length === 0
       ? renderUnvarying(prepared, base)

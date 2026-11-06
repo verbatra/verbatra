@@ -1,9 +1,14 @@
-import type { PluralCategory, PluralRuleType } from "@verbatra/core";
+import type { PluralRuleType } from "@verbatra/core";
 
 const WHOLE_NUMBER_LIMIT = 200;
 
-const CANDIDATE_SAMPLES: readonly number[] = [
-  ...Array.from({ length: WHOLE_NUMBER_LIMIT - 1 }, (_unused, index) => index + 1),
+export const WHOLE_CANDIDATES: readonly number[] = Array.from(
+  { length: WHOLE_NUMBER_LIMIT - 1 },
+  (_unused, index) => index + 1,
+);
+
+export const CANDIDATE_SAMPLES: readonly number[] = [
+  ...WHOLE_CANDIDATES,
   0,
   0.5,
   1.5,
@@ -15,39 +20,16 @@ const CANDIDATE_SAMPLES: readonly number[] = [
 
 export const NUMBER_ARGUMENT_SAMPLE = 1234.5;
 
-export interface PluralSampleRequest {
-  readonly locale: string;
-  readonly ruleType: PluralRuleType;
-  readonly offset: number;
-  readonly avoid: ReadonlySet<number>;
-  readonly categories: readonly PluralCategory[];
-}
-
-export interface PluralSamples {
-  readonly samples: ReadonlyMap<PluralCategory, number>;
-  readonly unreached: readonly PluralCategory[];
-}
-
-export function pluralSamples(request: PluralSampleRequest): PluralSamples {
-  const rules = new Intl.PluralRules(request.locale, { type: request.ruleType });
-  const wanted = new Set<string>(request.categories);
-  const reached = new Set<string>();
-  const samples = new Map<PluralCategory, number>();
-  for (const step of CANDIDATE_SAMPLES) {
-    const sample = request.offset + step;
-    const category = rules.select(sample - request.offset);
-    if (wanted.has(category)) {
-      reached.add(category);
-      if (!samples.has(category as PluralCategory) && !request.avoid.has(sample)) {
-        samples.set(category as PluralCategory, sample);
-      }
-    }
-    if (reached.size === wanted.size && samples.size === wanted.size) {
-      break;
-    }
-  }
-  return {
-    samples,
-    unreached: request.categories.filter((category) => !reached.has(category)),
-  };
+export function defaultPluralSample(
+  locale: string,
+  ruleType: PluralRuleType,
+  offset: number,
+  avoid: ReadonlySet<number>,
+): number {
+  const rules = new Intl.PluralRules(locale, { type: ruleType });
+  const usable = WHOLE_CANDIDATES.map((count) => count + offset).filter(
+    (sample) => !avoid.has(sample),
+  );
+  const other = usable.find((sample) => rules.select(sample - offset) === "other");
+  return other ?? usable.find((sample) => sample - offset >= 2) ?? 2 + offset;
 }
