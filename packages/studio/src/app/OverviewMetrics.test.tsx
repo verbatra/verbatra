@@ -6,7 +6,14 @@ import type { StatusData } from "../client/coverage.js";
 import type { DiffLocale } from "../client/diff-view.js";
 import type { RefreshableView } from "../client/state.js";
 import { OverviewMetrics } from "./OverviewMetrics.js";
-import { metricCard, metricFigure, metricHint, render } from "./test-support.js";
+import {
+  metricCard,
+  metricFigure,
+  metricHint,
+  render,
+  reviewQueueView,
+  unavailableQueueView,
+} from "./test-support.js";
 import type { DiffState } from "./use-diff-state.js";
 
 const DRIFTING: DiffLocale = {
@@ -73,7 +80,9 @@ describe("OverviewMetrics", () => {
 
   it("defines the named breakpoint the tile grids use, so no arbitrary pixel variant is needed", () => {
     const styles = readFileSync(resolve(process.cwd(), "src/app/styles.css"), "utf8");
-    const view = render(<OverviewMetrics status={STATUS} diff={LOADED_DIFF} reviewWaiting={4} />);
+    const view = render(
+      <OverviewMetrics status={STATUS} diff={LOADED_DIFF} reviewQueue={reviewQueueView(4)} />,
+    );
     const classes = view.all("*").flatMap((node) => node.className.toString().split(" "));
 
     expect(styles).toMatch(/--breakpoint-xs:\s*\d/);
@@ -81,7 +90,9 @@ describe("OverviewMetrics", () => {
   });
 
   it("puts the review tile between attention and coverage and adds a fourth tile", () => {
-    const view = render(<OverviewMetrics status={STATUS} diff={LOADED_DIFF} reviewWaiting={4} />);
+    const view = render(
+      <OverviewMetrics status={STATUS} diff={LOADED_DIFF} reviewQueue={reviewQueueView(4)} />,
+    );
 
     expect(view.all('[role="group"]')).toHaveLength(4);
     expect(metricHint(view, "Waiting for review")).toBe("4 translations wait for review.");
@@ -117,5 +128,59 @@ describe("OverviewMetrics", () => {
     const view = render(<OverviewMetrics status={STATUS} diff={LOADED_DIFF} />);
 
     expect(metricHint(view, "Avg coverage")).toBe("Across 1 target locale.");
+  });
+
+  it("shows N/A with the reason, never a count or a success tone, when the review state is unreadable", () => {
+    const view = render(
+      <OverviewMetrics status={STATUS} diff={LOADED_DIFF} reviewQueue={unavailableQueueView()} />,
+    );
+
+    expect(metricFigure(view, "Waiting for review").textContent).toBe("N/A");
+    expect(metricFigure(view, "Waiting for review").className).not.toContain("text-success");
+    expect(metricHint(view, "Waiting for review")).toBe(
+      "verbatra.provenance.json is corrupt or too new to read.",
+    );
+    expect(metricCard(view, "Waiting for review").querySelector("a")).toBeNull();
+  });
+
+  it("counts an orphaned key once even when two locales hold it", () => {
+    const twice: DiffState = {
+      kind: "loaded",
+      hasPendingChanges: false,
+      locales: [
+        { locale: "de", missing: [], changed: [], orphaned: ["old.key"], hasPendingChanges: false },
+        { locale: "fr", missing: [], changed: [], orphaned: ["old.key"], hasPendingChanges: false },
+      ],
+    };
+    const synced: RefreshableView<StatusData> = {
+      kind: "data",
+      stale: false,
+      data: { inSync: true, rows: [] },
+    };
+
+    const view = render(<OverviewMetrics status={synced} diff={twice} />);
+
+    expect(metricHint(view, "Locales in sync")).toBe(
+      "Every key is translated; 1 orphaned key is left over.",
+    );
+    expect(metricHint(view, "Needs attention")).toContain("1 key is missing, changed or orphaned");
+  });
+
+  it("formats large counts in the attention and review hints", () => {
+    const keys = Array.from({ length: 1500 }, (_, index) => `k${index}`);
+    const big: DiffState = {
+      kind: "loaded",
+      hasPendingChanges: true,
+      locales: [
+        { locale: "de", missing: keys, changed: [], orphaned: [], hasPendingChanges: true },
+      ],
+    };
+
+    const view = render(
+      <OverviewMetrics status={STATUS} diff={big} reviewQueue={reviewQueueView(1200)} />,
+    );
+
+    expect(metricHint(view, "Needs attention")).toContain("1,500 keys are missing");
+    expect(metricHint(view, "Waiting for review")).toBe("1,200 translations wait for review.");
   });
 });

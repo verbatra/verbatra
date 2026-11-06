@@ -105,12 +105,12 @@ describe("SettingsPanel", () => {
     for (const label of ["Source locale", "Format", "Provider"]) {
       const figure = metricFigure(view, label);
       expect(figure.hasAttribute("data-figure")).toBe(false);
-      expect(figure.querySelector(".font-mono")).not.toBeNull();
+      expect(figure.querySelector("[data-identifier]")?.getAttribute("dir")).toBe("ltr");
     }
-    expect(metricFigure(view, "Source locale").querySelector('[dir="ltr"]')?.textContent).toBe(
-      "en",
-    );
-    expect(metricFigure(view, "Provider").querySelector('[dir="ltr"]')?.textContent).toBe(
+    expect(
+      metricFigure(view, "Source locale").querySelector("[data-identifier]")?.textContent,
+    ).toBe("en");
+    expect(metricFigure(view, "Provider").querySelector("[data-identifier]")?.textContent).toBe(
       "anthropic",
     );
     expect(metricFigure(view, "Target locales").hasAttribute("data-figure")).toBe(true);

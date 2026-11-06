@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { type StatusData, type StatusRow, toStatusData } from "../client/coverage.js";
 import type { RefreshableView } from "../client/state.js";
 import { LocalesSection } from "./LocalesSection.js";
@@ -208,13 +208,15 @@ describe("LocalesSection", () => {
     expect(tokens.filter((name) => name.includes("(--") && name.startsWith("text-"))).toEqual([]);
   });
 
-  it("keeps a touch-sized hit area on narrow screens for both links", () => {
-    const view = render(<LocalesSection status={dataView([row("de")])} lock={NO_LOCK} />);
+  it("gives each locale exactly two row links, in one group", () => {
+    const view = render(
+      <LocalesSection status={dataView([row("de"), row("fr")])} lock={NO_LOCK} />,
+    );
 
-    for (const link of view.all("tbody a")) {
-      expect(link.className).toContain("max-md:min-h-11");
+    expect(view.all("[data-row-links]")).toHaveLength(2);
+    for (const group of view.all("[data-row-links]")) {
+      expect(group.querySelectorAll("[data-row-link]")).toHaveLength(2);
     }
-    expect(view.get("[data-row-links]").className).toContain("whitespace-nowrap");
   });
 
   it("pins the locale column in place while the rest of the table scrolls sideways", () => {
@@ -243,27 +245,14 @@ describe("LocalesSection", () => {
     expect(calm.get('[aria-label="Locale coverage"]').hasAttribute("tabindex")).toBe(false);
     expect(calm.get('[aria-label="Locale coverage"]').getAttribute("role")).toBe("region");
 
-    const scrollWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollWidth");
-    const clientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-    Object.defineProperty(HTMLElement.prototype, "scrollWidth", {
-      configurable: true,
-      get: () => 600,
-    });
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
-      configurable: true,
-      get: () => 300,
-    });
+    vi.spyOn(Element.prototype, "scrollWidth", "get").mockReturnValue(600);
+    vi.spyOn(Element.prototype, "clientWidth", "get").mockReturnValue(300);
     try {
       const wide = render(<LocalesSection status={dataView([row("fr")])} lock={NO_LOCK} />);
 
       expect(wide.get('[aria-label="Locale coverage"]').getAttribute("tabindex")).toBe("0");
     } finally {
-      if (scrollWidth !== undefined) {
-        Object.defineProperty(HTMLElement.prototype, "scrollWidth", scrollWidth);
-      }
-      if (clientWidth !== undefined) {
-        Object.defineProperty(HTMLElement.prototype, "clientWidth", clientWidth);
-      }
+      vi.restoreAllMocks();
     }
   });
 

@@ -5,14 +5,17 @@ import { PAGE_IDS, type PageId } from "../client/routes.js";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import { App } from "./App.js";
 import { PAGE_MAX_CLASS } from "./lib/page-width.js";
+import { installRouteGuard } from "./route-guard.js";
 import {
   agentToolsStatusStore,
+  answersInOrder,
   clickAsync,
   emitRefresh,
   flush,
   hasMetricCard,
   metricCard,
   metricFigure,
+  metricHint,
   type RenderResult,
   renderAsync,
   rpcCalls,
@@ -608,6 +611,47 @@ describe("App review tile", () => {
     expect(metricFigure(view, "Waiting for review").textContent).toBe("N/A");
   });
 
+  it("shows N/A with the reason, and no count or header badge, when the review state is unreadable", async () => {
+    stubRpc({
+      "review.queue": { ok: true, result: { available: false, reason: "provenance-unreadable" } },
+    });
+
+    const view = await mount();
+
+    expect(metricFigure(view, "Waiting for review").textContent).toBe("N/A");
+    expect(metricHint(view, "Waiting for review")).toBe(
+      "verbatra.provenance.json is corrupt or too new to read.",
+    );
+    expect(metricFigure(view, "Waiting for review").className).not.toContain("text-success");
+    expect(view.query("[data-count-dot]")).toBeNull();
+    expect(navItem(view, "Review").textContent).toBe("Review");
+  });
+
+  it("shows a failed review read as the page alert, and one Retry re-reads it with the rest", async () => {
+    stubRpc({
+      "review.queue": answersInOrder([rpcError("INTERNAL"), REVIEW_QUEUE]),
+    });
+    const view = await mount();
+    const before = countCalls("review.queue");
+
+    expect(view.all('[role="alert"]')).toHaveLength(1);
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(countCalls("review.queue")).toBe(before + 1);
+    expect(countCalls("status.check")).toBe(2);
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(metricFigure(view, "Waiting for review").textContent).toBe("2");
+  });
+
+  it("does not re-read the review queue until Retry is pressed", async () => {
+    stubRpc({ "review.queue": rpcError("INTERNAL") });
+
+    await mount();
+
+    expect(countCalls("review.queue")).toBe(1);
+  });
+
   it("adds no review tile to the other pages", async () => {
     goToHash("#/glossary");
 
@@ -684,7 +728,6 @@ describe("App scroll on navigation", () => {
   it("does not scroll for a modified click that opens a new tab", async () => {
     await mount();
     const anchor = linkTo("#/review");
-    anchor.addEventListener("click", (event) => event.preventDefault());
 
     await act(async () => {
       anchor.dispatchEvent(
@@ -693,6 +736,43 @@ describe("App scroll on navigation", () => {
     });
     await flush();
     anchor.remove();
+
+    expect(window.location.hash).toBe("#/review");
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("scrolls to the top once a held navigation proceeds after the prompt", async () => {
+    let proceed: (() => Promise<void>) | undefined;
+    const uninstall = installRouteGuard({
+      isDirty: () => true,
+      onBlock: (next) => {
+        proceed = next;
+      },
+    });
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Glossary"));
+    expect(scrollTo).not.toHaveBeenCalled();
+    await act(async () => {
+      await proceed?.();
+    });
+    await flush();
+    uninstall();
+
+    expect(window.location.hash).toBe("#/glossary");
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("does not scroll for a later route change after a held navigation was cancelled", async () => {
+    const uninstall = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Glossary"));
+    uninstall();
+    await act(async () => {
+      window.location.hash = "#/settings";
+    });
+    await flush();
 
     expect(scrollTo).not.toHaveBeenCalled();
   });

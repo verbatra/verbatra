@@ -8,16 +8,20 @@ import type { UsageSummaryResult } from "../../shared/rpc/usage-summary.js";
 import type { RenderResult, StubRpcHandler, StubRpcResult } from "../test-support.js";
 import {
   clickAsync,
+  failedQueueView,
   flush,
   hasMetricCard,
   metricCard,
+  metricFigure,
   metricHint,
   metricValue,
   render,
   renderAsync,
+  reviewQueueView,
   rpcCalls,
   rpcError,
   stubRpc,
+  unavailableQueueView,
 } from "../test-support.js";
 import { OverviewPanel } from "./OverviewPanel.js";
 
@@ -1077,7 +1081,12 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
 
     const focusable = view.all("[tabindex='-1']");
 
-    expect(focusable.every((node) => node.tagName === "LI")).toBe(true);
+    expect(
+      focusable.every(
+        (node) => node.tagName === "LI" || node.hasAttribute("data-overview-recovery"),
+      ),
+    ).toBe(true);
+    expect(view.query("[tabindex='-1'].outline-none")).toBeNull();
   });
 
   it("keeps the shown commits and offers Retry when asking for more fails", async () => {
@@ -1354,7 +1363,9 @@ describe("OverviewPanel review tile and sync hint", () => {
   it("answers what waits for review with a count and a link to the review page", async () => {
     stubPage();
 
-    const view = await renderAsync(<OverviewPanel refreshToken={1} reviewWaiting={32} />);
+    const view = await renderAsync(
+      <OverviewPanel refreshToken={1} reviewQueue={reviewQueueView(32)} />,
+    );
 
     expect(metricTile(view, "Waiting for review")).toMatchObject({
       value: "32",
@@ -1366,19 +1377,30 @@ describe("OverviewPanel review tile and sync hint", () => {
   });
 
   it.each([
-    ["loading", "…", "Checking the review queue."],
-    ["error", "N/A", "The review queue check failed."],
-    [0, "0", "Nothing waits for review."],
-    [1, "1", "1 translation waits for review."],
-  ] as const)("states the review tile for %s", async (waiting, value, hint) => {
+    ["loading", { kind: "loading" } as const, "…", "Checking the review queue.", false],
+    [
+      "failed",
+      failedQueueView({ code: "INTERNAL", message: "x" }),
+      "N/A",
+      "The review queue check failed.",
+      false,
+    ],
+    [
+      "unreadable",
+      unavailableQueueView(),
+      "N/A",
+      "verbatra.provenance.json is corrupt or too new to read.",
+      false,
+    ],
+    ["empty", reviewQueueView(0), "0", "Nothing waits for review.", false],
+    ["single", reviewQueueView(1), "1", "1 translation waits for review.", true],
+  ])("states the review tile when the queue is %s", async (_name, queue, value, hint, linked) => {
     stubPage();
 
-    const view = await renderAsync(<OverviewPanel refreshToken={1} reviewWaiting={waiting} />);
+    const view = await renderAsync(<OverviewPanel refreshToken={1} reviewQueue={queue} />);
 
     expect(metricTile(view, "Waiting for review")).toMatchObject({ value, hint });
-    const linked = metricCard(view, "Waiting for review").querySelector("a") !== null;
-
-    expect(linked).toBe(typeof waiting === "number" && waiting > 0);
+    expect(metricCard(view, "Waiting for review").querySelector("a") !== null).toBe(linked);
   });
 
   it("says orphaned keys are left over instead of claiming everything is in sync", async () => {
@@ -1494,3 +1516,132 @@ describe("OverviewPanel shared failure across every read", () => {
     expect(commitRows(view)).toHaveLength(2);
   });
 });
+
+describe("OverviewPanel review failures, retry and focus", () => {
+  const INTERNAL = { code: "INTERNAL", message: "boom" };
+
+  it("shows a failed review read as the page alert with a Retry, not as a silent N/A", async () => {
+    stubPage();
+
+    const view = await renderAsync(
+      <OverviewPanel refreshToken={1} reviewQueue={failedQueueView(INTERNAL)} />,
+    );
+
+    expect(alertTexts(view)).toEqual([
+      "An unexpected server error occurred. Check the terminal running Studio for details.",
+    ]);
+    expect(metricFigure(view, "Waiting for review").textContent).toBe("N/A");
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
+  });
+
+  it("asks its owner to re-read when it is given a retry handler, and bumps nothing itself", async () => {
+    stubPage({ "lock.state": LOCK_BAD });
+    let asked = 0;
+    const view = await renderAsync(
+      <OverviewPanel
+        refreshToken={1}
+        onRetry={() => {
+          asked += 1;
+        }}
+      />,
+    );
+
+    await clickAsync(retryButton(view));
+    await flush();
+
+    expect(asked).toBe(1);
+    expect(callCounts()).toEqual(ONCE_EACH);
+  });
+
+  it("moves focus to the metric row after a Retry that recovers", async () => {
+    stubPage({ "lock.state": answersInOrder([LOCK_BAD, NO_LOCK]) });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    retryButton(view).focus();
+
+    await clickAsync(retryButton(view));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(document.activeElement).toBe(view.get("[data-overview-recovery]"));
+    expect(view.get("[data-overview-recovery]").getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("keeps focus on Retry when the Retry fails again", async () => {
+    stubPage({ "lock.state": LOCK_BAD });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    retryButton(view).focus();
+
+    await clickAsync(retryButton(view));
+    await flush();
+
+    expect(document.activeElement).toBe(retryButton(view));
+    expect(document.activeElement).not.toBe(view.get("[data-overview-recovery]"));
+  });
+
+  it("names every stale source in one alert with one Retry, usage and history included", async () => {
+    stubOverview({
+      "status.diff": answersInOrder([diffResult(DEFAULT_LOCALES), rpcError("INTERNAL")]),
+      "status.check": answersInOrder([checkResult(DEFAULT_ROWS), rpcError("INTERNAL")]),
+      "lock.state": answersInOrder([lockResult(3, []), rpcError("INTERNAL")]),
+      "usage.summary": answersInOrder([usageAnswer(TRACKED_RUN), rpcError("INTERNAL")]),
+      "history.list": answersInOrder([historyAnswer(LOADED_HISTORY), rpcError("INTERNAL")]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(alertTexts(view)).toHaveLength(1);
+    expect(alertText(view)).toContain(
+      "Showing the last known pending changes, status, lock file, usage and history.",
+    );
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
+    expect(metricValue(view, "Input tokens")).toBe("640");
+    expect(commitRows(view)).toHaveLength(2);
+  });
+
+  it("still says what is stale when another read has a hard error with the same code", async () => {
+    stubPage({
+      "status.check": rpcError("INTERNAL"),
+      "lock.state": answersInOrder([lockResult(3, []), rpcError("INTERNAL")]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(alertTexts(view)).toEqual([
+      "Showing the last known lock file. An unexpected server error occurred. Check the terminal running Studio for details.",
+    ]);
+  });
+
+  it("does not move focus into the history after a failed Show more and a later refresh", async () => {
+    stubOverview({
+      "history.list": answersInOrder([
+        historyAnswer({ available: true, commits: COMMITS_OF(10) }),
+        rpcError("INTERNAL"),
+        historyAnswer({ available: true, commits: COMMITS_OF(15) }),
+      ]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    await clickAsync(view.getByText("button", "Show more commits"));
+    await flush();
+    const elsewhere = document.createElement("button");
+    document.body.append(elsewhere);
+    elsewhere.focus();
+
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(document.activeElement).toBe(elsewhere);
+    elsewhere.remove();
+  });
+});
+
+function COMMITS_OF(count: number): readonly HistoryCommit[] {
+  return Array.from({ length: count }, (_, index) => ({
+    hash: `${String(index).padStart(2, "0")}f3ab19c7d5e4a2b`,
+    author: "Ada Lovelace",
+    authorDate: "2026-05-04T09:00:00.000Z",
+    subject: `commit ${index}`,
+    touchedPaths: [],
+  }));
+}
