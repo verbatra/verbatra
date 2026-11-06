@@ -225,6 +225,19 @@ function LocaleFileHistory({
   );
 }
 
+interface RetryRound {
+  readonly reads: readonly unknown[];
+  readonly started: readonly number[];
+}
+
+const REVIEW_READ = 3;
+
+function startedReads(reads: readonly unknown[], reviewRefreshed: boolean): readonly number[] {
+  return reads
+    .map((_, index) => index)
+    .filter((index) => reads[index] !== undefined && (index !== REVIEW_READ || reviewRefreshed));
+}
+
 export interface OverviewPanelProps extends PanelProps {
   readonly reviewQueue?: RefreshableView<ReviewQueueData> | undefined;
   readonly onRetry?: (() => void) | undefined;
@@ -243,14 +256,17 @@ export function OverviewPanel({
   const lock = useLockState(token);
   const usage = useUsageTicker(token);
   const history = useHistoryList(token, limit);
-  const [retried, setRetried] = useState<readonly unknown[] | null>(null);
+  const [retried, setRetried] = useState<RetryRound | null>(null);
   const recoveryRef = useRef<HTMLDivElement>(null);
   const awaitingRecovery = useRef(false);
   const failure = pageFailure({ diff, status, lock, review: reviewQueue, usage, history });
   const reads = [diff, status, lock, reviewQueue, usage, history];
-  const retrying = retried?.every((read, index) => read === reads[index]) === true;
-  const settled =
-    retried !== null && reads.every((read, index) => read === undefined || read !== retried[index]);
+  const outstanding =
+    retried === null
+      ? 0
+      : retried.started.filter((index) => retried.reads[index] === reads[index]).length;
+  const retrying = outstanding > 0;
+  const settled = retried !== null && outstanding === 0;
 
   useEffect(() => {
     if (!settled || !awaitingRecovery.current) {
@@ -265,7 +281,7 @@ export function OverviewPanel({
 
   function retry(): void {
     awaitingRecovery.current = true;
-    setRetried(reads);
+    setRetried({ reads, started: startedReads(reads, onRetry !== undefined) });
     if (onRetry === undefined) {
       setLocalRetries((count) => count + 1);
     } else {
@@ -279,14 +295,6 @@ export function OverviewPanel({
         title="Overview"
         description="How far along each locale is, what the last run did, and how the locale files have changed."
       />
-      <div
-        ref={recoveryRef}
-        tabIndex={-1}
-        data-overview-recovery=""
-        className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-      >
-        <OverviewMetrics status={status} diff={diff} reviewQueue={reviewQueue} />
-      </div>
       {failure === null ? null : (
         <ErrorMessage
           error={failure.error}
@@ -296,6 +304,14 @@ export function OverviewPanel({
           {...(failure.prefix === undefined ? {} : { prefix: failure.prefix })}
         />
       )}
+      <div
+        ref={recoveryRef}
+        tabIndex={-1}
+        data-overview-recovery=""
+        className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <OverviewMetrics status={status} diff={diff} reviewQueue={reviewQueue} />
+      </div>
       <DiffErrorNotice diff={diff} hideCode={failure?.error.code} />
       <LocalesSection status={status} lock={lock} hideCode={failure?.error.code} />
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_320px]">

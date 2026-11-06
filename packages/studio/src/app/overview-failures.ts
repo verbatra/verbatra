@@ -80,7 +80,7 @@ function joinLabels(labels: readonly string[]): string {
 export function pageFailure(reads: OverviewReads): PageFailure | null {
   const failed = [
     diffSource(reads.diff),
-    refreshable("status", reads.status),
+    refreshable("coverage", reads.status),
     lockSource(reads.lock),
     reviewSource(reads.review),
     refreshable("usage", reads.usage),

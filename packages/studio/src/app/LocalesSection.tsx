@@ -305,7 +305,7 @@ function StatusBlock({
   return (
     <>
       {status.stale && !hidden ? (
-        <ErrorMessage error={status.error} prefix="Showing the last known status." />
+        <ErrorMessage error={status.error} prefix="Showing the last known coverage." />
       ) : null}
       <CoverageTable data={status.data} lock={lock} />
     </>
