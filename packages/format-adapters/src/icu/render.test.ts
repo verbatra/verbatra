@@ -1,14 +1,18 @@
 import IntlMessageFormat from "intl-messageformat";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ICU_MAX_NESTING_DEPTH, ICU_MAX_VALUE_LENGTH } from "./limits.js";
 import {
+  createIcuRenderBudget,
   ICU_MAX_LOCALE_LENGTH,
   ICU_MAX_OUTPUT_LENGTH,
+  ICU_MAX_OUTPUT_SEGMENTS,
   ICU_MAX_SAMPLE_TEXT,
   ICU_SAMPLE_INSTANT,
   type IcuRenderArguments,
   type IcuSegment,
+  prepareIcuMessage,
   renderIcuMessage,
+  renderPreparedIcuMessage,
   resolveIcuLocale,
 } from "./render.js";
 
@@ -380,11 +384,106 @@ describe("renderIcuMessage hostile input", () => {
     expect(text).toHaveLength(ICU_MAX_SAMPLE_TEXT);
   });
 
-  it("refuses output past the output cap instead of building it", () => {
-    const value = `{n, plural, other {${"#".repeat(19_000)}}}`;
+  it("refuses output past the character cap instead of building it", () => {
+    const value = `{n, plural, other {${"#".repeat(4000)}}}`;
     expect(refusal(value, "en", { n: 1e20 })).toBe("too-large");
     expect(refusal(value, "en", { n: 1 })).toBe("rendered");
-    expect(ICU_MAX_OUTPUT_LENGTH).toBeLessThan(19_000 * 30);
+    expect(ICU_MAX_OUTPUT_LENGTH).toBeLessThan(4000 * 30);
+  });
+
+  it("refuses output past the segment cap even when the text is short", () => {
+    const value = `{n, plural, other {${"#".repeat(ICU_MAX_OUTPUT_SEGMENTS + 1)}}}`;
+    expect(refusal(value, "en", { n: 1 })).toBe("too-large");
+    const atCap = `{n, plural, other {${"#".repeat(ICU_MAX_OUTPUT_SEGMENTS)}}}`;
+    expect(refusal(atCap, "en", { n: 1 })).toBe("rendered");
+  });
+
+  it("stops formatting once the budget is spent", () => {
+    const preparation = prepareIcuMessage(`{n, plural, other {${"#".repeat(4000)}}}`, "en");
+    if (!preparation.valid) {
+      throw new Error("not prepared");
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(Intl.NumberFormat.prototype, "format");
+    const original = descriptor?.get;
+    if (descriptor === undefined || original === undefined) {
+      throw new Error("no format getter");
+    }
+    let calls = 0;
+    Object.defineProperty(Intl.NumberFormat.prototype, "format", {
+      ...descriptor,
+      get(this: Intl.NumberFormat) {
+        const bound = original.call(this) as (value: number) => string;
+        return (value: number): string => {
+          calls += 1;
+          return bound(value);
+        };
+      },
+    });
+    try {
+      const result = renderPreparedIcuMessage(
+        preparation.prepared,
+        { n: 1e300 },
+        createIcuRenderBudget(),
+      );
+      expect(result).toEqual({ valid: false, reason: "too-large" });
+      expect(calls).toBeLessThan(500);
+    } finally {
+      Object.defineProperty(Intl.NumberFormat.prototype, "format", descriptor);
+    }
+  });
+
+  it("spends one budget across every render of a prepared message", () => {
+    const preparation = prepareIcuMessage(`{n, plural, other {${"#".repeat(3000)}}}`, "en");
+    if (!preparation.valid) {
+      throw new Error("not prepared");
+    }
+    const budget = createIcuRenderBudget();
+    const first = renderPreparedIcuMessage(preparation.prepared, { n: 1 }, budget);
+    const second = renderPreparedIcuMessage(preparation.prepared, { n: 1 }, budget);
+    expect(first.valid).toBe(true);
+    expect(second).toEqual({ valid: false, reason: "too-large" });
+    expect(budget.segments).toBeLessThan(0);
+  });
+
+  it("builds each formatter once per prepared message", () => {
+    const preparation = prepareIcuMessage("{n, number} {d, date, ::yMMMd} {d, time}", "en");
+    if (!preparation.valid) {
+      throw new Error("not prepared");
+    }
+    const numbers = vi.spyOn(Intl, "NumberFormat");
+    const dates = vi.spyOn(Intl, "DateTimeFormat");
+    try {
+      for (let row = 0; row < 5; row += 1) {
+        renderPreparedIcuMessage(preparation.prepared, { n: row }, createIcuRenderBudget());
+      }
+      expect(numbers).toHaveBeenCalledTimes(1);
+      expect(dates).toHaveBeenCalledTimes(2);
+    } finally {
+      numbers.mockRestore();
+      dates.mockRestore();
+    }
+  });
+
+  it("does not split a surrogate pair when it truncates a sample", () => {
+    const sample = `${"x".repeat(ICU_MAX_SAMPLE_TEXT - 1)}\u{1F600}`;
+    const text = rendered("{a}", "en", { a: sample });
+    expect(text).toBe("x".repeat(ICU_MAX_SAMPLE_TEXT - 1));
+    expect(text.at(-1)).toBe("x");
+  });
+
+  it("renders a valid message under a locale whose extensions the skeleton parser rejects", () => {
+    for (const locale of ["en-u-nu-bogus", "en-u-hc-foo", "en-u-nu-bogus-hc-h23"]) {
+      expect(refusal("Hello {n, number}", locale, { n: 1 })).toBe("rendered");
+      expect(refusal("{d, time, ::jmm}", locale)).toBe("rendered");
+    }
+    expect(refusal("{", "en-u-nu-bogus")).toBe("invalid-message");
+  });
+
+  it("picks an exact arm by numeric value, including negatives and leading zeros", () => {
+    const value = "{n, plural, =-1 {minus one} =01 {one by value} other {other}}";
+    expect(rendered(value, "en", { n: -1 })).toBe("minus one");
+    expect(rendered(value, "en", { n: 1 })).toBe("one by value");
+    expect(rendered(value, "en", { n: 2 })).toBe("other");
   });
 
   it("never throws on a mixed hostile corpus", () => {
