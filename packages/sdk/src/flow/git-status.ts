@@ -22,7 +22,7 @@ import {
  * How git sees one watched file against `HEAD` and the index:
  *
  * - `modified`: the file changed, including a change of file type, and a file taken out of the index
- *   that is still on disk (a staged deletion together with an untracked file).
+ *   that is still on disk (a staged deletion together with an untracked or ignored file).
  * - `added`: the file is new in the index and not in `HEAD`.
  * - `deleted`: the file is gone from the working tree or the index.
  * - `untracked`: git does not track the file yet.
@@ -95,6 +95,7 @@ export interface WatchedFile {
 
 const CONFLICT_CODES: ReadonlySet<string> = new Set(["DD", "AU", "UD", "UA", "DU", "AA", "UU"]);
 const MAX_BRANCH_CHARS = 255;
+const IGNORED_CODE = "!!";
 
 export function toPosix(path: string, separator: string = sep): string {
   return separator === "/" ? path : path.split(separator).join("/");
@@ -222,6 +223,7 @@ export async function queryFileStates(
     "--porcelain=v1",
     "-z",
     "--untracked-files=all",
+    "--ignored",
     "--no-renames",
     "--ignore-submodules=all",
     "--",
@@ -231,12 +233,24 @@ export async function queryFileStates(
     return unavailable(result.failure);
   }
   const states = new Map<string, FileState>();
+  const ignored = new Set<string>();
   for (const entry of parsePorcelainZ(result.stdout)) {
     const file = matchWatched(files, tree.prefix, entry.path);
-    if (file !== undefined) {
-      const incoming = { state: stateOfCode(entry.code), repoPath: entry.path };
-      const previous = states.get(file.path);
-      states.set(file.path, previous === undefined ? incoming : mergeStates(previous, incoming));
+    if (file === undefined) {
+      continue;
+    }
+    if (entry.code === IGNORED_CODE) {
+      ignored.add(file.path);
+      continue;
+    }
+    const incoming = { state: stateOfCode(entry.code), repoPath: entry.path };
+    const previous = states.get(file.path);
+    states.set(file.path, previous === undefined ? incoming : mergeStates(previous, incoming));
+  }
+  for (const path of ignored) {
+    const previous = states.get(path);
+    if (previous?.state === "deleted") {
+      states.set(path, { ...previous, state: "modified" });
     }
   }
   return { ok: true, states };
