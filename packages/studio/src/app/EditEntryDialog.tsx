@@ -1,7 +1,7 @@
 import type { GlossaryDraftCheck, ReviewReasonCode } from "@verbatra/sdk";
 import { Badge, DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
 import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-context.js";
 import { ErrorMessage } from "./ErrorMessage.js";
@@ -168,7 +168,19 @@ export function EditEntryDialog({
     const sticky = containerRef.current?.querySelector<HTMLElement>("[data-sticky]");
     field?.style.setProperty("scroll-margin-top", `${(sticky?.offsetHeight ?? 0) + 8}px`);
     field?.focus();
+    field?.scrollIntoView?.({ block: "start" });
   }
+
+  const rejected = submitFailure(submit) !== null;
+  const revealRef = useRef(revealField);
+  useLayoutEffect(() => {
+    revealRef.current = revealField;
+  });
+  useEffect(() => {
+    if (rejected) {
+      revealRef.current();
+    }
+  }, [rejected, submit]);
 
   async function handleSubmit(): Promise<void> {
     if (await edit.save(locale)) {
