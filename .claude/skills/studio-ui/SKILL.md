@@ -275,9 +275,10 @@ Rules that follow:
   in one trailing column: quiet links (table text, underline and a `-outline-offset-2` ring only on
   hover and focus), a visible word plus an sr-only locale suffix, 44px tall below `md`. Failed reads (diff,
   status, lock, review, usage, history)
-  collapse into one page-level `ErrorMessage` with Retry, owned by `App.tsx` as one counter, that
-  names every stale source and states the server's own reason
-  (`errorDetail`); a section keeps its own alert only when it failed for a different code. A failed
+  collapse into one page-level `ErrorMessage` with the page's only Retry (`App.tsx` owns the one
+  counter), which states the server's own reason (`errorDetail`) and names the stale sources that
+  share its code plus the review queue, which has no section of its own. A section keeps its own
+  alert, without a Retry, only when it failed for a different code. A failed
   refresh keeps the last diff, status, lock, usage and history with a stale notice. Figures
   (`MetricCard` values, the coverage percentage and key counts) are set in sans with
   `tabular-nums`, carry `data-figure`, and every number is `whitespace-nowrap`; mono is for
@@ -288,9 +289,11 @@ Rules that follow:
   `<time datetime>`. Metric tiles stack below the named `xs` breakpoint (22.5rem, `@theme` in `styles.css`) and the
   Last run tiles below `sm`, so a ten-digit token count never overflows its tile,
   never an arbitrary pixel variant. A route change made by a link (header, in-page, search) scrolls
-  to the top once, from `link-scroll.ts`, also when a held navigation proceeds after the unsaved
-  prompt; back, forward and replaces do not. After a Retry that recovers, focus moves to the metric
-  row (`data-overview-recovery`), and a failed Retry keeps it on Retry. Translations is one `KeysTable` (the matrix of
+  to the top once, from `link-scroll.ts`, for the navigation that link started and nothing else: a
+  held navigation scrolls when its own proceed runs, and back, forward, a replace or a cancelled
+  hold never scroll, however long the prompt stayed open. After a Retry in which every read answered and none failed,
+  focus moves to the metric row (`data-overview-recovery`) if it was lost; a failed Retry keeps it on
+  Retry and a later background recovery never moves it. Translations is one `KeysTable` (the matrix of
   a status per locale, or one locale's entries with source, translation, status and origin) under
   `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary. Adding a page
   means adding it to `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of
