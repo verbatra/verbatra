@@ -1,13 +1,17 @@
 import { Badge, DetailList, MonoValue, SectionCard } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { Fragment, useEffect, useState } from "react";
-import type { StructuredError } from "../../client/state.js";
-import type { ProjectSnapshotResult } from "../../shared/rpc/snapshot.js";
+import { Fragment, useEffect, useRef } from "react";
+import { glossaryIndicatorLabel } from "../../client/glossary-editing.js";
+import type { ProjectSnapshotResult, StudioRateLimit } from "../../shared/rpc/snapshot.js";
 import { rpcClient } from "../api.js";
 import { ErrorMessage } from "../ErrorMessage.js";
-import { Loading } from "../Loading.js";
 import { MetricCard } from "../MetricCard.js";
 import { PageHeader } from "../PageHeader.js";
+import { PanelSkeleton } from "../PanelSkeleton.js";
+import { useReadModel } from "../use-read-model.js";
+
+const RECOVERY_FOCUS =
+  "scroll-mt-28 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
 function ProjectMetrics({ snapshot }: { readonly snapshot: ProjectSnapshotResult }): ReactNode {
   return (
@@ -45,11 +49,6 @@ function ProjectMetrics({ snapshot }: { readonly snapshot: ProjectSnapshotResult
   );
 }
 
-type SettingsState =
-  | { readonly status: "loading" }
-  | { readonly status: "error"; readonly error: StructuredError }
-  | { readonly status: "loaded"; readonly snapshot: ProjectSnapshotResult };
-
 function breakAfterSlashes(pattern: string): ReactNode {
   return pattern.split("/").map((part, index, parts) => (
     <Fragment key={index}>
@@ -82,14 +81,21 @@ function ProviderActions({ snapshot }: { readonly snapshot: ProjectSnapshotResul
   );
 }
 
-function ProjectDetails({ snapshot }: { readonly snapshot: ProjectSnapshotResult }): ReactNode {
-  const items: Array<readonly [string, ReactNode]> = [
-    [
-      "File pattern",
-      <MonoValue key="file-pattern">{breakAfterSlashes(snapshot.files.pattern)}</MonoValue>,
-    ],
-    ["Provider actions", <ProviderActions key="spend" snapshot={snapshot} />],
-  ];
+function windowLabel(windowMs: number): string {
+  const seconds = Math.round(windowMs / 1_000);
+  if (seconds % 60 === 0 && seconds >= 60) {
+    const minutes = seconds / 60;
+    return minutes === 1 ? "minute" : `${minutes} minutes`;
+  }
+  return seconds === 1 ? "second" : `${seconds} seconds`;
+}
+
+function limitLabel(limit: StudioRateLimit): string {
+  return `${limit.max} per ${windowLabel(limit.windowMs)}`;
+}
+
+function optionalItems(snapshot: ProjectSnapshotResult): Array<readonly [string, ReactNode]> {
+  const items: Array<readonly [string, ReactNode]> = [];
   if (snapshot.prune !== undefined) {
     items.push(["Prune", snapshot.prune ? "yes" : "no"]);
   }
@@ -102,57 +108,85 @@ function ProjectDetails({ snapshot }: { readonly snapshot: ProjectSnapshotResult
   if (snapshot.tone !== undefined) {
     items.push(["Tone", snapshot.tone]);
   }
+  return items;
+}
+
+function sessionItems(snapshot: ProjectSnapshotResult): Array<readonly [string, ReactNode]> {
+  const { limits } = snapshot.capabilities;
+  const items: Array<readonly [string, ReactNode]> = [
+    ["Provider actions", <ProviderActions key="spend" snapshot={snapshot} />],
+    ["Edit translations and glossary", snapshot.capabilities.writeToDisk ? "yes" : "no"],
+  ];
+  if (limits !== undefined) {
+    items.push(["Retranslate limit", limitLabel(limits.retranslate)]);
+    items.push(["Review decision limit", limitLabel(limits.reviewDecision)]);
+  }
+  return items;
+}
+
+function ProjectDetails({ snapshot }: { readonly snapshot: ProjectSnapshotResult }): ReactNode {
+  const items: Array<readonly [string, ReactNode]> = [
+    [
+      "File pattern",
+      <MonoValue key="file-pattern">{breakAfterSlashes(snapshot.files.pattern)}</MonoValue>,
+    ],
+    [
+      "Glossary",
+      <span key="glossary" className="wrap-anywhere">
+        {glossaryIndicatorLabel(snapshot.glossary)}
+      </span>,
+    ],
+    ...sessionItems(snapshot),
+    ...optionalItems(snapshot),
+  ];
   return <DetailList items={items} />;
 }
 
+function readSnapshot() {
+  return rpcClient.call("project.snapshot", {});
+}
+
 export function SettingsPanel(): ReactNode {
+  const model = useReadModel(readSnapshot, 0);
+  const { state } = model;
+  const recoveryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const active = document.activeElement;
+    if (model.recovered > 0 && (active === null || active === document.body)) {
+      recoveryRef.current?.focus();
+    }
+  }, [model.recovered]);
+
   return (
     <>
       <PageHeader
         title="Settings"
         description="The configuration this session was started with, and what this session may do."
       />
-      <SettingsPanelBody />
+      {state.status === "loading" ? (
+        <PanelSkeleton label="Loading the settings" layout="settings" />
+      ) : null}
+      {state.status === "error" ? (
+        <ErrorMessage error={state.error} retrying={state.retrying} onRetry={model.retry} />
+      ) : null}
+      {state.status === "loaded" ? (
+        <div
+          ref={recoveryRef}
+          tabIndex={-1}
+          data-recovery-target="settings"
+          className={RECOVERY_FOCUS}
+        >
+          <ProjectMetrics snapshot={state.value} />
+          <SectionCard
+            title="Configuration"
+            intro={<span className="wrap-anywhere">Loaded from {state.value.configSource}</span>}
+            className="mb-0"
+          >
+            <ProjectDetails snapshot={state.value} />
+          </SectionCard>
+        </div>
+      ) : null}
     </>
-  );
-}
-
-function SettingsPanelBody(): ReactNode {
-  const [state, setState] = useState<SettingsState>({ status: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-    void rpcClient.call("project.snapshot", {}).then((response) => {
-      if (cancelled) {
-        return;
-      }
-      setState(
-        response.ok
-          ? { status: "loaded", snapshot: response.result }
-          : { status: "error", error: response.error },
-      );
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (state.status === "loading") {
-    return <Loading />;
-  }
-  if (state.status === "error") {
-    return <ErrorMessage error={state.error} />;
-  }
-  return (
-    <div>
-      <ProjectMetrics snapshot={state.snapshot} />
-      <SectionCard
-        title="Configuration"
-        intro={`Loaded from ${state.snapshot.configSource}`}
-        className="mb-0"
-      >
-        <ProjectDetails snapshot={state.snapshot} />
-      </SectionCard>
-    </div>
   );
 }
