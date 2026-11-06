@@ -1,6 +1,7 @@
 import { PLURAL_CATEGORIES, type PluralRuleType } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
-import { pluralSamples } from "./icu-preview-samples.js";
+import { defaultPluralSample } from "./icu-preview-samples.js";
+import { createSolver } from "./icu-preview-solve.js";
 import { pluralCategoriesFor } from "./plural-rules.js";
 
 const LOCALES = [
@@ -85,41 +86,58 @@ const LOCALES = [
 
 const RULE_TYPES: readonly PluralRuleType[] = ["cardinal", "ordinal"];
 
-describe("pluralSamples", () => {
+function categorySample(
+  locale: string,
+  ruleType: PluralRuleType,
+  category: string,
+): number | undefined {
+  const step = {
+    argument: "n",
+    kind: ruleType === "ordinal" ? ("ordinal" as const) : ("plural" as const),
+    offset: 0,
+    options: ["other"],
+    selector: category,
+  };
+  const sample = createSolver(locale)([{ step, byCategory: true }])?.get("n");
+  return typeof sample === "number" ? sample : undefined;
+}
+
+describe("createSolver: a sample for every plural category", () => {
   for (const ruleType of RULE_TYPES) {
-    it(`finds a sample for every ${ruleType} category the runtime reports`, () => {
-      const missing: string[] = [];
-      for (const locale of LOCALES) {
-        const categories = pluralCategoriesFor(locale, ruleType);
-        const { samples: found, unreached } = pluralSamples({
-          locale,
-          ruleType,
-          offset: 0,
-          avoid: new Set(),
-          categories,
-        });
-        missing.push(...unreached.map((category) => `${locale}:${category}:unreached`));
-        for (const category of categories) {
-          if (!found.has(category)) {
-            missing.push(`${locale}:${category}`);
-          }
-        }
-      }
+    it(`finds one for every ${ruleType} category the runtime reports`, () => {
+      const missing = LOCALES.flatMap((locale) =>
+        pluralCategoriesFor(locale, ruleType)
+          .filter((category) => {
+            const sample = categorySample(locale, ruleType, category);
+            const rules = new Intl.PluralRules(locale, { type: ruleType });
+            return sample === undefined || rules.select(sample) !== category;
+          })
+          .map((category) => `${locale}:${category}`),
+      );
       expect(missing).toEqual([]);
     });
   }
 
-  it("selects the category it reports for each sample", () => {
-    const rules = new Intl.PluralRules("ar");
-    const { samples: found } = pluralSamples({
-      locale: "ar",
-      ruleType: "cardinal",
-      offset: 0,
-      avoid: new Set(),
-      categories: PLURAL_CATEGORIES,
-    });
-    for (const [category, sample] of found) {
-      expect(rules.select(sample)).toBe(category);
-    }
+  it("answers undefined for a category the locale does not have", () => {
+    expect(categorySample("en", "cardinal", "zero")).toBeUndefined();
+    expect(PLURAL_CATEGORIES).toContain("zero");
+  });
+});
+
+describe("defaultPluralSample", () => {
+  it("prefers a whole number in the other category", () => {
+    expect(defaultPluralSample("en", "cardinal", 0, new Set())).toBe(2);
+    expect(defaultPluralSample("en", "ordinal", 0, new Set())).toBe(4);
+  });
+
+  it("falls back to a whole number where the locale has no whole other", () => {
+    const sample = defaultPluralSample("pl", "cardinal", 0, new Set());
+    expect(Number.isInteger(sample)).toBe(true);
+    expect(sample).toBeGreaterThanOrEqual(2);
+  });
+
+  it("skips values an exact arm would intercept and applies the offset", () => {
+    expect(defaultPluralSample("en", "cardinal", 0, new Set([2]))).toBe(3);
+    expect(defaultPluralSample("en", "cardinal", 1, new Set())).toBe(3);
   });
 });

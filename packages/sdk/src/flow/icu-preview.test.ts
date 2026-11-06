@@ -411,15 +411,77 @@ describe("previewIcuMessage: nested axes show the arm they name", () => {
     expect(lines).toEqual(["n=one: z", "n=other: z"]);
   });
 
-  it("leaves out rows that would need one argument at two values", () => {
-    expect(summary("{n, plural, one {{n, selectordinal, one {a} other {b}}} other {c}}")).toEqual([
-      "n=one: a",
-      "n=other: c",
+  it("lets a row sit under an enclosing arm of its own argument when one sample selects both", () => {
+    expect(
+      summary("{count, plural, =0 {none} other {{count, plural, one {# item} other {# items}}}}"),
+    ).toEqual(["count==0: none", "count=one: 1 item", "count=other: 2 items"]);
+    const ordinals = summary(
+      "{n, plural, =0 {none} other {{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}}}",
+    );
+    expect(ordinals).toEqual([
+      "n==0: none",
+      "n=one: 1st",
+      "n=other: 2nd",
+      "n=one: 1st",
+      "n=two: 2nd",
+      "n=few: 3rd",
+      "n=other: 4th",
     ]);
-    const lines = summary(
+    const result = preview(
+      "{count, plural, =0 {none} other {{count, plural, one {#} other {##}}}}",
+    );
+    expect(result).toMatchObject({ truncated: false });
+  });
+
+  it("resolves each held sample against its own occurrence's offset", () => {
+    expect(
+      summary(
+        "{n, plural, offset:1 one {A} other {B}} {n, plural, offset:2 one {{g, select, x {GX} other {GY}}} other {C}}",
+      ),
+    ).toEqual(["n=one: A C", "n=other: B GY", "g=x: B GX", "g=other: B GY"]);
+  });
+
+  it("reports a row it cannot show instead of dropping it silently", () => {
+    const result = preview("{n, plural, one {{n, select, x {a} other {b}}} other {c}}");
+    expect(result).toMatchObject({ valid: true, truncated: true });
+    const lines = summary("{n, plural, one {{n, select, x {a} other {b}}} other {c}}");
+    expect(lines).toEqual(["n=one: b", "n=other: c", "n=other: b"]);
+    const nested = preview(
       "{n, plural, one {{n, select, a {{m, select, x {X} other {Y}}} other {z}}} other {w}}",
     );
-    expect(lines.some((line) => line.startsWith("m="))).toBe(false);
+    expect(nested).toMatchObject({ truncated: true });
+    expect(
+      summary(
+        "{n, plural, one {{n, select, a {{m, select, x {X} other {Y}}} other {z}}} other {w}}",
+      ).some((line) => line.startsWith("m=")),
+    ).toBe(false);
+  });
+
+  it("does not report a row whose enclosing arm the locale can never select", () => {
+    const result = preview("{n, plural, few {{g, select, f {x} other {y}}} other {z}}");
+    expect(result).toMatchObject({ valid: true, truncated: false });
+  });
+
+  it("does not report an arm an exact arm always intercepts", () => {
+    expect(preview("{n, plural, =1 {exact} one {# one} other {# other}}")).toMatchObject({
+      truncated: false,
+    });
+  });
+
+  it("keeps a held default plural sample off its exact arms", () => {
+    const lines = summary("{n, plural, =2 {two} other {# x}} {g, select, f {F} other {O}}");
+    expect(lines.filter((line) => line.startsWith("g="))).toEqual(["g=f: 3 x F", "g=other: 3 x O"]);
+  });
+
+  it("holds default plural samples at a whole number so a select row reads naturally", () => {
+    const lines = summary(
+      "{n, plural, one {# kot} few {# koty} many {# kotow} other {# kota}} {g, select, f {F} other {O}}",
+      "pl",
+    );
+    expect(lines.filter((line) => line.startsWith("g="))).toEqual([
+      "g=f: 2 koty F",
+      "g=other: 2 koty O",
+    ]);
   });
 
   it("holds an enclosing argument at its arm even when the caller supplied a sample", () => {
@@ -453,13 +515,21 @@ describe("previewIcuMessage: row selection and flags", () => {
     expect(rows.filter((row) => row.argument === "s")).toHaveLength(ICU_PREVIEW_MAX_ROWS - 2);
   });
 
-  it("gives a negative exact arm a row and matches an arm with a leading zero by value", () => {
-    const rows = rowsOf("{n, plural, =-1 {minus} =01 {first} one {one} other {other}}");
+  it("gives a negative exact arm a row", () => {
+    const rows = rowsOf("{n, plural, =-1 {minus} one {one} other {other}}");
     expect(rows.map((row) => [row.category, row.sample, textOf(row)])).toEqual([
       ["=-1", -1, "minus"],
-      ["=01", 1, "first"],
+      ["one", 1, "one"],
       ["other", 2, "other"],
     ]);
+  });
+
+  it("gives a non-canonical exact arm no row and lets its value reach the real arm", () => {
+    for (const selector of ["=01", "=+1", "=-0"]) {
+      const rows = rowsOf(`{n, plural, ${selector} {odd} one {one} other {other}}`);
+      expect(rows.map((row) => row.category)).toEqual(["one", "other"]);
+      expect(rows.map(textOf)).toEqual(["one", "other"]);
+    }
   });
 
   it("previews a message under a locale extension the skeleton parser rejects", () => {
