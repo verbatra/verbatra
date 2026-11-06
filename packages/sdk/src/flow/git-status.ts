@@ -182,8 +182,13 @@ export function matchWatched(
   );
 }
 
+export interface FileState {
+  readonly state: LocaleGitFileState;
+  readonly repoPath: string;
+}
+
 export type FileStatesResult =
-  | { readonly ok: true; readonly states: ReadonlyMap<string, LocaleGitFileState> }
+  | { readonly ok: true; readonly states: ReadonlyMap<string, FileState> }
   | { readonly ok: false; readonly reason: LocaleGitUnavailableReason };
 
 export async function queryFileStates(
@@ -203,11 +208,11 @@ export async function queryFileStates(
   if (!result.ok) {
     return unavailable(result.failure);
   }
-  const states = new Map<string, LocaleGitFileState>();
+  const states = new Map<string, FileState>();
   for (const entry of parsePorcelainZ(result.stdout)) {
     const file = matchWatched(files, tree.prefix, entry.path);
     if (file !== undefined) {
-      states.set(file.path, stateOfCode(entry.code));
+      states.set(file.path, { state: stateOfCode(entry.code), repoPath: entry.path });
     }
   }
   return { ok: true, states };
@@ -287,8 +292,10 @@ export async function localeGitStatus(
     available: true,
     branch: branch.branch,
     files: files.flatMap((file) => {
-      const state = queried.states.get(file.path);
-      return state === undefined ? [] : [{ path: file.path, locales: file.locales, state }];
+      const found = queried.states.get(file.path);
+      return found === undefined
+        ? []
+        : [{ path: file.path, locales: file.locales, state: found.state }];
     }),
   };
 }
