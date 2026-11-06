@@ -102,7 +102,7 @@ function localeGitStatus(
 
 **Throws:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
-Each changed file carries `path` (relative to the project), `locales` (none for the lock and provenance files) and a `state` from `LOCALE_GIT_FILE_STATES`. `branch` is `null` on a detached `HEAD`; a rename reads as a deleted and an added file. Git runs with optional locks, `core.fsmonitor`, submodule inspection and every configured content filter off, matches paths literally and stops after `LOCALE_GIT_TIMEOUT_MS` or `LOCALE_GIT_MAX_OUTPUT_BYTES`, so a repository's own configuration cannot run a command. When git is missing, the project is no work tree, git refuses the owner, or a command fails, the result is `{ available: false, reason }`, a reason from `LOCALE_GIT_UNAVAILABLE_REASONS`.
+Each changed file carries `path` (relative to the project), `locales` (none for the lock and provenance files) and a `state` from `LOCALE_GIT_FILE_STATES`. `branch` is `null` on a detached `HEAD`. A file behind a symbolic link or inside a submodule is never listed; `apple-strings` also watches its `.stringsdict` file. Git runs with optional locks, `core.fsmonitor`, submodule inspection and every configured content filter off, matches paths literally and stops after `LOCALE_GIT_TIMEOUT_MS` or `LOCALE_GIT_MAX_OUTPUT_BYTES`, so a repository's own configuration cannot run a command. When git is missing, the project is no work tree, git refuses the owner, or a command fails, the result is `{ available: false, reason }`, a reason from `LOCALE_GIT_UNAVAILABLE_REASONS`.
 
 ### localeGitDiff
 
@@ -123,7 +123,7 @@ function localeGitDiff(
 
 **Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
-`added` and `removed` list `{ key, value }`, `changed` lists `{ key, before, after }`, and `state` is the file's state or `unchanged`; a `conflicted` or `unchanged` file lists no difference. The committed file is read with `git cat-file blob`, only if it is a regular file of at most `LOCALE_GIT_BLOB_MAX_BYTES`. At most `LOCALE_GIT_DIFF_MAX_ENTRIES` keys are listed and each text is cut to `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` characters, either of which sets `truncated`. The texts are untrusted: show them as text. A `custom:` format, or a call that passes `adapterRegistry`, gives the reason `custom-adapter`; a side that is not a regular file or does not parse gives `revision-unreadable` or `working-file-unreadable`. The other reasons are those of `localeGitStatus`.
+`added` and `removed` list `{ key, value }`, `changed` lists `{ key, before, after }`, and `state` is the file's state or `unchanged`; a `conflicted` or `unchanged` file lists no difference. The committed file is read with `git cat-file blob`, only if it is a regular file of at most `LOCALE_GIT_BLOB_MAX_BYTES`. At most `LOCALE_GIT_DIFF_MAX_ENTRIES` keys are listed and each text is cut to `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` characters, either of which sets `truncated`. A `custom:` format, or a call that passes `adapterRegistry`, gives the reason `custom-adapter`; a side that is not a regular file or does not parse gives `revision-unreadable` or `working-file-unreadable`. The other reasons are those of `localeGitStatus`.
 
 ### editEntry
 
