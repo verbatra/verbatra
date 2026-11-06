@@ -1,4 +1,4 @@
-import type { LoadedConfig } from "@verbatra/sdk";
+import { type LoadedConfig, previewIcuMessage, scaffoldingMetadata } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
 import { buildProjectSnapshot } from "./projection.js";
@@ -29,6 +29,7 @@ describe("buildProjectSnapshot", () => {
       glossary: { source: "none" },
       capabilities: NO_CAPABILITIES,
       exposeAgentTools: false,
+      icuPreview: false,
     });
     expect(snapshot).not.toHaveProperty("prune");
     expect(snapshot).not.toHaveProperty("maxBatchSize");
@@ -122,6 +123,28 @@ describe("buildProjectSnapshot", () => {
     const snapshot = buildProjectSnapshot(loaded, PROJECT_ROOT, NO_CAPABILITIES, false);
 
     expect(snapshot.sourceLocale).toBe("[REDACTED]");
+  });
+
+  it("offers the ICU preview exactly where the sdk previews, for every supported format and a custom one", () => {
+    for (const format of [...scaffoldingMetadata.supportedFormats, "custom:mine" as const]) {
+      const config = baseStudioConfig({ format });
+      const loaded: LoadedConfig = {
+        config,
+        source: { kind: "override" },
+        glossary: { source: "none" },
+      };
+
+      const snapshot = buildProjectSnapshot(loaded, PROJECT_ROOT, NO_CAPABILITIES, false);
+
+      expect(snapshot.icuPreview, format).toBe(
+        previewIcuMessage({ config, locale: "en", value: "" }).supported,
+      );
+    }
+    expect(
+      scaffoldingMetadata.supportedFormats.filter(
+        (format) => format === "arb" || format === "next-intl-json",
+      ),
+    ).toHaveLength(2);
   });
 
   it("projects the given capabilities verbatim, as a read-only reflection, not a computed value", () => {

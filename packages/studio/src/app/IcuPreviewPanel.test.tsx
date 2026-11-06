@@ -3,7 +3,7 @@ import { act, type ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ICU_PREVIEW_DELAY_MS } from "../client/icu-preview.js";
 import { IcuPreviewPanel } from "./IcuPreviewPanel.js";
-import { icuPreviewOpenStore } from "./icu-preview-open.js";
+import { IcuPreviewAvailabilityProvider, resetIcuPreviewSession } from "./icu-preview-open.js";
 import {
   buttonNamed,
   click,
@@ -22,13 +22,12 @@ import {
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
-const SNAPSHOT_ICU: StubRpcResult = { ok: true, result: { format: "next-intl-json" } };
-
 interface Row {
   readonly axis?: string;
   readonly argument?: string | null;
   readonly category?: string | null;
   readonly sample?: string | number | null;
+  readonly held?: Readonly<Record<string, string | number>>;
   readonly text: string;
 }
 
@@ -49,6 +48,7 @@ function validAnswer(
         argument: row.argument === undefined ? "n" : row.argument,
         category: row.category === undefined ? "other" : row.category,
         sample: row.sample === undefined ? 5 : row.sample,
+        held: row.held ?? {},
         segments: [{ kind: "text", text: row.text }],
       })),
     },
@@ -69,8 +69,12 @@ async function settle(ms = ICU_PREVIEW_DELAY_MS): Promise<void> {
   });
 }
 
-function panel(value: string, locale = "de"): ReactElement {
-  return <IcuPreviewPanel locale={locale} value={value} />;
+function panel(value: string, locale = "de", available = true): ReactElement {
+  return (
+    <IcuPreviewAvailabilityProvider value={available}>
+      <IcuPreviewPanel keyName="inbox.count" locale={locale} value={value} />
+    </IcuPreviewAvailabilityProvider>
+  );
 }
 
 async function openPanel(view: RenderResult): Promise<void> {
@@ -84,37 +88,32 @@ function rowsOf(view: RenderResult): HTMLElement[] {
 
 beforeEach(() => {
   vi.useFakeTimers();
-  icuPreviewOpenStore.setOpen(false);
+  resetIcuPreviewSession();
 });
 
 afterEach(() => {
   vi.useRealTimers();
-  icuPreviewOpenStore.setOpen(false);
+  resetIcuPreviewSession();
 });
 
 describe("IcuPreviewPanel visibility", () => {
-  it("renders nothing for a format without ICU syntax and never asks for a preview", async () => {
-    stubRpc({ "project.snapshot": { ok: true, result: { format: "i18next-json" } } });
+  it("renders nothing, and makes no read at all, where the project offers no ICU preview", async () => {
+    stubRpc({});
 
-    const view = await renderAsync(panel("Hi"));
+    const view = await renderAsync(panel("Hi", "de", false));
 
     expect(view.container.innerHTML).toBe("");
-    expect(previewCalls()).toHaveLength(0);
+    expect(rpcCalls).toHaveLength(0);
   });
 
-  it.each([
-    ["while the project is still loading", () => new Promise<StubRpcResult>(() => {})],
-    ["when the project cannot be read", () => rpcError("INTERNAL")],
-  ])("renders nothing %s", async (_name, answer) => {
-    stubRpc({ "project.snapshot": answer });
-
-    const view = await renderAsync(panel("Hi"));
+  it("renders nothing outside any provider, as when the snapshot failed", async () => {
+    const view = await renderAsync(<IcuPreviewPanel keyName="k" locale="de" value="Hi" />);
 
     expect(view.container.innerHTML).toBe("");
   });
 
   it("is closed by default, named by a button, and reads nothing until opened", async () => {
-    stubRpc({ "project.snapshot": SNAPSHOT_ICU });
+    stubRpc({});
 
     const view = await renderAsync(panel("Hi"));
     await settle(2000);
@@ -127,7 +126,6 @@ describe("IcuPreviewPanel visibility", () => {
 
   it("opens and closes only through its button, and remembers the choice for the session", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([
         { axis: "none", argument: null, category: null, sample: null, text: "Hi" },
       ]),
@@ -150,16 +148,13 @@ describe("IcuPreviewPanel visibility", () => {
 
   it("shows the machine caveat and gives nothing a title or a tooltip", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([{ text: "x" }]),
     });
     const view = await renderAsync(panel("x"));
 
     await openPanel(view);
 
-    expect(view.text()).toContain(
-      "Rendered with this machine's Node CLDR data, not your app's runtime.",
-    );
+    expect(view.text()).toContain("Uses this computer's language data, so your app may differ.");
     expect(view.all("[title], [role='tooltip']")).toHaveLength(0);
   });
 });
@@ -167,7 +162,6 @@ describe("IcuPreviewPanel visibility", () => {
 describe("IcuPreviewPanel reads", () => {
   it("waits for the typing to pause and sends only the last draft", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([{ text: "x" }]),
     });
     const view = await renderAsync(panel("a"));
@@ -188,7 +182,6 @@ describe("IcuPreviewPanel reads", () => {
 
   it("reads the current draft, locale and no args when nothing is sampled", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([{ text: "x" }]),
     });
     const view = await renderAsync(panel("{n, plural, one {# a} other {# b}}", "pl"));
@@ -206,7 +199,6 @@ describe("IcuPreviewPanel reads", () => {
     const newer = deferredAnswer();
     const queue = [older, newer];
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": () => queue.shift()?.promise ?? validAnswer([]),
     });
     const view = await renderAsync(panel("old"));
@@ -230,7 +222,6 @@ describe("IcuPreviewPanel reads", () => {
       slow.promise,
     ];
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": () => answers.shift() ?? validAnswer([]),
     });
     const view = await renderAsync(panel("one"));
@@ -247,7 +238,7 @@ describe("IcuPreviewPanel reads", () => {
 
   it("drops an answer that arrives after the panel is closed", async () => {
     const slow = deferredAnswer();
-    stubRpc({ "project.snapshot": SNAPSHOT_ICU, "key.previewIcu": () => slow.promise });
+    stubRpc({ "key.previewIcu": () => slow.promise });
     const view = await renderAsync(panel("one"));
     await openPanel(view);
 
@@ -259,7 +250,7 @@ describe("IcuPreviewPanel reads", () => {
   });
 
   it("does not ask again for a value over the boundary cap and says it is too long", async () => {
-    stubRpc({ "project.snapshot": SNAPSHOT_ICU, "key.previewIcu": validAnswer([{ text: "x" }]) });
+    stubRpc({ "key.previewIcu": validAnswer([{ text: "x" }]) });
     const view = await renderAsync(panel("x".repeat(20_001)));
 
     await openPanel(view);
@@ -270,7 +261,6 @@ describe("IcuPreviewPanel reads", () => {
 
   it("hides itself and stops reading when the server says the format has no ICU", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": { ok: true, result: { supported: false, reason: "not-icu" } },
     });
     const view = await renderAsync(panel("a"));
@@ -288,7 +278,6 @@ describe("IcuPreviewPanel reads", () => {
 describe("IcuPreviewPanel rows", () => {
   it("shows one row per Polish plural category, in the order given", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([
         { category: "one", sample: 1, text: "1 plik" },
         { category: "few", sample: 2, text: "2 pliki" },
@@ -314,7 +303,6 @@ describe("IcuPreviewPanel rows", () => {
 
   it("repeats a category when the same arm appears in several places", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([
         { category: "one", sample: 1, text: "A" },
         { category: "one", sample: 1, text: "B" },
@@ -329,7 +317,6 @@ describe("IcuPreviewPanel rows", () => {
 
   it("renders Arabic right to left with its own language", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([{ category: "zero", sample: 0, text: "لا ملفات" }]),
     });
     const view = await renderAsync(panel("x", "ar"));
@@ -343,7 +330,6 @@ describe("IcuPreviewPanel rows", () => {
 
   it("renders segments as text nodes, isolating arguments and tags, never as markup", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": {
         ok: true,
         result: {
@@ -357,6 +343,7 @@ describe("IcuPreviewPanel rows", () => {
               argument: null,
               category: null,
               sample: null,
+              held: {},
               segments: [
                 { kind: "tag", text: "<img src=x onerror=alert(1)>" },
                 { kind: "argument", text: "{name}" },
@@ -383,13 +370,12 @@ describe("IcuPreviewPanel rows", () => {
       "argument",
       "tag",
     ]);
-    expect(isolated.every((node) => node.getAttribute("dir") === "ltr")).toBe(true);
+    expect(isolated.map((node) => node.getAttribute("dir"))).toEqual(["ltr", "auto", "ltr"]);
   });
 
   it("wraps a very long unbroken value instead of widening its container", async () => {
     const long = "W".repeat(5000);
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([{ text: long }]),
     });
     const view = await renderAsync(panel("x"));
@@ -404,7 +390,6 @@ describe("IcuPreviewPanel rows", () => {
 
   it("shows the single row of a message with nothing to vary", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([
         { axis: "none", argument: null, category: null, sample: null, text: "Hello" },
       ]),
@@ -414,7 +399,7 @@ describe("IcuPreviewPanel rows", () => {
     await openPanel(view);
 
     expect(rowsOf(view)).toHaveLength(1);
-    expect(rowsOf(view)[0]?.textContent).toContain("No argument to vary");
+    expect(rowsOf(view)[0]?.textContent).toContain("Rendered text");
     expect(rowsOf(view)[0]?.textContent).toContain("Hello");
   });
 
@@ -425,7 +410,6 @@ describe("IcuPreviewPanel rows", () => {
       text: `row ${index}`,
     }));
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer(rows, { truncated: true }),
     });
     const view = await renderAsync(panel("x"));
@@ -437,7 +421,7 @@ describe("IcuPreviewPanel rows", () => {
   });
 
   it("says nothing about truncation when no arm was left out", async () => {
-    stubRpc({ "project.snapshot": SNAPSHOT_ICU, "key.previewIcu": validAnswer([{ text: "x" }]) });
+    stubRpc({ "key.previewIcu": validAnswer([{ text: "x" }]) });
     const view = await renderAsync(panel("x"));
 
     await openPanel(view);
@@ -447,7 +431,6 @@ describe("IcuPreviewPanel rows", () => {
 
   it("renders a nested plural row for each arm with the argument that varies", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([
         { axis: "select", argument: "g", category: "male", sample: "male", text: "He has 1 file" },
         { axis: "plural", argument: "n", category: "one", sample: 1, text: "He has 1 file" },
@@ -473,7 +456,7 @@ describe("IcuPreviewPanel refusals", () => {
     ["unsupported-locale", "does not know this locale"],
     ["too-large", "too large to show"],
   ])("says %s in words and shows no rows", async (reason, words) => {
-    stubRpc({ "project.snapshot": SNAPSHOT_ICU, "key.previewIcu": refusal(reason) });
+    stubRpc({ "key.previewIcu": refusal(reason) });
     const view = await renderAsync(panel("x"));
 
     await openPanel(view);
@@ -492,7 +475,6 @@ describe("IcuPreviewPanel sample values", () => {
 
   async function openWithFields(): Promise<RenderResult> {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([{ text: "x" }], { named: NAMED }),
     });
     const view = await renderAsync(panel("{n} {who}"));
@@ -506,7 +488,7 @@ describe("IcuPreviewPanel sample values", () => {
     expect(
       view.all("[data-icu-sample]").map((node) => node.getAttribute("data-icu-sample")),
     ).toEqual(["n", "who"]);
-    expect(textboxNamed(view, "n").getAttribute("placeholder")).toBe("default");
+    expect(textboxNamed(view, "n").getAttribute("placeholder")).toBe("automatic");
   });
 
   it("turns a typed 12 into the number 12 and reads again", async () => {
@@ -573,7 +555,7 @@ describe("IcuPreviewPanel sample values", () => {
   });
 
   it("offers no inputs when the message names no argument", async () => {
-    stubRpc({ "project.snapshot": SNAPSHOT_ICU, "key.previewIcu": validAnswer([{ text: "x" }]) });
+    stubRpc({ "key.previewIcu": validAnswer([{ text: "x" }]) });
     const view = await renderAsync(panel("Hello"));
 
     await openPanel(view);
@@ -584,7 +566,6 @@ describe("IcuPreviewPanel sample values", () => {
   it("caps the inputs and says how many arguments it left out", async () => {
     const many = Array.from({ length: 30 }, (_, index) => ({ name: `a${index}`, type: "number" }));
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": validAnswer([{ text: "x" }], { named: many }),
     });
     const view = await renderAsync(panel("x"));
@@ -598,7 +579,7 @@ describe("IcuPreviewPanel sample values", () => {
 
 describe("IcuPreviewPanel failed reads", () => {
   it("shows the error with Retry, no rows, and leaves the host draft and focus alone", async () => {
-    stubRpc({ "project.snapshot": SNAPSHOT_ICU, "key.previewIcu": rpcError("INTERNAL") });
+    stubRpc({ "key.previewIcu": rpcError("INTERNAL") });
     const view = await renderAsync(
       <>
         <textarea aria-label="draft" defaultValue="my draft" />
@@ -624,7 +605,6 @@ describe("IcuPreviewPanel failed reads", () => {
       retry.promise,
     ];
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": () => answers.shift() ?? validAnswer([]),
     });
     const view = await renderAsync(panel("x"));
@@ -651,7 +631,7 @@ describe("IcuPreviewPanel failed reads", () => {
   });
 
   it("keeps focus on Retry when the retry fails again", async () => {
-    stubRpc({ "project.snapshot": SNAPSHOT_ICU, "key.previewIcu": rpcError("INTERNAL") });
+    stubRpc({ "key.previewIcu": rpcError("INTERNAL") });
     const view = await renderAsync(panel("x"));
     await openPanel(view);
     const retry = view.get("[data-retry]");
@@ -667,7 +647,6 @@ describe("IcuPreviewPanel failed reads", () => {
   it("never moves focus when a background read recovers", async () => {
     const answers: StubRpcResult[] = [rpcError("INTERNAL"), validAnswer([{ text: "OK" }])];
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": () => answers.shift() ?? validAnswer([]),
     });
     const view = await renderAsync(
@@ -694,7 +673,6 @@ describe("IcuPreviewPanel failed reads", () => {
 
   it("treats a rate limit as a failed read that can be retried", async () => {
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": rpcError("METHOD_RATE_LIMITED"),
     });
     const view = await renderAsync(panel("x"));
@@ -708,7 +686,6 @@ describe("IcuPreviewPanel failed reads", () => {
   it("recovers from an unreachable server on the next draft without a retry", async () => {
     const answers: StubRpcResult[] = [rpcError("NETWORK_ERROR"), validAnswer([{ text: "BACK" }])];
     stubRpc({
-      "project.snapshot": SNAPSHOT_ICU,
       "key.previewIcu": () => answers.shift() ?? validAnswer([]),
     });
     const view = await renderAsync(panel("a"));
@@ -722,9 +699,300 @@ describe("IcuPreviewPanel failed reads", () => {
   });
 });
 
+describe("IcuPreviewPanel held arguments and sample rows", () => {
+  const NESTED = [
+    { axis: "select", argument: "g", category: "f", sample: "f", text: "She" },
+    { axis: "select", argument: "g", category: "m", sample: "m", text: "He" },
+    { argument: "n", category: "one", sample: 1, held: { g: "f" }, text: "She 1" },
+    { argument: "n", category: "one", sample: 1, held: { g: "m" }, text: "He 1" },
+    { argument: "n", category: "other", sample: 2, held: { g: "f" }, text: "She 2" },
+    { argument: "n", category: "other", sample: 2, held: { g: "m" }, text: "He 2" },
+  ];
+
+  it("groups nested rows under the outer arm they sit in, so no two rows share a label", async () => {
+    stubRpc({ "key.previewIcu": validAnswer(NESTED) });
+    const view = await renderAsync(panel("x"));
+
+    await openPanel(view);
+
+    const groups = view.all("[data-icu-group]");
+    expect(groups.map((group) => group.getAttribute("data-icu-group"))).toEqual(["g=f", "g=m"]);
+    expect(view.all("[data-icu-held]").map((node) => node.textContent)).toEqual(["g=f", "g=m"]);
+    expect(
+      groups.map((group) =>
+        [...group.querySelectorAll("[data-icu-row]")].map((row) => row.textContent),
+      ),
+    ).toEqual([
+      [expect.stringContaining("She 1"), expect.stringContaining("She 2")],
+      [expect.stringContaining("He 1"), expect.stringContaining("He 2")],
+    ]);
+    expect(rowsOf(view)).toHaveLength(6);
+  });
+
+  it("shows a value the caller typed as its own row, named as theirs", async () => {
+    stubRpc({
+      "key.previewIcu": validAnswer([
+        { category: "one", sample: 1, text: "1 plik" },
+        { axis: "sample", category: "few", sample: 22, text: "22 pliki" },
+      ]),
+    });
+    const view = await renderAsync(panel("x", "pl"));
+
+    await openPanel(view);
+
+    const row = view.get('[data-axis="sample"]');
+    expect(row.textContent).toContain("Your value");
+    expect(row.textContent).toContain("few");
+    expect(row.textContent).toContain("= 22");
+  });
+
+  it("says a message without arguments to vary is rendered text, without a blank card for an empty draft", async () => {
+    stubRpc({
+      "key.previewIcu": validAnswer([
+        { axis: "none", argument: null, category: null, sample: null, text: "" },
+      ]),
+    });
+    const view = await renderAsync(panel(""));
+
+    await openPanel(view);
+
+    expect(view.get("[data-icu-empty]").textContent).toContain("empty");
+    expect(rowsOf(view)).toHaveLength(0);
+  });
+});
+
+describe("IcuPreviewPanel mid-typing refusals", () => {
+  it("keeps the last good rows, dimmed and labelled, under the reason", async () => {
+    const answers: StubRpcResult[] = [
+      validAnswer([{ category: "one", text: "GOOD" }]),
+      refusal("invalid-message"),
+    ];
+    stubRpc({ "key.previewIcu": () => answers.shift() ?? validAnswer([]) });
+    const view = await renderAsync(panel("{n, plural, one {a} other {b}}"));
+    await openPanel(view);
+
+    view.rerender(panel("{n, plural, one {a"));
+    await settle();
+
+    const reason = view.get("[data-icu-refusal]");
+    const stale = view.get("[data-icu-stale]");
+    expect(reason.textContent).toContain("not valid ICU");
+    expect(stale.textContent).toContain("These rows are from the last valid text.");
+    expect(stale.textContent).toContain("GOOD");
+    expect(stale.querySelector(".opacity-60")).not.toBeNull();
+    expect(reason.compareDocumentPosition(stale) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows the reason alone when the first draft is already invalid", async () => {
+    stubRpc({ "key.previewIcu": refusal("invalid-message") });
+    const view = await renderAsync(panel("{"));
+
+    await openPanel(view);
+
+    expect(view.get("[data-icu-refusal]")).toBeDefined();
+    expect(view.query("[data-icu-stale]")).toBeNull();
+  });
+
+  it("brings the new rows back, undimmed, when the draft is valid again", async () => {
+    const answers: StubRpcResult[] = [
+      validAnswer([{ text: "GOOD" }]),
+      refusal("invalid-message"),
+      validAnswer([{ text: "NEXT" }]),
+    ];
+    stubRpc({ "key.previewIcu": () => answers.shift() ?? validAnswer([]) });
+    const view = await renderAsync(panel("a"));
+    await openPanel(view);
+    view.rerender(panel("b"));
+    await settle();
+
+    view.rerender(panel("c"));
+    await settle();
+
+    expect(view.query("[data-icu-stale]")).toBeNull();
+    expect(view.query("[data-icu-refusal]")).toBeNull();
+    expect(rowsOf(view)[0]?.textContent).toContain("NEXT");
+  });
+});
+
+describe("IcuPreviewPanel Retry focus", () => {
+  async function failedThenRecovering(): Promise<{
+    readonly view: RenderResult;
+    readonly recover: () => Promise<void>;
+  }> {
+    const retry = deferredAnswer();
+    const answers: (StubRpcResult | Promise<StubRpcResult>)[] = [
+      rpcError("INTERNAL"),
+      retry.promise,
+    ];
+    stubRpc({ "key.previewIcu": () => answers.shift() ?? validAnswer([{ text: "BACK" }]) });
+    const view = await renderAsync(
+      <>
+        <textarea aria-label="draft" />
+        {panel("x")}
+      </>,
+    );
+    await openPanel(view);
+    click(buttonNamed(view, "Retry"));
+    await settle(0);
+    return {
+      view,
+      recover: async () => {
+        retry.resolve(validAnswer([{ text: "BACK" }]));
+        await flush();
+      },
+    };
+  }
+
+  it("does not pull focus back from the draft when the retried read answers", async () => {
+    const { view, recover } = await failedThenRecovering();
+    (view.get("textarea") as HTMLTextAreaElement).focus();
+
+    await recover();
+
+    expect(rowsOf(view)[0]?.textContent).toContain("BACK");
+    expect(document.activeElement).toBe(view.get("textarea"));
+  });
+
+  it("does not move focus once the value changed after Retry", async () => {
+    const { view, recover } = await failedThenRecovering();
+    (document.activeElement as HTMLElement | null)?.blur();
+    view.rerender(
+      <>
+        <textarea aria-label="draft" />
+        {panel("xy")}
+      </>,
+    );
+
+    await recover();
+    await settle();
+
+    expect(document.activeElement).not.toBe(view.get('[data-recovery-target="icu-preview"]'));
+  });
+
+  it("moves focus to the content when it was on Retry or inside the panel", async () => {
+    const { view, recover } = await failedThenRecovering();
+
+    await recover();
+
+    expect(document.activeElement).toBe(view.get('[data-recovery-target="icu-preview"]'));
+  });
+});
+
+describe("IcuPreviewPanel failed read details", () => {
+  it("keeps the wait the server asked for", async () => {
+    stubRpc({
+      "key.previewIcu": {
+        ok: false,
+        error: { code: "METHOD_RATE_LIMITED", message: "slow down", retryAfterSeconds: 5 },
+      },
+    });
+    const view = await renderAsync(panel("x"));
+
+    await openPanel(view);
+
+    expect(view.get('[role="alert"]').textContent).toContain("Try again in 5 seconds.");
+  });
+
+  it("announces that it is updating through a status region", async () => {
+    stubRpc({ "key.previewIcu": validAnswer([{ text: "x" }]) });
+    const view = await renderAsync(panel("x"));
+
+    await openPanel(view);
+
+    expect(view.get("[data-icu-status]").getAttribute("role")).toBe("status");
+  });
+});
+
+describe("IcuPreviewPanel sample typing", () => {
+  const FIELDS = [
+    { name: "n", type: "number" },
+    { name: "when", type: "date" },
+  ];
+
+  async function opened(): Promise<RenderResult> {
+    stubRpc({ "key.previewIcu": validAnswer([{ text: "x" }], { named: FIELDS }) });
+    const view = await renderAsync(panel("{n} {when, date}"));
+    await openPanel(view);
+    return view;
+  }
+
+  it("reads a decimal comma as a decimal point", async () => {
+    const view = await opened();
+    const before = previewCalls().length;
+
+    typeInto(textboxNamed(view, "n"), "1,5");
+    await settle();
+
+    expect(previewCalls().slice(before)[0]?.params.args).toEqual({ n: 1.5 });
+  });
+
+  it("lets a minus be typed on a touch keyboard", async () => {
+    const view = await opened();
+
+    expect(textboxNamed(view, "n").getAttribute("inputmode")).toBe("text");
+  });
+
+  it("turns a calendar date into milliseconds", async () => {
+    const view = await opened();
+    const before = previewCalls().length;
+
+    typeInto(textboxNamed(view, "when"), "2024-03-15");
+    await settle();
+
+    expect(previewCalls().slice(before)[0]?.params.args).toEqual({ when: 1710460800000 });
+  });
+
+  it("notes a date outside what a computer can show instead of sending it", async () => {
+    const view = await opened();
+    const before = previewCalls().length;
+
+    typeInto(textboxNamed(view, "when"), "9000000000000000");
+    await settle();
+
+    expect(view.get("[data-icu-sample-problem]").textContent).toContain("Outside the dates");
+    expect(
+      previewCalls()
+        .slice(before)
+        .every((call) => call.params.args === undefined),
+    ).toBe(true);
+  });
+
+  it("offers inputs for numbered arguments", async () => {
+    stubRpc({
+      "key.previewIcu": {
+        ok: true,
+        result: {
+          supported: true,
+          valid: true,
+          arguments: { style: "positional", positional: ["number"] },
+          truncated: false,
+          rows: [
+            {
+              axis: "none",
+              argument: null,
+              category: null,
+              sample: null,
+              held: {},
+              segments: [{ kind: "text", text: "x" }],
+            },
+          ],
+        },
+      },
+    });
+    const view = await renderAsync(panel("{0}"));
+    await openPanel(view);
+    const before = previewCalls().length;
+
+    typeInto(textboxNamed(view, "0"), "3");
+    await settle();
+
+    expect(previewCalls().slice(before)[0]?.params.args).toEqual({ 0: 3 });
+  });
+});
+
 describe("IcuPreviewPanel mounting", () => {
   it("does not read before it is rendered open", () => {
-    stubRpc({ "project.snapshot": SNAPSHOT_ICU });
+    stubRpc({});
 
     render(panel("x"));
 

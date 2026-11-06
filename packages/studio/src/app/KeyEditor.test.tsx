@@ -1254,22 +1254,26 @@ describe("KeyEditor editing", () => {
   });
 
   it.each([
-    ["arb", true],
-    ["i18next-json", false],
+    ["offered", { icuPreview: true }, true],
+    ["not offered", { icuPreview: false }, false],
+    ["a snapshot without the flag", {}, false],
   ])(
-    "offers the ICU preview in the inline editor only for an ICU format (%s)",
-    async (format, offered) => {
+    "shows the ICU preview in the inline editor only when the project offers it (%s)",
+    async (_name, flags, offered) => {
       stubWritable();
       stubRpc({
         "key.context": context("Hallo"),
-        "project.snapshot": {
-          ok: true,
-          result: {
-            format,
-            sourceLocale: "en",
-            capabilities: { spend: false, writeToDisk: true },
-          },
-        },
+        "project.snapshot":
+          flags === undefined
+            ? rpcError("INTERNAL")
+            : {
+                ok: true,
+                result: {
+                  sourceLocale: "en",
+                  capabilities: { spend: false, writeToDisk: true },
+                  ...flags,
+                },
+              },
       });
       const view = await renderAsync(
         <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,

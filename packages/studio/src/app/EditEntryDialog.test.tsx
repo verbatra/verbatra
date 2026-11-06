@@ -3,6 +3,7 @@ import type { IntegrityGateReason } from "@verbatra/sdk";
 import { act, type ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { EditEntryDialog } from "./EditEntryDialog.js";
+import { IcuPreviewAvailabilityProvider } from "./icu-preview-open.js";
 import {
   click,
   clickAsync,
@@ -112,24 +113,22 @@ describe("EditEntryDialog", () => {
 
     expect(rpcCalls).toEqual([
       { method: "key.context", params: { locale: LOCALE, key: KEY } },
-      { method: "project.snapshot", params: {} },
       { method: "key.integrity", params: { key: KEY } },
       { method: "locale.integrity", params: {} },
     ]);
   });
 
   it.each([
-    ["next-intl-json", true],
-    ["xliff", false],
+    ["offered", true],
+    ["not offered", false],
   ])(
-    "offers the ICU preview in the Review dialog only for an ICU format (%s)",
-    async (format, offered) => {
-      stubRpc({
-        "key.context": keyValue("Hello", "Hallo"),
-        "project.snapshot": { ok: true, result: { format } },
-      });
+    "shows the ICU preview in the Review dialog only when the project offers it (%s)",
+    async (_name, offered) => {
+      stubRpc({ "key.context": keyValue("Hello", "Hallo") });
 
-      const view = await renderAsync(dialog());
+      const view = await renderAsync(
+        <IcuPreviewAvailabilityProvider value={offered}>{dialog()}</IcuPreviewAvailabilityProvider>,
+      );
 
       expect(view.all("[data-icu-preview] button")).toHaveLength(offered ? 1 : 0);
       expect(rpcCalls.some((call) => call.method === "key.previewIcu")).toBe(false);

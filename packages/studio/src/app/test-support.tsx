@@ -16,6 +16,7 @@ import type {
 import type { RefreshEvent } from "../shared/sse-events.js";
 import type { AgentToolsStatusStore } from "../webmcp/registration-store.js";
 import { createAgentToolsStatusStore } from "../webmcp/registration-store.js";
+import { resetIcuPreviewSession } from "./icu-preview-open.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -137,7 +138,14 @@ export function selectOption(element: HTMLSelectElement, value: string): void {
 
 export type StubRpcResult =
   | { readonly ok: true; readonly result: unknown }
-  | { readonly ok: false; readonly error: { readonly code: string; readonly message: string } };
+  | {
+      readonly ok: false;
+      readonly error: {
+        readonly code: string;
+        readonly message: string;
+        readonly retryAfterSeconds?: number;
+      };
+    };
 
 export type StubRpcHandler = (params: unknown) => StubRpcResult | Promise<StubRpcResult>;
 
@@ -354,6 +362,7 @@ afterEach(() => {
   }
   handlers.clear();
   rpcCalls.length = 0;
+  resetIcuPreviewSession();
   refreshListeners.clear();
   connectionListeners.clear();
   connectionStatus = "live";

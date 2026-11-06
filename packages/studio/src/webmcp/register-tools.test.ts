@@ -89,6 +89,7 @@ function makeSnapshotResult(overrides: Partial<ProjectSnapshotResult> = {}): Pro
     glossary: { source: "none" },
     capabilities: { spend: false, writeToDisk: true },
     exposeAgentTools: true,
+    icuPreview: false,
     ...overrides,
   };
 }
