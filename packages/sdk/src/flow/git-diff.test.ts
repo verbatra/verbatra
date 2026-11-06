@@ -1,12 +1,12 @@
-import { chmod, mkdir, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createDefaultRegistry } from "@verbatra/format-adapters";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SdkError } from "../errors.js";
-import { type GitFixture, makeGitFixture } from "../git-fixture.js";
-import { baseConfig } from "../test-support.js";
+import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
 import {
   compareResources,
+  isRegularFile,
   LOCALE_GIT_DIFF_MAX_ENTRIES,
   LOCALE_GIT_DIFF_MAX_VALUE_CHARS,
   localeGitDiff,
@@ -101,6 +101,33 @@ describe("compareResources", () => {
 
     expect(body.added[0]?.value).toBe(exact);
     expect(body.truncated).toBe(false);
+  });
+});
+
+describe("isRegularFile", () => {
+  it("accepts a regular file and refuses a symbolic link, a directory and a missing path", async () => {
+    const fx = await repo();
+    await fx.write("a.json", "{}\n");
+    await fx.write("dir/x.json", "{}\n");
+    await symlink(join(fx.root, "a.json"), join(fx.root, "link.json"));
+
+    expect(await isRegularFile(join(fx.root, "a.json"))).toBe(true);
+    expect(await isRegularFile(join(fx.root, "link.json"))).toBe(false);
+    expect(await isRegularFile(join(fx.root, "dir"))).toBe(false);
+    expect(await isRegularFile(join(fx.root, "none.json"))).toBe(false);
+    expect(await isRegularFile(join(fx.root, "missing-dir", "a.json"))).toBe(false);
+  });
+
+  it("matches a differently cased name only when exactly one entry folds to it", async () => {
+    const fx = await repo();
+    await fx.write("only/De.json", "{}\n");
+    await fx.write("both/De.json", "{}\n");
+    await fx.write("both/dE.json", "{}\n");
+    const names = await readdir(join(fx.root, "both"));
+    const caseSensitive = names.length === 2;
+
+    expect(await isRegularFile(join(fx.root, "only", "de.json"))).toBe(true);
+    expect(await isRegularFile(join(fx.root, "both", "de.json"))).toBe(!caseSensitive);
   });
 });
 

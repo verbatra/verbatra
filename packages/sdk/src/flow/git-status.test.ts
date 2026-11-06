@@ -1,8 +1,7 @@
 import { chmod, mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type GitFixture, makeGitFixture } from "../git-fixture.js";
-import { baseConfig } from "../test-support.js";
+import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
 import { type GitExecFile, hasLeadingDash } from "./git-exec.js";
 import {
   localeGitStatus,

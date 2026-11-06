@@ -1,9 +1,9 @@
-import { lstat } from "node:fs/promises";
-import { resolve as resolvePath } from "node:path";
+import { basename, dirname, resolve as resolvePath } from "node:path";
 import { isCustomFormatId, type LocaleResource } from "@verbatra/core";
 import { type AdapterRegistry, createDefaultRegistry } from "@verbatra/format-adapters";
 import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { defaultFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
 import { parseRevisionContent, readBlobAtHead } from "./git-revision.js";
@@ -205,9 +205,14 @@ async function readHeadSide(tree: GitWorkTree, file: FileState, input: SideInput
     : { ok: true, entries: parsed.entries };
 }
 
-async function isSymbolicLink(path: string): Promise<boolean> {
+export async function isRegularFile(path: string): Promise<boolean> {
   try {
-    return (await lstat(path)).isSymbolicLink();
+    const name = basename(path);
+    const siblings = (await defaultFs.readDirectory?.(dirname(path))) ?? [];
+    const exact = siblings.find((entry) => entry.name === name);
+    const folded = siblings.filter((entry) => entry.name.toLowerCase() === name.toLowerCase());
+    const found = exact ?? (folded.length === 1 ? folded[0] : undefined);
+    return found?.kind === "file";
   } catch {
     return false;
   }
@@ -215,7 +220,7 @@ async function isSymbolicLink(path: string): Promise<boolean> {
 
 async function readDiskResource(input: SideInput): Promise<LocaleResource | undefined> {
   const resolution = createDefaultRegistry().resolve("", { format: input.config.format });
-  if (resolution.status !== "resolved" || (await isSymbolicLink(input.absolutePath))) {
+  if (resolution.status !== "resolved" || !(await isRegularFile(input.absolutePath))) {
     return undefined;
   }
   try {

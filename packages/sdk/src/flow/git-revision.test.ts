@@ -8,7 +8,7 @@ import {
 } from "@verbatra/core";
 import { createDefaultRegistry } from "@verbatra/format-adapters";
 import { afterEach, describe, expect, it } from "vitest";
-import { type GitFixture, makeGitFixture } from "../git-fixture.js";
+import { type GitFixture, makeGitFixture } from "../test-support.js";
 import { defaultGitExecFile } from "./git-exec.js";
 import {
   blobSpec,
