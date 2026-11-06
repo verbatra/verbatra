@@ -7,9 +7,11 @@ import {
   isBlankPreview,
   prepareSamples,
   SAMPLE_PROBLEM_COPY,
+  SAMPLE_UNUSED_COPY,
   type SampleField,
   sampleFields,
   samplesKey,
+  unusedSamples,
 } from "./icu-preview.js";
 
 function inputs(entries: Readonly<Record<string, string>>): ReadonlyMap<string, string> {
@@ -362,5 +364,46 @@ describe("samplesKey", () => {
     expect(samplesKey(first)).toBe(samplesKey(same));
     expect(samplesKey(first)).not.toBe(samplesKey(other));
     expect(samplesKey(prepareSamples(NUMBER, inputs({})))).toBe("[]");
+  });
+});
+
+describe("unusedSamples", () => {
+  const row = (
+    argument: string | null,
+    supplied: boolean,
+    segments: IcuPreviewRow["segments"] = [{ kind: "text", text: "t" }],
+  ): IcuPreviewRow => ({
+    axis: argument === null ? "none" : "plural",
+    argument,
+    category: argument === null ? null : "one",
+    sample: null,
+    held: {},
+    supplied,
+    segments,
+  });
+  const fields: readonly SampleField[] = [
+    { name: "n", type: "number" },
+    { name: "who", type: "string" },
+  ];
+
+  it("flags an arm-driving argument whose typed value reached no row", () => {
+    expect([...unusedSamples(fields, { n: 7 }, [row("n", false)])]).toEqual(["n"]);
+    expect([...unusedSamples(fields, { n: 7 }, [row("n", false), row("n", true)])]).toEqual([]);
+  });
+
+  it("flags a plain text argument whose text no argument segment shows", () => {
+    const shown: IcuPreviewRow["segments"] = [{ kind: "argument", text: "Ada" }];
+
+    expect([...unusedSamples(fields, { who: "Ada" }, [row(null, false, shown)])]).toEqual([]);
+    expect([...unusedSamples(fields, { who: "Ada" }, [row(null, false)])]).toEqual(["who"]);
+  });
+
+  it("says nothing about a field with no typed value, and nothing without any args", () => {
+    expect(unusedSamples(fields, undefined, [row("n", false)]).size).toBe(0);
+    expect(unusedSamples(fields, { who: "x" }, []).has("n")).toBe(false);
+  });
+
+  it("has short copy", () => {
+    expect(SAMPLE_UNUSED_COPY).toBe("Not used by this text.");
   });
 });

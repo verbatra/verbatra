@@ -1092,12 +1092,13 @@ describe("IcuPreviewPanel round two", () => {
     await openPanel(view);
     const shape = (): number => view.get("[data-icu-notice]").children.length;
     const valid = shape();
+    const reservedWhenValid = view.all("[data-icu-notice] .invisible").length;
 
     view.rerender(panel("{"));
     await settle();
 
     expect(shape()).toBe(valid);
-    expect(view.all("[data-icu-notice] .invisible").length).toBeGreaterThan(0);
+    expect(reservedWhenValid).toBeGreaterThan(0);
     expect(
       view
         .all("[data-icu-notice] [aria-hidden]")
@@ -1129,44 +1130,6 @@ describe("IcuPreviewPanel round two", () => {
     expect(stale.textContent).toContain("GOOD");
     expect(stale.textContent).toContain("These rows are from the last valid text.");
     expect(stale.querySelector(".text-muted-foreground")).not.toBeNull();
-  });
-
-  async function failedThenRecovering(): Promise<{
-    readonly view: RenderResult;
-    readonly recover: () => Promise<void>;
-  }> {
-    const retry = deferredAnswer();
-    const answers: (StubRpcResult | Promise<StubRpcResult>)[] = [
-      rpcError("INTERNAL"),
-      retry.promise,
-    ];
-    stubRpc({
-      "key.previewIcu": () => answers.shift() ?? validAnswer([{ text: "BACK" }], { named: FIELDS }),
-    });
-    const view = await renderAsync(panel("x"));
-    await openPanel(view);
-    return {
-      view,
-      recover: async () => {
-        retry.resolve(validAnswer([{ text: "BACK" }], { named: FIELDS }));
-        await flush();
-      },
-    };
-  }
-
-  it("does not pull focus out of a sample input when the retried read answers", async () => {
-    const { view, recover } = await failedThenRecovering();
-    const before = previewCalls().length;
-    click(buttonNamed(view, "Retry"));
-    await settle(0);
-    expect(previewCalls().length).toBe(before + 1);
-    await recover();
-    const sample = textboxNamed(view, "n");
-    sample.focus();
-    click(buttonNamed(view, "ICU preview"));
-    click(buttonNamed(view, "ICU preview"));
-
-    expect(document.activeElement).not.toBe(view.get('[data-recovery-target="icu-preview"]'));
   });
 });
 
@@ -1220,6 +1183,105 @@ describe("IcuPreviewPanel Retry focus and samples", () => {
     await settle();
 
     expect(document.activeElement).not.toBe(view.get('[data-recovery-target="icu-preview"]'));
+  });
+});
+
+describe("IcuPreviewPanel notes for values the text does not use", () => {
+  const FIELDS = [
+    { name: "n", type: "number" },
+    { name: "who", type: "unknown" },
+  ];
+
+  it("notes a typed value that reached no arm", async () => {
+    stubRpc({
+      "key.previewIcu": validAnswer([{ category: "one", text: "ONE" }], { named: FIELDS }),
+    });
+    const view = await renderAsync(panel("x"));
+    await openPanel(view);
+
+    typeInto(textboxNamed(view, "n"), "7");
+    await settle();
+
+    const note = view.get("[data-icu-sample-unused]");
+    expect(note.textContent).toBe("Not used by this text.");
+    expect(textboxNamed(view, "n").getAttribute("aria-describedby")).toBe(note.id);
+  });
+
+  it("does not note a value that has a row", async () => {
+    stubRpc({
+      "key.previewIcu": validAnswer(
+        [
+          { category: "one", text: "ONE" },
+          { supplied: true, category: "other", sample: 7, text: "SEVEN" },
+        ],
+        { named: FIELDS },
+      ),
+    });
+    const view = await renderAsync(panel("x"));
+    await openPanel(view);
+
+    typeInto(textboxNamed(view, "n"), "7");
+    await settle();
+
+    expect(view.query("[data-icu-sample-unused]")).toBeNull();
+  });
+
+  it("notes plain text that no rendered argument shows", async () => {
+    stubRpc({
+      "key.previewIcu": validAnswer(
+        [{ axis: "none", argument: null, category: null, sample: null, text: "t" }],
+        { named: FIELDS },
+      ),
+    });
+    const view = await renderAsync(panel("x"));
+    await openPanel(view);
+
+    typeInto(textboxNamed(view, "who"), "Ada");
+    await settle();
+
+    expect(view.get('[data-icu-sample="who"] [data-icu-sample-unused]')).toBeDefined();
+  });
+
+  it("waits for the answer before saying anything, and prefers the invalid-input note", async () => {
+    stubRpc({
+      "key.previewIcu": validAnswer([{ category: "one", text: "ONE" }], { named: FIELDS }),
+    });
+    const view = await renderAsync(panel("x"));
+    await openPanel(view);
+
+    typeInto(textboxNamed(view, "n"), "7");
+    expect(view.query("[data-icu-sample-unused]")).toBeNull();
+    typeInto(textboxNamed(view, "n"), "abc");
+    await settle();
+
+    expect(view.query("[data-icu-sample-unused]")).toBeNull();
+    expect(view.get("[data-icu-sample-problem]")).toBeDefined();
+  });
+
+  it("gives the sample inputs a scroll margin so the row below them stays clear", async () => {
+    stubRpc({ "key.previewIcu": validAnswer([{ text: "x" }], { named: FIELDS }) });
+    const view = await renderAsync(panel("x"));
+    await openPanel(view);
+
+    expect(textboxNamed(view, "n").className).toContain("scroll-mb-40");
+  });
+});
+
+describe("IcuPreviewPanel reserved refusal height", () => {
+  it("reserves only the common refusal and grows for a rare one", async () => {
+    const answers: StubRpcResult[] = [validAnswer([{ text: "GOOD" }]), refusal("too-complex")];
+    stubRpc({ "key.previewIcu": () => answers.shift() ?? validAnswer([]) });
+    const view = await renderAsync(panel("a"));
+    await openPanel(view);
+    const children = (): number => view.get("[data-icu-notice]").children.length;
+    const valid = children();
+
+    view.rerender(panel("b"));
+    await settle();
+
+    expect(valid).toBe(2);
+    expect(children()).toBe(3);
+    expect(view.get("[data-icu-refusal]").getAttribute("data-icu-refusal")).toBe("too-complex");
   });
 });
 
