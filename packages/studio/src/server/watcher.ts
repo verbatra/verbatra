@@ -289,6 +289,7 @@ export const defaultCreateStudioWatcher: CreateStudioWatcher = (paths): StudioWa
     onChange(listener: () => void): void {
       fsWatcher.on("change", () => listener());
       fsWatcher.on("add", () => listener());
+      fsWatcher.on("unlink", () => listener());
     },
     close: () => fsWatcher.close(),
   };

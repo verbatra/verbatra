@@ -884,6 +884,30 @@ describe("defaultCreateStudioWatcher: real chokidar behavior", () => {
     await watcher.close();
   }, 5000);
 
+  it("deleting the glossary file raises a lock refresh so the page can say it is gone", async () => {
+    const glossaryPath = join(root, "glossary.json");
+    await writeFile(glossaryPath, "{}");
+    await wait(300);
+    const refresh = collectRefresh();
+    const watcher = await createProjectWatcher(
+      {
+        config: baseStudioConfig({ targetLocales: [] }),
+        projectRoot: root,
+        glossaryPath,
+        debounceMs: 50,
+      },
+      { createWatcher: defaultCreateStudioWatcher },
+    );
+    watcher.onRefresh(refresh.listener);
+
+    await wait(200);
+    await rm(glossaryPath);
+    await wait(600);
+
+    expect(refresh.events.map((event) => event.reason)).toContain("lock");
+    await watcher.close();
+  }, 5000);
+
   it("a write to the provenance file raises a lock refresh so provenance badges update live", async () => {
     const config: VerbatraConfig = baseStudioConfig({ targetLocales: ["de"] });
     const refresh = collectRefresh();
