@@ -43,7 +43,7 @@ Los chips junto a la búsqueda acotan la tabla por estado, incluidos **Review qu
 
 ### Edita con la puerta de integridad
 
-**Edit** abre el borrador de ese locale. Guardar pasa el valor por la [puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad); un valor rechazado no se escribe, y se muestra el motivo. Una edición aceptada escribe el archivo de locale y actualiza el archivo de bloqueo. Editar no necesita ninguna opción y nunca llama a un proveedor.
+**Edit** abre el borrador de ese locale. Guardar pasa el valor por la [puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad); un valor rechazado no se escribe, y se muestra el motivo. Una edición aceptada escribe el archivo de locale y actualiza el archivo de bloqueo.
 
 #### Comprobaciones del borrador
 
@@ -51,11 +51,11 @@ Los chips junto a la búsqueda acotan la tabla por estado, incluidos **Review qu
 
 El editor muestra la descripción de la clave, los términos del glosario que tu borrador usa u omite, y su longitud frente al origen y a `maxLength`. Ctrl o Cmd con Enter guarda.
 
-#### Vista previa de mensajes ICU
+#### Revisar mensajes con la ICU preview
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Con `next-intl-json` o `arb`, el editor tiene una **vista previa ICU** plegada bajo el borrador. Ábrela para ver tu borrador renderizado una vez por categoría de plural, rama exacta y opción de select, en el idioma y la dirección de la configuración regional. Escribe valores de ejemplo para probar otros números o nombres. Las filas posteriores a las 24 primeras se omiten, y un mensaje que no es ICU válido lo indica. Los números y las fechas usan los datos CLDR de Node de esta máquina, no el entorno de ejecución de tu app.
+Con `next-intl-json` o `arb`, el editor tiene una **ICU preview** plegada bajo el borrador. Renderiza el borrador una vez por rama: cada categoría de plural, rama exacta y opción de select, en el idioma y la dirección de la configuración regional, con las ramas anidadas agrupadas bajo su rama exterior. Un valor de ejemplo que escribes añade una fila para un argumento plural o select. Las filas posteriores a la 24 se omiten; un borrador no válido conserva las últimas filas buenas, atenuadas. Los números y las fechas usan los datos de idioma de este equipo, así que tu app puede diferir.
 
 #### Junto a la tabla
 
