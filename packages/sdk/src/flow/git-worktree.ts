@@ -4,6 +4,7 @@ import {
   type GitExecFile,
   type GitFailure,
   type GitRunner,
+  prepareGit,
 } from "./git-exec.js";
 
 /**
@@ -11,12 +12,14 @@ import {
  *
  * - `git-missing`: no `git` executable was found.
  * - `not-a-repository`: the project is not inside a git work tree.
+ * - `bare-repository`: the project folder holds a bare repository of its own, which verbatra does
+ *   not open (`safe.bareRepository=explicit`), so a repository planted in a downloaded folder is refused.
  * - `dubious-ownership`: git refused the repository because another user owns it (`safe.directory`).
  * - `timeout`: a git command ran longer than {@link LOCALE_GIT_TIMEOUT_MS} and was stopped.
  * - `output-too-large`: a git command wrote more than {@link LOCALE_GIT_MAX_OUTPUT_BYTES}, or a
  *   committed locale file is larger than {@link LOCALE_GIT_BLOB_MAX_BYTES}.
- * - `unsafe-config`: the repository configures a content filter whose name verbatra cannot switch
- *   off safely, so no command was run against it.
+ * - `unsafe-config`: the repository configures more content filters than verbatra switches off, or
+ *   one whose name cannot be passed to git safely, so no command was run against it.
  * - `git-failed`: git failed in a way none of the other reasons names, such as a corrupt index.
  * - `custom-adapter`: ({@link localeGitDiff} only) the format is a `custom:` adapter, or the call
  *   was given an adapter registry, so the committed file cannot be read through a private
@@ -24,7 +27,7 @@ import {
  * - `revision-unreadable`: ({@link localeGitDiff} only) the committed locale file is not a regular
  *   file or could not be parsed.
  * - `working-file-unreadable`: ({@link localeGitDiff} only) the locale file on disk is a symbolic
- *   link, lies outside the project, or could not be parsed.
+ *   link or sits behind one, lies outside the project, or could not be parsed.
  */
 export type LocaleGitUnavailableReason = (typeof LOCALE_GIT_UNAVAILABLE_REASONS)[number];
 
@@ -32,6 +35,7 @@ export type LocaleGitUnavailableReason = (typeof LOCALE_GIT_UNAVAILABLE_REASONS)
 export const LOCALE_GIT_UNAVAILABLE_REASONS = Object.freeze([
   "git-missing",
   "not-a-repository",
+  "bare-repository",
   "dubious-ownership",
   "timeout",
   "output-too-large",
@@ -59,33 +63,6 @@ export function unavailable(failure: GitFailure): {
   return { ok: false, reason: failure.kind };
 }
 
-const FILTER_KEY = /^filter\.(.+)\.(clean|process|required|smudge)$/;
-const FILTER_OVERRIDES = ["clean=", "process=", "required=false"] as const;
-
-export type FilterOverrides =
-  | { readonly ok: true; readonly args: readonly string[] }
-  | { readonly ok: false };
-
-export function neutralizeFilters(configKeysZ: string): FilterOverrides {
-  const names = new Set<string>();
-  for (const key of configKeysZ.split("\0")) {
-    const name = FILTER_KEY.exec(key)?.[1];
-    if (name !== undefined) {
-      names.add(name);
-    }
-  }
-  const args: string[] = [];
-  for (const name of names) {
-    if (name.includes("=")) {
-      return { ok: false };
-    }
-    for (const override of FILTER_OVERRIDES) {
-      args.push("-c", `filter.${name}.${override}`);
-    }
-  }
-  return { ok: true, args };
-}
-
 function parseProbe(stdout: string): { readonly inside: boolean; readonly prefix: string } {
   const newline = stdout.indexOf("\n");
   const first = newline === -1 ? stdout : stdout.slice(0, newline);
@@ -100,6 +77,29 @@ type HeadResult =
   | { readonly ok: true; readonly head: string | undefined }
   | { readonly ok: false; readonly reason: LocaleGitUnavailableReason };
 
+const CONTROL = /\p{Cc}/u;
+
+async function isUnbornHead(runner: GitRunner): Promise<HeadResult> {
+  const named = await runner.run(["symbolic-ref", "-q", "HEAD"]);
+  if (!named.ok) {
+    return named.failure.exitCode === 1 && named.failure.stderr === ""
+      ? { ok: false, reason: "git-failed" }
+      : unavailable(named.failure);
+  }
+  const ref = named.stdout.trim();
+  if (!ref.startsWith("refs/") || CONTROL.test(ref)) {
+    return { ok: false, reason: "git-failed" };
+  }
+  const shown = await runner.run(["show-ref", "--verify", "-q", ref]);
+  if (shown.ok) {
+    return { ok: false, reason: "git-failed" };
+  }
+  const { exitCode, stderr } = shown.failure;
+  return exitCode === 1 && stderr === ""
+    ? { ok: true, head: undefined }
+    : unavailable(shown.failure);
+}
+
 async function resolveHead(runner: GitRunner): Promise<HeadResult> {
   const result = await runner.run(["rev-parse", "--verify", "-q", "HEAD^{commit}"]);
   if (result.ok) {
@@ -107,9 +107,7 @@ async function resolveHead(runner: GitRunner): Promise<HeadResult> {
     return COMMIT_HASH.test(hash) ? { ok: true, head: hash } : { ok: false, reason: "git-failed" };
   }
   const { exitCode, stderr } = result.failure;
-  return exitCode === 1 && stderr === ""
-    ? { ok: true, head: undefined }
-    : unavailable(result.failure);
+  return exitCode === 1 && stderr === "" ? isUnbornHead(runner) : unavailable(result.failure);
 }
 
 export async function openGitWorkTree(
@@ -125,15 +123,11 @@ export async function openGitWorkTree(
   if (!inside) {
     return { ok: false, reason: "not-a-repository" };
   }
-  const config = await probe.run(["config", "--list", "-z", "--name-only"]);
-  if (!config.ok) {
-    return unavailable(config.failure);
+  const plan = await prepareGit(execFile, cwd);
+  if (!plan.ok) {
+    return unavailable(plan.failure);
   }
-  const overrides = neutralizeFilters(config.stdout);
-  if (!overrides.ok) {
-    return { ok: false, reason: "unsafe-config" };
-  }
-  const runner = createGitRunner(execFile, cwd, overrides.args);
+  const runner = createGitRunner(execFile, cwd, plan.configArgs);
   const head = await resolveHead(runner);
   return head.ok ? { ok: true, tree: { runner, prefix, head: head.head } } : head;
 }

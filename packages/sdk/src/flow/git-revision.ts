@@ -1,13 +1,13 @@
 import type { FormatId, LocaleResource } from "@verbatra/core";
 import { type AdapterFs, createDefaultRegistry } from "@verbatra/format-adapters";
-import { COMMIT_HASH } from "./git-exec.js";
+import { COMMIT_HASH, type GitFailure } from "./git-exec.js";
 import { type GitWorkTree, type LocaleGitUnavailableReason, unavailable } from "./git-worktree.js";
 
 /** The largest committed locale file {@link localeGitDiff} reads, in bytes: 8 MiB. */
 export const LOCALE_GIT_BLOB_MAX_BYTES = 8_388_608;
 
 const REGULAR_FILE_MODES: ReadonlySet<string> = new Set(["100644", "100755"]);
-const TREE_ENTRY = /^(\d{6}) (\w+) ([0-9a-f]{40,64}) +(-|\d+)\t([\s\S]*)$/;
+const TREE_ENTRY = /^(\d{6}) (\w+) ([0-9a-f]{40,64}) +(-|\d+|BAD)\t([\s\S]*)$/;
 
 export function blobSpec(hash: string, repoPath: string): string | undefined {
   const segments = repoPath.split("/");
@@ -40,6 +40,12 @@ function parseTreeEntry(stdout: string, repoPath: string): TreeEntry | undefined
   return undefined;
 }
 
+function failedRead(failure: GitFailure): BlobRead {
+  return failure.kind === "git-failed"
+    ? { kind: "unreadable" }
+    : { kind: "failed", reason: unavailable(failure).reason };
+}
+
 export async function readBlobAtHead(tree: GitWorkTree, repoPath: string): Promise<BlobRead> {
   if (tree.head === undefined) {
     return { kind: "absent" };
@@ -58,7 +64,7 @@ export async function readBlobAtHead(tree: GitWorkTree, repoPath: string): Promi
     repoPath,
   ]);
   if (!listed.ok) {
-    return { kind: "failed", reason: unavailable(listed.failure).reason };
+    return failedRead(listed.failure);
   }
   const entry = parseTreeEntry(listed.stdout, repoPath);
   if (entry === undefined) {
@@ -67,15 +73,16 @@ export async function readBlobAtHead(tree: GitWorkTree, repoPath: string): Promi
   if (entry.type !== "blob" || !REGULAR_FILE_MODES.has(entry.mode)) {
     return { kind: "unreadable" };
   }
+  if (Number.isNaN(entry.size)) {
+    return { kind: "unreadable" };
+  }
   if (entry.size > LOCALE_GIT_BLOB_MAX_BYTES) {
     return { kind: "failed", reason: "output-too-large" };
   }
   const blob = await tree.runner.run(["cat-file", "blob", spec], {
     maxBuffer: LOCALE_GIT_BLOB_MAX_BYTES + 1,
   });
-  return blob.ok
-    ? { kind: "ok", content: blob.stdout }
-    : { kind: "failed", reason: unavailable(blob.failure).reason };
+  return blob.ok ? { kind: "ok", content: blob.stdout } : failedRead(blob.failure);
 }
 
 function missing(path: string): Error {

@@ -5,8 +5,8 @@ import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { LOCK_FILE_NAME } from "../lock/lock-file.js";
 import { PROVENANCE_FILE_NAME } from "../lock/provenance-file.js";
 import {
+  defaultGitExecFile,
   type GitExecFile,
-  inspectionGitExecFile,
   resolveWatchedPaths,
   sanitizeGitText,
 } from "./git-exec.js";
@@ -21,7 +21,8 @@ import {
 /**
  * How git sees one watched file against `HEAD` and the index:
  *
- * - `modified`: the file changed, including a change of file type.
+ * - `modified`: the file changed, including a change of file type, and a file taken out of the index
+ *   that is still on disk (a staged deletion together with an untracked file).
  * - `added`: the file is new in the index and not in `HEAD`.
  * - `deleted`: the file is gone from the working tree or the index.
  * - `untracked`: git does not track the file yet.
@@ -206,6 +207,12 @@ export type FileStatesResult =
   | { readonly ok: true; readonly states: ReadonlyMap<string, FileState> }
   | { readonly ok: false; readonly reason: LocaleGitUnavailableReason };
 
+export function mergeStates(first: FileState, second: FileState): FileState {
+  const states = [first.state, second.state];
+  const removedAndRecreated = states.includes("deleted") && states.includes("untracked");
+  return removedAndRecreated ? { ...second, state: "modified" } : second;
+}
+
 export async function queryFileStates(
   tree: GitWorkTree,
   files: readonly WatchedFile[],
@@ -227,7 +234,9 @@ export async function queryFileStates(
   for (const entry of parsePorcelainZ(result.stdout)) {
     const file = matchWatched(files, tree.prefix, entry.path);
     if (file !== undefined) {
-      states.set(file.path, { state: stateOfCode(entry.code), repoPath: entry.path });
+      const incoming = { state: stateOfCode(entry.code), repoPath: entry.path };
+      const previous = states.get(file.path);
+      states.set(file.path, previous === undefined ? incoming : mergeStates(previous, incoming));
     }
   }
   return { ok: true, states };
@@ -253,15 +262,21 @@ export async function currentBranch(
  * last commit, each with its state, and names the checked-out branch. It writes nothing, calls no
  * provider and takes no path from the caller: the watched files come from the config.
  *
- * Git is run as an argument list, never through a shell, with optional locks off, `core.fsmonitor`
- * off, literal path matching, submodules ignored and every content filter the repository configures
- * switched off, so a repository's own configuration cannot make the call run a command. Every
- * command is stopped after {@link LOCALE_GIT_TIMEOUT_MS} and may write at most
- * {@link LOCALE_GIT_MAX_OUTPUT_BYTES}. A path beyond the project directory, or starting with a dash,
- * is never passed to git. The branch name is stripped of control and bidirectional formatting
- * characters. Renames are reported as a deleted and an added file. A file behind a symbolic link or
- * inside a submodule is never listed, and the call does not say so. The `apple-strings` format also
- * watches each locale's `.stringsdict` file, listed with the same locales as its `.strings` file.
+ * Git is run as an argument list, never through a shell, with a minimal environment (no inherited
+ * `GIT_*` variable) and with optional locks, `core.fsmonitor`, bare-repository discovery, submodule
+ * inspection, lazy fetching from a partial clone's remote and every content filter the repository
+ * configures switched off. Paths are matched literally and follow a `--` separator, so a path that
+ * starts with a dash is not read as an option; a path beyond the project directory is never passed.
+ * Every command is killed after {@link LOCALE_GIT_TIMEOUT_MS} and may write at most
+ * {@link LOCALE_GIT_MAX_OUTPUT_BYTES}. The tests cover the routes a repository's own configuration
+ * could use to make git run a command: filter drivers, `core.fsmonitor`, aliases, pagers, hook
+ * paths, text conversion drivers, a promisor remote's command and a bare repository planted in the
+ * folder. That is not a promise that opening a project is safe: a `verbatra.config.ts` is code
+ * verbatra runs. The branch name is stripped of control and bidirectional formatting characters.
+ * Renames are reported as a deleted and an added file. A file taken out of the index that is still on
+ * disk is `modified`. A file behind a symbolic link or inside a submodule is never listed, and the
+ * call does not say so. The `apple-strings` format also watches each locale's `.stringsdict` file,
+ * listed with the same locales as its `.strings` file.
  *
  * @param input - The config and the project directory.
  * @param deps - Optional process runner override.
@@ -293,7 +308,7 @@ export async function localeGitStatus(
 ): Promise<LocaleGitStatusResult> {
   const cwd = projectCwd(input);
   const files = watchedFiles(cwd, input.config);
-  const opened = await openGitWorkTree(deps.execFile ?? inspectionGitExecFile, resolvePath(cwd));
+  const opened = await openGitWorkTree(deps.execFile ?? defaultGitExecFile, resolvePath(cwd));
   if (!opened.ok) {
     return { available: false, reason: opened.reason };
   }

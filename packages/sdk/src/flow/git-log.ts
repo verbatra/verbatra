@@ -1,11 +1,14 @@
 import {
+  buildSafeGitArgs,
   COMMIT_HASH,
   classifyGitFailure,
   defaultGitExecFile,
   type GitExecFile,
   type GitExecFileResult,
+  type GitFailure,
   hasLeadingDash,
   isPathContained,
+  prepareGit,
   resolveWatchedPaths,
   sanitizeGitText,
 } from "./git-exec.js";
@@ -186,8 +189,8 @@ const HISTORY_UNAVAILABLE_REASONS: ReadonlySet<string> = new Set(
   LOCALE_HISTORY_UNAVAILABLE_REASONS,
 );
 
-function interpretGitLogFailure(error: unknown): LocaleHistoryResult {
-  const { kind } = classifyGitFailure(error);
+function interpretGitFailure(failure: GitFailure): LocaleHistoryResult {
+  const { kind } = failure;
   return HISTORY_UNAVAILABLE_REASONS.has(kind)
     ? { available: false, reason: kind as LocaleHistoryUnavailableReason }
     : { available: true, commits: [] };
@@ -204,7 +207,14 @@ export async function runGitLog(input: RunGitLogInput): Promise<LocaleHistoryRes
   if (input.watchedPaths.length === 0) {
     return { available: true, commits: [] };
   }
-  const args = buildGitLogArgs(clampHistoryLimit(input.limit), input.watchedPaths);
+  const plan = await prepareGit(input.execFile, input.projectRoot);
+  if (!plan.ok) {
+    return interpretGitFailure(plan.failure);
+  }
+  const args = buildSafeGitArgs(
+    plan.configArgs,
+    buildGitLogArgs(clampHistoryLimit(input.limit), input.watchedPaths),
+  );
   try {
     const { stdout } = await input.execFile("git", args, {
       cwd: input.projectRoot,
@@ -213,6 +223,6 @@ export async function runGitLog(input: RunGitLogInput): Promise<LocaleHistoryRes
     });
     return { available: true, commits: parseGitLogOutput(stdout) };
   } catch (error) {
-    return interpretGitLogFailure(error);
+    return interpretGitFailure(classifyGitFailure(error));
   }
 }

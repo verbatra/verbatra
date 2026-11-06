@@ -1,12 +1,12 @@
-import { basename, dirname, resolve as resolvePath } from "node:path";
-import { isCustomFormatId, type LocaleResource } from "@verbatra/core";
-import { type AdapterRegistry, createDefaultRegistry } from "@verbatra/format-adapters";
+import { basename, dirname, relative, resolve as resolvePath } from "node:path";
+import { isCustomFormatId } from "@verbatra/core";
+import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { type GitExecFile, inspectionGitExecFile } from "./git-exec.js";
-import { parseRevisionContent, readBlobAtHead } from "./git-revision.js";
+import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
+import { LOCALE_GIT_BLOB_MAX_BYTES, parseRevisionContent, readBlobAtHead } from "./git-revision.js";
 import { type LocaleGitFileState, queryFileStates, watchedFiles } from "./git-status.js";
 import {
   type GitWorkTree,
@@ -142,11 +142,11 @@ export function compareResources(
     const previous = before.get(key);
     if (previous === undefined) {
       if (collector.take()) {
-        collector.added.push({ key, value: collector.text(entry.value) });
+        collector.added.push({ key: collector.text(key), value: collector.text(entry.value) });
       }
     } else if (previous.value !== entry.value && collector.take()) {
       collector.changed.push({
-        key,
+        key: collector.text(key),
         before: collector.text(previous.value),
         after: collector.text(entry.value),
       });
@@ -154,7 +154,7 @@ export function compareResources(
   }
   for (const [key, entry] of before) {
     if (!after.has(key) && collector.take()) {
-      collector.removed.push({ key, value: collector.text(entry.value) });
+      collector.removed.push({ key: collector.text(key), value: collector.text(entry.value) });
     }
   }
   return {
@@ -174,6 +174,7 @@ const NOTHING: Side = { ok: true, entries: new Map() };
 interface SideInput {
   readonly config: VerbatraConfig;
   readonly locale: string;
+  readonly root: string;
   readonly absolutePath: string;
   readonly siblingPaths: readonly string[];
 }
@@ -238,38 +239,60 @@ export async function fileKind(path: string): Promise<FileKind> {
   }
 }
 
-export async function isRegularFile(path: string): Promise<boolean> {
-  return (await fileKind(path)) === "file";
+function realPath(path: string): Promise<string> {
+  return (defaultFs.realpath as (path: string) => Promise<string>)(path);
 }
 
-async function readableOnDisk(input: SideInput): Promise<boolean> {
-  if (!(await isRegularFile(input.absolutePath))) {
-    return false;
-  }
-  const kinds = await Promise.all(input.siblingPaths.map((path) => fileKind(path)));
-  return kinds.every((kind) => kind !== "other");
-}
-
-async function readDiskResource(input: SideInput): Promise<LocaleResource | undefined> {
-  const resolution = createDefaultRegistry().resolve("", { format: input.config.format });
-  if (resolution.status !== "resolved" || !(await readableOnDisk(input))) {
-    return undefined;
-  }
+export async function workingFileKind(root: string, path: string): Promise<FileKind> {
   try {
-    return (await resolution.adapter.read(input.absolutePath, input.locale)).resource;
+    const realRoot = await realPath(root);
+    const realDirectory = await realPath(dirname(path));
+    const expected = resolvePath(realRoot, relative(root, dirname(path)));
+    if (realDirectory.toLowerCase() !== expected.toLowerCase()) {
+      return "other";
+    }
   } catch {
-    return undefined;
+    return "missing";
   }
+  return fileKind(path);
 }
 
-async function readWorkingSide(deleted: boolean, input: SideInput): Promise<Side> {
-  if (deleted) {
+async function readWorkingContent(path: string): Promise<string | undefined> {
+  const read = await defaultFs.readFileBounded(path, LOCALE_GIT_BLOB_MAX_BYTES);
+  return read.kind === "ok" ? read.content : undefined;
+}
+
+async function readWorkingSide(input: SideInput): Promise<Side> {
+  const paths = [input.absolutePath, ...input.siblingPaths];
+  const kinds = await Promise.all(paths.map((path) => workingFileKind(input.root, path)));
+  if (kinds.includes("other")) {
+    return { ok: false, reason: "working-file-unreadable" };
+  }
+  const contents = new Map<string, string>();
+  for (const [index, path] of paths.entries()) {
+    if (kinds[index] === "file") {
+      const content = await readWorkingContent(path);
+      if (content === undefined) {
+        return { ok: false, reason: "working-file-unreadable" };
+      }
+      contents.set(path, content);
+    }
+  }
+  if (contents.size === 0) {
     return NOTHING;
   }
-  const resource = await readDiskResource(input);
-  return resource === undefined
+  const siblings = new Map(contents);
+  siblings.delete(input.absolutePath);
+  const parsed = await parseRevisionContent({
+    format: input.config.format,
+    locale: input.locale,
+    absolutePath: input.absolutePath,
+    content: contents.get(input.absolutePath) ?? "",
+    siblings,
+  });
+  return parsed === undefined
     ? { ok: false, reason: "working-file-unreadable" }
-    : { ok: true, entries: resource.entries };
+    : { ok: true, entries: parsed.entries };
 }
 
 function noDifference(path: string, state: LocaleGitDiffState): LocaleGitDiffResult {
@@ -285,11 +308,17 @@ function noDifference(path: string, state: LocaleGitDiffState): LocaleGitDiffRes
  * {@link LOCALE_GIT_BLOB_MAX_BYTES} first, and parsed by the built-in adapter for the configured
  * format over an in-memory file system. Both sides are compared as parsed keys, never as text, and
  * git never runs a diff, a text conversion driver or an external diff. The command safeguards of
- * {@link localeGitStatus} apply. A file with no commit yet, or untracked, compares against nothing;
- * a deleted one compares to nothing; a `conflicted` or `unchanged` one is not compared and lists no
- * difference. A symbolic link on disk is refused. For `apple-strings` the `.stringsdict` file is read with the `.strings` file on both sides, and the state reported is the `.strings` file's, else the `.stringsdict` file's. At most {@link LOCALE_GIT_DIFF_MAX_ENTRIES} keys
- * are listed and each text is cut to {@link LOCALE_GIT_DIFF_MAX_VALUE_CHARS} characters, either of
- * which sets `truncated`. The texts are the file's own and untrusted: show them as text.
+ * {@link localeGitStatus} apply, including the minimal environment and the refusal to fetch lazily:
+ * a committed file missing from a partial clone reads as `revision-unreadable`. What is compared
+ * follows what is there: a file absent at `HEAD` compares against nothing, and a file absent on disk
+ * compares to nothing, whatever git's status code says. A `conflicted` or `unchanged` file is not
+ * compared and lists no difference. The file on disk is read only when it and every parent directory
+ * are real, not symbolic links, and sit inside the project directory. For `apple-strings` the
+ * `.stringsdict` file is read with the `.strings` file on both sides, and the state reported is the
+ * `.strings` file's, else the `.stringsdict` file's. At most {@link LOCALE_GIT_DIFF_MAX_ENTRIES}
+ * keys are listed, and each key and text is cut to {@link LOCALE_GIT_DIFF_MAX_VALUE_CHARS}
+ * characters, either of which sets `truncated`, so the result stays bounded. The keys and texts are
+ * the file's own and untrusted: show them as text.
  *
  * A locale whose file is shared with others, as in `apple-xcstrings`, is compared for that locale
  * alone. A `custom:` format, or a call that passes an `adapterRegistry`, returns `custom-adapter`
@@ -338,7 +367,7 @@ export async function localeGitDiff(
     return { available: false, reason: "working-file-unreadable" };
   }
   const siblings = watched.filter((candidate) => candidate.siblingOf === file.path);
-  const opened = await openGitWorkTree(deps.execFile ?? inspectionGitExecFile, cwd);
+  const opened = await openGitWorkTree(deps.execFile ?? defaultGitExecFile, cwd);
   if (!opened.ok) {
     return { available: false, reason: opened.reason };
   }
@@ -359,6 +388,7 @@ export async function localeGitDiff(
   const sideInput: SideInput = {
     config: input.config,
     locale: input.locale,
+    root: cwd,
     absolutePath,
     siblingPaths: siblings.map((sibling) => resolvePath(cwd, sibling.path)),
   };
@@ -370,7 +400,7 @@ export async function localeGitDiff(
     })),
   ];
   const head = await readHeadSide(opened.tree, sideInput, headFiles);
-  const working = await readWorkingSide(found?.state === "deleted", sideInput);
+  const working = await readWorkingSide(sideInput);
   if (!head.ok) {
     return { available: false, reason: head.reason };
   }

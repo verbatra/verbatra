@@ -14,7 +14,8 @@ export interface GitExecFileResult {
  * An argument-array process runner, never a shell string, mirroring the shape of
  * `util.promisify(child_process.execFile)`. {@link localeHistory}, {@link localeGitStatus} and
  * {@link localeGitDiff} call it only to run `git`. Inject your own to sandbox those calls or to
- * serve the answers from somewhere else.
+ * serve the answers from somewhere else. The default runner passes git a minimal environment with
+ * no inherited `GIT_*` variable, so a runner of your own should do the same.
  *
  * @param file - The executable to run, resolved on `PATH`.
  * @param args - The arguments, passed as a list so no value is ever interpreted by a shell.
@@ -36,22 +37,54 @@ export type GitExecFile = (
 
 const execFileAsync = promisify(execFileCb);
 
-function gitExecFileWith(extraEnv: Readonly<Record<string, string>>): GitExecFile {
+const ENV_ALLOW_LIST: ReadonlySet<string> = new Set([
+  "PATH",
+  "HOME",
+  "TMPDIR",
+  "TEMP",
+  "TMP",
+  "SYSTEMROOT",
+  "WINDIR",
+  "COMSPEC",
+  "PATHEXT",
+  "USERPROFILE",
+  "APPDATA",
+  "LOCALAPPDATA",
+  "PROGRAMDATA",
+  "USER",
+  "USERNAME",
+  "LOGNAME",
+  "XDG_CONFIG_HOME",
+]);
+
+export function hardenedGitEnv(
+  source: NodeJS.ProcessEnv = process.env,
+  extra: Readonly<Record<string, string>> = {},
+): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [name, value] of Object.entries(source)) {
+    if (value !== undefined && ENV_ALLOW_LIST.has(name.toUpperCase())) {
+      env[name] = value;
+    }
+  }
+  return { ...env, GIT_TERMINAL_PROMPT: "0", GIT_NO_LAZY_FETCH: "1", LC_ALL: "C", ...extra };
+}
+
+export function gitExecFileWith(extraEnv: Readonly<Record<string, string>> = {}): GitExecFile {
   return async (file, args, options) => {
     const { stdout, stderr } = await execFileAsync(file, args as string[], {
       cwd: options.cwd,
       encoding: "utf8",
       timeout: options.timeout,
+      killSignal: "SIGKILL",
       maxBuffer: options.maxBuffer,
-      env: { ...process.env, GIT_TERMINAL_PROMPT: "0", ...extraEnv },
+      env: hardenedGitEnv(process.env, extraEnv),
     });
     return { stdout, stderr };
   };
 }
 
-export const defaultGitExecFile: GitExecFile = gitExecFileWith({});
-
-export const inspectionGitExecFile: GitExecFile = gitExecFileWith({ LC_ALL: "C" });
+export const defaultGitExecFile: GitExecFile = gitExecFileWith();
 
 /** How long each git command run by {@link localeGitStatus} and {@link localeGitDiff} may take, in milliseconds. */
 export const LOCALE_GIT_TIMEOUT_MS = 10_000;
@@ -61,9 +94,11 @@ export const LOCALE_GIT_MAX_OUTPUT_BYTES = 1_048_576;
 export type GitFailureKind =
   | "git-missing"
   | "not-a-repository"
+  | "bare-repository"
   | "dubious-ownership"
   | "timeout"
   | "output-too-large"
+  | "unsafe-config"
   | "git-failed";
 
 export interface GitFailure {
@@ -81,6 +116,8 @@ interface ExecFileFailure {
 
 const NOT_A_REPOSITORY_MARKERS = ["not a git repository", "must be run in a work tree"] as const;
 const DUBIOUS_OWNERSHIP_MARKER = "dubious ownership";
+const BARE_REPOSITORY_MARKER = "safe.bareRepository";
+const KILL_SIGNALS: ReadonlySet<string> = new Set(["SIGTERM", "SIGKILL"]);
 
 function includesAny(text: string, markers: readonly string[]): boolean {
   return markers.some((marker) => text.includes(marker));
@@ -93,11 +130,14 @@ function kindOf(failure: ExecFileFailure, stderr: string): GitFailureKind {
   if (failure.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") {
     return "output-too-large";
   }
-  if (failure.killed === true || failure.signal === "SIGTERM") {
+  if (failure.killed === true || KILL_SIGNALS.has(failure.signal ?? "")) {
     return "timeout";
   }
   if (stderr.includes(DUBIOUS_OWNERSHIP_MARKER)) {
     return "dubious-ownership";
+  }
+  if (stderr.includes(BARE_REPOSITORY_MARKER)) {
+    return "bare-repository";
   }
   if (includesAny(stderr, NOT_A_REPOSITORY_MARKERS)) {
     return "not-a-repository";
@@ -128,11 +168,13 @@ export interface GitRunner {
   run(args: readonly string[], limits?: GitLimits): Promise<GitRunResult>;
 }
 
-const SAFE_GIT_PREFIX = [
+export const SAFE_GIT_PREFIX = [
   "--no-optional-locks",
   "--literal-pathspecs",
   "-c",
   "core.fsmonitor=false",
+  "-c",
+  "safe.bareRepository=explicit",
 ] as const;
 
 export function buildSafeGitArgs(
@@ -163,13 +205,65 @@ export function createGitRunner(
   };
 }
 
+const FILTER_KEY = /^filter\.(.*)\.(clean|process|required|smudge)$/s;
+const PARTIAL_CLONE_KEY = /^(?:extensions\.partialclone|remote\..*\.promisor)$/is;
+const FILTER_OVERRIDES = ["clean=", "process=", "required=false"] as const;
+const MAX_FILTER_DRIVERS = 128;
+const REPLACEMENT_CHARACTER = "�";
+
+export type GitConfigPlan =
+  | { readonly ok: true; readonly configArgs: readonly string[] }
+  | { readonly ok: false; readonly failure: GitFailure };
+
+const UNSAFE_CONFIG: GitConfigPlan = {
+  ok: false,
+  failure: { kind: "unsafe-config", exitCode: undefined, stderr: "" },
+};
+
+function cannotBeExpressed(name: string): boolean {
+  return name.includes("=") || name.includes(REPLACEMENT_CHARACTER);
+}
+
+export function planGitConfig(configKeysZ: string): GitConfigPlan {
+  const names = new Set<string>();
+  let partialClone = false;
+  for (const key of configKeysZ.split("\0")) {
+    const name = FILTER_KEY.exec(key)?.[1];
+    if (name !== undefined) {
+      names.add(name);
+    }
+    partialClone = partialClone || PARTIAL_CLONE_KEY.test(key);
+  }
+  if (names.size > MAX_FILTER_DRIVERS || [...names].some(cannotBeExpressed)) {
+    return UNSAFE_CONFIG;
+  }
+  const configArgs: string[] = partialClone ? ["--no-lazy-fetch"] : [];
+  for (const name of names) {
+    for (const override of FILTER_OVERRIDES) {
+      configArgs.push("-c", `filter.${name}.${override}`);
+    }
+  }
+  return { ok: true, configArgs };
+}
+
+export async function prepareGit(execFile: GitExecFile, cwd: string): Promise<GitConfigPlan> {
+  const listed = await createGitRunner(execFile, cwd).run([
+    "config",
+    "--list",
+    "-z",
+    "--name-only",
+  ]);
+  return listed.ok ? planGitConfig(listed.stdout) : { ok: false, failure: listed.failure };
+}
+
 function withoutTrailingSep(path: string): string {
   return path.length > sep.length && path.endsWith(sep) ? path.slice(0, -sep.length) : path;
 }
 
 export function isPathContained(root: string, candidate: string): boolean {
   const normalizedRoot = withoutTrailingSep(root);
-  return candidate === normalizedRoot || candidate.startsWith(normalizedRoot + sep);
+  const prefix = normalizedRoot.endsWith(sep) ? normalizedRoot : normalizedRoot + sep;
+  return candidate === normalizedRoot || candidate.startsWith(prefix);
 }
 
 export function hasLeadingDash(path: string): boolean {
@@ -186,7 +280,7 @@ export function resolveWatchedPaths(projectRoot: string, candidates: readonly st
 }
 
 export const COMMIT_HASH = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
-const UNSAFE_TEXT = /[\p{Cc}؜‎‏‪-‮⁦-⁩]/gu;
+const UNSAFE_TEXT = /[\p{Cc}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/gu;
 
 export function sanitizeGitText(text: string): string {
   return text.replace(UNSAFE_TEXT, "");

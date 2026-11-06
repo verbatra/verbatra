@@ -38,10 +38,13 @@ export interface LocaleHistoryDeps {
  * bidirectional formatting characters are removed from the author and the subject, and a commit
  * whose metadata does not parse as a full hash, an ISO date, an author and a subject is left out.
  * Renames are not followed, so history from before a locale file was renamed is not listed. Every
- * locale path is resolved inside `cwd` and passed after a `--` separator, and a path that would
- * leave `cwd` or start with a dash is dropped, so a config value is never read as a git option.
- * `git log` runs with commit signature display off and terminal prompts disabled, is stopped after
- * {@link LOCALE_HISTORY_TIMEOUT_MS}, and may write at most {@link LOCALE_HISTORY_MAX_OUTPUT_BYTES}.
+ * locale path is resolved inside `cwd`, a path that would leave `cwd` is dropped, and the rest follow
+ * a `--` separator, so a config value is never read as a git option. `git log` runs with the same
+ * safeguards as {@link localeGitStatus}: a minimal environment with no inherited `GIT_*` variable,
+ * no bare-repository discovery, no lazy fetching from a partial clone's remote, `core.fsmonitor` and
+ * every configured content filter off. Commit signature display is off and terminal prompts are
+ * disabled; the command is killed after {@link LOCALE_HISTORY_TIMEOUT_MS} and may write at most
+ * {@link LOCALE_HISTORY_MAX_OUTPUT_BYTES}.
  *
  * @param input - The config, the project directory, and the optional commit limit.
  * @param deps - Optional process runner override.
