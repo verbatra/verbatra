@@ -168,6 +168,7 @@ export function installRouteGuard(guard: RouteGuard): () => void {
   return () => {
     if (activeGuard === guard) {
       activeGuard = null;
+      adoptHeldRoute();
       held = null;
       returning = false;
       setUnloadWarning(false);

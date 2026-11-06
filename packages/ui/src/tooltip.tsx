@@ -13,10 +13,11 @@ import {
   useState,
 } from "react";
 import { cn } from "./cn.ts";
+import { useBubblePlacement } from "./tooltip-fit.ts";
 
 export type TooltipTrigger = "hover-and-focus" | "focus";
 
-export type TooltipSide = "end" | "bottom" | "bottom-end" | "top";
+export type TooltipSide = "end" | "bottom" | "bottom-start" | "bottom-end" | "top" | "top-start";
 
 export interface TooltipProps {
   readonly label: string;
@@ -24,6 +25,7 @@ export interface TooltipProps {
   readonly decorative?: boolean;
   readonly trigger?: TooltipTrigger;
   readonly flip?: boolean;
+  readonly wide?: boolean;
   readonly className?: string;
   readonly children: ReactNode;
 }
@@ -38,33 +40,13 @@ const SLOT =
   "pointer-events-none invisible absolute z-40 size-0 overflow-hidden opacity-0 motion-safe:transition-opacity motion-safe:delay-150 data-[open]:pointer-events-auto data-[open]:visible data-[open]:size-auto data-[open]:overflow-visible data-[open]:opacity-100";
 
 const POSITION: Readonly<Record<TooltipSide, string>> = {
-  end: "start-full top-1/2 ps-2 -translate-y-1/2",
-  bottom: "left-1/2 top-full pt-2 -translate-x-1/2",
-  "bottom-end": "end-0 top-full pt-2",
-  top: "left-1/2 bottom-full pb-2 -translate-x-1/2",
+  end: "start-[calc(100%+var(--tooltip-x,0px))] top-1/2 ps-2 -translate-y-1/2",
+  bottom: "left-[calc(50%+var(--tooltip-x,0px))] top-full pt-2 -translate-x-1/2",
+  "bottom-start": "start-[var(--tooltip-x,0px)] top-full pt-2",
+  "bottom-end": "end-[var(--tooltip-x,0px)] top-full pt-2",
+  top: "left-[calc(50%+var(--tooltip-x,0px))] bottom-full pb-2 -translate-x-1/2",
+  "top-start": "start-[var(--tooltip-x,0px)] bottom-full pb-2",
 };
-
-const BUBBLE_GAP_PX = 8;
-
-function clippingBottom(element: HTMLElement): number {
-  let bottom = window.innerHeight;
-  for (let node = element.parentElement; node !== null; node = node.parentElement) {
-    if (getComputedStyle(node).overflowY !== "visible") {
-      bottom = Math.min(bottom, node.getBoundingClientRect().bottom);
-    }
-  }
-  return bottom;
-}
-
-function lacksRoomBelow(wrapper: HTMLElement, bubble: HTMLElement | null): boolean {
-  if (bubble === null) {
-    return false;
-  }
-  const room = clippingBottom(wrapper) - wrapper.getBoundingClientRect().bottom;
-  return room < bubble.offsetHeight + BUBBLE_GAP_PX;
-}
-
-const FLIPPABLE: ReadonlySet<TooltipSide> = new Set<TooltipSide>(["bottom", "bottom-end"]);
 
 function isKeyboardFocus(wrapper: HTMLElement): boolean {
   try {
@@ -76,6 +58,16 @@ function isKeyboardFocus(wrapper: HTMLElement): boolean {
 
 const BUBBLE =
   "block whitespace-nowrap font-sans font-normal rounded-(--radius-md) border border-(--border-default) bg-(--surface-raised) px-2 py-1 text-xs text-(--text-strong) shadow-(--shadow-panel)";
+
+const WIDE_BUBBLE = "w-max max-w-[min(28rem,calc(100vw-2rem))] whitespace-normal break-words";
+
+function bubbleClassName(wide: boolean | undefined): string {
+  return wide === true ? cn(BUBBLE, WIDE_BUBBLE) : BUBBLE;
+}
+
+function dataFlag(on: boolean | undefined): "" | undefined {
+  return on === true ? "" : undefined;
+}
 
 function joinIds(existing: string | undefined, id: string): string {
   return existing === undefined || existing === "" ? id : `${existing} ${id}`;
@@ -91,6 +83,7 @@ export function Tooltip({
   decorative = false,
   trigger = "hover-and-focus",
   flip = false,
+  wide,
   className,
   children,
 }: TooltipProps): ReactNode {
@@ -98,9 +91,9 @@ export function Tooltip({
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [flipped, setFlipped] = useState(false);
   const bubbleRef = useRef<HTMLSpanElement>(null);
   const wrapperRef = useRef<HTMLSpanElement>(null);
+  const slotRef = useRef<HTMLSpanElement>(null);
   const control = isValidElement<DescribableProps>(children) ? children : null;
   const disabled = hasNoBubble(label, control);
   const visible = !disabled && (hovered || focused) && !dismissed;
@@ -119,17 +112,19 @@ export function Tooltip({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [visible]);
 
-  const canFlip = flip && FLIPPABLE.has(side);
-
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (visible && canFlip && wrapper !== null) {
-      setFlipped(lacksRoomBelow(wrapper, bubbleRef.current));
-    }
-  }, [visible, canFlip, label]);
+  const { placement, remeasure } = useBubblePlacement({
+    side,
+    flip,
+    wide,
+    visible,
+    label,
+    wrapperRef,
+    slotRef,
+    bubbleRef,
+  });
 
   function show(set: (value: boolean) => void, wrapper: HTMLElement): void {
-    setFlipped(canFlip && lacksRoomBelow(wrapper, bubbleRef.current));
+    remeasure(wrapper);
     set(true);
     setDismissed(false);
   }
@@ -141,7 +136,6 @@ export function Tooltip({
     show(setFocused, event.currentTarget);
   }
 
-  const placement = canFlip && flipped ? "top" : side;
   const pointer =
     trigger === "focus"
       ? {}
@@ -170,8 +164,10 @@ export function Tooltip({
       {described}
       {disabled ? null : (
         <span
+          ref={slotRef}
           data-slot=""
           data-side={placement}
+          data-wide={dataFlag(wide)}
           data-open={visible ? "" : undefined}
           className={cn(SLOT, POSITION[placement])}
         >
@@ -180,7 +176,7 @@ export function Tooltip({
             ref={bubbleRef}
             role="tooltip"
             aria-hidden={duplicatesName ? true : undefined}
-            className={BUBBLE}
+            className={bubbleClassName(wide)}
           >
             {label}
           </span>

@@ -4,6 +4,7 @@ import {
   filterReviewRows,
   REVIEW_ORIGIN_LABELS,
   REVIEW_STATE_LABELS,
+  reviewStateCounts,
   reviewValuesKey,
   uniqueReviewLocales,
 } from "./review-filter.js";
@@ -157,5 +158,31 @@ describe("filterReviewRows: origin and review state", () => {
   it("labels every origin and review state", () => {
     expect(Object.keys(REVIEW_ORIGIN_LABELS)).toEqual(["machine", "memory", "fuzzy", "agent"]);
     expect(REVIEW_STATE_LABELS).toEqual({ unreviewed: "Needs review", approved: "Approved" });
+  });
+});
+
+describe("reviewStateCounts", () => {
+  const mixed: readonly ReviewQueueRow[] = [
+    row("de", "a"),
+    row("fr", "b"),
+    { ...row("de", "c"), reviewState: "approved" },
+  ];
+
+  it("counts each review state apart from the state the filter names", () => {
+    expect(reviewStateCounts(mixed, { locale: null, query: "", reviewState: "approved" })).toEqual({
+      unreviewed: 2,
+      approved: 1,
+    });
+  });
+
+  it("narrows both counts by locale and by the text query", () => {
+    expect(reviewStateCounts(mixed, { locale: "de", query: "" })).toEqual({
+      unreviewed: 1,
+      approved: 1,
+    });
+    expect(reviewStateCounts(mixed, { locale: null, query: "b" })).toEqual({
+      unreviewed: 1,
+      approved: 0,
+    });
   });
 });

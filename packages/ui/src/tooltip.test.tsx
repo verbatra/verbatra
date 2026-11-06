@@ -149,7 +149,7 @@ describe("Tooltip", () => {
     }
 
     function mountFlip(
-      side: "bottom" | "end" | "bottom-end" = "bottom",
+      side: "bottom" | "end" | "bottom-end" | "bottom-start" = "bottom",
       clips: readonly number[] = [],
     ) {
       const tip = (
@@ -195,6 +195,15 @@ describe("Tooltip", () => {
       hover(view.get("button"));
 
       expect(view.get(SLOT).dataset.side).toBe("top");
+    });
+
+    it("flips a bottom-start bubble to the matching top-start side", () => {
+      geometry(390);
+      const view = mountFlip("bottom-start", [400]);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("top-start");
     });
 
     it("places a bubble that mounts while the control is already hovered", () => {
@@ -442,7 +451,7 @@ describe("Tooltip", () => {
     );
     const className = view.get(SLOT).className;
 
-    expect(className).toContain("left-1/2");
+    expect(className).toContain("left-[calc(50%+var(--tooltip-x,0px))]");
     expect(className).toContain("-translate-x-1/2");
     expect(className).not.toContain("start-1/2");
   });
@@ -452,10 +461,10 @@ describe("Tooltip", () => {
     const bottom = mount({ side: "bottom" });
 
     expect(end.get(SLOT).dataset.side).toBe("end");
-    expect(end.get(SLOT).className).toContain("start-full");
+    expect(end.get(SLOT).className).toContain("start-[calc(100%+var(--tooltip-x,0px))]");
     expect(bottom.get(SLOT).dataset.side).toBe("bottom");
     expect(bottom.get(SLOT).className).toContain("top-full");
-    expect(bottom.get(SLOT).className).not.toContain("start-full");
+    expect(bottom.get(SLOT).className).not.toContain("start-[calc(100%");
   });
 
   it("wraps a non-element child without trying to describe it", () => {
@@ -463,5 +472,187 @@ describe("Tooltip", () => {
 
     expect(view.text()).toContain("plain text");
     expect(view.get("[role='tooltip']").textContent).toBe("Tip");
+  });
+
+  it("marks a wide bubble, which wraps a long label instead of keeping it on one line", () => {
+    const plain = mount();
+    expect(plain.get(SLOT).hasAttribute("data-wide")).toBe(false);
+    plain.unmount();
+
+    const view = render(
+      <Tooltip label="A long translated value" side="bottom-start" wide>
+        <button type="button">c</button>
+      </Tooltip>,
+    );
+
+    expect(view.get(SLOT).hasAttribute("data-wide")).toBe(true);
+    expect(view.get(SLOT).dataset.side).toBe("bottom-start");
+  });
+
+  describe("fit", () => {
+    interface Layout {
+      wrapper: [number, number, number, number];
+      bubble: [number, number, number, number];
+      clip?: [number, number, number, number];
+    }
+
+    function rect([left, top, right, bottom]: readonly number[]): DOMRect {
+      return new DOMRect(left, top, (right ?? 0) - (left ?? 0), (bottom ?? 0) - (top ?? 0));
+    }
+
+    function layout(at: Layout): void {
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        if (this.getAttribute("role") === "tooltip") {
+          return rect(at.bubble);
+        }
+        if (this.dataset.clip !== undefined) {
+          return rect(at.clip ?? [0, 0, innerWidth, innerHeight]);
+        }
+        return rect(at.wrapper);
+      });
+      vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(26);
+    }
+
+    function mountFit(side: "bottom" | "bottom-start" | "top-start", wide = false, flip = false) {
+      return render(
+        <div data-clip="" style={{ overflowX: "auto", overflowY: "auto" }}>
+          <Tooltip label="Tip" side={side} wide={wide} flip={flip}>
+            <button type="button">c</button>
+          </Tooltip>
+        </div>,
+      );
+    }
+
+    const shiftOf = (view: ReturnType<typeof render>): string =>
+      view.get(SLOT).style.getPropertyValue("--tooltip-x");
+
+    it("shifts a bubble that starts before the clipping box back inside it", () => {
+      layout({ wrapper: [0, 10, 20, 30], bubble: [-30, 40, 40, 66], clip: [0, 0, 300, 300] });
+      const view = mountFit("bottom-start");
+
+      hover(view.get("button"));
+
+      expect(shiftOf(view)).toBe("34px");
+    });
+
+    it("shifts a bubble that ends past the clipping box back inside it", () => {
+      layout({ wrapper: [260, 10, 280, 30], bubble: [250, 40, 330, 66], clip: [0, 0, 300, 300] });
+      const view = mountFit("bottom");
+
+      hover(view.get("button"));
+
+      expect(shiftOf(view)).toBe("-34px");
+    });
+
+    it("leaves a bubble that already fits where it is", () => {
+      layout({ wrapper: [100, 10, 120, 30], bubble: [100, 40, 170, 66], clip: [0, 0, 300, 300] });
+      const view = mountFit("bottom-start");
+
+      hover(view.get("button"));
+
+      expect(shiftOf(view)).toBe("0px");
+    });
+
+    it("caps a wide bubble to the clipping box, and a plain one not at all", () => {
+      layout({ wrapper: [0, 10, 20, 30], bubble: [0, 40, 100, 66], clip: [0, 0, 200, 300] });
+      const wide = mountFit("bottom-start", true);
+      hover(wide.get("button"));
+      expect(wide.get("[role='tooltip']").style.getPropertyValue("max-width")).toBe("192px");
+      wide.unmount();
+
+      const plain = mountFit("bottom-start");
+      hover(plain.get("button"));
+      expect(plain.get("[role='tooltip']").style.getPropertyValue("max-width")).toBe("");
+    });
+
+    it("caps a wide bubble at 28rem when the box is wider", () => {
+      layout({ wrapper: [0, 10, 20, 30], bubble: [0, 40, 100, 66], clip: [0, 0, 900, 300] });
+      const view = mountFit("bottom-start", true);
+
+      hover(view.get("button"));
+
+      expect(view.get("[role='tooltip']").style.getPropertyValue("max-width")).toBe("448px");
+    });
+
+    it("clears the shift and the cap when the bubble closes", () => {
+      layout({ wrapper: [0, 10, 20, 30], bubble: [-30, 40, 40, 66], clip: [0, 0, 300, 300] });
+      const view = mountFit("bottom-start", true);
+
+      hover(view.get("button"));
+      expect(shiftOf(view)).not.toBe("");
+      unhover(view.get("button"));
+
+      expect(shiftOf(view)).toBe("");
+      expect(view.get("[role='tooltip']").style.getPropertyValue("max-width")).toBe("");
+    });
+
+    it("reads the inline direction, so a start-anchored shift flips in a right-to-left page", () => {
+      layout({ wrapper: [260, 10, 280, 30], bubble: [250, 40, 330, 66], clip: [0, 0, 300, 300] });
+      const view = render(
+        <div data-clip="" dir="rtl" style={{ overflowX: "auto", overflowY: "auto" }}>
+          <Tooltip label="Tip" side="bottom-start">
+            <button type="button">c</button>
+          </Tooltip>
+        </div>,
+      );
+
+      hover(view.get("button"));
+
+      expect(shiftOf(view)).toBe("34px");
+    });
+
+    it("shifts an end-anchored bubble the other way along the inline axis", () => {
+      layout({ wrapper: [260, 10, 280, 30], bubble: [250, 40, 330, 66], clip: [0, 0, 300, 300] });
+      const view = render(
+        <div data-clip="" style={{ overflowX: "auto", overflowY: "auto" }}>
+          <Tooltip label="Tip" side="bottom-end">
+            <button type="button">c</button>
+          </Tooltip>
+        </div>,
+      );
+
+      hover(view.get("button"));
+
+      expect(shiftOf(view)).toBe("34px");
+    });
+
+    it("flips a top-start bubble below when there is no room above it", () => {
+      layout({ wrapper: [0, 20, 20, 40], bubble: [0, 0, 70, 26], clip: [0, 0, 300, 300] });
+      const view = mountFit("top-start", false, true);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("bottom-start");
+    });
+
+    it("measures the room above from the document's scroll padding, so a sticky header is not covered", () => {
+      layout({ wrapper: [0, 100, 20, 120], bubble: [0, 60, 70, 86], clip: [0, 0, 300, 300] });
+      const real = window.getComputedStyle.bind(window);
+      vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+        const style = real(element, pseudo);
+        return element === document.documentElement
+          ? new Proxy(style, {
+              get: (target, key) =>
+                key === "scrollPaddingTop" ? "72px" : Reflect.get(target, key),
+            })
+          : style;
+      });
+      const view = mountFit("top-start", false, true);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("bottom-start");
+    });
+
+    it("keeps a top-start bubble above while there is room", () => {
+      layout({ wrapper: [0, 120, 20, 140], bubble: [0, 80, 70, 106], clip: [0, 0, 300, 300] });
+      const view = mountFit("top-start", false, true);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("top-start");
+    });
   });
 });

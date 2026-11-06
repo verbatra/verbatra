@@ -10,6 +10,7 @@ import { provenanceDetailItems } from "../client/provenance-view.js";
 import { canRetranslate } from "../client/retranslate-eligibility.js";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
 import { KeyLocaleStatusBadge } from "./DiffBadge.js";
+import { ErrorMessage } from "./ErrorMessage.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { RetranslateButton } from "./RetranslateButton.js";
 import { TranslationValue } from "./TranslationValue.js";
@@ -18,12 +19,20 @@ import type { KeyValuesState } from "./use-key-values.js";
 function LocaleValue({
   values,
   locale,
+  retrying,
+  onRetry,
 }: {
   readonly values: KeyValuesState;
   readonly locale: string;
+  readonly retrying: boolean;
+  readonly onRetry: () => void;
 }): ReactNode {
-  if (values.kind !== "loaded" || !values.targets.has(locale)) {
+  if (values.kind !== "loaded") {
     return null;
+  }
+  const failure = values.failures.get(locale);
+  if (failure !== undefined) {
+    return <ErrorMessage error={failure} retrying={retrying} onRetry={onRetry} />;
   }
   const value = values.targets.get(locale);
   if (value === undefined) {
@@ -105,6 +114,8 @@ export interface LocaleBlockProps {
   readonly integrity: readonly KeyIntegrityLocaleEntry[];
   readonly capabilities: StudioCapabilities | undefined;
   readonly values: KeyValuesState;
+  readonly valuesRetrying: boolean;
+  readonly onRetryValues: () => void;
   readonly editing: boolean;
   readonly savedNote: boolean;
   readonly onEdit: () => void;
@@ -117,6 +128,8 @@ export function LocaleBlock({
   integrity,
   capabilities,
   values,
+  valuesRetrying,
+  onRetryValues,
   editing,
   savedNote,
   onEdit,
@@ -125,7 +138,11 @@ export function LocaleBlock({
   const canEdit = capabilities?.writeToDisk === true && !editing;
   const pill = deriveIntegrityPillView(integrity, row.locale);
   return (
-    <li className="border-b border-border py-3 last:border-b-0" data-locale={row.locale}>
+    <li
+      tabIndex={-1}
+      className="border-b border-border py-3 last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+      data-locale={row.locale}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-sm font-semibold text-foreground">{row.locale}</span>
         <KeyLocaleStatusBadge status={row.status} />
@@ -146,7 +163,12 @@ export function LocaleBlock({
         form
       ) : (
         <>
-          <LocaleValue values={values} locale={row.locale} />
+          <LocaleValue
+            values={values}
+            locale={row.locale}
+            retrying={valuesRetrying}
+            onRetry={onRetryValues}
+          />
           <LocaleProvenance values={values} locale={row.locale} />
         </>
       )}

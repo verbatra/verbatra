@@ -564,6 +564,24 @@ describe("split editor dirty guard", () => {
     expect(textarea(view).value).toBe("Hallo!");
   });
 
+  it("keeps focus on the prompt's Save while the save runs, and ignores Discard until it settles", async () => {
+    stubServer();
+    stubRpc({ "translation.editEntry": () => new Promise(() => {}) });
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    await triggerNamed("selecting another key").fire(view);
+    const save = getRole(view, "button", "Save");
+    save.focus();
+
+    await clickAsync(save);
+
+    expect(document.activeElement).toBe(save);
+    expect(save.getAttribute("aria-disabled")).toBe("true");
+    await clickAsync(getRole(view, "button", "Discard"));
+    expect(view.get("[data-unsaved-prompt]")).not.toBeNull();
+    expect(window.location.hash).toBe(TITLE_HASH);
+  });
+
   it("stays on the key when the server rejects the save", async () => {
     stubServer({ ok: true, result: { accepted: false, reason: "placeholder" } });
     const view = await mountAt(TITLE_HASH, true);

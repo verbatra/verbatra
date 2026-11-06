@@ -1,14 +1,14 @@
-import { DrawerShell, useDialogA11y } from "@verbatra/ui";
+import { DrawerShell, Kbd, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { keyCap, visibleShortcuts } from "../client/review-shortcuts.js";
 
 function KeyCapView({ keyName }: { readonly keyName: string }): ReactNode {
   const cap = keyCap(keyName);
   return (
-    <kbd className="inline-flex min-w-6 items-center justify-center rounded-sm border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+    <Kbd tone="strong">
       <span aria-hidden="true">{cap.glyph}</span>
       <span className="sr-only">{cap.name}</span>
-    </kbd>
+    </Kbd>
   );
 }
 

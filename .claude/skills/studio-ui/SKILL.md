@@ -209,18 +209,25 @@ Rules that follow:
   line and uppercase by default), `Icon`, the fields `TextField`, `TextArea`, `SearchInput` and
   `Select` (`size: "xs" | "sm" | "md"` on the same height scale as `Button`, so a form row
   aligns; `TextArea` takes no size; the focus ring is `.vk-field:focus-visible`), `Checkbox`,
-  `Accordion`, `Skeleton`, `ProgressBar`, `Toast`, `FilterBar` and `FilterChip` (`pressed`, `count`,
+  `Accordion`, `Kbd` (`tone: "muted" | "strong"`, the one keycap; sets `data-tone`), `Skeleton`,
+  `ProgressBar`, `Toast`, `FilterBar` and `FilterChip` (`pressed`, `count`,
   and `unavailable` with the reason, which keeps the chip focusable and shows the reason in a
   `Tooltip` instead of disabling it), the `Table` family with `tableClasses` (`TableRow` takes
-  `selected` for `aria-selected` and `data-selected`; `TableCard` is a containing block, so
+  `selected` for `aria-selected` and `data-selected`, and `active` for the row a keyboard queue
+  highlights: `aria-current="true"`, `data-active` and `tableClasses.rowActive`, never `aria-selected`,
+  so a table with selection checkboxes keeps the two apart; `TableCard` is a containing block, so
   visually hidden text inside it cannot widen the page),
   `Sheet` and `DrawerShell`, `OverlayBackdrop`, `DialogCloseButton`, `Tooltip` (`aria-describedby`
   on the control unless the label repeats its name or `decorative` says the control already
   carries the words, shown on hover and focus (or on keyboard focus alone with `trigger="focus"`,
   which ignores focus from a pointer press; `flip` opens it upward when the clipping box would cut it
   off, so an open bubble never grows the scroll area), dismissed with Escape, none on a disabled control,
-  taking no layout while closed; `side`: `end`, `bottom`, `bottom-end`, and `top`, which only `flip`
-  reaches (`flip` applies to `bottom` and `bottom-end`, never to `end`); `className` goes on the
+  taking no layout while closed; `side`: `end`, `bottom`, `bottom-start`, `bottom-end`, `top` and
+  `top-start` (`flip` opens a `bottom` side upward, and `top-start` downward as `bottom-start`, when
+  the room is short; never `end`); on open the bubble is fitted inside the nearest clipping box and
+  the viewport: shifted along the inline axis through layout offsets set from CSSOM (`--tooltip-x`,
+  which the CSP allows), never a transform, so no scroll area keeps a stale width; `wide` lets a long
+  label wrap in a bubble capped at 28rem or the box, whichever is smaller; `className` goes on the
   wrapper),
   `ThemeToggle` (a cycle over a theme store that
   leaves system for the opposite of the OS theme first, labelled through `label(current, next)`
@@ -357,6 +364,28 @@ a control in the dialog stays), and on the nearest row in the pane or when the l
 released (Forward back onto the entry) puts focus on the Edit button of the saved locale. A new
 control that changes the route needs no extra code, but it must honour the boolean the navigate
 helpers return before running its own side effects.
+
+**Review queue.** `ReviewPanel.tsx` composes `ReviewFilterBar`, `ReviewTable`, `ReviewDialogs`,
+`use-review-keyboard.ts` and `use-bulk-selection.ts`; the panel itself holds only the wiring. The
+highlighted row is `TableRow active` (a `useActiveRow` index, not the table's roving stop), never a
+class written at the call site. Review state is two `FilterChip`s with counts (`data-state-filter`),
+exclusive, beside the locale and origin `Select`s; the counts come from `reviewStateCounts` and ignore
+the chosen state. With every filter at its default and no needs-review entry left the list is the
+All clear message; any other empty list is No matching entries with the one Clear filters button.
+Both, and the unavailable view, are `tabIndex={-1}` focus targets for the end of a batch or a
+closed editor. Values always wrap: a row's source and translation are `TranslationValue`s with
+`whitespace-pre-wrap` and `wrap-anywhere`, no truncation, no tooltip and no per-row control, so a
+row is as tall as its text and never changes height on focus, hover or press (a height that moved
+between press and release lost the click at 375px). The only bubble in a row is the provenance
+description, which opens above the badge in the stacked layout so it does not cover the actions, and
+flips below only when the room above, measured under the sticky header, is short. The shortcut keys
+`j`, `k`, arrows, `a`, `r`, `e`, `Enter`, `t`, `x` and `?` act on the highlighted row, pause in a field,
+and in the filter bar (`data-shortcuts-paused`) pause except `?`, which still opens the help, while
+Enter and Space still work on a chip; they keep their gates: `canWrite` and the spend check in
+`use-review-keyboard.ts` and `ReviewPanel.tsx`, the spend rule itself in `retranslate-eligibility.ts`.
+`ReviewRowActions` stays presentational (`data-layout`, `data-reserves-busy`). `EditEntryDialog` asks
+through `UnsavedPrompt` before Escape, the backdrop, Close or a route change drops a dirty draft; a
+background URL cleanup waits until the editor closes.
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they

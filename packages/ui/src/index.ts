@@ -24,6 +24,7 @@ export {
   TextField,
   type TextFieldProps,
 } from "./input.tsx";
+export { Kbd, type KbdTone } from "./kbd.tsx";
 export { ProgressBar, type ProgressTone } from "./progress-bar.tsx";
 export {
   Container,

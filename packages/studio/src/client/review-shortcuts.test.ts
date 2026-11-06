@@ -96,6 +96,33 @@ describe("classifyShortcutTarget", () => {
     expect(classifyShortcutTarget(element("DIV", "", true))).toBe("editable");
   });
 
+  it("classifies a button inside a paused region as paused, and a field there stays editable", () => {
+    expect(
+      classifyShortcutTarget({
+        tagName: "BUTTON",
+        type: "button",
+        isContentEditable: false,
+        inPausedRegion: true,
+      }),
+    ).toBe("paused");
+    expect(
+      classifyShortcutTarget({
+        tagName: "INPUT",
+        type: "search",
+        isContentEditable: false,
+        inPausedRegion: true,
+      }),
+    ).toBe("editable");
+    expect(
+      classifyShortcutTarget({
+        tagName: "BUTTON",
+        type: "button",
+        isContentEditable: false,
+        inPausedRegion: false,
+      }),
+    ).toBe("control");
+  });
+
   it("classifies a missing element as other", () => {
     expect(classifyShortcutTarget(null)).toBe("other");
   });
@@ -140,5 +167,21 @@ describe("keyCap", () => {
 
   it("shows a character key as itself", () => {
     expect(keyCap("a")).toEqual({ glyph: "a", name: "a" });
+  });
+});
+
+describe("resolveReviewShortcut in a paused region", () => {
+  const press = (key: string, target: "paused" | "editable") =>
+    resolveReviewShortcut({ key, ctrlKey: false, metaKey: false, altKey: false, target });
+
+  it("keeps the action letters off and leaves only the help key live", () => {
+    for (const key of ["j", "k", "a", "r", "e", "t", "x", "Enter", "ArrowDown"]) {
+      expect(press(key, "paused")).toBeNull();
+    }
+    expect(press("?", "paused")).toBe("help");
+  });
+
+  it("still ignores the help key while typing in a field", () => {
+    expect(press("?", "editable")).toBeNull();
   });
 });

@@ -99,6 +99,33 @@ describe("a stack with forward entries", () => {
     expect(visibleHash()).toBe("#/c");
   });
 
+  it("adopts the real address and announces it when the guard goes while a hold is open", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    expect(visibleHash()).toBe("#/c");
+    const announced = vi.fn();
+    window.addEventListener(ROUTE_CHANGE_EVENT, announced);
+
+    uninstall();
+    window.removeEventListener(ROUTE_CHANGE_EVENT, announced);
+
+    expect(announced).toHaveBeenCalledTimes(1);
+    expect(visibleHash()).toBe("#/b");
+    expect(window.location.hash).toBe("#/b");
+    expect(goSpy).not.toHaveBeenCalled();
+  });
+
+  it("announces nothing when the guard goes with no hold open", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    const announced = vi.fn();
+    window.addEventListener(ROUTE_CHANGE_EVENT, announced);
+
+    uninstall();
+    window.removeEventListener(ROUTE_CHANGE_EVENT, announced);
+
+    expect(announced).not.toHaveBeenCalled();
+  });
+
   it("gives one hold for a landing delivered as popstate and hashchange", () => {
     startOn(["#/a", "#/b", "#/c"], 2);
 

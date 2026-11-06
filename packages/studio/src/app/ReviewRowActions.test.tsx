@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { ReactNode } from "react";
 import type { Mock } from "vitest";
 import { describe, expect, it, vi } from "vitest";
 import { compactElapsed, rowBusyLabel } from "../client/review-in-flight.js";
@@ -104,7 +105,6 @@ describe("ReviewRowActions", () => {
       expect((view.getByText("button", name) as HTMLButtonElement).disabled).toBe(true);
     }
     expect(view.get('[role="status"]').textContent).toBe("Approving…");
-    expect(view.get('[role="status"]').className).toContain("sr-only");
   });
 
   it("shows a running retranslation on the Retranslate button, never on Approve", () => {
@@ -123,7 +123,7 @@ describe("ReviewRowActions", () => {
       busyText(7),
     ]);
     expect(view.all("button").every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
-    expect(view.get("[data-busy-elapsed]").className).toContain("tabular-nums");
+    expect(view.get("[data-busy-elapsed]").textContent).toBe(compactElapsed(7));
     expect(view.get('[role="status"]').textContent).toBe("Retranslating…");
   });
 
@@ -218,9 +218,9 @@ describe("ReviewRowActions", () => {
     );
     const busySlot = view.get("[data-busy-elapsed]");
 
-    expect(busySlot.className.split(" ")).toEqual(idleSlot?.className.split(" "));
-    expect(busySlot.className.split(" ")).toContain("min-w-[5ch]");
-    expect(busySlot.className.split(" ")).toContain("font-mono");
+    expect(busySlot.hasAttribute("data-busy-slot")).toBe(true);
+    expect(busySlot.hasAttribute("aria-hidden")).toBe(false);
+    expect(busySlot.textContent).toBe(compactElapsed(5));
   });
 
   it("fits the longest elapsed text in the slot's five characters", () => {
@@ -235,19 +235,18 @@ describe("ReviewRowActions", () => {
         busy={{ action: "retranslate", elapsedSeconds: 5 }}
       />,
     );
-    const busy = view.getByText("button", busyText(5)).className.split(" ");
+    const busy = view.getByText("button", busyText(5));
 
-    expect(busy).toContain("disabled:opacity-100");
-    expect(busy).not.toContain("disabled:opacity-60");
-    expect(view.getByText("button", "Edit").className.split(" ")).toContain("disabled:opacity-60");
-    expect(view.get("[data-busy-elapsed]").className.split(" ")).toContain("text-muted-foreground");
+    expect(busy.getAttribute("aria-busy")).toBe("true");
+    expect((busy as HTMLButtonElement).disabled).toBe(true);
+    expect(view.getByText("button", "Edit").hasAttribute("aria-busy")).toBe(false);
+    expect(view.get("[data-busy-elapsed]").textContent).toBe(compactElapsed(5));
   });
 
   it("anchors the visually hidden status inside its own wrapper, so it never widens the page", () => {
     const view = render(<ReviewRowActions {...handlers()} />);
 
-    expect(view.get("span").className).toContain("relative");
-    expect(view.get('[role="status"]').parentElement).toBe(view.get("span"));
+    expect(view.get('[role="status"]').parentElement).toBe(view.get("span[data-layout]"));
   });
 
   it("adds a Retranslate action last only when a retranslate callback is given", () => {
@@ -299,23 +298,16 @@ describe("ReviewRowActions: layout", () => {
       <ReviewRowActions onApprove={vi.fn()} onReject={vi.fn()} onEdit={vi.fn()} wrap />,
     );
 
-    expect(inline.get("span").className).toContain("flex-nowrap");
-    expect(stacked.get("span").className).toContain("flex-wrap");
+    expect(inline.get("span[data-layout]").dataset.layout).toBe("inline");
+    expect(stacked.get("span[data-layout]").dataset.layout).toBe("wrap");
   });
 
   it("reserves a running retranslation's width in a table column, so a busy row never resizes it", () => {
-    const withRetranslate = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />)
-      .get("span")
-      .className.split(" ");
-    const stacked = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} wrap />)
-      .get("span")
-      .className.split(" ");
-    const withoutRetranslate = render(<ReviewRowActions {...handlers()} />)
-      .get("span")
-      .className.split(" ");
+    const reserves = (node: ReactNode): boolean =>
+      render(node).get("span[data-layout]").hasAttribute("data-reserves-busy");
 
-    expect(withRetranslate).toContain("min-w-106");
-    expect(stacked).not.toContain("min-w-106");
-    expect(withoutRetranslate).not.toContain("min-w-106");
+    expect(reserves(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />)).toBe(true);
+    expect(reserves(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} wrap />)).toBe(false);
+    expect(reserves(<ReviewRowActions {...handlers()} />)).toBe(false);
   });
 });

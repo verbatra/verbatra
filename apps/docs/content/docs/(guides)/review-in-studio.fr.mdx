@@ -10,8 +10,6 @@ Deux règles valent tout du long. **La modification locale est toujours active**
 
 ## Démarrer Studio
 
-Studio est livré comme paquet à part, atteint via la CLI :
-
 ```bash
 npm install --save-dev @verbatra/studio
 verbatra studio
@@ -61,11 +59,11 @@ L'éditeur montre la description de la clé, les termes du glossaire que ton bro
 
 ## Traiter la file de relecture
 
-La page Review liste chaque valeur écrite par une machine que personne n'a approuvée : une ligne par locale et par clé, avec le texte source au-dessus de la traduction, son origine et les éventuels [signalements de relecture](/fr/docs/translation-safety#signalements-de-relecture) de la dernière exécution sur cette machine.
+La page Review liste chaque valeur écrite par une machine que personne n'a approuvée : une ligne par locale et par clé, avec le texte source complet au-dessus de la traduction (les longues valeurs passent à la ligne), son origine et les éventuels [signalements de relecture](/fr/docs/translation-safety#signalements-de-relecture) de la dernière exécution sur cette machine.
 
 <StudioScreenshot
   shot="review"
-  alt="La page Review de Verbatra Studio à l'état Needs review avec des entrées en allemand ; deux lignes portent des raisons de relecture, Matches source text et Unusual length, à côté de l'origine Machine, et chaque ligne a les actions Edit, Approve et Reject."
+  alt="La page Review de Verbatra Studio avec la puce Needs review activée et des entrées en allemand ; deux lignes portent des raisons de relecture, Matches source text et Unusual length, à côté de l'origine Machine, et chaque ligne a les actions Edit, Approve et Reject."
   caption="La file de relecture après une exécution, avec les lignes signalées et leurs raisons. Studio existe en clair et en sombre ; change la capture pour comparer."
 />
 
@@ -97,7 +95,7 @@ Les deux décisions sont enregistrées dans `verbatra.provenance.json` selon les
 
 La file est lue depuis les fichiers commités, donc un coéquipier qui les récupère voit la même file. Une valeur la quitte dès qu'une personne l'approuve, la rejette, l'écrit ou l'importe ; une valeur approuvée qu'une machine réécrit y revient.
 
-La barre de filtres bascule entre **Needs review** et **Approved** et restreint par origine ; une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) en CI.
+Les puces **Needs review** et **Approved** basculent la liste et affichent des compteurs ; la barre restreint par origine ; une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) en CI.
 
 ### Traiter la file au clavier
 
@@ -116,7 +114,7 @@ Appuie sur `j` ou la flèche bas pour mettre en surbrillance la première entré
 | `x` | la sélectionner ou désélectionner pour une action groupée |
 | `?` | afficher ou masquer la liste des raccourcis |
 
-Les raccourcis sont en pause pendant que tu tapes ou qu'une boîte de dialogue est ouverte. Après une décision, l'entrée suivante est mise en surbrillance.
+Les raccourcis sont en pause pendant que tu tapes, que le focus est dans la barre de filtres ou qu'une boîte de dialogue est ouverte. Après une décision, l'entrée suivante est mise en surbrillance.
 
 ### Agir sur plusieurs entrées à la fois
 
@@ -132,7 +130,7 @@ Démarre Studio avec la dépense autorisée ([comment la dépense est accordée]
 verbatra studio --allow-spend
 ```
 
-Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans l'éditeur d'une clé pour une valeur avec un défaut d'intégrité. Il fait un appel au fournisseur, passe le résultat par la barrière d'intégrité et laisse la nouvelle valeur dans la file pour que tu l'approuves. Depuis une ligne de Review, une valeur écrite par une personne n'est jamais remplacée ; dans son éditeur sur Translations, choisis **Replace anyway**. Sans `--allow-spend`, le serveur n'enregistre pas du tout le point d'accès.
+Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans l'éditeur d'une clé pour une valeur avec un défaut d'intégrité. Il fait un appel au fournisseur, passe le résultat par la barrière d'intégrité et laisse la nouvelle valeur dans la file pour que tu l'approuves. Depuis une ligne de Review, une valeur écrite par une personne n'est jamais remplacée ; dans son éditeur sur Translations, choisis **Replace anyway**.
 
 ## Traduire les changements en attente
 

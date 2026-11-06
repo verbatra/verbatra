@@ -15,6 +15,8 @@ export interface UnsavedPromptProps {
   readonly onKeepEditing: () => void;
 }
 
+const BUSY = "aria-disabled:cursor-default aria-disabled:opacity-60";
+
 export function UnsavedPrompt({
   locale,
   saving,
@@ -47,13 +49,31 @@ export function UnsavedPrompt({
       </p>
       {error !== null ? <ErrorMessage error={error} /> : null}
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="primary" size="sm" disabled={saving} onClick={onSave}>
+        <Button
+          variant="primary"
+          size="sm"
+          aria-disabled={saving || undefined}
+          className={BUSY}
+          onClick={saving ? undefined : onSave}
+        >
           Save
         </Button>
-        <Button size="sm" disabled={saving} onClick={onDiscard}>
+        <Button
+          size="sm"
+          aria-disabled={saving || undefined}
+          className={BUSY}
+          onClick={saving ? undefined : onDiscard}
+        >
           Discard
         </Button>
-        <Button ref={keepRef} size="sm" variant="ghost" disabled={saving} onClick={onKeepEditing}>
+        <Button
+          ref={keepRef}
+          size="sm"
+          variant="ghost"
+          aria-disabled={saving || undefined}
+          className={BUSY}
+          onClick={saving ? undefined : onKeepEditing}
+        >
           Keep editing
         </Button>
       </div>

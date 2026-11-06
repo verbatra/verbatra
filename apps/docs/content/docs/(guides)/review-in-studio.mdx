@@ -10,8 +10,6 @@ Two rules hold. **Local editing is always on**, gated by the same integrity chec
 
 ## Start Studio
 
-Studio ships as its own package, run via the CLI:
-
 ```bash
 npm install --save-dev @verbatra/studio
 verbatra studio
@@ -61,11 +59,11 @@ From 1280px wide the editor sits beside the table; below that it opens as a draw
 
 ## Work the Review queue
 
-The Review page lists every value a machine wrote that nobody approved: one row per locale and key with source, translation, origin and any [review flags](/docs/translation-safety#review-flags) from the last run on this machine.
+The Review page lists every value a machine wrote that nobody approved: one row per locale and key with the full source and translation (long values wrap), origin and any [review flags](/docs/translation-safety#review-flags) from the last run on this machine.
 
 <StudioScreenshot
   shot="review"
-  alt="The Verbatra Studio Review page in the Needs review state, listing German entries; two rows carry review reasons, Matches source text and Unusual length, next to the Machine origin, and each row has Edit, Approve and Reject actions."
+  alt="The Verbatra Studio Review page with the Needs review chip pressed, listing German entries; two rows carry review reasons, Matches source text and Unusual length, next to the Machine origin, and each row has Edit, Approve and Reject actions."
   caption="The Review queue after a run, with flagged rows showing their reasons. Studio ships in light and dark; switch the screenshot to compare."
 />
 
@@ -97,7 +95,7 @@ Both decisions are saved in `verbatra.provenance.json` under the [Review decisio
 
 The queue is read from the committed files, so a teammate who pulls them sees it too. A value leaves it once a person approves, rejects, writes or imports it; an approved value that a machine rewrites comes back.
 
-The filter bar switches between **Needs review** and **Approved** and narrows by origin; with a locale chosen, **Approve all in** approves all of it after a confirmation. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
+The **Needs review** and **Approved** chips switch the list and show counts; the bar narrows by origin; with a locale chosen, **Approve all in** approves all of it after a confirmation. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
 
 ### Work the queue from the keyboard
 
@@ -116,7 +114,7 @@ Press `j` or the down arrow to highlight the first entry, then:
 | `x` | select or unselect it for a bulk action |
 | `?` | show or hide the shortcut list |
 
-Shortcuts pause while you type or a dialog is open. After a decision the next entry is highlighted.
+Shortcuts pause while you type, in the filter bar, or in a dialog. After a decision the next entry is highlighted.
 
 ### Act on several entries at once
 
@@ -132,7 +130,7 @@ Start Studio with spend allowed ([how spend is granted](/docs/cli/studio#spend-a
 verbatra studio --allow-spend
 ```
 
-A **Retranslate** button then appears on each Review row, and in a key's editor for a value with an integrity defect. It makes one provider call, runs the result through the integrity gate, and leaves the new value in the queue to approve. From a Review row, a value a person wrote is never replaced; in its editor on Translations, choose **Replace anyway**. Without `--allow-spend` the server registers no such endpoint.
+A **Retranslate** button then appears on each Review row, and in a key's editor for a value with an integrity defect. It makes one provider call, runs the result through the integrity gate, and leaves the new value in the queue to approve. From a Review row, a value a person wrote is never replaced; in its editor on Translations, choose **Replace anyway**.
 
 ## Translate pending changes
 

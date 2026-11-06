@@ -10,8 +10,6 @@ Zwei Regeln gelten durchgehend. **Lokales Bearbeiten ist immer an**, abgesichert
 
 ## Starte Studio
 
-Studio kommt als eigenes Paket und wird über die CLI gestartet:
-
 ```bash
 npm install --save-dev @verbatra/studio
 verbatra studio
@@ -61,11 +59,11 @@ Ab 1280px Breite sitzt der Editor neben der Tabelle; darunter öffnet er sich al
 
 ## Arbeite die Review-Warteschlange ab
 
-Die Seite Review listet jeden Wert, den eine Maschine geschrieben und niemand freigegeben hat: eine Zeile pro Locale und Key, mit dem Quelltext über der Übersetzung, seiner Herkunft und etwaigen [Review-Flags](/de/docs/translation-safety#review-flags) aus dem letzten Lauf auf diesem Rechner.
+Die Seite Review listet jeden Wert, den eine Maschine geschrieben und niemand freigegeben hat: eine Zeile pro Locale und Key, mit dem vollständigen Quelltext über der Übersetzung (lange Werte umbrechen), seiner Herkunft und etwaigen [Review-Flags](/de/docs/translation-safety#review-flags) aus dem letzten Lauf auf diesem Rechner.
 
 <StudioScreenshot
   shot="review"
-  alt="Die Seite Review in Verbatra Studio im Zustand Needs review mit deutschen Einträgen; zwei Zeilen tragen Review-Gründe, Matches source text und Unusual length, neben der Herkunft Machine, und jede Zeile hat die Aktionen Edit, Approve und Reject."
+  alt="Die Seite Review in Verbatra Studio mit gedrücktem Chip Needs review und deutschen Einträgen; zwei Zeilen tragen Review-Gründe, Matches source text und Unusual length, neben der Herkunft Machine, und jede Zeile hat die Aktionen Edit, Approve und Reject."
   caption="Die Review-Warteschlange nach einem Lauf, markierte Zeilen mit ihren Gründen. Studio gibt es hell und dunkel; wechsle den Screenshot, um zu vergleichen."
 />
 
@@ -97,7 +95,7 @@ Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter 
 
 Die Warteschlange wird aus den committeten Dateien gelesen, sodass eine Teamkollegin, die sie pullt, dieselbe Warteschlange sieht. Ein Wert verlässt sie, sobald eine Person ihn freigibt, ablehnt, schreibt oder importiert; ein freigegebener Wert, den eine Maschine neu schreibt, kommt zurück.
 
-Die Filterleiste wechselt zwischen **Needs review** und **Approved** und grenzt nach Herkunft ein; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
+Die Chips **Needs review** und **Approved** wechseln die Liste und zeigen Zähler; die Leiste grenzt nach Herkunft ein; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
 
 ### Arbeite die Warteschlange mit der Tastatur ab
 
@@ -116,7 +114,7 @@ Drück `j` oder Pfeil nach unten, um den ersten Eintrag hervorzuheben, dann:
 | `x` | ihn für eine Sammelaktion auswählen oder abwählen |
 | `?` | die Tastenkürzel ein- oder ausblenden |
 
-Tastenkürzel pausieren, während du tippst oder ein Dialog offen ist. Nach einer Entscheidung wird der nächste Eintrag hervorgehoben.
+Tastenkürzel pausieren, während du tippst, der Fokus in der Filterleiste liegt oder ein Dialog offen ist. Nach einer Entscheidung wird der nächste Eintrag hervorgehoben.
 
 ### Bearbeite mehrere Einträge auf einmal
 
@@ -132,7 +130,7 @@ Starte Studio mit erlaubten Ausgaben ([wie Ausgaben erlaubt werden](/de/docs/cli
 verbatra studio --allow-spend
 ```
 
-Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor eines Keys bei einem Wert mit Integritätsdefekt. Er macht einen Provider-Aufruf, schickt das Ergebnis durch das Integritäts-Gate und lässt den neuen Wert zur Freigabe in der Warteschlange. Aus einer Review-Zeile wird ein Wert, den eine Person geschrieben hat, nie ersetzt; wähl dafür in seinem Editor unter Translations **Replace anyway**. Ohne `--allow-spend` registriert der Server den Endpunkt gar nicht.
+Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor eines Keys bei einem Wert mit Integritätsdefekt. Er macht einen Provider-Aufruf, schickt das Ergebnis durch das Integritäts-Gate und lässt den neuen Wert zur Freigabe in der Warteschlange. Aus einer Review-Zeile wird ein Wert, den eine Person geschrieben hat, nie ersetzt; wähl dafür in seinem Editor unter Translations **Replace anyway**.
 
 ## Übersetze ausstehende Änderungen
 

@@ -10,6 +10,7 @@ import {
 } from "../client/key-value-context.js";
 import { compareLength, lengthSummary } from "../client/length-compare.js";
 import { settledActionStatusLabel } from "../client/settled-action-status.js";
+import type { StructuredError } from "../client/state.js";
 import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";
 import { cn } from "./lib/cn.js";
 import { TranslationValue, valueDirection } from "./TranslationValue.js";
@@ -18,6 +19,13 @@ export type SubmitState =
   | { readonly kind: "idle" }
   | { readonly kind: "submitting" }
   | { readonly kind: "settled"; readonly outcome: EditEntryOutcome };
+
+export function submitFailure(submit: SubmitState): StructuredError | null {
+  if (submit.kind !== "settled" || submit.outcome.kind === "success") {
+    return null;
+  }
+  return { code: "SAVE_NOT_ACCEPTED", message: settledActionStatusLabel(submit.outcome, "Saved") };
+}
 
 function submitStatusLabel(state: Exclude<SubmitState, { kind: "idle" }>): string {
   if (state.kind === "submitting") {

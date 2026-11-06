@@ -67,3 +67,14 @@ export function filterReviewRows(
         rowValueMatches(row, query, values)),
   );
 }
+
+export function reviewStateCounts(
+  rows: readonly ReviewQueueRow[],
+  filter: ReviewFilter,
+  values?: ReadonlyMap<string, KeyValuePair>,
+): Readonly<Record<QueueReviewState, number>> {
+  return {
+    unreviewed: filterReviewRows(rows, { ...filter, reviewState: "unreviewed" }, values).length,
+    approved: filterReviewRows(rows, { ...filter, reviewState: "approved" }, values).length,
+  };
+}

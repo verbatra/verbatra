@@ -257,6 +257,7 @@ export function useReviewDecisions(
       approved: response.result.approved.length,
       sourceChanged: response.result.sourceChanged.length,
     });
+    awaitingReload.current.add(`locale ${locale}`);
     onDecided();
   }
 
