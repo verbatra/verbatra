@@ -398,6 +398,13 @@ describe("unusedSamples", () => {
     expect([...unusedSamples(fields, { who: "Ada" }, [row(null, false)])]).toEqual(["who"]);
   });
 
+  it("flags a number argument whose arms no row reaches unless a rendered argument shows it", () => {
+    const formatted: IcuPreviewRow["segments"] = [{ kind: "argument", text: "1,234.5" }];
+
+    expect([...unusedSamples(fields, { n: 5 }, [row(null, false)])]).toEqual(["n"]);
+    expect([...unusedSamples(fields, { n: 1234.5 }, [row(null, false, formatted)])]).toEqual([]);
+  });
+
   it("says nothing about a field with no typed value, and nothing without any args", () => {
     expect(unusedSamples(fields, undefined, [row("n", false)]).size).toBe(0);
     expect(unusedSamples(fields, { who: "x" }, []).has("n")).toBe(false);
