@@ -121,11 +121,17 @@ function LockDetail({ locales }: { readonly locales: readonly LockLocaleState[] 
         <Table>
           <TableHead>
             <tr>
-              <TableHeaderCell>Locale</TableHeaderCell>
+              <TableHeaderCell className="whitespace-nowrap">Locale</TableHeaderCell>
               <TableHeaderCell numeric>Recorded keys</TableHeaderCell>
-              <TableHeaderCell numeric>Missing</TableHeaderCell>
-              <TableHeaderCell numeric>Stale</TableHeaderCell>
-              <TableHeaderCell numeric>Up to date</TableHeaderCell>
+              <TableHeaderCell numeric className="whitespace-nowrap">
+                Missing
+              </TableHeaderCell>
+              <TableHeaderCell numeric className="whitespace-nowrap">
+                Stale
+              </TableHeaderCell>
+              <TableHeaderCell numeric className="whitespace-nowrap">
+                Up to date
+              </TableHeaderCell>
               <TableHeaderCell>Provenance</TableHeaderCell>
             </tr>
           </TableHead>
@@ -186,13 +192,21 @@ export function LocalesSection({
             <Table>
               <TableHead>
                 <tr>
-                  <TableHeaderCell>Locale</TableHeaderCell>
-                  <TableHeaderCell>Coverage</TableHeaderCell>
-                  <TableHeaderCell numeric>Missing</TableHeaderCell>
-                  <TableHeaderCell numeric>Stale</TableHeaderCell>
-                  <TableHeaderCell numeric>Up to date</TableHeaderCell>
-                  {lock.kind === "loaded" ? <TableHeaderCell>Lock</TableHeaderCell> : null}
-                  <TableHeaderCell>Open</TableHeaderCell>
+                  <TableHeaderCell className="whitespace-nowrap">Locale</TableHeaderCell>
+                  <TableHeaderCell className="whitespace-nowrap">Coverage</TableHeaderCell>
+                  <TableHeaderCell numeric className="whitespace-nowrap">
+                    Missing
+                  </TableHeaderCell>
+                  <TableHeaderCell numeric className="whitespace-nowrap">
+                    Stale
+                  </TableHeaderCell>
+                  <TableHeaderCell numeric className="whitespace-nowrap">
+                    Up to date
+                  </TableHeaderCell>
+                  {lock.kind === "loaded" ? (
+                    <TableHeaderCell className="whitespace-nowrap">Lock</TableHeaderCell>
+                  ) : null}
+                  <TableHeaderCell className="whitespace-nowrap">Open</TableHeaderCell>
                 </tr>
               </TableHead>
               <TableBody>

@@ -27,7 +27,7 @@ describe("MetricCard", () => {
     const labelId = metricCard(view, LONG_LABEL).getAttribute("aria-labelledby") ?? "";
     const label = document.getElementById(labelId);
 
-    expect(label?.className).toContain("wrap-anywhere");
+    expect(label?.className).toContain("break-words");
     expect(label?.className).not.toContain("truncate");
     expect(label?.className).toContain("min-w-0");
   });
@@ -37,7 +37,7 @@ describe("MetricCard", () => {
     const figure = metricFigure(view, "Provider");
 
     expect(figure.textContent).toBe(LONG_VALUE);
-    expect(figure.className).toContain("wrap-anywhere");
+    expect(figure.className).toContain("break-words");
     expect(figure.className).not.toContain("truncate");
     expect(view.container.querySelector("[title]")).toBeNull();
   });

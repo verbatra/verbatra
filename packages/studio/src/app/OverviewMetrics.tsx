@@ -56,7 +56,7 @@ export function OverviewMetrics({
 
   return (
     <div className="mb-10">
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:gap-4 md:grid-cols-3">
         <MetricCard
           label="Needs attention"
           icon="alert"
@@ -76,7 +76,7 @@ export function OverviewMetrics({
               : `Across ${rows.length} target ${rows.length === 1 ? "locale" : "locales"}.`
           }
         />
-        <div className="col-span-2 grid md:col-span-1">
+        <div className="grid min-[360px]:col-span-2 md:col-span-1">
           <MetricCard
             label="Locales in sync"
             icon="globe"

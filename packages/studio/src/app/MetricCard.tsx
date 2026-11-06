@@ -31,7 +31,7 @@ export function MetricCard({
 }): ReactNode {
   const labelId = useId();
   const valueClassName = cn(
-    "mt-2 min-w-0 wrap-anywhere tabular-nums",
+    "mt-2 min-w-0 break-words tabular-nums",
     quiet ? "text-base font-medium text-muted-foreground" : "text-2xl font-bold",
     quiet ? undefined : VALUE_TONE_CLASSNAME[tone],
   );
@@ -39,7 +39,7 @@ export function MetricCard({
   return (
     <Card padding="sm" className="min-w-0" role="group" aria-labelledby={labelId}>
       <div className="flex items-center justify-between gap-2">
-        <span id={labelId} className={cn(microLabelClassName, "min-w-0 wrap-anywhere")}>
+        <span id={labelId} className={cn(microLabelClassName, "min-w-0 break-words")}>
           {label}
         </span>
         {icon !== undefined ? (
