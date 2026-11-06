@@ -372,6 +372,29 @@ describe("localeGitStatus against a real repository", () => {
     });
   });
 
+  it("keeps a staged deletion visible when the file on disk is ignored", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", "{}\n");
+    await fx.commitAll();
+    await fx.write(".gitignore", "locales/de.json\n");
+    await fx.git(["rm", "-q", "--cached", "locales/de.json"]);
+
+    const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root });
+
+    expect(status).toMatchObject({ files: [{ path: "locales/de.json", state: "modified" }] });
+  });
+
+  it("does not list an ignored file that git never tracked", async () => {
+    const fx = await repo();
+    await fx.write(".gitignore", "locales/de.json\n");
+    await fx.write("locales/de.json", "{}\n");
+    await fx.commitAll();
+
+    const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root });
+
+    expect(status).toEqual({ available: true, branch: "main", files: [] });
+  });
+
   it("reads a path matching a glob character literally", async () => {
     const fx = await fixture();
     await fx.write("d.json", "{}\n");
