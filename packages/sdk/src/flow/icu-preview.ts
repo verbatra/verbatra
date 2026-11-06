@@ -9,6 +9,7 @@ import {
   type IcuVariationAxis,
   icuExactArmValue,
   icuMessageArguments,
+  icuPluralSampleOf,
   icuVariationAxesOf,
   prepareIcuMessage,
   renderPreparedIcuMessage,
@@ -16,6 +17,8 @@ import {
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultPluralSample, NUMBER_ARGUMENT_SAMPLE } from "./icu-preview-samples.js";
 import {
+  type ArmSelector,
+  createArmSelector,
   createSolver,
   exactValuesOf as exactValuesOfOptions,
   ruleTypeOf,
@@ -31,8 +34,8 @@ import { pluralCategoriesFor } from "./plural-rules.js";
 
 export const ICU_PREVIEW_MAX_ROWS = 24;
 
-/** Which argument a preview row varies: `sample` for the row that shows a value you supplied for a plural, ordinal or select argument, or `none` for a message with nothing to vary. */
-export type IcuPreviewAxis = "plural" | "ordinal" | "select" | "sample" | "none";
+/** Which argument a preview row varies, or `none` for a message with nothing to vary. */
+export type IcuPreviewAxis = "plural" | "ordinal" | "select" | "none";
 
 /**
  * Why a message could not be previewed.
@@ -52,14 +55,16 @@ export type IcuPreviewFailure =
 
 /** One rendering of a message with one argument varied. Arguments that enclose it are held at the arm that contains it; `category` repeats when the same arm appears in several places. */
 export interface IcuPreviewRow {
-  /** What the row varies: a cardinal plural, an ordinal plural, a select, `sample` for the row that shows a value you supplied for such an argument, or `none`. */
+  /** What the row varies: a cardinal plural, an ordinal plural, a select, or `none`. */
   readonly axis: IcuPreviewAxis;
   /** The argument the row varies, or `null` when the message has none to vary. */
   readonly argument: string | null;
-  /** The plural category, an exact arm such as `=0`, or the select option the row shows; for a `sample` row, the arm that value selects. `null` when the message has nothing to vary. */
+  /** The plural category, an exact arm such as `=0`, or the select option the row shows; for a row showing a value you supplied, the arm that value selects. `null` when the message has nothing to vary. */
   readonly category: string | null;
   /** The value the varied argument took in this row. `null` when the message has nothing to vary. */
   readonly sample: string | number | null;
+  /** True for the row that shows a value you supplied in `args` for this argument rather than one of its arms. */
+  readonly supplied: boolean;
   /** The enclosing arguments this row holds at the arm that contains the varied argument, by name. Empty when the varied argument is not nested. */
   readonly held: Readonly<Record<string, string | number>>;
   /** The rendered message. Plain text runs only: never markup to interpret. */
@@ -74,7 +79,7 @@ export interface IcuPreviewInput {
   readonly locale: string;
   /** The message text. Untrusted: a value over 20,000 characters, nested deeper than 16 braces, or with more than 256 `{` and `<` characters is refused rather than parsed. */
   readonly value: string;
-  /** Sample values for the message's arguments, by name. Numbers drive plural and number arguments, and a number given for a date argument is read as milliseconds since the epoch. Names the message does not use are ignored. A value for a plural, ordinal or select argument adds one `sample` row showing it, and in the ordinary rows is replaced by the arm each row shows. */
+  /** Sample values for the message's arguments, by name. Numbers drive plural and number arguments, and a number given for a date argument is read as milliseconds since the epoch. Names the message does not use are ignored. A value for a plural, ordinal or select argument adds a row showing it for each place that value reaches an arm of that argument, and in the ordinary rows is replaced by the arm each row shows. A number text such as `"5"` reads as the number, as the runtime does. */
   readonly args?: Readonly<Record<string, string | number>>;
 }
 
@@ -181,44 +186,59 @@ function armLabelOf(
   if (axis.kind === "select") {
     return occurrence.options.includes(String(value)) ? String(value) : "other";
   }
-  if (typeof value !== "number") {
+  const plural = icuPluralSampleOf(value);
+  if (plural === undefined) {
     return "other";
   }
-  const exact = `=${value}`;
+  const exact = `=${plural.key}`;
   if (occurrence.options.includes(exact)) {
     return exact;
   }
   const category = new Intl.PluralRules(locale, { type: ruleTypeOf(axis.kind) }).select(
-    value - occurrence.offset,
+    plural.count - occurrence.offset,
   );
   return occurrence.options.includes(category) ? category : "other";
 }
 
+function reachedBy(
+  solve: Solver,
+  selects: ArmSelector,
+  axis: IcuVariationAxis,
+  occurrence: IcuAxisOccurrence,
+  value: IcuSampleValue,
+): Solution | undefined {
+  const own = occurrence.path.filter((step) => step.argument === axis.argument);
+  if (!own.every((step) => selects(step, value))) {
+    return undefined;
+  }
+  const others = occurrence.path.filter((step) => step.argument !== axis.argument);
+  return solve(others.map((step) => ({ step, byCategory: false })));
+}
+
 function suppliedCandidate(
   solve: Solver,
+  selects: ArmSelector,
   axis: IcuVariationAxis,
   value: IcuSampleValue,
   locale: string,
 ): readonly Candidate[] {
-  const first = axis.occurrences[0];
-  const held =
-    first === undefined
-      ? undefined
-      : solve(first.path.map((step) => ({ step, byCategory: false })));
-  if (first === undefined || held === undefined) {
-    return [];
+  for (const occurrence of axis.occurrences) {
+    const held = reachedBy(solve, selects, axis, occurrence, value);
+    if (held !== undefined) {
+      return [
+        {
+          axis,
+          label: armLabelOf(axis, occurrence, value, locale),
+          solution: new Map(held).set(axis.argument, value),
+          sample: value,
+          rank: -1,
+          held: heldOf(held, axis.argument),
+          supplied: true,
+        },
+      ];
+    }
   }
-  return [
-    {
-      axis,
-      label: armLabelOf(axis, first, value, locale),
-      solution: new Map(held).set(axis.argument, value),
-      sample: value,
-      rank: -1,
-      held: heldOf(held, axis.argument),
-      supplied: true,
-    },
-  ];
+  return [];
 }
 
 function candidatesOf(
@@ -227,6 +247,7 @@ function candidatesOf(
   supplied: Readonly<Record<string, string | number>> | undefined,
 ): readonly (readonly Candidate[])[] {
   const solve = createSolver(locale);
+  const selects = createArmSelector(locale);
   return axes.map((axis) => {
     const arms = labelsOf(axis, locale).flatMap((label) =>
       solutionsFor(solve, axis, label).map((solution, rank) => ({
@@ -243,7 +264,9 @@ function candidatesOf(
       supplied !== undefined && Object.hasOwn(supplied, axis.argument)
         ? supplied[axis.argument]
         : undefined;
-    return given === undefined ? arms : [...arms, ...suppliedCandidate(solve, axis, given, locale)];
+    return given === undefined
+      ? arms
+      : [...arms, ...suppliedCandidate(solve, selects, axis, given, locale)];
   });
 }
 
@@ -360,7 +383,7 @@ function renderCandidates(
       break;
     }
     const signature = [
-      candidate.supplied ? "sample" : candidate.axis.kind,
+      `${candidate.supplied ? "supplied " : ""}${candidate.axis.kind}`,
       candidate.axis.argument,
       candidate.label,
       signatureOf(result.segments),
@@ -370,11 +393,12 @@ function renderCandidates(
       kept.push({
         index: order.get(candidate) as number,
         row: {
-          axis: candidate.supplied ? "sample" : candidate.axis.kind,
+          axis: candidate.axis.kind,
           argument: candidate.axis.argument,
           category: candidate.label,
           sample: candidate.sample,
           held: candidate.held,
+          supplied: candidate.supplied,
           segments: result.segments,
         },
       });
@@ -398,6 +422,7 @@ function renderUnvarying(
     category: null,
     sample: null,
     held: {},
+    supplied: false,
     segments: result.segments,
   };
   return { rows: [row], truncated: false };
@@ -417,7 +442,7 @@ function renderUnvarying(
  * Each row varies one argument and holds the others at `args` or a default. A row for an argument
  * nested inside another argument's arm also holds that enclosing argument at the arm, so the row
  * shows the arm it names; the `args` value for an argument a row varies or holds this way is
- * replaced in that row, and a value you give for a plural, ordinal or select argument adds one `sample` row of its own, placed after that argument's rows, whose `category` is the arm the value selects. `held` lists the enclosing arguments a row holds, so nested rows can be told apart. The `sample` row counts toward the 24 rows and the output budget. An arm that appears in several places gets a row for each place, and rows with
+ * replaced in that row, and a value you give for a plural, ordinal or select argument adds one row of its own for each axis that argument drives, a plural, an ordinal or a select, placed after that axis's rows and marked `supplied`; its `category` is the arm the value selects at the first place it reaches one, and a value that reaches no arm of an axis adds no row for it. Text that is not a number selects `other` in a plural, where `#` stays `#`. `held` lists the enclosing arguments a row holds, so nested rows can be told apart. The supplied rows count toward the 24 rows and the output budget. An arm that appears in several places gets a row for each place, and rows with
  * the same label and the same text collapse into one. The rows share one output budget; when it runs
  * out, or more than 24 rows exist, the rest are left out and `truncated` is set.
  *

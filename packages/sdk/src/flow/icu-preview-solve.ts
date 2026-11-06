@@ -1,4 +1,9 @@
-import { type IcuAxisKind, type IcuAxisStep, icuExactArmValue } from "@verbatra/format-adapters";
+import {
+  type IcuAxisKind,
+  type IcuAxisStep,
+  icuExactArmValue,
+  icuPluralSampleOf,
+} from "@verbatra/format-adapters";
 import { CANDIDATE_SAMPLES, WHOLE_CANDIDATES } from "./icu-preview-samples.js";
 
 export type PreviewSample = string | number;
@@ -51,16 +56,22 @@ function candidatesFor(constraints: readonly ArmConstraint[]): readonly PreviewS
   return [...new Set<PreviewSample>([...strings, ...counts, ...exact])];
 }
 
-export function createSolver(locale: string): Solver {
+function createSelection(
+  locale: string,
+): (constraint: ArmConstraint, sample: PreviewSample, lenient: boolean) => boolean {
   const categoryOf = createCategoryOf(locale);
 
-  function pluralSelected(constraint: ArmConstraint, sample: number, lenient: boolean): boolean {
+  function pluralSelected(
+    constraint: ArmConstraint,
+    sample: { readonly count: number; readonly key: string },
+    lenient: boolean,
+  ): boolean {
     const { step, byCategory } = constraint;
-    const exactKey = `=${sample}`;
+    const exactKey = `=${sample.key}`;
     if (step.options.includes(exactKey)) {
       return !byCategory && step.selector === exactKey;
     }
-    const category = categoryOf(step, sample);
+    const category = categoryOf(step, sample.count);
     if (byCategory) {
       const falls = lenient && step.selector === "other" && !step.options.includes(category);
       return category === step.selector || falls;
@@ -74,12 +85,25 @@ export function createSolver(locale: string): Solver {
       const key = String(sample);
       return (step.options.includes(key) ? key : "other") === step.selector;
     }
-    if (typeof sample !== "number") {
+    const plural = icuPluralSampleOf(sample);
+    if (plural === undefined) {
       return (lenient || !byCategory) && step.selector === "other";
     }
-    return pluralSelected(constraint, sample, lenient);
+    return pluralSelected(constraint, plural, lenient);
   }
 
+  return selected;
+}
+
+export type ArmSelector = (step: IcuAxisStep, sample: PreviewSample) => boolean;
+
+export function createArmSelector(locale: string): ArmSelector {
+  const selected = createSelection(locale);
+  return (step, sample) => selected({ step, byCategory: false }, sample, false);
+}
+
+export function createSolver(locale: string): Solver {
+  const selected = createSelection(locale);
   return (constraints) => {
     const byArgument = new Map<string, ArmConstraint[]>();
     for (const constraint of constraints) {

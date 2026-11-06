@@ -43,6 +43,7 @@ export {
 } from "./icu/axes.js";
 export {
   createIcuRenderBudget,
+  type IcuPluralSample,
   type IcuPreparedMessage,
   type IcuPrepareResult,
   type IcuRenderArguments,
@@ -52,6 +53,7 @@ export {
   type IcuSampleValue,
   type IcuSegment,
   type IcuSegmentKind,
+  icuPluralSampleOf,
   prepareIcuMessage,
   renderIcuMessage,
   renderPreparedIcuMessage,
