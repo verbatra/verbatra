@@ -82,7 +82,7 @@ published at https://verbatra.kreitz-webdev.de/licenses.
 - @formatjs/icu-messageformat-parser@3.5.18
   - Copyright (c) 2023 FormatJS
   - License text: text-1
-- @formatjs/icu-messageformat-parser@3.5.21
+- @formatjs/icu-messageformat-parser@3.5.22
   - Copyright (c) 2023 FormatJS
   - License text: text-1
 - @formatjs/icu-skeleton-parser@2.1.11

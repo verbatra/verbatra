@@ -86,7 +86,7 @@
         },
         {
           "name": "@formatjs/icu-messageformat-parser",
-          "version": "3.5.21",
+          "version": "3.5.22",
           "copyright": ["Copyright (c) 2023 FormatJS"],
           "author": null,
           "textId": "text-1",

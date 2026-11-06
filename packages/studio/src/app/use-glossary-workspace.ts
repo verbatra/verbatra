@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   dirtyEditorSources,
   type EditorEntry,
@@ -250,7 +250,9 @@ export function useGlossaryWorkspace({
   }, [hold.visible]);
 
   const latest = useRef({ scope, writer });
-  latest.current = { scope, writer };
+  useLayoutEffect(() => {
+    latest.current = { scope, writer };
+  });
 
   useEffect(() => {
     const { scope: currentScope, writer: currentWriter } = latest.current;

@@ -1,14 +1,27 @@
+import type { FormatId } from "@verbatra/core";
 import {
   type IcuArgumentKind,
   type IcuMessageArgument,
+  type IcuMessageArguments,
   icuMessageArguments,
 } from "@verbatra/format-adapters";
 
+const ICU_MESSAGE_FORMATS: ReadonlySet<FormatId> = new Set(["next-intl-json", "arb"]);
+
+export function isIcuMessageFormat(format: FormatId): boolean {
+  return ICU_MESSAGE_FORMATS.has(format);
+}
+
+/** The kind of value a message argument takes, as far as verbatra can tell from the message. */
 export type MessageArgumentType = "string" | "number" | "date" | "unknown" | "date-or-string";
 
+/** One named argument of a message. */
 export interface NamedMessageArgument {
+  /** The argument's name as written in the message. */
   readonly name: string;
+  /** The value type the argument takes. */
   readonly type: MessageArgumentType;
+  /** True when some arm of the message omits the argument, so a caller may leave it out. */
   readonly optional?: boolean;
 }
 
@@ -27,21 +40,33 @@ export type UnresolvedArgumentReason =
   | "mixed-argument-styles"
   | "argument-index-out-of-range";
 
+/**
+ * The arguments a message takes, by style: `none`, `named` (`{name}`), `positional` (`{0}` or
+ * `%s`), or `unresolved` when verbatra declined to describe them, with the reason.
+ */
 export type MessageArguments =
   | {
+      /** The message takes no arguments. */
       readonly style: "none";
     }
   | {
+      /** The message takes named arguments, such as `{name}`. */
       readonly style: "named";
+      /** The arguments, in the order they first appear. */
       readonly named: readonly NamedMessageArgument[];
     }
   | {
+      /** The message takes numbered or unnumbered arguments, such as `{0}` or `%s`. */
       readonly style: "positional";
+      /** The value type of each argument, by zero-based position. */
       readonly positional: readonly MessageArgumentType[];
+      /** The position from which every later argument is optional. Absent when none are. */
       readonly optionalFrom?: number;
     }
   | {
+      /** verbatra declined to describe the arguments. */
       readonly style: "unresolved";
+      /** Why the arguments could not be described. */
       readonly reason: UnresolvedArgumentReason;
     };
 
@@ -310,7 +335,10 @@ export function describeMessageArguments(placeholders: readonly string[]): Messa
 }
 
 export function describeIcuMessageArguments(value: string): MessageArguments {
-  const analysis = icuMessageArguments(value);
+  return describeIcuAnalysis(icuMessageArguments(value));
+}
+
+export function describeIcuAnalysis(analysis: IcuMessageArguments): MessageArguments {
   if (!analysis.valid) {
     return { style: "unresolved", reason: "invalid-message-syntax" };
   }
