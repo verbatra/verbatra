@@ -18,6 +18,7 @@ export const EMPTY_KEEP_DRAFT: KeepDraft = { term: "", caseSensitive: true };
 export interface EditorEntry {
   readonly draft: TermDraft;
   readonly base: GlossaryTermView;
+  readonly after?: string | undefined;
 }
 
 export type TermDrafts = ReadonlyMap<string, EditorEntry>;

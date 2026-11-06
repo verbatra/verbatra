@@ -4,6 +4,7 @@ import {
   ALL_LOCALES,
   buildTermEdit,
   deriveGlossaryWriteOutcome,
+  describeFailedEdit,
   draftFor,
   editEmptiesTerm,
   exceedsForbiddenCap,
@@ -450,5 +451,19 @@ describe("existingTermFor", () => {
 
   it("falls back to the scope rule for a normal term", () => {
     expect(existingTermFor([ONLY_SHARED], [], "Shop", ALL_LOCALES)).toBe(ONLY_SHARED);
+  });
+});
+
+describe("describeFailedEdit", () => {
+  it("names what failed in plain words", () => {
+    expect(describeFailedEdit("add", { term: "Neu", translation: "x" })).toBe('Adding "Neu"');
+    expect(describeFailedEdit("keep", { term: "Acme", doNotTranslate: true })).toBe(
+      'Keeping "Acme" untranslated',
+    );
+    expect(describeFailedEdit("kept:Acme", { term: "Acme", doNotTranslate: false })).toBe(
+      'Removing "Acme" from do not translate',
+    );
+    expect(describeFailedEdit("term:a", { term: "a", translation: null })).toBe('Removing "a"');
+    expect(describeFailedEdit("term:a", { term: "a", note: "n" })).toBe('Saving "a"');
   });
 });

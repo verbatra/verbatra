@@ -283,7 +283,8 @@ export function exceedsRenderingLength(text: string): boolean {
 }
 
 export function forbiddenBlocksSave(text: string, initial: string): boolean {
-  return text !== initial && (exceedsForbiddenCap(text) || exceedsRenderingLength(text));
+  const touched = parseRenderings(text).join("\n") !== parseRenderings(initial).join("\n");
+  return touched && (exceedsForbiddenCap(text) || exceedsRenderingLength(text));
 }
 
 export function isRemovalEdit(edit: GlossaryWriteParams): boolean {
@@ -291,6 +292,19 @@ export function isRemovalEdit(edit: GlossaryWriteParams): boolean {
     return true;
   }
   return edit.translation === null && edit.locale === undefined && Object.keys(edit).length === 2;
+}
+
+export function describeFailedEdit(key: string, edit: GlossaryWriteParams): string {
+  if (key === "add") {
+    return `Adding "${edit.term}"`;
+  }
+  if (key === "keep") {
+    return `Keeping "${edit.term}" untranslated`;
+  }
+  if (edit.doNotTranslate === false) {
+    return `Removing "${edit.term}" from do not translate`;
+  }
+  return isRemovalEdit(edit) ? `Removing "${edit.term}"` : `Saving "${edit.term}"`;
 }
 
 export function existingTermFor(
