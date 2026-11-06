@@ -257,7 +257,7 @@ export async function workingFileKind(root: string, path: string): Promise<FileK
   return fileKind(path);
 }
 
-async function readWorkingContent(path: string): Promise<string | undefined> {
+export async function readWorkingContent(path: string): Promise<string | undefined> {
   const read = await defaultFs.readFileBounded(path, LOCALE_GIT_BLOB_MAX_BYTES);
   return read.kind === "ok" ? read.content : undefined;
 }

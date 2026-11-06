@@ -11,6 +11,7 @@ import {
   LOCALE_GIT_DIFF_MAX_ENTRIES,
   LOCALE_GIT_DIFF_MAX_VALUE_CHARS,
   localeGitDiff,
+  readWorkingContent,
   workingFileKind,
 } from "./git-diff.js";
 import { defaultGitExecFile, type GitExecFile, gitExecFileWith } from "./git-exec.js";
@@ -155,6 +156,17 @@ describe("fileKind", () => {
   });
 });
 
+describe("readWorkingContent", () => {
+  it("reads a file up to the bound and nothing above it", async () => {
+    const fx = await repo();
+    await fx.write("small.json", "{}\n");
+    await fx.write("big.json", "x".repeat(LOCALE_GIT_BLOB_MAX_BYTES + 1));
+
+    expect(await readWorkingContent(join(fx.root, "small.json"))).toBe("{}\n");
+    expect(await readWorkingContent(join(fx.root, "big.json"))).toBeUndefined();
+  });
+});
+
 describe("workingFileKind", () => {
   it("refuses a file behind a symbolic link in any parent, inside the project or out of it", async () => {
     const fx = await repo();
@@ -290,6 +302,17 @@ describe("localeGitDiff against a real repository", () => {
 
     expect(diff).toEqual({ available: false, reason: "revision-unreadable" });
     expect(await fx.exists("pcmark")).toBe(false);
+  });
+
+  it("refuses a working file larger than the bound without parsing it", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "a" }));
+    await fx.commitAll();
+    await fx.write("locales/de.json", "x".repeat(LOCALE_GIT_BLOB_MAX_BYTES + 1));
+
+    const diff = await localeGitDiff({ config: baseConfig(), locale: "de", cwd: fx.root });
+
+    expect(diff).toEqual({ available: false, reason: "working-file-unreadable" });
   });
 
   it("cuts a very long key and says so", async () => {
