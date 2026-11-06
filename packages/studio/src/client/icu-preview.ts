@@ -192,11 +192,25 @@ export function groupRows(rows: readonly IcuPreviewRow[]): readonly RowGroup[] {
 
 export const SAMPLE_UNUSED_COPY = "Not used by this text.";
 
-function textUsedBy(rows: readonly IcuPreviewRow[], value: string | number): boolean {
-  const needle = String(value);
+function argumentTextHas(rows: readonly IcuPreviewRow[], needle: string): boolean {
   return rows.some((row) =>
     row.segments.some((segment) => segment.kind === "argument" && segment.text.includes(needle)),
   );
+}
+
+function leadingDigit(value: string | number): string {
+  return /\d/.exec(String(value))?.[0] ?? "";
+}
+
+function plainValueUsed(
+  rows: readonly IcuPreviewRow[],
+  field: SampleField,
+  value: string | number,
+): boolean {
+  if (field.type === "string" || field.type === "unknown") {
+    return argumentTextHas(rows, String(value));
+  }
+  return field.type !== "number" || argumentTextHas(rows, leadingDigit(value));
 }
 
 export function unusedSamples(
@@ -215,7 +229,7 @@ export function unusedSamples(
       if (!rows.some((row) => row.supplied && row.argument === field.name)) {
         unused.add(field.name);
       }
-    } else if ((field.type === "string" || field.type === "unknown") && !textUsedBy(rows, typed)) {
+    } else if (!plainValueUsed(rows, field, typed)) {
       unused.add(field.name);
     }
   }
