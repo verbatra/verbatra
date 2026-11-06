@@ -2,13 +2,12 @@ import type { ReactNode } from "react";
 import { averageCoverage, type StatusData } from "../client/coverage.js";
 import { driftKeys, isFullyInSync } from "../client/diff-view.js";
 import { attentionEntryCount } from "../client/key-status-filter.js";
+import { type ReviewQueueData, unreviewedRows } from "../client/review-queue-data.js";
 import { routeHash } from "../client/routes.js";
 import type { RefreshableView } from "../client/state.js";
 import { formatCount } from "../client/ui-format.js";
 import { MetricCard } from "./MetricCard.js";
 import type { DiffState } from "./use-diff-state.js";
-
-export type ReviewWaiting = "loading" | "error" | number;
 
 type Tone = "default" | "success" | "danger";
 
@@ -40,8 +39,8 @@ function attentionTile(diff: DiffState): Tile {
   const total = diff.locales.length;
   const entries = attentionEntryCount(diff.locales);
   return {
-    value: String(pending),
-    hint: `${pending} ${pending === 1 ? "key is" : "keys are"} missing, changed or orphaned (${entries} ${entries === 1 ? "entry" : "entries"} across ${drifting} of ${total} target ${total === 1 ? "locale" : "locales"}).`,
+    value: formatCount(pending),
+    hint: `${formatCount(pending)} ${pending === 1 ? "key is" : "keys are"} missing, changed or orphaned (${formatCount(entries)} ${entries === 1 ? "entry" : "entries"} across ${formatCount(drifting)} of ${formatCount(total)} target ${total === 1 ? "locale" : "locales"}).`,
     tone: "danger",
     href: routeHash({
       page: "translations",
@@ -50,13 +49,21 @@ function attentionTile(diff: DiffState): Tile {
   };
 }
 
-function reviewTile(waiting: ReviewWaiting): Tile {
-  if (waiting === "loading") {
+function reviewTile(queue: RefreshableView<ReviewQueueData>): Tile {
+  if (queue.kind === "loading") {
     return { value: "…", hint: "Checking the review queue.", tone: "default" };
   }
-  if (waiting === "error") {
+  if (queue.kind === "error") {
     return { value: "N/A", hint: "The review queue check failed.", tone: "default" };
   }
+  if (!queue.data.available) {
+    return {
+      value: "N/A",
+      hint: "verbatra.provenance.json is corrupt or too new to read.",
+      tone: "default",
+    };
+  }
+  const waiting = unreviewedRows(queue.data).length;
   if (waiting === 0) {
     return { value: "0", hint: "Nothing waits for review.", tone: "success" };
   }
@@ -89,7 +96,7 @@ function coverageTile(status: RefreshableView<StatusData>): {
 }
 
 function orphanedCount(diff: Extract<DiffState, { readonly kind: "loaded" }>): number {
-  return diff.locales.reduce((sum, locale) => sum + locale.orphaned.length, 0);
+  return new Set(diff.locales.flatMap((locale) => locale.orphaned)).size;
 }
 
 function inSyncHint(status: StatusData, diff: DiffState): string {
@@ -107,7 +114,7 @@ function inSyncHint(status: StatusData, diff: DiffState): string {
   }
   const orphaned = orphanedCount(diff);
   return orphaned > 0
-    ? `Every key is translated; ${orphaned} orphaned ${orphaned === 1 ? "key is" : "keys are"} left over.`
+    ? `Every key is translated; ${formatCount(orphaned)} orphaned ${orphaned === 1 ? "key is" : "keys are"} left over.`
     : "Pending changes remain.";
 }
 
@@ -145,25 +152,25 @@ function tileProps(tile: Tile): {
 export function OverviewMetrics({
   status,
   diff,
-  reviewWaiting,
+  reviewQueue,
 }: {
   readonly status: RefreshableView<StatusData>;
   readonly diff: DiffState;
-  readonly reviewWaiting?: ReviewWaiting | undefined;
+  readonly reviewQueue?: RefreshableView<ReviewQueueData> | undefined;
 }): ReactNode {
   const coverage = coverageTile(status);
   const sync = syncTile(status, diff);
-  const columns = reviewWaiting === undefined ? "lg:grid-cols-3" : "lg:grid-cols-4";
+  const columns = reviewQueue === undefined ? "lg:grid-cols-3" : "lg:grid-cols-4";
 
   return (
     <div className="mb-10">
       <div className={`grid grid-cols-1 gap-3 xs:grid-cols-2 sm:gap-4 ${columns}`}>
         <MetricCard label="Needs attention" icon="alert" {...tileProps(attentionTile(diff))} />
-        {reviewWaiting === undefined ? null : (
+        {reviewQueue === undefined ? null : (
           <MetricCard
             label="Waiting for review"
             icon="review"
-            {...tileProps(reviewTile(reviewWaiting))}
+            {...tileProps(reviewTile(reviewQueue))}
           />
         )}
         <MetricCard

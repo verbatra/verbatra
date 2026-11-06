@@ -1,11 +1,23 @@
 import type { StatusData } from "../client/coverage.js";
+import type { ReviewQueueData } from "../client/review-queue-data.js";
 import type { RefreshableView, StructuredError } from "../client/state.js";
+import type { UsageTickerData } from "../client/usage-ticker-data.js";
 import type { DiffState } from "./use-diff-state.js";
+import type { HistoryState } from "./use-history-list.js";
 import type { LockView } from "./use-lock-state.js";
 
 export interface PageFailure {
   readonly error: StructuredError;
   readonly prefix?: string;
+}
+
+export interface OverviewReads {
+  readonly diff: DiffState;
+  readonly status: RefreshableView<StatusData>;
+  readonly lock: LockView;
+  readonly review: RefreshableView<ReviewQueueData> | undefined;
+  readonly usage: RefreshableView<UsageTickerData>;
+  readonly history: HistoryState;
 }
 
 interface Source {
@@ -14,59 +26,74 @@ interface Source {
   readonly stale: boolean;
 }
 
-function diffSource(diff: DiffState): Source {
-  if (diff.kind === "error") {
-    return { label: "pending changes", error: diff.error, stale: false };
-  }
-  return {
-    label: "pending changes",
-    error: diff.kind === "loaded" ? diff.staleError : undefined,
-    stale: true,
-  };
+function hard(label: string, error: StructuredError): Source {
+  return { label, error, stale: false };
 }
 
-function statusSource(status: RefreshableView<StatusData>): Source {
-  if (status.kind === "error") {
-    return { label: "status", error: status.error, stale: false };
+function kept(label: string, error: StructuredError | undefined): Source {
+  return { label, error, stale: true };
+}
+
+function refreshable(
+  label: string,
+  view: RefreshableView<unknown> | undefined,
+): Source | undefined {
+  if (view === undefined) {
+    return undefined;
   }
-  return {
-    label: "status",
-    error: status.kind === "data" && status.stale ? status.error : undefined,
-    stale: true,
-  };
+  if (view.kind === "error") {
+    return hard(label, view.error);
+  }
+  return kept(label, view.kind === "data" && view.stale ? view.error : undefined);
+}
+
+function diffSource(diff: DiffState): Source {
+  if (diff.kind === "error") {
+    return hard("pending changes", diff.error);
+  }
+  return kept("pending changes", diff.kind === "loaded" ? diff.staleError : undefined);
 }
 
 function lockSource(lock: LockView): Source {
   if (lock.kind === "error") {
-    return { label: "lock file", error: lock.error, stale: false };
+    return hard("lock file", lock.error);
   }
-  return {
-    label: "lock file",
-    error: lock.kind === "loaded" ? lock.staleError : undefined,
-    stale: true,
-  };
+  return kept("lock file", lock.kind === "loaded" ? lock.staleError : undefined);
 }
 
-export function pageFailure(
-  diff: DiffState,
-  status: RefreshableView<StatusData>,
-  lock: LockView,
-): PageFailure | null {
-  const failed = [diffSource(diff), statusSource(status), lockSource(lock)].filter(
-    (source) => source.error !== undefined,
-  );
-  const hard = failed.find((source) => !source.stale);
-  if (hard?.error !== undefined) {
-    return { error: hard.error };
+function historySource(history: HistoryState): Source {
+  if (history.kind === "error") {
+    return hard("history", history.error);
   }
-  const first = failed[0];
-  if (first?.error === undefined) {
+  return kept("history", history.kind === "loaded" ? history.staleError : undefined);
+}
+
+function joinLabels(labels: readonly string[]): string {
+  const last = labels.at(-1);
+  if (labels.length < 2 || last === undefined) {
+    return labels.join("");
+  }
+  return `${labels.slice(0, -1).join(", ")} and ${last}`;
+}
+
+export function pageFailure(reads: OverviewReads): PageFailure | null {
+  const failed = [
+    diffSource(reads.diff),
+    refreshable("status", reads.status),
+    lockSource(reads.lock),
+    refreshable("review queue", reads.review),
+    refreshable("usage", reads.usage),
+    historySource(reads.history),
+  ].filter((source): source is Source => source?.error !== undefined);
+  const primary = failed.find((source) => !source.stale) ?? failed[0];
+  if (primary?.error === undefined) {
     return null;
   }
-  const code = first.error.code;
-  const labels = failed
-    .filter((source) => source.error?.code === code)
-    .map((source) => source.label)
-    .join(", ");
-  return { error: first.error, prefix: `Showing the last known ${labels}.` };
+  const code = primary.error.code;
+  const staleLabels = failed
+    .filter((source) => source.stale && source.error?.code === code)
+    .map((source) => source.label);
+  return staleLabels.length === 0
+    ? { error: primary.error }
+    : { error: primary.error, prefix: `Showing the last known ${joinLabels(staleLabels)}.` };
 }

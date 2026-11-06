@@ -60,10 +60,18 @@ function lockCell(lock: LoadedLock, locale: string): ReactNode {
 function RowLinks({ locale }: { readonly locale: string }): ReactNode {
   return (
     <span className="-ms-1.5 flex items-center gap-1 whitespace-nowrap" data-row-links="">
-      <a href={routeHash({ page: "translations", params: { locale } })} className={ROW_LINK}>
+      <a
+        href={routeHash({ page: "translations", params: { locale } })}
+        className={ROW_LINK}
+        data-row-link=""
+      >
         Translations<span className="sr-only"> for {locale}</span>
       </a>
-      <a href={routeHash({ page: "review", params: { locale } })} className={ROW_LINK}>
+      <a
+        href={routeHash({ page: "review", params: { locale } })}
+        className={ROW_LINK}
+        data-row-link=""
+      >
         Review<span className="sr-only"> for {locale}</span>
       </a>
     </span>

@@ -1,18 +1,31 @@
-import { useEffect } from "react";
-import type { Route } from "../client/routes.js";
+import { useEffect, useLayoutEffect } from "react";
+import { parseRoute, type Route, routeHash } from "../client/routes.js";
 
-const MARK_WINDOW_MS = 300;
+const PENDING_LIFETIME_MS = 120_000;
 
-let markedAt = Number.NEGATIVE_INFINITY;
-
-export function markLinkNavigation(): void {
-  markedAt = Date.now();
+interface Pending {
+  readonly target: string;
+  readonly at: number;
 }
 
-function consumeLinkNavigation(): boolean {
-  const fresh = Date.now() - markedAt <= MARK_WINDOW_MS;
-  markedAt = Number.NEGATIVE_INFINITY;
-  return fresh;
+let pending: Pending | null = null;
+
+function sameRoute(left: string, right: string): boolean {
+  return routeHash(parseRoute(left)) === routeHash(parseRoute(right));
+}
+
+export function markLinkNavigation(target: string): void {
+  pending = { target, at: Date.now() };
+}
+
+function consumeLinkNavigation(route: Route): boolean {
+  const mark = pending;
+  pending = null;
+  return (
+    mark !== null &&
+    Date.now() - mark.at <= PENDING_LIFETIME_MS &&
+    sameRoute(mark.target, routeHash(route))
+  );
 }
 
 function isPlainLinkClick(event: MouseEvent): boolean {
@@ -31,8 +44,9 @@ function handleDocumentClick(event: MouseEvent): void {
     return;
   }
   const anchor = event.target.closest("a[href^='#/']");
-  if (anchor !== null && !anchor.hasAttribute("target")) {
-    markLinkNavigation();
+  const href = anchor?.getAttribute("href");
+  if (anchor !== null && href !== null && href !== undefined && !anchor.hasAttribute("target")) {
+    markLinkNavigation(href);
   }
 }
 
@@ -42,8 +56,8 @@ export function useScrollToTopOnLinkNavigation(route: Route): void {
     return () => document.removeEventListener("click", handleDocumentClick);
   }, []);
 
-  useEffect(() => {
-    if (route !== undefined && consumeLinkNavigation()) {
+  useLayoutEffect(() => {
+    if (consumeLinkNavigation(route)) {
       window.scrollTo(0, 0);
     }
   }, [route]);

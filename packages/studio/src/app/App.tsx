@@ -15,7 +15,6 @@ import { cn } from "./lib/cn.js";
 import { PAGE_MAX_CLASS } from "./lib/page-width.js";
 import { useScrollToTopOnLinkNavigation } from "./link-scroll.js";
 import { NavDrawer } from "./NavDrawer.js";
-import type { ReviewWaiting } from "./OverviewMetrics.js";
 import type { PanelProps } from "./panel-props.js";
 import { GlossaryPanel } from "./panels/GlossaryPanel.js";
 import { OverviewPanel } from "./panels/OverviewPanel.js";
@@ -36,11 +35,10 @@ const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = 
   settings: SettingsPanel,
 };
 
-function reviewWaitingOf(queue: RefreshableView<ReviewQueueData>, count: number): ReviewWaiting {
-  if (queue.kind === "loading") {
-    return "loading";
-  }
-  return queue.kind === "error" ? "error" : count;
+function waitingCount(queue: RefreshableView<ReviewQueueData>): number | undefined {
+  return queue.kind === "data" && queue.data.available
+    ? unreviewedRows(queue.data).length
+    : undefined;
 }
 
 function focusMain(): void {
@@ -126,11 +124,12 @@ function AppShell({
   readonly mobileNavOpen: boolean;
   readonly onSetMobileNavOpen: (open: boolean) => void;
 }): ReactNode {
-  const reviewQueue = useReviewQueue(refreshToken);
+  const [retries, setRetries] = useState(0);
+  const reviewQueue = useReviewQueue(refreshToken + retries);
   const agentToolsFailures = useAgentToolsFailures();
-  const reviewCount = reviewQueue.kind === "data" ? unreviewedRows(reviewQueue.data).length : 0;
-  const reviewWaiting = reviewWaitingOf(reviewQueue, reviewCount);
-  const pageBadges: Readonly<Partial<Record<PageId, number>>> = { review: reviewCount };
+  const reviewCount = waitingCount(reviewQueue);
+  const pageBadges: Readonly<Partial<Record<PageId, number>>> =
+    reviewCount === undefined ? {} : { review: reviewCount };
 
   const ActivePanel = PAGE_PANELS[page];
   const wide = useMediaQuery(XL_QUERY, false);
@@ -178,7 +177,11 @@ function AppShell({
         >
           <AgentToolsAlert failures={agentToolsFailures} />
           {page === "overview" ? (
-            <OverviewPanel refreshToken={refreshToken} reviewWaiting={reviewWaiting} />
+            <OverviewPanel
+              refreshToken={refreshToken + retries}
+              reviewQueue={reviewQueue}
+              onRetry={() => setRetries((count) => count + 1)}
+            />
           ) : (
             <ActivePanel refreshToken={refreshToken} />
           )}

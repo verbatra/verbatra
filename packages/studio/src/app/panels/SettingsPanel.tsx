@@ -15,7 +15,7 @@ function ProjectMetrics({ snapshot }: { readonly snapshot: ProjectSnapshotResult
       <MetricCard
         label="Source locale"
         value={
-          <span dir="ltr">
+          <span dir="ltr" data-identifier="">
             <MonoValue>{snapshot.sourceLocale}</MonoValue>
           </span>
         }
@@ -25,11 +25,18 @@ function ProjectMetrics({ snapshot }: { readonly snapshot: ProjectSnapshotResult
         value={String(snapshot.targetLocales.length)}
         hint={snapshot.targetLocales.join(", ")}
       />
-      <MetricCard label="Format" value={<MonoValue breakAnywhere>{snapshot.format}</MonoValue>} />
+      <MetricCard
+        label="Format"
+        value={
+          <span dir="ltr" data-identifier="">
+            <MonoValue breakAnywhere>{snapshot.format}</MonoValue>
+          </span>
+        }
+      />
       <MetricCard
         label="Provider"
         value={
-          <span dir="ltr">
+          <span dir="ltr" data-identifier="">
             <MonoValue breakAnywhere>{snapshot.provider.id}</MonoValue>
           </span>
         }

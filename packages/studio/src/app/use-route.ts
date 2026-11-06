@@ -40,10 +40,10 @@ export function navigateToPage(page: PageId): boolean {
     return true;
   }
   const next = pageHash(page);
+  markLinkNavigation(next);
   if (routeChangeBlocked(next, "push")) {
     return false;
   }
-  markLinkNavigation();
   writeRoute("push", next);
   return true;
 }
@@ -53,10 +53,10 @@ export function navigateToRoute(route: Route): boolean {
   if (next === visibleHash()) {
     return true;
   }
+  markLinkNavigation(next);
   if (routeChangeBlocked(next, "push")) {
     return false;
   }
-  markLinkNavigation();
   writeRoute("push", next);
   return true;
 }

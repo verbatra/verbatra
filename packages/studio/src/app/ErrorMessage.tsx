@@ -59,7 +59,7 @@ export function ErrorMessage({
       role="alert"
     >
       <Icon name="alert" className="mt-0.5 flex-none" />
-      <span className="min-w-0 flex-1 basis-40">
+      <span className="min-w-0 flex-1 basis-40 wrap-anywhere">
         {prefix !== undefined ? `${prefix} ` : null}
         {resolveErrorCopy(error)}
         {detail !== undefined ? (

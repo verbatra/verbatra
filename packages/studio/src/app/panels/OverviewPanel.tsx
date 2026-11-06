@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { errorDetail } from "../../client/error-copy.js";
 import { HISTORY_MAX, HISTORY_PAGE_SIZE } from "../../client/history-limit.js";
+import type { ReviewQueueData } from "../../client/review-queue-data.js";
 import type { RefreshableView } from "../../client/state.js";
 import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import type {
@@ -18,7 +19,7 @@ import { ErrorMessage } from "../ErrorMessage.js";
 import { Loading } from "../Loading.js";
 import { LocalesSection } from "../LocalesSection.js";
 import { MetricCard } from "../MetricCard.js";
-import { OverviewMetrics, type ReviewWaiting } from "../OverviewMetrics.js";
+import { OverviewMetrics } from "../OverviewMetrics.js";
 import { pageFailure } from "../overview-failures.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
@@ -31,13 +32,15 @@ import { useUsageTicker } from "../use-usage-ticker.js";
 function UsageCards({ usage }: { readonly usage: UsageDisplay }): ReactNode {
   if (usage.kind === "not-reported") {
     return (
-      <MetricCard
-        label="Tokens"
-        icon="gauge"
-        value="Not reported"
-        quiet
-        hint="No token usage was recorded: the run called no provider, or its provider does not report usage."
-      />
+      <div className="xs:col-span-2 lg:col-span-1">
+        <MetricCard
+          label="Tokens"
+          icon="gauge"
+          value="Not reported"
+          quiet
+          hint="No token usage was recorded: the run called no provider, or its provider does not report usage."
+        />
+      </div>
     );
   }
   return (
@@ -135,16 +138,18 @@ function LastRunRail({
 }
 
 function LocaleFileHistory({
-  refreshToken,
+  history,
+  limit,
+  onLimit,
   onRetry,
   hideCode,
 }: {
-  readonly refreshToken: number;
+  readonly history: HistoryState;
+  readonly limit: number;
+  readonly onLimit: (next: number) => void;
   readonly onRetry: () => void;
   readonly hideCode: string | undefined;
 }): ReactNode {
-  const [limit, setLimit] = useState(HISTORY_PAGE_SIZE);
-  const history = useHistoryList(refreshToken, limit);
   const regionRef = useRef<HTMLDivElement>(null);
   const askedFrom = useRef<number | null>(null);
   const loaded = history.kind === "loaded";
@@ -155,6 +160,10 @@ function LocaleFileHistory({
   const showMore = !failed && (pending || (full && limit < HISTORY_MAX));
 
   useEffect(() => {
+    if (failed) {
+      askedFrom.current = null;
+      return;
+    }
     if (!settled || askedFrom.current === null) {
       return;
     }
@@ -162,14 +171,14 @@ function LocaleFileHistory({
     askedFrom.current = null;
     const rows = regionRef.current?.querySelectorAll<HTMLElement>('ul[aria-label="Commits"] > li');
     (rows?.[firstNew] ?? rows?.[rows.length - 1])?.focus();
-  }, [settled]);
+  }, [failed, settled]);
 
   function loadMore(): void {
     if (pending) {
       return;
     }
     askedFrom.current = loaded ? history.commits.length : 0;
-    setLimit((current) => Math.min(current + HISTORY_PAGE_SIZE, HISTORY_MAX));
+    onLimit(Math.min(limit + HISTORY_PAGE_SIZE, HISTORY_MAX));
   }
 
   const hidden =
@@ -205,24 +214,48 @@ function LocaleFileHistory({
 }
 
 export interface OverviewPanelProps extends PanelProps {
-  readonly reviewWaiting?: ReviewWaiting | undefined;
+  readonly reviewQueue?: RefreshableView<ReviewQueueData> | undefined;
+  readonly onRetry?: (() => void) | undefined;
 }
 
-export function OverviewPanel({ refreshToken, reviewWaiting }: OverviewPanelProps): ReactNode {
-  const [retries, setRetries] = useState(0);
-  const token = refreshToken + retries;
+export function OverviewPanel({
+  refreshToken,
+  reviewQueue,
+  onRetry,
+}: OverviewPanelProps): ReactNode {
+  const [localRetries, setLocalRetries] = useState(0);
+  const token = refreshToken + localRetries;
+  const [limit, setLimit] = useState(HISTORY_PAGE_SIZE);
   const diff = useDiffState(token);
   const status = useStatusData(token);
   const lock = useLockState(token);
   const usage = useUsageTicker(token);
+  const history = useHistoryList(token, limit);
   const [retried, setRetried] = useState<readonly unknown[] | null>(null);
-  const failure = pageFailure(diff, status, lock);
-  const retrying =
-    retried !== null && retried[0] === diff && retried[1] === status && retried[2] === lock;
+  const recoveryRef = useRef<HTMLDivElement>(null);
+  const awaitingRecovery = useRef(false);
+  const failure = pageFailure({ diff, status, lock, review: reviewQueue, usage, history });
+  const reads = [diff, status, lock, reviewQueue, usage, history];
+  const retrying = retried?.every((read, index) => read === reads[index]) === true;
+
+  useEffect(() => {
+    if (!awaitingRecovery.current || retrying) {
+      return;
+    }
+    awaitingRecovery.current = false;
+    if (failure === null) {
+      recoveryRef.current?.focus();
+    }
+  }, [failure, retrying]);
 
   function retry(): void {
-    setRetried([diff, status, lock]);
-    setRetries((count) => count + 1);
+    awaitingRecovery.current = true;
+    setRetried(reads);
+    if (onRetry === undefined) {
+      setLocalRetries((count) => count + 1);
+    } else {
+      onRetry();
+    }
   }
 
   return (
@@ -231,7 +264,14 @@ export function OverviewPanel({ refreshToken, reviewWaiting }: OverviewPanelProp
         title="Overview"
         description="How far along each locale is, what the last run did, and how the locale files have changed."
       />
-      <OverviewMetrics status={status} diff={diff} reviewWaiting={reviewWaiting} />
+      <div
+        ref={recoveryRef}
+        tabIndex={-1}
+        data-overview-recovery=""
+        className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <OverviewMetrics status={status} diff={diff} reviewQueue={reviewQueue} />
+      </div>
       {failure === null ? null : (
         <ErrorMessage
           error={failure.error}
@@ -248,7 +288,13 @@ export function OverviewPanel({ refreshToken, reviewWaiting }: OverviewPanelProp
           <LastRunRail view={usage} onRetry={retry} hideCode={failure?.error.code} />
         </PageSection>
         <PageSection title="Locale file history" className="mb-0 lg:col-start-1 lg:row-start-1">
-          <LocaleFileHistory refreshToken={token} onRetry={retry} hideCode={failure?.error.code} />
+          <LocaleFileHistory
+            history={history}
+            limit={limit}
+            onLimit={setLimit}
+            onRetry={retry}
+            hideCode={failure?.error.code}
+          />
         </PageSection>
       </div>
     </>
