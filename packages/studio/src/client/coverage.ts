@@ -45,3 +45,12 @@ export function toStatusOutcome(response: RpcCallResult<"status.check">): FetchO
   }
   return { ok: true, result: toStatusData(response.result) };
 }
+
+export function sortWorstFirst(rows: readonly StatusRow[]): readonly StatusRow[] {
+  return [...rows].sort(
+    (left, right) =>
+      left.percent - right.percent ||
+      right.missing - left.missing ||
+      left.locale.localeCompare(right.locale),
+  );
+}

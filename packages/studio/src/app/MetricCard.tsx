@@ -8,6 +8,26 @@ const VALUE_TONE_CLASSNAME = {
   danger: "text-danger",
 } as const;
 
+function atomicTokens(text: string): readonly { readonly at: number; readonly token: string }[] {
+  const tokens: { at: number; token: string }[] = [];
+  for (const match of text.matchAll(/\S+|\s+/g)) {
+    tokens.push({ at: match.index, token: match[0] });
+  }
+  return tokens;
+}
+
+function AtomicText({ text }: { readonly text: string }): ReactNode {
+  return atomicTokens(text).map(({ at, token }) =>
+    token.trim() === "" ? (
+      token
+    ) : (
+      <span key={at} className="whitespace-nowrap">
+        {token}
+      </span>
+    ),
+  );
+}
+
 export function MetricCard({
   label,
   value,
@@ -49,7 +69,7 @@ export function MetricCard({
         ) : null}
       </div>
       <div className={valueClassName} data-metric-value="" data-figure={isFigure ? "" : undefined}>
-        {value}
+        {isFigure ? <AtomicText text={value} /> : value}
       </div>
       {hint !== undefined ? (
         <p className="mt-1 text-xs text-muted-foreground" data-metric-hint="">

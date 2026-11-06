@@ -6,6 +6,7 @@ import type { StructuredError } from "../client/state.js";
 export interface ErrorMessageProps {
   readonly error: StructuredError;
   readonly prefix?: string;
+  readonly detail?: string | undefined;
   readonly onRetry?: () => void;
   readonly retrying?: boolean;
   readonly onCancel?: () => void;
@@ -47,6 +48,7 @@ function ErrorActions({
 export function ErrorMessage({
   error,
   prefix,
+  detail,
   onRetry,
   onCancel,
   retrying = false,
@@ -60,6 +62,12 @@ export function ErrorMessage({
       <span className="min-w-0 flex-1 basis-40">
         {prefix !== undefined ? `${prefix} ` : null}
         {resolveErrorCopy(error)}
+        {detail !== undefined ? (
+          <>
+            {" "}
+            <span className="mt-1 block">{detail}</span>
+          </>
+        ) : null}
       </span>
       <ErrorActions onRetry={onRetry} retrying={retrying} onCancel={onCancel} />
     </p>

@@ -1,33 +1,22 @@
 import type { ReactNode, RefObject } from "react";
-import { useEffect, useState } from "react";
+import { cn } from "./lib/cn.js";
+import { useHorizontalOverflow } from "./use-horizontal-overflow.js";
 
 export function ScrollHint({
   targetRef,
+  className = "mt-2",
 }: {
   readonly targetRef: RefObject<HTMLElement | null>;
+  readonly className?: string;
 }): ReactNode {
-  const [overflows, setOverflows] = useState(false);
-
-  useEffect(() => {
-    const target = targetRef.current;
-    if (target === null) {
-      return;
-    }
-    const measure = (): void => setOverflows(target.scrollWidth > target.clientWidth);
-    measure();
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-    const observer = new ResizeObserver(measure);
-    observer.observe(target);
-    for (const child of target.children) {
-      observer.observe(child);
-    }
-    return () => observer.disconnect();
-  }, [targetRef]);
+  const overflows = useHorizontalOverflow(targetRef);
 
   return (
-    <p hidden={!overflows} aria-hidden="true" className="mt-2 text-xs text-muted-foreground">
+    <p
+      hidden={!overflows}
+      aria-hidden="true"
+      className={cn("text-xs text-muted-foreground", className)}
+    >
       Scroll sideways to see every column.
     </p>
   );

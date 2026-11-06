@@ -8,6 +8,7 @@ import {
   type RouteParams,
   routeHash,
 } from "../client/routes.js";
+import { markLinkNavigation } from "./link-scroll.js";
 import { ROUTE_CHANGE_EVENT, routeChangeBlocked, visibleHash, writeRoute } from "./route-guard.js";
 
 const EMPTY_PARAMS: RouteParams = {};
@@ -42,6 +43,7 @@ export function navigateToPage(page: PageId): boolean {
   if (routeChangeBlocked(next, "push")) {
     return false;
   }
+  markLinkNavigation();
   writeRoute("push", next);
   return true;
 }
@@ -54,6 +56,7 @@ export function navigateToRoute(route: Route): boolean {
   if (routeChangeBlocked(next, "push")) {
     return false;
   }
+  markLinkNavigation();
   writeRoute("push", next);
   return true;
 }
