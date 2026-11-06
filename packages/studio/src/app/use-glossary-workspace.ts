@@ -249,29 +249,39 @@ export function useGlossaryWorkspace({
     }
   }, [hold.visible]);
 
+  const latest = useRef({ scope, writer });
+  latest.current = { scope, writer };
+
   useEffect(() => {
+    const { scope: currentScope, writer: currentWriter } = latest.current;
     setEditors((current) => {
       const next = new Map(current);
       for (const [source, entry] of current) {
         const term = terms.find((candidate) => candidate.source === source);
-        const clean = sameDraft(entry.draft, draftFor(entry.base, scope));
+        const clean = sameDraft(entry.draft, draftFor(entry.base, currentScope));
         if (term !== undefined && clean && term !== entry.base && !sameValue(term, entry.base)) {
-          next.set(source, { ...entry, draft: draftFor(term, scope), base: term });
+          next.set(source, { ...entry, draft: draftFor(term, currentScope), base: term });
         }
       }
       return [...next].some(([source, entry]) => entry !== current.get(source)) ? next : current;
     });
-    for (const key of writer.failureKeys()) {
+    for (const key of currentWriter.failureKeys()) {
       const gone = key.startsWith("term:") && !terms.some((term) => termKey(term.source) === key);
       if (gone) {
-        writer.dismiss(key);
+        currentWriter.dismiss(key);
       }
     }
-  }, [terms, scope, writer.failureKeys, writer.dismiss]);
+  }, [terms]);
 
   function setDraft(term: GlossaryTermView, draft: TermDraft): void {
+    const index = terms.findIndex((candidate) => candidate.source === term.source);
     setEditors((current) =>
-      withEntry(current, term.source, { draft, base: current.get(term.source)?.base ?? term }),
+      withEntry(current, term.source, {
+        after: terms[index - 1]?.source,
+        base: term,
+        ...current.get(term.source),
+        draft,
+      }),
     );
     writer.dismiss(termKey(term.source));
   }
@@ -308,12 +318,12 @@ export function useGlossaryWorkspace({
       focus.request([editorFieldKey(source)]);
       return;
     }
-    const index = listed.findIndex((candidate) => candidate.source === source);
+    const index = terms.findIndex((candidate) => candidate.source === source);
     setEditors((current) =>
       withEntry(current, source, {
         draft: draftFor(term, scope),
         base: term,
-        after: listed[index - 1]?.source,
+        after: terms[index - 1]?.source,
       }),
     );
     writer.dismiss(termKey(source));

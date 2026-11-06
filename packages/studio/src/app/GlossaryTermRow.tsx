@@ -204,7 +204,11 @@ function RowNotes({
           <ErrorMessage
             error={failure.error}
             {...(isRemovalEdit(failure.edit)
-              ? { prefix: "Removing this term failed. Retry removes it again." }
+              ? {
+                  prefix: isRetryableWriteError(failure.error)
+                    ? "Removing this term failed. Retry removes it again."
+                    : "Removing this term failed.",
+                }
               : {})}
             retrying={busy}
             {...(isRetryableWriteError(failure.error) ? { onRetry: () => onRetry(failure) } : {})}

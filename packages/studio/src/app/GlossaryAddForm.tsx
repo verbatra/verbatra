@@ -44,6 +44,20 @@ function ExistsNote({
   );
 }
 
+interface Fresh {
+  readonly term: GlossaryTermView;
+  readonly scope: string;
+  readonly typed: string;
+}
+
+function freshMatch(
+  fresh: Fresh | undefined,
+  scope: string,
+  typed: string,
+): GlossaryTermView | undefined {
+  return fresh?.scope === scope && fresh.typed === typed ? fresh.term : undefined;
+}
+
 export function GlossaryAddForm({
   terms,
   redactedTerms,
@@ -57,10 +71,12 @@ export function GlossaryAddForm({
   latest.current = add;
   const busy = writer.busy(ADD_KEY);
   const failure = writer.failure(ADD_KEY);
-  const [fresh, setFresh] = useState<GlossaryTermView | undefined>(undefined);
+  const [fresh, setFresh] = useState<Fresh | undefined>(undefined);
   const trimmedTerm = add.term.trim();
   const trimmedTranslation = add.translation.trim();
-  const existing = existingTermFor(terms, redactedTerms, trimmedTerm, scope) ?? fresh;
+  const existing =
+    existingTermFor(terms, redactedTerms, trimmedTerm, scope) ??
+    freshMatch(fresh, scope, trimmedTerm);
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
   const waiting = busy || bench.addChecking;
@@ -104,7 +120,7 @@ export function GlossaryAddForm({
           ? undefined
           : existingTermFor(read.terms, read.redactedTerms, trimmedTerm, scope);
       if (taken !== undefined) {
-        setFresh(taken);
+        setFresh({ term: taken, scope, typed: trimmedTerm });
       } else if (unchanged) {
         pending = writer.write(ADD_KEY, edit, { onDone: () => settle(edit) });
       }
