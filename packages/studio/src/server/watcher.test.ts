@@ -106,6 +106,30 @@ describe("createProjectWatcher: category wiring", () => {
     expect(harness.calls[4]?.paths).toEqual([join(PROJECT_ROOT, PROVENANCE_FILE_NAME)]);
   });
 
+  it("also watches a file-backed glossary and reports its change as a lock refresh", async () => {
+    const harness = multiWatcherHarness();
+    const glossaryPath = join(PROJECT_ROOT, "glossary.json");
+    const { events, listener } = collectRefresh();
+    const watcher = await createProjectWatcher(
+      {
+        config: baseStudioConfig({ targetLocales: [] }),
+        projectRoot: PROJECT_ROOT,
+        glossaryPath,
+        debounceMs: 5,
+      },
+      {
+        createWatcher: harness.createWatcher,
+        readLocaleSnapshot: emptyReadLocaleSnapshot,
+        readFileIdentity: unknownFileIdentity,
+      },
+    );
+    watcher.onRefresh(listener);
+
+    expect(harness.calls[3]?.paths).toEqual([glossaryPath]);
+    harness.emit(3);
+    await vi.waitFor(() => expect(events.map((event) => event.reason)).toEqual(["lock"]));
+  });
+
   it("creates no targets watcher when no target locales are configured", async () => {
     const harness = multiWatcherHarness();
     const config: VerbatraConfig = baseStudioConfig({ targetLocales: [] });

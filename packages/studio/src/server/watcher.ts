@@ -24,7 +24,11 @@ interface WatchedEntry {
   readonly locale?: string;
 }
 
-function watchedEntries(config: VerbatraConfig, projectRoot: string): readonly WatchedEntry[] {
+function watchedEntries(
+  config: VerbatraConfig,
+  projectRoot: string,
+  glossaryPath: string | undefined,
+): readonly WatchedEntry[] {
   const resolver = createLocalePathResolver(projectRoot, config);
   const source = resolver.pathFor(config.sourceLocale);
   const targets: WatchedEntry[] = config.targetLocales.map((locale) => ({
@@ -39,6 +43,7 @@ function watchedEntries(config: VerbatraConfig, projectRoot: string): readonly W
     ...targets,
     { reason: "lock", paths: [lock] },
     { reason: "lock", paths: [resolve(projectRoot, PROVENANCE_FILE_NAME)] },
+    ...(glossaryPath === undefined ? [] : [{ reason: "lock" as const, paths: [glossaryPath] }]),
   ];
 }
 
@@ -175,6 +180,7 @@ function createDebouncedTrigger(
 export interface ProjectWatcherInput {
   readonly config: VerbatraConfig;
   readonly projectRoot: string;
+  readonly glossaryPath?: string;
   readonly debounceMs?: number;
 }
 
@@ -245,7 +251,9 @@ export async function createProjectWatcher(
 
   const readSnapshot = buildReadLocaleSnapshot(input, deps);
   const primed = await Promise.all(
-    watchedEntries(input.config, input.projectRoot).map((entry) => primeEntry(entry, readSnapshot)),
+    watchedEntries(input.config, input.projectRoot, input.glossaryPath).map((entry) =>
+      primeEntry(entry, readSnapshot),
+    ),
   );
 
   const readIdentity = deps.readFileIdentity ?? readFileIdentityFromDisk;
