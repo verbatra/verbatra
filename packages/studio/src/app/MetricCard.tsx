@@ -77,7 +77,7 @@ export function MetricCard({
         {isFigure ? <AtomicText text={value} /> : value}
       </div>
       {hint !== undefined ? (
-        <p className="mt-1 text-xs text-muted-foreground" data-metric-hint="">
+        <p className="mt-1 wrap-anywhere text-xs text-muted-foreground" data-metric-hint="">
           {hintHref !== undefined ? (
             <a
               href={hintHref}

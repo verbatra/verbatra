@@ -14,11 +14,15 @@ export function useDialogDraftGuard({
   saving,
   onClose,
   fieldRef,
+  proceedOnSettled = false,
+  blocked = false,
 }: {
   readonly dirty: boolean;
   readonly saving: boolean;
   readonly onClose: () => void;
-  readonly fieldRef: RefObject<HTMLElement | null>;
+  readonly fieldRef: RefObject<{ focus(): void } | null>;
+  readonly proceedOnSettled?: boolean;
+  readonly blocked?: boolean;
 }): DialogDraftGuard {
   const [confirming, setConfirming] = useState(false);
   const heldRoute = useRef<(() => Promise<void>) | null>(null);
@@ -46,15 +50,31 @@ export function useDialogDraftGuard({
     [fieldRef],
   );
 
+  const sawSaving = useRef(false);
   useEffect(() => {
-    if (confirming && !dirty && !saving) {
+    if (!confirming) {
+      sawSaving.current = false;
+    } else if (saving) {
+      sawSaving.current = true;
+    } else if (blocked) {
+      sawSaving.current = false;
+    }
+  }, [confirming, saving, blocked]);
+
+  useEffect(() => {
+    if (confirming && !dirty && !saving && !blocked) {
       if (heldRoute.current !== null) {
-        restoreHeldRoute();
+        if (proceedOnSettled && sawSaving.current) {
+          const held = takeHeldRoute();
+          void held?.();
+        } else {
+          restoreHeldRoute();
+        }
         heldRoute.current = null;
       }
       setConfirming(false);
     }
-  }, [confirming, dirty, saving]);
+  }, [confirming, dirty, saving, blocked, proceedOnSettled]);
 
   function takeHeldRoute(): (() => Promise<void>) | null {
     const held = heldRoute.current;

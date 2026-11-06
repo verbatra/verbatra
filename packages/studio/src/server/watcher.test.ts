@@ -106,6 +106,30 @@ describe("createProjectWatcher: category wiring", () => {
     expect(harness.calls[4]?.paths).toEqual([join(PROJECT_ROOT, PROVENANCE_FILE_NAME)]);
   });
 
+  it("also watches a file-backed glossary and reports its change as a lock refresh", async () => {
+    const harness = multiWatcherHarness();
+    const glossaryPath = join(PROJECT_ROOT, "glossary.json");
+    const { events, listener } = collectRefresh();
+    const watcher = await createProjectWatcher(
+      {
+        config: baseStudioConfig({ targetLocales: [] }),
+        projectRoot: PROJECT_ROOT,
+        glossaryPath,
+        debounceMs: 5,
+      },
+      {
+        createWatcher: harness.createWatcher,
+        readLocaleSnapshot: emptyReadLocaleSnapshot,
+        readFileIdentity: unknownFileIdentity,
+      },
+    );
+    watcher.onRefresh(listener);
+
+    expect(harness.calls[3]?.paths).toEqual([glossaryPath]);
+    harness.emit(3);
+    await vi.waitFor(() => expect(events.map((event) => event.reason)).toEqual(["lock"]));
+  });
+
   it("creates no targets watcher when no target locales are configured", async () => {
     const harness = multiWatcherHarness();
     const config: VerbatraConfig = baseStudioConfig({ targetLocales: [] });
@@ -857,6 +881,30 @@ describe("defaultCreateStudioWatcher: real chokidar behavior", () => {
         delta: { added: 0, changed: 0, removed: 0 },
       });
     }
+    await watcher.close();
+  }, 5000);
+
+  it("deleting the glossary file raises a lock refresh so the page can say it is gone", async () => {
+    const glossaryPath = join(root, "glossary.json");
+    await writeFile(glossaryPath, "{}");
+    await wait(300);
+    const refresh = collectRefresh();
+    const watcher = await createProjectWatcher(
+      {
+        config: baseStudioConfig({ targetLocales: [] }),
+        projectRoot: root,
+        glossaryPath,
+        debounceMs: 50,
+      },
+      { createWatcher: defaultCreateStudioWatcher },
+    );
+    watcher.onRefresh(refresh.listener);
+
+    await wait(200);
+    await rm(glossaryPath);
+    await wait(600);
+
+    expect(refresh.events.map((event) => event.reason)).toContain("lock");
     await watcher.close();
   }, 5000);
 

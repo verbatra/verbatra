@@ -260,7 +260,11 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   const projectRoot = resolveProjectRoot(config.source, options.cwd ?? process.cwd());
 
   const watcher = await createProjectWatcher(
-    { config: config.config, projectRoot },
+    {
+      config: config.config,
+      projectRoot,
+      ...(config.glossary.source === "file" ? { glossaryPath: config.glossary.path } : {}),
+    },
     {
       createWatcher: options.createWatcher ?? defaultCreateStudioWatcher,
       ...(options.fs !== undefined ? { fs: options.fs } : {}),

@@ -8,6 +8,11 @@ import type { ReviewQueueData } from "../client/review-queue-data.js";
 import type { RpcClient } from "../client/rpc-client.js";
 import type { RefreshableView, SessionStore, StructuredError } from "../client/state.js";
 import { createSessionStore } from "../client/state.js";
+import type {
+  GlossaryGetResult,
+  GlossaryTermView,
+  GlossaryWriteResult,
+} from "../shared/rpc/glossary.js";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import type { AgentToolsStatusStore } from "../webmcp/registration-store.js";
 import { createAgentToolsStatusStore } from "../webmcp/registration-store.js";
@@ -428,6 +433,101 @@ export function unavailableQueueView(): RefreshableView<ReviewQueueData> {
 
 export function failedQueueView(error: StructuredError): RefreshableView<ReviewQueueData> {
   return { kind: "error", error };
+}
+
+export function sharedTerm(source: string, target: string): GlossaryTermView {
+  return {
+    source,
+    target,
+    targets: {},
+    forbidden: {},
+    caseSensitive: false,
+    byLocale: {
+      de: { target, inherited: true, forbidden: [] },
+      fr: { target, inherited: true, forbidden: [] },
+    },
+  };
+}
+
+export const DASHBOARD_TERM: GlossaryTermView = {
+  source: "Dashboard",
+  target: "Dashboard",
+  targets: { de: "Übersicht" },
+  forbidden: { de: ["Instrumententafel"] },
+  caseSensitive: true,
+  note: "The start page after sign-in",
+  partOfSpeech: "noun",
+  byLocale: {
+    de: { target: "Übersicht", inherited: false, forbidden: ["Instrumententafel"] },
+    fr: { target: "Dashboard", inherited: true, forbidden: [] },
+  },
+};
+
+export const FILE_BACKED_GLOSSARY: GlossaryGetResult = {
+  indicator: { source: "file", path: "glossary.json" },
+  version: 2,
+  locales: ["de", "fr"],
+  terms: [sharedTerm("verbatra", "Verbatra"), sharedTerm("checkout", "Kasse"), DASHBOARD_TERM],
+  doNotTranslate: [{ term: "Northwind", caseSensitive: true }],
+  redactedTerms: [],
+};
+
+export function writeAnswer(result: GlossaryWriteResult): {
+  readonly ok: true;
+  readonly result: GlossaryWriteResult;
+} {
+  return { ok: true, result };
+}
+
+export interface DeferredAnswer {
+  readonly promise: Promise<StubRpcResult>;
+  resolve(answer: StubRpcResult): void;
+}
+
+export function deferredAnswer(): DeferredAnswer {
+  let settle: (answer: StubRpcResult) => void = () => {};
+  const promise = new Promise<StubRpcResult>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, resolve: settle };
+}
+
+function accessibleName(element: HTMLElement, view: RenderResult): string {
+  const label = element.getAttribute("aria-label");
+  if (label !== null) {
+    return label;
+  }
+  const labelled =
+    element.id === "" ? undefined : view.query(`label[for="${element.id}"]`)?.textContent;
+  return (labelled ?? element.textContent ?? "").trim();
+}
+
+export function elementNamed(view: RenderResult, selector: string, name: string): HTMLElement {
+  const match = view.all(selector).find((element) => accessibleName(element, view) === name);
+  if (match === undefined) {
+    throw new Error(`no ${selector} named ${JSON.stringify(name)}`);
+  }
+  return match;
+}
+
+export function findNamed(
+  view: RenderResult,
+  selector: string,
+  name: string,
+): HTMLElement | undefined {
+  return view.all(selector).find((element) => accessibleName(element, view) === name);
+}
+
+export function glossaryWrites(): readonly unknown[] {
+  return rpcCalls.filter((call) => call.method === "glossary.write");
+}
+
+export function buttonNamed(view: RenderResult, name: string): HTMLElement {
+  return elementNamed(view, "button", name);
+}
+
+export function textboxNamed(view: RenderResult, name: string): HTMLInputElement {
+  return elementNamed(view, "input, textarea", name) as HTMLInputElement;
 }
 
 export function answersInOrder(

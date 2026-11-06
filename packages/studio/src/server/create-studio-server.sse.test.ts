@@ -148,6 +148,28 @@ describe("GET /events: refresh delivery", () => {
   );
 });
 
+describe("watching a file-backed glossary", () => {
+  it("passes the glossary file to the watcher, and nothing when the glossary is not a file", async () => {
+    const watched: (readonly string[])[] = [];
+    const createWatcher: CreateStudioWatcher = (paths): StudioWatcher => {
+      watched.push(paths);
+      return { onChange: () => {}, close: async () => {} };
+    };
+    const base = await stubLoader()();
+
+    await withServer(async () => {}, {
+      token: TOKEN,
+      createWatcher,
+      loader: async () => ({ ...base, glossary: { source: "file", path: "/proj/glossary.json" } }),
+    });
+    expect(watched.flat()).toContain("/proj/glossary.json");
+
+    watched.length = 0;
+    await withServer(async () => {}, { token: TOKEN, createWatcher });
+    expect(watched.flat()).not.toContain("/proj/glossary.json");
+  });
+});
+
 describe("GET /events: secret sweep", () => {
   const SENTINELS = {
     ANTHROPIC_API_KEY: "sentinel-anthropic-sse-1a2b3c",

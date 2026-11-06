@@ -9,8 +9,11 @@ import { installRouteGuard, restoreHeldRoute } from "./route-guard.js";
 import {
   agentToolsStatusStore,
   answersInOrder,
+  buttonNamed,
   clickAsync,
+  elementNamed,
   emitRefresh,
+  FILE_BACKED_GLOSSARY,
   flush,
   hasMetricCard,
   metricCard,
@@ -22,6 +25,7 @@ import {
   rpcError,
   sessionStore,
   stubRpc,
+  textboxNamed,
   typeInto,
 } from "./test-support.js";
 import { replaceRoute } from "./use-route.js";
@@ -816,9 +820,91 @@ describe("App scroll on navigation", () => {
     expect(scrollTo).toHaveBeenCalledWith(0, 0);
   });
 
+  async function mountDirtyGlossary(): Promise<RenderResult> {
+    stubPanelReads();
+    stubRpc({ "glossary.get": { ok: true, result: FILE_BACKED_GLOSSARY } });
+    window.history.replaceState({ idx: 0 }, "", "#/glossary");
+    const view = await mount();
+    await flush();
+    await clickAsync(buttonNamed(view, "Edit checkout"));
+    typeInto(textboxNamed(view, "Translation (all locales)"), "Entwurf");
+    return view;
+  }
+
+  it("scrolls once when a plain link is held by a dirty glossary editor and Discard lets it through", async () => {
+    const view = await mountDirtyGlossary();
+    const anchor = linkTo("#/review");
+
+    await act(async () => {
+      anchor.click();
+    });
+    await flush();
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+    expect(scrollTo).not.toHaveBeenCalled();
+    await clickAsync(elementNamed(view, "[data-unsaved-prompt] button", "Discard"));
+    await flush();
+    anchor.remove();
+
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(view.get("h1").textContent).toBe("Review");
+  });
+
+  it("never scrolls for a plain link a dirty glossary editor held and Keep editing cancelled", async () => {
+    const view = await mountDirtyGlossary();
+    const anchor = linkTo("#/review");
+
+    await act(async () => {
+      anchor.click();
+    });
+    await flush();
+    await clickAsync(elementNamed(view, "[data-unsaved-prompt] button", "Keep editing"));
+    await flush();
+    await clickAsync(buttonNamed(view, "Cancel"));
+    await act(async () => {
+      window.location.hash = "#/review";
+    });
+    await flush();
+    anchor.remove();
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("closes the navigation drawer onto the prompt when a link is held, on Glossary and on Translations", async () => {
+    const view = await mountDirtyGlossary();
+    await clickAsync(view.get('[aria-label^="Open navigation"]'));
+
+    await clickAsync(view.getByText('[role="dialog"] nav a', "Settings"));
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+    expect(document.activeElement).toBe(
+      elementNamed(view, "[data-unsaved-prompt] button", "Keep editing"),
+    );
+  });
+
+  it("closes the navigation drawer when a page's guard holds the link, as on Translations", async () => {
+    stubPanelReads();
+    window.history.replaceState({ idx: 0 }, "", "#/translations");
+    let held = 0;
+    const uninstall = installRouteGuard({
+      isDirty: () => true,
+      onBlock: () => {
+        held += 1;
+      },
+    });
+    const view = await mount();
+    await clickAsync(view.get('[aria-label^="Open navigation"]'));
+
+    await clickAsync(view.getByText('[role="dialog"] nav a', "Settings"));
+    uninstall();
+
+    expect(held).toBe(1);
+    expect(view.query('[role="dialog"]')).toBeNull();
+  });
+
   it("scrolls once a plain link held by the prompt proceeds", async () => {
     let proceed: (() => Promise<void>) | undefined;
-    window.history.replaceState({ idx: 0 }, "", "#/glossary");
+    window.history.replaceState({ idx: 0 }, "", "#/settings");
     const uninstall = installRouteGuard({
       isDirty: () => true,
       onBlock: (next) => {
@@ -844,7 +930,7 @@ describe("App scroll on navigation", () => {
   });
 
   it("does not scroll when a plain link held by the prompt is cancelled and reached again", async () => {
-    window.history.replaceState({ idx: 0 }, "", "#/glossary");
+    window.history.replaceState({ idx: 0 }, "", "#/settings");
     const uninstall = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
     await mount();
     const anchor = linkTo("#/review");

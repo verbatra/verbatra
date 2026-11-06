@@ -1,142 +1,216 @@
 import { Badge, Button, TextField } from "@verbatra/ui";
-import type { ReactNode, Ref } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { useId, useRef } from "react";
+import { EMPTY_KEEP_DRAFT } from "../client/glossary-drafts.js";
+import { isRetryableWriteError, keptTermEntry } from "../client/glossary-editing.js";
 import {
   type GlossaryDoNotTranslateView,
   MAX_GLOSSARY_TERM_LENGTH,
 } from "../shared/rpc/glossary.js";
-import { CaseSensitiveToggle, type GlossaryWriter } from "./GlossaryTermRow.js";
+import { ErrorMessage } from "./ErrorMessage.js";
+import { CaseSensitiveToggle, invalidFlag, joinIds, ProblemNote } from "./GlossaryTermEditor.js";
+import { DNT_HEADING, KEEP_KEY, keptKey, useGlossaryBench } from "./glossary-bench.js";
+import { cn } from "./lib/cn.js";
+import { focusIsFree } from "./use-focus-registry.js";
 
 export const glossarySubheadingClassName = "m-0 mb-2 text-sm font-medium text-foreground";
 
-type FocusTarget = { readonly kind: "term"; readonly term: string } | { readonly kind: "input" };
-
 function KeptTerm({
   entry,
-  editable,
-  writer,
-  buttonRef,
-  onRemove,
+  next,
 }: {
   readonly entry: GlossaryDoNotTranslateView;
-  readonly editable: boolean;
-  readonly writer: GlossaryWriter;
-  readonly buttonRef: Ref<HTMLButtonElement>;
-  readonly onRemove: () => void;
+  readonly next: GlossaryDoNotTranslateView | undefined;
 }): ReactNode {
+  const bench = useGlossaryBench();
+  const key = keptKey(entry.term);
+  const busy = bench.writer.busy(key);
+  const failure = bench.writer.failure(key);
   return (
-    <li className="flex max-w-full flex-wrap items-center gap-2 rounded-(--radius-sm) border border-border bg-muted/40 px-2.5 py-1.5">
+    <li className="flex max-w-full min-w-0 flex-wrap items-center gap-2 rounded-(--radius-lg) border border-border bg-muted/40 px-2.5 py-1.5">
       <span
-        className="max-w-full font-mono text-sm text-accent-foreground [overflow-wrap:anywhere]"
+        className="min-w-0 max-w-full wrap-anywhere font-mono text-sm text-accent-foreground"
         dir="auto"
       >
         {entry.term}
       </span>
       {entry.caseSensitive ? <Badge tone="neutral">Match case</Badge> : null}
-      {editable ? (
+      {bench.editable ? (
         <Button
-          ref={buttonRef}
+          ref={bench.focus.register(keptKey(entry.term))}
           size="xs"
-          onClick={onRemove}
-          disabled={writer.pending === entry.term}
+          aria-disabled={busy || undefined}
+          onClick={
+            busy
+              ? undefined
+              : () =>
+                  bench.askRemoval({
+                    kind: "kept",
+                    entry,
+                    edit: { term: entry.term, doNotTranslate: false },
+                  })
+          }
           aria-label={`Remove ${entry.term} from do not translate`}
         >
           Remove
         </Button>
+      ) : null}
+      {failure !== undefined ? (
+        <div className="w-full">
+          <ErrorMessage
+            error={failure.error}
+            prefix={`Could not stop keeping ${entry.term} untranslated.`}
+            retrying={busy}
+            {...(isRetryableWriteError(failure.error)
+              ? {
+                  onRetry: () =>
+                    void bench.writer.retry(key, {
+                      onDone: () =>
+                        bench.focus.request([
+                          ...(next === undefined ? [] : [keptKey(next.term)]),
+                          KEEP_KEY,
+                        ]),
+                    }),
+                }
+              : {})}
+          />
+        </div>
       ) : null}
     </li>
   );
 }
 
 function KeepForm({
-  writer,
-  inputRef,
+  entries,
 }: {
-  readonly writer: GlossaryWriter;
-  readonly inputRef: Ref<HTMLInputElement>;
+  readonly entries: readonly GlossaryDoNotTranslateView[];
 }): ReactNode {
-  const [term, setTerm] = useState("");
-  const [caseSensitive, setCaseSensitive] = useState(true);
-  const busy = writer.pending !== undefined;
-  const trimmed = term.trim();
-  const ready = trimmed.length > 0 && trimmed.length <= MAX_GLOSSARY_TERM_LENGTH;
+  const bench = useGlossaryBench();
+  const { keep, writer, focus } = bench;
+  const box = useRef<HTMLFormElement>(null);
+  const baseId = useId();
+  const lengthId = `${baseId}-length`;
+  const existsId = `${baseId}-exists`;
+  const latest = useRef(keep);
+  latest.current = keep;
+  const busy = writer.busy(KEEP_KEY);
+  const failure = writer.failure(KEEP_KEY);
+  const trimmed = keep.term.trim();
+  const existing = keptTermEntry(entries, trimmed);
+  const tooLong = trimmed.length > MAX_GLOSSARY_TERM_LENGTH;
+  const ready = trimmed.length > 0 && !tooLong && existing === undefined;
 
-  async function keep(): Promise<void> {
-    const edit = caseSensitive
+  async function submit(event: FormEvent): Promise<void> {
+    event.preventDefault();
+    if (!ready || busy) {
+      return;
+    }
+    const edit = keep.caseSensitive
       ? { term: trimmed, doNotTranslate: true }
       : { term: trimmed, doNotTranslate: true, caseSensitive: false };
-    if (await writer.write(edit)) {
-      setTerm("");
-      setCaseSensitive(true);
+    await writer.write(KEEP_KEY, edit, { onDone: () => settle(trimmed) });
+  }
+
+  function settle(sent: string): void {
+    if (latest.current.term.trim() === sent) {
+      bench.setKeep(EMPTY_KEEP_DRAFT);
+      if (focusIsFree(box.current)) {
+        focus.request([KEEP_KEY]);
+      }
     }
   }
 
-  return (
-    <div className="mt-2 grid items-end gap-2 sm:grid-cols-[1fr_auto_auto]">
-      <TextField
-        ref={inputRef}
-        aria-label="New do-not-translate term"
-        placeholder="Brand or product name"
-        dir="auto"
-        value={term}
-        disabled={busy}
-        onChange={(event) => setTerm(event.target.value)}
-      />
-      <CaseSensitiveToggle
-        label="Match case for the new do-not-translate term"
-        checked={caseSensitive}
-        disabled={busy}
-        onChange={setCaseSensitive}
-      />
-      <Button variant="primary" onClick={() => void keep()} disabled={busy || !ready}>
-        Keep untranslated
-      </Button>
-    </div>
-  );
-}
+  async function retry(sent: string): Promise<void> {
+    await writer.retry(KEEP_KEY, { onDone: () => settle(sent) });
+  }
 
-function nextFocus(entries: readonly GlossaryDoNotTranslateView[], removed: string): FocusTarget {
-  const index = entries.findIndex((entry) => entry.term === removed);
-  const next = entries[index + 1] ?? entries[index - 1];
-  return next === undefined ? { kind: "input" } : { kind: "term", term: next.term };
+  return (
+    <>
+      <form
+        ref={box}
+        className="mt-2 grid items-end gap-2 sm:grid-cols-[1fr_auto_auto]"
+        onSubmit={(event) => void submit(event)}
+      >
+        <div className="min-w-0">
+          <TextField
+            ref={focus.register(KEEP_KEY)}
+            aria-label="New do-not-translate term"
+            aria-invalid={invalidFlag(tooLong || existing !== undefined)}
+            aria-describedby={joinIds([tooLong && lengthId, existing !== undefined && existsId])}
+            placeholder="Brand or product name"
+            dir="auto"
+            readOnly={busy}
+            aria-busy={busy || undefined}
+            value={keep.term}
+            onChange={(event) => bench.setKeep({ ...keep, term: event.target.value })}
+          />
+          {tooLong ? (
+            <ProblemNote id={lengthId}>
+              A term can be at most {MAX_GLOSSARY_TERM_LENGTH} characters; this one has{" "}
+              {trimmed.length}.
+            </ProblemNote>
+          ) : null}
+          {existing !== undefined ? (
+            <p
+              id={existsId}
+              data-exists-note=""
+              className="m-0 mt-1 text-xs text-muted-foreground wrap-anywhere"
+            >
+              {existing.term} is already kept untranslated
+              {existing.caseSensitive ? " with Match case" : " without Match case"}. Remove it first
+              to change that.
+            </p>
+          ) : null}
+        </div>
+        <CaseSensitiveToggle
+          label="Match case for the new do-not-translate term"
+          checked={keep.caseSensitive}
+          busy={busy}
+          onChange={(caseSensitive) => bench.setKeep({ ...keep, caseSensitive })}
+        />
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={!ready}
+          aria-busy={busy || undefined}
+          aria-disabled={busy || undefined}
+        >
+          Keep untranslated
+        </Button>
+      </form>
+      {failure !== undefined ? (
+        <div className="mt-2">
+          <ErrorMessage
+            error={failure.error}
+            retrying={busy}
+            {...(isRetryableWriteError(failure.error)
+              ? { onRetry: () => void retry(failure.edit.term) }
+              : {})}
+          />
+        </div>
+      ) : null}
+    </>
+  );
 }
 
 export function GlossaryDoNotTranslate({
   entries,
-  editable,
-  writer,
 }: {
   readonly entries: readonly GlossaryDoNotTranslateView[];
-  readonly editable: boolean;
-  readonly writer: GlossaryWriter;
 }): ReactNode {
-  const buttons = useRef(new Map<string, HTMLButtonElement>());
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [focusTarget, setFocusTarget] = useState<FocusTarget | undefined>(undefined);
-
-  useEffect(() => {
-    if (focusTarget === undefined) {
-      return;
-    }
-    const target =
-      focusTarget.kind === "term" ? buttons.current.get(focusTarget.term) : inputRef.current;
-    target?.focus();
-    setFocusTarget(undefined);
-  }, [focusTarget]);
-
-  async function remove(term: string): Promise<void> {
-    const target = nextFocus(entries, term);
-    if (await writer.write({ term, doNotTranslate: false })) {
-      setFocusTarget(target);
-    }
-  }
-
+  const { editable, focus } = useGlossaryBench();
   if (entries.length === 0 && !editable) {
     return null;
   }
   return (
     <div className="mt-4 border-border border-t pt-4">
-      <h3 className={glossarySubheadingClassName}>Do not translate</h3>
+      <h3
+        ref={focus.register(DNT_HEADING)}
+        tabIndex={-1}
+        className={cn(glossarySubheadingClassName, "outline-none focus-visible:underline")}
+      >
+        Do not translate
+      </h3>
       {entries.length === 0 ? (
         <p className="m-0 text-sm text-muted-foreground">
           No term is kept untranslated yet. Add brand and product names here so every locale keeps
@@ -144,25 +218,12 @@ export function GlossaryDoNotTranslate({
         </p>
       ) : (
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-          {entries.map((entry) => (
-            <KeptTerm
-              key={entry.term}
-              entry={entry}
-              editable={editable}
-              writer={writer}
-              buttonRef={(button) => {
-                if (button === null) {
-                  buttons.current.delete(entry.term);
-                } else {
-                  buttons.current.set(entry.term, button);
-                }
-              }}
-              onRemove={() => void remove(entry.term)}
-            />
+          {entries.map((entry, index) => (
+            <KeptTerm key={entry.term} entry={entry} next={entries[index + 1]} />
           ))}
         </ul>
       )}
-      {editable ? <KeepForm writer={writer} inputRef={inputRef} /> : null}
+      {editable ? <KeepForm entries={entries} /> : null}
     </div>
   );
 }

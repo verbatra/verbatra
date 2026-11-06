@@ -118,7 +118,7 @@ export function DetailList({
   readonly items: ReadonlyArray<readonly [string, ReactNode]>;
 }): ReactNode {
   return (
-    <dl className="grid max-w-3xl grid-cols-[max-content_minmax(0,480px)] gap-x-6 gap-y-2">
+    <dl className="grid max-w-3xl grid-cols-[minmax(0,max-content)_minmax(0,480px)] gap-x-6 gap-y-2">
       {items.map(([label, value]) => (
         <Fragment key={label}>
           <dt className="text-sm text-(--text-muted)">{label}</dt>

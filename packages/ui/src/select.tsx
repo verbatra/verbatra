@@ -1,10 +1,11 @@
-import type { ReactNode, SelectHTMLAttributes } from "react";
+import type { ReactNode, Ref, SelectHTMLAttributes } from "react";
 import { cn } from "./cn.ts";
 import { FIELD_BASE, FIELD_SIZE, type FieldSize } from "./field.ts";
 import { Icon } from "./icon.tsx";
 
 export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> {
   readonly size?: FieldSize;
+  readonly ref?: Ref<HTMLSelectElement> | undefined;
 }
 
 const SELECT_PADDING: Readonly<Record<FieldSize, string>> = {

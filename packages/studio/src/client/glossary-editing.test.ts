@@ -4,14 +4,27 @@ import {
   ALL_LOCALES,
   buildTermEdit,
   deriveGlossaryWriteOutcome,
+  describeFailedEdit,
   draftFor,
+  editEmptiesTerm,
+  exceedsForbiddenCap,
+  exceedsRenderingLength,
+  existingTermFor,
+  filterTerms,
+  forbiddenBlocksSave,
   forbiddenRuleCount,
   glossaryReadOnlyReason,
   hasPerLocaleData,
   isGlossaryEditable,
+  isRemovalEdit,
+  isRetryableWriteError,
   isTargetLocale,
+  keptTermEntry,
+  nextFocusSource,
   parseRenderings,
   scopeValue,
+  termExistsInScope,
+  termLoss,
 } from "./glossary-editing.js";
 
 const RESULT: GlossaryWriteResult = {
@@ -59,7 +72,11 @@ describe("deriveGlossaryWriteOutcome", () => {
       error: { code: "CONFIG_INVALID", message: "A glossary term must not be blank." },
     });
 
-    expect(outcome).toEqual({ kind: "error", message: "A glossary term must not be blank." });
+    expect(outcome).toEqual({
+      kind: "error",
+      message: "A glossary term must not be blank.",
+      error: { code: "CONFIG_INVALID", message: "A glossary term must not be blank." },
+    });
   });
 });
 
@@ -123,8 +140,12 @@ describe("scopeValue", () => {
 });
 
 describe("parseRenderings", () => {
-  it("splits on commas and new lines, trims, and drops blanks and repeats", () => {
-    expect(parseRenderings(" Tafel, Brett\nTafel ,, ")).toEqual(["Tafel", "Brett"]);
+  it("splits on new lines only, trims, and drops blanks and repeats", () => {
+    expect(parseRenderings(" Tafel\nBrett\nTafel \n\n ")).toEqual(["Tafel", "Brett"]);
+  });
+
+  it("keeps a comma, Latin or Arabic, inside one rendering", () => {
+    expect(parseRenderings("Foo, Inc.\nلوحة، قائمة")).toEqual(["Foo, Inc.", "لوحة، قائمة"]);
   });
 });
 
@@ -210,5 +231,239 @@ describe("isTargetLocale", () => {
   it("matches a configured target locale regardless of case", () => {
     expect(isTargetLocale(["de", "fr"], "DE")).toBe(true);
     expect(isTargetLocale(["de", "fr"], "de-AT")).toBe(false);
+  });
+});
+
+const ONLY_SHARED: GlossaryTermView = {
+  source: "Shop",
+  target: "Laden",
+  targets: {},
+  forbidden: {},
+  caseSensitive: true,
+  note: "Storefront",
+  partOfSpeech: "noun",
+  byLocale: {},
+};
+
+const ONLY_GERMAN: GlossaryTermView = {
+  source: "Shop",
+  targets: { DE: "Laden" },
+  forbidden: {},
+  caseSensitive: true,
+  note: "Storefront",
+  partOfSpeech: "noun",
+  byLocale: {},
+};
+
+describe("editEmptiesTerm", () => {
+  it("is true when clearing the shared translation leaves nothing else", () => {
+    expect(editEmptiesTerm(ONLY_SHARED, { term: "Shop", translation: null })).toBe(true);
+  });
+
+  it("is false while a per-locale translation or rule remains", () => {
+    expect(editEmptiesTerm(TERM, { term: "Dashboard", translation: null })).toBe(false);
+    const ruleOnly = { ...ONLY_SHARED, forbidden: { de: ["x"] } };
+    expect(editEmptiesTerm(ruleOnly, { term: "Shop", translation: null })).toBe(false);
+  });
+
+  it("is true when clearing a locale's last entry, whatever the case of its key", () => {
+    expect(editEmptiesTerm(ONLY_GERMAN, { term: "Shop", locale: "de", translation: null })).toBe(
+      true,
+    );
+  });
+
+  it("is false when clearing a locale that is not the last entry", () => {
+    const both = { ...ONLY_GERMAN, targets: { DE: "Laden", fr: "Boutique" } };
+    expect(editEmptiesTerm(both, { term: "Shop", locale: "de", translation: null })).toBe(false);
+  });
+
+  it("counts clearing the last forbidden list in a locale as emptying", () => {
+    const ruleOnly: GlossaryTermView = { ...ONLY_GERMAN, targets: {}, forbidden: { de: ["x"] } };
+    expect(editEmptiesTerm(ruleOnly, { term: "Shop", locale: "de", forbidden: null })).toBe(true);
+    expect(editEmptiesTerm(ruleOnly, { term: "Shop", locale: "de", forbidden: [] })).toBe(true);
+    expect(editEmptiesTerm(ruleOnly, { term: "Shop", locale: "de", forbidden: ["y"] })).toBe(false);
+  });
+
+  it("is false for an edit that touches neither translation nor rules", () => {
+    expect(editEmptiesTerm(ONLY_SHARED, { term: "Shop", note: null })).toBe(false);
+  });
+});
+
+describe("termLoss", () => {
+  it("lists every translation, the rule count, the note, the part of speech and the case flag", () => {
+    expect(termLoss(TERM)).toEqual({
+      translations: [
+        { locale: undefined, value: "Dashboard" },
+        { locale: "DE", value: "Übersicht" },
+      ],
+      forbiddenRules: 1,
+      note: "Start page",
+      partOfSpeech: undefined,
+      caseSensitive: false,
+    });
+  });
+});
+
+describe("termExistsInScope", () => {
+  const terms = [ONLY_SHARED, ONLY_GERMAN, { ...ONLY_SHARED, source: "shop" }];
+
+  it("matches the source exactly, case included", () => {
+    expect(termExistsInScope(terms, "Shop", ALL_LOCALES)).toBe(ONLY_SHARED);
+    expect(termExistsInScope(terms, "SHOP", ALL_LOCALES)).toBeUndefined();
+  });
+
+  it("treats a differently cased source as the same term when the term ignores case", () => {
+    const loose = { ...ONLY_SHARED, source: "Cart", caseSensitive: false };
+    expect(termExistsInScope([loose], "CART", ALL_LOCALES)).toBe(loose);
+    expect(
+      termExistsInScope([{ ...loose, caseSensitive: true }], "CART", ALL_LOCALES),
+    ).toBeUndefined();
+  });
+
+  it("only counts a term that already holds a translation for the scope", () => {
+    expect(termExistsInScope([ONLY_GERMAN], "Shop", ALL_LOCALES)).toBeUndefined();
+    expect(termExistsInScope([ONLY_GERMAN], "Shop", "de")).toBe(ONLY_GERMAN);
+    expect(termExistsInScope([ONLY_GERMAN], "Shop", "fr")).toBeUndefined();
+  });
+});
+
+describe("keptTermEntry", () => {
+  it("finds a do-not-translate entry by its exact term", () => {
+    const entries = [{ term: "Northwind", caseSensitive: true }];
+    expect(keptTermEntry(entries, "Northwind")).toBe(entries[0]);
+    expect(keptTermEntry(entries, "northwind")).toBeUndefined();
+  });
+});
+
+describe("filterTerms", () => {
+  const terms = [TERM, ONLY_SHARED];
+
+  it("returns every term for a blank query", () => {
+    expect(filterTerms(terms, "   ")).toBe(terms);
+  });
+
+  it("matches the source, any translation, a forbidden rendering, the note and the part of speech", () => {
+    expect(filterTerms(terms, "dash")).toEqual([TERM]);
+    expect(filterTerms(terms, "übersicht")).toEqual([TERM]);
+    expect(filterTerms(terms, "instrumenten")).toEqual([TERM]);
+    expect(filterTerms(terms, "start page")).toEqual([TERM]);
+    expect(filterTerms(terms, "NOUN")).toEqual([ONLY_SHARED]);
+  });
+
+  it("finds an Arabic value and returns nothing for a miss", () => {
+    const arabic = { ...ONLY_SHARED, source: "Cart", target: "عربة التسوق {count}" };
+    expect(filterTerms([arabic, TERM], "عربة")).toEqual([arabic]);
+    expect(filterTerms(terms, "zzz")).toEqual([]);
+  });
+});
+
+describe("nextFocusSource", () => {
+  it("returns the following term, and nothing for the last or an unknown one", () => {
+    expect(nextFocusSource(["a", "b", "c"], "b")).toBe("c");
+    expect(nextFocusSource(["a", "b", "c"], "c")).toBeUndefined();
+    expect(nextFocusSource(["a"], "a")).toBeUndefined();
+    expect(nextFocusSource(["a"], "zzz")).toBeUndefined();
+  });
+});
+
+describe("exceedsForbiddenCap", () => {
+  it("allows exactly 50 distinct renderings and refuses 51", () => {
+    const fifty = Array.from({ length: 50 }, (_, index) => `r${index}`).join("\n");
+    expect(exceedsForbiddenCap(fifty)).toBe(false);
+    expect(exceedsForbiddenCap(`${fifty}\nextra`)).toBe(true);
+  });
+
+  it("does not count repeats or blanks", () => {
+    expect(exceedsForbiddenCap(`${"a\n".repeat(80)}b`)).toBe(false);
+  });
+});
+
+describe("isRetryableWriteError", () => {
+  it("retries transient failures only", () => {
+    for (const code of ["LOCK_CONTENDED", "METHOD_RATE_LIMITED", "INTERNAL", "NETWORK_ERROR"]) {
+      expect(isRetryableWriteError({ code, message: "m" })).toBe(true);
+    }
+    expect(isRetryableWriteError({ code: "GLOSSARY_UNWRITABLE", message: "m" })).toBe(true);
+    for (const code of ["CONFIG_INVALID", "PARAMS_INVALID", "GLOSSARY_NOT_FILE_BACKED"]) {
+      expect(isRetryableWriteError({ code, message: "m" })).toBe(false);
+    }
+  });
+});
+
+describe("an untouched editor is clean", () => {
+  const comma: GlossaryTermView = {
+    source: "Acme",
+    target: " Acme ",
+    targets: {},
+    forbidden: { de: ["Foo, Inc.", " padded "], ar: ["شركة، محدودة"] },
+    caseSensitive: false,
+    note: " a note ",
+    byLocale: {},
+  };
+
+  it("sends nothing for a stored rendering with a comma, in any script", () => {
+    expect(buildTermEdit(comma, "de", draftFor(comma, "de"))).toBeUndefined();
+    expect(buildTermEdit(comma, "ar", draftFor(comma, "ar"))).toBeUndefined();
+  });
+
+  it("ignores whitespace the form itself trims, in translations, notes and renderings", () => {
+    expect(buildTermEdit(comma, ALL_LOCALES, draftFor(comma, ALL_LOCALES))).toBeUndefined();
+  });
+
+  it("leaves the stored renderings alone when only the note changes", () => {
+    const edit = buildTermEdit(comma, "de", { ...draftFor(comma, "de"), note: "new" });
+    expect(edit).toEqual({ term: "Acme", note: "new" });
+  });
+});
+
+describe("rendering caps", () => {
+  it("flags a rendering over 2000 characters", () => {
+    expect(exceedsRenderingLength(`ok\n${"x".repeat(2_001)}`)).toBe(true);
+    expect(exceedsRenderingLength(`ok\n${"x".repeat(2_000)}`)).toBe(false);
+  });
+
+  it("only blocks a Save when the text was touched", () => {
+    const many = Array.from({ length: 60 }, (_, index) => `r${index}`).join("\n");
+    expect(forbiddenBlocksSave(many, many)).toBe(false);
+    expect(forbiddenBlocksSave(`${many}\nextra`, many)).toBe(true);
+    expect(forbiddenBlocksSave("x".repeat(2_001), "")).toBe(true);
+    expect(forbiddenBlocksSave("short", "")).toBe(false);
+  });
+});
+
+describe("isRemovalEdit", () => {
+  it("recognises the two removals and nothing else", () => {
+    expect(isRemovalEdit({ term: "a", translation: null })).toBe(true);
+    expect(isRemovalEdit({ term: "a", doNotTranslate: false })).toBe(true);
+    expect(isRemovalEdit({ term: "a", translation: null, locale: "de" })).toBe(false);
+    expect(isRemovalEdit({ term: "a", translation: null, note: "x" })).toBe(false);
+    expect(isRemovalEdit({ term: "a", translation: "b" })).toBe(false);
+  });
+});
+
+describe("existingTermFor", () => {
+  const redacted = { ...ONLY_GERMAN, source: "secret" };
+
+  it("reports a redacted term in any scope, even without a translation there", () => {
+    expect(existingTermFor([redacted], ["secret"], "secret", "fr")).toBe(redacted);
+    expect(existingTermFor([redacted], [], "secret", "fr")).toBeUndefined();
+  });
+
+  it("falls back to the scope rule for a normal term", () => {
+    expect(existingTermFor([ONLY_SHARED], [], "Shop", ALL_LOCALES)).toBe(ONLY_SHARED);
+  });
+});
+
+describe("describeFailedEdit", () => {
+  it("names what failed in plain words", () => {
+    expect(describeFailedEdit("add", { term: "Neu", translation: "x" })).toBe('Adding "Neu"');
+    expect(describeFailedEdit("keep", { term: "Acme", doNotTranslate: true })).toBe(
+      'Keeping "Acme" untranslated',
+    );
+    expect(describeFailedEdit("kept:Acme", { term: "Acme", doNotTranslate: false })).toBe(
+      'Removing "Acme" from do not translate',
+    );
+    expect(describeFailedEdit("term:a", { term: "a", translation: null })).toBe('Removing "a"');
+    expect(describeFailedEdit("term:a", { term: "a", note: "n" })).toBe('Saving "a"');
   });
 });

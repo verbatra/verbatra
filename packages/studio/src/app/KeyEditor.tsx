@@ -435,7 +435,12 @@ export function KeyEditor({
   const prompt =
     pending !== null && editingLocale !== null ? (
       <UnsavedPrompt
-        locale={editingLocale}
+        subject={
+          <>
+            The <span className="font-mono">{editingLocale}</span> translation has changes that are
+            not saved.
+          </>
+        }
         saving={edit.submit.kind === "submitting"}
         error={submitFailure(edit.submit)}
         placement={layout}

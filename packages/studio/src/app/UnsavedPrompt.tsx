@@ -6,11 +6,11 @@ import { ErrorMessage } from "./ErrorMessage.js";
 import { cn } from "./lib/cn.js";
 
 export interface UnsavedPromptProps {
-  readonly locale: string;
+  readonly subject: ReactNode;
   readonly saving: boolean;
   readonly error: StructuredError | null;
   readonly placement: "pane" | "drawer";
-  readonly onSave: () => void;
+  readonly onSave?: () => void;
   readonly onDiscard: () => void;
   readonly onKeepEditing: () => void;
 }
@@ -18,7 +18,7 @@ export interface UnsavedPromptProps {
 const BUSY = "aria-disabled:cursor-default aria-disabled:opacity-60";
 
 export function UnsavedPrompt({
-  locale,
+  subject,
   saving,
   error,
   placement,
@@ -44,20 +44,20 @@ export function UnsavedPrompt({
       )}
     >
       <legend className="sr-only">Unsaved changes</legend>
-      <p className="m-0 mb-3 text-sm text-foreground">
-        The <span className="font-mono">{locale}</span> translation has changes that are not saved.
-      </p>
+      <p className="m-0 mb-3 text-sm text-foreground">{subject}</p>
       {error !== null ? <ErrorMessage error={error} /> : null}
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant="primary"
-          size="sm"
-          aria-disabled={saving || undefined}
-          className={BUSY}
-          onClick={saving ? undefined : onSave}
-        >
-          Save
-        </Button>
+        {onSave !== undefined ? (
+          <Button
+            variant="primary"
+            size="sm"
+            aria-disabled={saving || undefined}
+            className={BUSY}
+            onClick={saving ? undefined : onSave}
+          >
+            Save
+          </Button>
+        ) : null}
         <Button
           size="sm"
           aria-disabled={saving || undefined}
@@ -69,7 +69,7 @@ export function UnsavedPrompt({
         <Button
           ref={keepRef}
           size="sm"
-          variant="ghost"
+          variant={onSave === undefined ? "primary" : "ghost"}
           aria-disabled={saving || undefined}
           className={BUSY}
           onClick={saving ? undefined : onKeepEditing}
