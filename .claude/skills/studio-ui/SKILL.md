@@ -248,8 +248,8 @@ Rules that follow:
   `PageSection` or `SectionCard`; it does not re-derive page padding or heading rhythm.
   The uppercase tracked micro-label is already a token (`microLabelClassName`) and is
   meant for structural labels such as table headers, not decoration above every heading.
-  A page `kicker` earns its place only when it adds information (`SettingsPanel.tsx`); a kicker
-  that repeats the navigation is the tell it does not, and `PageHeader` renders none by default.
+  A page `kicker` earns its place only when it adds information; a kicker that repeats the
+  navigation is the tell it does not, and `PageHeader` renders none by default (no panel passes one).
 - **Icons:** `packages/ui/src/icon.tsx` is a closed set of 25 inline SVG paths keyed by
   `IconName`. There is no icon package. A new icon is a new entry in `ICON_PATHS` and a
   new member of the union, drawn on the same 24-unit stroked grid as its neighbours.
@@ -262,7 +262,8 @@ Rules that follow:
   keyboard listbox uses them rather than hand-rolling focus management.
 - **Panels:** the five panels under `src/app/panels/` (Overview, Translations, Review, Glossary,
   Settings) all take `PanelProps` (`{ refreshToken: number }`, `src/app/panel-props.ts`) except
-  Glossary and Settings, which read once, and are wired through `PAGE_PANELS` in `App.tsx` and
+  Settings, which reads once and ignores the token (its configuration is fixed for the session; Retry
+  re-reads), and are wired through `PAGE_PANELS` in `App.tsx` and
   `PAGE_LABELS`, `PAGE_ICONS` and `NAV_GROUPS` in `src/app/nav-groups.ts`. `DEFAULT_PAGE` in
   `src/client/routes.ts` is `overview`. Overview owns the metric row, the per-locale coverage
   table, the last run and the locale file history, in that order. The metric row is
@@ -298,7 +299,7 @@ Rules that follow:
   background recovery never moves it. Every hold that ends without proceeding (Keep editing, or a
   landing back on the position) drops a pending link mark. Translations is one `KeysTable` (the matrix of
   a status per locale, or one locale's entries with source, translation, status and origin) under
-  `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary. Adding a page
+  `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary (see Glossary and Settings below). Adding a page
   means adding it to `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of
   those tables.
 
@@ -383,7 +384,7 @@ attached only while a draft is dirty and covers a full page unload. The guard's 
 listeners register when `route-guard.ts` loads, so they run before the router's; never move them
 into an effect.
 
-An inline `UnsavedPrompt` (Save, Discard, Keep editing, never `window.confirm`) decides. In the pane
+An inline `UnsavedPrompt` (Save, Discard, Keep editing, never `window.confirm`; it takes a `subject` and Save is optional, which Glossary omits) decides. In the pane
 it sits in an opaque sticky wrapper (`data-sticky`) at the top of the scroller with a small gap
 under the pane header; in the drawer it sits in the sticky header (`data-sticky`) through `Sheet`'s
 `banner` slot. It scrolls itself into view and focuses Keep editing, its Save is the only primary
@@ -420,6 +421,32 @@ Enter and Space still work on a chip; they keep their gates: `canWrite` and the 
 `ReviewRowActions` stays presentational (`data-layout`, `data-reserves-busy`). `EditEntryDialog` asks
 through `UnsavedPrompt` before Escape, the backdrop, Close or a route change drops a dirty draft; a
 background URL cleanup waits until the editor closes.
+
+**Glossary and Settings.** Both read through `use-read-model.ts`: a skeleton (`PanelSkeleton`, a
+`role="status"` block) only on the first load, `ErrorMessage` with Retry for a failed first read, and a
+failed refresh keeps the last data under a stale notice with its own Retry. A user Retry that succeeds
+moves focus to the `data-recovery-target` container only when focus was lost; a background refresh
+never moves focus. Glossary takes `refreshToken` and re-reads on a bump, deferring while any editor is
+open or any add form holds text (a status line says a refresh is waiting, and it runs when the last
+draft ends); a read that started before a finished write is dropped. The glossary file itself is not
+watched, so only locale, lock and provenance events bump the token. `GlossarySection` owns the drafts
+(`use-glossary-workspace.ts`): row editors, the add form and the keep form live above the rows, so
+search, scope and refresh never drop one, and an open editor stays listed when search stops matching
+it. One route guard covers all drafts through `useDialogDraftGuard`, and `UnsavedPrompt` (Discard and
+Keep editing, no Save, Keep editing primary) names what is unsaved; a scope switch with a dirty editor
+or add form holds in the same prompt, with Keep editing reverting the select, Discard applying the
+scope and focusing the select, and typing back to clean releasing it, and a route hold replaces a scope
+hold and the reverse. Removing a term or a do-not-translate entry, and any Save that would leave a term
+with no translation, no per-locale entry and no never-use rule (`editEmptiesTerm`), opens
+`GlossaryRemoveDialog` first, naming translations, rules, note, part of speech and Match case. Escape and
+confirm are ignored while it submits; on success it closes in the same update that moves focus to the
+next visible term (else the add field), on failure it closes, the failure shows on the row with Retry,
+and focus stays on the control that opened it. Writes go through `use-glossary-writer.ts`: one request
+at a time in send order, busy and failure kept per key, `aria-disabled` and `readOnly` instead of
+`disabled` so focus stays, Retry only for transient codes (`isRetryableWriteError`). Add says when the
+source term already holds a translation in the scope (exact match) and offers Edit instead of
+overwriting. Values with a known locale render through `TranslationValue`; the shared translation and
+the note keep `dir="auto"`. Settings shows spend, writes, the two rate limits and the glossary source.
 
 **Mixed surface tokens are root-scoped.** `--surface-table-head` and `--surface-row-hover` are
 `color-mix` tokens declared under `:root`, like `--surface-band` and `--surface-chrome`: they
