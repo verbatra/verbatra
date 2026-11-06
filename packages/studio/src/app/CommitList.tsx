@@ -15,7 +15,8 @@ function TouchedPaths({ paths }: { readonly paths: readonly string[] }): ReactNo
       {paths.map((path) => (
         <li
           key={path}
-          className="break-words rounded-sm bg-neutral-soft px-2 py-0.5 font-mono text-xs text-muted-foreground"
+          dir="auto"
+          className="min-w-0 wrap-anywhere rounded-sm bg-neutral-soft px-2 py-0.5 font-mono text-xs text-muted-foreground"
         >
           {path}
         </li>
@@ -29,11 +30,12 @@ function CommitRow({ commit }: { readonly commit: HistoryCommit }): ReactNode {
   return (
     <li className="relative border-s border-border pb-6 ps-5 last:border-s-transparent last:pb-0">
       <span
-        className="absolute -start-[5px] top-1 size-2.5 rounded-full border-2 border-card bg-primary"
+        className="absolute -start-1.25 top-1 size-2.5 rounded-full border-2 border-card bg-primary"
         aria-hidden="true"
       />
       <p
-        className="m-0 text-sm font-medium text-foreground"
+        dir="auto"
+        className="m-0 min-w-0 wrap-anywhere text-sm font-medium text-foreground"
         ref={(element) => {
           if (element !== null) {
             renderText(element, parts.subject);
@@ -42,6 +44,7 @@ function CommitRow({ commit }: { readonly commit: HistoryCommit }): ReactNode {
       />
       <p className="m-0 mt-1 flex flex-wrap items-center gap-2">
         <span
+          dir="ltr"
           className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
           ref={(element) => {
             if (element !== null) {
@@ -49,9 +52,9 @@ function CommitRow({ commit }: { readonly commit: HistoryCommit }): ReactNode {
             }
           }}
         />
-        <span
-          className="text-xs text-muted-foreground"
-          title={parts.authorDate}
+        <time
+          dateTime={parts.authorDate}
+          className="text-xs tabular-nums text-muted-foreground"
           ref={(element) => {
             if (element !== null) {
               renderText(element, parts.dateLabel);
@@ -59,7 +62,8 @@ function CommitRow({ commit }: { readonly commit: HistoryCommit }): ReactNode {
           }}
         />
         <span
-          className="min-w-0 break-words text-xs font-medium text-muted-foreground"
+          dir="auto"
+          className="min-w-0 wrap-anywhere text-xs font-medium text-muted-foreground"
           ref={(element) => {
             if (element !== null) {
               renderText(element, parts.author);
@@ -116,7 +120,7 @@ export function CommitList({ state, compact = false, emptyMessage }: CommitListP
     );
   }
   return (
-    <ul className="m-0 ms-1 max-w-3xl list-none p-0">
+    <ul aria-label="Commits" className="m-0 ms-1 max-w-3xl list-none p-0">
       {state.commits.map((commit) => (
         <CommitRow commit={commit} key={commit.hash} />
       ))}

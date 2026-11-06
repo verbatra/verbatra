@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 import { useRef } from "react";
 import type { StatusData, StatusRow } from "../client/coverage.js";
 import { provenanceSummaryParts } from "../client/provenance-view.js";
+import { routeHash } from "../client/routes.js";
 import type { RefreshableView } from "../client/state.js";
 import { formatCount } from "../client/ui-format.js";
 import { ErrorMessage } from "./ErrorMessage.js";
@@ -35,16 +36,35 @@ function lockCell(lock: LoadedLock, locale: string): ReactNode {
   return <Badge tone={drift ? "warning" : "success"}>{drift ? "Drift" : "In step"}</Badge>;
 }
 
+const ROW_LINK =
+  "inline-flex min-h-8 items-center rounded-sm px-1.5 text-sm text-(--accent) underline underline-offset-2 hover:text-(--text-strong) focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring max-md:min-h-11";
+
+function RowLinks({ locale }: { readonly locale: string }): ReactNode {
+  return (
+    <span className="flex items-center gap-1 whitespace-nowrap">
+      <a href={routeHash({ page: "translations", params: { locale } })} className={ROW_LINK}>
+        Translations<span className="sr-only"> for {locale}</span>
+      </a>
+      <a href={routeHash({ page: "review", params: { locale } })} className={ROW_LINK}>
+        Review<span className="sr-only"> for {locale}</span>
+      </a>
+    </span>
+  );
+}
+
 function LocaleRow({ row, lock }: { readonly row: StatusRow; readonly lock: LockView }): ReactNode {
   const total = row.missing + row.stale + row.upToDate;
   return (
     <TableRow>
-      <TableCell mono className="font-semibold">
+      <TableCell mono dir="ltr" className="font-semibold">
         {row.locale}
       </TableCell>
       <TableCell>
-        <span className="block min-w-[160px] max-w-[240px]">
-          <span className="mb-1 flex items-baseline justify-between gap-3 font-mono text-xs tabular-nums">
+        <span className="block min-w-40 max-w-60">
+          <span
+            className="mb-1 flex items-baseline justify-between gap-3 text-xs tabular-nums"
+            data-figure=""
+          >
             <span className="font-semibold text-foreground">{row.percent}%</span>
             <span className="text-muted-foreground">
               {formatCount(row.upToDate)} / {formatCount(total)} keys
@@ -57,6 +77,9 @@ function LocaleRow({ row, lock }: { readonly row: StatusRow; readonly lock: Lock
       <TableCell numeric>{row.stale}</TableCell>
       <TableCell numeric>{row.upToDate}</TableCell>
       {lock.kind === "loaded" ? <TableCell>{lockCell(lock, row.locale)}</TableCell> : null}
+      <TableCell>
+        <RowLinks locale={row.locale} />
+      </TableCell>
     </TableRow>
   );
 }
@@ -67,7 +90,7 @@ function ProvenanceCounts({
   readonly summary: LockLocaleState["provenance"];
 }): ReactNode {
   return (
-    <ul className="m-0 flex min-w-[160px] list-none flex-wrap gap-x-3 gap-y-0.5 p-0">
+    <ul className="m-0 flex min-w-40 list-none flex-wrap gap-x-3 gap-y-0.5 p-0">
       {provenanceSummaryParts(summary).map((part) => (
         <li key={part} className="whitespace-nowrap">
           {part}
@@ -109,7 +132,9 @@ function LockDetail({ locales }: { readonly locales: readonly LockLocaleState[] 
           <TableBody>
             {locales.map((locale) => (
               <TableRow key={locale.locale}>
-                <TableCell mono>{locale.locale}</TableCell>
+                <TableCell mono dir="ltr">
+                  {locale.locale}
+                </TableCell>
                 <TableCell numeric>{locale.keyCount}</TableCell>
                 <TableCell numeric>{locale.missing}</TableCell>
                 <TableCell numeric>{locale.stale}</TableCell>
@@ -167,6 +192,7 @@ export function LocalesSection({
                   <TableHeaderCell numeric>Stale</TableHeaderCell>
                   <TableHeaderCell numeric>Up to date</TableHeaderCell>
                   {lock.kind === "loaded" ? <TableHeaderCell>Lock</TableHeaderCell> : null}
+                  <TableHeaderCell>Open</TableHeaderCell>
                 </tr>
               </TableHead>
               <TableBody>
