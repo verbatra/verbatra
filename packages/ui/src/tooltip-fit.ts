@@ -41,8 +41,17 @@ const ANCHOR: Readonly<Record<TooltipSide, "start" | "end" | "left">> = {
   "top-start": "start",
 };
 
+function documentTop(): number {
+  return Number.parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+}
+
 function clippingBox(element: HTMLElement): Box {
-  let box: Box = { top: 0, bottom: window.innerHeight, left: 0, right: window.innerWidth };
+  let box: Box = {
+    top: documentTop(),
+    bottom: window.innerHeight,
+    left: 0,
+    right: window.innerWidth,
+  };
   for (let node = element.parentElement; node !== null; node = node.parentElement) {
     const style = getComputedStyle(node);
     if (style.overflowX !== "visible" || style.overflowY !== "visible") {

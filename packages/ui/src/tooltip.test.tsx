@@ -627,6 +627,25 @@ describe("Tooltip", () => {
       expect(view.get(SLOT).dataset.side).toBe("bottom-start");
     });
 
+    it("measures the room above from the document's scroll padding, so a sticky header is not covered", () => {
+      layout({ wrapper: [0, 100, 20, 120], bubble: [0, 60, 70, 86], clip: [0, 0, 300, 300] });
+      const real = window.getComputedStyle.bind(window);
+      vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+        const style = real(element, pseudo);
+        return element === document.documentElement
+          ? new Proxy(style, {
+              get: (target, key) =>
+                key === "scrollPaddingTop" ? "72px" : Reflect.get(target, key),
+            })
+          : style;
+      });
+      const view = mountFit("top-start", false, true);
+
+      hover(view.get("button"));
+
+      expect(view.get(SLOT).dataset.side).toBe("bottom-start");
+    });
+
     it("keeps a top-start bubble above while there is room", () => {
       layout({ wrapper: [0, 120, 20, 140], bubble: [0, 80, 70, 106], clip: [0, 0, 300, 300] });
       const view = mountFit("top-start", false, true);
