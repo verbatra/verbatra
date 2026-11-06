@@ -21,6 +21,12 @@ let held: Held | null = null;
 let returning = false;
 const holdDroppedListeners = new Set<() => void>();
 
+function notifyHoldDropped(): void {
+  for (const listener of holdDroppedListeners) {
+    listener();
+  }
+}
+
 export function onHoldDropped(listener: () => void): () => void {
   holdDroppedListeners.add(listener);
   return () => {
@@ -112,6 +118,7 @@ function handleLanding(): void {
   if (!gone && idx === position) {
     if (held !== null) {
       held = null;
+      notifyHoldDropped();
       activeGuard?.onRelease?.();
     }
     return;
@@ -129,8 +136,8 @@ function handleLanding(): void {
 }
 
 export function restoreHeldRoute(): void {
-  for (const listener of holdDroppedListeners) {
-    listener();
+  if (held !== null) {
+    notifyHoldDropped();
   }
   const target = held;
   held = null;

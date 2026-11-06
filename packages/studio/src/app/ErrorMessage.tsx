@@ -29,6 +29,7 @@ function ErrorActions({
       {onRetry !== undefined ? (
         <Button
           size="xs"
+          data-retry=""
           aria-busy={retrying ? true : undefined}
           aria-disabled={retrying ? true : undefined}
           onClick={retrying ? undefined : onRetry}

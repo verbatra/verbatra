@@ -225,17 +225,19 @@ function LocaleFileHistory({
   );
 }
 
+type ReadName = "diff" | "status" | "lock" | "review" | "usage" | "history";
+
+type OverviewReadsNow = Readonly<Record<ReadName, unknown>>;
+
 interface RetryRound {
-  readonly reads: readonly unknown[];
-  readonly started: readonly number[];
+  readonly reads: OverviewReadsNow;
+  readonly started: readonly ReadName[];
 }
 
-const REVIEW_READ = 3;
-
-function startedReads(reads: readonly unknown[], reviewRefreshed: boolean): readonly number[] {
-  return reads
-    .map((_, index) => index)
-    .filter((index) => reads[index] !== undefined && (index !== REVIEW_READ || reviewRefreshed));
+function startedReads(reads: OverviewReadsNow, reviewRefreshed: boolean): readonly ReadName[] {
+  return (Object.keys(reads) as ReadName[]).filter(
+    (name) => reads[name] !== undefined && (name !== "review" || reviewRefreshed),
+  );
 }
 
 export interface OverviewPanelProps extends PanelProps {
@@ -258,13 +260,21 @@ export function OverviewPanel({
   const history = useHistoryList(token, limit);
   const [retried, setRetried] = useState<RetryRound | null>(null);
   const recoveryRef = useRef<HTMLDivElement>(null);
+  const alertRef = useRef<HTMLDivElement>(null);
   const awaitingRecovery = useRef(false);
   const failure = pageFailure({ diff, status, lock, review: reviewQueue, usage, history });
-  const reads = [diff, status, lock, reviewQueue, usage, history];
+  const reads: OverviewReadsNow = {
+    diff,
+    status,
+    lock,
+    review: reviewQueue,
+    usage,
+    history,
+  };
   const outstanding =
     retried === null
       ? 0
-      : retried.started.filter((index) => retried.reads[index] === reads[index]).length;
+      : retried.started.filter((name) => retried.reads[name] === reads[name]).length;
   const retrying = outstanding > 0;
   const settled = retried !== null && outstanding === 0;
 
@@ -274,9 +284,14 @@ export function OverviewPanel({
     }
     awaitingRecovery.current = false;
     const lostFocus = document.activeElement === document.body || document.activeElement === null;
-    if (failure === null && lostFocus) {
-      recoveryRef.current?.focus();
+    if (!lostFocus) {
+      return;
     }
+    const target =
+      failure === null
+        ? recoveryRef.current
+        : alertRef.current?.querySelector<HTMLElement>("[data-retry]");
+    target?.focus();
   }, [settled, failure]);
 
   function retry(): void {
@@ -296,13 +311,15 @@ export function OverviewPanel({
         description="How far along each locale is, what the last run did, and how the locale files have changed."
       />
       {failure === null ? null : (
-        <ErrorMessage
-          error={failure.error}
-          detail={errorDetail(failure.error)}
-          onRetry={retry}
-          retrying={retrying}
-          {...(failure.prefix === undefined ? {} : { prefix: failure.prefix })}
-        />
+        <div ref={alertRef}>
+          <ErrorMessage
+            error={failure.error}
+            detail={errorDetail(failure.error)}
+            onRetry={retry}
+            retrying={retrying}
+            {...(failure.prefix === undefined ? {} : { prefix: failure.prefix })}
+          />
+        </div>
       )}
       <div
         ref={recoveryRef}
