@@ -384,25 +384,52 @@ describe("previewIcuMessage: nested axes show the arm they name", () => {
     }
   });
 
-  it("uses the first place an arm appears when an argument has several parents", () => {
+  it("gives an argument with several parents a row for each arm occurrence", () => {
     const lines = summary(
       "{a, select, x {{g, select, f {F1} other {O1}}} y {{g, select, f {F2} m {M2} other {O2}}} other {z}}",
     );
     expect(lines.filter((line) => line.startsWith("g="))).toEqual([
       "g=f: F1",
+      "g=f: F2",
       "g=other: O1",
+      "g=other: O2",
       "g=m: M2",
     ]);
   });
 
-  it("takes an exact arm's enclosing arm from where that arm first appears", () => {
+  it("shows every arm of a nested plural under each parent arm", () => {
+    expect(
+      summary(
+        "{g, select, female {{n, plural, one {F1} other {Fo}}} male {{n, plural, one {M1} other {Mo}}} other {X}}",
+      ),
+    ).toEqual([
+      "g=female: Fo",
+      "g=male: Mo",
+      "g=other: X",
+      "n=one: F1",
+      "n=one: M1",
+      "n=other: Fo",
+      "n=other: Mo",
+    ]);
+  });
+
+  it("collapses rows whose text repeats an earlier row with the same label", () => {
+    const lines = summary(
+      "{a, select, x {{g, select, f {same} other {O}}} y {{g, select, f {same} other {O}}} other {z}}",
+    );
+    expect(lines.filter((line) => line.startsWith("g="))).toEqual(["g=f: same", "g=other: O"]);
+  });
+
+  it("shows an exact arm under the occurrence that holds it", () => {
     const lines = summary(
       "{a, select, x {{n, plural, one {A} other {Ao}}} y {{n, plural, =0 {zero} one {B} other {Bo}}} other {z}}",
     );
     expect(lines.filter((line) => line.startsWith("n="))).toEqual([
       "n==0: zero",
       "n=one: A",
+      "n=one: B",
       "n=other: Ao",
+      "n=other: Bo",
     ]);
   });
 
@@ -438,23 +465,83 @@ describe("previewIcuMessage: nested axes show the arm they name", () => {
       summary(
         "{n, plural, offset:1 one {A} other {B}} {n, plural, offset:2 one {{g, select, x {GX} other {GY}}} other {C}}",
       ),
-    ).toEqual(["n=one: A C", "n=other: B GY", "g=x: B GX", "g=other: B GY"]);
+    ).toEqual([
+      "n=one: A C",
+      "n=one: B GY",
+      "n=other: B GY",
+      "n=other: B C",
+      "g=x: B GX",
+      "g=other: B GY",
+    ]);
   });
 
-  it("reports a row it cannot show instead of dropping it silently", () => {
-    const result = preview("{n, plural, one {{n, select, x {a} other {b}}} other {c}}");
-    expect(result).toMatchObject({ valid: true, truncated: true });
-    const lines = summary("{n, plural, one {{n, select, x {a} other {b}}} other {c}}");
-    expect(lines).toEqual(["n=one: b", "n=other: c", "n=other: b"]);
-    const nested = preview(
-      "{n, plural, one {{n, select, a {{m, select, x {X} other {Y}}} other {z}}} other {w}}",
+  it("does not flag arms no input can reach", () => {
+    const value = "{n, plural, one {{n, select, x {a} other {b}}} other {c}}";
+    expect(preview(value)).toMatchObject({ valid: true, truncated: false });
+    expect(summary(value)).toEqual(["n=one: b", "n=other: c", "n=other: b"]);
+    const nested =
+      "{n, plural, one {{n, select, a {{m, select, x {X} other {Y}}} other {z}}} other {w}}";
+    expect(preview(nested)).toMatchObject({ truncated: false });
+    expect(summary(nested).some((line) => line.startsWith("m="))).toBe(false);
+  });
+
+  it("gives a category row only under the occurrences that write the category", () => {
+    const lines = summary(
+      "{a, select, x {{n, plural, one {A} other {Ao}}} y {{n, plural, other {Bo}}} other {z}}",
     );
-    expect(nested).toMatchObject({ truncated: true });
-    expect(
-      summary(
-        "{n, plural, one {{n, select, a {{m, select, x {X} other {Y}}} other {z}}} other {w}}",
-      ).some((line) => line.startsWith("m=")),
-    ).toBe(false);
+    expect(lines.filter((line) => line.startsWith("n="))).toEqual([
+      "n=one: A",
+      "n=other: Ao",
+      "n=other: Bo",
+    ]);
+  });
+
+  it("gives a category no occurrence writes a single row", () => {
+    const lines = summary(
+      "{a, select, x {{n, plural, one {A} other {Ao}}} y {{n, plural, one {B} other {Bo}}} other {z}}",
+      "pl",
+    );
+    expect(lines.filter((line) => line.startsWith("n=few"))).toEqual(["n=few: Ao"]);
+  });
+
+  it("reaches an other arm that a named-away category falls into", () => {
+    const lines = summary("{c, plural, =21 {{c, selectordinal, zero {z} other {oth}}} other {x}}");
+    expect(lines).toContain("c=other: oth");
+  });
+
+  it("reaches a select under a plural with a string value", () => {
+    const lines = summary("{n, plural, other {{n, select, x {X} other {Y}}}}");
+    expect(lines).toContain("n=x: X");
+  });
+
+  it("answers truncated false when an exact arm or the locale leaves an arm unreachable", () => {
+    const cases: readonly (readonly [string, string])[] = [
+      ["ar", "{n, plural, =0 {z} zero {zz} one {o} two {t} few {f} many {m} other {x}}"],
+      ["cy", "{n, plural, =0 {z} zero {zz} one {o} two {t} few {f} many {m} other {x}}"],
+      ["en", "{n, plural, =1 {exact} one {# one} other {# other}}"],
+      ["en", "{n, plural, =5 {five} other {#}}"],
+      ["en", "{g, select, female {{n, plural, few {F} other {Fo}}} other {X}}"],
+    ];
+    for (const [locale, value] of cases) {
+      expect(preview(value, locale), `${locale} ${value}`).toMatchObject({ truncated: false });
+    }
+  });
+
+  it("shows the singular category when the offset puts it below the first count", () => {
+    const lines = summary(
+      "{n, plural, offset:1 =1 {You} =2 {You and X} one {You and # other} other {You and # others}}",
+    );
+    expect(lines).toContain("n=one: You and -1 other");
+  });
+
+  it("holds a whole default beside a number use of the same argument", () => {
+    const lines = summary(
+      "{count, number} {count, plural, one {item} other {items}} {g, select, f {F} other {O}}",
+    );
+    expect(lines.filter((line) => line.startsWith("g="))).toEqual([
+      "g=f: 2 items F",
+      "g=other: 2 items O",
+    ]);
   });
 
   it("does not report a row whose enclosing arm the locale can never select", () => {
@@ -513,6 +600,21 @@ describe("previewIcuMessage: row selection and flags", () => {
       "other",
     ]);
     expect(rows.filter((row) => row.argument === "s")).toHaveLength(ICU_PREVIEW_MAX_ROWS - 2);
+  });
+
+  it("spends the row cap on each label once before repeating a label", () => {
+    const parents = Array.from(
+      { length: 14 },
+      (_unused, index) => `p${index} {{n, plural, one {One${index}} other {Many${index}}}}`,
+    ).join(" ");
+    const result = preview(`{a, select, ${parents} other {z}}`);
+    const rows = result.supported && result.valid ? result.rows : [];
+    expect(result).toMatchObject({ truncated: true });
+    expect(rows).toHaveLength(ICU_PREVIEW_MAX_ROWS);
+    const categories = new Set(
+      rows.filter((row) => row.argument === "n").map((row) => row.category),
+    );
+    expect(categories).toEqual(new Set(["one", "other"]));
   });
 
   it("gives a negative exact arm a row", () => {
