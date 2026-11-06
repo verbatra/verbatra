@@ -1,0 +1,49 @@
+---
+title: See changed files in Studio
+seoTitle: "See which locale files changed in Verbatra Studio"
+description: Check which locale files differ from the last git commit and which keys changed in each, from the Overview page of Verbatra Studio.
+type: how-to
+---
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Use this before you commit a run: it shows which locale files a translation run or an edit touched, and which keys changed in each, without leaving Studio. It only reads; Studio never stages, commits or restores anything.
+
+## Open the Changes section
+
+Start Studio ([Review in Studio](/docs/review-in-studio#start-studio)) and scroll the Overview page to **Changes**, under the locale table. It names the checked-out branch (or **Detached HEAD**) and lists every file that differs from the last commit:
+
+| State | Meaning |
+| --- | --- |
+| **Modified** | the file differs from the last commit |
+| **Added** | the file is new and staged |
+| **Deleted** | the file is gone from the working tree or the index |
+| **Untracked** | git does not track the file yet |
+| **Conflicted** | the file has unresolved merge conflicts |
+
+Your source and target locale files are listed, and so are `verbatra.lock.json` and `verbatra.provenance.json`, which show a state and no key changes. A clean project says that no locale file differs.
+
+## Read the key changes
+
+**Key changes (de)** opens that locale's file as keys, compared with the last commit: **Changed** keys with the old and new text side by side, **Added** keys and **Removed** keys. A changed or added key links to its entry in Translations. Press the button again to close it.
+
+- **One file, many locales:** a catalogue such as `apple-xcstrings` keeps every locale in one file, so it has one button per locale. Each compares that locale only.
+- **Long lists:** a list holds at most 500 keys and each text is cut at 2000 characters. When that happened, Studio says the list is incomplete, and git itself has the full difference. A long list shows 50 keys at a time.
+- **Conflicts:** a file with unresolved merge conflicts shows its state and no key changes. Resolve the conflicts in git first.
+- **Safe text:** keys and values are shown as plain text, in the locale's own language and direction, never as markup.
+
+## When there is nothing to show
+
+Studio explains instead of raising an error when it cannot compare, for example when:
+
+- the project is not in a git repository, or git is not installed or is older than a partial clone needs;
+- git refuses the folder because another user owns it, or the folder is inside a bare repository;
+- the repository configures a content filter, which Studio will not run;
+- a read took too long or returned too much output.
+
+A project with a `custom:` format shows its changed files but never their key changes: Studio compares the committed file with the built-in format adapters only, which cannot run a custom adapter. See [Custom format adapters](/docs/custom-format-adapters).
+
+## Know how fresh it is
+
+The section reads again when a locale, lock or provenance file changes on disk. A `git commit` or `git add` on its own changes none of those files, so it shows after the next file change or a reload of the page. If a read fails, Studio keeps the last answer and says so.
+
+The same reads are available to your own code as [`localeGitStatus` and `localeGitDiff`](/docs/sdk/review#localegitstatus), which list every reason a comparison can be unavailable and the git safeguards they apply.

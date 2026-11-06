@@ -1,0 +1,49 @@
+---
+title: Ver los archivos modificados en Studio
+seoTitle: "Ver archivos de locale modificados en Studio"
+description: Comprueba desde la página Overview de Verbatra Studio qué archivos de locale difieren del último commit de git y qué claves cambiaron en cada uno.
+type: how-to
+---
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Usa esto antes de hacer commit de una ejecución: muestra qué archivos de locale tocó una ejecución de traducción o una edición, y qué claves cambiaron en cada uno, sin salir de Studio. Solo lee; Studio nunca hace stage, commit ni restaura nada.
+
+## Abre la sección Changes
+
+Arranca Studio ([Revisar en Studio](/es/docs/review-in-studio#arranca-studio)) y baja en la página Overview hasta **Changes**, debajo de la tabla de locales. Indica la rama activa (o **Detached HEAD**) y lista cada archivo que difiere del último commit:
+
+| Estado | Significado |
+| --- | --- |
+| **Modified** | el archivo difiere del último commit |
+| **Added** | el archivo es nuevo y está en stage |
+| **Deleted** | el archivo ya no está en el directorio de trabajo ni en el índice |
+| **Untracked** | git aún no sigue el archivo |
+| **Conflicted** | el archivo tiene conflictos de merge sin resolver |
+
+Se listan tus archivos de locale de origen y de destino, y también `verbatra.lock.json` y `verbatra.provenance.json`, que muestran un estado y ningún cambio de claves. Un proyecto limpio dice que ningún archivo de locale difiere.
+
+## Lee los cambios de claves
+
+**Key changes (de)** abre el archivo de esa locale como claves, comparado con el último commit: claves **Changed** con el texto antiguo y el nuevo lado a lado, claves **Added** y claves **Removed**. Una clave cambiada o añadida enlaza con su entrada en Translations. Pulsa de nuevo el botón para cerrar.
+
+- **Un archivo, varias locales:** un catálogo como `apple-xcstrings` guarda todas las locales en un archivo, así que tiene un botón por locale. Cada uno compara solo esa locale.
+- **Listas largas:** una lista contiene como máximo 500 claves y cada texto se corta a 2000 caracteres. Cuando ocurre, Studio avisa de que la lista está incompleta; la diferencia completa la tiene git. Una lista larga muestra 50 claves cada vez.
+- **Conflictos:** un archivo con conflictos de merge sin resolver muestra su estado y ningún cambio de claves. Resuelve primero los conflictos en git.
+- **Texto seguro:** las claves y los valores se muestran como texto plano, en el idioma y la dirección de la locale, nunca como marcado.
+
+## Cuando no hay nada que mostrar
+
+Studio lo explica en lugar de mostrar un error cuando no puede comparar, por ejemplo cuando:
+
+- el proyecto no está en un repositorio git, o git no está instalado o es demasiado antiguo para un clon parcial;
+- git rechaza la carpeta porque pertenece a otro usuario, o la carpeta está dentro de un repositorio bare;
+- el repositorio configura un filtro de contenido que Studio no ejecuta;
+- una lectura tardó demasiado o devolvió demasiada salida.
+
+Un proyecto con formato `custom:` muestra sus archivos modificados pero nunca sus cambios de claves: Studio compara el archivo confirmado solo con los adaptadores de formato integrados, que no pueden ejecutar un adaptador propio. Consulta [Escribe un adaptador de formato propio](/es/docs/custom-format-adapters).
+
+## Ten en cuenta lo reciente que es
+
+La sección vuelve a leer cuando cambia en disco un archivo de locale, de lock o de procedencia. Un `git commit` o un `git add` por sí solos no cambian ninguno de esos archivos, así que se ve tras el siguiente cambio de archivo o al recargar la página. Si una lectura falla, Studio conserva la última respuesta y lo dice.
+
+Tu propio código dispone de las mismas lecturas como [`localeGitStatus` y `localeGitDiff`](/es/docs/sdk/review#localegitstatus), que enumeran todos los motivos por los que una comparación puede no estar disponible y las salvaguardas de git que aplican.
