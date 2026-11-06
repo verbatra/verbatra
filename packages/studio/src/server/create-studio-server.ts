@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { declareProviderKeyEnvVar, type LoadedConfig, resolveProjectRoot } from "@verbatra/sdk";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
+import { KEY_PREVIEW_ICU_METHOD } from "../shared/rpc/key-preview-icu.js";
 import { RETRANSLATE_ENTRIES_METHOD } from "../shared/rpc/retranslate-entries.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
 import {
@@ -42,6 +43,8 @@ const DEFAULT_TRANSLATE_PENDING_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_TRANSLATE_PENDING_RATE_LIMIT_MAX = 5;
 const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX = 20;
+const DEFAULT_PREVIEW_ICU_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_PREVIEW_ICU_RATE_LIMIT_MAX = 240;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX = 60;
 
@@ -85,6 +88,10 @@ function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits
       windowMs:
         options.glossaryWriteRateLimitWindowMs ?? DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.glossaryWriteRateLimitMax ?? DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX,
+    },
+    [KEY_PREVIEW_ICU_METHOD]: {
+      windowMs: options.previewIcuRateLimitWindowMs ?? DEFAULT_PREVIEW_ICU_RATE_LIMIT_WINDOW_MS,
+      maxCalls: options.previewIcuRateLimitMax ?? DEFAULT_PREVIEW_ICU_RATE_LIMIT_MAX,
     },
     [REVIEW_APPROVE_METHOD]: reviewDecision,
     [REVIEW_REJECT_METHOD]: reviewDecision,

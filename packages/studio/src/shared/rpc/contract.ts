@@ -23,6 +23,11 @@ import {
   type KeyIntegrityResult,
   keyIntegrityParamsSchema,
 } from "./key-integrity.js";
+import {
+  KEY_PREVIEW_ICU_METHOD,
+  type KeyPreviewIcuResult,
+  keyPreviewIcuParamsSchema,
+} from "./key-preview-icu.js";
 import { KEY_VALUE_METHOD, type KeyValueResult, keyValueParamsSchema } from "./key-value.js";
 import {
   LOCALE_INTEGRITY_METHOD,
@@ -103,6 +108,7 @@ export const rpcParamsSchemas = {
   [IN_FLIGHT_METHOD]: inFlightParamsSchema,
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
   [KEY_VALUE_METHOD]: keyValueParamsSchema,
+  [KEY_PREVIEW_ICU_METHOD]: keyPreviewIcuParamsSchema,
   [KEY_CONTEXT_METHOD]: keyContextParamsSchema,
   [LOCALE_VALUES_METHOD]: localeValuesParamsSchema,
   [LOCALE_INTEGRITY_METHOD]: localeIntegrityParamsSchema,
@@ -135,6 +141,7 @@ export interface RpcResultMap {
   readonly [IN_FLIGHT_METHOD]: InFlightResult;
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;
   readonly [KEY_VALUE_METHOD]: KeyValueResult;
+  readonly [KEY_PREVIEW_ICU_METHOD]: KeyPreviewIcuResult;
   readonly [KEY_CONTEXT_METHOD]: KeyContextResult;
   readonly [LOCALE_VALUES_METHOD]: LocaleValuesResult;
   readonly [LOCALE_INTEGRITY_METHOD]: LocaleIntegrityResult;
