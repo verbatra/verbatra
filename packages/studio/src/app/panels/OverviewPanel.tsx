@@ -32,7 +32,7 @@ import { useUsageTicker } from "../use-usage-ticker.js";
 function UsageCards({ usage }: { readonly usage: UsageDisplay }): ReactNode {
   if (usage.kind === "not-reported") {
     return (
-      <div className="xs:col-span-2 lg:col-span-1">
+      <div className="sm:col-span-2 lg:col-span-1">
         <MetricCard
           label="Tokens"
           icon="gauge"
@@ -66,7 +66,7 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
   const badge = STANDING_BADGE[budget.standing];
   return (
     <>
-      <div className="xs:col-span-2 lg:col-span-1">
+      <div className="sm:col-span-2 lg:col-span-1">
         <MetricCard
           label="Budget"
           value={`${formatCount(budget.tokensUsed)} / ${formatCount(budget.maxTokens)}`}
@@ -75,7 +75,7 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
           progressTone={budget.standing === "reached" ? "danger" : "primary"}
         />
       </div>
-      <div className="xs:col-span-2 lg:col-span-1">
+      <div className="sm:col-span-2 lg:col-span-1">
         <MetricCard label="Budget status" value={<Badge tone={badge.tone}>{badge.label}</Badge>} />
       </div>
     </>
@@ -129,7 +129,7 @@ function LastRunRail({
       <p className="mb-3 text-xs text-muted-foreground">
         As of {formatTimestamp(state.generatedAt)}
       </p>
-      <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 lg:grid-cols-1">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
         <UsageCards usage={state.usage} />
         <BudgetCards budget={state.budget} />
       </div>
@@ -239,14 +239,14 @@ export function OverviewPanel({
   const retrying = retried?.every((read, index) => read === reads[index]) === true;
 
   useEffect(() => {
-    if (!awaitingRecovery.current || retrying) {
+    if (failure !== null || !awaitingRecovery.current) {
       return;
     }
     awaitingRecovery.current = false;
-    if (failure === null) {
+    if (document.activeElement === document.body || document.activeElement === null) {
       recoveryRef.current?.focus();
     }
-  }, [failure, retrying]);
+  }, [failure]);
 
   function retry(): void {
     awaitingRecovery.current = true;
