@@ -138,7 +138,7 @@ describe("pageFailure", () => {
       ),
     ).toEqual({
       error: OTHER,
-      prefix: "Showing the last known pending changes, status, review queue, usage and history.",
+      prefix: "Showing the last known pending changes, coverage, review queue, usage and history.",
     });
   });
 

@@ -801,7 +801,7 @@ describe("OverviewPanel locales section", () => {
     await flush();
 
     expect(alertTexts(view)).toEqual([
-      "Showing the last known status. Studio is limiting how often this action can run. Wait a moment and try again.",
+      "Showing the last known coverage. Studio is limiting how often this action can run. Wait a moment and try again.",
     ]);
     expect(coverageRows(view)).toHaveLength(2);
   });
@@ -1609,7 +1609,7 @@ describe("OverviewPanel review failures, retry and focus", () => {
 
     expect(alertTexts(view)).toHaveLength(1);
     expect(alertText(view)).toContain(
-      "Showing the last known pending changes, status, lock file, usage and history.",
+      "Showing the last known pending changes, coverage, lock file, usage and history.",
     );
     expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
     expect(metricValue(view, "Input tokens")).toBe("640");
@@ -1796,5 +1796,114 @@ describe("OverviewPanel repeated and edge notices", () => {
     expect(alertTexts(view)).toHaveLength(2);
     expect(alertTexts(view)[1]).toContain("Showing the last known usage.");
     expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
+  });
+});
+
+describe("OverviewPanel Retry stays disabled until every read it started has answered", () => {
+  const METHODS = ["status.diff", "status.check", "lock.state", "usage.summary", "history.list"];
+  const ANSWERS: Readonly<Record<string, StubRpcResult>> = {
+    "status.diff": diffResult(DEFAULT_LOCALES),
+    "status.check": checkResult(DEFAULT_ROWS),
+    "lock.state": LOCK_BAD,
+    "usage.summary": usageAnswer(TRACKED_RUN),
+    "history.list": historyAnswer(LOADED_HISTORY),
+  };
+
+  function holdOnRetry(): Readonly<Record<string, (result: StubRpcResult) => void>> {
+    const resolvers: Record<string, (result: StubRpcResult) => void> = {};
+    const stubs: Record<string, StubRpcHandler> = {};
+    for (const method of METHODS) {
+      let calls = 0;
+      stubs[method] = () => {
+        calls += 1;
+        return calls === 1
+          ? (ANSWERS[method] as StubRpcResult)
+          : new Promise<StubRpcResult>((resolve) => {
+              resolvers[method] = resolve;
+            });
+      };
+    }
+    stubPage(stubs);
+    return resolvers;
+  }
+
+  function disabled(view: RenderResult): string | null {
+    return (
+      view
+        .all("button")
+        .find((button) => /^Retry/.test(button.textContent ?? ""))
+        ?.getAttribute("aria-disabled") ?? null
+    );
+  }
+
+  it.each([[[0, 1, 2, 3, 4]], [[4, 3, 2, 1, 0]], [[2, 0, 4, 1, 3]], [[3, 4, 0, 2, 1]]])(
+    "does not clear early and does not stick when the reads answer in order %j",
+    async (order) => {
+      const resolvers = holdOnRetry();
+      const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+      expect(disabled(view)).toBeNull();
+
+      await clickAsync(retryButton(view));
+      await flush();
+      expect(disabled(view)).toBe("true");
+
+      for (const [position, index] of order.entries()) {
+        const method = METHODS[index] as string;
+        resolvers[method]?.(ANSWERS[method] as StubRpcResult);
+        await flush();
+        if (position < order.length - 1) {
+          expect(disabled(view)).toBe("true");
+        }
+      }
+
+      expect(disabled(view)).toBeNull();
+      expect(view.all("button").some((button) => button.textContent === "Retry")).toBe(true);
+    },
+  );
+
+  it("is not left disabled by a review queue that this panel does not re-read", async () => {
+    stubPage({ "lock.state": LOCK_BAD });
+    const view = await renderAsync(
+      <OverviewPanel refreshToken={1} reviewQueue={reviewQueueView(2)} />,
+    );
+
+    await clickAsync(retryButton(view));
+    await flush();
+
+    expect(disabled(view)).toBeNull();
+  });
+
+  it("waits for the review queue its owner re-reads when it was given a retry handler", async () => {
+    stubPage({ "lock.state": LOCK_BAD });
+    const first = reviewQueueView(2);
+    const view = await renderAsync(
+      <OverviewPanel refreshToken={1} reviewQueue={first} onRetry={() => {}} />,
+    );
+
+    await clickAsync(retryButton(view));
+    await flush();
+    expect(disabled(view)).toBe("true");
+
+    view.rerender(
+      <OverviewPanel refreshToken={1} reviewQueue={reviewQueueView(2)} onRetry={() => {}} />,
+    );
+    await flush();
+    view.rerender(
+      <OverviewPanel refreshToken={2} reviewQueue={reviewQueueView(2)} onRetry={() => {}} />,
+    );
+    await flush();
+
+    expect(disabled(view)).toBeNull();
+  });
+
+  it("places the page alert above the metric tiles", async () => {
+    stubPage({ "lock.state": LOCK_BAD });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    const position = view
+      .get('[role="alert"]')
+      .compareDocumentPosition(view.get("[data-overview-recovery]"));
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

@@ -161,7 +161,7 @@ describe("LocalesSection", () => {
   it("keeps the rows and says the status is the last known one when a refresh failed", () => {
     const view = render(<LocalesSection status={dataView([row("de")], true)} lock={NO_LOCK} />);
 
-    expect(view.get('[role="alert"]').textContent).toContain("Showing the last known status.");
+    expect(view.get('[role="alert"]').textContent).toContain("Showing the last known coverage.");
     expect(coverageRows(view)).toHaveLength(1);
   });
 
