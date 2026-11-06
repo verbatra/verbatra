@@ -9,6 +9,9 @@ import type { RenderResult, StubRpcHandler, StubRpcResult } from "../test-suppor
 import {
   clickAsync,
   flush,
+  metricCard,
+  metricHint,
+  metricValue,
   render,
   renderAsync,
   rpcCalls,
@@ -91,22 +94,6 @@ function stubSyncedPage(overrides: Stubs = {}): void {
     "status.check": checkResult(IN_SYNC_ROWS),
     ...overrides,
   });
-}
-
-function metricCard(view: RenderResult, label: string): HTMLElement {
-  const card = view.getByText("span", label).parentElement?.parentElement;
-  if (card === null || card === undefined) {
-    throw new Error(`no metric card is labeled ${JSON.stringify(label)}`);
-  }
-  return card;
-}
-
-function metricValue(view: RenderResult, label: string): string | null {
-  return metricCard(view, label).querySelector("div[title]")?.getAttribute("title") ?? null;
-}
-
-function metricHint(view: RenderResult, label: string): string | null {
-  return metricCard(view, label).querySelector("p")?.textContent ?? null;
 }
 
 function alertText(view: RenderResult): string {
@@ -212,12 +199,24 @@ function deferredAnswers(): {
   };
 }
 
+function localesSection(view: RenderResult): HTMLElement {
+  const section = view.getByText("h2", "Locales").closest("section");
+  if (section === null) {
+    throw new Error("the Locales heading is not inside a section");
+  }
+  return section;
+}
+
 function coverageRows(view: RenderResult): HTMLElement[] {
-  const table = view.getByText("h2", "Locales").closest("section")?.querySelector("table") ?? null;
+  const table = localesSection(view).querySelector('[aria-label="Locale coverage"] table') ?? null;
   if (table === null) {
     throw new Error("the Locales section rendered no coverage table");
   }
   return [...table.querySelectorAll<HTMLElement>("tbody tr")];
+}
+
+function commitRows(view: RenderResult): HTMLElement[] {
+  return view.all('ul[aria-label="Commits"] > li');
 }
 
 function cellTexts(row: HTMLElement | undefined): string[] {
@@ -235,14 +234,10 @@ function metricTile(
   view: RenderResult,
   label: string,
 ): { readonly value: string; readonly hint: string; readonly meterWidth: string | null } {
-  const card = view.getByText("span", label).parentElement?.parentElement ?? null;
-  if (card === null) {
-    throw new Error(`no metric tile is labelled ${label}`);
-  }
-  const meter = card.querySelector<HTMLElement>("span[style]");
+  const meter = metricCard(view, label).querySelector<HTMLElement>("[data-tone]");
   return {
-    value: card.querySelector("div[title]")?.getAttribute("title") ?? "",
-    hint: card.querySelector("p")?.textContent ?? "",
+    value: metricValue(view, label),
+    hint: metricHint(view, label) ?? "",
     meterWidth: meter === null ? null : meter.style.width,
   };
 }
@@ -318,7 +313,7 @@ describe("OverviewPanel", () => {
     stubActivity(TRACKED_RUN);
 
     const view = await renderAsync(<OverviewPanel refreshToken={0} />);
-    const rows = view.all("ul.max-w-3xl > li");
+    const rows = commitRows(view);
 
     expect(rows).toHaveLength(2);
     expect(view.text()).toContain("chore: sync the German locale file");
@@ -362,14 +357,14 @@ describe("OverviewPanel", () => {
     expect(metricHint(view, "Tokens")).toBe(
       "No token usage was recorded: the run called no provider, or its provider does not report usage.",
     );
-    expect(view.query("div[title='640']")).toBeNull();
+    expect(view.query("[title]")).toBeNull();
   });
 
   it("renders a tracked budget as a meter plus a within-budget badge", async () => {
     stubActivity(TRACKED_RUN);
 
     const view = await renderAsync(<OverviewPanel refreshToken={0} />);
-    const meter = metricCard(view, "Budget").querySelector<HTMLElement>('[style*="width"]');
+    const meter = metricCard(view, "Budget").querySelector<HTMLElement>("[data-tone]");
 
     expect(metricValue(view, "Budget")).toBe("250 / 800");
     expect(metricHint(view, "Budget")).toBe("Behavior: warn");
@@ -393,7 +388,7 @@ describe("OverviewPanel", () => {
     });
 
     const view = await renderAsync(<OverviewPanel refreshToken={0} />);
-    const meter = metricCard(view, "Budget").querySelector<HTMLElement>('[style*="width"]');
+    const meter = metricCard(view, "Budget").querySelector<HTMLElement>("[data-tone]");
 
     expect(meter?.style.width).toBe("100%");
     expect(meter?.dataset.tone).toBe("danger");
@@ -435,7 +430,7 @@ describe("OverviewPanel", () => {
     });
 
     const view = await renderAsync(<OverviewPanel refreshToken={0} />);
-    const meter = metricCard(view, "Budget").querySelector<HTMLElement>('[style*="width"]');
+    const meter = metricCard(view, "Budget").querySelector<HTMLElement>("[data-tone]");
     const status = metricCard(view, "Budget status");
 
     expect(meter?.style.width).toBe("60%");
@@ -614,7 +609,8 @@ describe("OverviewPanel", () => {
     lock.answer(0, lockResult(1, []));
     await flush();
 
-    expect(view.getByText("h2", "Locales").parentElement?.textContent).toBe("LocalesLock v9");
+    expect(localesSection(view).textContent).toContain("Lock v9");
+    expect(localesSection(view).textContent).not.toContain("Lock v1");
   });
 });
 
@@ -801,7 +797,14 @@ describe("OverviewPanel locales section", () => {
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    expect(cellTexts(coverageRows(view)[0])).toEqual(["de", "80%8 / 10 keys", "1", "1", "8"]);
+    expect(cellTexts(coverageRows(view)[0])).toEqual([
+      "de",
+      "80%8 / 10 keys",
+      "1",
+      "1",
+      "8",
+      "Translations for deReview for de",
+    ]);
   });
 
   it("names the lock version next to the section heading", async () => {
@@ -809,7 +812,7 @@ describe("OverviewPanel locales section", () => {
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    expect(view.getByText("h2", "Locales").parentElement?.textContent).toBe("LocalesLock v3");
+    expect(localesSection(view).textContent).toContain("Lock v3");
   });
 
   it("labels each locale's recorded lock entry against the current files", async () => {
@@ -956,7 +959,7 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    expect(view.query('a[href^="#/translations"]')).toBeNull();
+    expect(metricCard(view, "Needs attention").querySelector("a")).toBeNull();
   });
 
   it("keeps the last known pending changes and says so when a diff re-read fails", async () => {
@@ -996,7 +999,7 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
   }
 
   function feedRows(view: RenderResult): number {
-    return view.all("ul.max-w-3xl > li").length;
+    return commitRows(view).length;
   }
 
   it("asks for ten commits first and renders twenty after Show more", async () => {
@@ -1045,7 +1048,7 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
     await clickAsync(view.getByText("button", "Show more commits"));
     await flush();
 
-    const region = view.get("ul.max-w-3xl").parentElement;
+    const region = view.get('ul[aria-label="Commits"]').closest("[tabindex='-1']");
 
     expect(document.activeElement).toBe(region);
     expect(region?.getAttribute("tabindex")).toBe("-1");
@@ -1088,5 +1091,88 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(view.text()).toContain("Scroll sideways to see every column.");
+  });
+
+  it("orders the page as metrics, then locales, then the last run and the file history", async () => {
+    stubActivity(TRACKED_RUN);
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    const headings = view.all("h2").map((heading) => heading.textContent);
+
+    expect(headings).toEqual(["Locales", "Last run", "Locale file history"]);
+    expect(
+      metricCard(view, "Needs attention").compareDocumentPosition(localesSection(view)) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+});
+
+describe("OverviewPanel figures, links and text direction", () => {
+  const ARABIC_COMMIT: HistoryCommit = {
+    hash: "aa11bb22cc33dd44",
+    author: "علي حسن",
+    authorDate: "2026-06-01T08:00:00.000Z",
+    subject: "تحديث ملفات الترجمة العربية",
+    touchedPaths: ["locales/ar.json"],
+  };
+
+  it("sets every figure in tabular sans numerals, never mono", async () => {
+    stubActivity(TRACKED_RUN);
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    const figures = view.all("[data-figure]");
+
+    expect(figures.length).toBeGreaterThan(3);
+    for (const figure of figures) {
+      expect(figure.className).toContain("tabular-nums");
+      expect(figure.className).not.toContain("font-mono");
+    }
+  });
+
+  it("carries no native title on any element of the page", async () => {
+    stubActivity(TRACKED_RUN);
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(view.query("[title]")).toBeNull();
+  });
+
+  it("links each locale row to its translations and its review queue", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    const links = [...(coverageRows(view)[1]?.querySelectorAll("a") ?? [])];
+
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "#/translations?locale=fr",
+      "#/review?locale=fr",
+    ]);
+  });
+
+  it("renders an Arabic commit and an Arabic locale with direction attributes that isolate them", async () => {
+    stubOverview({
+      "usage.summary": usageAnswer(TRACKED_RUN),
+      "history.list": historyAnswer({ available: true, commits: [ARABIC_COMMIT] }),
+      "status.check": checkResult([{ locale: "ar", missing: 0, stale: 0, upToDate: 5 }]),
+      "status.diff": diffResult([localeDiff("ar")]),
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(cellTexts(coverageRows(view)[0])[0]).toBe("ar");
+    expect(coverageRows(view)[0]?.querySelector("td")?.getAttribute("dir")).toBe("ltr");
+    expect(commitRows(view)[0]?.querySelector("p")?.getAttribute("dir")).toBe("auto");
+    expect(commitRows(view)[0]?.querySelector("time")?.getAttribute("datetime")).toBe(
+      "2026-06-01T08:00:00.000Z",
+    );
+  });
+
+  it("does not call the missing run status a failure: it shows the empty state beside the locales", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(view.text()).toContain("No run recorded yet");
+    expect(coverageRows(view)).toHaveLength(2);
   });
 });

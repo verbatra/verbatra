@@ -2,7 +2,16 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ProjectSnapshotResult } from "../../shared/rpc/snapshot.js";
 import type { RenderResult } from "../test-support.js";
-import { flush, render, renderAsync, rpcCalls, rpcError, stubRpc } from "../test-support.js";
+import {
+  flush,
+  metricCard,
+  metricValue,
+  render,
+  renderAsync,
+  rpcCalls,
+  rpcError,
+  stubRpc,
+} from "../test-support.js";
 import { SettingsPanel } from "./SettingsPanel.js";
 
 vi.mock("../api.js", () => import("../test-support.js").then((module) => module.apiMock()));
@@ -28,18 +37,6 @@ function snapshotAnswer(result: ProjectSnapshotResult): {
 
 function stubSettings(snapshot: ProjectSnapshotResult): void {
   stubRpc({ "project.snapshot": snapshotAnswer(snapshot) });
-}
-
-function metricCard(view: RenderResult, label: string): HTMLElement {
-  const card = view.getByText("span", label).parentElement?.parentElement;
-  if (card === null || card === undefined) {
-    throw new Error(`no metric card is labeled ${JSON.stringify(label)}`);
-  }
-  return card;
-}
-
-function metricValue(view: RenderResult, label: string): string | null {
-  return metricCard(view, label).querySelector("div[title]")?.getAttribute("title") ?? null;
 }
 
 function detailValue(view: RenderResult, label: string): string | null {

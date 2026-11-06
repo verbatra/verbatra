@@ -105,7 +105,7 @@ describe("CommitList", () => {
       <CommitList state={{ kind: "loaded", commits: [COMMIT, second] }} emptyMessage="none" />,
     );
 
-    expect(view.all("ul:not([aria-label]) > li")).toHaveLength(2);
+    expect(view.all('ul[aria-label="Commits"] > li')).toHaveLength(2);
   });
 
   it("shows the commit subject as the row's lead line", () => {
@@ -114,26 +114,71 @@ describe("CommitList", () => {
     expect(view.get("li p").textContent).toBe("chore(i18n): sync de and fr");
   });
 
+  it("lets a long unbroken subject, author and path wrap inside the row", () => {
+    const long = "x".repeat(200);
+    const view = render(
+      <CommitList
+        state={{
+          kind: "loaded",
+          commits: [{ ...COMMIT, subject: long, author: long, touchedPaths: [`locales/${long}`] }],
+        }}
+        emptyMessage="none"
+      />,
+    );
+    const wrapping = [
+      view.get("li p"),
+      view.get("li p + p span[dir='auto']"),
+      view.get('[aria-label="Files changed"] li'),
+    ];
+
+    for (const node of wrapping) {
+      expect(node.className).toContain("wrap-anywhere");
+    }
+  });
+
+  it("sets the direction of git text from its own content, so an Arabic subject reads right to left", () => {
+    const arabic: HistoryCommit = {
+      ...COMMIT,
+      subject: "تحديث ملفات الترجمة العربية",
+      author: "علي حسن",
+      touchedPaths: ["locales/ar/ملف.json"],
+    };
+    const view = render(
+      <CommitList state={{ kind: "loaded", commits: [arabic] }} emptyMessage="none" />,
+    );
+
+    expect(view.get("li p").getAttribute("dir")).toBe("auto");
+    expect(view.get("li p + p span[dir='auto']").textContent).toBe("علي حسن");
+    expect(view.get('[aria-label="Files changed"] li').getAttribute("dir")).toBe("auto");
+  });
+
+  it("keeps the hash left to right and carries no native title anywhere", () => {
+    const view = render(<CommitList state={LOADED} emptyMessage="none" />);
+
+    expect(view.getByText("span", "0123456").getAttribute("dir")).toBe("ltr");
+    expect(view.query("[title]")).toBeNull();
+  });
+
   it("shortens the hash to the conventional seven characters", () => {
     const view = render(<CommitList state={LOADED} emptyMessage="none" />);
 
     expect(view.getByText("span", "0123456")).not.toBeNull();
   });
 
-  it("shows the calendar date and keeps the full ISO author date as the hover title", () => {
+  it("shows the calendar date as visible text in a time element that carries the full ISO date", () => {
     const view = render(<CommitList state={LOADED} emptyMessage="none" />);
-    const dateLabel = view.getByText("span", "2026-07-18");
+    const dateLabel = view.get("li time");
 
-    expect(dateLabel.getAttribute("title")).toBe("2026-07-18T09:41:12+02:00");
+    expect(dateLabel.textContent).toBe("2026-07-18");
+    expect(dateLabel.getAttribute("datetime")).toBe("2026-07-18T09:41:12+02:00");
+    expect(dateLabel.getAttribute("title")).toBeNull();
   });
 
   it("names the commit author after the date, so only the name wraps", () => {
     const view = render(<CommitList state={LOADED} emptyMessage="none" />);
-    const spans = [...view.get("li p + p").querySelectorAll("span")].map(
-      (span) => span.textContent,
-    );
+    const parts = [...view.get("li p + p").children].map((node) => node.textContent);
 
-    expect(spans).toEqual(["0123456", "2026-07-18", "Ada Lovelace"]);
+    expect(parts).toEqual(["0123456", "2026-07-18", "Ada Lovelace"]);
   });
 
   it("writes the author name as text, so a name shaped like markup never becomes markup", () => {
