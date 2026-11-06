@@ -33,11 +33,12 @@ export {
   icuMessageArguments,
 } from "./icu/arguments.js";
 export {
-  type IcuAxisArm,
   type IcuAxisKind,
+  type IcuAxisOccurrence,
   type IcuAxisPath,
   type IcuAxisStep,
   type IcuVariationAxis,
+  icuExactArmValue,
   icuVariationAxesOf,
 } from "./icu/axes.js";
 export {

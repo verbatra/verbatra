@@ -79,8 +79,6 @@ const TIME_STYLES: ReadonlyMap<string, Intl.DateTimeFormatOptions> = new Map([
   ["full", { hour: "numeric", minute: "numeric", second: "numeric", timeZoneName: "short" }],
 ]);
 
-const EXACT_SELECTOR = /^=-?\d+$/;
-
 const DEFAULT_TIME_STYLE = TIME_STYLES.get("medium");
 
 interface RenderContext {
@@ -262,18 +260,6 @@ function ownOption(
   return Object.hasOwn(options, selector) ? options[selector] : undefined;
 }
 
-function exactOption(
-  options: Readonly<Record<string, PluralOrSelectOption>>,
-  count: number,
-): PluralOrSelectOption | undefined {
-  for (const [selector, option] of Object.entries(options)) {
-    if (EXACT_SELECTOR.test(selector) && Number(selector.slice(1)) === count) {
-      return option;
-    }
-  }
-  return undefined;
-}
-
 function pluralCategoryOf(context: RenderContext, element: PluralElement, count: number): string {
   const type = element.pluralType === "ordinal" ? "ordinal" : "cardinal";
   const { pluralRules, locale } = context.prepared;
@@ -291,7 +277,7 @@ function pluralArm(
   count: number,
 ): PluralOrSelectOption | undefined {
   return (
-    exactOption(element.options, count) ??
+    ownOption(element.options, `=${count}`) ??
     ownOption(element.options, pluralCategoryOf(context, element, count)) ??
     ownOption(element.options, "other")
   );

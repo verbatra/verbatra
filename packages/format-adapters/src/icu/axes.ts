@@ -5,44 +5,41 @@ export type IcuAxisKind = "plural" | "ordinal" | "select";
 export interface IcuAxisStep {
   readonly argument: string;
   readonly kind: IcuAxisKind;
+  readonly offset: number;
+  readonly options: readonly string[];
   readonly selector: string;
 }
 
 export type IcuAxisPath = readonly IcuAxisStep[];
 
-export interface IcuAxisArm {
-  readonly selector: string;
+export interface IcuAxisOccurrence {
   readonly path: IcuAxisPath;
+  readonly offset: number;
+  readonly options: readonly string[];
 }
 
 export interface IcuVariationAxis {
   readonly argument: string;
   readonly kind: IcuAxisKind;
-  readonly offset: number;
-  readonly path: IcuAxisPath;
-  readonly arms: readonly IcuAxisArm[];
+  readonly occurrences: readonly IcuAxisOccurrence[];
 }
 
 interface MutableAxis {
   readonly argument: string;
   readonly kind: IcuAxisKind;
-  readonly offset: number;
-  readonly path: IcuAxisPath;
-  readonly arms: IcuAxisArm[];
-}
-
-function axisFor(axes: Map<string, MutableAxis>, axis: Omit<MutableAxis, "arms">): MutableAxis {
-  const id = `${axis.kind}:${axis.argument}`;
-  const existing = axes.get(id);
-  if (existing !== undefined) {
-    return existing;
-  }
-  const created: MutableAxis = { ...axis, arms: [] };
-  axes.set(id, created);
-  return created;
+  readonly occurrences: IcuAxisOccurrence[];
 }
 
 type Branching = Extract<MessageFormatElement, { options: unknown }>;
+
+export function icuExactArmValue(selector: string): number | undefined {
+  const digits = /^=(-?\d+)$/.exec(selector)?.[1];
+  if (digits === undefined) {
+    return undefined;
+  }
+  const value = Number(digits);
+  return selector === `=${value}` ? value : undefined;
+}
 
 function kindOf(element: Branching): IcuAxisKind {
   if (element.type === TYPE.select) {
@@ -51,18 +48,24 @@ function kindOf(element: Branching): IcuAxisKind {
   return element.pluralType === "ordinal" ? "ordinal" : "plural";
 }
 
-function recordArms(axes: Map<string, MutableAxis>, element: Branching, path: IcuAxisPath): void {
-  const axis = axisFor(axes, {
-    argument: element.value,
-    kind: kindOf(element),
-    offset: element.type === TYPE.plural ? element.offset : 0,
+function offsetOf(element: Branching): number {
+  return element.type === TYPE.plural ? element.offset : 0;
+}
+
+function recordOccurrence(
+  axes: Map<string, MutableAxis>,
+  element: Branching,
+  path: IcuAxisPath,
+): void {
+  const kind = kindOf(element);
+  const id = `${kind}:${element.value}`;
+  const axis = axes.get(id) ?? { argument: element.value, kind, occurrences: [] };
+  axes.set(id, axis);
+  axis.occurrences.push({
     path,
+    offset: offsetOf(element),
+    options: Object.keys(element.options),
   });
-  for (const selector of Object.keys(element.options)) {
-    if (!axis.arms.some((arm) => arm.selector === selector)) {
-      axis.arms.push({ selector, path });
-    }
-  }
 }
 
 function walk(
@@ -72,9 +75,16 @@ function walk(
 ): void {
   for (const element of elements) {
     if (element.type === TYPE.plural || element.type === TYPE.select) {
-      recordArms(axes, element, path);
+      recordOccurrence(axes, element, path);
+      const options = Object.keys(element.options);
       for (const [selector, option] of Object.entries(element.options)) {
-        const step = { argument: element.value, kind: kindOf(element), selector };
+        const step: IcuAxisStep = {
+          argument: element.value,
+          kind: kindOf(element),
+          offset: offsetOf(element),
+          options,
+          selector,
+        };
         walk(option.value, [...path, step], axes);
       }
     } else if (element.type === TYPE.tag) {
