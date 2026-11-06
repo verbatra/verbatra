@@ -83,7 +83,7 @@ export function resolveIcuLocale(locale: string): string | undefined {
 }
 
 function emit(context: RenderContext, kind: IcuSegment["kind"], text: string): void {
-  if (text.length === 0 || context.remaining < 0) {
+  if (text.length === 0) {
     return;
   }
   context.remaining -= text.length;
@@ -303,16 +303,13 @@ function renderElements(
   pound: number | undefined,
 ): void {
   for (const element of elements) {
-    if (context.remaining < 0) {
-      return;
-    }
     renderElement(context, element, pound);
   }
 }
 
-function parseOrUndefined(value: string): MessageFormatElement[] | undefined {
+function parseOrUndefined(value: string, locale: string): MessageFormatElement[] | undefined {
   try {
-    return parse(value);
+    return parse(value, { locale: new Intl.Locale(locale) });
   } catch {
     return undefined;
   }
@@ -331,7 +328,7 @@ export function renderIcuMessage(
   if (resolved === undefined) {
     return { valid: false, reason: "unsupported-locale" };
   }
-  const ast = parseOrUndefined(value);
+  const ast = parseOrUndefined(value, resolved);
   if (ast === undefined) {
     return { valid: false, reason: "invalid-message" };
   }

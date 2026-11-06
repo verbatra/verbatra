@@ -163,7 +163,7 @@ function baseArguments(
   for (const name of names) {
     const sample =
       supplied !== undefined && Object.hasOwn(supplied, name) ? supplied[name] : undefined;
-    if (typeof sample === "string" || typeof sample === "number") {
+    if (sample !== undefined) {
       base = withSample(base, name, sample);
     }
   }
