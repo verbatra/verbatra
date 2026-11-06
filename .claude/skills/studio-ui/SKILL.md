@@ -266,15 +266,17 @@ Rules that follow:
   `PAGE_LABELS`, `PAGE_ICONS` and `NAV_GROUPS` in `src/app/nav-groups.ts`. `DEFAULT_PAGE` in
   `src/client/routes.ts` is `overview`. Overview owns the metric row, the per-locale coverage
   table, the last run and the locale file history, in that order. The metric row is
-  Needs attention, Waiting for review (the count `App.tsx` already holds, passed to Overview only),
+  Needs attention, Waiting for review (the queue `App.tsx` already reads, passed to Overview only; N/A with a reason when `verbatra.provenance.json` is unreadable, never a green 0),
   Avg coverage and Locales in sync; a failed read shows N/A with a check-failed hint, never a
   loading caption. Coverage is sorted worst first, shows ten locales and a "Show all N locales"
   button (focus moves to the first new row), pins the locale column (`sticky start-0`, opaque fill)
   with the scroll hint above the card, and makes its scroll region a tab stop only on real
   overflow. Each row links to `#/translations?locale=` and `#/review?locale=` through `routeHash`
   in one trailing column: quiet links (table text, underline and a `-outline-offset-2` ring only on
-  hover and focus), a visible word plus an sr-only locale suffix, 44px tall below `md`. Failed reads
-  collapse into one page-level `ErrorMessage` with Retry that states the server's own reason
+  hover and focus), a visible word plus an sr-only locale suffix, 44px tall below `md`. Failed reads (diff,
+  status, lock, review, usage, history)
+  collapse into one page-level `ErrorMessage` with Retry, owned by `App.tsx` as one counter, that
+  names every stale source and states the server's own reason
   (`errorDetail`); a section keeps its own alert only when it failed for a different code. A failed
   refresh keeps the last diff, status, lock, usage and history with a stale notice. Figures
   (`MetricCard` values, the coverage percentage and key counts) are set in sans with
@@ -283,9 +285,11 @@ Rules that follow:
   Text that is not focusable never gets a `title` or a `Tooltip`: it wraps (`break-words` or
   `wrap-anywhere`) and shows its full value. Git text (commit subject, author, paths) takes
   `dir="auto"`, and a commit date is visible text, formatted like the last run, inside
-  `<time datetime>`. Tile grids stack below the named `xs` breakpoint (`@theme` in `styles.css`),
+  `<time datetime>`. Tile grids stack below the named `xs` breakpoint (22.5rem) (`@theme` in `styles.css`),
   never an arbitrary pixel variant. A route change made by a link (header, in-page, search) scrolls
-  to the top once, from `link-scroll.ts`; back, forward and replaces do not. Translations is one `KeysTable` (the matrix of
+  to the top once, from `link-scroll.ts`, also when a held navigation proceeds after the unsaved
+  prompt; back, forward and replaces do not. After a Retry that recovers, focus moves to the metric
+  row (`data-overview-recovery`), and a failed Retry keeps it on Retry. Translations is one `KeysTable` (the matrix of
   a status per locale, or one locale's entries with source, translation, status and origin) under
   `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary. Adding a page
   means adding it to `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of
