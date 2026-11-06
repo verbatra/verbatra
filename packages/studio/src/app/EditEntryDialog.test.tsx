@@ -979,4 +979,78 @@ describe("EditEntryDialog: an unsaved draft", () => {
     expect(view.query("[data-unsaved-prompt]")).toBeNull();
     expect(document.activeElement).toBe(editor(view));
   });
+
+  it("drops the prompt and releases a held Back when the draft is typed back to clean", async () => {
+    window.history.replaceState({ idx: 0 }, "", "#/review");
+    const go = vi.spyOn(window.history, "go").mockImplementation(() => {});
+    const view = await dirtyDialog();
+    act(() => {
+      window.history.pushState({ idx: 1 }, "", "#/overview");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    typeInto(editor(view), "Hallo");
+
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(go).toHaveBeenCalledWith(-1);
+    go.mockRestore();
+  });
+
+  it("drops the prompt without a route to restore when the draft is typed back to clean", async () => {
+    const view = await dirtyDialog();
+    pressKey("Escape");
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    typeInto(editor(view), "Hallo");
+
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+  });
+
+  it("keeps focus on the prompt's Save while the save runs, ignores Discard and close requests, and keeps one primary", async () => {
+    const onClose = vi.fn();
+    stubRpc({
+      "key.context": keyValue("Hello", "Hallo"),
+      "translation.editEntry": () => new Promise(() => {}),
+    });
+    const view = await renderAsync(dialog(vi.fn(), onClose));
+    typeInto(editor(view), "Guten Tag");
+    pressKey("Escape");
+    const promptButtons = view.get("[data-unsaved-prompt]").querySelectorAll("button");
+    const save = promptButtons[0] as HTMLElement;
+    save.focus();
+
+    await clickAsync(save);
+    click(promptButtons[1] as HTMLElement);
+    pressKey("Escape");
+    click(view.get("[data-backdrop]"));
+
+    expect(document.activeElement).toBe(save);
+    expect(save.getAttribute("aria-disabled")).toBe("true");
+    expect(onClose).not.toHaveBeenCalled();
+    const primaries = view
+      .all("button")
+      .filter((button) => button.textContent === "Save" && button.dataset.variant === "primary");
+    expect(primaries).toHaveLength(1);
+    expect(primaries[0]).toBe(save);
+  });
+
+  it("shows a rejection once while the prompt is open, and keeps the field clear of the sticky header", async () => {
+    stubRpc({
+      "key.context": keyValue("Hello {name}", "Hallo {name}"),
+      "translation.editEntry": rejected("placeholder" as IntegrityGateReason, "Hallo"),
+    });
+    const view = await renderAsync(dialog());
+    typeInto(editor(view), "Hallo");
+    pressKey("Escape");
+
+    await clickAsync(view.get("[data-unsaved-prompt]").querySelector("button") as HTMLElement);
+    await flush();
+
+    const reason = view.get("[data-unsaved-prompt] [role='alert']").textContent ?? "";
+    expect(reason).not.toBe("");
+    expect((view.get('[role="dialog"]').textContent ?? "").split(reason).length - 1).toBe(1);
+    expect(editor(view).style.getPropertyValue("scroll-margin-top")).toBe("8px");
+    expect(document.activeElement).toBe(editor(view));
+  });
 });

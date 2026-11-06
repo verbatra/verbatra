@@ -1,7 +1,7 @@
 import type { GlossaryDraftCheck, ReviewReasonCode } from "@verbatra/sdk";
 import { Badge, DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
 import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-context.js";
 import { ErrorMessage } from "./ErrorMessage.js";
@@ -9,9 +9,9 @@ import { GlossaryHitList, SaveRow, submitFailure, TranslationField } from "./ent
 import { KeyDescription } from "./KeyDescription.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ReviewReasonChips } from "./ReviewReasonChips.js";
-import { installRouteGuard, restoreHeldRoute, setUnloadWarning } from "./route-guard.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
+import { useDialogDraftGuard } from "./use-dialog-draft-guard.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
 import { useLocaleEdit } from "./use-locale-edit.js";
@@ -143,58 +143,17 @@ export function EditEntryDialog({
   const { context, submit } = edit;
   const value = edit.draft;
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
-  const [confirming, setConfirming] = useState(false);
-  const heldRoute = useRef<(() => Promise<void>) | null>(null);
-  const dirtyRef = useRef(false);
-  useEffect(() => {
-    dirtyRef.current = edit.dirty;
-    setUnloadWarning(edit.dirty);
-  }, [edit.dirty]);
-  useEffect(
-    () =>
-      installRouteGuard({
-        isDirty: () => dirtyRef.current,
-        onBlock: (proceed) => {
-          heldRoute.current = proceed;
-          setConfirming(true);
-        },
-        onRelease: () => {
-          heldRoute.current = null;
-          setConfirming(false);
-          textAreaRef.current?.focus();
-        },
-      }),
-    [],
-  );
-
-  function keepEditing(): void {
-    restoreHeldRoute();
-    heldRoute.current = null;
-    setConfirming(false);
-    textAreaRef.current?.focus();
-  }
-
-  function discard(): void {
-    const proceed = heldRoute.current;
-    heldRoute.current = null;
-    dirtyRef.current = false;
-    onClose();
-    void proceed?.();
-  }
-
-  function requestClose(): void {
-    if (confirming) {
-      keepEditing();
-    } else if (edit.dirty) {
-      setConfirming(true);
-    } else {
-      onClose();
-    }
-  }
+  const guard = useDialogDraftGuard({
+    dirty: edit.dirty,
+    saving: submit.kind === "submitting",
+    onClose,
+    fieldRef: textAreaRef,
+  });
+  const { confirming } = guard;
 
   const containerRef = useDialogA11y<HTMLDivElement>({
     isOpen: true,
-    onClose: requestClose,
+    onClose: guard.requestClose,
     ...(focusTranslation ? { initialFocus: textAreaRef } : {}),
   });
   const draftCheck = useDraftCheck(
@@ -204,16 +163,21 @@ export function EditEntryDialog({
     context.kind === "loaded" && hasGlossaryHits(context.glossary),
   );
 
+  function revealField(): void {
+    const field = textAreaRef.current;
+    const sticky = containerRef.current?.querySelector<HTMLElement>("[data-sticky]");
+    field?.style.setProperty("scroll-margin-top", `${(sticky?.offsetHeight ?? 0) + 8}px`);
+    field?.focus();
+  }
+
   async function handleSubmit(): Promise<void> {
     if (await edit.save(locale)) {
-      dirtyRef.current = false;
-      const proceed = heldRoute.current;
-      heldRoute.current = null;
+      const proceed = guard.takeHeldRoute();
       onAccepted(locale, keyName);
       void proceed?.();
       return;
     }
-    textAreaRef.current?.focus();
+    revealField();
   }
 
   const recoveredRef = useRef(false);
@@ -237,7 +201,7 @@ export function EditEntryDialog({
       }
       ariaLabel={`Edit ${keyName} in ${locale}`}
       closeLabel={`Close the editor for ${keyName}`}
-      onClose={requestClose}
+      onClose={guard.requestClose}
       containerRef={containerRef}
       banner={
         confirming ? (
@@ -247,8 +211,8 @@ export function EditEntryDialog({
             error={submitFailure(submit)}
             placement="drawer"
             onSave={() => void handleSubmit()}
-            onDiscard={discard}
-            onKeepEditing={keepEditing}
+            onDiscard={guard.discard}
+            onKeepEditing={guard.keepEditing}
           />
         ) : undefined
       }
@@ -279,7 +243,11 @@ export function EditEntryDialog({
               textAreaRef={textAreaRef}
             />
           </div>
-          <SaveRow submit={submit} onSave={() => void handleSubmit()} />
+          <SaveRow
+            submit={confirming && submitFailure(submit) !== null ? { kind: "idle" } : submit}
+            onSave={() => void handleSubmit()}
+            primary={!confirming}
+          />
         </>
       ) : null}
     </DrawerShell>
