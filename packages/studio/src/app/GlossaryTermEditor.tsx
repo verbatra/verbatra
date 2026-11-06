@@ -6,7 +6,6 @@ import {
   buildTermEdit,
   draftFor,
   exceedsForbiddenCap,
-  exceedsRenderingLength,
   forbiddenBlocksSave,
   parseRenderings,
   type TermDraft,
@@ -156,22 +155,18 @@ function EditorGroup({
 }
 
 function ForbiddenNote({ text }: { readonly text: string }): ReactNode {
-  if (exceedsForbiddenCap(text)) {
-    return (
-      <p data-cap-note="" className="m-0 mt-1 text-xs text-warning">
-        At most {MAX_FORBIDDEN_RENDERINGS} never-use renderings fit in one term; this has{" "}
-        {parseRenderings(text).length}.
-      </p>
-    );
-  }
-  if (exceedsRenderingLength(text)) {
-    return (
-      <p data-cap-note="" className="m-0 mt-1 text-xs text-warning">
-        A never-use rendering can be at most {MAX_GLOSSARY_TRANSLATION_LENGTH} characters.
-      </p>
-    );
-  }
-  return null;
+  return (
+    <p data-cap-note="" className="m-0 mt-1 text-xs text-warning">
+      {exceedsForbiddenCap(text) ? (
+        <>
+          At most {MAX_FORBIDDEN_RENDERINGS} never-use renderings fit in one term; this has{" "}
+          {parseRenderings(text).length}.
+        </>
+      ) : (
+        <>A never-use rendering can be at most {MAX_GLOSSARY_TRANSLATION_LENGTH} characters.</>
+      )}
+    </p>
+  );
 }
 
 export function GlossaryTermEditor({

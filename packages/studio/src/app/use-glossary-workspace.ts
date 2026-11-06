@@ -48,7 +48,6 @@ export interface GlossaryWorkspace {
   readonly readOnlyReason: string | undefined;
   readonly shown: readonly GlossaryTermView[];
   readonly orphanTerms: readonly GlossaryTermView[];
-  readonly current: (term: GlossaryTermView) => GlossaryTermView;
   readonly missingFile: boolean;
   readonly matchCount: number;
   readonly capped: boolean;
@@ -307,7 +306,6 @@ export function useGlossaryWorkspace({
     readOnlyReason,
     shown: listed,
     orphanTerms,
-    current: (term) => terms.find((candidate) => candidate.source === term.source) ?? term,
     missingFile: glossary.indicator.source === "file" && glossary.version === null,
     matchCount: wanted.length,
     capped,
