@@ -55,7 +55,7 @@ The editor shows the key's description, the glossary terms your draft uses or mi
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-With `next-intl-json` or `arb`, the editor has a collapsed **ICU preview** under the draft. It renders the draft once per arm: each plural category, exact arm and select option, in the locale's language and direction, with nested arms grouped by outer arm. A sample value you type adds a row for a plural, ordinal or select argument. Rows past 24 are left out; an invalid draft keeps the last good rows, dimmed. Numbers and dates use this computer's language data, so your app may differ.
+With `next-intl-json` or `arb`, the editor has a collapsed **ICU preview** under the draft. It renders the draft once per arm: each plural category, exact arm and select option, in the locale's language and direction, with nested arms grouped by outer arm. A typed sample adds a row when it reaches an arm, else a note. Rows past 24 are left out; an invalid draft keeps the last good rows, dimmed. Numbers and dates use this computer's language data, so your app may differ.
 
 #### Beside the table
 
