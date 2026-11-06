@@ -105,6 +105,25 @@ describe("createGitRunner", () => {
   });
 });
 
+describe("createGitRunner with the real runner under tight limits", () => {
+  it("reports output-too-large when git writes more than the buffer allows", async () => {
+    const result = await createGitRunner(defaultGitExecFile, tmpdir()).run(["--version"], {
+      maxBuffer: 2,
+    });
+
+    expect(result).toMatchObject({ ok: false, failure: { kind: "output-too-large" } });
+  });
+
+  it("reports timeout when the process outlives its limit", async () => {
+    const slow: GitExecFile = (_file, _args, options) =>
+      defaultGitExecFile("sh", ["-c", "sleep 5"], { ...options, timeout: 50 });
+
+    const result = await createGitRunner(slow, tmpdir()).run(["--version"]);
+
+    expect(result).toMatchObject({ ok: false, failure: { kind: "timeout" } });
+  });
+});
+
 describe("defaultGitExecFile environment", () => {
   it("forces the C locale so failure messages can be matched", async () => {
     vi.stubEnv("LC_ALL", "de_DE.UTF-8");
