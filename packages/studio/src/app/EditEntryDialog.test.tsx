@@ -112,10 +112,31 @@ describe("EditEntryDialog", () => {
 
     expect(rpcCalls).toEqual([
       { method: "key.context", params: { locale: LOCALE, key: KEY } },
+      { method: "project.snapshot", params: {} },
       { method: "key.integrity", params: { key: KEY } },
       { method: "locale.integrity", params: {} },
     ]);
   });
+
+  it.each([
+    ["next-intl-json", true],
+    ["xliff", false],
+  ])(
+    "offers the ICU preview in the Review dialog only for an ICU format (%s)",
+    async (format, offered) => {
+      stubRpc({
+        "key.context": keyValue("Hello", "Hallo"),
+        "project.snapshot": { ok: true, result: { format } },
+      });
+
+      const view = await renderAsync(dialog());
+
+      expect(view.all("[data-icu-preview] button")).toHaveLength(offered ? 1 : 0);
+      expect(rpcCalls.some((call) => call.method === "key.previewIcu")).toBe(false);
+      expect(editor(view).value).toBe("Hallo");
+      expect(view.query('[role="alertdialog"], [data-unsaved-prompt]')).toBeNull();
+    },
+  );
 
   it("pre-populates the editor with the existing translation and labels it by its locale", async () => {
     stubRpc({ "key.context": keyValue("Hello there", "Hallo zusammen") });

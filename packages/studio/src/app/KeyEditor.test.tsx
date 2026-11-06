@@ -1253,6 +1253,37 @@ describe("KeyEditor editing", () => {
     expect(field(view).hasAttribute("aria-invalid")).toBe(false);
   });
 
+  it.each([
+    ["arb", true],
+    ["i18next-json", false],
+  ])(
+    "offers the ICU preview in the inline editor only for an ICU format (%s)",
+    async (format, offered) => {
+      stubWritable();
+      stubRpc({
+        "key.context": context("Hallo"),
+        "project.snapshot": {
+          ok: true,
+          result: {
+            format,
+            sourceLocale: "en",
+            capabilities: { spend: false, writeToDisk: true },
+          },
+        },
+      });
+      const view = await renderAsync(
+        <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+      );
+      await startEditing(view);
+
+      const toggle = view.all("[data-icu-preview] button");
+
+      expect(toggle).toHaveLength(offered ? 1 : 0);
+      expect(rpcCalls.some((call) => call.method === "key.previewIcu")).toBe(false);
+      expect(field(view).value).toBe("Hallo");
+    },
+  );
+
   it("starts every edit in loading, never showing the value read for an earlier edit of the same locale", async () => {
     stubWritable();
     let reads = 0;
