@@ -36,16 +36,22 @@ export type GitExecFile = (
 
 const execFileAsync = promisify(execFileCb);
 
-export const defaultGitExecFile: GitExecFile = async (file, args, options) => {
-  const { stdout, stderr } = await execFileAsync(file, args as string[], {
-    cwd: options.cwd,
-    encoding: "utf8",
-    timeout: options.timeout,
-    maxBuffer: options.maxBuffer,
-    env: { ...process.env, GIT_TERMINAL_PROMPT: "0", LC_ALL: "C" },
-  });
-  return { stdout, stderr };
-};
+function gitExecFileWith(extraEnv: Readonly<Record<string, string>>): GitExecFile {
+  return async (file, args, options) => {
+    const { stdout, stderr } = await execFileAsync(file, args as string[], {
+      cwd: options.cwd,
+      encoding: "utf8",
+      timeout: options.timeout,
+      maxBuffer: options.maxBuffer,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0", ...extraEnv },
+    });
+    return { stdout, stderr };
+  };
+}
+
+export const defaultGitExecFile: GitExecFile = gitExecFileWith({});
+
+export const inspectionGitExecFile: GitExecFile = gitExecFileWith({ LC_ALL: "C" });
 
 /** How long each git command run by {@link localeGitStatus} and {@link localeGitDiff} may take, in milliseconds. */
 export const LOCALE_GIT_TIMEOUT_MS = 10_000;

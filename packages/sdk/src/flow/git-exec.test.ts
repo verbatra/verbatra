@@ -10,6 +10,7 @@ import {
   createGitRunner,
   defaultGitExecFile,
   type GitExecFile,
+  inspectionGitExecFile,
   sanitizeGitText,
 } from "./git-exec.js";
 
@@ -107,7 +108,7 @@ describe("createGitRunner", () => {
 
 describe("createGitRunner with the real runner under tight limits", () => {
   it("reports output-too-large when git writes more than the buffer allows", async () => {
-    const result = await createGitRunner(defaultGitExecFile, tmpdir()).run(["--version"], {
+    const result = await createGitRunner(inspectionGitExecFile, tmpdir()).run(["--version"], {
       maxBuffer: 2,
     });
 
@@ -116,7 +117,7 @@ describe("createGitRunner with the real runner under tight limits", () => {
 
   it("reports timeout when the process outlives its limit", async () => {
     const slow: GitExecFile = (_file, _args, options) =>
-      defaultGitExecFile("sh", ["-c", "sleep 5"], { ...options, timeout: 50 });
+      inspectionGitExecFile("sh", ["-c", "sleep 5"], { ...options, timeout: 50 });
 
     const result = await createGitRunner(slow, tmpdir()).run(["--version"]);
 
@@ -124,12 +125,12 @@ describe("createGitRunner with the real runner under tight limits", () => {
   });
 });
 
-describe("defaultGitExecFile environment", () => {
-  it("forces the C locale so failure messages can be matched", async () => {
+describe("the runners' environment", () => {
+  it("forces the C locale on the inspection runner so failure messages can be matched", async () => {
     vi.stubEnv("LC_ALL", "de_DE.UTF-8");
     const dir = await mkdtemp(join(tmpdir(), "verbatra-sdk-exec-"));
     try {
-      const result = await defaultGitExecFile("sh", ["-c", 'printf %s "$LC_ALL"'], {
+      const result = await inspectionGitExecFile("sh", ["-c", 'printf %s "$LC_ALL"'], {
         cwd: dir,
         timeout: 5000,
         maxBuffer: 1024,
@@ -139,6 +140,28 @@ describe("defaultGitExecFile environment", () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+
+  it("leaves the locale of the history runner alone", async () => {
+    vi.stubEnv("LC_ALL", "de_DE.UTF-8");
+
+    const result = await defaultGitExecFile("sh", ["-c", 'printf %s "$LC_ALL"'], {
+      cwd: tmpdir(),
+      timeout: 5000,
+      maxBuffer: 1024,
+    });
+
+    expect(result.stdout).toBe("de_DE.UTF-8");
+  });
+
+  it("disables terminal prompts on the inspection runner too", async () => {
+    const result = await inspectionGitExecFile("sh", ["-c", 'printf %s "$GIT_TERMINAL_PROMPT"'], {
+      cwd: tmpdir(),
+      timeout: 5000,
+      maxBuffer: 1024,
+    });
+
+    expect(result.stdout).toBe("0");
   });
 
   it("disables terminal prompts", async () => {
@@ -203,7 +226,7 @@ describe("git status runs repository-configured commands unless they are neutral
   it("does not run it through the runner", async () => {
     const { base, root, marker } = await hostileRepo();
     try {
-      const result = await createGitRunner(defaultGitExecFile, root).run([
+      const result = await createGitRunner(inspectionGitExecFile, root).run([
         "status",
         "--porcelain=v1",
         "-z",

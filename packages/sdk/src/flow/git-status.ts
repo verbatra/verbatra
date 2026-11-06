@@ -5,8 +5,8 @@ import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { LOCK_FILE_NAME } from "../lock/lock-file.js";
 import { PROVENANCE_FILE_NAME } from "../lock/provenance-file.js";
 import {
-  defaultGitExecFile,
   type GitExecFile,
+  inspectionGitExecFile,
   resolveWatchedPaths,
   sanitizeGitText,
 } from "./git-exec.js";
@@ -276,7 +276,7 @@ export async function localeGitStatus(
 ): Promise<LocaleGitStatusResult> {
   const cwd = projectCwd(input);
   const files = watchedFiles(cwd, input.config);
-  const opened = await openGitWorkTree(deps.execFile ?? defaultGitExecFile, resolvePath(cwd));
+  const opened = await openGitWorkTree(deps.execFile ?? inspectionGitExecFile, resolvePath(cwd));
   if (!opened.ok) {
     return { available: false, reason: opened.reason };
   }

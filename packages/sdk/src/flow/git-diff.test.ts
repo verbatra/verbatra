@@ -12,7 +12,7 @@ import {
   LOCALE_GIT_DIFF_MAX_VALUE_CHARS,
   localeGitDiff,
 } from "./git-diff.js";
-import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
+import { type GitExecFile, inspectionGitExecFile } from "./git-exec.js";
 import { LOCALE_GIT_BLOB_MAX_BYTES } from "./git-revision.js";
 
 const fixtures: GitFixture[] = [];
@@ -340,7 +340,7 @@ describe("localeGitDiff against a real repository", () => {
     const calls: string[][] = [];
     const execFile: GitExecFile = (file, args, options) => {
       calls.push([...args]);
-      return defaultGitExecFile(file, args, options);
+      return inspectionGitExecFile(file, args, options);
     };
 
     const diff = await localeGitDiff(

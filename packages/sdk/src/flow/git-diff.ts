@@ -5,7 +5,7 @@ import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
+import { type GitExecFile, inspectionGitExecFile } from "./git-exec.js";
 import { parseRevisionContent, readBlobAtHead } from "./git-revision.js";
 import {
   type FileState,
@@ -304,7 +304,7 @@ export async function localeGitDiff(
   if (file === undefined) {
     return { available: false, reason: "working-file-unreadable" };
   }
-  const opened = await openGitWorkTree(deps.execFile ?? defaultGitExecFile, cwd);
+  const opened = await openGitWorkTree(deps.execFile ?? inspectionGitExecFile, cwd);
   if (!opened.ok) {
     return { available: false, reason: opened.reason };
   }

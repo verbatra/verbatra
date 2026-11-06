@@ -9,7 +9,7 @@ import {
 import { createDefaultRegistry } from "@verbatra/format-adapters";
 import { afterEach, describe, expect, it } from "vitest";
 import { type GitFixture, makeGitFixture } from "../test-support.js";
-import { defaultGitExecFile } from "./git-exec.js";
+import { inspectionGitExecFile } from "./git-exec.js";
 import {
   blobSpec,
   LOCALE_GIT_BLOB_MAX_BYTES,
@@ -149,6 +149,36 @@ describe("parseRevisionContent reads every supported format from memory", () => 
     expect(parsed?.entries).toEqual(expected.entries);
   });
 
+  it("lists every path an adapter reads, and only apple-strings reads a second file", async () => {
+    const fx = await repo();
+    const extraReads: Record<string, string[]> = {};
+    for (const format of SUPPORTED_FORMATS) {
+      const path = await writeSample(fx.root, format);
+      const served = singleFileFs(path, await readFile(path, "utf8"));
+      const reads: string[] = [];
+      const recording = {
+        ...served,
+        async readBounded(requested: string, maxBytes: number) {
+          reads.push(requested);
+          return served.readBounded(requested, maxBytes);
+        },
+      };
+      const resolution = createDefaultRegistry(recording).resolve("", { format });
+      if (resolution.status !== "resolved") {
+        throw new Error("unresolved");
+      }
+      await resolution.adapter.read(path, "en");
+      const others = reads.filter((read) => read !== path);
+      if (others.length > 0) {
+        extraReads[format] = others.map((other) => other.slice(fx.root.length + 1));
+      }
+    }
+
+    expect(extraReads).toEqual({
+      "apple-strings": ["locales/en.lproj/Localizable.stringsdict"],
+    });
+  });
+
   it("reads one locale of a shared catalogue and finds nothing for another", async () => {
     const fx = await repo();
     const path = await writeSample(fx.root, "apple-xcstrings");
@@ -218,7 +248,7 @@ describe("blobSpec", () => {
 
 describe("readBlobAtHead", () => {
   async function open(fx: GitFixture, cwd = fx.root) {
-    const opened = await openGitWorkTree(defaultGitExecFile, cwd);
+    const opened = await openGitWorkTree(inspectionGitExecFile, cwd);
     if (!opened.ok) {
       throw new Error(opened.reason);
     }

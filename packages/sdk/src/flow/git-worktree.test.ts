@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
-import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
+import { type GitExecFile, inspectionGitExecFile } from "./git-exec.js";
 import { localeGitStatus } from "./git-status.js";
 import { neutralizeFilters, openGitWorkTree } from "./git-worktree.js";
 
@@ -198,7 +198,7 @@ describe("openGitWorkTree", () => {
   it("opens a repository with the commit at HEAD and an empty prefix at the root", async () => {
     const fx = await committedProject();
 
-    const opened = await openGitWorkTree(defaultGitExecFile, fx.root);
+    const opened = await openGitWorkTree(inspectionGitExecFile, fx.root);
 
     expect(opened.ok && opened.tree.prefix).toBe("");
     expect(opened.ok && opened.tree.head).toMatch(/^[0-9a-f]{40,64}$/);
@@ -208,7 +208,7 @@ describe("openGitWorkTree", () => {
     const fx = await committedProject();
     await fx.write("sub\ndir/x.txt", "x\n");
 
-    const opened = await openGitWorkTree(defaultGitExecFile, join(fx.root, "sub\ndir"));
+    const opened = await openGitWorkTree(inspectionGitExecFile, join(fx.root, "sub\ndir"));
 
     expect(opened.ok && opened.tree.prefix).toBe("sub\ndir/");
   });
@@ -226,7 +226,7 @@ describe("openGitWorkTree", () => {
     const fx = await makeGitFixture();
     fixtures.push(fx);
 
-    const opened = await openGitWorkTree(defaultGitExecFile, fx.root);
+    const opened = await openGitWorkTree(inspectionGitExecFile, fx.root);
 
     expect(opened.ok && opened.tree.head).toBeUndefined();
   });
