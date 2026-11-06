@@ -47,8 +47,10 @@ export const defaultGitExecFile: GitExecFile = async (file, args, options) => {
   return { stdout, stderr };
 };
 
-export const GIT_COMMAND_TIMEOUT_MS = 10_000;
-export const GIT_COMMAND_MAX_OUTPUT_BYTES = 1_048_576;
+/** How long each git command run by {@link localeGitStatus} and {@link localeGitDiff} may take, in milliseconds. */
+export const LOCALE_GIT_TIMEOUT_MS = 10_000;
+/** The most output {@link localeGitStatus} and {@link localeGitDiff} accept from one git command, in bytes: 1 MiB. */
+export const LOCALE_GIT_MAX_OUTPUT_BYTES = 1_048_576;
 
 export type GitFailureKind =
   | "git-missing"
@@ -144,8 +146,8 @@ export function createGitRunner(
       try {
         const { stdout } = await execFile("git", buildSafeGitArgs(configOverrides, args), {
           cwd,
-          timeout: limits.timeout ?? GIT_COMMAND_TIMEOUT_MS,
-          maxBuffer: limits.maxBuffer ?? GIT_COMMAND_MAX_OUTPUT_BYTES,
+          timeout: limits.timeout ?? LOCALE_GIT_TIMEOUT_MS,
+          maxBuffer: limits.maxBuffer ?? LOCALE_GIT_MAX_OUTPUT_BYTES,
         });
         return { ok: true, stdout };
       } catch (error) {

@@ -81,7 +81,7 @@ describe("createGitRunner", () => {
   });
 
   it("passes the caller's limits through", async () => {
-    const execFile = vi.fn(async () => ({ stdout: "", stderr: "" }));
+    const execFile = vi.fn(async (..._args: unknown[]) => ({ stdout: "", stderr: "" }));
 
     await createGitRunner(execFile as unknown as GitExecFile, "/p").run(["x"], {
       timeout: 5,
