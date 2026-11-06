@@ -88,7 +88,7 @@ describe("NavLink", () => {
     expect(mount({ icon: "review", variant: "drawer" }).get("a svg")).not.toBeNull();
   });
 
-  it("stays put and does not report a navigation while unsaved edits hold the route", () => {
+  it("stays put but still reports the click while unsaved edits hold the route, so a drawer closes onto the prompt", () => {
     const onNavigate = vi.fn();
     const release = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
     const view = mount({ onNavigate });
@@ -97,6 +97,6 @@ describe("NavLink", () => {
     release();
 
     expect(window.location.hash).toBe("#/translations");
-    expect(onNavigate).not.toHaveBeenCalled();
+    expect(onNavigate).toHaveBeenCalledTimes(1);
   });
 });
