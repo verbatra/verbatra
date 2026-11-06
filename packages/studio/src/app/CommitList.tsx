@@ -85,7 +85,6 @@ export interface CommitListProps {
   readonly state: HistoryState;
   readonly compact?: boolean;
   readonly emptyMessage: string;
-  readonly onRetry?: () => void;
 }
 
 const NO_GIT_MESSAGE = "This project is not a git repository, or git is not installed.";
@@ -127,17 +126,12 @@ function LoadedCommits({
   );
 }
 
-export function CommitList({
-  state,
-  compact = false,
-  emptyMessage,
-  onRetry,
-}: CommitListProps): ReactNode {
+export function CommitList({ state, compact = false, emptyMessage }: CommitListProps): ReactNode {
   if (state.kind === "loading") {
     return <Loading />;
   }
   if (state.kind === "error") {
-    return <ErrorMessage error={state.error} {...(onRetry === undefined ? {} : { onRetry })} />;
+    return <ErrorMessage error={state.error} />;
   }
   if (state.kind === "unavailable") {
     const message = UNAVAILABLE_MESSAGES[state.reason];
@@ -153,11 +147,7 @@ export function CommitList({
   return (
     <>
       {state.staleError !== undefined ? (
-        <ErrorMessage
-          error={state.staleError}
-          prefix="Showing the last known history."
-          {...(onRetry === undefined ? {} : { onRetry })}
-        />
+        <ErrorMessage error={state.staleError} prefix="Showing the last known history." />
       ) : null}
       <LoadedCommits state={state} compact={compact} emptyMessage={emptyMessage} />
     </>

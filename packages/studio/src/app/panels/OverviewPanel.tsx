@@ -88,11 +88,9 @@ const SEE_ABOVE = "See the error above.";
 
 function LastRunRail({
   view,
-  onRetry,
   hideCode,
 }: {
   readonly view: UsageView;
-  readonly onRetry: () => void;
   readonly hideCode: string | undefined;
 }): ReactNode {
   if (view.kind === "loading") {
@@ -102,14 +100,14 @@ function LastRunRail({
     return view.error.code === hideCode ? (
       <p className="text-sm text-muted-foreground">The last run is unavailable. {SEE_ABOVE}</p>
     ) : (
-      <ErrorMessage error={view.error} onRetry={onRetry} />
+      <ErrorMessage error={view.error} />
     );
   }
 
   const state = toUsageTickerDisplayState(view.data);
   const staleNotice =
     view.stale && view.error.code !== hideCode ? (
-      <ErrorMessage error={view.error} prefix="Showing the last known usage." onRetry={onRetry} />
+      <ErrorMessage error={view.error} prefix="Showing the last known usage." />
     ) : null;
 
   if (state.kind === "unavailable") {
@@ -137,22 +135,41 @@ function LastRunRail({
   );
 }
 
+function withoutRepeatedNotice(
+  history: HistoryState,
+  hideCode: string | undefined,
+): { readonly hidden: boolean; readonly shown: HistoryState } {
+  if (history.kind === "error") {
+    return { hidden: history.error.code === hideCode, shown: history };
+  }
+  if (
+    history.kind === "loaded" &&
+    history.staleError !== undefined &&
+    history.staleError.code === hideCode
+  ) {
+    return {
+      hidden: true,
+      shown: { kind: "loaded", commits: history.commits, requestedLimit: history.requestedLimit },
+    };
+  }
+  return { hidden: false, shown: history };
+}
+
 function LocaleFileHistory({
   history,
   limit,
   onLimit,
-  onRetry,
   hideCode,
 }: {
   readonly history: HistoryState;
   readonly limit: number;
   readonly onLimit: (next: number) => void;
-  readonly onRetry: () => void;
   readonly hideCode: string | undefined;
 }): ReactNode {
   const regionRef = useRef<HTMLDivElement>(null);
   const askedFrom = useRef<number | null>(null);
   const loaded = history.kind === "loaded";
+  const commitCount = loaded ? history.commits.length : 0;
   const failed = loaded && history.staleError !== undefined;
   const settled = loaded && !failed && history.requestedLimit === limit;
   const full = loaded && history.commits.length >= limit;
@@ -169,25 +186,21 @@ function LocaleFileHistory({
     }
     const firstNew = askedFrom.current;
     askedFrom.current = null;
-    const rows = regionRef.current?.querySelectorAll<HTMLElement>('ul[aria-label="Commits"] > li');
-    (rows?.[firstNew] ?? rows?.[rows.length - 1])?.focus();
+    const rows = [
+      ...(regionRef.current?.querySelectorAll<HTMLElement>('ul[aria-label="Commits"] > li') ?? []),
+    ];
+    (rows[firstNew] ?? rows.at(-1))?.focus();
   }, [failed, settled]);
 
   function loadMore(): void {
     if (pending) {
       return;
     }
-    askedFrom.current = loaded ? history.commits.length : 0;
+    askedFrom.current = commitCount;
     onLimit(Math.min(limit + HISTORY_PAGE_SIZE, HISTORY_MAX));
   }
 
-  const hidden =
-    (history.kind === "error" && history.error.code === hideCode) ||
-    (history.kind === "loaded" && history.staleError?.code === hideCode);
-  const shown: HistoryState =
-    history.kind === "loaded" && hidden
-      ? { kind: "loaded", commits: history.commits, requestedLimit: history.requestedLimit }
-      : history;
+  const { hidden, shown } = withoutRepeatedNotice(history, hideCode);
 
   if (history.kind === "error" && hidden) {
     return (
@@ -199,7 +212,6 @@ function LocaleFileHistory({
     <div ref={regionRef}>
       <CommitList
         state={shown}
-        onRetry={onRetry}
         emptyMessage="No commit history yet for the source or target locale files."
       />
       {showMore ? (
@@ -237,16 +249,19 @@ export function OverviewPanel({
   const failure = pageFailure({ diff, status, lock, review: reviewQueue, usage, history });
   const reads = [diff, status, lock, reviewQueue, usage, history];
   const retrying = retried?.every((read, index) => read === reads[index]) === true;
+  const settled =
+    retried !== null && reads.every((read, index) => read === undefined || read !== retried[index]);
 
   useEffect(() => {
-    if (failure !== null || !awaitingRecovery.current) {
+    if (!settled || !awaitingRecovery.current) {
       return;
     }
     awaitingRecovery.current = false;
-    if (document.activeElement === document.body || document.activeElement === null) {
+    const lostFocus = document.activeElement === document.body || document.activeElement === null;
+    if (failure === null && lostFocus) {
       recoveryRef.current?.focus();
     }
-  }, [failure]);
+  }, [settled, failure]);
 
   function retry(): void {
     awaitingRecovery.current = true;
@@ -285,14 +300,13 @@ export function OverviewPanel({
       <LocalesSection status={status} lock={lock} hideCode={failure?.error.code} />
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <PageSection title="Last run" className="mb-0 lg:col-start-2 lg:row-start-1">
-          <LastRunRail view={usage} onRetry={retry} hideCode={failure?.error.code} />
+          <LastRunRail view={usage} hideCode={failure?.error.code} />
         </PageSection>
         <PageSection title="Locale file history" className="mb-0 lg:col-start-1 lg:row-start-1">
           <LocaleFileHistory
             history={history}
             limit={limit}
             onLimit={setLimit}
-            onRetry={retry}
             hideCode={failure?.error.code}
           />
         </PageSection>

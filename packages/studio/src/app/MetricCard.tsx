@@ -68,7 +68,12 @@ export function MetricCard({
           </span>
         ) : null}
       </div>
-      <div className={valueClassName} data-metric-value="" data-figure={isFigure ? "" : undefined}>
+      <div
+        className={valueClassName}
+        data-metric-value=""
+        data-value-tone={tone}
+        data-figure={isFigure ? "" : undefined}
+      >
         {isFigure ? <AtomicText text={value} /> : value}
       </div>
       {hint !== undefined ? (

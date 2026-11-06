@@ -24,6 +24,7 @@ interface Source {
   readonly label: string;
   readonly error: StructuredError | undefined;
   readonly stale: boolean;
+  readonly ownsNoSection?: boolean;
 }
 
 function hard(label: string, error: StructuredError): Source {
@@ -34,17 +35,17 @@ function kept(label: string, error: StructuredError | undefined): Source {
   return { label, error, stale: true };
 }
 
-function refreshable(
-  label: string,
-  view: RefreshableView<unknown> | undefined,
-): Source | undefined {
-  if (view === undefined) {
-    return undefined;
-  }
+function refreshable(label: string, view: RefreshableView<unknown>): Source {
   if (view.kind === "error") {
     return hard(label, view.error);
   }
   return kept(label, view.kind === "data" && view.stale ? view.error : undefined);
+}
+
+function reviewSource(view: RefreshableView<unknown> | undefined): Source | undefined {
+  return view === undefined
+    ? undefined
+    : { ...refreshable("review queue", view), ownsNoSection: true };
 }
 
 function diffSource(diff: DiffState): Source {
@@ -81,7 +82,7 @@ export function pageFailure(reads: OverviewReads): PageFailure | null {
     diffSource(reads.diff),
     refreshable("status", reads.status),
     lockSource(reads.lock),
-    refreshable("review queue", reads.review),
+    reviewSource(reads.review),
     refreshable("usage", reads.usage),
     historySource(reads.history),
   ].filter((source): source is Source => source?.error !== undefined);
@@ -91,7 +92,9 @@ export function pageFailure(reads: OverviewReads): PageFailure | null {
   }
   const code = primary.error.code;
   const staleLabels = failed
-    .filter((source) => source.stale && source.error?.code === code)
+    .filter(
+      (source) => source.stale && (source.ownsNoSection === true || source.error?.code === code),
+    )
     .map((source) => source.label);
   return staleLabels.length === 0
     ? { error: primary.error }

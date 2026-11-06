@@ -1,31 +1,25 @@
 import { useEffect, useLayoutEffect } from "react";
 import { parseRoute, type Route, routeHash } from "../client/routes.js";
+import { onHoldDropped } from "./route-guard.js";
 
-const PENDING_LIFETIME_MS = 120_000;
-
-interface Pending {
-  readonly target: string;
-  readonly at: number;
-}
-
-let pending: Pending | null = null;
+let pendingTarget: string | null = null;
 
 function sameRoute(left: string, right: string): boolean {
   return routeHash(parseRoute(left)) === routeHash(parseRoute(right));
 }
 
 export function markLinkNavigation(target: string): void {
-  pending = { target, at: Date.now() };
+  pendingTarget = target;
+}
+
+function clearLinkNavigation(): void {
+  pendingTarget = null;
 }
 
 function consumeLinkNavigation(route: Route): boolean {
-  const mark = pending;
-  pending = null;
-  return (
-    mark !== null &&
-    Date.now() - mark.at <= PENDING_LIFETIME_MS &&
-    sameRoute(mark.target, routeHash(route))
-  );
+  const target = pendingTarget;
+  pendingTarget = null;
+  return target !== null && sameRoute(target, routeHash(route));
 }
 
 function isPlainLinkClick(event: MouseEvent): boolean {
@@ -53,7 +47,11 @@ function handleDocumentClick(event: MouseEvent): void {
 export function useScrollToTopOnLinkNavigation(route: Route): void {
   useEffect(() => {
     document.addEventListener("click", handleDocumentClick);
-    return () => document.removeEventListener("click", handleDocumentClick);
+    const stopWatchingHolds = onHoldDropped(clearLinkNavigation);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+      stopWatchingHolds();
+    };
   }, []);
 
   useLayoutEffect(() => {
