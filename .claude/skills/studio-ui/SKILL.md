@@ -222,9 +222,13 @@ Rules that follow:
   carries the words, shown on hover and focus (or on keyboard focus alone with `trigger="focus"`,
   which ignores focus from a pointer press; `flip` opens it upward when the clipping box would cut it
   off, so an open bubble never grows the scroll area), dismissed with Escape, none on a disabled control,
-  taking no layout while closed; `side`: `end`, `bottom`, `bottom-start`, `bottom-end`, and `top` and
-  `top-start`, which only `flip` reaches (`flip` applies to the three `bottom` sides, never to `end`);
-  `wide` lets a long label wrap in a bubble capped at 28rem; `className` goes on the wrapper),
+  taking no layout while closed; `side`: `end`, `bottom`, `bottom-start`, `bottom-end`, `top` and
+  `top-start` (`flip` opens a `bottom` side upward, and `top-start` downward as `bottom-start`, when
+  the room is short; never `end`); on open the bubble is fitted inside the nearest clipping box and
+  the viewport: shifted along the inline axis through layout offsets set from CSSOM (`--tooltip-x`,
+  which the CSP allows), never a transform, so no scroll area keeps a stale width; `wide` lets a long
+  label wrap in a bubble capped at 28rem or the box, whichever is smaller; `className` goes on the
+  wrapper),
   `ThemeToggle` (a cycle over a theme store that
   leaves system for the opposite of the OS theme first, labelled through `label(current, next)`
   and `announce(mode)` props, with its own tooltip and a polite live region), the
