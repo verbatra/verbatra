@@ -11,7 +11,6 @@ import {
   deferredAnswer,
   elementNamed,
   FILE_BACKED_GLOSSARY,
-  findNamed,
   flush,
   glossaryWrites,
   renderAsync,
@@ -419,22 +418,5 @@ describe("the list cap resets", () => {
     await clickAsync(buttonNamed(view, "Show all 120 terms"));
     scopeTo(view, "de");
     expect(view.all("[data-glossary-row]")).toHaveLength(50);
-  });
-});
-
-describe("a missing glossary file", () => {
-  it("says so instead of listing nothing silently", async () => {
-    const missing: GlossaryGetResult = {
-      indicator: { source: "file", path: "glossary.json" },
-      version: null,
-      locales: ["de"],
-      terms: [],
-      doNotTranslate: [],
-      redactedTerms: [],
-    };
-    const view = await renderAsync(<Stateful initial={missing} />);
-
-    expect(view.get("[data-missing-file]").textContent).toContain("glossary.json is missing");
-    expect(findNamed(view, "button", "Retry")).toBeUndefined();
   });
 });

@@ -431,7 +431,7 @@ reads never hurt a draft. An identical read changes nothing (no notice, no remou
 echoing through the watcher is silent), a different one updates the rows without a draft, and an edited
 row keeps its draft, measured against the term it started from. A read that started before a finished
 write is dropped. A file-backed glossary file is watched too (`server/watcher.ts`, reason `lock`, also
-on delete, which the page reports as a missing file), so an external edit, a Studio write and a WebMCP
+on delete, which the page reports as a failed refresh that keeps the last data), so an external edit, a Studio write and a WebMCP
 write all bump the token. `GlossarySection` owns the drafts
 (`use-glossary-workspace.ts`): row editors (a `Map` keyed by source, never a plain object, since a term
 can be named `constructor`), the add form and the keep form live above the rows, so search, scope and

@@ -249,12 +249,6 @@ export function GlossarySection({
           <p className="m-0 mb-3 text-sm text-muted-foreground">{workspace.readOnlyReason}</p>
         ) : null}
         <HoldPrompt workspace={workspace} />
-        {workspace.missingFile && glossary.indicator.source === "file" ? (
-          <p role="status" data-missing-file="" className="m-0 mb-3 text-sm text-warning">
-            The glossary file {glossary.indicator.path} is missing, so nothing is listed. Restore it
-            from version control; Studio cannot create it.
-          </p>
-        ) : null}
         <Toolbar glossary={glossary} workspace={workspace} />
         {bench.editable ? (
           <GlossaryAddForm terms={glossary.terms} redactedTerms={glossary.redactedTerms} />
