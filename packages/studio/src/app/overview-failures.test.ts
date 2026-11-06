@@ -176,4 +176,47 @@ describe("pageFailure", () => {
       prefix: "Showing the last known lock file.",
     });
   });
+
+  it("reads a hard changed-files failure as the page failure", () => {
+    expect(pageFailure(reads({ gitStatus: { kind: "error", error: OTHER } }))).toEqual({
+      error: OTHER,
+    });
+  });
+
+  it("names a stale changed-files read and a stale key-changes read that share the code", () => {
+    const stale = (error: StructuredError): RefreshableView<unknown> => ({
+      kind: "data",
+      data: {},
+      stale: true,
+      error,
+    });
+
+    expect(
+      pageFailure(
+        reads({ lock: { kind: "error", error: BAD }, gitStatus: stale(BAD), gitDiff: stale(BAD) }),
+      ),
+    ).toEqual({
+      error: BAD,
+      prefix: "Showing the last known changed files and key changes.",
+    });
+  });
+
+  it("leaves a stale key-changes read of another code to its own section", () => {
+    const stale: RefreshableView<unknown> = { kind: "data", data: {}, stale: true, error: OTHER };
+
+    expect(pageFailure(reads({ lock: { kind: "error", error: BAD }, gitDiff: stale }))).toEqual({
+      error: BAD,
+    });
+  });
+
+  it("ignores a changes read that is loading, loaded or not made", () => {
+    expect(
+      pageFailure(
+        reads({
+          gitStatus: { kind: "loading" },
+          gitDiff: { kind: "data", data: {}, stale: false },
+        }),
+      ),
+    ).toBeNull();
+  });
 });
