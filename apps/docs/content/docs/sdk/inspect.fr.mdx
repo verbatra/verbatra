@@ -410,7 +410,7 @@ Une locale ne porte `entries` que sur les pages qui contiennent une de ses entr�
 
 <AvailableFrom version="0.13.0" />
 
-Rend un message ICU tel qu'il se lit pour une locale : une ligne par catégorie de pluriel, branche exacte ou option de select, en faisant varier un argument à la fois et en laissant les autres à des valeurs d'exemple. Il n'aperçoit que les formats dont les messages utilisent la syntaxe ICU, `next-intl-json` et `arb` ; tout autre format, y compris un format `custom:`, répond `supported: false`. Le message est un texte non fiable et l'appel ne lève jamais à cause de lui : un message de plus de 20 000 caractères, imbriqué au-delà de 16 accolades, avec plus de 256 caractères `{` et `<` ou sans ICU valide revient en `valid: false` avec un `reason`, tout comme une locale inconnue. Il ne lit ni n'écrit aucun fichier et n'envoie aucune requête.
+Rend un message ICU tel qu'il se lit pour une locale : une ligne par catégorie de pluriel, branche exacte ou option de select, en faisant varier un argument à la fois et en laissant les autres à des valeurs d'exemple. Il ne prévisualise que les formats dont les messages utilisent la syntaxe ICU, `next-intl-json` et `arb` ; tout autre format, y compris un format `custom:`, répond `supported: false`. Le message est un texte non fiable et l'appel ne lève jamais à cause de lui : un message de plus de 20 000 caractères, imbriqué au-delà de 16 accolades, avec plus de 256 caractères `{` et `<` ou sans ICU valide revient en `valid: false` avec un `reason`, tout comme une locale inconnue. Il ne lit ni n'écrit aucun fichier et n'envoie aucune requête.
 
 ```ts title="Signature"
 function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult;
