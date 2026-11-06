@@ -276,13 +276,17 @@ export async function currentBranch(
  * last commit, each with its state, and names the checked-out branch. It writes nothing, calls no
  * provider and takes no path from the caller: the watched files come from the config.
  *
- * Git is run as an argument list, never through a shell, with a minimal environment (no inherited
- * `GIT_*` variable) and with optional locks, `core.fsmonitor`, bare-repository discovery, submodule
- * inspection, lazy fetching from a partial clone's remote and every content filter the repository
- * configures switched off. Paths are matched literally and follow a `--` separator, so a path that
- * starts with a dash is not read as an option; a path beyond the project directory is never passed.
- * Every command is killed after {@link LOCALE_GIT_TIMEOUT_MS} and may write at most
- * {@link LOCALE_GIT_MAX_OUTPUT_BYTES}. The tests cover the routes a repository's own configuration
+ * The default runner starts git as an argument list, never through a shell, with a minimal
+ * environment (`PATH`, `HOME` and the Windows system variables, no `GIT_*` variable and no
+ * `XDG_CONFIG_HOME`, so the global git configuration is read from `HOME` alone) and with optional
+ * locks, `core.fsmonitor`, bare-repository discovery, submodule inspection, lazy fetching from a
+ * partial clone's remote and every content filter the repository configures switched off. Lazy
+ * fetching is switched off with `--no-lazy-fetch`, which needs git 2.45 or newer: on an older git a
+ * partial clone is refused with `git-too-old`. Paths are matched literally and follow a `--`
+ * separator, so a path that starts with a dash is not read as an option; a path beyond the project
+ * directory is never passed. Every command is killed after {@link LOCALE_GIT_TIMEOUT_MS} and may
+ * write at most {@link LOCALE_GIT_MAX_OUTPUT_BYTES}. A runner you inject through `execFile` gets
+ * the same arguments but must supply the environment and the limits itself. The tests cover the routes a repository's own configuration
  * could use to make git run a command: filter drivers, `core.fsmonitor`, aliases, pagers, hook
  * paths, text conversion drivers, a promisor remote's command and a bare repository planted in the
  * folder. That is not a promise that opening a project is safe: a `verbatra.config.ts` is code

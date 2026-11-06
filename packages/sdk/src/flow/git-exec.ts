@@ -15,7 +15,9 @@ export interface GitExecFileResult {
  * `util.promisify(child_process.execFile)`. {@link localeHistory}, {@link localeGitStatus} and
  * {@link localeGitDiff} call it only to run `git`. Inject your own to sandbox those calls or to
  * serve the answers from somewhere else. The default runner passes git a minimal environment with
- * no inherited `GIT_*` variable, so a runner of your own should do the same.
+ * no inherited `GIT_*` variable. A runner of your own must do the same, and must honour the
+ * timeout and output limits: only the default runner guarantees them. It need not set
+ * `GIT_NO_LAZY_FETCH`, since the arguments already carry `--no-lazy-fetch` on a git that knows it.
  *
  * @param file - The executable to run, resolved on `PATH`.
  * @param args - The arguments, passed as a list so no value is ever interpreted by a shell.
@@ -40,7 +42,6 @@ const execFileAsync = promisify(execFileCb);
 const ENV_ALLOW_LIST: ReadonlySet<string> = new Set([
   "PATH",
   "HOME",
-  "TMPDIR",
   "TEMP",
   "TMP",
   "SYSTEMROOT",
@@ -51,10 +52,6 @@ const ENV_ALLOW_LIST: ReadonlySet<string> = new Set([
   "APPDATA",
   "LOCALAPPDATA",
   "PROGRAMDATA",
-  "USER",
-  "USERNAME",
-  "LOGNAME",
-  "XDG_CONFIG_HOME",
 ]);
 
 export function hardenedGitEnv(
@@ -99,6 +96,7 @@ export type GitFailureKind =
   | "timeout"
   | "output-too-large"
   | "unsafe-config"
+  | "git-too-old"
   | "git-failed";
 
 export interface GitFailure {
@@ -206,7 +204,8 @@ export function createGitRunner(
 }
 
 const FILTER_KEY = /^filter\.(.*)\.(clean|process|required|smudge)$/s;
-const PARTIAL_CLONE_KEY = /^(?:extensions\.partialclone|remote\..*\.promisor)$/is;
+const PARTIAL_CLONE_KEY =
+  /^(?:extensions\.partialclone|remote\..*\.(?:promisor|partialclonefilter))$/is;
 const FILTER_OVERRIDES = ["clean=", "process=", "required=false"] as const;
 const MAX_FILTER_DRIVERS = 128;
 const REPLACEMENT_CHARACTER = "�";
@@ -220,11 +219,16 @@ const UNSAFE_CONFIG: GitConfigPlan = {
   failure: { kind: "unsafe-config", exitCode: undefined, stderr: "" },
 };
 
+const TOO_OLD: GitConfigPlan = {
+  ok: false,
+  failure: { kind: "git-too-old", exitCode: undefined, stderr: "" },
+};
+
 function cannotBeExpressed(name: string): boolean {
   return name.includes("=") || name.includes(REPLACEMENT_CHARACTER);
 }
 
-export function planGitConfig(configKeysZ: string): GitConfigPlan {
+export function planGitConfig(configKeysZ: string, lazyFetchOffSupported = true): GitConfigPlan {
   const names = new Set<string>();
   let partialClone = false;
   for (const key of configKeysZ.split("\0")) {
@@ -237,7 +241,10 @@ export function planGitConfig(configKeysZ: string): GitConfigPlan {
   if (names.size > MAX_FILTER_DRIVERS || [...names].some(cannotBeExpressed)) {
     return UNSAFE_CONFIG;
   }
-  const configArgs: string[] = partialClone ? ["--no-lazy-fetch"] : [];
+  if (partialClone && !lazyFetchOffSupported) {
+    return TOO_OLD;
+  }
+  const configArgs: string[] = lazyFetchOffSupported ? ["--no-lazy-fetch"] : [];
   for (const name of names) {
     for (const override of FILTER_OVERRIDES) {
       configArgs.push("-c", `filter.${name}.${override}`);
@@ -246,14 +253,21 @@ export function planGitConfig(configKeysZ: string): GitConfigPlan {
   return { ok: true, configArgs };
 }
 
+const CONFIG_LIST = ["config", "--list", "-z", "--name-only"] as const;
+const USAGE_ERROR_EXIT_CODE = 129;
+const withoutLazyFetchFlag = new WeakSet<GitExecFile>();
+
 export async function prepareGit(execFile: GitExecFile, cwd: string): Promise<GitConfigPlan> {
-  const listed = await createGitRunner(execFile, cwd).run([
-    "config",
-    "--list",
-    "-z",
-    "--name-only",
-  ]);
-  return listed.ok ? planGitConfig(listed.stdout) : { ok: false, failure: listed.failure };
+  const runner = createGitRunner(execFile, cwd);
+  const tryFlag = !withoutLazyFetchFlag.has(execFile);
+  let listed = await runner.run(tryFlag ? ["--no-lazy-fetch", ...CONFIG_LIST] : [...CONFIG_LIST]);
+  if (tryFlag && !listed.ok && listed.failure.exitCode === USAGE_ERROR_EXIT_CODE) {
+    withoutLazyFetchFlag.add(execFile);
+    listed = await runner.run([...CONFIG_LIST]);
+  }
+  return listed.ok
+    ? planGitConfig(listed.stdout, !withoutLazyFetchFlag.has(execFile))
+    : { ok: false, failure: listed.failure };
 }
 
 function withoutTrailingSep(path: string): string {

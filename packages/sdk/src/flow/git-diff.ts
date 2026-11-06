@@ -1,4 +1,4 @@
-import { basename, dirname, relative, resolve as resolvePath } from "node:path";
+import { basename, dirname, join, relative, resolve as resolvePath } from "node:path";
 import { isCustomFormatId } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { projectCwd } from "../config/project-root.js";
@@ -223,59 +223,78 @@ async function readHeadSide(
 
 type FileKind = "file" | "missing" | "other";
 
-export async function fileKind(path: string): Promise<FileKind> {
+interface LocatedFile {
+  readonly kind: FileKind;
+  readonly path: string;
+}
+
+function isMissingError(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  return code === "ENOENT" || code === "ENOTDIR";
+}
+
+export async function locateFile(path: string): Promise<LocatedFile> {
   try {
-    const name = basename(path);
+    const name = basename(path).normalize("NFC");
     const siblings = (await defaultFs.readDirectory?.(dirname(path))) ?? [];
-    const exact = siblings.find((entry) => entry.name === name);
-    const folded = siblings.filter((entry) => entry.name.toLowerCase() === name.toLowerCase());
-    const found = exact ?? (folded.length === 1 ? folded[0] : undefined);
+    const found = siblings.find((entry) => entry.name.normalize("NFC") === name);
     if (found === undefined) {
-      return "missing";
+      return { kind: "missing", path };
     }
-    return found.kind === "file" ? "file" : "other";
-  } catch {
-    return "missing";
+    return {
+      kind: found.kind === "file" ? "file" : "other",
+      path: join(dirname(path), found.name),
+    };
+  } catch (error) {
+    return { kind: isMissingError(error) ? "missing" : "other", path };
   }
+}
+
+export async function fileKind(path: string): Promise<FileKind> {
+  return (await locateFile(path)).kind;
 }
 
 function realPath(path: string): Promise<string> {
   return (defaultFs.realpath as (path: string) => Promise<string>)(path);
 }
 
-export async function workingFileKind(root: string, path: string): Promise<FileKind> {
+export async function workingFileKind(root: string, path: string): Promise<LocatedFile> {
   try {
     const realRoot = await realPath(root);
     const realDirectory = await realPath(dirname(path));
     const expected = resolvePath(realRoot, relative(root, dirname(path)));
-    if (realDirectory.toLowerCase() !== expected.toLowerCase()) {
-      return "other";
+    if (realDirectory.normalize("NFC") !== expected.normalize("NFC")) {
+      return { kind: "other", path };
     }
-  } catch {
-    return "missing";
+  } catch (error) {
+    return { kind: isMissingError(error) ? "missing" : "other", path };
   }
-  return fileKind(path);
+  return locateFile(path);
 }
 
 export async function readWorkingContent(path: string): Promise<string | undefined> {
-  const read = await defaultFs.readFileBounded(path, LOCALE_GIT_BLOB_MAX_BYTES);
-  return read.kind === "ok" ? read.content : undefined;
+  try {
+    const read = await defaultFs.readFileBounded(path, LOCALE_GIT_BLOB_MAX_BYTES);
+    return read.kind === "ok" ? read.content : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 async function readWorkingSide(input: SideInput): Promise<Side> {
   const paths = [input.absolutePath, ...input.siblingPaths];
-  const kinds = await Promise.all(paths.map((path) => workingFileKind(input.root, path)));
-  if (kinds.includes("other")) {
+  const located = await Promise.all(paths.map((path) => workingFileKind(input.root, path)));
+  if (located.some((file) => file.kind === "other")) {
     return { ok: false, reason: "working-file-unreadable" };
   }
   const contents = new Map<string, string>();
-  for (const [index, path] of paths.entries()) {
-    if (kinds[index] === "file") {
-      const content = await readWorkingContent(path);
+  for (const [index, file] of located.entries()) {
+    if (file.kind === "file") {
+      const content = await readWorkingContent(file.path);
       if (content === undefined) {
         return { ok: false, reason: "working-file-unreadable" };
       }
-      contents.set(path, content);
+      contents.set(paths[index] as string, content);
     }
   }
   if (contents.size === 0) {
@@ -312,8 +331,11 @@ function noDifference(path: string, state: LocaleGitDiffState): LocaleGitDiffRes
  * a committed file missing from a partial clone reads as `revision-unreadable`. What is compared
  * follows what is there: a file absent at `HEAD` compares against nothing, and a file absent on disk
  * compares to nothing, whatever git's status code says. A `conflicted` or `unchanged` file is not
- * compared and lists no difference. The file on disk is read only when it and every parent directory
- * are real, not symbolic links, and sit inside the project directory. For `apple-strings` the
+ * compared and lists no difference. The file on disk is read only when it is a regular file and the
+ * real path of its directory is the project directory's real path plus the path written in the
+ * config, so no parent directory is a symbolic link; the comparison is exact apart from Unicode
+ * normalization and never ignores case, and a directory that cannot be inspected is refused rather
+ * than read as empty. For `apple-strings` the
  * `.stringsdict` file is read with the `.strings` file on both sides, and the state reported is the
  * `.strings` file's, else the `.stringsdict` file's. At most {@link LOCALE_GIT_DIFF_MAX_ENTRIES}
  * keys are listed, and each key and text is cut to {@link LOCALE_GIT_DIFF_MAX_VALUE_CHARS}

@@ -20,6 +20,8 @@ import {
  *   committed locale file is larger than {@link LOCALE_GIT_BLOB_MAX_BYTES}.
  * - `unsafe-config`: the repository configures more content filters than verbatra switches off, or
  *   one whose name cannot be passed to git safely, so no command was run against it.
+ * - `git-too-old`: the repository is a partial clone and git is older than 2.45, which cannot be told
+ *   not to fetch missing objects from the remote, so no command was run against it.
  * - `git-failed`: git failed in a way none of the other reasons names, such as a corrupt index.
  * - `custom-adapter`: ({@link localeGitDiff} only) the format is a `custom:` adapter, or the call
  *   was given an adapter registry, so the committed file cannot be read through a private
@@ -40,6 +42,7 @@ export const LOCALE_GIT_UNAVAILABLE_REASONS = Object.freeze([
   "timeout",
   "output-too-large",
   "unsafe-config",
+  "git-too-old",
   "git-failed",
   "custom-adapter",
   "revision-unreadable",
