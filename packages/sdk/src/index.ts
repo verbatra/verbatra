@@ -281,9 +281,8 @@ export {
   type UnresolvedMessage,
 } from "./flow/generate-types.js";
 export { generateTypesResultSchema } from "./flow/generate-types-schema.js";
+export type { GitExecFile, GitExecFileResult } from "./flow/git-exec.js";
 export {
-  type GitExecFile,
-  type GitExecFileResult,
   LOCALE_HISTORY_LIMIT_CAP,
   LOCALE_HISTORY_LIMIT_DEFAULT,
   LOCALE_HISTORY_MAX_OUTPUT_BYTES,
