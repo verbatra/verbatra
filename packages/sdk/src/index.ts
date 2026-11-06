@@ -294,7 +294,6 @@ export {
   type LocaleHistoryUnavailableReason,
 } from "./flow/git-log.js";
 export {
-  ICU_PREVIEW_MAX_ROWS,
   type IcuPreviewAxis,
   type IcuPreviewFailure,
   type IcuPreviewInput,

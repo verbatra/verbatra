@@ -15,7 +15,6 @@ import {
 } from "./message-arguments.js";
 import { pluralCategoriesFor } from "./plural-rules.js";
 
-/** The most rows {@link previewIcuMessage} returns for one message. */
 export const ICU_PREVIEW_MAX_ROWS = 24;
 
 /** Which argument a preview row varies, or `none` for a message with nothing to vary. */
@@ -79,9 +78,9 @@ export type IcuPreviewResult =
       readonly valid: true;
       /** The message's arguments with the types verbatra infers for them. */
       readonly arguments: MessageArguments;
-      /** One row per plural category, exact arm, or select option, varying one argument at a time. At most {@link ICU_PREVIEW_MAX_ROWS}. */
+      /** One row per plural category, exact arm, or select option, varying one argument at a time. At most 24. */
       readonly rows: readonly IcuPreviewRow[];
-      /** True when more rows existed than {@link ICU_PREVIEW_MAX_ROWS}. */
+      /** True when more than 24 rows existed. */
       readonly truncated: boolean;
     };
 
