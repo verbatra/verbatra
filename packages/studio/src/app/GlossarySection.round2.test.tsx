@@ -293,7 +293,7 @@ describe("focus stays put when another editor finishes", () => {
     await clickAsync(buttonNamed(view, "Edit checkout"));
     const second = fieldOf(view, "Translation (all locales)", 1);
     typeInto(second, "B");
-    await clickAsync(view.all("form button[type=submit]")[0] as HTMLElement);
+    await clickAsync(view.all("[data-glossary-row] form button[type=submit]")[0] as HTMLElement);
     second.focus();
 
     await act(async () => {

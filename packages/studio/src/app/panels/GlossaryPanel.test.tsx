@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, Profiler, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { GlossaryGetResult } from "../../shared/rpc/glossary.js";
 import {
@@ -309,14 +309,22 @@ describe("GlossaryPanel, live refresh", () => {
     expect(rpcCalls.filter((call) => call.method === "glossary.get")).toHaveLength(2);
   });
 
-  it("keeps an unedited row's elements when an identical read arrives, as after a Studio save", async () => {
+  it("renders nothing again when an identical read arrives, as after a Studio save", async () => {
     stubGlossary(TERMS);
-    const view = await renderAsync(<GlossaryPanel refreshToken={0} />);
+    let commits = 0;
+    const tree = (token: number): ReactNode => (
+      <Profiler id="panel" onRender={() => (commits += 1)}>
+        <GlossaryPanel refreshToken={token} />
+      </Profiler>
+    );
+    const view = await renderAsync(tree(0));
     const row = view.get("[data-glossary-row]");
 
-    view.rerender(<GlossaryPanel refreshToken={1} />);
+    view.rerender(tree(1));
+    const afterProps = commits;
     await flush();
 
+    expect(commits).toBe(afterProps);
     expect(view.get("[data-glossary-row]")).toBe(row);
     expect(view.query('[role="alert"]')).toBeNull();
   });
@@ -416,7 +424,9 @@ describe("GlossaryPanel, live refresh", () => {
       view.all('input[aria-label="Translation (all locales)"]').at(-1) as HTMLInputElement,
       "B",
     );
-    await clickAsync(view.all("form button[type=submit]").at(-1) as HTMLElement);
+    await clickAsync(
+      view.all("[data-glossary-row] form button[type=submit]").at(-1) as HTMLElement,
+    );
 
     served = glossaryOf(FILE, { verbatra: "Verbatra" });
     view.rerender(<GlossaryPanel refreshToken={1} />);
