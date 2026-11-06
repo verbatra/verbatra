@@ -75,6 +75,7 @@ export function LocaleEditForm({
         </div>
       ) : null}
       <TranslationField
+        keyName={keyName}
         locale={locale}
         value={draft}
         source={context.source}

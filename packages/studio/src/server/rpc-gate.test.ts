@@ -172,6 +172,7 @@ describe("dispatchRpc envelope", () => {
         glossary: { source: "none" },
         capabilities: { spend: false, writeToDisk: true },
         exposeAgentTools: false,
+        icuPreview: false,
       }),
     });
 
@@ -422,6 +423,7 @@ describe("dispatchRpc envelope", () => {
           glossary: { source: "none" },
           capabilities: { spend: false, writeToDisk: true },
           exposeAgentTools: false,
+          icuPreview: false,
         }),
       },
       limiter,
@@ -499,6 +501,7 @@ describe("dispatchRpc envelope", () => {
           glossary: { source: "none" },
           capabilities: { spend: false, writeToDisk: true },
           exposeAgentTools: false,
+          icuPreview: false,
         }),
       },
       undefined,

@@ -264,8 +264,10 @@ describe("previewIcuMessage: rows", () => {
     expect(rows.map(textOf)).toEqual([
       "She have 9 cats",
       "They have 9 cats",
+      "She have 9 cats",
       "She have 1 cat",
       "She have 2 cats",
+      "She have 9 cats",
     ]);
   });
 
@@ -276,6 +278,8 @@ describe("previewIcuMessage: rows", () => {
         argument: null,
         category: null,
         sample: null,
+        held: {},
+        supplied: false,
         segments: [
           { kind: "text", text: "Hi " },
           { kind: "argument", text: "Mario" },
@@ -605,8 +609,10 @@ describe("previewIcuMessage: nested axes show the arm they name", () => {
     expect(supplied.map(textOf)).toEqual([
       "She has 7 cats",
       "They have pets",
+      "They have pets",
       "She has 1 cat",
       "She has 2 cats",
+      "She has 7 cats",
     ]);
   });
 });

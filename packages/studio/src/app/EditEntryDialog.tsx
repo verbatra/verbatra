@@ -115,6 +115,7 @@ function TranslationColumn({
           </p>
         ) : null}
         <TranslationField
+          keyName={keyName}
           locale={locale}
           value={value}
           source={context.source}

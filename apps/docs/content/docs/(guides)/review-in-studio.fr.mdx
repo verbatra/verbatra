@@ -43,13 +43,19 @@ Les puces à côté de la recherche restreignent le tableau par état, notamment
 
 ### Modifier avec la barrière d'intégrité
 
-**Edit** ouvre le brouillon de cette locale. L'enregistrement fait passer la valeur par la [barrière d'intégrité](/fr/docs/translation-safety#la-barrière-dintégrité) ; une valeur refusée n'est pas écrite, et la raison s'affiche. Une modification acceptée écrit le fichier de locale et met à jour le fichier de verrouillage. Modifier ne demande aucune option et n'appelle jamais de fournisseur.
+**Edit** ouvre le brouillon de cette locale. L'enregistrement fait passer la valeur par la [barrière d'intégrité](/fr/docs/translation-safety#la-barrière-dintégrité) ; une valeur refusée n'est pas écrite, et la raison s'affiche. Une modification acceptée écrit le fichier de locale et met à jour le fichier de verrouillage.
 
 #### Vérifications du brouillon
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 L'éditeur montre la description de la clé, les termes du glossaire que ton brouillon utilise ou oublie, et sa longueur par rapport à la source et à `maxLength`. Ctrl ou Cmd avec Entrée enregistre.
+
+#### Vérifier les messages avec l'ICU preview
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Avec `next-intl-json` ou `arb`, l'éditeur propose sous le brouillon une **ICU preview** repliée. Elle rend le brouillon une fois par branche : chaque catégorie de pluriel, branche exacte et option de select, dans la langue et le sens d'écriture de la locale, les branches imbriquées étant regroupées sous leur branche extérieure. Une valeur d'exemple saisie ajoute une ligne quand elle atteint une branche, ou une note si elle n'est pas utilisée. Les lignes au-delà de 24 sont omises ; un brouillon invalide garde les dernières bonnes lignes, atténuées. Les nombres et les dates utilisent les données de langue de cet ordinateur, ton application peut donc différer.
 
 #### À côté du tableau
 

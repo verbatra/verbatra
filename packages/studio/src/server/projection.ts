@@ -1,5 +1,5 @@
 import { relative } from "node:path";
-import { type LoadedConfig, redact } from "@verbatra/sdk";
+import { type LoadedConfig, previewIcuMessage, redact } from "@verbatra/sdk";
 import type { GlossaryIndicator } from "../shared/rpc/glossary.js";
 import type { ProjectSnapshotResult, StudioCapabilities } from "../shared/rpc/snapshot.js";
 
@@ -37,6 +37,7 @@ export function buildProjectSnapshot(
     glossary: projectGlossaryIndicator(loaded.glossary, projectRoot),
     capabilities,
     exposeAgentTools,
+    icuPreview: previewIcuMessage({ config, locale: config.sourceLocale, value: "" }).supported,
     ...(config.prune !== undefined ? { prune: config.prune } : {}),
     ...(config.generatePlurals !== undefined ? { generatePlurals: config.generatePlurals } : {}),
     ...(config.maxBatchSize !== undefined ? { maxBatchSize: config.maxBatchSize } : {}),

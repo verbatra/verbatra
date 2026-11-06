@@ -3,6 +3,7 @@ import type { IntegrityGateReason } from "@verbatra/sdk";
 import { act, type ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { EditEntryDialog } from "./EditEntryDialog.js";
+import { IcuPreviewAvailabilityProvider } from "./icu-preview-open.js";
 import {
   click,
   clickAsync,
@@ -116,6 +117,25 @@ describe("EditEntryDialog", () => {
       { method: "locale.integrity", params: {} },
     ]);
   });
+
+  it.each([
+    ["offered", true],
+    ["not offered", false],
+  ])(
+    "shows the ICU preview in the Review dialog only when the project offers it (%s)",
+    async (_name, offered) => {
+      stubRpc({ "key.context": keyValue("Hello", "Hallo") });
+
+      const view = await renderAsync(
+        <IcuPreviewAvailabilityProvider value={offered}>{dialog()}</IcuPreviewAvailabilityProvider>,
+      );
+
+      expect(view.all("[data-icu-preview] button")).toHaveLength(offered ? 1 : 0);
+      expect(rpcCalls.some((call) => call.method === "key.previewIcu")).toBe(false);
+      expect(editor(view).value).toBe("Hallo");
+      expect(view.query('[role="alertdialog"], [data-unsaved-prompt]')).toBeNull();
+    },
+  );
 
   it("pre-populates the editor with the existing translation and labels it by its locale", async () => {
     stubRpc({ "key.context": keyValue("Hello there", "Hallo zusammen") });

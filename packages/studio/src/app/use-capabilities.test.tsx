@@ -14,9 +14,12 @@ function Probe(): ReactNode {
   return <span data-testid="kind">{seen.kind}</span>;
 }
 
-function snapshotResult(spend: boolean): { readonly ok: true; readonly result: unknown } {
+function snapshotResult(
+  spend: boolean,
+  icuPreview: boolean | undefined = false,
+): { readonly ok: true; readonly result: unknown } {
   const capabilities: StudioCapabilities = { spend, writeToDisk: true };
-  return { ok: true, result: { capabilities, sourceLocale: "en" } };
+  return { ok: true, result: { capabilities, sourceLocale: "en", icuPreview } };
 }
 
 describe("useCapabilities", () => {
@@ -39,6 +42,7 @@ describe("useCapabilities", () => {
       kind: "loaded",
       capabilities: { spend: true, writeToDisk: true },
       sourceLocale: "en",
+      icuPreview: false,
     });
   });
 
@@ -51,7 +55,23 @@ describe("useCapabilities", () => {
       kind: "loaded",
       capabilities: { spend: false, writeToDisk: true },
       sourceLocale: "en",
+      icuPreview: false,
     });
+  });
+
+  it("carries the server's ICU preview flag, and reads a snapshot without one as off", async () => {
+    stubRpc({ "project.snapshot": snapshotResult(false, true) });
+    await renderAsync(<Probe />);
+    expect(seen).toMatchObject({ kind: "loaded", icuPreview: true });
+
+    stubRpc({
+      "project.snapshot": {
+        ok: true,
+        result: { capabilities: { spend: false, writeToDisk: true }, sourceLocale: "en" },
+      },
+    });
+    await renderAsync(<Probe />);
+    expect(seen).toMatchObject({ kind: "loaded", icuPreview: false });
   });
 
   it("reads capabilities from project.snapshot exactly once per mount", async () => {

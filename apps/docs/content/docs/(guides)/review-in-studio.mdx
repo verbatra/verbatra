@@ -43,13 +43,19 @@ Chips beside the search narrow the table by state, including **Review queue** an
 
 ### Edit with integrity gating
 
-**Edit** opens that locale's draft. Saving runs the value through the [integrity gate](/docs/translation-safety#the-integrity-gate); a value it refuses is not written, and the reason is shown. An accepted edit writes the locale file and updates the lock file. Editing needs no flag and calls no provider.
+**Edit** opens that locale's draft. Saving runs the value through the [integrity gate](/docs/translation-safety#the-integrity-gate); a value it refuses is not written, and the reason is shown. An accepted edit writes the locale file and updates the lock file.
 
 #### Draft checks
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 The editor shows the key's description, the glossary terms your draft uses or misses, and its length against the source and `maxLength`. Ctrl or Cmd with Enter saves.
+
+#### Preview ICU messages
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+With `next-intl-json` or `arb`, the editor has a collapsed **ICU preview** under the draft. It renders the draft once per arm: each plural category, exact arm and select option, in the locale's language and direction, with nested arms grouped by outer arm. A typed sample adds a row when it reaches an arm, else a note. Rows past 24 are left out; an invalid draft keeps the last good rows, dimmed. Numbers and dates use this computer's language data, so your app may differ.
 
 #### Beside the table
 

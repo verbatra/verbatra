@@ -132,6 +132,22 @@ function sampleOf(context: RenderContext, name: string): IcuSampleValue | undefi
   return typeof sample === "string" || typeof sample === "number" ? sample : undefined;
 }
 
+export interface IcuPluralSample {
+  readonly count: number;
+  readonly key: string;
+}
+
+export function icuPluralSampleOf(sample: IcuSampleValue | undefined): IcuPluralSample | undefined {
+  if (typeof sample === "number") {
+    return { count: sample, key: String(sample) };
+  }
+  if (typeof sample !== "string") {
+    return undefined;
+  }
+  const count = Number(sample);
+  return Number.isNaN(count) ? undefined : { count, key: sample };
+}
+
 function numberSampleOf(context: RenderContext, name: string): number | undefined {
   const sample = sampleOf(context, name);
   return typeof sample === "number" ? sample : undefined;
@@ -214,7 +230,7 @@ function dateOptionsOf(
 }
 
 function renderNumber(context: RenderContext, element: NumberElement): void {
-  const value = numberSampleOf(context, element.value);
+  const value = icuPluralSampleOf(sampleOf(context, element.value))?.count;
   if (value === undefined) {
     emit(context, "argument", placeholder(element.value));
     return;
@@ -274,21 +290,27 @@ function pluralCategoryOf(context: RenderContext, element: PluralElement, count:
 function pluralArm(
   context: RenderContext,
   element: PluralElement,
-  count: number,
+  sample: IcuPluralSample,
 ): PluralOrSelectOption | undefined {
   return (
-    ownOption(element.options, `=${count}`) ??
-    ownOption(element.options, pluralCategoryOf(context, element, count)) ??
+    ownOption(element.options, `=${sample.key}`) ??
+    ownOption(element.options, pluralCategoryOf(context, element, sample.count)) ??
     ownOption(element.options, "other")
   );
 }
 
 function renderPlural(context: RenderContext, element: PluralElement): void {
-  const count = numberSampleOf(context, element.value);
+  const sample = icuPluralSampleOf(sampleOf(context, element.value));
   const arm =
-    count === undefined ? ownOption(element.options, "other") : pluralArm(context, element, count);
+    sample === undefined
+      ? ownOption(element.options, "other")
+      : pluralArm(context, element, sample);
   if (arm !== undefined) {
-    renderElements(context, arm.value, count === undefined ? undefined : count - element.offset);
+    renderElements(
+      context,
+      arm.value,
+      sample === undefined ? undefined : sample.count - element.offset,
+    );
   }
 }
 

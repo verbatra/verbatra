@@ -29,6 +29,7 @@ const SNAPSHOT: ProjectSnapshotResult = {
   glossary: { source: "file", path: "glossary.json" },
   capabilities: { spend: false, writeToDisk: true },
   exposeAgentTools: false,
+  icuPreview: false,
 };
 
 function snapshotAnswer(result: ProjectSnapshotResult): {

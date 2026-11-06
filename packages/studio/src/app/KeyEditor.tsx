@@ -10,6 +10,7 @@ import { CommitList } from "./CommitList.js";
 import { EditorPane } from "./EditorPane.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { submitFailure } from "./entry-editor-parts.js";
+import { IcuPreviewAvailabilityProvider } from "./icu-preview-open.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { LocaleBlock } from "./KeyEditorLocale.js";
 import { LocaleEditForm } from "./LocaleEditForm.js";
@@ -541,26 +542,31 @@ export function KeyEditor({
     </>
   );
 
+  const icuAvailable = capabilitiesState.kind === "loaded" && capabilitiesState.icuPreview;
   if (layout === "pane") {
     return (
-      <EditorPane keyName={keyName} banner={prompt} onClose={onClose} onEscape={onEscape}>
-        {body}
-      </EditorPane>
+      <IcuPreviewAvailabilityProvider value={icuAvailable}>
+        <EditorPane keyName={keyName} banner={prompt} onClose={onClose} onEscape={onEscape}>
+          {body}
+        </EditorPane>
+      </IcuPreviewAvailabilityProvider>
     );
   }
   return (
-    <DrawerShell
-      kicker="Key details"
-      title={keyName}
-      ariaLabel={`Details for ${keyName}`}
-      closeLabel={`Close details for ${keyName}`}
-      onClose={onClose}
-      containerRef={dialogRef}
-      banner={prompt}
-    >
-      <div data-drawer-tail="" className="pb-40">
-        {body}
-      </div>
-    </DrawerShell>
+    <IcuPreviewAvailabilityProvider value={icuAvailable}>
+      <DrawerShell
+        kicker="Key details"
+        title={keyName}
+        ariaLabel={`Details for ${keyName}`}
+        closeLabel={`Close details for ${keyName}`}
+        onClose={onClose}
+        containerRef={dialogRef}
+        banner={prompt}
+      >
+        <div data-drawer-tail="" className="pb-40">
+          {body}
+        </div>
+      </DrawerShell>
+    </IcuPreviewAvailabilityProvider>
   );
 }

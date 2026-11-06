@@ -20,6 +20,7 @@ const SNAPSHOT_RESULT: ProjectSnapshotResult = {
   glossary: { source: "none" },
   capabilities: { spend: false, writeToDisk: true },
   exposeAgentTools: true,
+  icuPreview: false,
 };
 
 const SNAPSHOT_ON: RpcCallResult<"project.snapshot"> = { ok: true, result: SNAPSHOT_RESULT };

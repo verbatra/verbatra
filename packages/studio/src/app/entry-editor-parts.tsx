@@ -11,6 +11,7 @@ import {
 import { compareLength, lengthSummary } from "../client/length-compare.js";
 import { settledActionStatusLabel } from "../client/settled-action-status.js";
 import type { StructuredError } from "../client/state.js";
+import { IcuPreviewPanel } from "./IcuPreviewPanel.js";
 import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";
 import { cn } from "./lib/cn.js";
 import { TranslationValue, valueDirection } from "./TranslationValue.js";
@@ -182,6 +183,7 @@ function DraftPreview({
 }
 
 export function TranslationField({
+  keyName,
   locale,
   value,
   source,
@@ -193,6 +195,7 @@ export function TranslationField({
   onChange,
   onSave,
 }: {
+  readonly keyName: string;
   readonly locale: string;
   readonly value: string;
   readonly source: string;
@@ -230,6 +233,7 @@ export function TranslationField({
       />
       <LengthLine id={lengthId} source={source} value={value} maxLength={maxLength} />
       <DraftPreview value={value} locale={locale} />
+      <IcuPreviewPanel keyName={keyName} locale={locale} value={value} />
     </>
   );
 }

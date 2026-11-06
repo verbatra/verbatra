@@ -64,6 +64,7 @@ const SNAPSHOT: ProjectSnapshotResult = {
   glossary: { source: "none" },
   capabilities: { spend: false, writeToDisk: true },
   exposeAgentTools: false,
+  icuPreview: false,
 };
 
 const KEY_VALUE: KeyContextResult = {

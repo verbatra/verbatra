@@ -151,6 +151,10 @@ export interface StudioServerDeps {
   readonly glossaryWriteRateLimitWindowMs?: number;
   /** How many `glossary.write` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 20. */
   readonly glossaryWriteRateLimitMax?: number;
+  /** Rolling window in milliseconds for `key.previewIcu`'s rate limit. Defaults to 60000. */
+  readonly previewIcuRateLimitWindowMs?: number;
+  /** How many `key.previewIcu` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 240. */
+  readonly previewIcuRateLimitMax?: number;
   /**
    * Rolling window in milliseconds for the rate limits of `review.approve`, `review.reject`,
    * `review.approveMany`, `review.rejectMany`, and `review.approveLocale`, each counted on its

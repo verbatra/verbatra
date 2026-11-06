@@ -9,6 +9,7 @@ export type CapabilitiesState =
       readonly kind: "loaded";
       readonly capabilities: StudioCapabilities;
       readonly sourceLocale: string;
+      readonly icuPreview: boolean;
     };
 
 export function useCapabilities(): CapabilitiesState {
@@ -28,6 +29,7 @@ export function useCapabilities(): CapabilitiesState {
         kind: "loaded",
         capabilities: response.result.capabilities,
         sourceLocale: response.result.sourceLocale,
+        icuPreview: response.result.icuPreview === true,
       });
     });
     return () => {
