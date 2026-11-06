@@ -15,7 +15,7 @@ const RECOVERY_FOCUS =
 
 function ProjectMetrics({ snapshot }: { readonly snapshot: ProjectSnapshotResult }): ReactNode {
   return (
-    <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="mb-6 grid grid-cols-1 gap-3 xs:grid-cols-2 lg:grid-cols-4">
       <MetricCard
         label="Source locale"
         value={
@@ -67,7 +67,7 @@ function ProviderActions({ snapshot }: { readonly snapshot: ProjectSnapshotResul
     return <Badge tone="success">Enabled</Badge>;
   }
   const hint: ReactNode =
-    snapshot.capabilities.spendWithheld === "policy" ? (
+    snapshot.capabilities.spendWithheld === "policy" || snapshot.provider.id === "none" ? (
       "machine translation disabled by policy"
     ) : (
       <>
@@ -111,11 +111,26 @@ function optionalItems(snapshot: ProjectSnapshotResult): Array<readonly [string,
   return items;
 }
 
+function glossaryEditNote(snapshot: ProjectSnapshotResult): string {
+  if (!snapshot.capabilities.writeToDisk) {
+    return "no";
+  }
+  return snapshot.glossary.source === "inline"
+    ? "no (the glossary is written inline in the config)"
+    : "no (there is no glossary file)";
+}
+
 function sessionItems(snapshot: ProjectSnapshotResult): Array<readonly [string, ReactNode]> {
   const { limits } = snapshot.capabilities;
   const items: Array<readonly [string, ReactNode]> = [
     ["Provider actions", <ProviderActions key="spend" snapshot={snapshot} />],
-    ["Edit translations and glossary", snapshot.capabilities.writeToDisk ? "yes" : "no"],
+    ["Edit translations", snapshot.capabilities.writeToDisk ? "yes" : "no"],
+    [
+      "Edit glossary",
+      snapshot.capabilities.writeToDisk && snapshot.glossary.source === "file"
+        ? "yes"
+        : glossaryEditNote(snapshot),
+    ],
   ];
   if (limits !== undefined) {
     items.push(["Retranslate limit", limitLabel(limits.retranslate)]);
@@ -128,7 +143,9 @@ function ProjectDetails({ snapshot }: { readonly snapshot: ProjectSnapshotResult
   const items: Array<readonly [string, ReactNode]> = [
     [
       "File pattern",
-      <MonoValue key="file-pattern">{breakAfterSlashes(snapshot.files.pattern)}</MonoValue>,
+      <MonoValue key="file-pattern" breakAnywhere>
+        {breakAfterSlashes(snapshot.files.pattern)}
+      </MonoValue>,
     ],
     [
       "Glossary",

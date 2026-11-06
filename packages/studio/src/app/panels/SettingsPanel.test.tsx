@@ -95,7 +95,8 @@ describe("SettingsPanel", () => {
 
     const view = await renderAsync(<SettingsPanel />);
 
-    expect(detailValue(view, "Edit translations and glossary")).toBe("no");
+    expect(detailValue(view, "Edit translations")).toBe("no");
+    expect(detailValue(view, "Edit glossary")).toBe("no");
     expect(detailValue(view, "Retranslate limit")).toBe("20 per minute");
     expect(detailValue(view, "Review decision limit")).toBe("500 per 2 minutes");
   });
@@ -115,7 +116,8 @@ describe("SettingsPanel", () => {
 
     const view = await renderAsync(<SettingsPanel />);
 
-    expect(detailValue(view, "Edit translations and glossary")).toBe("yes");
+    expect(detailValue(view, "Edit translations")).toBe("yes");
+    expect(detailValue(view, "Edit glossary")).toBe("yes");
     expect(detailValue(view, "Retranslate limit")).toBe("1 per second");
     expect(detailValue(view, "Review decision limit")).toBe("3 per 90 seconds");
   });
@@ -124,6 +126,29 @@ describe("SettingsPanel", () => {
     stubSettings({ ...SNAPSHOT, glossary: { source: "inline" } });
     const inline = await renderAsync(<SettingsPanel />);
     expect(detailValue(inline, "Glossary")).toBe("inline");
+  });
+
+  it("says translations are editable but an inline or absent glossary is not", async () => {
+    stubSettings({ ...SNAPSHOT, glossary: { source: "inline" } });
+    const inline = await renderAsync(<SettingsPanel />);
+    expect(detailValue(inline, "Edit translations")).toBe("yes");
+    expect(detailValue(inline, "Edit glossary")).toBe(
+      "no (the glossary is written inline in the config)",
+    );
+
+    stubSettings({ ...SNAPSHOT, glossary: { source: "none" } });
+    const none = await renderAsync(<SettingsPanel />);
+    expect(detailValue(none, "Edit glossary")).toBe("no (there is no glossary file)");
+  });
+
+  it("names the policy, not the flag, for provider none even when the server reports no reason", async () => {
+    stubSettings({ ...SNAPSHOT, provider: { id: "none" } });
+
+    const view = await renderAsync(<SettingsPanel />);
+
+    expect(detailValue(view, "Provider actions")).toBe(
+      "Off (machine translation disabled by policy)",
+    );
   });
 
   it("omits the limit rows when the server reports none", async () => {
