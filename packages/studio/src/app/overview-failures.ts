@@ -18,6 +18,8 @@ export interface OverviewReads {
   readonly review: RefreshableView<ReviewQueueData> | undefined;
   readonly usage: RefreshableView<UsageTickerData>;
   readonly history: HistoryState;
+  readonly gitStatus?: RefreshableView<unknown> | undefined;
+  readonly gitDiff?: RefreshableView<unknown> | undefined;
 }
 
 interface Source {
@@ -69,6 +71,13 @@ function historySource(history: HistoryState): Source {
   return kept("history", history.kind === "loaded" ? history.staleError : undefined);
 }
 
+function optionalSource(
+  label: string,
+  view: RefreshableView<unknown> | undefined,
+): Source | undefined {
+  return view === undefined ? undefined : refreshable(label, view);
+}
+
 function joinLabels(labels: readonly string[]): string {
   const last = labels.at(-1);
   if (labels.length < 2 || last === undefined) {
@@ -85,6 +94,8 @@ export function pageFailure(reads: OverviewReads): PageFailure | null {
     reviewSource(reads.review),
     refreshable("usage", reads.usage),
     historySource(reads.history),
+    optionalSource("changed files", reads.gitStatus),
+    optionalSource("key changes", reads.gitDiff),
   ].filter((source): source is Source => source?.error !== undefined);
   const primary = failed.find((source) => !source.stale) ?? failed[0];
   if (primary?.error === undefined) {

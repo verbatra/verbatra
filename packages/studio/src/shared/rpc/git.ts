@@ -1,4 +1,9 @@
-import type { LocaleGitDiffResult, LocaleGitStatusResult } from "@verbatra/sdk";
+import type {
+  LocaleGitDiffResult,
+  LocaleGitFileState,
+  LocaleGitStatusResult,
+  LocaleGitUnavailableReason,
+} from "@verbatra/sdk";
 import { z } from "zod";
 
 export const GIT_STATUS_METHOD = "git.status";
@@ -15,3 +20,5 @@ export type GitLocaleDiffParams = z.infer<typeof gitLocaleDiffParamsSchema>;
 
 export type GitStatusResult = LocaleGitStatusResult;
 export type GitLocaleDiffResult = LocaleGitDiffResult;
+export type GitUnavailableReason = LocaleGitUnavailableReason;
+export type GitFileState = LocaleGitFileState;

@@ -88,6 +88,7 @@ function stubPanelReads(): void {
     "lock.state": { ok: true, result: { exists: false } },
     "usage.summary": { ok: true, result: { available: false } },
     "history.list": { ok: true, result: { available: false } },
+    "git.status": { ok: true, result: { available: false, reason: "not-a-repository" } },
     "glossary.get": {
       ok: true,
       result: {

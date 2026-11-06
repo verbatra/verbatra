@@ -13,6 +13,7 @@ import type {
   UsageTickerData,
 } from "../../client/usage-ticker-data.js";
 import { budgetPercent, toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
+import { ChangesSection } from "../ChangesSection.js";
 import { CommitList } from "../CommitList.js";
 import { DiffErrorNotice } from "../DiffErrorNotice.js";
 import { ErrorMessage } from "../ErrorMessage.js";
@@ -24,6 +25,7 @@ import { pageFailure } from "../overview-failures.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
 import { useDiffState } from "../use-diff-state.js";
+import { useGitChanges } from "../use-git-changes.js";
 import { type HistoryState, useHistoryList } from "../use-history-list.js";
 import { useLockState } from "../use-lock-state.js";
 import { useStatusData } from "../use-status-data.js";
@@ -225,7 +227,15 @@ function LocaleFileHistory({
   );
 }
 
-type ReadName = "diff" | "status" | "lock" | "review" | "usage" | "history";
+type ReadName =
+  | "diff"
+  | "status"
+  | "lock"
+  | "review"
+  | "usage"
+  | "history"
+  | "gitStatus"
+  | "gitDiff";
 
 type OverviewReadsNow = Readonly<Record<ReadName, unknown>>;
 
@@ -258,11 +268,21 @@ export function OverviewPanel({
   const lock = useLockState(token);
   const usage = useUsageTicker(token);
   const history = useHistoryList(token, limit);
+  const git = useGitChanges(token);
   const [retried, setRetried] = useState<RetryRound | null>(null);
   const recoveryRef = useRef<HTMLDivElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
   const awaitingRecovery = useRef(false);
-  const failure = pageFailure({ diff, status, lock, review: reviewQueue, usage, history });
+  const failure = pageFailure({
+    diff,
+    status,
+    lock,
+    review: reviewQueue,
+    usage,
+    history,
+    gitStatus: git.status,
+    gitDiff: git.diff,
+  });
   const reads: OverviewReadsNow = {
     diff,
     status,
@@ -270,6 +290,8 @@ export function OverviewPanel({
     review: reviewQueue,
     usage,
     history,
+    gitStatus: git.status,
+    gitDiff: git.diff,
   };
   const outstanding =
     retried === null
@@ -308,7 +330,7 @@ export function OverviewPanel({
     <>
       <PageHeader
         title="Overview"
-        description="How far along each locale is, what the last run did, and how the locale files have changed."
+        description="How far along each locale is, which locale files differ from the last commit, what the last run did, and how the locale files have changed."
       />
       {failure === null ? null : (
         <div ref={alertRef}>
@@ -331,6 +353,13 @@ export function OverviewPanel({
       </div>
       <DiffErrorNotice diff={diff} hideCode={failure?.error.code} />
       <LocalesSection status={status} lock={lock} hideCode={failure?.error.code} />
+      <ChangesSection
+        status={git.status}
+        diff={git.diff}
+        open={git.open}
+        onToggle={git.toggle}
+        hideCode={failure?.error.code}
+      />
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <PageSection title="Last run" className="mb-0 lg:col-start-2 lg:row-start-1">
           <LastRunRail view={usage} hideCode={failure?.error.code} />
