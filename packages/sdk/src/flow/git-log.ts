@@ -1,37 +1,27 @@
-import { execFile as execFileCb } from "node:child_process";
-import { resolve as resolvePath, sep } from "node:path";
-import { promisify } from "node:util";
+import {
+  buildSafeGitArgs,
+  COMMIT_HASH,
+  classifyGitFailure,
+  defaultGitExecFile,
+  type GitExecFile,
+  type GitExecFileResult,
+  type GitFailure,
+  hasLeadingDash,
+  isPathContained,
+  prepareGit,
+  resolveWatchedPaths,
+  sanitizeGitText,
+} from "./git-exec.js";
 
-/** The captured output of one {@link GitExecFile} call. */
-export interface GitExecFileResult {
-  /** Everything the process wrote to standard output, decoded as text. */
-  readonly stdout: string;
-  /** Everything the process wrote to standard error, decoded as text. */
-  readonly stderr: string;
-}
-
-/**
- * An argument-array process runner, never a shell string, mirroring the shape of
- * `util.promisify(child_process.execFile)`. {@link localeHistory} calls it only to run `git log`.
- * Inject your own to sandbox that call or to serve history from somewhere else.
- *
- * @param file - The executable to run, resolved on `PATH`.
- * @param args - The arguments, passed as a list so no value is ever interpreted by a shell.
- * @param options - Where to run the process.
- * @returns The captured stdout and stderr once the process exits successfully.
- */
-export type GitExecFile = (
-  file: string,
-  args: readonly string[],
-  options: {
-    /** Absolute directory to run the process in: the project root. */
-    readonly cwd: string;
-    /** Milliseconds after which the process is killed. A runner should honour it. */
-    readonly timeout: number;
-    /** The most bytes of standard output or error to accept before the process is killed. */
-    readonly maxBuffer: number;
-  },
-) => Promise<GitExecFileResult>;
+export {
+  defaultGitExecFile,
+  type GitExecFile,
+  type GitExecFileResult,
+  hasLeadingDash,
+  isPathContained,
+  resolveWatchedPaths,
+  sanitizeGitText,
+};
 
 /** One commit that touched a locale file, as {@link localeHistory} lists it. */
 export interface LocaleHistoryCommit {
@@ -83,23 +73,10 @@ export type LocaleHistoryResult =
       readonly commits: readonly LocaleHistoryCommit[];
     };
 
-const execFileAsync = promisify(execFileCb);
-
 /** How long {@link localeHistory} lets `git log` run before stopping it, in milliseconds. */
 export const LOCALE_HISTORY_TIMEOUT_MS = 10_000;
 /** The most output {@link localeHistory} accepts from `git log`, in bytes: 8 MiB. */
 export const LOCALE_HISTORY_MAX_OUTPUT_BYTES = 8_388_608;
-
-export const defaultGitExecFile: GitExecFile = async (file, args, options) => {
-  const { stdout, stderr } = await execFileAsync(file, args as string[], {
-    cwd: options.cwd,
-    encoding: "utf8",
-    timeout: options.timeout,
-    maxBuffer: options.maxBuffer,
-    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-  });
-  return { stdout, stderr };
-};
 
 /** How many commits {@link localeHistory} lists when no `limit` is given. */
 export const LOCALE_HISTORY_LIMIT_DEFAULT = 50;
@@ -113,34 +90,10 @@ export function clampHistoryLimit(limit: number | undefined): number {
   return Math.min(Math.max(Math.floor(limit), 1), LOCALE_HISTORY_LIMIT_CAP);
 }
 
-function withoutTrailingSep(path: string): string {
-  return path.length > sep.length && path.endsWith(sep) ? path.slice(0, -sep.length) : path;
-}
-
-export function isPathContained(root: string, candidate: string): boolean {
-  const normalizedRoot = withoutTrailingSep(root);
-  return candidate === normalizedRoot || candidate.startsWith(normalizedRoot + sep);
-}
-
-export function hasLeadingDash(path: string): boolean {
-  return path.startsWith("-");
-}
-
-export function resolveWatchedPaths(projectRoot: string, candidates: readonly string[]): string[] {
-  const root = resolvePath(projectRoot);
-  const safe = candidates
-    .filter((candidate) => !hasLeadingDash(candidate))
-    .map((candidate) => resolvePath(root, candidate))
-    .filter((candidate) => isPathContained(root, candidate));
-  return Array.from(new Set(safe));
-}
-
 const FIELD_SEPARATOR = "\0";
 const GIT_LOG_FORMAT = "%H%x00%aI%x00%aN%x00%s";
 const HEADER_FIELD_COUNT = 4;
-const COMMIT_HASH = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/;
-const UNSAFE_TEXT = /[\p{Cc}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/gu;
 
 export function buildGitLogArgs(maxCount: number, paths: readonly string[]): string[] {
   return [
@@ -154,10 +107,6 @@ export function buildGitLogArgs(maxCount: number, paths: readonly string[]): str
     "--",
     ...paths,
   ];
-}
-
-export function sanitizeGitText(text: string): string {
-  return text.replace(UNSAFE_TEXT, "");
 }
 
 const C_ESCAPES: Readonly<Record<string, number>> = {
@@ -236,32 +185,15 @@ export function parseGitLogOutput(stdout: string): LocaleHistoryCommit[] {
   return commits;
 }
 
-interface ExecFileFailure {
-  readonly code?: string | number | null;
-  readonly killed?: boolean;
-  readonly signal?: string | null;
-  readonly stderr?: string;
-}
+const HISTORY_UNAVAILABLE_REASONS: ReadonlySet<string> = new Set(
+  LOCALE_HISTORY_UNAVAILABLE_REASONS,
+);
 
-function unavailableReason(failure: ExecFileFailure): LocaleHistoryUnavailableReason | undefined {
-  if (failure.code === "ENOENT") {
-    return "git-missing";
-  }
-  if (failure.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") {
-    return "output-too-large";
-  }
-  if (failure.killed === true || failure.signal === "SIGTERM") {
-    return "timeout";
-  }
-  if (typeof failure.stderr === "string" && failure.stderr.includes("not a git repository")) {
-    return "not-a-repository";
-  }
-  return undefined;
-}
-
-function interpretGitLogFailure(error: unknown): LocaleHistoryResult {
-  const reason = unavailableReason((error ?? {}) as ExecFileFailure);
-  return reason === undefined ? { available: true, commits: [] } : { available: false, reason };
+function interpretGitFailure(failure: GitFailure): LocaleHistoryResult {
+  const { kind } = failure;
+  return HISTORY_UNAVAILABLE_REASONS.has(kind)
+    ? { available: false, reason: kind as LocaleHistoryUnavailableReason }
+    : { available: true, commits: [] };
 }
 
 export interface RunGitLogInput {
@@ -275,7 +207,14 @@ export async function runGitLog(input: RunGitLogInput): Promise<LocaleHistoryRes
   if (input.watchedPaths.length === 0) {
     return { available: true, commits: [] };
   }
-  const args = buildGitLogArgs(clampHistoryLimit(input.limit), input.watchedPaths);
+  const plan = await prepareGit(input.execFile, input.projectRoot);
+  if (!plan.ok) {
+    return interpretGitFailure(plan.failure);
+  }
+  const args = buildSafeGitArgs(
+    plan.configArgs,
+    buildGitLogArgs(clampHistoryLimit(input.limit), input.watchedPaths),
+  );
   try {
     const { stdout } = await input.execFile("git", args, {
       cwd: input.projectRoot,
@@ -284,6 +223,6 @@ export async function runGitLog(input: RunGitLogInput): Promise<LocaleHistoryRes
     });
     return { available: true, commits: parseGitLogOutput(stdout) };
   } catch (error) {
-    return interpretGitLogFailure(error);
+    return interpretGitFailure(classifyGitFailure(error));
   }
 }

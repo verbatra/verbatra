@@ -1,6 +1,8 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { execFile as execFileCb } from "node:child_process";
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
+import { promisify } from "node:util";
 import type {
   LocaleGlossary,
   ProviderNotice,
@@ -12,6 +14,7 @@ import type {
 import { checkPlaceholders, type PlaceholderIntegrityResult } from "@verbatra/core";
 import { type GlossaryInput, glossaryForLocale } from "./config/glossary.js";
 import type { VerbatraConfig } from "./config/schema.js";
+import { hardenedGitEnv } from "./flow/git-exec.js";
 import { type BoundedBytesRead, type BoundedFileRead, defaultFs, type SdkFs } from "./fs.js";
 
 export interface StubCall {
@@ -394,4 +397,112 @@ export function deferred(): Deferred {
     resolve = res;
   });
   return { promise, resolve };
+}
+
+const execFileAsync = promisify(execFileCb);
+
+export interface GitFixture {
+  readonly base: string;
+  readonly home: string;
+  readonly root: string;
+  git(args: readonly string[], cwd?: string): Promise<string>;
+  write(path: string, content: string, cwd?: string): Promise<void>;
+  commitAll(message?: string): Promise<void>;
+  exists(path: string): Promise<boolean>;
+  cleanup(): Promise<void>;
+}
+
+export interface GitFixtureOptions {
+  readonly init?: boolean;
+}
+
+const ISOLATED_VARIABLES = ["HOME", "XDG_CONFIG_HOME"] as const;
+let activeFixtures = 0;
+let savedEnvironment: Partial<Record<(typeof ISOLATED_VARIABLES)[number], string | undefined>> = {};
+
+function isolateGitHome(home: string): void {
+  if (activeFixtures === 0) {
+    savedEnvironment = Object.fromEntries(
+      ISOLATED_VARIABLES.map((name) => [name, process.env[name]]),
+    );
+    process.env.HOME = home;
+    process.env.XDG_CONFIG_HOME = join(home, ".config");
+  }
+  activeFixtures += 1;
+}
+
+function restoreGitHome(): void {
+  activeFixtures -= 1;
+  if (activeFixtures === 0) {
+    for (const name of ISOLATED_VARIABLES) {
+      const saved = savedEnvironment[name];
+      if (saved === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = saved;
+      }
+    }
+  }
+}
+
+export async function makeGitFixture(options: GitFixtureOptions = {}): Promise<GitFixture> {
+  const base = await realpath(await mkdtemp(join(tmpdir(), "verbatra-sdk-gitfx-")));
+  const root = join(base, "repo");
+  const home = join(base, "home");
+  try {
+    await mkdir(root);
+    await mkdir(home);
+  } catch (error) {
+    await rm(base, { recursive: true, force: true });
+    throw error;
+  }
+  isolateGitHome(home);
+  const env = hardenedGitEnv(process.env, {
+    HOME: home,
+    XDG_CONFIG_HOME: join(home, ".config"),
+    GIT_CONFIG_NOSYSTEM: "1",
+  });
+  const git = async (args: readonly string[], cwd: string = root): Promise<string> => {
+    const { stdout } = await execFileAsync("git", args as string[], { cwd, env });
+    return stdout;
+  };
+  if (options.init !== false) {
+    try {
+      await git(["init", "-q", "-b", "main"]);
+      await git(["config", "user.email", "test@example.com"]);
+      await git(["config", "user.name", "Test User"]);
+      await git(["config", "commit.gpgsign", "false"]);
+    } catch (error) {
+      restoreGitHome();
+      await rm(base, { recursive: true, force: true });
+      throw error;
+    }
+  }
+  return {
+    base,
+    home,
+    root,
+    git,
+    async write(path, content, cwd = root) {
+      const absolute = join(cwd, path);
+      await mkdir(dirname(absolute), { recursive: true });
+      await writeFile(absolute, content, "utf8");
+    },
+    async commitAll(message = "commit") {
+      await git(["add", "-A"]);
+      await git(["commit", "-q", "-m", message]);
+    },
+    async exists(path) {
+      try {
+        await stat(join(base, path));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    async cleanup() {
+      restoreGitHome();
+      await rm(base, { recursive: true, force: true });
+    },
+  };
 }

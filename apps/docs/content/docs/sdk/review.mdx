@@ -83,6 +83,48 @@ function localeHistory(
 
 Each commit carries `hash`, `author` (the name after `.mailmap`, never the email), `authorDate`, `subject` and `touchedPaths`. `limit` defaults to `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`), capped at `LOCALE_HISTORY_LIMIT_CAP` (`200`), rounded down and at least 1. Control and bidirectional formatting characters are stripped from `author` and `subject`; a commit whose metadata does not parse is left out. Without git or a repository, or when `git log` exceeds `LOCALE_HISTORY_TIMEOUT_MS` or `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, the result is `{ available: false, reason }`, a reason from `LOCALE_HISTORY_UNAVAILABLE_REASONS`. See [Studio and MCP](/docs/data-handling#studio-and-mcp).
 
+### localeGitStatus
+
+<AvailableFrom version="0.13.0" />
+
+Lists which locale files, `verbatra.lock.json` and `verbatra.provenance.json` differ from the last commit, and the checked-out branch. Read-only; it runs `git` through the injectable `execFile` and takes no path from the caller.
+
+```ts title="Signature"
+function localeGitStatus(
+  input: LocaleGitStatusInput,
+  deps?: LocaleGitStatusDeps,
+): Promise<LocaleGitStatusResult>;
+```
+
+<SdkTypeTable name="LocaleGitStatusInput" />
+
+**Returns:** `LocaleGitStatusResult`
+
+**Throws:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+Each changed file carries `path`, `locales` and a `state` from `LOCALE_GIT_FILE_STATES`. A file behind a symbolic link or inside a submodule is never listed; `apple-strings` also watches its `.stringsdict` file. The default runner starts git with a minimal environment (global config from `HOME` only, so a custom `XDG_CONFIG_HOME` is ignored) and with optional locks, `core.fsmonitor`, bare repositories, lazy fetching, submodules and configured content filters off, matches paths literally and kills it after `LOCALE_GIT_TIMEOUT_MS` or `LOCALE_GIT_MAX_OUTPUT_BYTES`; an `execFile` you inject must do the same. A partial clone needs git 2.45 or newer, else `git-too-old`. A project's `verbatra.config.ts` is still code verbatra runs. When git cannot read the repository, the result is `{ available: false, reason }`, a reason from `LOCALE_GIT_UNAVAILABLE_REASONS`.
+
+### localeGitDiff
+
+<AvailableFrom version="0.13.0" />
+
+Compares one locale's file at `HEAD` with the file on disk, key by key. Read-only; it takes a locale, never a path, and runs no `git diff`, text conversion driver or external diff.
+
+```ts title="Signature"
+function localeGitDiff(
+  input: LocaleGitDiffInput,
+  deps?: LocaleGitDiffDeps,
+): Promise<LocaleGitDiffResult>;
+```
+
+<SdkTypeTable name="LocaleGitDiffInput" />
+
+**Returns:** `LocaleGitDiffResult`
+
+**Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+`added` and `removed` list `{ key, value }`, `changed` lists `{ key, before, after }`, and `state` is the file's state or `unchanged`; a `conflicted` or `unchanged` file lists no difference. The committed file is read with `git cat-file blob`, only if it is a regular file of at most `LOCALE_GIT_BLOB_MAX_BYTES`. At most `LOCALE_GIT_DIFF_MAX_ENTRIES` keys are listed and each text is cut to `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` characters, either sets `truncated`. Only the diff answers `custom-adapter`, for a `custom:` format or an `adapterRegistry`; a missing side is empty, one that is not a regular file or does not parse gives `revision-unreadable` or `working-file-unreadable`. The other reasons are those of `localeGitStatus`.
+
 ### editEntry
 
 <AvailableFrom version="0.5.0" />

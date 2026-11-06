@@ -37,7 +37,7 @@ describe("history.list", () => {
         ],
       },
     });
-    const args = execFile.mock.calls[0]?.[1] as string[];
+    const args = execFile.mock.calls.at(-1)?.[1] as string[];
     expect(args.join(" ")).not.toMatch(/%a[eE]/);
   });
 
@@ -83,7 +83,7 @@ describe("history.list", () => {
       makeContext({ cwd: "/project", execFile, config: baseLoadedConfig({ config }) }),
     );
 
-    const args = execFile.mock.calls[0]?.[1] as string[];
+    const args = execFile.mock.calls.at(-1)?.[1] as string[];
     const separator = args.indexOf("--");
     expect(args.slice(0, separator).some((arg) => arg.startsWith("-x"))).toBe(false);
     expect(args.slice(separator + 1)).toEqual(["/project/-xen.json", "/project/-xde.json"]);
@@ -94,7 +94,7 @@ describe("history.list", () => {
 
     await historyListTool.execute({ limit: 5000 }, makeContext({ cwd: "/project", execFile }));
 
-    expect(execFile.mock.calls[0]?.[1]).toContain("--max-count=200");
+    expect(execFile.mock.calls.at(-1)?.[1]).toContain("--max-count=200");
   });
 
   it.each([{ limit: 0 }, { limit: 1.5 }, { since: "yesterday" }])(

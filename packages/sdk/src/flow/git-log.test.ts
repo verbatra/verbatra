@@ -345,7 +345,7 @@ describe("runGitLog", () => {
 
     await runGitLog({ execFile, projectRoot: "/project", watchedPaths: WATCHED, limit: 9999 });
 
-    const args = execFile.mock.calls[0]?.[1] as readonly string[];
+    const args = execFile.mock.calls.at(-1)?.[1] as readonly string[];
     expect(args).toContain(`--max-count=${LOCALE_HISTORY_LIMIT_CAP}`);
   });
 });
