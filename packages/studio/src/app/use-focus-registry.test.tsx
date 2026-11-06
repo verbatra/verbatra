@@ -126,4 +126,49 @@ describe("useFocusRegistry reveal", () => {
     expect(focusIsFree(null)).toBe(false);
     expect(focusIsFree(input.parentElement)).toBe(true);
   });
+
+  it("stops listening when the component unmounts, so nothing outlives the test environment", () => {
+    vi.useFakeTimers();
+    const scrollBy = vi.fn();
+    vi.stubGlobal("scrollBy", scrollBy);
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 0;
+    });
+    rects(56, 10, 40);
+    const view = render(<Probe />);
+    act(() => registry?.request(["field"]));
+    scrollBy.mockClear();
+
+    view.unmount();
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    vi.advanceTimersByTime(1_000);
+
+    expect(scrollBy).not.toHaveBeenCalled();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps one landing watch when a new focus is requested", () => {
+    vi.useFakeTimers();
+    const scrollBy = vi.fn();
+    vi.stubGlobal("scrollBy", scrollBy);
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 0;
+    });
+    rects(56, 10, 40);
+    render(<Probe />);
+    act(() => registry?.request(["field"]));
+    act(() => registry?.request(["field"]));
+    scrollBy.mockClear();
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    expect(scrollBy).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 });

@@ -20,7 +20,7 @@ function reveal(element: HTMLElement, align: RevealAlign): void {
   }
 }
 
-function revealAfterLanding(element: HTMLElement, align: RevealAlign): void {
+function revealAfterLanding(element: HTMLElement, align: RevealAlign): () => void {
   const again = (): void => {
     if (document.activeElement === element) {
       reveal(element, align);
@@ -31,10 +31,13 @@ function revealAfterLanding(element: HTMLElement, align: RevealAlign): void {
   };
   window.addEventListener("popstate", onLanding);
   window.addEventListener("hashchange", onLanding);
-  window.setTimeout(() => {
+  const stop = (): void => {
+    window.clearTimeout(timer);
     window.removeEventListener("popstate", onLanding);
     window.removeEventListener("hashchange", onLanding);
-  }, LANDING_WINDOW_MS);
+  };
+  const timer = window.setTimeout(stop, LANDING_WINDOW_MS);
+  return stop;
 }
 
 export function focusIsFree(within: Element | null): boolean {
@@ -59,6 +62,14 @@ export function useFocusRegistry(): FocusRegistry {
   const elements = useRef(new Map<string, HTMLElement>());
   const callbacks = useRef(new Map<string, (element: HTMLElement | null) => void>());
   const [wanted, setWanted] = useState<Wanted | undefined>(undefined);
+  const landing = useRef<(() => void) | undefined>(undefined);
+
+  useEffect(
+    () => () => {
+      landing.current?.();
+    },
+    [],
+  );
 
   useEffect(() => {
     if (wanted === undefined) {
@@ -68,7 +79,8 @@ export function useFocusRegistry(): FocusRegistry {
     if (target !== undefined) {
       target.focus({ preventScroll: true });
       reveal(target, wanted.align);
-      revealAfterLanding(target, wanted.align);
+      landing.current?.();
+      landing.current = revealAfterLanding(target, wanted.align);
     }
     setWanted(undefined);
   }, [wanted]);

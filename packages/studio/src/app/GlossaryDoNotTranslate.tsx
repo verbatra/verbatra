@@ -1,6 +1,6 @@
 import { Badge, Button, TextField } from "@verbatra/ui";
 import type { FormEvent, ReactNode } from "react";
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { EMPTY_KEEP_DRAFT } from "../client/glossary-drafts.js";
 import { isRetryableWriteError, keptTermEntry } from "../client/glossary-editing.js";
 import {
@@ -8,7 +8,7 @@ import {
   MAX_GLOSSARY_TERM_LENGTH,
 } from "../shared/rpc/glossary.js";
 import { ErrorMessage } from "./ErrorMessage.js";
-import { CaseSensitiveToggle } from "./GlossaryTermEditor.js";
+import { CaseSensitiveToggle, invalidFlag, joinIds, ProblemNote } from "./GlossaryTermEditor.js";
 import { DNT_HEADING, KEEP_KEY, keptKey, useGlossaryBench } from "./glossary-bench.js";
 import { cn } from "./lib/cn.js";
 import { focusIsFree } from "./use-focus-registry.js";
@@ -88,6 +88,9 @@ function KeepForm({
   const bench = useGlossaryBench();
   const { keep, writer, focus } = bench;
   const box = useRef<HTMLFormElement>(null);
+  const baseId = useId();
+  const lengthId = `${baseId}-length`;
+  const existsId = `${baseId}-exists`;
   const latest = useRef(keep);
   latest.current = keep;
   const busy = writer.busy(KEEP_KEY);
@@ -132,6 +135,8 @@ function KeepForm({
           <TextField
             ref={focus.register(KEEP_KEY)}
             aria-label="New do-not-translate term"
+            aria-invalid={invalidFlag(tooLong || existing !== undefined)}
+            aria-describedby={joinIds([tooLong && lengthId, existing !== undefined && existsId])}
             placeholder="Brand or product name"
             dir="auto"
             readOnly={busy}
@@ -140,13 +145,17 @@ function KeepForm({
             onChange={(event) => bench.setKeep({ ...keep, term: event.target.value })}
           />
           {tooLong ? (
-            <p data-cap-note="" className="m-0 mt-1 text-xs text-warning">
+            <ProblemNote id={lengthId}>
               A term can be at most {MAX_GLOSSARY_TERM_LENGTH} characters; this one has{" "}
               {trimmed.length}.
-            </p>
+            </ProblemNote>
           ) : null}
           {existing !== undefined ? (
-            <p data-exists-note="" className="m-0 mt-1 text-xs text-muted-foreground wrap-anywhere">
+            <p
+              id={existsId}
+              data-exists-note=""
+              className="m-0 mt-1 text-xs text-muted-foreground wrap-anywhere"
+            >
               {existing.term} is already kept untranslated
               {existing.caseSensitive ? " with Match case" : " without Match case"}. Remove it first
               to change that.

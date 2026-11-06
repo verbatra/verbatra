@@ -1,6 +1,6 @@
 import { Button, TextField } from "@verbatra/ui";
 import type { FormEvent, ReactNode } from "react";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { type AddDraft, EMPTY_ADD_DRAFT } from "../client/glossary-drafts.js";
 import { ALL_LOCALES, existingTermFor, isRetryableWriteError } from "../client/glossary-editing.js";
 import {
@@ -11,16 +11,18 @@ import {
 } from "../shared/rpc/glossary.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { glossarySubheadingClassName } from "./GlossaryDoNotTranslate.js";
-import { CapNote } from "./GlossaryTermEditor.js";
+import { capNoteText, invalidFlag, joinIds, ProblemNote } from "./GlossaryTermEditor.js";
 import { ADD_FIELD, ADD_KEY, useGlossaryBench } from "./glossary-bench.js";
 import { focusIsFree } from "./use-focus-registry.js";
 
 function ExistsNote({
+  id,
   term,
   redacted,
   listed,
   onEdit,
 }: {
+  readonly id: string;
   readonly term: GlossaryTermView;
   readonly redacted: boolean;
   readonly listed: boolean;
@@ -28,6 +30,7 @@ function ExistsNote({
 }): ReactNode {
   return (
     <p
+      id={id}
       data-exists-note=""
       className="m-0 mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
     >
@@ -58,6 +61,82 @@ function freshMatch(
   return fresh?.scope === scope && fresh.typed === typed ? fresh.term : undefined;
 }
 
+function AddTermField({
+  value,
+  waiting,
+  fieldRef,
+  tooLong,
+  length,
+  existsId,
+  onChange,
+}: {
+  readonly value: string;
+  readonly waiting: boolean;
+  readonly fieldRef: (element: HTMLElement | null) => void;
+  readonly tooLong: boolean;
+  readonly length: number;
+  readonly existsId: string | undefined;
+  readonly onChange: (next: string) => void;
+}): ReactNode {
+  const noteId = useId();
+  return (
+    <div className="min-w-0">
+      <TextField
+        ref={fieldRef}
+        aria-label="New glossary term"
+        aria-invalid={invalidFlag(tooLong || existsId !== undefined)}
+        aria-describedby={joinIds([tooLong && noteId, existsId])}
+        placeholder="Source term"
+        dir="auto"
+        readOnly={waiting}
+        aria-busy={waiting || undefined}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {tooLong ? (
+        <ProblemNote id={noteId}>
+          A term can be at most {MAX_GLOSSARY_TERM_LENGTH} characters; this one has {length}.
+        </ProblemNote>
+      ) : null}
+    </div>
+  );
+}
+
+function AddTranslationField({
+  value,
+  waiting,
+  scope,
+  problem,
+  onChange,
+}: {
+  readonly value: string;
+  readonly waiting: boolean;
+  readonly scope: string;
+  readonly problem: string | undefined;
+  readonly onChange: (next: string) => void;
+}): ReactNode {
+  const noteId = useId();
+  return (
+    <div className="min-w-0">
+      <TextField
+        aria-label="New glossary translation"
+        aria-invalid={invalidFlag(problem !== undefined)}
+        aria-describedby={joinIds([problem !== undefined && noteId])}
+        placeholder={
+          scope === ALL_LOCALES ? "Translation for all locales" : `Translation for ${scope}`
+        }
+        dir="auto"
+        readOnly={waiting}
+        aria-busy={waiting || undefined}
+        maxLength={MAX_GLOSSARY_TRANSLATION_LENGTH}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {problem === undefined ? null : <ProblemNote id={noteId}>{problem}</ProblemNote>}
+    </div>
+  );
+}
+
 export function GlossaryAddForm({
   terms,
   redactedTerms,
@@ -67,6 +146,8 @@ export function GlossaryAddForm({
 }): ReactNode {
   const bench = useGlossaryBench();
   const { scope, add, writer, focus } = bench;
+  const baseId = useId();
+  const existsId = `${baseId}-exists`;
   const latest = useRef(add);
   latest.current = add;
   const busy = writer.busy(ADD_KEY);
@@ -82,6 +163,11 @@ export function GlossaryAddForm({
   const waiting = busy || bench.addChecking;
   const box = useRef<HTMLDivElement>(null);
   const tooLong = trimmedTerm.length > MAX_GLOSSARY_TERM_LENGTH;
+  const translationProblem = capNoteText(
+    add.translation.length,
+    MAX_GLOSSARY_TRANSLATION_LENGTH,
+    "A translation",
+  );
   const ready =
     trimmedTerm.length > 0 && !tooLong && trimmedTranslation.length > 0 && existing === undefined;
 
@@ -148,43 +234,22 @@ export function GlossaryAddForm({
         className="grid items-start gap-2 sm:grid-cols-[1fr_1fr_auto]"
         onSubmit={(event) => void submit(event)}
       >
-        <div className="min-w-0">
-          <TextField
-            ref={focus.register(ADD_FIELD)}
-            aria-label="New glossary term"
-            placeholder="Source term"
-            dir="auto"
-            readOnly={waiting}
-            aria-busy={waiting || undefined}
-            value={add.term}
-            onChange={(event) => change({ ...add, term: event.target.value })}
-          />
-          {tooLong ? (
-            <p data-cap-note="" className="m-0 mt-1 text-xs text-warning">
-              A term can be at most {MAX_GLOSSARY_TERM_LENGTH} characters; this one has{" "}
-              {trimmedTerm.length}.
-            </p>
-          ) : null}
-        </div>
-        <div className="min-w-0">
-          <TextField
-            aria-label="New glossary translation"
-            placeholder={
-              scope === ALL_LOCALES ? "Translation for all locales" : `Translation for ${scope}`
-            }
-            dir="auto"
-            readOnly={waiting}
-            aria-busy={waiting || undefined}
-            maxLength={MAX_GLOSSARY_TRANSLATION_LENGTH}
-            value={add.translation}
-            onChange={(event) => change({ ...add, translation: event.target.value })}
-          />
-          <CapNote
-            length={add.translation.length}
-            max={MAX_GLOSSARY_TRANSLATION_LENGTH}
-            noun="A translation"
-          />
-        </div>
+        <AddTermField
+          value={add.term}
+          waiting={waiting}
+          fieldRef={focus.register(ADD_FIELD)}
+          tooLong={tooLong}
+          length={trimmedTerm.length}
+          existsId={existing === undefined ? undefined : existsId}
+          onChange={(term) => change({ ...add, term })}
+        />
+        <AddTranslationField
+          value={add.translation}
+          waiting={waiting}
+          scope={scope}
+          problem={translationProblem}
+          onChange={(translation) => change({ ...add, translation })}
+        />
         <Button
           type="submit"
           variant="primary"
@@ -197,6 +262,7 @@ export function GlossaryAddForm({
       </form>
       {existing !== undefined ? (
         <ExistsNote
+          id={existsId}
           term={existing}
           redacted={redactedTerms.includes(existing.source)}
           listed={terms.some((term) => term.source === existing.source)}

@@ -49,21 +49,28 @@ export function CaseSensitiveToggle({
   );
 }
 
-export function CapNote({
-  length,
-  max,
-  noun,
+export function capNoteText(length: number, max: number, noun: string): string | undefined {
+  return length < max ? undefined : `${noun} is at its limit of ${max} characters.`;
+}
+
+export function joinIds(parts: readonly (string | false | undefined)[]): string | undefined {
+  return parts.filter((part): part is string => typeof part === "string").join(" ") || undefined;
+}
+
+export function invalidFlag(invalid: boolean): true | undefined {
+  return invalid ? true : undefined;
+}
+
+export function ProblemNote({
+  id,
+  children,
 }: {
-  readonly length: number;
-  readonly max: number;
-  readonly noun: string;
+  readonly id: string;
+  readonly children: ReactNode;
 }): ReactNode {
-  if (length < max) {
-    return null;
-  }
   return (
-    <p data-cap-note="" className="m-0 mt-1 text-xs text-warning">
-      {noun} is at its limit of {max} characters.
+    <p id={id} data-cap-note="" className="m-0 mt-1 text-xs text-warning">
+      {children}
     </p>
   );
 }
@@ -77,7 +84,7 @@ function LabeledField({
   autoDirection,
   placeholder,
   inputRef,
-  note,
+  problem,
   hint,
   multiline = false,
   onChange,
@@ -90,12 +97,15 @@ function LabeledField({
   readonly autoDirection: boolean;
   readonly placeholder?: string;
   readonly inputRef?: Ref<HTMLInputElement>;
-  readonly note?: ReactNode;
+  readonly problem?: string | undefined;
   readonly hint?: string;
   readonly multiline?: boolean;
   readonly onChange: (next: string) => void;
 }): ReactNode {
   const id = useId();
+  const hintId = `${id}-hint`;
+  const problemId = `${id}-problem`;
+  const describedBy = joinIds([hint !== undefined && hintId, problem !== undefined && problemId]);
   return (
     <div className="flex min-w-0 flex-col">
       <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
@@ -104,6 +114,8 @@ function LabeledField({
       {multiline ? (
         <TextArea
           id={id}
+          aria-invalid={invalidFlag(problem !== undefined)}
+          aria-describedby={describedBy}
           aria-label={accessibleName}
           aria-busy={busy || undefined}
           readOnly={busy}
@@ -118,6 +130,8 @@ function LabeledField({
         <TextField
           id={id}
           ref={inputRef}
+          aria-invalid={invalidFlag(problem !== undefined)}
+          aria-describedby={describedBy}
           aria-label={accessibleName}
           aria-busy={busy || undefined}
           readOnly={busy}
@@ -130,11 +144,11 @@ function LabeledField({
         />
       )}
       {hint !== undefined ? (
-        <p data-field-hint="" className="m-0 mt-1 text-xs text-muted-foreground">
+        <p id={hintId} data-field-hint="" className="m-0 mt-1 text-xs text-muted-foreground">
           {hint}
         </p>
       ) : null}
-      {note}
+      {problem === undefined ? null : <ProblemNote id={problemId}>{problem}</ProblemNote>}
     </div>
   );
 }
@@ -154,19 +168,10 @@ function EditorGroup({
   );
 }
 
-function ForbiddenNote({ text }: { readonly text: string }): ReactNode {
-  return (
-    <p data-cap-note="" className="m-0 mt-1 text-xs text-warning">
-      {exceedsForbiddenCap(text) ? (
-        <>
-          At most {MAX_FORBIDDEN_RENDERINGS} never-use renderings fit in one term; this has{" "}
-          {parseRenderings(text).length}.
-        </>
-      ) : (
-        <>A never-use rendering can be at most {MAX_GLOSSARY_TRANSLATION_LENGTH} characters.</>
-      )}
-    </p>
-  );
+function forbiddenProblem(text: string): string {
+  return exceedsForbiddenCap(text)
+    ? `At most ${MAX_FORBIDDEN_RENDERINGS} never-use renderings fit in one term; this has ${parseRenderings(text).length}.`
+    : `A never-use rendering can be at most ${MAX_GLOSSARY_TRANSLATION_LENGTH} characters.`;
 }
 
 export function GlossaryTermEditor({
@@ -220,13 +225,11 @@ export function GlossaryTermEditor({
           busy={busy}
           autoDirection
           inputRef={translationRef}
-          note={
-            <CapNote
-              length={draft.translation.length}
-              max={MAX_GLOSSARY_TRANSLATION_LENGTH}
-              noun="A translation"
-            />
-          }
+          problem={capNoteText(
+            draft.translation.length,
+            MAX_GLOSSARY_TRANSLATION_LENGTH,
+            "A translation",
+          )}
           onChange={(translation) => onDraft({ ...draft, translation })}
         />
         {scope === ALL_LOCALES ? null : (
@@ -238,7 +241,7 @@ export function GlossaryTermEditor({
             autoDirection
             multiline
             hint="One per line. A comma stays part of the rendering."
-            note={overCap ? <ForbiddenNote text={draft.forbidden} /> : null}
+            problem={overCap ? forbiddenProblem(draft.forbidden) : undefined}
             onChange={(forbidden) => onDraft({ ...draft, forbidden })}
           />
         )}
@@ -251,9 +254,7 @@ export function GlossaryTermEditor({
             maxLength={MAX_GLOSSARY_NOTE_LENGTH}
             busy={busy}
             autoDirection
-            note={
-              <CapNote length={draft.note.length} max={MAX_GLOSSARY_NOTE_LENGTH} noun="A note" />
-            }
+            problem={capNoteText(draft.note.length, MAX_GLOSSARY_NOTE_LENGTH, "A note")}
             onChange={(note) => onDraft({ ...draft, note })}
           />
           <LabeledField
@@ -262,13 +263,11 @@ export function GlossaryTermEditor({
             maxLength={MAX_GLOSSARY_PART_OF_SPEECH_LENGTH}
             busy={busy}
             autoDirection={false}
-            note={
-              <CapNote
-                length={draft.partOfSpeech.length}
-                max={MAX_GLOSSARY_PART_OF_SPEECH_LENGTH}
-                noun="A part of speech"
-              />
-            }
+            problem={capNoteText(
+              draft.partOfSpeech.length,
+              MAX_GLOSSARY_PART_OF_SPEECH_LENGTH,
+              "A part of speech",
+            )}
             onChange={(partOfSpeech) => onDraft({ ...draft, partOfSpeech })}
           />
           <CaseSensitiveToggle
