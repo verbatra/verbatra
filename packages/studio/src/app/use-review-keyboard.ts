@@ -169,7 +169,8 @@ function isTypingElsewhere(active: Element | null): boolean {
   if (!(active instanceof HTMLElement) || active.closest("tr") !== null) {
     return false;
   }
-  return classifyShortcutTarget(shortcutTargetOf(active)) === "editable";
+  const target = classifyShortcutTarget(shortcutTargetOf(active));
+  return target === "editable" || target === "paused";
 }
 
 export function useSettledFocus(

@@ -2300,7 +2300,7 @@ describe("ReviewPanel: shortcut contract after the filter redesign", () => {
     const chip = stateChip(view, "approved");
     chip.focus();
 
-    for (const key of ["j", "k", "a", "r", "e", "t", "x", "?"]) {
+    for (const key of ["j", "k", "a", "r", "e", "t", "x"]) {
       pressOn(chip, key);
     }
     expect(activeRowKey(view)).toBeNull();
@@ -2314,17 +2314,18 @@ describe("ReviewPanel: shortcut contract after the filter redesign", () => {
     expect(chip.getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("pauses the letters on the Keyboard shortcuts button too, since it sits in the filter bar", async () => {
+  it("pauses the letters on the Keyboard shortcuts button but lets ? open the help, as on a plain button", async () => {
     stubKeyboardReady();
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     const button = view.getByText("button", "Keyboard shortcuts?");
     button.focus();
 
     pressOn(button, "j");
-    pressOn(button, "?");
-
     expect(activeRowKey(view)).toBeNull();
     expect(view.query('[role="dialog"]')).toBeNull();
+
+    pressOn(button, "?");
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toContain("Keyboard shortcuts");
   });
 });
 

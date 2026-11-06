@@ -46,7 +46,7 @@ export const REVIEW_SHORTCUTS: readonly ReviewShortcut[] = (
   needsSpend: action === "retranslate",
 }));
 
-export type ShortcutTarget = "editable" | "control" | "other";
+export type ShortcutTarget = "editable" | "paused" | "control" | "other";
 
 export interface ShortcutKeyEvent {
   readonly key: string;
@@ -66,6 +66,9 @@ export function resolveReviewShortcut(event: ShortcutKeyEvent): ReviewShortcutAc
   }
   if (event.target === "control" && event.key === "Enter") {
     return null;
+  }
+  if (event.target === "paused") {
+    return event.key === "?" ? "help" : null;
   }
   return ACTION_BY_KEY.get(event.key) ?? null;
 }
@@ -107,14 +110,14 @@ export function classifyShortcutTarget(target: ShortcutTargetShape | null): Shor
     return "other";
   }
   const tag = target.tagName.toUpperCase();
-  if (target.inPausedRegion === true) {
-    return "editable";
-  }
   if (tag === "INPUT" && TOGGLE_INPUT_TYPES.has(target.type.toLowerCase())) {
     return "control";
   }
   if (EDITABLE_TAGS.has(tag) || target.isContentEditable) {
     return "editable";
+  }
+  if (target.inPausedRegion === true) {
+    return "paused";
   }
   return CONTROL_TAGS.has(tag) ? "control" : "other";
 }

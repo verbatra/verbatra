@@ -173,7 +173,7 @@ function ReviewRow({
       }}
       tabIndex={active ? 0 : -1}
       active={active}
-      className={cn("group align-top", ROW_FOCUS_CLASSNAME)}
+      className={cn("align-top", ROW_FOCUS_CLASSNAME)}
       onFocus={() => actions.onActivate(row)}
       onClick={() => actions.onActivate(row)}
     >
