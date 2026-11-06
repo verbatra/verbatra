@@ -1578,6 +1578,23 @@ describe("OverviewPanel review failures, retry and focus", () => {
     expect(document.activeElement).not.toBe(view.get("[data-overview-recovery]"));
   });
 
+  it("leaves focus where it is when a failure clears later by a refresh, not by the Retry", async () => {
+    stubPage({ "lock.state": answersInOrder([LOCK_BAD, LOCK_BAD, NO_LOCK]) });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    await clickAsync(retryButton(view));
+    await flush();
+    const elsewhere = document.createElement("button");
+    document.body.append(elsewhere);
+    elsewhere.focus();
+
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(document.activeElement).toBe(elsewhere);
+    elsewhere.remove();
+  });
+
   it("names every stale source in one alert with one Retry, usage and history included", async () => {
     stubOverview({
       "status.diff": answersInOrder([diffResult(DEFAULT_LOCALES), rpcError("INTERNAL")]),
