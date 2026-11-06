@@ -30,7 +30,7 @@ function CommitRow({ commit }: { readonly commit: HistoryCommit }): ReactNode {
   return (
     <li
       tabIndex={-1}
-      className="relative rounded-sm border-s border-border pb-6 ps-5 outline-none last:border-s-transparent last:pb-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className="relative rounded-sm border-s border-border pb-6 ps-5 last:border-s-transparent last:pb-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <span
         className="absolute -start-1.25 top-1 size-2.5 rounded-full border-2 border-card bg-primary"
