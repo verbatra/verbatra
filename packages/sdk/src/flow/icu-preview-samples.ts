@@ -23,21 +23,31 @@ export interface PluralSampleRequest {
   readonly categories: readonly PluralCategory[];
 }
 
-export function pluralSamples(request: PluralSampleRequest): ReadonlyMap<PluralCategory, number> {
+export interface PluralSamples {
+  readonly samples: ReadonlyMap<PluralCategory, number>;
+  readonly unreached: readonly PluralCategory[];
+}
+
+export function pluralSamples(request: PluralSampleRequest): PluralSamples {
   const rules = new Intl.PluralRules(request.locale, { type: request.ruleType });
   const wanted = new Set<string>(request.categories);
-  const found = new Map<PluralCategory, number>();
-  for (const candidate of CANDIDATE_SAMPLES) {
-    if (request.avoid.has(candidate)) {
-      continue;
+  const reached = new Set<string>();
+  const samples = new Map<PluralCategory, number>();
+  for (const step of CANDIDATE_SAMPLES) {
+    const sample = request.offset + step;
+    const category = rules.select(sample - request.offset);
+    if (wanted.has(category)) {
+      reached.add(category);
+      if (!samples.has(category as PluralCategory) && !request.avoid.has(sample)) {
+        samples.set(category as PluralCategory, sample);
+      }
     }
-    const category = rules.select(candidate - request.offset) as PluralCategory;
-    if (wanted.has(category) && !found.has(category)) {
-      found.set(category, candidate);
-    }
-    if (found.size === wanted.size) {
+    if (reached.size === wanted.size && samples.size === wanted.size) {
       break;
     }
   }
-  return found;
+  return {
+    samples,
+    unreached: request.categories.filter((category) => !reached.has(category)),
+  };
 }

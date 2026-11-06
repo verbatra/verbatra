@@ -1,15 +1,21 @@
 import {
+  createIcuRenderBudget,
+  type IcuAxisPath,
+  type IcuAxisStep,
+  type IcuMessageArguments,
+  type IcuPreparedMessage,
   type IcuSampleValue,
   type IcuSegment,
   type IcuVariationAxis,
   icuMessageArguments,
-  icuVariationAxes,
-  renderIcuMessage,
+  icuVariationAxesOf,
+  prepareIcuMessage,
+  renderPreparedIcuMessage,
 } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { NUMBER_ARGUMENT_SAMPLE, pluralSamples } from "./icu-preview-samples.js";
 import {
-  describeIcuMessageArguments,
+  describeIcuAnalysis,
   isIcuMessageFormat,
   type MessageArguments,
 } from "./message-arguments.js";
@@ -24,10 +30,10 @@ export type IcuPreviewAxis = "plural" | "ordinal" | "select" | "none";
  * Why a message could not be previewed.
  *
  * - `too-long`: the message is over 20,000 characters.
- * - `too-complex`: the message nests deeper than 16 braces or holds more than 256 arguments and tags.
+ * - `too-complex`: the message nests deeper than 16 braces or has more than 256 `{` and `<` characters.
  * - `invalid-message`: the message does not parse as ICU.
  * - `unsupported-locale`: this runtime's CLDR data does not know the locale, or it is malformed.
- * - `too-large`: the rendered text would exceed 100,000 characters.
+ * - `too-large`: the first row alone would render more than 100,000 characters or 5,000 segments.
  */
 export type IcuPreviewFailure =
   | "too-long"
@@ -56,9 +62,9 @@ export interface IcuPreviewInput {
   readonly config: VerbatraConfig;
   /** The locale the message is rendered for. A locale this runtime's CLDR data does not know is refused as `unsupported-locale`. */
   readonly locale: string;
-  /** The message text. Untrusted: a value over 20,000 characters or past the nesting and argument caps is refused rather than parsed. */
+  /** The message text. Untrusted: a value over 20,000 characters, nested deeper than 16 braces, or with more than 256 `{` and `<` characters is refused rather than parsed. */
   readonly value: string;
-  /** Sample values for the message's arguments, by name. Numbers drive plural and number arguments, and a number given for a date argument is read as milliseconds since the epoch. Names the message does not use are ignored. */
+  /** Sample values for the message's arguments, by name. Numbers drive plural and number arguments, and a number given for a date argument is read as milliseconds since the epoch. Names the message does not use are ignored, and so is the sample for an argument a row varies or holds at an enclosing arm. */
   readonly args?: Readonly<Record<string, string | number>>;
 }
 
@@ -80,13 +86,14 @@ export type IcuPreviewResult =
       readonly arguments: MessageArguments;
       /** One row per plural category, exact arm, or select option, varying one argument at a time. At most 24. */
       readonly rows: readonly IcuPreviewRow[];
-      /** True when more than 24 rows existed. */
+      /** True when rows were left out: more than 24 existed, the rows shared out their 100,000-character or 5,000-segment output budget, or a plural category had no sample within the search bound. */
       readonly truncated: boolean;
     };
 
 interface Variant {
   readonly category: string;
   readonly sample: IcuSampleValue;
+  readonly path: IcuAxisPath;
 }
 
 interface PlannedAxis {
@@ -94,49 +101,101 @@ interface PlannedAxis {
   readonly variants: readonly Variant[];
 }
 
+interface Candidate {
+  readonly axis: IcuVariationAxis;
+  readonly variant: Variant;
+  readonly held: ReadonlyMap<string, IcuSampleValue>;
+}
+
 type SampleArguments = Readonly<Record<string, IcuSampleValue>>;
 
-function withSample(base: SampleArguments, name: string, sample: IcuSampleValue): SampleArguments {
-  return Object.assign(Object.create(null) as Record<string, IcuSampleValue>, base, {
-    [name]: sample,
-  });
+type AxisIndex = ReadonlyMap<string, PlannedAxis>;
+
+const EXACT_ARM = /^=(-?\d+)$/;
+
+function exactValue(selector: string): number | undefined {
+  const digits = EXACT_ARM.exec(selector)?.[1];
+  return digits === undefined ? undefined : Number(digits);
+}
+
+function withSamples(
+  base: SampleArguments,
+  samples: Iterable<readonly [string, IcuSampleValue]>,
+): SampleArguments {
+  const next = Object.assign(Object.create(null) as Record<string, IcuSampleValue>, base);
+  for (const [name, sample] of samples) {
+    next[name] = sample;
+  }
+  return next;
 }
 
 function exactArmsOf(axes: readonly IcuVariationAxis[], argument: string): ReadonlySet<number> {
-  return new Set(axes.filter((axis) => axis.argument === argument).flatMap((axis) => axis.exact));
+  const exact = new Set<number>();
+  for (const axis of axes) {
+    for (const arm of axis.kind === "select" ? [] : axis.arms) {
+      const value = exactValue(arm.selector);
+      if (axis.argument === argument && value !== undefined) {
+        exact.add(value);
+      }
+    }
+  }
+  return exact;
+}
+
+function armPathOf(axis: IcuVariationAxis, selector: string): IcuAxisPath {
+  return axis.arms.find((arm) => arm.selector === selector)?.path ?? axis.path;
 }
 
 function pluralVariants(
   axis: IcuVariationAxis,
   locale: string,
   avoid: ReadonlySet<number>,
-): readonly Variant[] {
+): { readonly variants: readonly Variant[]; readonly incomplete: boolean } {
   const ruleType = axis.kind === "ordinal" ? "ordinal" : "cardinal";
   const categories = pluralCategoriesFor(locale, ruleType);
-  const samples = pluralSamples({ locale, ruleType, offset: axis.offset, avoid, categories });
-  const exact = axis.exact.map((count) => ({ category: `=${count}`, sample: count }));
+  const { samples, unreached } = pluralSamples({
+    locale,
+    ruleType,
+    offset: axis.offset,
+    avoid,
+    categories,
+  });
+  const exact = axis.arms.flatMap((arm) => {
+    const value = exactValue(arm.selector);
+    return value === undefined ? [] : [{ category: arm.selector, sample: value, path: arm.path }];
+  });
   const byCategory = categories.flatMap((category) => {
     const sample = samples.get(category);
-    return sample === undefined ? [] : [{ category, sample }];
+    return sample === undefined ? [] : [{ category, sample, path: armPathOf(axis, category) }];
   });
-  return [...exact, ...byCategory];
+  return { variants: [...exact, ...byCategory], incomplete: unreached.length > 0 };
 }
 
-function planAxes(axes: readonly IcuVariationAxis[], locale: string): readonly PlannedAxis[] {
-  return axes.map((axis) => ({
-    axis,
-    variants:
-      axis.kind === "select"
-        ? axis.selectors.map((selector) => ({ category: selector, sample: selector }))
-        : pluralVariants(axis, locale, exactArmsOf(axes, axis.argument)),
-  }));
+function planAxes(
+  axes: readonly IcuVariationAxis[],
+  locale: string,
+): { readonly planned: readonly PlannedAxis[]; readonly incomplete: boolean } {
+  let incomplete = false;
+  const planned = axes.map((axis) => {
+    if (axis.kind === "select") {
+      const variants = axis.arms.map((arm) => ({
+        category: arm.selector,
+        sample: arm.selector,
+        path: arm.path,
+      }));
+      return { axis, variants };
+    }
+    const plural = pluralVariants(axis, locale, exactArmsOf(axes, axis.argument));
+    incomplete = incomplete || plural.incomplete;
+    return { axis, variants: plural.variants };
+  });
+  return { planned, incomplete };
 }
 
 function defaultSamples(
-  value: string,
+  analysis: IcuMessageArguments,
   planned: readonly PlannedAxis[],
 ): { readonly defaults: SampleArguments; readonly names: ReadonlySet<string> } {
-  const analysis = icuMessageArguments(value);
   const defaults = Object.create(null) as Record<string, IcuSampleValue>;
   const names = new Set<string>();
   for (const argument of analysis.valid ? analysis.arguments : []) {
@@ -159,90 +218,124 @@ function baseArguments(
   names: ReadonlySet<string>,
   supplied: Readonly<Record<string, string | number>> | undefined,
 ): SampleArguments {
-  let base = defaults;
+  const given: (readonly [string, IcuSampleValue])[] = [];
   for (const name of names) {
     const sample =
       supplied !== undefined && Object.hasOwn(supplied, name) ? supplied[name] : undefined;
     if (sample !== undefined) {
-      base = withSample(base, name, sample);
+      given.push([name, sample]);
     }
   }
-  return base;
+  return withSamples(defaults, given);
 }
 
-function* variedRows(
-  planned: readonly PlannedAxis[],
-): Generator<{ readonly axis: IcuVariationAxis; readonly variant: Variant }> {
-  for (const { axis, variants } of planned) {
-    for (const variant of variants) {
-      yield { axis, variant };
+function stepSample(step: IcuAxisStep, index: AxisIndex): IcuSampleValue | undefined {
+  if (step.kind === "select") {
+    return step.selector;
+  }
+  return (
+    exactValue(step.selector) ??
+    index
+      .get(`${step.kind}:${step.argument}`)
+      ?.variants.find((variant) => variant.category === step.selector)?.sample
+  );
+}
+
+function heldAncestors(
+  path: IcuAxisPath,
+  argument: string,
+  index: AxisIndex,
+): ReadonlyMap<string, IcuSampleValue> | undefined {
+  const held = new Map<string, IcuSampleValue>();
+  for (const step of path) {
+    const sample = stepSample(step, index);
+    const prior = held.get(step.argument);
+    const conflicts = step.argument === argument || (prior !== undefined && prior !== sample);
+    if (sample === undefined || conflicts) {
+      return undefined;
+    }
+    held.set(step.argument, sample);
+  }
+  return held;
+}
+
+function candidatesOf(planned: readonly PlannedAxis[]): readonly (readonly Candidate[])[] {
+  const index: AxisIndex = new Map(
+    planned.map((entry) => [`${entry.axis.kind}:${entry.axis.argument}`, entry]),
+  );
+  return planned.map(({ axis, variants }) =>
+    variants.flatMap((variant) => {
+      const held = heldAncestors(variant.path, axis.argument, index);
+      return held === undefined ? [] : [{ axis, variant, held }];
+    }),
+  );
+}
+
+function chooseRows(groups: readonly (readonly Candidate[])[]): {
+  readonly chosen: readonly Candidate[];
+  readonly truncated: boolean;
+} {
+  const all = groups.flat();
+  if (all.length <= ICU_PREVIEW_MAX_ROWS) {
+    return { chosen: all, truncated: false };
+  }
+  const taken = new Set<Candidate>();
+  for (let round = 0; taken.size < ICU_PREVIEW_MAX_ROWS; round += 1) {
+    for (const group of groups) {
+      const candidate = group[round];
+      if (candidate !== undefined && taken.size < ICU_PREVIEW_MAX_ROWS) {
+        taken.add(candidate);
+      }
     }
   }
-}
-
-interface RenderFailure {
-  readonly reason: IcuPreviewFailure;
+  return { chosen: all.filter((candidate) => taken.has(candidate)), truncated: true };
 }
 
 interface RenderedRows {
   readonly rows: readonly IcuPreviewRow[];
-  readonly truncated: boolean;
+  readonly exhausted: boolean;
 }
 
-type RowIdentity = Pick<IcuPreviewRow, "axis" | "argument" | "category" | "sample">;
-
-const UNVARYING: RowIdentity = { axis: "none", argument: null, category: null, sample: null };
-
-function renderRow(
-  value: string,
-  locale: string,
-  args: SampleArguments,
-  identity: RowIdentity,
-): IcuPreviewRow | RenderFailure {
-  const result = renderIcuMessage(value, locale, args);
-  return result.valid ? { ...identity, segments: result.segments } : { reason: result.reason };
-}
-
-function isFailure(row: IcuPreviewRow | RenderFailure): row is RenderFailure {
-  return !("segments" in row);
-}
-
-function renderVaried(
-  value: string,
-  locale: string,
-  planned: readonly PlannedAxis[],
+function renderChosen(
+  prepared: IcuPreparedMessage,
   base: SampleArguments,
-): RenderedRows | RenderFailure {
+  chosen: readonly Candidate[],
+): RenderedRows | { readonly reason: IcuPreviewFailure } {
+  const budget = createIcuRenderBudget();
   const rows: IcuPreviewRow[] = [];
-  for (const { axis, variant } of variedRows(planned)) {
-    if (rows.length === ICU_PREVIEW_MAX_ROWS) {
-      return { rows, truncated: true };
+  for (const { axis, variant, held } of chosen) {
+    const args = withSamples(base, [...held, [axis.argument, variant.sample]]);
+    const result = renderPreparedIcuMessage(prepared, args, budget);
+    if (!result.valid) {
+      return rows.length === 0 ? { reason: result.reason } : { rows, exhausted: true };
     }
-    const row = renderRow(value, locale, withSample(base, axis.argument, variant.sample), {
+    rows.push({
       axis: axis.kind,
       argument: axis.argument,
       category: variant.category,
       sample: variant.sample,
+      segments: result.segments,
     });
-    if (isFailure(row)) {
-      return row;
-    }
-    rows.push(row);
   }
-  return { rows, truncated: false };
+  return { rows, exhausted: false };
 }
 
-function renderRows(
-  value: string,
-  locale: string,
-  planned: readonly PlannedAxis[],
+function renderUnvarying(
+  prepared: IcuPreparedMessage,
   base: SampleArguments,
-): RenderedRows | RenderFailure {
-  if (planned.length > 0) {
-    return renderVaried(value, locale, planned, base);
+): RenderedRows | { readonly reason: IcuPreviewFailure } {
+  const result = renderPreparedIcuMessage(prepared, base, createIcuRenderBudget());
+  if (!result.valid) {
+    return { reason: result.reason };
   }
-  const row = renderRow(value, locale, base, UNVARYING);
-  return isFailure(row) ? row : { rows: [row], truncated: false };
+  const row: IcuPreviewRow = {
+    axis: "none",
+    argument: null,
+    category: null,
+    sample: null,
+    segments: result.segments,
+  };
+  return { rows: [row], exhausted: false };
 }
 
 /**
@@ -255,6 +348,13 @@ function renderRows(
  * with this runtime's Node CLDR data, dates at a fixed instant in UTC, so the text can differ from
  * what an application's own runtime prints. Nothing is read from or written to disk.
  *
+ * Each row varies one argument and holds the others at `args` or a default. A row for an argument
+ * nested inside another argument's arm also holds that enclosing argument at the arm, so the row
+ * shows the arm it names; the `args` value for an argument a row varies or holds this way is
+ * ignored in that row. An argument that appears in several places gets one row per arm, using the
+ * first place that arm appears. The rows share one output budget; when it runs out, or more than
+ * 24 rows exist, the rest are left out and `truncated` is set.
+ *
  * @param input - The config, locale, message and optional sample values.
  * @returns The preview, or why there is nothing to preview.
  */
@@ -262,23 +362,28 @@ export function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult {
   if (!isIcuMessageFormat(input.config.format)) {
     return { supported: false, reason: "not-icu" };
   }
-  const { value } = input;
-  const preflight = renderIcuMessage(value, input.locale, {});
-  if (!preflight.valid) {
-    return { supported: true, valid: false, reason: preflight.reason };
+  const preparation = prepareIcuMessage(input.value, input.locale);
+  if (!preparation.valid) {
+    return { supported: true, valid: false, reason: preparation.reason };
   }
-  const { locale } = preflight;
-  const planned = planAxes(icuVariationAxes(value), locale);
-  const { defaults, names } = defaultSamples(value, planned);
-  const outcome = renderRows(value, locale, planned, baseArguments(defaults, names, input.args));
+  const { prepared } = preparation;
+  const { planned, incomplete } = planAxes(icuVariationAxesOf(prepared.ast), prepared.locale);
+  const analysis = icuMessageArguments(input.value);
+  const { defaults, names } = defaultSamples(analysis, planned);
+  const base = baseArguments(defaults, names, input.args);
+  const selection = chooseRows(candidatesOf(planned));
+  const outcome =
+    selection.chosen.length === 0
+      ? renderUnvarying(prepared, base)
+      : renderChosen(prepared, base, selection.chosen);
   if ("reason" in outcome) {
     return { supported: true, valid: false, reason: outcome.reason };
   }
   return {
     supported: true,
     valid: true,
-    arguments: describeIcuMessageArguments(value),
+    arguments: describeIcuAnalysis(analysis),
     rows: outcome.rows,
-    truncated: outcome.truncated,
+    truncated: selection.truncated || outcome.exhausted || incomplete,
   };
 }

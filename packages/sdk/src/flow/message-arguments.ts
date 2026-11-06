@@ -2,6 +2,7 @@ import type { FormatId } from "@verbatra/core";
 import {
   type IcuArgumentKind,
   type IcuMessageArgument,
+  type IcuMessageArguments,
   icuMessageArguments,
 } from "@verbatra/format-adapters";
 
@@ -45,19 +46,27 @@ export type UnresolvedArgumentReason =
  */
 export type MessageArguments =
   | {
+      /** The message takes no arguments. */
       readonly style: "none";
     }
   | {
+      /** The message takes named arguments, such as `{name}`. */
       readonly style: "named";
+      /** The arguments, in the order they first appear. */
       readonly named: readonly NamedMessageArgument[];
     }
   | {
+      /** The message takes numbered or unnumbered arguments, such as `{0}` or `%s`. */
       readonly style: "positional";
+      /** The value type of each argument, by zero-based position. */
       readonly positional: readonly MessageArgumentType[];
+      /** The position from which every later argument is optional. Absent when none are. */
       readonly optionalFrom?: number;
     }
   | {
+      /** verbatra declined to describe the arguments. */
       readonly style: "unresolved";
+      /** Why the arguments could not be described. */
       readonly reason: UnresolvedArgumentReason;
     };
 
@@ -326,7 +335,10 @@ export function describeMessageArguments(placeholders: readonly string[]): Messa
 }
 
 export function describeIcuMessageArguments(value: string): MessageArguments {
-  const analysis = icuMessageArguments(value);
+  return describeIcuAnalysis(icuMessageArguments(value));
+}
+
+export function describeIcuAnalysis(analysis: IcuMessageArguments): MessageArguments {
   if (!analysis.valid) {
     return { style: "unresolved", reason: "invalid-message-syntax" };
   }
