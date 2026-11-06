@@ -10,6 +10,7 @@ import {
   ICU_SAMPLE_INSTANT,
   type IcuRenderArguments,
   type IcuSegment,
+  icuPluralSampleOf,
   prepareIcuMessage,
   renderIcuMessage,
   renderPreparedIcuMessage,
@@ -508,5 +509,33 @@ describe("renderIcuMessage hostile input", () => {
         ).not.toThrow();
       }
     }
+  });
+});
+
+describe("number text given for a plural argument", () => {
+  const MESSAGE = "{n, plural, =5 {five} =01 {padded} one {# x} other {# y}}";
+
+  it.each(["1", "5", "01", "22", " 2 ", "1.5", "1e1", "0x10", ""])(
+    "reads %j as the runtime does",
+    (text) => {
+      expect(rendered(MESSAGE, "en", { n: text })).toBe(oracle(MESSAGE, "en", { n: text }));
+    },
+  );
+
+  it("sends text that is not a number to other and leaves the # as it is", () => {
+    expect(rendered("{n, plural, one {# x} other {# y}}", "en", { n: "abc" })).toBe("# y");
+  });
+
+  it("reads the same text the same way for an ordinal", () => {
+    const ordinal = "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}";
+
+    expect(rendered(ordinal, "en", { n: "22" })).toBe(oracle(ordinal, "en", { n: "22" }));
+  });
+
+  it("answers the plural sample the renderer and the sdk share", () => {
+    expect(icuPluralSampleOf(3)).toEqual({ count: 3, key: "3" });
+    expect(icuPluralSampleOf("03")).toEqual({ count: 3, key: "03" });
+    expect(icuPluralSampleOf("abc")).toBeUndefined();
+    expect(icuPluralSampleOf(undefined)).toBeUndefined();
   });
 });

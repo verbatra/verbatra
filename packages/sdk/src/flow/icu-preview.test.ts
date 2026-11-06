@@ -279,6 +279,7 @@ describe("previewIcuMessage: rows", () => {
         category: null,
         sample: null,
         held: {},
+        supplied: false,
         segments: [
           { kind: "text", text: "Hi " },
           { kind: "argument", text: "Mario" },

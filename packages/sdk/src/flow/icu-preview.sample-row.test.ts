@@ -34,7 +34,7 @@ function sampleRows(
   locale: string,
   args: IcuPreviewInput["args"],
 ): readonly IcuPreviewRow[] {
-  return rowsOf(value, locale, args).rows.filter((row) => row.axis === "sample");
+  return rowsOf(value, locale, args).rows.filter((row) => row.supplied);
 }
 
 const POLISH = "{n, plural, one {# plik} few {# pliki} many {# plikow} other {# pliku}}";
@@ -50,7 +50,7 @@ describe("previewIcuMessage: a supplied value for a plural, ordinal or select ar
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
-      axis: "sample",
+      supplied: true,
       argument: "n",
       category,
       sample: count,
@@ -100,18 +100,16 @@ describe("previewIcuMessage: a supplied value for a plural, ordinal or select ar
   });
 
   it("adds no row for an argument the caller did not supply, or an inherited name", () => {
-    expect(rowsOf(POLISH, "pl").rows.some((row) => row.axis === "sample")).toBe(false);
-    expect(rowsOf(POLISH, "pl", { other: 3 }).rows.some((row) => row.axis === "sample")).toBe(
-      false,
-    );
+    expect(rowsOf(POLISH, "pl").rows.some((row) => row.supplied)).toBe(false);
+    expect(rowsOf(POLISH, "pl", { other: 3 }).rows.some((row) => row.supplied)).toBe(false);
     const inherited = rowsOf("{constructor, plural, one {a} other {b}}", "en", {}).rows;
-    expect(inherited.some((row) => row.axis === "sample")).toBe(false);
+    expect(inherited.some((row) => row.supplied)).toBe(false);
   });
 
   it("places the row after that argument's own rows", () => {
     const rows = rowsOf(POLISH, "pl", { n: 22 }).rows;
 
-    expect(rows.map((row) => row.axis)).toEqual(["plural", "plural", "plural", "plural", "sample"]);
+    expect(rows.map((row) => row.supplied)).toEqual([false, false, false, false, true]);
   });
 
   it("holds the enclosing arguments at their arms and lists them", () => {
@@ -133,7 +131,7 @@ describe("previewIcuMessage: a supplied value for a plural, ordinal or select ar
 
     expect(rows.length).toBeLessThanOrEqual(ICU_PREVIEW_MAX_ROWS);
     expect(truncated).toBe(true);
-    expect(rows.filter((row) => row.axis === "sample")).toHaveLength(1);
+    expect(rows.filter((row) => row.supplied)).toHaveLength(1);
   });
 
   it("adds none when no row for the argument can be reached", () => {
@@ -143,6 +141,83 @@ describe("previewIcuMessage: a supplied value for a plural, ordinal or select ar
     const { rows } = rowsOf(message, "en", { b: 3 });
 
     expect(rows.some((row) => row.argument === "b")).toBe(false);
+  });
+});
+
+describe("previewIcuMessage: a supplied row never names an arm its text does not show", () => {
+  const SELF_NESTED =
+    "{n, plural, one {{n, selectordinal, one {ord1} two {ord2} other {ordO}}} other {C}}";
+
+  it("skips the ordinal place a value cannot reach and labels the plural place it does", () => {
+    const rows = sampleRows(SELF_NESTED, "en", { n: 2 });
+
+    expect(rows.map((row) => [row.axis, row.category, textOf(row)])).toEqual([
+      ["plural", "other", "C"],
+    ]);
+    expect(String(new IntlMessageFormat(SELF_NESTED, "en").format({ n: 2 }))).toBe("C");
+  });
+
+  it("names the nested place when the value reaches it", () => {
+    const rows = sampleRows(SELF_NESTED, "en", { n: 1 });
+
+    expect(rows.map((row) => [row.axis, row.category, textOf(row)])).toEqual([
+      ["plural", "one", "ord1"],
+      ["ordinal", "one", "ord1"],
+    ]);
+  });
+
+  it("keeps the real axis and marks the typed value, one row per axis the argument drives", () => {
+    const message = "{n, plural, one {a} other {b}} {n, selectordinal, one {x} two {y} other {z}}";
+
+    const { rows } = rowsOf(message, "en", { n: 2 });
+    const supplied = rows.filter((row) => row.supplied);
+
+    expect(supplied.map((row) => [row.axis, row.category])).toEqual([
+      ["plural", "other"],
+      ["ordinal", "two"],
+    ]);
+    expect(rows.filter((row) => !row.supplied).every((row) => row.supplied === false)).toBe(true);
+  });
+
+  it("uses the first place the solver can reach, not the first place written", () => {
+    const message =
+      "{count, plural, zero {{g, select, a {A} other {B}}} other {{g, select, a {A2} other {B2}}}}";
+
+    const rows = sampleRows(message, "en", { g: "a" });
+
+    expect(rows.map((row) => [row.category, textOf(row), row.held])).toEqual([
+      ["a", "A2", { count: 1 }],
+    ]);
+  });
+
+  it.each([
+    ["1", "one", "# x"],
+    ["5", "=5", "five"],
+    ["22", "other", "22 y"],
+    ["01", "one", "# x"],
+  ])("reads the number text %j as the runtime does", (text, category) => {
+    const message = "{n, plural, =5 {five} one {# x} other {# y}}";
+
+    const [row] = sampleRows(message, "en", { n: text });
+
+    expect(row?.category).toBe(category);
+    expect(row === undefined ? "" : textOf(row)).toBe(
+      String(new IntlMessageFormat(message, "en").format({ n: text })),
+    );
+  });
+
+  it("keeps an exact arm written with leading zeros for the text that spells it", () => {
+    const message = "{n, plural, =01 {padded} one {# x} other {# y}}";
+
+    expect(sampleRows(message, "en", { n: "01" })[0]?.category).toBe("=01");
+    expect(sampleRows(message, "en", { n: 1 })[0]?.category).toBe("one");
+  });
+
+  it("sends text that is not a number to other, and leaves # as #", () => {
+    const [row] = sampleRows("{n, plural, one {# x} other {# y}}", "en", { n: "abc" });
+
+    expect(row?.category).toBe("other");
+    expect(row === undefined ? "" : textOf(row)).toBe("# y");
   });
 });
 
