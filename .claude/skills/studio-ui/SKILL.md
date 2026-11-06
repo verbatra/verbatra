@@ -285,7 +285,8 @@ Rules that follow:
   Text that is not focusable never gets a `title` or a `Tooltip`: it wraps (`break-words` or
   `wrap-anywhere`) and shows its full value. Git text (commit subject, author, paths) takes
   `dir="auto"`, and a commit date is visible text, formatted like the last run, inside
-  `<time datetime>`. Tile grids stack below the named `xs` breakpoint (22.5rem) (`@theme` in `styles.css`),
+  `<time datetime>`. Metric tiles stack below the named `xs` breakpoint (22.5rem, `@theme` in `styles.css`) and the
+  Last run tiles below `sm`, so a ten-digit token count never overflows its tile,
   never an arbitrary pixel variant. A route change made by a link (header, in-page, search) scrolls
   to the top once, from `link-scroll.ts`, also when a held navigation proceeds after the unsaved
   prompt; back, forward and replaces do not. After a Retry that recovers, focus moves to the metric
