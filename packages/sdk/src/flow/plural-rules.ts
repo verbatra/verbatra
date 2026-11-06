@@ -19,33 +19,31 @@ function supportedLocaleOf(locale: string): string | undefined {
   }
 }
 
-function cldrCategories(locale: string, type: PluralRuleType): readonly PluralCategory[] {
-  const reported = new Set<string>(
-    new Intl.PluralRules(locale, { type }).resolvedOptions().pluralCategories,
-  );
-  return PLURAL_CATEGORIES.filter((category) => reported.has(category));
-}
-
 const resolutionCache = new Map<string, PluralCategoryResolution>();
 
-function resolveUncached(locale: string, type: PluralRuleType): PluralCategoryResolution {
-  const supported = supportedLocaleOf(locale);
-  if (supported === undefined) {
-    return { kind: "fallback", categories: FALLBACK_CATEGORIES[type] };
-  }
-  return { kind: "cldr", categories: cldrCategories(supported, type) };
+function fallbackResolution(type: PluralRuleType): PluralCategoryResolution {
+  return { kind: "fallback", categories: FALLBACK_CATEGORIES[type] };
 }
 
 export function resolvePluralCategories(
   locale: string,
   type: PluralRuleType = "cardinal",
 ): PluralCategoryResolution {
-  const cacheKey = `${type}:${locale}`;
+  const supported = supportedLocaleOf(locale);
+  if (supported === undefined) {
+    return fallbackResolution(type);
+  }
+  const resolved = new Intl.PluralRules(supported, { type }).resolvedOptions();
+  const cacheKey = `${type}:${resolved.locale}`;
   const cached = resolutionCache.get(cacheKey);
   if (cached !== undefined) {
     return cached;
   }
-  const resolution = resolveUncached(locale, type);
+  const reported = new Set<string>(resolved.pluralCategories);
+  const resolution: PluralCategoryResolution = {
+    kind: "cldr",
+    categories: PLURAL_CATEGORIES.filter((category) => reported.has(category)),
+  };
   resolutionCache.set(cacheKey, resolution);
   return resolution;
 }

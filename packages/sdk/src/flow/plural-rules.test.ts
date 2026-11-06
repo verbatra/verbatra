@@ -201,3 +201,21 @@ describe("pluralCategoryLookupFor", () => {
     expect(lookup("ordinal")).toBeUndefined();
   });
 });
+
+describe("resolvePluralCategories: the cache is keyed by the resolved locale", () => {
+  it("shares one entry between tags that differ only in extensions", () => {
+    const first = resolvePluralCategories("en-x-aaaa");
+    expect(resolvePluralCategories("en-x-bbbb")).toBe(first);
+    expect(resolvePluralCategories("en")).toBe(first);
+    expect(resolvePluralCategories("en_US")).toBe(first);
+  });
+
+  it("keeps the cardinal and ordinal entries apart", () => {
+    expect(resolvePluralCategories("en", "ordinal")).not.toBe(resolvePluralCategories("en"));
+  });
+
+  it("answers the fallback for a locale the runtime does not know", () => {
+    expect(resolvePluralCategories("zz").kind).toBe("fallback");
+    expect(resolvePluralCategories("zz", "ordinal").categories).toEqual(["other"]);
+  });
+});
