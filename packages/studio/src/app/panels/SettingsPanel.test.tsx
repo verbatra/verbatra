@@ -4,7 +4,8 @@ import type { ProjectSnapshotResult } from "../../shared/rpc/snapshot.js";
 import type { RenderResult } from "../test-support.js";
 import {
   flush,
-  metricCard,
+  metricFigure,
+  metricHint,
   metricValue,
   render,
   renderAsync,
@@ -91,10 +92,28 @@ describe("SettingsPanel", () => {
 
     expect(metricValue(view, "Source locale")).toBe("en");
     expect(metricValue(view, "Target locales")).toBe("2");
-    expect(metricCard(view, "Target locales").querySelector("p")?.textContent).toBe("de, fr");
-    expect(metricCard(view, "Format").textContent).toContain("i18next-json");
-    expect(metricCard(view, "Format").querySelector(".break-all")).not.toBeNull();
+    expect(metricHint(view, "Target locales")).toBe("de, fr");
+    expect(metricValue(view, "Format")).toContain("i18next-json");
     expect(metricValue(view, "Provider")).toBe("anthropic");
+  });
+
+  it("sets identifiers in mono, left to right, and only the count as a figure", async () => {
+    stubSettings(SNAPSHOT);
+
+    const view = await renderAsync(<SettingsPanel />);
+
+    for (const label of ["Source locale", "Format", "Provider"]) {
+      const figure = metricFigure(view, label);
+      expect(figure.hasAttribute("data-figure")).toBe(false);
+      expect(figure.querySelector(".font-mono")).not.toBeNull();
+    }
+    expect(metricFigure(view, "Source locale").querySelector('[dir="ltr"]')?.textContent).toBe(
+      "en",
+    );
+    expect(metricFigure(view, "Provider").querySelector('[dir="ltr"]')?.textContent).toBe(
+      "anthropic",
+    );
+    expect(metricFigure(view, "Target locales").hasAttribute("data-figure")).toBe(true);
   });
 
   it("names where the configuration was loaded from", async () => {

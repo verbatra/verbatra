@@ -9,6 +9,7 @@ import type { RenderResult, StubRpcHandler, StubRpcResult } from "../test-suppor
 import {
   clickAsync,
   flush,
+  hasMetricCard,
   metricCard,
   metricHint,
   metricValue,
@@ -96,8 +97,14 @@ function stubSyncedPage(overrides: Stubs = {}): void {
   });
 }
 
+function copyOf(alert: HTMLElement): string {
+  const clone = alert.cloneNode(true) as HTMLElement;
+  clone.querySelector("[data-error-actions]")?.remove();
+  return clone.textContent?.trim() ?? "";
+}
+
 function alertText(view: RenderResult): string {
-  return view.get('[role="alert"]').textContent?.trim() ?? "";
+  return copyOf(view.get('[role="alert"]'));
 }
 
 interface KeyLists {
@@ -227,7 +234,7 @@ function cellTexts(row: HTMLElement | undefined): string[] {
 }
 
 function alertTexts(view: RenderResult): string[] {
-  return view.all('[role="alert"]').map((alert) => alert.textContent ?? "");
+  return view.all('[role="alert"]').map((alert) => copyOf(alert));
 }
 
 function metricTile(
@@ -318,7 +325,7 @@ describe("OverviewPanel", () => {
     expect(rows).toHaveLength(2);
     expect(view.text()).toContain("chore: sync the German locale file");
     expect(view.text()).toContain("0f3ab19");
-    expect(view.text()).toContain("2026-05-04");
+    expect(view.text()).toContain(formatTimestamp(COMMITS[0]?.authorDate ?? ""));
   });
 
   it("lists the files a commit touched, and omits the list for a commit with none", async () => {
@@ -357,7 +364,8 @@ describe("OverviewPanel", () => {
     expect(metricHint(view, "Tokens")).toBe(
       "No token usage was recorded: the run called no provider, or its provider does not report usage.",
     );
-    expect(view.query("[title]")).toBeNull();
+    expect(hasMetricCard(view, "Input tokens")).toBe(false);
+    expect(hasMetricCard(view, "Output tokens")).toBe(false);
   });
 
   it("renders a tracked budget as a meter plus a within-budget badge", async () => {
@@ -609,8 +617,8 @@ describe("OverviewPanel", () => {
     lock.answer(0, lockResult(1, []));
     await flush();
 
-    expect(localesSection(view).textContent).toContain("Lock v9");
-    expect(localesSection(view).textContent).not.toContain("Lock v1");
+    expect(view.getByText("span", "Lock v9")).not.toBeNull();
+    expect(view.all("span").map((node) => node.textContent)).not.toContain("Lock v1");
   });
 });
 
@@ -658,7 +666,7 @@ describe("OverviewPanel metrics", () => {
 
     expect(metricTile(view, "Needs attention")).toMatchObject({
       value: "2",
-      hint: "2 keys need attention (3 entries across 2 of 2 target locales).",
+      hint: "2 keys are missing, changed or orphaned (3 entries across 2 of 2 target locales).",
     });
   });
 
@@ -671,7 +679,7 @@ describe("OverviewPanel metrics", () => {
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(metricTile(view, "Needs attention").hint).toBe(
-      "1 key needs attention (1 entry across 1 of 1 target locale).",
+      "1 key is missing, changed or orphaned (1 entry across 1 of 1 target locale).",
     );
     expect(metricTile(view, "Avg coverage").hint).toBe("Across 1 target locale.");
   });
@@ -682,7 +690,7 @@ describe("OverviewPanel metrics", () => {
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(metricTile(view, "Needs attention").hint).toBe(
-      "2 keys need attention (3 entries across 2 of 2 target locales).",
+      "2 keys are missing, changed or orphaned (3 entries across 2 of 2 target locales).",
     );
   });
 
@@ -771,7 +779,9 @@ describe("OverviewPanel locales section", () => {
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    expect(alertTexts(view)).toEqual(["The source locale file could not be found on disk."]);
+    expect(alertTexts(view)).toEqual([
+      "The source locale file could not be found on disk. no source file",
+    ]);
   });
 
   it("keeps the last known coverage rows when a status re-read fails", async () => {
@@ -798,11 +808,12 @@ describe("OverviewPanel locales section", () => {
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(cellTexts(coverageRows(view)[0])).toEqual([
-      "deTranslations for deReview for de",
+      "de",
       "80%8 / 10 keys",
       "1",
       "1",
       "8",
+      "Translations for deReview for de",
     ]);
   });
 
@@ -811,7 +822,7 @@ describe("OverviewPanel locales section", () => {
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    expect(localesSection(view).textContent).toContain("Lock v3");
+    expect(view.getByText("span", "Lock v3")).not.toBeNull();
   });
 
   it("labels each locale's recorded lock entry against the current files", async () => {
@@ -833,8 +844,8 @@ describe("OverviewPanel locales section", () => {
 
     expect(coverageRows(view).map((row) => cellTexts(row)[5])).toEqual([
       "Drift",
-      "Drift",
       "In step",
+      "Drift",
       "Not recorded",
     ]);
   });
@@ -847,9 +858,9 @@ describe("OverviewPanel locales section", () => {
     });
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    const detail = view.getByText("summary", "Lock file details").parentElement;
+    const detail = view.get("details");
 
-    expect(cellTexts(detail?.querySelector<HTMLElement>("tbody tr") ?? undefined)).toEqual([
+    expect(cellTexts(detail.querySelector<HTMLElement>("tbody tr") ?? undefined)).toEqual([
       "de",
       "10",
       "2",
@@ -895,7 +906,7 @@ describe("OverviewPanel locales section", () => {
     });
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    const detail = view.getByText("summary", "Lock file details").parentElement;
+    const detail = view.get("details");
 
     const items = [...(detail?.querySelectorAll("tbody tr td:last-child li") ?? [])];
     expect(items.map((item) => item.textContent)).toEqual([
@@ -922,7 +933,7 @@ describe("OverviewPanel locales section", () => {
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
     expect(alertTexts(view)).toEqual([
-      "The lock file is missing, corrupt, or at an unsupported version.",
+      "The lock file is missing, corrupt, or at an unsupported version. corrupt",
     ]);
   });
 });
@@ -936,7 +947,7 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
     expect(
       view.get('a[href="#/translations?status=missing&status=changed&status=orphaned"]')
         .textContent,
-    ).toContain("keys need attention");
+    ).toContain("missing, changed or orphaned");
   });
 
   it("counts a locale whose only drift is orphaned keys, with a link that lists them", async () => {
@@ -948,7 +959,7 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
 
     expect(metricTile(view, "Needs attention")).toMatchObject({
       value: "1",
-      hint: "1 key needs attention (1 entry across 1 of 2 target locales).",
+      hint: "1 key is missing, changed or orphaned (1 entry across 1 of 2 target locales).",
     });
     expect(view.query('a[href*="status=orphaned"]')).not.toBeNull();
   });
@@ -1041,16 +1052,53 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
     expect(view.query("button")).toBeNull();
   });
 
-  it("moves focus to the history region when the last page removes the button", async () => {
+  it("moves focus to the first new commit after Show more", async () => {
+    stubHistoryByLimit(60);
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    await clickAsync(view.getByText("button", "Show more commits"));
+    await flush();
+
+    expect(document.activeElement).toBe(commitRows(view)[10]);
+  });
+
+  it("moves focus to the first new commit when the last page removes the button", async () => {
     stubHistoryByLimit(14);
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
     await clickAsync(view.getByText("button", "Show more commits"));
     await flush();
 
-    const region = view.get('ul[aria-label="Commits"]').closest("[tabindex='-1']");
+    expect(view.query("button")).toBeNull();
+    expect(document.activeElement).toBe(commitRows(view)[10]);
+  });
 
-    expect(document.activeElement).toBe(region);
-    expect(region?.getAttribute("tabindex")).toBe("-1");
+  it("leaves no large outline-free focus region around the history", async () => {
+    stubHistoryByLimit(14);
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    const focusable = view.all("[tabindex='-1']");
+
+    expect(focusable.every((node) => node.tagName === "LI")).toBe(true);
+  });
+
+  it("keeps the shown commits and offers Retry when asking for more fails", async () => {
+    let calls = 0;
+    stubOverview({
+      "history.list": (params: unknown) => {
+        calls += 1;
+        const asked = (params as { limit?: number }).limit ?? 50;
+        return calls === 1 ? historyAnswer(commitsOf(asked)) : rpcError("INTERNAL");
+      },
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    await clickAsync(view.getByText("button", "Show more commits"));
+    await flush();
+
+    expect(commitRows(view)).toHaveLength(10);
+    expect(view.text()).toContain("Showing the last known history.");
+    expect(view.query("button[aria-disabled='true']")).toBeNull();
+    expect(view.all("button").map((button) => button.textContent)).not.toContain(
+      "Show more commits",
+    );
   });
 
   it("removes the button at the sdk cap even though a full page came back", async () => {
@@ -1175,5 +1223,274 @@ describe("OverviewPanel figures, links and text direction", () => {
 
     expect(view.text()).toContain("No run recorded yet");
     expect(coverageRows(view)).toHaveLength(2);
+  });
+});
+
+const LOCK_BAD = rpcError(
+  "LOCK_FILE_INVALID",
+  "The lock-file at verbatra.lock.json is not valid JSON.",
+);
+
+function retryButton(view: RenderResult): HTMLElement {
+  return view.getByText("button", "Retry");
+}
+
+describe("OverviewPanel failed reads", () => {
+  it("shows N/A with a check-failed hint, never loading, when the status read failed", async () => {
+    stubPage({ "status.check": rpcError("INTERNAL") });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Avg coverage")).toMatchObject({
+      value: "N/A",
+      hint: "The coverage check failed.",
+    });
+    expect(metricTile(view, "Locales in sync")).toMatchObject({
+      value: "N/A",
+      hint: "The sync check failed.",
+    });
+    expect(view.text()).not.toContain("Loading locale coverage.");
+    expect(view.text()).not.toContain("Loading sync state.");
+  });
+
+  it("shows one page-level alert with the server's own reason and a Retry for a corrupt lock", async () => {
+    stubPage({
+      "status.check": LOCK_BAD,
+      "status.diff": LOCK_BAD,
+      "lock.state": LOCK_BAD,
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(alertTexts(view)).toEqual([
+      "The lock file is missing, corrupt, or at an unsupported version. The lock-file at verbatra.lock.json is not valid JSON.",
+    ]);
+    expect(view.all("button").filter((button) => button.textContent === "Retry")).toHaveLength(1);
+    expect(view.text()).toContain("Locale coverage is unavailable.");
+    expect(view.text()).toContain("Lock state is unavailable.");
+    expect(view.text()).toContain("Last run");
+    expect(commitRows(view)).toHaveLength(2);
+  });
+
+  it("re-reads every source once more on Retry and clears the alert when the reads recover", async () => {
+    stubPage({
+      "status.check": answersInOrder([LOCK_BAD, checkResult(DEFAULT_ROWS)]),
+      "status.diff": answersInOrder([LOCK_BAD, diffResult(DEFAULT_LOCALES)]),
+      "lock.state": answersInOrder([LOCK_BAD, NO_LOCK]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(callCounts()).toEqual(ONCE_EACH);
+
+    await clickAsync(retryButton(view));
+    await flush();
+
+    expect(callCounts()).toEqual(TWICE_EACH);
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(coverageRows(view)).toHaveLength(2);
+  });
+
+  it("does not re-read anything until Retry is pressed", async () => {
+    stubPage({ "status.check": LOCK_BAD, "status.diff": LOCK_BAD, "lock.state": LOCK_BAD });
+
+    await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(callCounts()).toEqual(ONCE_EACH);
+  });
+
+  it("keeps a separate alert for a read that failed for a different reason", async () => {
+    stubPage({
+      "status.diff": rpcError("INTERNAL"),
+      "status.check": rpcError("SOURCE_UNREADABLE", "no source file"),
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(alertTexts(view)).toEqual([
+      "An unexpected server error occurred. Check the terminal running Studio for details.",
+      "The source locale file could not be found on disk. no source file",
+    ]);
+  });
+
+  it("keeps the last lock data with a stale notice when a lock re-read fails", async () => {
+    stubSyncedPage({
+      "lock.state": answersInOrder([lockResult(3, []), rpcError("INTERNAL")]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(alertTexts(view)).toEqual([
+      "Showing the last known lock file. An unexpected server error occurred. Check the terminal running Studio for details.",
+    ]);
+    expect(view.getByText("span", "Lock v3")).not.toBeNull();
+    expect(view.query("summary")).not.toBeNull();
+  });
+
+  it("keeps the stale usage notice when the last run is the empty state", async () => {
+    stubPage({
+      "usage.summary": answersInOrder([NO_USAGE, rpcError("INTERNAL")]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(alertTexts(view)).toEqual([
+      "Showing the last known usage. An unexpected server error occurred. Check the terminal running Studio for details.",
+    ]);
+    expect(view.text()).toContain("No run recorded yet");
+  });
+});
+
+describe("OverviewPanel review tile and sync hint", () => {
+  it("shows no review tile when the panel is given no review count", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(hasMetricCard(view, "Waiting for review")).toBe(false);
+  });
+
+  it("answers what waits for review with a count and a link to the review page", async () => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} reviewWaiting={32} />);
+
+    expect(metricTile(view, "Waiting for review")).toMatchObject({
+      value: "32",
+      hint: "32 translations wait for review.",
+    });
+    expect(metricCard(view, "Waiting for review").querySelector("a")?.getAttribute("href")).toBe(
+      "#/review",
+    );
+  });
+
+  it.each([
+    ["loading", "…", "Checking the review queue."],
+    ["error", "N/A", "The review queue check failed."],
+    [0, "0", "Nothing waits for review."],
+    [1, "1", "1 translation waits for review."],
+  ] as const)("states the review tile for %s", async (waiting, value, hint) => {
+    stubPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} reviewWaiting={waiting} />);
+
+    expect(metricTile(view, "Waiting for review")).toMatchObject({ value, hint });
+    const linked = metricCard(view, "Waiting for review").querySelector("a") !== null;
+
+    expect(linked).toBe(typeof waiting === "number" && waiting > 0);
+  });
+
+  it("says orphaned keys are left over instead of claiming everything is in sync", async () => {
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { orphaned: ["app.legacy"] }), localeDiff("fr")]),
+      "status.check": checkResult(IN_SYNC_ROWS),
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricHint(view, "Locales in sync")).toBe(
+      "Every key is translated; 1 orphaned key is left over.",
+    );
+  });
+
+  it("says all locales are in sync only when no change is pending", async () => {
+    stubSyncedPage();
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(metricHint(view, "Locales in sync")).toBe("All target locales are in sync.");
+  });
+});
+
+describe("OverviewPanel locale table size and order", () => {
+  function manyRows(count: number): readonly CoverageCounts[] {
+    return Array.from({ length: count }, (_, index) => ({
+      locale: `l${String(index).padStart(2, "0")}`,
+      missing: index,
+      stale: 0,
+      upToDate: 100 - index,
+    }));
+  }
+
+  it("lists the worst covered locales first", async () => {
+    stubPage({ "status.check": checkResult(manyRows(4)), "status.diff": diffResult([]) });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    const tags = coverageRows(view).map(
+      (row) => row.querySelector("[data-locale-tag]")?.textContent,
+    );
+
+    expect(tags).toEqual(["l03", "l02", "l01", "l00"]);
+  });
+
+  it("shows ten locales and a button for all of them, then moves focus to the first new row", async () => {
+    stubPage({ "status.check": checkResult(manyRows(25)), "status.diff": diffResult([]) });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(coverageRows(view)).toHaveLength(10);
+
+    await clickAsync(view.getByText("button", "Show all 25 locales"));
+
+    expect(coverageRows(view)).toHaveLength(25);
+    expect(view.query("button")).toBeNull();
+    expect(document.activeElement).toBe(coverageRows(view)[10]?.querySelector("a"));
+  });
+
+  it("offers no show-all button for ten locales or fewer", async () => {
+    stubPage({ "status.check": checkResult(manyRows(10)), "status.diff": diffResult([]) });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(view.query("button")).toBeNull();
+    expect(coverageRows(view)).toHaveLength(10);
+  });
+});
+
+describe("OverviewPanel shared failure across every read", () => {
+  it("shows one alert when every read fails for the same reason", async () => {
+    stubPage({
+      "status.diff": rpcError("INTERNAL"),
+      "status.check": rpcError("INTERNAL"),
+      "lock.state": rpcError("INTERNAL"),
+      "usage.summary": rpcError("INTERNAL"),
+      "history.list": rpcError("INTERNAL"),
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(alertTexts(view)).toHaveLength(1);
+    expect(view.text()).toContain("The last run is unavailable. See the error above.");
+    expect(view.text()).toContain("File history is unavailable. See the error above.");
+    expect(view.text()).toContain("Locale coverage is unavailable. See the error above.");
+  });
+
+  it("keeps the alert of a usage or history read that failed for another reason", async () => {
+    stubPage({
+      "status.diff": rpcError("INTERNAL"),
+      "usage.summary": rpcError("SNAPSHOT_UNREADABLE", "run file unreadable"),
+      "history.list": rpcError("HISTORY_READ_FAILED", "git is not installed"),
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+
+    expect(alertTexts(view)).toEqual([
+      "An unexpected server error occurred. Check the terminal running Studio for details.",
+      "run file unreadable",
+      "git is not installed",
+    ]);
+  });
+
+  it("hides a stale history notice that repeats the page-level error", async () => {
+    stubPage({
+      "status.diff": rpcError("INTERNAL"),
+      "history.list": answersInOrder([historyAnswer(LOADED_HISTORY), rpcError("INTERNAL")]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
+    await flush();
+
+    expect(alertTexts(view)).toHaveLength(1);
+    expect(commitRows(view)).toHaveLength(2);
   });
 });

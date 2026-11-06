@@ -10,13 +10,18 @@ import {
   clickAsync,
   emitRefresh,
   flush,
+  hasMetricCard,
+  metricCard,
+  metricFigure,
   type RenderResult,
   renderAsync,
   rpcCalls,
+  rpcError,
   sessionStore,
   stubRpc,
   typeInto,
 } from "./test-support.js";
+import { replaceRoute } from "./use-route.js";
 
 const NARROW_MEDIA = () => ({
   matches: false,
@@ -581,5 +586,114 @@ describe("App header chrome", () => {
       document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "?", bubbles: true }));
     });
     expect(view.query('[role="dialog"]')).not.toBeNull();
+  });
+});
+
+describe("App review tile", () => {
+  it("hands the overview the review count, with no extra read", async () => {
+    const view = await mount();
+
+    expect(metricFigure(view, "Waiting for review").textContent).toBe("2");
+    expect(metricCard(view, "Waiting for review").querySelector("a")?.getAttribute("href")).toBe(
+      "#/review",
+    );
+    expect(countCalls("review.queue")).toBe(1);
+  });
+
+  it("shows N/A for the review tile when the queue could not be read", async () => {
+    stubRpc({ "review.queue": rpcError("INTERNAL") });
+
+    const view = await mount();
+
+    expect(metricFigure(view, "Waiting for review").textContent).toBe("N/A");
+  });
+
+  it("adds no review tile to the other pages", async () => {
+    goToHash("#/glossary");
+
+    const view = await mount();
+
+    expect(hasMetricCard(view, "Waiting for review")).toBe(false);
+  });
+});
+
+describe("App scroll on navigation", () => {
+  const scrollTo = vi.fn();
+
+  beforeEach(() => {
+    scrollTo.mockClear();
+    vi.stubGlobal("scrollTo", scrollTo);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal("matchMedia", NARROW_MEDIA);
+  });
+
+  function linkTo(hash: string): HTMLAnchorElement {
+    const anchor = document.createElement("a");
+    anchor.href = hash;
+    document.body.append(anchor);
+    return anchor;
+  }
+
+  it("scrolls to the top after a header navigation link", async () => {
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Glossary"));
+
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("scrolls to the top after a plain link inside the page", async () => {
+    await mount();
+    const anchor = linkTo("#/review?locale=de");
+
+    await act(async () => {
+      anchor.click();
+    });
+    await flush();
+    anchor.remove();
+
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("does not scroll when the address changes without a link, as on back or forward", async () => {
+    await mount();
+
+    await act(async () => {
+      window.location.hash = "#/glossary";
+    });
+    await flush();
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("does not scroll for a replace, as when a filter is typed", async () => {
+    goToHash("#/translations");
+    await mount();
+
+    await act(async () => {
+      replaceRoute({ page: "translations", params: { query: "abc" } });
+    });
+    await flush();
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("does not scroll for a modified click that opens a new tab", async () => {
+    await mount();
+    const anchor = linkTo("#/review");
+    anchor.addEventListener("click", (event) => event.preventDefault());
+
+    await act(async () => {
+      anchor.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true }),
+      );
+    });
+    await flush();
+    anchor.remove();
+
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 });

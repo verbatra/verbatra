@@ -140,4 +140,26 @@ describe("useHistoryList", () => {
 
     expect(seen).toEqual({ kind: "loading" });
   });
+
+  it("keeps the last commits with a stale error when a re-read fails", async () => {
+    let call = 0;
+    stubRpc({
+      "history.list": () => {
+        call += 1;
+        return call === 1
+          ? historyAnswer({ available: true, commits: [FIRST_COMMIT] })
+          : rpcError("INTERNAL", "boom");
+      },
+    });
+
+    const view = await renderAsync(<Probe token={1} />);
+    view.rerender(<Probe token={2} />);
+    await flush();
+
+    expect(seen).toEqual({
+      kind: "loaded",
+      commits: [FIRST_COMMIT],
+      staleError: { code: "INTERNAL", message: "boom" },
+    });
+  });
 });

@@ -377,6 +377,13 @@ export function metricCard(view: RenderResult, label: string): HTMLElement {
   return card;
 }
 
+export function hasMetricCard(view: RenderResult, label: string): boolean {
+  return view.all('[role="group"]').some((group) => {
+    const labelledBy = group.getAttribute("aria-labelledby");
+    return document.getElementById(labelledBy ?? "")?.textContent?.trim() === label;
+  });
+}
+
 export function metricFigure(view: RenderResult, label: string): HTMLElement {
   const figure = metricCard(view, label).querySelector<HTMLElement>("[data-metric-value]");
   if (figure === null) {

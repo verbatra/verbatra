@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { StatusData } from "../client/coverage.js";
 import type { DiffLocale } from "../client/diff-view.js";
@@ -69,14 +71,46 @@ describe("OverviewMetrics", () => {
     }
   });
 
-  it("stacks the three tiles in one column on the narrowest screens so a label never splits", () => {
-    const view = render(<OverviewMetrics status={STATUS} diff={LOADED_DIFF} />);
-    const grid = metricCard(view, "Needs attention").parentElement;
-    const syncWrapper = metricCard(view, "Locales in sync").parentElement;
+  it("defines the named breakpoint the tile grids use, so no arbitrary pixel variant is needed", () => {
+    const styles = readFileSync(resolve(process.cwd(), "src/app/styles.css"), "utf8");
+    const view = render(<OverviewMetrics status={STATUS} diff={LOADED_DIFF} reviewWaiting={4} />);
+    const classes = view.all("*").flatMap((node) => node.className.toString().split(" "));
 
-    expect(grid?.className).toContain("grid-cols-1");
-    expect(grid?.className).toContain("min-[360px]:grid-cols-2");
-    expect(syncWrapper?.className).toContain("min-[360px]:col-span-2");
+    expect(styles).toMatch(/--breakpoint-xs:\s*\d/);
+    expect(classes.filter((name) => name.includes("min-["))).toEqual([]);
+  });
+
+  it("puts the review tile between attention and coverage and adds a fourth tile", () => {
+    const view = render(<OverviewMetrics status={STATUS} diff={LOADED_DIFF} reviewWaiting={4} />);
+
+    expect(view.all('[role="group"]')).toHaveLength(4);
+    expect(metricHint(view, "Waiting for review")).toBe("4 translations wait for review.");
+  });
+
+  it("shows N/A with a check-failed hint for coverage and sync when the status read failed", () => {
+    const view = render(
+      <OverviewMetrics
+        status={{ kind: "error", error: { code: "INTERNAL", message: "x" } }}
+        diff={LOADED_DIFF}
+      />,
+    );
+
+    expect(metricFigure(view, "Avg coverage").textContent).toBe("N/A");
+    expect(metricHint(view, "Avg coverage")).toBe("The coverage check failed.");
+    expect(metricFigure(view, "Locales in sync").textContent).toBe("N/A");
+    expect(metricHint(view, "Locales in sync")).toBe("The sync check failed.");
+  });
+
+  it("keeps the last known figures when the status read is stale", () => {
+    const stale: RefreshableView<StatusData> = {
+      kind: "data",
+      stale: true,
+      error: { code: "INTERNAL", message: "x" },
+      data: STATUS.kind === "data" ? STATUS.data : { inSync: false, rows: [] },
+    };
+    const view = render(<OverviewMetrics status={stale} diff={LOADED_DIFF} />);
+
+    expect(metricFigure(view, "Avg coverage").textContent).toBe("90%");
   });
 
   it("states a locale count that reads in the singular for one locale", () => {

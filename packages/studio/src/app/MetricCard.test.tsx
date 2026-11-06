@@ -159,4 +159,15 @@ describe("MetricCard", () => {
     expect(figure.className).toContain("text-muted-foreground");
     expect(figure.className).not.toContain("font-bold");
   });
+
+  it("keeps every number of a figure whole, wrapping only between numbers", () => {
+    const view = render(<MetricCard label="Budget" value="2,222,222,211 / 2,000,000,000" />);
+    const atoms = [...metricFigure(view, "Budget").querySelectorAll("span")];
+
+    expect(atoms.map((atom) => atom.textContent)).toEqual(["2,222,222,211", "/", "2,000,000,000"]);
+    for (const atom of atoms) {
+      expect(atom.className).toContain("whitespace-nowrap");
+    }
+    expect(metricFigure(view, "Budget").textContent).toBe("2,222,222,211 / 2,000,000,000");
+  });
 });

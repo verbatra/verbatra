@@ -94,14 +94,15 @@ describe("LocalesSection", () => {
     }
   });
 
-  it("renders one row and four links per locale for a project with many locales", () => {
+  it("shows the first ten of many locales with two links each and a button for the rest", () => {
     const locales = Array.from({ length: 40 }, (_, index) => `xx-${index}`);
     const view = render(
       <LocalesSection status={dataView(locales.map((tag) => row(tag)))} lock={NO_LOCK} />,
     );
 
-    expect(coverageRows(view)).toHaveLength(40);
-    expect(view.all("tbody a")).toHaveLength(80);
+    expect(coverageRows(view)).toHaveLength(10);
+    expect(view.all("tbody a")).toHaveLength(20);
+    expect(view.getByText("button", "Show all 40 locales")).not.toBeNull();
   });
 
   it("sets percentages and key counts in tabular sans numerals, never mono", () => {
@@ -135,7 +136,7 @@ describe("LocalesSection", () => {
     const view = render(<LocalesSection status={dataView([row("de")])} lock={NO_LOCK} />);
 
     expect(view.getByText("th", "Up to date")).not.toBeNull();
-    expect(view.all("thead th").map((cell) => cell.textContent)).not.toContain("Open");
+    expect(view.all("thead th").map((cell) => cell.textContent)).toContain("Open");
   });
 
   it("shows the loading state while the status read is open", () => {
@@ -194,5 +195,142 @@ describe("LocalesSection", () => {
 
     expect(view.text()).toContain("Lock v7");
     expect(view.all("thead th").map((cell) => cell.textContent)).toContain("Lock");
+  });
+
+  it("draws row links as quiet table text, underlined only on hover and focus", () => {
+    const view = render(<LocalesSection status={dataView([row("de")])} lock={NO_LOCK} />);
+    const tokens = (view.get("tbody a").className ?? "").split(" ");
+
+    expect(tokens).not.toContain("underline");
+    expect(tokens).toContain("hover:underline");
+    expect(tokens).toContain("focus-visible:underline");
+    expect(tokens).toContain("text-foreground");
+    expect(tokens.filter((name) => name.includes("(--") && name.startsWith("text-"))).toEqual([]);
+  });
+
+  it("keeps a touch-sized hit area on narrow screens for both links", () => {
+    const view = render(<LocalesSection status={dataView([row("de")])} lock={NO_LOCK} />);
+
+    for (const link of view.all("tbody a")) {
+      expect(link.className).toContain("max-md:min-h-11");
+    }
+    expect(view.get("[data-row-links]").className).toContain("whitespace-nowrap");
+  });
+
+  it("pins the locale column in place while the rest of the table scrolls sideways", () => {
+    const view = render(<LocalesSection status={dataView([row("de")])} lock={NO_LOCK} />);
+    const head = view.get("thead th");
+    const cell = view.get("tbody td");
+
+    for (const node of [head, cell]) {
+      expect(node.className).toContain("sticky");
+      expect(node.className).toContain("start-0");
+    }
+    expect(cell.className).toContain("bg-card");
+  });
+
+  it("puts the scroll hint above the table", () => {
+    const view = render(<LocalesSection status={dataView([row("de")])} lock={NO_LOCK} />);
+    const hint = view.getByText("p", "Scroll sideways to see every column.");
+    const region = view.get('[aria-label="Locale coverage"]');
+
+    expect(hint.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("makes the coverage region a tab stop only when it really overflows", () => {
+    const calm = render(<LocalesSection status={dataView([row("de")])} lock={NO_LOCK} />);
+
+    expect(calm.get('[aria-label="Locale coverage"]').hasAttribute("tabindex")).toBe(false);
+    expect(calm.get('[aria-label="Locale coverage"]').getAttribute("role")).toBe("region");
+
+    const scrollWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollWidth");
+    const clientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+    Object.defineProperty(HTMLElement.prototype, "scrollWidth", {
+      configurable: true,
+      get: () => 600,
+    });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get: () => 300,
+    });
+    try {
+      const wide = render(<LocalesSection status={dataView([row("fr")])} lock={NO_LOCK} />);
+
+      expect(wide.get('[aria-label="Locale coverage"]').getAttribute("tabindex")).toBe("0");
+    } finally {
+      if (scrollWidth !== undefined) {
+        Object.defineProperty(HTMLElement.prototype, "scrollWidth", scrollWidth);
+      }
+      if (clientWidth !== undefined) {
+        Object.defineProperty(HTMLElement.prototype, "clientWidth", clientWidth);
+      }
+    }
+  });
+
+  it("holds the lock file locales in a labelled card with its own scroll hint", () => {
+    const view = render(
+      <LocalesSection
+        status={dataView([row("de")])}
+        lock={{
+          kind: "loaded",
+          version: 2,
+          locales: [{ locale: "de", keyCount: 4, missing: 0, stale: 0, upToDate: 4 }],
+        }}
+      />,
+    );
+    const region = view.get('[aria-label="Lock file locales"]');
+
+    expect(region.getAttribute("role")).toBe("region");
+    expect(region.querySelectorAll("thead th")).toHaveLength(6);
+    expect(
+      view.all("p").filter((node) => node.textContent === "Scroll sideways to see every column."),
+    ).toHaveLength(2);
+  });
+
+  it("replaces a failed status alert with a short pointer when the page already shows that error", () => {
+    const error = { code: "LOCK_FILE_INVALID", message: "bad" };
+
+    const hidden = render(
+      <LocalesSection
+        status={{ kind: "error", error }}
+        lock={NO_LOCK}
+        hideCode="LOCK_FILE_INVALID"
+      />,
+    );
+    const shown = render(
+      <LocalesSection status={{ kind: "error", error }} lock={NO_LOCK} hideCode="INTERNAL" />,
+    );
+
+    expect(hidden.query('[role="alert"]')).toBeNull();
+    expect(hidden.text()).toContain("Locale coverage is unavailable. See the error above.");
+    expect(shown.get('[role="alert"]')).not.toBeNull();
+  });
+
+  it("shows a stale lock notice unless the page already shows that error", () => {
+    const loaded: LockView = {
+      kind: "loaded",
+      version: 1,
+      locales: [],
+      staleError: { code: "INTERNAL", message: "x" },
+    };
+
+    const shown = render(<LocalesSection status={dataView([row("de")])} lock={loaded} />);
+    const hidden = render(
+      <LocalesSection status={dataView([row("de")])} lock={loaded} hideCode="INTERNAL" />,
+    );
+
+    expect(shown.get('[role="alert"]').textContent).toContain("Showing the last known lock file.");
+    expect(hidden.query('[role="alert"]')).toBeNull();
+  });
+
+  it("sorts the worst covered locale first", () => {
+    const view = render(
+      <LocalesSection
+        status={dataView([row("de"), row("fr", { missing: 8, upToDate: 2 })])}
+        lock={NO_LOCK}
+      />,
+    );
+
+    expect(view.all("[data-locale-tag]").map((node) => node.textContent)).toEqual(["fr", "de"]);
   });
 });

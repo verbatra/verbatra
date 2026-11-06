@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
+import { formatTimestamp } from "../client/ui-format.js";
 import type { HistoryCommit } from "../shared/rpc/history.js";
 import { CommitList } from "./CommitList.js";
-import { render } from "./test-support.js";
+import { click, render } from "./test-support.js";
 import type { HistoryState } from "./use-history-list.js";
 
 const COMMIT: HistoryCommit = {
@@ -111,7 +112,7 @@ describe("CommitList", () => {
   it("shows the commit subject as the row's lead line", () => {
     const view = render(<CommitList state={LOADED} emptyMessage="none" />);
 
-    expect(view.get("li p").textContent).toBe("chore(i18n): sync de and fr");
+    expect(view.get("[data-commit-subject]").textContent).toBe("chore(i18n): sync de and fr");
   });
 
   it("lets a long unbroken subject, author and path wrap inside the row", () => {
@@ -126,8 +127,8 @@ describe("CommitList", () => {
       />,
     );
     const wrapping = [
-      view.get("li p"),
-      view.get("li p + p span[dir='auto']"),
+      view.get("[data-commit-subject]"),
+      view.get("[data-commit-author]"),
       view.get('[aria-label="Files changed"] li'),
     ];
 
@@ -147,8 +148,8 @@ describe("CommitList", () => {
       <CommitList state={{ kind: "loaded", commits: [arabic] }} emptyMessage="none" />,
     );
 
-    expect(view.get("li p").getAttribute("dir")).toBe("auto");
-    expect(view.get("li p + p span[dir='auto']").textContent).toBe("علي حسن");
+    expect(view.get("[data-commit-subject]").getAttribute("dir")).toBe("auto");
+    expect(view.get("[data-commit-author]").textContent).toBe("علي حسن");
     expect(view.get('[aria-label="Files changed"] li').getAttribute("dir")).toBe("auto");
   });
 
@@ -165,20 +166,20 @@ describe("CommitList", () => {
     expect(view.getByText("span", "0123456")).not.toBeNull();
   });
 
-  it("shows the calendar date as visible text in a time element that carries the full ISO date", () => {
+  it("shows the date and time as visible text in a time element that carries the full ISO date", () => {
     const view = render(<CommitList state={LOADED} emptyMessage="none" />);
     const dateLabel = view.get("li time");
 
-    expect(dateLabel.textContent).toBe("2026-07-18");
+    expect(dateLabel.textContent).toBe(formatTimestamp(COMMIT.authorDate));
     expect(dateLabel.getAttribute("datetime")).toBe("2026-07-18T09:41:12+02:00");
     expect(dateLabel.getAttribute("title")).toBeNull();
   });
 
   it("names the commit author after the date, so only the name wraps", () => {
     const view = render(<CommitList state={LOADED} emptyMessage="none" />);
-    const parts = [...view.get("li p + p").children].map((node) => node.textContent);
+    const parts = [...view.get("[data-commit-meta]").children].map((node) => node.textContent);
 
-    expect(parts).toEqual(["0123456", "2026-07-18", "Ada Lovelace"]);
+    expect(parts).toEqual(["0123456", formatTimestamp(COMMIT.authorDate), "Ada Lovelace"]);
   });
 
   it("writes the author name as text, so a name shaped like markup never becomes markup", () => {
@@ -200,7 +201,7 @@ describe("CommitList", () => {
     );
 
     expect(view.query("img")).toBeNull();
-    expect(view.get("li p").textContent).toBe("<img src=x onerror=alert(1)>");
+    expect(view.get("[data-commit-subject]").textContent).toBe("<img src=x onerror=alert(1)>");
   });
 
   it("lists the files a commit touched under a named list", () => {
@@ -221,5 +222,50 @@ describe("CommitList", () => {
     );
 
     expect(view.query('[aria-label="Files changed"]')).toBeNull();
+  });
+
+  it("keeps the commits and says the history is the last known one when a re-read failed", () => {
+    const stale: HistoryState = {
+      kind: "loaded",
+      commits: [COMMIT],
+      staleError: { code: "INTERNAL", message: "git blew up" },
+    };
+
+    const view = render(<CommitList state={stale} emptyMessage="none" />);
+
+    expect(view.get('[role="alert"]').textContent).toContain("Showing the last known history.");
+    expect(view.all('ul[aria-label="Commits"] > li')).toHaveLength(1);
+  });
+
+  it("offers Retry on a stale or failed history when the caller passes one", () => {
+    const calls: string[] = [];
+    const stale: HistoryState = {
+      kind: "loaded",
+      commits: [COMMIT],
+      staleError: { code: "INTERNAL", message: "x" },
+    };
+
+    const staleView = render(
+      <CommitList state={stale} emptyMessage="none" onRetry={() => calls.push("stale")} />,
+    );
+    click(staleView.getByText("button", "Retry"));
+    const failedView = render(
+      <CommitList
+        state={{ kind: "error", error: { code: "INTERNAL", message: "x" } }}
+        emptyMessage="none"
+        onRetry={() => calls.push("failed")}
+      />,
+    );
+    click(failedView.getByText("button", "Retry"));
+
+    expect(calls).toEqual(["stale", "failed"]);
+  });
+
+  it("makes each commit row a programmatic focus target with a visible ring on keyboard focus", () => {
+    const view = render(<CommitList state={LOADED} emptyMessage="none" />);
+    const row = view.get('ul[aria-label="Commits"] > li');
+
+    expect(row.getAttribute("tabindex")).toBe("-1");
+    expect(row.className).toContain("focus-visible:outline-ring");
   });
 });

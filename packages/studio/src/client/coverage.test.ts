@@ -3,6 +3,7 @@ import {
   averageCoverage,
   coveragePercent,
   type StatusRow,
+  sortWorstFirst,
   toStatusData,
   toStatusOutcome,
 } from "./coverage.js";
@@ -110,5 +111,27 @@ describe("toStatusOutcome", () => {
         rows: [{ locale: "de", missing: 0, stale: 0, upToDate: 2, inSync: true, percent: 100 }],
       },
     });
+  });
+});
+
+describe("sortWorstFirst", () => {
+  it("orders by lowest coverage, then most missing keys, then locale name", () => {
+    const rows = [
+      statusRow({ locale: "es", percent: 80, missing: 2 }),
+      statusRow({ locale: "de", percent: 50, missing: 1 }),
+      statusRow({ locale: "fr", percent: 50, missing: 5 }),
+      statusRow({ locale: "ar", percent: 80, missing: 2 }),
+    ];
+
+    expect(sortWorstFirst(rows).map((row) => row.locale)).toEqual(["fr", "de", "ar", "es"]);
+  });
+
+  it("returns a new list and leaves its input untouched", () => {
+    const rows = [statusRow({ locale: "b", percent: 90 }), statusRow({ locale: "a", percent: 10 })];
+
+    const sorted = sortWorstFirst(rows);
+
+    expect(sorted).not.toBe(rows);
+    expect(rows.map((row) => row.locale)).toEqual(["b", "a"]);
   });
 });
