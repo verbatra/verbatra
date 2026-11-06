@@ -84,6 +84,48 @@ function localeHistory(
 
 Jeder Commit trägt `hash`, `author` (der Name nach `.mailmap`, nie die E-Mail), `authorDate`, `subject` und `touchedPaths`. `limit` ist standardmäßig `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`), höchstens `LOCALE_HISTORY_LIMIT_CAP` (`200`), abgerundet und mindestens 1. Steuer- und bidirektionale Formatierungszeichen fliegen aus `author` und `subject`; ein Commit mit unlesbaren Metadaten fehlt. Ohne Git oder Repository, oder wenn `git log` `LOCALE_HISTORY_TIMEOUT_MS` oder `LOCALE_HISTORY_MAX_OUTPUT_BYTES` überschreitet, ist das Ergebnis `{ available: false, reason }`, ein Grund aus `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
 
+### localeGitStatus
+
+<AvailableFrom version="0.13.0" />
+
+Listet, welche Locale-Dateien sowie `verbatra.lock.json` und `verbatra.provenance.json` vom letzten Commit abweichen, und den ausgecheckten Branch. Nur lesend; es führt `git` über das injizierbare `execFile` aus und nimmt keinen Pfad vom Aufrufer entgegen.
+
+```ts title="Signatur"
+function localeGitStatus(
+  input: LocaleGitStatusInput,
+  deps?: LocaleGitStatusDeps,
+): Promise<LocaleGitStatusResult>;
+```
+
+<SdkTypeTable name="LocaleGitStatusInput" />
+
+**Rückgabe:** `LocaleGitStatusResult`
+
+**Wirft:** [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision)
+
+Jede geänderte Datei trägt `path` (relativ zum Projekt, mit `/`), `locales` (keine bei der Lock- und der Provenance-Datei, alle Locales bei einem gemeinsamen Katalog wie `apple-xcstrings`) und einen `state` aus `LOCALE_GIT_FILE_STATES`: `modified`, `added`, `deleted`, `untracked` oder `conflicted`. `branch` ist bei losgelöstem `HEAD` `null`; eine Umbenennung erscheint als gelöschte und als hinzugefügte Datei. Git läuft ohne optionale Sperren, ohne `core.fsmonitor`, ohne Submodul-Prüfung und ohne jeden Inhaltsfilter, den das Repository konfiguriert, vergleicht Pfade wörtlich und wird nach `LOCALE_GIT_TIMEOUT_MS` oder `LOCALE_GIT_MAX_OUTPUT_BYTES` gestoppt, sodass die eigene Konfiguration eines Repositorys keinen Befehl ausführen kann. Ohne Git, ohne Arbeitsverzeichnis oder ohne einen Besitzer, den Git akzeptiert, oder wenn ein Befehl das Zeitlimit überschreitet, zu viel ausgibt oder ein Filtername sich nicht abschalten lässt, ist das Ergebnis `{ available: false, reason }`, ein Grund aus `LOCALE_GIT_UNAVAILABLE_REASONS`.
+
+### localeGitDiff
+
+<AvailableFrom version="0.13.0" />
+
+Vergleicht die Datei einer Locale bei `HEAD` mit der Datei auf der Platte, Schlüssel für Schlüssel. Nur lesend; es nimmt eine Locale, nie einen Pfad, und führt weder `git diff` noch einen Textkonvertierungstreiber oder externen Diff aus.
+
+```ts title="Signatur"
+function localeGitDiff(
+  input: LocaleGitDiffInput,
+  deps?: LocaleGitDiffDeps,
+): Promise<LocaleGitDiffResult>;
+```
+
+<SdkTypeTable name="LocaleGitDiffInput" />
+
+**Rückgabe:** `LocaleGitDiffResult`
+
+**Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision)
+
+`added` und `removed` listen `{ key, value }`, `changed` listet `{ key, before, after }`, und `state` ist der Zustand der Datei oder `unchanged`. Eine `conflicted` oder `unchanged` Datei listet keinen Unterschied. Die committete Datei wird mit `git cat-file blob` gelesen, nur wenn sie eine reguläre Datei von höchstens `LOCALE_GIT_BLOB_MAX_BYTES` ist, und vom eingebauten Adapter geparst. Höchstens `LOCALE_GIT_DIFF_MAX_ENTRIES` Schlüssel werden gelistet und jeder Text wird auf `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` Zeichen gekürzt; beides setzt `truncated`. Die Texte sind nicht vertrauenswürdig: zeige sie als Text an. Ein `custom:`-Format oder ein Aufruf mit `adapterRegistry` liefert den Grund `custom-adapter`; `revision-unreadable` und `working-file-unreadable` heißen, dass eine Seite keine reguläre Datei ist oder sich nicht parsen lässt, und ein symbolischer Link auf der Platte wird abgelehnt. Die übrigen Gründe sind die von `localeGitStatus`.
+
 ### editEntry
 
 <AvailableFrom version="0.5.0" />

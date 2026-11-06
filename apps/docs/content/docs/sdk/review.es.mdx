@@ -84,6 +84,48 @@ function localeHistory(
 
 Cada commit lleva `hash`, `author` (el nombre tras `.mailmap`, nunca el correo), `authorDate`, `subject` y `touchedPaths`. `limit` vale `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) por defecto, como máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`), redondeado hacia abajo y al menos 1. Los caracteres de control y de formato bidireccional se quitan de `author` y `subject`; un commit con metadatos ilegibles se omite. Sin git o sin repositorio, o si `git log` supera `LOCALE_HISTORY_TIMEOUT_MS` o `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, el resultado es `{ available: false, reason }`, un motivo de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulta [Studio y MCP](/es/docs/data-handling#studio-y-mcp).
 
+### localeGitStatus
+
+<AvailableFrom version="0.13.0" />
+
+Lista qué archivos de locale, `verbatra.lock.json` y `verbatra.provenance.json` difieren del último commit, y la rama activa. Solo lectura; ejecuta `git` mediante el `execFile` inyectable y no toma ninguna ruta de quien llama.
+
+```ts title="Firma"
+function localeGitStatus(
+  input: LocaleGitStatusInput,
+  deps?: LocaleGitStatusDeps,
+): Promise<LocaleGitStatusResult>;
+```
+
+<SdkTypeTable name="LocaleGitStatusInput" />
+
+**Devuelve:** `LocaleGitStatusResult`
+
+**Lanza:** [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision)
+
+Cada archivo cambiado lleva `path` (relativo al proyecto, con `/`), `locales` (ninguna para el archivo de bloqueo y el de procedencia, todas para un catálogo compartido como `apple-xcstrings`) y un `state` de `LOCALE_GIT_FILE_STATES`: `modified`, `added`, `deleted`, `untracked` o `conflicted`. `branch` es `null` con un `HEAD` separado; un renombrado se lee como un archivo borrado y otro añadido. Git se ejecuta sin bloqueos opcionales, sin `core.fsmonitor`, sin inspección de submódulos y sin ningún filtro de contenido que configure el repositorio, compara las rutas de forma literal y se detiene tras `LOCALE_GIT_TIMEOUT_MS` o `LOCALE_GIT_MAX_OUTPUT_BYTES`, de modo que la configuración propia de un repositorio no puede ejecutar un comando. Sin git, sin árbol de trabajo o sin un propietario que git acepte, o si un comando agota el tiempo, escribe demasiado o un nombre de filtro no se puede desactivar, el resultado es `{ available: false, reason }`, un motivo de `LOCALE_GIT_UNAVAILABLE_REASONS`.
+
+### localeGitDiff
+
+<AvailableFrom version="0.13.0" />
+
+Compara el archivo de una locale en `HEAD` con el archivo en disco, clave por clave. Solo lectura; toma una locale, nunca una ruta, y no ejecuta `git diff`, ningún controlador de conversión de texto ni diff externo.
+
+```ts title="Firma"
+function localeGitDiff(
+  input: LocaleGitDiffInput,
+  deps?: LocaleGitDiffDeps,
+): Promise<LocaleGitDiffResult>;
+```
+
+<SdkTypeTable name="LocaleGitDiffInput" />
+
+**Devuelve:** `LocaleGitDiffResult`
+
+**Lanza:** [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision)
+
+`added` y `removed` listan `{ key, value }`, `changed` lista `{ key, before, after }`, y `state` es el estado del archivo o `unchanged`. Un archivo `conflicted` o `unchanged` no lista ninguna diferencia. El archivo confirmado se lee con `git cat-file blob`, solo si es un archivo regular de como máximo `LOCALE_GIT_BLOB_MAX_BYTES`, y lo analiza el adaptador integrado. Se listan como máximo `LOCALE_GIT_DIFF_MAX_ENTRIES` claves y cada texto se corta a `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` caracteres; cualquiera de los dos activa `truncated`. Los textos no son de confianza: muéstralos como texto. Un formato `custom:`, o una llamada con `adapterRegistry`, devuelve el motivo `custom-adapter`; `revision-unreadable` y `working-file-unreadable` indican que un lado no es un archivo regular o no se puede analizar, y se rechaza un enlace simbólico en disco. Los demás motivos son los de `localeGitStatus`.
+
 ### editEntry
 
 <AvailableFrom version="0.5.0" />
