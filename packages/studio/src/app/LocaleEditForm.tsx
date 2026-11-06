@@ -42,7 +42,7 @@ export function LocaleEditForm({
   );
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded && document.activeElement?.closest("[data-icu-preview]") == null) {
       fieldRef.current?.focus();
     }
   }, [loaded]);
@@ -75,6 +75,7 @@ export function LocaleEditForm({
         </div>
       ) : null}
       <TranslationField
+        keyName={keyName}
         locale={locale}
         value={draft}
         source={context.source}

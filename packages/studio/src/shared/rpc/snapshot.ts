@@ -37,6 +37,7 @@ export interface ProjectSnapshotResult {
   readonly glossary: GlossaryIndicator;
   readonly capabilities: StudioCapabilities;
   readonly exposeAgentTools: boolean;
+  readonly icuPreview: boolean;
   readonly prune?: boolean;
   readonly generatePlurals?: boolean;
   readonly maxBatchSize?: number;

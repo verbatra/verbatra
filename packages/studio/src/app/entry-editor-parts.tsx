@@ -183,6 +183,7 @@ function DraftPreview({
 }
 
 export function TranslationField({
+  keyName,
   locale,
   value,
   source,
@@ -194,6 +195,7 @@ export function TranslationField({
   onChange,
   onSave,
 }: {
+  readonly keyName: string;
   readonly locale: string;
   readonly value: string;
   readonly source: string;
@@ -231,7 +233,7 @@ export function TranslationField({
       />
       <LengthLine id={lengthId} source={source} value={value} maxLength={maxLength} />
       <DraftPreview value={value} locale={locale} />
-      <IcuPreviewPanel locale={locale} value={value} />
+      <IcuPreviewPanel keyName={keyName} locale={locale} value={value} />
     </>
   );
 }

@@ -24,6 +24,7 @@ import { routeParams } from "../../client/routes.js";
 import type { StudioCapabilities } from "../../shared/rpc/snapshot.js";
 import { ApproveLocaleDialog } from "../ApproveLocaleDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
+import { IcuPreviewAvailabilityProvider } from "../icu-preview-open.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
 import { ReviewBulkBar } from "../ReviewBulkBar.js";
@@ -378,19 +379,23 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   );
 
   const dialogs = (
-    <ReviewDialogs
-      helpOpen={helpOpen}
-      spend={spend}
-      editing={editing}
-      rejecting={rejecting}
-      decisions={decisions}
-      onCloseHelp={() => setHelpOpen(false)}
-      onCloseEditor={() => setEditing(null)}
-      onCloseReject={() => setRejecting(null)}
-      bulkRejecting={bulk.rejecting}
-      onConfirmBulkReject={bulk.confirmReject}
-      onCloseBulkReject={bulk.closeReject}
-    />
+    <IcuPreviewAvailabilityProvider
+      value={capabilitiesState.kind === "loaded" && capabilitiesState.icuPreview}
+    >
+      <ReviewDialogs
+        helpOpen={helpOpen}
+        spend={spend}
+        editing={editing}
+        rejecting={rejecting}
+        decisions={decisions}
+        onCloseHelp={() => setHelpOpen(false)}
+        onCloseEditor={() => setEditing(null)}
+        onCloseReject={() => setRejecting(null)}
+        bulkRejecting={bulk.rejecting}
+        onConfirmBulkReject={bulk.confirmReject}
+        onCloseBulkReject={bulk.closeReject}
+      />
+    </IcuPreviewAvailabilityProvider>
   );
   if (view.kind === "loading") {
     return (
