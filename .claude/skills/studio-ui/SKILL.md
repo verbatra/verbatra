@@ -426,21 +426,27 @@ background URL cleanup waits until the editor closes.
 `role="status"` block) only on the first load, `ErrorMessage` with Retry for a failed first read, and a
 failed refresh keeps the last data under a stale notice with its own Retry. A user Retry that succeeds
 moves focus to the `data-recovery-target` container only when focus was lost; a background refresh
-never moves focus. Glossary takes `refreshToken` and re-reads on a bump, deferring while any editor is
-open or any add form holds text (a status line says a refresh is waiting, and it runs when the last
-draft ends); a read that started before a finished write is dropped. A file-backed glossary file is
-watched too (`server/watcher.ts`, reason `lock`), so an external edit, a Studio write and a WebMCP write
-all bump the token; an open draft defers it as for any event. `GlossarySection` owns the drafts
+never moves focus. Glossary takes `refreshToken` and always re-reads in the background on a bump, never deferring:
+reads never hurt a draft. An identical read changes nothing (no notice, no remount, so a Studio save
+echoing through the watcher is silent), a different one updates the rows without a draft, and an edited
+row keeps its draft, measured against the term it started from. A read that started before a finished
+write is dropped. A file-backed glossary file is watched too (`server/watcher.ts`, reason `lock`, also
+on delete, which the page reports as a missing file), so an external edit, a Studio write and a WebMCP
+write all bump the token. `GlossarySection` owns the drafts
 (`use-glossary-workspace.ts`): row editors (a `Map` keyed by source, never a plain object, since a term
 can be named `constructor`), the add form and the keep form live above the rows, so search, scope and
-refresh never drop one, and an open editor stays listed when search stops matching it or when its term
-has gone (a notice says so, navigation stays held, Discard drops it). The list shows the first 50 terms
+refresh never drop one, and an open editor stays listed when search stops matching it, and a draft whose term
+has gone becomes an orphan at once: a pinned block above the list (also with zero terms, before the
+empty state, announced through a live region) shows it with a notice, Save and Retry send nothing,
+its failure is dropped, navigation stays held and Discard drops it. The list shows the first 50 terms
 with Show all N (focus on the first new row), the add form sits above it, and an editor opened from the
 exists note is always listed. One route guard covers all drafts through `useDialogDraftGuard`, and `UnsavedPrompt` (Discard and
 Keep editing, no Save, Keep editing primary) names what is unsaved, and while any write is queued or in
-flight it says it is saving, busies its buttons and lets the held change through when the writes
-succeed (a failure keeps it, with the reason); Escape in a dirty editor opens it for that editor only
-(not during IME composition), and a hold arriving while a removal dialog is open closes the dialog first; a scope switch with a dirty editor
+flight (the fresh read before an Add counts) it says it is saving, busies its buttons and lets the held
+change through when the writes succeed; any failed write, also one with no draft such as a removal,
+keeps it with the reason and keeps a scope hold from applying, and typing back to clean after a failure
+restores the route instead of releasing it; Escape in a dirty editor opens it for that editor only, names
+the term and returns focus to it on Keep editing (not during IME composition), and a hold arriving while a removal dialog is open closes the dialog first; a scope switch with a dirty editor
 or add form holds in the same prompt, with Keep editing reverting the select, Discard applying the
 scope and focusing the select, and typing back to clean releasing it, and a route hold replaces a scope
 hold and the reverse. Removing a term or a do-not-translate entry, and any Save that would leave a term
