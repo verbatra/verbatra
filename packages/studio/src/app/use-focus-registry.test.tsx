@@ -171,4 +171,13 @@ describe("useFocusRegistry reveal", () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
+
+  it("leaves focus alone when no requested key is registered", () => {
+    render(<Probe />);
+    const before = document.activeElement;
+
+    act(() => registry?.request(["missing", "also-missing"]));
+
+    expect(document.activeElement).toBe(before);
+  });
 });
