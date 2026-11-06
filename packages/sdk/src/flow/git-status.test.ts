@@ -559,7 +559,11 @@ describe("localeGitStatus environment failures", () => {
     const fx = await fixture();
     await seed(fx);
     await fx.commitAll();
-    const execFile = gitExecFileWith({ GIT_TEST_ASSUME_DIFFERENT_OWNER: "1", HOME: fx.home });
+    const execFile = gitExecFileWith({
+      GIT_TEST_ASSUME_DIFFERENT_OWNER: "1",
+      GIT_CONFIG_NOSYSTEM: "1",
+      HOME: fx.home,
+    });
 
     const status = await localeGitStatus({ config: baseConfig(), cwd: fx.root }, { execFile });
 

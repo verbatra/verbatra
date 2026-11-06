@@ -626,7 +626,11 @@ describe("localeGitDiff refusals", () => {
     const fx = await repo();
     await fx.write("locales/de.json", json({ a: "a" }));
     await fx.commitAll();
-    const execFile = gitExecFileWith({ GIT_TEST_ASSUME_DIFFERENT_OWNER: "1", HOME: fx.home });
+    const execFile = gitExecFileWith({
+      GIT_TEST_ASSUME_DIFFERENT_OWNER: "1",
+      GIT_CONFIG_NOSYSTEM: "1",
+      HOME: fx.home,
+    });
 
     const diff = await localeGitDiff(
       { config: baseConfig(), locale: "de", cwd: fx.root },

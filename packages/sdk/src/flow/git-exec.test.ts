@@ -255,6 +255,43 @@ describe("an inherited GIT_DIR cannot steer the runner", () => {
   });
 });
 
+describe("the ownership check and the host's git configuration", () => {
+  it("is bypassed by a system config naming every directory safe, unless the system config is off", async () => {
+    const fx = await makeGitFixture();
+    try {
+      await fx.write("de.json", "{}\n");
+      await fx.commitAll();
+      const system = join(fx.base, "system.gitconfig");
+      await writeFile(system, "[safe]\n\tdirectory = *\n");
+      const env = {
+        PATH: process.env.PATH ?? "",
+        HOME: fx.home,
+        GIT_TEST_ASSUME_DIFFERENT_OWNER: "1",
+      };
+
+      const bypassed = await execFileAsync("git", ["status", "--porcelain"], {
+        cwd: fx.root,
+        env: { ...env, GIT_CONFIG_SYSTEM: system },
+      }).then(
+        () => "accepted",
+        () => "refused",
+      );
+      const isolated = await execFileAsync("git", ["status", "--porcelain"], {
+        cwd: fx.root,
+        env: { ...env, GIT_CONFIG_SYSTEM: system, GIT_CONFIG_NOSYSTEM: "1" },
+      }).then(
+        () => "accepted",
+        () => "refused",
+      );
+
+      expect(bypassed).toBe("accepted");
+      expect(isolated).toBe("refused");
+    } finally {
+      await fx.cleanup();
+    }
+  });
+});
+
 describe("a bare repository planted in the project folder", () => {
   it("is discovered by a plain git and refused by the runner", async () => {
     const fx = await makeGitFixture({ init: false });
