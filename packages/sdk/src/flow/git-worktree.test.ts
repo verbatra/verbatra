@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
-import { defaultGitExecFile } from "./git-exec.js";
+import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
 import { localeGitStatus } from "./git-status.js";
 import { neutralizeFilters, openGitWorkTree } from "./git-worktree.js";
 
@@ -211,6 +211,15 @@ describe("openGitWorkTree", () => {
     const opened = await openGitWorkTree(defaultGitExecFile, join(fx.root, "sub\ndir"));
 
     expect(opened.ok && opened.tree.prefix).toBe("sub\ndir/");
+  });
+
+  it("reads a probe answer without a trailing newline", async () => {
+    const execFile: GitExecFile = async () => ({ stdout: "false", stderr: "" });
+
+    expect(await openGitWorkTree(execFile, "/project")).toEqual({
+      ok: false,
+      reason: "not-a-repository",
+    });
   });
 
   it("has no head on a branch with no commits", async () => {

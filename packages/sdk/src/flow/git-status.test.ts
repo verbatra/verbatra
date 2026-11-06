@@ -8,10 +8,15 @@ import {
   matchWatched,
   parsePorcelainZ,
   stateOfCode,
+  toPosix,
   watchedFiles,
 } from "./git-status.js";
 
 const fixtures: GitFixture[] = [];
+
+async function repo(): Promise<GitFixture> {
+  return fixture();
+}
 
 async function fixture(options?: { init?: boolean }): Promise<GitFixture> {
   const created = await makeGitFixture(options);
@@ -75,6 +80,13 @@ describe("parsePorcelainZ", () => {
   });
 });
 
+describe("toPosix", () => {
+  it("leaves a posix path alone and converts a backslash-separated one", () => {
+    expect(toPosix("a/b.json", "/")).toBe("a/b.json");
+    expect(toPosix("a\\b\\c.json", "\\")).toBe("a/b/c.json");
+  });
+});
+
 describe("matchWatched", () => {
   const files = [
     { path: "locales/de.json", locales: ["de"] },
@@ -97,6 +109,24 @@ describe("matchWatched", () => {
 
   it("falls back to a case-insensitive match when it is unambiguous", () => {
     expect(matchWatched(files, "", "locales/fr.json")).toBe(files[1]);
+  });
+
+  it("prefers the exact match under normalization when two watched files fold alike", () => {
+    const pair = [
+      { path: "L\u00e4/de.json", locales: ["a"] },
+      { path: "l\u00e4/de.json", locales: ["b"] },
+    ];
+
+    expect(matchWatched(pair, "", "la\u0308/de.json")).toBe(pair[1]);
+  });
+
+  it("normalizes a watched path too when two watched files fold alike", () => {
+    const pair = [
+      { path: "la\u0308/de.json", locales: ["a"] },
+      { path: "La\u0308/de.json", locales: ["b"] },
+    ];
+
+    expect(matchWatched(pair, "", "l\u00e4/de.json")).toBe(pair[0]);
   });
 
   it("refuses a case-insensitive match when two watched files fold alike", () => {
@@ -295,6 +325,20 @@ describe("localeGitStatus against a real repository", () => {
         { path: "locales/fr.json", state: "added" },
       ],
     });
+  });
+
+  it("ignores a status entry that is not a watched file", async () => {
+    const fx = await repo();
+    await fx.write("locales/extra.json", "{}\n");
+    const config = baseConfig({
+      sourceLocale: "locales",
+      targetLocales: ["de"],
+      files: { pattern: "{locale}" },
+    });
+
+    const status = await localeGitStatus({ config, cwd: fx.root });
+
+    expect(status).toEqual({ available: true, branch: "main", files: [] });
   });
 
   it("reads a path matching a glob character literally", async () => {

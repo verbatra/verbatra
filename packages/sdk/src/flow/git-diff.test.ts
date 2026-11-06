@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { createDefaultRegistry } from "@verbatra/format-adapters";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SdkError } from "../errors.js";
+import { defaultFs } from "../fs.js";
 import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
 import {
   compareResources,
@@ -94,6 +95,14 @@ describe("compareResources", () => {
     expect(body.truncated).toBe(true);
   });
 
+  it("cuts after a character above the surrogate range without dropping it", () => {
+    const text = `${"x".repeat(LOCALE_GIT_DIFF_MAX_VALUE_CHARS - 1)}\uE000tail`;
+
+    const body = compareResources(entries({}), entries({ k: text }));
+
+    expect(body.added[0]?.value).toBe(`${"x".repeat(LOCALE_GIT_DIFF_MAX_VALUE_CHARS - 1)}\uE000`);
+  });
+
   it("keeps a text exactly at the limit whole", () => {
     const exact = "y".repeat(LOCALE_GIT_DIFF_MAX_VALUE_CHARS);
 
@@ -116,6 +125,18 @@ describe("isRegularFile", () => {
     expect(await isRegularFile(join(fx.root, "dir"))).toBe(false);
     expect(await isRegularFile(join(fx.root, "none.json"))).toBe(false);
     expect(await isRegularFile(join(fx.root, "missing-dir", "a.json"))).toBe(false);
+  });
+
+  it("refuses when the file-system seam cannot list a directory", async () => {
+    const fx = await repo();
+    await fx.write("a.json", "{}\n");
+    const original = defaultFs.readDirectory;
+    delete (defaultFs as { readDirectory?: unknown }).readDirectory;
+    try {
+      expect(await isRegularFile(join(fx.root, "a.json"))).toBe(false);
+    } finally {
+      (defaultFs as { readDirectory?: unknown }).readDirectory = original;
+    }
   });
 
   it("matches a differently cased name only when exactly one entry folds to it", async () => {

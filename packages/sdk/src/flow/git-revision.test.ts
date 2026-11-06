@@ -300,6 +300,27 @@ describe("readBlobAtHead", () => {
     });
   });
 
+  it("reports a failure of the read after a successful listing", async () => {
+    const hash = "a".repeat(40);
+    const listing = `100644 blob ${"b".repeat(40)}       3\tde.json\0`;
+    let call = 0;
+    const runner = {
+      async run() {
+        call += 1;
+        return call === 1
+          ? { ok: true as const, stdout: listing }
+          : {
+              ok: false as const,
+              failure: { kind: "timeout" as const, exitCode: undefined, stderr: "" },
+            };
+      },
+    };
+
+    const read = await readBlobAtHead({ runner, prefix: "", head: hash }, "de.json");
+
+    expect(read).toEqual({ kind: "failed", reason: "timeout" });
+  });
+
   it("reports a git failure while listing", async () => {
     const fx = await repo();
     await fx.write("a.json", "{}\n");

@@ -93,8 +93,8 @@ export interface WatchedFile {
 const CONFLICT_CODES: ReadonlySet<string> = new Set(["DD", "AU", "UD", "UA", "DU", "AA", "UU"]);
 const MAX_BRANCH_CHARS = 255;
 
-function toPosix(path: string): string {
-  return sep === "/" ? path : path.split(sep).join("/");
+export function toPosix(path: string, separator: string = sep): string {
+  return separator === "/" ? path : path.split(separator).join("/");
 }
 
 export function watchedFiles(cwd: string, config: VerbatraConfig): WatchedFile[] {
