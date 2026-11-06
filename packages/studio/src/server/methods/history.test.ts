@@ -47,7 +47,7 @@ describe("historyListHandler", () => {
 
       await historyListHandler({}, deps(project, execFileImpl));
 
-      const args = execFileImpl.mock.calls[0]?.[1] as readonly string[];
+      const args = execFileImpl.mock.calls.at(-1)?.[1] as readonly string[];
       const sentinelIndex = args.indexOf("--");
       const paths = args.slice(sentinelIndex + 1);
       expect(paths).toEqual([
@@ -84,7 +84,7 @@ describe("historyListHandler", () => {
 
       await historyListHandler({ limit: 5 }, deps(project, execFileImpl));
 
-      const args = execFileImpl.mock.calls[0]?.[1] as readonly string[];
+      const args = execFileImpl.mock.calls.at(-1)?.[1] as readonly string[];
       expect(args).toContain("--max-count=5");
     } finally {
       await project.cleanup();
@@ -98,7 +98,7 @@ describe("historyListHandler", () => {
 
       await historyListHandler({ limit: 10000 }, deps(project, execFileImpl));
 
-      const args = execFileImpl.mock.calls[0]?.[1] as readonly string[];
+      const args = execFileImpl.mock.calls.at(-1)?.[1] as readonly string[];
       expect(args).toContain("--max-count=200");
     } finally {
       await project.cleanup();
