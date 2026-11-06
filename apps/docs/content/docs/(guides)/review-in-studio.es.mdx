@@ -152,7 +152,7 @@ Overview es la página con la que arranca Studio. Muestra la cobertura de cada l
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary tiene su propia página, donde antes de 0.7.0 estaba en Settings. Si el glosario es un archivo JSON, puedes añadir, editar y eliminar términos; cada cambio se escribe directamente en el archivo. Un glosario escrito dentro de `verbatra.config.ts` sigue siendo de solo lectura.
+Glossary tiene su propia página, donde antes de 0.7.0 estaba en Settings. Si el glosario es un archivo JSON, puedes añadir, editar y eliminar términos; cada cambio se escribe directamente en el archivo. Al eliminar un término, o vaciar su última traducción, se pregunta primero y se indica qué se pierde; los cambios sin guardar preguntan antes de que salgas de la página o cambies de idioma. La búsqueda acota la lista. Un glosario escrito dentro de `verbatra.config.ts` sigue siendo de solo lectura.
 
 Una edición del glosario cambia lo que se le indica a la siguiente ejecución, nunca el texto ya escrito; reinicia Studio para que sus propias retraducciones la usen.
 

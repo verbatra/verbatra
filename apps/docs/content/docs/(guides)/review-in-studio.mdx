@@ -152,7 +152,7 @@ Studio opens on Overview: each locale's coverage with its [lock file](/docs/the-
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary has its own page, where it sat on Settings before 0.7.0. If the glossary is a JSON file, you can add, edit and remove terms; each change is written to the file. An inline glossary in `verbatra.config.ts` stays read-only.
+Glossary has its own page, where it sat on Settings before 0.7.0. If the glossary is a JSON file, you can add, edit and remove terms; each change is written to the file. Removing a term, or clearing its last translation, asks first and names what is lost, and unsaved edits ask before you leave the page or switch locale. Search narrows the list. An inline glossary in `verbatra.config.ts` stays read-only.
 
 A glossary edit changes what the next run is told, never text already written; restart Studio so its own retranslations use it.
 
