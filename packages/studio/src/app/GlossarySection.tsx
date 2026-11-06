@@ -156,7 +156,7 @@ function TermList({
       ) : null}
       <ul
         className={cn(
-          "m-0 flex min-w-0 list-none flex-col gap-2 p-0",
+          "m-0 flex min-w-0 list-none flex-col gap-2 p-0 [overflow-anchor:none]",
           rows.length === 0 && "hidden",
         )}
       >
