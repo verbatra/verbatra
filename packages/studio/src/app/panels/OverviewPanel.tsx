@@ -2,7 +2,9 @@ import type { BudgetStanding } from "@verbatra/sdk";
 import { Badge, type BadgeTone, Button, EmptyState, PageSection } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { errorDetail } from "../../client/error-copy.js";
 import { HISTORY_MAX, HISTORY_PAGE_SIZE } from "../../client/history-limit.js";
+import type { ReviewQueueData } from "../../client/review-queue-data.js";
 import type { RefreshableView } from "../../client/state.js";
 import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import type {
@@ -18,10 +20,11 @@ import { Loading } from "../Loading.js";
 import { LocalesSection } from "../LocalesSection.js";
 import { MetricCard } from "../MetricCard.js";
 import { OverviewMetrics } from "../OverviewMetrics.js";
+import { pageFailure } from "../overview-failures.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
 import { useDiffState } from "../use-diff-state.js";
-import { useHistoryList } from "../use-history-list.js";
+import { type HistoryState, useHistoryList } from "../use-history-list.js";
 import { useLockState } from "../use-lock-state.js";
 import { useStatusData } from "../use-status-data.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
@@ -29,13 +32,15 @@ import { useUsageTicker } from "../use-usage-ticker.js";
 function UsageCards({ usage }: { readonly usage: UsageDisplay }): ReactNode {
   if (usage.kind === "not-reported") {
     return (
-      <MetricCard
-        label="Tokens"
-        icon="gauge"
-        value="Not reported"
-        quiet
-        hint="No token usage was recorded: the run called no provider, or its provider does not report usage."
-      />
+      <div className="sm:col-span-2 lg:col-span-1">
+        <MetricCard
+          label="Tokens"
+          icon="gauge"
+          value="Not reported"
+          quiet
+          hint="No token usage was recorded: the run called no provider, or its provider does not report usage."
+        />
+      </div>
     );
   }
   return (
@@ -61,7 +66,7 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
   const badge = STANDING_BADGE[budget.standing];
   return (
     <>
-      <div className="col-span-2 lg:col-span-1">
+      <div className="sm:col-span-2 lg:col-span-1">
         <MetricCard
           label="Budget"
           value={`${formatCount(budget.tokensUsed)} / ${formatCount(budget.maxTokens)}`}
@@ -70,7 +75,7 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
           progressTone={budget.standing === "reached" ? "danger" : "primary"}
         />
       </div>
-      <div className="col-span-2 lg:col-span-1">
+      <div className="sm:col-span-2 lg:col-span-1">
         <MetricCard label="Budget status" value={<Badge tone={badge.tone}>{badge.label}</Badge>} />
       </div>
     </>
@@ -79,31 +84,50 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
 
 type UsageView = RefreshableView<UsageTickerData>;
 
-function LastRunRail({ view }: { readonly view: UsageView }): ReactNode {
+const SEE_ABOVE = "See the error above.";
+
+function LastRunRail({
+  view,
+  hideCode,
+}: {
+  readonly view: UsageView;
+  readonly hideCode: string | undefined;
+}): ReactNode {
   if (view.kind === "loading") {
     return <Loading />;
   }
   if (view.kind === "error") {
-    return <ErrorMessage error={view.error} />;
+    return view.error.code === hideCode ? (
+      <p className="text-sm text-muted-foreground">The last run is unavailable. {SEE_ABOVE}</p>
+    ) : (
+      <ErrorMessage error={view.error} />
+    );
   }
 
   const state = toUsageTickerDisplayState(view.data);
+  const staleNotice =
+    view.stale && view.error.code !== hideCode ? (
+      <ErrorMessage error={view.error} prefix="Showing the last known usage." />
+    ) : null;
 
   if (state.kind === "unavailable") {
     return (
-      <EmptyState icon="gauge" title="No run recorded yet">
-        Run <code>verbatra translate</code> or <code>verbatra watch</code> to record one.
-      </EmptyState>
+      <div>
+        {staleNotice}
+        <EmptyState icon="gauge" title="No run recorded yet">
+          Run <code>verbatra translate</code> or <code>verbatra watch</code> to record one.
+        </EmptyState>
+      </div>
     );
   }
 
   return (
     <div>
-      {view.stale && <ErrorMessage error={view.error} prefix="Showing the last known usage." />}
+      {staleNotice}
       <p className="mb-3 text-xs text-muted-foreground">
         As of {formatTimestamp(state.generatedAt)}
       </p>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
         <UsageCards usage={state.usage} />
         <BudgetCards budget={state.budget} />
       </div>
@@ -111,35 +135,83 @@ function LastRunRail({ view }: { readonly view: UsageView }): ReactNode {
   );
 }
 
-function LocaleFileHistory({ refreshToken }: PanelProps): ReactNode {
-  const [limit, setLimit] = useState(HISTORY_PAGE_SIZE);
-  const history = useHistoryList(refreshToken, limit);
+function withoutRepeatedNotice(
+  history: HistoryState,
+  hideCode: string | undefined,
+): { readonly hidden: boolean; readonly shown: HistoryState } {
+  if (history.kind === "error") {
+    return { hidden: history.error.code === hideCode, shown: history };
+  }
+  if (
+    history.kind === "loaded" &&
+    history.staleError !== undefined &&
+    history.staleError.code === hideCode
+  ) {
+    return {
+      hidden: true,
+      shown: { kind: "loaded", commits: history.commits, requestedLimit: history.requestedLimit },
+    };
+  }
+  return { hidden: false, shown: history };
+}
+
+function LocaleFileHistory({
+  history,
+  limit,
+  onLimit,
+  hideCode,
+}: {
+  readonly history: HistoryState;
+  readonly limit: number;
+  readonly onLimit: (next: number) => void;
+  readonly hideCode: string | undefined;
+}): ReactNode {
   const regionRef = useRef<HTMLDivElement>(null);
-  const askedForMore = useRef(false);
-  const settled = history.kind === "loaded" && history.requestedLimit === limit;
-  const full = history.kind === "loaded" && history.commits.length >= limit;
-  const pending = history.kind === "loaded" && !settled;
-  const showMore = pending || (full && limit < HISTORY_MAX);
+  const askedFrom = useRef<number | null>(null);
+  const loaded = history.kind === "loaded";
+  const commitCount = loaded ? history.commits.length : 0;
+  const failed = loaded && history.staleError !== undefined;
+  const settled = loaded && !failed && history.requestedLimit === limit;
+  const full = loaded && history.commits.length >= limit;
+  const pending = loaded && !failed && !settled;
+  const showMore = !failed && (pending || (full && limit < HISTORY_MAX));
 
   useEffect(() => {
-    if (!showMore && askedForMore.current) {
-      askedForMore.current = false;
-      regionRef.current?.focus();
+    if (failed) {
+      askedFrom.current = null;
+      return;
     }
-  }, [showMore]);
+    if (!settled || askedFrom.current === null) {
+      return;
+    }
+    const firstNew = askedFrom.current;
+    askedFrom.current = null;
+    const rows = [
+      ...(regionRef.current?.querySelectorAll<HTMLElement>('ul[aria-label="Commits"] > li') ?? []),
+    ];
+    (rows[firstNew] ?? rows.at(-1))?.focus();
+  }, [failed, settled]);
 
   function loadMore(): void {
     if (pending) {
       return;
     }
-    askedForMore.current = true;
-    setLimit((current) => Math.min(current + HISTORY_PAGE_SIZE, HISTORY_MAX));
+    askedFrom.current = commitCount;
+    onLimit(Math.min(limit + HISTORY_PAGE_SIZE, HISTORY_MAX));
+  }
+
+  const { hidden, shown } = withoutRepeatedNotice(history, hideCode);
+
+  if (history.kind === "error" && hidden) {
+    return (
+      <p className="text-sm text-muted-foreground">File history is unavailable. {SEE_ABOVE}</p>
+    );
   }
 
   return (
-    <div ref={regionRef} tabIndex={-1} className="outline-none">
+    <div ref={regionRef}>
       <CommitList
-        state={history}
+        state={shown}
         emptyMessage="No commit history yet for the source or target locale files."
       />
       {showMore ? (
@@ -153,11 +225,84 @@ function LocaleFileHistory({ refreshToken }: PanelProps): ReactNode {
   );
 }
 
-export function OverviewPanel({ refreshToken }: PanelProps): ReactNode {
-  const diff = useDiffState(refreshToken);
-  const status = useStatusData(refreshToken);
-  const lock = useLockState(refreshToken);
-  const usage = useUsageTicker(refreshToken);
+type ReadName = "diff" | "status" | "lock" | "review" | "usage" | "history";
+
+type OverviewReadsNow = Readonly<Record<ReadName, unknown>>;
+
+interface RetryRound {
+  readonly reads: OverviewReadsNow;
+  readonly started: readonly ReadName[];
+}
+
+function startedReads(reads: OverviewReadsNow, reviewRefreshed: boolean): readonly ReadName[] {
+  return (Object.keys(reads) as ReadName[]).filter(
+    (name) => reads[name] !== undefined && (name !== "review" || reviewRefreshed),
+  );
+}
+
+export interface OverviewPanelProps extends PanelProps {
+  readonly reviewQueue?: RefreshableView<ReviewQueueData> | undefined;
+  readonly onRetry?: (() => void) | undefined;
+}
+
+export function OverviewPanel({
+  refreshToken,
+  reviewQueue,
+  onRetry,
+}: OverviewPanelProps): ReactNode {
+  const [localRetries, setLocalRetries] = useState(0);
+  const token = refreshToken + localRetries;
+  const [limit, setLimit] = useState(HISTORY_PAGE_SIZE);
+  const diff = useDiffState(token);
+  const status = useStatusData(token);
+  const lock = useLockState(token);
+  const usage = useUsageTicker(token);
+  const history = useHistoryList(token, limit);
+  const [retried, setRetried] = useState<RetryRound | null>(null);
+  const recoveryRef = useRef<HTMLDivElement>(null);
+  const alertRef = useRef<HTMLDivElement>(null);
+  const awaitingRecovery = useRef(false);
+  const failure = pageFailure({ diff, status, lock, review: reviewQueue, usage, history });
+  const reads: OverviewReadsNow = {
+    diff,
+    status,
+    lock,
+    review: reviewQueue,
+    usage,
+    history,
+  };
+  const outstanding =
+    retried === null
+      ? 0
+      : retried.started.filter((name) => retried.reads[name] === reads[name]).length;
+  const retrying = outstanding > 0;
+  const settled = retried !== null && outstanding === 0;
+
+  useEffect(() => {
+    if (!settled || !awaitingRecovery.current) {
+      return;
+    }
+    awaitingRecovery.current = false;
+    const lostFocus = document.activeElement === document.body || document.activeElement === null;
+    if (!lostFocus) {
+      return;
+    }
+    const target =
+      failure === null
+        ? recoveryRef.current
+        : alertRef.current?.querySelector<HTMLElement>("[data-retry]");
+    target?.focus();
+  }, [settled, failure]);
+
+  function retry(): void {
+    awaitingRecovery.current = true;
+    setRetried({ reads, started: startedReads(reads, onRetry !== undefined) });
+    if (onRetry === undefined) {
+      setLocalRetries((count) => count + 1);
+    } else {
+      onRetry();
+    }
+  }
 
   return (
     <>
@@ -165,15 +310,38 @@ export function OverviewPanel({ refreshToken }: PanelProps): ReactNode {
         title="Overview"
         description="How far along each locale is, what the last run did, and how the locale files have changed."
       />
-      <OverviewMetrics status={status} diff={diff} />
-      <DiffErrorNotice diff={diff} />
-      <LocalesSection status={status} lock={lock} />
+      {failure === null ? null : (
+        <div ref={alertRef}>
+          <ErrorMessage
+            error={failure.error}
+            detail={errorDetail(failure.error)}
+            onRetry={retry}
+            retrying={retrying}
+            {...(failure.prefix === undefined ? {} : { prefix: failure.prefix })}
+          />
+        </div>
+      )}
+      <div
+        ref={recoveryRef}
+        tabIndex={-1}
+        data-overview-recovery=""
+        className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <OverviewMetrics status={status} diff={diff} reviewQueue={reviewQueue} />
+      </div>
+      <DiffErrorNotice diff={diff} hideCode={failure?.error.code} />
+      <LocalesSection status={status} lock={lock} hideCode={failure?.error.code} />
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <PageSection title="Last run" className="mb-0 lg:col-start-2 lg:row-start-1">
-          <LastRunRail view={usage} />
+          <LastRunRail view={usage} hideCode={failure?.error.code} />
         </PageSection>
         <PageSection title="Locale file history" className="mb-0 lg:col-start-1 lg:row-start-1">
-          <LocaleFileHistory refreshToken={refreshToken} />
+          <LocaleFileHistory
+            history={history}
+            limit={limit}
+            onLimit={setLimit}
+            hideCode={failure?.error.code}
+          />
         </PageSection>
       </div>
     </>

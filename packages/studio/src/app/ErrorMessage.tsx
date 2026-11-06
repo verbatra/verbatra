@@ -6,6 +6,7 @@ import type { StructuredError } from "../client/state.js";
 export interface ErrorMessageProps {
   readonly error: StructuredError;
   readonly prefix?: string;
+  readonly detail?: string | undefined;
   readonly onRetry?: () => void;
   readonly retrying?: boolean;
   readonly onCancel?: () => void;
@@ -28,6 +29,7 @@ function ErrorActions({
       {onRetry !== undefined ? (
         <Button
           size="xs"
+          data-retry=""
           aria-busy={retrying ? true : undefined}
           aria-disabled={retrying ? true : undefined}
           onClick={retrying ? undefined : onRetry}
@@ -47,6 +49,7 @@ function ErrorActions({
 export function ErrorMessage({
   error,
   prefix,
+  detail,
   onRetry,
   onCancel,
   retrying = false,
@@ -57,9 +60,15 @@ export function ErrorMessage({
       role="alert"
     >
       <Icon name="alert" className="mt-0.5 flex-none" />
-      <span className="min-w-0 flex-1 basis-40">
+      <span className="min-w-0 flex-1 basis-40 wrap-anywhere">
         {prefix !== undefined ? `${prefix} ` : null}
         {resolveErrorCopy(error)}
+        {detail !== undefined ? (
+          <>
+            {" "}
+            <span className="mt-1 block">{detail}</span>
+          </>
+        ) : null}
       </span>
       <ErrorActions onRetry={onRetry} retrying={retrying} onCancel={onCancel} />
     </p>

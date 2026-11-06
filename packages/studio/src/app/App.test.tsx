@@ -5,18 +5,26 @@ import { PAGE_IDS, type PageId } from "../client/routes.js";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import { App } from "./App.js";
 import { PAGE_MAX_CLASS } from "./lib/page-width.js";
+import { installRouteGuard, restoreHeldRoute } from "./route-guard.js";
 import {
   agentToolsStatusStore,
+  answersInOrder,
   clickAsync,
   emitRefresh,
   flush,
+  hasMetricCard,
+  metricCard,
+  metricFigure,
+  metricHint,
   type RenderResult,
   renderAsync,
   rpcCalls,
+  rpcError,
   sessionStore,
   stubRpc,
   typeInto,
 } from "./test-support.js";
+import { replaceRoute } from "./use-route.js";
 
 const NARROW_MEDIA = () => ({
   matches: false,
@@ -581,5 +589,282 @@ describe("App header chrome", () => {
       document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "?", bubbles: true }));
     });
     expect(view.query('[role="dialog"]')).not.toBeNull();
+  });
+});
+
+describe("App review tile", () => {
+  it("hands the overview the review count, with no extra read", async () => {
+    const view = await mount();
+
+    expect(metricFigure(view, "Waiting for review").textContent).toBe("2");
+    expect(metricCard(view, "Waiting for review").querySelector("a")?.getAttribute("href")).toBe(
+      "#/review",
+    );
+    expect(countCalls("review.queue")).toBe(1);
+  });
+
+  it("shows N/A for the review tile when the queue could not be read", async () => {
+    stubRpc({ "review.queue": rpcError("INTERNAL") });
+
+    const view = await mount();
+
+    expect(metricFigure(view, "Waiting for review").textContent).toBe("N/A");
+  });
+
+  it("shows N/A with the reason, and no count or header badge, when the review state is unreadable", async () => {
+    stubRpc({
+      "review.queue": { ok: true, result: { available: false, reason: "provenance-unreadable" } },
+    });
+
+    const view = await mount();
+
+    expect(metricFigure(view, "Waiting for review").textContent).toBe("N/A");
+    expect(metricHint(view, "Waiting for review")).toBe(
+      "verbatra.provenance.json is corrupt or too new to read.",
+    );
+    expect(metricFigure(view, "Waiting for review").dataset.valueTone).toBe("default");
+    expect(view.query("[data-count-dot]")).toBeNull();
+    expect(navItem(view, "Review").textContent).toBe("Review");
+  });
+
+  it("shows a failed review read as the page alert, and one Retry re-reads it with the rest", async () => {
+    stubRpc({
+      "review.queue": answersInOrder([rpcError("INTERNAL"), REVIEW_QUEUE]),
+    });
+    const view = await mount();
+    const before = countCalls("review.queue");
+
+    expect(view.all('[role="alert"]')).toHaveLength(1);
+    await clickAsync(view.getByText("button", "Retry"));
+    await flush();
+
+    expect(countCalls("review.queue")).toBe(before + 1);
+    expect(countCalls("status.check")).toBe(2);
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(metricFigure(view, "Waiting for review").textContent).toBe("2");
+  });
+
+  it("does not re-read the review queue until Retry is pressed", async () => {
+    stubRpc({ "review.queue": rpcError("INTERNAL") });
+
+    await mount();
+
+    expect(countCalls("review.queue")).toBe(1);
+  });
+
+  it("adds no review tile to the other pages", async () => {
+    goToHash("#/glossary");
+
+    const view = await mount();
+
+    expect(hasMetricCard(view, "Waiting for review")).toBe(false);
+  });
+});
+
+describe("App scroll on navigation", () => {
+  const scrollTo = vi.fn();
+
+  beforeEach(() => {
+    scrollTo.mockClear();
+    vi.stubGlobal("scrollTo", scrollTo);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal("matchMedia", NARROW_MEDIA);
+  });
+
+  function linkTo(hash: string): HTMLAnchorElement {
+    const anchor = document.createElement("a");
+    anchor.href = hash;
+    document.body.append(anchor);
+    return anchor;
+  }
+
+  it("scrolls to the top after a header navigation link", async () => {
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Glossary"));
+
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("scrolls to the top after a plain link inside the page", async () => {
+    await mount();
+    const anchor = linkTo("#/review?locale=de");
+
+    await act(async () => {
+      anchor.click();
+    });
+    await flush();
+    anchor.remove();
+
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("does not scroll when the address changes without a link, as on back or forward", async () => {
+    await mount();
+
+    await act(async () => {
+      window.location.hash = "#/glossary";
+    });
+    await flush();
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("does not scroll for a replace, as when a filter is typed", async () => {
+    goToHash("#/translations");
+    await mount();
+
+    await act(async () => {
+      replaceRoute({ page: "translations", params: { query: "abc" } });
+    });
+    await flush();
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("does not scroll for a modified click that opens a new tab", async () => {
+    await mount();
+    const anchor = linkTo("#/review");
+
+    await act(async () => {
+      anchor.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true }),
+      );
+    });
+    await flush();
+    anchor.remove();
+
+    expect(window.location.hash).toBe("#/review");
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("scrolls to the top once a held navigation proceeds after the prompt", async () => {
+    let proceed: (() => Promise<void>) | undefined;
+    const uninstall = installRouteGuard({
+      isDirty: () => true,
+      onBlock: (next) => {
+        proceed = next;
+      },
+    });
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Glossary"));
+    expect(scrollTo).not.toHaveBeenCalled();
+    await act(async () => {
+      await proceed?.();
+    });
+    await flush();
+    uninstall();
+
+    expect(window.location.hash).toBe("#/glossary");
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("does not scroll when a cancelled held navigation is later reached by Back or Forward", async () => {
+    const uninstall = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Glossary"));
+    restoreHeldRoute();
+    uninstall();
+    await act(async () => {
+      window.location.hash = "#/glossary";
+    });
+    await flush();
+
+    expect(window.location.hash).toBe("#/glossary");
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("does not scroll for a replace onto the target of a cancelled held navigation", async () => {
+    const uninstall = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Glossary"));
+    restoreHeldRoute();
+    uninstall();
+    await act(async () => {
+      replaceRoute({ page: "glossary", params: {} });
+    });
+    await flush();
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("scrolls when the prompt was open for a long time before the navigation proceeded", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    let proceed: (() => Promise<void>) | undefined;
+    const uninstall = installRouteGuard({
+      isDirty: () => true,
+      onBlock: (next) => {
+        proceed = next;
+      },
+    });
+    const view = await mount();
+
+    await clickAsync(navItem(view, "Glossary"));
+    vi.setSystemTime(Date.now() + 3_600_000);
+    await act(async () => {
+      await proceed?.();
+    });
+    await flush();
+    uninstall();
+
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("scrolls once a plain link held by the prompt proceeds", async () => {
+    let proceed: (() => Promise<void>) | undefined;
+    window.history.replaceState({ idx: 0 }, "", "#/glossary");
+    const uninstall = installRouteGuard({
+      isDirty: () => true,
+      onBlock: (next) => {
+        proceed = next;
+      },
+    });
+    await mount();
+    const anchor = linkTo("#/review");
+
+    await act(async () => {
+      anchor.click();
+    });
+    await flush();
+    expect(scrollTo).not.toHaveBeenCalled();
+    await act(async () => {
+      await proceed?.();
+    });
+    await flush();
+    uninstall();
+    anchor.remove();
+
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not scroll when a plain link held by the prompt is cancelled and reached again", async () => {
+    window.history.replaceState({ idx: 0 }, "", "#/glossary");
+    const uninstall = installRouteGuard({ isDirty: () => true, onBlock: () => {} });
+    await mount();
+    const anchor = linkTo("#/review");
+
+    await act(async () => {
+      anchor.click();
+    });
+    await flush();
+    await act(async () => {
+      restoreHeldRoute();
+    });
+    await flush();
+    uninstall();
+    await act(async () => {
+      window.location.hash = "#/review";
+    });
+    await flush();
+    anchor.remove();
+
+    expect(window.location.hash).toBe("#/review");
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 });

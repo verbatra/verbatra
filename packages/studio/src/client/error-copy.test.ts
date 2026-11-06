@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { copyForErrorCode, ERROR_CODE_COPY, resolveErrorCopy } from "./error-copy.js";
+import { copyForErrorCode, ERROR_CODE_COPY, errorDetail, resolveErrorCopy } from "./error-copy.js";
 
 const REACHABLE_TODAY_CODES = [
   "REQUEST_INVALID",
@@ -154,5 +154,30 @@ describe("resolveErrorCopy: a rate limit with a retry time", () => {
     expect(
       resolveErrorCopy({ code: "BATCH_TOO_LARGE", message: "raw", retryAfterSeconds: 30 }),
     ).toBe(ERROR_CODE_COPY.BATCH_TOO_LARGE);
+  });
+});
+
+describe("errorDetail", () => {
+  it("returns the server's own message for a data-file code whose copy is generic", () => {
+    expect(
+      errorDetail({
+        code: "LOCK_FILE_INVALID",
+        message: "The lock-file at verbatra.lock.json is not valid JSON.",
+      }),
+    ).toBe("The lock-file at verbatra.lock.json is not valid JSON.");
+  });
+
+  it.each(["INTERNAL", "NETWORK_ERROR", "METHOD_RATE_LIMITED"])(
+    "adds no detail for the generic code %s",
+    (code) => {
+      expect(errorDetail({ code, message: "raw server text" })).toBeUndefined();
+    },
+  );
+
+  it("adds no detail for an empty message or one equal to the copy", () => {
+    expect(errorDetail({ code: "LOCK_FILE_INVALID", message: "" })).toBeUndefined();
+    expect(
+      errorDetail({ code: "LOCK_FILE_INVALID", message: ERROR_CODE_COPY.LOCK_FILE_INVALID ?? "" }),
+    ).toBeUndefined();
   });
 });

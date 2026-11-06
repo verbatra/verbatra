@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { HistoryCommit } from "../shared/rpc/history.js";
 import { commitSummaryParts, renderText, type TextTarget } from "./render-text.js";
+import { formatTimestamp } from "./ui-format.js";
 
 function commit(overrides: Partial<HistoryCommit> = {}): HistoryCommit {
   return {
@@ -18,9 +19,9 @@ describe("commitSummaryParts", () => {
     expect(commitSummaryParts(commit({ hash: "0123456789abcdef" })).shortHash).toBe("0123456");
   });
 
-  it("derives the calendar-date label from the ISO author date and keeps the full date", () => {
+  it("formats the date label like the last run timestamp and keeps the full ISO date", () => {
     const parts = commitSummaryParts(commit());
-    expect(parts.dateLabel).toBe("2026-01-01");
+    expect(parts.dateLabel).toBe(formatTimestamp("2026-01-01T00:00:00+00:00"));
     expect(parts.authorDate).toBe("2026-01-01T00:00:00+00:00");
   });
 

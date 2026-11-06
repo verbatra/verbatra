@@ -8,6 +8,7 @@ import {
   type RouteParams,
   routeHash,
 } from "../client/routes.js";
+import { markLinkNavigation } from "./link-scroll.js";
 import { ROUTE_CHANGE_EVENT, routeChangeBlocked, visibleHash, writeRoute } from "./route-guard.js";
 
 const EMPTY_PARAMS: RouteParams = {};
@@ -39,9 +40,10 @@ export function navigateToPage(page: PageId): boolean {
     return true;
   }
   const next = pageHash(page);
-  if (routeChangeBlocked(next, "push")) {
+  if (routeChangeBlocked(next, "push", () => markLinkNavigation(next))) {
     return false;
   }
+  markLinkNavigation(next);
   writeRoute("push", next);
   return true;
 }
@@ -51,9 +53,10 @@ export function navigateToRoute(route: Route): boolean {
   if (next === visibleHash()) {
     return true;
   }
-  if (routeChangeBlocked(next, "push")) {
+  if (routeChangeBlocked(next, "push", () => markLinkNavigation(next))) {
     return false;
   }
+  markLinkNavigation(next);
   writeRoute("push", next);
   return true;
 }

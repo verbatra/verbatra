@@ -2,7 +2,17 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ProjectSnapshotResult } from "../../shared/rpc/snapshot.js";
 import type { RenderResult } from "../test-support.js";
-import { flush, render, renderAsync, rpcCalls, rpcError, stubRpc } from "../test-support.js";
+import {
+  flush,
+  metricFigure,
+  metricHint,
+  metricValue,
+  render,
+  renderAsync,
+  rpcCalls,
+  rpcError,
+  stubRpc,
+} from "../test-support.js";
 import { SettingsPanel } from "./SettingsPanel.js";
 
 vi.mock("../api.js", () => import("../test-support.js").then((module) => module.apiMock()));
@@ -28,18 +38,6 @@ function snapshotAnswer(result: ProjectSnapshotResult): {
 
 function stubSettings(snapshot: ProjectSnapshotResult): void {
   stubRpc({ "project.snapshot": snapshotAnswer(snapshot) });
-}
-
-function metricCard(view: RenderResult, label: string): HTMLElement {
-  const card = view.getByText("span", label).parentElement?.parentElement;
-  if (card === null || card === undefined) {
-    throw new Error(`no metric card is labeled ${JSON.stringify(label)}`);
-  }
-  return card;
-}
-
-function metricValue(view: RenderResult, label: string): string | null {
-  return metricCard(view, label).querySelector("div[title]")?.getAttribute("title") ?? null;
 }
 
 function detailValue(view: RenderResult, label: string): string | null {
@@ -94,10 +92,28 @@ describe("SettingsPanel", () => {
 
     expect(metricValue(view, "Source locale")).toBe("en");
     expect(metricValue(view, "Target locales")).toBe("2");
-    expect(metricCard(view, "Target locales").querySelector("p")?.textContent).toBe("de, fr");
-    expect(metricCard(view, "Format").textContent).toContain("i18next-json");
-    expect(metricCard(view, "Format").querySelector(".break-all")).not.toBeNull();
+    expect(metricHint(view, "Target locales")).toBe("de, fr");
+    expect(metricValue(view, "Format")).toContain("i18next-json");
     expect(metricValue(view, "Provider")).toBe("anthropic");
+  });
+
+  it("sets identifiers in mono, left to right, and only the count as a figure", async () => {
+    stubSettings(SNAPSHOT);
+
+    const view = await renderAsync(<SettingsPanel />);
+
+    for (const label of ["Source locale", "Format", "Provider"]) {
+      const figure = metricFigure(view, label);
+      expect(figure.hasAttribute("data-figure")).toBe(false);
+      expect(figure.querySelector("[data-identifier]")?.getAttribute("dir")).toBe("ltr");
+    }
+    expect(
+      metricFigure(view, "Source locale").querySelector("[data-identifier]")?.textContent,
+    ).toBe("en");
+    expect(metricFigure(view, "Provider").querySelector("[data-identifier]")?.textContent).toBe(
+      "anthropic",
+    );
+    expect(metricFigure(view, "Target locales").hasAttribute("data-figure")).toBe(true);
   });
 
   it("names where the configuration was loaded from", async () => {

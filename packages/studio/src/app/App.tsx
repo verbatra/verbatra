@@ -5,13 +5,15 @@ import {
   nextToastSlot,
   type RefreshToastView,
 } from "../client/refresh-toast.js";
-import { unreviewedRows } from "../client/review-queue-data.js";
+import { type ReviewQueueData, unreviewedRows } from "../client/review-queue-data.js";
 import type { PageId } from "../client/routes.js";
+import type { RefreshableView } from "../client/state.js";
 import { AgentToolsAlert } from "./AgentToolsAlert.js";
 import { AppHeader } from "./AppHeader.js";
 import { refreshBus, sessionStore } from "./api.js";
 import { cn } from "./lib/cn.js";
 import { PAGE_MAX_CLASS } from "./lib/page-width.js";
+import { useScrollToTopOnLinkNavigation } from "./link-scroll.js";
 import { NavDrawer } from "./NavDrawer.js";
 import type { PanelProps } from "./panel-props.js";
 import { GlossaryPanel } from "./panels/GlossaryPanel.js";
@@ -32,6 +34,12 @@ const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = 
   glossary: GlossaryPanel,
   settings: SettingsPanel,
 };
+
+function waitingCount(queue: RefreshableView<ReviewQueueData>): number | undefined {
+  return queue.kind === "data" && queue.data.available
+    ? unreviewedRows(queue.data).length
+    : undefined;
+}
 
 function focusMain(): void {
   document.getElementById("main")?.focus();
@@ -56,7 +64,9 @@ function isSessionExpired(): boolean {
 }
 
 export function App(): ReactNode {
-  const { page } = useRoute();
+  const route = useRoute();
+  const { page } = route;
+  useScrollToTopOnLinkNavigation(route);
   useCanonicalHash();
   const [sessionExpired, setSessionExpired] = useState(isSessionExpired());
   const [toast, setToast] = useState<RefreshToastView | undefined>(undefined);
@@ -114,10 +124,12 @@ function AppShell({
   readonly mobileNavOpen: boolean;
   readonly onSetMobileNavOpen: (open: boolean) => void;
 }): ReactNode {
-  const reviewQueue = useReviewQueue(refreshToken);
+  const [retries, setRetries] = useState(0);
+  const reviewQueue = useReviewQueue(refreshToken + retries);
   const agentToolsFailures = useAgentToolsFailures();
-  const reviewCount = reviewQueue.kind === "data" ? unreviewedRows(reviewQueue.data).length : 0;
-  const pageBadges: Readonly<Partial<Record<PageId, number>>> = { review: reviewCount };
+  const reviewCount = waitingCount(reviewQueue);
+  const pageBadges: Readonly<Partial<Record<PageId, number>>> =
+    reviewCount === undefined ? {} : { review: reviewCount };
 
   const ActivePanel = PAGE_PANELS[page];
   const wide = useMediaQuery(XL_QUERY, false);
@@ -164,7 +176,15 @@ function AppShell({
           className={cn(PAGE_MAX_CLASS, "mx-auto w-full px-4 py-6 md:px-8 md:py-8")}
         >
           <AgentToolsAlert failures={agentToolsFailures} />
-          <ActivePanel refreshToken={refreshToken} />
+          {page === "overview" ? (
+            <OverviewPanel
+              refreshToken={refreshToken + retries}
+              reviewQueue={reviewQueue}
+              onRetry={() => setRetries((count) => count + 1)}
+            />
+          ) : (
+            <ActivePanel refreshToken={refreshToken} />
+          )}
         </div>
       </main>
       {toast !== undefined ? <RefreshToast view={toast} onDismiss={onDismissToast} /> : null}

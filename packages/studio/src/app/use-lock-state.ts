@@ -18,6 +18,7 @@ export type LockView =
       readonly kind: "loaded";
       readonly version: number;
       readonly locales: readonly LockLocaleState[];
+      readonly staleError?: StructuredError;
     };
 
 export function useLockState(refreshToken: number): LockView {
@@ -30,7 +31,11 @@ export function useLockState(refreshToken: number): LockView {
         return;
       }
       if (!response.ok) {
-        setView({ kind: "error", error: response.error });
+        setView((previous) =>
+          previous.kind === "loaded"
+            ? { ...previous, staleError: response.error }
+            : { kind: "error", error: response.error },
+        );
         return;
       }
       if (!response.result.exists) {

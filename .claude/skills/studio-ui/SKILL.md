@@ -165,6 +165,9 @@ Controls (buttons, fields, chips, selects) use `--radius-md`. Anything nested in
 or a control (a cell hit area, a badge, a code preview, a `kbd`) uses `--radius-sm`.
 `rounded-full` is for dots and the pill search field only. Tailwind's `rounded-sm`, `rounded-md`
 and `rounded-lg` resolve to these tokens, so either spelling is fine; a bare `rounded` is not.
+The one exception is the navigation drawer's link rows (`NavDrawer.tsx`, `NavLink.tsx`), which keep
+`rounded-lg` because they match the docs site drawer (`SHEET_ITEM` in
+`apps/docs/components/nav-link-classes.ts`).
 
 ## Both themes, every time
 
@@ -262,7 +265,38 @@ Rules that follow:
   Glossary and Settings, which read once, and are wired through `PAGE_PANELS` in `App.tsx` and
   `PAGE_LABELS`, `PAGE_ICONS` and `NAV_GROUPS` in `src/app/nav-groups.ts`. `DEFAULT_PAGE` in
   `src/client/routes.ts` is `overview`. Overview owns the metric row, the per-locale coverage
-  table, the last run and the locale file history; Translations is one `KeysTable` (the matrix of
+  table, the last run and the locale file history, in that order. The metric row is
+  Needs attention, Waiting for review (the queue `App.tsx` already reads, passed to Overview only; N/A with a reason when `verbatra.provenance.json` is unreadable, never a green 0),
+  Avg coverage and Locales in sync; a failed read shows N/A with a check-failed hint, never a
+  loading caption. Coverage is sorted worst first, shows ten locales and a "Show all N locales"
+  button (focus moves to the first new row), pins the locale column (`sticky start-0`, opaque fill)
+  with the scroll hint above the card, and makes its scroll region a tab stop only on real
+  overflow. Each row links to `#/translations?locale=` and `#/review?locale=` through `routeHash`
+  in one trailing column: quiet links (table text, underline and a `-outline-offset-2` ring only on
+  hover and focus), a visible word plus an sr-only locale suffix, 44px tall below `md`. Failed reads (diff,
+  status, lock, review, usage, history)
+  collapse into one page-level `ErrorMessage`, placed above the metric tiles so it stays above the
+  fold, with the page's only Retry (`App.tsx` owns the one counter; it stays disabled until every
+  read that Retry started has answered), which states the server's own reason (`errorDetail`) and names the stale sources that
+  share its code plus the review queue, which has no section of its own. A section keeps its own
+  alert, without a Retry, only when it failed for a different code. A failed
+  refresh keeps the last diff, status, lock, usage and history with a stale notice. Figures
+  (`MetricCard` values, the coverage percentage and key counts) are set in sans with
+  `tabular-nums`, carry `data-figure`, and every number is `whitespace-nowrap`; mono is for
+  identifiers (keys, locale tags, hashes, paths, ids), which take `MonoValue` and `dir="ltr"`.
+  Text that is not focusable never gets a `title` or a `Tooltip`: it wraps (`break-words` or
+  `wrap-anywhere`) and shows its full value. Git text (commit subject, author, paths) takes
+  `dir="auto"`, and a commit date is visible text, formatted like the last run, inside
+  `<time datetime>`. Metric tiles stack below the named `xs` breakpoint (22.5rem, `@theme` in `styles.css`) and the
+  Last run tiles below `sm`, so a ten-digit token count never overflows its tile,
+  never an arbitrary pixel variant. A route change made by a link (header, in-page, search) scrolls
+  to the top once, from `link-scroll.ts`, for the navigation that link started and nothing else: a
+  held navigation scrolls when its own proceed runs, and back, forward, a replace or a cancelled
+  hold never scroll, however long the prompt stayed open. After a Retry in which every read answered and none failed,
+  focus moves to the metric row (`data-overview-recovery`) if it was lost, or back to the new Retry
+  when a slower read brings the banner back; a failed Retry keeps it on Retry and a later
+  background recovery never moves it. Every hold that ends without proceeding (Keep editing, or a
+  landing back on the position) drops a pending link mark. Translations is one `KeysTable` (the matrix of
   a status per locale, or one locale's entries with source, translation, status and origin) under
   `KeyFilters`, and keeps the editor; the glossary editor lives only on Glossary. Adding a page
   means adding it to `PAGE_IDS` and `PAGE_PARAMS` in `src/client/routes.ts` and to every one of

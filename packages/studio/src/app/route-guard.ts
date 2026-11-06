@@ -19,6 +19,20 @@ let position: number | null = null;
 let positionHash = "";
 let held: Held | null = null;
 let returning = false;
+const holdDroppedListeners = new Set<() => void>();
+
+function notifyHoldDropped(): void {
+  for (const listener of holdDroppedListeners) {
+    listener();
+  }
+}
+
+export function onHoldDropped(listener: () => void): () => void {
+  holdDroppedListeners.add(listener);
+  return () => {
+    holdDroppedListeners.delete(listener);
+  };
+}
 
 function readIdx(): number | null {
   const state: unknown = window.history.state;
@@ -104,6 +118,7 @@ function handleLanding(): void {
   if (!gone && idx === position) {
     if (held !== null) {
       held = null;
+      notifyHoldDropped();
       activeGuard?.onRelease?.();
     }
     return;
@@ -121,6 +136,9 @@ function handleLanding(): void {
 }
 
 export function restoreHeldRoute(): void {
+  if (held !== null) {
+    notifyHoldDropped();
+  }
   const target = held;
   held = null;
   if (target === null || position === null) {
@@ -176,13 +194,18 @@ export function installRouteGuard(guard: RouteGuard): () => void {
   };
 }
 
-export function routeChangeBlocked(next: string, kind: RouteWrite): boolean {
+export function routeChangeBlocked(
+  next: string,
+  kind: RouteWrite,
+  onProceed?: () => void,
+): boolean {
   const guard = activeGuard;
   if (guard === null || next === visibleHash() || !guard.isDirty()) {
     return false;
   }
   restoreHeldRoute();
   guard.onBlock(() => {
+    onProceed?.();
     writeRoute(kind, next);
     return Promise.resolve();
   });

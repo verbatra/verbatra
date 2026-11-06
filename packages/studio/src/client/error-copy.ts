@@ -95,3 +95,27 @@ export function resolveErrorCopy(error: StructuredError): string {
   }
   return copyForErrorCode(error.code) ?? error.message;
 }
+
+const DETAIL_CODES: ReadonlySet<string> = new Set([
+  "LOCK_FILE_INVALID",
+  "PROVENANCE_FILE_INVALID",
+  "SOURCE_UNREADABLE",
+  "SOURCE_INVALID",
+  "UNKNOWN_FORMAT",
+  "LOCALE_LAYOUT_INVALID",
+  "LOCALE_PATH_COLLISION",
+  "INVALID_JSON",
+  "INVALID_YAML",
+  "INVALID_XML",
+  "INVALID_STRUCTURE",
+  "MAX_DEPTH_EXCEEDED",
+  "INPUT_TOO_LARGE",
+  "MIXED_STRUCTURE",
+]);
+
+export function errorDetail(error: StructuredError): string | undefined {
+  if (!DETAIL_CODES.has(error.code) || error.message === "") {
+    return undefined;
+  }
+  return error.message === resolveErrorCopy(error) ? undefined : error.message;
+}

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
+import { formatTimestamp } from "../client/ui-format.js";
 import type { HistoryCommit } from "../shared/rpc/history.js";
 import { CommitList } from "./CommitList.js";
 import { render } from "./test-support.js";
@@ -105,13 +106,58 @@ describe("CommitList", () => {
       <CommitList state={{ kind: "loaded", commits: [COMMIT, second] }} emptyMessage="none" />,
     );
 
-    expect(view.all("ul:not([aria-label]) > li")).toHaveLength(2);
+    expect(view.all('ul[aria-label="Commits"] > li')).toHaveLength(2);
   });
 
   it("shows the commit subject as the row's lead line", () => {
     const view = render(<CommitList state={LOADED} emptyMessage="none" />);
 
-    expect(view.get("li p").textContent).toBe("chore(i18n): sync de and fr");
+    expect(view.get("[data-commit-subject]").textContent).toBe("chore(i18n): sync de and fr");
+  });
+
+  it("lets a long unbroken subject, author and path wrap inside the row", () => {
+    const long = "x".repeat(200);
+    const view = render(
+      <CommitList
+        state={{
+          kind: "loaded",
+          commits: [{ ...COMMIT, subject: long, author: long, touchedPaths: [`locales/${long}`] }],
+        }}
+        emptyMessage="none"
+      />,
+    );
+    const wrapping = [
+      view.get("[data-commit-subject]"),
+      view.get("[data-commit-author]"),
+      view.get('[aria-label="Files changed"] li'),
+    ];
+
+    for (const node of wrapping) {
+      expect(node.className).toContain("wrap-anywhere");
+    }
+  });
+
+  it("sets the direction of git text from its own content, so an Arabic subject reads right to left", () => {
+    const arabic: HistoryCommit = {
+      ...COMMIT,
+      subject: "تحديث ملفات الترجمة العربية",
+      author: "علي حسن",
+      touchedPaths: ["locales/ar/ملف.json"],
+    };
+    const view = render(
+      <CommitList state={{ kind: "loaded", commits: [arabic] }} emptyMessage="none" />,
+    );
+
+    expect(view.get("[data-commit-subject]").getAttribute("dir")).toBe("auto");
+    expect(view.get("[data-commit-author]").textContent).toBe("علي حسن");
+    expect(view.get('[aria-label="Files changed"] li').getAttribute("dir")).toBe("auto");
+  });
+
+  it("keeps the hash left to right and carries no native title anywhere", () => {
+    const view = render(<CommitList state={LOADED} emptyMessage="none" />);
+
+    expect(view.getByText("span", "0123456").getAttribute("dir")).toBe("ltr");
+    expect(view.query("[title]")).toBeNull();
   });
 
   it("shortens the hash to the conventional seven characters", () => {
@@ -120,20 +166,20 @@ describe("CommitList", () => {
     expect(view.getByText("span", "0123456")).not.toBeNull();
   });
 
-  it("shows the calendar date and keeps the full ISO author date as the hover title", () => {
+  it("shows the date and time as visible text in a time element that carries the full ISO date", () => {
     const view = render(<CommitList state={LOADED} emptyMessage="none" />);
-    const dateLabel = view.getByText("span", "2026-07-18");
+    const dateLabel = view.get("li time");
 
-    expect(dateLabel.getAttribute("title")).toBe("2026-07-18T09:41:12+02:00");
+    expect(dateLabel.textContent).toBe(formatTimestamp(COMMIT.authorDate));
+    expect(dateLabel.getAttribute("datetime")).toBe("2026-07-18T09:41:12+02:00");
+    expect(dateLabel.getAttribute("title")).toBeNull();
   });
 
   it("names the commit author after the date, so only the name wraps", () => {
     const view = render(<CommitList state={LOADED} emptyMessage="none" />);
-    const spans = [...view.get("li p + p").querySelectorAll("span")].map(
-      (span) => span.textContent,
-    );
+    const parts = [...view.get("[data-commit-meta]").children].map((node) => node.textContent);
 
-    expect(spans).toEqual(["0123456", "2026-07-18", "Ada Lovelace"]);
+    expect(parts).toEqual(["0123456", formatTimestamp(COMMIT.authorDate), "Ada Lovelace"]);
   });
 
   it("writes the author name as text, so a name shaped like markup never becomes markup", () => {
@@ -155,7 +201,7 @@ describe("CommitList", () => {
     );
 
     expect(view.query("img")).toBeNull();
-    expect(view.get("li p").textContent).toBe("<img src=x onerror=alert(1)>");
+    expect(view.get("[data-commit-subject]").textContent).toBe("<img src=x onerror=alert(1)>");
   });
 
   it("lists the files a commit touched under a named list", () => {
@@ -176,5 +222,26 @@ describe("CommitList", () => {
     );
 
     expect(view.query('[aria-label="Files changed"]')).toBeNull();
+  });
+
+  it("keeps the commits and says the history is the last known one when a re-read failed", () => {
+    const stale: HistoryState = {
+      kind: "loaded",
+      commits: [COMMIT],
+      staleError: { code: "INTERNAL", message: "git blew up" },
+    };
+
+    const view = render(<CommitList state={stale} emptyMessage="none" />);
+
+    expect(view.get('[role="alert"]').textContent).toContain("Showing the last known history.");
+    expect(view.all('ul[aria-label="Commits"] > li')).toHaveLength(1);
+  });
+
+  it("makes each commit row a programmatic focus target with a visible ring on keyboard focus", () => {
+    const view = render(<CommitList state={LOADED} emptyMessage="none" />);
+    const row = view.get('ul[aria-label="Commits"] > li');
+
+    expect(row.getAttribute("tabindex")).toBe("-1");
+    expect(row.className).toContain("focus-visible:outline-ring");
   });
 });

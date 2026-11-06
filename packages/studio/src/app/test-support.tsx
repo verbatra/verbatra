@@ -4,8 +4,9 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach } from "vitest";
 import { budgetTracking, createRateBudget, type RateBudget } from "../client/rate-budget.js";
 import type { ConnectionStatus } from "../client/reconnect.js";
+import type { ReviewQueueData } from "../client/review-queue-data.js";
 import type { RpcClient } from "../client/rpc-client.js";
-import type { SessionStore } from "../client/state.js";
+import type { RefreshableView, SessionStore, StructuredError } from "../client/state.js";
 import { createSessionStore } from "../client/state.js";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import type { AgentToolsStatusStore } from "../webmcp/registration-store.js";
@@ -365,6 +366,77 @@ export function callerClasses(button: HTMLElement): readonly string[] {
   return button.className.split(" ").filter((name) => name !== "" && !own.has(name));
 }
 
+export function metricCard(view: RenderResult, label: string): HTMLElement {
+  const card = view.all('[role="group"]').find((group) => {
+    const labelledBy = group.getAttribute("aria-labelledby");
+    const name = labelledBy === null ? null : document.getElementById(labelledBy);
+    return name?.textContent?.trim() === label;
+  });
+  if (card === undefined) {
+    throw new Error(`no metric card is named ${JSON.stringify(label)}`);
+  }
+  return card;
+}
+
+export function hasMetricCard(view: RenderResult, label: string): boolean {
+  return view.all('[role="group"]').some((group) => {
+    const labelledBy = group.getAttribute("aria-labelledby");
+    return document.getElementById(labelledBy ?? "")?.textContent?.trim() === label;
+  });
+}
+
+export function metricFigure(view: RenderResult, label: string): HTMLElement {
+  const figure = metricCard(view, label).querySelector<HTMLElement>("[data-metric-value]");
+  if (figure === null) {
+    throw new Error(`the ${JSON.stringify(label)} card has no figure`);
+  }
+  return figure;
+}
+
+export function metricValue(view: RenderResult, label: string): string {
+  return metricFigure(view, label).textContent ?? "";
+}
+
+export function metricHint(view: RenderResult, label: string): string | null {
+  return metricCard(view, label).querySelector("[data-metric-hint]")?.textContent ?? null;
+}
+
 export function arbitraryClasses(classes: readonly string[]): readonly string[] {
   return classes.filter((name) => name.includes("[") || name.includes("(--"));
+}
+
+export function reviewQueueView(waiting: number): RefreshableView<ReviewQueueData> {
+  const needsReview = Array.from({ length: waiting }, (_, index) => ({
+    key: `key.${index}`,
+    reasons: ["EQUALS_SOURCE" as const],
+    provenance: { origin: "machine" as const, reviewState: "unreviewed" as const },
+  }));
+  return {
+    kind: "data",
+    stale: false,
+    data: { available: true, locales: [{ locale: "de", needsReview }] },
+  } as RefreshableView<ReviewQueueData>;
+}
+
+export function unavailableQueueView(): RefreshableView<ReviewQueueData> {
+  return {
+    kind: "data",
+    stale: false,
+    data: { available: false, reason: "provenance-unreadable" },
+  };
+}
+
+export function failedQueueView(error: StructuredError): RefreshableView<ReviewQueueData> {
+  return { kind: "error", error };
+}
+
+export function answersInOrder(
+  results: readonly [StubRpcResult, ...StubRpcResult[]],
+): StubRpcHandler {
+  let index = 0;
+  return () => {
+    const answer = results[Math.min(index, results.length - 1)] ?? results[0];
+    index += 1;
+    return answer;
+  };
 }

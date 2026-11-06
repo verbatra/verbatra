@@ -1,5 +1,5 @@
 import { Card, Icon, type IconName, microLabelClassName, ProgressBar } from "@verbatra/ui";
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { cn } from "./lib/cn.js";
 
 const VALUE_TONE_CLASSNAME = {
@@ -7,6 +7,26 @@ const VALUE_TONE_CLASSNAME = {
   success: "text-success",
   danger: "text-danger",
 } as const;
+
+function atomicTokens(text: string): readonly { readonly at: number; readonly token: string }[] {
+  const tokens: { at: number; token: string }[] = [];
+  for (const match of text.matchAll(/\S+|\s+/g)) {
+    tokens.push({ at: match.index, token: match[0] });
+  }
+  return tokens;
+}
+
+function AtomicText({ text }: { readonly text: string }): ReactNode {
+  return atomicTokens(text).map(({ at, token }) =>
+    token.trim() === "" ? (
+      token
+    ) : (
+      <span key={at} className="whitespace-nowrap">
+        {token}
+      </span>
+    ),
+  );
+}
 
 export function MetricCard({
   label,
@@ -29,30 +49,35 @@ export function MetricCard({
   readonly progress?: number;
   readonly progressTone?: "primary" | "danger";
 }): ReactNode {
+  const labelId = useId();
   const valueClassName = cn(
-    "mt-2 tabular-nums",
-    quiet ? "text-base font-medium text-muted-foreground" : "font-mono text-2xl font-bold",
+    "mt-2 min-w-0 break-words tabular-nums",
+    quiet ? "text-base font-medium text-muted-foreground" : "text-2xl font-bold",
     quiet ? undefined : VALUE_TONE_CLASSNAME[tone],
   );
+  const isFigure = !quiet && typeof value === "string";
   return (
-    <Card padding="sm" className="min-w-0">
+    <Card padding="sm" className="min-w-0" role="group" aria-labelledby={labelId}>
       <div className="flex items-center justify-between gap-2">
-        <span className={microLabelClassName}>{label}</span>
+        <span id={labelId} className={cn(microLabelClassName, "min-w-0 break-words")}>
+          {label}
+        </span>
         {icon !== undefined ? (
           <span className="grid size-7 flex-none place-items-center rounded-sm bg-accent text-accent-foreground">
             <Icon name={icon} size={14} />
           </span>
         ) : null}
       </div>
-      {typeof value === "string" ? (
-        <div className={cn(valueClassName, "truncate")} title={value}>
-          {value}
-        </div>
-      ) : (
-        <div className={valueClassName}>{value}</div>
-      )}
+      <div
+        className={valueClassName}
+        data-metric-value=""
+        data-value-tone={tone}
+        data-figure={isFigure ? "" : undefined}
+      >
+        {isFigure ? <AtomicText text={value} /> : value}
+      </div>
       {hint !== undefined ? (
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-muted-foreground" data-metric-hint="">
           {hintHref !== undefined ? (
             <a
               href={hintHref}

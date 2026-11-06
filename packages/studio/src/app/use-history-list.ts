@@ -11,6 +11,7 @@ export type HistoryState =
       readonly kind: "loaded";
       readonly commits: readonly HistoryCommit[];
       readonly requestedLimit?: number | undefined;
+      readonly staleError?: StructuredError;
     };
 
 export function useHistoryList(refreshToken?: unknown, limit?: number): HistoryState {
@@ -23,7 +24,11 @@ export function useHistoryList(refreshToken?: unknown, limit?: number): HistoryS
         return;
       }
       if (!response.ok) {
-        setState({ kind: "error", error: response.error });
+        setState((previous) =>
+          previous.kind === "loaded"
+            ? { ...previous, staleError: response.error }
+            : { kind: "error", error: response.error },
+        );
         return;
       }
       if (!response.result.available) {

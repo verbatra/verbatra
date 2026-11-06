@@ -12,14 +12,35 @@ import { PageHeader } from "../PageHeader.js";
 function ProjectMetrics({ snapshot }: { readonly snapshot: ProjectSnapshotResult }): ReactNode {
   return (
     <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <MetricCard label="Source locale" value={snapshot.sourceLocale} />
+      <MetricCard
+        label="Source locale"
+        value={
+          <span dir="ltr" data-identifier="">
+            <MonoValue>{snapshot.sourceLocale}</MonoValue>
+          </span>
+        }
+      />
       <MetricCard
         label="Target locales"
         value={String(snapshot.targetLocales.length)}
         hint={snapshot.targetLocales.join(", ")}
       />
-      <MetricCard label="Format" value={<MonoValue breakAnywhere>{snapshot.format}</MonoValue>} />
-      <MetricCard label="Provider" value={snapshot.provider.id} />
+      <MetricCard
+        label="Format"
+        value={
+          <span dir="ltr" data-identifier="">
+            <MonoValue breakAnywhere>{snapshot.format}</MonoValue>
+          </span>
+        }
+      />
+      <MetricCard
+        label="Provider"
+        value={
+          <span dir="ltr" data-identifier="">
+            <MonoValue breakAnywhere>{snapshot.provider.id}</MonoValue>
+          </span>
+        }
+      />
     </div>
   );
 }

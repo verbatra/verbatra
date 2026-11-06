@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import {
   installRouteGuard,
+  onHoldDropped,
   ROUTE_CHANGE_EVENT,
   type RouteGuard,
   restoreHeldRoute,
@@ -285,6 +286,44 @@ describe("a stack with forward entries", () => {
     expect(goSpy).toHaveBeenCalledWith(-1);
   });
 
+  it("tells hold watchers when a hold is cancelled, and stops after they unsubscribe", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    const watcher = vi.fn();
+    const stop = onHoldDropped(watcher);
+
+    restoreHeldRoute();
+    stop();
+    restoreHeldRoute();
+
+    expect(watcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("tells hold watchers when a landing back on the position releases the hold", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    const watcher = vi.fn();
+    const stop = onHoldDropped(watcher);
+
+    userTraverses(1);
+    stop();
+
+    expect(onRelease).toHaveBeenCalledTimes(1);
+    expect(watcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not tell hold watchers when a held landing proceeds", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    userTraverses(-1);
+    const watcher = vi.fn();
+    const stop = onHoldDropped(watcher);
+
+    proceedOf(0)();
+    stop();
+
+    expect(watcher).not.toHaveBeenCalled();
+  });
+
   it("clears the hold and tells the guard when a landing returns to the position", () => {
     startOn(["#/a", "#/b", "#/c"], 2);
     userTraverses(-1);
@@ -502,6 +541,40 @@ describe("a held push or replace", () => {
     expect(window.history.length).toBe(length);
     expect(window.location.hash).toBe("#/c");
     expect(idx()).toBe(11);
+  });
+
+  it("runs the proceed callback only when a held push proceeds, before the route is written", () => {
+    startAt("#/a", "#/b");
+    dirty = true;
+    const seen: string[] = [];
+    const onProceed = vi.fn(() => seen.push(window.location.hash));
+
+    expect(routeChangeBlocked("#/c", "push", onProceed)).toBe(true);
+    expect(onProceed).not.toHaveBeenCalled();
+    proceedOf(0)();
+
+    expect(onProceed).toHaveBeenCalledTimes(1);
+    expect(seen).toEqual(["#/b"]);
+    expect(window.location.hash).toBe("#/c");
+  });
+
+  it("never runs the proceed callback of a change that is not held", () => {
+    startAt("#/a", "#/b");
+    const onProceed = vi.fn();
+
+    expect(routeChangeBlocked("#/c", "push", onProceed)).toBe(false);
+    expect(onProceed).not.toHaveBeenCalled();
+  });
+
+  it("tells hold watchers nothing when there was no hold to drop", () => {
+    startAt("#/a", "#/b");
+    const watcher = vi.fn();
+    const stop = onHoldDropped(watcher);
+
+    restoreHeldRoute();
+    stop();
+
+    expect(watcher).not.toHaveBeenCalled();
   });
 
   it("lets a change through while nothing is unsaved", () => {

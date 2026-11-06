@@ -2,48 +2,91 @@
 import { microLabelClassName } from "@verbatra/ui";
 import { describe, expect, it } from "vitest";
 import { MetricCard } from "./MetricCard.js";
-import { render } from "./test-support.js";
+import { metricCard, metricFigure, metricHint, render } from "./test-support.js";
+
+const LONG_LABEL = "Average coverage across every configured target locale of this project";
+const LONG_VALUE = "anthropic/claude-with-a-very-long-model-identifier-that-has-no-break-point";
 
 describe("MetricCard", () => {
-  it("renders the label as the micro-label eyebrow and the figure under it", () => {
+  it("names the card by its label and shows the figure under it", () => {
     const view = render(<MetricCard label="Missing keys" value="42" />);
 
-    expect(view.getByText("span", "Missing keys").className).toBe(microLabelClassName);
-    expect(view.getByText("div", "42")).not.toBeNull();
+    expect(metricCard(view, "Missing keys").getAttribute("role")).toBe("group");
+    expect(metricFigure(view, "Missing keys").textContent).toBe("42");
   });
 
-  it("truncates a string figure and repeats it in a title, so a long value stays readable", () => {
-    const view = render(<MetricCard label="Provider" value="anthropic/claude" />);
-    const figure = view.getByText("div", "anthropic/claude");
+  it("styles the label as the micro-label eyebrow", () => {
+    const view = render(<MetricCard label="Missing keys" value="42" />);
+    const labelId = metricCard(view, "Missing keys").getAttribute("aria-labelledby") ?? "";
 
-    expect(figure.className).toContain("truncate");
-    expect(figure.getAttribute("title")).toBe("anthropic/claude");
+    expect(document.getElementById(labelId)?.className).toContain(microLabelClassName);
   });
 
-  it("renders a non-string figure as-is, without truncation or a title", () => {
-    const view = render(<MetricCard label="Coverage" value={<span>98%</span>} />);
-    const figure = view.getByText("div", "98%");
+  it("lets a long label wrap instead of truncating it", () => {
+    const view = render(<MetricCard label={LONG_LABEL} value="3" icon="gauge" />);
+    const labelId = metricCard(view, LONG_LABEL).getAttribute("aria-labelledby") ?? "";
+    const label = document.getElementById(labelId);
 
+    expect(label?.className).toContain("break-words");
+    expect(label?.className).not.toContain("truncate");
+    expect(label?.className).toContain("min-w-0");
+  });
+
+  it("lets a long string figure wrap instead of truncating it, with no native title", () => {
+    const view = render(<MetricCard label="Provider" value={LONG_VALUE} />);
+    const figure = metricFigure(view, "Provider");
+
+    expect(figure.textContent).toBe(LONG_VALUE);
+    expect(figure.className).toContain("break-words");
     expect(figure.className).not.toContain("truncate");
+    expect(view.container.querySelector("[title]")).toBeNull();
+  });
+
+  it("marks a string figure as a figure set in tabular sans numerals, not mono", () => {
+    const view = render(<MetricCard label="Keys" value="1,234" />);
+    const figure = metricFigure(view, "Keys");
+
+    expect(figure.hasAttribute("data-figure")).toBe(true);
+    expect(figure.className).toContain("tabular-nums");
+    expect(figure.className).not.toContain("font-mono");
+  });
+
+  it("does not mark a node figure or a quiet reading as a figure", () => {
+    const view = render(
+      <>
+        <MetricCard label="Coverage" value={<span>98%</span>} />
+        <MetricCard label="Tokens" value="Not reported" quiet />
+      </>,
+    );
+
+    expect(metricFigure(view, "Coverage").hasAttribute("data-figure")).toBe(false);
+    expect(metricFigure(view, "Tokens").hasAttribute("data-figure")).toBe(false);
+  });
+
+  it("renders a non-string figure as-is, without a title", () => {
+    const view = render(<MetricCard label="Coverage" value={<span>98%</span>} />);
+    const figure = metricFigure(view, "Coverage");
+
+    expect(figure.textContent).toBe("98%");
     expect(figure.getAttribute("title")).toBeNull();
   });
 
   it("tints only the figure for the default tone, leaving the label muted", () => {
     const view = render(<MetricCard label="Keys" value="12" />);
 
-    expect(view.getByText("div", "12").className).toContain("text-foreground");
+    expect(metricFigure(view, "Keys").className).toContain("text-foreground");
   });
 
   it("tints the figure for an all-clear reading", () => {
     const view = render(<MetricCard label="Failures" value="0" tone="success" />);
 
-    expect(view.getByText("div", "0").className).toContain("text-success");
+    expect(metricFigure(view, "Failures").dataset.valueTone).toBe("success");
   });
 
   it("tints the figure for an alarming reading", () => {
     const view = render(<MetricCard label="Failures" value="7" tone="danger" />);
 
-    expect(view.getByText("div", "7").className).toContain("text-danger");
+    expect(metricFigure(view, "Failures").dataset.valueTone).toBe("danger");
   });
 
   it("renders a decorative glyph when an icon is named", () => {
@@ -63,25 +106,25 @@ describe("MetricCard", () => {
   it("renders the hint line under the figure when one is given", () => {
     const view = render(<MetricCard label="Budget" value="12" hint="of 100 requests" />);
 
-    expect(view.getByText("p", "of 100 requests")).not.toBeNull();
+    expect(metricHint(view, "Budget")).toBe("of 100 requests");
   });
 
   it("renders no hint line when none is given", () => {
     const view = render(<MetricCard label="Budget" value="12" />);
 
-    expect(view.query("p")).toBeNull();
+    expect(metricHint(view, "Budget")).toBeNull();
   });
 
   it("renders a meter at the given percentage when progress is set", () => {
     const view = render(<MetricCard label="Budget" value="60" progress={60} />);
-    const fill = view.all("span").at(-1);
+    const fill = metricCard(view, "Budget").querySelector<HTMLElement>("[data-tone]");
 
     expect(fill?.style.width).toBe("60%");
   });
 
   it("uses the primary meter tone by default", () => {
     const view = render(<MetricCard label="Budget" value="60" progress={60} />);
-    const fill = view.all("span").at(-1);
+    const fill = metricCard(view, "Budget").querySelector<HTMLElement>("[data-tone]");
 
     expect(fill?.dataset.tone).toBe("primary");
   });
@@ -90,7 +133,7 @@ describe("MetricCard", () => {
     const view = render(
       <MetricCard label="Budget" value="120" progress={120} progressTone="danger" />,
     );
-    const fill = view.all("span").at(-1);
+    const fill = metricCard(view, "Budget").querySelector<HTMLElement>("[data-tone]");
 
     expect(fill?.dataset.tone).toBe("danger");
   });
@@ -98,7 +141,7 @@ describe("MetricCard", () => {
   it("renders no meter when progress is absent", () => {
     const view = render(<MetricCard label="Budget" value="12" />);
 
-    expect(view.query("[aria-hidden='true']")).toBeNull();
+    expect(metricCard(view, "Budget").querySelector("[data-tone]")).toBeNull();
   });
 
   it("turns the hint into a link when the caller gives an address", () => {
@@ -109,11 +152,22 @@ describe("MetricCard", () => {
     expect(view.get('a[href="#/x"]').textContent).toBe("2 keys");
   });
 
-  it("renders a quiet figure smaller and muted, with no mono weight", () => {
+  it("renders a quiet figure smaller and muted, with no bold weight", () => {
     const view = render(<MetricCard label="Tokens" value="Not reported" quiet />);
-    const figure = view.getByText("div", "Not reported");
+    const figure = metricFigure(view, "Tokens");
 
     expect(figure.className).toContain("text-muted-foreground");
     expect(figure.className).not.toContain("font-bold");
+  });
+
+  it("keeps every number of a figure whole, wrapping only between numbers", () => {
+    const view = render(<MetricCard label="Budget" value="2,222,222,211 / 2,000,000,000" />);
+    const atoms = [...metricFigure(view, "Budget").querySelectorAll("span")];
+
+    expect(atoms.map((atom) => atom.textContent)).toEqual(["2,222,222,211", "/", "2,000,000,000"]);
+    for (const atom of atoms) {
+      expect(atom.className).toContain("whitespace-nowrap");
+    }
+    expect(metricFigure(view, "Budget").textContent).toBe("2,222,222,211 / 2,000,000,000");
   });
 });

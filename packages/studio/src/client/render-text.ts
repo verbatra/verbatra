@@ -1,4 +1,5 @@
 import type { HistoryCommit } from "../shared/rpc/history.js";
+import { formatTimestamp } from "./ui-format.js";
 
 export interface TextTarget {
   textContent: string | null;
@@ -20,7 +21,7 @@ export function commitSummaryParts(commit: HistoryCommit): CommitSummaryParts {
   return {
     shortHash: commit.hash.slice(0, 7),
     author: commit.author,
-    dateLabel: commit.authorDate.slice(0, 10),
+    dateLabel: formatTimestamp(commit.authorDate),
     authorDate: commit.authorDate,
     subject: commit.subject,
   };
