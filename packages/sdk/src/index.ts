@@ -73,6 +73,8 @@ export {
   type FlatParseOutcome,
   type FlatParseResult,
   type FormatAdapter,
+  type IcuSegment,
+  type IcuSegmentKind,
   type JsonLeaf,
   type JsonRecord,
   type JsonTree,
@@ -292,6 +294,15 @@ export {
   type LocaleHistoryUnavailableReason,
 } from "./flow/git-log.js";
 export {
+  ICU_PREVIEW_MAX_ROWS,
+  type IcuPreviewAxis,
+  type IcuPreviewFailure,
+  type IcuPreviewInput,
+  type IcuPreviewResult,
+  type IcuPreviewRow,
+  previewIcuMessage,
+} from "./flow/icu-preview.js";
+export {
   INTEGRITY_GATE_REASONS,
   type IntegrityGateReason,
 } from "./flow/integrity-gate.js";
@@ -365,7 +376,12 @@ export {
   type LockStateResult,
   lockState,
 } from "./flow/lock-state.js";
-export type { UnresolvedArgumentReason } from "./flow/message-arguments.js";
+export type {
+  MessageArguments,
+  MessageArgumentType,
+  NamedMessageArgument,
+  UnresolvedArgumentReason,
+} from "./flow/message-arguments.js";
 export type { IncompletePlural } from "./flow/plural-completeness.js";
 export {
   PROVENANCE_BUCKETS,

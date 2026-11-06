@@ -37,7 +37,6 @@ export {
   type IcuVariationAxis,
   icuVariationAxes,
 } from "./icu/axes.js";
-export { type IcuRefusal, icuRefusal } from "./icu/limits.js";
 export {
   type IcuRenderArguments,
   type IcuRenderFailure,

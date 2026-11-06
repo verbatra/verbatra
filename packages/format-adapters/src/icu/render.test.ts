@@ -186,6 +186,7 @@ describe("renderIcuMessage segments", () => {
     );
     expect(result).toEqual({
       valid: true,
+      locale: "en",
       segments: [
         { kind: "text", text: "Hi " },
         { kind: "tag", text: "<b>" },
@@ -200,13 +201,18 @@ describe("renderIcuMessage segments", () => {
 
   it("merges adjacent literal runs", () => {
     const result = renderIcuMessage("a'{'b", "en", {});
-    expect(result).toEqual({ valid: true, segments: [{ kind: "text", text: "a{b" }] });
+    expect(result).toEqual({
+      valid: true,
+      locale: "en",
+      segments: [{ kind: "text", text: "a{b" }],
+    });
   });
 
   it("keeps a hostile tag as inert text", () => {
     const result = renderIcuMessage("<script>alert(1)</script>", "en", {});
     expect(result).toEqual({
       valid: true,
+      locale: "en",
       segments: [
         { kind: "tag", text: "<script>" },
         { kind: "text", text: "alert(1)" },

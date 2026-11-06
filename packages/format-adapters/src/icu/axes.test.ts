@@ -39,10 +39,10 @@ describe("icuVariationAxes", () => {
     expect(axes?.[1]?.exact).toEqual([0]);
   });
 
-  it("answers undefined for an invalid or refused message", () => {
-    expect(icuVariationAxes("{n, plural, one {x}}")).toBeUndefined();
-    expect(icuVariationAxes("{")).toBeUndefined();
-    expect(icuVariationAxes(`{a}${"x".repeat(ICU_MAX_VALUE_LENGTH)}`)).toBeUndefined();
-    expect(icuVariationAxes("{".repeat(40))).toBeUndefined();
+  it("finds nothing in an invalid or refused message", () => {
+    expect(icuVariationAxes("{n, plural, one {x}}")).toEqual([]);
+    expect(icuVariationAxes("{")).toEqual([]);
+    expect(icuVariationAxes(`{a}${"x".repeat(ICU_MAX_VALUE_LENGTH)}`)).toEqual([]);
+    expect(icuVariationAxes("{".repeat(40))).toEqual([]);
   });
 });

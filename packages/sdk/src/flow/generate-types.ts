@@ -10,6 +10,7 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import {
   describeIcuMessageArguments,
   describeMessageArguments,
+  isIcuMessageFormat,
   type MessageArguments,
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
@@ -223,10 +224,8 @@ async function refuseLinkedOutput(
   }
 }
 
-const ICU_MESSAGE_FORMATS: ReadonlySet<FormatId> = new Set(["next-intl-json", "arb"]);
-
 function argumentsOf(entry: TranslationEntry, format: FormatId): MessageArguments {
-  return ICU_MESSAGE_FORMATS.has(format)
+  return isIcuMessageFormat(format)
     ? describeIcuMessageArguments(entry.value)
     : describeMessageArguments(entry.placeholders);
 }

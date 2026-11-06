@@ -1,14 +1,26 @@
+import type { FormatId } from "@verbatra/core";
 import {
   type IcuArgumentKind,
   type IcuMessageArgument,
   icuMessageArguments,
 } from "@verbatra/format-adapters";
 
+const ICU_MESSAGE_FORMATS: ReadonlySet<FormatId> = new Set(["next-intl-json", "arb"]);
+
+export function isIcuMessageFormat(format: FormatId): boolean {
+  return ICU_MESSAGE_FORMATS.has(format);
+}
+
+/** The kind of value a message argument takes, as far as verbatra can tell from the message. */
 export type MessageArgumentType = "string" | "number" | "date" | "unknown" | "date-or-string";
 
+/** One named argument of a message. */
 export interface NamedMessageArgument {
+  /** The argument's name as written in the message. */
   readonly name: string;
+  /** The value type the argument takes. */
   readonly type: MessageArgumentType;
+  /** True when some arm of the message omits the argument, so a caller may leave it out. */
   readonly optional?: boolean;
 }
 
@@ -27,6 +39,10 @@ export type UnresolvedArgumentReason =
   | "mixed-argument-styles"
   | "argument-index-out-of-range";
 
+/**
+ * The arguments a message takes, by style: `none`, `named` (`{name}`), `positional` (`{0}` or
+ * `%s`), or `unresolved` when verbatra declined to describe them, with the reason.
+ */
 export type MessageArguments =
   | {
       readonly style: "none";

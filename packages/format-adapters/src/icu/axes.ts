@@ -83,11 +83,8 @@ function walk(elements: readonly MessageFormatElement[], axes: Map<string, Mutab
   }
 }
 
-export function icuVariationAxes(value: string): readonly IcuVariationAxis[] | undefined {
-  if (icuRefusal(value) !== undefined) {
-    return undefined;
-  }
-  if (!value.includes("{")) {
+export function icuVariationAxes(value: string): readonly IcuVariationAxis[] {
+  if (icuRefusal(value) !== undefined || !value.includes("{")) {
     return [];
   }
   try {
@@ -95,6 +92,6 @@ export function icuVariationAxes(value: string): readonly IcuVariationAxis[] | u
     walk(parse(value), axes);
     return [...axes.values()];
   } catch {
-    return undefined;
+    return [];
   }
 }

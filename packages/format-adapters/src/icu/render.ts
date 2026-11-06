@@ -30,7 +30,7 @@ export type IcuRenderArguments = Readonly<Record<string, IcuSampleValue>>;
 export type IcuRenderFailure = IcuRefusal | "invalid-message" | "unsupported-locale" | "too-large";
 
 export type IcuRenderResult =
-  | { readonly valid: true; readonly segments: readonly IcuSegment[] }
+  | { readonly valid: true; readonly locale: string; readonly segments: readonly IcuSegment[] }
   | { readonly valid: false; readonly reason: IcuRenderFailure };
 
 export const ICU_SAMPLE_INSTANT = Date.UTC(2024, 2, 15, 14, 30, 45);
@@ -346,5 +346,5 @@ export function renderIcuMessage(
   renderElements(context, ast, undefined);
   return context.remaining < 0
     ? { valid: false, reason: "too-large" }
-    : { valid: true, segments: context.segments };
+    : { valid: true, locale: resolved, segments: context.segments };
 }
