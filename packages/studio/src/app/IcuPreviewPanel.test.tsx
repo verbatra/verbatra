@@ -1285,6 +1285,34 @@ describe("IcuPreviewPanel reserved refusal height", () => {
   });
 });
 
+describe("IcuPreviewPanel refusal announcement", () => {
+  it("announces the active refusal and keeps the reserved copies silent", async () => {
+    stubRpc({ "key.previewIcu": refusal("invalid-message") });
+    const view = await renderAsync(panel("{"));
+
+    await openPanel(view);
+
+    const active = view.get("[data-icu-refusal]");
+    expect(active.getAttribute("role")).toBe("status");
+    expect(active.getAttribute("aria-hidden")).toBeNull();
+    const silent = view.all("[data-icu-notice] > div").filter((node) => node !== active);
+    expect(silent.every((node) => node.getAttribute("role") === null)).toBe(true);
+  });
+
+  it("has no refusal region while the draft is valid", async () => {
+    stubRpc({ "key.previewIcu": validAnswer([{ text: "x" }]) });
+    const view = await renderAsync(panel("x"));
+
+    await openPanel(view);
+
+    expect(
+      view
+        .all('[data-icu-notice] [role="status"]')
+        .map((node) => node.hasAttribute("data-icu-status")),
+    ).toEqual([true]);
+  });
+});
+
 describe("IcuPreviewPanel mounting", () => {
   it("does not read before it is rendered open", () => {
     stubRpc({});

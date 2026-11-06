@@ -233,6 +233,7 @@ function NoticeBlock({
         return (
           <div
             key={reason}
+            role={active ? "status" : undefined}
             className={cn("col-start-1 row-start-1 min-w-0", !active && "invisible")}
             aria-hidden={active ? undefined : true}
             data-icu-refusal={active ? reason : undefined}

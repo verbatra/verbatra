@@ -405,6 +405,18 @@ describe("unusedSamples", () => {
     expect([...unusedSamples(fields, { n: 1234.5 }, [row(null, false, formatted)])]).toEqual([]);
   });
 
+  it.each(["ar-EG", "fa", "bn", "mr", "hi", "de", "en"])(
+    "does not flag a number argument shown in the digits and grouping of %s",
+    (locale) => {
+      const shown: IcuPreviewRow["segments"] = [
+        { kind: "argument", text: new Intl.NumberFormat(locale).format(1234.5) },
+      ];
+
+      expect([...unusedSamples(fields, { n: 1234.5 }, [row(null, false, shown)])]).toEqual([]);
+      expect([...unusedSamples(fields, { n: 7 }, [row(null, false, shown)])]).toEqual(["n"]);
+    },
+  );
+
   it("says nothing about a field with no typed value, and nothing without any args", () => {
     expect(unusedSamples(fields, undefined, [row("n", false)]).size).toBe(0);
     expect(unusedSamples(fields, { who: "x" }, []).has("n")).toBe(false);

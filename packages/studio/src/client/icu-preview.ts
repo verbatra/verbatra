@@ -192,9 +192,54 @@ export function groupRows(rows: readonly IcuPreviewRow[]): readonly RowGroup[] {
 
 export const SAMPLE_UNUSED_COPY = "Not used by this text.";
 
-function argumentTextHas(rows: readonly IcuPreviewRow[], needle: string): boolean {
+const NUMBERING_SYSTEMS = [
+  "arab",
+  "arabext",
+  "beng",
+  "deva",
+  "gujr",
+  "guru",
+  "khmr",
+  "knda",
+  "laoo",
+  "mlym",
+  "mymr",
+  "orya",
+  "tamldec",
+  "telu",
+  "thai",
+  "tibt",
+  "fullwide",
+];
+
+function digitMap(): ReadonlyMap<string, string> {
+  const map = new Map<string, string>();
+  for (const system of NUMBERING_SYSTEMS) {
+    try {
+      const digits = new Intl.NumberFormat(`en-u-nu-${system}`, { useGrouping: false }).format(
+        1234567890,
+      );
+      for (const [index, digit] of [...digits].entries()) {
+        map.set(digit, String((index + 1) % 10));
+      }
+    } catch {}
+  }
+  return map;
+}
+
+const LOCALE_DIGITS = digitMap();
+
+function withAsciiDigits(text: string): string {
+  return text.replace(/\p{Nd}/gu, (digit) => LOCALE_DIGITS.get(digit) ?? digit);
+}
+
+function argumentTextHas(rows: readonly IcuPreviewRow[], needle: string, digits = false): boolean {
   return rows.some((row) =>
-    row.segments.some((segment) => segment.kind === "argument" && segment.text.includes(needle)),
+    row.segments.some(
+      (segment) =>
+        segment.kind === "argument" &&
+        (digits ? withAsciiDigits(segment.text) : segment.text).includes(needle),
+    ),
   );
 }
 
@@ -210,7 +255,7 @@ function plainValueUsed(
   if (field.type === "string" || field.type === "unknown") {
     return argumentTextHas(rows, String(value));
   }
-  return field.type !== "number" || argumentTextHas(rows, leadingDigit(value));
+  return field.type !== "number" || argumentTextHas(rows, leadingDigit(value), true);
 }
 
 export function unusedSamples(
