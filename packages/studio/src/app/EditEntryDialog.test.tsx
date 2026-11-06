@@ -838,6 +838,19 @@ describe("EditEntryDialog", () => {
   });
 });
 
+function promptButton(
+  view: { get(selector: string): HTMLElement },
+  name: "Save" | "Discard" | "Keep editing",
+): HTMLElement {
+  const found = Array.from(view.get("[data-unsaved-prompt]").querySelectorAll("button")).find(
+    (button) => button.textContent === name,
+  );
+  if (found === undefined) {
+    throw new Error(`no ${name} button in the prompt`);
+  }
+  return found;
+}
+
 describe("EditEntryDialog: an unsaved draft", () => {
   const CLOSE = `button[aria-label="Close the editor for ${KEY}"]`;
 
@@ -917,7 +930,7 @@ describe("EditEntryDialog: an unsaved draft", () => {
     const view = await dirtyDialog(onAccepted);
     pressKey("Escape");
 
-    await clickAsync(view.get("[data-unsaved-prompt]").querySelector("button") as HTMLElement);
+    await clickAsync(promptButton(view, "Save"));
     await flush();
 
     expect(rpcCalls).toContainEqual({
@@ -937,7 +950,7 @@ describe("EditEntryDialog: an unsaved draft", () => {
     typeInto(editor(view), "Hallo");
     pressKey("Escape");
 
-    await clickAsync(view.get("[data-unsaved-prompt]").querySelector("button") as HTMLElement);
+    await clickAsync(promptButton(view, "Save"));
     await flush();
 
     expect(onAccepted).not.toHaveBeenCalled();
@@ -1016,12 +1029,11 @@ describe("EditEntryDialog: an unsaved draft", () => {
     const view = await renderAsync(dialog(vi.fn(), onClose));
     typeInto(editor(view), "Guten Tag");
     pressKey("Escape");
-    const promptButtons = view.get("[data-unsaved-prompt]").querySelectorAll("button");
-    const save = promptButtons[0] as HTMLElement;
+    const save = promptButton(view, "Save");
     save.focus();
 
     await clickAsync(save);
-    click(promptButtons[1] as HTMLElement);
+    click(promptButton(view, "Discard"));
     pressKey("Escape");
     click(view.get("[data-backdrop]"));
 
@@ -1044,13 +1056,29 @@ describe("EditEntryDialog: an unsaved draft", () => {
     typeInto(editor(view), "Hallo");
     pressKey("Escape");
 
-    await clickAsync(view.get("[data-unsaved-prompt]").querySelector("button") as HTMLElement);
+    await clickAsync(promptButton(view, "Save"));
     await flush();
 
     const reason = view.get("[data-unsaved-prompt] [role='alert']").textContent ?? "";
     expect(reason).not.toBe("");
     expect((view.get('[role="dialog"]').textContent ?? "").split(reason).length - 1).toBe(1);
     expect(editor(view).style.getPropertyValue("scroll-margin-top")).toBe("8px");
+    expect(document.activeElement).toBe(editor(view));
+  });
+
+  it("leaves the field where it is after a rejected save when no prompt is open", async () => {
+    stubRpc({
+      "key.context": keyValue("Hello {name}", "Hallo {name}"),
+      "translation.editEntry": rejected("placeholder" as IntegrityGateReason, "Hallo"),
+    });
+    const view = await renderAsync(dialog());
+    typeInto(editor(view), "Hallo");
+
+    await clickAsync(saveButton(view));
+    await flush();
+
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(editor(view).style.getPropertyValue("scroll-margin-top")).toBe("");
     expect(document.activeElement).toBe(editor(view));
   });
 });

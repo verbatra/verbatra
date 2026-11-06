@@ -6,6 +6,7 @@ import {
   type RouteGuard,
   restoreHeldRoute,
   routeChangeBlocked,
+  routeGuardBusy,
   setUnloadWarning,
   visibleHash,
   writeRoute,
@@ -113,6 +114,22 @@ describe("a stack with forward entries", () => {
     expect(visibleHash()).toBe("#/b");
     expect(window.location.hash).toBe("#/b");
     expect(goSpy).not.toHaveBeenCalled();
+  });
+
+  it("is busy while a draft is dirty or a hold is open, and idle otherwise", () => {
+    startOn(["#/a", "#/b", "#/c"], 2);
+    dirty = false;
+    expect(routeGuardBusy()).toBe(false);
+
+    dirty = true;
+    expect(routeGuardBusy()).toBe(true);
+
+    userTraverses(-1);
+    dirty = false;
+    expect(routeGuardBusy()).toBe(true);
+
+    uninstall();
+    expect(routeGuardBusy()).toBe(false);
   });
 
   it("announces nothing when the guard goes with no hold open", () => {

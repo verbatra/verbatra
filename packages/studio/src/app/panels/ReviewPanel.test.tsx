@@ -2615,3 +2615,115 @@ describe("ReviewPanel: a draft while the review state breaks", () => {
     expect(view.query('[role="dialog"]')).not.toBeNull();
   });
 });
+
+describe("ReviewPanel: background URL cleanup while a draft is open", () => {
+  const WITHOUT_DE: ReviewQueueResult = {
+    available: true,
+    locales: [
+      { locale: "fr", needsReview: [{ key: "cart.badge", reasons: [], provenance: MACHINE }] },
+    ],
+  };
+
+  async function dirtyDeepLinkedEditor(): Promise<RenderResult> {
+    window.history.replaceState({ idx: 0 }, "", "#/review?locale=de");
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await openEditor(view, "checkout.title");
+    await flush();
+    const field = view.get('[role="dialog"] textarea') as HTMLTextAreaElement;
+    field.focus();
+    typeInto(field, "my draft");
+    return view;
+  }
+
+  async function reloadWithoutDe(view: RenderResult): Promise<void> {
+    stubRpc({
+      "review.queue": queueAnswer(WITHOUT_DE),
+      "locale.values": { ok: true, result: LOCALE_VALUES },
+    });
+    view.rerender(<ReviewPanel refreshToken={1} />);
+    await flush();
+  }
+
+  it("raises no prompt, moves no focus and keeps the keystrokes when a reload drops the URL's locale", async () => {
+    const view = await dirtyDeepLinkedEditor();
+
+    await reloadWithoutDe(view);
+
+    const field = view.get('[role="dialog"] textarea') as HTMLTextAreaElement;
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(document.activeElement).toBe(field);
+    expect(field.value).toBe("my draft");
+    expect(window.location.hash).toContain("locale=de");
+  });
+
+  it("cleans the URL once the dialog closes", async () => {
+    const view = await dirtyDeepLinkedEditor();
+    await reloadWithoutDe(view);
+
+    pressKey("Escape");
+    click(view.getByText("button", "Discard"));
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(window.location.hash).not.toContain("locale=");
+  });
+
+  it("keeps a held Back alive across the reload and lands Discard on its target", async () => {
+    const view = await dirtyDeepLinkedEditor();
+    act(() => {
+      window.history.pushState({ idx: 1 }, "", "#/overview");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+
+    await reloadWithoutDe(view);
+
+    expect(view.query("[data-unsaved-prompt]")).not.toBeNull();
+    expect(window.location.hash).toBe("#/overview");
+    click(view.getByText("button", "Discard"));
+    await flush();
+    expect(window.location.hash).toBe("#/overview");
+    expect(view.query('[role="dialog"]')).toBeNull();
+  });
+
+  it("still cleans a stale locale at once when no draft is open", async () => {
+    window.history.replaceState(null, "", "#/review?locale=xx");
+    stubReview();
+    await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(window.location.hash).not.toContain("locale=");
+  });
+});
+
+describe("ReviewPanel: the unavailable view", () => {
+  it("gives focus to the unavailable message when the editor closes on it", async () => {
+    stubReview();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await openEditor(view, "checkout.title");
+    await flush();
+    stubReview({ available: false, reason: "provenance-unreadable" });
+    view.rerender(<ReviewPanel refreshToken={1} />);
+    await flush();
+
+    pressKey("Escape");
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(view.get("[data-unavailable]"));
+  });
+
+  it("keeps a focused filter-bar control focused when a settled batch asks for focus", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    pressKey("j");
+    pressKey("x");
+    const chip = stateChip(view, "approved");
+    chip.focus();
+
+    click(view.getByText("button", "Clear selection"));
+    await flush();
+
+    expect(document.activeElement).toBe(chip);
+  });
+});

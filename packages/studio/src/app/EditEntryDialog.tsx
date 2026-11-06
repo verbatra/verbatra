@@ -177,10 +177,10 @@ export function EditEntryDialog({
     revealRef.current = revealField;
   });
   useEffect(() => {
-    if (rejected) {
+    if (rejected && confirming) {
       revealRef.current();
     }
-  }, [rejected, submit]);
+  }, [rejected, confirming, submit]);
 
   async function handleSubmit(): Promise<void> {
     if (await edit.save(locale)) {
@@ -189,7 +189,7 @@ export function EditEntryDialog({
       void proceed?.();
       return;
     }
-    revealField();
+    textAreaRef.current?.focus();
   }
 
   const recoveredRef = useRef(false);

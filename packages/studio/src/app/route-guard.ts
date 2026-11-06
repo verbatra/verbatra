@@ -176,6 +176,10 @@ export function installRouteGuard(guard: RouteGuard): () => void {
   };
 }
 
+export function routeGuardBusy(): boolean {
+  return held !== null || activeGuard?.isDirty() === true;
+}
+
 export function routeChangeBlocked(next: string, kind: RouteWrite): boolean {
   const guard = activeGuard;
   if (guard === null || next === visibleHash() || !guard.isDirty()) {

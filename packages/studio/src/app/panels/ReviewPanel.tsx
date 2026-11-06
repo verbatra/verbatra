@@ -1,6 +1,6 @@
 import { Button, EmptyState, TableSkeleton } from "@verbatra/ui";
 import type { ReactNode, RefObject } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { localeValuesOrEmpty, valuesIndex } from "../../client/locale-values.js";
 import { canRetranslateReviewed } from "../../client/retranslate-eligibility.js";
 import {
@@ -38,6 +38,7 @@ import {
 } from "../ReviewFilterBar.js";
 import type { RowBusy } from "../ReviewRowActions.js";
 import { ReviewTable, type RowActions } from "../ReviewTable.js";
+import { routeGuardBusy } from "../route-guard.js";
 import { type BulkSelection, useBulkSelection } from "../use-bulk-selection.js";
 import { useCapabilities } from "../use-capabilities.js";
 import { useLocaleValues } from "../use-locale-values.js";
@@ -70,7 +71,7 @@ function EmptyFocusTarget({
   children,
 }: {
   readonly clearRef: RefObject<HTMLDivElement | null>;
-  readonly marker: "data-all-clear" | "data-no-match";
+  readonly marker: "data-all-clear" | "data-no-match" | "data-unavailable";
   readonly children: ReactNode;
 }): ReactNode {
   return (
@@ -227,6 +228,41 @@ function knownReviewLocale(locale: string | undefined, rows: readonly ReviewQueu
   return rows.length === 0 || uniqueReviewLocales(rows).includes(locale) ? locale : "";
 }
 
+function isUnavailable(view: ReturnType<typeof useReviewQueue>): boolean {
+  return view.kind === "error" || (view.kind === "data" && !view.data.available);
+}
+
+function useDeferredLocaleCleanup(
+  urlLocale: string | undefined,
+  knownLocale: string,
+  editorOpen: boolean,
+  clean: () => void,
+): void {
+  const cleanRef = useRef(clean);
+  useLayoutEffect(() => {
+    cleanRef.current = clean;
+  });
+  useEffect(() => {
+    if (urlLocale !== undefined && knownLocale === "" && !editorOpen && !routeGuardBusy()) {
+      cleanRef.current();
+    }
+  }, [urlLocale, knownLocale, editorOpen]);
+}
+
+function useFocusAfterEditor(
+  editorOpen: boolean,
+  unavailable: boolean,
+  target: RefObject<HTMLElement | null>,
+): void {
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !editorOpen && unavailable) {
+      target.current?.focus();
+    }
+    wasOpen.current = editorOpen;
+  }, [editorOpen, unavailable, target]);
+}
+
 function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const [reloadToken, setReloadToken] = useState(0);
   const view = useReviewQueue(refreshToken, reloadToken);
@@ -262,11 +298,9 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const rows = view.kind === "data" ? flattenReviewQueue(view.data) : [];
   const urlLocale = knownReviewLocale(params.locale, rows);
   const facets: ReviewFacets = { ...localFacets, locale: urlLocale };
-  useEffect(() => {
-    if (params.locale !== undefined && urlLocale === "") {
-      setParams(routeParams({}));
-    }
-  }, [params.locale, urlLocale, setParams]);
+  useDeferredLocaleCleanup(params.locale, urlLocale, editing !== null, () =>
+    setParams(routeParams({})),
+  );
   const setFacets = (next: ReviewFacets): void => {
     setLocalFacets({ origin: next.origin, reviewState: next.reviewState });
     if (next.locale !== urlLocale) {
@@ -288,6 +322,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
     setApprovingLocale,
   );
   const clearRef = useRef<HTMLDivElement | null>(null);
+  useFocusAfterEditor(editing !== null, isUnavailable(view), clearRef);
   const active = useActiveRow(filtered);
   const settledFocus = useSettledFocus(
     view.kind === "data" &&
@@ -369,7 +404,9 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   if (view.kind === "error") {
     return (
       <div>
-        <ErrorMessage error={view.error} />
+        <EmptyFocusTarget clearRef={clearRef} marker="data-unavailable">
+          <ErrorMessage error={view.error} />
+        </EmptyFocusTarget>
         {dialogs}
       </div>
     );
@@ -377,10 +414,12 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   if (!view.data.available) {
     return (
       <div>
-        <EmptyState icon="review" title="Review state cannot be read">
-          <code>verbatra.provenance.json</code> is corrupt or was written by a newer verbatra.
-          Restore it from version control or upgrade verbatra.
-        </EmptyState>
+        <EmptyFocusTarget clearRef={clearRef} marker="data-unavailable">
+          <EmptyState icon="review" title="Review state cannot be read">
+            <code>verbatra.provenance.json</code> is corrupt or was written by a newer verbatra.
+            Restore it from version control or upgrade verbatra.
+          </EmptyState>
+        </EmptyFocusTarget>
         {dialogs}
       </div>
     );
