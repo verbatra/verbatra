@@ -281,7 +281,23 @@ export {
   type UnresolvedMessage,
 } from "./flow/generate-types.js";
 export { generateTypesResultSchema } from "./flow/generate-types-schema.js";
-export type { GitExecFile, GitExecFileResult } from "./flow/git-exec.js";
+export {
+  LOCALE_GIT_DIFF_MAX_ENTRIES,
+  LOCALE_GIT_DIFF_MAX_VALUE_CHARS,
+  type LocaleGitDiffChange,
+  type LocaleGitDiffDeps,
+  type LocaleGitDiffEntry,
+  type LocaleGitDiffInput,
+  type LocaleGitDiffResult,
+  type LocaleGitDiffState,
+  localeGitDiff,
+} from "./flow/git-diff.js";
+export {
+  type GitExecFile,
+  type GitExecFileResult,
+  LOCALE_GIT_MAX_OUTPUT_BYTES,
+  LOCALE_GIT_TIMEOUT_MS,
+} from "./flow/git-exec.js";
 export {
   LOCALE_HISTORY_LIMIT_CAP,
   LOCALE_HISTORY_LIMIT_DEFAULT,
@@ -292,6 +308,20 @@ export {
   type LocaleHistoryResult,
   type LocaleHistoryUnavailableReason,
 } from "./flow/git-log.js";
+export { LOCALE_GIT_BLOB_MAX_BYTES } from "./flow/git-revision.js";
+export {
+  LOCALE_GIT_FILE_STATES,
+  type LocaleGitFile,
+  type LocaleGitFileState,
+  type LocaleGitStatusDeps,
+  type LocaleGitStatusInput,
+  type LocaleGitStatusResult,
+  localeGitStatus,
+} from "./flow/git-status.js";
+export {
+  LOCALE_GIT_UNAVAILABLE_REASONS,
+  type LocaleGitUnavailableReason,
+} from "./flow/git-worktree.js";
 export {
   type IcuPreviewAxis,
   type IcuPreviewFailure,
