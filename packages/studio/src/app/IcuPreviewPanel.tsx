@@ -10,9 +10,11 @@ import {
   prepareSamples,
   type RowGroup,
   SAMPLE_PROBLEM_COPY,
+  SAMPLE_UNUSED_COPY,
   type SampleField,
   type SampleProblem,
   sampleFields,
+  unusedSamples,
   type ValidIcuPreview,
 } from "../client/icu-preview.js";
 import type { SessionSamples } from "../client/icu-sample-session.js";
@@ -200,7 +202,13 @@ function Rows({
   );
 }
 
-const REFUSAL_REASONS = Object.keys(ICU_FAILURE_COPY) as readonly IcuPreviewFailure[];
+const COMMON_REFUSAL: IcuPreviewFailure = "invalid-message";
+
+function reservedReasons(refusal: IcuPreviewFailure | null): readonly IcuPreviewFailure[] {
+  return refusal === null || refusal === COMMON_REFUSAL
+    ? [COMMON_REFUSAL]
+    : [COMMON_REFUSAL, refusal];
+}
 
 function NoticeBlock({
   refusal,
@@ -220,7 +228,7 @@ function NoticeBlock({
       >
         {updating && refusal === null ? "Updating…" : ""}
       </p>
-      {REFUSAL_REASONS.map((reason) => {
+      {reservedReasons(refusal).map((reason) => {
         const active = refusal === reason;
         return (
           <div
@@ -251,6 +259,7 @@ function SampleInputs({
   total,
   inputs,
   problems,
+  unused,
   onChange,
   onEscape,
 }: {
@@ -258,6 +267,7 @@ function SampleInputs({
   readonly total: number;
   readonly inputs: ReadonlyMap<string, string>;
   readonly problems: ReadonlyMap<string, SampleProblem>;
+  readonly unused: ReadonlySet<string>;
   readonly onChange: (name: string, text: string) => void;
   readonly onEscape: () => void;
 }): ReactNode {
@@ -275,6 +285,7 @@ function SampleInputs({
       <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-3 gap-y-2">
         {fields.map((field, index) => {
           const problem = problems.get(field.name);
+          const isUnused = problem === undefined && unused.has(field.name);
           const fieldId = `${baseId}-${index}`;
           const noteId = `${fieldId}-note`;
           return (
@@ -287,6 +298,7 @@ function SampleInputs({
               <TextField
                 id={fieldId}
                 size="xs"
+                className="scroll-mb-40"
                 autoComplete="off"
                 spellCheck={false}
                 dir="auto"
@@ -295,10 +307,19 @@ function SampleInputs({
                 data-icu-sample-input={field.name}
                 value={inputs.get(field.name) ?? ""}
                 aria-invalid={problem !== undefined ? true : undefined}
-                aria-describedby={problem !== undefined ? noteId : undefined}
+                aria-describedby={problem !== undefined || isUnused ? noteId : undefined}
                 onChange={(event) => onChange(field.name, event.target.value)}
                 onKeyDown={handleKeyDown}
               />
+              {isUnused ? (
+                <p
+                  id={noteId}
+                  className="m-0 mt-0.5 text-xs text-muted-foreground"
+                  data-icu-sample-unused=""
+                >
+                  {SAMPLE_UNUSED_COPY}
+                </p>
+              ) : null}
               {problem !== undefined ? (
                 <p
                   id={noteId}
@@ -436,6 +457,13 @@ function IcuPreviewBody({
 
   const refusal = view.kind === "answer" && !view.answer.valid ? view.answer : null;
   const answer = view.kind === "answer" && view.answer.valid ? view.answer : null;
+  const unused = useMemo(
+    () =>
+      answer === null || pending
+        ? new Set<string>()
+        : unusedSamples(shown, samples.args, answer.rows),
+    [answer, pending, shown, samples.args],
+  );
   const staleRows = (refusal !== null || view.kind === "error") && lastValid !== undefined;
 
   return (
@@ -459,6 +487,7 @@ function IcuPreviewBody({
           total={fields.length}
           inputs={inputs}
           problems={samples.problems}
+          unused={unused}
           onChange={(name, text) => {
             retryPressed.current = false;
             setHeld((current) => ({

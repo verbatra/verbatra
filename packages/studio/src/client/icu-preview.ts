@@ -190,6 +190,38 @@ export function groupRows(rows: readonly IcuPreviewRow[]): readonly RowGroup[] {
   return [...lead, ...groups.values()];
 }
 
+export const SAMPLE_UNUSED_COPY = "Not used by this text.";
+
+function textUsedBy(rows: readonly IcuPreviewRow[], value: string | number): boolean {
+  const needle = String(value);
+  return rows.some((row) =>
+    row.segments.some((segment) => segment.kind === "argument" && segment.text.includes(needle)),
+  );
+}
+
+export function unusedSamples(
+  fields: readonly SampleField[],
+  args: PreparedSamples["args"],
+  rows: readonly IcuPreviewRow[],
+): ReadonlySet<string> {
+  const unused = new Set<string>();
+  for (const field of fields) {
+    const typed =
+      args !== undefined && Object.hasOwn(args, field.name) ? args[field.name] : undefined;
+    if (typed === undefined) {
+      continue;
+    }
+    if (rows.some((row) => row.argument === field.name)) {
+      if (!rows.some((row) => row.supplied && row.argument === field.name)) {
+        unused.add(field.name);
+      }
+    } else if ((field.type === "string" || field.type === "unknown") && !textUsedBy(rows, typed)) {
+      unused.add(field.name);
+    }
+  }
+  return unused;
+}
+
 export function isBlankPreview(rows: readonly IcuPreviewRow[]): boolean {
   const only = rows.length === 1 ? rows[0] : undefined;
   return only !== undefined && only.axis === "none" && only.segments.every((s) => s.text === "");
