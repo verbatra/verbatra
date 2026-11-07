@@ -145,6 +145,8 @@ describe("buildGitLogArgs", () => {
     expect(args).toEqual([
       "-c",
       "core.quotePath=false",
+      "-c",
+      "i18n.logOutputEncoding=UTF-8",
       "log",
       "--no-show-signature",
       "--max-count=50",
