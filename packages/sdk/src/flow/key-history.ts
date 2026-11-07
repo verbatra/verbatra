@@ -1,4 +1,5 @@
 import { resolve as resolvePath } from "node:path";
+import { findKeyShapes } from "@verbatra/ai-providers";
 import { contentHash, isCustomFormatId } from "@verbatra/core";
 import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
@@ -14,13 +15,17 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { readWorkingSide, type Side, type SideInput } from "./git-diff.js";
 import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
 import {
+  COMMIT_AUTHOR_MAX_CHARS,
+  COMMIT_SUBJECT_MAX_CHARS,
   clampHistoryLimit,
+  clipText,
   FIELD_SEPARATOR,
   GIT_LOG_FORMAT,
   LOCALE_HISTORY_MAX_OUTPUT_BYTES,
   LOCALE_HISTORY_TIMEOUT_MS,
   type LocaleHistoryCommit,
   parseCommitHeader,
+  parseRawCommitHeader,
 } from "./git-log.js";
 import {
   type BlobStat,
@@ -72,7 +77,7 @@ export interface KeyRevision {
   readonly author: string;
   /** The first line of the commit message, scrubbed with {@link redact} before it is cut to 500 characters. */
   readonly subject: string;
-  /** The key's value in that commit. Untrusted: show it as text. */
+  /** The key's value in that commit. Untrusted: show it as text. Anything shaped like an API key is replaced by `[REDACTED]`, and so is any other text equal to a key that {@link redact} replaced in a value, subject or author name elsewhere in the same answer. */
   readonly value: string;
   /**
    * Which write path produced the value, read from `verbatra.provenance.json` as committed with it:
@@ -131,7 +136,7 @@ export type KeyHistoryResult =
       readonly workingTree?: KeyWorkingTreeValue;
       /** `true` when the value on disk could not be compared with `HEAD`, so `workingTree` is absent: the file on disk does not parse, is a symbolic link or is above its size limit, its value is longer than {@link KEY_HISTORY_MAX_VALUE_CHARS}, the copy at `HEAD` could not be read (it is above its size limit, does not parse or was not reached), or the time ran out. */
       readonly workingTreeUnreadable?: true;
-      /** `true` when the answer may leave history out or leave a field unknown because something was not read in full: older commits were not examined (the commit limit, the size budget of the call or the time), the clone is shallow, a commit could not be read or parsed, was above its size limit or held a value that is too long, or a lock-file, provenance file or the source file could not be read, parsed or was above its size limit. `false` means every commit and record examined was read; the file on disk is reported only by `workingTreeUnreadable`. */
+      /** `true` when the answer may leave history out or leave a field unknown because something was not read in full: older commits were not examined (the commit limit, the size budget of the call or the time), the clone is shallow, more than 256 distinct keys turned up and not all of them could be scrubbed from every other revision, a commit could not be read or parsed, was above its size limit or held a value that is too long, or a lock-file, provenance file or the source file could not be read, parsed or was above its size limit. `false` means every commit and record examined was read; the file on disk is reported only by `workingTreeUnreadable`. */
       readonly truncated: boolean;
       /** How many examined commits held the locale file in a state that could not be read or whose value was too long. */
       readonly unreadableRevisions: number;
@@ -269,7 +274,12 @@ async function readKeyState(
 }
 
 type LogEntry =
-  | { readonly malformed: false; readonly commit: LocaleHistoryCommit }
+  | {
+      readonly malformed: false;
+      readonly commit: LocaleHistoryCommit;
+      readonly rawAuthor: string;
+      readonly rawSubject: string;
+    }
   | { readonly malformed: true };
 
 type ListedCommits =
@@ -281,10 +291,16 @@ function parseLogEntries(stdout: string): LogEntry[] {
   for (const line of stdout.split("\n")) {
     if (line.includes(FIELD_SEPARATOR)) {
       const header = parseCommitHeader(line);
+      const raw = parseRawCommitHeader(line);
       entries.push(
-        header === undefined
+        header === undefined || raw === undefined
           ? { malformed: true }
-          : { malformed: false, commit: { ...header, touchedPaths: [] } },
+          : {
+              malformed: false,
+              commit: { ...header, touchedPaths: [] },
+              rawAuthor: raw.author,
+              rawSubject: raw.subject,
+            },
       );
     }
   }
@@ -578,32 +594,77 @@ async function readContexts(
   return contexts.map((context) => context ?? NO_CONTEXT);
 }
 
+const MAX_SCRUB_LITERALS = 256;
+const MAX_SCRUB_LITERAL_CHARS = 512;
+const REDACTED_MARKER = "[REDACTED]";
+
+interface Scrubber {
+  readonly scrub: (text: string) => string;
+  readonly overflowed: boolean;
+}
+
+function escapeLiteral(literal: string): string {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function collectLiterals(texts: Iterable<string>): { list: string[]; overflowed: boolean } {
+  const seen = new Set<string>();
+  let overflowed = false;
+  for (const text of texts) {
+    for (const span of findKeyShapes(text)) {
+      const literal = text.slice(span.start, span.end);
+      if (literal.length > MAX_SCRUB_LITERAL_CHARS || seen.size >= MAX_SCRUB_LITERALS) {
+        overflowed = overflowed || !seen.has(literal);
+        continue;
+      }
+      seen.add(literal);
+    }
+  }
+  return { list: [...seen].sort((a, b) => b.length - a.length), overflowed };
+}
+
+function makeScrubber(texts: Iterable<string>): Scrubber {
+  const { list, overflowed } = collectLiterals(texts);
+  if (list.length === 0) {
+    return { scrub: redact, overflowed };
+  }
+  const pattern = new RegExp(list.map(escapeLiteral).join("|"), "g");
+  return { scrub: (text) => redact(text.replace(pattern, REDACTED_MARKER)), overflowed };
+}
+
 interface ScrubbedDiff {
   readonly value: string;
   readonly valueRedacted: boolean;
   readonly diff: KeyHistorySegment[];
 }
 
-function scrubbedDiff(previous: string | undefined, value: string): ScrubbedDiff {
-  const scrubbed = redact(value);
+function scrubbedDiff(
+  scrubber: Scrubber,
+  previous: string | undefined,
+  value: string,
+): ScrubbedDiff {
+  const scrubbed = scrubber.scrub(value);
   return {
     value: scrubbed,
     valueRedacted: scrubbed !== value,
-    diff: diffValues(redact(previous ?? ""), scrubbed),
+    diff: diffValues(scrubber.scrub(previous ?? ""), scrubbed),
   };
 }
 
-function revisionOf(
-  commit: LocaleHistoryCommit,
-  change: Changed,
-  context: RevisionContext,
-): KeyRevision {
-  const { value, valueRedacted, diff } = scrubbedDiff(change.previous, change.value);
+interface PendingRevision {
+  readonly entry: Extract<LogEntry, { readonly malformed: false }>;
+  readonly change: Changed;
+  readonly context: RevisionContext;
+}
+
+function revisionOf(scrubber: Scrubber, pending: PendingRevision): KeyRevision {
+  const { entry, change, context } = pending;
+  const { value, valueRedacted, diff } = scrubbedDiff(scrubber, change.previous, change.value);
   return {
-    commit: commit.hash,
-    authorDate: commit.authorDate,
-    author: commit.author,
-    subject: commit.subject,
+    commit: entry.commit.hash,
+    authorDate: entry.commit.authorDate,
+    author: clipText(scrubber.scrub(entry.rawAuthor), COMMIT_AUTHOR_MAX_CHARS),
+    subject: clipText(scrubber.scrub(entry.rawSubject), COMMIT_SUBJECT_MAX_CHARS),
     value,
     ...(valueRedacted ? { valueRedacted: true as const } : {}),
     ...(context.origin !== undefined ? { origin: context.origin } : {}),
@@ -613,7 +674,7 @@ function revisionOf(
 }
 
 interface Collected {
-  readonly revisions: KeyRevision[];
+  readonly pending: PendingRevision[];
   readonly truncated: boolean;
   readonly unreadableRevisions: number;
   readonly head: KeyState | undefined;
@@ -699,13 +760,11 @@ async function collectRevisions(
           source,
         );
   return {
-    revisions: changes.map((change, index) =>
-      revisionOf(
-        (commits[change.index] as { readonly commit: LocaleHistoryCommit }).commit,
-        change,
-        contexts[index] as RevisionContext,
-      ),
-    ),
+    pending: changes.map((change, index) => ({
+      entry: commits[change.index] as Extract<LogEntry, { readonly malformed: false }>,
+      change,
+      context: contexts[index] as RevisionContext,
+    })),
     truncated: isTruncated({ moreCommits, shallow, states, contexts, source }),
     unreadableRevisions: states.slice(0, examined).filter((state) => state?.kind === "unreadable")
       .length,
@@ -713,11 +772,16 @@ async function collectRevisions(
   };
 }
 
+interface RawWorkingTree {
+  readonly value: string;
+  readonly previous: string | undefined;
+}
+
 function workingTreeValue(
   scope: Scope,
   working: Extract<Side, { readonly ok: true }>,
   head: KeyState | undefined,
-): KeyWorkingTreeValue | "unreadable" | undefined {
+): RawWorkingTree | "unreadable" | undefined {
   const value = working.entries.get(scope.key)?.value;
   if (value === undefined) {
     return undefined;
@@ -729,11 +793,23 @@ function workingTreeValue(
     return "unreadable";
   }
   const previous = head.kind === "value" ? head.value : undefined;
-  if (previous === value) {
-    return undefined;
+  return previous === value ? undefined : { value, previous };
+}
+
+function* scrubSources(
+  pending: readonly PendingRevision[],
+  workingTree: RawWorkingTree | undefined,
+): Generator<string> {
+  for (const { entry, change } of pending) {
+    yield change.value;
+    yield change.previous ?? "";
+    yield entry.rawSubject;
+    yield entry.rawAuthor;
   }
-  const { value: shown, valueRedacted, diff } = scrubbedDiff(previous, value);
-  return { value: shown, ...(valueRedacted ? { valueRedacted: true as const } : {}), diff };
+  if (workingTree !== undefined) {
+    yield workingTree.value;
+    yield workingTree.previous ?? "";
+  }
 }
 
 function latchedDeadline(deadline: number): () => boolean {
@@ -901,13 +977,23 @@ export async function keyHistory(
   if ("reason" in collected) {
     return { available: false, reason: collected.reason };
   }
-  const workingTree = working.ok ? workingTreeValue(scope, working, collected.head) : "unreadable";
+  const rawWorking = working.ok ? workingTreeValue(scope, working, collected.head) : "unreadable";
+  const rawTree = typeof rawWorking === "object" ? rawWorking : undefined;
+  const scrubber = makeScrubber(scrubSources(collected.pending, rawTree));
+  const workingTree =
+    rawTree === undefined
+      ? undefined
+      : (({ value, valueRedacted, diff }): KeyWorkingTreeValue => ({
+          value,
+          ...(valueRedacted ? { valueRedacted: true as const } : {}),
+          diff,
+        }))(scrubbedDiff(scrubber, rawTree.previous, rawTree.value));
   return {
     available: true,
-    revisions: collected.revisions,
-    ...(typeof workingTree === "object" ? { workingTree } : {}),
-    ...(workingTree === "unreadable" ? { workingTreeUnreadable: true as const } : {}),
-    truncated: collected.truncated,
+    revisions: collected.pending.map((pending) => revisionOf(scrubber, pending)),
+    ...(workingTree !== undefined ? { workingTree } : {}),
+    ...(rawWorking === "unreadable" ? { workingTreeUnreadable: true as const } : {}),
+    truncated: collected.truncated || scrubber.overflowed,
     unreadableRevisions: collected.unreadableRevisions,
   };
 }

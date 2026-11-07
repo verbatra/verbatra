@@ -163,18 +163,21 @@ export const COMMIT_AUTHOR_MAX_CHARS = 200;
 export const COMMIT_SUBJECT_MAX_CHARS = 500;
 const COMMIT_TEXT_SCRUB_WINDOW = 16_384;
 
-export function scrubAndClip(text: string, max: number): string {
-  const scrubbed = redact(sanitizeGitText(text.slice(0, COMMIT_TEXT_SCRUB_WINDOW)));
-  if (scrubbed.length <= max) {
-    return scrubbed;
-  }
-  const lastUnit = scrubbed.charCodeAt(max - 1);
-  return scrubbed.slice(0, lastUnit >= 0xd800 && lastUnit <= 0xdbff ? max - 1 : max);
+export function windowGitText(text: string): string {
+  return sanitizeGitText(text.slice(0, COMMIT_TEXT_SCRUB_WINDOW));
 }
 
-export function parseCommitHeader(
+export function clipText(text: string, max: number): string {
+  if (text.length <= max) {
+    return text;
+  }
+  const lastUnit = text.charCodeAt(max - 1);
+  return text.slice(0, lastUnit >= 0xd800 && lastUnit <= 0xdbff ? max - 1 : max);
+}
+
+export function parseRawCommitHeader(
   line: string,
-): Omit<LocaleHistoryCommit, "touchedPaths"> | undefined {
+): { hash: string; author: string; authorDate: string; subject: string } | undefined {
   const fields = line.split(FIELD_SEPARATOR);
   if (fields.length !== HEADER_FIELD_COUNT) {
     return undefined;
@@ -183,11 +186,21 @@ export function parseCommitHeader(
   if (!COMMIT_HASH.test(hash) || !ISO_DATE.test(authorDate)) {
     return undefined;
   }
+  return { hash, authorDate, author: windowGitText(author), subject: windowGitText(subject) };
+}
+
+export function parseCommitHeader(
+  line: string,
+): Omit<LocaleHistoryCommit, "touchedPaths"> | undefined {
+  const raw = parseRawCommitHeader(line);
+  if (raw === undefined) {
+    return undefined;
+  }
   return {
-    hash,
-    author: scrubAndClip(author, COMMIT_AUTHOR_MAX_CHARS),
-    authorDate,
-    subject: scrubAndClip(subject, COMMIT_SUBJECT_MAX_CHARS),
+    hash: raw.hash,
+    author: clipText(redact(raw.author), COMMIT_AUTHOR_MAX_CHARS),
+    authorDate: raw.authorDate,
+    subject: clipText(redact(raw.subject), COMMIT_SUBJECT_MAX_CHARS),
   };
 }
 
