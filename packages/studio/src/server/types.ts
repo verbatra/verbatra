@@ -53,17 +53,35 @@ export interface StudioWatcher {
 }
 
 /**
+ * Narrows what a {@link CreateStudioWatcher} reports.
+ */
+export interface StudioWatcherOptions {
+  /**
+   * When present, the given paths are directories and the watcher reports only changes to these
+   * files directly inside them, however the file was replaced. Studio uses it for the files git
+   * rewrites by renaming a lock file over them, which a watcher on the file itself can miss.
+   */
+  readonly only?: readonly string[];
+}
+
+/**
  * Builds a {@link StudioWatcher} over a set of absolute paths. Called once per watched entry during
- * {@link startStudioServer}, each call receiving a one-element array: one for the source locale
- * file, one for each configured target locale file, one for the lock file, and one for the
- * provenance file (`verbatra.provenance.json`). An implementation must therefore construct a fresh
- * watcher on every call; one that builds a watcher only the first time observes the source file
- * alone and never reports a target, lock-file or provenance-file change.
+ * {@link startStudioServer}: one for each configured locale (its file, and for `apple-strings` the
+ * `.stringsdict` file beside it), one for the lock file, one for the provenance file
+ * (`verbatra.provenance.json`) and, in a git work tree, one for the directories that hold git's
+ * index, `HEAD` and `HEAD` reflog, with `options.only` naming those files. An implementation must
+ * therefore construct a fresh watcher on every call; one that builds a watcher only the first time
+ * observes the source file alone and never reports a target, lock-file or provenance-file change.
+ * A git entry can be built again later, when the repository appears, moves or is replaced.
  *
  * @param paths - The absolute paths to observe.
+ * @param options - Narrows what is reported.
  * @returns A watcher that is already observing.
  */
-export type CreateStudioWatcher = (paths: readonly string[]) => StudioWatcher;
+export type CreateStudioWatcher = (
+  paths: readonly string[],
+  options?: StudioWatcherOptions,
+) => StudioWatcher;
 
 /**
  * Everything the server and its RPC handlers may need. Only {@link StudioServerDeps.loader} is

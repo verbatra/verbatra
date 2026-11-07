@@ -24,7 +24,7 @@ import { OverviewMetrics } from "../OverviewMetrics.js";
 import { pageFailure } from "../overview-failures.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
-import { useDiffState } from "../use-diff-state.js";
+import { type DiffState, useDiffState } from "../use-diff-state.js";
 import { useGitChanges } from "../use-git-changes.js";
 import { type HistoryState, useHistoryList } from "../use-history-list.js";
 import { useLockState } from "../use-lock-state.js";
@@ -244,6 +244,16 @@ interface RetryRound {
   readonly started: readonly ReadName[];
 }
 
+function orphanedKeys(
+  diff: DiffState,
+  locale: string | undefined,
+): ReadonlySet<string> | undefined {
+  if (diff.kind !== "loaded" || locale === undefined) {
+    return undefined;
+  }
+  return new Set(diff.locales.find((entry) => entry.locale === locale)?.orphaned ?? []);
+}
+
 function startedReads(reads: OverviewReadsNow, reviewRefreshed: boolean): readonly ReadName[] {
   return (Object.keys(reads) as ReadName[]).filter(
     (name) => reads[name] !== undefined && (name !== "review" || reviewRefreshed),
@@ -251,12 +261,14 @@ function startedReads(reads: OverviewReadsNow, reviewRefreshed: boolean): readon
 }
 
 export interface OverviewPanelProps extends PanelProps {
+  readonly gitRefreshToken?: number;
   readonly reviewQueue?: RefreshableView<ReviewQueueData> | undefined;
   readonly onRetry?: (() => void) | undefined;
 }
 
 export function OverviewPanel({
   refreshToken,
+  gitRefreshToken = 0,
   reviewQueue,
   onRetry,
 }: OverviewPanelProps): ReactNode {
@@ -268,7 +280,7 @@ export function OverviewPanel({
   const lock = useLockState(token);
   const usage = useUsageTicker(token);
   const history = useHistoryList(token, limit);
-  const git = useGitChanges(token);
+  const git = useGitChanges(token + gitRefreshToken);
   const [retried, setRetried] = useState<RetryRound | null>(null);
   const recoveryRef = useRef<HTMLDivElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
@@ -357,6 +369,7 @@ export function OverviewPanel({
         status={git.status}
         diff={git.diff}
         open={git.open}
+        orphaned={orphanedKeys(diff, git.open?.locale)}
         onToggle={git.toggle}
         hideCode={failure?.error.code}
       />

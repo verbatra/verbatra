@@ -1,9 +1,10 @@
 import { Badge, Button, MonoValue, PageSection } from "@verbatra/ui";
-import type { ReactNode } from "react";
-import { useEffect, useId, useRef, useState } from "react";
+import type { ReactNode, RefObject } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   type ChangeRow,
   CONFLICT_NOTICE,
+  CUT_NOTICE,
   canOpenInTranslations,
   changeRows,
   type DiffSide,
@@ -17,12 +18,18 @@ import {
   type GitAvailableStatus,
   type GitDiffView,
   type GitStatusView,
+  type GitUnavailableStatus,
+  INITIAL_FILE_ROWS,
+  isCutText,
+  NO_KEY_DIFFERS_NOTICE,
   type OpenDiff,
   TRUNCATED_NOTICE,
+  transientGitError,
   translationsHash,
   UNCHANGED_NOTICE,
   withOpenRow,
 } from "../client/git-changes.js";
+import type { StructuredError } from "../client/state.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { Loading } from "./Loading.js";
 import { cn } from "./lib/cn.js";
@@ -30,22 +37,42 @@ import { TranslationValue } from "./TranslationValue.js";
 
 const SEE_ABOVE = "See the error above.";
 
+const RATE_LIMITED_DETAIL =
+  "Reading changes pauses briefly. Studio reads again on the next change.";
+
 const QUIET_TEXT = "m-0 text-sm text-muted-foreground";
 
 const LINK =
   "-ms-1.5 inline-flex min-h-8 items-center rounded-sm px-1.5 text-sm text-foreground underline-offset-2 hover:underline focus-visible:underline focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring max-md:min-h-11";
+
+function readError(error: StructuredError, prefix?: string): ReactNode {
+  return (
+    <ErrorMessage
+      error={error}
+      {...(prefix === undefined ? {} : { prefix })}
+      {...(error.code === "METHOD_RATE_LIMITED" ? { detail: RATE_LIMITED_DETAIL } : {})}
+    />
+  );
+}
 
 function Value({ value, locale }: { readonly value: string; readonly locale: string }): ReactNode {
   if (value === "") {
     return <span className="text-sm italic text-muted-foreground">Empty text</span>;
   }
   return (
-    <TranslationValue
-      value={value}
-      locale={locale}
-      className="block whitespace-pre-wrap wrap-anywhere text-sm"
-      data-git-value=""
-    />
+    <>
+      <TranslationValue
+        value={value}
+        locale={locale}
+        className="block whitespace-pre-wrap wrap-anywhere text-sm"
+        data-git-value=""
+      />
+      {isCutText(value) ? (
+        <span data-git-cut="" className="block text-xs text-muted-foreground">
+          {CUT_NOTICE}
+        </span>
+      ) : null}
+    </>
   );
 }
 
@@ -53,6 +80,11 @@ function KeyName({ name }: { readonly name: string }): ReactNode {
   return (
     <span dir="ltr" data-git-key="" className="block text-sm font-semibold wrap-anywhere">
       <MonoValue breakAnywhere>{name}</MonoValue>
+      {isCutText(name) ? (
+        <span data-git-cut="" className="block text-xs font-normal text-muted-foreground">
+          {CUT_NOTICE}
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -61,12 +93,14 @@ function OpenLink({
   side,
   locale,
   name,
+  orphaned,
 }: {
   readonly side: DiffSide;
   readonly locale: string;
   readonly name: string;
+  readonly orphaned: ReadonlySet<string> | undefined;
 }): ReactNode {
-  if (!canOpenInTranslations(side, name)) {
+  if (!canOpenInTranslations(side, name, orphaned)) {
     return null;
   }
   return (
@@ -76,20 +110,19 @@ function OpenLink({
   );
 }
 
-function PagedList<T>({
-  label,
-  items,
-  render,
-  rowKey,
-}: {
-  readonly label: string;
-  readonly items: readonly T[];
-  readonly render: (item: T) => ReactNode;
-  readonly rowKey: (item: T) => string;
-}): ReactNode {
-  const [shown, setShown] = useState(GIT_DIFF_PAGE_SIZE);
+function useReveal(
+  total: number,
+  initial: number,
+  step: number,
+): {
+  readonly visible: number;
+  readonly listRef: RefObject<HTMLUListElement | null>;
+  readonly more: () => void;
+} {
+  const [shown, setShown] = useState(initial);
   const listRef = useRef<HTMLUListElement>(null);
   const focusFrom = useRef<number | null>(null);
+  const visible = Math.min(shown, total);
 
   useEffect(() => {
     if (focusFrom.current === null) {
@@ -101,39 +134,53 @@ function PagedList<T>({
     target?.focus();
   }, [shown]);
 
+  return {
+    visible,
+    listRef,
+    more: () => {
+      focusFrom.current = visible;
+      setShown(visible + step);
+    },
+  };
+}
+
+const ENTRY_CLASSES =
+  "min-w-0 rounded-sm border-s-2 border-border ps-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+
+function PagedList<T>({
+  label,
+  items,
+  render,
+}: {
+  readonly label: string;
+  readonly items: readonly T[];
+  readonly render: (item: T) => ReactNode;
+}): ReactNode {
+  const { visible, listRef, more } = useReveal(
+    items.length,
+    GIT_DIFF_PAGE_SIZE,
+    GIT_DIFF_PAGE_SIZE,
+  );
   if (items.length === 0) {
     return null;
   }
-  const visible = items.slice(0, shown);
+  const remaining = items.length - visible;
   return (
     <div data-git-group={label} className="mt-4 first:mt-0">
-      <h4 className="m-0 mb-2 text-sm font-semibold text-foreground">
+      <h3 className="m-0 mb-2 text-sm font-semibold text-foreground">
         {label} ({items.length})
-      </h4>
+      </h3>
       <ul ref={listRef} aria-label={label} className="m-0 flex list-none flex-col gap-3 p-0">
-        {visible.map((item) => (
-          <li
-            key={rowKey(item)}
-            tabIndex={-1}
-            data-git-entry=""
-            className="min-w-0 rounded-sm border-s-2 border-border ps-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
+        {items.slice(0, visible).map((item, index) => (
+          <li key={index} tabIndex={-1} data-git-entry="" className={ENTRY_CLASSES}>
             {render(item)}
           </li>
         ))}
       </ul>
-      {items.length > visible.length ? (
+      {remaining > 0 ? (
         <div className="mt-3">
-          <Button
-            size="xs"
-            data-git-show-more=""
-            onClick={() => {
-              focusFrom.current = visible.length;
-              setShown((count) => count + GIT_DIFF_PAGE_SIZE);
-            }}
-          >
-            Show {Math.min(GIT_DIFF_PAGE_SIZE, items.length - visible.length)} more of{" "}
-            {items.length - visible.length}
+          <Button size="xs" data-git-show-more="" onClick={more}>
+            Show {Math.min(GIT_DIFF_PAGE_SIZE, remaining)} more of {remaining}
             <span className="sr-only"> {label.toLowerCase()}</span>
           </Button>
         </div>
@@ -162,16 +209,17 @@ function LabeledValue({
 function DiffLists({
   diff,
   locale,
+  orphaned,
 }: {
   readonly diff: GitAvailableDiff;
   readonly locale: string;
+  readonly orphaned: ReadonlySet<string> | undefined;
 }): ReactNode {
   return (
     <>
       <PagedList
         label="Changed"
         items={diff.changed}
-        rowKey={(item) => item.key}
         render={(item) => (
           <>
             <KeyName name={item.key} />
@@ -179,26 +227,24 @@ function DiffLists({
               <LabeledValue label="Before" value={item.before} locale={locale} />
               <LabeledValue label="After" value={item.after} locale={locale} />
             </div>
-            <OpenLink side="changed" locale={locale} name={item.key} />
+            <OpenLink side="changed" locale={locale} name={item.key} orphaned={orphaned} />
           </>
         )}
       />
       <PagedList
         label="Added"
         items={diff.added}
-        rowKey={(item) => item.key}
         render={(item) => (
           <>
             <KeyName name={item.key} />
             <LabeledValue label="Value" value={item.value} locale={locale} />
-            <OpenLink side="added" locale={locale} name={item.key} />
+            <OpenLink side="added" locale={locale} name={item.key} orphaned={orphaned} />
           </>
         )}
       />
       <PagedList
         label="Removed"
         items={diff.removed}
-        rowKey={(item) => item.key}
         render={(item) => (
           <>
             <KeyName name={item.key} />
@@ -213,15 +259,24 @@ function DiffLists({
 function AvailableDiff({
   diff,
   locale,
+  orphaned,
 }: {
   readonly diff: GitAvailableDiff;
   readonly locale: string;
+  readonly orphaned: ReadonlySet<string> | undefined;
 }): ReactNode {
   if (diff.state === "conflicted") {
     return <p className={QUIET_TEXT}>{CONFLICT_NOTICE}</p>;
   }
-  if (diff.state === "unchanged" && diffTotal(diff) === 0) {
+  if (diff.state === "unchanged") {
     return <p className={QUIET_TEXT}>{UNCHANGED_NOTICE}</p>;
+  }
+  if (diffTotal(diff) === 0) {
+    return (
+      <p className={QUIET_TEXT} data-git-no-key-differs="">
+        {NO_KEY_DIFFERS_NOTICE}
+      </p>
+    );
   }
   return (
     <>
@@ -233,7 +288,7 @@ function AvailableDiff({
           {TRUNCATED_NOTICE}
         </p>
       ) : null}
-      <DiffLists diff={diff} locale={locale} />
+      <DiffLists diff={diff} locale={locale} orphaned={orphaned} />
     </>
   );
 }
@@ -242,10 +297,12 @@ function DiffBody({
   view,
   locale,
   hideCode,
+  orphaned,
 }: {
   readonly view: GitDiffView;
   readonly locale: string;
   readonly hideCode: string | undefined;
+  readonly orphaned: ReadonlySet<string> | undefined;
 }): ReactNode {
   if (view.kind === "loading") {
     return <Loading />;
@@ -254,19 +311,22 @@ function DiffBody({
     return view.error.code === hideCode ? (
       <p className={QUIET_TEXT}>Key changes are unavailable. {SEE_ABOVE}</p>
     ) : (
-      <ErrorMessage error={view.error} />
+      readError(view.error)
     );
   }
   const staleNotice =
-    view.stale && view.error.code !== hideCode ? (
-      <ErrorMessage error={view.error} prefix="Showing the last known key changes." />
-    ) : null;
+    view.stale && view.error.code !== hideCode
+      ? readError(view.error, "Showing the last known key changes.")
+      : null;
   if (!view.data.available) {
+    const transient = transientGitError(view.data);
     return (
       <>
         {staleNotice}
         <p className={QUIET_TEXT} data-git-unavailable={view.data.reason}>
-          {GIT_UNAVAILABLE_MESSAGES[view.data.reason]}
+          {transient !== undefined && transient.code === hideCode
+            ? `Key changes are unavailable. ${SEE_ABOVE}`
+            : GIT_UNAVAILABLE_MESSAGES[view.data.reason]}
         </p>
       </>
     );
@@ -274,28 +334,35 @@ function DiffBody({
   return (
     <>
       {staleNotice}
-      <AvailableDiff diff={view.data} locale={locale} />
+      <AvailableDiff diff={view.data} locale={locale} orphaned={orphaned} />
     </>
   );
 }
 
+type ToggleHandler = (target: OpenDiff, element: HTMLElement) => void;
+
 function FileRow({
   row,
+  index,
   open,
   diff,
   hideCode,
+  orphaned,
   onToggle,
 }: {
   readonly row: ChangeRow;
+  readonly index: number;
   readonly open: OpenDiff | undefined;
   readonly diff: GitDiffView | undefined;
   readonly hideCode: string | undefined;
-  readonly onToggle: (target: OpenDiff) => void;
+  readonly orphaned: ReadonlySet<string> | undefined;
+  readonly onToggle: ToggleHandler;
 }): ReactNode {
   const baseId = useId();
   const openLocale = row.diffLocales.find((locale) => open?.locale === locale);
+  const panelShown = openLocale !== undefined && diff !== undefined;
   return (
-    <li data-git-file={row.path} className="min-w-0 py-3 first:pt-0 last:pb-0">
+    <li data-git-file={row.path} tabIndex={-1} className="min-w-0 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
         {row.clean ? (
           <Badge tone="unchanged">Matches last commit</Badge>
@@ -318,10 +385,13 @@ function FileRow({
               <Button
                 key={locale}
                 size="xs"
+                className="max-md:min-h-11"
                 aria-expanded={expanded}
-                aria-controls={`${baseId}-${locale}`}
+                {...(expanded && panelShown ? { "aria-controls": `${baseId}-${locale}` } : {})}
                 data-git-toggle={locale}
-                onClick={() => onToggle({ locale, path: row.path })}
+                onClick={(event) =>
+                  onToggle({ locale, path: row.path, position: index }, event.currentTarget)
+                }
               >
                 <span>
                   Key changes (
@@ -336,13 +406,13 @@ function FileRow({
           })}
         </div>
       ) : null}
-      {openLocale !== undefined && diff !== undefined ? (
+      {panelShown ? (
         <div
           id={`${baseId}-${openLocale}`}
           data-git-diff={openLocale}
           className="mt-3 min-w-0 rounded-lg border border-border bg-card p-3 md:p-4"
         >
-          <DiffBody view={diff} locale={openLocale} hideCode={hideCode} />
+          <DiffBody view={diff} locale={openLocale} hideCode={hideCode} orphaned={orphaned} />
         </div>
       ) : null}
     </li>
@@ -361,15 +431,22 @@ function FileList({
   open,
   diff,
   hideCode,
+  orphaned,
   onToggle,
 }: {
   readonly status: GitAvailableStatus;
   readonly open: OpenDiff | undefined;
   readonly diff: GitDiffView | undefined;
   readonly hideCode: string | undefined;
-  readonly onToggle: (target: OpenDiff) => void;
+  readonly orphaned: ReadonlySet<string> | undefined;
+  readonly onToggle: ToggleHandler;
 }): ReactNode {
   const rows = withOpenRow(changeRows(status.files), open, diffStateOf(diff));
+  const { visible, listRef, more } = useReveal(rows.length, INITIAL_FILE_ROWS, rows.length);
+  const openAt = rows.findIndex(
+    (row) => open !== undefined && row.diffLocales.includes(open.locale),
+  );
+  const shownCount = Math.max(visible, openAt + 1);
   return (
     <>
       <p className={cn(QUIET_TEXT, "mb-3")} data-git-branch="">
@@ -389,18 +466,33 @@ function FileList({
           No locale file differs from the last commit.
         </p>
       ) : (
-        <ul aria-label="Changed files" className="m-0 list-none divide-y divide-border p-0">
-          {rows.map((row) => (
-            <FileRow
-              key={row.path}
-              row={row}
-              open={open}
-              diff={diff}
-              hideCode={hideCode}
-              onToggle={onToggle}
-            />
-          ))}
-        </ul>
+        <>
+          <ul
+            ref={listRef}
+            aria-label="Changed files"
+            className="m-0 list-none divide-y divide-border p-0"
+          >
+            {rows.slice(0, shownCount).map((row, index) => (
+              <FileRow
+                key={row.path}
+                row={row}
+                index={index}
+                open={open}
+                diff={diff}
+                hideCode={hideCode}
+                orphaned={orphaned}
+                onToggle={onToggle}
+              />
+            ))}
+          </ul>
+          {shownCount < rows.length ? (
+            <div className="mt-3">
+              <Button size="xs" data-git-show-all="" onClick={more}>
+                Show all {rows.length} files
+              </Button>
+            </div>
+          ) : null}
+        </>
       )}
     </>
   );
@@ -410,11 +502,19 @@ export interface ChangesSectionProps {
   readonly status: GitStatusView;
   readonly diff: GitDiffView | undefined;
   readonly open: OpenDiff | undefined;
+  readonly orphaned: ReadonlySet<string> | undefined;
   readonly onToggle: (target: OpenDiff) => void;
   readonly hideCode: string | undefined;
 }
 
-function ChangesBody({ status, diff, open, onToggle, hideCode }: ChangesSectionProps): ReactNode {
+function ChangesBody({
+  status,
+  diff,
+  open,
+  orphaned,
+  onToggle,
+  hideCode,
+}: Omit<ChangesSectionProps, "onToggle"> & { readonly onToggle: ToggleHandler }): ReactNode {
   if (status.kind === "loading") {
     return <Loading />;
   }
@@ -422,38 +522,178 @@ function ChangesBody({ status, diff, open, onToggle, hideCode }: ChangesSectionP
     return status.error.code === hideCode ? (
       <p className={QUIET_TEXT}>Changes are unavailable. {SEE_ABOVE}</p>
     ) : (
-      <ErrorMessage error={status.error} />
+      readError(status.error)
     );
   }
   const staleNotice =
-    status.stale && status.error.code !== hideCode ? (
-      <ErrorMessage error={status.error} prefix="Showing the last known changes." />
-    ) : null;
+    status.stale && status.error.code !== hideCode
+      ? readError(status.error, "Showing the last known changes.")
+      : null;
   const { result, lastAvailable } = status.data;
   const list = result.available ? result : lastAvailable;
   return (
     <>
       {staleNotice}
       {result.available ? null : (
-        <p
-          className={cn(QUIET_TEXT, list === undefined ? "" : "mb-3")}
-          data-git-unavailable={result.reason}
-        >
-          {GIT_UNAVAILABLE_MESSAGES[result.reason]}
-          {list === undefined ? "" : " Showing the last known changes."}
-        </p>
+        <UnavailableNote result={result} kept={list !== undefined} hideCode={hideCode} />
       )}
       {list === undefined ? null : (
-        <FileList status={list} open={open} diff={diff} hideCode={hideCode} onToggle={onToggle} />
+        <FileList
+          status={list}
+          open={open}
+          diff={diff}
+          hideCode={hideCode}
+          orphaned={orphaned}
+          onToggle={onToggle}
+        />
       )}
     </>
   );
 }
 
+function UnavailableNote({
+  result,
+  kept,
+  hideCode,
+}: {
+  readonly result: GitUnavailableStatus;
+  readonly kept: boolean;
+  readonly hideCode: string | undefined;
+}): ReactNode {
+  const transient = transientGitError(result);
+  const repeated = transient !== undefined && transient.code === hideCode;
+  return (
+    <p className={cn(QUIET_TEXT, kept && "mb-3")} data-git-unavailable={result.reason}>
+      {repeated ? `Changes are unavailable. ${SEE_ABOVE}` : GIT_UNAVAILABLE_MESSAGES[result.reason]}
+      {kept ? " Showing the last known changes." : ""}
+    </p>
+  );
+}
+
+function toggleLocales(root: HTMLElement): string[] {
+  return [...root.querySelectorAll<HTMLElement>("[data-git-toggle]")].map(
+    (element) => element.getAttribute("data-git-toggle") ?? "",
+  );
+}
+
+function toggleFor(root: HTMLElement, locale: string): HTMLElement | undefined {
+  return [...root.querySelectorAll<HTMLElement>("[data-git-toggle]")].find(
+    (element) => element.getAttribute("data-git-toggle") === locale,
+  );
+}
+
+function nearestKept(
+  order: readonly string[],
+  lost: string,
+  kept: readonly string[],
+): string | undefined {
+  const at = order.indexOf(lost);
+  const after = order.slice(at + 1).find((locale) => kept.includes(locale));
+  return (
+    after ??
+    order
+      .slice(0, Math.max(at, 0))
+      .reverse()
+      .find((locale) => kept.includes(locale))
+  );
+}
+
+function useFocusKeeper(rootRef: RefObject<HTMLDivElement | null>): void {
+  const focused = useRef<string | null>(null);
+  const order = useRef<string[]>([]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (root === null) {
+      return;
+    }
+    const track = (element: EventTarget | null): void => {
+      focused.current =
+        (element as HTMLElement | null)
+          ?.closest?.("[data-git-toggle]")
+          ?.getAttribute("data-git-toggle") ?? null;
+    };
+    const onIn = (event: FocusEvent): void => track(event.target);
+    const onOut = (event: FocusEvent): void => {
+      if (event.relatedTarget !== null) {
+        track(event.relatedTarget);
+      }
+    };
+    root.addEventListener("focusin", onIn);
+    root.addEventListener("focusout", onOut);
+    return () => {
+      root.removeEventListener("focusin", onIn);
+      root.removeEventListener("focusout", onOut);
+    };
+  }, [rootRef]);
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (root === null) {
+      return;
+    }
+    const kept = toggleLocales(root);
+    const lost = focused.current;
+    const stranded =
+      lost !== null &&
+      !kept.includes(lost) &&
+      (document.activeElement === document.body || document.activeElement === null);
+    if (stranded) {
+      const next = nearestKept(order.current, lost, kept);
+      const target =
+        next === undefined
+          ? root.closest("section")?.querySelector<HTMLElement>("h2")
+          : toggleFor(root, next);
+      if (target !== null && target !== undefined) {
+        target.tabIndex = -1;
+        target.focus();
+      }
+      focused.current = next ?? null;
+    }
+    order.current = kept;
+  });
+}
+
+function useToggleAnchor(
+  rootRef: RefObject<HTMLDivElement | null>,
+  openLocale: string | undefined,
+): (locale: string, element: HTMLElement) => void {
+  const anchor = useRef<{ readonly locale: string; readonly top: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const held = anchor.current;
+    const root = rootRef.current;
+    anchor.current = null;
+    if (held === null || root === null || openLocale === undefined) {
+      return;
+    }
+    const element = toggleFor(root, held.locale);
+    const shift = element === undefined ? 0 : element.getBoundingClientRect().top - held.top;
+    if (Math.abs(shift) > 1) {
+      window.scrollBy(0, shift);
+    }
+  }, [openLocale, rootRef]);
+
+  return (locale, element) => {
+    anchor.current = { locale, top: element.getBoundingClientRect().top };
+  };
+}
+
 export function ChangesSection(props: ChangesSectionProps): ReactNode {
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFocusKeeper(rootRef);
+  const remember = useToggleAnchor(rootRef, props.open?.locale);
   return (
     <PageSection title="Changes">
-      <ChangesBody {...props} />
+      <div ref={rootRef}>
+        <ChangesBody
+          {...props}
+          onToggle={(target, element) => {
+            remember(target.locale, element);
+            props.onToggle(target);
+          }}
+        />
+      </div>
     </PageSection>
   );
 }

@@ -289,6 +289,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     {
       createWatcher: options.createWatcher ?? defaultCreateStudioWatcher,
       ...(options.fs !== undefined ? { fs: options.fs } : {}),
+      ...(options.execFileImpl !== undefined ? { execFile: options.execFileImpl } : {}),
       ...(options.adapterRegistry !== undefined
         ? { adapterRegistry: options.adapterRegistry }
         : {}),

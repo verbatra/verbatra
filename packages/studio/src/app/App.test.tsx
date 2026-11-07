@@ -368,6 +368,33 @@ describe("App live refresh", () => {
     expect(view.query('[aria-label="Dismiss"]')).toBeNull();
   });
 
+  it("re-reads only the changes, and leaves the toast alone, on a git event", async () => {
+    const view = await mount();
+    emitRefresh(sourceEvent(1, 3));
+    await flush();
+    const reviewBefore = countCalls("review.queue");
+    const diffBefore = countCalls("status.diff");
+    const gitBefore = countCalls("git.status");
+
+    emitRefresh({ reason: "git", at: "2026-07-18T09:41:12.000Z" });
+    await flush();
+    await flush();
+
+    expect(countCalls("git.status")).toBe(gitBefore + 1);
+    expect(countCalls("review.queue")).toBe(reviewBefore);
+    expect(countCalls("status.diff")).toBe(diffBefore);
+    expect(view.getByText("span", "1 added, 3 changed")).not.toBeNull();
+  });
+
+  it("shows no toast for a git event", async () => {
+    const view = await mount();
+
+    emitRefresh({ reason: "git", at: "2026-07-18T09:41:12.000Z" });
+    await flush();
+
+    expect(view.query('[aria-label="Dismiss"]')).toBeNull();
+  });
+
   it("shows no toast for a save that changed no keys on balance", async () => {
     const view = await mount();
 

@@ -153,4 +153,39 @@ describe("TranslationValue", () => {
     expect(highlighted.get("bdi").className).toContain("bg-accent");
     expect(highlighted.text()).toBe("Hi {name}");
   });
+
+  it("lets a long token wrap, so a markup tag or a long placeholder never widens the page", () => {
+    const tag = `<a href="${"https://example.com/".repeat(15)}">`;
+    const longPlaceholder = `{${"averyveryverylongplaceholdername".repeat(10)}}`;
+    const view = render(<TranslationValue value={`See ${tag}here and ${longPlaceholder}`} />);
+
+    const tokens = view.all("bdi");
+    expect(tokens.map((token) => token.textContent)).toEqual([tag, longPlaceholder]);
+    for (const token of tokens) {
+      expect(token.className).toContain("wrap-anywhere");
+      expect(token.className).not.toContain("whitespace-nowrap");
+      expect(token.getAttribute("dir")).toBe("ltr");
+    }
+  });
+
+  it("keeps a short token on one line", () => {
+    const view = render(<TranslationValue value={"Hi {name}, <b>you</b> have {count, number}"} />);
+
+    for (const token of view.all("bdi")) {
+      expect(token.textContent?.length).toBeLessThanOrEqual(24);
+      expect(token.className).toContain("whitespace-nowrap");
+    }
+  });
+
+  it("keeps a token at the length limit on one line and wraps one past it", () => {
+    const atLimit = `{${"x".repeat(22)}}`;
+    const pastLimit = `{${"x".repeat(23)}}`;
+
+    expect(render(<TranslationValue value={atLimit} />).get("bdi").className).toContain(
+      "whitespace-nowrap",
+    );
+    expect(render(<TranslationValue value={pastLimit} />).get("bdi").className).toContain(
+      "wrap-anywhere",
+    );
+  });
 });

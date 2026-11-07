@@ -17,6 +17,9 @@ export const gitLocaleDiffHandler: RpcHandler<"git.localeDiff"> = async (params,
   }
   return localeGitDiff(
     { config: deps.config.config, cwd: deps.projectRoot, locale: params.locale },
-    deps.execFileImpl !== undefined ? { execFile: deps.execFileImpl } : {},
+    {
+      ...(deps.execFileImpl !== undefined ? { execFile: deps.execFileImpl } : {}),
+      ...(deps.adapterRegistry !== undefined ? { adapterRegistry: deps.adapterRegistry } : {}),
+    },
   );
 };

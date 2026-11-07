@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import type { StatusData } from "../client/coverage.js";
+import type { GitDiffView, GitStatusData, GitStatusView } from "../client/git-changes.js";
 import type { ReviewQueueData } from "../client/review-queue-data.js";
 import type { RefreshableView, StructuredError } from "../client/state.js";
 import type { UsageTickerData } from "../client/usage-ticker-data.js";
+import type { GitLocaleDiffResult } from "../shared/rpc/git.js";
 import { type OverviewReads, pageFailure } from "./overview-failures.js";
 import { reviewQueueView } from "./test-support.js";
 import type { DiffState } from "./use-diff-state.js";
@@ -14,6 +16,21 @@ const BAD: StructuredError = { code: "LOCK_FILE_INVALID", message: "bad lock" };
 const OTHER: StructuredError = { code: "INTERNAL", message: "boom" };
 const DATA: StatusData = { inSync: true, rows: [] };
 const USAGE: UsageTickerData = { available: false };
+
+const GIT_STATUS_DATA: GitStatusData = {
+  result: { available: true, branch: "main", files: [] },
+  lastAvailable: undefined,
+};
+
+const GIT_DIFF_DATA: GitLocaleDiffResult = {
+  available: true,
+  path: "locales/de.json",
+  state: "modified",
+  added: [],
+  removed: [],
+  changed: [],
+  truncated: false,
+};
 
 const CALM: OverviewReads = {
   diff: { kind: "loaded", hasPendingChanges: false, locales: [] },
@@ -184,16 +201,13 @@ describe("pageFailure", () => {
   });
 
   it("names a stale changed-files read and a stale key-changes read that share the code", () => {
-    const stale = (error: StructuredError): RefreshableView<unknown> => ({
-      kind: "data",
-      data: {},
-      stale: true,
-      error,
-    });
-
     expect(
       pageFailure(
-        reads({ lock: { kind: "error", error: BAD }, gitStatus: stale(BAD), gitDiff: stale(BAD) }),
+        reads({
+          lock: { kind: "error", error: BAD },
+          gitStatus: { kind: "data", data: GIT_STATUS_DATA, stale: true, error: BAD },
+          gitDiff: { kind: "data", data: GIT_DIFF_DATA, stale: true, error: BAD },
+        }),
       ),
     ).toEqual({
       error: BAD,
@@ -202,7 +216,7 @@ describe("pageFailure", () => {
   });
 
   it("leaves a stale key-changes read of another code to its own section", () => {
-    const stale: RefreshableView<unknown> = { kind: "data", data: {}, stale: true, error: OTHER };
+    const stale: GitDiffView = { kind: "data", data: GIT_DIFF_DATA, stale: true, error: OTHER };
 
     expect(pageFailure(reads({ lock: { kind: "error", error: BAD }, gitDiff: stale }))).toEqual({
       error: BAD,
@@ -214,9 +228,62 @@ describe("pageFailure", () => {
       pageFailure(
         reads({
           gitStatus: { kind: "loading" },
-          gitDiff: { kind: "data", data: {}, stale: false },
+          gitDiff: { kind: "data", data: GIT_DIFF_DATA, stale: false },
         }),
       ),
     ).toBeNull();
+  });
+
+  it.each([
+    ["timeout", "GIT_TIMEOUT"],
+    ["git-failed", "GIT_GIT_FAILED"],
+  ] as const)(
+    "gives a %s answer of the changes read to the page alert, with the page Retry",
+    (reason, code) => {
+      const view: GitStatusView = {
+        kind: "data",
+        stale: false,
+        data: { result: { available: false, reason }, lastAvailable: undefined },
+      };
+
+      expect(pageFailure(reads({ gitStatus: view }))?.error.code).toBe(code);
+    },
+  );
+
+  it("gives a transient key diff answer to the page alert", () => {
+    const view: GitDiffView = {
+      kind: "data",
+      stale: false,
+      data: { available: false, reason: "timeout" },
+    };
+
+    expect(pageFailure(reads({ gitDiff: view }))?.error.code).toBe("GIT_TIMEOUT");
+  });
+
+  it.each(["not-a-repository", "git-missing", "outside-project", "custom-adapter"] as const)(
+    "leaves the lasting reason %s to a calm note, never the page alert",
+    (reason) => {
+      const view: GitStatusView = {
+        kind: "data",
+        stale: false,
+        data: { result: { available: false, reason }, lastAvailable: undefined },
+      };
+
+      expect(pageFailure(reads({ gitStatus: view }))).toBeNull();
+    },
+  );
+
+  it("does not read an older transient answer as a failure while the newest read failed another way", () => {
+    const view: GitStatusView = {
+      kind: "data",
+      stale: true,
+      error: OTHER,
+      data: {
+        result: { available: false, reason: "timeout" },
+        lastAvailable: undefined,
+      },
+    };
+
+    expect(pageFailure(reads({ gitStatus: view }))?.error).toEqual(OTHER);
   });
 });

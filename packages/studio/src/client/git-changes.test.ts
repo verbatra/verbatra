@@ -3,11 +3,16 @@ import {
   applyGitStatus,
   canOpenInTranslations,
   changeRows,
+  diffSummary,
+  GIT_DIFF_MAX_ENTRIES,
   GIT_DIFF_MAX_VALUE_CHARS,
   GIT_UNAVAILABLE_MESSAGES,
+  type GitAvailableDiff,
   type GitAvailableStatus,
   type GitFile,
   type GitStatusView,
+  isCutText,
+  transientGitError,
   translationsHash,
   withOpenRow,
 } from "./git-changes.js";
@@ -19,6 +24,16 @@ function file(
 ): GitFile {
   return { path, locales, state };
 }
+
+const DIFF: GitAvailableDiff = {
+  available: true,
+  path: "locales/de.json",
+  state: "modified",
+  added: [],
+  removed: [],
+  changed: [],
+  truncated: false,
+};
 
 const AVAILABLE: GitAvailableStatus = {
   available: true,
@@ -78,11 +93,17 @@ describe("withOpenRow", () => {
   });
 
   it("adds nothing while a listed row still offers the open locale", () => {
-    expect(withOpenRow(rows, { locale: "fr", path: "locales/fr.json" }, undefined)).toBe(rows);
+    expect(
+      withOpenRow(rows, { locale: "fr", path: "locales/fr.json", position: 0 }, undefined),
+    ).toBe(rows);
   });
 
   it("keeps the open file as a clean row once the status no longer lists it", () => {
-    const kept = withOpenRow(rows, { locale: "de", path: "locales/de.json" }, "unchanged");
+    const kept = withOpenRow(
+      rows,
+      { locale: "de", path: "locales/de.json", position: 1 },
+      "unchanged",
+    );
 
     expect(kept.map((row) => [row.path, row.clean, row.diffLocales])).toEqual([
       ["locales/fr.json", false, ["fr"]],
@@ -91,30 +112,49 @@ describe("withOpenRow", () => {
   });
 
   it("treats a diff that has not answered as clean", () => {
-    expect(withOpenRow([], { locale: "de", path: "locales/de.json" }, undefined)[0]?.clean).toBe(
-      true,
-    );
+    expect(
+      withOpenRow([], { locale: "de", path: "locales/de.json", position: 1 }, undefined)[0]?.clean,
+    ).toBe(true);
   });
 
   it("shows the state a loaded diff reports for a file the status lost", () => {
-    const [row] = withOpenRow([], { locale: "de", path: "locales/de.json" }, "deleted");
+    const [row] = withOpenRow(
+      [],
+      { locale: "de", path: "locales/de.json", position: 1 },
+      "deleted",
+    );
 
     expect(row).toMatchObject({ state: "deleted", clean: false });
   });
 });
 
+const NONE: ReadonlySet<string> = new Set();
+
 describe("canOpenInTranslations", () => {
+  it("never links a key the source does not have, nor any key while the orphans are unknown", () => {
+    expect(canOpenInTranslations("added", "stray", new Set(["stray"]))).toBe(false);
+    expect(canOpenInTranslations("changed", "stray", new Set(["stray"]))).toBe(false);
+    expect(canOpenInTranslations("added", "kept", new Set(["stray"]))).toBe(true);
+    expect(canOpenInTranslations("added", "kept", undefined)).toBe(false);
+  });
+
   it("links an added and a changed key and never a removed one", () => {
-    expect(canOpenInTranslations("added", "a.b")).toBe(true);
-    expect(canOpenInTranslations("changed", "a.b")).toBe(true);
-    expect(canOpenInTranslations("removed", "a.b")).toBe(false);
+    expect(canOpenInTranslations("added", "a.b", NONE)).toBe(true);
+    expect(canOpenInTranslations("changed", "a.b", NONE)).toBe(true);
+    expect(canOpenInTranslations("removed", "a.b", NONE)).toBe(false);
   });
 
   it("never links a key the sdk cut, nor an empty one", () => {
-    expect(canOpenInTranslations("changed", "k".repeat(GIT_DIFF_MAX_VALUE_CHARS))).toBe(false);
-    expect(canOpenInTranslations("changed", "k".repeat(GIT_DIFF_MAX_VALUE_CHARS - 1))).toBe(false);
-    expect(canOpenInTranslations("changed", "k".repeat(GIT_DIFF_MAX_VALUE_CHARS - 2))).toBe(true);
-    expect(canOpenInTranslations("changed", "")).toBe(false);
+    expect(canOpenInTranslations("changed", "k".repeat(GIT_DIFF_MAX_VALUE_CHARS), NONE)).toBe(
+      false,
+    );
+    expect(canOpenInTranslations("changed", "k".repeat(GIT_DIFF_MAX_VALUE_CHARS - 1), NONE)).toBe(
+      false,
+    );
+    expect(canOpenInTranslations("changed", "k".repeat(GIT_DIFF_MAX_VALUE_CHARS - 2), NONE)).toBe(
+      true,
+    );
+    expect(canOpenInTranslations("changed", "", NONE)).toBe(false);
   });
 
   it("builds a Translations hash that keeps a hostile key as one parameter", () => {
@@ -178,5 +218,93 @@ describe("applyGitStatus", () => {
 describe("GIT_UNAVAILABLE_MESSAGES", () => {
   it("says a project outside a repository is nothing wrong", () => {
     expect(GIT_UNAVAILABLE_MESSAGES["not-a-repository"]).toContain("Nothing is wrong");
+  });
+});
+
+describe("withOpenRow position", () => {
+  const rows = changeRows([
+    file("locales/a.json", ["fr"]),
+    file("locales/b.json", ["es"]),
+    file("locales/c.json", ["it"]),
+  ]);
+
+  it("puts the kept row where it was, not at the end", () => {
+    const kept = withOpenRow(
+      rows,
+      { locale: "de", path: "locales/de.json", position: 1 },
+      "unchanged",
+    );
+
+    expect(kept.map((row) => row.path)).toEqual([
+      "locales/a.json",
+      "locales/de.json",
+      "locales/b.json",
+      "locales/c.json",
+    ]);
+  });
+
+  it("clamps a position beyond the list to the end and below zero to the start", () => {
+    const end = withOpenRow(rows, { locale: "de", path: "x", position: 99 }, "unchanged");
+    const start = withOpenRow(rows, { locale: "de", path: "x", position: -4 }, "unchanged");
+
+    expect(end.at(-1)?.path).toBe("x");
+    expect(start[0]?.path).toBe("x");
+  });
+});
+
+describe("isCutText", () => {
+  it("marks a text at the sdk cut and not a shorter one", () => {
+    expect(isCutText("x".repeat(GIT_DIFF_MAX_VALUE_CHARS))).toBe(true);
+    expect(isCutText("x".repeat(GIT_DIFF_MAX_VALUE_CHARS - 1))).toBe(true);
+    expect(isCutText("x".repeat(GIT_DIFF_MAX_VALUE_CHARS - 2))).toBe(false);
+    expect(isCutText("")).toBe(false);
+  });
+});
+
+describe("diffSummary", () => {
+  const entry = { key: "k", value: "v" };
+
+  it("counts a complete list exactly", () => {
+    expect(diffSummary({ ...DIFF, added: [entry], changed: [], removed: [entry, entry] })).toBe(
+      "0 changed, 1 added, 2 removed",
+    );
+  });
+
+  it("says at least when the entry cap was reached, never an exact count", () => {
+    const changed = Array.from({ length: GIT_DIFF_MAX_ENTRIES }, () => ({
+      key: "k",
+      before: "a",
+      after: "b",
+    }));
+
+    expect(diffSummary({ ...DIFF, changed })).toBe(
+      `${GIT_DIFF_MAX_ENTRIES}+ keys differ; listed: ${GIT_DIFF_MAX_ENTRIES} changed, 0 added, 0 removed`,
+    );
+  });
+});
+
+describe("transientGitError", () => {
+  it.each([
+    ["timeout", "GIT_TIMEOUT"],
+    ["git-failed", "GIT_GIT_FAILED"],
+  ] as const)("turns %s into an error the page can retry", (reason, code) => {
+    expect(transientGitError({ available: false, reason })).toEqual({
+      code,
+      message: GIT_UNAVAILABLE_MESSAGES[reason],
+    });
+  });
+
+  it.each([
+    "not-a-repository",
+    "git-missing",
+    "dubious-ownership",
+    "custom-adapter",
+    "outside-project",
+  ] as const)("leaves the lasting reason %s as a calm note", (reason) => {
+    expect(transientGitError({ available: false, reason })).toBeUndefined();
+  });
+
+  it("leaves an available answer alone", () => {
+    expect(transientGitError(AVAILABLE)).toBeUndefined();
   });
 });

@@ -305,33 +305,40 @@ describe("OverviewPanel Changes section", () => {
     expect(view.get('[data-git-diff="de"]').textContent).toContain("not in a git repository");
   });
 
-  it("lets a slow status answer never overwrite a newer one", async () => {
+  it("reads one at a time, so a slow status answer is replaced by the newer one and never the reverse", async () => {
     const status = deferred();
     stubPage({ "git.status": status.handler });
     const view = render(<OverviewPanel refreshToken={0} />);
     view.rerender(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
     await flush();
+    expect(callsTo("git.status")).toBe(1);
 
-    status.answer(1, statusOf([{ path: "locales/newer.json", locales: [], state: "added" }]));
-    await flush();
     status.answer(0, statusOf([{ path: "locales/older.json", locales: [], state: "added" }]));
     await flush();
+    expect(callsTo("git.status")).toBe(2);
+    status.answer(1, statusOf([{ path: "locales/newer.json", locales: [], state: "added" }]));
+    await flush();
 
-    const paths = view.all("[data-git-path]").map((node) => node.textContent);
-    expect(paths).toEqual(["locales/newer.json"]);
+    expect(view.all("[data-git-path]").map((node) => node.textContent)).toEqual([
+      "locales/newer.json",
+    ]);
   });
 
-  it("lets a slow diff answer never overwrite a newer one", async () => {
+  it("reads one at a time, so a slow diff answer is replaced by the newer one and never the reverse", async () => {
     const diff = deferred();
     stubPage({ "git.localeDiff": diff.handler });
     const view = await renderAsync(<OverviewPanel refreshToken={0} />);
     await clickAsync(view.get('[data-git-toggle="de"]'));
     view.rerender(<OverviewPanel refreshToken={1} />);
+    view.rerender(<OverviewPanel refreshToken={2} />);
     await flush();
+    expect(callsTo("git.localeDiff")).toBe(1);
 
-    diff.answer(1, diffOf({ changed: [{ key: "newer", before: "a", after: "b" }] }));
-    await flush();
     diff.answer(0, diffOf({ changed: [{ key: "older", before: "a", after: "b" }] }));
+    await flush();
+    expect(callsTo("git.localeDiff")).toBe(2);
+    diff.answer(1, diffOf({ changed: [{ key: "newer", before: "a", after: "b" }] }));
     await flush();
 
     expect(view.all("[data-git-key]").map((node) => node.textContent)).toEqual(["newer"]);
@@ -357,5 +364,108 @@ describe("OverviewPanel Changes section", () => {
     await flush();
 
     expect(callsTo("git.localeDiff")).toBe(1);
+  });
+
+  it("re-reads only the changes, not the other sources, when the git refresh token moves", async () => {
+    stubPage();
+    const view = await renderAsync(<OverviewPanel refreshToken={0} gitRefreshToken={0} />);
+    await clickAsync(view.get('[data-git-toggle="de"]'));
+    const before = rpcCalls.length;
+
+    view.rerender(<OverviewPanel refreshToken={0} gitRefreshToken={1} />);
+    await flush();
+    await flush();
+
+    expect(
+      rpcCalls
+        .slice(before)
+        .map((call) => call.method)
+        .sort(),
+    ).toEqual(["git.localeDiff", "git.status"]);
+  });
+
+  it("links an added key only when the source has it, from the orphaned keys of the diff read", async () => {
+    stubPage({
+      "status.diff": {
+        ok: true,
+        result: {
+          hasPendingChanges: false,
+          locales: [
+            {
+              locale: "de",
+              missing: [],
+              changed: [],
+              orphaned: ["stray"],
+              hasPendingChanges: false,
+            },
+          ],
+        },
+      },
+      "git.localeDiff": diffOf({
+        changed: [],
+        added: [
+          { key: "kept", value: "v" },
+          { key: "stray", value: "v" },
+        ],
+      }),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+
+    await clickAsync(view.get('[data-git-toggle="de"]'));
+
+    expect(view.all("[data-git-open]").map((link) => link.getAttribute("href"))).toEqual([
+      "#/translations?locale=de&key=kept",
+    ]);
+  });
+
+  it("links no key while the page cannot say which keys the source has", async () => {
+    stubPage({ "status.diff": rpcError("INTERNAL", "boom") });
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+
+    await clickAsync(view.get('[data-git-toggle="de"]'));
+
+    expect(view.query("[data-git-open]")).toBeNull();
+    expect(view.get('[data-git-diff="de"]').textContent).toContain("Servus");
+  });
+
+  it("gives a timed-out changes read to the page alert, which carries the one Retry", async () => {
+    stubPage({
+      "git.status": { ok: true, result: { available: false, reason: "timeout" } },
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+
+    expect(view.all('[role="alert"]')).toHaveLength(1);
+    expect(view.get('[role="alert"]').textContent).toContain("took too long");
+    expect(retryButtons(view)).toHaveLength(1);
+    expect(changesSection(view).textContent).toContain(
+      "Changes are unavailable. See the error above.",
+    );
+  });
+
+  it("re-reads the changes on Retry after a git-failed answer and recovers", async () => {
+    stubPage({
+      "git.status": inOrder([
+        { ok: true, result: { available: false, reason: "git-failed" } },
+        statusOf([DE_MODIFIED]),
+      ]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+
+    await clickAsync(retryButtons(view)[0] as HTMLElement);
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.all("[data-git-file]")).toHaveLength(1);
+  });
+
+  it("explains a pattern outside the project calmly, with no alert and no Retry", async () => {
+    stubPage({
+      "git.status": { ok: true, result: { available: false, reason: "outside-project" } },
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+
+    expect(changesSection(view).textContent).toContain("outside the project folder");
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(retryButtons(view)).toHaveLength(0);
   });
 });

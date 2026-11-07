@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createCoalescedRunner } from "../client/coalesce.js";
 import {
   applyGitStatus,
   type GitDiffView,
@@ -10,18 +11,27 @@ import { rpcClient } from "./api.js";
 
 export function useGitStatus(refreshToken: number): GitStatusView {
   const [view, setView] = useState<GitStatusView>({ kind: "loading" });
+  const alive = useRef(true);
+  const runner = useRef<ReturnType<typeof createCoalescedRunner> | undefined>(undefined);
+
+  if (runner.current === undefined) {
+    runner.current = createCoalescedRunner(async () => {
+      const response = await rpcClient.call("git.status", {});
+      if (alive.current) {
+        setView((previous) => applyGitStatus(previous, response));
+      }
+    });
+  }
 
   useEffect(() => {
-    let cancelled = false;
-    void rpcClient.call("git.status", {}).then((response) => {
-      if (cancelled) {
-        return;
-      }
-      setView((previous) => applyGitStatus(previous, response));
-    });
+    alive.current = true;
     return () => {
-      cancelled = true;
+      alive.current = false;
     };
+  }, []);
+
+  useEffect(() => {
+    runner.current?.trigger();
   }, [refreshToken]);
 
   return view;
@@ -39,34 +49,66 @@ export function useGitLocaleDiff(
   refreshToken: number,
 ): GitDiffView | undefined {
   const [held, setHeld] = useState<HeldDiff | undefined>(undefined);
+  const alive = useRef(true);
+  const wanted = useRef<string | undefined>(locale);
+  const runner = useRef<ReturnType<typeof createCoalescedRunner> | undefined>(undefined);
+
+  wanted.current = locale;
+
+  if (runner.current === undefined) {
+    runner.current = createCoalescedRunner(async () => {
+      const asked = wanted.current;
+      if (asked === undefined) {
+        return;
+      }
+      const response = await rpcClient.call("git.localeDiff", { locale: asked });
+      if (alive.current && wanted.current === asked) {
+        setHeld((previous) => ({
+          locale: asked,
+          view: applyRefreshOutcome(
+            previous?.locale === asked ? previous.view : LOADING_DIFF,
+            response,
+          ),
+        }));
+      }
+    });
+  }
+
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (locale === undefined) {
       setHeld(undefined);
       return;
     }
-    let cancelled = false;
-    void rpcClient.call("git.localeDiff", { locale }).then((response) => {
-      if (cancelled) {
-        return;
-      }
-      setHeld((previous) => ({
-        locale,
-        view: applyRefreshOutcome(
-          previous?.locale === locale ? previous.view : LOADING_DIFF,
-          response,
-        ),
-      }));
-    });
-    return () => {
-      cancelled = true;
-    };
+    runner.current?.trigger();
   }, [locale, refreshToken]);
 
   if (locale === undefined) {
     return undefined;
   }
   return held?.locale === locale ? held.view : LOADING_DIFF;
+}
+
+function useReturnToPage(onReturn: () => void): void {
+  useEffect(() => {
+    function onVisibility(): void {
+      if (document.visibilityState === "visible") {
+        onReturn();
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onReturn);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onReturn);
+    };
+  }, [onReturn]);
 }
 
 export interface GitChanges {
@@ -78,8 +120,12 @@ export interface GitChanges {
 
 export function useGitChanges(refreshToken: number): GitChanges {
   const [open, setOpen] = useState<OpenDiff | undefined>(undefined);
-  const status = useGitStatus(refreshToken);
-  const diff = useGitLocaleDiff(open?.locale, refreshToken);
+  const [returns, setReturns] = useState(0);
+  const onReturn = useCallback(() => setReturns((count) => count + 1), []);
+  useReturnToPage(onReturn);
+  const token = refreshToken + returns;
+  const status = useGitStatus(token);
+  const diff = useGitLocaleDiff(open?.locale, token);
   const toggle = useCallback((target: OpenDiff) => {
     setOpen((current) => (current?.locale === target.locale ? undefined : target));
   }, []);

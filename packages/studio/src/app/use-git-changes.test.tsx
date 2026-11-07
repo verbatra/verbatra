@@ -29,6 +29,10 @@ function diffFor(key: string): StubRpcResult {
   };
 }
 
+function setVisibility(state: "visible" | "hidden"): void {
+  Object.defineProperty(document, "visibilityState", { configurable: true, value: state });
+}
+
 let seen: GitChanges;
 
 function Probe({ token }: { readonly token: number }): ReactNode {
@@ -51,16 +55,16 @@ describe("useGitChanges", () => {
     stubRpc({ "git.status": STATUS, "git.localeDiff": diffFor("a") });
     await renderAsync(<Probe token={0} />);
 
-    act(() => seen.toggle({ locale: "de", path: "locales/de.json" }));
+    act(() => seen.toggle({ locale: "de", path: "locales/de.json", position: 0 }));
     await flush();
 
-    expect(seen.open).toEqual({ locale: "de", path: "locales/de.json" });
+    expect(seen.open).toEqual({ locale: "de", path: "locales/de.json", position: 0 });
     expect(seen.diff?.kind).toBe("data");
     expect(rpcCalls.filter((call) => call.method === "git.localeDiff")).toEqual([
       { method: "git.localeDiff", params: { locale: "de" } },
     ]);
 
-    act(() => seen.toggle({ locale: "de", path: "locales/de.json" }));
+    act(() => seen.toggle({ locale: "de", path: "locales/de.json", position: 0 }));
     await flush();
 
     expect(seen.open).toBeUndefined();
@@ -78,9 +82,9 @@ describe("useGitChanges", () => {
     });
     await renderAsync(<Probe token={0} />);
 
-    act(() => seen.toggle({ locale: "de", path: "locales/de.json" }));
+    act(() => seen.toggle({ locale: "de", path: "locales/de.json", position: 0 }));
     await flush();
-    act(() => seen.toggle({ locale: "fr", path: "locales/fr.json" }));
+    act(() => seen.toggle({ locale: "fr", path: "locales/fr.json", position: 0 }));
     await flush();
 
     expect(seen.open?.locale).toBe("fr");
@@ -97,7 +101,7 @@ describe("useGitChanges", () => {
       },
     });
     await renderAsync(<Probe token={0} />);
-    const target = { locale: "de", path: "locales/de.json" };
+    const target = { locale: "de", path: "locales/de.json", position: 0 };
 
     act(() => seen.toggle(target));
     await flush();
@@ -124,9 +128,9 @@ describe("useGitChanges", () => {
     });
     await renderAsync(<Probe token={0} />);
 
-    act(() => seen.toggle({ locale: "de", path: "locales/de.json" }));
+    act(() => seen.toggle({ locale: "de", path: "locales/de.json", position: 0 }));
     await flush();
-    act(() => seen.toggle({ locale: "fr", path: "locales/fr.json" }));
+    act(() => seen.toggle({ locale: "fr", path: "locales/fr.json", position: 0 }));
     await flush();
     answerDe?.(diffFor("de-key"));
     await flush();
@@ -144,7 +148,7 @@ describe("useGitChanges", () => {
       },
     });
     const view = await renderAsync(<Probe token={0} />);
-    act(() => seen.toggle({ locale: "de", path: "locales/de.json" }));
+    act(() => seen.toggle({ locale: "de", path: "locales/de.json", position: 0 }));
     await flush();
 
     view.rerender(<Probe token={1} />);
@@ -167,5 +171,99 @@ describe("useGitChanges", () => {
       kind: "error",
       error: { code: "INTERNAL", message: "boom" },
     });
+  });
+
+  it("reads the status once for a burst of refreshes and once more after it", async () => {
+    let answer: (() => void) | undefined;
+    stubRpc({
+      "git.status": () =>
+        new Promise<StubRpcResult>((resolve) => {
+          answer = () => resolve(STATUS);
+        }),
+    });
+    const view = render(<Probe token={0} />);
+    for (let token = 1; token <= 30; token += 1) {
+      view.rerender(<Probe token={token} />);
+    }
+    await flush();
+    expect(rpcCalls.filter((call) => call.method === "git.status")).toHaveLength(1);
+
+    answer?.();
+    await flush();
+    await flush();
+
+    expect(rpcCalls.filter((call) => call.method === "git.status")).toHaveLength(2);
+    answer?.();
+    await flush();
+    expect(rpcCalls.filter((call) => call.method === "git.status")).toHaveLength(2);
+  });
+
+  it("reads the diff once for a burst of refreshes and never for a locale that closed", async () => {
+    let answer: (() => void) | undefined;
+    stubRpc({
+      "git.status": STATUS,
+      "git.localeDiff": () =>
+        new Promise<StubRpcResult>((resolve) => {
+          answer = () => resolve(diffFor("k"));
+        }),
+    });
+    const view = await renderAsync(<Probe token={0} />);
+    act(() => seen.toggle({ locale: "de", path: "locales/de.json", position: 0 }));
+    await flush();
+    for (let token = 1; token <= 20; token += 1) {
+      view.rerender(<Probe token={token} />);
+    }
+    act(() => seen.toggle({ locale: "de", path: "locales/de.json", position: 0 }));
+    await flush();
+
+    answer?.();
+    await flush();
+    await flush();
+
+    expect(rpcCalls.filter((call) => call.method === "git.localeDiff")).toHaveLength(1);
+    expect(seen.diff).toBeUndefined();
+  });
+
+  it("reads again when the page becomes visible or the window gets focus, and only then", async () => {
+    stubRpc({ "git.status": STATUS });
+    await renderAsync(<Probe token={0} />);
+    const statusCalls = (): number =>
+      rpcCalls.filter((call) => call.method === "git.status").length;
+    expect(statusCalls()).toBe(1);
+
+    setVisibility("hidden");
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await flush();
+    expect(statusCalls()).toBe(1);
+
+    setVisibility("visible");
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await flush();
+    await flush();
+    expect(statusCalls()).toBe(2);
+
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await flush();
+    await flush();
+    expect(statusCalls()).toBe(3);
+  });
+
+  it("stops listening for the page returning once it is unmounted", async () => {
+    stubRpc({ "git.status": STATUS });
+    const view = await renderAsync(<Probe token={0} />);
+    view.unmount();
+
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await flush();
+
+    expect(rpcCalls.filter((call) => call.method === "git.status")).toHaveLength(1);
   });
 });

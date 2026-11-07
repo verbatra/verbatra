@@ -5,7 +5,7 @@ import type {
   GitUnavailableReason,
 } from "../shared/rpc/git.js";
 import { routeHash } from "./routes.js";
-import type { FetchOutcome, RefreshableView } from "./state.js";
+import type { FetchOutcome, RefreshableView, StructuredError } from "./state.js";
 import { applyRefreshOutcome } from "./state.js";
 
 export const GIT_DIFF_MAX_ENTRIES = 500;
@@ -14,7 +14,11 @@ export const GIT_DIFF_MAX_VALUE_CHARS = 2000;
 
 export const GIT_DIFF_PAGE_SIZE = 50;
 
+export const INITIAL_FILE_ROWS = 10;
+
 export type GitAvailableStatus = Extract<GitStatusResult, { readonly available: true }>;
+
+export type GitUnavailableStatus = Extract<GitStatusResult, { readonly available: false }>;
 
 export type GitAvailableDiff = Extract<GitLocaleDiffResult, { readonly available: true }>;
 
@@ -64,7 +68,23 @@ export const GIT_UNAVAILABLE_MESSAGES: Readonly<Record<GitUnavailableReason, str
   "revision-unreadable": "The committed version of this file could not be read or parsed.",
   "working-file-unreadable":
     "The file on disk could not be read or parsed, or it sits behind a symbolic link.",
+  "outside-project":
+    "A locale file of this project lies outside the project folder (a files pattern that starts with ../), so changes cannot be listed here.",
 };
+
+const TRANSIENT_REASONS: ReadonlySet<GitUnavailableReason> = new Set(["timeout", "git-failed"]);
+
+export function transientGitError(
+  result: GitStatusResult | GitLocaleDiffResult,
+): StructuredError | undefined {
+  if (result.available || !TRANSIENT_REASONS.has(result.reason)) {
+    return undefined;
+  }
+  return {
+    code: `GIT_${result.reason.toUpperCase().replace("-", "_")}`,
+    message: GIT_UNAVAILABLE_MESSAGES[result.reason],
+  };
+}
 
 export const GIT_STATE_LABELS: Readonly<Record<GitFileState, string>> = {
   modified: "Modified",
@@ -112,6 +132,7 @@ export function changeRows(files: readonly GitFile[]): readonly ChangeRow[] {
 export interface OpenDiff {
   readonly locale: string;
   readonly path: string;
+  readonly position: number;
 }
 
 export function withOpenRow(
@@ -123,8 +144,9 @@ export function withOpenRow(
     return rows;
   }
   const clean = diffState === undefined || diffState === "unchanged";
+  const at = Math.min(Math.max(open.position, 0), rows.length);
   return [
-    ...rows,
+    ...rows.slice(0, at),
     {
       path: open.path,
       locales: [open.locale],
@@ -132,13 +154,28 @@ export function withOpenRow(
       diffLocales: [open.locale],
       clean,
     },
+    ...rows.slice(at),
   ];
 }
 
 export type DiffSide = "added" | "changed" | "removed";
 
-export function canOpenInTranslations(side: DiffSide, key: string): boolean {
-  return side !== "removed" && key.length > 0 && key.length < GIT_DIFF_MAX_VALUE_CHARS - 1;
+export function isCutText(text: string): boolean {
+  return text.length >= GIT_DIFF_MAX_VALUE_CHARS - 1;
+}
+
+export function canOpenInTranslations(
+  side: DiffSide,
+  key: string,
+  orphaned: ReadonlySet<string> | undefined,
+): boolean {
+  return (
+    side !== "removed" &&
+    key.length > 0 &&
+    !isCutText(key) &&
+    orphaned !== undefined &&
+    !orphaned.has(key)
+  );
 }
 
 export function translationsHash(locale: string, key: string): string {
@@ -152,10 +189,18 @@ export const CONFLICT_NOTICE =
 
 export const UNCHANGED_NOTICE = "This file matches the last commit. No key changes.";
 
+export const NO_KEY_DIFFERS_NOTICE =
+  "No key differs: only the order or formatting of the file changed.";
+
+export const CUT_NOTICE = `Cut at ${GIT_DIFF_MAX_VALUE_CHARS} characters.`;
+
 export function diffTotal(diff: GitAvailableDiff): number {
   return diff.added.length + diff.removed.length + diff.changed.length;
 }
 
 export function diffSummary(diff: GitAvailableDiff): string {
-  return `${diff.changed.length} changed, ${diff.added.length} added, ${diff.removed.length} removed`;
+  const counts = `${diff.changed.length} changed, ${diff.added.length} added, ${diff.removed.length} removed`;
+  return diffTotal(diff) >= GIT_DIFF_MAX_ENTRIES
+    ? `${diffTotal(diff)}+ keys differ; listed: ${counts}`
+    : counts;
 }

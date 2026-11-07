@@ -42,6 +42,7 @@ function section(
     readonly open?: OpenDiff | undefined;
     readonly onToggle?: (target: OpenDiff) => void;
     readonly hideCode?: string;
+    readonly orphaned?: ReadonlySet<string> | undefined;
   } = {},
 ): ReturnType<typeof ChangesSection> {
   return (
@@ -49,6 +50,7 @@ function section(
       status={props.status ?? status([])}
       diff={props.diff}
       open={props.open}
+      orphaned={"orphaned" in props ? props.orphaned : new Set()}
       onToggle={props.onToggle ?? (() => {})}
       hideCode={props.hideCode}
     />
@@ -56,7 +58,7 @@ function section(
 }
 
 const DE_FILE: GitFile = { path: "locales/de.json", locales: ["de"], state: "modified" };
-const DE_OPEN: OpenDiff = { locale: "de", path: "locales/de.json" };
+const DE_OPEN: OpenDiff = { locale: "de", path: "locales/de.json", position: 0 };
 
 describe("ChangesSection file list", () => {
   it("names the branch and says nothing differs for a clean repository", () => {
@@ -160,7 +162,7 @@ describe("ChangesSection file list", () => {
     );
 
     const paths = view.all("[data-git-path]");
-    expect(paths).toHaveLength(302);
+    expect(paths).toHaveLength(10);
     expect(paths[0]?.textContent).toBe(hostile);
     expect(paths[0]?.querySelector("img")).toBeNull();
     expect(paths[1]?.textContent).toBe(long);
@@ -348,7 +350,7 @@ describe("ChangesSection key diff", () => {
     const view = render(
       section({
         status: status([{ path: "locales/ar.json", locales: ["ar"], state: "modified" }]),
-        open: { locale: "ar", path: "locales/ar.json" },
+        open: { locale: "ar", path: "locales/ar.json", position: 0 },
         diff: diffOf({
           path: "locales/ar.json",
           changed: [{ key: "welcome", before: "مرحبا {name}", after: "أهلا {name} في المتجر" }],
@@ -410,7 +412,12 @@ describe("ChangesSection key diff", () => {
   });
 
   it("says a list is incomplete when the sdk reports truncation, naming both causes", () => {
-    const view = render(section({ ...withFile, diff: diffOf({ truncated: true }) }));
+    const view = render(
+      section({
+        ...withFile,
+        diff: diffOf({ truncated: true, added: [{ key: "k", value: "v" }] }),
+      }),
+    );
 
     const notice = view.get("[data-git-truncated]").textContent ?? "";
     expect(notice).toContain("more than 500 keys differ");
@@ -418,7 +425,9 @@ describe("ChangesSection key diff", () => {
   });
 
   it("says nothing about truncation when the list is complete", () => {
-    const view = render(section({ ...withFile, diff: diffOf() }));
+    const view = render(
+      section({ ...withFile, diff: diffOf({ added: [{ key: "k", value: "v" }] }) }),
+    );
 
     expect(view.query("[data-git-truncated]")).toBeNull();
   });

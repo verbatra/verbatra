@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import type { LoadedConfig } from "@verbatra/sdk";
+import { createDefaultRegistry, type LoadedConfig } from "@verbatra/sdk";
 import { describe, expect, it, vi } from "vitest";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
@@ -170,6 +170,33 @@ describe("gitLocaleDiffHandler", () => {
       const result = await gitLocaleDiffHandler({ locale: "de" }, deps(project, execFileImpl));
 
       expect(result).toEqual({ available: false, reason: "custom-adapter" });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("answers custom-adapter when the server was given an adapter registry", async () => {
+    const project = await committedProject();
+    try {
+      const adapterRegistry = createDefaultRegistry();
+
+      const result = await gitLocaleDiffHandler(
+        { locale: "de" },
+        { ...deps(project), adapterRegistry },
+      );
+
+      expect(result).toEqual({ available: false, reason: "custom-adapter" });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("reads through the built-in adapters when the server was given no registry", async () => {
+    const project = await committedProject();
+    try {
+      const result = await gitLocaleDiffHandler({ locale: "de" }, deps(project));
+
+      expect(result).toMatchObject({ available: true });
     } finally {
       await project.cleanup();
     }

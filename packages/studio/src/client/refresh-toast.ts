@@ -38,7 +38,7 @@ function buildLabel(reason: "source" | "targets", locale: string | undefined): s
 }
 
 export function deriveRefreshToastView(event: RefreshEvent): RefreshToastView | undefined {
-  if (event.reason === "lock") {
+  if (event.reason === "lock" || event.reason === "git") {
     return undefined;
   }
   if (event.delta === undefined || deltaSum(event.delta) <= 0) {
@@ -73,11 +73,12 @@ export function nextToastSlot(
   return deriveRefreshToastView(action.event);
 }
 
-export interface HandledRefreshEvent {
-  readonly bumpToken: true;
-  readonly toast: RefreshToastView | undefined;
-}
+export type HandledRefreshEvent =
+  | { readonly kind: "files"; readonly toast: RefreshToastView | undefined }
+  | { readonly kind: "git" };
 
 export function handleRefreshEvent(event: RefreshEvent): HandledRefreshEvent {
-  return { bumpToken: true, toast: deriveRefreshToastView(event) };
+  return event.reason === "git"
+    ? { kind: "git" }
+    : { kind: "files", toast: deriveRefreshToastView(event) };
 }

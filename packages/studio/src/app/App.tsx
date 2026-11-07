@@ -71,6 +71,7 @@ export function App(): ReactNode {
   const [sessionExpired, setSessionExpired] = useState(isSessionExpired());
   const [toast, setToast] = useState<RefreshToastView | undefined>(undefined);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [gitRefreshToken, setGitRefreshToken] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(
@@ -81,9 +82,11 @@ export function App(): ReactNode {
     () =>
       refreshBus.subscribe((event) => {
         const handled = handleRefreshEvent(event);
-        if (handled.bumpToken) {
-          setRefreshToken((token) => token + 1);
+        if (handled.kind === "git") {
+          setGitRefreshToken((token) => token + 1);
+          return;
         }
+        setRefreshToken((token) => token + 1);
         setToast(handled.toast);
       }),
     [],
@@ -101,6 +104,7 @@ export function App(): ReactNode {
     <AppShell
       page={page}
       refreshToken={refreshToken}
+      gitRefreshToken={gitRefreshToken}
       toast={toast}
       onDismissToast={handleDismissToast}
       mobileNavOpen={mobileNavOpen}
@@ -112,6 +116,7 @@ export function App(): ReactNode {
 function AppShell({
   page,
   refreshToken,
+  gitRefreshToken,
   toast,
   onDismissToast,
   mobileNavOpen,
@@ -119,6 +124,7 @@ function AppShell({
 }: {
   readonly page: PageId;
   readonly refreshToken: number;
+  readonly gitRefreshToken: number;
   readonly toast: RefreshToastView | undefined;
   readonly onDismissToast: () => void;
   readonly mobileNavOpen: boolean;
@@ -179,6 +185,7 @@ function AppShell({
           {page === "overview" ? (
             <OverviewPanel
               refreshToken={refreshToken + retries}
+              gitRefreshToken={gitRefreshToken}
               reviewQueue={reviewQueue}
               onRetry={() => setRetries((count) => count + 1)}
             />

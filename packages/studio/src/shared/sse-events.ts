@@ -1,4 +1,4 @@
-export type RefreshReason = "source" | "targets" | "lock";
+export type RefreshReason = "source" | "targets" | "lock" | "git";
 
 export interface RefreshKeyDelta {
   readonly added: number;

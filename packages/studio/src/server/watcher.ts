@@ -1,11 +1,11 @@
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
-  createLocalePathResolver,
   diffLocaleSnapshots,
   LOCK_FILE_NAME,
   type LocaleFileSnapshot,
   type LocaleSnapshotDelta,
+  localeWatchPaths,
   PROVENANCE_FILE_NAME,
   type ReadLocaleFileSnapshotDeps,
   readLocaleFileSnapshot,
@@ -14,9 +14,16 @@ import {
 } from "@verbatra/sdk";
 import { watch as chokidarWatch } from "chokidar";
 import type { RefreshEvent, RefreshReason } from "../shared/sse-events.js";
-import type { CreateStudioWatcher, StudioWatcher } from "./types.js";
+import { createGitWatcher } from "./git-watcher.js";
+import type {
+  CreateStudioWatcher,
+  ExecFileImpl,
+  StudioWatcher,
+  StudioWatcherOptions,
+} from "./types.js";
 
 const DEFAULT_DEBOUNCE_MS = 300;
+const DEFAULT_GIT_POLL_MS = 5000;
 
 interface WatchedEntry {
   readonly reason: RefreshReason;
@@ -28,19 +35,17 @@ function watchedEntries(
   config: VerbatraConfig,
   projectRoot: string,
   glossaryPath: string | undefined,
+  locales: readonly { readonly locale: string; readonly paths: readonly string[] }[],
 ): readonly WatchedEntry[] {
-  const resolver = createLocalePathResolver(projectRoot, config);
-  const source = resolver.pathFor(config.sourceLocale);
-  const targets: WatchedEntry[] = config.targetLocales.map((locale) => ({
-    reason: "targets",
-    paths: [resolver.pathFor(locale)],
+  const localeEntries: WatchedEntry[] = locales.map(({ locale, paths }) => ({
+    reason: locale === config.sourceLocale ? "source" : "targets",
+    paths,
     locale,
   }));
   const lock = resolve(projectRoot, LOCK_FILE_NAME);
 
   return [
-    { reason: "source", paths: [source], locale: config.sourceLocale },
-    ...targets,
+    ...localeEntries,
     { reason: "lock", paths: [lock] },
     { reason: "lock", paths: [resolve(projectRoot, PROVENANCE_FILE_NAME)] },
     ...(glossaryPath === undefined ? [] : [{ reason: "lock" as const, paths: [glossaryPath] }]),
@@ -188,8 +193,10 @@ export interface ProjectWatcherDeps {
   readonly createWatcher: CreateStudioWatcher;
   readonly adapterRegistry?: NonNullable<ReadLocaleFileSnapshotDeps["adapterRegistry"]>;
   readonly fs?: SdkFs;
+  readonly execFile?: ExecFileImpl;
   readonly readLocaleSnapshot?: ReadLocaleSnapshot;
   readonly readFileIdentity?: ReadFileIdentity;
+  readonly gitPollMs?: number;
 }
 
 export interface ProjectWatcher {
@@ -250,9 +257,13 @@ export async function createProjectWatcher(
   }
 
   const readSnapshot = buildReadLocaleSnapshot(input, deps);
+  const watch = await localeWatchPaths(
+    { config: input.config, cwd: input.projectRoot },
+    deps.execFile !== undefined ? { execFile: deps.execFile } : {},
+  );
   const primed = await Promise.all(
-    watchedEntries(input.config, input.projectRoot, input.glossaryPath).map((entry) =>
-      primeEntry(entry, readSnapshot),
+    watchedEntries(input.config, input.projectRoot, input.glossaryPath, watch.locales).map(
+      (entry) => primeEntry(entry, readSnapshot),
     ),
   );
 
@@ -270,6 +281,27 @@ export async function createProjectWatcher(
     return { debounced, watcher };
   });
 
+  const gitDebounced = createDebouncedTrigger(
+    async () => {
+      void gitWatcher?.refresh();
+      return { reason: "git", at: new Date().toISOString() };
+    },
+    debounceMs,
+    emit,
+  );
+  const gitWatcher = await createGitWatcher({
+    resolvePaths: async () => {
+      const found = await localeWatchPaths(
+        { config: input.config, cwd: input.projectRoot },
+        deps.execFile !== undefined ? { execFile: deps.execFile } : {},
+      );
+      return found.git;
+    },
+    createWatcher: deps.createWatcher,
+    onChange: gitDebounced.trigger,
+    pollMs: deps.gitPollMs ?? DEFAULT_GIT_POLL_MS,
+  });
+
   return {
     onRefresh(listener: (event: RefreshEvent) => void): void {
       listeners.add(listener);
@@ -278,13 +310,33 @@ export async function createProjectWatcher(
       for (const entry of entries) {
         entry.debounced.clear();
       }
-      await Promise.all(entries.map((entry) => entry.watcher.close()));
+      gitDebounced.clear();
+      await Promise.all([gitWatcher.close(), ...entries.map((entry) => entry.watcher.close())]);
     },
   };
 }
 
-export const defaultCreateStudioWatcher: CreateStudioWatcher = (paths): StudioWatcher => {
-  const fsWatcher = chokidarWatch([...paths], { persistent: true, ignoreInitial: true });
+function onlyThese(
+  paths: readonly string[],
+  options: StudioWatcherOptions,
+): { readonly depth: number; readonly ignored: (path: string) => boolean } | undefined {
+  if (options.only === undefined) {
+    return undefined;
+  }
+  const files = new Set(options.only);
+  const directories = new Set(paths);
+  return { depth: 0, ignored: (path) => !files.has(path) && !directories.has(path) };
+}
+
+export const defaultCreateStudioWatcher: CreateStudioWatcher = (
+  paths,
+  options = {},
+): StudioWatcher => {
+  const fsWatcher = chokidarWatch([...paths], {
+    persistent: true,
+    ignoreInitial: true,
+    ...onlyThese(paths, options),
+  });
   return {
     onChange(listener: () => void): void {
       fsWatcher.on("change", () => listener());

@@ -11,4 +11,5 @@ export type {
   StudioServerDeps,
   StudioServerOptions,
   StudioWatcher,
+  StudioWatcherOptions,
 } from "./server/types.js";
