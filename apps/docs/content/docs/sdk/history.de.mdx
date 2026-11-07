@@ -1,0 +1,32 @@
+---
+title: "Key-Verlauf"
+seoTitle: "SDK: der Git-Verlauf eines Übersetzungs-Keys"
+description: "Lies, wie sich die Übersetzung eines Keys von Commit zu Commit geändert hat, mit Autor, Herkunft des Werts und einem Unterschied auf Wortebene."
+type: reference
+---
+<AvailableFrom version="0.13.0" />
+
+## Git-Verlauf eines Keys
+
+### keyHistory
+
+Listet die Commits, in denen sich der Wert eines Keys in einer Ziel-Locale geändert hat, neueste zuerst, jeweils mit einem Unterschied auf Wortebene zum vorherigen Wert. Nur lesend; es nimmt eine Locale und einen Key, nie einen Pfad, und führt `git log` und `git cat-file` über das injizierbare `execFile` aus.
+
+```ts title="Signatur"
+function keyHistory(
+  input: KeyHistoryInput,
+  deps?: KeyHistoryDeps,
+): Promise<KeyHistoryResult>;
+```
+
+<SdkTypeTable name="KeyHistoryInput" />
+
+**Rückgabe:** `KeyHistoryResult`
+
+**Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`UNKNOWN_KEY`](/de/docs/error-codes#unknown_key), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision)
+
+Jede Revision trägt `commit`, `authorDate`, `author` (der Name nach `.mailmap`, nie die E-Mail), `subject`, `value`, `origin`, `sourceChanged` und `diff`. Steuer- und bidirektionale Formatierungszeichen fliegen aus `author` und `subject`, die auf 200 und 500 Zeichen gekürzt werden. `diff` listet Segmente `{ kind, text }` mit `kind` `equal`, `added` oder `removed`: Platzhalter und Tags bleiben ganz, eine Änderung am Leerraum zeigt sich als Änderung, und ein zu großer Unterschied wird ein entfernter und ein hinzugefügter Block. `origin` stammt aus der Provenance-Datei, wie sie mit der Revision committet wurde: ein gespeicherter Ursprung, `unrecorded` oder `external`, wenn ihr Eintrag einen anderen Wert beschreibt; fehlt, wenn die Datei nicht lesbar ist oder vorher die Zeit ablief. `sourceChanged` ist `true`, wenn sich die aktuelle Quelle des Keys von der unterscheidet, die die committete Lock-Datei festgehalten hat, `false`, wenn sie übereinstimmt, und `"unknown"`, wenn die Lock-Datei, ihr Eintrag oder die aktuelle Quelle fehlt oder vorher die Zeit ablief. Wer einen Wert wiederherstellt, dessen Quelle sich geändert hat, lässt ihn als aktuell zählen.
+
+Die Commits kommen aus `git log --first-parent` über die Locale-Datei (bei `apple-strings` auch über die `.stringsdict`-Datei); eine Änderung, die ein Merge mitgebracht hat, steht also am Merge-Commit. Jede Datei wird mit `git cat-file blob` gelesen und vom eingebauten Adapter geparst, und ein Commit wird nur gelistet, wenn der Wert des Keys vom nächstälteren lesbaren Commit abweicht. Ein Commit, der den Key entfernt, wird nicht gelistet. Bis zu `LOCALE_HISTORY_LIMIT_CAP` Commits werden untersucht (standardmäßig `LOCALE_HISTORY_LIMIT_DEFAULT`), vier Dateien gleichzeitig gelesen, und nach `KEY_HISTORY_DEADLINE_MS` (`30000` Millisekunden) beginnt kein neues Lesen mehr. `truncated` ist `true`, wenn ältere Commits nicht untersucht wurden, bei einem Shallow Clone oder wenn die Zeit ablief, bevor jeder Commit gelesen war. Ein Commit, dessen Datei sich nicht lesen oder parsen lässt oder dessen Wert länger als `KEY_HISTORY_MAX_VALUE_CHARS` (`4096`) Zeichen ist, zählt in `unreadableRevisions` und wird nie teilweise zurückgegeben. `key` hat höchstens `KEY_HISTORY_MAX_KEY_CHARS` (`1024`) Zeichen und erreicht Git nie. `workingTree` trägt den Wert auf der Platte samt `diff`, wenn er von `HEAD` abweicht.
+
+Umbenennungen werden nicht verfolgt, der Verlauf vor einer Umbenennung fehlt also; nie committete Änderungen sieht es nicht, und ein in der Quelle umbenannter Key wirkt neu. Die Git-Schutzmaßnahmen sind die von `localeGitStatus`, und das Ergebnis ist `{ available: false, reason }` mit einem Grund aus `LOCALE_GIT_UNAVAILABLE_REASONS`, auch `custom-adapter` bei einem `custom:`-Format.

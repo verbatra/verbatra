@@ -1,0 +1,32 @@
+---
+title: "Key history"
+seoTitle: "SDK: the git history of one translation key"
+description: "Read how one key's translation changed from commit to commit, with the author, where the value came from and a word-level difference."
+type: reference
+---
+<AvailableFrom version="0.13.0" />
+
+## Git history of one key
+
+### keyHistory
+
+Lists the commits in which one key's value changed in one target locale, newest first, each with a word-level difference from the previous value. Read-only; it takes a locale and a key, never a path, and runs `git log` and `git cat-file` through the injectable `execFile`.
+
+```ts title="Signature"
+function keyHistory(
+  input: KeyHistoryInput,
+  deps?: KeyHistoryDeps,
+): Promise<KeyHistoryResult>;
+```
+
+<SdkTypeTable name="KeyHistoryInput" />
+
+**Returns:** `KeyHistoryResult`
+
+**Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+Each revision carries `commit`, `authorDate`, `author` (the name after `.mailmap`, never the email), `subject`, `value`, `origin`, `sourceChanged` and `diff`. Control and bidirectional formatting characters are stripped from `author` and `subject`, which are cut to 200 and 500 characters. `diff` lists `{ kind, text }` segments with `kind` `equal`, `added` or `removed`: placeholders and tags stay whole, a change of whitespace shows as a change, and a difference too large to align becomes one removed and one added run. `origin` comes from the provenance file as committed with the revision: a stored origin, `unrecorded`, or `external` when its record describes another value, and absent when that file cannot be read or the time ran out first. `sourceChanged` is `true` when the key's current source differs from the one the committed lock-file recorded, `false` when it matches and `"unknown"` when the lock-file, its entry or the current source is missing or the time ran out first. Restoring a value whose source changed makes it count as up to date.
+
+The commits come from `git log --first-parent` on the locale file (and the `.stringsdict` file for `apple-strings`), so a change a merge brought in is listed on the merge commit. Each file is read with `git cat-file blob` and parsed by the built-in adapter, and a commit is listed only if the key's value differs from the next older readable commit. A commit that removes the key is not listed. Up to `LOCALE_HISTORY_LIMIT_CAP` commits are examined (`LOCALE_HISTORY_LIMIT_DEFAULT` by default), four files are read at a time, and no new read starts after `KEY_HISTORY_DEADLINE_MS` (`30000` milliseconds). `truncated` is `true` when older commits were not examined, in a shallow clone, or when time ran out before every commit was read. A commit whose file cannot be read or parsed, or whose value is longer than `KEY_HISTORY_MAX_VALUE_CHARS` (`4096`) characters, counts in `unreadableRevisions` and is never returned in part. `key` is at most `KEY_HISTORY_MAX_KEY_CHARS` (`1024`) characters and never reaches git. `workingTree` carries the value on disk, with its `diff`, when it differs from `HEAD`.
+
+Renames are not followed, so history before a rename is not listed; edits that were never committed are not seen, and a key renamed in the source looks new. The git safeguards are those of `localeGitStatus`, and the result is `{ available: false, reason }` with a reason from `LOCALE_GIT_UNAVAILABLE_REASONS`, `custom-adapter` for a `custom:` format included.
