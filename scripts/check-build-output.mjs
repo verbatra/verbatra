@@ -47,6 +47,19 @@ const STUDIO_APP_ASSETS = "packages/studio/dist/app/assets";
 
 const ZOD_JITLESS_CONFIG = /\(\{\s*jitless\s*:\s*(?:!0|true)\s*\}\)/;
 
+const NODE_ONLY_TOKENS = [
+  "homedir",
+  "tmpdir",
+  "readFileSync",
+  "execFile",
+  "child_process",
+  "fs/promises",
+];
+
+function findNodeOnlyTokens(text) {
+  return NODE_ONLY_TOKENS.filter((token) => text.includes(token));
+}
+
 function hasZodJitlessConfig(text) {
   return ZOD_JITLESS_CONFIG.test(text);
 }
@@ -378,9 +391,10 @@ function checkStudioBundle() {
     }
   }
   checkStudioZodJitless();
+  checkStudioClientNodeFree();
   return (
     "the studio and mcp commands survive bundling as runtime dynamic imports, and the Studio " +
-    "client bundle keeps its zod jitless config."
+    "client bundle keeps its zod jitless config and holds no Node-only code."
   );
 }
 
@@ -401,6 +415,24 @@ function checkStudioZodJitless() {
       `${STUDIO_APP_ASSETS} has no z.config({ jitless: true }) call, so zod probes for eval under ` +
         "the dashboard's script-src 'self' policy. Check that packages/studio/package.json " +
         "sideEffects keeps src/app/zod-jitless.ts.",
+    );
+  }
+}
+
+function checkStudioClientNodeFree() {
+  const assetsDir = resolve(REPO_ROOT, STUDIO_APP_ASSETS);
+  const hits = readdirSync(assetsDir)
+    .filter((name) => name.endsWith(".js"))
+    .flatMap((name) =>
+      findNodeOnlyTokens(readBuildOutput(`${STUDIO_APP_ASSETS}/${name}`)).map(
+        (token) => `${name}: ${token}`,
+      ),
+    );
+  if (hits.length > 0) {
+    throw new Error(
+      `${STUDIO_APP_ASSETS} holds Node-only code, so a browser module pulled in a value from ` +
+        "@verbatra/sdk or a node: module and the dashboard throws when it loads; import only " +
+        `types from the sdk in src/app, src/client, src/shared and src/webmcp:\n  ${hits.join("\n  ")}`,
     );
   }
 }
@@ -611,6 +643,7 @@ export {
   findEagerProviderImports,
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
+  findNodeOnlyTokens,
   findRenamedDeclarations,
   findSchemaDocumentProblems,
   findSchemaSetProblems,

@@ -6,6 +6,7 @@ import {
   findEagerProviderImports,
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
+  findNodeOnlyTokens,
   findRenamedDeclarations,
   findSchemaDocumentProblems,
   findSchemaSetProblems,
@@ -672,5 +673,18 @@ describe("findSchemaSetProblems", () => {
       "b.json is missing",
       "c.json is not in the expected list in scripts/check-build-output.mjs",
     ]);
+  });
+});
+
+describe("findNodeOnlyTokens", () => {
+  it("finds the Node-only code a leaked sdk value brings into the browser bundle", () => {
+    expect(findNodeOnlyTokens("var r=os.homedir();var f=fs.readFileSync(p)")).toEqual([
+      "homedir",
+      "readFileSync",
+    ]);
+  });
+
+  it("finds nothing in an ordinary client bundle", () => {
+    expect(findNodeOnlyTokens("function mc(e,t){return ma(e,t)}We({jitless:!0});")).toEqual([]);
   });
 });
