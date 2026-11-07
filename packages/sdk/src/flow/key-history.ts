@@ -55,8 +55,6 @@ export const KEY_HISTORY_MAX_KEY_CHARS = 1024;
 export const KEY_HISTORY_DEADLINE_MS = 30_000;
 
 const READ_CONCURRENCY = 4;
-const MAX_AUTHOR_CHARS = 200;
-const MAX_SUBJECT_CHARS = 500;
 
 function pause(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
@@ -70,9 +68,9 @@ export interface KeyRevision {
   readonly commit: string;
   /** The author date in strict ISO 8601. */
   readonly authorDate: string;
-  /** The author's name after `.mailmap`, never the email address, cut to 200 characters. */
+  /** The author's name after `.mailmap`, never the email address, scrubbed with {@link redact} before it is cut to 200 characters. */
   readonly author: string;
-  /** The first line of the commit message, cut to 500 characters. */
+  /** The first line of the commit message, scrubbed with {@link redact} before it is cut to 500 characters. */
   readonly subject: string;
   /** The key's value in that commit. Untrusted: show it as text. */
   readonly value: string;
@@ -195,14 +193,6 @@ function assertUsableKey(key: string): void {
       `The key must be a string of 1 to ${KEY_HISTORY_MAX_KEY_CHARS} characters.`,
     );
   }
-}
-
-function clipText(text: string, max: number): string {
-  if (text.length <= max) {
-    return text;
-  }
-  const lastUnit = text.charCodeAt(max - 1);
-  return text.slice(0, lastUnit >= 0xd800 && lastUnit <= 0xdbff ? max - 1 : max);
 }
 
 type LocaleProbe =
@@ -612,8 +602,8 @@ function revisionOf(
   return {
     commit: commit.hash,
     authorDate: commit.authorDate,
-    author: clipText(commit.author, MAX_AUTHOR_CHARS),
-    subject: clipText(commit.subject, MAX_SUBJECT_CHARS),
+    author: commit.author,
+    subject: commit.subject,
     value,
     ...(valueRedacted ? { valueRedacted: true as const } : {}),
     ...(context.origin !== undefined ? { origin: context.origin } : {}),

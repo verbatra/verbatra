@@ -1,8 +1,8 @@
-import { keyHistory, redact } from "@verbatra/sdk";
+import { keyHistory } from "@verbatra/sdk";
 import type { RpcHandler } from "../rpc.js";
 
-export const keyRevisionsHandler: RpcHandler<"history.keyRevisions"> = async (params, deps) => {
-  const result = await keyHistory(
+export const keyRevisionsHandler: RpcHandler<"history.keyRevisions"> = async (params, deps) =>
+  keyHistory(
     {
       config: deps.config.config,
       cwd: deps.projectRoot,
@@ -12,15 +12,3 @@ export const keyRevisionsHandler: RpcHandler<"history.keyRevisions"> = async (pa
     },
     deps.execFileImpl !== undefined ? { execFile: deps.execFileImpl } : {},
   );
-  if (!result.available) {
-    return result;
-  }
-  return {
-    ...result,
-    revisions: result.revisions.map((revision) => ({
-      ...revision,
-      author: redact(revision.author),
-      subject: redact(revision.subject),
-    })),
-  };
-};

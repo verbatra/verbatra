@@ -1,3 +1,4 @@
+import { redact } from "../redact.js";
 import {
   buildSafeGitArgs,
   COMMIT_HASH,
@@ -27,11 +28,11 @@ export {
 export interface LocaleHistoryCommit {
   /** The full commit hash. */
   readonly hash: string;
-  /** The author's name as git records it, after `.mailmap`. Never the email address. */
+  /** The author's name as git records it, after `.mailmap`, with anything shaped like an API key replaced by `[REDACTED]`, cut to 200 characters. Never the email address. */
   readonly author: string;
   /** The author date in strict ISO 8601. */
   readonly authorDate: string;
-  /** The first line of the commit message. */
+  /** The first line of the commit message, with anything shaped like an API key replaced by `[REDACTED]`, cut to 500 characters. */
   readonly subject: string;
   /** The watched locale files the commit touched, relative to the repository root. */
   readonly touchedPaths: readonly string[];
@@ -158,6 +159,19 @@ function parsePathLine(line: string): string {
   return line.length >= 2 && line.startsWith('"') && line.endsWith('"') ? unquoteCPath(line) : line;
 }
 
+export const COMMIT_AUTHOR_MAX_CHARS = 200;
+export const COMMIT_SUBJECT_MAX_CHARS = 500;
+const COMMIT_TEXT_SCRUB_WINDOW = 16_384;
+
+export function scrubAndClip(text: string, max: number): string {
+  const scrubbed = redact(sanitizeGitText(text.slice(0, COMMIT_TEXT_SCRUB_WINDOW)));
+  if (scrubbed.length <= max) {
+    return scrubbed;
+  }
+  const lastUnit = scrubbed.charCodeAt(max - 1);
+  return scrubbed.slice(0, lastUnit >= 0xd800 && lastUnit <= 0xdbff ? max - 1 : max);
+}
+
 export function parseCommitHeader(
   line: string,
 ): Omit<LocaleHistoryCommit, "touchedPaths"> | undefined {
@@ -169,7 +183,12 @@ export function parseCommitHeader(
   if (!COMMIT_HASH.test(hash) || !ISO_DATE.test(authorDate)) {
     return undefined;
   }
-  return { hash, author: sanitizeGitText(author), authorDate, subject: sanitizeGitText(subject) };
+  return {
+    hash,
+    author: scrubAndClip(author, COMMIT_AUTHOR_MAX_CHARS),
+    authorDate,
+    subject: scrubAndClip(subject, COMMIT_SUBJECT_MAX_CHARS),
+  };
 }
 
 interface PendingCommit {
