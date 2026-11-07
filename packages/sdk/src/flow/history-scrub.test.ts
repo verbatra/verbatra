@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
 import { keyHistory } from "./key-history.js";
@@ -92,7 +93,9 @@ describe("commit subjects and author names", () => {
     const fx = await makeGitFixture();
     fixtures.push(fx);
     await fx.write("locales/de.json", '{"a":"x"}\n');
-    await fx.commitAll("z".repeat(200_005));
+    await fx.write("../message.txt", `${"z".repeat(200_005)}\n`);
+    await fx.git(["add", "-A"]);
+    await fx.git(["commit", "-q", "-F", join(fx.base, "message.txt")]);
 
     const result = await localeHistory({ config: baseConfig(), cwd: fx.root }, {});
 
