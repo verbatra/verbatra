@@ -85,10 +85,13 @@ export interface KeyRevision {
    */
   readonly origin?: KeyOrigin;
   /**
-   * Whether the key's source text differs now from the one the lock-file recorded in that commit.
-   * `unknown` when the lock-file, its entry for the key or the key's current source is not
+   * Whether the content hash of the key's current source entry (text, description, meaning,
+   * plural flag and placeholders) differs from the hash the lock-file recorded for the key in that
+   * commit. `unknown` when the lock-file, its entry for the key or the current source entry is not
    * available, or when the lock-file was above its size limit, did not parse or the time ran out
-   * before it was read. Restoring a revision whose source changed makes it count as up to date.
+   * before it was read. Unlike `origin`, which compares the value with the provenance record and
+   * is absent when that file cannot be used, this never depends on the value. Restoring a revision
+   * whose source entry changed makes it count as up to date.
    */
   readonly sourceChanged: boolean | "unknown";
   /**
