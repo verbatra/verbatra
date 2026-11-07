@@ -228,7 +228,6 @@ function RevisionRow({
   readonly onRestore: () => void;
   readonly onCancel: () => void;
 }): ReactNode {
-  const restoreRef = useRef<HTMLButtonElement | null>(null);
   const offer = restoreOffer(revision, current);
   const reason = restoreOfferReason(offer);
   const dateLabel = formatTimestamp(revision.authorDate);
@@ -258,7 +257,6 @@ function RevisionRow({
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {offer.kind === "restore" ? (
           <Button
-            ref={restoreRef}
             size="xs"
             className={TOUCH_TARGET}
             aria-label={`Restore the value from ${dateLabel} (${revision.commit.slice(0, 7)})`}
@@ -280,10 +278,7 @@ function RevisionRow({
           commit={revision.commit}
           confirm={offer.confirm}
           onConfirm={onRestore}
-          onCancel={() => {
-            onCancel();
-            restoreRef.current?.focus();
-          }}
+          onCancel={onCancel}
         />
       ) : null}
     </li>
@@ -377,8 +372,6 @@ function RevisionList({
   readonly ui: KeyHistoryUi;
   readonly onRestore: (revision: KeyRevisionRow) => void;
 }): ReactNode {
-  const latest = useRef(result);
-  latest.current = result;
   const listRef = useRef<HTMLOListElement | null>(null);
   const focusAfterMore = useRef<number | null>(null);
   const visible = shownRevisions(result.revisions, ui.shown);
@@ -400,7 +393,7 @@ function RevisionList({
   });
 
   function newest(commit: string): KeyRevisionRow | undefined {
-    return latest.current.revisions.find((revision) => revision.commit === commit);
+    return result.revisions.find((revision) => revision.commit === commit);
   }
 
   function restore(commit: string): void {

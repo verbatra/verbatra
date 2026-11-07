@@ -263,13 +263,19 @@ describe("useGitChanges", () => {
     const statusCalls = (): number =>
       rpcCalls.filter((call) => call.method === "git.status").length;
     setVisibility("visible");
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 5000);
 
     act(() => {
       document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await flush();
+    await flush();
+    act(() => {
       window.dispatchEvent(new Event("focus"));
     });
     await flush();
     await flush();
+    clock.mockRestore();
 
     expect(statusCalls()).toBe(2);
   });

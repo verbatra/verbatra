@@ -371,6 +371,40 @@ describe("KeyEditor history tab", () => {
     expect(view.get("[data-history-unavailable]").textContent).toContain("not in a git repository");
   });
 
+  it("hides the panel of the tab that is not selected and shows the other", async () => {
+    stubProject(history(revision("a", "Servus")));
+    const view = await renderAsync(<Editor />);
+
+    expect(view.get('[data-tab-panel="history"]').hasAttribute("hidden")).toBe(true);
+    expect(view.get('[data-tab-panel="locales"]').hasAttribute("hidden")).toBe(false);
+
+    await openHistory(view);
+
+    expect(view.get('[data-tab-panel="locales"]').hasAttribute("hidden")).toBe(true);
+    expect(view.get('[data-tab-panel="history"]').hasAttribute("hidden")).toBe(false);
+  });
+
+  it("lets a long origin badge wrap inside its cell so it cannot overflow a narrow pane", async () => {
+    stubProject(history(revision("a", "Servus")));
+    stubRpc({
+      "key.value": {
+        ok: true,
+        result: {
+          source: "Hello",
+          target: "Hallo",
+          provenance: { origin: "external", reviewState: "unreviewed" },
+        },
+      },
+    });
+    const view = await renderAsync(<Editor />);
+
+    const origin = view
+      .all('[data-locale="de"] [data-tone]')
+      .find((badge) => badge.textContent?.includes("Edited outside verbatra"));
+
+    expect(origin?.className).toContain("whitespace-normal");
+  });
+
   it("does not remount the form when the tabs change, so switching tabs never steals focus", async () => {
     stubProject(history(revision("a", "Servus")));
     const view = await renderAsync(<Editor />);
