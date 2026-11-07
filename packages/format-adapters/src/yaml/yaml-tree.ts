@@ -186,7 +186,12 @@ function emitWarnings(doc: Document.Parsed, source: string, lineCounter: LineCou
 
 export function parseYamlObject(content: string): JsonRecord {
   const lineCounter = new LineCounter();
-  const doc = parseDocument(content, { uniqueKeys: false, prettyErrors: false, lineCounter });
+  let doc: Document.Parsed;
+  try {
+    doc = parseDocument(content, { uniqueKeys: false, prettyErrors: false, lineCounter });
+  } catch {
+    return failInvalidYaml(undefined, lineCounter);
+  }
   emitWarnings(doc, content, lineCounter);
   failFirstProblem(doc.errors, earliestDuplicateKey(content, doc.contents), lineCounter);
   let parsed: unknown;
