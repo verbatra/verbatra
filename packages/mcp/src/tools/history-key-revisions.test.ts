@@ -57,7 +57,11 @@ function okResult(outcome: Awaited<ReturnType<typeof historyKeyRevisionsTool.exe
       sourceChanged: boolean | "unknown";
       diff: { kind: string; text: string }[];
     }[];
-    workingTree?: { value: string; diff: { kind: string; text: string }[] };
+    workingTree?: {
+      value: string;
+      valueRedacted?: boolean;
+      diff: { kind: string; text: string }[];
+    };
     workingTreeUnreadable?: boolean;
     truncated: boolean;
     unreadableRevisions: number;
@@ -171,6 +175,37 @@ describe("history.keyRevisions", () => {
     expect(JSON.stringify(result)).not.toContain("polish");
     expect(result.workingTree?.value).toMatch(MARKER);
     expect(result.workingTree?.diff).toEqual([]);
+  });
+
+  it("keeps valueRedacted on the working tree row under redaction, as on the revisions", async () => {
+    const dir = await project();
+    await writeJsonFile(join(dir, "locales", "de.json"), {
+      greeting: `Schluessel sk-proj-${"A1b2C3d4".repeat(6)} Ende`,
+    });
+
+    const result = okResult(
+      await historyKeyRevisionsTool.execute(
+        { locale: "de", key: "greeting" },
+        makeContext({ cwd: dir, valueMarker: createValueMarker() }),
+      ),
+    );
+
+    expect(result.workingTree).toMatchObject({ valueRedacted: true, diff: [] });
+    expect(result.workingTree?.value).toMatch(MARKER);
+    expect(JSON.stringify(result)).not.toContain("A1b2C3d4");
+  });
+
+  it("leaves valueRedacted off a working tree row the scrubber did not change, under redaction", async () => {
+    const dir = await project();
+
+    const result = okResult(
+      await historyKeyRevisionsTool.execute(
+        { locale: "de", key: "greeting" },
+        makeContext({ cwd: dir, valueMarker: createValueMarker() }),
+      ),
+    );
+
+    expect(result.workingTree).not.toHaveProperty("valueRedacted");
   });
 
   it("leaves an unavailable answer as it is under redaction", async () => {

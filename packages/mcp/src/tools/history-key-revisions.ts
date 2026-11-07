@@ -74,6 +74,9 @@ function redactResult(
       : {
           workingTree: {
             value: marker.mark(workingTree.value),
+            ...(workingTree.valueRedacted === undefined
+              ? {}
+              : { valueRedacted: workingTree.valueRedacted }),
             diff: [],
           },
         }),
@@ -104,26 +107,34 @@ export const historyKeyRevisionsTool = defineTool({
     "first, each with its commit hash, author name (never the email address), author date, " +
     "subject, the value, origin (the write path recorded in verbatra.provenance.json in that " +
     "commit: machine, memory, fuzzy, agent, human, import, unknown, unrecorded, or external; " +
-    "absent when that file could not be read or the time ran out), sourceChanged (true when " +
+    "absent when that file could not be read, is above its size limit or the time ran out), " +
+    "sourceChanged (true when " +
     "the key's source text now differs from the one the lock file recorded in that commit, " +
     "false when it matches, unknown when that cannot be told), and diff, a word-level " +
     "difference from the key's previous value as segments of kind equal, added or removed. " +
     "A value that held an API key comes back with [REDACTED] in its place and valueRedacted " +
     "true: it is not the stored text, so never write it back with translation.editEntry. " +
     "workingTree is the uncommitted value on disk, present only when it differs from HEAD; " +
-    "workingTreeUnreadable is true when the file on disk could not be read (it does not " +
-    "parse, as in a merge conflict, or is too large), and the revisions are still listed. " +
+    "workingTreeUnreadable is true when the file on disk could not be compared with HEAD: it " +
+    "does not parse (as in a merge conflict), is a symbolic link or above the size limit, the " +
+    "value is too long, the copy at HEAD could not be read, or the time ran out; the " +
+    "revisions are still listed. " +
     "Use it to see how a translation changed and who changed it. The required locale " +
     "parameter must be a configured target locale and key is the key in that locale's file. " +
     "A commit that removes the key is not listed, and a commit is not listed as a change " +
     "when the commit before it could not be read. A value longer than " +
     `${KEY_HISTORY_MAX_VALUE_CHARS} characters is never returned in part: that commit counts ` +
-    "in unreadableRevisions, as does a commit whose file cannot be read, is above the parse " +
-    "limit for the format, or cannot be parsed. " +
+    "in unreadableRevisions, as does a commit whose file cannot be read, is above the size " +
+    "limit for the format (512 KiB for yaml and the XML formats, 4 MiB for the others), or " +
+    "cannot be parsed. The files read in one call are also limited in total (16 MiB for yaml " +
+    "and the XML formats, 128 MiB for the others): past that, older commits are not examined. " +
     `The optional limit parameter is the number of commits examined, default ` +
     `${LOCALE_HISTORY_LIMIT_DEFAULT}, capped at ${LOCALE_HISTORY_LIMIT_CAP}; truncated is ` +
-    "true when older history exists that was not examined, in a shallow clone, when the " +
-    "time budget ran out, or when a commit could not be compared. available: false is not an " +
+    "true when the answer may leave history out or leave a field unknown because something " +
+    "was not read in full: older commits were not examined (limit, size budget or time), the " +
+    "clone is shallow, a commit or the lock file, provenance file or source file could not be " +
+    "read, parsed or was above its size limit, or a commit could not be compared. " +
+    "available: false is not an " +
     "empty history: its reason names why git could not be read (git-missing, " +
     "not-a-repository, bare-repository, dubious-ownership, timeout, output-too-large, " +
     "unsafe-config, git-too-old, git-failed, custom-adapter, or outside-project). Renames " +
