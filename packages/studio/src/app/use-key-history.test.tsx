@@ -217,9 +217,9 @@ describe("useKeyHistory", () => {
       });
       await vi.advanceTimersByTimeAsync(10);
     });
-    await tick(5000);
 
-    expect(reads()).toBe(1);
     expect(vi.getTimerCount()).toBe(0);
+    await tick(5000);
+    expect(reads()).toBe(1);
   });
 });

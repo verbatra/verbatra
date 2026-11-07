@@ -36,8 +36,11 @@ export function UnsavedPrompt({
   const rootRef: RefObject<HTMLFieldSetElement | null> = useRef(null);
 
   useEffect(() => {
-    rootRef.current?.scrollIntoView?.({ block: "nearest" });
-    keepRef.current?.focus();
+    const stuck = rootRef.current?.closest("[data-sticky]") != null;
+    if (!stuck) {
+      rootRef.current?.scrollIntoView?.({ block: "nearest" });
+    }
+    keepRef.current?.focus({ preventScroll: stuck });
   }, []);
 
   function onKeyDown(event: KeyboardEvent<HTMLFieldSetElement>): void {

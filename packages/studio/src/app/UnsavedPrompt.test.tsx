@@ -133,4 +133,41 @@ describe("UnsavedPrompt", () => {
       expect(button.className).toContain("max-md:min-h-11");
     }
   });
+
+  it("does not scroll a prompt that sits in a sticky header, since that scrolls the page to the header's place in the flow", () => {
+    let scrolled = 0;
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = () => {
+      scrolled += 1;
+    };
+    try {
+      render(
+        <div data-sticky="">
+          <UnsavedPrompt
+            subject="x"
+            saving={false}
+            error={null}
+            placement="drawer"
+            onDiscard={() => {}}
+            onKeepEditing={() => {}}
+          />
+        </div>,
+      );
+      expect(scrolled).toBe(0);
+
+      render(
+        <UnsavedPrompt
+          subject="x"
+          saving={false}
+          error={null}
+          placement="pane"
+          onDiscard={() => {}}
+          onKeepEditing={() => {}}
+        />,
+      );
+      expect(scrolled).toBe(1);
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
 });
