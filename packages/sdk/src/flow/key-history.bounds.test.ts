@@ -165,6 +165,50 @@ describe("keyHistory lock file and provenance file limits", () => {
   });
 });
 
+describe("keyHistory buffer bounds", () => {
+  it("passes the cap of the format to the read of a locale file and 4 MiB to the read of a record", async () => {
+    const fx = await repo();
+    await committedOnce(fx, {
+      "verbatra.lock.json": JSON.stringify({ version: 1, locales: { de: {} } }),
+      "verbatra.provenance.json": JSON.stringify({ version: 1, locales: {} }),
+    });
+    const bounds = new Map<string, number | undefined>();
+    const execFile: GitExecFile = (file, args, options) => {
+      const spec = args.find((arg) => /^[0-9a-f]{40}:/.test(arg));
+      if (args.includes("cat-file") && spec !== undefined) {
+        bounds.set(spec.slice(41), options.maxBuffer);
+      }
+      return defaultGitExecFile(file, args, options);
+    };
+
+    available(await run(fx, { execFile }));
+
+    expect(Object.fromEntries(bounds)).toEqual({
+      "locales/de.json": 4 * MIB,
+      "verbatra.lock.json": 4 * MIB,
+      "verbatra.provenance.json": 4 * MIB,
+    });
+  });
+
+  it("passes 512 KiB to the read of a yaml file", async () => {
+    const fx = await repo();
+    const config = baseConfig({ format: "yaml", files: { pattern: "locales/{locale}.yaml" } });
+    await fx.write("locales/de.yaml", "a: one\n");
+    await fx.commitAll("one");
+    const bounds: (number | undefined)[] = [];
+    const execFile: GitExecFile = (file, args, options) => {
+      if (args.includes("cat-file") && args.some((arg) => arg.endsWith(":locales/de.yaml"))) {
+        bounds.push(options.maxBuffer);
+      }
+      return defaultGitExecFile(file, args, options);
+    };
+
+    await keyHistory({ config, cwd: fx.root, locale: "de", key: "a" }, { execFile });
+
+    expect(bounds).toEqual([512 * 1024]);
+  });
+});
+
 describe("keyHistory source file limit", () => {
   const YAML = baseConfig({ format: "yaml", files: { pattern: "locales/{locale}.yaml" } });
 
