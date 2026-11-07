@@ -12,7 +12,9 @@ import { ErrorMessage } from "./ErrorMessage.js";
 import { submitFailure } from "./entry-editor-parts.js";
 import { IcuPreviewAvailabilityProvider } from "./icu-preview-open.js";
 import { KeyDescription } from "./KeyDescription.js";
+import { KeyEditorHistory } from "./KeyEditorHistory.js";
 import { LocaleBlock } from "./KeyEditorLocale.js";
+import { type KeyEditorTab, KeyEditorTabs } from "./KeyEditorTabs.js";
 import { LocaleEditForm } from "./LocaleEditForm.js";
 import { cn } from "./lib/cn.js";
 import {
@@ -26,6 +28,7 @@ import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
 import { useCapabilities } from "./use-capabilities.js";
 import { useHistoryList } from "./use-history-list.js";
+import { useKeyHistory } from "./use-key-history.js";
 import { type KeyIntegrityState, useKeyIntegrity } from "./use-key-integrity.js";
 import { type KeyValuesState, useKeyValues } from "./use-key-values.js";
 import { useLocaleEdit } from "./use-locale-edit.js";
@@ -56,6 +59,7 @@ interface EditTarget {
 
 interface EditSession extends EditTarget {
   readonly session: number;
+  readonly seed: string | null;
 }
 
 const RECOVERY_FOCUS =
@@ -160,22 +164,30 @@ function MissingKeyNotice({ onDiscard }: { readonly onDiscard: () => void }): Re
 function useEditSession(keyName: string): {
   readonly locale: string | null;
   readonly session: number;
-  open(locale: string): void;
+  readonly seed: string | null;
+  open(locale: string, seed: string | null): void;
   close(): void;
 } {
-  const [target, setTarget] = useState<EditSession>({ keyName, locale: null, session: 0 });
+  const [target, setTarget] = useState<EditSession>({
+    keyName,
+    locale: null,
+    session: 0,
+    seed: null,
+  });
   let current = target;
   if (target.keyName !== keyName) {
-    current = { keyName, locale: null, session: target.session + 1 };
+    current = { keyName, locale: null, session: target.session + 1, seed: null };
     setTarget(current);
   }
   return {
     locale: current.locale,
     session: current.session,
-    open: (locale) => {
-      setTarget((previous) => ({ keyName, locale, session: previous.session + 1 }));
+    seed: current.seed,
+    open: (locale, seed) => {
+      setTarget((previous) => ({ keyName, locale, session: previous.session + 1, seed }));
     },
-    close: () => setTarget((previous) => ({ keyName, locale: null, session: previous.session })),
+    close: () =>
+      setTarget((previous) => ({ keyName, locale: null, session: previous.session, seed: null })),
   };
 }
 
@@ -202,22 +214,25 @@ export function KeyEditor({
   const {
     locale: editingLocale,
     session,
+    seed,
     open: openLocale,
     close: closeLocale,
   } = useEditSession(keyName);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [tab, setTab] = useState<KeyEditorTab>("locales");
+  const [historyChoice, setHistoryChoice] = useState<string | null>(null);
   const pendingRef = useRef<Pending | null>(null);
   const [saved, setSaved] = useState<EditTarget | null>(null);
   const [returnTo, setReturnTo] = useState<string | null>(null);
   const originRef = useRef<Element | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const dirtyRef = useRef(false);
-  const editingRef = useRef<EditSession>({ keyName, locale: null, session: 0 });
+  const editingRef = useRef<EditSession>({ keyName, locale: null, session: 0, seed: null });
   const resolvedRef = useRef(false);
   const recoveryRef = useRef<Recovery | null>(null);
   const sourceTargetRef = useRef<HTMLDivElement | null>(null);
   const localesTargetRef = useRef<HTMLUListElement | null>(null);
-  const edit = useLocaleEdit(editingLocale, keyName, refreshToken, session);
+  const edit = useLocaleEdit(editingLocale, keyName, refreshToken, session, seed);
   const dialogRef = useDialogA11y<HTMLDivElement>({ isOpen: layout === "drawer", onClose });
 
   const rows = deriveKeyLocaleStatus(locales, keyName);
@@ -230,6 +245,14 @@ export function KeyEditor({
     rows.map((row) => row.locale),
     refreshToken,
   );
+  const rowLocales = rows.map((row) => row.locale);
+  const historyLocale = rowLocales.find((entry) => entry === historyChoice) ?? rowLocales[0];
+  const historyRead = useKeyHistory({
+    enabled: tab === "history",
+    locale: historyLocale,
+    keyName,
+    refreshToken,
+  });
   const integrityLocales = integrity.kind === "loaded" ? integrity.locales : [];
   const capabilities =
     capabilitiesState.kind === "loaded" ? capabilitiesState.capabilities : undefined;
@@ -248,7 +271,7 @@ export function KeyEditor({
   }, []);
 
   useLayoutEffect(() => {
-    editingRef.current = { keyName, locale: editingLocale, session };
+    editingRef.current = { keyName, locale: editingLocale, session, seed };
     dirtyRef.current = edit.dirty;
     dirtyReportRef.current = onDirtyChange;
     pendingRef.current = pending;
@@ -297,6 +320,12 @@ export function KeyEditor({
   useEffect(() => {
     setIntegrityRetrying(false);
   }, [integrity]);
+
+  useEffect(() => {
+    if (pending !== null) {
+      setTab("locales");
+    }
+  }, [pending]);
 
   useEffect(() => {
     dirtyReportRef.current(edit.dirty);
@@ -377,10 +406,11 @@ export function KeyEditor({
     return true;
   }
 
-  function startEditing(locale: string): void {
+  function startEditing(locale: string, restored: string | null = null): void {
     const open = (): Promise<void> => {
       setSaved(null);
-      openLocale(locale);
+      setTab("locales");
+      openLocale(locale, restored);
       return Promise.resolve();
     };
     if (edit.dirty) {
@@ -451,6 +481,62 @@ export function KeyEditor({
       />
     ) : null;
 
+  const localesContent = (
+    <>
+      {integrity.kind === "error" &&
+      !(missing && integrity.error.code === NOT_FOUND) &&
+      !sameFailure(values, integrity.error) ? (
+        <ErrorMessage
+          error={integrity.error}
+          retrying={integrityRetrying}
+          onRetry={() => {
+            recoveryRef.current = { target: "locales", from: integrity };
+            retryIntegrity();
+          }}
+        />
+      ) : null}
+      <ul
+        ref={localesTargetRef}
+        tabIndex={-1}
+        data-recovery-target="locales"
+        className={cn("m-0 list-none p-0", RECOVERY_FOCUS)}
+      >
+        {rows.map((row) => (
+          <LocaleBlock
+            key={row.locale}
+            row={row}
+            keyName={keyName}
+            integrity={integrityLocales}
+            capabilities={capabilities}
+            values={values}
+            valuesRetrying={valuesRetrying}
+            onRetryValues={() => {
+              recoveryRef.current = { target: "localeValues", from: values, locale: row.locale };
+              retryValues();
+            }}
+            editing={row.locale === editingLocale}
+            savedNote={
+              saved?.keyName === keyName && saved.locale === row.locale && editingLocale === null
+            }
+            onEdit={() => startEditing(row.locale)}
+            form={
+              <LocaleEditForm
+                locale={row.locale}
+                keyName={keyName}
+                edit={edit}
+                pill={deriveIntegrityPillView(integrityLocales, row.locale)}
+                attachField={attachField}
+                promptOpen={prompt !== null}
+                onSave={() => void saveEditing(row.locale)}
+                onCancel={() => cancelEditing(row.locale)}
+              />
+            }
+          />
+        ))}
+      </ul>
+    </>
+  );
+
   const body = (
     <>
       {missing ? <MissingKeyNotice onDiscard={discardMissing} /> : null}
@@ -476,61 +562,30 @@ export function KeyEditor({
         </div>
       </Section>
       <KeyDescription description={values.kind === "loaded" ? values.description : undefined} />
-      <Section title="Locales">
-        {integrity.kind === "error" &&
-        !(missing && integrity.error.code === NOT_FOUND) &&
-        !sameFailure(values, integrity.error) ? (
-          <ErrorMessage
-            error={integrity.error}
-            retrying={integrityRetrying}
-            onRetry={() => {
-              recoveryRef.current = { target: "locales", from: integrity };
-              retryIntegrity();
-            }}
+      <KeyEditorTabs
+        tab={tab}
+        unsaved={edit.dirty}
+        onChange={setTab}
+        locales={localesContent}
+        history={
+          <KeyEditorHistory
+            keyName={keyName}
+            locales={rowLocales}
+            locale={historyLocale}
+            onLocaleChange={setHistoryChoice}
+            read={historyRead}
+            current={
+              historyLocale !== undefined && values.kind === "loaded"
+                ? values.targets.get(historyLocale)
+                : undefined
+            }
+            canWrite={capabilities?.writeToDisk === true}
+            onRestore={(locale, value) => startEditing(locale, value)}
           />
-        ) : null}
-        <ul
-          ref={localesTargetRef}
-          tabIndex={-1}
-          data-recovery-target="locales"
-          className={cn("m-0 list-none p-0", RECOVERY_FOCUS)}
-        >
-          {rows.map((row) => (
-            <LocaleBlock
-              key={row.locale}
-              row={row}
-              keyName={keyName}
-              integrity={integrityLocales}
-              capabilities={capabilities}
-              values={values}
-              valuesRetrying={valuesRetrying}
-              onRetryValues={() => {
-                recoveryRef.current = { target: "localeValues", from: values, locale: row.locale };
-                retryValues();
-              }}
-              editing={row.locale === editingLocale}
-              savedNote={
-                saved?.keyName === keyName && saved.locale === row.locale && editingLocale === null
-              }
-              onEdit={() => startEditing(row.locale)}
-              form={
-                <LocaleEditForm
-                  locale={row.locale}
-                  keyName={keyName}
-                  edit={edit}
-                  pill={deriveIntegrityPillView(integrityLocales, row.locale)}
-                  attachField={attachField}
-                  promptOpen={prompt !== null}
-                  onSave={() => void saveEditing(row.locale)}
-                  onCancel={() => cancelEditing(row.locale)}
-                />
-              }
-            />
-          ))}
-        </ul>
-      </Section>
+        }
+      />
       <Section
-        title="History"
+        title="Project commits"
         intro="Commit history for this project's locale files, not filtered to this key."
       >
         <CommitList

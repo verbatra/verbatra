@@ -4,6 +4,7 @@ import type { ReactNode, Ref } from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
 import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-context.js";
+import { EditEntryHistory } from "./EditEntryHistory.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { GlossaryHitList, SaveRow, submitFailure, TranslationField } from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
@@ -265,6 +266,13 @@ export function EditEntryDialog({
             submit={confirming && submitFailure(submit) !== null ? { kind: "idle" } : submit}
             onSave={() => void handleSubmit()}
             primary={!confirming}
+          />
+          <EditEntryHistory
+            locale={locale}
+            keyName={keyName}
+            edit={edit}
+            current={context.target}
+            textAreaRef={textAreaRef}
           />
         </>
       ) : null}

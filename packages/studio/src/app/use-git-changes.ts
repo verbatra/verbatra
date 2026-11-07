@@ -92,7 +92,7 @@ export function useGitLocaleDiff(
   return held?.locale === locale ? held.view : LOADING_DIFF;
 }
 
-function useReturnToPage(onReturn: () => void): void {
+export function useReturnToPage(onReturn: () => void): void {
   useEffect(() => {
     function onVisibility(): void {
       if (document.visibilityState === "visible") {
