@@ -36,7 +36,7 @@ export function UnsavedPrompt({
   const rootRef: RefObject<HTMLFieldSetElement | null> = useRef(null);
 
   useEffect(() => {
-    const stuck = rootRef.current?.closest("[data-sticky]") != null;
+    const stuck = placement === "drawer" && rootRef.current?.closest("[data-sticky]") != null;
     if (!stuck) {
       rootRef.current?.scrollIntoView?.({ block: "nearest" });
     }
