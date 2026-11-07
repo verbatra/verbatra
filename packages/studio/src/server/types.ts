@@ -190,6 +190,10 @@ export interface StudioServerDeps {
   readonly gitLocaleDiffRateLimitWindowMs?: number;
   /** How many `git.localeDiff` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 240. */
   readonly gitLocaleDiffRateLimitMax?: number;
+  /** Rolling window in milliseconds for `history.keyRevisions`'s rate limit. Defaults to 60000. */
+  readonly keyRevisionsRateLimitWindowMs?: number;
+  /** How many `history.keyRevisions` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 60. */
+  readonly keyRevisionsRateLimitMax?: number;
   /**
    * Rolling window in milliseconds for the rate limits of `review.approve`, `review.reject`,
    * `review.approveMany`, `review.rejectMany`, and `review.approveLocale`, each counted on its

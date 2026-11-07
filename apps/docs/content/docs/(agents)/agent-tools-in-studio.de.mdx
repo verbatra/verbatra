@@ -25,7 +25,7 @@ verbatra studio --expose-agent-tools
 
 Damit der Agent deinen Provider aufrufen darf, startest du Studio zusätzlich mit `--allow-spend` ([Ausgaben und Agent-Tools](/de/docs/cli/studio#ausgaben-und-agent-tools)).
 
-Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt: Studio schwärzt nichts, weil ein Agent im Tab die Seite ohnehin lesen kann. Ausnahme sind die Glossar-Tools: Ihre Werte durchlaufen eine Geheimnis-Schwärzung, ein Wert in der Form eines API-Schlüssels kommt daher als Platzhalter zurück. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/de/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
+Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt: Studio schwärzt nichts, weil ein Agent im Tab die Seite ohnehin lesen kann. Ausnahmen sind die Glossar-Tools und `verbatra_history_keyRevisions`: Ihre Werte durchlaufen eine Geheimnis-Schwärzung, ein Wert in der Form eines API-Schlüssels kommt daher als Platzhalter zurück. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/de/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
 
 ## Wissen, was der Agent aufrufen kann
 
@@ -41,6 +41,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_glossary_get` | das aufgelöste Glossar, mit geschwärzten Secrets |
 | `verbatra_lock_state` | den Zustand der Lock-Datei pro Locale |
 | `verbatra_history_list` | die letzten Commits an den Locale-Dateien, mit dem Namen des Autors ([nie die E-Mail](/de/docs/data-handling#studio-und-mcp)) |
+| `verbatra_history_keyRevisions` | die Commits eines Keys in einer Locale, mit Wort-Diffs, Schlüssel geschwärzt <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_integrity` | Platzhalter-, Markup- und ICU-Prüfung für einen Key, in den Locales, in denen sich seine Quelle geändert hat |
 | `verbatra_review_queue` | jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, aus den committeten Dateien <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | Quelle und Ziel eines Keys, samt Angabe, wer das Ziel geschrieben hat |
@@ -85,7 +86,7 @@ Jeder Aufruf läuft über den eigenen, angemeldeten Loopback-RPC des Dashboards,
 
 ## Einen fehlgeschlagenen Aufruf lesen
 
-Jedes Tool liefert den Umschlag des Dashboards, ein Fehler sieht also so aus: `{ "ok": false, "error": { "code": ..., "message": ... } }`. Neben den Codes des SDK, etwa einer Integritätsablehnung oder `UNKNOWN_KEY`, ergänzt die RPC-Schicht:
+Jedes Tool liefert den Umschlag des Dashboards, ein Fehler sieht also so aus: `{ "ok": false, "error": { "code": ..., "message": ... } }`. Neben den Codes des SDK ergänzt die RPC-Schicht:
 
 | Code | Bedeutung |
 | --- | --- |
@@ -105,7 +106,7 @@ Lehnt der Browser eine Registrierung ab, zeigt jede Ansicht eine Warnung wie:
 
 > Agent tools degraded: 2 of the agent tool registrations failed with SecurityError. The dashboard itself is unaffected. The browser console lists every failing tool.
 
-Die Tools, die sich registrieren konnten, bleiben aufrufbar, und das Dashboard funktioniert wie gewohnt. Die Konsole enthält eine Zeile, die jeden Fehler nennt:
+Die Konsole enthält eine Zeile, die jeden Fehler nennt:
 
 ```text output
 Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
