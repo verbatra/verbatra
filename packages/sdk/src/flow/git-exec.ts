@@ -160,6 +160,7 @@ export type GitRunResult =
 export interface GitLimits {
   readonly timeout?: number;
   readonly maxBuffer?: number;
+  readonly config?: readonly string[];
 }
 
 export interface GitRunner {
@@ -190,11 +191,15 @@ export function createGitRunner(
   return {
     async run(args, limits = {}) {
       try {
-        const { stdout } = await execFile("git", buildSafeGitArgs(configOverrides, args), {
-          cwd,
-          timeout: limits.timeout ?? LOCALE_GIT_TIMEOUT_MS,
-          maxBuffer: limits.maxBuffer ?? LOCALE_GIT_MAX_OUTPUT_BYTES,
-        });
+        const { stdout } = await execFile(
+          "git",
+          buildSafeGitArgs([...configOverrides, ...(limits.config ?? [])], args),
+          {
+            cwd,
+            timeout: limits.timeout ?? LOCALE_GIT_TIMEOUT_MS,
+            maxBuffer: limits.maxBuffer ?? LOCALE_GIT_MAX_OUTPUT_BYTES,
+          },
+        );
         return { ok: true, stdout };
       } catch (error) {
         return { ok: false, failure: classifyGitFailure(error) };

@@ -50,7 +50,15 @@ export async function readBlobAtHead(tree: GitWorkTree, repoPath: string): Promi
   if (tree.head === undefined) {
     return { kind: "absent" };
   }
-  const spec = blobSpec(tree.head, repoPath);
+  return readBlobAtCommit(tree, tree.head, repoPath);
+}
+
+export async function readBlobAtCommit(
+  tree: GitWorkTree,
+  commit: string,
+  repoPath: string,
+): Promise<BlobRead> {
+  const spec = blobSpec(commit, repoPath);
   if (spec === undefined) {
     return { kind: "unreadable" };
   }
@@ -59,7 +67,7 @@ export async function readBlobAtHead(tree: GitWorkTree, repoPath: string): Promi
     "-z",
     "--long",
     "--full-tree",
-    tree.head,
+    commit,
     "--",
     repoPath,
   ]);

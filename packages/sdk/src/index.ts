@@ -343,6 +343,17 @@ export {
   keyContext,
 } from "./flow/key-context.js";
 export {
+  KEY_HISTORY_DEADLINE_MS,
+  KEY_HISTORY_MAX_KEY_CHARS,
+  KEY_HISTORY_MAX_VALUE_CHARS,
+  type KeyHistoryDeps,
+  type KeyHistoryInput,
+  type KeyHistoryResult,
+  type KeyRevision,
+  type KeyWorkingTreeValue,
+  keyHistory,
+} from "./flow/key-history.js";
+export {
   type KeyIntegrityDeps,
   type KeyIntegrityEntry,
   type KeyIntegrityInput,
@@ -561,6 +572,7 @@ export type {
   UnusedKeysUnreliability,
   UnusedKeysUnreliableReason,
 } from "./flow/unused-keys.js";
+export type { KeyHistorySegment, KeyHistorySegmentKind } from "./flow/value-diff.js";
 export { createValueMarker, type ValueMarker } from "./flow/value-marker.js";
 export {
   DEFAULT_EXCHANGE_FORMAT,

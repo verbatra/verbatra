@@ -170,13 +170,13 @@ export function compareResources(
   };
 }
 
-type Side =
+export type Side =
   | { readonly ok: true; readonly entries: ReadonlyMap<string, { readonly value: string }> }
   | { readonly ok: false; readonly reason: LocaleGitUnavailableReason };
 
 const NOTHING: Side = { ok: true, entries: new Map() };
 
-interface SideInput {
+export interface SideInput {
   readonly config: VerbatraConfig;
   readonly locale: string;
   readonly root: string;
@@ -286,7 +286,7 @@ export async function readWorkingContent(path: string): Promise<string | undefin
   }
 }
 
-async function readWorkingSide(input: SideInput): Promise<Side> {
+export async function readWorkingSide(input: SideInput): Promise<Side> {
   const paths = [input.absolutePath, ...input.siblingPaths];
   const located = await Promise.all(paths.map((path) => workingFileKind(input.root, path)));
   if (located.some((file) => file.kind === "other")) {
