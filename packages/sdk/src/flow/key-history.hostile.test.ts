@@ -1,6 +1,7 @@
 import { chmod, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { defaultFs } from "../fs.js";
 import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
 import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
 import { LOCALE_GIT_BLOB_MAX_BYTES } from "./git-revision.js";
@@ -365,8 +366,9 @@ describe("keyHistory deadline", () => {
     expect(result.truncated).toBe(true);
   });
 
-  it("returns revisions without origin and with sourceChanged unknown once it ran out of time reading their records", async () => {
+  it("returns revisions without origin and with sourceChanged unknown once it ran out of time reading their records, and says so", async () => {
     const fx = await nine();
+    await fx.write("locales/en.json", json({ a: "A" }));
     await fx.write(
       "verbatra.lock.json",
       `${JSON.stringify({ version: 1, locales: { de: {} } })}\n`,
@@ -378,14 +380,123 @@ describe("keyHistory deadline", () => {
 
     const result = available(await run(fx, "a", execFile));
 
-    const late = result.revisions.slice(-2);
     expect(result.revisions.length).toBe(9);
-    expect(result.truncated).toBe(false);
-    expect(result.revisions[0]?.origin).toBe("unrecorded");
-    for (const revision of late) {
+    expect(result.truncated).toBe(true);
+    for (const revision of result.revisions.slice(-2)) {
       expect(revision.origin).toBeUndefined();
       expect(revision.sourceChanged).toBe("unknown");
     }
+  });
+
+  it("starts no source read after the deadline and says the source was not read", async () => {
+    const fx = await nine();
+    await fx.write("locales/en.json", json({ a: "A" }));
+    await fx.commitAll("source");
+    const reads = vi.spyOn(defaultFs, "readFileBounded");
+    let blobReads = 0;
+    const execFile = clockJumpingOn((args) => args.includes("cat-file") && ++blobReads === 9);
+
+    const result = available(await run(fx, "a", execFile));
+
+    expect(reads.mock.calls.filter(([path]) => String(path).endsWith("en.json"))).toEqual([]);
+    expect(result.revisions.length).toBeGreaterThan(0);
+    expect(result.truncated).toBe(true);
+  });
+});
+
+describe("keyHistory deadline during a git failure", () => {
+  const timeoutFailure = Object.assign(new Error("slow"), { killed: true, signal: "SIGKILL" });
+
+  async function two(): Promise<GitFixture> {
+    const fx = await repo();
+    for (const value of ["1", "2"]) {
+      await fx.write("locales/de.json", json({ a: value }));
+      await fx.commitAll(`set ${value}`);
+    }
+    return fx;
+  }
+
+  it("treats a size listing that timed out after the deadline as not reached, not as unreadable", async () => {
+    const fx = await two();
+    let offset = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => 1_000_000 + offset);
+    const execFile: GitExecFile = (file, args, options) => {
+      if (args.includes("ls-tree")) {
+        offset = 10 * 60 * 1000;
+        throw timeoutFailure;
+      }
+      return defaultGitExecFile(file, args, options);
+    };
+
+    const result = available(await run(fx, "a", execFile));
+
+    expect(result.revisions).toEqual([]);
+    expect(result.unreadableRevisions).toBe(0);
+    expect(result.truncated).toBe(true);
+  });
+
+  it("treats a blob read that timed out after the deadline as not reached, not as unreadable", async () => {
+    const fx = await two();
+    let offset = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => 1_000_000 + offset);
+    const execFile: GitExecFile = (file, args, options) => {
+      if (args.includes("cat-file")) {
+        offset = 10 * 60 * 1000;
+        throw timeoutFailure;
+      }
+      return defaultGitExecFile(file, args, options);
+    };
+
+    const result = available(await run(fx, "a", execFile));
+
+    expect(result.revisions).toEqual([]);
+    expect(result.unreadableRevisions).toBe(0);
+    expect(result.truncated).toBe(true);
+  });
+
+  it("counts a blob git could not read as unreadable and says so", async () => {
+    const fx = await two();
+    const execFile: GitExecFile = (file, args, options) => {
+      if (args.includes("cat-file")) {
+        throw Object.assign(new Error("bad object"), { code: 128, stderr: "fatal: bad object" });
+      }
+      return defaultGitExecFile(file, args, options);
+    };
+
+    const result = available(await run(fx, "a", execFile));
+
+    expect(result.unreadableRevisions).toBe(2);
+    expect(result.truncated).toBe(true);
+  });
+
+  it("starts no read of the second file of an apple-strings commit after the deadline", async () => {
+    const fx = await repo();
+    const config = baseConfig({
+      format: "apple-strings",
+      files: { pattern: "locales/{locale}.lproj/Localizable.strings" },
+    });
+    await fx.write("locales/de.lproj/Localizable.strings", '"a" = "x";\n');
+    await fx.write(
+      "locales/de.lproj/Localizable.stringsdict",
+      '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict></dict></plist>\n',
+    );
+    await fx.commitAll("pair");
+    let offset = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => 1_000_000 + offset);
+    const reads: string[] = [];
+    const execFile: GitExecFile = (file, args, options) => {
+      if (args.includes("cat-file")) {
+        reads.push(args.join(" "));
+        offset = 10 * 60 * 1000;
+      }
+      return defaultGitExecFile(file, args, options);
+    };
+
+    const result = available(await run(fx, "a", execFile, config));
+
+    expect(reads).toHaveLength(1);
+    expect(result.revisions).toEqual([]);
+    expect(result.truncated).toBe(true);
   });
 });
 

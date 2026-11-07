@@ -178,6 +178,7 @@ const NOTHING: Side = { ok: true, entries: new Map() };
 
 export interface SideInput {
   readonly maxBytes?: number;
+  readonly sharedBytes?: boolean;
   readonly config: VerbatraConfig;
   readonly locale: string;
   readonly root: string;
@@ -297,11 +298,15 @@ export async function readWorkingSide(input: SideInput): Promise<Side> {
     return { ok: false, reason: "working-file-unreadable" };
   }
   const contents = new Map<string, string>();
+  let remaining = input.maxBytes ?? LOCALE_GIT_BLOB_MAX_BYTES;
   for (const [index, file] of located.entries()) {
     if (file.kind === "file") {
-      const content = await readWorkingContent(file.path, input.maxBytes);
+      const content = await readWorkingContent(file.path, remaining);
       if (content === undefined) {
         return { ok: false, reason: "working-file-unreadable" };
+      }
+      if (input.sharedBytes === true) {
+        remaining -= Buffer.byteLength(content, "utf8");
       }
       contents.set(paths[index] as string, content);
     }

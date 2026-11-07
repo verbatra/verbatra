@@ -15,7 +15,9 @@ import {
   LOCALE_GIT_BLOB_MAX_BYTES,
   parseRevisionContent,
   readBlobAtHead,
+  readBlobBody,
   singleFileFs,
+  statBlobAtCommit,
 } from "./git-revision.js";
 import { siblingPaths } from "./git-siblings.js";
 import { openGitWorkTree } from "./git-worktree.js";
@@ -426,5 +428,47 @@ describe("readBlobAtHead", () => {
 
     expect(read).toEqual({ kind: "ok", content: "{}\n" });
     expect(await fx.exists("marker")).toBe(false);
+  });
+});
+
+describe("statBlobAtCommit and readBlobBody", () => {
+  it("sizes a committed file without reading it and refuses a path that is not repository-relative", async () => {
+    const fx = await repo();
+    await fx.write("de.json", "12345");
+    await fx.commitAll();
+    const hash = (await fx.git(["rev-parse", "HEAD"])).trim();
+    const opened = await openGitWorkTree(defaultGitExecFile, fx.root);
+    if (!opened.ok) {
+      throw new Error(opened.reason);
+    }
+
+    expect(await statBlobAtCommit(opened.tree, hash, "de.json")).toEqual({
+      kind: "sized",
+      size: 5,
+    });
+    expect(await statBlobAtCommit(opened.tree, hash, "missing.json")).toEqual({ kind: "absent" });
+    expect(await statBlobAtCommit(opened.tree, hash, "../de.json")).toEqual({ kind: "unreadable" });
+    expect(await readBlobBody(opened.tree, hash, "de.json")).toEqual({
+      kind: "ok",
+      content: "12345",
+    });
+    expect(await readBlobBody(opened.tree, hash, "../de.json")).toEqual({ kind: "unreadable" });
+  });
+
+  it("refuses to buffer more than the bound it was given", async () => {
+    const fx = await repo();
+    await fx.write("de.json", "x".repeat(100));
+    await fx.commitAll();
+    const hash = (await fx.git(["rev-parse", "HEAD"])).trim();
+    const opened = await openGitWorkTree(defaultGitExecFile, fx.root);
+    if (!opened.ok) {
+      throw new Error(opened.reason);
+    }
+
+    expect(await readBlobBody(opened.tree, hash, "de.json", 99)).toEqual({
+      kind: "failed",
+      reason: "output-too-large",
+    });
+    expect(await readBlobBody(opened.tree, hash, "de.json", 100)).toMatchObject({ kind: "ok" });
   });
 });

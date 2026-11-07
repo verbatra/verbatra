@@ -561,15 +561,29 @@ describe("keyHistory refusals", () => {
     expect(result.workingTree).toBeUndefined();
   });
 
-  it("flags a working file above the parse limit for its format", async () => {
+  it("flags a working file above the size limit for its format", async () => {
     const fx = await repo();
+    await fx.write("locales/en.json", json({ a: "A" }));
     await fx.write("locales/de.json", json({ a: "x" }));
     await fx.commitAll("one");
-    await fx.write("locales/de.json", json({ a: "x", pad: "p".repeat(1_048_576) }));
+    await fx.write("locales/de.json", json({ a: "x", pad: "p".repeat(4_194_304) }));
 
     const result = available(await history(fx));
 
     expect(result.workingTreeUnreadable).toBe(true);
+    expect(result.truncated).toBe(false);
+  });
+
+  it("reads a working file just under the size limit for its format", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "x" }));
+    await fx.commitAll("one");
+    await fx.write("locales/de.json", json({ a: "y", pad: "p".repeat(4_194_000) }));
+
+    const result = available(await history(fx));
+
+    expect(result.workingTree?.value).toBe("y");
+    expect(result.workingTreeUnreadable).toBeUndefined();
   });
 
   it("never passes the key to git", async () => {
@@ -603,6 +617,7 @@ describe("keyHistory value bound", () => {
     const result = available(await history(fx));
 
     expect(result.unreadableRevisions).toBe(1);
+    expect(result.truncated).toBe(true);
     expect(result.revisions.map((revision) => revision.value.length)).toEqual([
       KEY_HISTORY_MAX_VALUE_CHARS,
       5,
@@ -675,12 +690,13 @@ describe("keyHistory redaction and parse limits", () => {
     expect(result.revisions[0]).not.toHaveProperty("valueRedacted");
   });
 
-  it("skips a yaml file above 64 KiB and an xml file above 128 KiB without parsing it", async () => {
+  it("skips a yaml file and an xml file above 512 KiB without parsing them, and says so", async () => {
     const yaml = await repo();
     const config = baseConfig({ format: "yaml", files: { pattern: "locales/{locale}.yaml" } });
+    await yaml.write("locales/en.yaml", "a: A\n");
     await yaml.write("locales/de.yaml", "a: one\n");
     await yaml.commitAll("small");
-    await yaml.write("locales/de.yaml", `a: two\npad: "${"q".repeat(66_000)}"\n`);
+    await yaml.write("locales/de.yaml", `a: two\npad: "${"q".repeat(524_300)}"\n`);
     await yaml.commitAll("big");
     await yaml.write("locales/de.yaml", "a: three\n");
     await yaml.commitAll("small again");
@@ -695,7 +711,7 @@ describe("keyHistory redaction and parse limits", () => {
     await xml.commitAll("small");
     await xml.write(
       "values-de/strings.xml",
-      resources("two", `<string name="p">${"q".repeat(140_000)}</string>`),
+      resources("two", `<string name="p">${"q".repeat(524_300)}</string>`),
     );
     await xml.commitAll("big");
     await xml.write("values-de/strings.xml", resources("three"));
@@ -709,34 +725,81 @@ describe("keyHistory redaction and parse limits", () => {
     );
 
     expect(yamlResult.unreadableRevisions).toBe(1);
+    expect(yamlResult.truncated).toBe(true);
     expect(yamlResult.revisions.map((revision) => revision.value)).toEqual(["one"]);
     expect(xmlResult.unreadableRevisions).toBe(1);
+    expect(xmlResult.truncated).toBe(true);
     expect(xmlResult.revisions.map((revision) => revision.value)).toEqual(["one"]);
   });
 
-  it("stops parsing once the parse budget of a call is spent", async () => {
-    const fx = await repo();
-    for (const value of ["1", "2", "3", "4", "5", "6"]) {
-      await fx.write("locales/de.json", json({ a: value }));
-      await fx.commitAll(`set ${value}`);
+  it("reads a yaml file just under 512 KiB and a json file of 1.5 MiB in full", async () => {
+    const yaml = await repo();
+    const config = baseConfig({ format: "yaml", files: { pattern: "locales/{locale}.yaml" } });
+    await yaml.write("locales/en.yaml", "a: A\n");
+    for (const value of ["one", "two"]) {
+      await yaml.write("locales/de.yaml", `a: ${value}\npad: "${"q".repeat(524_000)}"\n`);
+      await yaml.commitAll(value);
     }
-    let clock = 0;
-    vi.spyOn(performance, "now").mockImplementation(() => {
-      clock += 1500;
-      return clock;
-    });
+    const big = await repo();
+    await big.write("locales/en.json", json({ a: "A" }));
+    for (const value of ["one", "two"]) {
+      await big.write("locales/de.json", json({ a: value, pad: "p".repeat(1_500_000) }));
+      await big.commitAll(value);
+    }
+
+    const yamlResult = available(
+      await keyHistory({ config, cwd: yaml.root, locale: "de", key: "a" }),
+    );
+    const bigResult = available(await history(big));
+
+    expect(yamlResult.revisions.map((revision) => revision.value)).toEqual(["two", "one"]);
+    expect(yamlResult).toMatchObject({ truncated: false, unreadableRevisions: 0 });
+    expect(bigResult.revisions.map((revision) => revision.value)).toEqual(["two", "one"]);
+    expect(bigResult).toMatchObject({ truncated: false, unreadableRevisions: 0 });
+  });
+
+  it("skips a json file above 4 MiB and says so", async () => {
+    const fx = await repo();
+    await fx.write("locales/en.json", json({ a: "A" }));
+    await fx.write("locales/de.json", json({ a: "one" }));
+    await fx.commitAll("one");
+    await fx.write("locales/de.json", json({ a: "two", pad: "p".repeat(4_194_304) }));
+    await fx.commitAll("big");
+    await fx.write("locales/de.json", json({ a: "three" }));
+    await fx.commitAll("three");
 
     const result = available(await history(fx));
-    vi.restoreAllMocks();
 
-    expect(result.unreadableRevisions).toBeGreaterThan(0);
+    expect(result.unreadableRevisions).toBe(1);
     expect(result.truncated).toBe(true);
+    expect(result.revisions.map((revision) => revision.value)).toEqual(["one"]);
+  });
+
+  it("stops examining older commits once the slow class byte budget of a call is spent, and says so", async () => {
+    const fx = await repo();
+    const config = baseConfig({ format: "yaml", files: { pattern: "locales/{locale}.yaml" } });
+    await fx.write("locales/en.yaml", "a: A\n");
+    for (let index = 0; index < 36; index += 1) {
+      await fx.write("locales/de.yaml", `a: v${index}\npad: "${"q".repeat(524_000)}"\n`);
+      await fx.commitAll(`v${index}`);
+    }
+
+    const result = available(
+      await keyHistory({ config, cwd: fx.root, locale: "de", key: "a", limit: 200 }),
+    );
+
+    expect(result.revisions.map((revision) => revision.value)).toEqual(
+      Array.from({ length: 31 }, (_, index) => `v${35 - index}`),
+    );
+    expect(result.truncated).toBe(true);
+    expect(result.unreadableRevisions).toBe(0);
   });
 });
 
 describe("keyHistory unusual projects", () => {
   it("lists a key again when its whole file was deleted and recreated with the same value", async () => {
     const fx = await repo();
+    await fx.write("locales/en.json", json({ a: "A" }));
     await fx.write("locales/de.json", json({ a: "same" }));
     await fx.commitAll("created");
     await fx.git(["rm", "-q", "locales/de.json"]);
@@ -818,6 +881,7 @@ describe("keyHistory log lines", () => {
 
     expect(real).toHaveLength(2);
     expect(result.unreadableRevisions).toBe(2);
+    expect(result.truncated).toBe(true);
     expect(result.revisions).toEqual([]);
   });
 });
