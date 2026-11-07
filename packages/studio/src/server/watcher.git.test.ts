@@ -228,4 +228,33 @@ describe("the project watcher and git", () => {
       await watcher.close();
     }
   }, 30_000);
+
+  it("reports a change to a named file in a watched directory and ignores its neighbours", async () => {
+    const root = await repo({ init: false });
+    const directory = join(root, "gitdir");
+    await mkdir(directory, { recursive: true });
+    const watched = join(directory, "HEAD");
+    const neighbour = join(directory, "COMMIT_EDITMSG");
+    await writeFile(watched, "a");
+    await writeFile(neighbour, "a");
+    let changes = 0;
+    const watcher = defaultCreateStudioWatcher([directory], { only: [watched] });
+    watcher.onChange(() => {
+      changes += 1;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    changes = 0;
+
+    try {
+      await writeFile(neighbour, "b");
+      await writeFile(join(directory, "index.lock"), "x");
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect(changes).toBe(0);
+
+      await writeFile(watched, "b");
+      expect(await until(() => changes > 0)).toBe(true);
+    } finally {
+      await watcher.close();
+    }
+  }, 30_000);
 });
