@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { type ReactNode, useRef } from "react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "./test-support.js";
-import { useBannerAnchor } from "./use-banner-anchor.js";
+import { useBannerAnchor, useRevealEdit } from "./use-banner-anchor.js";
 
 let scroller: HTMLDivElement | null = null;
 let rowTop = 300;
@@ -106,5 +106,57 @@ describe("useBannerAnchor", () => {
     view.rerender(<Host shown={false} />);
 
     expect((scroller as HTMLDivElement).scrollTop).toBe(120);
+  });
+});
+
+const scrolled = vi.fn();
+const original = Element.prototype.scrollIntoView;
+
+afterEach(() => {
+  Element.prototype.scrollIntoView = original;
+  scrolled.mockReset();
+});
+
+function RevealHost({
+  active,
+  locale,
+}: {
+  readonly active: boolean;
+  readonly locale: string | null;
+}): ReactNode {
+  const ref = useRef<HTMLUListElement | null>(null);
+  useRevealEdit(ref, active, locale);
+  return (
+    <div role="dialog">
+      <div data-sticky="" />
+      <ul ref={ref}>
+        <li data-locale="de" />
+        <li data-locale="fr" />
+      </ul>
+    </div>
+  );
+}
+
+describe("useRevealEdit", () => {
+  it("brings the edited locale into view when asked, clear of the sticky header, and moves no focus", () => {
+    Element.prototype.scrollIntoView = scrolled;
+    const before = document.activeElement;
+
+    const view = render(<RevealHost active locale="fr" />);
+
+    expect(scrolled).toHaveBeenCalledTimes(1);
+    expect(scrolled.mock.instances[0]).toBe(view.get('[data-locale="fr"]'));
+    expect(view.get('[data-locale="fr"]').style.scrollMarginTop).toBe("8px");
+    expect(document.activeElement).toBe(before);
+  });
+
+  it("does nothing while inactive, without a locale or for a locale with no block", () => {
+    Element.prototype.scrollIntoView = scrolled;
+
+    render(<RevealHost active={false} locale="de" />);
+    render(<RevealHost active locale={null} />);
+    render(<RevealHost active locale="xx" />);
+
+    expect(scrolled).not.toHaveBeenCalled();
   });
 });

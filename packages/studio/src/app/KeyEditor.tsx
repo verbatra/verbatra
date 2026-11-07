@@ -27,6 +27,7 @@ import {
 } from "./route-guard.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
+import { useRevealEdit } from "./use-banner-anchor.js";
 import { useCapabilities } from "./use-capabilities.js";
 import { useHistoryList } from "./use-history-list.js";
 import { useKeyHistory } from "./use-key-history.js";
@@ -34,7 +35,6 @@ import { useKeyHistoryUi } from "./use-key-history-ui.js";
 import { type KeyIntegrityState, useKeyIntegrity } from "./use-key-integrity.js";
 import { type KeyValuesState, useKeyValues } from "./use-key-values.js";
 import { useLocaleEdit } from "./use-locale-edit.js";
-import { useRevealEdit } from "./use-reveal-edit.js";
 
 export type KeyEditorLayout = "pane" | "drawer";
 
