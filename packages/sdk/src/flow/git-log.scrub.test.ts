@@ -3,7 +3,7 @@ import {
   COMMIT_AUTHOR_MAX_CHARS,
   COMMIT_SUBJECT_MAX_CHARS,
   FIELD_SEPARATOR,
-  parseCommitHeader,
+  parseGitLogOutput,
 } from "./git-log.js";
 
 const HASH = "a".repeat(40);
@@ -13,6 +13,10 @@ const PATTERN_KEY = `sk-${"a1B2c3D4".repeat(5)}`;
 
 function header(author: string, subject: string): string {
   return [HASH, DATE, author, subject].join(FIELD_SEPARATOR);
+}
+
+function parseCommitHeader(line: string) {
+  return parseGitLogOutput(line)[0];
 }
 
 let previous: string | undefined;
@@ -75,9 +79,30 @@ describe.each([
   );
 });
 
+const PADS = [16_384, 16_380, 16_300, 20_000];
+
+describe.each([
+  ["configured environment key", ENV_KEY],
+  ["key shaped like a provider key", PATTERN_KEY],
+])("a %s behind bidirectional padding", (_name, key) => {
+  it.each(PADS)("is scrubbed from a subject padded with %i override characters", (pad) => {
+    const parsed = parseCommitHeader(header("Ada", `${"\u202E".repeat(pad)} ${key} tail`));
+
+    expect(parsed?.subject.includes("lt-Q7x9") || parsed?.subject.includes("sk-a1B2")).toBe(false);
+    expect(parsed?.subject).toContain("[REDACTED]");
+  });
+
+  it.each(PADS)("is scrubbed from an author padded with %i override characters", (pad) => {
+    const parsed = parseCommitHeader(header(`${"\u202E".repeat(pad)} ${key} tail`, "subject"));
+
+    expect(parsed?.author.includes("lt-Q7x9") || parsed?.author.includes("sk-a1B2")).toBe(false);
+    expect(parsed?.author).toContain("[REDACTED]");
+  });
+});
+
 describe("scrubbing a very long commit message", () => {
   it("bounds the work and the result for a huge subject", () => {
-    const subject = `${"z".repeat(200_005)}`;
+    const subject = `${"z".repeat(2_000_005)}`;
 
     const started = Date.now();
     const parsed = parseCommitHeader(header("Ada", subject));
@@ -94,7 +119,7 @@ describe("scrubbing a very long commit message", () => {
     expect(parsed?.subject).toHaveLength(COMMIT_SUBJECT_MAX_CHARS - 1);
   });
 
-  it("scrubs a key that sits beyond the scrub window without letting it back in", () => {
+  it("scrubs a key that sits far beyond the cut", () => {
     const parsed = parseCommitHeader(header("Ada", `${"a".repeat(20_000)}${PATTERN_KEY}`));
 
     expect(parsed?.subject.includes("sk-")).toBe(false);

@@ -36,7 +36,7 @@ Une clé de `pinnedKeys` est réservée à une personne : une restauration enreg
 
 ### Quand la source a changé
 
-Si le texte source a changé depuis ce commit, **Restore** demande d'abord une confirmation, et si Studio ne peut pas le dire (le fichier de verrou de ce commit n'a pas pu être lu), il le dit. À l'enregistrement, la clé compte alors comme à jour par rapport à la source actuelle et la valeur entre dans la mémoire de traduction, si bien qu'une ancienne formulation peut être réutilisée pour des clés proches. **Cancel** ou Échap laisse tout comme avant.
+Si le texte source a changé depuis ce commit, **Restore** demande d'abord une confirmation, et si Studio ne peut pas le dire (le fichier de verrou de ce commit n'a pas pu être lu ou n'a pas d'entrée pour la clé), il le dit. À l'enregistrement, la clé compte alors comme à jour par rapport à la source actuelle et la valeur entre dans la mémoire de traduction, si bien qu'une ancienne formulation peut être réutilisée pour des clés proches. **Cancel** ou Échap laisse tout comme avant.
 
 ## Sache ce que la liste omet
 
@@ -46,7 +46,7 @@ Studio ne présente jamais une liste partielle comme complète. Un avis apparaî
 - le fichier d'un commit n'a pas pu être lu ni analysé, ou la valeur était trop longue, et Studio compte combien ;
 - le fichier sur le disque n'a pas pu être comparé au dernier commit, par exemple pendant un conflit de fusion.
 
-Studio examine d'abord 50 commits. Si cela a raccourci la liste, **Read further back** en lit jusqu'à 200 en une étape, puis l'avis dit que Studio ne lit pas plus loin. Une liste vide dit si elle est vide ou seulement la part que Studio a lue. Les renommages ne sont pas suivis, les modifications jamais commitées sont manquées, une clé renommée dans la source paraît nouvelle et un changement arrivé par fusion apparaît sur le commit de fusion.
+Studio examine d'abord 50 commits. Si cette limite a raccourci la liste, l'avis le dit et **Read further back** en lit jusqu'à 200 en une étape ; ensuite l'avis dit seulement que Studio ne lit pas plus loin. Chaque autre cause a son propre avis, et **Read further back** n'apparaît pour aucune d'elles. Une liste vide dit si elle est vide ou seulement la part que Studio a lue. Les renommages ne sont pas suivis, les modifications jamais commitées sont manquées, une clé renommée dans la source paraît nouvelle et un changement arrivé par fusion apparaît sur le commit de fusion.
 
 Quand git manque, que le dossier n'est pas un dépôt ou que git le refuse, Studio le dit en une phrase. Une lecture qui échoue ou dépasse le délai affiche **Retry** et garde la dernière liste.
 

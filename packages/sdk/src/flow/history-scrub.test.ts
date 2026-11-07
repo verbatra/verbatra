@@ -104,4 +104,68 @@ describe("commit subjects and author names", () => {
     }
     expect(result.commits[0]?.subject).toHaveLength(500);
   });
+
+  it("scrubs a key glued to a letter in one commit when another commit shows it plainly, in both functions", async () => {
+    const fx = await makeGitFixture();
+    fixtures.push(fx);
+    const glued = `x${PATTERN_KEY}tail`;
+    for (const subject of [glued, `rotate ${PATTERN_KEY}`]) {
+      await fx.write("locales/de.json", `${JSON.stringify({ a: subject })}\n`);
+      await fx.git(["add", "-A"]);
+      await fx.git(["commit", "-q", "-m", subject]);
+    }
+
+    const list = await localeHistory({ config: baseConfig(), cwd: fx.root, limit: 200 }, {});
+    const key = await keyHistory(
+      { config: baseConfig(), cwd: fx.root, locale: "de", key: "a", limit: 200 },
+      {},
+    );
+
+    expect(JSON.stringify(list)).not.toContain("a1B2c3D4");
+    expect(JSON.stringify(key)).not.toContain("a1B2c3D4");
+  });
+
+  it("scrubs a key behind a full cut's worth of bidirectional padding, in subject and author, in both functions", async () => {
+    const fx = await makeGitFixture();
+    fixtures.push(fx);
+    const pad = "\u202E".repeat(16_384);
+    await fx.write("locales/de.json", `${JSON.stringify({ a: "one" })}\n`);
+    await fx.git(["add", "-A"]);
+    await fx.git([
+      "-c",
+      `user.name=${pad} ${ENV_KEY}`,
+      "commit",
+      "-q",
+      "-m",
+      `${pad} ${PATTERN_KEY} ${ENV_KEY}`,
+    ]);
+
+    const list = await localeHistory({ config: baseConfig(), cwd: fx.root, limit: 200 }, {});
+    const key = await keyHistory(
+      { config: baseConfig(), cwd: fx.root, locale: "de", key: "a", limit: 200 },
+      {},
+    );
+
+    for (const answer of [JSON.stringify(list), JSON.stringify(key)]) {
+      expect(answer).not.toContain("lt-Q7x9");
+      expect(answer).not.toContain("a1B2c3D4");
+      expect(answer).toContain("[REDACTED]");
+    }
+  });
+
+  it("says a list is incomplete when more distinct keys turn up than it can scrub from every commit", async () => {
+    const fx = await makeGitFixture();
+    fixtures.push(fx);
+    for (let index = 0; index < 150; index += 1) {
+      await fx.write("locales/de.json", `${JSON.stringify({ a: String(index) })}\n`);
+      await fx.git(["add", "-A"]);
+      const one = `sk-${String(index).padStart(8, "0")}${"a1B2c3D4".repeat(4)}`;
+      const two = `sk-${String(index).padStart(8, "9")}${"a1B2c3D4".repeat(4)}`;
+      await fx.git(["commit", "-q", "-m", `${one} ${two}`]);
+    }
+
+    const list = await localeHistory({ config: baseConfig(), cwd: fx.root, limit: 200 }, {});
+
+    expect(list.available && list.truncated).toBe(true);
+  });
 });

@@ -17,6 +17,7 @@ import {
   hasZodJitlessConfig,
   PUBLISHED_DECLARATIONS,
   PUBLISHED_PACKAGES,
+  referencedScripts,
   staticImportPattern,
   staticRequirePattern,
 } from "./check-build-output.mjs";
@@ -686,5 +687,56 @@ describe("findNodeOnlyTokens", () => {
 
   it("finds nothing in an ordinary client bundle", () => {
     expect(findNodeOnlyTokens("function mc(e,t){return ma(e,t)}We({jitless:!0});")).toEqual([]);
+  });
+});
+
+describe("findNodeOnlyTokens by import form", () => {
+  it.each([
+    'import{join}from"node:path";',
+    'import { createHash } from "node:crypto";',
+    "const u = await import('node:url');",
+    'const fs = require("node:fs/promises");',
+  ])("finds a node: import in %s", (text) => {
+    expect(findNodeOnlyTokens(text)).toContain("node: import");
+  });
+
+  it.each([
+    'const path = "node:path is a word in this string";',
+    "const label = `nodes: ${count}`;",
+    'import{useState}from"react";',
+    'if(typeof process<"u")return process.versions.node;',
+  ])("finds no node: import in %s", (text) => {
+    expect(findNodeOnlyTokens(text)).not.toContain("node: import");
+  });
+});
+
+describe("referencedScripts", () => {
+  const HTML =
+    '<script type="module" src="/assets/index-A.js"></script><link rel="modulepreload" href="/assets/react-B.js">';
+
+  it("follows the page's scripts and the chunks they import, and nothing else", () => {
+    const files = {
+      "index-A.js": 'import{a}from"./chunk-C.js";const l=()=>import("./lazy-D.js");',
+      "react-B.js": "export{}",
+      "chunk-C.js": "export{}",
+      "lazy-D.js": "export{}",
+      "stale-E.js": "homedir",
+    };
+
+    expect(referencedScripts(HTML, (name) => files[name]).sort()).toEqual([
+      "chunk-C.js",
+      "index-A.js",
+      "lazy-D.js",
+      "react-B.js",
+    ]);
+  });
+
+  it("ignores a reference to a file that is not there and survives a cycle", () => {
+    const files = { "index-A.js": 'import"./index-A.js";import"./gone.js";', "react-B.js": "" };
+
+    expect(referencedScripts(HTML, (name) => files[name]).sort()).toEqual([
+      "index-A.js",
+      "react-B.js",
+    ]);
   });
 });

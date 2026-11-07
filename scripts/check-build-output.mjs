@@ -56,8 +56,32 @@ const NODE_ONLY_TOKENS = [
   "fs/promises",
 ];
 
+const NODE_SPECIFIER_IMPORT = /(?:\bfrom|\bimport\s*\(|\brequire\s*\()\s*["'`]node:[a-z_]+/;
+
 function findNodeOnlyTokens(text) {
-  return NODE_ONLY_TOKENS.filter((token) => text.includes(token));
+  const found = NODE_ONLY_TOKENS.filter((token) => text.includes(token));
+  return NODE_SPECIFIER_IMPORT.test(text) ? [...found, "node: import"] : found;
+}
+
+const HTML_SCRIPT_REFERENCE = /(?:src|href)="\/assets\/([^"]+\.js)"/g;
+const CHUNK_REFERENCE = /["'`]\.\/([\w.-]+\.js)["'`]/g;
+
+function referencedScripts(html, readAsset) {
+  const seen = new Set();
+  const queue = [...html.matchAll(HTML_SCRIPT_REFERENCE)].map((match) => match[1]);
+  while (queue.length > 0) {
+    const name = queue.shift();
+    if (seen.has(name)) {
+      continue;
+    }
+    const text = readAsset(name);
+    if (text === undefined) {
+      continue;
+    }
+    seen.add(name);
+    queue.push(...[...text.matchAll(CHUNK_REFERENCE)].map((match) => match[1]));
+  }
+  return [...seen];
 }
 
 function hasZodJitlessConfig(text) {
@@ -421,13 +445,20 @@ function checkStudioZodJitless() {
 
 function checkStudioClientNodeFree() {
   const assetsDir = resolve(REPO_ROOT, STUDIO_APP_ASSETS);
-  const hits = readdirSync(assetsDir)
-    .filter((name) => name.endsWith(".js"))
-    .flatMap((name) =>
-      findNodeOnlyTokens(readBuildOutput(`${STUDIO_APP_ASSETS}/${name}`)).map(
-        (token) => `${name}: ${token}`,
-      ),
+  const html = readBuildOutput("packages/studio/dist/app/index.html");
+  const readAsset = (name) =>
+    existsSync(resolve(assetsDir, name))
+      ? readBuildOutput(`${STUDIO_APP_ASSETS}/${name}`)
+      : undefined;
+  const scripts = referencedScripts(html, readAsset);
+  if (scripts.length === 0) {
+    throw new Error(
+      "packages/studio/dist/app/index.html references no script. Run the build first.",
     );
+  }
+  const hits = scripts.flatMap((name) =>
+    findNodeOnlyTokens(readAsset(name)).map((token) => `${name}: ${token}`),
+  );
   if (hits.length > 0) {
     throw new Error(
       `${STUDIO_APP_ASSETS} holds Node-only code, so a browser module pulled in a value from ` +
@@ -654,6 +685,7 @@ export {
   hasZodJitlessConfig,
   PUBLISHED_DECLARATIONS,
   PUBLISHED_PACKAGES,
+  referencedScripts,
   staticImportPattern,
   staticRequirePattern,
 };

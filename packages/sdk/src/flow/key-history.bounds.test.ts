@@ -28,6 +28,7 @@ function available(result: KeyHistoryResult): Extract<KeyHistoryResult, { availa
   if (!result.available) {
     throw new Error(`unavailable: ${result.reason}`);
   }
+  expect(result.truncated).toBe(result.truncatedBy.length > 0);
   return result;
 }
 
@@ -112,6 +113,7 @@ describe("keyHistory lock file and provenance file limits", () => {
 
     expect(result.revisions[0]?.sourceChanged).toBe("unknown");
     expect(result.truncated).toBe(true);
+    expect(result.truncatedBy).toEqual(["records-unreadable"]);
     expect(blobs.some((line) => line.includes("verbatra.lock.json"))).toBe(false);
   });
 
@@ -137,6 +139,7 @@ describe("keyHistory lock file and provenance file limits", () => {
 
     expect(result.revisions[0]).not.toHaveProperty("origin");
     expect(result.truncated).toBe(true);
+    expect(result.truncatedBy).toEqual(["records-unreadable"]);
   });
 
   it("leaves the origin out and says so when git cannot read a record that it listed", async () => {
@@ -262,6 +265,7 @@ describe("keyHistory source file limit", () => {
     expect(result.revisions.map((revision) => revision.value)).toEqual(["one"]);
     expect(result.revisions[0]?.sourceChanged).toBe("unknown");
     expect(result.truncated).toBe(true);
+    expect(result.truncatedBy).toEqual(["source-unreadable"]);
   });
 });
 
@@ -306,6 +310,7 @@ describe("keyHistory limits on the apple-strings pair", () => {
 
     expect(result.unreadableRevisions).toBe(1);
     expect(result.truncated).toBe(true);
+    expect(result.truncatedBy).toContain("file-too-large");
     expect(result.revisions.map((revision) => revision.value)).toEqual(["one"]);
   });
 
@@ -396,12 +401,14 @@ describe("keyHistory yields and ordering", () => {
           result.revisions.map((revision) => revision.commit),
           result.truncated,
           result.unreadableRevisions,
+          result.truncatedBy,
         ]),
       );
     }
 
     expect(new Set(answers).size).toBe(1);
     expect(JSON.parse(answers[0] as string)[0]).toHaveLength(31);
+    expect(JSON.parse(answers[0] as string)[3]).toContain("byte-budget");
   });
 });
 

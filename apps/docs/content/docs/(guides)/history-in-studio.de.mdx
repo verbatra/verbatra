@@ -36,7 +36,7 @@ Ein Key in `pinnedKeys` ist für einen Menschen reserviert, daher geht eine in S
 
 ### Wenn sich die Quelle geändert hat
 
-Hat sich der Quelltext seit diesem Commit geändert, fragt **Restore** zuerst nach einer Bestätigung, und kann Studio das nicht sagen (die Lock-Datei zu diesem Commit war nicht lesbar), sagt es das. Beim Speichern gilt der Key dann als aktuell gegenüber der jetzigen Quelle, und der Wert kommt ins Translation Memory, sodass eine alte Fassung für ähnliche Keys wiederverwendet werden kann. **Cancel** oder Escape lässt alles, wie es war.
+Hat sich der Quelltext seit diesem Commit geändert, fragt **Restore** zuerst nach einer Bestätigung, und kann Studio das nicht sagen (die Lock-Datei zu diesem Commit war nicht lesbar oder hat keinen Eintrag für den Key), sagt es das. Beim Speichern gilt der Key dann als aktuell gegenüber der jetzigen Quelle, und der Wert kommt ins Translation Memory, sodass eine alte Fassung für ähnliche Keys wiederverwendet werden kann. **Cancel** oder Escape lässt alles, wie es war.
 
 ## Wisse, was die Liste auslässt
 
@@ -46,7 +46,7 @@ Studio gibt eine unvollständige Liste nie als vollständig aus. Ein Hinweis ers
 - die Datei eines Commits nicht lesbar oder nicht parsbar war oder der Wert zu lang war, und Studio zählt, wie viele;
 - die Datei auf der Platte nicht mit dem letzten Commit verglichen werden konnte, etwa bei einem Merge-Konflikt.
 
-Studio untersucht zuerst 50 Commits. Hat das die Liste verkürzt, liest **Read further back** in einem Schritt bis zu 200, und danach sagt der Hinweis, dass Studio nicht weiter liest. Eine leere Liste sagt, ob sie leer ist oder nur der Teil, den Studio gelesen hat. Umbenennungen werden nicht verfolgt, nie committete Änderungen fehlen, ein in der Quelle umbenannter Key wirkt neu, und eine Änderung, die per Merge kam, steht am Merge-Commit.
+Studio untersucht zuerst 50 Commits. Hat dieses Limit die Liste verkürzt, sagt der Hinweis das, und **Read further back** liest in einem Schritt bis zu 200; danach sagt der Hinweis nur noch, dass Studio nicht weiter liest. Jede andere Ursache bekommt einen eigenen Hinweis, und **Read further back** erscheint bei keiner davon. Eine leere Liste sagt, ob sie leer ist oder nur der Teil, den Studio gelesen hat. Umbenennungen werden nicht verfolgt, nie committete Änderungen fehlen, ein in der Quelle umbenannter Key wirkt neu, und eine Änderung, die per Merge kam, steht am Merge-Commit.
 
 Fehlt Git, ist der Ordner kein Repository oder verweigert Git ihn, sagt Studio das in einem Satz. Ein Lesen, das fehlschlägt oder zu lange dauert, zeigt **Retry** und behält die letzte Liste.
 

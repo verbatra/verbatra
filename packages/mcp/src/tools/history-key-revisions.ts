@@ -1,6 +1,7 @@
 import {
   KEY_HISTORY_MAX_KEY_CHARS,
   KEY_HISTORY_MAX_VALUE_CHARS,
+  KEY_HISTORY_TRUNCATION_REASONS,
   keyHistory,
   keyOriginSchema,
   LOCALE_GIT_UNAVAILABLE_REASONS,
@@ -48,6 +49,7 @@ const keyRevisionsResultSchema = z.object({
     .optional(),
   workingTreeUnreadable: z.boolean().optional(),
   truncated: z.boolean().optional(),
+  truncatedBy: z.array(z.enum(KEY_HISTORY_TRUNCATION_REASONS)).readonly().optional(),
   unreadableRevisions: z.number().int().nonnegative().optional(),
 });
 
@@ -136,9 +138,11 @@ export const historyKeyRevisionsTool = defineTool({
     `The optional limit parameter is the number of commits examined, default ` +
     `${LOCALE_HISTORY_LIMIT_DEFAULT}, capped at ${LOCALE_HISTORY_LIMIT_CAP}; truncated is ` +
     "true when the answer may leave history out or leave a field unknown because something " +
-    "was not read in full: older commits were not examined (limit, size budget or time), the " +
-    "clone is shallow, a commit or the lock file, provenance file or source file could not be " +
-    "read, parsed or was above its size limit, or a commit could not be compared. " +
+    "was not read in full, and truncatedBy says why, listing every cause that applies: " +
+    "commit-limit (older commits exist than limit examines, so a larger limit can reach " +
+    "them), shallow-clone, unreadable-revision, file-too-large, byte-budget, deadline, " +
+    "source-unreadable, records-unreadable (a lock or provenance file), and scrub-cap (more " +
+    "distinct keys turned up than could be scrubbed from every revision). " +
     "available: false is not an " +
     "empty history: its reason names why git could not be read (" +
     `${REASON_LIST}). Renames ` +

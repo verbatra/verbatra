@@ -38,13 +38,17 @@ function many(count: number): KeyRevisionRow[] {
   );
 }
 
-function available(overrides: Partial<KeyHistoryAvailable> = {}): KeyRevisionsResult {
+function available(
+  overrides: Partial<Omit<KeyHistoryAvailable, "truncated">> = {},
+): KeyRevisionsResult {
+  const truncatedBy = overrides.truncatedBy ?? [];
   return {
     available: true,
     revisions: [revision()],
-    truncated: false,
     unreadableRevisions: 0,
     ...overrides,
+    truncated: truncatedBy.length > 0,
+    truncatedBy,
   };
 }
 
@@ -376,6 +380,37 @@ describe("KeyHistoryPanel restore", () => {
     expect(view.get("[data-restore-confirm]").getAttribute("data-restore-confirm")).toBe("changed");
   });
 
+  it("does not reopen a confirm the offer left and came back to, and leaves focus where it was", () => {
+    const view = panel(data(available({ revisions: [revision({ sourceChanged: true })] })));
+    click(view.get("button[data-restore]"));
+    expect(view.query("[data-restore-confirm]")).not.toBeNull();
+    const rerender = (current: CurrentValue): void =>
+      view.rerender(
+        <Harness
+          read={{
+            view: data(available({ revisions: [revision({ sourceChanged: true })] })),
+            retrying: false,
+            pending: false,
+            retry: () => {},
+          }}
+          current={current}
+          locale="de"
+          onRestore={() => {}}
+        />,
+      );
+
+    rerender({ kind: "known", value: "Servus" });
+    expect(view.query("[data-restore-confirm]")).toBeNull();
+    const elsewhere = document.createElement("button");
+    document.body.append(elsewhere);
+    act(() => elsewhere.focus());
+    rerender(KNOWN_HALLO);
+
+    expect(view.query("[data-restore-confirm]")).toBeNull();
+    expect(document.activeElement).toBe(elsewhere);
+    elsewhere.remove();
+  });
+
   it("offers no Restore for a scrubbed value and says why in visible text", () => {
     const view = panel(
       data(
@@ -464,7 +499,7 @@ describe("KeyHistoryPanel honesty", () => {
       data(
         available({
           revisions: [],
-          truncated: true,
+          truncatedBy: ["commit-limit", "unreadable-revision"],
           unreadableRevisions: 3,
           workingTreeUnreadable: true,
         }),
@@ -472,15 +507,17 @@ describe("KeyHistoryPanel honesty", () => {
     );
     const notices = view.get("[data-history-notices]").textContent ?? "";
 
-    expect(notices).toContain("may be incomplete");
+    expect(notices).toContain("newest 50 commits");
     expect(notices).toContain("3 commits");
     expect(notices).toContain("uncommitted");
-    expect(view.get("[data-history-empty]").textContent).toContain("Older commits were not read");
+    expect(view.get("[data-history-empty]").textContent).toContain("newest 50 commits");
   });
 
   it("offers one step further back when truncated, and reads at the cap", () => {
     const onReadFurther = vi.fn();
-    const view = panel(data(available({ revisions: [], truncated: true })), { onReadFurther });
+    const view = panel(data(available({ revisions: [], truncatedBy: ["commit-limit"] })), {
+      onReadFurther,
+    });
 
     click(view.get("[data-read-further]"));
 
@@ -488,7 +525,7 @@ describe("KeyHistoryPanel honesty", () => {
   });
 
   it("shows the read-further control busy while that read runs", () => {
-    const view = panel(data(available({ truncated: true })), { pending: true });
+    const view = panel(data(available({ truncatedBy: ["commit-limit"] })), { pending: true });
     const button = view.get("[data-read-further]");
 
     expect(button.textContent).toBe("Reading further back…");
@@ -498,13 +535,13 @@ describe("KeyHistoryPanel honesty", () => {
 
   it("offers no further step once the cap was read, and says that is as far as Studio goes", () => {
     const onReadFurther = vi.fn();
-    const view = panel(data(available({ truncated: true })), { onReadFurther });
+    const view = panel(data(available({ truncatedBy: ["commit-limit"] })), { onReadFurther });
     click(view.get("[data-read-further]"));
 
     view.rerender(
       <Harness
         read={{
-          view: data(available({ truncated: true })),
+          view: data(available({ truncatedBy: ["commit-limit"] })),
           retrying: false,
           pending: false,
           retry: () => {},
@@ -517,6 +554,29 @@ describe("KeyHistoryPanel honesty", () => {
 
     expect(view.query("[data-read-further]")).toBeNull();
     expect(view.get("[data-history-notices]").textContent).toContain("as far as it goes");
+  });
+
+  it.each(["shallow-clone", "deadline", "byte-budget", "scrub-cap"] as const)(
+    "offers no further step, and names no limit, when %s was the only reason",
+    (reason) => {
+      const view = panel(data(available({ truncatedBy: [reason] })));
+
+      expect(view.query("[data-read-further]")).toBeNull();
+      expect(view.get("[data-history-notices]").textContent).not.toContain("newest 50");
+      expect(view.all("[data-history-notices] li")).toHaveLength(1);
+    },
+  );
+
+  it("says plainly when an empty list at the cap found nothing within 200 commits", () => {
+    const view = panel(data(available({ revisions: [], truncatedBy: ["commit-limit"] })));
+    click(view.get("[data-read-further]"));
+
+    expect(view.get("[data-history-empty]").textContent).toBe(
+      "No change to this key was found within 200 commits.",
+    );
+    expect(view.get("[data-history-notices]").textContent).toBe(
+      "Studio reads at most 200 commits, and that is as far as it goes here.",
+    );
   });
 
   it("offers no step when nothing was cut short", () => {
@@ -533,7 +593,9 @@ describe("KeyHistoryPanel honesty", () => {
   });
 
   it("shows notices above the rows when revisions exist", () => {
-    const view = panel(data(available({ unreadableRevisions: 1 })));
+    const view = panel(
+      data(available({ truncatedBy: ["unreadable-revision"], unreadableRevisions: 1 })),
+    );
 
     expect(view.get("[data-history-notices]").className).toContain("rounded-lg");
     expect(view.query("[data-history-empty]")).toBeNull();
@@ -642,7 +704,7 @@ describe("KeyHistoryPanel focus", () => {
     const restore = view.get("button[data-restore]");
     act(() => restore.focus());
 
-    view.rerender(harness(data(available({ truncated: false })), false));
+    view.rerender(harness(data(available()), false));
 
     expect(document.activeElement).toBe(view.get("button[data-restore]"));
   });

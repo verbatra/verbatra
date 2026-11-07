@@ -1,3 +1,4 @@
+import { KEY_HISTORY_TRUNCATION_REASONS } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
   atReadCap,
@@ -14,6 +15,7 @@ import {
   KEY_HISTORY_DEFAULT_LIMIT,
   type KeyHistoryAvailable,
   type KeyRevisionRow,
+  needsConfirm,
   needsSeparator,
   REDACTED_REASON,
   restoreOffer,
@@ -36,9 +38,21 @@ function revision(overrides: Partial<KeyRevisionRow> = {}): KeyRevisionRow {
   };
 }
 
-function available(overrides: Partial<KeyHistoryAvailable> = {}): KeyHistoryAvailable {
-  return { available: true, revisions: [], truncated: false, unreadableRevisions: 0, ...overrides };
+function available(
+  overrides: Partial<Omit<KeyHistoryAvailable, "truncated">> = {},
+): KeyHistoryAvailable {
+  const truncatedBy = overrides.truncatedBy ?? [];
+  return {
+    available: true,
+    revisions: [],
+    unreadableRevisions: 0,
+    ...overrides,
+    truncated: truncatedBy.length > 0,
+    truncatedBy,
+  };
 }
+
+const LIMIT = ["commit-limit"] as const;
 
 const KNOWN = (value: string | undefined): CurrentValue => ({ kind: "known", value });
 
@@ -95,20 +109,40 @@ describe("restoreOffer", () => {
 });
 
 describe("reading further", () => {
-  it("offers the cap step only while truncated and below the cap", () => {
-    expect(canReadFurther(available({ truncated: true }), KEY_HISTORY_DEFAULT_LIMIT)).toBe(true);
-    expect(canReadFurther(available({ truncated: false }), KEY_HISTORY_DEFAULT_LIMIT)).toBe(false);
-    expect(canReadFurther(available({ truncated: true }), KEY_HISTORY_DEEP_LIMIT)).toBe(false);
+  it("offers the cap step only when the commit limit is a reason and the limit is below the cap", () => {
+    expect(canReadFurther(available({ truncatedBy: LIMIT }), KEY_HISTORY_DEFAULT_LIMIT)).toBe(true);
+    expect(canReadFurther(available(), KEY_HISTORY_DEFAULT_LIMIT)).toBe(false);
+    expect(canReadFurther(available({ truncatedBy: LIMIT }), KEY_HISTORY_DEEP_LIMIT)).toBe(false);
     expect(atReadCap(KEY_HISTORY_DEEP_LIMIT)).toBe(true);
     expect(atReadCap(KEY_HISTORY_DEFAULT_LIMIT)).toBe(false);
   });
 
-  it("says at the cap that this is as far as Studio reads", () => {
-    const atCap = incompleteNotices(available({ truncated: true }), KEY_HISTORY_DEEP_LIMIT);
-    const below = incompleteNotices(available({ truncated: true }), KEY_HISTORY_DEFAULT_LIMIT);
+  it("offers nothing for a truncation the limit did not cause", () => {
+    for (const reason of [
+      "shallow-clone",
+      "unreadable-revision",
+      "file-too-large",
+      "byte-budget",
+      "deadline",
+      "source-unreadable",
+      "records-unreadable",
+      "scrub-cap",
+    ] as const) {
+      expect(canReadFurther(available({ truncatedBy: [reason] }), KEY_HISTORY_DEFAULT_LIMIT)).toBe(
+        false,
+      );
+    }
+  });
 
-    expect(atCap[0]).toContain("as far as it goes");
-    expect(below[0]).not.toContain("as far as it goes");
+  it("says at the cap only that this is as far as Studio reads", () => {
+    const atCap = incompleteNotices(available({ truncatedBy: LIMIT }), KEY_HISTORY_DEEP_LIMIT);
+    const below = incompleteNotices(available({ truncatedBy: LIMIT }), KEY_HISTORY_DEFAULT_LIMIT);
+
+    expect(atCap).toEqual([
+      "Studio reads at most 200 commits, and that is as far as it goes here.",
+    ]);
+    expect(below[0]).toContain("newest 50 commits");
+    expect(below[0]).not.toContain("shallow");
   });
 });
 
@@ -117,30 +151,73 @@ describe("incompleteNotices", () => {
     expect(incompleteNotices(available(), 50)).toEqual([]);
   });
 
-  it("names every kind of incompleteness it was given", () => {
+  it("gives one notice per actual reason and none for a reason that did not apply", () => {
     const notices = incompleteNotices(
-      available({ truncated: true, unreadableRevisions: 2, workingTreeUnreadable: true }),
+      available({
+        truncatedBy: ["shallow-clone", "deadline"],
+      }),
       50,
     );
 
-    expect(notices).toHaveLength(3);
-    expect(notices[0]).toContain("incomplete");
-    expect(notices[1]).toContain("2 commits");
-    expect(notices[2]).toContain("uncommitted");
+    expect(notices).toHaveLength(2);
+    expect(notices[0]).toContain("shallow");
+    expect(notices[1]).toContain("took too long");
   });
 
-  it("uses the singular for one unreadable commit", () => {
-    expect(incompleteNotices(available({ unreadableRevisions: 1 }), 50)[0]).toContain("1 commit ");
+  it("has a notice for every reason Studio can be given", () => {
+    for (const reason of KEY_HISTORY_TRUNCATION_REASONS) {
+      const notices = incompleteNotices(available({ truncatedBy: [reason] }), 50);
+
+      expect(notices).toHaveLength(1);
+      expect(notices[0]?.length).toBeGreaterThan(20);
+    }
+  });
+
+  it("counts the unreadable commits, with the singular for one, and adds the uncommitted file notice", () => {
+    const many = incompleteNotices(
+      available({
+        truncatedBy: ["unreadable-revision"],
+        unreadableRevisions: 2,
+        workingTreeUnreadable: true,
+      }),
+      50,
+    );
+    const one = incompleteNotices(
+      available({ truncatedBy: ["unreadable-revision"], unreadableRevisions: 1 }),
+      50,
+    );
+    const none = incompleteNotices(available({ truncatedBy: ["unreadable-revision"] }), 50);
+
+    expect(many[0]).toContain("2 commits");
+    expect(many[1]).toContain("uncommitted");
+    expect(one[0]).toContain("1 commit ");
+    expect(none[0]).toContain("could not be read or parsed");
   });
 });
 
 describe("emptyHistoryMessage", () => {
   it("does not claim a clean history when the answer is partial", () => {
-    expect(emptyHistoryMessage(available())).toContain("No commit has changed");
-    expect(emptyHistoryMessage(available({ truncated: true }))).toContain(
-      "Older commits were not read",
+    expect(emptyHistoryMessage(available(), 50)).toContain("No commit has changed");
+    expect(emptyHistoryMessage(available({ truncatedBy: ["shallow-clone"] }), 50)).toContain(
+      "could read",
     );
-    expect(emptyHistoryMessage(available({ unreadableRevisions: 1 }))).toContain("could read");
+  });
+
+  it("says how far it looked when the limit cut the list", () => {
+    expect(emptyHistoryMessage(available({ truncatedBy: LIMIT }), 50)).toBe(
+      "No change to this key was found in the newest 50 commits.",
+    );
+    expect(emptyHistoryMessage(available({ truncatedBy: LIMIT }), KEY_HISTORY_DEEP_LIMIT)).toBe(
+      "No change to this key was found within 200 commits.",
+    );
+  });
+});
+
+describe("needsConfirm", () => {
+  it("is true only for a restore that asks first", () => {
+    expect(needsConfirm({ kind: "restore", confirm: "changed" })).toBe(true);
+    expect(needsConfirm({ kind: "restore", confirm: null })).toBe(false);
+    expect(needsConfirm({ kind: "current" })).toBe(false);
   });
 });
 

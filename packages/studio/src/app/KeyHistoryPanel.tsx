@@ -13,6 +13,7 @@ import {
   type KeyHistoryAvailable,
   type KeyHistorySegments,
   type KeyRevisionRow,
+  needsConfirm,
   needsSeparator,
   REDACTED_WORKING_TREE_REASON,
   restoreOffer,
@@ -376,13 +377,15 @@ function RevisionList({
   const focusAfterMore = useRef<number | null>(null);
   const visible = shownRevisions(result.revisions, ui.shown);
   const hidden = result.revisions.length - visible.length;
-  const stillListed = visible.some((revision) => revision.commit === ui.confirming);
+  const confirmingRow = visible.find((revision) => revision.commit === ui.confirming);
+  const confirmPending =
+    confirmingRow !== undefined && needsConfirm(restoreOffer(confirmingRow, current));
 
   useEffect(() => {
-    if (ui.confirming !== null && !stillListed) {
+    if (ui.confirming !== null && !confirmPending) {
       ui.confirm(null);
     }
-  }, [ui, stillListed]);
+  }, [ui, confirmPending]);
 
   useLayoutEffect(() => {
     const index = focusAfterMore.current;
@@ -449,12 +452,13 @@ function AvailableHistory({
   readonly onRestore: (revision: KeyRevisionRow) => void;
 }): ReactNode {
   const empty = result.revisions.length === 0 && result.workingTree === undefined;
+  const requested = ui.limit ?? KEY_HISTORY_DEFAULT_LIMIT;
   return (
     <>
       <Notices result={result} ui={ui} pending={pending} />
       {empty ? (
         <p className="m-0 text-sm text-muted-foreground" data-history-empty="">
-          {emptyHistoryMessage(result)}
+          {emptyHistoryMessage(result, requested)}
         </p>
       ) : (
         <RevisionList

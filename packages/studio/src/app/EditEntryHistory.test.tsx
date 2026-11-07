@@ -37,6 +37,7 @@ function stubProject(): void {
         available: true,
         revisions: [revision("Servus")],
         truncated: false,
+        truncatedBy: [],
         unreadableRevisions: 0,
       },
     },
@@ -201,6 +202,7 @@ describe("EditEntryDialog history", () => {
           available: true,
           revisions: [revision("Servus", { sourceChanged: true })],
           truncated: false,
+          truncatedBy: [],
           unreadableRevisions: 0,
         },
       },
@@ -231,6 +233,7 @@ describe("EditEntryDialog history", () => {
             available: true,
             revisions: [revision("Servus", { sourceChanged: reads > 1 })],
             truncated: false,
+            truncatedBy: [],
             unreadableRevisions: 0,
           },
         };

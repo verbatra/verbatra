@@ -36,7 +36,7 @@ Una clave de `pinnedKeys` está reservada a una persona, así que una restauraci
 
 ### Cuando el origen ha cambiado
 
-Si el texto de origen ha cambiado desde ese commit, **Restore** pide antes una confirmación, y si Studio no puede saberlo (el lock file de ese commit no se pudo leer) lo dice. Al guardar, la clave cuenta como al día respecto al origen actual y el valor entra en la memoria de traducción, así que una redacción antigua puede reutilizarse en claves parecidas. **Cancel** o Escape lo deja todo como estaba.
+Si el texto de origen ha cambiado desde ese commit, **Restore** pide antes una confirmación, y si Studio no puede saberlo (el lock file de ese commit no se pudo leer o no tiene entrada para la clave) lo dice. Al guardar, la clave cuenta como al día respecto al origen actual y el valor entra en la memoria de traducción, así que una redacción antigua puede reutilizarse en claves parecidas. **Cancel** o Escape lo deja todo como estaba.
 
 ## Sabe qué deja fuera la lista
 
@@ -46,7 +46,7 @@ Studio nunca presenta una lista parcial como completa. Aparece un aviso cuando:
 - el archivo de un commit no se pudo leer ni analizar, o el valor era demasiado largo, y Studio cuenta cuántos;
 - el archivo en disco no se pudo comparar con el último commit, por ejemplo durante un conflicto de merge.
 
-Studio examina primero 50 commits. Si eso recortó la lista, **Read further back** lee hasta 200 en un solo paso, y después el aviso dice que Studio no lee más allá. Una lista vacía dice si está vacía o solo lo está la parte que Studio leyó. Los cambios de nombre no se siguen, las ediciones nunca confirmadas se pierden, una clave renombrada en el origen parece nueva y un cambio que llegó por merge aparece en el commit de merge.
+Studio examina primero 50 commits. Si ese límite recortó la lista, el aviso lo dice y **Read further back** lee hasta 200 en un solo paso; después el aviso solo dice que Studio no lee más allá. Cada otra causa tiene su propio aviso, y **Read further back** no aparece para ninguna de ellas. Una lista vacía dice si está vacía o solo lo está la parte que Studio leyó. Los cambios de nombre no se siguen, las ediciones nunca confirmadas se pierden, una clave renombrada en el origen parece nueva y un cambio que llegó por merge aparece en el commit de merge.
 
 Cuando falta git, la carpeta no es un repositorio o git la rechaza, Studio lo dice en una frase. Una lectura que falla o tarda demasiado muestra **Retry** y conserva la última lista.
 

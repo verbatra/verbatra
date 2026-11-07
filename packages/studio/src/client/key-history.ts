@@ -71,6 +71,10 @@ export function restoreOffer(revision: KeyRevisionRow, current: CurrentValue): R
   };
 }
 
+export function needsConfirm(offer: RestoreOffer): boolean {
+  return offer.kind === "restore" && offer.confirm !== null;
+}
+
 export function restoreOfferReason(offer: RestoreOffer): string | undefined {
   switch (offer.kind) {
     case "redacted":
@@ -88,28 +92,53 @@ export function atReadCap(requestedLimit: number): boolean {
   return requestedLimit >= KEY_HISTORY_DEEP_LIMIT;
 }
 
-export function canReadFurther(result: KeyHistoryAvailable, requestedLimit: number): boolean {
-  return result.truncated && !atReadCap(requestedLimit);
+export function limitIsReason(result: KeyHistoryAvailable): boolean {
+  return result.truncatedBy.includes("commit-limit");
 }
+
+export function canReadFurther(result: KeyHistoryAvailable, requestedLimit: number): boolean {
+  return limitIsReason(result) && !atReadCap(requestedLimit);
+}
+
+function limitNotice(requestedLimit: number): string {
+  return atReadCap(requestedLimit)
+    ? `Studio reads at most ${KEY_HISTORY_DEEP_LIMIT} commits, and that is as far as it goes here.`
+    : `Studio examined the newest ${requestedLimit} commits, so older commits were not read.`;
+}
+
+function unreadableNotice(count: number): string {
+  if (count === 0) {
+    return "A commit's file could not be read or parsed, so that commit is not shown.";
+  }
+  return `${count} ${count === 1 ? "commit" : "commits"} could not be shown because the file could not be read, could not be parsed or held a value that is too long.`;
+}
+
+const REASON_NOTICES: Readonly<Record<string, string>> = {
+  "shallow-clone": "This clone is shallow, so its older history is not here.",
+  "file-too-large": "A locale file at some commit was above the size limit and was not read.",
+  "byte-budget": "One read has a size budget, and older commits were past it.",
+  deadline: "The read took too long and stopped before it reached every commit.",
+  "source-unreadable":
+    "The source file could not be read in full, so whether the source changed is unknown for some revisions.",
+  "records-unreadable":
+    "A lock or provenance file could not be read in full, so the origin or the source change is unknown for some revisions.",
+  "scrub-cap":
+    "More distinct keys turned up than Studio could hide from every revision, so a key may stay readable in part of this list.",
+};
 
 export function incompleteNotices(
   result: KeyHistoryAvailable,
   requestedLimit: number,
 ): readonly string[] {
-  const notices: string[] = [];
-  if (result.truncated) {
-    notices.push(
-      atReadCap(requestedLimit)
-        ? `Studio reads at most ${KEY_HISTORY_DEEP_LIMIT} commits and that is as far as it goes here. This list may be incomplete: older commits were not read, the clone may be shallow, or something could not be read in full.`
-        : "This list may be incomplete: older commits were not read, the clone may be shallow, or something could not be read in full.",
-    );
-  }
-  if (result.unreadableRevisions > 0) {
-    const count = result.unreadableRevisions;
-    notices.push(
-      `${count} ${count === 1 ? "commit" : "commits"} could not be shown because the file could not be read or the value was too long.`,
-    );
-  }
+  const notices = result.truncatedBy.flatMap((reason) => {
+    if (reason === "commit-limit") {
+      return [limitNotice(requestedLimit)];
+    }
+    if (reason === "unreadable-revision") {
+      return [unreadableNotice(result.unreadableRevisions)];
+    }
+    return [REASON_NOTICES[reason] as string];
+  });
   if (result.workingTreeUnreadable === true) {
     notices.push(
       "The file on disk could not be compared with the last commit, so an uncommitted value is not shown.",
@@ -118,11 +147,13 @@ export function incompleteNotices(
   return notices;
 }
 
-export function emptyHistoryMessage(result: KeyHistoryAvailable): string {
-  if (result.truncated) {
-    return "No change to this key was found in the commits Studio read. Older commits were not read.";
+export function emptyHistoryMessage(result: KeyHistoryAvailable, requestedLimit: number): string {
+  if (limitIsReason(result)) {
+    return atReadCap(requestedLimit)
+      ? `No change to this key was found within ${KEY_HISTORY_DEEP_LIMIT} commits.`
+      : `No change to this key was found in the newest ${requestedLimit} commits.`;
   }
-  return result.unreadableRevisions > 0
+  return result.truncated
     ? "No change to this key was found in the commits Studio could read."
     : "No commit has changed this key's value yet.";
 }

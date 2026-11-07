@@ -47,7 +47,13 @@ function revision(
 function history(...revisions: KeyRevisionRow[]): StubRpcResult {
   return {
     ok: true,
-    result: { available: true, revisions, truncated: false, unreadableRevisions: 0 },
+    result: {
+      available: true,
+      revisions,
+      truncated: false,
+      truncatedBy: [],
+      unreadableRevisions: 0,
+    },
   };
 }
 
@@ -460,6 +466,7 @@ describe("KeyEditor history tab", () => {
       );
     });
 
+    expect(view.get("[data-unsaved-prompt]").textContent).toContain("Restoring replaces them");
     expect(document.activeElement?.textContent).toBe("Keep editing");
     expect(view.getByText("button", "Save draft, then restore")).not.toBeNull();
     expect(view.getByText("button", "Discard draft and restore")).not.toBeNull();
@@ -580,6 +587,7 @@ describe("KeyEditor history tab", () => {
           available: true,
           revisions: [revision("a", "Servus")],
           truncated: true,
+          truncatedBy: ["commit-limit"],
           unreadableRevisions: 0,
           ...(limit === undefined ? {} : {}),
         },

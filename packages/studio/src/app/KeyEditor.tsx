@@ -159,6 +159,21 @@ function currentValueOf(values: KeyValuesState, locale: string | undefined): Cur
     : { kind: "failed", message: failure.message };
 }
 
+function UnsavedSubject({
+  locale,
+  restoring,
+}: {
+  readonly locale: string;
+  readonly restoring: boolean;
+}): ReactNode {
+  return (
+    <>
+      The <span className="font-mono">{locale}</span> translation has changes that are not saved.
+      {restoring ? " Restoring replaces them." : ""}
+    </>
+  );
+}
+
 function MissingKeyNotice({ onDiscard }: { readonly onDiscard: () => void }): ReactNode {
   return (
     <div
@@ -501,12 +516,7 @@ export function KeyEditor({
   const prompt =
     pending !== null && editingLocale !== null ? (
       <UnsavedPrompt
-        subject={
-          <>
-            The <span className="font-mono">{editingLocale}</span> translation has changes that are
-            not saved.
-          </>
-        }
+        subject={<UnsavedSubject locale={editingLocale} restoring={pending.restore === true} />}
         saving={edit.submit.kind === "submitting"}
         error={submitFailure(edit.submit)}
         placement={layout}

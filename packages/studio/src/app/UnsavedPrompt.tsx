@@ -18,7 +18,7 @@ export interface UnsavedPromptProps {
   readonly escapeKeepsEditing?: boolean;
 }
 
-const BUSY = "aria-disabled:cursor-default aria-disabled:opacity-60";
+const BUSY = "aria-disabled:cursor-default aria-disabled:opacity-60 max-md:min-h-11";
 
 export function UnsavedPrompt({
   subject,

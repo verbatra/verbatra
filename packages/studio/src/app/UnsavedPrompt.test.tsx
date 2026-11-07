@@ -115,4 +115,22 @@ describe("UnsavedPrompt", () => {
 
     expect(onKeepEditing).not.toHaveBeenCalled();
   });
+
+  it("makes every button 44 px tall below the md breakpoint", () => {
+    const view = render(
+      <UnsavedPrompt
+        subject="x"
+        saving={false}
+        error={null}
+        placement="pane"
+        onSave={() => {}}
+        onDiscard={() => {}}
+        onKeepEditing={() => {}}
+      />,
+    );
+
+    for (const button of view.all("button")) {
+      expect(button.className).toContain("max-md:min-h-11");
+    }
+  });
 });

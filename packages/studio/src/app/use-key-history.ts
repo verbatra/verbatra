@@ -118,6 +118,7 @@ export function useKeyHistory(input: {
   const background = useBackgroundTriggers() + refreshToken;
 
   useEffect(() => {
+    let disposed = false;
     const paced = createPacedRunner(
       async () => {
         const asked = wanted.current;
@@ -134,7 +135,7 @@ export function useKeyHistory(input: {
         setRetrying(false);
         setHeld((previous) => settled(previous, askedLocale, asked.keyName, response));
         const waitSeconds = retryAfterSeconds(response);
-        if (waitSeconds !== undefined) {
+        if (waitSeconds !== undefined && !disposed) {
           clearTimeout(rateTimer.current);
           rateTimer.current = setTimeout(
             () => paced.trigger({ immediate: true }),
@@ -146,6 +147,7 @@ export function useKeyHistory(input: {
     );
     runner.current = paced;
     return () => {
+      disposed = true;
       paced.cancel();
       clearTimeout(rateTimer.current);
     };

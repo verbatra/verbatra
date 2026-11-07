@@ -36,7 +36,7 @@ A key in `pinnedKeys` is reserved for a person, so a restore saved from Studio g
 
 ### When the source has changed
 
-If the source text has changed since that commit, **Restore** first asks you to confirm, and if Studio cannot tell (the lock file at that commit could not be read) it says so. Saving then marks the key as up to date against the current source and adds the value to translation memory, so an old wording can be reused for similar keys. **Cancel** or Escape leaves everything as it was.
+If the source text has changed since that commit, **Restore** first asks you to confirm, and if Studio cannot tell (the lock file at that commit could not be read or has no entry for the key) it says so. Saving then marks the key as up to date against the current source and adds the value to translation memory, so an old wording can be reused for similar keys. **Cancel** or Escape leaves everything as it was.
 
 ## Know what the list leaves out
 
@@ -46,7 +46,7 @@ Studio never presents a partial list as complete. A notice appears when:
 - a commit's file could not be read or parsed, or the value was too long, and Studio counts how many;
 - the file on disk could not be compared with the last commit, for example during a merge conflict.
 
-Studio first examines 50 commits. When that cut the list short, **Read further back** reads up to 200 in one step, and after that the notice says that is as far as Studio reads. An empty list says whether it is empty or only the part Studio read. Renames are not followed, edits that were never committed are missed, a key renamed in the source looks new, and a change that arrived by merge shows on the merge commit.
+Studio first examines 50 commits. When that limit cut the list short, the notice says so and **Read further back** reads up to 200 in one step; after that the notice only says that is as far as Studio reads. Every other cause gets its own notice, and **Read further back** never appears for one of them. An empty list says whether it is empty or only the part Studio read. Renames are not followed, edits that were never committed are missed, a key renamed in the source looks new, and a change that arrived by merge shows on the merge commit.
 
 When git is missing, the folder is not a repository or git refuses it, Studio says so in a sentence. A read that fails or times out shows **Retry** and keeps the last list.
 

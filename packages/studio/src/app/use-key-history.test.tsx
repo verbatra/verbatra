@@ -46,6 +46,7 @@ function answer(subject: string): StubRpcResult {
         },
       ],
       truncated: false,
+      truncatedBy: [],
       unreadableRevisions: 0,
     },
   };
@@ -194,5 +195,31 @@ describe("useKeyHistory", () => {
 
     expect(seen.retrying).toBe(false);
     expect(lastSubject()).toBe("recovered");
+  });
+
+  it("sets no retry timer once it was unmounted, even when a rate limit answer arrives late", async () => {
+    vi.useFakeTimers();
+    let release: (value: StubRpcResult) => void = () => {};
+    stubRpc({
+      "history.keyRevisions": () =>
+        new Promise<StubRpcResult>((resolve) => {
+          release = resolve;
+        }),
+    });
+    const view = render(<Probe />);
+    await tick(10);
+    view.unmount();
+
+    await act(async () => {
+      release({
+        ok: false,
+        error: { code: "METHOD_RATE_LIMITED", message: "slow", retryAfterSeconds: 1 },
+      });
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    await tick(5000);
+
+    expect(reads()).toBe(1);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
