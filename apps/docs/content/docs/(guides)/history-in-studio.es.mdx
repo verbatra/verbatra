@@ -1,0 +1,57 @@
+---
+title: Ver y restaurar el historial de una clave en Studio
+seoTitle: "Ver y restaurar el historial de una clave"
+description: Lee cómo cambió una traducción de commit en commit y carga un valor anterior de vuelta en el editor desde la pestaña History de Verbatra Studio.
+type: how-to
+---
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Úsalo cuando una traducción se reformuló y quieres recuperar la redacción anterior, o para ver quién cambió una clave y cuándo. Lee git. Studio nunca prepara, confirma ni revierte nada: restaurar solo rellena el editor con el texto antiguo, y lo guardas como cualquier edición.
+
+## Abre la pestaña History
+
+Arranca Studio ([Review in Studio](/es/docs/review-in-studio#arranca-studio)), abre una clave en Translations y elige **History** junto a **Locales**. Elige el locale si el proyecto tiene varios. Studio no lee nada de git hasta que abres la pestaña.
+
+La lista empieza con **Working tree (uncommitted)** cuando el archivo en disco difiere del último commit. Debajo, de más reciente a más antiguo, va cada commit que cambió el valor de la clave en ese locale. Cada fila muestra:
+
+| Parte | Qué te dice |
+| --- | --- |
+| Autor, fecha, asunto | el commit, con el nombre del autor y nunca el correo |
+| Origin | quién escribió el valor, según lo registrado con ese commit, omitido si ese registro no se pudo leer |
+| Valor | el texto en ese commit, en el idioma y la dirección del locale |
+| Changes from the previous value | palabras añadidas o quitadas, marcadas con subrayado y tachado además del color, y leídas como «added» y «removed» |
+
+Todo es texto plano, nunca marcado. Una clave que aparezca en un valor o un asunto se sustituye por `[REDACTED]`.
+
+## Restaura un valor anterior
+
+1. Pulsa **Restore** en una fila. El editor se abre en **Locales** con ese valor como borrador. Todavía no se escribe nada.
+2. Lee el borrador y pulsa **Save**. Se ejecutan las comprobaciones habituales, incluidos marcadores, ICU y claves fijadas, y un rechazo se muestra tal cual con el archivo intacto. Un valor guardado se registra con el origen `human`.
+
+Si tienes cambios sin guardar, Studio pregunta antes de sustituirlos. **Keep editing** deja tu borrador en paz y **Discard** carga el valor restaurado.
+
+Un valor que ya es el valor actual de la clave, un valor que contenía una clave de API y un proyecto en el que Studio no puede escribir no tienen **Restore**, y la fila dice por qué.
+
+### Cuando el origen ha cambiado
+
+Si el texto de origen ha cambiado desde ese commit, o Studio no puede saberlo, **Restore** pide antes una confirmación. Al guardar, la clave cuenta como al día respecto al origen actual y el valor entra en la memoria de traducción, así que una redacción antigua puede reutilizarse en claves parecidas. **Cancel** lo deja todo como estaba.
+
+## Sabe qué deja fuera la lista
+
+Studio nunca presenta una lista parcial como completa. Aparece un aviso cuando:
+
+- no se leyeron commits más antiguos, por el límite de commits, un clon superficial o el presupuesto de lectura;
+- el archivo de un commit no se pudo leer ni analizar, o el valor era demasiado largo, y Studio cuenta cuántos;
+- el archivo en disco no se pudo comparar con el último commit, por ejemplo durante un conflicto de merge.
+
+Una lista vacía dice si está vacía o solo lo está la parte que Studio pudo leer. Los cambios de nombre no se siguen, las ediciones nunca confirmadas se pierden, una clave renombrada en el origen parece nueva y un cambio que llegó por merge aparece en el commit de merge.
+
+Cuando falta git, la carpeta no es un repositorio o git la rechaza, Studio lo dice en una frase. Una lectura que falla o tarda demasiado muestra **Retry** y conserva la última lista.
+
+## Sabe qué tan reciente es
+
+La pestaña lee de nuevo cuando cambia un archivo de locale, de lock o de procedencia, cuando cambia el índice de git o `HEAD` y cuando vuelves a la pestaña de Studio. Una lectura en segundo plano nunca mueve tu foco.
+
+En el editor de Review, **Show history** abre la misma lista para esa entrada y **Restore** rellena su campo.
+
+Las mismas lecturas están disponibles como [`keyHistory`](/es/docs/sdk/history#keyhistory), para un [cliente MCP](/es/docs/cli/mcp) y para un [agente del navegador](/es/docs/agent-tools-in-studio).
