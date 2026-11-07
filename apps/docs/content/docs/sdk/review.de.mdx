@@ -88,7 +88,7 @@ Jeder Commit trägt `hash`, `author` (der Name nach `.mailmap`, nie die E-Mail),
 
 <AvailableFrom version="0.13.0" />
 
-Listet, welche Locale-Dateien sowie `verbatra.lock.json` und `verbatra.provenance.json` vom letzten Commit abweichen, und den ausgecheckten Branch. Nur lesend; es führt `git` über das injizierbare `execFile` aus und nimmt keinen Pfad vom Aufrufer entgegen.
+Listet, welche Locale-Dateien sowie `verbatra.lock.json` und `verbatra.provenance.json` vom letzten Commit abweichen, und den ausgecheckten Branch. Nur lesend; es nimmt keinen Pfad vom Aufrufer entgegen.
 
 ```ts title="Signatur"
 function localeGitStatus(
@@ -103,7 +103,7 @@ function localeGitStatus(
 
 **Wirft:** [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision)
 
-Jede geänderte Datei trägt `path`, `locales` und einen `state` aus `LOCALE_GIT_FILE_STATES`. Eine Datei hinter einem symbolischen Link oder in einem Submodul wird nie gelistet; `apple-strings` beobachtet auch seine `.stringsdict`-Datei. Der Standard-Runner startet Git mit minimaler Umgebung (globale Konfiguration nur aus `HOME`, ein eigenes `XDG_CONFIG_HOME` wird ignoriert) und ohne optionale Sperren, `core.fsmonitor`, Bare-Repositories, Lazy Fetch, Submodule und konfigurierte Inhaltsfilter, vergleicht Pfade wörtlich und beendet es nach `LOCALE_GIT_TIMEOUT_MS` oder `LOCALE_GIT_MAX_OUTPUT_BYTES`; ein eigenes `execFile` muss dasselbe tun. Ein Partial Clone braucht Git 2.45 oder neuer, sonst `git-too-old`. Eine `verbatra.config.ts` des Projekts bleibt Code, den verbatra ausführt. Kann Git das Repository nicht lesen, ist das Ergebnis `{ available: false, reason }`, ein Grund aus `LOCALE_GIT_UNAVAILABLE_REASONS`.
+Jede geänderte Datei trägt `path`, `locales` und einen `state` aus `LOCALE_GIT_FILE_STATES`. Eine Datei hinter einem symbolischen Link oder in einem Submodul wird nie gelistet; `apple-strings` beobachtet auch seine `.stringsdict`-Datei. Der Standard-Runner startet Git mit minimaler Umgebung (globale Konfiguration nur aus `HOME`) und ohne optionale Sperren, `core.fsmonitor`, Bare-Repositories, Lazy Fetch, Submodule und konfigurierte Inhaltsfilter, vergleicht Pfade wörtlich und beendet es nach `LOCALE_GIT_TIMEOUT_MS` oder `LOCALE_GIT_MAX_OUTPUT_BYTES`; ein eigenes `execFile` muss dasselbe tun. Ein Partial Clone braucht Git 2.45 oder neuer, sonst `git-too-old`. Eine `verbatra.config.ts` des Projekts bleibt Code, den verbatra ausführt. Kann Git das Repository nicht lesen, oder legt ein `files.pattern` eine Locale-Datei außerhalb des Projektordners ab (`outside-project`), ist das Ergebnis `{ available: false, reason }`, ein Grund aus `LOCALE_GIT_UNAVAILABLE_REASONS`.
 
 ### localeGitDiff
 

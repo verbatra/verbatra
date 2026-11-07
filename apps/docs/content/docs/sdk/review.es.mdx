@@ -88,7 +88,7 @@ Cada commit lleva `hash`, `author` (el nombre tras `.mailmap`, nunca el correo),
 
 <AvailableFrom version="0.13.0" />
 
-Lista qué archivos de locale, `verbatra.lock.json` y `verbatra.provenance.json` difieren del último commit, y la rama activa. Solo lectura; ejecuta `git` mediante el `execFile` inyectable y no toma ninguna ruta de quien llama.
+Lista qué archivos de locale, `verbatra.lock.json` y `verbatra.provenance.json` difieren del último commit, y la rama activa. Solo lectura; no toma ninguna ruta de quien llama.
 
 ```ts title="Firma"
 function localeGitStatus(
@@ -103,7 +103,7 @@ function localeGitStatus(
 
 **Lanza:** [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision)
 
-Cada archivo cambiado lleva `path`, `locales` y un `state` de `LOCALE_GIT_FILE_STATES`. Un archivo tras un enlace simbólico o dentro de un submódulo nunca se lista; `apple-strings` vigila también su archivo `.stringsdict`. El runner por defecto inicia git con un entorno mínimo (configuración global solo desde `HOME`, así que se ignora un `XDG_CONFIG_HOME` propio) y sin bloqueos opcionales, `core.fsmonitor`, repositorios bare, descarga perezosa, submódulos ni filtros de contenido configurados, compara las rutas de forma literal y lo termina tras `LOCALE_GIT_TIMEOUT_MS` o `LOCALE_GIT_MAX_OUTPUT_BYTES`; un `execFile` que inyectes debe hacer lo mismo. Un clon parcial necesita git 2.45 o posterior, o devuelve `git-too-old`. El `verbatra.config.ts` de un proyecto sigue siendo código que verbatra ejecuta. Si git no puede leer el repositorio, el resultado es `{ available: false, reason }`, un motivo de `LOCALE_GIT_UNAVAILABLE_REASONS`.
+Cada archivo cambiado lleva `path`, `locales` y un `state` de `LOCALE_GIT_FILE_STATES`. Un archivo tras un enlace simbólico o dentro de un submódulo nunca se lista; `apple-strings` vigila también su archivo `.stringsdict`. El runner por defecto inicia git con un entorno mínimo (configuración global solo desde `HOME`) y sin bloqueos opcionales, `core.fsmonitor`, repositorios bare, descarga perezosa, submódulos ni filtros de contenido configurados, compara las rutas de forma literal y lo termina tras `LOCALE_GIT_TIMEOUT_MS` o `LOCALE_GIT_MAX_OUTPUT_BYTES`; un `execFile` que inyectes debe hacer lo mismo. Un clon parcial necesita git 2.45 o posterior, o devuelve `git-too-old`. El `verbatra.config.ts` de un proyecto sigue siendo código que verbatra ejecuta. Si git no puede leer el repositorio, o un `files.pattern` coloca un archivo de locale fuera de la carpeta del proyecto (`outside-project`), el resultado es `{ available: false, reason }`, un motivo de `LOCALE_GIT_UNAVAILABLE_REASONS`.
 
 ### localeGitDiff
 

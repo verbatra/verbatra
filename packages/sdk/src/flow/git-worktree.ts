@@ -29,7 +29,10 @@ import {
  * - `revision-unreadable`: ({@link localeGitDiff} only) the committed locale file is not a regular
  *   file or could not be parsed.
  * - `working-file-unreadable`: ({@link localeGitDiff} only) the locale file on disk is a symbolic
- *   link or sits behind one, lies outside the project, or could not be parsed.
+ *   link or sits behind one, or could not be parsed.
+ * - `outside-project`: a configured locale file lies outside the project directory, for example
+ *   with a `files.pattern` that starts with `../`, so the call cannot say what changed in it and
+ *   does not report a partial list as a complete one.
  */
 export type LocaleGitUnavailableReason = (typeof LOCALE_GIT_UNAVAILABLE_REASONS)[number];
 
@@ -47,6 +50,7 @@ export const LOCALE_GIT_UNAVAILABLE_REASONS = Object.freeze([
   "custom-adapter",
   "revision-unreadable",
   "working-file-unreadable",
+  "outside-project",
 ] as const);
 
 export interface GitWorkTree {

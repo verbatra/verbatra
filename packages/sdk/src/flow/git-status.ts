@@ -7,6 +7,7 @@ import { PROVENANCE_FILE_NAME } from "../lock/provenance-file.js";
 import {
   defaultGitExecFile,
   type GitExecFile,
+  isPathContained,
   resolveWatchedPaths,
   sanitizeGitText,
 } from "./git-exec.js";
@@ -129,6 +130,16 @@ export function watchedFiles(cwd: string, config: VerbatraConfig): WatchedFile[]
         : { siblingOf: toPosix(relative(root, entry.siblingOf)) }),
     }))
     .filter((file) => file.path.length > 0);
+}
+
+export function localeLeavesProject(
+  cwd: string,
+  config: VerbatraConfig,
+  locales: readonly string[] = [config.sourceLocale, ...config.targetLocales],
+): boolean {
+  const root = resolvePath(cwd);
+  const resolver = createLocalePathResolver(root, config);
+  return locales.some((locale) => !isPathContained(root, resolver.pathFor(locale)));
 }
 
 export function stateOfCode(code: string): LocaleGitFileState {
@@ -325,6 +336,9 @@ export async function localeGitStatus(
   deps: LocaleGitStatusDeps = {},
 ): Promise<LocaleGitStatusResult> {
   const cwd = projectCwd(input);
+  if (localeLeavesProject(cwd, input.config)) {
+    return { available: false, reason: "outside-project" };
+  }
   const files = watchedFiles(cwd, input.config);
   const opened = await openGitWorkTree(deps.execFile ?? defaultGitExecFile, resolvePath(cwd));
   if (!opened.ok) {

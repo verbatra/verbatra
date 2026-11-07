@@ -87,7 +87,7 @@ Each commit carries `hash`, `author` (the name after `.mailmap`, never the email
 
 <AvailableFrom version="0.13.0" />
 
-Lists which locale files, `verbatra.lock.json` and `verbatra.provenance.json` differ from the last commit, and the checked-out branch. Read-only; it runs `git` through the injectable `execFile` and takes no path from the caller.
+Lists which locale files, `verbatra.lock.json` and `verbatra.provenance.json` differ from the last commit, and the checked-out branch. Read-only; it takes no path from the caller.
 
 ```ts title="Signature"
 function localeGitStatus(
@@ -102,7 +102,7 @@ function localeGitStatus(
 
 **Throws:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
-Each changed file carries `path`, `locales` and a `state` from `LOCALE_GIT_FILE_STATES`. A file behind a symbolic link or inside a submodule is never listed; `apple-strings` also watches its `.stringsdict` file. The default runner starts git with a minimal environment (global config from `HOME` only, so a custom `XDG_CONFIG_HOME` is ignored) and with optional locks, `core.fsmonitor`, bare repositories, lazy fetching, submodules and configured content filters off, matches paths literally and kills it after `LOCALE_GIT_TIMEOUT_MS` or `LOCALE_GIT_MAX_OUTPUT_BYTES`; an `execFile` you inject must do the same. A partial clone needs git 2.45 or newer, else `git-too-old`. A project's `verbatra.config.ts` is still code verbatra runs. When git cannot read the repository, the result is `{ available: false, reason }`, a reason from `LOCALE_GIT_UNAVAILABLE_REASONS`.
+Each changed file carries `path`, `locales` and a `state` from `LOCALE_GIT_FILE_STATES`. A file behind a symbolic link or inside a submodule is never listed; `apple-strings` also watches its `.stringsdict` file. The default runner starts git with a minimal environment (global config from `HOME` only) and with optional locks, `core.fsmonitor`, bare repositories, lazy fetching, submodules and configured content filters off, matches paths literally and kills it after `LOCALE_GIT_TIMEOUT_MS` or `LOCALE_GIT_MAX_OUTPUT_BYTES`; an `execFile` you inject must do the same. A partial clone needs git 2.45 or newer, else `git-too-old`. A project's `verbatra.config.ts` is still code verbatra runs. When git cannot read the repository, or a `files.pattern` puts a locale file outside the project folder (`outside-project`), the result is `{ available: false, reason }`, a reason from `LOCALE_GIT_UNAVAILABLE_REASONS`.
 
 ### localeGitDiff
 

@@ -80,6 +80,27 @@ pattern et un style incompatibles, ou une locale pour laquelle le style n'a pas 
 correcte, lèvent `LOCALE_LAYOUT_INVALID`, et deux locales qui résolvent vers le même chemin lèvent
 `LOCALE_PATH_COLLISION`.
 
+### localeWatchPaths
+
+<AvailableFrom version="0.13.0" />
+
+Nomme les fichiers dont un watcher a besoin : le fichier de chaque locale configurée avec les fichiers voisins qui portent une partie de ses données (le fichier `.stringsdict` d'`apple-strings`), et les fichiers que git réécrit lors d'un commit, d'un changement de branche, d'un reset ou d'une opération de staging. Lecture seule ; la partie git est demandée par l'`execFile` injectable, avec les garde-fous de [`localeGitStatus`](/fr/docs/sdk/review#localegitstatus).
+
+```ts title="Signature"
+function localeWatchPaths(
+  input: LocaleWatchPathsInput,
+  deps?: LocaleWatchPathsDeps,
+): Promise<LocaleWatchPathsResult>;
+```
+
+<SdkTypeTable name="LocaleWatchPathsInput" />
+
+**Retourne :** `LocaleWatchPathsResult`
+
+**Lève :** [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
+
+`locales` liste d'abord la locale source, chacune avec ses `paths`. `git` vaut `{ available: true, paths }` avec les chemins absolus de l'index, de `HEAD` et du reflog de `HEAD` de ce work tree, ou `{ available: false, reason }` hors d'un work tree lisible ; les fichiers de locale sont listés dans les deux cas.
+
 ## La paire classeur
 
 La remise pour les traducteurs humains, sous forme de classeur Excel ou de texte délimité ; voir [Traduction humaine](/fr/docs/manual-translation).

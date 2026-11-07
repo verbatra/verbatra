@@ -82,6 +82,27 @@ Every check runs when the resolver is created, before any file is read: a patter
 cannot be combined, or a locale the style has no correct spelling for, throws
 `LOCALE_LAYOUT_INVALID`, and two locales resolving to one path throws `LOCALE_PATH_COLLISION`.
 
+### localeWatchPaths
+
+<AvailableFrom version="0.13.0" />
+
+Names the files a watcher needs: each configured locale's file with the files next to it that hold part of its data (the `.stringsdict` file of `apple-strings`), and the files git rewrites on a commit, a branch switch, a reset or a staging operation. Read-only; the git part is asked through the injectable `execFile`, with the safeguards of [`localeGitStatus`](/docs/sdk/review#localegitstatus).
+
+```ts title="Signature"
+function localeWatchPaths(
+  input: LocaleWatchPathsInput,
+  deps?: LocaleWatchPathsDeps,
+): Promise<LocaleWatchPathsResult>;
+```
+
+<SdkTypeTable name="LocaleWatchPathsInput" />
+
+**Returns:** `LocaleWatchPathsResult`
+
+**Throws:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+`locales` lists the source locale first, each with its `paths`. `git` is `{ available: true, paths }` with the absolute index, `HEAD` and `HEAD` reflog paths of this work tree, or `{ available: false, reason }` outside a readable work tree; the locale files are listed either way.
+
 ## The workbook pair
 
 The translator handoff, as an Excel workbook or as delimited text; see [Manual translation](/docs/manual-translation).
