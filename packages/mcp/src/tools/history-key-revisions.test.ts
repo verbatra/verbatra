@@ -1,5 +1,5 @@
 import { execFile as execFileCb, execFileSync } from "node:child_process";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { createValueMarker, type GitExecFile, KEY_HISTORY_MAX_KEY_CHARS } from "@verbatra/sdk";
@@ -51,12 +51,14 @@ function okResult(outcome: Awaited<ReturnType<typeof historyKeyRevisionsTool.exe
     revisions: {
       commit: string;
       author?: string;
-      subject: string;
+      subject?: string;
       value: string;
+      valueRedacted?: boolean;
       sourceChanged: boolean | "unknown";
       diff: { kind: string; text: string }[];
     }[];
     workingTree?: { value: string; diff: { kind: string; text: string }[] };
+    workingTreeUnreadable?: boolean;
     truncated: boolean;
     unreadableRevisions: number;
   };
@@ -87,6 +89,45 @@ describe("history.keyRevisions", () => {
     expect(result.workingTree?.value).toBe("Hallo schöne neue Welt");
     expect(result).toMatchObject({ truncated: false, unreadableRevisions: 0 });
     expect(JSON.stringify(result)).not.toContain("ada@example.com");
+  });
+
+  it("scrubs a key from the value and the diff before the redaction layer sees them, hyphen or not", async () => {
+    const dir = await project();
+    const first = `Schluessel sk-proj-${"A1b2C3d4".repeat(6)} Ende`;
+    const second = `Schluessel sk-proj-${"Z9y8X7w6".repeat(6)} Ende`;
+    await writeJsonFile(join(dir, "locales", "de.json"), { greeting: first });
+    git(dir, "add", "-A");
+    git(dir, "commit", "--quiet", "-m", "key one");
+    await writeJsonFile(join(dir, "locales", "de.json"), { greeting: second });
+    git(dir, "add", "-A");
+    git(dir, "commit", "--quiet", "-m", "key two");
+
+    const result = okResult(
+      await historyKeyRevisionsTool.execute(
+        { locale: "de", key: "greeting" },
+        makeContext({ cwd: dir }),
+      ),
+    );
+
+    const text = JSON.stringify(result);
+    expect(text).not.toContain("A1b2C3d4");
+    expect(text).not.toContain("Z9y8X7w6");
+    expect(result.revisions[0]).toMatchObject({ valueRedacted: true });
+  });
+
+  it("lists the revisions and flags the file on disk when it does not parse", async () => {
+    const dir = await project();
+    await writeFile(join(dir, "locales", "de.json"), "<<<<<<< HEAD\n{ broken\n");
+
+    const result = okResult(
+      await historyKeyRevisionsTool.execute(
+        { locale: "de", key: "greeting" },
+        makeContext({ cwd: dir }),
+      ),
+    );
+
+    expect(result.revisions).toHaveLength(2);
+    expect(result.workingTreeUnreadable).toBe(true);
   });
 
   it("answers available false with the reason outside a repository", async () => {
@@ -124,10 +165,10 @@ describe("history.keyRevisions", () => {
       expect(revision.diff).toEqual([]);
       expect(revision.sourceChanged).toBe("unknown");
     }
-    expect(result.revisions.map((revision) => revision.subject)).toEqual([
-      "polish",
-      "first translation",
-    ]);
+    for (const revision of result.revisions) {
+      expect(revision).not.toHaveProperty("subject");
+    }
+    expect(JSON.stringify(result)).not.toContain("polish");
     expect(result.workingTree?.value).toMatch(MARKER);
     expect(result.workingTree?.diff).toEqual([]);
   });

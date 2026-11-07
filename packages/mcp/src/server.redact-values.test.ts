@@ -438,7 +438,7 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
       expect(revision).not.toHaveProperty("author");
       expect(revision.value).toMatch(MARKER);
       expect(revision.diff).toEqual([]);
-      expect(revision.subject).toBe("add locale files");
+      expect(revision).not.toHaveProperty("subject");
     }
     expect(result.workingTree).toBeUndefined();
   });
