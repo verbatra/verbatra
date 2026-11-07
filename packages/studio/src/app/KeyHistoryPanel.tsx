@@ -392,29 +392,9 @@ function RevisionList({
     }
   });
 
-  function newest(commit: string): KeyRevisionRow | undefined {
-    return result.revisions.find((revision) => revision.commit === commit);
-  }
-
-  function restore(commit: string): void {
-    const revision = newest(commit);
-    if (revision !== undefined) {
-      ui.confirm(null);
-      onRestore(revision);
-    }
-  }
-
-  function ask(commit: string): void {
-    const revision = newest(commit);
-    if (revision === undefined) {
-      return;
-    }
-    const offer = restoreOffer(revision, current);
-    if (offer.kind === "restore" && offer.confirm === null) {
-      restore(commit);
-    } else {
-      ui.confirm(commit);
-    }
+  function restore(revision: KeyRevisionRow): void {
+    ui.confirm(null);
+    onRestore(revision);
   }
 
   return (
@@ -430,8 +410,8 @@ function RevisionList({
             locale={locale}
             current={current}
             confirming={ui.confirming === revision.commit}
-            onAskRestore={() => ask(revision.commit)}
-            onRestore={() => restore(revision.commit)}
+            onAskRestore={() => ui.confirm(revision.commit)}
+            onRestore={() => restore(revision)}
             onCancel={() => ui.confirm(null)}
           />
         ))}

@@ -15,7 +15,6 @@ function setup(minGapMs = 1500) {
     {
       minGapMs,
       now: () => clock,
-      setTimer: (callback, ms) => setTimeout(callback, ms),
     },
   );
   const advance = async (ms: number): Promise<void> => {
@@ -131,6 +130,35 @@ describe("createPacedRunner", () => {
     await vi.advanceTimersByTimeAsync(0);
 
     expect(calls).toBe(2);
+    vi.useRealTimers();
+  });
+
+  it("drops a waiting paced run when it is cancelled before the gap ends", async () => {
+    const { runner, starts, advance, finish } = setup();
+    runner.trigger();
+    await finish();
+    await advance(100);
+    runner.trigger();
+
+    runner.cancel();
+    await advance(5000);
+
+    expect(starts).toEqual([0]);
+    vi.useRealTimers();
+  });
+
+  it("clears a waiting paced run when an immediate trigger starts one first", async () => {
+    const { runner, starts, advance, finish } = setup();
+    runner.trigger();
+    await finish();
+    await advance(100);
+    runner.trigger();
+
+    runner.trigger({ immediate: true });
+    await finish();
+    await advance(5000);
+
+    expect(starts).toEqual([0, 100]);
     vi.useRealTimers();
   });
 });

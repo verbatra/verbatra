@@ -34,8 +34,6 @@ export interface PacedRunner {
 export interface PacedRunnerOptions {
   readonly minGapMs: number;
   readonly now?: () => number;
-  readonly setTimer?: (callback: () => void, ms: number) => unknown;
-  readonly clearTimer?: (handle: unknown) => void;
 }
 
 export function createPacedRunner(
@@ -43,17 +41,15 @@ export function createPacedRunner(
   options: PacedRunnerOptions,
 ): PacedRunner {
   const now = options.now ?? Date.now;
-  const setTimer = options.setTimer ?? ((callback, ms) => setTimeout(callback, ms));
-  const clearTimer = options.clearTimer ?? ((handle) => clearTimeout(handle as never));
   let running = false;
   let pending: "none" | "paced" | "immediate" = "none";
   let lastStart = Number.NEGATIVE_INFINITY;
-  let timer: unknown;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   let cancelled = false;
 
   function clear(): void {
     if (timer !== undefined) {
-      clearTimer(timer);
+      clearTimeout(timer);
       timer = undefined;
     }
   }
@@ -84,7 +80,7 @@ export function createPacedRunner(
       return;
     }
     if (timer === undefined) {
-      timer = setTimer(() => {
+      timer = setTimeout(() => {
         timer = undefined;
         void start();
       }, wait);
