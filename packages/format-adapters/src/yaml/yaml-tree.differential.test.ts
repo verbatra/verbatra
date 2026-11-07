@@ -218,6 +218,11 @@ function generate(seed: number): string {
 }
 
 const FIXED: string[] = [
+  "%YAML 1.2\na: 1\n",
+  "n:\n  a: 1\n  : x\n  : y\n",
+  "{ : 1,   : 2}",
+  "? \n: 1\n? \n: 2\n",
+  "# c\n: 1\n\n# d\n  : 2\n",
   "",
   "a: 1\n",
   "a: 1\na: 2\n",

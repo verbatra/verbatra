@@ -121,7 +121,7 @@ function earliestDuplicateKey(content: string, root: unknown): DuplicateKey | un
 }
 
 function failInvalidYaml(offset: number | undefined, lineCounter: LineCounter): never {
-  const located = offset === undefined || offset < 0 ? undefined : lineCounter.linePos(offset);
+  const located = offset === undefined ? undefined : lineCounter.linePos(offset);
   const position: SyntaxPosition | undefined =
     located === undefined ? undefined : { line: located.line, column: located.col };
   throw new AdapterError(

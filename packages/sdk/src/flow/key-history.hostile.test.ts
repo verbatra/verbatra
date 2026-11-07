@@ -454,6 +454,36 @@ describe("keyHistory deadline during a git failure", () => {
     expect(result.truncated).toBe(true);
   });
 
+  it("reads no provenance file once the deadline passed while the lock file was read", async () => {
+    const fx = await repo();
+    await fx.write("locales/en.json", json({ a: "A" }));
+    await fx.write("locales/de.json", json({ a: "1" }));
+    await fx.write(
+      "verbatra.lock.json",
+      `${JSON.stringify({ version: 1, locales: { de: {} } })}\n`,
+    );
+    await fx.write("verbatra.provenance.json", `${JSON.stringify({ version: 1, locales: {} })}\n`);
+    await fx.commitAll("one");
+    let offset = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => 1_000_000 + offset);
+    const reads: string[] = [];
+    const execFile: GitExecFile = (file, args, options) => {
+      if (args.some((arg) => arg.endsWith(":verbatra.lock.json"))) {
+        offset = 10 * 60 * 1000;
+      }
+      if (args.includes("cat-file")) {
+        reads.push(args.join(" "));
+      }
+      return defaultGitExecFile(file, args, options);
+    };
+
+    const result = available(await run(fx, "a", execFile));
+
+    expect(reads.some((line) => line.includes("verbatra.provenance.json"))).toBe(false);
+    expect(result.revisions[0]).not.toHaveProperty("origin");
+    expect(result.truncated).toBe(true);
+  });
+
   it("counts a blob git could not read as unreadable and says so", async () => {
     const fx = await two();
     const execFile: GitExecFile = (file, args, options) => {

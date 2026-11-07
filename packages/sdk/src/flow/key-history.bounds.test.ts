@@ -407,6 +407,24 @@ describe("keyHistory reads each commit once", () => {
   });
 });
 
+describe("keyHistory working tree against an unreadable HEAD", () => {
+  it("flags the working tree as unreadable instead of comparing it with nothing", async () => {
+    const fx = await repo();
+    await fx.write("locales/en.json", json({ a: "A" }));
+    await fx.write("locales/de.json", json({ a: "one" }));
+    await fx.commitAll("one");
+    await fx.write("locales/de.json", "<<<<<<< HEAD\n{ not json\n");
+    await fx.commitAll("conflict markers committed");
+    await fx.write("locales/de.json", json({ a: "edited" }));
+
+    const result = available(await run(fx));
+
+    expect(result.workingTree).toBeUndefined();
+    expect(result.workingTreeUnreadable).toBe(true);
+    expect(result.truncated).toBe(true);
+  });
+});
+
 describe("keyHistory with a pattern that resolves to the project root", () => {
   it("answers working-file-unreadable without calling git", async () => {
     const fx = await repo();

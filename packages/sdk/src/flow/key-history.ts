@@ -209,20 +209,10 @@ type LocaleProbe =
 const SETTLED_UNREADABLE: LocaleProbe = { kind: "settled", state: UNREADABLE };
 const SETTLED_ABSENT: LocaleProbe = { kind: "settled", state: ABSENT };
 
-async function probeLocale(
-  tree: GitWorkTree,
-  commit: string,
-  scope: Scope,
-): Promise<LocaleProbe | undefined> {
+async function probeLocale(tree: GitWorkTree, commit: string, scope: Scope): Promise<LocaleProbe> {
   const stats: BlobStat[] = [];
   for (const file of scope.files) {
     stats.push(await statBlobAtCommit(tree, commit, file.repoPath));
-  }
-  if (
-    stats.some((stat) => stat.kind === "failed" && stat.reason === "timeout") &&
-    scope.expired()
-  ) {
-    return undefined;
   }
   if (stats.some((stat) => stat.kind === "failed" || stat.kind === "unreadable")) {
     return SETTLED_UNREADABLE;
