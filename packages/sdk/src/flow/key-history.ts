@@ -130,7 +130,7 @@ export type KeyHistoryResult =
       readonly workingTree?: KeyWorkingTreeValue;
       /** `true` when the value on disk could not be compared with `HEAD`, so `workingTree` is absent: the file on disk does not parse, is a symbolic link or is above its size limit, its value is longer than {@link KEY_HISTORY_MAX_VALUE_CHARS}, the copy at `HEAD` could not be read (it is above its size limit, does not parse or was not reached), or the time ran out. */
       readonly workingTreeUnreadable?: true;
-      /** `true` when the answer may leave history out or leave a field unknown because something was not read in full: older commits were not examined (the commit limit, the size budget of the call or the time), the clone is shallow, a commit could not be read or parsed, was above its size limit or held a value that is too long, or a lock-file, provenance file or the source file could not be read, parsed or was above its size limit. `false` means everything examined was read. */
+      /** `true` when the answer may leave history out or leave a field unknown because something was not read in full: older commits were not examined (the commit limit, the size budget of the call or the time), the clone is shallow, a commit could not be read or parsed, was above its size limit or held a value that is too long, or a lock-file, provenance file or the source file could not be read, parsed or was above its size limit. `false` means every commit and record examined was read; the file on disk is reported only by `workingTreeUnreadable`. */
       readonly truncated: boolean;
       /** How many examined commits held the locale file in a state that could not be read or whose value was too long. */
       readonly unreadableRevisions: number;
@@ -796,7 +796,7 @@ function buildScope(
  * could not be read is not claimed as the key's change; `truncated` says so.
  *
  * What is read is bounded by sizes git reports before anything is parsed, so the same repository
- * gives the same answer on every machine. A locale file above 512 KiB for `yaml` and the XML
+ * gives the same answer on every machine unless the 30 second deadline is reached. A locale file above 512 KiB for `yaml` and the XML
  * formats (`xliff`, `android-xml`, `resx`, `apple-strings`) or above 4 MiB for the other formats
  * is skipped without being parsed, and the two files of an `apple-strings` commit count as their
  * sum. In one call the locale files read add up to at most 16 MiB for those formats and 128 MiB

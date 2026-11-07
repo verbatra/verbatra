@@ -95,13 +95,15 @@ function comparable(oracle: Outcome, candidate: Outcome): [Partial<Outcome>, Par
   return [oracle, candidate];
 }
 
-function hasDuplicateKeyError(text: string): boolean {
+function duplicateKeyKind(text: string): "none" | "alone" | "with-other-error" {
   try {
-    return parseDocument(text, { prettyErrors: false }).errors.some(
-      (error) => error.code === "DUPLICATE_KEY",
-    );
+    const codes = parseDocument(text, { prettyErrors: false }).errors.map((error) => error.code);
+    if (!codes.includes("DUPLICATE_KEY")) {
+      return "none";
+    }
+    return codes.every((code) => code === "DUPLICATE_KEY") ? "alone" : "with-other-error";
   } catch {
-    return false;
+    return "none";
   }
 }
 
@@ -266,6 +268,49 @@ const DEEP: string[] = [
   "{a: ".repeat(3000) + "1" + "}".repeat(3000),
 ];
 
+interface Tally {
+  documents: number;
+  differs: number;
+}
+
+interface CorpusReport {
+  mismatches: string[];
+  alone: Tally;
+  withOtherError: Tally;
+}
+
+function tallyFor(report: CorpusReport, kind: "alone" | "with-other-error"): Tally {
+  return kind === "alone" ? report.alone : report.withOtherError;
+}
+
+function compareCorpus(iterations: number): CorpusReport {
+  const report: CorpusReport = {
+    mismatches: [],
+    alone: { documents: 0, differs: 0 },
+    withOtherError: { documents: 0, differs: 0 },
+  };
+  for (let seed = 1; seed <= iterations; seed += 1) {
+    const text = generate(seed);
+    const [oracle, candidate] = comparable(runOracle(text), runCandidate(text));
+    const kind = duplicateKeyKind(text);
+    const tally = kind === "none" ? undefined : tallyFor(report, kind);
+    if (tally !== undefined) {
+      tally.documents += 1;
+    }
+    if (JSON.stringify(oracle) === JSON.stringify(candidate)) {
+      continue;
+    }
+    if (tally !== undefined && candidate.kind === "yaml-error" && oracle.kind === "yaml-error") {
+      tally.differs += 1;
+    } else {
+      report.mismatches.push(
+        `seed ${seed}: ${JSON.stringify(text)} oracle=${JSON.stringify(oracle)} candidate=${JSON.stringify(candidate)}`,
+      );
+    }
+  }
+  return report;
+}
+
 const ITERATIONS = Number(process.env["YAML_DIFF_ITERATIONS"] ?? 600);
 
 describe("parseYamlObject against the library parse call", () => {
@@ -291,29 +336,16 @@ describe("parseYamlObject against the library parse call", () => {
     },
   );
 
-  it(`matches over ${ITERATIONS} generated documents, except where a duplicate key meets another error`, () => {
-    const mismatches: string[] = [];
-    const stats = { duplicateDocuments: 0, duplicatePositionDiffers: 0 };
-    for (let seed = 1; seed <= ITERATIONS; seed += 1) {
-      const text = generate(seed);
-      const [oracle, candidate] = comparable(runOracle(text), runCandidate(text));
-      const duplicate = hasDuplicateKeyError(text);
-      stats.duplicateDocuments += duplicate ? 1 : 0;
-      if (JSON.stringify(oracle) === JSON.stringify(candidate)) {
-        continue;
-      }
-      if (duplicate && candidate.kind === "yaml-error" && oracle.kind === "yaml-error") {
-        stats.duplicatePositionDiffers += 1;
-      } else {
-        mismatches.push(
-          `seed ${seed}: ${JSON.stringify(text)} oracle=${JSON.stringify(oracle)} candidate=${JSON.stringify(candidate)}`,
-        );
-      }
-    }
-    expect(mismatches.slice(0, 5)).toEqual([]);
-    expect(stats.duplicatePositionDiffers).toBeLessThanOrEqual(stats.duplicateDocuments * 0.1);
+  it(`matches over ${ITERATIONS} generated documents, except a duplicate key beside another error or after an empty anchored value`, () => {
+    const report = compareCorpus(ITERATIONS);
+
+    expect(report.mismatches.slice(0, 5)).toEqual([]);
+    expect(report.alone.differs).toBeLessThanOrEqual(report.alone.documents * 0.02);
+    expect(report.withOtherError.differs).toBeLessThanOrEqual(
+      report.withOtherError.documents * 0.1,
+    );
     if (process.env.YAML_DIFF_ITERATIONS !== undefined) {
-      console.info(JSON.stringify({ iterations: ITERATIONS, ...stats }));
+      console.info(JSON.stringify({ iterations: ITERATIONS, ...report, mismatches: [] }));
     }
   });
 
