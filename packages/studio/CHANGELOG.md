@@ -1,5 +1,76 @@
 # @verbatra/studio
 
+## 0.7.0
+
+### Minor Changes
+
+- [#339](https://github.com/verbatra/verbatra/pull/339) [`5cb1938`](https://github.com/verbatra/verbatra/commit/5cb19384792ccc2b3d15fae37f9769534f1ba709) Thanks [@mariokreitz](https://github.com/mariokreitz)! - See which locale files changed since the last commit, and which keys changed in each, on Overview.
+  
+  - **Where:** a **Changes** section on Overview, under the locale table, lists the locale files, `verbatra.lock.json` and `verbatra.provenance.json` that differ from the last commit, each marked Modified, Added, Deleted, Untracked or Conflicted, with the checked-out branch. It shows ten files and a **Show all N files** button for the rest.
+  - **Key changes:** a **Key changes** button per locale opens the keys that were changed, added or removed against the last commit, with the old and new text side by side. A changed or added key that the source also has links to its entry in Translations. A list holds at most 500 keys, a text is cut at 2000 characters, and Studio says when a list is incomplete or a text was cut. A file with unresolved merge conflicts shows its state and no key changes.
+  - **Quiet when git is not there:** a project that is not in a git repository, a missing or too old git, a repository git refuses over ownership, a bare repository, a locale file outside the project folder and a project with a custom format adapter each get a plain explanation instead of an error. A read that times out or fails shows the page's error with its Retry. Nothing is written to git, and no key or path is sent to it from the browser.
+  - **Always current:** the section reads again when a locale, lock or provenance file changes, when git's index or `HEAD` changes (a commit, a branch switch, a reset, `git add`) and when you return to the Studio tab. The commit history refreshes with it. A background read never moves your focus or scroll.
+  - **Long values:** a long token such as an HTML tag or a long placeholder now wraps in the Translations and Review value views instead of widening the page.
+
+- [#328](https://github.com/verbatra/verbatra/pull/328) [`269e79a`](https://github.com/verbatra/verbatra/commit/269e79a1d0d8591acb9f7ad03c274051fa2c51ab) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Studio now uses a top navigation bar like the verbatra docs; the sidebar is gone.
+  
+  - **Navigation:** Overview, Translations, Review, Glossary and Settings are links in the header, with the current page marked. Review shows how many entries wait. Below 1280px wide a menu button opens the same links in a drawer, and shows a dot while entries wait.
+  - **Search:** the header search opens the Translations list filtered by what you typed, and the address keeps it (`#/translations?q=...`).
+  - **Links:** the header links to the documentation and to GitHub, next to the theme toggle and a live connection marker.
+  - **Keyboard:** a skip link moves focus past the header to the page content.
+
+- [#337](https://github.com/verbatra/verbatra/pull/337) [`2ad8495`](https://github.com/verbatra/verbatra/commit/2ad8495c4449b97b91ffdac0ddd26219b58a8124) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Preview an ICU message in the translation editor.
+  
+  - **Where:** a collapsed **ICU preview** sits under the draft in the Translations editor and in the Review edit dialog, for projects that use `next-intl-json` or `arb`. It stays closed until you open it; Studio remembers the choice, and your sample values, for the session.
+  - **What you see:** one row per arm of your current draft: each plural category, exact arm and select option, in the locale's own language and direction. Rows for a nested argument are grouped under the outer arm they sit in. At most 24 rows show, and Studio says when rows were left out.
+  - **Sample values:** type a value for any argument. Numbers are read as numbers (a decimal comma works), a date takes `2024-03-15` or milliseconds, a comma before exactly three digits is flagged as ambiguous, and text that does not fit is flagged and left unset. A value adds a row showing it when it reaches an arm, first in the list so you see it where you typed, and a value the text does not use gets a note.
+  - **While you type:** a draft that is not valid ICU, too long or too complex says so and keeps the last good rows, dimmed, under the reason. A failed read shows an error with Retry and never changes your draft.
+  - **Runtime data:** numbers and dates use this computer's language data, so the text can differ from your application's runtime.
+
+- [#329](https://github.com/verbatra/verbatra/pull/329) [`6139f80`](https://github.com/verbatra/verbatra/commit/6139f80011bc01fbcbe5f7c1bf78d9c31c8e6fe5) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Studio opens on a new Overview page with coverage per locale, the last run and file history; the glossary has its own page.
+  
+  - **Overview:** the first page holds four status figures (needs attention, waiting for review, average coverage, locales in sync), a table of every locale's coverage and lock state, the last run's token usage and budget, and the git history of your locale files. It replaces the Activity page, and `#/activity` links keep working. The history lists the latest 10 commits with date and time, with a button for more. The attention figure links to the missing, changed and orphaned keys, the review figure links to Review, and each locale row links to its keys and its review queue.
+  - **Overview coverage and errors:** the locale table lists the worst covered locales first and shows ten, with a button for the rest. When a read fails, the page shows one error with the server's reason and a Retry button instead of a loading caption, and a failed refresh keeps the last data with a notice. Following a link opens the next page at its top.
+  - **Glossary:** the glossary is edited on its own page and no longer on Settings, which keeps the configuration and what the session may do.
+  - **Glossary safety:** removing a term or a do-not-translate entry, or saving a term with no translation left, asks first and names what is lost (translations, never-use rules, note, part of speech, Match case). Unsaved edits ask before you leave the page, reload or switch locale, and adding a term that already has a translation offers Edit instead of overwriting it. A failed write shows its reason next to the row or form, with Retry when repeating can help, and writes no longer overwrite each other.
+  - **Glossary search and refresh:** search narrows the terms, the page reloads when your locale files or the glossary file change, leaving an unsaved edit as it is (a term that disappeared keeps its draft with a notice). Never-use renderings are one per line, so a comma stays part of a rendering, and a failed read offers Retry. Settings also shows whether Studio may write files, its rate limits and the glossary source.
+  - **Translations:** the page now holds only the key table, its filters and the key editor.
+  - **Default page:** an address without a page, or with an unknown one, opens Overview instead of Translations.
+
+- [#330](https://github.com/verbatra/verbatra/pull/330) [`18dcc3f`](https://github.com/verbatra/verbatra/commit/18dcc3f48f8d69b6334825924a1a33b3f55283b3) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Translations is one key table with working filters for every key state.
+  
+  - **One table:** every key that needs attention is a row: missing, changed, orphaned, protected, in the review queue or failing an integrity check. Without a locale chosen, each row shows the key, its source text and one status per locale. Pick a locale and the columns become translation, status and origin.
+  - **Grid and List:** the switch is gone; the table switches columns when you pick a locale.
+  - **Filters:** the state chips and the locale choice work in both views, and a chip that cannot load names the reason on focus instead of going dead.
+  - **Search:** searching finds any key by name, source text or translation, including keys that are already in sync. When more than 500 keys match, the table says how many it shows.
+  - **Keyboard:** the arrow keys move between cells in the table, and Enter or Space opens the key.
+  - **Editing beside the table:** from 1280px wide, a key opens in an editor next to the table; on narrower screens it opens in a drawer, and the translation form is part of it instead of a second dialog. Leaving a key with unsaved edits, by choosing another key, a filter, a search, a page or Back, asks whether to save, discard or keep editing; leaving Studio itself gets the browser's own confirmation.
+  - **Review editor focus:** after an edit saved from a Review row, focus moves to the next row instead of the page.
+  - **Edit retry:** a failed read of a key's context in the edit dialog offers a Retry.
+  - **Review filters:** Needs review and Approved are chips with a count each, next to the locale and origin choices, instead of a select. With nothing left to review the queue says All clear and keeps Approved one click away, and the queue letters (`j`, `a`, `r` and the rest) pause while focus is in the filter bar.
+  - **Edit dialog:** closing the Review edit dialog with Escape, the backdrop, Close or browser Back while the draft is unsaved asks you to save, discard or keep editing.
+
+### Patch Changes
+
+- [#327](https://github.com/verbatra/verbatra/pull/327) [`9877c84`](https://github.com/verbatra/verbatra/commit/9877c84241a48ef87bd28083287d076c49ccf755) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Link straight to a locale, status filter or key (`#/translations?locale=de&status=missing&key=...`).
+  
+  - **Deep links:** `#/translations` takes `locale`, `status` (repeat it for several) and `key`, and opens the filtered list with the key's details. `#/review` takes `locale`. Unknown values are ignored.
+  - **Shareable state:** changing a filter or opening a key updates the address in place, without adding browser history entries, so you can copy the address from the bar.
+
+- [#321](https://github.com/verbatra/verbatra/pull/321) [`95e91bb`](https://github.com/verbatra/verbatra/commit/95e91bbe28a4a2150dff8c4b0419d26c382320d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Studio uses the verbatra site palette and the Geist typeface, and follows the system theme without a flash on load.
+  
+  - **Look:** colors, corner radii, shadows, type, buttons, badges, cards and form fields now match the verbatra site, in light and dark.
+  - **Theme:** the stored or system theme is applied before the first paint, so a reload no longer flashes the wrong theme.
+  - **Badges:** Changed now uses the site amber, Protected moved to a teal tone and Missing has its own blue, so the three stay distinct from each other and from the accent.
+  - **Theme toggle:** one button in the header cycles system, light and dark with the site icons. Its tooltip and name state the current mode and the next one, the first click always changes the look, and the new mode is announced to screen readers.
+  - **Tooltips:** tooltips show on keyboard focus as well as hover and close with Escape.
+  - **Dialogs:** Tab and Shift+Tab stay inside an open drawer or dialog even after a click on plain text moved focus out of it.
+  - **Key details:** closing the entry editor with Escape puts focus back on the Edit button of the locale you edited, and the header buttons are 44px tall on small screens.
+  - **Review rows:** long source and translation values wrap in the queue instead of being cut off, so a row is as tall as its text and the buttons never move under a mouse or a finger. The origin hint opens on hover without covering the row's buttons.
+  - **Keycaps:** the shortcut keys in the Review toolbar and the shortcuts dialog share one keycap style.
+- Updated dependencies [[`b84d6cf`](https://github.com/verbatra/verbatra/commit/b84d6cf0c464f7100e1d529fa1580d4926a34c94), [`523ad3b`](https://github.com/verbatra/verbatra/commit/523ad3bf30c1fc3efe78b086440900d962d67a10)]:
+  - @verbatra/sdk@0.13.0
+
 ## 0.6.0
 
 ### Minor Changes

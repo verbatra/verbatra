@@ -1,5 +1,22 @@
 # @verbatra/sdk
 
+## 0.13.0
+
+### Minor Changes
+
+- [#335](https://github.com/verbatra/verbatra/pull/335) [`b84d6cf`](https://github.com/verbatra/verbatra/commit/b84d6cf0c464f7100e1d529fa1580d4926a34c94) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Preview an ICU message for a locale with `previewIcuMessage`.
+  
+  - **What it returns:** one row per arm of a `next-intl-json` or `arb` message (each plural category, exact arm and select option, and each place one appears), varying one argument at a time, with the rendered text as plain `text`, `argument` and `tag` segments. A row for a nested argument holds the enclosing argument at the arm that contains it and lists it in `held`. A value in `args` for a plural, ordinal or select argument adds a `supplied` row for each axis it drives, showing the arm that value reaches. Other formats answer `supported: false`.
+  - **Safe on any text:** a message that is too long, nests too deeply, has more than 256 `{` and `<` characters, is not valid ICU, or names an unknown locale comes back as `valid: false` with a reason instead of throwing.
+  - **Runtime data:** numbers and dates are formatted with this Node's CLDR data, dates at a fixed instant in UTC unless a number in `args` sets the instant, so the text can differ from your application's own runtime.
+
+- [#338](https://github.com/verbatra/verbatra/pull/338) [`523ad3b`](https://github.com/verbatra/verbatra/commit/523ad3bf30c1fc3efe78b086440900d962d67a10) Thanks [@mariokreitz](https://github.com/mariokreitz)! - See which locale files changed in git, and what changed in each, with `localeGitStatus` and `localeGitDiff`.
+  
+  - **What you get:** `localeGitStatus({ config })` lists the locale files, `verbatra.lock.json` and `verbatra.provenance.json` that differ from the last commit, each as `modified`, `added`, `deleted`, `untracked` or `conflicted`, plus the checked-out branch. `localeGitDiff({ config, locale })` compares one locale at `HEAD` with the file on disk and lists the keys added, removed and changed, with their text, capped at 500 keys and 2000 characters per key and text. For `apple-strings` both read the `.stringsdict` file too. Only the diff refuses a `custom:` format; the status answers for it.
+  - **Careful with the repository:** neither takes a path from the caller. The default runner starts git without a shell, with a minimal environment (no `GIT_*` variable, the global git config read from `HOME` alone), a timeout and an output cap, and with optional locks, `core.fsmonitor`, bare-repository discovery, lazy fetching from a partial clone's remote, submodule inspection and every content filter the repository configures switched off. That closes the usual ways a repository's own configuration can make git run a command; a project's `verbatra.config.ts` is still code verbatra runs. A partial clone needs git 2.45 or newer and otherwise answers `git-too-old`. A repository that git refuses over ownership, a bare repository in the project folder, a missing git and a project outside a work tree come back as `available: false` with a reason instead of throwing. An `execFile` you inject must supply the same environment and limits.
+  - **Outside the project and watching:** a `files.pattern` that puts a locale file outside the project folder makes both calls answer `outside-project` instead of a list that omits the file. `localeWatchPaths({ config })` names each locale's files, including the `.stringsdict` file of `apple-strings`, and the index, `HEAD` and `HEAD` reflog of the work tree, so a watcher can notice a commit or a branch switch.
+  - **Security fix in `localeHistory`:** it now runs git the same way. Git no longer inherits `GIT_*` variables (a `GIT_DIR` from a hook or a `.env` file could point it at another repository), never opens a bare repository planted in the project folder, never fetches missing objects from a promisor remote, and is killed outright on a timeout. Its reasons and result shape are unchanged, so a bare repository, a partial clone on an older git or a repository git refuses over ownership still reads as an empty history.
+
 ## 0.12.0
 
 ### Minor Changes
