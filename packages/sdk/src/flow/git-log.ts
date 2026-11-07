@@ -42,8 +42,13 @@ export interface LocaleHistoryCommit {
  *
  * - `git-missing`: no `git` executable was found.
  * - `not-a-repository`: the project is not inside a git repository.
+ * - `bare-repository`: the project folder holds a bare repository of its own, which is not opened.
+ * - `dubious-ownership`: git refused the repository because another user owns it.
  * - `timeout`: `git log` ran longer than {@link LOCALE_HISTORY_TIMEOUT_MS} and was stopped.
  * - `output-too-large`: `git log` wrote more than {@link LOCALE_HISTORY_MAX_OUTPUT_BYTES}.
+ * - `unsafe-config`: the repository configures more content filters than can be switched off, or
+ *   one whose name cannot be passed to git safely.
+ * - `git-too-old`: the repository is a partial clone and git is older than 2.45.
  */
 export type LocaleHistoryUnavailableReason = (typeof LOCALE_HISTORY_UNAVAILABLE_REASONS)[number];
 
@@ -51,8 +56,12 @@ export type LocaleHistoryUnavailableReason = (typeof LOCALE_HISTORY_UNAVAILABLE_
 export const LOCALE_HISTORY_UNAVAILABLE_REASONS = Object.freeze([
   "git-missing",
   "not-a-repository",
+  "bare-repository",
+  "dubious-ownership",
   "timeout",
   "output-too-large",
+  "unsafe-config",
+  "git-too-old",
 ] as const);
 
 /**
@@ -99,6 +108,8 @@ export function buildGitLogArgs(maxCount: number, paths: readonly string[]): str
   return [
     "-c",
     "core.quotePath=false",
+    "-c",
+    "i18n.logOutputEncoding=UTF-8",
     "log",
     "--no-show-signature",
     `--max-count=${maxCount}`,

@@ -49,8 +49,10 @@ export interface LocaleHistoryDeps {
  * @param input - The config, the project directory, and the optional commit limit.
  * @param deps - Optional process runner override.
  * @returns The commits, or `available: false` with a {@link LocaleHistoryUnavailableReason} when
- * git is missing, `cwd` is not inside a git repository, or `git log` timed out or wrote too much.
- * Any other git failure, such as a branch with no commits yet, reads as an empty history.
+ * git is missing, `cwd` is not inside a git repository or holds a bare one, git refused the
+ * repository's ownership, the repository configures a content filter that cannot be switched off,
+ * a partial clone needs a newer git, or `git log` timed out or wrote too much. Any other git
+ * failure, such as a branch with no commits yet, reads as an empty history.
  *
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or a configured locale has no valid path spelling under that style.

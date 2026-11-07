@@ -92,8 +92,14 @@ const NO_GIT_MESSAGE = "This project is not a git repository, or git is not inst
 const UNAVAILABLE_MESSAGES: Readonly<Record<HistoryUnavailableReason, string>> = {
   "git-missing": NO_GIT_MESSAGE,
   "not-a-repository": NO_GIT_MESSAGE,
+  "bare-repository": "This folder is inside a bare git repository, which has no working files.",
+  "dubious-ownership":
+    "Git does not trust this folder because another user owns it. Mark it as safe in git yourself if you trust it.",
   timeout: "Reading the git history took too long and was stopped.",
   "output-too-large": "The git history is too large to read here.",
+  "unsafe-config":
+    "This repository configures a content filter that Studio will not run, so the history is not shown.",
+  "git-too-old": "This repository needs a newer git than the one installed (2.45 or later).",
 };
 
 type LoadedHistory = Extract<HistoryState, { readonly kind: "loaded" }>;
