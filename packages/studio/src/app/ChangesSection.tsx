@@ -33,7 +33,7 @@ const SEE_ABOVE = "See the error above.";
 const QUIET_TEXT = "m-0 text-sm text-muted-foreground";
 
 const LINK =
-  "inline-flex min-h-8 items-center rounded-sm px-1.5 text-sm text-foreground underline-offset-2 hover:underline focus-visible:underline focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring max-md:min-h-11";
+  "-ms-1.5 inline-flex min-h-8 items-center rounded-sm px-1.5 text-sm text-foreground underline-offset-2 hover:underline focus-visible:underline focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring max-md:min-h-11";
 
 function Value({ value, locale }: { readonly value: string; readonly locale: string }): ReactNode {
   if (value === "") {
@@ -323,11 +323,14 @@ function FileRow({
                 data-git-toggle={locale}
                 onClick={() => onToggle({ locale, path: row.path })}
               >
-                Key changes (
-                <span dir="ltr" className="font-mono normal-case">
-                  {locale}
+                <span>
+                  Key changes (
+                  <span dir="ltr" className="font-mono normal-case">
+                    {locale}
+                  </span>
+                  )
                 </span>
-                )<span className="sr-only"> in {row.path}</span>
+                <span className="sr-only"> in {row.path}</span>
               </Button>
             );
           })}
