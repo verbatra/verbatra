@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyGitDiff,
   applyGitStatus,
   canOpenInTranslations,
   changeRows,
@@ -9,6 +10,7 @@ import {
   GIT_UNAVAILABLE_MESSAGES,
   type GitAvailableDiff,
   type GitAvailableStatus,
+  type GitDiffView,
   type GitFile,
   type GitStatusView,
   isCutText,
@@ -277,8 +279,22 @@ describe("diffSummary", () => {
       after: "b",
     }));
 
-    expect(diffSummary({ ...DIFF, changed })).toBe(
+    expect(diffSummary({ ...DIFF, changed, truncated: true })).toBe(
       `${GIT_DIFF_MAX_ENTRIES}+ keys differ; listed: ${GIT_DIFF_MAX_ENTRIES} changed, 0 added, 0 removed`,
+    );
+  });
+});
+
+describe("diffSummary at exactly the cap", () => {
+  it("reads an exact count when the sdk says nothing was left out", () => {
+    const changed = Array.from({ length: GIT_DIFF_MAX_ENTRIES }, () => ({
+      key: "k",
+      before: "a",
+      after: "b",
+    }));
+
+    expect(diffSummary({ ...DIFF, changed, truncated: false })).toBe(
+      `${GIT_DIFF_MAX_ENTRIES} changed, 0 added, 0 removed`,
     );
   });
 });
@@ -286,7 +302,7 @@ describe("diffSummary", () => {
 describe("transientGitError", () => {
   it.each([
     ["timeout", "GIT_TIMEOUT"],
-    ["git-failed", "GIT_GIT_FAILED"],
+    ["git-failed", "GIT_FAILED"],
   ] as const)("turns %s into an error the page can retry", (reason, code) => {
     expect(transientGitError({ available: false, reason })).toEqual({
       code,
@@ -306,5 +322,83 @@ describe("transientGitError", () => {
 
   it("leaves an available answer alone", () => {
     expect(transientGitError(AVAILABLE)).toBeUndefined();
+  });
+});
+
+describe("applyGitDiff", () => {
+  const loaded: GitDiffView = {
+    kind: "data",
+    stale: false,
+    data: { ...DIFF, added: [{ key: "k", value: "v" }] },
+  };
+
+  it.each([
+    ["timeout", "GIT_TIMEOUT"],
+    ["git-failed", "GIT_FAILED"],
+  ] as const)("keeps the last key list, stale, when a re-read answers %s", (reason, code) => {
+    const next = applyGitDiff(loaded, { ok: true, result: { available: false, reason } });
+
+    expect(next).toMatchObject({
+      kind: "data",
+      stale: true,
+      error: { code },
+      data: { available: true, added: [{ key: "k" }] },
+    });
+  });
+
+  it("returns a new object for every answer", () => {
+    const next = applyGitDiff(loaded, { ok: true, result: DIFF });
+
+    expect(next).not.toBe(loaded);
+    expect(next).toMatchObject({ kind: "data", stale: false });
+  });
+
+  it.each(["not-a-repository", "custom-adapter", "outside-project"] as const)(
+    "replaces the key list with a lasting reason, %s",
+    (reason) => {
+      const next = applyGitDiff(loaded, { ok: true, result: { available: false, reason } });
+
+      expect(next).toEqual({
+        kind: "data",
+        stale: false,
+        data: { available: false, reason },
+      });
+    },
+  );
+
+  it("shows a transient answer as it is when there was no list to keep", () => {
+    const next = applyGitDiff(
+      { kind: "loading" },
+      { ok: true, result: { available: false, reason: "timeout" } },
+    );
+
+    expect(next).toEqual({
+      kind: "data",
+      stale: false,
+      data: { available: false, reason: "timeout" },
+    });
+  });
+
+  it("keeps the last list, stale, when the read fails and an error when there is none", () => {
+    const error = { code: "INTERNAL", message: "boom" };
+
+    expect(applyGitDiff(loaded, { ok: false, error })).toMatchObject({ stale: true, error });
+    expect(applyGitDiff({ kind: "loading" }, { ok: false, error })).toEqual({
+      kind: "error",
+      error,
+    });
+  });
+
+  it("keeps a stale list stale across another transient answer", () => {
+    const first = applyGitDiff(loaded, {
+      ok: true,
+      result: { available: false, reason: "timeout" },
+    });
+    const second = applyGitDiff(first, {
+      ok: true,
+      result: { available: false, reason: "git-failed" },
+    });
+
+    expect(second).toMatchObject({ stale: true, error: { code: "GIT_FAILED" }, data: loaded.data });
   });
 });

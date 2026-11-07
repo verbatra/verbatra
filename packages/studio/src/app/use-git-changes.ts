@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createCoalescedRunner } from "../client/coalesce.js";
 import {
+  applyGitDiff,
   applyGitStatus,
   type GitDiffView,
   type GitStatusView,
   type OpenDiff,
 } from "../client/git-changes.js";
-import { applyRefreshOutcome } from "../client/state.js";
 import { rpcClient } from "./api.js";
 
 export function useGitStatus(refreshToken: number): GitStatusView {
@@ -65,10 +65,7 @@ export function useGitLocaleDiff(
       if (alive.current && wanted.current === asked) {
         setHeld((previous) => ({
           locale: asked,
-          view: applyRefreshOutcome(
-            previous?.locale === asked ? previous.view : LOADING_DIFF,
-            response,
-          ),
+          view: applyGitDiff(previous?.locale === asked ? previous.view : LOADING_DIFF, response),
         }));
       }
     });

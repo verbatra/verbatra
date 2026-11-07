@@ -90,6 +90,18 @@ describe("ChangesSection file list cap", () => {
     expect(view.query("[data-git-show-all]")).toBeNull();
   });
 
+  it("makes the reveal buttons 44px targets below the md breakpoint", () => {
+    const view = render(section({ status: status(many) }));
+    const open = { locale: "l0", path: "locales/l0.json", position: 0 };
+    const long = Array.from({ length: 80 }, (_, index) => ({ key: `k${index}`, value: "v" }));
+    const diffView = render(
+      section({ status: status([file("l0")]), open, diff: diffOf({ added: long }) }),
+    );
+
+    expect(view.get("[data-git-show-all]").className).toContain("max-md:min-h-11");
+    expect(diffView.get("[data-git-show-more]").className).toContain("max-md:min-h-11");
+  });
+
   it("offers no button for ten files or fewer", () => {
     const view = render(section({ status: status(many.slice(0, 10)) }));
 
@@ -179,6 +191,94 @@ describe("ChangesSection focus after a background read", () => {
 
     expect(view.query('[data-git-file="locales/b.json"]')).toBeNull();
     expect(document.activeElement).toBe(toggle(view, "c"));
+  });
+});
+
+describe("ChangesSection focus keeper details", () => {
+  const three = status([file("a"), file("b"), file("c")]);
+
+  it("never moves focus that the user already left, even when the old toggle later goes away", () => {
+    const view = render(section({ status: three }));
+    toggle(view, "b").focus();
+    toggle(view, "b").blur();
+    expect(document.activeElement).toBe(document.body);
+
+    view.rerender(section({ status: status([file("a"), file("c")]) }));
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("never moves focus that sits on a control outside the section", () => {
+    const view = render(section({ status: three }));
+    toggle(view, "b").focus();
+    const outside = document.createElement("button");
+    document.body.appendChild(outside);
+    outside.focus();
+
+    view.rerender(section({ status: status([file("a"), file("c")]) }));
+
+    expect(document.activeElement).toBe(outside);
+    outside.remove();
+  });
+
+  it("hands focus over without scrolling", () => {
+    const view = render(section({ status: three }));
+    toggle(view, "b").focus();
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+
+    view.rerender(section({ status: status([file("a"), file("c")]) }));
+
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+  });
+
+  it("leaves the handover toggle in the tab order", () => {
+    const view = render(section({ status: three }));
+    toggle(view, "b").focus();
+
+    view.rerender(section({ status: status([file("a"), file("c")]) }));
+
+    expect(document.activeElement).toBe(toggle(view, "c"));
+    expect(toggle(view, "c").hasAttribute("tabindex")).toBe(false);
+    expect(toggle(view, "a").hasAttribute("tabindex")).toBe(false);
+  });
+
+  it("makes the heading focusable only while it holds focus", () => {
+    const view = render(section({ status: status([file("a")]) }));
+    toggle(view, "a").focus();
+    expect(view.get("h2").hasAttribute("tabindex")).toBe(false);
+
+    view.rerender(section({ status: status([]) }));
+
+    expect(document.activeElement).toBe(view.get("h2"));
+    expect(view.get("h2").getAttribute("tabindex")).toBe("-1");
+
+    view.get("h2").blur();
+
+    expect(view.get("h2").hasAttribute("tabindex")).toBe(false);
+  });
+
+  it("moves focus from a link inside the open diff to its toggle when the link goes away", () => {
+    const open: OpenDiff = { locale: "b", path: "locales/b.json", position: 1 };
+    const withLink = section({
+      status: three,
+      open,
+      diff: diffOf({ added: [{ key: "kept", value: "v" }] }),
+    });
+    const view = render(withLink);
+    view.get("[data-git-open]").focus();
+    expect(document.activeElement).toBe(view.get("[data-git-open]"));
+
+    view.rerender(section({ status: three, open, diff: diffOf({ state: "unchanged" }) }));
+
+    expect(view.query("[data-git-open]")).toBeNull();
+    expect(document.activeElement).toBe(toggle(view, "b"));
+  });
+
+  it("gives the file rows and the heading the focus ring", () => {
+    const view = render(section({ status: three }));
+
+    expect(view.get("[data-git-file]").className).toContain("focus-visible:outline-ring");
+    expect(view.get("h2").className).toContain("focus-visible:outline");
   });
 });
 
@@ -437,7 +537,7 @@ describe("ChangesSection unavailable and failed reads", () => {
 
   it.each([
     ["timeout", "GIT_TIMEOUT"],
-    ["git-failed", "GIT_GIT_FAILED"],
+    ["git-failed", "GIT_FAILED"],
   ] as const)("points a %s answer at the page alert that carries it", (reason, code) => {
     const result = { available: false as const, reason };
     const view = render(

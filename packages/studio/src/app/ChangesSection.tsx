@@ -144,6 +144,9 @@ function useReveal(
   };
 }
 
+const FILE_ROW_CLASSES =
+  "min-w-0 rounded-sm py-3 first:pt-0 last:pb-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+
 const ENTRY_CLASSES =
   "min-w-0 rounded-sm border-s-2 border-border ps-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
@@ -179,7 +182,7 @@ function PagedList<T>({
       </ul>
       {remaining > 0 ? (
         <div className="mt-3">
-          <Button size="xs" data-git-show-more="" onClick={more}>
+          <Button size="xs" className="max-md:min-h-11" data-git-show-more="" onClick={more}>
             Show {Math.min(GIT_DIFF_PAGE_SIZE, remaining)} more of {remaining}
             <span className="sr-only"> {label.toLowerCase()}</span>
           </Button>
@@ -362,7 +365,7 @@ function FileRow({
   const openLocale = row.diffLocales.find((locale) => open?.locale === locale);
   const panelShown = openLocale !== undefined && diff !== undefined;
   return (
-    <li data-git-file={row.path} tabIndex={-1} className="min-w-0 py-3 first:pt-0 last:pb-0">
+    <li data-git-file={row.path} tabIndex={-1} className={FILE_ROW_CLASSES}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
         {row.clean ? (
           <Badge tone="unchanged">Matches last commit</Badge>
@@ -487,7 +490,7 @@ function FileList({
           </ul>
           {shownCount < rows.length ? (
             <div className="mt-3">
-              <Button size="xs" data-git-show-all="" onClick={more}>
+              <Button size="xs" className="max-md:min-h-11" data-git-show-all="" onClick={more}>
                 Show all {rows.length} files
               </Button>
             </div>
@@ -598,34 +601,59 @@ function nearestKept(
   );
 }
 
-function useFocusKeeper(rootRef: RefObject<HTMLDivElement | null>): void {
-  const focused = useRef<string | null>(null);
-  const order = useRef<string[]>([]);
+interface HeldFocus {
+  readonly element: HTMLElement;
+  readonly locale: string;
+}
 
-  useEffect(() => {
-    const root = rootRef.current;
-    if (root === null) {
-      return;
-    }
-    const track = (element: EventTarget | null): void => {
-      focused.current =
-        (element as HTMLElement | null)
-          ?.closest?.("[data-git-toggle]")
-          ?.getAttribute("data-git-toggle") ?? null;
-    };
-    const onIn = (event: FocusEvent): void => track(event.target);
-    const onOut = (event: FocusEvent): void => {
-      if (event.relatedTarget !== null) {
-        track(event.relatedTarget);
-      }
-    };
-    root.addEventListener("focusin", onIn);
-    root.addEventListener("focusout", onOut);
-    return () => {
-      root.removeEventListener("focusin", onIn);
-      root.removeEventListener("focusout", onOut);
-    };
-  }, [rootRef]);
+function heldFocus(root: HTMLElement | null): HeldFocus | null {
+  const active = document.activeElement;
+  if (root === null || !(active instanceof HTMLElement) || !root.contains(active)) {
+    return null;
+  }
+  const locale =
+    active.closest("[data-git-toggle]")?.getAttribute("data-git-toggle") ??
+    active.closest("[data-git-diff]")?.getAttribute("data-git-diff");
+  return locale === undefined || locale === null ? null : { element: active, locale };
+}
+
+function focusHeading(root: HTMLElement): void {
+  const heading = root.closest("section")?.querySelector<HTMLElement>("h2");
+  if (heading === null || heading === undefined) {
+    return;
+  }
+  heading.tabIndex = -1;
+  heading.addEventListener("blur", () => heading.removeAttribute("tabindex"), { once: true });
+  heading.focus({ preventScroll: true });
+}
+
+function isStranded(lost: HeldFocus | null): lost is HeldFocus {
+  return (
+    lost !== null &&
+    !lost.element.isConnected &&
+    (document.activeElement === document.body || document.activeElement === null)
+  );
+}
+
+function handOver(
+  root: HTMLElement,
+  lost: HeldFocus,
+  order: readonly string[],
+  kept: readonly string[],
+): void {
+  const next = kept.includes(lost.locale) ? lost.locale : nearestKept(order, lost.locale, kept);
+  const target = next === undefined ? undefined : toggleFor(root, next);
+  if (target === undefined) {
+    focusHeading(root);
+  } else {
+    target.focus({ preventScroll: true });
+  }
+}
+
+function useFocusKeeper(rootRef: RefObject<HTMLDivElement | null>): void {
+  const order = useRef<string[]>([]);
+  const held = useRef<HeldFocus | null>(null);
+  held.current = heldFocus(rootRef.current);
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -633,22 +661,8 @@ function useFocusKeeper(rootRef: RefObject<HTMLDivElement | null>): void {
       return;
     }
     const kept = toggleLocales(root);
-    const lost = focused.current;
-    const stranded =
-      lost !== null &&
-      !kept.includes(lost) &&
-      (document.activeElement === document.body || document.activeElement === null);
-    if (stranded) {
-      const next = nearestKept(order.current, lost, kept);
-      const target =
-        next === undefined
-          ? root.closest("section")?.querySelector<HTMLElement>("h2")
-          : toggleFor(root, next);
-      if (target !== null && target !== undefined) {
-        target.tabIndex = -1;
-        target.focus();
-      }
-      focused.current = next ?? null;
+    if (isStranded(held.current)) {
+      handOver(root, held.current, order.current, kept);
     }
     order.current = kept;
   });

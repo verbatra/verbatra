@@ -289,8 +289,13 @@ export async function createProjectWatcher(
     debounceMs,
     emit,
   );
+  let firstLookup = true;
   const gitWatcher = await createGitWatcher({
     resolvePaths: async () => {
+      if (firstLookup) {
+        firstLookup = false;
+        return watch.git;
+      }
       const found = await localeWatchPaths(
         { config: input.config, cwd: input.projectRoot },
         deps.execFile !== undefined ? { execFile: deps.execFile } : {},
@@ -316,16 +321,23 @@ export async function createProjectWatcher(
   };
 }
 
-function onlyThese(
+function slashed(path: string): string {
+  return path.replaceAll("\\", "/");
+}
+
+export function onlyThese(
   paths: readonly string[],
   options: StudioWatcherOptions,
 ): { readonly depth: number; readonly ignored: (path: string) => boolean } | undefined {
   if (options.only === undefined) {
     return undefined;
   }
-  const files = new Set(options.only);
-  const directories = new Set(paths);
-  return { depth: 0, ignored: (path) => !files.has(path) && !directories.has(path) };
+  const files = new Set(options.only.map(slashed));
+  const directories = new Set(paths.map(slashed));
+  return {
+    depth: 0,
+    ignored: (path) => !files.has(slashed(path)) && !directories.has(slashed(path)),
+  };
 }
 
 export const defaultCreateStudioWatcher: CreateStudioWatcher = (
@@ -335,8 +347,10 @@ export const defaultCreateStudioWatcher: CreateStudioWatcher = (
   const fsWatcher = chokidarWatch([...paths], {
     persistent: true,
     ignoreInitial: true,
+    ignorePermissionErrors: true,
     ...onlyThese(paths, options),
   });
+  fsWatcher.on("error", (error) => options.onError?.(error));
   return {
     onChange(listener: () => void): void {
       fsWatcher.on("change", () => listener());

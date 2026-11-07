@@ -4,7 +4,7 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
 import { siblingPaths } from "./git-siblings.js";
-import { type LocaleGitUnavailableReason, openGitWorkTree } from "./git-worktree.js";
+import { type LocaleGitRepositoryUnavailableReason, openGitWorkTree } from "./git-worktree.js";
 
 /** The files that hold one locale's data. */
 export interface LocaleWatchFiles {
@@ -23,7 +23,7 @@ export type LocaleWatchGitPaths =
       /** `false`: the repository could not be read. */
       readonly available: false;
       /** Why the repository could not be read. */
-      readonly reason: LocaleGitUnavailableReason;
+      readonly reason: LocaleGitRepositoryUnavailableReason;
     }
   | {
       /** `true`: the repository was read. */

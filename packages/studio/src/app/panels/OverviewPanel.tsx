@@ -279,7 +279,7 @@ export function OverviewPanel({
   const status = useStatusData(token);
   const lock = useLockState(token);
   const usage = useUsageTicker(token);
-  const history = useHistoryList(token, limit);
+  const history = useHistoryList(token + gitRefreshToken, limit);
   const git = useGitChanges(token + gitRefreshToken);
   const [retried, setRetried] = useState<RetryRound | null>(null);
   const recoveryRef = useRef<HTMLDivElement>(null);

@@ -320,6 +320,7 @@ export {
 } from "./flow/git-status.js";
 export {
   LOCALE_GIT_UNAVAILABLE_REASONS,
+  type LocaleGitRepositoryUnavailableReason,
   type LocaleGitUnavailableReason,
 } from "./flow/git-worktree.js";
 export {

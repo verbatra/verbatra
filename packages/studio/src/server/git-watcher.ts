@@ -1,3 +1,4 @@
+import { access } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { CreateStudioWatcher, StudioWatcher } from "./types.js";
 
@@ -10,6 +11,8 @@ export interface GitWatcherOptions {
   readonly createWatcher: CreateStudioWatcher;
   readonly onChange: () => void;
   readonly pollMs: number;
+  readonly idlePollMs?: number;
+  readonly exists?: (path: string) => Promise<boolean>;
 }
 
 export interface GitWatcher {
@@ -17,19 +20,30 @@ export interface GitWatcher {
   readonly close: () => Promise<void>;
 }
 
+const DEFAULT_IDLE_POLL_FACTOR = 6;
+
 function directoriesOf(files: readonly string[]): readonly string[] {
   return Array.from(new Set(files.map((file) => dirname(file))));
 }
 
+async function pathExists(path: string): Promise<boolean> {
+  return access(path).then(
+    () => true,
+    () => false,
+  );
+}
+
 export async function createGitWatcher(options: GitWatcherOptions): Promise<GitWatcher> {
+  const exists = options.exists ?? pathExists;
+  const idlePollMs = options.idlePollMs ?? options.pollMs * DEFAULT_IDLE_POLL_FACTOR;
   let watcher: StudioWatcher | undefined;
   let watchedKey: string | undefined;
-  let timer: ReturnType<typeof setInterval> | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   let closed = false;
   let queue: Promise<void> = Promise.resolve();
 
-  function enqueue(announce: boolean): Promise<void> {
-    queue = queue.then(() => refresh(announce));
+  function enqueue(task: () => Promise<void>): Promise<void> {
+    queue = queue.then(task).catch(() => undefined);
     return queue;
   }
 
@@ -37,56 +51,99 @@ export async function createGitWatcher(options: GitWatcherOptions): Promise<GitW
     const old = watcher;
     watcher = undefined;
     watchedKey = undefined;
-    await old?.close();
+    await old?.close().catch(() => undefined);
   }
 
-  function startPolling(): void {
-    if (timer === undefined && !closed) {
-      timer = setInterval(() => {
-        void enqueue(true);
-      }, options.pollMs);
-      timer.unref();
-    }
-  }
-
-  function stopPolling(): void {
+  function schedule(ms: number): void {
     if (timer !== undefined) {
-      clearInterval(timer);
-      timer = undefined;
+      clearTimeout(timer);
     }
+    if (closed) {
+      return;
+    }
+    timer = setTimeout(() => {
+      timer = undefined;
+      void enqueue(() => refresh(true));
+    }, ms);
+    timer.unref();
   }
 
-  async function refresh(announce = false): Promise<void> {
-    const resolved = await options.resolvePaths().catch(() => ({ available: false as const }));
+  async function failWatching(): Promise<void> {
+    if (closed) {
+      return;
+    }
+    await stopWatching();
+    schedule(options.pollMs);
+  }
+
+  async function lookUp(): Promise<GitWatchPaths> {
+    return options.resolvePaths().catch((): GitWatchPaths => ({ available: false }));
+  }
+
+  async function arm(paths: readonly string[], announce: boolean): Promise<void> {
+    const present = await Promise.all(directoriesOf(paths).map((path) => exists(path)));
+    const directories = directoriesOf(paths).filter((_, index) => present[index] === true);
+    const key = `${paths.join("\n")}\n--\n${directories.join("\n")}`;
+    if (key === watchedKey) {
+      schedule(idlePollMs);
+      return;
+    }
+    await stopWatching();
+    if (closed) {
+      return;
+    }
+    const self: { current?: StudioWatcher } = {};
+    try {
+      const built = options.createWatcher(directories, {
+        only: paths,
+        onError: () => {
+          if (watcher === self.current) {
+            void enqueue(failWatching);
+          }
+        },
+      });
+      self.current = built;
+      watcher = built;
+      watchedKey = key;
+      built.onChange(options.onChange);
+    } catch {
+      await stopWatching();
+      schedule(options.pollMs);
+      return;
+    }
+    if (announce) {
+      options.onChange();
+    }
+    schedule(idlePollMs);
+  }
+
+  async function refresh(announce: boolean): Promise<void> {
+    if (closed) {
+      return;
+    }
+    const resolved = await lookUp();
     if (closed) {
       return;
     }
     if (!resolved.available) {
       await stopWatching();
-      startPolling();
+      schedule(options.pollMs);
       return;
     }
-    stopPolling();
-    const key = resolved.paths.join("\n");
-    if (key === watchedKey) {
-      return;
-    }
-    await stopWatching();
-    watchedKey = key;
-    watcher = options.createWatcher(directoriesOf(resolved.paths), { only: resolved.paths });
-    watcher.onChange(options.onChange);
-    if (announce) {
-      options.onChange();
-    }
+    await arm(resolved.paths, announce);
   }
 
-  await enqueue(false);
+  await enqueue(() => refresh(false));
 
   return {
-    refresh: () => enqueue(false),
+    refresh: () => enqueue(() => refresh(false)),
     async close(): Promise<void> {
       closed = true;
-      stopPolling();
+      if (timer !== undefined) {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+      await queue;
       await stopWatching();
     },
   };

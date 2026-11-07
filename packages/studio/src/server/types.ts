@@ -62,6 +62,14 @@ export interface StudioWatcherOptions {
    * rewrites by renaming a lock file over them, which a watcher on the file itself can miss.
    */
   readonly only?: readonly string[];
+  /**
+   * Called when the underlying source fails, for example with a permission error on a directory.
+   * The watcher then keeps running as far as it can and never throws; Studio watches git again
+   * later and meanwhile reads on demand.
+   *
+   * @param error - What the source reported.
+   */
+  readonly onError?: (error: unknown) => void;
 }
 
 /**

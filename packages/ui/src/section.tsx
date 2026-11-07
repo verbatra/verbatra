@@ -73,7 +73,9 @@ export function PageSection({
   return (
     <section className={cn("mb-10", className)}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-(--text-strong)">{title}</h2>
+        <h2 className="rounded-(--radius-sm) text-base font-semibold text-(--text-strong) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)">
+          {title}
+        </h2>
         {meta !== undefined ? <div className="flex items-center gap-2">{meta}</div> : null}
       </div>
       {children}

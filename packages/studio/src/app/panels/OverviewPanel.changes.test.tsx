@@ -366,7 +366,7 @@ describe("OverviewPanel Changes section", () => {
     expect(callsTo("git.localeDiff")).toBe(1);
   });
 
-  it("re-reads only the changes, not the other sources, when the git refresh token moves", async () => {
+  it("re-reads only the changes and the commit history, not the other sources, when the git refresh token moves", async () => {
     stubPage();
     const view = await renderAsync(<OverviewPanel refreshToken={0} gitRefreshToken={0} />);
     await clickAsync(view.get('[data-git-toggle="de"]'));
@@ -381,7 +381,7 @@ describe("OverviewPanel Changes section", () => {
         .slice(before)
         .map((call) => call.method)
         .sort(),
-    ).toEqual(["git.localeDiff", "git.status"]);
+    ).toEqual(["git.localeDiff", "git.status", "history.list"]);
   });
 
   it("links an added key only when the source has it, from the orphaned keys of the diff read", async () => {
@@ -467,5 +467,52 @@ describe("OverviewPanel Changes section", () => {
     expect(changesSection(view).textContent).toContain("outside the project folder");
     expect(view.query('[role="alert"]')).toBeNull();
     expect(retryButtons(view)).toHaveLength(0);
+  });
+
+  it("keeps the last key list on a timed-out re-read and names it in the page alert", async () => {
+    stubPage({
+      "git.localeDiff": inOrder([
+        diffOf({ changed: [{ key: "greeting", before: "a", after: "b" }] }),
+        { ok: true, result: { available: false, reason: "timeout" } },
+      ]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+    await clickAsync(view.get('[data-git-toggle="de"]'));
+
+    view.rerender(<OverviewPanel refreshToken={0} gitRefreshToken={1} />);
+    await flush();
+    await flush();
+
+    expect(view.get('[data-git-diff="de"]').textContent).toContain("greeting");
+    expect(view.all('[role="alert"]')).toHaveLength(1);
+    expect(view.get('[role="alert"]').textContent).toContain("key changes");
+    expect(retryButtons(view)).toHaveLength(1);
+  });
+
+  it("shows the new commit in the file history when the git refresh token moves", async () => {
+    const history = (subject: string): StubRpcResult => ({
+      ok: true,
+      result: {
+        available: true,
+        commits: [
+          {
+            hash: "abcdef1234567",
+            author: "Ada",
+            authorDate: "2026-05-04T09:00:00.000Z",
+            subject,
+            touchedPaths: [],
+          },
+        ],
+      },
+    });
+    stubPage({ "history.list": inOrder([history("first"), history("second")]) });
+    const view = await renderAsync(<OverviewPanel refreshToken={0} gitRefreshToken={0} />);
+    expect(view.get("[data-commit-subject]").textContent).toBe("first");
+
+    view.rerender(<OverviewPanel refreshToken={0} gitRefreshToken={1} />);
+    await flush();
+    await flush();
+
+    expect(view.get("[data-commit-subject]").textContent).toBe("second");
   });
 });

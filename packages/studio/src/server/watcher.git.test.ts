@@ -1,5 +1,5 @@
 import { execFile as execFileCb } from "node:child_process";
-import { mkdir, mkdtemp, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, realpath, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -257,4 +257,40 @@ describe("the project watcher and git", () => {
       await watcher.close();
     }
   }, 30_000);
+
+  it.skipIf(process.getuid?.() === 0)(
+    "survives a git directory it may not read, and keeps serving the rest",
+    async () => {
+      const root = await repo();
+      const real = join(root, "real-logs");
+      await mkdir(real, { recursive: true });
+      await writeFile(join(real, "HEAD"), "x");
+      await rm(join(root, ".git", "logs"), { recursive: true, force: true });
+      await symlink(real, join(root, ".git", "logs"));
+      await chmod(real, 0o000);
+      const events: RefreshEvent[] = [];
+      const errors: unknown[] = [];
+      const onError = (error: unknown): void => {
+        errors.push(error);
+      };
+      process.on("uncaughtException", onError);
+      try {
+        const watcher = await createProjectWatcher(
+          { config: baseStudioConfig(), projectRoot: root, debounceMs: 20 },
+          { createWatcher: defaultCreateStudioWatcher, gitPollMs: 200 },
+        );
+        watcher.onRefresh((event) => events.push(event));
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        await writeFile(join(root, "locales", "de.json"), '{"a":"changed"}\n');
+        expect(await until(() => events.some((event) => event.reason === "targets"))).toBe(true);
+        await watcher.close();
+      } finally {
+        process.off("uncaughtException", onError);
+        await chmod(real, 0o755);
+      }
+
+      expect(errors).toEqual([]);
+    },
+    30_000,
+  );
 });

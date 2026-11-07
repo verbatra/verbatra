@@ -81,9 +81,22 @@ export function transientGitError(
     return undefined;
   }
   return {
-    code: `GIT_${result.reason.toUpperCase().replace("-", "_")}`,
+    code: result.reason === "timeout" ? "GIT_TIMEOUT" : "GIT_FAILED",
     message: GIT_UNAVAILABLE_MESSAGES[result.reason],
   };
+}
+
+export function applyGitDiff(
+  previous: GitDiffView,
+  outcome: FetchOutcome<GitLocaleDiffResult>,
+): GitDiffView {
+  if (outcome.ok && previous.kind === "data" && previous.data.available) {
+    const transient = transientGitError(outcome.result);
+    if (transient !== undefined) {
+      return { kind: "data", data: previous.data, stale: true, error: transient };
+    }
+  }
+  return applyRefreshOutcome(previous, outcome);
 }
 
 export const GIT_STATE_LABELS: Readonly<Record<GitFileState, string>> = {
@@ -200,7 +213,7 @@ export function diffTotal(diff: GitAvailableDiff): number {
 
 export function diffSummary(diff: GitAvailableDiff): string {
   const counts = `${diff.changed.length} changed, ${diff.added.length} added, ${diff.removed.length} removed`;
-  return diffTotal(diff) >= GIT_DIFF_MAX_ENTRIES
+  return diff.truncated && diffTotal(diff) >= GIT_DIFF_MAX_ENTRIES
     ? `${diffTotal(diff)}+ keys differ; listed: ${counts}`
     : counts;
 }

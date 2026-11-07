@@ -236,7 +236,7 @@ describe("pageFailure", () => {
 
   it.each([
     ["timeout", "GIT_TIMEOUT"],
-    ["git-failed", "GIT_GIT_FAILED"],
+    ["git-failed", "GIT_FAILED"],
   ] as const)(
     "gives a %s answer of the changes read to the page alert, with the page Retry",
     (reason, code) => {
