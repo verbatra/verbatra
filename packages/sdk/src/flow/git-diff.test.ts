@@ -653,14 +653,14 @@ describe("localeGitDiff refusals", () => {
     expect(execFile).not.toHaveBeenCalled();
   });
 
-  it("returns working-file-unreadable for a locale file outside the project", async () => {
+  it("returns outside-project for a locale file outside the project", async () => {
     const diff = await localeGitDiff({
       config: baseConfig({ files: { pattern: "../outside/{locale}.json" } }),
       locale: "de",
       cwd: "/project",
     });
 
-    expect(diff).toEqual({ available: false, reason: "working-file-unreadable" });
+    expect(diff).toEqual({ available: false, reason: "outside-project" });
   });
 
   it("returns the repository reason when git cannot be used", async () => {

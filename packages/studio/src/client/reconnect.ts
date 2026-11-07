@@ -77,7 +77,7 @@ function parseRefreshEvent(data: string): RefreshEvent | undefined {
     delta?: unknown;
   };
   if (
-    (reason === "source" || reason === "targets" || reason === "lock") &&
+    (reason === "source" || reason === "targets" || reason === "lock" || reason === "git") &&
     typeof at === "string"
   ) {
     const parsedDelta = parseDelta(delta);

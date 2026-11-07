@@ -1,0 +1,51 @@
+---
+title: Geänderte Dateien in Studio sehen
+seoTitle: "Geänderte Locale-Dateien in Verbatra Studio sehen"
+description: Prüfe auf der Übersichtsseite von Verbatra Studio, welche Locale-Dateien vom letzten Git-Commit abweichen und welche Keys sich in jeder geändert haben.
+type: how-to
+---
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Das brauchst du, bevor du einen Lauf committest: Du siehst, welche Locale-Dateien ein Übersetzungslauf oder eine Bearbeitung angefasst hat und welche Keys sich in jeder geändert haben, ohne Studio zu verlassen. Studio liest nur; es stagt, committet oder stellt nie etwas wieder her.
+
+## Öffne den Bereich Changes
+
+Starte Studio ([Review in Studio](/de/docs/review-in-studio#starte-studio)) und scrolle auf der Seite Overview zu **Changes**, unter der Locale-Tabelle. Dort steht der ausgecheckte Branch (oder **Detached HEAD**), dazu jede Datei, die vom letzten Commit abweicht, je zehn auf einmal und mit **Show all N files** für den Rest:
+
+| Status | Bedeutung |
+| --- | --- |
+| **Modified** | die Datei weicht vom letzten Commit ab |
+| **Added** | die Datei ist neu und gestaged |
+| **Deleted** | die Datei fehlt im Arbeitsverzeichnis oder im Index |
+| **Untracked** | Git verfolgt die Datei noch nicht |
+| **Conflicted** | die Datei hat ungelöste Merge-Konflikte |
+| **Matches last commit** | eine Datei, die du geöffnet hast und die nicht mehr abweicht; sie bleibt an ihrem Platz, bis du sie schließt |
+
+Aufgelistet werden deine Quell- und Ziel-Locale-Dateien sowie `verbatra.lock.json` und `verbatra.provenance.json`; die beiden zeigen einen Status und keine Key-Änderungen. Ein sauberes Projekt meldet, dass keine Locale-Datei abweicht.
+
+## Lies die Key-Änderungen
+
+**Key changes (de)** öffnet die Datei dieser Locale als Keys, verglichen mit dem letzten Commit: **Changed**-Keys mit altem und neuem Text nebeneinander, **Added**-Keys und **Removed**-Keys. Drücke den Button erneut, um zu schließen; es ist immer nur eine Locale offen. Ein geänderter oder neuer Key, den auch die Quelle hat, verlinkt auf seinen Eintrag in Translations.
+
+- **Eine Datei, viele Locales:** Ein Katalog wie `apple-xcstrings` hält alle Locales in einer Datei und hat deshalb einen Button pro Locale. Jeder vergleicht nur diese Locale.
+- **Lange Listen:** Eine Liste enthält höchstens 500 Keys, und jeder Text wird bei 2000 Zeichen abgeschnitten. Ist das passiert, sagt Studio, dass die Liste unvollständig ist, und markiert einen gekürzten Text; die volle Differenz hat Git selbst. Eine lange Liste zeigt je 50 Keys.
+- **Nur die Reihenfolge geändert:** Eine geänderte Datei mit denselben Keys und Texten sagt das.
+- **Konflikte:** Eine Datei mit ungelösten Merge-Konflikten zeigt ihren Status und keine Key-Änderungen. Löse die Konflikte zuerst in Git.
+- **Sicherer Text:** Keys und Werte erscheinen als reiner Text, in Sprache und Richtung der Locale, nie als Markup.
+
+## Wenn es nichts zu zeigen gibt
+
+Studio erklärt statt einen Fehler zu melden, wenn es nicht vergleichen kann, zum Beispiel wenn:
+
+- das Projekt in keinem Git-Repository liegt oder Git nicht installiert oder für einen Partial Clone zu alt ist;
+- Git den Ordner ablehnt, weil ihn ein anderer Benutzer besitzt, oder der Ordner in einem Bare-Repository liegt;
+- das Repository einen Inhaltsfilter konfiguriert, den Studio nicht ausführt;
+- ein `files.pattern` eine Locale-Datei außerhalb des Projektordners ablegt, etwa mit `../`, sodass eine Liste diese Datei auslassen könnte.
+
+Ein Lesevorgang, der zu lange dauerte oder fehlschlug, zeigt den Fehler der Seite mit ihrem **Retry**. Ein Projekt mit `custom:`-Format zeigt seine geänderten Dateien, aber nie deren Key-Änderungen: Studio vergleicht die committete Datei nur mit den eingebauten Format-Adaptern, die einen eigenen Adapter nicht ausführen können. Siehe [Einen eigenen Format-Adapter schreiben](/de/docs/custom-format-adapters).
+
+## Wisse, wie aktuell es ist
+
+Der Bereich liest neu, wenn sich eine Locale-, Lock- oder Herkunftsdatei auf der Platte ändert, wenn sich der Index oder `HEAD` von Git ändert (ein Commit, ein Branch-Wechsel, ein Reset oder `git add`) und wenn du zum Studio-Tab oder -Fenster zurückkommst. Schlägt ein Lesevorgang fehl, behält Studio die letzte Antwort und sagt das.
+
+Dieselben Lesevorgänge stehen deinem eigenen Code als [`localeGitStatus` und `localeGitDiff`](/de/docs/sdk/review#localegitstatus) zur Verfügung; dort stehen alle Gründe, aus denen ein Vergleich nicht möglich ist, und die angewandten Git-Schutzmaßnahmen.

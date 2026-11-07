@@ -320,6 +320,7 @@ export {
 } from "./flow/git-status.js";
 export {
   LOCALE_GIT_UNAVAILABLE_REASONS,
+  type LocaleGitRepositoryUnavailableReason,
   type LocaleGitUnavailableReason,
 } from "./flow/git-worktree.js";
 export {
@@ -397,6 +398,14 @@ export {
   type LocaleValuesPageLocale,
   localeValuesPage,
 } from "./flow/locale-values-page.js";
+export {
+  type LocaleWatchFiles,
+  type LocaleWatchGitPaths,
+  type LocaleWatchPathsDeps,
+  type LocaleWatchPathsInput,
+  type LocaleWatchPathsResult,
+  localeWatchPaths,
+} from "./flow/locale-watch.js";
 export {
   type LockLocaleState,
   type LockStateDeps,

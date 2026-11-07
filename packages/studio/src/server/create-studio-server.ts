@@ -3,6 +3,7 @@ import type { AddressInfo, Socket } from "node:net";
 import { fileURLToPath } from "node:url";
 import { declareProviderKeyEnvVar, type LoadedConfig, resolveProjectRoot } from "@verbatra/sdk";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
+import { GIT_LOCALE_DIFF_METHOD, GIT_STATUS_METHOD } from "../shared/rpc/git.js";
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { KEY_PREVIEW_ICU_METHOD } from "../shared/rpc/key-preview-icu.js";
 import { RETRANSLATE_ENTRIES_METHOD } from "../shared/rpc/retranslate-entries.js";
@@ -45,6 +46,10 @@ const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX = 20;
 const DEFAULT_PREVIEW_ICU_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_PREVIEW_ICU_RATE_LIMIT_MAX = 240;
+const DEFAULT_GIT_STATUS_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_GIT_STATUS_RATE_LIMIT_MAX = 120;
+const DEFAULT_GIT_LOCALE_DIFF_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_GIT_LOCALE_DIFF_RATE_LIMIT_MAX = 240;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX = 60;
 
@@ -92,6 +97,15 @@ function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits
     [KEY_PREVIEW_ICU_METHOD]: {
       windowMs: options.previewIcuRateLimitWindowMs ?? DEFAULT_PREVIEW_ICU_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.previewIcuRateLimitMax ?? DEFAULT_PREVIEW_ICU_RATE_LIMIT_MAX,
+    },
+    [GIT_STATUS_METHOD]: {
+      windowMs: options.gitStatusRateLimitWindowMs ?? DEFAULT_GIT_STATUS_RATE_LIMIT_WINDOW_MS,
+      maxCalls: options.gitStatusRateLimitMax ?? DEFAULT_GIT_STATUS_RATE_LIMIT_MAX,
+    },
+    [GIT_LOCALE_DIFF_METHOD]: {
+      windowMs:
+        options.gitLocaleDiffRateLimitWindowMs ?? DEFAULT_GIT_LOCALE_DIFF_RATE_LIMIT_WINDOW_MS,
+      maxCalls: options.gitLocaleDiffRateLimitMax ?? DEFAULT_GIT_LOCALE_DIFF_RATE_LIMIT_MAX,
     },
     [REVIEW_APPROVE_METHOD]: reviewDecision,
     [REVIEW_REJECT_METHOD]: reviewDecision,
@@ -275,6 +289,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     {
       createWatcher: options.createWatcher ?? defaultCreateStudioWatcher,
       ...(options.fs !== undefined ? { fs: options.fs } : {}),
+      ...(options.execFileImpl !== undefined ? { execFile: options.execFileImpl } : {}),
       ...(options.adapterRegistry !== undefined
         ? { adapterRegistry: options.adapterRegistry }
         : {}),

@@ -53,17 +53,44 @@ export interface StudioWatcher {
 }
 
 /**
+ * Narrows what a {@link CreateStudioWatcher} reports.
+ */
+export interface StudioWatcherOptions {
+  /**
+   * When present, the given paths are directories and the watcher reports only changes to these
+   * files directly inside them, however the file was replaced. Studio uses it for the files git
+   * rewrites by renaming a lock file over them, which a watcher on the file itself can miss.
+   */
+  readonly only?: readonly string[];
+  /**
+   * Called when the underlying source fails, for example with a permission error on a directory.
+   * The watcher then keeps running as far as it can and never throws. Studio closes a failed git
+   * watcher and builds it again with exponential backoff (one second, doubling, at most 30 seconds); while it is down, live git refresh stops and the
+   * page still reads again on returning to the tab and on locale file events.
+   *
+   * @param error - What the source reported.
+   */
+  readonly onError?: (error: unknown) => void;
+}
+
+/**
  * Builds a {@link StudioWatcher} over a set of absolute paths. Called once per watched entry during
- * {@link startStudioServer}, each call receiving a one-element array: one for the source locale
- * file, one for each configured target locale file, one for the lock file, and one for the
- * provenance file (`verbatra.provenance.json`). An implementation must therefore construct a fresh
- * watcher on every call; one that builds a watcher only the first time observes the source file
- * alone and never reports a target, lock-file or provenance-file change.
+ * {@link startStudioServer}: one for each configured locale (its file, and for `apple-strings` the
+ * `.stringsdict` file beside it), one for the lock file, one for the provenance file
+ * (`verbatra.provenance.json`) and, in a git work tree, one for the directories that hold git's
+ * index, `HEAD` and `HEAD` reflog, with `options.only` naming those files. An implementation must
+ * therefore construct a fresh watcher on every call; one that builds a watcher only the first time
+ * observes the source file alone and never reports a target, lock-file or provenance-file change.
+ * A git entry can be built again later, when the repository appears, moves or is replaced.
  *
  * @param paths - The absolute paths to observe.
+ * @param options - Narrows what is reported.
  * @returns A watcher that is already observing.
  */
-export type CreateStudioWatcher = (paths: readonly string[]) => StudioWatcher;
+export type CreateStudioWatcher = (
+  paths: readonly string[],
+  options?: StudioWatcherOptions,
+) => StudioWatcher;
 
 /**
  * Everything the server and its RPC handlers may need. Only {@link StudioServerDeps.loader} is
@@ -155,6 +182,14 @@ export interface StudioServerDeps {
   readonly previewIcuRateLimitWindowMs?: number;
   /** How many `key.previewIcu` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 240. */
   readonly previewIcuRateLimitMax?: number;
+  /** Rolling window in milliseconds for `git.status`'s rate limit. Defaults to 60000. */
+  readonly gitStatusRateLimitWindowMs?: number;
+  /** How many `git.status` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 120. */
+  readonly gitStatusRateLimitMax?: number;
+  /** Rolling window in milliseconds for `git.localeDiff`'s rate limit. Defaults to 60000. */
+  readonly gitLocaleDiffRateLimitWindowMs?: number;
+  /** How many `git.localeDiff` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 240. */
+  readonly gitLocaleDiffRateLimitMax?: number;
   /**
    * Rolling window in milliseconds for the rate limits of `review.approve`, `review.reject`,
    * `review.approveMany`, `review.rejectMany`, and `review.approveLocale`, each counted on its

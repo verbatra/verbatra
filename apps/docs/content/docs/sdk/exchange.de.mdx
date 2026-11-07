@@ -85,6 +85,27 @@ ein Style, die sich nicht kombinieren lassen, oder eine Locale, für die der Sty
 Schreibweise hat, werfen `LOCALE_LAYOUT_INVALID`; zwei Locales, die auf denselben Pfad auflösen,
 werfen `LOCALE_PATH_COLLISION`.
 
+### localeWatchPaths
+
+<AvailableFrom version="0.13.0" />
+
+Nennt die Dateien, die ein Watcher braucht: die Datei jeder konfigurierten Locale samt den Dateien daneben, die einen Teil ihrer Daten halten (die `.stringsdict`-Datei von `apple-strings`), und die Dateien, die Git bei einem Commit, einem Branch-Wechsel, einem Reset oder einer Staging-Operation neu schreibt. Nur lesend; der Git-Teil wird über das injizierbare `execFile` erfragt, mit den Schutzmaßnahmen von [`localeGitStatus`](/de/docs/sdk/review#localegitstatus).
+
+```ts title="Signatur"
+function localeWatchPaths(
+  input: LocaleWatchPathsInput,
+  deps?: LocaleWatchPathsDeps,
+): Promise<LocaleWatchPathsResult>;
+```
+
+<SdkTypeTable name="LocaleWatchPathsInput" />
+
+**Rückgabe:** `LocaleWatchPathsResult`
+
+**Wirft:** [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision)
+
+`locales` listet zuerst die Quell-Locale, jede mit ihren `paths`. `git` ist `{ available: true, paths }` mit den absoluten Pfaden von Index, `HEAD` und `HEAD`-Reflog dieses Work Trees oder `{ available: false, reason }` außerhalb eines lesbaren Work Trees; die Locale-Dateien werden in beiden Fällen aufgelistet.
+
 ## Das Arbeitsmappen-Paar
 
 Die Übergabe für menschliche Übersetzerinnen, als Excel-Arbeitsmappe oder als Text mit

@@ -9,6 +9,8 @@ const READ_ONLY_METHODS = [
   "glossary.get",
   "lock.state",
   "history.list",
+  "git.status",
+  "git.localeDiff",
   "key.integrity",
   "key.context",
   "key.previewIcu",
@@ -37,16 +39,16 @@ const SPEND_METHODS = [
 ];
 
 describe("the shared contract's method list", () => {
-  it("is exactly the twenty-six agreed methods, including the schema-only write methods", () => {
+  it("is exactly the twenty-eight agreed methods, including the schema-only write methods", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(
       new Set([...READ_ONLY_METHODS, ...SPEND_METHODS, ...ALWAYS_ON_WRITE_METHODS]),
     );
-    expect(RPC_METHOD_NAMES).toHaveLength(26);
+    expect(RPC_METHOD_NAMES).toHaveLength(28);
   });
 });
 
 describe("createRpcHandlers: capability gating", () => {
-  it("registers the fourteen read handlers plus the eight unpriced write handlers by default, without spend", () => {
+  it("registers the sixteen read handlers plus the eight unpriced write handlers by default, without spend", () => {
     const handlers = createRpcHandlers({ spend: false, writeToDisk: true });
     expect(new Set(Object.keys(handlers))).toEqual(
       new Set([...READ_ONLY_METHODS, ...ALWAYS_ON_WRITE_METHODS]),

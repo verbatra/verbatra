@@ -133,16 +133,25 @@ describe("handleRefreshEvent", () => {
     ["a zero-delta event", sourceEvent({ added: 0, changed: 0, removed: 0 })],
     ["a lock event", lockEvent],
   ] as const)(
-    "always returns bumpToken: true, independent of whether toast is populated (%s)",
+    "reads every file event as a files refresh, independent of whether a toast is populated (%s)",
     (_label, event) => {
-      const handled = handleRefreshEvent(event);
-      expect(handled.bumpToken).toBe(true);
+      expect(handleRefreshEvent(event).kind).toBe("files");
     },
   );
 
   it("carries the same toast deriveRefreshToastView would produce", () => {
     const event = sourceEvent({ added: 1, changed: 0, removed: 0 });
-    expect(handleRefreshEvent(event).toast).toEqual(deriveRefreshToastView(event));
-    expect(handleRefreshEvent(lockEvent).toast).toBeUndefined();
+    expect(handleRefreshEvent(event)).toEqual({
+      kind: "files",
+      toast: deriveRefreshToastView(event),
+    });
+    expect(handleRefreshEvent(lockEvent)).toEqual({ kind: "files", toast: undefined });
+  });
+
+  it("reads a git event as a git refresh that carries no toast and never clears one", () => {
+    const event: RefreshEvent = { reason: "git", at: "2026-05-04T10:00:00.000Z" };
+
+    expect(handleRefreshEvent(event)).toEqual({ kind: "git" });
+    expect(deriveRefreshToastView(event)).toBeUndefined();
   });
 });

@@ -84,6 +84,27 @@ y un estilo que no se pueden combinar, o un locale para el que el estilo no tien
 correcta, lanzan `LOCALE_LAYOUT_INVALID`, y dos locales que resuelven a la misma ruta lanzan
 `LOCALE_PATH_COLLISION`.
 
+### localeWatchPaths
+
+<AvailableFrom version="0.13.0" />
+
+Nombra los archivos que necesita un watcher: el archivo de cada locale configurada con los archivos contiguos que guardan parte de sus datos (el archivo `.stringsdict` de `apple-strings`), y los archivos que git reescribe en un commit, un cambio de rama, un reset o una operación de staging. Solo lectura; la parte de git se pide mediante el `execFile` inyectable, con las salvaguardas de [`localeGitStatus`](/es/docs/sdk/review#localegitstatus).
+
+```ts title="Firma"
+function localeWatchPaths(
+  input: LocaleWatchPathsInput,
+  deps?: LocaleWatchPathsDeps,
+): Promise<LocaleWatchPathsResult>;
+```
+
+<SdkTypeTable name="LocaleWatchPathsInput" />
+
+**Devuelve:** `LocaleWatchPathsResult`
+
+**Lanza:** [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision)
+
+`locales` lista primero la locale de origen, cada una con sus `paths`. `git` es `{ available: true, paths }` con las rutas absolutas del índice, de `HEAD` y del reflog de `HEAD` de este work tree, o `{ available: false, reason }` fuera de un work tree legible; los archivos de locale se listan en ambos casos.
+
 ## El par del libro
 
 La entrega para traductores humanos, como libro de Excel o como texto delimitado; consulta [Traducción humana](/es/docs/manual-translation).

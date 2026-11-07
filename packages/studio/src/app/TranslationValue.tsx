@@ -13,6 +13,8 @@ export function valueDirection(locale: string | undefined, value?: string): Valu
 const SCROLLABLE_CLASSES =
   "overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
+const SHORT_TOKEN_CHARS = 24;
+
 const HIGHLIGHTED_TOKEN_CLASSES =
   "rounded-sm bg-accent px-0.5 font-mono text-[0.92em] text-accent-foreground";
 
@@ -25,7 +27,10 @@ function renderSegments(value: string, highlightTokens: boolean): ReactNode[] {
         <bdi
           key={offset}
           dir="ltr"
-          className={cn("whitespace-nowrap", highlightTokens && HIGHLIGHTED_TOKEN_CLASSES)}
+          className={cn(
+            segment.text.length <= SHORT_TOKEN_CHARS ? "whitespace-nowrap" : "wrap-anywhere",
+            highlightTokens && HIGHLIGHTED_TOKEN_CLASSES,
+          )}
           data-value-token=""
         >
           {segment.text}

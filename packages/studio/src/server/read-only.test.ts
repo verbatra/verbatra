@@ -112,6 +112,7 @@ describe("read-only proof: the fixture project's file tree is untouched", () => 
             "glossary.get",
             "lock.state",
             "history.list",
+            "git.status",
           ];
           for (const method of readMethods) {
             await postMethod(method);

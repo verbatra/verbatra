@@ -1,6 +1,36 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PATTERN_TIME_LIMIT_MS, runPattern } from "./pattern-runner.js";
 import { MAX_PATTERN_SCAN_LENGTH } from "./scan-text.js";
+
+const setup = vi.hoisted(() => ({ contexts: 0, scripts: 0, freshContexts: 0 }));
+
+vi.mock("node:vm", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:vm")>();
+  return {
+    ...actual,
+    runInNewContext: (...args: Parameters<typeof actual.runInNewContext>) => {
+      setup.freshContexts += 1;
+      return actual.runInNewContext(...args);
+    },
+    createContext: (...args: Parameters<typeof actual.createContext>) => {
+      setup.contexts += 1;
+      return actual.createContext(...args);
+    },
+    Script: class extends actual.Script {
+      constructor(...args: ConstructorParameters<typeof actual.Script>) {
+        super(...args);
+        setup.scripts += 1;
+      }
+
+      override runInNewContext(
+        ...args: Parameters<InstanceType<typeof actual.Script>["runInNewContext"]>
+      ) {
+        setup.freshContexts += 1;
+        return super.runInNewContext(...args);
+      }
+    },
+  };
+});
 
 const CATASTROPHIC = /(?:a?){30}x/gu;
 
@@ -41,20 +71,19 @@ describe("runPattern", () => {
     expect(() => runPattern(/Falcon/u, "Falcon")).toThrow(/non-global/);
   });
 
-  it("adds well under a millisecond to a fast pattern, in its fastest of five batches", () => {
+  it("builds its context and script once, so a fast pattern pays no setup per call", () => {
     const text = "x".repeat(2_000);
-    runPattern(/Falcon/gu, text);
-    const runs = 50;
-    const fastestAverage = Math.min(
-      ...Array.from({ length: 5 }, () => {
-        const started = performance.now();
-        for (let run = 0; run < runs; run += 1) {
-          runPattern(/Falcon/gu, text);
-        }
-        return (performance.now() - started) / runs;
-      }),
-    );
+    const contexts = setup.contexts;
+    const scripts = setup.scripts;
 
-    expect(fastestAverage).toBeLessThan(1);
+    for (let run = 0; run < 200; run += 1) {
+      runPattern(/Falcon/gu, text);
+    }
+
+    expect(contexts).toBe(1);
+    expect(scripts).toBe(1);
+    expect(setup.contexts).toBe(contexts);
+    expect(setup.scripts).toBe(scripts);
+    expect(setup.freshContexts).toBe(0);
   });
 });

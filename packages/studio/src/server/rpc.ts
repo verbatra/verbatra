@@ -4,6 +4,7 @@ import type { RpcMethodName, RpcParamsFor, RpcResultFor } from "../shared/rpc/co
 import { STATUS_DIFF_METHOD } from "../shared/rpc/diff.js";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { ESTIMATE_METHOD } from "../shared/rpc/estimate.js";
+import { GIT_LOCALE_DIFF_METHOD, GIT_STATUS_METHOD } from "../shared/rpc/git.js";
 import { GLOSSARY_GET_METHOD, GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { HISTORY_LIST_METHOD } from "../shared/rpc/history.js";
 import { IN_FLIGHT_METHOD } from "../shared/rpc/in-flight.js";
@@ -36,6 +37,7 @@ import { statusCheckHandler } from "./methods/check.js";
 import { statusDiffHandler } from "./methods/diff.js";
 import { editEntryHandler } from "./methods/edit-entry.js";
 import { estimateHandler } from "./methods/estimate.js";
+import { gitLocaleDiffHandler, gitStatusHandler } from "./methods/git.js";
 import { glossaryGetHandler, glossaryWriteHandler } from "./methods/glossary.js";
 import { historyListHandler } from "./methods/history.js";
 import { inFlightHandler } from "./methods/in-flight.js";
@@ -86,6 +88,8 @@ const readOnlyHandlers: HandlersRegistry = {
   [GLOSSARY_GET_METHOD]: glossaryGetHandler,
   [LOCK_STATE_METHOD]: lockStateHandler,
   [HISTORY_LIST_METHOD]: historyListHandler,
+  [GIT_STATUS_METHOD]: gitStatusHandler,
+  [GIT_LOCALE_DIFF_METHOD]: gitLocaleDiffHandler,
   [KEY_INTEGRITY_METHOD]: keyIntegrityHandler,
   [KEY_CONTEXT_METHOD]: keyContextHandler,
   [KEY_PREVIEW_ICU_METHOD]: keyPreviewIcuHandler,

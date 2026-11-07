@@ -29,9 +29,22 @@ import {
  * - `revision-unreadable`: ({@link localeGitDiff} only) the committed locale file is not a regular
  *   file or could not be parsed.
  * - `working-file-unreadable`: ({@link localeGitDiff} only) the locale file on disk is a symbolic
- *   link or sits behind one, lies outside the project, or could not be parsed.
+ *   link or sits behind one, or could not be parsed.
+ * - `outside-project`: a configured locale file lies outside the project directory, for example
+ *   with a `files.pattern` that starts with `../`, so the call cannot say what changed in it and
+ *   does not report a partial list as a complete one.
  */
 export type LocaleGitUnavailableReason = (typeof LOCALE_GIT_UNAVAILABLE_REASONS)[number];
+
+/**
+ * The {@link LocaleGitUnavailableReason}s that name a repository that could not be read: all of
+ * them except the ones only {@link localeGitDiff} and {@link localeGitStatus} give about a locale
+ * file (`custom-adapter`, `revision-unreadable`, `working-file-unreadable` and `outside-project`).
+ */
+export type LocaleGitRepositoryUnavailableReason = Exclude<
+  LocaleGitUnavailableReason,
+  "custom-adapter" | "revision-unreadable" | "working-file-unreadable" | "outside-project"
+>;
 
 /** Every {@link LocaleGitUnavailableReason}, in the order the documentation lists them. */
 export const LOCALE_GIT_UNAVAILABLE_REASONS = Object.freeze([
@@ -47,6 +60,7 @@ export const LOCALE_GIT_UNAVAILABLE_REASONS = Object.freeze([
   "custom-adapter",
   "revision-unreadable",
   "working-file-unreadable",
+  "outside-project",
 ] as const);
 
 export interface GitWorkTree {
@@ -57,11 +71,11 @@ export interface GitWorkTree {
 
 export type OpenWorkTreeResult =
   | { readonly ok: true; readonly tree: GitWorkTree }
-  | { readonly ok: false; readonly reason: LocaleGitUnavailableReason };
+  | { readonly ok: false; readonly reason: LocaleGitRepositoryUnavailableReason };
 
 export function unavailable(failure: GitFailure): {
   readonly ok: false;
-  readonly reason: LocaleGitUnavailableReason;
+  readonly reason: LocaleGitRepositoryUnavailableReason;
 } {
   return { ok: false, reason: failure.kind };
 }
@@ -78,7 +92,7 @@ function parseProbe(stdout: string): { readonly inside: boolean; readonly prefix
 
 type HeadResult =
   | { readonly ok: true; readonly head: string | undefined }
-  | { readonly ok: false; readonly reason: LocaleGitUnavailableReason };
+  | { readonly ok: false; readonly reason: LocaleGitRepositoryUnavailableReason };
 
 const CONTROL = /\p{Cc}/u;
 

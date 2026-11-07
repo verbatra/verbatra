@@ -1,4 +1,5 @@
 import type { StatusData } from "../client/coverage.js";
+import { type GitDiffView, type GitStatusView, transientGitError } from "../client/git-changes.js";
 import type { ReviewQueueData } from "../client/review-queue-data.js";
 import type { RefreshableView, StructuredError } from "../client/state.js";
 import type { UsageTickerData } from "../client/usage-ticker-data.js";
@@ -18,6 +19,8 @@ export interface OverviewReads {
   readonly review: RefreshableView<ReviewQueueData> | undefined;
   readonly usage: RefreshableView<UsageTickerData>;
   readonly history: HistoryState;
+  readonly gitStatus?: GitStatusView | undefined;
+  readonly gitDiff?: GitDiffView | undefined;
 }
 
 interface Source {
@@ -69,6 +72,23 @@ function historySource(history: HistoryState): Source {
   return kept("history", history.kind === "loaded" ? history.staleError : undefined);
 }
 
+function gitSource(
+  label: string,
+  view: GitStatusView | GitDiffView | undefined,
+): Source | undefined {
+  if (view === undefined) {
+    return undefined;
+  }
+  if (view.kind === "data" && !view.stale) {
+    const answer = "result" in view.data ? view.data.result : view.data;
+    const transient = transientGitError(answer);
+    if (transient !== undefined) {
+      return hard(label, transient);
+    }
+  }
+  return refreshable(label, view);
+}
+
 function joinLabels(labels: readonly string[]): string {
   const last = labels.at(-1);
   if (labels.length < 2 || last === undefined) {
@@ -85,6 +105,8 @@ export function pageFailure(reads: OverviewReads): PageFailure | null {
     reviewSource(reads.review),
     refreshable("usage", reads.usage),
     historySource(reads.history),
+    gitSource("changed files", reads.gitStatus),
+    gitSource("key changes", reads.gitDiff),
   ].filter((source): source is Source => source?.error !== undefined);
   const primary = failed.find((source) => !source.stale) ?? failed[0];
   if (primary?.error === undefined) {

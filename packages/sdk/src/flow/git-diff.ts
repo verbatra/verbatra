@@ -7,7 +7,12 @@ import { defaultFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
 import { LOCALE_GIT_BLOB_MAX_BYTES, parseRevisionContent, readBlobAtHead } from "./git-revision.js";
-import { type LocaleGitFileState, queryFileStates, watchedFiles } from "./git-status.js";
+import {
+  type LocaleGitFileState,
+  localeLeavesProject,
+  queryFileStates,
+  watchedFiles,
+} from "./git-status.js";
 import {
   type GitWorkTree,
   type LocaleGitUnavailableReason,
@@ -384,6 +389,9 @@ export async function localeGitDiff(
   );
   if (deps.adapterRegistry !== undefined || isCustomFormatId(input.config.format)) {
     return { available: false, reason: "custom-adapter" };
+  }
+  if (localeLeavesProject(cwd, input.config, [input.locale])) {
+    return { available: false, reason: "outside-project" };
   }
   if (file === undefined) {
     return { available: false, reason: "working-file-unreadable" };
