@@ -170,13 +170,15 @@ export function compareResources(
   };
 }
 
-type Side =
+export type Side =
   | { readonly ok: true; readonly entries: ReadonlyMap<string, { readonly value: string }> }
   | { readonly ok: false; readonly reason: LocaleGitUnavailableReason };
 
 const NOTHING: Side = { ok: true, entries: new Map() };
 
-interface SideInput {
+export interface SideInput {
+  readonly maxBytes?: number;
+  readonly sharedBytes?: boolean;
   readonly config: VerbatraConfig;
   readonly locale: string;
   readonly root: string;
@@ -277,27 +279,34 @@ export async function workingFileKind(root: string, path: string): Promise<Locat
   return locateFile(path);
 }
 
-export async function readWorkingContent(path: string): Promise<string | undefined> {
+export async function readWorkingContent(
+  path: string,
+  maxBytes: number = LOCALE_GIT_BLOB_MAX_BYTES,
+): Promise<string | undefined> {
   try {
-    const read = await defaultFs.readFileBounded(path, LOCALE_GIT_BLOB_MAX_BYTES);
+    const read = await defaultFs.readFileBounded(path, maxBytes);
     return read.kind === "ok" ? read.content : undefined;
   } catch {
     return undefined;
   }
 }
 
-async function readWorkingSide(input: SideInput): Promise<Side> {
+export async function readWorkingSide(input: SideInput): Promise<Side> {
   const paths = [input.absolutePath, ...input.siblingPaths];
   const located = await Promise.all(paths.map((path) => workingFileKind(input.root, path)));
   if (located.some((file) => file.kind === "other")) {
     return { ok: false, reason: "working-file-unreadable" };
   }
   const contents = new Map<string, string>();
+  let remaining = input.maxBytes ?? LOCALE_GIT_BLOB_MAX_BYTES;
   for (const [index, file] of located.entries()) {
     if (file.kind === "file") {
-      const content = await readWorkingContent(file.path);
+      const content = await readWorkingContent(file.path, remaining);
       if (content === undefined) {
         return { ok: false, reason: "working-file-unreadable" };
+      }
+      if (input.sharedBytes === true) {
+        remaining -= Buffer.byteLength(content, "utf8");
       }
       contents.set(paths[index] as string, content);
     }

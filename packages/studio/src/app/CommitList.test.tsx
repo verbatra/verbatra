@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { LOCALE_HISTORY_UNAVAILABLE_REASONS } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { formatTimestamp } from "../client/ui-format.js";
 import type { HistoryCommit } from "../shared/rpc/history.js";
@@ -54,6 +55,16 @@ describe("CommitList", () => {
     ["timeout", "Reading the git history took too long and was stopped."],
     ["output-too-large", "The git history is too large to read here."],
     ["git-missing", "This project is not a git repository, or git is not installed."],
+    ["bare-repository", "This folder is inside a bare git repository, which has no working files."],
+    [
+      "dubious-ownership",
+      "Git does not trust this folder because another user owns it. Mark it as safe in git yourself if you trust it.",
+    ],
+    [
+      "unsafe-config",
+      "This repository configures a content filter that Studio will not run, so the history is not shown.",
+    ],
+    ["git-too-old", "This repository needs a newer git than the one installed (2.45 or later)."],
   ] as const)("explains the unavailable reason %s", (reason, message) => {
     const view = render(
       <CommitList state={{ kind: "unavailable", reason }} compact emptyMessage="No commits." />,
@@ -61,6 +72,18 @@ describe("CommitList", () => {
 
     expect(view.text()).toBe(message);
   });
+
+  it.each(LOCALE_HISTORY_UNAVAILABLE_REASONS)(
+    "words the sdk reason %s, never as an undefined message",
+    (reason) => {
+      const view = render(
+        <CommitList state={{ kind: "unavailable", reason }} compact emptyMessage="No commits." />,
+      );
+
+      expect(view.text().length).toBeGreaterThan(20);
+      expect(view.text()).not.toContain("undefined");
+    },
+  );
 
   it("drops the empty-state chrome for the unavailable case when compact", () => {
     const view = render(

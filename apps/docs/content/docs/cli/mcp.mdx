@@ -5,7 +5,7 @@ description: "Start the stdio MCP server that exposes verbatra's tools to any MC
 status: new
 type: reference
 ---
-Start a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the transport clients such as Claude Code or Cursor use to launch a tool server. It serves protocol revisions 2024-10-07 to 2026-07-28. There is no HTTP transport, which would put the write and spend tools on a port.
+Start a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the transport clients such as Claude Code or Cursor use to launch a tool server. It serves protocol revisions 2024-10-07 to 2026-07-28. There is no HTTP transport, which would expose write and spend tools.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -17,7 +17,7 @@ verbatra-mcp [flags]
 ```
 
 - `verbatra-mcp` is the binary `@verbatra/mcp` ships, so a client can spawn the server without the CLI. It takes the same flags except `-q`/`--quiet` and starts the same server, but loads no `.env` file and prints the `@verbatra/mcp` version for `--version`.
-- Both reject an unknown flag (such as `--json`), a flag missing its value, or a stray argument as a usage error with exit `2`. `verbatra-mcp` does so, and takes `-h` and `-V`, from `@verbatra/mcp` 0.3.0 on.
+- Both exit `2` on an unknown flag, missing flag value or stray argument. `verbatra-mcp` does so, with `-h` and `-V` from `@verbatra/mcp` 0.3.0.
 
 ## Examples
 
@@ -82,6 +82,7 @@ The server answers the handshake with fixed `instructions`, which most clients p
 | `glossary.write` | change one glossary term: a translation, per-locale data, context, or whether it stays untranslated | no | no |
 | `lock.state` | the lock file's version and, per target locale, its key count plus missing, stale, and up-to-date counts | yes | no |
 | `history.list` | recent git commits touching a locale file, with author name, date, subject and paths | yes | no |
+| `history.keyRevisions` | one key's revisions in a locale, with word diff <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | yes | no |
 | `key.integrity` | one key's placeholder, markup, ICU syntax and ICU arm drift against the lock baseline, per locale | yes | no |
 | `locale.integrity` | every translation that fails the placeholder, markup or ICU checks right now, per locale | yes | no |
 | `key.value` | one key's current source and target text, with provenance and translator context | yes | no |
@@ -121,7 +122,7 @@ The server answers the handshake with fixed `instructions`, which most clients p
 - `key.value`, `lock.state`, `status.check` and `status.diff` carry provenance, left out when `verbatra.provenance.json` is unreadable.
 - `locale.values` and `report.provenance` page their entries in source key order: `limit` (default 200, at most 1,000), then the previous page's `nextCursor` as `cursor`. A page lists only the locales it holds entries for, and a stale cursor fails as invalid input.
 - `locale.values` takes `keys` or a case-insensitive `query` and returns entry arrays, not Studio's key map. `report.provenance` always returns complete counts; `includeEntries` adds the keys, optionally for some `buckets`.
-- `history.list` takes `limit` (default 50, at most 200). With `available: false` its `reason` is `git-missing`, `not-a-repository`, `timeout` or `output-too-large`.
+- `history.list` takes `limit` (default 50, at most 200). With `available: false` its `reason` is `git-missing`, `not-a-repository`, `bare-repository`, `dubious-ownership`, `timeout`, `output-too-large`, `unsafe-config` or `git-too-old`.
 - The writing tools take an optional `lockTimeoutMs`, `0` to `600000`, default `30000`: how long to wait for a held write lock before failing with `LOCK_CONTENDED`, writing nothing.
 - Inputs and outputs are JSON Schemas; bad input returns a result naming the field. A result that does not match its `outputSchema` fails with `OUTPUT_SCHEMA_MISMATCH`; from a writing tool the change was applied, so do not retry.
 - A failed call's text starts with its error code, such as `UNKNOWN_KEY: ...`, and ends with a `Next step: ...` line when the error has one, the same text as the CLI's `hint`.
@@ -166,7 +167,7 @@ Every result and log line is redacted as in Studio: a value shaped like an API k
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-With `--redact-values`, or `VERBATRA_MCP_REDACT_VALUES` set to a value `VERBATRA_MCP_ALLOW_SPEND` accepts, results replace source texts, translations, descriptions and glossary terms with a marker, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`, and leave out reviewer and author names; equal values share a hash until the server stops. Errors that can carry values keep code and next step; the message becomes a marker. Key names, counts, origins, integrity verdicts, commit subjects and paths stay. `review.approve` and `review.reject` take only the marker's hash, as `expectedHash`; `glossary.write` answers with counts; `locale.values` refuses `query` and `key.context` refuses `draft`. Spend tools still need `--allow-spend`; a provider still receives the text. It does not stop an agent probing on purpose, through glossary writes or `key.context` glossary hits.
+With `--redact-values`, or `VERBATRA_MCP_REDACT_VALUES` set to a value `VERBATRA_MCP_ALLOW_SPEND` accepts, results replace source texts, translations, descriptions and glossary terms with a marker, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`, and leave out reviewer and author names, word diffs and `history.keyRevisions` subjects; equal values share a hash until the server stops. Errors that can carry values keep code and next step; the message becomes a marker. Key names, counts, origins, integrity verdicts, commit subjects and paths stay. `review.approve` and `review.reject` take only the marker's hash, as `expectedHash`; `glossary.write` answers with counts; `locale.values` refuses `query` and `key.context` refuses `draft`. A provider still receives the text. It does not stop an agent probing on purpose, through glossary writes or `key.context` glossary hits.
 
 ### Stdout and stderr
 
@@ -179,7 +180,7 @@ verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
 
-In a terminal, it also says a client should launch it. `verbatra mcp --quiet` drops these lines, but not the reason for a missing config.
+In a terminal, it also says a client should launch it. `--quiet` drops these lines, not the missing-config reason.
 
 ### Installation
 

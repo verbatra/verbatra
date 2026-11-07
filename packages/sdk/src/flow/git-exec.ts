@@ -12,8 +12,8 @@ export interface GitExecFileResult {
 
 /**
  * An argument-array process runner, never a shell string, mirroring the shape of
- * `util.promisify(child_process.execFile)`. {@link localeHistory}, {@link localeGitStatus} and
- * {@link localeGitDiff} call it only to run `git`. Inject your own to sandbox those calls or to
+ * `util.promisify(child_process.execFile)`. {@link localeHistory}, {@link keyHistory},
+ * {@link localeGitStatus} and {@link localeGitDiff} call it only to run `git`. Inject your own to sandbox those calls or to
  * serve the answers from somewhere else. The default runner passes git a minimal environment with
  * no inherited `GIT_*` variable. A runner of your own must do the same, and must honour the
  * timeout and output limits: only the default runner guarantees them. It need not set
@@ -160,6 +160,7 @@ export type GitRunResult =
 export interface GitLimits {
   readonly timeout?: number;
   readonly maxBuffer?: number;
+  readonly config?: readonly string[];
 }
 
 export interface GitRunner {
@@ -190,11 +191,15 @@ export function createGitRunner(
   return {
     async run(args, limits = {}) {
       try {
-        const { stdout } = await execFile("git", buildSafeGitArgs(configOverrides, args), {
-          cwd,
-          timeout: limits.timeout ?? LOCALE_GIT_TIMEOUT_MS,
-          maxBuffer: limits.maxBuffer ?? LOCALE_GIT_MAX_OUTPUT_BYTES,
-        });
+        const { stdout } = await execFile(
+          "git",
+          buildSafeGitArgs([...configOverrides, ...(limits.config ?? [])], args),
+          {
+            cwd,
+            timeout: limits.timeout ?? LOCALE_GIT_TIMEOUT_MS,
+            maxBuffer: limits.maxBuffer ?? LOCALE_GIT_MAX_OUTPUT_BYTES,
+          },
+        );
         return { ok: true, stdout };
       } catch (error) {
         return { ok: false, failure: classifyGitFailure(error) };

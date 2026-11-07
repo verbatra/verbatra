@@ -125,7 +125,7 @@ ressemble à une clé d'API.
 
 **Le serveur MCP** parle via stdio sans ouvrir de port. Ses outils de lecture renvoient textes,
 glossaire et statut ; [`--redact-values`](/fr/docs/cli/mcp#redacted-values) masque chaque valeur.
-`history.list` donne l'auteur de chaque commit (pas
+`history.list` et `history.keyRevisions` donnent l'auteur de chaque commit (pas
 avec `--redact-values`), jamais l'e-mail.
 
 Un client MCP, ou un agent navigateur qui utilise `--expose-agent-tools` de Studio, envoie ce qu'il

@@ -120,8 +120,8 @@ API key, with `[REDACTED]`.
 **Studio** binds to `127.0.0.1` only, with a [session token](/docs/cli/studio), rejects another `Host` or
 `Origin`, and its Content-Security-Policy blocks fetches to the internet.
 
-**The MCP server** talks over stdio and opens no port. Its read tools return your strings, glossary
-and status; [`--redact-values`](/docs/cli/mcp#redacted-values) masks each value. `history.list` names each commit's author (not under
+**The MCP server** talks over stdio and opens no port. Its read tools return strings, glossary
+and status; [`--redact-values`](/docs/cli/mcp#redacted-values) masks values. `history.list` and `history.keyRevisions` name each commit's author (not under
 `--redact-values`), never the email.
 
 An MCP client, or a browser agent using Studio's `--expose-agent-tools`, sends what it reads to its

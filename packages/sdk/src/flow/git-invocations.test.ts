@@ -8,6 +8,7 @@ import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js"
 import { localeGitDiff } from "./git-diff.js";
 import { defaultGitExecFile, type GitExecFile, SAFE_GIT_PREFIX } from "./git-exec.js";
 import { localeGitStatus } from "./git-status.js";
+import { keyHistory } from "./key-history.js";
 import { localeHistory } from "./locale-history.js";
 
 const execFileAsync = promisify(execFileCb);
@@ -64,6 +65,7 @@ async function allCalls(fx: GitFixture): Promise<Recorded[]> {
   await localeGitStatus({ config, cwd: fx.root }, { execFile });
   await localeGitDiff({ config, cwd: fx.root, locale: "de" }, { execFile });
   await localeHistory({ config, cwd: fx.root }, { execFile });
+  await keyHistory({ config, cwd: fx.root, locale: "de", key: "a" }, { execFile });
   return calls;
 }
 
@@ -183,7 +185,7 @@ describe("the source of the git calls", () => {
     const execSource = readFileSync(join(import.meta.dirname, "git-exec.ts"), "utf8");
 
     expect([...subcommands].sort()).toEqual(
-      ["cat-file", "ls-tree", "rev-parse", "show-ref", "status", "symbolic-ref"].sort(),
+      ["cat-file", "log", "ls-tree", "rev-parse", "show-ref", "status", "symbolic-ref"].sort(),
     );
     expect(execSource).toMatch(/CONFIG_LIST = \["config", "--list"/);
     expect(logSource).toMatch(/buildSafeGitArgs\(/);
@@ -224,13 +226,13 @@ describe("an inherited GIT_DIR does not steer localeHistory", () => {
 });
 
 describe("a bare repository planted in the project folder", () => {
-  it("is refused by localeHistory as an empty history, never opened", async () => {
+  it("is refused by localeHistory with its own reason, never opened", async () => {
     const fx = await makeGitFixture({ init: false });
     fixtures.push(fx);
     await fx.git(["init", "-q", "--bare"]);
 
     const history = await localeHistory({ config: baseConfig(), cwd: fx.root });
 
-    expect(history).toEqual({ available: true, commits: [] });
+    expect(history).toEqual({ available: false, reason: "bare-repository" });
   });
 });
