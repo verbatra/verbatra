@@ -196,6 +196,7 @@ const READS: readonly Call[] = [
   { name: "key.context", arguments: { locale: "de", key: "greeting", draft: `${CANARY}` } },
   { name: "report.provenance", arguments: { includeEntries: true } },
   { name: "history.list", arguments: {} },
+  { name: "history.keyRevisions", arguments: { locale: "de", key: "greeting" } },
   { name: "glossary.get", arguments: { locale: "de" } },
   { name: "glossary.write", arguments: { term: `${CANARY}new`, translation: `${CANARY}-new` } },
   {
@@ -424,6 +425,22 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
       expect(commit).not.toHaveProperty("author");
       expect(commit.subject).toBe("add locale files");
     }
+  });
+
+  it("answers history.keyRevisions with markers, no word diff and no author name", () => {
+    const history = answers.find((answer) => answer.call.name === "history.keyRevisions");
+    const result = structuredOf(history as Answer);
+    const revisions = result.revisions as readonly Record<string, unknown>[];
+
+    expect(result.available).toBe(true);
+    expect(revisions.length).toBeGreaterThan(0);
+    for (const revision of revisions) {
+      expect(revision).not.toHaveProperty("author");
+      expect(revision.value).toMatch(MARKER);
+      expect(revision.diff).toEqual([]);
+      expect(revision.subject).toBe("add locale files");
+    }
+    expect(result.workingTree).toBeUndefined();
   });
 
   it("writes an edit and answers with a marker instead of the value", () => {

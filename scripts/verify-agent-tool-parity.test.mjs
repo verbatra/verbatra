@@ -14,6 +14,7 @@ const INTENDED_DIFFERENCES = new Map([
     "stdio only: it runs without a usable config, and Studio cannot start without one",
   ],
   ["report.provenance", "stdio only until Studio gets a provenance report tool"],
+  ["history.keyRevisions", "stdio first: the Studio RPC and WebMCP twin lands in the next change"],
 ]);
 
 function readSources(dir) {

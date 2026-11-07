@@ -1,4 +1,4 @@
-import type { GitExecFile } from "@verbatra/sdk";
+import { type GitExecFile, LOCALE_HISTORY_UNAVAILABLE_REASONS } from "@verbatra/sdk";
 import { describe, expect, it, vi } from "vitest";
 import { baseLoadedConfig, baseVerbatraConfig, makeContext } from "../test-support.js";
 import { historyListTool } from "./history-list.js";
@@ -72,6 +72,30 @@ describe("history.list", () => {
       kind: "ok",
       result: { available: false, reason: "not-a-repository" },
     });
+  });
+
+  it("reports a repository owned by another user instead of an empty history", async () => {
+    const outcome = await historyListTool.execute(
+      {},
+      makeContext({
+        cwd: "/project",
+        execFile: failing({
+          code: 128,
+          stderr: "fatal: detected dubious ownership in repository at '/project'",
+        }),
+      }),
+    );
+
+    expect(outcome).toEqual({
+      kind: "ok",
+      result: { available: false, reason: "dubious-ownership" },
+    });
+  });
+
+  it("names every reason the sdk can give in its description", () => {
+    for (const reason of LOCALE_HISTORY_UNAVAILABLE_REASONS) {
+      expect(historyListTool.description).toContain(reason);
+    }
   });
 
   it("passes a locale path shaped like an option only after the -- separator", async () => {
