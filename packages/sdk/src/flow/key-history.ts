@@ -743,6 +743,14 @@ function workingTreeValue(
   return { value: shown, ...(valueRedacted ? { valueRedacted: true as const } : {}), diff };
 }
 
+function latchedDeadline(deadline: number): () => boolean {
+  let passed = false;
+  return () => {
+    passed = passed || Date.now() >= deadline;
+    return passed;
+  };
+}
+
 function buildScope(
   input: KeyHistoryInput,
   tree: GitWorkTree,
@@ -765,7 +773,7 @@ function buildScope(
     lockPath: `${tree.prefix}verbatra.lock.json`,
     provenancePath: `${tree.prefix}verbatra.provenance.json`,
     pathspecs: [paths.main, ...paths.siblings],
-    expired: () => Date.now() >= deadline,
+    expired: latchedDeadline(deadline),
     limits,
   };
 }
@@ -786,7 +794,7 @@ function buildScope(
  * from the provenance file and `sourceChanged` from the lock-file as committed with the
  * revision. At most {@link LOCALE_HISTORY_LIMIT_CAP} commits are examined,
  * {@link LOCALE_HISTORY_LIMIT_DEFAULT} by default, four files are read at a time, and after
- * {@link KEY_HISTORY_DEADLINE_MS} no further commit is examined and no file read starts; the
+ * {@link KEY_HISTORY_DEADLINE_MS} no further commit is examined and no commit file read starts (the file on disk is still read); the
  * `git log` call, a size listing and a read already running keep their own 10 second limit. A revision whose records were not read has no `origin` and `sourceChanged`
  * `"unknown"`.
  *

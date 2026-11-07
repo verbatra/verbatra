@@ -530,6 +530,41 @@ describe("keyHistory deadline during a git failure", () => {
   });
 });
 
+describe("keyHistory when the clock steps back across the deadline", () => {
+  it("stays expired once expired and never throws, whatever the step", async () => {
+    const fx = await repo();
+    await fx.write("locales/en.json", json({ a: "A" }));
+    for (const value of ["1", "2", "3", "4"]) {
+      await fx.write("locales/de.json", json({ a: value }));
+      await fx.write(
+        "verbatra.lock.json",
+        `${JSON.stringify({ version: 1, locales: { de: {} } })}\n`,
+      );
+      await fx.commitAll(`set ${value}`);
+    }
+    const real = Date.now.bind(Date);
+    const failures: string[] = [];
+
+    for (let after = 1; after <= 30; after += 1) {
+      for (const width of [1, 2, 4, 8]) {
+        let calls = 0;
+        vi.spyOn(Date, "now").mockImplementation(() => {
+          calls += 1;
+          return real() + (calls > after && calls <= after + width ? 3_600_000 : 0);
+        });
+        try {
+          await run(fx);
+        } catch (error) {
+          failures.push(`${after}/${width}: ${String(error)}`);
+        }
+        vi.restoreAllMocks();
+      }
+    }
+
+    expect(failures).toEqual([]);
+  });
+});
+
 describe("a repository that sets a log output encoding", () => {
   it("still lists every commit in keyHistory and localeHistory, and plain git log would not", async () => {
     const fx = await repo();
