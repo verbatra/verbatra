@@ -210,7 +210,7 @@ describe("the project watcher and git", () => {
     async function settleGit(operate: () => Promise<void>): Promise<boolean> {
       const before = events.filter((event) => event.reason === "git").length;
       await operate();
-      for (let waited = 0; waited < 5000; waited += 100) {
+      for (let waited = 0; waited < 10_000; waited += 100) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         if (events.filter((event) => event.reason === "git").length > before) {
           return true;

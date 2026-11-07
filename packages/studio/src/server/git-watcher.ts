@@ -21,6 +21,7 @@ export interface GitWatcher {
 }
 
 const DEFAULT_IDLE_POLL_FACTOR = 6;
+const MAX_BACKOFF_MS = 30_000;
 
 function directoriesOf(files: readonly string[]): readonly string[] {
   return Array.from(new Set(files.map((file) => dirname(file))));
@@ -38,6 +39,10 @@ export async function createGitWatcher(options: GitWatcherOptions): Promise<GitW
   const idlePollMs = options.idlePollMs ?? options.pollMs * DEFAULT_IDLE_POLL_FACTOR;
   let watcher: StudioWatcher | undefined;
   let watchedKey: string | undefined;
+  let lastKey: string | undefined;
+  let failures = 0;
+  let recovering = false;
+  let announcedSinceHealthy = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let closed = false;
   let queue: Promise<void> = Promise.resolve();
@@ -68,12 +73,30 @@ export async function createGitWatcher(options: GitWatcherOptions): Promise<GitW
     timer.unref();
   }
 
+  function noteFailure(): void {
+    failures += 1;
+    if (!announcedSinceHealthy) {
+      recovering = true;
+    }
+  }
+
+  function retryLater(): void {
+    schedule(Math.min(options.pollMs * 2 ** (failures - 1), MAX_BACKOFF_MS));
+  }
+
+  function noteHealthy(): void {
+    failures = 0;
+    recovering = false;
+    announcedSinceHealthy = false;
+  }
+
   async function failWatching(): Promise<void> {
     if (closed) {
       return;
     }
+    noteFailure();
     await stopWatching();
-    schedule(options.pollMs);
+    retryLater();
   }
 
   async function lookUp(): Promise<GitWatchPaths> {
@@ -85,6 +108,7 @@ export async function createGitWatcher(options: GitWatcherOptions): Promise<GitW
     const directories = directoriesOf(paths).filter((_, index) => present[index] === true);
     const key = `${paths.join("\n")}\n--\n${directories.join("\n")}`;
     if (key === watchedKey) {
+      noteHealthy();
       schedule(idlePollMs);
       return;
     }
@@ -107,11 +131,18 @@ export async function createGitWatcher(options: GitWatcherOptions): Promise<GitW
       watchedKey = key;
       built.onChange(options.onChange);
     } catch {
+      noteFailure();
       await stopWatching();
-      schedule(options.pollMs);
+      retryLater();
       return;
     }
-    if (announce) {
+    const changed = key !== lastKey;
+    lastKey = key;
+    if (announce && (changed || recovering)) {
+      if (recovering) {
+        recovering = false;
+        announcedSinceHealthy = true;
+      }
       options.onChange();
     }
     schedule(idlePollMs);
@@ -126,8 +157,9 @@ export async function createGitWatcher(options: GitWatcherOptions): Promise<GitW
       return;
     }
     if (!resolved.available) {
+      noteFailure();
       await stopWatching();
-      schedule(options.pollMs);
+      retryLater();
       return;
     }
     await arm(resolved.paths, announce);

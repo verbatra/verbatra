@@ -165,7 +165,7 @@ describe("createGitWatcher", () => {
     expect(onChange).not.toHaveBeenCalled();
 
     current = HERE;
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(4000);
 
     expect(built).toHaveLength(2);
     expect(built[1]?.closed).toBe(false);
@@ -544,5 +544,159 @@ describe("createGitWatcher", () => {
     await vi.advanceTimersByTimeAsync(120_000);
 
     expect(resolvePaths.mock.calls.length).toBe(calls);
+  });
+
+  describe("backoff", () => {
+    const GAPS = [1000, 2000, 4000, 8000, 16_000, 30_000, 30_000];
+
+    async function failThroughGaps(
+      built: readonly Built[],
+      gaps: readonly number[],
+    ): Promise<number[]> {
+      const rebuiltAfter: number[] = [];
+      for (const gap of gaps) {
+        const count = built.length;
+        await vi.advanceTimersByTimeAsync(gap - 1);
+        expect(built).toHaveLength(count);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(built).toHaveLength(count + 1);
+        rebuiltAfter.push(gap);
+        built.at(-1)?.fail();
+        await vi.advanceTimersByTimeAsync(0);
+      }
+      return rebuiltAfter;
+    }
+
+    it("retries a failing watcher after 1, 2, 4, 8, 16 and then 30 seconds at most", async () => {
+      vi.useFakeTimers();
+      const { createWatcher, built } = harness();
+      const watcher = await createGitWatcher(options({ createWatcher }));
+      built[0]?.fail();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(await failThroughGaps(built, GAPS)).toEqual(GAPS);
+      await watcher.close();
+    });
+
+    it("retries a repository that stays unavailable on the same growing schedule", async () => {
+      vi.useFakeTimers();
+      const { createWatcher } = harness();
+      const resolvePaths = vi.fn(async (): Promise<GitWatchPaths> => ({ available: false }));
+      const watcher = await createGitWatcher(options({ createWatcher, resolvePaths }));
+      const times: number[] = [];
+      let last = Date.now();
+      for (let step = 0; step < 6; step += 1) {
+        const before = resolvePaths.mock.calls.length;
+        while (resolvePaths.mock.calls.length === before) {
+          await vi.advanceTimersByTimeAsync(500);
+        }
+        times.push(Date.now() - last);
+        last = Date.now();
+      }
+
+      expect(times).toEqual([1000, 2000, 4000, 8000, 16_000, 30_000]);
+      await watcher.close();
+    });
+
+    it("announces a recovery once, however often the rebuilt watcher fails again", async () => {
+      vi.useFakeTimers();
+      const { createWatcher, built } = harness();
+      const onChange = vi.fn();
+      const watcher = await createGitWatcher(options({ createWatcher, onChange }));
+      built[0]?.fail();
+      await vi.advanceTimersByTimeAsync(0);
+
+      await failThroughGaps(built, GAPS);
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      await watcher.close();
+    });
+
+    it("announces again after the watcher has been healthy and then fails once more", async () => {
+      vi.useFakeTimers();
+      const { createWatcher, built } = harness();
+      const onChange = vi.fn();
+      const watcher = await createGitWatcher(
+        options({ createWatcher, onChange, idlePollMs: 5000 }),
+      );
+      built[0]?.fail();
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(onChange).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      built.at(-1)?.fail();
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(built).toHaveLength(3);
+      expect(onChange).toHaveBeenCalledTimes(2);
+      await watcher.close();
+    });
+
+    it("starts again from one second after a healthy stretch", async () => {
+      vi.useFakeTimers();
+      const { createWatcher, built } = harness();
+      const watcher = await createGitWatcher(options({ createWatcher, idlePollMs: 5000 }));
+      built[0]?.fail();
+      await vi.advanceTimersByTimeAsync(1000);
+      built[1]?.fail();
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(built).toHaveLength(3);
+      await vi.advanceTimersByTimeAsync(5000);
+      const count = built.length;
+
+      built[2]?.fail();
+      await vi.advanceTimersByTimeAsync(999);
+      expect(built).toHaveLength(count);
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(built).toHaveLength(count + 1);
+      await watcher.close();
+    });
+
+    it("backs off a watcher that cannot be built at all", async () => {
+      vi.useFakeTimers();
+      let attempts = 0;
+      const refusing: CreateStudioWatcher = () => {
+        attempts += 1;
+        throw new Error("watch failed");
+      };
+      const watcher = await createGitWatcher(options({ createWatcher: refusing }));
+      expect(attempts).toBe(1);
+
+      for (const gap of [1000, 2000, 4000]) {
+        const before = attempts;
+        await vi.advanceTimersByTimeAsync(gap - 1);
+        expect(attempts).toBe(before);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(attempts).toBe(before + 1);
+      }
+      await watcher.close();
+    });
+
+    it("announces a changed set of files once and nothing while it stays the same", async () => {
+      vi.useFakeTimers();
+      const { createWatcher } = harness();
+      const onChange = vi.fn();
+      let current: GitWatchPaths = HERE;
+      const watcher = await createGitWatcher(
+        options({
+          createWatcher,
+          onChange,
+          idlePollMs: 5000,
+          resolvePaths: async () => current,
+        }),
+      );
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(onChange).not.toHaveBeenCalled();
+
+      current = { available: true, paths: ["/w/index", "/w/HEAD", "/w/logs/HEAD"] };
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(onChange).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(20_000);
+      expect(onChange).toHaveBeenCalledTimes(1);
+      await watcher.close();
+    });
   });
 });
