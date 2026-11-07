@@ -40,7 +40,9 @@ function parseTreeEntry(stdout: string, repoPath: string): TreeEntry | undefined
   return undefined;
 }
 
-function failedRead(failure: GitFailure): BlobRead {
+type BlobFailure = Extract<BlobRead, { readonly kind: "unreadable" | "failed" }>;
+
+function failedRead(failure: GitFailure): BlobFailure {
   return failure.kind === "git-failed"
     ? { kind: "unreadable" }
     : { kind: "failed", reason: unavailable(failure).reason };
@@ -50,8 +52,21 @@ export async function readBlobAtHead(tree: GitWorkTree, repoPath: string): Promi
   if (tree.head === undefined) {
     return { kind: "absent" };
   }
-  const spec = blobSpec(tree.head, repoPath);
-  if (spec === undefined) {
+  return readBlobAtCommit(tree, tree.head, repoPath);
+}
+
+export type BlobStat =
+  | { readonly kind: "sized"; readonly size: number }
+  | { readonly kind: "absent" }
+  | { readonly kind: "unreadable" }
+  | { readonly kind: "failed"; readonly reason: LocaleGitUnavailableReason };
+
+export async function statBlobAtCommit(
+  tree: GitWorkTree,
+  commit: string,
+  repoPath: string,
+): Promise<BlobStat> {
+  if (blobSpec(commit, repoPath) === undefined) {
     return { kind: "unreadable" };
   }
   const listed = await tree.runner.run([
@@ -59,7 +74,7 @@ export async function readBlobAtHead(tree: GitWorkTree, repoPath: string): Promi
     "-z",
     "--long",
     "--full-tree",
-    tree.head,
+    commit,
     "--",
     repoPath,
   ]);
@@ -70,19 +85,41 @@ export async function readBlobAtHead(tree: GitWorkTree, repoPath: string): Promi
   if (entry === undefined) {
     return { kind: "absent" };
   }
-  if (entry.type !== "blob" || !REGULAR_FILE_MODES.has(entry.mode)) {
+  if (entry.type !== "blob" || !REGULAR_FILE_MODES.has(entry.mode) || Number.isNaN(entry.size)) {
     return { kind: "unreadable" };
   }
-  if (Number.isNaN(entry.size)) {
+  return { kind: "sized", size: entry.size };
+}
+
+export async function readBlobBody(
+  tree: GitWorkTree,
+  commit: string,
+  repoPath: string,
+  maxBytes: number = LOCALE_GIT_BLOB_MAX_BYTES,
+): Promise<BlobRead> {
+  const spec = blobSpec(commit, repoPath);
+  if (spec === undefined) {
     return { kind: "unreadable" };
-  }
-  if (entry.size > LOCALE_GIT_BLOB_MAX_BYTES) {
-    return { kind: "failed", reason: "output-too-large" };
   }
   const blob = await tree.runner.run(["cat-file", "blob", spec], {
-    maxBuffer: LOCALE_GIT_BLOB_MAX_BYTES + 1,
+    maxBuffer: Math.min(maxBytes, LOCALE_GIT_BLOB_MAX_BYTES),
   });
   return blob.ok ? { kind: "ok", content: blob.stdout } : failedRead(blob.failure);
+}
+
+export async function readBlobAtCommit(
+  tree: GitWorkTree,
+  commit: string,
+  repoPath: string,
+): Promise<BlobRead> {
+  const stat = await statBlobAtCommit(tree, commit, repoPath);
+  if (stat.kind !== "sized") {
+    return stat;
+  }
+  if (stat.size > LOCALE_GIT_BLOB_MAX_BYTES) {
+    return { kind: "failed", reason: "output-too-large" };
+  }
+  return readBlobBody(tree, commit, repoPath);
 }
 
 function missing(path: string): Error {

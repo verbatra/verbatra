@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GitExecFile } from "./git-exec.js";
 import { LOCALE_HISTORY_UNAVAILABLE_REASONS, runGitLog } from "./git-log.js";
+import { LOCALE_GIT_UNAVAILABLE_REASONS } from "./git-worktree.js";
 
 const DUBIOUS = Object.assign(new Error("git failed"), {
   code: 128,
@@ -8,7 +9,7 @@ const DUBIOUS = Object.assign(new Error("git failed"), {
 });
 
 describe("runGitLog and a repository owned by another user", () => {
-  it("keeps reading it as an empty history, as it did before the shared failure mapping", async () => {
+  it("says so instead of reading it as an empty history", async () => {
     const execFile: GitExecFile = async () => {
       throw DUBIOUS;
     };
@@ -19,15 +20,21 @@ describe("runGitLog and a repository owned by another user", () => {
       watchedPaths: ["/project/de.json"],
     });
 
-    expect(result).toEqual({ available: true, commits: [] });
+    expect(result).toEqual({ available: false, reason: "dubious-ownership" });
   });
 
-  it("does not add a reason to the published history reasons", () => {
-    expect(LOCALE_HISTORY_UNAVAILABLE_REASONS).toEqual([
-      "git-missing",
-      "not-a-repository",
-      "timeout",
-      "output-too-large",
-    ]);
+  it("gives every repository reason the git status and diff calls give", () => {
+    const repositoryReasons = LOCALE_GIT_UNAVAILABLE_REASONS.filter(
+      (reason) =>
+        ![
+          "git-failed",
+          "custom-adapter",
+          "revision-unreadable",
+          "working-file-unreadable",
+          "outside-project",
+        ].includes(reason),
+    );
+
+    expect([...LOCALE_HISTORY_UNAVAILABLE_REASONS].sort()).toEqual([...repositoryReasons].sort());
   });
 });

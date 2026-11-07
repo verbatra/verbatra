@@ -5,6 +5,7 @@
     "run",
     "inspect",
     "review",
+    "history",
     "exchange",
     "config",
     "extend",

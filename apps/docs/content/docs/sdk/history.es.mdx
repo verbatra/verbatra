@@ -1,0 +1,36 @@
+---
+title: "Historial de una clave"
+seoTitle: "SDK: el historial git de una clave de traducción"
+description: "Lee cómo cambió la traducción de una clave de commit en commit, con el autor, el origen del valor y una diferencia a nivel de palabra."
+type: reference
+---
+<AvailableFrom version="0.13.0" />
+
+## Historial de git de una clave
+
+### keyHistory
+
+Lista los commits en los que cambió el valor de una clave en una locale de destino, del más nuevo al más antiguo, cada uno con una diferencia a nivel de palabra respecto al valor anterior. Solo lectura; recibe una locale y una clave, nunca una ruta, y ejecuta `git log` y `git cat-file` mediante el `execFile` inyectable.
+
+```ts title="Firma"
+function keyHistory(
+  input: KeyHistoryInput,
+  deps?: KeyHistoryDeps,
+): Promise<KeyHistoryResult>;
+```
+
+<SdkTypeTable name="KeyHistoryInput" />
+
+**Devuelve:** `KeyHistoryResult`
+
+**Lanza:** [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`UNKNOWN_KEY`](/es/docs/error-codes#unknown_key), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision)
+
+Cada revisión lleva `commit`, `authorDate`, `author` (el nombre tras `.mailmap`, nunca el correo), `subject`, `value`, `origin`, `sourceChanged` y `diff`. Los caracteres de control y de formato bidireccional se quitan de `author` y `subject`, que se recortan a 200 y 500 caracteres. `diff` lista segmentos `{ kind, text }` con `kind` `equal`, `added` o `removed`: los marcadores de posición y las etiquetas quedan enteros, un cambio de espacios en blanco se muestra como cambio, y una diferencia demasiado grande para alinear pasa a ser un bloque eliminado y otro añadido. `origin` viene del archivo de procedencia tal como se confirmó con la revisión: un origen guardado, `unrecorded`, o `external` cuando su registro describe otro valor, y falta si ese archivo no se pudo leer ni analizar, supera 4 MiB o se acabó antes el tiempo. `sourceChanged` es `true` cuando el origen actual de la clave difiere del que registró el lock-file confirmado, `false` cuando coincide y `"unknown"` cuando faltan el lock-file, su entrada o el origen actual, no se pudieron leer ni analizar, superan su límite o se acabó antes el tiempo. Restaurar un valor cuyo origen cambió hace que cuente como actualizado.
+
+Cada valor y ambos lados de cada `diff` pasan por `redact`. Un valor que contenía una clave de API vuelve con `[REDACTED]` en su lugar y `valueRedacted: true`: no es el texto guardado, así que no lo ofrezcas para restaurar. Una clave que ya no está configurada no se reconoce y se devuelve tal como está escrita.
+
+Los commits salen de `git log --first-parent` sobre el archivo de la locale (y el archivo `.stringsdict` en `apple-strings`), así que un cambio que trajo un merge aparece en el commit del merge. Cada archivo se lee con `git cat-file blob` y lo analiza el adaptador integrado, y un commit solo se lista si el valor de la clave difiere del commit inmediatamente anterior en el historial del archivo, que debe haberse leído. Un commit que elimina la clave no se lista. Se examinan hasta `LOCALE_HISTORY_LIMIT_CAP` commits (`LOCALE_HISTORY_LIMIT_DEFAULT` por defecto), se leen cuatro archivos a la vez y tras `KEY_HISTORY_DEADLINE_MS` (`30000` milisegundos) no se examina ningún commit más ni empieza ninguna lectura de archivo; la llamada a `git log`, una consulta de tamaño y una lectura en curso conservan su propio límite de 10 segundos. `truncated` es `true` siempre que algo de lo que examinó la llamada se omitió, no se pudo leer, superó un límite de tamaño, pasó un presupuesto o lo detuvo el plazo: no se examinaron commits más antiguos, el clon es superficial, un commit no se pudo leer ni analizar, tenía un valor demasiado largo o una línea de registro que no se analizó, el lock-file, el archivo de procedencia o el archivo de origen no se pudo leer ni analizar o superó su límite, o se acabó el tiempo; `false` significa que se leyeron todos los commits y archivos examinados, y el archivo del disco solo lo señala `workingTreeUnreadable`. Un commit solo se lista si el commit anterior se leyó, así que un commit cuyo vecino más antiguo no se pudo leer no se da por cambio de la clave.
+
+Git da los tamaños antes de analizar nada, así que el mismo repositorio toma las mismas decisiones sobre límites de tamaño y presupuestos en cualquier máquina; una llamada a git que agota su tiempo, el plazo de 30 segundos y las claves de proveedor del entorno (que deciden qué se depura) aún pueden cambiar una respuesta. Un archivo de locale de más de 512 KiB para `yaml` y los formatos XML (`xliff`, `android-xml`, `resx`, `apple-strings`) o de más de 4 MiB para los demás formatos se omite sin analizar, y los dos archivos de un commit de `apple-strings` cuentan como su suma. Una llamada lee como máximo 16 MiB de archivos de locale para `yaml` y los formatos XML y 128 MiB para los demás: los commits más antiguos que eso no se examinan. Un lock-file o archivo de procedencia de más de 4 MiB no se lee, y una llamada lee como máximo 128 MiB de ellos en conjunto: pasado eso, las revisiones más antiguas no tienen `origin` y `sourceChanged` es `"unknown"`. El archivo de origen se lee hasta el mismo tamaño que los archivos de locale. El análisis cede el bucle de eventos entre archivos. Un commit omitido por su tamaño, que no se puede leer ni analizar, cuya línea de registro no se analizó, o cuyo valor supera `KEY_HISTORY_MAX_VALUE_CHARS` (`4096`) caracteres, cuenta en `unreadableRevisions` y nunca se devuelve en parte; un commit pasado un presupuesto no se examina y no cuenta. `key` tiene como máximo `KEY_HISTORY_MAX_KEY_CHARS` (`1024`) caracteres y nunca llega a git. `workingTree` lleva el valor del disco, con su `diff`, cuando difiere de `HEAD`. Si el valor del disco no se puede comparar con `HEAD` (el archivo no se analiza, como en un conflicto de merge, es un enlace simbólico o supera su límite, su valor es demasiado largo, la copia en `HEAD` no se pudo leer o se acabó el tiempo), las revisiones se listan igualmente y `workingTreeUnreadable` es `true`.
+
+Los renombrados no se siguen, así que el historial anterior a un renombrado no se lista; no ve las ediciones que nunca se confirmaron, y una clave renombrada en el origen parece nueva. Las salvaguardas de git son las de `localeGitStatus`, y el resultado es `{ available: false, reason }` con un motivo de `LOCALE_GIT_UNAVAILABLE_REASONS`, incluido `custom-adapter` para un formato `custom:`.

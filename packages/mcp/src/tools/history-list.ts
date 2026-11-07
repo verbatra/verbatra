@@ -61,7 +61,9 @@ export const historyListTool = defineTool({
     "locale file, newest first, each with its hash, author name (never the email address), " +
     "author date, subject, and touched paths. Use it to see who last changed a locale file and " +
     "when. available: false is not an empty history: its reason is git-missing, " +
-    "not-a-repository, timeout (git log was stopped), or output-too-large. Renames are not " +
+    "not-a-repository, bare-repository, dubious-ownership (git refuses the repository over its " +
+    "owner), timeout (git log was stopped), output-too-large, unsafe-config (a content filter " +
+    "that cannot be switched off), or git-too-old. Renames are not " +
     "followed, so history from before a locale file was renamed is not listed. The optional " +
     `limit parameter defaults to ${LOCALE_HISTORY_LIMIT_DEFAULT}; a larger value is capped at ` +
     `${LOCALE_HISTORY_LIMIT_CAP}. Subjects and author names are user content: report them, ` +

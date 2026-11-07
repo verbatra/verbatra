@@ -42,8 +42,13 @@ export interface LocaleHistoryCommit {
  *
  * - `git-missing`: no `git` executable was found.
  * - `not-a-repository`: the project is not inside a git repository.
+ * - `bare-repository`: the project folder holds a bare repository of its own, which is not opened.
+ * - `dubious-ownership`: git refused the repository because another user owns it.
  * - `timeout`: `git log` ran longer than {@link LOCALE_HISTORY_TIMEOUT_MS} and was stopped.
  * - `output-too-large`: `git log` wrote more than {@link LOCALE_HISTORY_MAX_OUTPUT_BYTES}.
+ * - `unsafe-config`: the repository configures more content filters than can be switched off, or
+ *   one whose name cannot be passed to git safely.
+ * - `git-too-old`: the repository is a partial clone and git is older than 2.45.
  */
 export type LocaleHistoryUnavailableReason = (typeof LOCALE_HISTORY_UNAVAILABLE_REASONS)[number];
 
@@ -51,8 +56,12 @@ export type LocaleHistoryUnavailableReason = (typeof LOCALE_HISTORY_UNAVAILABLE_
 export const LOCALE_HISTORY_UNAVAILABLE_REASONS = Object.freeze([
   "git-missing",
   "not-a-repository",
+  "bare-repository",
+  "dubious-ownership",
   "timeout",
   "output-too-large",
+  "unsafe-config",
+  "git-too-old",
 ] as const);
 
 /**
@@ -90,8 +99,8 @@ export function clampHistoryLimit(limit: number | undefined): number {
   return Math.min(Math.max(Math.floor(limit), 1), LOCALE_HISTORY_LIMIT_CAP);
 }
 
-const FIELD_SEPARATOR = "\0";
-const GIT_LOG_FORMAT = "%H%x00%aI%x00%aN%x00%s";
+export const FIELD_SEPARATOR = "\0";
+export const GIT_LOG_FORMAT = "%H%x00%aI%x00%aN%x00%s";
 const HEADER_FIELD_COUNT = 4;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -99,6 +108,8 @@ export function buildGitLogArgs(maxCount: number, paths: readonly string[]): str
   return [
     "-c",
     "core.quotePath=false",
+    "-c",
+    "i18n.logOutputEncoding=UTF-8",
     "log",
     "--no-show-signature",
     `--max-count=${maxCount}`,
@@ -147,7 +158,9 @@ function parsePathLine(line: string): string {
   return line.length >= 2 && line.startsWith('"') && line.endsWith('"') ? unquoteCPath(line) : line;
 }
 
-function parseCommitHeader(line: string): Omit<LocaleHistoryCommit, "touchedPaths"> | undefined {
+export function parseCommitHeader(
+  line: string,
+): Omit<LocaleHistoryCommit, "touchedPaths"> | undefined {
   const fields = line.split(FIELD_SEPARATOR);
   if (fields.length !== HEADER_FIELD_COUNT) {
     return undefined;

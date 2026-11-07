@@ -82,7 +82,7 @@ function localeHistory(
 
 **Lanza:** [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision)
 
-Cada commit lleva `hash`, `author` (el nombre tras `.mailmap`, nunca el correo), `authorDate`, `subject` y `touchedPaths`. `limit` vale `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) por defecto, como máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`), redondeado hacia abajo y al menos 1. Los caracteres de control y de formato bidireccional se quitan de `author` y `subject`; un commit con metadatos ilegibles se omite. Sin git o sin repositorio, o si `git log` supera `LOCALE_HISTORY_TIMEOUT_MS` o `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, el resultado es `{ available: false, reason }`, un motivo de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulta [Studio y MCP](/es/docs/data-handling#studio-y-mcp).
+Cada commit lleva `hash`, `author` (el nombre tras `.mailmap`, nunca el correo), `authorDate`, `subject` y `touchedPaths`. `limit` vale `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) por defecto, como máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`), redondeado hacia abajo y al menos 1. Los caracteres de control y de formato bidireccional se quitan de `author` y `subject`; un commit con metadatos ilegibles se omite. Como en `localeGitStatus`, un repositorio que git no puede leer, o un `git log` que supera `LOCALE_HISTORY_TIMEOUT_MS` o `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, da `{ available: false, reason }`, un motivo de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulta [Studio y MCP](/es/docs/data-handling#studio-y-mcp).
 
 ### localeGitStatus
 

@@ -40,7 +40,7 @@ export function lockFilePath(cwd: string): string {
   return resolve(cwd, LOCK_FILE_NAME);
 }
 
-function parseLockFileRead(read: BoundedFileRead, path: string): LockFile {
+export function parseLockFileRead(read: BoundedFileRead, path: string): LockFile {
   if (read.kind === "missing") {
     return EMPTY_LOCK;
   }

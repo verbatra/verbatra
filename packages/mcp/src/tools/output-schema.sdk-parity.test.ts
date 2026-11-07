@@ -8,6 +8,7 @@ import type {
   Glossary,
   glossaryForLocale,
   keyContext,
+  keyHistory,
   keyValue,
   localeHistory,
   localeValuesPage,
@@ -22,6 +23,7 @@ import { describe, expectTypeOf, it } from "vitest";
 import type { EditEntryResult } from "./edit-entry.js";
 import type { EstimateResult } from "./estimate.js";
 import type { GlossaryResult, LocaleTerm } from "./glossary.js";
+import type { HistoryKeyRevisionsResult } from "./history-key-revisions.js";
 import type { HistoryListResult } from "./history-list.js";
 import type { KeyContextResult } from "./key-context.js";
 import type { KeyValueResult } from "./key-value.js";
@@ -92,6 +94,12 @@ describe("output schemas declare every field the SDK result they pass through ca
   it("history.list", () => {
     expectTypeOf<
       Undeclared<SdkResult<typeof localeHistory>, HistoryListResult>
+    >().toEqualTypeOf<never>();
+  });
+
+  it("history.keyRevisions", () => {
+    expectTypeOf<
+      Undeclared<SdkResult<typeof keyHistory>, HistoryKeyRevisionsResult>
     >().toEqualTypeOf<never>();
   });
 

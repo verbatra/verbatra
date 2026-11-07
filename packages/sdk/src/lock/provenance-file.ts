@@ -177,7 +177,7 @@ function parseLocales(
   });
 }
 
-function parseProvenanceRead(read: BoundedFileRead, path: string): ProvenanceRead {
+export function parseProvenanceRead(read: BoundedFileRead, path: string): ProvenanceRead {
   if (read.kind === "missing") {
     return { file: emptyProvenance(), writable: true };
   }

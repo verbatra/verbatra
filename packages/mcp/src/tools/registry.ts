@@ -2,6 +2,7 @@ import type { RegisteredMcpTool } from "./define-tool.js";
 import { editEntryTool } from "./edit-entry.js";
 import { estimateTool } from "./estimate.js";
 import { glossaryGetTool, glossaryWriteTool } from "./glossary.js";
+import { historyKeyRevisionsTool } from "./history-key-revisions.js";
 import { historyListTool } from "./history-list.js";
 import { keyContextTool } from "./key-context.js";
 import { keyIntegrityTool } from "./key-integrity.js";
@@ -34,6 +35,7 @@ const ALL_TOOLS_IN_ORDER: readonly RegisteredMcpTool[] = [
   glossaryWriteTool,
   lockStateTool,
   historyListTool,
+  historyKeyRevisionsTool,
   keyIntegrityTool,
   localeIntegrityTool,
   keyValueTool,

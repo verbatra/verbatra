@@ -70,6 +70,7 @@ Every tool, listed in the order the server advertises them.
 | `glossary.write` | Change one glossary term (a translation for all locales or one `locale`, `forbidden` renderings, `note`, `partOfSpeech`, `caseSensitive`, or `doNotTranslate`) and return the glossary afterward |
 | `lock.state` | The lock file's version and its per-locale key counts, or `exists: false` before the first run |
 | `history.list` | Recent git commits that touched a locale file, with hash, author name (never the email), date, subject and touched paths |
+| `history.keyRevisions` | The commits in which one key changed in one target locale, with the value, a word diff, where the value came from, whether the source changed since, and the uncommitted value |
 | `key.integrity` | One key's placeholder, inline markup, and ICU drift against the lock-file baseline, per locale |
 | `locale.integrity` | Every translation that fails the placeholder, markup or ICU checks right now, per target locale |
 | `key.value` | One key's current source text, its source file description, and, if translated, its current text in one target locale with who wrote it |
