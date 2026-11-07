@@ -4,6 +4,7 @@ import type {
   GitStatusResult,
   GitUnavailableReason,
 } from "../shared/rpc/git.js";
+import type { KeyRevisionsResult } from "../shared/rpc/key-revisions.js";
 import { routeHash } from "./routes.js";
 import type { FetchOutcome, RefreshableView, StructuredError } from "./state.js";
 import { applyRefreshOutcome } from "./state.js";
@@ -75,7 +76,7 @@ export const GIT_UNAVAILABLE_MESSAGES: Readonly<Record<GitUnavailableReason, str
 const TRANSIENT_REASONS: ReadonlySet<GitUnavailableReason> = new Set(["timeout", "git-failed"]);
 
 export function transientGitError(
-  result: GitStatusResult | GitLocaleDiffResult,
+  result: GitStatusResult | GitLocaleDiffResult | KeyRevisionsResult,
 ): StructuredError | undefined {
   if (result.available || !TRANSIENT_REASONS.has(result.reason)) {
     return undefined;

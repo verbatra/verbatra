@@ -10,31 +10,33 @@ Das brauchst du, wenn eine Übersetzung umformuliert wurde und du die frühere F
 
 ## Öffne den Tab History
 
-Starte Studio ([Review in Studio](/de/docs/review-in-studio#starte-studio)), öffne einen Key unter Translations und wähle **History** neben **Locales**. Wähle die Locale, wenn das Projekt mehrere hat. Studio liest erst aus Git, wenn du den Tab öffnest.
+Starte Studio ([Review in Studio](/de/docs/review-in-studio#starte-studio)), öffne einen Key unter Translations und wähle **History** neben **Locales**. Wähle die Locale, wenn das Projekt mehrere hat. Studio liest den Verlauf dieses Keys erst aus Git, wenn du den Tab öffnest.
 
-Die Liste beginnt mit **Working tree (uncommitted)**, wenn die Datei auf der Platte vom letzten Commit abweicht. Darunter folgt, neueste zuerst, jeder Commit, der den Wert des Keys in dieser Locale geändert hat. Jede Zeile zeigt:
+Die Liste beginnt mit **Working tree (uncommitted)**, wenn die Datei auf der Platte vom letzten Commit abweicht. Darunter folgt, neueste zuerst, jeder Commit, der den Wert des Keys in dieser Locale geändert hat, zwanzig Zeilen auf einmal und mit **Show N more** für den Rest. Jede Zeile zeigt:
 
 | Teil | Was er dir sagt |
 | --- | --- |
-| Autor, Datum, Betreff | den Commit, mit dem Namen des Autors und nie der E-Mail |
+| Autor, Datum, Kurz-Hash, Betreff | den Commit, mit dem Namen des Autors und nie der E-Mail |
 | Origin | wer den Wert geschrieben hat, wie mit diesem Commit festgehalten, weggelassen, wenn dieser Eintrag nicht lesbar war |
-| Wert | der Text in diesem Commit, in Sprache und Richtung der Locale |
+| Wert | der Text in diesem Commit, in Sprache und Richtung der Locale, nie gekürzt |
 | Changes from the previous value | hinzugefügte oder entfernte Wörter, neben der Farbe durch Unterstreichung und Durchstreichung markiert und als „added“ und „removed“ vorgelesen |
 
-Alles ist reiner Text, nie Markup. Ein Schlüssel in einem Wert oder Betreff wird durch `[REDACTED]` ersetzt.
+Alles ist reiner Text, nie Markup. Ein Schlüssel in einem Wert, einem Betreff oder einem Autorennamen wird durch `[REDACTED]` ersetzt.
 
 ## Stelle einen früheren Wert wieder her
 
 1. Drücke **Restore** in einer Zeile. Der Editor öffnet sich auf **Locales** mit diesem Wert als Entwurf. Noch wird nichts geschrieben.
-2. Lies den Entwurf und drücke **Save**. Die üblichen Prüfungen laufen, auch für Platzhalter, ICU und angeheftete Keys, und eine Ablehnung erscheint unverändert, die Datei bleibt unberührt. Ein gespeicherter Wert wird mit dem Origin `human` festgehalten.
+2. Lies den Entwurf und drücke **Save**. Die üblichen Prüfungen laufen, auch für Platzhalter und ICU, und eine Ablehnung erscheint unverändert, die Datei bleibt unberührt. Ein gespeicherter Wert wird mit dem Origin `human` festgehalten.
 
-Hast du ungespeicherte Änderungen, fragt Studio, bevor es sie ersetzt. **Keep editing** lässt deinen Entwurf in Ruhe, **Discard** lädt den wiederhergestellten Wert.
+Hast du ungespeicherte Änderungen, fragt Studio zuerst. **Save draft, then restore** behält deinen Entwurf und lädt dann den alten Wert, **Discard draft and restore** verwirft ihn, und **Keep editing** lässt alles, wie es war. Im Review-Editor steht die Frage oben im Dialog, und **Discard draft and restore** ist der einzige Weg, den Entwurf zu ersetzen.
 
-Ein Wert, der schon der aktuelle Wert des Keys ist, ein Wert, der einen API-Schlüssel enthielt, und ein Projekt, in das Studio nicht schreiben kann, bekommen kein **Restore**, und die Zeile sagt warum.
+Eine Zeile bekommt kein **Restore** und sagt warum, wenn ihr Wert der ist, den der Key jetzt hat, wenn Studio den aktuellen Wert noch nicht oder nicht lesen konnte und wenn der Wert wie ein API-Schlüssel aussieht: History zeigt diesen Wert nicht, und er lässt sich von hier nicht wiederherstellen.
+
+Ein Key in `pinnedKeys` ist für einen Menschen reserviert, daher geht eine in Studio gespeicherte Wiederherstellung durch, während die Bearbeitung durch einen Agenten abgelehnt wird.
 
 ### Wenn sich die Quelle geändert hat
 
-Hat sich der Quelltext seit diesem Commit geändert, oder kann Studio das nicht sagen, fragt **Restore** zuerst nach einer Bestätigung. Beim Speichern gilt der Key dann als aktuell gegenüber der jetzigen Quelle, und der Wert kommt ins Translation Memory, sodass eine alte Fassung für ähnliche Keys wiederverwendet werden kann. **Cancel** lässt alles, wie es war.
+Hat sich der Quelltext seit diesem Commit geändert, fragt **Restore** zuerst nach einer Bestätigung, und kann Studio das nicht sagen (die Lock-Datei zu diesem Commit war nicht lesbar), sagt es das. Beim Speichern gilt der Key dann als aktuell gegenüber der jetzigen Quelle, und der Wert kommt ins Translation Memory, sodass eine alte Fassung für ähnliche Keys wiederverwendet werden kann. **Cancel** oder Escape lässt alles, wie es war.
 
 ## Wisse, was die Liste auslässt
 
@@ -44,14 +46,14 @@ Studio gibt eine unvollständige Liste nie als vollständig aus. Ein Hinweis ers
 - die Datei eines Commits nicht lesbar oder nicht parsbar war oder der Wert zu lang war, und Studio zählt, wie viele;
 - die Datei auf der Platte nicht mit dem letzten Commit verglichen werden konnte, etwa bei einem Merge-Konflikt.
 
-Eine leere Liste sagt, ob sie leer ist oder nur der Teil, den Studio lesen konnte. Umbenennungen werden nicht verfolgt, nie committete Änderungen fehlen, ein in der Quelle umbenannter Key wirkt neu, und eine Änderung, die per Merge kam, steht am Merge-Commit.
+Studio untersucht zuerst 50 Commits. Hat das die Liste verkürzt, liest **Read further back** in einem Schritt bis zu 200, und danach sagt der Hinweis, dass Studio nicht weiter liest. Eine leere Liste sagt, ob sie leer ist oder nur der Teil, den Studio gelesen hat. Umbenennungen werden nicht verfolgt, nie committete Änderungen fehlen, ein in der Quelle umbenannter Key wirkt neu, und eine Änderung, die per Merge kam, steht am Merge-Commit.
 
 Fehlt Git, ist der Ordner kein Repository oder verweigert Git ihn, sagt Studio das in einem Satz. Ein Lesen, das fehlschlägt oder zu lange dauert, zeigt **Retry** und behält die letzte Liste.
 
 ## Wisse, wie aktuell sie ist
 
-Der Tab liest erneut, wenn sich eine Locale-, Lock- oder Provenance-Datei ändert, wenn sich Gits Index oder `HEAD` ändert und wenn du zum Studio-Tab zurückkehrst. Ein Lesen im Hintergrund verschiebt nie deinen Fokus.
+Der Tab liest erneut, wenn sich eine Locale-, Lock- oder Provenance-Datei ändert, wenn sich Gits Index oder `HEAD` ändert und wenn du zum Studio-Tab zurückkehrst. Die Lesezugriffe sind gestaffelt, sodass eine Folge von Commits Studio nicht überflutet. Ein Lesen im Hintergrund verschiebt nie deinen Fokus.
 
-Im Review-Editor öffnet **Show history** dieselbe Liste für diesen Eintrag, und **Restore** füllt sein Feld.
+Im Review-Editor öffnet **Show history** dieselbe Liste für diesen Eintrag, liest auf dieselbe Weise erneut, und **Restore** füllt sein Feld.
 
 Dieselben Lesezugriffe gibt es als [`keyHistory`](/de/docs/sdk/history#keyhistory), für einen [MCP-Client](/de/docs/cli/mcp) und für einen [Browser-Agenten](/de/docs/agent-tools-in-studio).

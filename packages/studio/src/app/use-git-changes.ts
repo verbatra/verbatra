@@ -92,18 +92,28 @@ export function useGitLocaleDiff(
   return held?.locale === locale ? held.view : LOADING_DIFF;
 }
 
+const RETURN_DEDUPE_MS = 300;
+
 export function useReturnToPage(onReturn: () => void): void {
   useEffect(() => {
-    function onVisibility(): void {
-      if (document.visibilityState === "visible") {
+    let last = Number.NEGATIVE_INFINITY;
+    function fire(): void {
+      const now = Date.now();
+      if (now - last >= RETURN_DEDUPE_MS) {
+        last = now;
         onReturn();
       }
     }
+    function onVisibility(): void {
+      if (document.visibilityState === "visible") {
+        fire();
+      }
+    }
     document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("focus", onReturn);
+    window.addEventListener("focus", fire);
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("focus", onReturn);
+      window.removeEventListener("focus", fire);
     };
   }, [onReturn]);
 }

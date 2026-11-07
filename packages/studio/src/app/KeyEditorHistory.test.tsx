@@ -13,9 +13,17 @@ describe("KeyEditorHistory", () => {
         locales={[]}
         locale={undefined}
         onLocaleChange={() => {}}
-        read={{ view: { kind: "loading" }, retrying: false, retry: () => {} }}
-        current={undefined}
-        canWrite
+        read={{ view: { kind: "loading" }, retrying: false, pending: false, retry: () => {} }}
+        ui={{
+          confirming: null,
+          shown: 20,
+          deep: false,
+          limit: undefined,
+          confirm: () => {},
+          showMore: () => {},
+          readFurther: () => {},
+        }}
+        current={{ kind: "loading" }}
         onRestore={() => {}}
       />,
     );

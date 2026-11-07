@@ -1,65 +1,38 @@
 import { Button } from "@verbatra/ui";
-import type { ReactNode, RefObject } from "react";
+import type { ReactNode } from "react";
 import { useId, useState } from "react";
+import type { CurrentValue, KeyRevisionRow } from "../client/key-history.js";
 import { KeyHistoryPanel } from "./KeyHistoryPanel.js";
-import { UnsavedPrompt } from "./UnsavedPrompt.js";
-import { useCapabilities } from "./use-capabilities.js";
 import { useKeyHistory } from "./use-key-history.js";
-import type { LocaleEdit } from "./use-locale-edit.js";
+import { useKeyHistoryUi } from "./use-key-history-ui.js";
 
 interface EditEntryHistoryProps {
   readonly locale: string;
   readonly keyName: string;
-  readonly edit: LocaleEdit;
-  readonly current: string | undefined;
-  readonly textAreaRef: RefObject<HTMLTextAreaElement | null>;
+  readonly current: CurrentValue;
+  readonly refreshToken: number;
+  readonly onRestore: (revision: KeyRevisionRow) => void;
 }
 
 function OpenHistory({
   locale,
   keyName,
-  edit,
   current,
-  textAreaRef,
+  refreshToken,
+  onRestore,
   id,
 }: EditEntryHistoryProps & { readonly id: string }): ReactNode {
-  const [replacing, setReplacing] = useState<string | null>(null);
-  const capabilities = useCapabilities();
-  const read = useKeyHistory({ enabled: true, locale, keyName, refreshToken: 0 });
-
-  function load(value: string): void {
-    setReplacing(null);
-    edit.setDraft(value);
-    textAreaRef.current?.focus();
-  }
-
+  const ui = useKeyHistoryUi(locale, keyName);
+  const read = useKeyHistory({ enabled: true, locale, keyName, refreshToken, limit: ui.limit });
   return (
     <div id={id} className="mt-3">
-      {replacing !== null ? (
-        <UnsavedPrompt
-          subject={
-            <>
-              The <span className="font-mono">{locale}</span> translation has changes that are not
-              saved. Restoring replaces them.
-            </>
-          }
-          saving={false}
-          error={null}
-          placement="drawer"
-          onDiscard={() => load(replacing)}
-          onKeepEditing={() => {
-            setReplacing(null);
-            textAreaRef.current?.focus();
-          }}
-        />
-      ) : null}
       <KeyHistoryPanel
         keyName={keyName}
         locale={locale}
         read={read}
+        ui={ui}
         current={current}
-        canWrite={capabilities.kind === "loaded" && capabilities.capabilities.writeToDisk}
-        onRestore={(value) => (edit.dirty ? setReplacing(value) : load(value))}
+        onRestore={onRestore}
       />
     </div>
   );

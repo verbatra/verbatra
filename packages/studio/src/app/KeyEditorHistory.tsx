@@ -1,8 +1,10 @@
 import { Select } from "@verbatra/ui";
 import type { ReactNode } from "react";
 import { useId } from "react";
+import type { CurrentValue, KeyRevisionRow } from "../client/key-history.js";
 import { KeyHistoryPanel } from "./KeyHistoryPanel.js";
 import type { KeyHistoryRead } from "./use-key-history.js";
+import type { KeyHistoryUi } from "./use-key-history-ui.js";
 
 export interface KeyEditorHistoryProps {
   readonly keyName: string;
@@ -10,9 +12,9 @@ export interface KeyEditorHistoryProps {
   readonly locale: string | undefined;
   readonly onLocaleChange: (locale: string) => void;
   readonly read: KeyHistoryRead;
-  readonly current: string | undefined;
-  readonly canWrite: boolean;
-  readonly onRestore: (locale: string, value: string) => void;
+  readonly ui: KeyHistoryUi;
+  readonly current: CurrentValue;
+  readonly onRestore: (locale: string, revision: KeyRevisionRow) => void;
 }
 
 export function KeyEditorHistory({
@@ -21,8 +23,8 @@ export function KeyEditorHistory({
   locale,
   onLocaleChange,
   read,
+  ui,
   current,
-  canWrite,
   onRestore,
 }: KeyEditorHistoryProps): ReactNode {
   const selectId = useId();
@@ -39,6 +41,8 @@ export function KeyEditorHistory({
           <Select
             id={selectId}
             size="sm"
+            className="max-md:min-h-11"
+            data-focus-id="history-locale"
             value={locale}
             data-history-locale-select=""
             onChange={(event) => onLocaleChange(event.target.value)}
@@ -55,9 +59,9 @@ export function KeyEditorHistory({
         keyName={keyName}
         locale={locale}
         read={read}
+        ui={ui}
         current={current}
-        canWrite={canWrite}
-        onRestore={(value) => onRestore(locale, value)}
+        onRestore={(revision) => onRestore(locale, revision)}
       />
     </div>
   );

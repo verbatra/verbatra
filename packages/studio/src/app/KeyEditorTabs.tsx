@@ -1,6 +1,5 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import { useId, useRef } from "react";
-import { cn } from "./lib/cn.js";
 
 export type KeyEditorTab = "locales" | "history";
 
@@ -31,6 +30,7 @@ function nextTabIndex(key: string, index: number): number | null {
 
 export interface KeyEditorTabsProps {
   readonly tab: KeyEditorTab;
+  readonly rootRef?: (node: HTMLElement | null) => undefined | (() => void);
   readonly unsaved: boolean;
   readonly onChange: (tab: KeyEditorTab) => void;
   readonly locales: ReactNode;
@@ -39,6 +39,7 @@ export interface KeyEditorTabsProps {
 
 export function KeyEditorTabs({
   tab,
+  rootRef,
   unsaved,
   onChange,
   locales,
@@ -59,7 +60,7 @@ export function KeyEditorTabs({
   }
 
   return (
-    <section className="mb-8" data-key-editor-tabs="">
+    <section ref={rootRef} className="mb-8" data-key-editor-tabs="">
       <div
         role="tablist"
         aria-label="Key details"
@@ -78,7 +79,8 @@ export function KeyEditorTabs({
             aria-controls={`${base}-panel-${entry.id}`}
             tabIndex={tab === entry.id ? 0 : -1}
             data-tab={entry.id}
-            className={cn(TAB_CLASSES)}
+            data-focus-id={`tab:${entry.id}`}
+            className={TAB_CLASSES}
             onClick={() => onChange(entry.id)}
             onKeyDown={(event) => onKeyDown(event, index)}
           >
@@ -91,14 +93,18 @@ export function KeyEditorTabs({
           </button>
         ))}
       </div>
-      <div
-        role="tabpanel"
-        id={`${base}-panel-${tab}`}
-        aria-labelledby={`${base}-tab-${tab}`}
-        data-tab-panel={tab}
-      >
-        {tab === "locales" ? locales : history}
-      </div>
+      {TABS.map((entry) => (
+        <div
+          key={entry.id}
+          role="tabpanel"
+          id={`${base}-panel-${entry.id}`}
+          aria-labelledby={`${base}-tab-${entry.id}`}
+          hidden={tab !== entry.id}
+          data-tab-panel={entry.id}
+        >
+          {entry.id === "locales" ? locales : history}
+        </div>
+      ))}
     </section>
   );
 }

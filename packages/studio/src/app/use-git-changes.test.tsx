@@ -246,12 +246,32 @@ describe("useGitChanges", () => {
     await flush();
     expect(statusCalls()).toBe(2);
 
+    const later = Date.now() + 1000;
+    const clock = vi.spyOn(Date, "now").mockReturnValue(later);
     act(() => {
       window.dispatchEvent(new Event("focus"));
     });
     await flush();
     await flush();
+    clock.mockRestore();
     expect(statusCalls()).toBe(3);
+  });
+
+  it("reads once when the page becomes visible and the window gets focus together", async () => {
+    stubRpc({ "git.status": STATUS });
+    await renderAsync(<Probe token={0} />);
+    const statusCalls = (): number =>
+      rpcCalls.filter((call) => call.method === "git.status").length;
+    setVisibility("visible");
+
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("focus"));
+    });
+    await flush();
+    await flush();
+
+    expect(statusCalls()).toBe(2);
   });
 
   it("stops listening for the page returning once it is unmounted", async () => {

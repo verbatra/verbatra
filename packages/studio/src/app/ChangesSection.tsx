@@ -34,6 +34,7 @@ import { ErrorMessage } from "./ErrorMessage.js";
 import { Loading } from "./Loading.js";
 import { cn } from "./lib/cn.js";
 import { TranslationValue } from "./TranslationValue.js";
+import { type FocusKeeperAdapter, useFocusKeeper } from "./use-focus-keeper.js";
 
 const SEE_ABOVE = "See the error above.";
 
@@ -585,38 +586,6 @@ function toggleFor(root: HTMLElement, locale: string): HTMLElement | undefined {
   );
 }
 
-function nearestKept(
-  order: readonly string[],
-  lost: string,
-  kept: readonly string[],
-): string | undefined {
-  const at = order.indexOf(lost);
-  const after = order.slice(at + 1).find((locale) => kept.includes(locale));
-  return (
-    after ??
-    order
-      .slice(0, Math.max(at, 0))
-      .reverse()
-      .find((locale) => kept.includes(locale))
-  );
-}
-
-interface HeldFocus {
-  readonly element: HTMLElement;
-  readonly locale: string;
-}
-
-function heldFocus(root: HTMLElement | null): HeldFocus | null {
-  const active = document.activeElement;
-  if (root === null || !(active instanceof HTMLElement) || !root.contains(active)) {
-    return null;
-  }
-  const locale =
-    active.closest("[data-git-toggle]")?.getAttribute("data-git-toggle") ??
-    active.closest("[data-git-diff]")?.getAttribute("data-git-diff");
-  return locale ? { element: active, locale } : null;
-}
-
 function focusHeading(root: HTMLElement): void {
   const heading = root.closest("section")?.querySelector<HTMLElement>("h2");
   if (heading === null || heading === undefined) {
@@ -627,42 +596,15 @@ function focusHeading(root: HTMLElement): void {
   heading.focus({ preventScroll: true });
 }
 
-function isStranded(lost: HeldFocus | null): lost is HeldFocus {
-  return lost !== null && !lost.element.isConnected && document.activeElement === document.body;
-}
-
-function handOver(
-  root: HTMLElement,
-  lost: HeldFocus,
-  order: readonly string[],
-  kept: readonly string[],
-): void {
-  const next = kept.includes(lost.locale) ? lost.locale : nearestKept(order, lost.locale, kept);
-  const target = next === undefined ? undefined : toggleFor(root, next);
-  if (target === undefined) {
-    focusHeading(root);
-  } else {
-    target.focus({ preventScroll: true });
-  }
-}
-
-function useFocusKeeper(rootRef: RefObject<HTMLDivElement | null>): void {
-  const order = useRef<string[]>([]);
-  const held = useRef<HeldFocus | null>(null);
-  held.current = heldFocus(rootRef.current);
-
-  useLayoutEffect(() => {
-    const root = rootRef.current;
-    if (root === null) {
-      return;
-    }
-    const kept = toggleLocales(root);
-    if (isStranded(held.current)) {
-      handOver(root, held.current, order.current, kept);
-    }
-    order.current = kept;
-  });
-}
+const TOGGLE_KEEPER: FocusKeeperAdapter = {
+  items: toggleLocales,
+  itemOf: (active) =>
+    active.closest("[data-git-toggle]")?.getAttribute("data-git-toggle") ??
+    active.closest("[data-git-diff]")?.getAttribute("data-git-diff") ??
+    undefined,
+  find: toggleFor,
+  fallback: focusHeading,
+};
 
 function useToggleAnchor(
   rootRef: RefObject<HTMLDivElement | null>,
@@ -691,7 +633,7 @@ function useToggleAnchor(
 
 export function ChangesSection(props: ChangesSectionProps): ReactNode {
   const rootRef = useRef<HTMLDivElement>(null);
-  useFocusKeeper(rootRef);
+  useFocusKeeper(rootRef, TOGGLE_KEEPER);
   const remember = useToggleAnchor(rootRef, props.open?.locale);
   return (
     <PageSection title="Changes">

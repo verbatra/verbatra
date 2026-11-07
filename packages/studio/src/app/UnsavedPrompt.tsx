@@ -1,5 +1,5 @@
 import { Button } from "@verbatra/ui";
-import type { ReactNode, RefObject } from "react";
+import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import { useEffect, useRef } from "react";
 import type { StructuredError } from "../client/state.js";
 import { ErrorMessage } from "./ErrorMessage.js";
@@ -13,6 +13,9 @@ export interface UnsavedPromptProps {
   readonly onSave?: () => void;
   readonly onDiscard: () => void;
   readonly onKeepEditing: () => void;
+  readonly saveLabel?: string;
+  readonly discardLabel?: string;
+  readonly escapeKeepsEditing?: boolean;
 }
 
 const BUSY = "aria-disabled:cursor-default aria-disabled:opacity-60";
@@ -25,6 +28,9 @@ export function UnsavedPrompt({
   onSave,
   onDiscard,
   onKeepEditing,
+  saveLabel = "Save",
+  discardLabel = "Discard",
+  escapeKeepsEditing = false,
 }: UnsavedPromptProps): ReactNode {
   const keepRef: RefObject<HTMLButtonElement | null> = useRef(null);
   const rootRef: RefObject<HTMLFieldSetElement | null> = useRef(null);
@@ -34,9 +40,20 @@ export function UnsavedPrompt({
     keepRef.current?.focus();
   }, []);
 
+  function onKeyDown(event: KeyboardEvent<HTMLFieldSetElement>): void {
+    if (escapeKeepsEditing && event.key === "Escape" && !event.nativeEvent.isComposing) {
+      event.stopPropagation();
+      event.preventDefault();
+      if (!saving) {
+        onKeepEditing();
+      }
+    }
+  }
+
   return (
     <fieldset
       ref={rootRef}
+      onKeyDown={onKeyDown}
       data-unsaved-prompt=""
       className={cn(
         "m-0 min-w-0 rounded-lg border border-warning bg-card p-3",
@@ -55,7 +72,7 @@ export function UnsavedPrompt({
             className={BUSY}
             onClick={saving ? undefined : onSave}
           >
-            Save
+            {saveLabel}
           </Button>
         ) : null}
         <Button
@@ -64,7 +81,7 @@ export function UnsavedPrompt({
           className={BUSY}
           onClick={saving ? undefined : onDiscard}
         >
-          Discard
+          {discardLabel}
         </Button>
         <Button
           ref={keepRef}

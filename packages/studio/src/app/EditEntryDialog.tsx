@@ -1,8 +1,9 @@
 import type { GlossaryDraftCheck, ReviewReasonCode } from "@verbatra/sdk";
 import { Badge, DrawerShell, Section, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode, Ref } from "react";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
+import type { KeyRevisionRow } from "../client/key-history.js";
 import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-context.js";
 import { EditEntryHistory } from "./EditEntryHistory.js";
 import { ErrorMessage } from "./ErrorMessage.js";
@@ -17,6 +18,11 @@ import { useDraftCheck } from "./use-draft-check.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
 import { useLocaleEdit } from "./use-locale-edit.js";
 
+interface Replacing {
+  readonly commit: string;
+  readonly value: string;
+}
+
 type LoadedContext = Extract<KeyValueContext, { kind: "loaded" }>;
 
 export interface EditEntryDialogProps {
@@ -25,6 +31,7 @@ export interface EditEntryDialogProps {
   readonly onClose: () => void;
   readonly onAccepted: (locale: string, keyName: string) => void;
   readonly focusTranslation?: boolean;
+  readonly refreshToken?: number;
   readonly reviewReasons?: readonly ReviewReasonCode[];
 }
 
@@ -140,8 +147,10 @@ export function EditEntryDialog({
   onAccepted,
   focusTranslation = false,
   reviewReasons,
+  refreshToken = 0,
 }: EditEntryDialogProps): ReactNode {
-  const edit = useLocaleEdit(locale, keyName, 0);
+  const edit = useLocaleEdit(locale, keyName, refreshToken);
+  const [replacing, setReplacing] = useState<Replacing | null>(null);
   const { context, submit } = edit;
   const value = edit.draft;
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -153,9 +162,47 @@ export function EditEntryDialog({
   });
   const { confirming } = guard;
 
+  useEffect(() => {
+    if (confirming) {
+      setReplacing(null);
+    }
+  }, [confirming]);
+
+  function loadRestored(value: string): void {
+    setReplacing(null);
+    edit.setDraft(value);
+    textAreaRef.current?.focus();
+  }
+
+  function requestRestore(revision: KeyRevisionRow): void {
+    if (edit.dirty) {
+      setReplacing({ commit: revision.commit, value: revision.value });
+    } else {
+      loadRestored(revision.value);
+    }
+  }
+
+  function keepDraft(): void {
+    const commit = replacing?.commit;
+    setReplacing(null);
+    const row =
+      commit === undefined
+        ? null
+        : document.querySelector<HTMLElement>(`[data-focus-id="restore:${CSS.escape(commit)}"]`);
+    (row ?? textAreaRef.current)?.focus();
+  }
+
+  function requestClose(): void {
+    if (replacing !== null) {
+      keepDraft();
+    } else {
+      guard.requestClose();
+    }
+  }
+
   const containerRef = useDialogA11y<HTMLDivElement>({
     isOpen: true,
-    onClose: guard.requestClose,
+    onClose: requestClose,
     ...(focusTranslation ? { initialFocus: textAreaRef } : {}),
   });
   const draftCheck = useDraftCheck(
@@ -215,10 +262,26 @@ export function EditEntryDialog({
       }
       ariaLabel={`Edit ${keyName} in ${locale}`}
       closeLabel={`Close the editor for ${keyName}`}
-      onClose={guard.requestClose}
+      onClose={requestClose}
       containerRef={containerRef}
       banner={
-        confirming ? (
+        replacing !== null ? (
+          <UnsavedPrompt
+            subject={
+              <>
+                The <span className="font-mono">{locale}</span> translation has changes that are not
+                saved. Restoring replaces them.
+              </>
+            }
+            saving={false}
+            error={null}
+            placement="drawer"
+            discardLabel="Discard draft and restore"
+            escapeKeepsEditing
+            onDiscard={() => loadRestored(replacing.value)}
+            onKeepEditing={keepDraft}
+          />
+        ) : confirming ? (
           <UnsavedPrompt
             subject={
               <>
@@ -265,14 +328,14 @@ export function EditEntryDialog({
           <SaveRow
             submit={confirming && submitFailure(submit) !== null ? { kind: "idle" } : submit}
             onSave={() => void handleSubmit()}
-            primary={!confirming}
+            primary={!confirming && replacing === null}
           />
           <EditEntryHistory
             locale={locale}
             keyName={keyName}
-            edit={edit}
-            current={context.target}
-            textAreaRef={textAreaRef}
+            current={{ kind: "known", value: context.target }}
+            refreshToken={refreshToken}
+            onRestore={requestRestore}
           />
         </>
       ) : null}

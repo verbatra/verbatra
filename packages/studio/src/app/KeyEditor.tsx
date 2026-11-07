@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { DiffLocale } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus } from "../client/diff-view.js";
 import { deriveIntegrityPillView } from "../client/integrity-pill.js";
+import type { CurrentValue } from "../client/key-history.js";
 import { parseRoute } from "../client/routes.js";
 import type { StructuredError } from "../client/state.js";
 import { CommitList } from "./CommitList.js";
@@ -29,6 +30,7 @@ import { UnsavedPrompt } from "./UnsavedPrompt.js";
 import { useCapabilities } from "./use-capabilities.js";
 import { useHistoryList } from "./use-history-list.js";
 import { useKeyHistory } from "./use-key-history.js";
+import { useKeyHistoryUi } from "./use-key-history-ui.js";
 import { type KeyIntegrityState, useKeyIntegrity } from "./use-key-integrity.js";
 import { type KeyValuesState, useKeyValues } from "./use-key-values.js";
 import { useLocaleEdit } from "./use-locale-edit.js";
@@ -50,6 +52,7 @@ export interface KeyEditorProps {
 interface Pending {
   readonly proceed: () => Promise<void>;
   readonly route: boolean;
+  readonly restore?: boolean;
 }
 
 interface EditTarget {
@@ -141,6 +144,19 @@ function sameFailure(values: KeyValuesState, error: StructuredError): boolean {
     values.error.code === error.code &&
     values.error.message === error.message
   );
+}
+
+function currentValueOf(values: KeyValuesState, locale: string | undefined): CurrentValue {
+  if (locale === undefined || values.kind === "loading") {
+    return { kind: "loading" };
+  }
+  if (values.kind === "error") {
+    return { kind: "failed", message: values.error.message };
+  }
+  const failure = values.failures.get(locale);
+  return failure === undefined
+    ? { kind: "known", value: values.targets.get(locale) }
+    : { kind: "failed", message: failure.message };
 }
 
 function MissingKeyNotice({ onDiscard }: { readonly onDiscard: () => void }): ReactNode {
@@ -247,12 +263,15 @@ export function KeyEditor({
   );
   const rowLocales = rows.map((row) => row.locale);
   const historyLocale = rowLocales.find((entry) => entry === historyChoice) ?? rowLocales[0];
+  const historyUi = useKeyHistoryUi(historyLocale, keyName);
   const historyRead = useKeyHistory({
     enabled: tab === "history",
     locale: historyLocale,
     keyName,
     refreshToken,
+    limit: historyUi.limit,
   });
+  const historyCurrent = currentValueOf(values, historyLocale);
   const integrityLocales = integrity.kind === "loaded" ? integrity.locales : [];
   const capabilities =
     capabilitiesState.kind === "loaded" ? capabilitiesState.capabilities : undefined;
@@ -277,6 +296,17 @@ export function KeyEditor({
     pendingRef.current = pending;
   });
 
+  const carriedFocusRef = useRef<string | null>(null);
+  const carryFocus = useCallback((node: HTMLElement | null) => {
+    return () => {
+      const active = document.activeElement;
+      carriedFocusRef.current =
+        node !== null && active instanceof HTMLElement && node.contains(active)
+          ? (active.closest("[data-focus-id]")?.getAttribute("data-focus-id") ?? null)
+          : null;
+    };
+  }, []);
+
   useEffect(() => {
     const selection = selectionRef.current;
     const field = textAreaRef.current;
@@ -285,6 +315,11 @@ export function KeyEditor({
       field.setSelectionRange(selection.start, selection.end);
     }
     selectionRef.current = null;
+    const carried = carriedFocusRef.current;
+    carriedFocusRef.current = null;
+    if (carried !== null) {
+      document.querySelector<HTMLElement>(`[data-focus-id="${CSS.escape(carried)}"]`)?.focus();
+    }
   }, [layout]);
 
   useEffect(() => {
@@ -406,7 +441,7 @@ export function KeyEditor({
     return true;
   }
 
-  function startEditing(locale: string, restored: string | null = null): void {
+  function startEditing(locale: string, restored: string | null = null, restoring = false): void {
     const open = (): Promise<void> => {
       setSaved(null);
       setTab("locales");
@@ -416,7 +451,7 @@ export function KeyEditor({
     if (edit.dirty) {
       restoreHeldRoute();
       resolvedRef.current = false;
-      setPending({ proceed: open, route: false });
+      setPending({ proceed: open, route: false, restore: restoring });
       return;
     }
     open();
@@ -475,6 +510,9 @@ export function KeyEditor({
         saving={edit.submit.kind === "submitting"}
         error={submitFailure(edit.submit)}
         placement={layout}
+        {...(pending.restore === true
+          ? { saveLabel: "Save draft, then restore", discardLabel: "Discard draft and restore" }
+          : {})}
         onSave={() => void saveEditing(editingLocale)}
         onDiscard={resolveDiscard}
         onKeepEditing={keepEditing}
@@ -563,6 +601,7 @@ export function KeyEditor({
       </Section>
       <KeyDescription description={values.kind === "loaded" ? values.description : undefined} />
       <KeyEditorTabs
+        rootRef={carryFocus}
         tab={tab}
         unsaved={edit.dirty}
         onChange={setTab}
@@ -574,13 +613,9 @@ export function KeyEditor({
             locale={historyLocale}
             onLocaleChange={setHistoryChoice}
             read={historyRead}
-            current={
-              historyLocale !== undefined && values.kind === "loaded"
-                ? values.targets.get(historyLocale)
-                : undefined
-            }
-            canWrite={capabilities?.writeToDisk === true}
-            onRestore={(locale, value) => startEditing(locale, value)}
+            ui={historyUi}
+            current={historyCurrent}
+            onRestore={(locale, revision) => startEditing(locale, revision.value, true)}
           />
         }
       />

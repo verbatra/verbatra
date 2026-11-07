@@ -1,17 +1,25 @@
 import { describe, expect, it } from "vitest";
 import {
+  atReadCap,
+  CURRENT_LOADING_REASON,
   CURRENT_REASON,
+  type CurrentValue,
+  canReadFurther,
+  currentFailedReason,
   diffKindLabel,
   emptyHistoryMessage,
   hasWordDiff,
   incompleteNotices,
+  KEY_HISTORY_DEEP_LIMIT,
+  KEY_HISTORY_DEFAULT_LIMIT,
   type KeyHistoryAvailable,
   type KeyRevisionRow,
-  READ_ONLY_REASON,
+  needsSeparator,
   REDACTED_REASON,
   restoreOffer,
   restoreOfferReason,
-  transientKeyHistoryError,
+  SOURCE_CONFIRM_TEXT,
+  shownRevisions,
   unavailableHistoryMessage,
 } from "./key-history.js";
 
@@ -32,52 +40,87 @@ function available(overrides: Partial<KeyHistoryAvailable> = {}): KeyHistoryAvai
   return { available: true, revisions: [], truncated: false, unreadableRevisions: 0, ...overrides };
 }
 
+const KNOWN = (value: string | undefined): CurrentValue => ({ kind: "known", value });
+
 describe("restoreOffer", () => {
   it("offers a restore without a confirm when the source is unchanged", () => {
-    expect(restoreOffer(revision(), "new", true)).toEqual({ kind: "restore", needsConfirm: false });
+    expect(restoreOffer(revision(), KNOWN("new"))).toEqual({ kind: "restore", confirm: null });
   });
 
-  it.each([true, "unknown"] as const)("asks for a confirm when sourceChanged is %s", (changed) => {
-    expect(restoreOffer(revision({ sourceChanged: changed }), "new", true)).toEqual({
+  it.each([
+    [true, "changed"],
+    ["unknown", "unknown"],
+  ] as const)("asks for a %s confirm when sourceChanged is %s", (changed, confirm) => {
+    expect(restoreOffer(revision({ sourceChanged: changed }), KNOWN("new"))).toEqual({
       kind: "restore",
-      needsConfirm: true,
+      confirm,
     });
   });
 
-  it("never offers a redacted value, even when it equals the current one", () => {
-    const offer = restoreOffer(
-      revision({ valueRedacted: true, value: "[REDACTED]" }),
-      "[REDACTED]",
-      true,
-    );
+  it("words the two confirms differently and names both consequences in each", () => {
+    expect(SOURCE_CONFIRM_TEXT.changed).toContain("has changed since this commit");
+    expect(SOURCE_CONFIRM_TEXT.unknown).toContain("cannot tell");
+    for (const text of Object.values(SOURCE_CONFIRM_TEXT)) {
+      expect(text).toContain("up to date");
+      expect(text).toContain("translation memory");
+    }
+  });
 
-    expect(offer).toEqual({ kind: "redacted" });
-    expect(restoreOfferReason(offer)).toBe(REDACTED_REASON);
+  it("never offers a redacted value, even when it equals the current one or the current one is unknown", () => {
+    const redacted = revision({ valueRedacted: true, value: "[REDACTED]" });
+
+    expect(restoreOffer(redacted, KNOWN("[REDACTED]"))).toEqual({ kind: "redacted" });
+    expect(restoreOffer(redacted, { kind: "loading" })).toEqual({ kind: "redacted" });
+    expect(restoreOfferReason({ kind: "redacted" })).toBe(REDACTED_REASON);
+    expect(REDACTED_REASON).not.toContain("Studio hides");
   });
 
   it("takes the current state from the key and not from the first revision", () => {
-    expect(restoreOffer(revision({ value: "same" }), "same", true)).toEqual({ kind: "current" });
+    expect(restoreOffer(revision({ value: "same" }), KNOWN("same"))).toEqual({ kind: "current" });
     expect(restoreOfferReason({ kind: "current" })).toBe(CURRENT_REASON);
-    expect(restoreOffer(revision({ value: "same" }), undefined, true).kind).toBe("restore");
+    expect(restoreOffer(revision({ value: "same" }), KNOWN(undefined)).kind).toBe("restore");
   });
 
-  it("offers nothing when the project cannot be written", () => {
-    const offer = restoreOffer(revision(), "new", false);
+  it("offers nothing until the current value is known, and says why", () => {
+    const loading = restoreOffer(revision(), { kind: "loading" });
+    const failed = restoreOffer(revision(), { kind: "failed", message: "disk on fire" });
 
-    expect(offer).toEqual({ kind: "unavailable" });
-    expect(restoreOfferReason(offer)).toBe(READ_ONLY_REASON);
-    expect(restoreOfferReason({ kind: "restore", needsConfirm: false })).toBeUndefined();
+    expect(loading).toEqual({ kind: "unknown", reason: CURRENT_LOADING_REASON });
+    expect(restoreOfferReason(loading)).toBe(CURRENT_LOADING_REASON);
+    expect(failed.kind).toBe("unknown");
+    expect(restoreOfferReason(failed)).toBe(currentFailedReason("disk on fire"));
+    expect(currentFailedReason("disk on fire")).toContain("disk on fire");
+    expect(restoreOfferReason({ kind: "restore", confirm: null })).toBeUndefined();
+  });
+});
+
+describe("reading further", () => {
+  it("offers the cap step only while truncated and below the cap", () => {
+    expect(canReadFurther(available({ truncated: true }), KEY_HISTORY_DEFAULT_LIMIT)).toBe(true);
+    expect(canReadFurther(available({ truncated: false }), KEY_HISTORY_DEFAULT_LIMIT)).toBe(false);
+    expect(canReadFurther(available({ truncated: true }), KEY_HISTORY_DEEP_LIMIT)).toBe(false);
+    expect(atReadCap(KEY_HISTORY_DEEP_LIMIT)).toBe(true);
+    expect(atReadCap(KEY_HISTORY_DEFAULT_LIMIT)).toBe(false);
+  });
+
+  it("says at the cap that this is as far as Studio reads", () => {
+    const atCap = incompleteNotices(available({ truncated: true }), KEY_HISTORY_DEEP_LIMIT);
+    const below = incompleteNotices(available({ truncated: true }), KEY_HISTORY_DEFAULT_LIMIT);
+
+    expect(atCap[0]).toContain("as far as it goes");
+    expect(below[0]).not.toContain("as far as it goes");
   });
 });
 
 describe("incompleteNotices", () => {
   it("is empty for a complete history", () => {
-    expect(incompleteNotices(available())).toEqual([]);
+    expect(incompleteNotices(available(), 50)).toEqual([]);
   });
 
   it("names every kind of incompleteness it was given", () => {
     const notices = incompleteNotices(
       available({ truncated: true, unreadableRevisions: 2, workingTreeUnreadable: true }),
+      50,
     );
 
     expect(notices).toHaveLength(3);
@@ -87,36 +130,53 @@ describe("incompleteNotices", () => {
   });
 
   it("uses the singular for one unreadable commit", () => {
-    expect(incompleteNotices(available({ unreadableRevisions: 1 }))[0]).toContain("1 commit ");
+    expect(incompleteNotices(available({ unreadableRevisions: 1 }), 50)[0]).toContain("1 commit ");
   });
 });
 
 describe("emptyHistoryMessage", () => {
   it("does not claim a clean history when the answer is partial", () => {
     expect(emptyHistoryMessage(available())).toContain("No commit has changed");
-    expect(emptyHistoryMessage(available({ truncated: true }))).toContain("could read");
+    expect(emptyHistoryMessage(available({ truncated: true }))).toContain(
+      "Older commits were not read",
+    );
     expect(emptyHistoryMessage(available({ unreadableRevisions: 1 }))).toContain("could read");
   });
 });
 
-describe("transientKeyHistoryError", () => {
-  it("turns only a timeout and a git failure into an error", () => {
-    expect(transientKeyHistoryError({ available: false, reason: "timeout" })?.code).toBe(
-      "GIT_TIMEOUT",
-    );
-    expect(transientKeyHistoryError({ available: false, reason: "git-failed" })?.code).toBe(
-      "GIT_FAILED",
-    );
-    expect(
-      transientKeyHistoryError({ available: false, reason: "not-a-repository" }),
-    ).toBeUndefined();
-    expect(transientKeyHistoryError(available())).toBeUndefined();
-  });
-
+describe("unavailable reasons", () => {
   it("words an unavailable reason", () => {
     expect(unavailableHistoryMessage({ available: false, reason: "not-a-repository" })).toContain(
       "not in a git repository",
     );
+  });
+});
+
+describe("needsSeparator", () => {
+  const removed = { kind: "removed", text: "Servus" } as const;
+  const added = { kind: "added", text: "Moin" } as const;
+
+  it("separates a removed word from the added word that follows it", () => {
+    expect(needsSeparator(removed, added)).toBe(true);
+    expect(needsSeparator(added, removed)).toBe(true);
+  });
+
+  it("adds nothing between runs of the same kind, around equal text, or at the start", () => {
+    expect(needsSeparator(undefined, removed)).toBe(false);
+    expect(needsSeparator(removed, removed)).toBe(false);
+    expect(needsSeparator({ kind: "equal", text: "a" }, added)).toBe(false);
+    expect(needsSeparator(removed, { kind: "equal", text: "a" })).toBe(false);
+  });
+
+  it("adds nothing when whitespace already separates the runs", () => {
+    expect(needsSeparator({ kind: "removed", text: "Servus " }, added)).toBe(false);
+    expect(needsSeparator(removed, { kind: "added", text: " Moin" })).toBe(false);
+  });
+});
+
+describe("shownRevisions", () => {
+  it("shows the first rows only", () => {
+    expect(shownRevisions([1, 2, 3], 2)).toEqual([1, 2]);
   });
 });
 

@@ -394,6 +394,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
         bulkRejecting={bulk.rejecting}
         onConfirmBulkReject={bulk.confirmReject}
         onCloseBulkReject={bulk.closeReject}
+        refreshToken={refreshToken}
       />
     </IcuPreviewAvailabilityProvider>
   );

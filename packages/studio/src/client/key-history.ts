@@ -1,6 +1,5 @@
 import type { KeyRevisionsResult } from "../shared/rpc/key-revisions.js";
 import { GIT_UNAVAILABLE_MESSAGES } from "./git-changes.js";
-import type { StructuredError } from "./state.js";
 
 export type KeyHistoryAvailable = Extract<KeyRevisionsResult, { readonly available: true }>;
 
@@ -10,37 +9,66 @@ export type KeyRevisionRow = KeyHistoryAvailable["revisions"][number];
 
 export type KeyHistorySegments = KeyRevisionRow["diff"];
 
+export const KEY_HISTORY_DEFAULT_LIMIT = 50;
+
+export const KEY_HISTORY_DEEP_LIMIT = 200;
+
+export const KEY_HISTORY_PAGE_SIZE = 20;
+
+export type CurrentValue =
+  | { readonly kind: "known"; readonly value: string | undefined }
+  | { readonly kind: "loading" }
+  | { readonly kind: "failed"; readonly message: string };
+
+export type SourceConfirm = "changed" | "unknown";
+
 export type RestoreOffer =
-  | { readonly kind: "restore"; readonly needsConfirm: boolean }
+  | { readonly kind: "restore"; readonly confirm: SourceConfirm | null }
   | { readonly kind: "redacted" }
   | { readonly kind: "current" }
-  | { readonly kind: "unavailable" };
+  | { readonly kind: "unknown"; readonly reason: string };
 
 export const REDACTED_REASON =
-  "This value held what looks like an API key, so Studio hides it and cannot restore it.";
+  "History does not show this value because it looks like an API key, and it cannot be restored from here.";
+
+export const REDACTED_WORKING_TREE_REASON =
+  "History does not show this value because it looks like an API key.";
 
 export const CURRENT_REASON = "This is the value the key has now.";
 
-export const READ_ONLY_REASON = "Studio was started without write access, so nothing can be saved.";
+export const CURRENT_LOADING_REASON = "Restore is available once the current value has been read.";
 
-export const SOURCE_CHANGED_CONFIRM =
-  "The source text has changed since this commit, or Studio cannot tell. If you save the restored value, the key counts as up to date against the current source and the value is added to translation memory.";
+export function currentFailedReason(message: string): string {
+  return `Restore is unavailable because the current value could not be read: ${message}`;
+}
 
-export function restoreOffer(
-  revision: KeyRevisionRow,
-  current: string | undefined,
-  canWrite: boolean,
-): RestoreOffer {
+const CONSEQUENCES =
+  "If you save the restored value, the key counts as up to date against the current source and the value is added to translation memory.";
+
+export const SOURCE_CONFIRM_TEXT: Readonly<Record<SourceConfirm, string>> = {
+  changed: `The source text has changed since this commit. ${CONSEQUENCES}`,
+  unknown: `Studio cannot tell whether the source text has changed since this commit. ${CONSEQUENCES}`,
+};
+
+function unknownReason(current: CurrentValue): string {
+  return current.kind === "failed" ? currentFailedReason(current.message) : CURRENT_LOADING_REASON;
+}
+
+export function restoreOffer(revision: KeyRevisionRow, current: CurrentValue): RestoreOffer {
   if (revision.valueRedacted === true) {
     return { kind: "redacted" };
   }
-  if (revision.value === current) {
+  if (current.kind !== "known") {
+    return { kind: "unknown", reason: unknownReason(current) };
+  }
+  if (revision.value === current.value) {
     return { kind: "current" };
   }
-  if (!canWrite) {
-    return { kind: "unavailable" };
-  }
-  return { kind: "restore", needsConfirm: revision.sourceChanged !== false };
+  const { sourceChanged } = revision;
+  return {
+    kind: "restore",
+    confirm: sourceChanged === false ? null : sourceChanged === true ? "changed" : "unknown",
+  };
 }
 
 export function restoreOfferReason(offer: RestoreOffer): string | undefined {
@@ -49,18 +77,31 @@ export function restoreOfferReason(offer: RestoreOffer): string | undefined {
       return REDACTED_REASON;
     case "current":
       return CURRENT_REASON;
-    case "unavailable":
-      return READ_ONLY_REASON;
+    case "unknown":
+      return offer.reason;
     case "restore":
       return undefined;
   }
 }
 
-export function incompleteNotices(result: KeyHistoryAvailable): readonly string[] {
+export function atReadCap(requestedLimit: number): boolean {
+  return requestedLimit >= KEY_HISTORY_DEEP_LIMIT;
+}
+
+export function canReadFurther(result: KeyHistoryAvailable, requestedLimit: number): boolean {
+  return result.truncated && !atReadCap(requestedLimit);
+}
+
+export function incompleteNotices(
+  result: KeyHistoryAvailable,
+  requestedLimit: number,
+): readonly string[] {
   const notices: string[] = [];
   if (result.truncated) {
     notices.push(
-      "This list may be incomplete: older commits were not read, the clone is shallow, or something could not be read in full.",
+      atReadCap(requestedLimit)
+        ? `Studio reads at most ${KEY_HISTORY_DEEP_LIMIT} commits and that is as far as it goes here. This list may be incomplete: older commits were not read, the clone may be shallow, or something could not be read in full.`
+        : "This list may be incomplete: older commits were not read, the clone may be shallow, or something could not be read in full.",
     );
   }
   if (result.unreadableRevisions > 0) {
@@ -78,7 +119,10 @@ export function incompleteNotices(result: KeyHistoryAvailable): readonly string[
 }
 
 export function emptyHistoryMessage(result: KeyHistoryAvailable): string {
-  return result.truncated || result.unreadableRevisions > 0
+  if (result.truncated) {
+    return "No change to this key was found in the commits Studio read. Older commits were not read.";
+  }
+  return result.unreadableRevisions > 0
     ? "No change to this key was found in the commits Studio could read."
     : "No commit has changed this key's value yet.";
 }
@@ -98,12 +142,20 @@ export function diffKindLabel(kind: KeyHistorySegments[number]["kind"]): string 
   return kind === "removed" ? "removed: " : undefined;
 }
 
-export function transientKeyHistoryError(result: KeyRevisionsResult): StructuredError | undefined {
-  if (result.available || (result.reason !== "timeout" && result.reason !== "git-failed")) {
-    return undefined;
-  }
-  return {
-    code: result.reason === "timeout" ? "GIT_TIMEOUT" : "GIT_FAILED",
-    message: GIT_UNAVAILABLE_MESSAGES[result.reason],
-  };
+export function needsSeparator(
+  previous: KeyHistorySegments[number] | undefined,
+  next: KeyHistorySegments[number],
+): boolean {
+  return (
+    previous !== undefined &&
+    previous.kind !== "equal" &&
+    next.kind !== "equal" &&
+    previous.kind !== next.kind &&
+    !/\s$/.test(previous.text) &&
+    !/^\s/.test(next.text)
+  );
+}
+
+export function shownRevisions<T>(revisions: readonly T[], shown: number): readonly T[] {
+  return revisions.slice(0, shown);
 }

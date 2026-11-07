@@ -31,6 +31,7 @@ export function ReviewDialogs({
   bulkRejecting,
   onConfirmBulkReject,
   onCloseBulkReject,
+  refreshToken,
 }: {
   readonly helpOpen: boolean;
   readonly spend: boolean;
@@ -43,6 +44,7 @@ export function ReviewDialogs({
   readonly bulkRejecting: readonly BulkRejectEntry[] | null;
   readonly onConfirmBulkReject: (entries: readonly BulkRejectEntry[]) => void;
   readonly onCloseBulkReject: () => void;
+  readonly refreshToken: number;
 }): ReactNode {
   return (
     <>
@@ -60,6 +62,7 @@ export function ReviewDialogs({
           keyName={editing.key}
           focusTranslation={editing.viaShortcut}
           reviewReasons={editing.reasons}
+          refreshToken={refreshToken}
           onClose={onCloseEditor}
           onAccepted={(acceptedLocale, key) => {
             decisions.updated({ locale: acceptedLocale, key });

@@ -10,31 +10,33 @@ Utilise-le quand une traduction a été reformulée et que tu veux retrouver l'a
 
 ## Ouvre l'onglet History
 
-Démarre Studio ([Review in Studio](/fr/docs/review-in-studio#démarrer-studio)), ouvre une clé dans Translations et choisis **History** à côté de **Locales**. Choisis la locale si le projet en a plusieurs. Studio ne lit rien dans git avant que tu ouvres l'onglet.
+Démarre Studio ([Review in Studio](/fr/docs/review-in-studio#démarrer-studio)), ouvre une clé dans Translations et choisis **History** à côté de **Locales**. Choisis la locale si le projet en a plusieurs. Studio ne lit l'historique de cette clé dans git que lorsque tu ouvres l'onglet.
 
-La liste commence par **Working tree (uncommitted)** quand le fichier sur le disque diffère du dernier commit. En dessous, du plus récent au plus ancien, vient chaque commit qui a changé la valeur de la clé dans cette locale. Chaque ligne montre :
+La liste commence par **Working tree (uncommitted)** quand le fichier sur le disque diffère du dernier commit. En dessous, du plus récent au plus ancien, vient chaque commit qui a changé la valeur de la clé dans cette locale, vingt lignes à la fois et avec **Show N more** pour le reste. Chaque ligne montre :
 
 | Élément | Ce qu'il t'apprend |
 | --- | --- |
-| Auteur, date, objet | le commit, avec le nom de l'auteur et jamais l'e-mail |
+| Auteur, date, hash court, objet | le commit, avec le nom de l'auteur et jamais l'e-mail |
 | Origin | qui a écrit la valeur, selon ce qui a été enregistré avec ce commit, omis si cet enregistrement n'a pas pu être lu |
-| Valeur | le texte à ce commit, dans la langue et le sens d'écriture de la locale |
+| Valeur | le texte à ce commit, dans la langue et le sens d'écriture de la locale, jamais tronqué |
 | Changes from the previous value | mots ajoutés ou retirés, marqués par un soulignement et un barré en plus de la couleur, et lus à voix haute « added » et « removed » |
 
-Tout est du texte brut, jamais du balisage. Une clé qui apparaît dans une valeur ou un objet est remplacée par `[REDACTED]`.
+Tout est du texte brut, jamais du balisage. Une clé qui apparaît dans une valeur, un objet ou un nom d'auteur est remplacée par `[REDACTED]`.
 
 ## Restaure une valeur antérieure
 
 1. Appuie sur **Restore** sur une ligne. L'éditeur s'ouvre sur **Locales** avec cette valeur comme brouillon. Rien n'est encore écrit.
-2. Lis le brouillon et appuie sur **Save**. Les vérifications habituelles s'exécutent, y compris les espaces réservés, l'ICU et les clés épinglées, et un refus s'affiche tel quel, le fichier restant intact. Une valeur enregistrée reçoit l'origine `human`.
+2. Lis le brouillon et appuie sur **Save**. Les vérifications habituelles s'exécutent, y compris les espaces réservés et l'ICU, et un refus s'affiche tel quel, le fichier restant intact. Une valeur enregistrée reçoit l'origine `human`.
 
-Si tu as des modifications non enregistrées, Studio demande avant de les remplacer. **Keep editing** laisse ton brouillon tranquille et **Discard** charge la valeur restaurée.
+Si tu as des modifications non enregistrées, Studio demande d'abord. **Save draft, then restore** garde ton brouillon puis charge l'ancienne valeur, **Discard draft and restore** l'abandonne et **Keep editing** laisse tout comme avant. Dans l'éditeur de Review, la question se trouve en haut de la boîte de dialogue et **Discard draft and restore** est le seul moyen de remplacer le brouillon.
 
-Une valeur qui est déjà la valeur actuelle de la clé, une valeur qui contenait une clé d'API et un projet où Studio ne peut pas écrire n'ont pas de **Restore**, et la ligne dit pourquoi.
+Une ligne n'a pas de **Restore**, et dit pourquoi, quand sa valeur est celle que la clé a maintenant, quand Studio n'a pas encore lu la valeur actuelle ou n'a pas pu, et quand la valeur ressemble à une clé d'API : History n'affiche pas cette valeur et on ne peut pas la restaurer d'ici.
+
+Une clé de `pinnedKeys` est réservée à une personne : une restauration enregistrée depuis Studio passe, alors que la modification d'un agent est refusée.
 
 ### Quand la source a changé
 
-Si le texte source a changé depuis ce commit, ou si Studio ne peut pas le dire, **Restore** demande d'abord une confirmation. À l'enregistrement, la clé compte alors comme à jour par rapport à la source actuelle et la valeur entre dans la mémoire de traduction, si bien qu'une ancienne formulation peut être réutilisée pour des clés proches. **Cancel** laisse tout comme avant.
+Si le texte source a changé depuis ce commit, **Restore** demande d'abord une confirmation, et si Studio ne peut pas le dire (le fichier de verrou de ce commit n'a pas pu être lu), il le dit. À l'enregistrement, la clé compte alors comme à jour par rapport à la source actuelle et la valeur entre dans la mémoire de traduction, si bien qu'une ancienne formulation peut être réutilisée pour des clés proches. **Cancel** ou Échap laisse tout comme avant.
 
 ## Sache ce que la liste omet
 
@@ -44,14 +46,14 @@ Studio ne présente jamais une liste partielle comme complète. Un avis apparaî
 - le fichier d'un commit n'a pas pu être lu ni analysé, ou la valeur était trop longue, et Studio compte combien ;
 - le fichier sur le disque n'a pas pu être comparé au dernier commit, par exemple pendant un conflit de fusion.
 
-Une liste vide dit si elle est vide ou seulement la part que Studio a pu lire. Les renommages ne sont pas suivis, les modifications jamais commitées sont manquées, une clé renommée dans la source paraît nouvelle et un changement arrivé par fusion apparaît sur le commit de fusion.
+Studio examine d'abord 50 commits. Si cela a raccourci la liste, **Read further back** en lit jusqu'à 200 en une étape, puis l'avis dit que Studio ne lit pas plus loin. Une liste vide dit si elle est vide ou seulement la part que Studio a lue. Les renommages ne sont pas suivis, les modifications jamais commitées sont manquées, une clé renommée dans la source paraît nouvelle et un changement arrivé par fusion apparaît sur le commit de fusion.
 
 Quand git manque, que le dossier n'est pas un dépôt ou que git le refuse, Studio le dit en une phrase. Une lecture qui échoue ou dépasse le délai affiche **Retry** et garde la dernière liste.
 
 ## Sache à quel point elle est à jour
 
-L'onglet relit quand un fichier de locale, de verrou ou de provenance change, quand l'index de git ou `HEAD` change et quand tu reviens à l'onglet Studio. Une lecture en arrière-plan ne déplace jamais ton focus.
+L'onglet relit quand un fichier de locale, de verrou ou de provenance change, quand l'index de git ou `HEAD` change et quand tu reviens à l'onglet Studio. Les lectures sont espacées, si bien qu'une série de commits n'inonde pas Studio. Une lecture en arrière-plan ne déplace jamais ton focus.
 
-Dans l'éditeur de Review, **Show history** ouvre la même liste pour cette entrée et **Restore** remplit son champ.
+Dans l'éditeur de Review, **Show history** ouvre la même liste pour cette entrée, relit de la même façon, et **Restore** remplit son champ.
 
 Les mêmes lectures existent sous forme de [`keyHistory`](/fr/docs/sdk/history#keyhistory), pour un [client MCP](/fr/docs/cli/mcp) et pour un [agent de navigateur](/fr/docs/agent-tools-in-studio).

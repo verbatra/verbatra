@@ -71,17 +71,21 @@ function stubProject(
 function Editor({
   locales = [localeDiff("de")],
   refreshToken = 0,
+  layout = "drawer",
+  onClose = () => {},
 }: {
   readonly locales?: readonly DiffLocale[];
   readonly refreshToken?: number;
+  readonly layout?: "pane" | "drawer";
+  readonly onClose?: () => void;
 }): ReactNode {
   return (
     <KeyEditor
       keyName={KEY}
       locales={locales}
       refreshToken={refreshToken}
-      layout="drawer"
-      onClose={() => {}}
+      layout={layout}
+      onClose={onClose}
       onEscape={() => {}}
       onRouteSettled={() => {}}
       missing={false}
@@ -101,6 +105,13 @@ function field(view: View): HTMLTextAreaElement {
   return view.get('textarea[aria-label="Translation (de)"]') as HTMLTextAreaElement;
 }
 
+async function later(): Promise<void> {
+  await flush();
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1600));
+  });
+}
+
 function historyCalls(): unknown[] {
   return rpcCalls
     .filter((call) => call.method === "history.keyRevisions")
@@ -118,7 +129,7 @@ describe("KeyEditor history tab", () => {
     await openHistory(view);
 
     expect(historyCalls()).toEqual([{ locale: "de", key: KEY }]);
-    expect(view.get('[role="tabpanel"]').textContent).toContain("set Servus");
+    expect(view.get('[data-tab-panel="history"]').textContent).toContain("set Servus");
   });
 
   it("moves between the tabs with the arrow keys and keeps one tab stop", async () => {
@@ -177,7 +188,7 @@ describe("KeyEditor history tab", () => {
       await Promise.resolve();
     });
 
-    const text = view.get('[role="tabpanel"]').textContent ?? "";
+    const text = view.get('[data-tab-panel="history"]').textContent ?? "";
     expect(text).toContain("set Salut");
     expect(text).not.toContain("Hallo-late");
   });
@@ -240,6 +251,19 @@ describe("KeyEditor history tab", () => {
     expect(field(view).value).toBe("my own words");
   });
 
+  it("focuses Keep editing, not the field, when the prompt opens from History when the prompt opens from History", async () => {
+    stubProject(history(revision("a", "Servus")));
+    const view = await renderAsync(<Editor />);
+    await clickAsync(view.get('button[data-edit-locale="de"]'));
+    await flush();
+    typeInto(field(view), "my own words");
+    await openHistory(view);
+    await clickAsync(view.get("button[data-restore]"));
+    await flush();
+
+    expect(document.activeElement?.textContent).toBe("Keep editing");
+  });
+
   it("replaces a dirty draft only after Discard", async () => {
     stubProject(history(revision("a", "Servus")));
     const view = await renderAsync(<Editor />);
@@ -250,7 +274,7 @@ describe("KeyEditor history tab", () => {
     await clickAsync(view.get("button[data-restore]"));
     await flush();
 
-    await clickAsync(view.getByText("button", "Discard"));
+    await clickAsync(view.getByText("button", "Discard draft and restore"));
     await flush();
 
     expect(field(view).value).toBe("Servus");
@@ -269,7 +293,7 @@ describe("KeyEditor history tab", () => {
     act(() => restore.focus());
 
     view.rerender(<Editor refreshToken={1} />);
-    await flush();
+    await later();
 
     expect(historyCalls()).toHaveLength(2);
     expect(view.get("[data-revision-subject]").textContent).toBe("set Servus 2");
@@ -288,7 +312,7 @@ describe("KeyEditor history tab", () => {
     await openHistory(view);
 
     emitRefresh({ reason: "git", at: "2026-01-01T00:00:00.000Z" });
-    await flush();
+    await later();
 
     expect(historyCalls()).toHaveLength(2);
     expect(view.get("[data-revision-subject]").textContent).toBe("set Servus");
@@ -307,7 +331,7 @@ describe("KeyEditor history tab", () => {
     await openHistory(view);
 
     view.rerender(<Editor refreshToken={1} />);
-    await flush();
+    await later();
 
     expect(view.get("[data-revision-subject]").textContent).toBe("set Servus");
     expect(view.get('[role="alert"]').textContent).toContain("too long");
@@ -318,10 +342,12 @@ describe("KeyEditor history tab", () => {
     const view = await renderAsync(<Editor />);
     await openHistory(view);
 
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 5000);
     act(() => {
       window.dispatchEvent(new Event("focus"));
     });
-    await flush();
+    await later();
+    clock.mockRestore();
 
     expect(historyCalls()).toHaveLength(2);
     expect(view.query("[data-revision]")).not.toBeNull();
@@ -343,5 +369,217 @@ describe("KeyEditor history tab", () => {
     await flush();
 
     expect(view.get("[data-history-unavailable]").textContent).toContain("not in a git repository");
+  });
+
+  it("does not remount the form when the tabs change, so switching tabs never steals focus", async () => {
+    stubProject(history(revision("a", "Servus")));
+    const view = await renderAsync(<Editor />);
+    await clickAsync(view.get('button[data-edit-locale="de"]'));
+    await flush();
+    const textarea = field(view);
+
+    act(() => view.get('[data-tab="history"]').focus());
+    await openHistory(view);
+    act(() => view.get('[data-tab="locales"]').focus());
+    await clickAsync(view.get('[data-tab="locales"]'));
+
+    expect(field(view)).toBe(textarea);
+    expect(document.activeElement).toBe(view.get('[data-tab="locales"]'));
+  });
+
+  it("keeps the arrow keys, Home and End on the tablist while a form is open", async () => {
+    stubProject(history(revision("a", "Servus")));
+    const view = await renderAsync(<Editor />);
+    await clickAsync(view.get('button[data-edit-locale="de"]'));
+    await flush();
+    const tabs = (key: string, from: string): void =>
+      act(() => {
+        view.get(`[data-tab="${from}"]`).focus();
+        view
+          .get(`[data-tab="${from}"]`)
+          .dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+      });
+
+    tabs("ArrowRight", "locales");
+    expect(document.activeElement).toBe(view.get('[data-tab="history"]'));
+    tabs("ArrowLeft", "history");
+    expect(document.activeElement).toBe(view.get('[data-tab="locales"]'));
+    tabs("End", "locales");
+    expect(document.activeElement).toBe(view.get('[data-tab="history"]'));
+    tabs("Home", "history");
+    expect(document.activeElement).toBe(view.get('[data-tab="locales"]'));
+  });
+
+  it("names what the restore prompt does, and a typed key does not reach the held draft", async () => {
+    stubProject(history(revision("a", "Servus")));
+    const view = await renderAsync(<Editor />);
+    await clickAsync(view.get('button[data-edit-locale="de"]'));
+    await flush();
+    typeInto(field(view), "my own words");
+    await openHistory(view);
+
+    await clickAsync(view.get("button[data-restore]"));
+    await flush();
+    act(() => {
+      document.activeElement?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "x", bubbles: true }),
+      );
+    });
+
+    expect(document.activeElement?.textContent).toBe("Keep editing");
+    expect(view.getByText("button", "Save draft, then restore")).not.toBeNull();
+    expect(view.getByText("button", "Discard draft and restore")).not.toBeNull();
+    expect(field(view).value).toBe("my own words");
+  });
+
+  it("saves the draft and then restores when the prompt's Save is used", async () => {
+    stubProject(history(revision("a", "Servus")));
+    const view = await renderAsync(<Editor />);
+    await clickAsync(view.get('button[data-edit-locale="de"]'));
+    await flush();
+    typeInto(field(view), "my own words");
+    await openHistory(view);
+    await clickAsync(view.get("button[data-restore]"));
+    await flush();
+
+    await clickAsync(view.getByText("button", "Save draft, then restore"));
+    await flush();
+
+    const saves = rpcCalls.filter((call) => call.method === "translation.editEntry");
+    expect(saves.map((call) => call.params)).toEqual([
+      { locale: "de", key: KEY, value: "my own words" },
+    ]);
+    expect(field(view).value).toBe("Servus");
+  });
+
+  it.each(["drawer", "pane"] as const)(
+    "cancels only the restore confirm on Escape in the %s",
+    async (layout) => {
+      stubProject(history(revision("a", "Servus", { sourceChanged: "unknown" })));
+      const onClose = vi.fn();
+      const view = await renderAsync(<Editor layout={layout} onClose={onClose} />);
+      await openHistory(view);
+      await clickAsync(view.get("button[data-restore]"));
+      expect(view.get("[data-restore-confirm]").getAttribute("data-restore-confirm")).toBe(
+        "unknown",
+      );
+
+      act(() => {
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+        );
+      });
+
+      expect(view.query("[data-restore-confirm]")).toBeNull();
+      expect(onClose).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(view.get("button[data-restore]"));
+    },
+  );
+
+  it("keeps the tab, the open confirm, the shown rows and the focus when the editor swaps between pane and drawer", async () => {
+    const rows = Array.from({ length: 30 }, (_, index) =>
+      revision(String.fromCharCode(97 + (index % 26)) + String(index), `v${index}`, {
+        commit: `${String(index).padStart(2, "0")}${"c".repeat(38)}`,
+        sourceChanged: index === 0 ? true : false,
+      }),
+    );
+    stubProject(history(...rows));
+    const view = await renderAsync(<Editor layout="pane" />);
+    await openHistory(view);
+    await clickAsync(view.get("[data-history-show-more]"));
+    await clickAsync(view.all("button[data-restore]")[0] as HTMLElement);
+    expect(view.all("[data-revision]")).toHaveLength(30);
+    act(() => view.getByText("button", "Load as draft").focus());
+
+    view.rerender(<Editor layout="drawer" />);
+    await flush();
+
+    expect(view.get('[data-tab="history"]').getAttribute("aria-selected")).toBe("true");
+    expect(view.all("[data-revision]")).toHaveLength(30);
+    expect(view.query("[data-restore-confirm]")).not.toBeNull();
+    expect(document.activeElement?.textContent).toBe("Load as draft");
+    expect(historyCalls()).toHaveLength(1);
+  });
+
+  it("carries the focus on a tab across the swap", async () => {
+    stubProject(history(revision("a", "Servus")));
+    const view = await renderAsync(<Editor layout="pane" />);
+    await openHistory(view);
+    act(() => view.get('[data-tab="history"]').focus());
+
+    view.rerender(<Editor layout="drawer" />);
+    await flush();
+
+    expect(document.activeElement).toBe(view.get('[data-tab="history"]'));
+  });
+
+  it("offers no Restore until the current value has been read", async () => {
+    stubProject(history(revision("a", "Servus")));
+    stubRpc({ "key.value": () => new Promise<StubRpcResult>(() => {}) });
+    const view = await renderAsync(<Editor />);
+
+    await openHistory(view);
+
+    expect(view.query("button[data-restore]")).toBeNull();
+    expect(view.get('[data-restore-reason="unknown"]').textContent).toContain(
+      "once the current value has been read",
+    );
+  });
+
+  it("says why Restore is unavailable when the key's value could not be read", async () => {
+    stubProject(history(revision("a", "Servus")));
+    stubRpc({ "key.value": { ok: false, error: { code: "INTERNAL", message: "no value" } } });
+    const view = await renderAsync(<Editor />);
+
+    await openHistory(view);
+
+    expect(view.query("button[data-restore]")).toBeNull();
+    expect(view.get('[data-restore-reason="unknown"]').textContent).toContain("could not be read");
+  });
+
+  it("reads further back at the cap in one step", async () => {
+    stubProject((params) => {
+      const limit = (params as { limit?: number }).limit;
+      return {
+        ok: true,
+        result: {
+          available: true,
+          revisions: [revision("a", "Servus")],
+          truncated: true,
+          unreadableRevisions: 0,
+          ...(limit === undefined ? {} : {}),
+        },
+      };
+    });
+    const view = await renderAsync(<Editor />);
+    await openHistory(view);
+
+    await clickAsync(view.get("[data-read-further]"));
+    await flush();
+
+    expect(historyCalls()).toEqual([
+      { locale: "de", key: KEY },
+      { locale: "de", key: KEY, limit: 200 },
+    ]);
+    expect(view.query("[data-read-further]")).toBeNull();
+    expect(view.get("[data-history-notices]").textContent).toContain("as far as it goes");
+  });
+
+  it("reserves the panel height while another locale loads", async () => {
+    stubProject((params) =>
+      (params as { locale: string }).locale === "de"
+        ? history(revision("a", "Servus"))
+        : new Promise<StubRpcResult>(() => {}),
+    );
+    const view = await renderAsync(<Editor locales={[localeDiff("de"), localeDiff("fr")]} />);
+    await openHistory(view);
+    const panel = view.get("[data-key-history]");
+    Object.defineProperty(panel, "offsetHeight", { configurable: true, value: 420 });
+    view.rerender(<Editor locales={[localeDiff("de"), localeDiff("fr")]} refreshToken={0} />);
+
+    selectOption(view.get("select[data-history-locale-select]") as HTMLSelectElement, "fr");
+    await flush();
+
+    expect(view.get("[data-key-history]").style.minHeight).toBe("420px");
   });
 });
