@@ -1,3 +1,5 @@
+import { foreignPlaceholderTokens } from "@verbatra/core";
+
 /** How a {@link KeyHistorySegment} relates the older text to the newer one. */
 export type KeyHistorySegmentKind = "equal" | "added" | "removed";
 
@@ -12,9 +14,9 @@ export interface KeyHistorySegment {
 export const VALUE_DIFF_MAX_CELLS = 250_000;
 export const VALUE_DIFF_MAX_CHARS = 16_384;
 
-const PLACEHOLDER_START: ReadonlySet<string> = new Set(["{", "%", "<", "$"]);
-const PLACEHOLDER =
-  /\{\{[^{}\n]{1,100}\}\}|\$\{[^{}\n]{1,100}\}|\{[^{}\n]{1,100}\}|%(?:\d{1,3}\$)?[-+0#]{0,3}\d{0,3}(?:\.\d{1,3})?[a-zA-Z@%]|<\/?[A-Za-z0-9][^<>\n]{0,100}>/y;
+const MAX_WHOLE_PLACEHOLDER_CHARS = 64;
+const MAX_NESTING = 3;
+const TAG = /<\/?[A-Za-z0-9][^<>\n]{0,100}>/y;
 const WORD = /[\p{L}\p{N}\p{M}_]+/uy;
 const SPACE = /\s+/y;
 
@@ -24,17 +26,15 @@ function matchAt(pattern: RegExp, text: string, index: number): string | undefin
 }
 
 function tokenAt(text: string, index: number): string {
-  const first = text.charAt(index);
-  const placeholder = PLACEHOLDER_START.has(first) ? matchAt(PLACEHOLDER, text, index) : undefined;
   return (
-    placeholder ??
+    (text.charAt(index) === "<" ? matchAt(TAG, text, index) : undefined) ??
     matchAt(WORD, text, index) ??
     matchAt(SPACE, text, index) ??
     String.fromCodePoint(text.codePointAt(index) as number)
   );
 }
 
-export function tokenizeValue(text: string): string[] {
+function plainTokens(text: string): string[] {
   const tokens: string[] = [];
   let index = 0;
   while (index < text.length) {
@@ -43,6 +43,41 @@ export function tokenizeValue(text: string): string[] {
     index += token.length;
   }
   return tokens;
+}
+
+function append(target: string[], more: readonly string[]): void {
+  for (const token of more) {
+    target.push(token);
+  }
+}
+
+function tokenizeAt(text: string, depth: number): string[] {
+  const tokens: string[] = [];
+  let cursor = 0;
+  const placeholders = foreignPlaceholderTokens(text, []);
+  const gapTokens = (gap: string): string[] =>
+    placeholders.length > 0 && depth < MAX_NESTING ? tokenizeAt(gap, depth + 1) : plainTokens(gap);
+  for (const placeholder of placeholders) {
+    const start = text.indexOf(placeholder, cursor);
+    /* v8 ignore next 3 -- a token found in the scanned text, where only whole URL runs are blanked, occurs in the original at or after the cursor. */
+    if (start === -1) {
+      continue;
+    }
+    append(tokens, gapTokens(text.slice(cursor, start)));
+    if (placeholder.length > MAX_WHOLE_PLACEHOLDER_CHARS && depth < MAX_NESTING) {
+      tokens.push(placeholder.charAt(0));
+      append(tokens, tokenizeAt(placeholder.slice(1), depth + 1));
+    } else {
+      tokens.push(placeholder);
+    }
+    cursor = start + placeholder.length;
+  }
+  append(tokens, gapTokens(text.slice(cursor)));
+  return tokens;
+}
+
+export function tokenizeValue(text: string): string[] {
+  return tokenizeAt(text, 0);
 }
 
 function commonPrefix(a: readonly string[], b: readonly string[]): number {

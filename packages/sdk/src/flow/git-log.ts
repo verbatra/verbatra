@@ -99,8 +99,8 @@ export function clampHistoryLimit(limit: number | undefined): number {
   return Math.min(Math.max(Math.floor(limit), 1), LOCALE_HISTORY_LIMIT_CAP);
 }
 
-const FIELD_SEPARATOR = "\0";
-const GIT_LOG_FORMAT = "%H%x00%aI%x00%aN%x00%s";
+export const FIELD_SEPARATOR = "\0";
+export const GIT_LOG_FORMAT = "%H%x00%aI%x00%aN%x00%s";
 const HEADER_FIELD_COUNT = 4;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -158,7 +158,9 @@ function parsePathLine(line: string): string {
   return line.length >= 2 && line.startsWith('"') && line.endsWith('"') ? unquoteCPath(line) : line;
 }
 
-function parseCommitHeader(line: string): Omit<LocaleHistoryCommit, "touchedPaths"> | undefined {
+export function parseCommitHeader(
+  line: string,
+): Omit<LocaleHistoryCommit, "touchedPaths"> | undefined {
   const fields = line.split(FIELD_SEPARATOR);
   if (fields.length !== HEADER_FIELD_COUNT) {
     return undefined;

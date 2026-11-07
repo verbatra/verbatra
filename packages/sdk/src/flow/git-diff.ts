@@ -177,6 +177,7 @@ export type Side =
 const NOTHING: Side = { ok: true, entries: new Map() };
 
 export interface SideInput {
+  readonly maxBytes?: number;
   readonly config: VerbatraConfig;
   readonly locale: string;
   readonly root: string;
@@ -277,9 +278,12 @@ export async function workingFileKind(root: string, path: string): Promise<Locat
   return locateFile(path);
 }
 
-export async function readWorkingContent(path: string): Promise<string | undefined> {
+export async function readWorkingContent(
+  path: string,
+  maxBytes: number = LOCALE_GIT_BLOB_MAX_BYTES,
+): Promise<string | undefined> {
   try {
-    const read = await defaultFs.readFileBounded(path, LOCALE_GIT_BLOB_MAX_BYTES);
+    const read = await defaultFs.readFileBounded(path, maxBytes);
     return read.kind === "ok" ? read.content : undefined;
   } catch {
     return undefined;
@@ -295,7 +299,7 @@ export async function readWorkingSide(input: SideInput): Promise<Side> {
   const contents = new Map<string, string>();
   for (const [index, file] of located.entries()) {
     if (file.kind === "file") {
-      const content = await readWorkingContent(file.path);
+      const content = await readWorkingContent(file.path, input.maxBytes);
       if (content === undefined) {
         return { ok: false, reason: "working-file-unreadable" };
       }

@@ -9,15 +9,18 @@ import { type KeyOrigin, keyProvenance } from "../lock/key-provenance.js";
 import { parseLockFileRead } from "../lock/lock-file.js";
 import { parseProvenanceRead } from "../lock/provenance-file.js";
 import { ownValue } from "../record-utils.js";
+import { redact } from "../redact.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readWorkingSide, type Side, type SideInput } from "./git-diff.js";
 import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
 import {
   clampHistoryLimit,
+  FIELD_SEPARATOR,
+  GIT_LOG_FORMAT,
   LOCALE_HISTORY_MAX_OUTPUT_BYTES,
   LOCALE_HISTORY_TIMEOUT_MS,
   type LocaleHistoryCommit,
-  parseGitLogOutput,
+  parseCommitHeader,
 } from "./git-log.js";
 import { type BlobRead, parseRevisionContent, readBlobAtCommit } from "./git-revision.js";
 import { localeLeavesProject, watchedFiles } from "./git-status.js";
@@ -41,7 +44,19 @@ export const KEY_HISTORY_DEADLINE_MS = 30_000;
 const READ_CONCURRENCY = 4;
 const MAX_AUTHOR_CHARS = 200;
 const MAX_SUBJECT_CHARS = 500;
-const LOG_FORMAT = "%H%x00%aI%x00%aN%x00%s";
+const PARSE_BUDGET_MS = 3000;
+const DEFAULT_PARSE_MAX_BYTES = 1_048_576;
+const PARSE_MAX_BYTES: Readonly<Record<string, number>> = {
+  yaml: 65_536,
+  xliff: 131_072,
+  "android-xml": 131_072,
+  resx: 131_072,
+  "apple-strings": 131_072,
+};
+
+function parseMaxBytes(format: string): number {
+  return PARSE_MAX_BYTES[format] ?? DEFAULT_PARSE_MAX_BYTES;
+}
 
 /**
  * One commit in which a key's value changed, as {@link keyHistory} lists it.
@@ -70,7 +85,12 @@ export interface KeyRevision {
    * available, or the time ran out before the lock-file was read. Restoring a revision whose source changed makes it count as up to date.
    */
   readonly sourceChanged: boolean | "unknown";
-  /** The word-level difference from the previous value of the key; the whole value when the key first appears. */
+  /**
+   * `true` when {@link redact} changed the value, which then holds `[REDACTED]` where a key
+   * was. Such a value is not the stored text: do not offer it for restore.
+   */
+  readonly valueRedacted?: true;
+  /** The word-level difference from the previous value of the key, both sides scrubbed with {@link redact}; the whole value when the key first appears. */
   readonly diff: readonly KeyHistorySegment[];
 }
 
@@ -78,7 +98,9 @@ export interface KeyRevision {
 export interface KeyWorkingTreeValue {
   /** The key's value on disk. Untrusted: show it as text. */
   readonly value: string;
-  /** The word-level difference from the value at `HEAD`; the whole value when `HEAD` has none. */
+  /** `true` when {@link redact} changed the value: it is not the stored text, so do not offer it for restore. */
+  readonly valueRedacted?: true;
+  /** The word-level difference from the value at `HEAD`, both sides scrubbed with {@link redact}; the whole value when `HEAD` has none. */
   readonly diff: readonly KeyHistorySegment[];
 }
 
@@ -100,6 +122,8 @@ export type KeyHistoryResult =
       readonly revisions: readonly KeyRevision[];
       /** The value on disk, present only when it differs from the value at `HEAD`. */
       readonly workingTree?: KeyWorkingTreeValue;
+      /** `true` when the value on disk could not be read: the file does not parse, is a symbolic link, is above the parse limit, its value is longer than {@link KEY_HISTORY_MAX_VALUE_CHARS}, or the time ran out. `workingTree` is then absent for that reason. */
+      readonly workingTreeUnreadable?: true;
       /** `true` when older history exists that this answer does not cover. */
       readonly truncated: boolean;
       /** How many examined commits held the locale file in a state that could not be read or whose value was too long. */
@@ -151,6 +175,8 @@ interface Scope {
   readonly lockPath: string;
   readonly provenancePath: string;
   readonly pathspecs: readonly string[];
+  readonly expired: () => boolean;
+  readonly parseClock: { spentMs: number };
 }
 
 function assertUsableKey(key: string): void {
@@ -170,10 +196,25 @@ function clipText(text: string, max: number): string {
   return text.slice(0, lastUnit >= 0xd800 && lastUnit <= 0xdbff ? max - 1 : max);
 }
 
-async function readKeyState(tree: GitWorkTree, commit: string, scope: Scope): Promise<KeyState> {
+async function readKeyState(
+  tree: GitWorkTree,
+  commit: string,
+  scope: Scope,
+): Promise<KeyState | undefined> {
   const blobs: BlobRead[] = [];
   for (const file of scope.files) {
-    blobs.push(await readBlobAtCommit(tree, commit, file.repoPath));
+    blobs.push(
+      await readBlobAtCommit(tree, commit, file.repoPath, {
+        maxBytes: parseMaxBytes(scope.config.format),
+        stop: scope.expired,
+      }),
+    );
+  }
+  if (
+    blobs.some((blob) => blob.kind === "failed" && blob.reason === "timeout") &&
+    scope.expired()
+  ) {
+    return undefined;
   }
   if (blobs.some((blob) => blob.kind === "failed" || blob.kind === "unreadable")) {
     return UNREADABLE;
@@ -188,8 +229,12 @@ async function readKeyState(tree: GitWorkTree, commit: string, scope: Scope): Pr
   if (contents.size === 0) {
     return ABSENT;
   }
+  if (scope.parseClock.spentMs >= PARSE_BUDGET_MS) {
+    return UNREADABLE;
+  }
   const siblings = new Map(contents);
   siblings.delete(scope.absolutePath);
+  const started = performance.now();
   const parsed = await parseRevisionContent({
     format: scope.config.format,
     locale: scope.locale,
@@ -197,6 +242,7 @@ async function readKeyState(tree: GitWorkTree, commit: string, scope: Scope): Pr
     content: contents.get(scope.absolutePath) ?? "",
     siblings,
   });
+  scope.parseClock.spentMs += performance.now() - started;
   const entry = parsed?.entries.get(scope.key);
   if (
     parsed === undefined ||
@@ -207,9 +253,28 @@ async function readKeyState(tree: GitWorkTree, commit: string, scope: Scope): Pr
   return entry === undefined ? ABSENT : { kind: "value", value: entry.value };
 }
 
+type LogEntry =
+  | { readonly malformed: false; readonly commit: LocaleHistoryCommit }
+  | { readonly malformed: true };
+
 type ListedCommits =
-  | { readonly ok: true; readonly commits: readonly LocaleHistoryCommit[] }
+  | { readonly ok: true; readonly commits: readonly LogEntry[] }
   | { readonly ok: false; readonly reason: LocaleGitUnavailableReason };
+
+function parseLogEntries(stdout: string): LogEntry[] {
+  const entries: LogEntry[] = [];
+  for (const line of stdout.split("\n")) {
+    if (line.includes(FIELD_SEPARATOR)) {
+      const header = parseCommitHeader(line);
+      entries.push(
+        header === undefined
+          ? { malformed: true }
+          : { malformed: false, commit: { ...header, touchedPaths: [] } },
+      );
+    }
+  }
+  return entries;
+}
 
 async function listCommits(tree: GitWorkTree, scope: Scope, count: number): Promise<ListedCommits> {
   if (tree.head === undefined) {
@@ -221,7 +286,7 @@ async function listCommits(tree: GitWorkTree, scope: Scope, count: number): Prom
       "--no-show-signature",
       "--first-parent",
       `--max-count=${count}`,
-      `--format=${LOG_FORMAT}`,
+      `--format=${GIT_LOG_FORMAT}`,
       "--",
       ...scope.pathspecs,
     ],
@@ -232,7 +297,7 @@ async function listCommits(tree: GitWorkTree, scope: Scope, count: number): Prom
     },
   );
   return result.ok
-    ? { ok: true, commits: parseGitLogOutput(result.stdout) }
+    ? { ok: true, commits: parseLogEntries(result.stdout) }
     : unavailable(result.failure);
 }
 
@@ -259,40 +324,41 @@ async function runPool<T>(
   return results;
 }
 
-function olderReadable(
-  states: readonly (KeyState | undefined)[],
-  from: number,
-): KeyState | undefined {
-  return states.slice(from).find((state) => state !== undefined && state.kind !== "unreadable");
-}
-
 interface Changed {
   readonly index: number;
   readonly value: string;
   readonly previous: string | undefined;
 }
 
+interface ChangedValues {
+  readonly changes: Changed[];
+  readonly unknownBaseline: boolean;
+}
+
 function changedValues(
   states: readonly (KeyState | undefined)[],
   examined: number,
-  cut: boolean,
-): Changed[] {
-  const changed: Changed[] = [];
+  listEndIsFileStart: boolean,
+): ChangedValues {
+  const changes: Changed[] = [];
+  let unknownBaseline = false;
   for (let index = 0; index < examined; index += 1) {
     const state = states[index];
     if (state?.kind !== "value") {
       continue;
     }
-    const older = olderReadable(states, index + 1);
-    if (older === undefined && cut) {
+    const atEnd = index + 1 >= states.length;
+    const older = atEnd ? ABSENT : states[index + 1];
+    if (older === undefined || older.kind === "unreadable" || (atEnd && !listEndIsFileStart)) {
+      unknownBaseline = true;
       continue;
     }
-    const previous = older?.kind === "value" ? older.value : undefined;
+    const previous = older.kind === "value" ? older.value : undefined;
     if (previous !== state.value) {
-      changed.push({ index, value: state.value, previous });
+      changes.push({ index, value: state.value, previous });
     }
   }
-  return changed;
+  return { changes, unknownBaseline };
 }
 
 async function currentSourceHash(
@@ -345,8 +411,9 @@ async function readContext(
   value: string,
   sourceHash: string | undefined,
 ): Promise<RevisionContext> {
-  const lock = await readBlobAtCommit(tree, commit, scope.lockPath);
-  const provenance = await readBlobAtCommit(tree, commit, scope.provenancePath);
+  const options = { stop: scope.expired };
+  const lock = await readBlobAtCommit(tree, commit, scope.lockPath, options);
+  const provenance = await readBlobAtCommit(tree, commit, scope.provenancePath, options);
   const locked = lock.kind === "ok" ? lockedHash(lock.content, scope) : undefined;
   const origin =
     provenance.kind === "ok"
@@ -361,20 +428,37 @@ async function readContext(
   };
 }
 
+interface ScrubbedDiff {
+  readonly value: string;
+  readonly valueRedacted: boolean;
+  readonly diff: KeyHistorySegment[];
+}
+
+function scrubbedDiff(previous: string | undefined, value: string): ScrubbedDiff {
+  const scrubbed = redact(value);
+  return {
+    value: scrubbed,
+    valueRedacted: scrubbed !== value,
+    diff: diffValues(redact(previous ?? ""), scrubbed),
+  };
+}
+
 function revisionOf(
   commit: LocaleHistoryCommit,
   change: Changed,
   context: RevisionContext,
 ): KeyRevision {
+  const { value, valueRedacted, diff } = scrubbedDiff(change.previous, change.value);
   return {
     commit: commit.hash,
     authorDate: commit.authorDate,
     author: clipText(commit.author, MAX_AUTHOR_CHARS),
     subject: clipText(commit.subject, MAX_SUBJECT_CHARS),
-    value: change.value,
+    value,
+    ...(valueRedacted ? { valueRedacted: true as const } : {}),
     ...(context.origin !== undefined ? { origin: context.origin } : {}),
     sourceChanged: context.sourceChanged,
-    diff: diffValues(change.previous ?? "", change.value),
+    diff,
   };
 }
 
@@ -384,47 +468,46 @@ interface Collected {
   readonly unreadableRevisions: number;
 }
 
+function hashOf(entry: LogEntry | undefined): string {
+  return entry !== undefined && !entry.malformed ? entry.commit.hash : "";
+}
+
 async function collectRevisions(
   tree: GitWorkTree,
   scope: Scope,
   cwd: string,
   limit: number,
-  deadline: number,
 ): Promise<Collected | { readonly reason: LocaleGitUnavailableReason }> {
   const listed = await listCommits(tree, scope, limit + 1);
   if (!listed.ok) {
     return { reason: listed.reason };
   }
   const commits = listed.commits;
-  const expired = (): boolean => Date.now() >= deadline;
-  const states = await runPool(commits.length, expired, (index) =>
-    readKeyState(tree, (commits[index] as LocaleHistoryCommit).hash, scope),
-  );
+  const states = await runPool(commits.length, scope.expired, (index) => {
+    const hash = hashOf(commits[index]);
+    return hash === "" ? Promise.resolve(UNREADABLE) : readKeyState(tree, hash, scope);
+  });
   const examined = Math.min(limit, commits.length);
   const unread = states.some((state) => state === undefined);
-  const cut = commits.length > limit || unread || (commits.length > 0 && (await isShallow(tree)));
-  const changes = changedValues(states, examined, cut);
+  const moreCommits = commits.length > limit;
+  const shallow =
+    commits.length > 0 && !moreCommits && !unread && (scope.expired() || (await isShallow(tree)));
+  const { changes, unknownBaseline } = changedValues(states, examined, !shallow);
   const sourceHash =
     changes.length > 0 ? await currentSourceHash(scope.config, cwd, scope.key) : undefined;
-  const contexts = await runPool(changes.length, expired, (index) => {
+  const contexts = await runPool(changes.length, scope.expired, (index) => {
     const change = changes[index] as Changed;
-    return readContext(
-      tree,
-      (commits[change.index] as LocaleHistoryCommit).hash,
-      scope,
-      change.value,
-      sourceHash,
-    );
+    return readContext(tree, hashOf(commits[change.index]), scope, change.value, sourceHash);
   });
   return {
     revisions: changes.map((change, index) =>
       revisionOf(
-        commits[change.index] as LocaleHistoryCommit,
+        (commits[change.index] as { readonly commit: LocaleHistoryCommit }).commit,
         change,
         contexts[index] ?? NO_CONTEXT,
       ),
     ),
-    truncated: cut,
+    truncated: moreCommits || unread || shallow || unknownBaseline,
     unreadableRevisions: states.slice(0, examined).filter((state) => state?.kind === "unreadable")
       .length,
   };
@@ -434,17 +517,24 @@ async function workingTreeValue(
   tree: GitWorkTree,
   scope: Scope,
   working: Extract<Side, { readonly ok: true }>,
-): Promise<KeyWorkingTreeValue | undefined> {
+): Promise<KeyWorkingTreeValue | "unreadable" | undefined> {
   const value = working.entries.get(scope.key)?.value;
-  if (value === undefined || value.length > KEY_HISTORY_MAX_VALUE_CHARS) {
+  if (value === undefined) {
     return undefined;
+  }
+  if (value.length > KEY_HISTORY_MAX_VALUE_CHARS || scope.expired()) {
+    return "unreadable";
   }
   const head = tree.head === undefined ? ABSENT : await readKeyState(tree, tree.head, scope);
-  if (head.kind === "unreadable") {
-    return undefined;
+  if (head === undefined || head.kind === "unreadable") {
+    return "unreadable";
   }
   const previous = head.kind === "value" ? head.value : undefined;
-  return previous === value ? undefined : { value, diff: diffValues(previous ?? "", value) };
+  if (previous === value) {
+    return undefined;
+  }
+  const { value: shown, valueRedacted, diff } = scrubbedDiff(previous, value);
+  return { value: shown, ...(valueRedacted ? { valueRedacted: true as const } : {}), diff };
 }
 
 function buildScope(
@@ -453,6 +543,7 @@ function buildScope(
   paths: { readonly main: string; readonly siblings: readonly string[] },
   cwd: string,
   absolutePath: string,
+  deadline: number,
 ): Scope {
   const files = [paths.main, ...paths.siblings].map((path) => ({
     absolutePath: resolvePath(cwd, path),
@@ -467,6 +558,8 @@ function buildScope(
     lockPath: `${tree.prefix}verbatra.lock.json`,
     provenancePath: `${tree.prefix}verbatra.provenance.json`,
     pathspecs: [paths.main, ...paths.siblings],
+    expired: () => Date.now() >= deadline,
+    parseClock: { spentMs: 0 },
   };
 }
 
@@ -480,17 +573,31 @@ function buildScope(
  * `.stringsdict` file for `apple-strings`), so a change brought in by a merge appears on the merge
  * commit. Each commit's file is read with `git cat-file blob` over the safeguards of
  * {@link localeGitDiff}, parsed by the built-in adapter over an in-memory file system, and a
- * commit is listed only when the key's value differs from the value in the next older readable
- * commit. A commit that removes the key is not listed. A value is compared exactly, so a change
- * of whitespace alone is a revision. `origin` comes from the provenance file and `sourceChanged`
- * from the lock-file as committed with the revision. At most {@link LOCALE_HISTORY_LIMIT_CAP}
- * commits are examined, {@link LOCALE_HISTORY_LIMIT_DEFAULT} by default, four files are read at a
- * time, and no new read starts after {@link KEY_HISTORY_DEADLINE_MS}; a read already running ends
- * within its own 10 second limit. `truncated` is `true` when older commits exist that were not
- * examined, the repository is a shallow clone, or the deadline passed before every examined
- * commit was read. A revision whose records were not read in time has no `origin` and
- * `sourceChanged` `"unknown"`, and `truncated` does not say so. A commit whose file could not be read or parsed, or whose value is longer than
- * {@link KEY_HISTORY_MAX_VALUE_CHARS} characters, counts in `unreadableRevisions` and is skipped.
+ * commit is listed only when the key's value differs from the value in the commit right before it
+ * in the file's history, which must have been read. A commit that removes the key is not listed.
+ * A value is compared exactly, so a change of whitespace alone is a revision. `origin` comes
+ * from the provenance file and `sourceChanged` from the lock-file as committed with the
+ * revision. At most {@link LOCALE_HISTORY_LIMIT_CAP} commits are examined,
+ * {@link LOCALE_HISTORY_LIMIT_DEFAULT} by default, four files are read at a time, and no new
+ * read starts after {@link KEY_HISTORY_DEADLINE_MS}; a read already running ends within its own
+ * 10 second limit. `truncated` is `true` when older commits exist that were not examined, the
+ * repository is a shallow clone, the deadline passed before every examined commit was read, or a
+ * commit could not be compared because the commit before it could not be read: that commit is
+ * then not claimed as the key's change. A revision whose records were not read in time has no
+ * `origin` and `sourceChanged` `"unknown"`, and `truncated` does not say so.
+ *
+ * A file is parsed only up to a size that keeps the worst parse well under a second: 64 KiB for
+ * `yaml`, 128 KiB for `xliff`, `android-xml`, `resx` and `apple-strings`, 1 MiB for the other
+ * formats, and the parsing of one call is stopped after 3 seconds in total. A commit whose file
+ * is above its limit, could not be read or parsed, whose log line did not parse, or whose value
+ * is longer than {@link KEY_HISTORY_MAX_VALUE_CHARS} characters counts in `unreadableRevisions`
+ * and is skipped. The file on disk follows the same limit. When it cannot be read (it does not
+ * parse, is a symbolic link, is above the limit, the value is too long or the time ran out) the
+ * answer still lists the revisions, has no `workingTree` and sets `workingTreeUnreadable`.
+ *
+ * Every value and both sides of every difference pass {@link redact}: a value that changes is
+ * returned with `[REDACTED]` for the key and flagged `valueRedacted`, and must not be offered
+ * for restore.
  *
  * Limits: renames are not followed, so history before a locale file was renamed is not listed;
  * edits that were never committed, other than the one on disk, are not seen; a key renamed in
@@ -540,6 +647,7 @@ export async function keyHistory(
   const file = watched.find(
     (candidate) => candidate.siblingOf === undefined && candidate.locales.includes(input.locale),
   );
+  /* v8 ignore next 3 -- watchedFiles keeps every contained locale path (pinned by the unusual-pattern tests), so the file is found after the outside-project check. */
   if (file === undefined) {
     return { available: false, reason: "working-file-unreadable" };
   }
@@ -554,6 +662,7 @@ export async function keyHistory(
     { main: file.path, siblings: siblings.map((sibling) => sibling.path) },
     cwd,
     absolutePath,
+    deadline,
   );
   const sideInput: SideInput = {
     config: input.config,
@@ -561,26 +670,21 @@ export async function keyHistory(
     root: cwd,
     absolutePath,
     siblingPaths: scope.files.slice(1).map((sibling) => sibling.absolutePath),
+    maxBytes: parseMaxBytes(input.config.format),
   };
   const working = await readWorkingSide(sideInput);
-  if (!working.ok) {
-    return { available: false, reason: working.reason };
-  }
-  const collected = await collectRevisions(
-    opened.tree,
-    scope,
-    cwd,
-    clampHistoryLimit(input.limit),
-    deadline,
-  );
+  const collected = await collectRevisions(opened.tree, scope, cwd, clampHistoryLimit(input.limit));
   if ("reason" in collected) {
     return { available: false, reason: collected.reason };
   }
-  const workingTree = await workingTreeValue(opened.tree, scope, working);
+  const workingTree = working.ok
+    ? await workingTreeValue(opened.tree, scope, working)
+    : "unreadable";
   return {
     available: true,
     revisions: collected.revisions,
-    ...(workingTree !== undefined ? { workingTree } : {}),
+    ...(typeof workingTree === "object" ? { workingTree } : {}),
+    ...(workingTree === "unreadable" ? { workingTreeUnreadable: true as const } : {}),
     truncated: collected.truncated,
     unreadableRevisions: collected.unreadableRevisions,
   };
