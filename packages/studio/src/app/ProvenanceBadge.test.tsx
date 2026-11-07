@@ -48,4 +48,14 @@ describe("ProvenanceBadge", () => {
         .dataset.side,
     ).toBe("top-start");
   });
+
+  it("lets a long origin break inside its cell only when asked to", () => {
+    const external = { origin: "external", reviewState: "unreviewed" } as const;
+    const plain = render(<ProvenanceBadge provenance={external} />);
+    const wrapped = render(<ProvenanceBadge provenance={external} wrap />);
+
+    expect(plain.get("[data-tone]").className).toContain("whitespace-nowrap");
+    expect(plain.get("[data-tone]").className).not.toContain("whitespace-normal");
+    expect(wrapped.get("[data-tone]").className).toContain("whitespace-normal");
+  });
 });

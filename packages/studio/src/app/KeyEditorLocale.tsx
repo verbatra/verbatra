@@ -60,7 +60,7 @@ function LocaleProvenance({
     return null;
   }
   const items: ReadonlyArray<readonly [string, ReactNode]> = [
-    ["Origin", <ProvenanceBadge key="origin" provenance={provenance} />],
+    ["Origin", <ProvenanceBadge key="origin" provenance={provenance} wrap />],
     ...provenanceDetailItems(provenance).map(
       ({ label, value, identifier }) =>
         [label, identifier ? <MonoValue key={label}>{value}</MonoValue> : value] as const,

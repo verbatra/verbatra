@@ -13,6 +13,7 @@ import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ReviewReasonChips } from "./ReviewReasonChips.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
+import { useBannerAnchor } from "./use-banner-anchor.js";
 import { useDialogDraftGuard } from "./use-dialog-draft-guard.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
@@ -205,6 +206,7 @@ export function EditEntryDialog({
     onClose: requestClose,
     ...(focusTranslation ? { initialFocus: textAreaRef } : {}),
   });
+  useBannerAnchor(containerRef, replacing !== null);
   const draftCheck = useDraftCheck(
     locale,
     keyName,
