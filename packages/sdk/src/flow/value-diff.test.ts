@@ -29,13 +29,37 @@ describe("tokenizeValue", () => {
       "%s",
       "%1$d",
       "%.2f",
-      "%%",
       "<b>",
       "</b>",
       "<0/>",
     ]) {
       expect(tokenizeValue(text)).toContain(placeholder);
     }
+  });
+
+  it("keeps length-modified printf, ruby and python-named placeholders whole", () => {
+    const text = "%lld %llu %zd %hhd %{x} %(x)s";
+
+    expect(tokenizeValue(text).filter((token) => token.trim() !== "")).toEqual([
+      "%lld",
+      "%llu",
+      "%zd",
+      "%hhd",
+      "%{x}",
+      "%(x)s",
+    ]);
+  });
+
+  it("keeps the ICU plural head and a placeholder nested in its arms whole", () => {
+    const text =
+      "{count, plural, one {You have {n} item in your very long shopping basket} other {{n} items}}";
+
+    const tokens = tokenizeValue(text);
+
+    expect(tokens.join("")).toBe(text);
+    expect(tokens).toContain("{n}");
+    expect(tokens).toContain("{count, plural,");
+    expect(tokens).not.toContain(text);
   });
 
   it("does not read a percent sign before a space as a placeholder", () => {

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { contentHash } from "@verbatra/core";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SdkError } from "../errors.js";
 import { valueHash } from "../lock/provenance-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
@@ -548,13 +548,28 @@ describe("keyHistory refusals", () => {
     expect(await history(plain)).toEqual({ available: false, reason: "not-a-repository" });
   });
 
-  it("returns the reason when the file on disk is a symbolic link or does not parse", async () => {
+  it("lists the revisions and flags the working file when it does not parse, as during a merge conflict", async () => {
     const fx = await repo();
     await fx.write("locales/de.json", json({ a: "x" }));
     await fx.commitAll("one");
-    await fx.write("locales/de.json", "{ broken");
+    await fx.write("locales/de.json", "<<<<<<< HEAD\n{ broken\n=======\n{}\n>>>>>>> side\n");
 
-    expect(await history(fx)).toEqual({ available: false, reason: "working-file-unreadable" });
+    const result = available(await history(fx));
+
+    expect(result.revisions.map((revision) => revision.value)).toEqual(["x"]);
+    expect(result.workingTreeUnreadable).toBe(true);
+    expect(result.workingTree).toBeUndefined();
+  });
+
+  it("flags a working file above the parse limit for its format", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "x" }));
+    await fx.commitAll("one");
+    await fx.write("locales/de.json", json({ a: "x", pad: "p".repeat(1_048_576) }));
+
+    const result = available(await history(fx));
+
+    expect(result.workingTreeUnreadable).toBe(true);
   });
 
   it("never passes the key to git", async () => {
@@ -580,10 +595,10 @@ describe("keyHistory value bound", () => {
     const fx = await repo();
     await fx.write("locales/de.json", json({ a: "short" }));
     await fx.commitAll("short");
-    await fx.write("locales/de.json", json({ a: "x".repeat(KEY_HISTORY_MAX_VALUE_CHARS + 1) }));
-    await fx.commitAll("too long");
     await fx.write("locales/de.json", json({ a: "x".repeat(KEY_HISTORY_MAX_VALUE_CHARS) }));
     await fx.commitAll("exactly at the bound");
+    await fx.write("locales/de.json", json({ a: "x".repeat(KEY_HISTORY_MAX_VALUE_CHARS + 1) }));
+    await fx.commitAll("too long");
 
     const result = available(await history(fx));
 
@@ -604,6 +619,205 @@ describe("keyHistory value bound", () => {
     await fx.commitAll("short");
     await fx.write("locales/de.json", json({ a: "x".repeat(KEY_HISTORY_MAX_VALUE_CHARS + 1) }));
 
-    expect(available(await history(fx)).workingTree).toBeUndefined();
+    const result = available(await history(fx));
+
+    expect(result.workingTree).toBeUndefined();
+    expect(result.workingTreeUnreadable).toBe(true);
+  });
+});
+
+describe("keyHistory redaction and parse limits", () => {
+  const SECRET_A = `sk-proj-${"A1b2C3d4".repeat(6)}`;
+  const SECRET_B = `sk-proj-${"Z9y8X7w6".repeat(6)}`;
+
+  it("scrubs a key from the value and from both sides of the diff, so a split at the hyphen leaks nothing", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: `Schluessel ${SECRET_A} Ende` }));
+    await fx.commitAll("one");
+    await fx.write("locales/de.json", json({ a: `Schluessel ${SECRET_B} Ende` }));
+    await fx.commitAll("two");
+    await fx.write("locales/de.json", json({ a: `Schluessel ${SECRET_B} Ende!` }));
+
+    const result = available(await history(fx));
+
+    const text = JSON.stringify(result);
+    expect(text).not.toContain("A1b2C3d4");
+    expect(text).not.toContain("Z9y8X7w6");
+    expect(result.revisions[0]).toMatchObject({
+      value: "Schluessel [REDACTED] Ende",
+      valueRedacted: true,
+    });
+    expect(result.workingTree).toMatchObject({ valueRedacted: true });
+    expect(result.workingTree?.value).toBe("Schluessel [REDACTED] Ende!");
+  });
+
+  it("scrubs the value of a configured provider key variable, hyphenated or not", async () => {
+    const key = `proj-key-${"Q".repeat(20)}`;
+    vi.stubEnv("OPENAI_API_KEY", key);
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: `env ${key}` }));
+    await fx.commitAll("one");
+
+    const result = available(await history(fx));
+
+    expect(JSON.stringify(result)).not.toContain("QQQQ");
+    expect(result.revisions[0]).toMatchObject({ valueRedacted: true });
+    vi.unstubAllEnvs();
+  });
+
+  it("leaves a value the scrubber does not change without the flag", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "plain" }));
+    await fx.commitAll("one");
+
+    const result = available(await history(fx));
+
+    expect(result.revisions[0]).not.toHaveProperty("valueRedacted");
+  });
+
+  it("skips a yaml file above 64 KiB and an xml file above 128 KiB without parsing it", async () => {
+    const yaml = await repo();
+    const config = baseConfig({ format: "yaml", files: { pattern: "locales/{locale}.yaml" } });
+    await yaml.write("locales/de.yaml", "a: one\n");
+    await yaml.commitAll("small");
+    await yaml.write("locales/de.yaml", `a: two\npad: "${"q".repeat(66_000)}"\n`);
+    await yaml.commitAll("big");
+    await yaml.write("locales/de.yaml", "a: three\n");
+    await yaml.commitAll("small again");
+    const xml = await repo();
+    const xmlConfig = baseConfig({
+      format: "android-xml",
+      files: { pattern: "values-{locale}/strings.xml" },
+    });
+    const resources = (value: string, pad = ""): string =>
+      `<?xml version="1.0" encoding="utf-8"?>\n<resources><string name="a">${value}</string>${pad}</resources>\n`;
+    await xml.write("values-de/strings.xml", resources("one"));
+    await xml.commitAll("small");
+    await xml.write(
+      "values-de/strings.xml",
+      resources("two", `<string name="p">${"q".repeat(140_000)}</string>`),
+    );
+    await xml.commitAll("big");
+    await xml.write("values-de/strings.xml", resources("three"));
+    await xml.commitAll("small again");
+
+    const yamlResult = available(
+      await keyHistory({ config, cwd: yaml.root, locale: "de", key: "a" }),
+    );
+    const xmlResult = available(
+      await keyHistory({ config: xmlConfig, cwd: xml.root, locale: "de", key: "a" }),
+    );
+
+    expect(yamlResult.unreadableRevisions).toBe(1);
+    expect(yamlResult.revisions.map((revision) => revision.value)).toEqual(["one"]);
+    expect(xmlResult.unreadableRevisions).toBe(1);
+    expect(xmlResult.revisions.map((revision) => revision.value)).toEqual(["one"]);
+  });
+
+  it("stops parsing once the parse budget of a call is spent", async () => {
+    const fx = await repo();
+    for (const value of ["1", "2", "3", "4", "5", "6"]) {
+      await fx.write("locales/de.json", json({ a: value }));
+      await fx.commitAll(`set ${value}`);
+    }
+    let clock = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => {
+      clock += 1500;
+      return clock;
+    });
+
+    const result = available(await history(fx));
+    vi.restoreAllMocks();
+
+    expect(result.unreadableRevisions).toBeGreaterThan(0);
+    expect(result.truncated).toBe(true);
+  });
+});
+
+describe("keyHistory unusual projects", () => {
+  it("lists a key again when its whole file was deleted and recreated with the same value", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "same" }));
+    await fx.commitAll("created");
+    await fx.git(["rm", "-q", "locales/de.json"]);
+    await fx.commitAll("deleted");
+    await fx.write("locales/de.json", json({ a: "same" }));
+    await fx.commitAll("recreated");
+
+    const result = available(await history(fx));
+
+    expect(result.revisions.map((revision) => revision.subject)).toEqual(["recreated", "created"]);
+    expect(result.truncated).toBe(false);
+  });
+
+  it("answers sourceChanged unknown when the committed lock-file is not valid JSON", async () => {
+    const fx = await repo();
+    await fx.write("locales/en.json", json({ a: "A" }));
+    await fx.write("locales/de.json", json({ a: "x" }));
+    await fx.write("verbatra.lock.json", "{ not json");
+    await fx.commitAll("one");
+
+    const result = available(await history(fx));
+
+    expect(result.revisions[0]).toMatchObject({ sourceChanged: "unknown" });
+  });
+
+  it("answers the git reason when the log itself fails", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "x" }));
+    await fx.commitAll("one");
+    const execFile: GitExecFile = async (file, args, options) => {
+      if (args.includes("log")) {
+        throw Object.assign(new Error("slow"), { killed: true, signal: "SIGKILL" });
+      }
+      return defaultGitExecFile(file, args, options);
+    };
+
+    expect(await history(fx, "a", { execFile })).toEqual({ available: false, reason: "timeout" });
+  });
+
+  it.each([
+    "-x{locale}.json",
+    "l o c/{locale} file.json",
+    "locales/{locale}/--help.json",
+    "ünï/{locale}.json",
+  ])("finds the watched file for the pattern %s and never reports it missing", async (pattern) => {
+    const fx = await repo();
+    const config = baseConfig({ files: { pattern } });
+    const path = pattern.replace("{locale}", "de");
+    await fx.write(path, json({ a: "x" }));
+    await fx.commitAll("one");
+
+    const result = await keyHistory({ config, cwd: fx.root, locale: "de", key: "a" });
+
+    expect(result).toMatchObject({ available: true, revisions: [{ value: "x" }] });
+  });
+});
+
+describe("keyHistory log lines", () => {
+  it("counts a commit whose date does not parse as unreadable and never drops it silently", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "one" }));
+    await fx.commitAll("one");
+    await fx.write("locales/de.json", json({ a: "two" }));
+    await fx.commitAll("two");
+    const real = (await fx.git(["log", "--format=%H"])).trim().split("\n");
+    const execFile: GitExecFile = async (file, args, options) => {
+      const result = await defaultGitExecFile(file, args, options);
+      if (!args.includes("log")) {
+        return result;
+      }
+      return {
+        ...result,
+        stdout: result.stdout.replace(/^(\w{40})\0[^\0]+\0/gm, "$1\0not-a-date\0"),
+        stderr: result.stderr,
+      };
+    };
+
+    const result = available(await history(fx, "a", { execFile }));
+
+    expect(real).toHaveLength(2);
+    expect(result.unreadableRevisions).toBe(2);
+    expect(result.revisions).toEqual([]);
   });
 });

@@ -39,7 +39,7 @@ function run(fx: GitFixture, key = "a", execFile?: GitExecFile, config = baseCon
 }
 
 describe("keyHistory over a hostile history", () => {
-  it("steps over an old revision the adapter cannot parse and counts it", async () => {
+  it("does not claim the commit after an old revision the adapter cannot parse, and says so", async () => {
     const fx = await repo();
     await fx.write("locales/de.json", json({ a: "one" }));
     await fx.commitAll("good one");
@@ -51,14 +51,11 @@ describe("keyHistory over a hostile history", () => {
     const result = available(await run(fx));
 
     expect(result.unreadableRevisions).toBe(1);
-    expect(result.revisions.map((revision) => revision.value)).toEqual(["two", "one"]);
-    expect(result.revisions[0]?.diff).toEqual([
-      { kind: "removed", text: "one" },
-      { kind: "added", text: "two" },
-    ]);
+    expect(result.truncated).toBe(true);
+    expect(result.revisions.map((revision) => revision.value)).toEqual(["one"]);
   });
 
-  it("does not list a revision whose only older readable neighbour has the same value", async () => {
+  it("does not list a revision whose older neighbour is unreadable, even when the older readable one holds the same value", async () => {
     const fx = await repo();
     await fx.write("locales/de.json", json({ a: "same" }));
     await fx.commitAll("first");
@@ -84,7 +81,8 @@ describe("keyHistory over a hostile history", () => {
     const result = available(await run(fx));
 
     expect(result.unreadableRevisions).toBe(1);
-    expect(result.revisions.map((revision) => revision.value)).toEqual(["two", "one"]);
+    expect(result.truncated).toBe(true);
+    expect(result.revisions.map((revision) => revision.value)).toEqual(["one"]);
   });
 
   it("counts a committed symbolic link as unreadable", async () => {
@@ -101,7 +99,8 @@ describe("keyHistory over a hostile history", () => {
     const result = available(await run(fx));
 
     expect(result.unreadableRevisions).toBe(1);
-    expect(result.revisions.map((revision) => revision.value)).toEqual(["two", "one"]);
+    expect(result.truncated).toBe(true);
+    expect(result.revisions.map((revision) => revision.value)).toEqual(["one"]);
   });
 
   it("strips control and bidirectional characters and cuts a very long subject and author", async () => {
@@ -169,8 +168,29 @@ describe("keyHistory over a hostile history", () => {
     const result = available(await run(fx));
 
     expect(result.unreadableRevisions).toBe(1);
-    expect(result.revisions.map((revision) => revision.value)).toEqual(["two"]);
+    expect(result.truncated).toBe(true);
+    expect(result.revisions).toEqual([]);
     expect(await fx.exists("pcmark")).toBe(false);
+  });
+
+  it("never claims a first appearance for a key an unreadable older commit may already have held", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "unchanged since the start", b: "b1" }));
+    await fx.commitAll("a written here");
+    await fx.write("locales/de.json", json({ a: "unchanged since the start", b: "b2" }));
+    await fx.commitAll("only b changed");
+    await fx.write("locales/de.json", json({ a: "unchanged since the start", b: "b3" }));
+    await fx.commitAll("only b changed again");
+    for (const spec of ["HEAD~2", "HEAD~1"]) {
+      const hash = (await fx.git(["rev-parse", `${spec}:locales/de.json`])).trim();
+      await rm(join(fx.root, ".git", "objects", hash.slice(0, 2), hash.slice(2)));
+    }
+
+    const result = available(await run(fx));
+
+    expect(result.revisions).toEqual([]);
+    expect(result.unreadableRevisions).toBe(2);
+    expect(result.truncated).toBe(true);
   });
 
   it("runs no filter driver, text conversion driver or hook the repository configures", async () => {
@@ -199,7 +219,7 @@ describe("keyHistory over a hostile history", () => {
     expect(await fx.exists("marker")).toBe(false);
   });
 
-  it("refuses a working file that is a symbolic link", async () => {
+  it("lists the revisions and flags the working file when it is a symbolic link", async () => {
     const fx = await repo();
     await fx.write("locales/de.json", json({ a: "one" }));
     await fx.commitAll("one");
@@ -207,10 +227,15 @@ describe("keyHistory over a hostile history", () => {
     await writeFile(join(fx.base, "outside.json"), json({ a: "outside" }));
     await symlink(join(fx.base, "outside.json"), join(fx.root, "locales/de.json"));
 
-    expect(await run(fx)).toEqual({ available: false, reason: "working-file-unreadable" });
+    const result = available(await run(fx));
+
+    expect(result.revisions.map((revision) => revision.value)).toEqual(["one"]);
+    expect(result.workingTreeUnreadable).toBe(true);
+    expect(result.workingTree).toBeUndefined();
+    expect(JSON.stringify(result)).not.toContain("outside");
   });
 
-  it("refuses a locale directory that is a symbolic link to outside", async () => {
+  it("lists the revisions and flags the working file when its directory is a symbolic link to outside", async () => {
     const fx = await repo();
     await fx.write("locales/de.json", json({ a: "one" }));
     await fx.commitAll("one");
@@ -219,7 +244,10 @@ describe("keyHistory over a hostile history", () => {
     await writeFile(join(fx.base, "elsewhere/de.json"), json({ a: "outside" }));
     await symlink(join(fx.base, "elsewhere"), join(fx.root, "locales"));
 
-    expect(await run(fx)).toEqual({ available: false, reason: "working-file-unreadable" });
+    const result = available(await run(fx));
+
+    expect(result.workingTreeUnreadable).toBe(true);
+    expect(JSON.stringify(result)).not.toContain("outside");
   });
 
   it("treats __proto__ as an ordinary key and leaves the prototype alone", async () => {
@@ -255,6 +283,20 @@ describe("keyHistory over a hostile history", () => {
   });
 });
 
+describe("keyHistory with an oversized provenance file", () => {
+  it("leaves the origin out instead of failing", async () => {
+    const fx = await repo();
+    await fx.write("locales/de.json", json({ a: "one" }));
+    await fx.write("verbatra.provenance.json", `${"x".repeat(LOCALE_GIT_BLOB_MAX_BYTES + 1)}\n`);
+    await fx.commitAll("one");
+
+    const result = available(await run(fx));
+
+    expect(result.revisions[0]?.value).toBe("one");
+    expect(result.revisions[0]?.origin).toBeUndefined();
+  });
+});
+
 describe("keyHistory deadline", () => {
   async function nine(): Promise<GitFixture> {
     const fx = await repo();
@@ -278,14 +320,49 @@ describe("keyHistory deadline", () => {
 
   it("stops reading older commits, lists only the ones it can compare and says it is truncated", async () => {
     const fx = await nine();
-    const execFile = clockJumpingOn((args) => args.includes("cat-file"));
+    let blobReads = 0;
+    const execFile = clockJumpingOn((args) => args.includes("cat-file") && ++blobReads === 4);
 
     const result = available(await run(fx, "a", execFile));
 
     expect(result.truncated).toBe(true);
-    expect(result.revisions.length).toBeGreaterThan(0);
-    expect(result.revisions.length).toBeLessThan(9);
-    expect(result.revisions[0]?.value).toBe("9");
+    expect(result.revisions.map((revision) => revision.value)).toEqual(["9", "8", "7"]);
+  });
+
+  it("starts no blob read after the deadline even when its tree entry was already listed", async () => {
+    const fx = await nine();
+    const calls: string[] = [];
+    const inner = clockJumpingOn((args) => args.includes("ls-tree"));
+    const execFile: GitExecFile = (file, args, options) => {
+      calls.push(args.find((arg) => arg === "cat-file" || arg === "ls-tree") ?? "");
+      return inner(file, args, options);
+    };
+
+    const result = available(await run(fx, "a", execFile));
+
+    expect(calls.filter((call) => call === "cat-file")).toEqual([]);
+    expect(result.revisions).toEqual([]);
+    expect(result.truncated).toBe(true);
+  });
+
+  it("starts no is-shallow probe and no working tree read after the deadline", async () => {
+    const fx = await nine();
+    await fx.write("locales/de.json", json({ a: "edited" }));
+    const seen: string[] = [];
+    let reads = 0;
+    const inner = clockJumpingOn((args) => args.includes("cat-file") && ++reads === 9);
+    const execFile: GitExecFile = (file, args, options) => {
+      seen.push(args.join(" "));
+      return inner(file, args, options);
+    };
+
+    const result = available(await run(fx, "a", execFile));
+
+    expect(seen.some((line) => line.includes("--is-shallow-repository"))).toBe(false);
+    expect(seen.filter((line) => line.includes("ls-tree"))).toHaveLength(9);
+    expect(result.workingTreeUnreadable).toBe(true);
+    expect(result.workingTree).toBeUndefined();
+    expect(result.truncated).toBe(true);
   });
 
   it("returns revisions without origin and with sourceChanged unknown once it ran out of time reading their records", async () => {
