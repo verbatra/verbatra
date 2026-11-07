@@ -23,6 +23,7 @@ interface DuplicateKey {
 }
 
 const FRAME_WIDTH = 80;
+const MAX_EMITTED_WARNINGS = 20;
 
 function normalizeKey(key: unknown): string {
   if (typeof key === "object" && key !== null) {
@@ -45,27 +46,16 @@ function normalizeYamlTree(value: unknown): unknown {
   return out;
 }
 
+const TRIVIA = /(?:[ \t\r\n]|#[^\n]*)*/y;
+
 function skipTrivia(content: string, from: number): number {
-  let index = from;
-  while (index < content.length) {
-    const char = content.charAt(index);
-    if (char === "#") {
-      const lineEnd = content.indexOf("\n", index);
-      index = lineEnd === -1 ? content.length : lineEnd;
-    } else if (char === " " || char === "\t" || char === "\n" || char === "\r") {
-      index += 1;
-    } else {
-      break;
-    }
-  }
-  return index;
+  TRIVIA.lastIndex = from;
+  TRIVIA.exec(content);
+  return TRIVIA.lastIndex;
 }
 
-function duplicateAt(content: string, key: Node): DuplicateKey | undefined {
-  const range = key.range;
-  if (!range) {
-    return undefined;
-  }
+function duplicateAt(content: string, key: Node): DuplicateKey {
+  const range = key.range as [number, number, number];
   const start = range[0] === range[1] ? skipTrivia(content, range[0]) : range[0];
   return { start, end: Math.max(start, range[1]) };
 }
@@ -146,7 +136,7 @@ function failFirstProblem(
 }
 
 function lineText(source: string, lineCounter: LineCounter, line: number): string {
-  return source.substring(lineCounter.lineStarts[line - 1] ?? 0, lineCounter.lineStarts[line]);
+  return source.substring(lineCounter.lineStarts[line - 1] as number, lineCounter.lineStarts[line]);
 }
 
 function trimmedLine(source: string, lineCounter: LineCounter, line: number, column: number) {
@@ -168,15 +158,12 @@ function describeWarning(
   lineCounter: LineCounter,
   warning: { message: string; pos: [number, number] },
 ): string {
-  if (warning.pos[0] === -1) {
-    return warning.message;
-  }
   const [start, end] = warning.pos.map((offset) => lineCounter.linePos(offset)) as [
     { line: number; col: number },
     { line: number; col: number },
   ];
   const { line, col } = start;
-  let message = `${warning.message} at line ${line}, column ${col}`;
+  const message = `${warning.message} at line ${line}, column ${col}`;
   const frame = trimmedLine(source, lineCounter, line, col);
   let text = frame.text;
   if (line > 1 && /^ *$/.test(text.substring(0, frame.index))) {
@@ -186,18 +173,12 @@ function describeWarning(
     }
     text = previous + text;
   }
-  if (/[^ ]/.test(text)) {
-    const count =
-      end.line === line && end.col > col
-        ? Math.max(1, Math.min(end.col - col, FRAME_WIDTH - frame.index))
-        : 1;
-    message += `:\n\n${text}\n${" ".repeat(frame.index)}${"^".repeat(count)}\n`;
-  }
-  return message;
+  const count = Math.max(1, Math.min(end.col - col, FRAME_WIDTH - frame.index));
+  return `${message}:\n\n${text}\n${" ".repeat(frame.index)}${"^".repeat(count)}\n`;
 }
 
 function emitWarnings(doc: Document.Parsed, source: string, lineCounter: LineCounter): void {
-  for (const warning of doc.warnings) {
+  for (const warning of doc.warnings.slice(0, MAX_EMITTED_WARNINGS)) {
     warning.message = describeWarning(source, lineCounter, warning);
     process.emitWarning(warning);
   }
@@ -205,12 +186,7 @@ function emitWarnings(doc: Document.Parsed, source: string, lineCounter: LineCou
 
 export function parseYamlObject(content: string): JsonRecord {
   const lineCounter = new LineCounter();
-  let doc: Document.Parsed;
-  try {
-    doc = parseDocument(content, { uniqueKeys: false, prettyErrors: false, lineCounter });
-  } catch {
-    return failInvalidYaml(undefined, lineCounter);
-  }
+  const doc = parseDocument(content, { uniqueKeys: false, prettyErrors: false, lineCounter });
   emitWarnings(doc, content, lineCounter);
   failFirstProblem(doc.errors, earliestDuplicateKey(content, doc.contents), lineCounter);
   let parsed: unknown;

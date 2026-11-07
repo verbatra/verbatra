@@ -29,15 +29,23 @@ function plain(value: unknown): string {
   return `${typeof value}:${String(value)}`;
 }
 
-function messages(calls: unknown[][]): string[] {
-  return calls.map((call) => String((call[0] as { message?: string }).message ?? call[0]));
+const EMITTED_WARNINGS = 20;
+
+function messages(calls: unknown[][], limit = Number.POSITIVE_INFINITY): string[] {
+  return calls
+    .slice(0, limit)
+    .map((call) => String((call[0] as { message?: string }).message ?? call[0]));
 }
 
 function runOracle(text: string): Outcome {
   const warn = vi.spyOn(process, "emitWarning").mockImplementation(() => undefined);
   try {
     const value = parseYaml(text, { mapAsMap: true, maxAliasCount: 100 });
-    return { kind: "ok", value: plain(value), warnings: messages(warn.mock.calls) };
+    return {
+      kind: "ok",
+      value: plain(value),
+      warnings: messages(warn.mock.calls, EMITTED_WARNINGS),
+    };
   } catch (error) {
     if (error instanceof YAMLParseError) {
       const start = error.linePos?.[0];
@@ -45,10 +53,10 @@ function runOracle(text: string): Outcome {
         kind: "yaml-error",
         line: start?.line,
         column: start?.col,
-        warnings: messages(warn.mock.calls),
+        warnings: messages(warn.mock.calls, EMITTED_WARNINGS),
       };
     }
-    return { kind: "other-error", warnings: messages(warn.mock.calls) };
+    return { kind: "other-error", warnings: messages(warn.mock.calls, EMITTED_WARNINGS) };
   } finally {
     warn.mockRestore();
   }
@@ -79,8 +87,14 @@ function runCandidate(text: string): Outcome {
   }
 }
 
+const ALLOWED_AFTER_PARSE = new Set(["INVALID_STRUCTURE", "MAX_DEPTH_EXCEEDED"]);
+
 function comparable(oracle: Outcome, candidate: Outcome): [Partial<Outcome>, Partial<Outcome>] {
-  if (oracle.kind === "ok" && candidate.code !== undefined) {
+  if (
+    oracle.kind === "ok" &&
+    candidate.code !== undefined &&
+    ALLOWED_AFTER_PARSE.has(candidate.code)
+  ) {
     return [
       { kind: "ok", warnings: oracle.warnings },
       { kind: "ok", warnings: candidate.warnings },
@@ -89,7 +103,12 @@ function comparable(oracle: Outcome, candidate: Outcome): [Partial<Outcome>, Par
   if (oracle.kind === "ok") {
     return [
       { kind: "ok", warnings: oracle.warnings, value: oracle.value },
-      { kind: candidate.kind, warnings: candidate.warnings, value: candidate.value },
+      {
+        kind: candidate.kind,
+        warnings: candidate.warnings,
+        value: candidate.value,
+        code: candidate.code,
+      },
     ];
   }
   return [oracle, candidate];
@@ -219,7 +238,34 @@ function generate(seed: number): string {
   return mutate(random, `${block(random, 0, "").join("\n")}\n`);
 }
 
+function flowWithTags(count: number): string {
+  return `{${Array.from({ length: count }, (_, i) => `a${i}: !x 1`).join(", ")}, z: 1}\n`;
+}
+
+function aliasBomb(levels: number): string {
+  const lines = ["l0: &l0 [x, x, x, x, x, x, x, x, x]"];
+  for (let level = 1; level <= levels; level += 1) {
+    lines.push(
+      `l${level}: &l${level} [${Array(9)
+        .fill(`*l${level - 1}`)
+        .join(", ")}]`,
+    );
+  }
+  return `${lines.join("\n")}\n`;
+}
+
 const FIXED: string[] = [
+  aliasBomb(3),
+  `# ${"x".repeat(120)}\n!!int\n`,
+  `${"y".repeat(20)}: 1\n  - ${"z".repeat(100)}\n!x 1\n`,
+  "a: !!int |\n  text\n  more\n",
+  "a: !!int >\n  text\n",
+  "a: 1 # comment\n: 1\n: 2 # tail",
+  "? # c\n: 1\n# lead\n? # c\n: 2",
+  flowWithTags(19),
+  flowWithTags(20),
+  flowWithTags(21),
+  flowWithTags(60),
   "%YAML 1.2\na: 1\n",
   "n:\n  a: 1\n  : x\n  : y\n",
   "{ : 1,   : 2}",
@@ -370,5 +416,20 @@ describe("parseYamlObject against the library parse call", () => {
 
     expect(outcome.kind).toBe("yaml-error");
     expect(outcome.line).toBe(30_001);
+  });
+
+  it("emits at most twenty warnings however many a file holds, and the first twenty as before", () => {
+    const text = flowWithTags(500);
+    const oracle = runOracle(text);
+    const candidate = runCandidate(text);
+
+    expect(candidate.warnings).toHaveLength(20);
+    expect(candidate.warnings).toEqual(oracle.warnings);
+  });
+
+  it("emits every warning of a file that holds twenty or fewer", () => {
+    const candidate = runCandidate(flowWithTags(20));
+
+    expect(candidate.warnings).toHaveLength(20);
   });
 });
