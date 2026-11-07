@@ -662,13 +662,16 @@ async function readStates(
     const probe = probes[index];
     switch (decisions[index]) {
       case "nothing":
-        return probe?.kind === "settled" ? probe.state : undefined;
+        return (probe as Extract<LocaleProbe, { kind: "settled" }>).state;
       case "over-cap":
         return UNREADABLE;
       case "read":
-        return probe?.kind === "files"
-          ? readKeyState(tree, hashOf(commits[index]), scope, probe.present)
-          : undefined;
+        return readKeyState(
+          tree,
+          hashOf(commits[index]),
+          scope,
+          (probe as Extract<LocaleProbe, { kind: "files" }>).present,
+        );
       default:
         return undefined;
     }
@@ -707,7 +710,7 @@ async function collectRevisions(
       revisionOf(
         (commits[change.index] as { readonly commit: LocaleHistoryCommit }).commit,
         change,
-        contexts[index] ?? NO_CONTEXT,
+        contexts[index] as RevisionContext,
       ),
     ),
     truncated: isTruncated({ moreCommits, shallow, states, contexts, source }),
@@ -782,9 +785,9 @@ function buildScope(
  * A value is compared exactly, so a change of whitespace alone is a revision. `origin` comes
  * from the provenance file and `sourceChanged` from the lock-file as committed with the
  * revision. At most {@link LOCALE_HISTORY_LIMIT_CAP} commits are examined,
- * {@link LOCALE_HISTORY_LIMIT_DEFAULT} by default, four files are read at a time, and no new
- * read starts after {@link KEY_HISTORY_DEADLINE_MS}; a read already running ends within its own
- * 10 second limit. A revision whose records were not read has no `origin` and `sourceChanged`
+ * {@link LOCALE_HISTORY_LIMIT_DEFAULT} by default, four files are read at a time, and after
+ * {@link KEY_HISTORY_DEADLINE_MS} no further commit is examined and no file read starts; the
+ * `git log` call, a size listing and a read already running keep their own 10 second limit. A revision whose records were not read has no `origin` and `sourceChanged`
  * `"unknown"`.
  *
  * `truncated` is `true` whenever anything the call examined was skipped, unreadable, above a size
@@ -796,7 +799,9 @@ function buildScope(
  * could not be read is not claimed as the key's change; `truncated` says so.
  *
  * What is read is bounded by sizes git reports before anything is parsed, so the same repository
- * gives the same answer on every machine unless the 30 second deadline is reached. A locale file above 512 KiB for `yaml` and the XML
+ * gets the same byte-limit and budget decisions on every machine; a git call that times out, the
+ * deadline and the provider keys in the environment (which decide what {@link redact} changes)
+ * can still change an answer. A locale file above 512 KiB for `yaml` and the XML
  * formats (`xliff`, `android-xml`, `resx`, `apple-strings`) or above 4 MiB for the other formats
  * is skipped without being parsed, and the two files of an `apple-strings` commit count as their
  * sum. In one call the locale files read add up to at most 16 MiB for those formats and 128 MiB

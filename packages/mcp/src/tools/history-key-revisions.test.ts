@@ -69,6 +69,28 @@ function okResult(outcome: Awaited<ReturnType<typeof historyKeyRevisionsTool.exe
 }
 
 describe("history.keyRevisions", () => {
+  it("names every reason keyHistory can answer with in its description, and none it cannot", () => {
+    const description = historyKeyRevisionsTool.description;
+
+    for (const reason of [
+      "git-missing",
+      "not-a-repository",
+      "bare-repository",
+      "dubious-ownership",
+      "timeout",
+      "output-too-large",
+      "unsafe-config",
+      "git-too-old",
+      "git-failed",
+      "custom-adapter",
+      "working-file-unreadable",
+      "outside-project",
+    ]) {
+      expect(description).toContain(reason);
+    }
+    expect(description).not.toContain("revision-unreadable");
+  });
+
   it("lists the revisions of one key with author, value and word diff, and the working tree row", async () => {
     const dir = await project();
 

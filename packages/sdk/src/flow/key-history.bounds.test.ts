@@ -139,6 +139,28 @@ describe("keyHistory lock file and provenance file limits", () => {
     expect(result.truncated).toBe(true);
   });
 
+  it("leaves the origin out and says so when git cannot read a record that it listed", async () => {
+    const fx = await repo();
+    await committedOnce(fx, {
+      "verbatra.lock.json": JSON.stringify({ version: 1, locales: { de: {} } }),
+      "verbatra.provenance.json": provenanceWithPadding("one", 1000),
+    });
+    const execFile: GitExecFile = (file, args, options) => {
+      if (
+        args.includes("cat-file") &&
+        args.some((arg) => arg.endsWith(":verbatra.provenance.json"))
+      ) {
+        throw Object.assign(new Error("bad object"), { code: 128, stderr: "fatal: bad object" });
+      }
+      return defaultGitExecFile(file, args, options);
+    };
+
+    const result = available(await run(fx, { execFile }));
+
+    expect(result.revisions[0]).not.toHaveProperty("origin");
+    expect(result.truncated).toBe(true);
+  });
+
   it("says so when a committed lock file or provenance file does not parse", async () => {
     const lock = await repo();
     await committedOnce(lock, { "verbatra.lock.json": "{ not json" });
