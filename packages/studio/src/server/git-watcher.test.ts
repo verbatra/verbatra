@@ -384,4 +384,101 @@ describe("createGitWatcher", () => {
     expect(built[1]?.closed).toBe(false);
     await watcher.close();
   });
+
+  it("tries again by polling after a watcher cannot be built", async () => {
+    vi.useFakeTimers();
+    const { createWatcher, built } = harness();
+    let failBuild = true;
+    const flaky: CreateStudioWatcher = (paths, opts) => {
+      if (failBuild) {
+        throw new Error("watch failed");
+      }
+      return createWatcher(paths, opts);
+    };
+    const watcher = await createGitWatcher(options({ createWatcher: flaky }));
+    expect(built).toHaveLength(0);
+
+    failBuild = false;
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(built).toHaveLength(1);
+    await watcher.close();
+  });
+
+  it("tries again by polling after a lookup rejects", async () => {
+    vi.useFakeTimers();
+    const { createWatcher, built } = harness();
+    let calls = 0;
+    const watcher = await createGitWatcher(
+      options({
+        createWatcher,
+        resolvePaths: async () => {
+          calls += 1;
+          if (calls === 1) {
+            throw new Error("git exploded");
+          }
+          return HERE;
+        },
+      }),
+    );
+    expect(built).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(built).toHaveLength(1);
+    await watcher.close();
+  });
+
+  it("still builds the new watcher when the old one fails to close", async () => {
+    const { createWatcher, built } = harness();
+    let current: GitWatchPaths = HERE;
+    let first = true;
+    const rejecting: CreateStudioWatcher = (paths, opts) => {
+      const real = createWatcher(paths, opts);
+      if (!first) {
+        return real;
+      }
+      first = false;
+      return { onChange: real.onChange, close: () => Promise.reject(new Error("close failed")) };
+    };
+    const watcher = await createGitWatcher(
+      options({ createWatcher: rejecting, resolvePaths: async () => current }),
+    );
+
+    current = { available: true, paths: ["/w/index", "/w/HEAD", "/w/logs/HEAD"] };
+    await watcher.refresh();
+
+    expect(built).toHaveLength(2);
+    expect(built[1]?.closed).toBe(false);
+    await watcher.close();
+  });
+
+  it("keeps serving lookups after the change callback throws while announcing", async () => {
+    vi.useFakeTimers();
+    const { createWatcher, built } = harness();
+    let current: GitWatchPaths = { available: false };
+    let throwing = true;
+    const watcher = await createGitWatcher(
+      options({
+        createWatcher,
+        resolvePaths: async () => current,
+        onChange: () => {
+          if (throwing) {
+            throwing = false;
+            throw new Error("listener failed");
+          }
+        },
+      }),
+    );
+
+    current = HERE;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(built).toHaveLength(1);
+
+    current = { available: true, paths: ["/w/index", "/w/HEAD", "/w/logs/HEAD"] };
+    await watcher.refresh();
+
+    expect(built).toHaveLength(2);
+    await watcher.close();
+  });
 });
