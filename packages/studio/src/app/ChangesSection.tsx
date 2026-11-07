@@ -128,10 +128,10 @@ function useReveal(
     if (focusFrom.current === null) {
       return;
     }
-    const rows = listRef.current?.querySelectorAll<HTMLElement>(":scope > li") ?? [];
-    const target = rows[focusFrom.current] ?? rows[rows.length - 1];
+    const rows = listRef.current?.querySelectorAll<HTMLElement>(":scope > li");
+    const index = focusFrom.current;
     focusFrom.current = null;
-    target?.focus();
+    rows?.[index]?.focus();
   }, [shown]);
 
   return {
@@ -575,7 +575,7 @@ function UnavailableNote({
 
 function toggleLocales(root: HTMLElement): string[] {
   return [...root.querySelectorAll<HTMLElement>("[data-git-toggle]")].map(
-    (element) => element.getAttribute("data-git-toggle") ?? "",
+    (element) => element.getAttribute("data-git-toggle") as string,
   );
 }
 
@@ -614,7 +614,7 @@ function heldFocus(root: HTMLElement | null): HeldFocus | null {
   const locale =
     active.closest("[data-git-toggle]")?.getAttribute("data-git-toggle") ??
     active.closest("[data-git-diff]")?.getAttribute("data-git-diff");
-  return locale === undefined || locale === null ? null : { element: active, locale };
+  return locale ? { element: active, locale } : null;
 }
 
 function focusHeading(root: HTMLElement): void {
@@ -628,11 +628,7 @@ function focusHeading(root: HTMLElement): void {
 }
 
 function isStranded(lost: HeldFocus | null): lost is HeldFocus {
-  return (
-    lost !== null &&
-    !lost.element.isConnected &&
-    (document.activeElement === document.body || document.activeElement === null)
-  );
+  return lost !== null && !lost.element.isConnected && document.activeElement === document.body;
 }
 
 function handOver(

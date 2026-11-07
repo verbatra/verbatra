@@ -64,8 +64,9 @@ export interface StudioWatcherOptions {
   readonly only?: readonly string[];
   /**
    * Called when the underlying source fails, for example with a permission error on a directory.
-   * The watcher then keeps running as far as it can and never throws; Studio watches git again
-   * later and meanwhile reads on demand.
+   * The watcher then keeps running as far as it can and never throws. Studio closes a failed git
+   * watcher and builds it again every second; while it is down, live git refresh stops and the
+   * page still reads again on returning to the tab and on locale file events.
    *
    * @param error - What the source reported.
    */

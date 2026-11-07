@@ -205,3 +205,23 @@ describe("localeWatchPaths locale files", () => {
     expect(result.git.available).toBe(false);
   });
 });
+
+describe("localeWatchPaths when the lookup of the files fails", () => {
+  it("answers with git's own reason instead of throwing", async () => {
+    const fx = await committed();
+    const failing: GitExecFile = async (file, args, options) => {
+      if (args.includes("--git-path")) {
+        throw Object.assign(new Error("git failed"), { code: 128, stderr: "fatal: broken" });
+      }
+      return defaultGitExecFile(file, args, options);
+    };
+
+    const result = await localeWatchPaths(
+      { config: baseConfig(), cwd: fx.root },
+      { execFile: failing },
+    );
+
+    expect(result.git).toEqual({ available: false, reason: "git-failed" });
+    expect(result.locales).toHaveLength(2);
+  });
+});

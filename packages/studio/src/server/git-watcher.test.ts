@@ -481,4 +481,68 @@ describe("createGitWatcher", () => {
     expect(built).toHaveLength(2);
     await watcher.close();
   });
+
+  it("does not schedule another lookup when close arrives during a slow directory check", async () => {
+    vi.useFakeTimers();
+    const { createWatcher } = harness();
+    let slow = false;
+    const releases: (() => void)[] = [];
+    const resolvePaths = vi.fn(async (): Promise<GitWatchPaths> => HERE);
+    const watcher = await createGitWatcher(
+      options({
+        createWatcher,
+        resolvePaths,
+        exists: async () => {
+          if (slow) {
+            await new Promise<void>((resolve) => {
+              releases.push(resolve);
+            });
+          }
+          return true;
+        },
+      }),
+    );
+    slow = true;
+    const refreshing = watcher.refresh();
+    await vi.advanceTimersByTimeAsync(10);
+    const closing = watcher.close();
+    for (const release of releases) {
+      release();
+    }
+    await Promise.all([refreshing, closing]);
+    const calls = resolvePaths.mock.calls.length;
+
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(resolvePaths.mock.calls.length).toBe(calls);
+  });
+
+  it("does not start retrying after close when a stale watcher reports an error", async () => {
+    vi.useFakeTimers();
+    const { createWatcher, built } = harness();
+    const resolvePaths = vi.fn(async (): Promise<GitWatchPaths> => HERE);
+    const watcher = await createGitWatcher(options({ createWatcher, resolvePaths }));
+    await watcher.close();
+    const calls = resolvePaths.mock.calls.length;
+
+    built[0]?.fail();
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(resolvePaths.mock.calls.length).toBe(calls);
+    expect(built).toHaveLength(1);
+  });
+
+  it("ignores a queued failure that runs only after close", async () => {
+    vi.useFakeTimers();
+    const { createWatcher, built } = harness();
+    const resolvePaths = vi.fn(async (): Promise<GitWatchPaths> => HERE);
+    const watcher = await createGitWatcher(options({ createWatcher, resolvePaths }));
+    const calls = resolvePaths.mock.calls.length;
+
+    built[0]?.fail();
+    await watcher.close();
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(resolvePaths.mock.calls.length).toBe(calls);
+  });
 });

@@ -76,4 +76,43 @@ describe("the project watcher's first lookup", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("asks git through the injected runner on every later lookup too", async () => {
+    const root = await realpath(await mkdtemp(join(tmpdir(), "verbatra-later-")));
+    try {
+      await writeFile(join(root, "en.json"), "{}");
+      await execFileAsync("git", ["init", "-q", "-b", "main"], { cwd: root });
+      const asked: (readonly string[])[] = [];
+      const execFile: ExecFileImpl = async (file, args, options) => {
+        asked.push(args);
+        return execFileAsync(file, [...args], options);
+      };
+      const listeners: (() => void)[] = [];
+      const createWatcher: CreateStudioWatcher = (_paths, options) => ({
+        onChange: (listener) => {
+          if (options?.only !== undefined) {
+            listeners.push(listener);
+          }
+        },
+        close: async () => {},
+      });
+      const watcher = await createProjectWatcher(
+        {
+          config: baseStudioConfig({ files: { pattern: "{locale}.json" } }),
+          projectRoot: root,
+          debounceMs: 5,
+        },
+        { createWatcher, execFile, gitPollMs: 60_000 },
+      );
+      const before = asked.filter((args) => args.includes("--git-path")).length;
+
+      listeners[0]?.();
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      await watcher.close();
+
+      expect(asked.filter((args) => args.includes("--git-path")).length).toBe(before + 1);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });

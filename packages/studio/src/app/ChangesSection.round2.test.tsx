@@ -274,6 +274,27 @@ describe("ChangesSection focus keeper details", () => {
     expect(document.activeElement).toBe(toggle(view, "b"));
   });
 
+  it("drops focus quietly when the heading it would hand over to is gone too", () => {
+    const view = render(section({ status: status([file("a")]) }));
+    toggle(view, "a").focus();
+    view.get("h2").remove();
+
+    view.rerender(section({ status: status([]) }));
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("leaves focus on a reveal button alone, since it hands nothing over", () => {
+    const many = Array.from({ length: 12 }, (_, index) => file(`m${index}`));
+    const view = render(section({ status: status(many) }));
+    view.get("[data-git-show-all]").focus();
+
+    view.rerender(section({ status: status(many.slice(0, 10)) }));
+
+    expect(document.activeElement).not.toBe(toggle(view, "m0"));
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it("gives the file rows and the heading the focus ring", () => {
     const view = render(section({ status: three }));
 
@@ -331,6 +352,25 @@ describe("ChangesSection scroll anchor", () => {
 
     expect(onToggle).toHaveBeenCalledWith({ locale: "b", path: "locales/b.json", position: 1 });
     expect(scrollBy).toHaveBeenCalledWith(0, -300);
+  });
+
+  it("does not scroll when the toggle it remembered is no longer listed", () => {
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      () => ({ top: 300, bottom: 300, left: 0, right: 0, width: 0, height: 0 }) as DOMRect,
+    );
+    const scrollBy = vi.spyOn(window, "scrollBy").mockImplementation(() => {});
+    const view = render(section({ status: status([file("a")]) }));
+
+    click(toggle(view, "a"));
+    view.rerender(
+      section({
+        status: status([]),
+        open: { locale: "z", path: "locales/z.json", position: 0 },
+        diff: diffOf(),
+      }),
+    );
+
+    expect(scrollBy).not.toHaveBeenCalled();
   });
 
   it("does not scroll when the toggle did not move", () => {

@@ -1,3 +1,5 @@
+import { execFile as execFileCb } from "node:child_process";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import { HUMAN_ONLY_METHOD_NAMES } from "../shared/rpc/human-only.js";
 import {
@@ -6,12 +8,15 @@ import {
   makeFixtureProject,
   withServer,
 } from "./test-support.js";
+import type { ExecFileImpl } from "./types.js";
 
 interface RpcResponseBody {
   readonly ok: boolean;
   readonly error?: { readonly code: string };
   readonly result?: unknown;
 }
+
+const execFileAsync = promisify(execFileCb);
 
 const TOKEN = "git-view-test-token-0123456789abcdef";
 
@@ -143,6 +148,29 @@ describe("git.status and git.localeDiff over HTTP", () => {
         },
         { token: TOKEN, loader: fixtureLoader(project), cwd: project.root },
       );
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("asks git through the injected process runner when it starts", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] });
+    try {
+      const asked: (readonly string[])[] = [];
+      const execFileImpl: ExecFileImpl = async (file, args, options) => {
+        asked.push(args);
+        return execFileAsync(file, [...args], options);
+      };
+
+      await withServer(async () => {}, {
+        token: TOKEN,
+        loader: fixtureLoader(project),
+        cwd: project.root,
+        execFileImpl,
+        createWatcher: () => ({ onChange: () => {}, close: async () => {} }),
+      });
+
+      expect(asked.length).toBeGreaterThan(0);
     } finally {
       await project.cleanup();
     }

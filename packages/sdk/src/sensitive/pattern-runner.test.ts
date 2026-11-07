@@ -2,12 +2,16 @@ import { describe, expect, it, vi } from "vitest";
 import { PATTERN_TIME_LIMIT_MS, runPattern } from "./pattern-runner.js";
 import { MAX_PATTERN_SCAN_LENGTH } from "./scan-text.js";
 
-const setup = vi.hoisted(() => ({ contexts: 0, scripts: 0 }));
+const setup = vi.hoisted(() => ({ contexts: 0, scripts: 0, freshContexts: 0 }));
 
 vi.mock("node:vm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:vm")>();
   return {
     ...actual,
+    runInNewContext: (...args: Parameters<typeof actual.runInNewContext>) => {
+      setup.freshContexts += 1;
+      return actual.runInNewContext(...args);
+    },
     createContext: (...args: Parameters<typeof actual.createContext>) => {
       setup.contexts += 1;
       return actual.createContext(...args);
@@ -16,6 +20,13 @@ vi.mock("node:vm", async (importOriginal) => {
       constructor(...args: ConstructorParameters<typeof actual.Script>) {
         super(...args);
         setup.scripts += 1;
+      }
+
+      override runInNewContext(
+        ...args: Parameters<InstanceType<typeof actual.Script>["runInNewContext"]>
+      ) {
+        setup.freshContexts += 1;
+        return super.runInNewContext(...args);
       }
     },
   };
@@ -73,5 +84,6 @@ describe("runPattern", () => {
     expect(scripts).toBe(1);
     expect(setup.contexts).toBe(contexts);
     expect(setup.scripts).toBe(scripts);
+    expect(setup.freshContexts).toBe(0);
   });
 });
