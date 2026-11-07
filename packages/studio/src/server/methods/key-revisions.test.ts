@@ -29,7 +29,11 @@ function deps(project: FixtureProject): RpcHandlerDeps {
   return { config: loaded, projectRoot: project.root };
 }
 
-async function committedProject(subject: string, value: string): Promise<FixtureProject> {
+async function committedProject(
+  subject: string,
+  value: string,
+  authorName = "Test Author",
+): Promise<FixtureProject> {
   const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
   await runGit(project.root, ["init", "-q", "-b", "main"]);
   await writeFile(join(project.root, "locales", "de.json"), '{"greeting":"hallo"}\n', "utf8");
@@ -41,7 +45,7 @@ async function committedProject(subject: string, value: string): Promise<Fixture
     "utf8",
   );
   await runGit(project.root, ["add", "-A"]);
-  await runGit(project.root, ["commit", "-q", "-m", subject]);
+  await runGit(project.root, ["-c", `user.name=${authorName}`, "commit", "-q", "-m", subject]);
   return project;
 }
 
@@ -70,6 +74,20 @@ describe("keyRevisionsHandler", () => {
       expect(JSON.stringify(result)).not.toContain(LEAKED_KEY);
       if (result.available) {
         expect(result.revisions[0]?.subject).toBe("rotate [REDACTED]");
+      }
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("scrubs a key that an author name carries", async () => {
+    const project = await committedProject("second", "servus", LEAKED_KEY);
+    try {
+      const result = await keyRevisionsHandler({ locale: "de", key: "greeting" }, deps(project));
+
+      expect(JSON.stringify(result)).not.toContain(LEAKED_KEY);
+      if (result.available) {
+        expect(result.revisions[0]?.author).toBe("[REDACTED]");
       }
     } finally {
       await project.cleanup();

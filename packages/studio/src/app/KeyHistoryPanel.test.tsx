@@ -224,6 +224,23 @@ describe("KeyHistoryPanel restore", () => {
     );
 
     expect(view.query("[data-restore-confirm]")).toBeNull();
+
+    view.rerender(
+      <KeyHistoryPanel
+        keyName="greeting"
+        locale="de"
+        read={{
+          view: data(available({ revisions: [revision({ sourceChanged: true })] })),
+          retrying: false,
+          retry: () => {},
+        }}
+        current="Hallo"
+        canWrite
+        onRestore={() => {}}
+      />,
+    );
+
+    expect(view.query("[data-restore-confirm]")).toBeNull();
   });
 
   it("offers no Restore for a scrubbed value and says why in visible text", () => {

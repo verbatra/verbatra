@@ -288,6 +288,11 @@ function AvailableHistory({
 }): ReactNode {
   const [confirming, setConfirming] = useState<string | null>(null);
   const stillListed = result.revisions.some((revision) => revision.commit === confirming);
+  useEffect(() => {
+    if (confirming !== null && !stillListed) {
+      setConfirming(null);
+    }
+  }, [confirming, stillListed]);
   const empty = result.revisions.length === 0 && result.workingTree === undefined;
   return (
     <>

@@ -1,10 +1,7 @@
-import { keyHistory, redact, SdkError } from "@verbatra/sdk";
+import { keyHistory, redact } from "@verbatra/sdk";
 import type { RpcHandler } from "../rpc.js";
 
 export const keyRevisionsHandler: RpcHandler<"history.keyRevisions"> = async (params, deps) => {
-  if (!deps.config.config.targetLocales.includes(params.locale)) {
-    throw new SdkError("UNKNOWN_LOCALE", "The locale is not a configured target locale.");
-  }
   const result = await keyHistory(
     {
       config: deps.config.config,
