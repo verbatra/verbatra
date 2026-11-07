@@ -7,6 +7,8 @@ export type KeyHistoryUnavailable = Extract<KeyRevisionsResult, { readonly avail
 
 export type KeyRevisionRow = KeyHistoryAvailable["revisions"][number];
 
+type KeyRevisionsTruncation = KeyHistoryAvailable["truncatedBy"][number];
+
 export type KeyHistorySegments = KeyRevisionRow["diff"];
 
 export const KEY_HISTORY_DEFAULT_LIMIT = 50;
@@ -113,7 +115,9 @@ function unreadableNotice(count: number): string {
   return `${count} ${count === 1 ? "commit" : "commits"} could not be shown because the file could not be read, could not be parsed or held a value that is too long.`;
 }
 
-const REASON_NOTICES: Readonly<Record<string, string>> = {
+const REASON_NOTICES: Readonly<
+  Record<Exclude<KeyRevisionsTruncation, "commit-limit" | "unreadable-revision">, string>
+> = {
   "shallow-clone": "This clone is shallow, so its older history is not here.",
   "file-too-large": "A locale file at some commit was above the size limit and was not read.",
   "byte-budget": "One read has a size budget, and older commits were past it.",
@@ -137,7 +141,7 @@ export function incompleteNotices(
     if (reason === "unreadable-revision") {
       return [unreadableNotice(result.unreadableRevisions)];
     }
-    return [REASON_NOTICES[reason] as string];
+    return [REASON_NOTICES[reason]];
   });
   if (result.workingTreeUnreadable === true) {
     notices.push(

@@ -624,4 +624,45 @@ describe("KeyEditor history tab", () => {
 
     expect(view.get("[data-key-history]").style.minHeight).toBe("420px");
   });
+
+  it("brings the edited locale into view when the restore prompt opens, and keeps focus on Keep editing", async () => {
+    stubProject(history(revision("a", "Servus")));
+    const view = await renderAsync(<Editor />);
+    await clickAsync(view.get('button[data-edit-locale="de"]'));
+    await flush();
+    typeInto(field(view), "my own words");
+    await openHistory(view);
+    const scrolled = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrolled;
+    try {
+      await clickAsync(view.get("button[data-restore]"));
+      await flush();
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+
+    expect(scrolled.mock.instances).toContain(view.get('[data-locale="de"]'));
+    expect(document.activeElement?.textContent).toBe("Keep editing");
+  });
+
+  it("does not scroll for a prompt that is not about a restore", async () => {
+    stubProject(history(revision("a", "Servus")));
+    const view = await renderAsync(<Editor locales={[localeDiff("de"), localeDiff("fr")]} />);
+    const scrolled = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrolled;
+    try {
+      await clickAsync(view.get('button[data-edit-locale="de"]'));
+      await flush();
+      typeInto(field(view), "my own words");
+      await clickAsync(view.get('button[data-edit-locale="fr"]'));
+      await flush();
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+
+    expect(view.get("[data-unsaved-prompt]")).not.toBeNull();
+    expect(scrolled.mock.instances).not.toContain(view.get('[data-locale="de"]'));
+  });
 });

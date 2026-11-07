@@ -11,6 +11,7 @@ export type HistoryState =
       readonly kind: "loaded";
       readonly commits: readonly HistoryCommit[];
       readonly requestedLimit?: number | undefined;
+      readonly truncated?: true;
       readonly staleError?: StructuredError;
     };
 
@@ -35,7 +36,12 @@ export function useHistoryList(refreshToken?: unknown, limit?: number): HistoryS
         setState({ kind: "unavailable", reason: response.result.reason });
         return;
       }
-      setState({ kind: "loaded", commits: response.result.commits, requestedLimit: limit });
+      setState({
+        kind: "loaded",
+        commits: response.result.commits,
+        requestedLimit: limit,
+        ...(response.result.truncated === true ? { truncated: true as const } : {}),
+      });
     });
     return () => {
       cancelled = true;

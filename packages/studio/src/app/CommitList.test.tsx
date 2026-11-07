@@ -267,4 +267,24 @@ describe("CommitList", () => {
     expect(row.getAttribute("tabindex")).toBe("-1");
     expect(row.className).toContain("focus-visible:outline-ring");
   });
+
+  it.each([
+    ["with commits", { kind: "loaded", commits: [COMMIT], truncated: true } as HistoryState, false],
+    ["with none", { kind: "loaded", commits: [], truncated: true } as HistoryState, true],
+  ])(
+    "says the list may leave a key readable when history.list was truncated, %s",
+    (_name, state, compact) => {
+      const view = render(
+        <CommitList state={state} compact={compact} emptyMessage="No commits." />,
+      );
+
+      expect(view.get("[data-history-truncated]").textContent).toContain("may stay readable");
+    },
+  );
+
+  it("says nothing about truncation for a complete list", () => {
+    const view = render(<CommitList state={LOADED} emptyMessage="No commits." />);
+
+    expect(view.query("[data-history-truncated]")).toBeNull();
+  });
 });

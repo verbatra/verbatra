@@ -34,6 +34,7 @@ import { useKeyHistoryUi } from "./use-key-history-ui.js";
 import { type KeyIntegrityState, useKeyIntegrity } from "./use-key-integrity.js";
 import { type KeyValuesState, useKeyValues } from "./use-key-values.js";
 import { useLocaleEdit } from "./use-locale-edit.js";
+import { useRevealEdit } from "./use-reveal-edit.js";
 
 export type KeyEditorLayout = "pane" | "drawer";
 
@@ -376,6 +377,8 @@ export function KeyEditor({
       setTab("locales");
     }
   }, [pending]);
+
+  useRevealEdit(localesTargetRef, pending?.restore === true && tab === "locales", editingLocale);
 
   useEffect(() => {
     dirtyReportRef.current(edit.dirty);

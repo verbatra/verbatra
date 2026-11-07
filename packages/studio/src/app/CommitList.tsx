@@ -102,6 +102,9 @@ const UNAVAILABLE_MESSAGES: Readonly<Record<HistoryUnavailableReason, string>> =
   "git-too-old": "This repository needs a newer git than the one installed (2.45 or later).",
 };
 
+const TRUNCATED_NOTICE =
+  "More distinct keys turned up in these subjects and author names than Studio could hide from every commit, so a key may stay readable in part of this list.";
+
 type LoadedHistory = Extract<HistoryState, { readonly kind: "loaded" }>;
 
 function LoadedCommits({
@@ -113,22 +116,39 @@ function LoadedCommits({
   readonly compact: boolean;
   readonly emptyMessage: string;
 }): ReactNode {
+  const notice =
+    state.truncated === true ? (
+      <p className="m-0 mb-3 text-sm text-muted-foreground" data-history-truncated="">
+        {TRUNCATED_NOTICE}
+      </p>
+    ) : null;
   if (state.commits.length === 0) {
     if (compact) {
-      return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
+      return (
+        <>
+          {notice}
+          <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+        </>
+      );
     }
     return (
-      <EmptyState icon="history" title="No commits yet">
-        {emptyMessage}
-      </EmptyState>
+      <>
+        {notice}
+        <EmptyState icon="history" title="No commits yet">
+          {emptyMessage}
+        </EmptyState>
+      </>
     );
   }
   return (
-    <ul aria-label="Commits" className="m-0 ms-1 max-w-3xl list-none p-0">
-      {state.commits.map((commit) => (
-        <CommitRow commit={commit} key={commit.hash} />
-      ))}
-    </ul>
+    <>
+      {notice}
+      <ul aria-label="Commits" className="m-0 ms-1 max-w-3xl list-none p-0">
+        {state.commits.map((commit) => (
+          <CommitRow commit={commit} key={commit.hash} />
+        ))}
+      </ul>
+    </>
   );
 }
 
