@@ -15,6 +15,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import {
   assertLockAcquireTimeout,
   limitsGuardPath,
+  runUnderGuard,
   withLimitsGuard,
   writeLockOptions,
 } from "../lock/locale-write-lock.js";
@@ -69,7 +70,7 @@ function assertValidInput(input: SetKeyLengthLimitInput): void {
   }
   if (maxLength !== null && !maxLengthValueSchema.safeParse(maxLength).success) {
     throw invalid(
-      `The limit must be a whole number from 1 to ${Number.MAX_SAFE_INTEGER}, or null to remove it, got ${String(maxLength)}.`,
+      `The limit must be a whole number from 1 to ${Number.MAX_SAFE_INTEGER}, or null to remove it, got ${typeof maxLength === "string" ? JSON.stringify(maxLength) : String(maxLength)}.`,
     );
   }
   if (
@@ -78,7 +79,7 @@ function assertValidInput(input: SetKeyLengthLimitInput): void {
     Object.hasOwn(config.maxLength, key)
   ) {
     throw invalid(
-      `The config's maxLength already sets "${key}", and it wins over verbatra.limits.json. Change it in the config.`,
+      `The config's maxLength already sets ${JSON.stringify(key)}, and it wins over verbatra.limits.json. Change it in the config.`,
     );
   }
 }
@@ -106,7 +107,10 @@ async function lookUpKey(
 }
 
 function unknownKey(key: string): SdkError {
-  return new SdkError("UNKNOWN_KEY", `The key "${key}" was not found in the source resource.`);
+  return new SdkError(
+    "UNKNOWN_KEY",
+    `The key ${JSON.stringify(key)} was not found in the source resource.`,
+  );
 }
 
 function unusableFile(message: string): SdkError {
@@ -115,10 +119,11 @@ function unusableFile(message: string): SdkError {
 
 async function applyLimit(
   input: SetKeyLengthLimitInput,
-  path: string,
+  cwd: string,
   lookup: SourceLookup,
   fs: SdkFs,
 ): Promise<SetKeyLengthLimitResult> {
+  const path = limitsFilePath(cwd);
   const read = await readLimitsFile(path, fs);
   if (read.kind === "unusable") {
     throw unusableFile(read.unusable.message);
@@ -138,14 +143,14 @@ async function applyLimit(
     return { key, maxLength, changed: false };
   }
   if (next.size > MAX_LIMITS_ENTRIES) {
-    throw unusableFile(
-      `verbatra.limits.json would hold more than the ${MAX_LIMITS_ENTRIES} entries verbatra reads`,
+    throw invalid(
+      `verbatra.limits.json would hold more than the ${MAX_LIMITS_ENTRIES} entries verbatra reads. Nothing was written.`,
     );
   }
   const serialized = serializeLimits(next);
   if (Buffer.byteLength(serialized, "utf8") > MAX_LIMITS_FILE_BYTES) {
-    throw unusableFile(
-      `verbatra.limits.json would exceed the maximum allowed size of ${MAX_LIMITS_FILE_BYTES} bytes`,
+    throw invalid(
+      `verbatra.limits.json would exceed the maximum allowed size of ${MAX_LIMITS_FILE_BYTES} bytes. Nothing was written.`,
     );
   }
   await assertLocksHeld();
@@ -153,8 +158,8 @@ async function applyLimit(
     await fs.writeFile(path, serialized);
   } catch (error) {
     throw new SdkError(
-      "LIMITS_FILE_UNUSABLE",
-      `verbatra.limits.json could not be written: ${error instanceof Error ? error.message : String(error)}`,
+      "LIMITS_FILE_UNWRITABLE",
+      unwritableFileMessage("the limits file", path, cwd, error),
       { cause: error },
     );
   }
@@ -182,8 +187,9 @@ async function applyLimit(
  * @returns The key, the limit the file holds for it afterwards, and whether anything was written.
  *
  * @throws {@link SdkError} `LENGTH_LIMIT_INVALID`: the key is empty or longer than 1024 characters,
- * the limit is not a whole number from 1 to `Number.MAX_SAFE_INTEGER` or `null`, or the limit is a
- * number and the config's `maxLength` sets the key. Thrown before anything is read or locked.
+ * the limit is not a whole number from 1 to `Number.MAX_SAFE_INTEGER` or `null`, the limit is a
+ * number and the config's `maxLength` sets the key, or the write would take the file past 10,000
+ * entries or 1 MiB. The first three are thrown before anything is read or locked.
  * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
  * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
@@ -200,10 +206,11 @@ async function applyLimit(
  * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
  * went to take the write lock, so that lock was refused.
  * @throws {@link SdkError} `LIMITS_FILE_UNUSABLE`: the limits file cannot be read as one (over
- * 1 MiB, not UTF-8 or JSON, another shape, a newer version, or more than 10,000 entries), the
- * write would grow it past 10,000 entries or 1 MiB, the file or the limits lock could not be
- * written, or the lock could not be released after the limit was saved, which the message says.
- * Nothing is overwritten.
+ * 1 MiB, not UTF-8 or JSON, another shape, a newer version, or more than 10,000 entries). Nothing
+ * is overwritten.
+ * @throws {@link SdkError} `LIMITS_FILE_UNWRITABLE`: the limits file or the limits lock could not be
+ * written, or the lock could not be released after the limit was saved, which the message says. The
+ * file-system error is the `cause`.
  */
 export async function setKeyLengthLimit(
   input: SetKeyLengthLimitInput,
@@ -216,49 +223,25 @@ export async function setKeyLengthLimit(
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const lookup = await lookUpKey(input, cwd, fs, adapter);
-  const path = limitsFilePath(cwd);
 
-  let locked = false;
-  let applyFailure: { readonly error: unknown } | undefined;
-  try {
-    return await withLimitsGuard(
-      cwd,
-      fs,
-      async () => {
-        locked = true;
-        try {
-          return await applyLimit(input, path, lookup, fs);
-        } catch (error) {
-          applyFailure = { error };
-          throw error;
-        }
-      },
-      writeLockOptions({
-        ...(input.lockAcquireTimeoutMs !== undefined
-          ? { lockAcquireTimeoutMs: input.lockAcquireTimeoutMs }
-          : {}),
-      }),
-    );
-  } catch (error) {
-    throw guardFailure(error, applyFailure, locked, cwd);
-  }
+  return runUnderGuard({
+    cwd,
+    fs,
+    guard: withLimitsGuard,
+    run: () => applyLimit(input, cwd, lookup, fs),
+    options: writeLockOptions({
+      ...(input.lockAcquireTimeoutMs !== undefined
+        ? { lockAcquireTimeoutMs: input.lockAcquireTimeoutMs }
+        : {}),
+    }),
+    unwritable: (error, locked) => limitsLockFailure(error, locked, cwd),
+  });
 }
 
-function guardFailure(
-  error: unknown,
-  applyFailure: { readonly error: unknown } | undefined,
-  locked: boolean,
-  cwd: string,
-): unknown {
-  if (applyFailure !== undefined) {
-    return applyFailure.error;
-  }
-  if (error instanceof SdkError) {
-    return error;
-  }
+function limitsLockFailure(error: unknown, locked: boolean, cwd: string): SdkError {
   const message = unwritableFileMessage("the limits write lock", limitsGuardPath(cwd), cwd, error);
   return new SdkError(
-    "LIMITS_FILE_UNUSABLE",
+    "LIMITS_FILE_UNWRITABLE",
     locked
       ? `${message} The limit was saved, but the lock could not be released and stays in place until a later run reclaims it after this process exits.`
       : message,

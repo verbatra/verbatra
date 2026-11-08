@@ -273,7 +273,7 @@ describe("setKeyLengthLimit: refusing input", () => {
     expect(error.code).toBe("SOURCE_UNREADABLE");
   });
 
-  it("writes and reads back a key holding U+FFFD without turning the file unusable", async () => {
+  it("writes U+FFFD as an escape, not as raw bytes, so the file stays readable", async () => {
     const key = "a\uFFFDb";
     const dir = await project();
     await writeJsonFile(join(dir, "locales", "en.json"), { [key]: "Value", a: "A" });
@@ -363,7 +363,7 @@ describe("setKeyLengthLimit: caps are checked before the write", () => {
     const afterRefusal = await limitsText(dir);
     const replaced = await setKeyLengthLimit({ config: cfg(), cwd: dir, key: "a", maxLength: 6 });
 
-    expect(refused.code).toBe("LIMITS_FILE_UNUSABLE");
+    expect(refused.code).toBe("LENGTH_LIMIT_INVALID");
     expect(afterRefusal).toBe(before);
     expect(replaced.changed).toBe(true);
     expect(JSON.parse(await limitsText(dir)).maxLength.a).toBe(6);
@@ -390,14 +390,35 @@ describe("setKeyLengthLimit: caps are checked before the write", () => {
       setKeyLengthLimit({ config: cfg(), cwd: dir, key: "x".repeat(1024), maxLength: 5 }),
     );
 
-    expect(error.code).toBe("LIMITS_FILE_UNUSABLE");
+    expect(error.code).toBe("LENGTH_LIMIT_INVALID");
     expect(error.message).toContain("size");
     expect(await limitsText(dir)).toBe(before);
   });
 });
 
 describe("setKeyLengthLimit: failures of the file system", () => {
-  it("maps a failed write to LIMITS_FILE_UNUSABLE with the cause", async () => {
+  it("maps a permission failure on the write to LIMITS_FILE_UNWRITABLE, naming the file relative to the project and a permissions remedy", async () => {
+    const dir = await project();
+    const cause = Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" });
+    const fs: SdkFs = {
+      ...defaultFs,
+      writeFile: async () => {
+        throw cause;
+      },
+    };
+
+    const error = await rejection(
+      setKeyLengthLimit({ config: cfg(), cwd: dir, key: "a", maxLength: 5 }, { fs }),
+    );
+
+    expect(error).toMatchObject({ code: "LIMITS_FILE_UNWRITABLE", cause });
+    expect(error.message).toBe(
+      "Could not write the limits file verbatra.limits.json (EACCES). Check the write permissions on the containing directory, then run again.",
+    );
+    expect(error.message).not.toContain(dir);
+  });
+
+  it("maps a failed write to LIMITS_FILE_UNWRITABLE with the cause", async () => {
     const dir = await project();
     const cause = Object.assign(new Error("EROFS: read-only file system"), { code: "EROFS" });
     const fs: SdkFs = {
@@ -411,10 +432,10 @@ describe("setKeyLengthLimit: failures of the file system", () => {
       setKeyLengthLimit({ config: cfg(), cwd: dir, key: "a", maxLength: 5 }, { fs }),
     );
 
-    expect(error).toMatchObject({ code: "LIMITS_FILE_UNUSABLE", cause });
+    expect(error).toMatchObject({ code: "LIMITS_FILE_UNWRITABLE", cause });
   });
 
-  it("maps a lock that cannot be created to LIMITS_FILE_UNUSABLE with the cause", async () => {
+  it("maps a lock that cannot be created to LIMITS_FILE_UNWRITABLE with the cause", async () => {
     const dir = await project();
     const cause = Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" });
     const fs: SdkFs = {
@@ -429,7 +450,7 @@ describe("setKeyLengthLimit: failures of the file system", () => {
     );
 
     expect(error).toMatchObject({
-      code: "LIMITS_FILE_UNUSABLE",
+      code: "LIMITS_FILE_UNWRITABLE",
       cause,
       message: expect.stringContaining("the limits write lock"),
     });
@@ -452,7 +473,10 @@ describe("setKeyLengthLimit: failures of the file system", () => {
       setKeyLengthLimit({ config: cfg(), cwd: dir, key: "a", maxLength: 5 }, { fs }),
     );
 
-    expect(error.code === "LIMITS_FILE_UNUSABLE" || error.code === "LOCK_CONTENDED").toBe(true);
+    expect(error.code).toBe("LIMITS_FILE_UNWRITABLE");
+    expect(error.message).toContain("The limit was saved, but the lock could not be released");
+    expect(error.message).toContain(".verbatra-local/locks/_limits.lock");
+    expect(error.message).not.toContain(dir);
     expect(await limitsText(dir)).toBe(document({ a: 5 }));
   });
 

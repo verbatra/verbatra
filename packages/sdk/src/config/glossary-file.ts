@@ -5,6 +5,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import {
   assertLockAcquireTimeout,
   glossaryGuardPath,
+  runUnderGuard,
   withGlossaryGuard,
   writeLockOptions,
 } from "../lock/locale-write-lock.js";
@@ -355,26 +356,16 @@ export async function updateGlossaryTerm(
   const fs = deps.fs ?? defaultFs;
   const cwd = inputCwd ?? process.cwd();
 
-  let locked = false;
-  let editFailure: { readonly error: unknown } | undefined;
-  try {
-    return await withGlossaryGuard(
-      cwd,
-      fs,
-      async () => {
-        locked = true;
-        try {
-          return await applyGlossaryEdit(path, edit, fs);
-        } catch (error) {
-          editFailure = { error };
-          throw error;
-        }
-      },
-      writeLockOptions({ ...(lockAcquireTimeoutMs !== undefined ? { lockAcquireTimeoutMs } : {}) }),
-    );
-  } catch (error) {
-    throw glossaryGuardFailure(error, editFailure, locked, cwd);
-  }
+  return runUnderGuard({
+    cwd,
+    fs,
+    guard: withGlossaryGuard,
+    run: () => applyGlossaryEdit(path, edit, fs),
+    options: writeLockOptions({
+      ...(lockAcquireTimeoutMs !== undefined ? { lockAcquireTimeoutMs } : {}),
+    }),
+    unwritable: (error, locked) => glossaryLockFailure(error, locked, cwd),
+  });
 }
 
 async function applyGlossaryEdit(path: string, edit: GlossaryEdit, fs: SdkFs): Promise<Glossary> {
@@ -386,18 +377,7 @@ async function applyGlossaryEdit(path: string, edit: GlossaryEdit, fs: SdkFs): P
   return normalizeGlossary(inputOf(content));
 }
 
-function glossaryGuardFailure(
-  error: unknown,
-  editFailure: { readonly error: unknown } | undefined,
-  locked: boolean,
-  cwd: string,
-): unknown {
-  if (editFailure !== undefined) {
-    return editFailure.error;
-  }
-  if (error instanceof SdkError) {
-    return error;
-  }
+function glossaryLockFailure(error: unknown, locked: boolean, cwd: string): SdkError {
   const message = unwritableFileMessage(
     "the glossary write lock",
     glossaryGuardPath(cwd),

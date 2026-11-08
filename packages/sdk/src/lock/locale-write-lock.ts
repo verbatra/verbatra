@@ -804,3 +804,46 @@ export async function withLimitsGuard<T>(
 ): Promise<T> {
   return withFileLock(limitsGuardPath(cwd), fs, fn, options);
 }
+
+export interface GuardedRun<T> {
+  readonly cwd: string;
+  readonly fs: SdkFs;
+  readonly guard: (
+    cwd: string,
+    fs: SdkFs,
+    fn: () => Promise<T>,
+    options?: LocaleWriteLockOptions,
+  ) => Promise<T>;
+  readonly run: () => Promise<T>;
+  readonly options: LocaleWriteLockOptions;
+  readonly unwritable: (error: unknown, locked: boolean) => SdkError;
+}
+
+export async function runUnderGuard<T>(params: GuardedRun<T>): Promise<T> {
+  let locked = false;
+  let runFailure: { readonly error: unknown } | undefined;
+  try {
+    return await params.guard(
+      params.cwd,
+      params.fs,
+      async () => {
+        locked = true;
+        try {
+          return await params.run();
+        } catch (error) {
+          runFailure = { error };
+          throw error;
+        }
+      },
+      params.options,
+    );
+  } catch (error) {
+    if (runFailure !== undefined) {
+      throw runFailure.error;
+    }
+    if (error instanceof SdkError) {
+      throw error;
+    }
+    throw params.unwritable(error, locked);
+  }
+}

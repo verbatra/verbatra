@@ -18,7 +18,7 @@ export function limitsFilePath(cwd: string): string {
 }
 
 const BOM = "﻿";
-const REPLACEMENT_CHARACTER = "�";
+const REPLACEMENT_CHARACTER = String.fromCodePoint(0xfffd);
 const NUL = "\u0000";
 
 export type LimitsUnusableReason =
@@ -90,7 +90,10 @@ function entriesOf(maxLength: Readonly<Record<string, unknown>>): LimitsFileRead
 export function parseLimitsContent(content: string): LimitsFileRead {
   const text = content.startsWith(BOM) ? content.slice(BOM.length) : content;
   if (text.includes(REPLACEMENT_CHARACTER) || text.includes(NUL)) {
-    return unusable("not-utf8", "is not UTF-8 text");
+    return unusable(
+      "not-utf8",
+      "is not UTF-8 text, or holds a literal U+FFFD (write it as the escape \\ufffd)",
+    );
   }
   let parsed: unknown;
   try {

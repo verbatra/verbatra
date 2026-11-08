@@ -89,6 +89,21 @@ describe("parseLimitsContent", () => {
     expect(reasonOf(`${document({})}\u0000`)).toBe("not-utf8");
   });
 
+  it("names the escape for a literal U+FFFD and reads the escaped spelling", () => {
+    const literal = parseLimitsContent(
+      `{"version":1,"maxLength":{"a${String.fromCodePoint(0xfffd)}b":5}}`,
+    );
+    const escaped = parseLimitsContent('{"version":1,"maxLength":{"a\\ufffdb":5}}');
+
+    expect(literal.kind === "unusable" && literal.unusable.message).toContain(
+      "write it as the escape",
+    );
+    expect(escaped).toEqual({
+      kind: "ok",
+      limits: new Map([[`a${String.fromCodePoint(0xfffd)}b`, 5]]),
+    });
+  });
+
   it("reads through a byte order mark and CRLF line endings", () => {
     const crlf = '{\r\n  "version": 1,\r\n  "maxLength": {\r\n    "a": 3\r\n  }\r\n}\r\n';
 
