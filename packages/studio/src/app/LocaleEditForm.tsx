@@ -2,8 +2,10 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef } from "react";
 import type { IntegrityPillView } from "../client/integrity-pill.js";
 import { hasGlossaryHits } from "../client/key-value-context.js";
+import { limitReasonFor } from "../client/length-limit.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { GlossaryHitList, SaveRow, TranslationField } from "./entry-editor-parts.js";
+import { LimitControl } from "./LimitControl.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import type { LocaleEdit } from "./use-locale-edit.js";
 
@@ -55,6 +57,7 @@ export function LocaleEditForm({
       <div className="mt-2">
         <ErrorMessage
           error={context.error}
+          detail={limitReasonFor(context.error)}
           retrying={edit.retrying}
           onRetry={edit.retry}
           onCancel={onCancel}
@@ -80,6 +83,9 @@ export function LocaleEditForm({
         value={draft}
         source={context.source}
         maxLength={context.maxLength}
+        limitControl={
+          <LimitControl key={keyName} keyName={keyName} context={context} onChanged={edit.reload} />
+        }
         invalid={pill?.tone === "danger" && draft === context.target}
         busy={submit.kind === "submitting"}
         textAreaRef={attach}

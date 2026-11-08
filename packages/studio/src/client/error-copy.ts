@@ -37,6 +37,9 @@ const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
     "The rejection failed partway and the files could not be put back. Restore the locale file and verbatra.provenance.json from version control.",
   REVIEW_REJECT_UNSUPPORTED:
     "This project's file format cannot drop a single translation, so the file was left as it was. Edit the translation instead.",
+  LENGTH_LIMIT_INVALID: "The limit was refused, so nothing was changed.",
+  LIMITS_FILE_UNUSABLE: "verbatra.limits.json cannot be used as it is, so nothing was changed.",
+  LIMITS_FILE_UNWRITABLE: "The limit could not be written, so nothing was changed.",
   UNKNOWN_LOCALE: "The requested locale is not among this project's configured target locales.",
   UNKNOWN_KEY: "The requested key was not found in the source resource. It may have been removed.",
   KEY_PROTECTED:
@@ -97,6 +100,9 @@ export function resolveErrorCopy(error: StructuredError): string {
 }
 
 const DETAIL_CODES: ReadonlySet<string> = new Set([
+  "LENGTH_LIMIT_INVALID",
+  "LIMITS_FILE_UNUSABLE",
+  "LIMITS_FILE_UNWRITABLE",
   "LOCK_FILE_INVALID",
   "PROVENANCE_FILE_INVALID",
   "SOURCE_UNREADABLE",

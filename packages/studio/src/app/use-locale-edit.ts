@@ -37,6 +37,7 @@ export interface LocaleEdit {
   setDraft(next: string): void;
   readonly retrying: boolean;
   retry(): void;
+  reload(): void;
   save(target: string): Promise<boolean>;
 }
 
@@ -45,7 +46,12 @@ function useHeldContext(
   locale: string | null,
   keyName: string,
   refreshToken: number,
-): { readonly context: KeyValueContext; readonly retrying: boolean; retry(): void } {
+): {
+  readonly context: KeyValueContext;
+  readonly retrying: boolean;
+  retry(): void;
+  reload(): void;
+} {
   const [held, setHeld] = useState<HeldContext>(UNHELD);
   const [attempt, setAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
@@ -81,6 +87,7 @@ function useHeldContext(
       setRetrying(true);
       setAttempt((count) => count + 1);
     },
+    reload: () => setAttempt((count) => count + 1),
   };
 }
 
@@ -92,7 +99,12 @@ export function useLocaleEdit(
   seed: string | null = null,
 ): LocaleEdit {
   const identity = draftIdentity(locale, keyName, session);
-  const { context, retrying, retry } = useHeldContext(identity, locale, keyName, refreshToken);
+  const { context, retrying, retry, reload } = useHeldContext(
+    identity,
+    locale,
+    keyName,
+    refreshToken,
+  );
   const [draftState, setDraftState] = useState<DraftState>(EMPTY_DRAFT);
   const [heldSubmit, setHeldSubmit] = useState<HeldSubmit>(NO_SUBMIT);
 
@@ -135,6 +147,7 @@ export function useLocaleEdit(
     setDraft: (next) => setDraftState({ ...current, text: next }),
     retrying,
     retry,
+    reload,
     save,
   };
 }

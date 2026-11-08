@@ -3,7 +3,9 @@ import type {
   GlossaryDraftDoNotTranslateCheck,
   GlossaryDraftTermCheck,
   KeyProvenance,
+  LimitsFileNotice,
   LocaleGlossary,
+  MaxLengthSource,
 } from "@verbatra/sdk";
 import type { RpcCallResult } from "./rpc-client.js";
 import type { StructuredError } from "./state.js";
@@ -19,6 +21,8 @@ export type KeyValueContext =
       readonly provenance: KeyProvenance | undefined;
       readonly glossary: LocaleGlossary;
       readonly maxLength: number | undefined;
+      readonly maxLengthSource: MaxLengthSource | undefined;
+      readonly limitsNotice: LimitsFileNotice | undefined;
     };
 
 export function deriveKeyValueContext(response: RpcCallResult<"key.context">): KeyValueContext {
@@ -34,6 +38,8 @@ export function deriveKeyValueContext(response: RpcCallResult<"key.context">): K
     provenance: result.provenance,
     glossary: result.glossary,
     maxLength: result.maxLength,
+    maxLengthSource: result.maxLengthSource,
+    limitsNotice: result.limitsNotice,
   };
 }
 

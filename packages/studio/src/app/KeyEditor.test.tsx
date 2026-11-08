@@ -18,6 +18,7 @@ import {
   rpcError,
   type StubRpcResult,
   stubRpc,
+  textboxNamed,
   typeInto,
 } from "./test-support.js";
 
@@ -1157,6 +1158,111 @@ function field(view: Awaited<ReturnType<typeof renderAsync>>, locale = "de"): HT
   }
   return found;
 }
+
+describe("KeyEditor length limit", () => {
+  const FILE_LIMIT = { maxLength: 20, maxLengthSource: "limits-file" };
+
+  it("shows the limit control in the editing form and keeps the draft through a limit save and re-read", async () => {
+    stubWritable();
+    let reads = 0;
+    stubRpc({
+      "key.context": () => {
+        reads += 1;
+        return reads === 1 ? context("Hallo") : context("Hallo", FILE_LIMIT);
+      },
+      "key.setMaxLength": { ok: true, result: { key: KEY, maxLength: 20, changed: true } },
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+    typeInto(field(view), "Hallo Welt");
+
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "20");
+    await clickAsync(view.get("[data-limit-save]"));
+    await flush();
+
+    expect(rpcCalls.filter((call) => call.method === "key.setMaxLength")).toHaveLength(1);
+    expect(reads).toBe(2);
+    expect(field(view).value).toBe("Hallo Welt");
+    expect(view.get("[data-limit-status]").textContent).toBe(
+      "Limit: 20 characters, from verbatra.limits.json.",
+    );
+    expect(view.get("[data-edit-length]").textContent).toContain("of 20 characters");
+  });
+
+  it("keeps a limit being typed, in the same field, through a refresh read", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    const input = textboxNamed(view, "Limit in characters");
+    typeInto(input, "33");
+    input.focus();
+
+    view.rerender(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+    );
+    await flush();
+
+    expect(textboxNamed(view, "Limit in characters")).toBe(input);
+    expect(input.value).toBe("33");
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("says in the editor error why a key that is not in the source has no limit", async () => {
+    stubWritable();
+    stubRpc({ "key.context": rpcError("UNKNOWN_KEY", "not in the source") });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+
+    expect(view.get('[role="alert"]').textContent).toContain("takes only source keys");
+    expect(view.query("[data-limit-control]")).toBeNull();
+  });
+
+  it("shows a config limit read-only beside the length line", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo", { maxLength: 9, maxLengthSource: "config" }) });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    await startEditing(view);
+
+    expect(view.get("[data-limit-control]").getAttribute("data-limit-mode")).toBe("config");
+    expect(view.query("[data-limit-open]")).toBeNull();
+  });
+
+  it("follows a limits-file edit on a refresh without touching the draft or the focus", async () => {
+    stubWritable();
+    let limit = 20;
+    stubRpc({
+      "key.context": () => context("Hallo", { maxLength: limit, maxLengthSource: "limits-file" }),
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+    typeInto(field(view), "Hallo Welt");
+    field(view).focus();
+
+    limit = 5;
+    view.rerender(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+    );
+    await flush();
+
+    expect(view.get("[data-limit-status]").textContent).toMatch(/Limit: 5 characters/);
+    expect(field(view).value).toBe("Hallo Welt");
+    expect(document.activeElement).toBe(field(view));
+  });
+});
 
 describe("KeyEditor editing", () => {
   it("starts an empty draft and says so for a locale with no translation yet", async () => {

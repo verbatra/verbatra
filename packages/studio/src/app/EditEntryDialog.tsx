@@ -5,10 +5,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
 import type { KeyRevisionRow } from "../client/key-history.js";
 import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-context.js";
+import { limitReasonFor } from "../client/length-limit.js";
 import { EditEntryHistory } from "./EditEntryHistory.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { GlossaryHitList, SaveRow, submitFailure, TranslationField } from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
+import { LimitControl } from "./LimitControl.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ReviewReasonChips } from "./ReviewReasonChips.js";
 import { TranslationValue } from "./TranslationValue.js";
@@ -99,6 +101,7 @@ function TranslationColumn({
   value,
   onChangeValue,
   onSave,
+  onLimitChanged,
   busy,
   textAreaRef,
 }: {
@@ -108,6 +111,7 @@ function TranslationColumn({
   readonly value: string;
   readonly onChangeValue: (next: string) => void;
   readonly onSave: () => void;
+  readonly onLimitChanged: () => void;
   readonly busy: boolean;
   readonly textAreaRef: Ref<HTMLTextAreaElement>;
 }): ReactNode {
@@ -129,6 +133,14 @@ function TranslationColumn({
           value={value}
           source={context.source}
           maxLength={context.maxLength}
+          limitControl={
+            <LimitControl
+              key={keyName}
+              keyName={keyName}
+              context={context}
+              onChanged={onLimitChanged}
+            />
+          }
           invalid={pill?.tone === "danger" && value === context.target}
           busy={busy}
           textAreaRef={textAreaRef}
@@ -305,7 +317,12 @@ export function EditEntryDialog({
         <p className="mb-3 text-sm text-muted-foreground">Loading current value…</p>
       ) : null}
       {context.kind === "error" ? (
-        <ErrorMessage error={context.error} retrying={edit.retrying} onRetry={edit.retry} />
+        <ErrorMessage
+          error={context.error}
+          detail={limitReasonFor(context.error)}
+          retrying={edit.retrying}
+          onRetry={edit.retry}
+        />
       ) : null}
       {context.kind === "loaded" ? (
         <>
@@ -323,6 +340,7 @@ export function EditEntryDialog({
               value={value}
               onChangeValue={edit.setDraft}
               onSave={() => void handleSubmit()}
+              onLimitChanged={edit.reload}
               busy={submit.kind === "submitting"}
               textAreaRef={textAreaRef}
             />

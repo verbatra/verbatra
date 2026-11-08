@@ -188,6 +188,7 @@ export function TranslationField({
   value,
   source,
   maxLength,
+  limitControl,
   invalid,
   busy,
   textAreaRef,
@@ -200,6 +201,7 @@ export function TranslationField({
   readonly value: string;
   readonly source: string;
   readonly maxLength: number | undefined;
+  readonly limitControl?: ReactNode;
   readonly invalid: boolean;
   readonly busy: boolean;
   readonly textAreaRef: Ref<HTMLTextAreaElement>;
@@ -232,6 +234,7 @@ export function TranslationField({
         rows={rows}
       />
       <LengthLine id={lengthId} source={source} value={value} maxLength={maxLength} />
+      {limitControl}
       <DraftPreview value={value} locale={locale} />
       <IcuPreviewPanel keyName={keyName} locale={locale} value={value} />
     </>

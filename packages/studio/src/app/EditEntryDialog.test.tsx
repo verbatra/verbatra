@@ -15,6 +15,7 @@ import {
   rpcError,
   type StubRpcResult,
   stubRpc,
+  textboxNamed,
   typeInto,
 } from "./test-support.js";
 
@@ -1133,5 +1134,61 @@ describe("EditEntryDialog: an unsaved draft", () => {
 
     expect(document.activeElement).toBe(editor(view));
     expect(editor(view).style.getPropertyValue("scroll-margin-top")).toBe("8px");
+  });
+
+  it("hosts the limit control, and a save re-reads the context without touching the draft", async () => {
+    let reads = 0;
+    stubRpc({
+      "key.context": () => {
+        reads += 1;
+        return {
+          ok: true,
+          result: {
+            source: "Hello",
+            target: "Hallo",
+            glossary: NO_GLOSSARY,
+            ...(reads > 1 ? { maxLength: 12, maxLengthSource: "limits-file" } : {}),
+          },
+        };
+      },
+      "key.setMaxLength": { ok: true, result: { key: KEY, maxLength: 12, changed: true } },
+    });
+    const view = await renderAsync(dialog());
+    typeInto(editor(view), "Hallo Welt");
+
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "12");
+    await clickAsync(view.get("[data-limit-save]"));
+    await flush();
+
+    expect(reads).toBe(2);
+    expect(editor(view).value).toBe("Hallo Welt");
+    expect(view.get("[data-limit-status]").textContent).toMatch(/Limit: 12 characters/);
+    expect(view.query('[role="dialog"]')).not.toBeNull();
+  });
+
+  it("says in the error why a key that is not in the source has no limit", async () => {
+    stubRpc({ "key.context": rpcError("UNKNOWN_KEY", "not in the source") });
+
+    const view = await renderAsync(dialog());
+
+    expect(view.get('[role="alert"]').textContent).toContain("takes only source keys");
+    expect(view.query("[data-limit-control]")).toBeNull();
+  });
+
+  it("closes only the limit form on Escape, not the dialog", async () => {
+    stubRpc({ "key.context": keyValue("Hello", "Hallo") });
+    const onClose = vi.fn();
+    const view = await renderAsync(dialog(vi.fn(), onClose));
+    await clickAsync(view.getByText("button", "Set limit"));
+
+    act(() => {
+      view
+        .get("[data-limit-form] input")
+        .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+
+    expect(view.query("[data-limit-form]")).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
