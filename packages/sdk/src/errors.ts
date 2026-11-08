@@ -147,14 +147,15 @@
  *   1024 characters, the limit is a number and the config's own `maxLength` already sets the key,
  *   so the limits file cannot override it, or the write would take the file past 10,000 entries or
  *   1 MiB. Nothing is written.
- * - `LIMITS_FILE_UNUSABLE`: `verbatra.limits.json` cannot be used: it is over
- *   1 MiB, is not UTF-8 or JSON, has another shape or a newer version, or holds more than 10,000
+ * - `LIMITS_FILE_UNUSABLE`: `verbatra.limits.json` cannot be used: it is not a
+ *   regular file, is over 1 MiB, is not UTF-8 or JSON, has another shape or a newer version, or holds more than 10,000
  *   entries. A file that cannot be used is never overwritten. Thrown by
  *   {@link setKeyLengthLimit}. A run that meets such a file does not throw: it returns a
  *   `LIMITS_FILE_IGNORED` notice.
- * - `LIMITS_FILE_UNWRITABLE`: the limits file exists but could not be read, or it or the project's
- *   limits write lock could not be written, for instance in a read-only project, or the lock could not be released after the
- *   limit was saved, which the message says. The file-system error is the `cause`. Thrown by
+ * - `LIMITS_FILE_UNWRITABLE`: the limits file exists but the process may not read it, or it or the
+ *   project's limits write lock could not be written, for instance in a read-only project, or the
+ *   lock could not be released after the limit was saved, which the message says. A write failure
+ *   carries the file-system error as its `cause`; a refused read does not. Thrown by
  *   {@link setKeyLengthLimit}.
  * - `LOCALE_LAYOUT_INVALID`: the configured `files.pattern` and `files.localeStyle` cannot be
  *   combined, or the style has no valid path spelling for a configured locale. Thrown by

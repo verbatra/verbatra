@@ -334,12 +334,31 @@ describe("setKeyLengthLimit: an unusable limits file is never overwritten", () =
     },
   );
 
-  it("treats a file that exists but cannot be read as a permissions problem, not as one to restore or delete", async () => {
+  it("refuses a directory at the path as an unusable file, one to replace or remove", async () => {
     const dir = await project();
     await mkdir(join(dir, LIMITS_FILE_NAME));
 
     const error = await rejection(
       setKeyLengthLimit({ config: cfg(), cwd: dir, key: "a", maxLength: 5 }),
+    );
+
+    expect(error.code).toBe("LIMITS_FILE_UNUSABLE");
+    expect(error.message).toBe("verbatra.limits.json is not a regular file. Nothing was written.");
+    expect(error.message).not.toMatch(/permission/i);
+  });
+
+  it("treats a file the process may not read as a permissions problem, not as one to restore or delete", async () => {
+    const dir = await project();
+    const fs: SdkFs = {
+      ...defaultFs,
+      readBytesBounded: async (path, maxBytes) =>
+        path.endsWith(LIMITS_FILE_NAME)
+          ? { kind: "missing", unreadable: true }
+          : defaultFs.readBytesBounded(path, maxBytes),
+    };
+
+    const error = await rejection(
+      setKeyLengthLimit({ config: cfg(), cwd: dir, key: "a", maxLength: 5 }, { fs }),
     );
 
     expect(error.code).toBe("LIMITS_FILE_UNWRITABLE");

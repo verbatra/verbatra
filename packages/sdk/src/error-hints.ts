@@ -51,7 +51,7 @@ const SDK_ERROR_HINTS = {
   LENGTH_LIMIT_INVALID:
     "Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.",
   LIMITS_FILE_UNUSABLE:
-    "Restore verbatra.limits.json from version control or delete it, then try again.",
+    "Restore verbatra.limits.json from version control, or replace it with a regular file or delete it, then try again.",
   LIMITS_FILE_UNWRITABLE:
     "Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again.",
   LOCALE_LAYOUT_INVALID:

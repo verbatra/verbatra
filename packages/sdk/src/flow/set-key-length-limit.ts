@@ -207,11 +207,11 @@ async function applyLimit(
  * another process before the file was written.
  * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
  * went to take the write lock, so that lock was refused.
- * @throws {@link SdkError} `LIMITS_FILE_UNUSABLE`: the limits file cannot be read as one (over
- * 1 MiB, not UTF-8 or JSON, another shape, a newer version, or more than 10,000 entries). Nothing
+ * @throws {@link SdkError} `LIMITS_FILE_UNUSABLE`: the limits file cannot be used (not a
+ * regular file, over 1 MiB, not UTF-8 or JSON, another shape, a newer version, or more than 10,000 entries). Nothing
  * is overwritten.
- * @throws {@link SdkError} `LIMITS_FILE_UNWRITABLE`: the limits file exists but could not be read (a
- * permissions problem), or it or the limits lock could not be written, or the lock could not be
+ * @throws {@link SdkError} `LIMITS_FILE_UNWRITABLE`: the limits file exists but the process may not read
+ * it (a permissions problem), or it or the limits lock could not be written, or the lock could not be
  * released after the limit was saved, which the message says. A write failure carries the
  * file-system error as its `cause`.
  */

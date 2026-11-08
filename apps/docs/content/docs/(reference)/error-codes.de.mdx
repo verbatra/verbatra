@@ -466,14 +466,14 @@ Die Glossardatei konnte nicht geschrieben oder die Glossar-Schreibsperre nicht a
 
 ### LIMITS_FILE_UNUSABLE
 
-`verbatra.limits.json` lässt sich nicht verwenden: Sie ist über 1 MiB groß, kein UTF-8 oder JSON, hat eine andere Form oder eine neuere Version oder enthält mehr als 10.000 Einträge. Eine Datei, die sich nicht verwenden lässt, wird nie überschrieben. Ein Lauf, der auf so eine Datei trifft, wirft nicht: Er gibt [`LIMITS_FILE_IGNORED`](#limits_file_ignored) zurück.
+`verbatra.limits.json` lässt sich nicht verwenden: Sie ist keine reguläre Datei, über 1 MiB groß, kein UTF-8 oder JSON, hat eine andere Form oder eine neuere Version oder enthält mehr als 10.000 Einträge. Eine Datei, die sich nicht verwenden lässt, wird nie überschrieben. Ein Lauf, der auf so eine Datei trifft, wirft nicht: Er gibt [`LIMITS_FILE_IGNORED`](#limits_file_ignored) zurück.
 
 - **Ausgelöst von**: `setKeyLengthLimit` (SDK)
-- **Nächster Schritt**: Restore verbatra.limits.json from version control or delete it, then try again.
+- **Nächster Schritt**: Restore verbatra.limits.json from version control, or replace it with a regular file or delete it, then try again.
 
 ### LIMITS_FILE_UNWRITABLE
 
-Die Limits-Datei existiert, ließ sich aber nicht lesen (ein Rechteproblem), oder sie oder die Limits-Schreibsperre des Projekts ließ sich nicht schreiben, etwa in einem schreibgeschützten Projekt, oder die Sperre ließ sich nach dem Speichern des Limits nicht freigeben (die Meldung sagt es, und das Limit bleibt); der Dateisystem-Fehler ist die `cause`.
+Die Limits-Datei existiert, ließ sich aber nicht lesen (ein Rechteproblem), oder sie oder die Limits-Schreibsperre des Projekts ließ sich nicht schreiben, etwa in einem schreibgeschützten Projekt, oder die Sperre ließ sich nach dem Speichern des Limits nicht freigeben (die Meldung sagt es, und das Limit bleibt). Ein Schreibfehler trägt den Dateisystem-Fehler als `cause`; ein verweigertes Lesen nicht.
 
 - **Ausgelöst von**: `setKeyLengthLimit` (SDK)
 - **Nächster Schritt**: Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again.
@@ -1175,9 +1175,9 @@ Das Festhalten dieser Locale hätte `verbatra.provenance.json` über die Größe
 
 ### LIMITS_FILE_IGNORED
 
-`verbatra.limits.json` ließ sich nicht verwenden (nicht lesbar, zu groß, kein UTF-8 oder gültiges JSON, andere Form, neuere Version oder zu viele Einträge), also hielt der Aufruf die Werte nur an die `maxLength`-Budgets der Config und markierte keinen gegen ein Limit, das diese Datei setzt. Es ist ein Hinweis an jeder Locale eines Laufs und das `limitsNotice` eines Ergebnisses. Die Datei bleibt, wie sie ist.
+`verbatra.limits.json` ließ sich nicht verwenden (nicht lesbar, keine reguläre Datei, zu groß, kein UTF-8 oder gültiges JSON, andere Form, neuere Version oder zu viele Einträge), also hielt der Aufruf die Werte nur an die `maxLength`-Budgets der Config und markierte keinen gegen ein Limit, das diese Datei setzt. Es ist ein Hinweis an jeder Locale eines Laufs und das `limitsNotice` eines Ergebnisses. Die Datei bleibt, wie sie ist.
 
-- **Ausgelöst von**: `translate`, `watch`; als `limitsNotice` zurückgegeben von `check --qa`, `check --file`, `export`, `retranslateEntry`, `keyContext` und den MCP-Tools `key.context` und `translation.retranslateEntry`; `doctor` meldet die Datei unter Length limits
+- **Ausgelöst von**: `translate`, `watch`; als `qa.limitsNotice` zurückgegeben von `check --qa` und `check --file`, als `limitsNotice` von `export`, `retranslateEntry`, `keyContext` und den MCP-Tools `key.context` und `translation.retranslateEntry`; `doctor` meldet die Datei unter Length limits
 - **Exit-Code**: keiner
 - **Nächster Schritt**: Repariere oder lösche `verbatra.limits.json`; `verbatra doctor` nennt, was an der Datei nicht stimmt.
 

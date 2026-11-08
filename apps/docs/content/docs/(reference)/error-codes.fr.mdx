@@ -466,14 +466,14 @@ Le fichier de glossaire n'a pas pu être écrit, ou le verrou d'écriture du glo
 
 ### LIMITS_FILE_UNUSABLE
 
-`verbatra.limits.json` est inutilisable : il dépasse 1 Mio, n'est ni UTF-8 ni JSON, a une autre forme ou une version plus récente, ou compte plus de 10 000 entrées. Un fichier inutilisable n'est jamais écrasé. Une exécution qui tombe sur un tel fichier ne lève rien : elle renvoie [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
+`verbatra.limits.json` est inutilisable : ce n'est pas un fichier ordinaire, il dépasse 1 Mio, n'est ni UTF-8 ni JSON, a une autre forme ou une version plus récente, ou compte plus de 10 000 entrées. Un fichier inutilisable n'est jamais écrasé. Une exécution qui tombe sur un tel fichier ne lève rien : elle renvoie [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
 
 - **Levé par** : `setKeyLengthLimit` (SDK)
-- **Étape suivante** : Restore verbatra.limits.json from version control or delete it, then try again.
+- **Étape suivante** : Restore verbatra.limits.json from version control, or replace it with a regular file or delete it, then try again.
 
 ### LIMITS_FILE_UNWRITABLE
 
-Le fichier de limites existe mais n'a pas pu être lu (un problème de droits), ou lui ou le verrou d'écriture des limites du projet n'a pas pu être écrit, par exemple dans un projet en lecture seule, ou le verrou n'a pas pu être libéré après l'enregistrement de la limite (le message le dit, et la limite reste) ; l'erreur du système de fichiers est la `cause`.
+Le fichier de limites existe mais n'a pas pu être lu (un problème de droits), ou lui ou le verrou d'écriture des limites du projet n'a pas pu être écrit, par exemple dans un projet en lecture seule, ou le verrou n'a pas pu être libéré après l'enregistrement de la limite (le message le dit, et la limite reste). Un échec d'écriture porte l'erreur du système de fichiers comme `cause` ; une lecture refusée, non.
 
 - **Levé par** : `setKeyLengthLimit` (SDK)
 - **Étape suivante** : Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again.
@@ -1176,9 +1176,9 @@ Enregistrer cette locale aurait fait grossir `verbatra.provenance.json` au-delà
 
 ### LIMITS_FILE_IGNORED
 
-`verbatra.limits.json` n'a pas pu servir (illisible, trop gros, ni UTF-8 ni JSON valide, autre forme, version plus récente ou trop d'entrées), donc l'appel n'a tenu les valeurs qu'aux budgets `maxLength` de la config et n'en a signalé aucune par rapport à une limite fixée par ce fichier. C'est un avis sur chaque locale d'une exécution et le `limitsNotice` d'un résultat. Le fichier reste tel quel.
+`verbatra.limits.json` n'a pas pu servir (illisible, pas un fichier ordinaire, trop gros, ni UTF-8 ni JSON valide, autre forme, version plus récente ou trop d'entrées), donc l'appel n'a tenu les valeurs qu'aux budgets `maxLength` de la config et n'en a signalé aucune par rapport à une limite fixée par ce fichier. C'est un avis sur chaque locale d'une exécution et le `limitsNotice` d'un résultat. Le fichier reste tel quel.
 
-- **Levé par** : `translate`, `watch` ; renvoyé comme `limitsNotice` par `check --qa`, `check --file`, `export`, `retranslateEntry`, `keyContext` et les outils MCP `key.context` et `translation.retranslateEntry` ; `doctor` signale le fichier sous Length limits
+- **Levé par** : `translate`, `watch` ; renvoyé comme `qa.limitsNotice` par `check --qa` et `check --file`, et comme `limitsNotice` par `export`, `retranslateEntry`, `keyContext` et les outils MCP `key.context` et `translation.retranslateEntry` ; `doctor` signale le fichier sous Length limits
 - **Code de sortie** : aucun
 - **Étape suivante** : Répare ou supprime `verbatra.limits.json` ; `verbatra doctor` indique ce qui cloche dans le fichier.
 

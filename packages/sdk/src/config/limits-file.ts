@@ -19,6 +19,7 @@ export function limitsFilePath(cwd: string): string {
 
 export type LimitsUnusableReason =
   | "unreadable"
+  | "not-a-file"
   | "too-large"
   | "not-utf8"
   | "not-json"
@@ -124,17 +125,32 @@ export async function readLimitsFile(path: string, fs: SdkFs): Promise<LimitsFil
     );
   }
   if (read.kind === "missing") {
-    return read.unreadable === true
-      ? unusable("unreadable", "exists but could not be read (a permissions problem)")
-      : { kind: "ok", limits: new Map() };
+    return missingVerdict(read);
   }
   return parseLimitsBytes(read.bytes);
 }
 
+function missingVerdict(read: {
+  readonly unreadable?: boolean | undefined;
+  readonly notRegularFile?: boolean | undefined;
+}): LimitsFileRead {
+  if (read.notRegularFile === true) {
+    return unusable("not-a-file", "is not a regular file");
+  }
+  return read.unreadable === true
+    ? unusable("unreadable", "exists but could not be read (a permissions problem)")
+    : { kind: "ok", limits: new Map() };
+}
+
 export function limitsRemedy(unusable: LimitsUnusable): string {
-  return unusable.reason === "unreadable"
-    ? `Check the permissions of ${LIMITS_FILE_NAME}`
-    : `Fix or delete ${LIMITS_FILE_NAME}`;
+  switch (unusable.reason) {
+    case "unreadable":
+      return `Check the permissions of ${LIMITS_FILE_NAME}`;
+    case "not-a-file":
+      return `Replace ${LIMITS_FILE_NAME} with a regular file, or remove it`;
+    default:
+      return `Fix or delete ${LIMITS_FILE_NAME}`;
+  }
 }
 
 export function serializeLimits(limits: ReadonlyMap<string, number>): string {

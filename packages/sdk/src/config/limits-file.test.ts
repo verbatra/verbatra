@@ -1,4 +1,4 @@
-import { mkdir, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { defaultFs } from "../fs.js";
@@ -209,32 +209,58 @@ describe("readLimitsFile", () => {
     expect(read).toMatchObject({ kind: "unusable", unusable: { reason: "too-large" } });
   });
 
-  it("reports something that is not a regular file as unreadable, not as missing", async () => {
+  it("calls a directory at the path not a regular file, and says to replace or remove it", async () => {
     const dir = await makeTempDir();
     await mkdir(limitsFilePath(dir));
 
     const read = await readLimitsFile(limitsFilePath(dir), defaultFs);
 
-    expect(read).toMatchObject({ kind: "unusable", unusable: { reason: "unreadable" } });
+    expect(read).toMatchObject({
+      kind: "unusable",
+      unusable: { reason: "not-a-file", message: "verbatra.limits.json is not a regular file" },
+    });
+    const unusable = read.kind === "unusable" ? read.unusable : undefined;
+    expect(unusable && limitsRemedy(unusable)).toBe(
+      "Replace verbatra.limits.json with a regular file, or remove it",
+    );
+    expect(unusable?.message).not.toMatch(/permission/i);
   });
 
-  it("calls an unreadable file a permissions problem and never says to delete it", async () => {
-    const dir = await makeTempDir();
-    await mkdir(limitsFilePath(dir));
+  it("calls a refused open a permissions problem and never says to delete it", async () => {
+    const refused = makeFakeFs({
+      readBytesBounded: async () => ({ kind: "missing", unreadable: true }),
+    });
 
-    const read = await readLimitsFile(limitsFilePath(dir), defaultFs);
+    const read = await readLimitsFile("/project/verbatra.limits.json", refused);
 
-    const message = read.kind === "unusable" ? read.unusable.message : "";
-    expect(message).toBe(
-      "verbatra.limits.json exists but could not be read (a permissions problem)",
-    );
-    expect(limitsRemedy({ reason: "unreadable", message })).toBe(
+    expect(read).toMatchObject({
+      kind: "unusable",
+      unusable: {
+        reason: "unreadable",
+        message: "verbatra.limits.json exists but could not be read (a permissions problem)",
+      },
+    });
+    const unusable = read.kind === "unusable" ? read.unusable : undefined;
+    expect(unusable && limitsRemedy(unusable)).toBe(
       "Check the permissions of verbatra.limits.json",
     );
-    expect(limitsRemedy({ reason: "not-json", message })).toBe(
+    expect(limitsRemedy({ reason: "not-json", message: "" })).toBe(
       "Fix or delete verbatra.limits.json",
     );
   });
+
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "calls a file the process may not open a permissions problem",
+    async () => {
+      const dir = await makeTempDir();
+      await writeFile(limitsFilePath(dir), document({ a: 3 }));
+      await chmod(limitsFilePath(dir), 0o000);
+
+      const read = await readLimitsFile(limitsFilePath(dir), defaultFs);
+
+      expect(read).toMatchObject({ kind: "unusable", unusable: { reason: "unreadable" } });
+    },
+  );
 
   it("follows a symbolic link to a regular file and reports a dangling one as no limits", async () => {
     const dir = await makeTempDir();

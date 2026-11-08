@@ -4,7 +4,13 @@ import { AdapterRegistry } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
 import type { LoadedConfig } from "../config/load-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
-import { baseConfig, makeTempDir, writeJsonFile } from "../test-support.js";
+import {
+  baseConfig,
+  makeFakeFs,
+  makeTempDir,
+  realDiskReads,
+  writeJsonFile,
+} from "../test-support.js";
 import { type DoctorResult, doctor } from "./doctor.js";
 import { doctorResultSchema } from "./doctor-schema.js";
 
@@ -63,16 +69,43 @@ describe("doctor: the limits check", () => {
     expect(check?.detail).toContain("a limit cannot be set until it is fixed");
   });
 
-  it("sends a file that exists but cannot be read to its permissions, not to delete", async () => {
+  it("tells a directory at the path to be replaced or removed, not to fix its permissions", async () => {
     const dir = await projectWith();
     await mkdir(join(dir, "verbatra.limits.json"));
 
     const { check } = await limitsCheck(dir);
 
     expect(check?.status).toBe("warn");
+    expect(check?.detail).toContain("verbatra.limits.json is not a regular file.");
+    expect(check?.detail).toContain(
+      "Replace verbatra.limits.json with a regular file, or remove it.",
+    );
+    expect(check?.detail).not.toMatch(/permission/i);
+  });
+
+  it("sends a file the process may not read to its permissions, not to delete", async () => {
+    const dir = await projectWith();
+    const loaded: LoadedConfig = {
+      config: baseConfig(),
+      source: { kind: "override" },
+      glossary: { source: "none" },
+    };
+    const disk = realDiskReads();
+    const fs = makeFakeFs({
+      ...disk,
+      readBytesBounded: async (path, maxBytes) =>
+        path.endsWith("verbatra.limits.json")
+          ? { kind: "missing", unreadable: true }
+          : disk.readBytesBounded(path, maxBytes),
+    });
+
+    const result = await doctor({ cwd: dir }, { fs, loadConfig: async () => loaded });
+
+    const check = result.checks.find((entry) => entry.id === "limits");
+    expect(check?.status).toBe("warn");
     expect(check?.detail).toContain("a permissions problem");
     expect(check?.detail).toContain("Check the permissions of verbatra.limits.json.");
-    expect(check?.detail).not.toMatch(/delete|restore/i);
+    expect(check?.detail).not.toMatch(/delete|restore|replace/i);
   });
 
   it("warns on a newer version by name", async () => {
