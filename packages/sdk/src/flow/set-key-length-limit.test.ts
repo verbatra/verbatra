@@ -349,26 +349,24 @@ describe("setKeyLengthLimit: an unusable limits file is never overwritten", () =
 });
 
 describe("setKeyLengthLimit: caps are checked before the write", () => {
-  it("refuses the entry past the entry cap and writes nothing", async () => {
-    const entries = Object.fromEntries(
-      Array.from({ length: MAX_LIMITS_ENTRIES }, (_, i) => [`k${i}`, 5]),
-    );
+  it("refuses an entry past the entry cap and writes nothing, yet still changes an existing one", async () => {
+    const entries = {
+      a: 5,
+      ...Object.fromEntries(Array.from({ length: MAX_LIMITS_ENTRIES - 1 }, (_, i) => [`k${i}`, 5])),
+    };
     const dir = await project(document(entries));
     const before = await limitsText(dir);
 
-    const error = await rejection(
-      setKeyLengthLimit({ config: cfg(), cwd: dir, key: "a", maxLength: 5 }),
+    const refused = await rejection(
+      setKeyLengthLimit({ config: cfg(), cwd: dir, key: "b", maxLength: 5 }),
     );
-    const replace = await setKeyLengthLimit({
-      config: cfg(),
-      cwd: dir,
-      key: "k1",
-      maxLength: 6,
-    }).catch((thrown: unknown) => thrown);
+    const afterRefusal = await limitsText(dir);
+    const replaced = await setKeyLengthLimit({ config: cfg(), cwd: dir, key: "a", maxLength: 6 });
 
-    expect(error.code).toBe("LIMITS_FILE_UNUSABLE");
-    expect(await limitsText(dir)).toBe(before.replace('"k1": 5', '"k1": 5'));
-    expect(replace).toMatchObject({ code: "UNKNOWN_KEY" });
+    expect(refused.code).toBe("LIMITS_FILE_UNUSABLE");
+    expect(afterRefusal).toBe(before);
+    expect(replaced.changed).toBe(true);
+    expect(JSON.parse(await limitsText(dir)).maxLength.a).toBe(6);
   });
 
   it("refuses a write that would push the file past the byte cap and writes nothing", async () => {
