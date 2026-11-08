@@ -14,11 +14,11 @@ import type { CacheAddition, TranslationMemory } from "../cache/types.js";
 import { isCancelled, signalField } from "../cancellation.js";
 import { glossaryForLocale } from "../config/glossary.js";
 import type { HumanEditsPolicy } from "../config/human-edits.js";
-import { toMaxLengthMap } from "../config/max-length.js";
 import { assertNetworkPolicyResolves } from "../config/network-policy.js";
 import { projectCwd } from "../config/project-root.js";
 import { isMachineProvider } from "../config/provider-config.js";
 import { kindOf } from "../config/provider-kind.js";
+import { type ResolvedMaxLengths, resolveMaxLengths } from "../config/resolve-max-lengths.js";
 import {
   DEFAULT_BUDGET_BEHAVIOR,
   DEFAULT_FUZZY_THRESHOLD,
@@ -68,6 +68,7 @@ import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, resolveRunBudget, toBudgetSummary } from "./budget.js";
 import { cancelledField, unstartedLocaleError } from "./cancellation.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
+import { withLimitsNotice } from "./limits-notice.js";
 import { assertConfiguredLocalesSupported, withCapabilityNotices } from "./locale-capabilities.js";
 import {
   carryOverRefusal,
@@ -309,6 +310,7 @@ interface LocaleRunContext {
   readonly mode: LocaleRunMode;
   readonly cwd: string;
   readonly config: VerbatraConfig;
+  readonly maxLengths: ResolvedMaxLengths;
   readonly resolver: LocalePathResolver;
   readonly prune: boolean;
   readonly generatePlurals: boolean;
@@ -349,7 +351,7 @@ async function buildLocaleRunParams(
     targetLocale,
     format: context.config.format,
     glossary: glossaryForLocale(context.config.glossary, targetLocale),
-    maxLength: toMaxLengthMap(context.config.maxLength),
+    maxLength: context.maxLengths.limits,
     tone: context.config.tone,
     prune: context.prune,
     generatePlurals: context.generatePlurals,
@@ -840,12 +842,14 @@ export async function translate(
   });
   const cache = usesMemory ? await createRunCacheState(config, cwd, fs, carryOver) : undefined;
   const newerProvenance = !dryRun && (await isNewerProvenance(cwd, fs));
+  const maxLengths = await resolveMaxLengths({ config, cwd, fs });
   const context: LocaleRunContext = {
     source,
     adapter,
     mode,
     cwd,
     config,
+    maxLengths,
     resolver,
     prune,
     generatePlurals,
@@ -877,7 +881,10 @@ export async function translate(
 
   const locales = withCarryOverNotices(
     withNewerProvenanceNotice(
-      withCacheNotices(withCapabilityNotices(summaries, capabilities), cache),
+      withLimitsNotice(
+        withCacheNotices(withCapabilityNotices(summaries, capabilities), cache),
+        maxLengths.unusable,
+      ),
       newerProvenance,
     ),
     carryOver,

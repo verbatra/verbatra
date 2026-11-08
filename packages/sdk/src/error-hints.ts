@@ -48,6 +48,10 @@ const SDK_ERROR_HINTS = {
   GLOSSARY_NOT_FILE_BACKED:
     "Move the glossary into its own file and set the config's `glossary` to that file's path.",
   GLOSSARY_UNWRITABLE: "Make the glossary file and its directory writable, then try again.",
+  LENGTH_LIMIT_INVALID:
+    "Pass a whole number from 1 to 9007199254740991 (or null to remove), and a key of 1 to 1024 characters that the config's `maxLength` does not set.",
+  LIMITS_FILE_UNUSABLE:
+    "Restore verbatra.limits.json from version control or delete it, and make it and its directory writable, then try again.",
   LOCALE_LAYOUT_INVALID:
     "Fix `files.pattern` and `files.localeStyle` in the config so every locale maps to a valid path.",
   LOCALE_PATH_COLLISION:

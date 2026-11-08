@@ -12,8 +12,8 @@ import {
 } from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { glossaryForLocale } from "../../config/glossary.js";
-import { toMaxLengthMap } from "../../config/max-length.js";
 import { projectCwd } from "../../config/project-root.js";
+import { resolveMaxLengths } from "../../config/resolve-max-lengths.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
@@ -481,7 +481,6 @@ export async function exportWorkbook(
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
-  const maxLengthBudgets = toMaxLengthMap(config.maxLength);
   const locales = selectLocales(config, input.locales);
   const format = input.format ?? DEFAULT_EXCHANGE_FORMAT;
   const path = await resolveHandoffPath(
@@ -491,6 +490,7 @@ export async function exportWorkbook(
     locales,
   );
 
+  const { limits: maxLengthBudgets } = await resolveMaxLengths({ config, cwd, fs });
   const source = await readSourceResource(config, resolver, fs, adapter);
   const lock = await readCarriedOverLock(cwd, fs, locales);
 

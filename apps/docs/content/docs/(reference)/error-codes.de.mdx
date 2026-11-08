@@ -65,6 +65,8 @@ Jeder Fehlercode mit seiner Familie und den Exit-Codes, mit denen er einen CLI-L
 | [`LOCK_CONTENDED`](#lock_contended) | SDK | `1` |
 | [`GLOSSARY_NOT_FILE_BACKED`](#glossary_not_file_backed) | SDK | keiner |
 | [`GLOSSARY_UNWRITABLE`](#glossary_unwritable) | SDK | keiner |
+| [`LENGTH_LIMIT_INVALID`](#length_limit_invalid) | SDK | keiner |
+| [`LIMITS_FILE_UNUSABLE`](#limits_file_unusable) | SDK | keiner |
 | [`LOCALE_LAYOUT_INVALID`](#locale_layout_invalid) | SDK | `2` |
 | [`LOCALE_PATH_COLLISION`](#locale_path_collision) | SDK | `2` |
 | [`CONCURRENCY_INVALID`](#concurrency_invalid) | SDK | keiner |
@@ -453,6 +455,20 @@ Die Glossardatei konnte nicht geschrieben oder die Glossar-Schreibsperre nicht a
 
 - **Ausgelöst von**: Studio und der MCP-Server
 - **Nächster Schritt**: Make the glossary file and its directory writable, then try again.
+
+### LENGTH_LIMIT_INVALID
+
+`setKeyLengthLimit` hat seine Eingabe abgelehnt: Das Limit ist keine ganze Zahl von 1 bis 9007199254740991 (oder `null`), der Schlüssel ist leer oder länger als 1024 Zeichen, oder das Limit ist eine Zahl und das `maxLength` der Config setzt den Schlüssel bereits und geht [`verbatra.limits.json`](/de/docs/config-file#maxlength) vor. Es wird nichts geschrieben.
+
+- **Ausgelöst von**: `setKeyLengthLimit` (SDK)
+- **Nächster Schritt**: Pass a whole number from 1 to 9007199254740991 (or null to remove), and a key of 1 to 1024 characters that the config's `maxLength` does not set.
+
+### LIMITS_FILE_UNUSABLE
+
+`verbatra.limits.json` ließ sich für einen Schreibvorgang nicht verwenden: Die Datei lässt sich nicht als Limit-Datei lesen (keine reguläre Datei, über 1 MiB, kein UTF-8 oder JSON, andere Form, neuere Version oder mehr als 10.000 Einträge), der Schreibvorgang würde sie über 10.000 Einträge oder 1 MiB wachsen lassen, oder die Datei oder ihre Schreibsperre ließ sich nicht schreiben. Eine Datei, die sich nicht lesen lässt, wird nie überschrieben; der Dateisystem-Fehler ist die `cause`. Ein Lauf, der auf so eine Datei trifft, wirft nicht: Er löst [`LIMITS_FILE_IGNORED`](#limits_file_ignored) aus.
+
+- **Ausgelöst von**: `setKeyLengthLimit` (SDK)
+- **Nächster Schritt**: Restore verbatra.limits.json from version control or delete it, and make it and its directory writable, then try again.
 
 ### LOCALE_LAYOUT_INVALID
 
@@ -1148,6 +1164,14 @@ Das Festhalten dieser Locale hätte `verbatra.provenance.json` über die Größe
 - **Ausgelöst von**: `translate`, `watch`, `import`
 - **Exit-Code**: keiner
 - **Nächster Schritt**: Die Werte bleiben geschrieben; nur ihr Eintrag fehlt. Prüf vor dem nächsten Lauf, warum die Datei so groß geworden ist.
+
+### LIMITS_FILE_IGNORED
+
+`verbatra.limits.json` ließ sich nicht verwenden (keine reguläre Datei, zu groß, kein UTF-8 oder gültiges JSON, andere Form, neuere Version oder zu viele Einträge), also hielt der Lauf die Werte nur an die `maxLength`-Budgets der Config und markierte keinen gegen ein Limit, das diese Datei setzt. Die Datei bleibt, wie sie ist.
+
+- **Ausgelöst von**: `translate`, `watch`; `doctor` meldet die Datei unter Length limits
+- **Exit-Code**: keiner
+- **Nächster Schritt**: Repariere oder lösche `verbatra.limits.json`; `verbatra doctor` nennt, was an der Datei nicht stimmt.
 
 ### LOCALE_STATE_CARRIED_OVER
 

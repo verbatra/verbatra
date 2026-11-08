@@ -8,6 +8,7 @@ import {
   type ReadResult,
 } from "@verbatra/format-adapters";
 import { projectCwd } from "../config/project-root.js";
+import { resolveMaxLengths } from "../config/resolve-max-lengths.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
@@ -149,6 +150,7 @@ interface FileCheckContext {
   readonly resolver: LocalePathResolver;
   readonly fs: SdkFs;
   readonly severity: QaSeverity;
+  readonly maxLength: ReadonlyMap<string, number> | undefined;
 }
 
 type FileRead =
@@ -245,7 +247,13 @@ function summary(
 }
 
 function qaContextFor(context: FileCheckContext, invalidSourceKeys: readonly string[]): QaContext {
-  return createQaContext(context.config, context.adapter, context.severity, invalidSourceKeys);
+  return createQaContext(
+    context.config,
+    context.adapter,
+    context.severity,
+    invalidSourceKeys,
+    context.maxLength,
+  );
 }
 
 async function checkSourceFile(
@@ -308,8 +316,9 @@ const CHECKS_BY_ROLE: Readonly<
 /**
  * Checks one locale file, the fast path for validating a file right after it was edited by hand
  * or by an agent. It reads that file and, for a target locale, the source locale file, and
- * nothing else: no other locale, no lock-file, no provenance file, no source code, and no
- * provider. It writes nothing and needs no API key.
+ * nothing else but the project's `verbatra.limits.json`, which it reads for the `maxLength` budgets:
+ * no other locale, no lock-file, no provenance file, no source code,
+ * and no provider. It writes nothing and needs no API key.
  *
  * The file is resolved against the config's `files.pattern` and `files.localeStyle` to the locale
  * it holds. A file that cannot be parsed is reported as a {@link QaSyntaxFinding}, with the line
@@ -349,6 +358,7 @@ export async function checkFile(
     resolver: createLocalePathResolver(cwd, input.config),
     fs,
     severity: input.qaSeverity ?? "warning",
+    maxLength: (await resolveMaxLengths({ config: input.config, cwd, fs })).limits,
   };
   const named = namedFileOf(context);
   if (!(await fs.fileExists(context.path))) {

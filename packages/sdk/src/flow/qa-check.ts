@@ -2,7 +2,6 @@ import { computeReviewFlags, type ReviewReasonCode } from "@verbatra/ai-provider
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
 import { glossaryForLocale } from "../config/glossary.js";
-import { toMaxLengthMap } from "../config/max-length.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import {
   droppedForeignPlaceholders,
@@ -118,13 +117,14 @@ export function createQaContext(
   adapter: FormatAdapter,
   severity: QaSeverity,
   invalidSourceKeys: readonly string[],
+  maxLength: ReadonlyMap<string, number> | undefined,
 ): QaContext {
   return {
     config,
     adapter,
     severity,
     invalidSourceKeys: new Set(invalidSourceKeys),
-    maxLength: toMaxLengthMap(config.maxLength),
+    maxLength,
   };
 }
 

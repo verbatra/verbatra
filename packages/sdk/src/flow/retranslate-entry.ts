@@ -11,8 +11,8 @@ import { feedTranslationMemory } from "../cache/translation-memory.js";
 import { signalField } from "../cancellation.js";
 import { glossaryForLocale } from "../config/glossary.js";
 import { assertMachineTranslationEnabled } from "../config/machine-translation.js";
-import { toMaxLengthMap } from "../config/max-length.js";
 import { projectCwd } from "../config/project-root.js";
+import { resolveMaxLengths } from "../config/resolve-max-lengths.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
@@ -164,6 +164,7 @@ interface UnderLockContext {
   readonly locale: string;
   readonly key: string;
   readonly sourceEntry: TranslationEntry;
+  readonly maxLength: ReadonlyMap<string, number> | undefined;
   readonly policy: ProtectionPolicy;
   readonly provider: TranslationProvider;
   readonly recordLock: LocaleWriteLockOptions;
@@ -180,7 +181,7 @@ async function translateOne(context: UnderLockContext) {
           targetLocale: locale,
           adapter,
           glossary: glossaryForLocale(config.glossary, locale),
-          maxLength: toMaxLengthMap(config.maxLength),
+          maxLength: context.maxLength,
           tone: config.tone,
         },
         [sourceEntry],
@@ -426,6 +427,7 @@ export async function retranslateEntry(
   });
   assertSendable(sensitive, sourceEntry, locale);
   await assertProvenanceReadable(cwd, fs);
+  const { limits: maxLength } = await resolveMaxLengths({ config, cwd, fs });
   throwIfCancelled(input.signal, RETRANSLATION_CANCELLED);
   await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
 
@@ -442,6 +444,7 @@ export async function retranslateEntry(
         locale,
         key: input.key,
         sourceEntry,
+        maxLength,
         policy,
         provider,
         recordLock: recordLockOptions(input),

@@ -3,9 +3,13 @@ import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { type Glossary, redactGlossary } from "../config/glossary.js";
 import { type GlossaryConfig, readCurrentGlossary } from "../config/glossary-file.js";
 import { glossaryDraftCheck, glossaryHits } from "../config/glossary-hits.js";
-import type { SdkFs } from "../fs.js";
+import type { LimitsUnusable } from "../config/limits-file.js";
+import { projectCwd } from "../config/project-root.js";
+import { type MaxLengthSource, resolveMaxLengths } from "../config/resolve-max-lengths.js";
+import { defaultFs, type SdkFs } from "../fs.js";
 import { redact } from "../redact.js";
 import { type KeyValueResult, keyValue } from "./key-value.js";
+import { limitsIgnoredNotice } from "./limits-notice.js";
 
 /** Input for {@link keyContext}. */
 export interface KeyContextInput {
@@ -37,12 +41,24 @@ export interface KeyContextGlossaryNotice {
   readonly message: string;
 }
 
+/** Why the limits part of a {@link KeyContext} holds the config's budget alone although `verbatra.limits.json` exists. */
+export interface KeyContextLimitsNotice {
+  /** Always `LIMITS_FILE_IGNORED`. */
+  readonly code: "LIMITS_FILE_IGNORED";
+  /** What is wrong with the file, never a path or a value. */
+  readonly message: string;
+}
+
 /** What a translator needs to write one key in one target locale, as returned by {@link keyContext}. */
 export interface KeyContext extends KeyValueResult {
   /** The glossary terms whose source occurs in the source text, as that locale is held to them. */
   readonly glossary: LocaleGlossary;
-  /** The key's configured `maxLength` budget in characters, absent when the config sets none. */
+  /** The key's `maxLength` budget in characters, from the config or from `verbatra.limits.json`, absent when neither sets one. */
   readonly maxLength?: number;
+  /** Where `maxLength` comes from: the config wins over the limits file. Present exactly when `maxLength` is. */
+  readonly maxLengthSource?: MaxLengthSource;
+  /** Present when `verbatra.limits.json` could not be used, so `maxLength` is the config's alone. Its code is `LIMITS_FILE_IGNORED`. */
+  readonly limitsNotice?: KeyContextLimitsNotice;
   /** How the input's `draft` uses the applying terms, absent when no draft was given. */
   readonly draftCheck?: GlossaryDraftCheck;
   /** Present when the glossary could not be read; the glossary part is then empty. */
@@ -52,6 +68,11 @@ export interface KeyContext extends KeyValueResult {
 interface GlossaryRead {
   readonly glossary: Glossary | undefined;
   readonly notice?: KeyContextGlossaryNotice;
+}
+
+function limitsNoticeOf(unusable: LimitsUnusable): KeyContextLimitsNotice {
+  const { message } = limitsIgnoredNotice(unusable);
+  return { code: "LIMITS_FILE_IGNORED", message };
 }
 
 function codeOf(error: unknown): string {
@@ -75,7 +96,7 @@ async function readGlossaryLeniently(
 /**
  * Reads what a translator needs to write one key in one target locale: the key's current source
  * and target text with provenance and description (as {@link keyValue} reports them), the glossary
- * terms that apply to the source text, the key's `maxLength` budget, and, when a draft is given,
+ * terms that apply to the source text, the key's `maxLength` budget (from the config, else from `verbatra.limits.json`), and, when a draft is given,
  * how that draft uses the applying terms. It writes nothing and calls no provider.
  *
  * Glossary values pass through secret redaction before they are matched. A glossary that cannot be
@@ -117,7 +138,8 @@ export async function keyContext(
   deps: KeyContextDeps = {},
 ): Promise<KeyContext> {
   const config = input.loaded.config;
-  const [value, glossaryRead] = await Promise.all([
+  const cwd = projectCwd(input.cwd !== undefined ? { config, cwd: input.cwd } : { config });
+  const [value, glossaryRead, maxLengths] = await Promise.all([
     keyValue(
       {
         config,
@@ -128,9 +150,11 @@ export async function keyContext(
       deps,
     ),
     readGlossaryLeniently(input.loaded, deps.fs),
+    resolveMaxLengths({ config, cwd, fs: deps.fs ?? defaultFs }),
   ]);
   const glossary = glossaryRead.glossary;
-  const maxLength = config.maxLength?.[input.key];
+  const maxLength = maxLengths.limits?.get(input.key);
+  const maxLengthSource = maxLengths.sources.get(input.key);
   return {
     ...value,
     glossary: glossaryHits({
@@ -139,7 +163,12 @@ export async function keyContext(
       sourceLocale: config.sourceLocale,
       source: value.source,
     }),
-    ...(maxLength !== undefined ? { maxLength } : {}),
+    ...(maxLength !== undefined && maxLengthSource !== undefined
+      ? { maxLength, maxLengthSource }
+      : {}),
+    ...(maxLengths.unusable !== undefined
+      ? { limitsNotice: limitsNoticeOf(maxLengths.unusable) }
+      : {}),
     ...(glossaryRead.notice !== undefined ? { glossaryNotice: glossaryRead.notice } : {}),
     ...(input.draft !== undefined
       ? {

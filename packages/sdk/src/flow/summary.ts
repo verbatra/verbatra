@@ -31,6 +31,10 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  * - `PROVENANCE_FILE_TOO_LARGE`: recording this locale's provenance would have grown the provenance
  *   file past the size verbatra reads back, so the file was left as it was and the values the
  *   locale wrote have no record.
+ * - `LIMITS_FILE_IGNORED`: `verbatra.limits.json` could not be used, so this run held the keys to
+ *   the config's `maxLength` budgets only and flagged no value against a limit the file sets. The
+ *   message names the reason. Nothing is written and the file is left as it is. Reported by
+ *   {@link translate} and {@link watch}, dry runs too.
  * - `LOCALE_STATE_CARRIED_OVER`: the lock file, translation memory, or provenance file held no state
  *   for this locale but held state under exactly one underscore spelling of it, such as `pt_BR` for
  *   `pt-BR`, left behind when the configured code was respelled. {@link translate} and
@@ -105,6 +109,7 @@ export type SdkNoticeCode =
   | "CACHE_VERSION_UNRECOGNIZED"
   | "PROVENANCE_VERSION_UNRECOGNIZED"
   | "PROVENANCE_FILE_TOO_LARGE"
+  | "LIMITS_FILE_IGNORED"
   | "LOCALE_STATE_CARRIED_OVER"
   | "LOCALE_STATE_CARRY_OVER_SKIPPED"
   | "LOCALE_UNVERIFIED_BY_PROVIDER"

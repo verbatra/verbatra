@@ -351,6 +351,27 @@ function editConfiguredGlossaryTerm(
 
 **Lanza:** [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`GLOSSARY_NOT_FILE_BACKED`](/es/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/es/docs/error-codes#glossary_unwritable)
 
+## Límites de longitud
+
+### setKeyLengthLimit
+
+<AvailableFrom version="0.13.0" />
+
+Fija, cambia o elimina el límite de longitud de una clave en `verbatra.limits.json`, el archivo versionado junto al archivo de bloqueo que guarda los límites que el [`maxLength`](/es/docs/config-file#maxlength) de la configuración no tiene. La clave debe existir en el origen, se rechaza un límite para una clave que fija el `maxLength` de la configuración, y `null` elimina la entrada del archivo, también la de una clave que ya no está en el origen o que fija la configuración. Leer, modificar y escribir ocurre bajo un bloqueo de límites para todo el proyecto y el archivo se reemplaza de forma atómica, así que las llamadas simultáneas de uno o varios procesos no pierden ninguna actualización. Una llamada que no cambia nada no escribe nada, y un archivo que no se puede leer como archivo de límites nunca se sobrescribe.
+
+```ts title="Firma"
+function setKeyLengthLimit(
+  input: SetKeyLengthLimitInput,
+  deps?: SetKeyLengthLimitDeps,
+): Promise<SetKeyLengthLimitResult>;
+```
+
+<SdkTypeTable name="SetKeyLengthLimitInput" />
+
+**Devuelve:** `SetKeyLengthLimitResult`
+
+**Lanza:** [`LENGTH_LIMIT_INVALID`](/es/docs/error-codes#length_limit_invalid), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/es/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), [`LIMITS_FILE_UNUSABLE`](/es/docs/error-codes#limits_file_unusable)
+
 ## Escritura, detección y modo solo humano
 
 ### defineConfig

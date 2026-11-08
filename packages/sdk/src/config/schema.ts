@@ -7,6 +7,7 @@ import { extractionConfigSchema } from "./extraction-config.js";
 import { type GlossaryInput, glossaryDefinitionSchema } from "./glossary.js";
 import { humanEditsSchema, pinnedKeysSchema } from "./human-edits.js";
 import { localeCodeSchema } from "./locale-code.js";
+import { maxLengthValueSchema } from "./max-length.js";
 import { providerConfigSchema } from "./provider-config.js";
 import { findUnknownLocaleMapKeys } from "./provider-locale-map.js";
 import { rateCardSchema } from "./rate-card.js";
@@ -117,7 +118,7 @@ export const verbatraConfigSchema = z
     generatePlurals: z.boolean().optional(),
     fuzzyCache: fuzzyCacheSchema.optional(),
     maxBatchSize: z.number().int().positive().optional(),
-    maxLength: z.record(z.string().min(1), z.number().int().positive()).optional(),
+    maxLength: z.record(z.string().min(1), maxLengthValueSchema).optional(),
     maxTokens: z.number().int().positive().optional(),
     budgetBehavior: z.enum(["warn", "stop"]).optional(),
     rates: rateCardSchema.optional(),

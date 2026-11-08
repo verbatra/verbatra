@@ -175,7 +175,7 @@ describe("checkFile: a target locale file", () => {
     expect((error as SdkError).code).toBe("SOURCE_UNREADABLE");
   });
 
-  it("reads only the named file and the source, and writes nothing", async () => {
+  it("reads only the named file, the source and the limits file, and writes nothing", async () => {
     const dir = await project({
       "locales/en.json": json({ greeting: "Hello {{name}}" }),
       "locales/de.json": json({ greeting: "Hallo" }),
@@ -205,6 +205,7 @@ describe("checkFile: a target locale file", () => {
     expect(reads.sort()).toEqual([
       join(dir, "locales", "de.json"),
       join(dir, "locales", "en.json"),
+      join(dir, "verbatra.limits.json"),
     ]);
   });
 

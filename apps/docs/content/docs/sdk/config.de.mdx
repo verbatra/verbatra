@@ -353,6 +353,27 @@ function editConfiguredGlossaryTerm(
 
 **Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`GLOSSARY_NOT_FILE_BACKED`](/de/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/de/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/de/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/de/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/de/docs/error-codes#glossary_unwritable)
 
+## Längenlimits
+
+### setKeyLengthLimit
+
+<AvailableFrom version="0.13.0" />
+
+Setzt, ändert oder entfernt das Längenlimit eines Keys in `verbatra.limits.json`, der eingecheckten Datei neben der Lock-Datei, die die Limits hält, die das [`maxLength`](/de/docs/config-file#maxlength) der Konfiguration nicht hat. Der Key muss in der Quelle existieren, ein Limit für einen Key, den das `maxLength` der Konfiguration setzt, wird abgelehnt, und `null` entfernt den Eintrag der Datei, auch einen für einen Key, der die Quelle verlassen hat oder den die Konfiguration setzt. Das Lesen, Ändern und Schreiben läuft unter einer projektweiten Limits-Sperre, und die Datei wird atomar ersetzt, sodass gleichzeitige Aufrufe aus einem oder mehreren Prozessen kein Update verlieren. Ein Aufruf, der nichts ändert, schreibt nichts, und eine Datei, die sich nicht als Limits-Datei lesen lässt, wird nie überschrieben.
+
+```ts title="Signatur"
+function setKeyLengthLimit(
+  input: SetKeyLengthLimitInput,
+  deps?: SetKeyLengthLimitDeps,
+): Promise<SetKeyLengthLimitResult>;
+```
+
+<SdkTypeTable name="SetKeyLengthLimitInput" />
+
+**Rückgabe:** `SetKeyLengthLimitResult`
+
+**Wirft:** [`LENGTH_LIMIT_INVALID`](/de/docs/error-codes#length_limit_invalid), [`LOCK_TIMEOUT_INVALID`](/de/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/de/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/de/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/de/docs/error-codes#run_cancelled), [`LIMITS_FILE_UNUSABLE`](/de/docs/error-codes#limits_file_unusable)
+
 ## Schreiben, Erkennen und rein menschlicher Modus
 
 ### defineConfig

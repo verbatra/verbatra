@@ -128,7 +128,7 @@
  *   lock file's path. Thrown by
  *   {@link editEntry}, {@link retranslateEntry}, {@link approveEntry}, {@link rejectEntry}, and
  *   {@link approveLocale}, which act on one locale, and by {@link updateGlossaryTerm}, which takes the project's glossary
- *   lock. {@link translate} and {@link importWorkbook} do not throw it: they record it on the
+ *   lock, and {@link setKeyLengthLimit}, which takes the project's limits lock. {@link translate} and {@link importWorkbook} do not throw it: they record it on the
  *   contended locale's {@link LocaleSummary} and carry on with the other locales. For
  *   {@link translate}, {@link watch}, and {@link importWorkbook}, `lockAcquireTimeoutMs` bounds
  *   only the locale write lock taken before any provider call or file write, so a locale that fails
@@ -142,6 +142,16 @@
  *   read-only, has been removed, or the disk is out of space, or the project's glossary write lock
  *   could not be created, for instance in a read-only project. The file-system error is the
  *   `cause`. Thrown by {@link updateGlossaryTerm}.
+ * - `LENGTH_LIMIT_INVALID`: {@link setKeyLengthLimit} refused its input: the `maxLength` is not a
+ *   whole number from 1 to `Number.MAX_SAFE_INTEGER` (or `null`), the key is empty or longer than
+ *   1024 characters, or the limit is a number and the config's own `maxLength` already sets the
+ *   key, so the limits file cannot override it. Nothing is written.
+ * - `LIMITS_FILE_UNUSABLE`: `verbatra.limits.json` could not be used for a write: it is unreadable,
+ *   over 1 MiB, not UTF-8 or JSON, of another shape or a newer version, or holds more than 10,000
+ *   entries; the write would grow it past 10,000 entries or 1 MiB; or the file or the project's
+ *   limits lock could not be written. A file that cannot be read is never overwritten. The
+ *   file-system error is the `cause`. Thrown by {@link setKeyLengthLimit}. A run that meets such a
+ *   file does not throw: it raises the `LIMITS_FILE_IGNORED` notice.
  * - `LOCALE_LAYOUT_INVALID`: the configured `files.pattern` and `files.localeStyle` cannot be
  *   combined, or the style has no valid path spelling for a configured locale. Thrown by
  *   {@link createLocalePathResolver}, and so by every entry point that maps a locale to a path,
@@ -163,8 +173,8 @@
  * - `LOCK_TIMEOUT_INVALID`: the `lockAcquireTimeoutMs` input is not a whole number of
  *   milliseconds of at least 0. Thrown by {@link translate}, {@link importWorkbook},
  *   {@link retranslateEntry}, {@link retranslateEntries}, {@link editEntry}, {@link approveEntry},
- *   {@link rejectEntry}, {@link approveEntries}, {@link rejectEntries}, {@link approveLocale}, and
- *   {@link updateGlossaryTerm} before anything is read or locked, and
+ *   {@link rejectEntry}, {@link approveEntries}, {@link rejectEntries}, {@link approveLocale},
+ *   {@link updateGlossaryTerm}, and {@link setKeyLengthLimit} before anything is read or locked, and
  *   by {@link watch} once at startup, before any watching begins.
  * - `PAGE_CURSOR_INVALID`: the `cursor` passed to {@link localeValuesPage} or
  *   {@link provenanceReportPage} is malformed, longer than {@link PAGE_CURSOR_MAX_LENGTH}, was made
@@ -292,6 +302,8 @@ export type SdkErrorCode =
   | "LOCK_CONTENDED"
   | "GLOSSARY_NOT_FILE_BACKED"
   | "GLOSSARY_UNWRITABLE"
+  | "LENGTH_LIMIT_INVALID"
+  | "LIMITS_FILE_UNUSABLE"
   | "LOCALE_LAYOUT_INVALID"
   | "LOCALE_PATH_COLLISION"
   | "CONCURRENCY_INVALID"
@@ -361,7 +373,7 @@ export class SdkError extends Error {
    * error for a `SOURCE_INVALID` TMX file. Read that file's line, column and unit with
    * `tmxErrorLocation` rather than from the cause directly. Only `SOURCE_INVALID`,
    * `PROVIDER_CONSTRUCTION_FAILED`, `EXPORT_UNWRITABLE`, `GLOSSARY_UNWRITABLE`,
-   * `REVIEW_RESTORE_FAILED`, `SOURCE_UNWRITABLE` and `LOCK_CONTENDED` carry one, and `CONFIG_INVALID` only when the
+   * `LIMITS_FILE_UNUSABLE`, `REVIEW_RESTORE_FAILED`, `SOURCE_UNWRITABLE` and `LOCK_CONTENDED` carry one, and `CONFIG_INVALID` only when the
    * config file failed to load with a coded error, such as an import that does not resolve. A
    * config parse or schema error and `CONFIG_NOT_FOUND` carry none, because a config parser's error
    * can quote the file's content.

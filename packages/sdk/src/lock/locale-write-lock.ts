@@ -38,6 +38,8 @@ const LOCK_FILE_GUARD_STEM = "_lockfile";
 
 const GLOSSARY_GUARD_STEM = "_glossary";
 
+const LIMITS_GUARD_STEM = "_limits";
+
 const SHARED_CATALOGUE_STEM = "_catalogue";
 
 /**
@@ -138,6 +140,10 @@ export function lockFileGuardPath(cwd: string): string {
 
 export function glossaryGuardPath(cwd: string): string {
   return lockPath(cwd, GLOSSARY_GUARD_STEM);
+}
+
+export function limitsGuardPath(cwd: string): string {
+  return lockPath(cwd, LIMITS_GUARD_STEM);
 }
 
 const sleepers = new Set<() => void>();
@@ -788,4 +794,13 @@ export async function withGlossaryGuard<T>(
   options: LocaleWriteLockOptions = {},
 ): Promise<T> {
   return withFileLock(glossaryGuardPath(cwd), fs, fn, options);
+}
+
+export async function withLimitsGuard<T>(
+  cwd: string,
+  fs: SdkFs,
+  fn: () => Promise<T>,
+  options: LocaleWriteLockOptions = {},
+): Promise<T> {
+  return withFileLock(limitsGuardPath(cwd), fs, fn, options);
 }
