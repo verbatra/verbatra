@@ -49,19 +49,19 @@ Chips beside the search narrow the table by state, including **Review queue** an
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-The editor shows the key's description, the glossary terms your draft uses or misses, and its length against the source and `maxLength`. Ctrl or Cmd with Enter saves.
+The editor shows the key's description, the glossary terms your draft uses or misses, and its length against the source and `maxLength`.
 
 #### Set a length limit
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Under the length line, **Set limit**, **Change limit** and **Remove limit** edit the key's entry in [`verbatra.limits.json`](/docs/config-file#maxlength), for every locale. The config's `maxLength` wins, read-only. An unusable file shows why and blocks the control. A limit is advisory: a longer value is flagged for review, never blocked. A generated plural form has none.
+Under the length line, **Set limit**, **Change limit** and **Remove limit** edit the key's entry in [`verbatra.limits.json`](/docs/config-file#maxlength), for every locale. The config's `maxLength` wins, read-only. An unusable file shows why and blocks the control. A limit is advisory: translate runs flag a longer value for review, and nothing is blocked. Studio sets limits only for source keys; a limit written for a generated form's own key still applies.
 
 #### Preview ICU messages
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-With `next-intl-json` or `arb`, a collapsed **ICU preview** under the draft renders it once per arm (plural category, exact arm, select option) in the locale's language and direction. A typed sample adds a row when it reaches an arm, else a note. Numbers and dates use this computer's language data, so your app may differ.
+With `next-intl-json` or `arb`, a collapsed **ICU preview** under the draft renders it once per arm in the locale's language and direction. A typed sample adds a row when it reaches an arm, else a note. Numbers and dates use this computer's language data, so your app may differ.
 
 #### Beside the table
 
@@ -146,7 +146,7 @@ A **Retranslate** button appears on each Review row, and in a key's editor for a
 
 ## Translate pending changes
 
-When the source file changes while Studio runs, a toast names the file and its added, changed or removed keys. With `--allow-spend` it also offers **Translate pending changes across all locales**, the run `verbatra translate` would do, reported inline.
+When the source file changes while Studio runs, a toast names the file and its added, changed or removed keys. With `--allow-spend` it also offers **Translate pending changes across all locales**, the run `verbatra translate` would do.
 
 ## Check coverage and the last run on Overview
 
@@ -164,7 +164,7 @@ Studio opens on Overview: each locale's coverage with its [lock file](/docs/the-
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary has its own page, where it sat on Settings before 0.7.0. With a JSON glossary you can search, add, edit and remove terms. Removing one asks first; unsaved edits ask before you leave. An inline glossary stays read-only.
+Glossary has its own page, formerly on Settings. With a JSON glossary you can search, add, edit and remove terms. Removing one asks first; unsaved edits ask before you leave. An inline glossary stays read-only.
 
 A glossary edit changes what the next run is told, never text already written; restart Studio so its own retranslations use it.
 

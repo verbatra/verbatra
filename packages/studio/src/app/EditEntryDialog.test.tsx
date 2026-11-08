@@ -1167,15 +1167,6 @@ describe("EditEntryDialog: an unsaved draft", () => {
     expect(view.query('[role="dialog"]')).not.toBeNull();
   });
 
-  it("says in the error why a key that is not in the source has no limit", async () => {
-    stubRpc({ "key.context": rpcError("UNKNOWN_KEY", "not in the source") });
-
-    const view = await renderAsync(dialog());
-
-    expect(view.get('[role="alert"]').textContent).toContain("takes only source keys");
-    expect(view.query("[data-limit-control]")).toBeNull();
-  });
-
   it("closes only the limit form on Escape, not the dialog", async () => {
     stubRpc({ "key.context": keyValue("Hello", "Hallo") });
     const onClose = vi.fn();
@@ -1190,5 +1181,75 @@ describe("EditEntryDialog: an unsaved draft", () => {
 
     expect(view.query("[data-limit-form]")).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("asks before closing over a typed limit, names it, and Save saves only the limit", async () => {
+    stubRpc({
+      "key.context": keyValue("Hello", "Hallo"),
+      "key.setMaxLength": { ok: true, result: { key: KEY, maxLength: 9, changed: true } },
+    });
+    const onAccepted = vi.fn();
+    const onClose = vi.fn();
+    const view = await renderAsync(dialog(onAccepted, onClose));
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "9");
+
+    pressKey("Escape");
+    expect(onClose).not.toHaveBeenCalled();
+    expect(view.get("[data-unsaved-prompt]").textContent).toContain(
+      "The limit you are typing for this key is not saved.",
+    );
+    await clickAsync(promptButton(view, "Save"));
+    await flush();
+
+    const methods = rpcCalls.map((call) => call.method);
+    expect(methods).toContain("key.setMaxLength");
+    expect(methods).not.toContain("translation.editEntry");
+    expect(onAccepted).not.toHaveBeenCalled();
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+  });
+
+  it("keeps the prompt, with the error, when saving the typed limit fails", async () => {
+    stubRpc({
+      "key.context": keyValue("Hello", "Hallo"),
+      "key.setMaxLength": rpcError("LIMITS_FILE_UNWRITABLE", "Check the permissions."),
+    });
+    const onClose = vi.fn();
+    const view = await renderAsync(dialog(vi.fn(), onClose));
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "9");
+    pressKey("Escape");
+
+    await clickAsync(promptButton(view, "Save"));
+    await flush();
+
+    expect(view.get("[data-unsaved-prompt]").textContent).toContain("could not be written");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("discards the typed limit and the value draft together", async () => {
+    stubRpc({ "key.context": keyValue("Hello", "Hallo") });
+    const onClose = vi.fn();
+    const view = await renderAsync(dialog(vi.fn(), onClose));
+    typeInto(editor(view), "Hallo Welt");
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "9");
+    pressKey("Escape");
+
+    await clickAsync(promptButton(view, "Discard"));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(rpcCalls.map((call) => call.method)).not.toContain("key.setMaxLength");
+  });
+
+  it("lowers the translation Save while the limit form is open, so one action is primary", async () => {
+    stubRpc({ "key.context": keyValue("Hello", "Hallo") });
+    const view = await renderAsync(dialog());
+    expect(saveButton(view).getAttribute("data-variant")).toBe("primary");
+
+    await clickAsync(view.getByText("button", "Set limit"));
+
+    expect(saveButton(view).getAttribute("data-variant")).toBe("secondary");
+    expect(view.get("[data-limit-save]").getAttribute("data-variant")).toBe("primary");
   });
 });

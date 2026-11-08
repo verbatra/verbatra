@@ -1,44 +1,31 @@
 import { Button, TextField } from "@verbatra/ui";
-import type { FormEvent, KeyboardEvent, ReactNode, Ref, RefObject } from "react";
-import { useEffect, useId, useRef, useState } from "react";
+import type { FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
+import { useEffect, useId, useRef } from "react";
 import { errorDetail } from "../client/error-copy.js";
-import type { KeyValueContext } from "../client/key-value-context.js";
-import {
-  type LimitControlView,
-  limitControlView,
-  limitCountText,
-  parseLimitInput,
-} from "../client/length-limit.js";
+import { type LimitControlView, limitCountText } from "../client/length-limit.js";
 import type { StructuredError } from "../client/state.js";
-import { rpcClient } from "./api.js";
 import { ErrorMessage } from "./ErrorMessage.js";
-
-type LoadedContext = Extract<KeyValueContext, { kind: "loaded" }>;
-
-interface Awaiting {
-  readonly context: LoadedContext;
-  readonly value: number | null;
-}
-
-type FocusTarget = "input" | "trigger" | null;
+import { cn } from "./lib/cn.js";
+import { type FocusKeeperAdapter, useFocusKeeper } from "./use-focus-keeper.js";
+import type { LimitDraft } from "./use-limit-draft.js";
 
 const ADVISORY =
-  "Advisory only: a value over the limit is flagged for review, never blocked or shortened. The limit applies to this key in every locale.";
+  "Advisory only: the length line shows the count now, and a translate run flags a value over the limit for review. Nothing is blocked or shortened. The limit applies to this key in every locale.";
 
 const TOUCH = "max-md:min-h-11";
 
-function awaitedView(
-  base: LimitControlView,
-  awaiting: Awaiting | null,
-  context: LoadedContext,
-): LimitControlView {
-  if (awaiting === null || awaiting.context !== context) {
-    return base;
-  }
-  return awaiting.value === null
-    ? { mode: "none", value: undefined, notice: undefined }
-    : { mode: "file", value: awaiting.value, notice: undefined };
-}
+const ITEM = "data-limit-item";
+
+const KEEPER: FocusKeeperAdapter = {
+  items: (root) =>
+    [...root.querySelectorAll<HTMLElement>(`[${ITEM}]`)].map(
+      (node) => node.dataset.limitItem ?? "",
+    ),
+  itemOf: (active) => active.dataset.limitItem,
+  find: (root, item) => root.querySelector<HTMLElement>(`[${ITEM}="${item}"]`) ?? undefined,
+  fallback: (root) =>
+    root.querySelector<HTMLElement>("[data-limit-status]")?.focus({ preventScroll: true }),
+};
 
 function statusText(view: LimitControlView): string {
   switch (view.mode) {
@@ -56,7 +43,7 @@ function statusText(view: LimitControlView): string {
 function LimitStatus({ view }: { readonly view: LimitControlView }): ReactNode {
   return (
     <>
-      <p className="m-0 text-xs text-muted-foreground" data-limit-status="">
+      <p className="m-0 text-xs text-muted-foreground" data-limit-status="" tabIndex={-1}>
         {statusText(view)}
       </p>
       {view.notice !== undefined ? (
@@ -93,6 +80,8 @@ function LimitActions({
         size="xs"
         className={TOUCH}
         data-limit-open=""
+        data-limit-item="open"
+        data-focus-id="limit-open"
         aria-disabled={saving ? true : undefined}
         onClick={saving ? undefined : onOpen}
       >
@@ -103,6 +92,8 @@ function LimitActions({
           size="xs"
           className={TOUCH}
           data-limit-remove=""
+          data-limit-item="remove"
+          data-focus-id="limit-remove"
           aria-busy={saving ? true : undefined}
           aria-disabled={saving ? true : undefined}
           onClick={saving ? undefined : onRemove}
@@ -115,24 +106,19 @@ function LimitActions({
 }
 
 function LimitForm({
-  text,
-  problem,
-  saving,
+  limit,
   inputRef,
-  onText,
   onSubmit,
   onCancel,
 }: {
-  readonly text: string;
-  readonly problem: string;
-  readonly saving: boolean;
+  readonly limit: LimitDraft;
   readonly inputRef: Ref<HTMLInputElement>;
-  readonly onText: (next: string) => void;
   readonly onSubmit: (event: FormEvent) => void;
   readonly onCancel: () => void;
 }): ReactNode {
   const inputId = useId();
   const problemId = useId();
+  const { saving, problem } = limit;
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
     if (event.key === "Escape" && !event.nativeEvent.isComposing) {
       event.stopPropagation();
@@ -154,13 +140,15 @@ function LimitForm({
           autoComplete="off"
           spellCheck={false}
           size="sm"
-          className={`w-36 ${TOUCH}`}
-          value={text}
+          className={cn("w-44", TOUCH)}
+          data-limit-item="input"
+          data-focus-id="limit-input"
+          value={limit.text}
           readOnly={saving}
           aria-busy={saving ? true : undefined}
           aria-invalid={problem === "" ? undefined : true}
           aria-describedby={problemId}
-          onChange={(event) => onText(event.target.value)}
+          onChange={(event) => limit.setText(event.target.value)}
           onKeyDown={handleKeyDown}
         />
         <Button
@@ -168,16 +156,19 @@ function LimitForm({
           variant="primary"
           size="sm"
           className={TOUCH}
+          data-limit-save=""
+          data-limit-item="save"
           aria-busy={saving ? true : undefined}
           aria-disabled={saving ? true : undefined}
-          data-limit-save=""
         >
           {saving ? "Saving…" : "Save limit"}
         </Button>
         <Button
           size="sm"
           className={TOUCH}
+          aria-label="Cancel the limit change"
           data-limit-cancel=""
+          data-limit-item="cancel"
           aria-disabled={saving ? true : undefined}
           onClick={saving ? undefined : onCancel}
         >
@@ -187,7 +178,7 @@ function LimitForm({
       <p
         id={problemId}
         aria-live="polite"
-        className="m-0 mt-1 min-h-4 text-xs text-danger"
+        className="m-0 mt-1 min-h-8 text-xs text-danger md:min-h-4"
         data-limit-problem=""
       >
         {problem}
@@ -196,124 +187,82 @@ function LimitForm({
   );
 }
 
-function useFocusAfter(editing: boolean): {
-  readonly inputRef: RefObject<HTMLInputElement | null>;
-  readonly triggerRef: RefObject<HTMLButtonElement | null>;
-  readonly target: RefObject<FocusTarget>;
-} {
+export function LimitControl({
+  limit,
+  readFailure,
+}: {
+  readonly limit: LimitDraft;
+  readonly readFailure: StructuredError | null;
+}): ReactNode {
+  const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const target = useRef<FocusTarget>(null);
+  const focusAfter = useRef<"input" | "trigger" | null>(null);
+  useFocusKeeper(rootRef, KEEPER);
+  const { view, open } = limit;
+  const editable = view.mode === "file" || view.mode === "none";
+
   useEffect(() => {
-    if (target.current === "input" && editing) {
-      target.current = null;
+    if (focusAfter.current === "input" && open) {
+      focusAfter.current = null;
       inputRef.current?.focus();
-    } else if (target.current === "trigger" && !editing) {
-      target.current = null;
+    } else if (focusAfter.current === "trigger" && !open) {
+      focusAfter.current = null;
       triggerRef.current?.focus();
     }
   });
-  return { inputRef, triggerRef, target };
-}
-
-function problemText(text: string, attempted: boolean): string {
-  const parsed = parseLimitInput(text);
-  return parsed.kind === "error" && (attempted || text.trim() !== "") ? parsed.message : "";
-}
-
-export function LimitControl({
-  keyName,
-  context,
-  onChanged,
-}: {
-  readonly keyName: string;
-  readonly context: LoadedContext;
-  readonly onChanged: () => void;
-}): ReactNode {
-  const [editing, setEditing] = useState(false);
-  const [text, setText] = useState("");
-  const [attempted, setAttempted] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [failure, setFailure] = useState<StructuredError | null>(null);
-  const [awaiting, setAwaiting] = useState<Awaiting | null>(null);
-  const savingRef = useRef(false);
-  const { inputRef, triggerRef, target } = useFocusAfter(editing);
-  const view = awaitedView(limitControlView(context), awaiting, context);
-  const editable = view.mode === "file" || view.mode === "none";
-
-  function open(): void {
-    setText(view.value === undefined ? "" : String(view.value));
-    setAttempted(false);
-    setFailure(null);
-    setEditing(true);
-    target.current = "input";
-  }
-
-  function close(): void {
-    setEditing(false);
-    setAttempted(false);
-    target.current = "trigger";
-  }
-
-  async function write(maxLength: number | null): Promise<void> {
-    if (savingRef.current) {
-      return;
-    }
-    savingRef.current = true;
-    setSaving(true);
-    setFailure(null);
-    const response = await rpcClient.call("key.setMaxLength", { key: keyName, maxLength });
-    savingRef.current = false;
-    setSaving(false);
-    if (!response.ok) {
-      setFailure(response.error);
-      target.current = editing ? "input" : "trigger";
-      return;
-    }
-    setAwaiting({ context, value: response.result.maxLength });
-    setEditing(false);
-    setAttempted(false);
-    target.current = "trigger";
-    onChanged();
-  }
 
   function submit(event: FormEvent): void {
     event.preventDefault();
-    setAttempted(true);
-    const parsed = parseLimitInput(text);
-    if (parsed.kind === "ok") {
-      void write(parsed.value);
-    } else {
-      inputRef.current?.focus();
-    }
+    focusAfter.current = "trigger";
+    void limit.save().then((saved) => {
+      if (!saved) {
+        focusAfter.current = "input";
+        inputRef.current?.focus();
+      }
+    });
   }
 
   return (
-    <div className="mt-2" data-limit-control="" data-limit-mode={view.mode}>
+    <div ref={rootRef} className="mt-2" data-limit-control="" data-limit-mode={view.mode}>
       <LimitStatus view={view} />
-      {editable && !editing ? (
+      {editable && !open ? (
         <LimitActions
           view={view}
-          saving={saving}
+          saving={limit.saving}
           triggerRef={triggerRef}
-          onOpen={open}
-          onRemove={() => void write(null)}
+          onOpen={() => {
+            focusAfter.current = "input";
+            limit.begin();
+          }}
+          onRemove={() => {
+            focusAfter.current = "trigger";
+            void limit.remove();
+          }}
         />
       ) : null}
-      {editable && editing ? (
+      {editable && open ? (
         <LimitForm
-          text={text}
-          problem={problemText(text, attempted)}
-          saving={saving}
+          limit={limit}
           inputRef={inputRef}
-          onText={setText}
           onSubmit={submit}
-          onCancel={close}
+          onCancel={() => {
+            focusAfter.current = "trigger";
+            limit.cancel();
+          }}
         />
       ) : null}
-      {failure !== null ? (
+      {limit.failure !== null ? (
         <div className="mt-2" data-limit-failure="">
-          <ErrorMessage error={failure} detail={errorDetail(failure)} />
+          <ErrorMessage error={limit.failure} detail={errorDetail(limit.failure)} />
+        </div>
+      ) : null}
+      {limit.awaitingRead && readFailure !== null ? (
+        <div className="mt-2" data-limit-read-failure="">
+          <ErrorMessage
+            error={readFailure}
+            prefix="The limit was saved, but Studio could not read it back."
+          />
         </div>
       ) : null}
     </div>

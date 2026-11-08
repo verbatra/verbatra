@@ -62,26 +62,46 @@ describe("keySetMaxLengthHandler", () => {
     }
   });
 
-  it("refuses removing a config-set key too, leaving a shadowed sidecar entry alone", async () => {
+  it("lets a shadowed limits-file entry of a config-set key be removed, as the sdk does", async () => {
     const project = await makeFixtureProject({ maxLength: { greeting: 5 } });
-    const shadowed = `${JSON.stringify({ version: 1, maxLength: { greeting: 9 } })}\n`;
-    await writeFile(limitsPath(project), shadowed);
+    await writeFile(
+      limitsPath(project),
+      `${JSON.stringify({ version: 1, maxLength: { greeting: 9 } })}\n`,
+    );
     try {
-      await expect(
-        keySetMaxLengthHandler({ key: "greeting", maxLength: null }, deps(project)),
-      ).rejects.toThrow(CONFIG_KEY_REFUSAL.slice(0, 40));
-      expect(await readFile(limitsPath(project), "utf8")).toBe(shadowed);
+      const result = await keySetMaxLengthHandler(
+        { key: "greeting", maxLength: null },
+        deps(project),
+      );
+
+      expect(result).toEqual({ key: "greeting", maxLength: null, changed: true });
+      expect(await limitsOnDisk(project)).toEqual({ version: 1, maxLength: {} });
     } finally {
       await project.cleanup();
     }
   });
 
-  it("appends the sdk hint to the refusal", async () => {
+  it("gives the refusal as Studio's own text alone, with no sdk hint repeated after it", async () => {
     const project = await makeFixtureProject({ maxLength: { greeting: 5 } });
     try {
       await expect(
         keySetMaxLengthHandler({ key: "greeting", maxLength: 12 }, deps(project)),
-      ).rejects.toThrow(/Pass a whole number from 1 to 9007199254740991/);
+      ).rejects.toMatchObject({ code: "LENGTH_LIMIT_INVALID", message: CONFIG_KEY_REFUSAL });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("adds the sdk hint to an sdk refusal exactly once", async () => {
+    const project = await makeFixtureProject();
+    try {
+      const failure = await keySetMaxLengthHandler(
+        { key: "greeting", maxLength: 0 },
+        deps(project),
+      ).catch((error: Error) => error);
+
+      const text = (failure as Error).message;
+      expect(text.match(/Pass a whole number from 1 to 9007199254740991/g)).toHaveLength(1);
     } finally {
       await project.cleanup();
     }

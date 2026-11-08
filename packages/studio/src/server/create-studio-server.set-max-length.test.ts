@@ -117,7 +117,9 @@ describe("key.setMaxLength over HTTP", () => {
   });
 
   it.each([
-    ["zero reaches the sdk", { key: "greeting", maxLength: 0 }, 200, "LENGTH_LIMIT_INVALID"],
+    ["zero", { key: "greeting", maxLength: 0 }, 400, "PARAMS_INVALID"],
+    ["a negative limit", { key: "greeting", maxLength: -1 }, 400, "PARAMS_INVALID"],
+    ["a key over 1024 characters", { key: "k".repeat(1025), maxLength: 5 }, 400, "PARAMS_INVALID"],
     ["a fraction", { key: "greeting", maxLength: 1.5 }, 400, "PARAMS_INVALID"],
     ["a string", { key: "greeting", maxLength: "5" }, 400, "PARAMS_INVALID"],
     ["1e21", { key: "greeting", maxLength: 1e21 }, 400, "PARAMS_INVALID"],

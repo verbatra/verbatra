@@ -214,7 +214,7 @@ maxLength: {
 }
 ```
 
-- **Here or in `verbatra.limits.json`.** Keys match literally, never as globs; a key set in neither is never measured. `setKeyLengthLimit` takes only source keys, so Studio, which sets and removes the file's entries in its [editor](/docs/review-in-studio#set-a-length-limit), cannot limit a generated plural form; an entry written by hand for its own key applies. The file beside the lock file takes `{ "version": 1, "maxLength": { ... } }`, the config wins per key, and [`setKeyLengthLimit`](/docs/sdk/config#setkeylengthlimit) writes it.
+- **Here or in `verbatra.limits.json`.** Keys match literally, never as globs; a key set in neither is never measured. `setKeyLengthLimit` takes only source keys, so Studio cannot limit a generated plural form; an entry written by hand for its own key applies. The file beside the lock file takes `{ "version": 1, "maxLength": { ... } }`, the config wins per key, and [`setKeyLengthLimit`](/docs/sdk/config#setkeylengthlimit) writes it.
 - **Grapheme clusters.** Length counts perceived characters, whitespace included: an emoji, an accented letter or a CJK character is one. The limit is inclusive.
 - **When.** Every value `translate` produces for the key, cache reuses included; an up-to-date key is measured only once its source changes, or by [`export --include-unchanged`](/docs/cli/export).
 - **Advisory.** An overrun is still written and locked, and flagged [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) for review.

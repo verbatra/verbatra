@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { KeyValueContext } from "../client/key-value-context.js";
+import { LIMIT_RANGE_MESSAGE } from "../client/length-limit.js";
+import type { StructuredError } from "../client/state.js";
 import { LimitControl } from "./LimitControl.js";
 import {
   buttonNamed,
@@ -16,18 +18,27 @@ import {
   textboxNamed,
   typeInto,
 } from "./test-support.js";
+import { type LoadedContext, useLimitDraft } from "./use-limit-draft.js";
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
-type Loaded = Extract<KeyValueContext, { kind: "loaded" }>;
-
-const NOTICE = {
-  code: "LIMITS_FILE_IGNORED",
-  message:
-    "verbatra.limits.json is not a regular file, so it was ignored. Replace verbatra.limits.json with a regular file, or remove it; it was left as it is.",
+const NOTICES = {
+  invalid: {
+    code: "LIMITS_FILE_IGNORED",
+    message: "verbatra.limits.json is not valid JSON, so it was ignored. Fix or delete it.",
+  },
+  unreadable: {
+    code: "LIMITS_FILE_IGNORED",
+    message:
+      "verbatra.limits.json exists but could not be read (a permissions problem), so it was ignored.",
+  },
+  directory: {
+    code: "LIMITS_FILE_IGNORED",
+    message: "verbatra.limits.json is not a regular file, so it was ignored.",
+  },
 } as const;
 
-function context(overrides: Partial<Loaded> = {}): Loaded {
+function context(overrides: Partial<LoadedContext> = {}): LoadedContext {
   return {
     kind: "loaded",
     source: "Hello",
@@ -42,36 +53,72 @@ function context(overrides: Partial<Loaded> = {}): Loaded {
   };
 }
 
-function control(loaded: Loaded, onChanged = vi.fn()) {
-  return <LimitControl key="k" keyName="k" context={loaded} onChanged={onChanged} />;
+const FILE_8 = { maxLength: 8, maxLengthSource: "limits-file" } as const;
+
+interface HostProps {
+  readonly loaded: LoadedContext;
+  readonly identity?: string;
+  readonly reload?: () => void;
+  readonly readFailure?: StructuredError | null;
+}
+
+let lastEffective: number | undefined;
+let lastDirty = false;
+
+function Host({
+  loaded,
+  identity = "k",
+  reload = () => {},
+  readFailure = null,
+}: HostProps): ReactNode {
+  const limit = useLimitDraft({ identity, keyName: "k", context: loaded, reload });
+  lastEffective = limit.effectiveMaxLength;
+  lastDirty = limit.dirty;
+  return (
+    <>
+      <button type="button" id="elsewhere">
+        elsewhere
+      </button>
+      <LimitControl limit={limit} readFailure={readFailure} />
+    </>
+  );
+}
+
+function host(props: HostProps): ReactNode {
+  return <Host {...props} />;
 }
 
 function setCalls(): readonly { readonly params: unknown }[] {
   return rpcCalls.filter((call) => call.method === "key.setMaxLength");
 }
 
-function open(view: RenderResult, label: string): void {
-  click(buttonNamed(view, label));
+function open(view: RenderResult, name: string): void {
+  click(buttonNamed(view, name));
 }
 
-function submit(view: RenderResult): void {
-  click(view.get("[data-limit-save]"));
+function field(view: RenderResult): HTMLInputElement {
+  return textboxNamed(view, "Limit in characters");
+}
+
+function save(view: RenderResult): void {
+  click(buttonNamed(view, "Save limit"));
 }
 
 describe("LimitControl modes", () => {
   it("shows a config limit read-only, says it comes from the config and offers no control", () => {
-    const view = render(control(context({ maxLength: 7, maxLengthSource: "config" })));
+    const view = render(host({ loaded: context({ maxLength: 7, maxLengthSource: "config" }) }));
 
     expect(view.get("[data-limit-status]").textContent).toMatch(
       /Limit: 7 characters, set by the config/,
     );
     expect(view.text()).toMatch(/started/);
-    expect(view.query("button")).toBeNull();
-    expect(view.query("input")).toBeNull();
+    expect(view.query("[data-limit-control] button")).toBeNull();
   });
 
   it("shows a limits-file limit with Change and Remove", () => {
-    const view = render(control(context({ maxLength: 1, maxLengthSource: "limits-file" })));
+    const view = render(
+      host({ loaded: context({ maxLength: 1, maxLengthSource: "limits-file" }) }),
+    );
 
     expect(view.get("[data-limit-status]").textContent).toBe(
       "Limit: 1 character, from verbatra.limits.json.",
@@ -81,33 +128,38 @@ describe("LimitControl modes", () => {
   });
 
   it("offers only Set limit for a key without one", () => {
-    const view = render(control(context()));
+    const view = render(host({ loaded: context() }));
 
     expect(view.get("[data-limit-status]").textContent).toBe("No limit is set for this key.");
     expect(buttonNamed(view, "Set limit")).toBeTruthy();
     expect(view.query("[data-limit-remove]")).toBeNull();
   });
 
-  it("shows the sdk's notice verbatim and no control while the file is unusable", () => {
-    const view = render(control(context({ limitsNotice: NOTICE })));
+  it.each(Object.entries(NOTICES))(
+    "shows the sdk's %s notice verbatim and no control",
+    (_name, notice) => {
+      const view = render(host({ loaded: context({ limitsNotice: notice }) }));
 
-    expect(view.get("[data-limit-notice]").textContent).toBe(NOTICE.message);
-    expect(view.text()).toMatch(/cannot be changed here until verbatra\.limits\.json is fixed/);
-    expect(view.query("button")).toBeNull();
-    expect(view.query("[data-limit-advisory]")).toBeNull();
-  });
+      expect(view.get("[data-limit-notice]").textContent).toBe(notice.message);
+      expect(view.text()).toMatch(/cannot be changed here until verbatra\.limits\.json is fixed/);
+      expect(view.query("[data-limit-control] button")).toBeNull();
+      expect(view.query("[data-limit-advisory]")).toBeNull();
+    },
+  );
 
-  it("states that a limit is advisory and never says the model is told it", () => {
-    const view = render(control(context()));
+  it("says the length line counts now and a translate run flags, never that the value is queued", () => {
+    const view = render(host({ loaded: context() }));
 
     const advisory = view.get("[data-limit-advisory]").textContent ?? "";
-    expect(advisory).toMatch(/never blocked or shortened/);
-    expect(advisory).toMatch(/every locale/);
-    expect(view.text()).not.toMatch(/prompt|instruct|the model/i);
+    expect(advisory).toContain("the length line shows the count now");
+    expect(advisory).toContain("a translate run flags a value over the limit for review");
+    expect(advisory).toContain("Nothing is blocked or shortened");
+    expect(advisory).toContain("every locale");
+    expect(view.text()).not.toMatch(/prompt|instruct|the model|is flagged for review/i);
   });
 
   it("uses no title attribute and no tooltip", () => {
-    const view = render(control(context({ maxLength: 4, maxLengthSource: "limits-file" })));
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
     open(view, "Change limit");
 
     expect(view.all("[title]")).toHaveLength(0);
@@ -115,34 +167,42 @@ describe("LimitControl modes", () => {
   });
 });
 
+function FILE_8_CONTEXT(): Partial<LoadedContext> {
+  return { ...FILE_8 };
+}
+
 describe("LimitControl setting", () => {
   it("sends the whole number, asks for a re-read, and returns focus to the trigger", async () => {
     stubRpc({
       "key.setMaxLength": { ok: true, result: { key: "k", maxLength: 12, changed: true } },
     });
-    const onChanged = vi.fn();
-    const view = render(control(context(), onChanged));
+    const reload = vi.fn();
+    const view = render(host({ loaded: context(), reload }));
 
     open(view, "Set limit");
-    expect(document.activeElement).toBe(textboxNamed(view, "Limit in characters"));
-    typeInto(textboxNamed(view, "Limit in characters"), " 12 ");
-    submit(view);
+    expect(document.activeElement).toBe(field(view));
+    typeInto(field(view), " 12 ");
+    save(view);
     await flush();
 
     expect(setCalls().map((call) => call.params)).toEqual([{ key: "k", maxLength: 12 }]);
-    expect(onChanged).toHaveBeenCalledTimes(1);
+    expect(reload).toHaveBeenCalledTimes(1);
     expect(view.get("[data-limit-status]").textContent).toBe(
       "Limit: 12 characters, from verbatra.limits.json.",
     );
     expect(document.activeElement).toBe(buttonNamed(view, "Change limit"));
+    expect(lastEffective).toBe(12);
   });
 
-  it("prefills the current value for a change", () => {
-    const view = render(control(context({ maxLength: 30, maxLengthSource: "limits-file" })));
+  it("prefills the current value for a change and is not dirty until it is edited", () => {
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
 
     open(view, "Change limit");
+    expect(field(view).value).toBe("8");
+    expect(lastDirty).toBe(false);
+    typeInto(field(view), "9");
 
-    expect(textboxNamed(view, "Limit in characters").value).toBe("30");
+    expect(lastDirty).toBe(true);
   });
 
   it.each(["", "0", "-3", "1.5", "abc", "1e3", "9007199254740992"])(
@@ -151,44 +211,46 @@ describe("LimitControl setting", () => {
       stubRpc({
         "key.setMaxLength": { ok: true, result: { key: "k", maxLength: 1, changed: true } },
       });
-      const view = render(control(context()));
+      const view = render(host({ loaded: context() }));
       open(view, "Set limit");
-      typeInto(textboxNamed(view, "Limit in characters"), text);
+      typeInto(field(view), text);
 
-      submit(view);
+      save(view);
       await flush();
 
       expect(setCalls()).toHaveLength(0);
-      const input = textboxNamed(view, "Limit in characters");
-      expect(input.getAttribute("aria-invalid")).toBe("true");
-      expect(view.get("[data-limit-problem]").textContent).not.toBe("");
-      expect(input.getAttribute("aria-describedby")).toBe(view.get("[data-limit-problem]").id);
-      expect(document.activeElement).toBe(input);
+      expect(field(view).getAttribute("aria-invalid")).toBe("true");
+      expect(view.get("[data-limit-problem]").textContent).toBe(LIMIT_RANGE_MESSAGE);
+      expect(field(view).getAttribute("aria-describedby")).toBe(
+        view.get("[data-limit-problem]").id,
+      );
+      expect(document.activeElement).toBe(field(view));
     },
   );
 
-  it("keeps the validation line in the layout when there is nothing to say", () => {
-    const view = render(control(context()));
+  it("reserves two lines for the validation text below md and one from md", () => {
+    const view = render(host({ loaded: context() }));
     open(view, "Set limit");
 
-    expect(view.get("[data-limit-problem]").className).toContain("min-h-4");
+    expect(view.get("[data-limit-problem]").className).toContain("min-h-8");
+    expect(view.get("[data-limit-problem]").className).toContain("md:min-h-4");
     expect(view.get("[data-limit-problem]").textContent).toBe("");
   });
 
   it("sends one request for a double press while it is in flight", async () => {
     const pending = deferredAnswer();
     stubRpc({ "key.setMaxLength": () => pending.promise });
-    const view = render(control(context()));
+    const view = render(host({ loaded: context() }));
     open(view, "Set limit");
-    typeInto(textboxNamed(view, "Limit in characters"), "5");
+    typeInto(field(view), "5");
 
-    submit(view);
-    submit(view);
+    save(view);
+    click(view.get("[data-limit-save]"));
     await flush();
 
     expect(setCalls()).toHaveLength(1);
-    expect(view.get("[data-limit-save]").getAttribute("aria-disabled")).toBe("true");
-    expect(textboxNamed(view, "Limit in characters").readOnly).toBe(true);
+    expect(buttonNamed(view, "Saving…").getAttribute("aria-disabled")).toBe("true");
+    expect(field(view).readOnly).toBe(true);
     await act(async () => {
       pending.resolve({ ok: true, result: { key: "k", maxLength: 5, changed: true } });
       await Promise.resolve();
@@ -199,28 +261,27 @@ describe("LimitControl setting", () => {
     stubRpc({
       "key.setMaxLength": { ok: true, result: { key: "k", maxLength: null, changed: true } },
     });
-    const onChanged = vi.fn();
-    const view = render(
-      control(context({ maxLength: 8, maxLengthSource: "limits-file" }), onChanged),
-    );
+    const reload = vi.fn();
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()), reload }));
 
     click(buttonNamed(view, "Remove limit"));
     await flush();
 
     expect(setCalls().map((call) => call.params)).toEqual([{ key: "k", maxLength: null }]);
-    expect(onChanged).toHaveBeenCalledTimes(1);
+    expect(reload).toHaveBeenCalledTimes(1);
     expect(view.get("[data-limit-status]").textContent).toBe("No limit is set for this key.");
     expect(document.activeElement).toBe(buttonNamed(view, "Set limit"));
+    expect(lastEffective).toBeUndefined();
   });
 
   it("closes on Escape without letting a surrounding dialog see it, and returns focus", () => {
-    const view = render(control(context()));
+    const view = render(host({ loaded: context() }));
     const seen = vi.fn();
     document.addEventListener("keydown", seen);
     open(view, "Set limit");
 
     act(() => {
-      textboxNamed(view, "Limit in characters").dispatchEvent(
+      field(view).dispatchEvent(
         new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
       );
     });
@@ -231,28 +292,12 @@ describe("LimitControl setting", () => {
     expect(document.activeElement).toBe(buttonNamed(view, "Set limit"));
   });
 
-  it("makes every control 44px tall below md", () => {
-    const view = render(control(context({ maxLength: 4, maxLengthSource: "limits-file" })));
-    for (const name of ["Change limit", "Remove limit"]) {
-      expect(buttonNamed(view, name).className).toContain("max-md:min-h-11");
-    }
-    open(view, "Change limit");
-
-    for (const element of [
-      textboxNamed(view, "Limit in characters"),
-      view.get("[data-limit-save]"),
-      view.get("[data-limit-cancel]"),
-    ]) {
-      expect(element.className).toContain("max-md:min-h-11");
-    }
-  });
-
   it("ignores Escape pressed while an input method is composing", () => {
-    const view = render(control(context()));
+    const view = render(host({ loaded: context() }));
     open(view, "Set limit");
 
     act(() => {
-      textboxNamed(view, "Limit in characters").dispatchEvent(
+      field(view).dispatchEvent(
         new KeyboardEvent("keydown", { key: "Escape", bubbles: true, isComposing: true }),
       );
     });
@@ -260,40 +305,72 @@ describe("LimitControl setting", () => {
     expect(view.query("[data-limit-form]")).not.toBeNull();
   });
 
-  it("closes on Cancel", () => {
-    const view = render(control(context()));
+  it("closes on its own Cancel, named apart from the translation's Cancel", () => {
+    const view = render(host({ loaded: context() }));
     open(view, "Set limit");
 
-    click(view.get("[data-limit-cancel]"));
+    click(buttonNamed(view, "Cancel the limit change"));
 
     expect(view.query("input")).toBeNull();
     expect(setCalls()).toHaveLength(0);
+    expect(document.activeElement).toBe(buttonNamed(view, "Set limit"));
   });
 
   it("shows a refusal through the error component with the server's message and keeps the input", async () => {
     stubRpc({
       "key.setMaxLength": rpcError(
         "LENGTH_LIMIT_INVALID",
-        "The config's maxLength already sets it. Studio read the config when it started. Pass a whole number.",
+        "The config's maxLength already sets it. Pass a whole number.",
       ),
     });
-    const view = render(control(context()));
+    const view = render(host({ loaded: context() }));
     open(view, "Set limit");
-    typeInto(textboxNamed(view, "Limit in characters"), "9");
+    typeInto(field(view), "9");
 
-    submit(view);
+    save(view);
     await flush();
 
     const alert = view.get('[data-limit-failure] [role="alert"]');
     expect(alert.textContent).toContain("The limit was refused, so nothing was changed.");
     expect(alert.textContent).toContain("Pass a whole number.");
-    expect(textboxNamed(view, "Limit in characters").value).toBe("9");
-    expect(document.activeElement).toBe(textboxNamed(view, "Limit in characters"));
+    expect(field(view).value).toBe("9");
+    expect(document.activeElement).toBe(field(view));
+  });
+
+  it("clears the refusal when the user types, cancels or reopens", async () => {
+    stubRpc({ "key.setMaxLength": rpcError("LIMITS_FILE_UNWRITABLE", "Check the permissions.") });
+    const view = render(host({ loaded: context() }));
+    open(view, "Set limit");
+    typeInto(field(view), "9");
+    save(view);
+    await flush();
+    expect(view.query("[data-limit-failure]")).not.toBeNull();
+
+    typeInto(field(view), "10");
+    expect(view.query("[data-limit-failure]")).toBeNull();
+
+    save(view);
+    await flush();
+    expect(view.query("[data-limit-failure]")).not.toBeNull();
+    click(buttonNamed(view, "Cancel the limit change"));
+    expect(view.query("[data-limit-failure]")).toBeNull();
+  });
+
+  it("drops the refusal when the mode changes under it", async () => {
+    stubRpc({ "key.setMaxLength": rpcError("LIMITS_FILE_UNWRITABLE", "Check the permissions.") });
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
+    click(buttonNamed(view, "Remove limit"));
+    await flush();
+    expect(view.query("[data-limit-failure]")).not.toBeNull();
+
+    view.rerender(host({ loaded: context({ maxLength: 8, maxLengthSource: "config" }) }));
+
+    expect(view.query("[data-limit-failure]")).toBeNull();
   });
 
   it("shows a failed removal and returns focus to the trigger", async () => {
     stubRpc({ "key.setMaxLength": rpcError("LIMITS_FILE_UNWRITABLE", "Check the permissions.") });
-    const view = render(control(context({ maxLength: 8, maxLengthSource: "limits-file" })));
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
 
     click(buttonNamed(view, "Remove limit"));
     await flush();
@@ -304,70 +381,181 @@ describe("LimitControl setting", () => {
     expect(view.get("[data-limit-status]").textContent).toMatch(/Limit: 8 characters/);
     expect(document.activeElement).toBe(buttonNamed(view, "Change limit"));
   });
+
+  it("makes every control 44px tall below md and the field wide enough for 16 digits", () => {
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
+    for (const name of ["Change limit", "Remove limit"]) {
+      expect(buttonNamed(view, name).className).toContain("max-md:min-h-11");
+    }
+    open(view, "Change limit");
+
+    for (const element of [
+      field(view),
+      buttonNamed(view, "Save limit"),
+      buttonNamed(view, "Cancel the limit change"),
+    ]) {
+      expect(element.className).toContain("max-md:min-h-11");
+    }
+    expect(field(view).className).toContain("w-44");
+  });
 });
 
 describe("LimitControl refresh", () => {
   it("keeps a typed limit and the focus in the field when a refresh brings a new context", () => {
-    const view = render(control(context({ maxLength: 8, maxLengthSource: "limits-file" })));
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
     open(view, "Change limit");
-    typeInto(textboxNamed(view, "Limit in characters"), "77");
-    const input = textboxNamed(view, "Limit in characters");
+    typeInto(field(view), "77");
+    const input = field(view);
 
-    view.rerender(control(context({ maxLength: 9, maxLengthSource: "limits-file" })));
+    view.rerender(host({ loaded: context({ maxLength: 9, maxLengthSource: "limits-file" }) }));
 
-    expect(textboxNamed(view, "Limit in characters")).toBe(input);
+    expect(field(view)).toBe(input);
     expect(input.value).toBe("77");
     expect(document.activeElement).toBe(input);
   });
 
   it("follows an outside edit while idle and never moves focus", () => {
-    const view = render(
-      <>
-        <button type="button" id="elsewhere">
-          x
-        </button>
-        {control(context({ maxLength: 8, maxLengthSource: "limits-file" }))}
-      </>,
-    );
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
     view.get("#elsewhere").focus();
 
-    view.rerender(
-      <>
-        <button type="button" id="elsewhere">
-          x
-        </button>
-        {control(context({ maxLength: 30, maxLengthSource: "limits-file" }))}
-      </>,
-    );
+    view.rerender(host({ loaded: context({ maxLength: 30, maxLengthSource: "limits-file" }) }));
 
     expect(view.get("[data-limit-status]").textContent).toMatch(/Limit: 30 characters/);
     expect(document.activeElement).toBe(view.get("#elsewhere"));
   });
 
-  it("drops the form when the key becomes config-set or the file unusable, and shows it again after", () => {
-    const view = render(control(context()));
+  it("resets the draft when the key changes", () => {
+    const view = render(host({ loaded: context(), identity: "a" }));
     open(view, "Set limit");
-    typeInto(textboxNamed(view, "Limit in characters"), "5");
+    typeInto(field(view), "5");
 
-    view.rerender(control(context({ maxLength: 3, maxLengthSource: "config" })));
+    view.rerender(host({ loaded: context(), identity: "b" }));
+
     expect(view.query("input")).toBeNull();
-    view.rerender(control(context()));
-
-    expect(textboxNamed(view, "Limit in characters").value).toBe("5");
+    expect(lastDirty).toBe(false);
   });
 
-  it("shows the saved value at once, before the re-read answers", async () => {
+  it("hides the form when the key becomes config-set and shows it again, with the text, after", () => {
+    const view = render(host({ loaded: context() }));
+    open(view, "Set limit");
+    typeInto(field(view), "5");
+
+    view.rerender(host({ loaded: context({ maxLength: 3, maxLengthSource: "config" }) }));
+    expect(view.query("input")).toBeNull();
+    view.rerender(host({ loaded: context() }));
+
+    expect(field(view).value).toBe("5");
+  });
+
+  it("measures against the saved value and says so when the re-read failed", async () => {
     stubRpc({
       "key.setMaxLength": { ok: true, result: { key: "k", maxLength: 21, changed: true } },
     });
-    const onChanged = vi.fn();
-    const view = render(control(context(), onChanged));
+    const loaded = context();
+    const view = render(host({ loaded }));
     open(view, "Set limit");
-    typeInto(textboxNamed(view, "Limit in characters"), "21");
-
-    submit(view);
+    typeInto(field(view), "21");
+    save(view);
     await flush();
 
+    view.rerender(
+      host({ loaded, readFailure: { code: "INTERNAL", message: "the context is gone" } }),
+    );
+
+    expect(lastEffective).toBe(21);
     expect(view.get("[data-limit-status]").textContent).toMatch(/Limit: 21 characters/);
+    expect(view.get('[data-limit-read-failure] [role="alert"]').textContent).toContain(
+      "The limit was saved, but Studio could not read it back.",
+    );
+  });
+
+  it("shows no read failure when no save is waiting on a re-read", () => {
+    const view = render(
+      host({
+        loaded: context(FILE_8_CONTEXT()),
+        readFailure: { code: "INTERNAL", message: "the context is gone" },
+      }),
+    );
+
+    expect(view.query("[data-limit-read-failure]")).toBeNull();
   });
 });
+
+describe("LimitControl focus when a background refresh removes the focused control", () => {
+  const unusable = (name: keyof typeof NOTICES): LoadedContext =>
+    context({ limitsNotice: NOTICES[name] });
+
+  it.each(["invalid", "unreadable", "directory"] as const)(
+    "hands focus from Change limit to the status line when the file turns %s",
+    (name) => {
+      const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
+      buttonNamed(view, "Change limit").focus();
+
+      view.rerender(host({ loaded: unusable(name) }));
+
+      expect(document.activeElement).toBe(view.get("[data-limit-status]"));
+    },
+  );
+
+  it.each(["invalid", "unreadable", "directory"] as const)(
+    "hands focus from Remove limit to the status line when the file turns %s",
+    (name) => {
+      const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
+      buttonNamed(view, "Remove limit").focus();
+
+      view.rerender(host({ loaded: unusable(name) }));
+
+      expect(document.activeElement).toBe(view.get("[data-limit-status]"));
+    },
+  );
+
+  it.each(["invalid", "unreadable", "directory"] as const)(
+    "hands focus from Set limit to the status line when the file turns %s",
+    (name) => {
+      const view = render(host({ loaded: context() }));
+      buttonNamed(view, "Set limit").focus();
+
+      view.rerender(host({ loaded: unusable(name) }));
+
+      expect(document.activeElement).toBe(view.get("[data-limit-status]"));
+    },
+  );
+
+  it.each(["input", "save", "cancel"] as const)(
+    "hands focus from the open form's %s to the status line when the file turns unusable",
+    (which) => {
+      const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
+      open(view, "Change limit");
+      const target = {
+        input: field(view),
+        save: buttonNamed(view, "Save limit"),
+        cancel: buttonNamed(view, "Cancel the limit change"),
+      }[which];
+      target.focus();
+
+      view.rerender(host({ loaded: unusable("invalid") }));
+
+      expect(document.activeElement).toBe(view.get("[data-limit-status]"));
+    },
+  );
+
+  it("hands focus over when the key becomes config-set", () => {
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
+    buttonNamed(view, "Change limit").focus();
+
+    view.rerender(host({ loaded: context({ maxLength: 8, maxLengthSource: "config" }) }));
+
+    expect(document.activeElement).toBe(view.get("[data-limit-status]"));
+  });
+
+  it("leaves focus elsewhere alone", () => {
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
+    view.get("#elsewhere").focus();
+
+    view.rerender(host({ loaded: unusable("invalid") }));
+
+    expect(document.activeElement).toBe(view.get("#elsewhere"));
+  });
+});
+
+export type { KeyValueContext };

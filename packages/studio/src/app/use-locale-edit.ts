@@ -8,8 +8,10 @@ import {
 } from "../client/draft-state.js";
 import { deriveEditEntryOutcome } from "../client/edit-entry-outcome.js";
 import { deriveKeyValueContext, type KeyValueContext } from "../client/key-value-context.js";
+import type { StructuredError } from "../client/state.js";
 import { rpcClient } from "./api.js";
-import type { SubmitState } from "./entry-editor-parts.js";
+import { type SubmitState, submitFailure } from "./entry-editor-parts.js";
+import { type LimitDraft, useLimitDraft } from "./use-limit-draft.js";
 
 const LOADING: KeyValueContext = { kind: "loading" };
 
@@ -33,6 +35,12 @@ export interface LocaleEdit {
   readonly context: KeyValueContext;
   readonly draft: string;
   readonly dirty: boolean;
+  readonly valueDirty: boolean;
+  readonly writesValue: boolean;
+  readonly saving: boolean;
+  readonly promptError: StructuredError | null;
+  readonly limit: LimitDraft;
+  readonly readFailure: StructuredError | null;
   readonly submit: SubmitState;
   setDraft(next: string): void;
   readonly retrying: boolean;
@@ -48,6 +56,7 @@ function useHeldContext(
   refreshToken: number,
 ): {
   readonly context: KeyValueContext;
+  readonly readFailure: StructuredError | null;
   readonly retrying: boolean;
   retry(): void;
   reload(): void;
@@ -55,23 +64,27 @@ function useHeldContext(
   const [held, setHeld] = useState<HeldContext>(UNHELD);
   const [attempt, setAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
+  const [readFailure, setReadFailure] = useState<StructuredError | null>(null);
+  const heldRef = useRef(held);
+  heldRef.current = held;
 
   useEffect(() => {
     if (locale === null) {
       setHeld(UNHELD);
+      setReadFailure(null);
       return;
     }
     let cancelled = false;
     void rpcClient.call("key.context", { locale, key: keyName }).then((response) => {
       if (!cancelled) {
         const next = deriveKeyValueContext(response);
-        setHeld((previous) =>
+        const previous = heldRef.current;
+        const keepsPrevious =
           next.kind === "error" &&
           previous.identity === identity &&
-          previous.context.kind === "loaded"
-            ? previous
-            : { identity, context: next },
-        );
+          previous.context.kind === "loaded";
+        setReadFailure(keepsPrevious && next.kind === "error" ? next.error : null);
+        setHeld(keepsPrevious ? previous : { identity, context: next });
         setRetrying(false);
       }
     });
@@ -82,6 +95,7 @@ function useHeldContext(
 
   return {
     context: held.identity === identity ? held.context : LOADING,
+    readFailure: held.identity === identity ? readFailure : null,
     retrying,
     retry: () => {
       setRetrying(true);
@@ -99,12 +113,18 @@ export function useLocaleEdit(
   seed: string | null = null,
 ): LocaleEdit {
   const identity = draftIdentity(locale, keyName, session);
-  const { context, retrying, retry, reload } = useHeldContext(
+  const { context, readFailure, retrying, retry, reload } = useHeldContext(
     identity,
     locale,
     keyName,
     refreshToken,
   );
+  const limit = useLimitDraft({
+    identity,
+    keyName,
+    context: context.kind === "loaded" ? context : null,
+    reload,
+  });
   const [draftState, setDraftState] = useState<DraftState>(EMPTY_DRAFT);
   const [heldSubmit, setHeldSubmit] = useState<HeldSubmit>(NO_SUBMIT);
 
@@ -125,7 +145,9 @@ export function useLocaleEdit(
     setHeldSubmit(NO_SUBMIT);
   }, [identity]);
 
-  async function save(target: string): Promise<boolean> {
+  const valueDirty = context.kind === "loaded" && isDraftDirty(current);
+
+  async function saveValue(target: string): Promise<boolean> {
     setHeldSubmit({ identity, state: { kind: "submitting" } });
     const response = await rpcClient.call("translation.editEntry", {
       locale: target,
@@ -139,10 +161,25 @@ export function useLocaleEdit(
     return outcome.kind === "success";
   }
 
+  const writesValue = valueDirty || !limit.dirty;
+
+  async function save(target: string): Promise<boolean> {
+    if (writesValue && !(await saveValue(target))) {
+      return false;
+    }
+    return limit.dirty ? limit.save() : true;
+  }
+
   return {
     context,
     draft: current.identity === identity ? current.text : "",
-    dirty: context.kind === "loaded" && isDraftDirty(current),
+    dirty: valueDirty || limit.dirty,
+    valueDirty,
+    writesValue,
+    saving: submit.kind === "submitting" || limit.saving,
+    promptError: submitFailure(submit) ?? limit.failure ?? limit.invalid,
+    limit,
+    readFailure,
     submit,
     setDraft: (next) => setDraftState({ ...current, text: next }),
     retrying,

@@ -1,15 +1,13 @@
 import type { KeyValueContext } from "./key-value-context.js";
 
-export const NO_LIMIT_FOR_UNKNOWN_KEY =
-  "A key that is not in the source file has no length limit: verbatra.limits.json takes only source keys, so a generated plural form has none.";
-
-export function limitReasonFor(error: { readonly code: string }): string | undefined {
-  return error.code === "UNKNOWN_KEY" ? NO_LIMIT_FOR_UNKNOWN_KEY : undefined;
-}
+export const ORPHAN_LIMIT_NOTE =
+  "This key is not in the source file. Studio sets limits only for keys in the source file; a limit written for it in the config or in verbatra.limits.json still applies.";
 
 export const MAX_LIMIT = Number.MAX_SAFE_INTEGER;
 
 const WHOLE_NUMBER = /^[0-9]+$/;
+
+export const LIMIT_RANGE_MESSAGE = `Enter a whole number of characters from 1 to ${new Intl.NumberFormat("en-US").format(MAX_LIMIT)}, digits only.`;
 
 export type LimitParse =
   | { readonly kind: "ok"; readonly value: number }
@@ -17,20 +15,10 @@ export type LimitParse =
 
 export function parseLimitInput(text: string): LimitParse {
   const trimmed = text.trim();
-  if (trimmed === "") {
-    return { kind: "error", message: "Enter a whole number of characters, 1 or more." };
-  }
-  if (!WHOLE_NUMBER.test(trimmed)) {
-    return { kind: "error", message: "Use digits only: a whole number of characters, 1 or more." };
-  }
-  const value = Number(trimmed);
-  if (value < 1) {
-    return { kind: "error", message: "The limit must be at least 1 character." };
-  }
-  if (!Number.isSafeInteger(value)) {
-    return { kind: "error", message: `The limit can be at most ${MAX_LIMIT} characters.` };
-  }
-  return { kind: "ok", value };
+  const value = WHOLE_NUMBER.test(trimmed) ? Number(trimmed) : Number.NaN;
+  return Number.isSafeInteger(value) && value >= 1
+    ? { kind: "ok", value }
+    : { kind: "error", message: LIMIT_RANGE_MESSAGE };
 }
 
 type LoadedContext = Extract<KeyValueContext, { kind: "loaded" }>;
@@ -43,8 +31,6 @@ export type LimitControlView =
     }
   | { readonly mode: "none"; readonly value: undefined; readonly notice: string | undefined }
   | { readonly mode: "blocked"; readonly value: undefined; readonly notice: string };
-
-export type LimitMode = LimitControlView["mode"];
 
 export function limitControlView(
   context: Pick<LoadedContext, "maxLength" | "maxLengthSource" | "limitsNotice">,

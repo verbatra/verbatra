@@ -6,6 +6,7 @@ import {
   type IntegrityPillView,
   type KeyIntegrityLocaleEntry,
 } from "../client/integrity-pill.js";
+import { ORPHAN_LIMIT_NOTE } from "../client/length-limit.js";
 import { provenanceDetailItems } from "../client/provenance-view.js";
 import { canRetranslate } from "../client/retranslate-eligibility.js";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
@@ -159,6 +160,11 @@ export function LocaleBlock({
         ) : null}
       </div>
       <IntegrityDetail pill={pill} />
+      {row.status === "orphaned" ? (
+        <p className="m-0 mt-1 break-words text-xs text-muted-foreground" data-orphan-limit-note="">
+          {ORPHAN_LIMIT_NOTE}
+        </p>
+      ) : null}
       {editing ? (
         form
       ) : (

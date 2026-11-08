@@ -10,7 +10,6 @@ import type { StructuredError } from "../client/state.js";
 import { CommitList } from "./CommitList.js";
 import { EditorPane } from "./EditorPane.js";
 import { ErrorMessage } from "./ErrorMessage.js";
-import { submitFailure } from "./entry-editor-parts.js";
 import { IcuPreviewAvailabilityProvider } from "./icu-preview-open.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { KeyEditorHistory } from "./KeyEditorHistory.js";
@@ -27,6 +26,7 @@ import {
 } from "./route-guard.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
+import { UnsavedSubject } from "./UnsavedSubject.js";
 import { useRevealEdit } from "./use-banner-anchor.js";
 import { useCapabilities } from "./use-capabilities.js";
 import { useHistoryList } from "./use-history-list.js";
@@ -158,21 +158,6 @@ function currentValueOf(values: KeyValuesState, locale: string | undefined): Cur
   return failure === undefined
     ? { kind: "known", value: values.targets.get(locale) }
     : { kind: "failed", message: failure.message };
-}
-
-function UnsavedSubject({
-  locale,
-  restoring,
-}: {
-  readonly locale: string;
-  readonly restoring: boolean;
-}): ReactNode {
-  return (
-    <>
-      The <span className="font-mono">{locale}</span> translation has changes that are not saved.
-      {restoring ? " Restoring replaces them." : ""}
-    </>
-  );
 }
 
 function MissingKeyNotice({ onDiscard }: { readonly onDiscard: () => void }): ReactNode {
@@ -519,9 +504,16 @@ export function KeyEditor({
   const prompt =
     pending !== null && editingLocale !== null ? (
       <UnsavedPrompt
-        subject={<UnsavedSubject locale={editingLocale} restoring={pending.restore === true} />}
-        saving={edit.submit.kind === "submitting"}
-        error={submitFailure(edit.submit)}
+        subject={
+          <UnsavedSubject
+            locale={editingLocale}
+            value={edit.valueDirty}
+            limit={edit.limit.dirty}
+            restoring={pending.restore === true}
+          />
+        }
+        saving={edit.saving}
+        error={edit.promptError}
         placement={layout}
         {...(pending.restore === true
           ? { saveLabel: "Save draft, then restore", discardLabel: "Discard draft and restore" }

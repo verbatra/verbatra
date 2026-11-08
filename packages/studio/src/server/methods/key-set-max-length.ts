@@ -15,8 +15,12 @@ function withHint(error: unknown): unknown {
 
 export const keySetMaxLengthHandler: RpcHandler<"key.setMaxLength"> = async (params, deps) => {
   const { config } = deps.config;
-  if (config.maxLength !== undefined && Object.hasOwn(config.maxLength, params.key)) {
-    throw withHint(new SdkError("LENGTH_LIMIT_INVALID", CONFIG_KEY_REFUSAL));
+  if (
+    params.maxLength !== null &&
+    config.maxLength !== undefined &&
+    Object.hasOwn(config.maxLength, params.key)
+  ) {
+    throw new SdkError("LENGTH_LIMIT_INVALID", CONFIG_KEY_REFUSAL);
   }
   try {
     return await setKeyLengthLimit(

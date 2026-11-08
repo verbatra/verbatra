@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  LIMIT_RANGE_MESSAGE,
   limitControlView,
   limitCountText,
-  limitReasonFor,
   MAX_LIMIT,
-  NO_LIMIT_FOR_UNKNOWN_KEY,
+  ORPHAN_LIMIT_NOTE,
   parseLimitInput,
 } from "./length-limit.js";
 
@@ -20,29 +20,32 @@ describe("parseLimitInput", () => {
   });
 
   it.each([
-    ["", /whole number/],
-    ["   ", /whole number/],
-    ["0", /at least 1/],
-    ["000", /at least 1/],
-    ["-1", /digits only/],
-    ["+5", /digits only/],
-    ["1.5", /digits only/],
-    ["1,5", /digits only/],
-    ["NaN", /digits only/],
-    ["5e2", /digits only/],
-    ["1e21", /digits only/],
-    ["0x10", /digits only/],
-    ["1_000", /digits only/],
-    ["5 0", /digits only/],
-    ["٣", /digits only/],
-    ["５", /digits only/],
-    ["9007199254740992", /at most 9007199254740991/],
-    ["99999999999999999999999", /at most 9007199254740991/],
-  ])("refuses %j with inline text", (text, message) => {
-    const parsed = parseLimitInput(text);
+    "",
+    "   ",
+    "0",
+    "000",
+    "-1",
+    "+5",
+    "1.5",
+    "1,5",
+    "NaN",
+    "5e2",
+    "1e21",
+    "0x10",
+    "1_000",
+    "5 0",
+    "٣",
+    "５",
+    "9007199254740992",
+    "99999999999999999999999",
+  ])("refuses %j with the one range message", (text) => {
+    expect(parseLimitInput(text)).toEqual({ kind: "error", message: LIMIT_RANGE_MESSAGE });
+  });
 
-    expect(parsed.kind).toBe("error");
-    expect(parsed.kind === "error" && parsed.message).toMatch(message);
+  it("states the range once, with the cap in readable groups", () => {
+    expect(LIMIT_RANGE_MESSAGE).toBe(
+      "Enter a whole number of characters from 1 to 9,007,199,254,740,991, digits only.",
+    );
   });
 
   it("names the same maximum the sdk accepts", () => {
@@ -109,9 +112,10 @@ describe("limitCountText", () => {
   });
 });
 
-describe("limitReasonFor", () => {
-  it("says why a key that is not in the source has no limit, and nothing for another failure", () => {
-    expect(limitReasonFor({ code: "UNKNOWN_KEY" })).toBe(NO_LIMIT_FOR_UNKNOWN_KEY);
-    expect(limitReasonFor({ code: "INTERNAL" })).toBeUndefined();
+describe("ORPHAN_LIMIT_NOTE", () => {
+  it("says Studio sets limits only for source keys and that a limit written for the key still applies", () => {
+    expect(ORPHAN_LIMIT_NOTE).toContain("only for keys in the source file");
+    expect(ORPHAN_LIMIT_NOTE).toContain("still applies");
+    expect(ORPHAN_LIMIT_NOTE).not.toMatch(/has none|has no (length )?limit/);
   });
 });
