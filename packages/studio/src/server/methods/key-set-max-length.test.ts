@@ -4,7 +4,11 @@ import { createDefaultRegistry, type SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
-import { CONFIG_KEY_REFUSAL, keySetMaxLengthHandler } from "./key-set-max-length.js";
+import {
+  CONFIG_KEY_REFUSAL,
+  keySetMaxLengthHandler,
+  withoutCliStep,
+} from "./key-set-max-length.js";
 
 function deps(project: FixtureProject): RpcHandlerDeps {
   return {
@@ -92,7 +96,23 @@ describe("keySetMaxLengthHandler", () => {
     }
   });
 
-  it("adds the sdk hint to an sdk refusal exactly once", async () => {
+  it("adds the sdk next step to a refusal that has none, exactly once", async () => {
+    const project = await makeFixtureProject();
+    await writeFile(limitsPath(project), "{ not json");
+    try {
+      const failure = await keySetMaxLengthHandler(
+        { key: "greeting", maxLength: 5 },
+        deps(project),
+      ).catch((error: Error) => error);
+
+      const text = (failure as Error).message;
+      expect(text.match(/Restore verbatra\.limits\.json from version control/g)).toHaveLength(1);
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("adds no second next step to a refusal that describes itself", async () => {
     const project = await makeFixtureProject();
     try {
       const failure = await keySetMaxLengthHandler(
@@ -100,11 +120,78 @@ describe("keySetMaxLengthHandler", () => {
         deps(project),
       ).catch((error: Error) => error);
 
-      const text = (failure as Error).message;
-      expect(text.match(/Pass a whole number from 1 to 9007199254740991/g)).toHaveLength(1);
+      expect((failure as Error).message).not.toContain("Pass a whole number");
     } finally {
       await project.cleanup();
     }
+  });
+
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "gives one next step, in Studio's words, when the limits lock cannot be written",
+    async () => {
+      const project = await makeFixtureProject();
+      await chmod(project.root, 0o555);
+      try {
+        const failure = await keySetMaxLengthHandler(
+          { key: "greeting", maxLength: 5 },
+          deps(project),
+        ).catch((error: Error) => error);
+
+        const text = (failure as Error).message;
+        expect(text).toContain("Could not write the limits write lock");
+        expect(text).toContain("(EACCES)");
+        expect(text).not.toContain("run again");
+        expect(text.match(/Check the (write )?permissions/g)).toHaveLength(1);
+      } finally {
+        await chmod(project.root, 0o755);
+        await project.cleanup();
+      }
+    },
+  );
+
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "gives one next step, in Studio's words, when the limits file cannot be written",
+    async () => {
+      const project = await makeFixtureProject();
+      await mkdir(join(project.root, ".verbatra-local"));
+      await chmod(project.root, 0o555);
+      try {
+        const failure = await keySetMaxLengthHandler(
+          { key: "greeting", maxLength: 5 },
+          deps(project),
+        ).catch((error: Error) => error);
+
+        const text = (failure as Error).message;
+        expect(text).toContain("Could not write the limits file verbatra.limits.json (EACCES).");
+        expect(text).not.toContain("run again");
+        expect(text.match(/Check the (write )?permissions/g)).toHaveLength(1);
+      } finally {
+        await chmod(project.root, 0o755);
+        await project.cleanup();
+      }
+    },
+  );
+
+  it("drops only the run-again advice of a write failure and keeps the facts", () => {
+    expect(
+      withoutCliStep(
+        "Could not write the limits file verbatra.limits.json (EACCES). Check the write permissions on the containing directory, then run again.",
+      ),
+    ).toBe("Could not write the limits file verbatra.limits.json (EACCES).");
+    expect(
+      withoutCliStep(
+        "Could not write the limits file verbatra.limits.json (EROFS). That file system is mounted read-only, so nothing can be written there.",
+      ),
+    ).toBe(
+      "Could not write the limits file verbatra.limits.json (EROFS). That file system is mounted read-only, so nothing can be written there.",
+    );
+    expect(
+      withoutCliStep(
+        "Could not write the limits write lock .verbatra-local/locks/_limits.lock (EACCES). Check that the containing directory exists and is writable, then run again. The limit was saved, but the lock could not be released.",
+      ),
+    ).toBe(
+      "Could not write the limits write lock .verbatra-local/locks/_limits.lock (EACCES). The limit was saved, but the lock could not be released.",
+    );
   });
 
   it("does not read the config for an inherited key name", async () => {

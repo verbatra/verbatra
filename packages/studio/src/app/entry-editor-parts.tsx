@@ -21,6 +21,13 @@ export type SubmitState =
   | { readonly kind: "submitting" }
   | { readonly kind: "settled"; readonly outcome: EditEntryOutcome };
 
+export function focusUnsavedField(textarea: { focus(): void } | null, limitOnly: boolean): void {
+  const limitField = limitOnly
+    ? document.querySelector<HTMLElement>('[data-limit-item="input"]')
+    : null;
+  (limitField ?? textarea)?.focus();
+}
+
 export function submitFailure(submit: SubmitState): StructuredError | null {
   if (submit.kind !== "settled" || submit.outcome.kind === "success") {
     return null;

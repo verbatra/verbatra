@@ -7,7 +7,7 @@ export const MAX_LIMIT = Number.MAX_SAFE_INTEGER;
 
 const WHOLE_NUMBER = /^[0-9]+$/;
 
-export const LIMIT_RANGE_MESSAGE = `Enter a whole number of characters from 1 to ${new Intl.NumberFormat("en-US").format(MAX_LIMIT)}, digits only.`;
+export const LIMIT_RANGE_MESSAGE = `Enter a whole number from 1 to ${new Intl.NumberFormat("en-US").format(MAX_LIMIT)}, digits only.`;
 
 export type LimitParse =
   | { readonly kind: "ok"; readonly value: number }

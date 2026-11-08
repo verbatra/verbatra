@@ -37,6 +37,7 @@ export interface LocaleEdit {
   readonly dirty: boolean;
   readonly valueDirty: boolean;
   readonly writesValue: boolean;
+  wroteValue(): boolean;
   readonly saving: boolean;
   readonly promptError: StructuredError | null;
   readonly limit: LimitDraft;
@@ -136,6 +137,7 @@ export function useLocaleEdit(
   const submit = heldSubmit.identity === identity ? heldSubmit.state : IDLE;
 
   const identityRef = useRef(identity);
+  const valueWritten = useRef<string | null>(null);
 
   useLayoutEffect(() => {
     identityRef.current = identity;
@@ -158,6 +160,9 @@ export function useLocaleEdit(
     if (identityRef.current === identity) {
       setHeldSubmit({ identity, state: { kind: "settled", outcome } });
     }
+    if (outcome.kind === "success") {
+      valueWritten.current = identity;
+    }
     return outcome.kind === "success";
   }
 
@@ -176,6 +181,7 @@ export function useLocaleEdit(
     dirty: valueDirty || limit.dirty,
     valueDirty,
     writesValue,
+    wroteValue: () => valueWritten.current === identity,
     saving: submit.kind === "submitting" || limit.saving,
     promptError: submitFailure(submit) ?? limit.failure ?? limit.invalid,
     limit,

@@ -81,7 +81,9 @@ export function LocaleEditForm({
         value={draft}
         source={context.source}
         maxLength={edit.limit.effectiveMaxLength}
-        limitControl={<LimitControl limit={edit.limit} readFailure={edit.readFailure} />}
+        limitControl={
+          <LimitControl limit={edit.limit} readFailure={edit.readFailure} promptOpen={promptOpen} />
+        }
         invalid={pill?.tone === "danger" && draft === context.target}
         busy={submit.kind === "submitting"}
         textAreaRef={attach}

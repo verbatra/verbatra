@@ -10,6 +10,7 @@ import type { StructuredError } from "../client/state.js";
 import { CommitList } from "./CommitList.js";
 import { EditorPane } from "./EditorPane.js";
 import { ErrorMessage } from "./ErrorMessage.js";
+import { focusUnsavedField } from "./entry-editor-parts.js";
 import { IcuPreviewAvailabilityProvider } from "./icu-preview-open.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { KeyEditorHistory } from "./KeyEditorHistory.js";
@@ -244,6 +245,7 @@ export function KeyEditor({
   const originRef = useRef<Element | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const dirtyRef = useRef(false);
+  const limitOnlyRef = useRef(false);
   const editingRef = useRef<EditSession>({ keyName, locale: null, session: 0, seed: null });
   const resolvedRef = useRef(false);
   const recoveryRef = useRef<Recovery | null>(null);
@@ -293,6 +295,7 @@ export function KeyEditor({
   useLayoutEffect(() => {
     editingRef.current = { keyName, locale: editingLocale, session, seed };
     dirtyRef.current = edit.dirty;
+    limitOnlyRef.current = edit.limit.dirty && !edit.valueDirty;
     dirtyReportRef.current = onDirtyChange;
     pendingRef.current = pending;
   });
@@ -398,7 +401,7 @@ export function KeyEditor({
         },
         onRelease: () => {
           setPending(null);
-          textAreaRef.current?.focus();
+          focusUnsavedField(textAreaRef.current, limitOnlyRef.current);
         },
       }),
     [],
@@ -432,7 +435,7 @@ export function KeyEditor({
       return false;
     }
     if (!saved) {
-      textAreaRef.current?.focus();
+      focusUnsavedField(textAreaRef.current, limitOnlyRef.current);
       return false;
     }
     resolvedRef.current = true;
@@ -498,7 +501,7 @@ export function KeyEditor({
   function keepEditing(): void {
     restoreHeldRoute();
     setPending(null);
-    textAreaRef.current?.focus();
+    focusUnsavedField(textAreaRef.current, limitOnlyRef.current);
   }
 
   const prompt =

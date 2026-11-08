@@ -26,7 +26,8 @@ const KEEPER: FocusKeeperAdapter = {
   items: (root) => ITEMS.filter((item) => findItem(root, item) !== undefined),
   itemOf: (active) => active.dataset.limitItem,
   find: findItem,
-  fallback: (root) => (root.firstElementChild as HTMLElement).focus({ preventScroll: true }),
+  fallback: (root) =>
+    root.querySelector<HTMLElement>("[data-limit-status]")?.focus({ preventScroll: true }),
 };
 
 function statusText(view: LimitControlView): string {
@@ -45,7 +46,11 @@ function statusText(view: LimitControlView): string {
 function LimitStatus({ view }: { readonly view: LimitControlView }): ReactNode {
   return (
     <>
-      <p className="m-0 text-xs text-muted-foreground" data-limit-status="" tabIndex={-1}>
+      <p
+        className="m-0 rounded-sm text-xs text-muted-foreground focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-ring"
+        data-limit-status=""
+        tabIndex={-1}
+      >
         {statusText(view)}
       </p>
       {view.notice !== undefined ? (
@@ -110,11 +115,13 @@ function LimitActions({
 function LimitForm({
   limit,
   inputRef,
+  promptOpen,
   onSubmit,
   onCancel,
 }: {
   readonly limit: LimitDraft;
   readonly inputRef: Ref<HTMLInputElement>;
+  readonly promptOpen: boolean;
   readonly onSubmit: (event: FormEvent) => void;
   readonly onCancel: () => void;
 }): ReactNode {
@@ -155,7 +162,7 @@ function LimitForm({
         />
         <Button
           type="submit"
-          variant="primary"
+          variant={promptOpen ? "secondary" : "primary"}
           size="sm"
           className={TOUCH}
           data-limit-save=""
@@ -180,7 +187,7 @@ function LimitForm({
       <p
         id={problemId}
         aria-live="polite"
-        className="m-0 mt-1 min-h-8 text-xs text-danger md:min-h-4"
+        className="m-0 mt-1 min-h-8 text-xs text-danger"
         data-limit-problem=""
       >
         {problem}
@@ -192,9 +199,11 @@ function LimitForm({
 export function LimitControl({
   limit,
   readFailure,
+  promptOpen = false,
 }: {
   readonly limit: LimitDraft;
   readonly readFailure: StructuredError | null;
+  readonly promptOpen?: boolean;
 }): ReactNode {
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -247,6 +256,7 @@ export function LimitControl({
         <LimitForm
           limit={limit}
           inputRef={inputRef}
+          promptOpen={promptOpen}
           onSubmit={submit}
           onCancel={() => {
             focusAfter.current = "trigger";

@@ -44,7 +44,7 @@ describe("parseLimitInput", () => {
 
   it("states the range once, with the cap in readable groups", () => {
     expect(LIMIT_RANGE_MESSAGE).toBe(
-      "Enter a whole number of characters from 1 to 9,007,199,254,740,991, digits only.",
+      "Enter a whole number from 1 to 9,007,199,254,740,991, digits only.",
     );
   });
 

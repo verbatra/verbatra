@@ -8,7 +8,13 @@ import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-conte
 import type { StructuredError } from "../client/state.js";
 import { EditEntryHistory } from "./EditEntryHistory.js";
 import { ErrorMessage } from "./ErrorMessage.js";
-import { GlossaryHitList, SaveRow, submitFailure, TranslationField } from "./entry-editor-parts.js";
+import {
+  focusUnsavedField,
+  GlossaryHitList,
+  SaveRow,
+  submitFailure,
+  TranslationField,
+} from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
 import { LimitControl } from "./LimitControl.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
@@ -105,6 +111,7 @@ function TranslationColumn({
   onSave,
   limit,
   readFailure,
+  promptOpen,
   busy,
   textAreaRef,
 }: {
@@ -116,6 +123,7 @@ function TranslationColumn({
   readonly onSave: () => void;
   readonly limit: LimitDraft;
   readonly readFailure: StructuredError | null;
+  readonly promptOpen: boolean;
   readonly busy: boolean;
   readonly textAreaRef: Ref<HTMLTextAreaElement>;
 }): ReactNode {
@@ -137,7 +145,9 @@ function TranslationColumn({
           value={value}
           source={context.source}
           maxLength={limit.effectiveMaxLength}
-          limitControl={<LimitControl limit={limit} readFailure={readFailure} />}
+          limitControl={
+            <LimitControl limit={limit} readFailure={readFailure} promptOpen={promptOpen} />
+          }
           invalid={pill?.tone === "danger" && value === context.target}
           busy={busy}
           textAreaRef={textAreaRef}
@@ -164,11 +174,15 @@ export function EditEntryDialog({
   const { context, submit } = edit;
   const value = edit.draft;
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const unsavedFieldRef = useRef<{ focus(): void } | null>(null);
+  unsavedFieldRef.current = {
+    focus: () => focusUnsavedField(textAreaRef.current, edit.limit.dirty && !edit.valueDirty),
+  };
   const guard = useDialogDraftGuard({
     dirty: edit.dirty,
     saving: edit.saving,
     onClose,
-    fieldRef: textAreaRef,
+    fieldRef: unsavedFieldRef,
   });
   const { confirming } = guard;
 
@@ -243,16 +257,15 @@ export function EditEntryDialog({
   }, [rejected, submit]);
 
   async function handleSubmit(): Promise<void> {
-    const { writesValue } = edit;
     if (await edit.save(locale)) {
       const proceed = guard.takeHeldRoute();
-      if (writesValue) {
+      if (edit.wroteValue()) {
         onAccepted(locale, keyName);
       }
       void proceed?.();
       return;
     }
-    textAreaRef.current?.focus();
+    unsavedFieldRef.current?.focus();
   }
 
   const recoveredRef = useRef(false);
@@ -334,6 +347,7 @@ export function EditEntryDialog({
               onSave={() => void handleSubmit()}
               limit={edit.limit}
               readFailure={edit.readFailure}
+              promptOpen={confirming || replacing !== null}
               busy={submit.kind === "submitting"}
               textAreaRef={textAreaRef}
             />

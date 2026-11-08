@@ -6,7 +6,7 @@ type: how-to
 ---
 Find pending machine translations, fix values, and approve or reject what a provider wrote, in Verbatra Studio, a local dashboard.
 
-Two rules hold: **local editing is always on**, gated by the same integrity checks as other writes, and **provider spend is always off** unless you start Studio with `--allow-spend`.
+Two rules: **local editing is always on**, gated by the same integrity checks as other writes, and **provider spend is always off** unless you start Studio with `--allow-spend`.
 
 ## Start Studio
 
@@ -49,7 +49,7 @@ Chips beside the search narrow the table by state, including **Review queue** an
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-The editor shows the key's description, the glossary terms your draft uses or misses, and its length against the source and `maxLength`.
+The editor shows the key's description, the glossary terms your draft uses or misses, and its length against the source and `maxLength`. Ctrl or Cmd with Enter saves.
 
 #### Set a length limit
 
@@ -67,7 +67,7 @@ With `next-intl-json` or `arb`, a collapsed **ICU preview** under the draft rend
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-From 1280px wide the editor sits beside the table; below that it is a drawer. Leaving the key with unsaved edits (another key, a filter, a search, another page, Back) asks you to save, discard or keep editing; leaving Studio gets the browser's own confirmation.
+From 1280px wide the editor sits beside the table; below that it is a drawer. Leaving the key with unsaved edits (another key, filter, search, page or Back) asks you to save, discard or keep editing; leaving Studio gets the browser's own confirmation.
 
 ## Work the Review queue
 

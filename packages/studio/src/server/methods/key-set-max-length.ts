@@ -5,11 +5,21 @@ import { STUDIO_BATCH_LOCK_TIMEOUT_MS } from "./review-batch.js";
 export const CONFIG_KEY_REFUSAL =
   "The config's maxLength sets this key, and the config wins over verbatra.limits.json. Studio read the config when it started, so a change made to the config since needs a restart of Studio to show here.";
 
+const SELF_DESCRIBING_CODES: ReadonlySet<string> = new Set(["LENGTH_LIMIT_INVALID"]);
+
+const CLI_STEP = /, then run again\.?$/;
+
+export function withoutCliStep(message: string): string {
+  const kept = message.split(". ").filter((sentence) => !CLI_STEP.test(sentence));
+  return kept.join(". ").replace(/\.?$/, ".");
+}
+
 function withHint(error: unknown): unknown {
   if (!(error instanceof SdkError)) {
     return error;
   }
-  const message = [error.message, errorHint(error)].filter(Boolean).join(" ");
+  const step = SELF_DESCRIBING_CODES.has(error.code) ? undefined : errorHint(error);
+  const message = [withoutCliStep(error.message), step].filter(Boolean).join(" ");
   return new SdkError(error.code, message, { cause: error });
 }
 

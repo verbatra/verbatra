@@ -60,6 +60,7 @@ interface HostProps {
   readonly identity?: string;
   readonly reload?: () => void;
   readonly readFailure?: StructuredError | null;
+  readonly promptOpen?: boolean;
 }
 
 let lastEffective: number | undefined;
@@ -70,6 +71,7 @@ function Host({
   identity = "k",
   reload = () => {},
   readFailure = null,
+  promptOpen = false,
 }: HostProps): ReactNode {
   const limit = useLimitDraft({ identity, keyName: "k", context: loaded, reload });
   lastEffective = limit.effectiveMaxLength;
@@ -79,7 +81,7 @@ function Host({
       <button type="button" id="elsewhere">
         elsewhere
       </button>
-      <LimitControl limit={limit} readFailure={readFailure} />
+      <LimitControl limit={limit} readFailure={readFailure} promptOpen={promptOpen} />
     </>
   );
 }
@@ -228,13 +230,43 @@ describe("LimitControl setting", () => {
     },
   );
 
-  it("reserves two lines for the validation text below md and one from md", () => {
+  it("reserves two lines for the validation text at every width", () => {
     const view = render(host({ loaded: context() }));
     open(view, "Set limit");
 
-    expect(view.get("[data-limit-problem]").className).toContain("min-h-8");
-    expect(view.get("[data-limit-problem]").className).toContain("md:min-h-4");
+    const className = view.get("[data-limit-problem]").className;
+    expect(className).toContain("min-h-8");
+    expect(className).not.toContain("md:min-h");
     expect(view.get("[data-limit-problem]").textContent).toBe("");
+  });
+
+  it("lowers Save limit while an unsaved prompt is shown, so the prompt's Save is the only primary", () => {
+    const view = render(<Host loaded={context()} promptOpen />);
+    open(view, "Set limit");
+
+    expect(view.get("[data-limit-save]").getAttribute("data-variant")).toBe("secondary");
+  });
+
+  it("shows the focus outline on the status line, which is found by its own hook", () => {
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
+
+    const status = view.get("[data-limit-status]");
+
+    expect(status.className).toContain("focus:outline");
+    expect(status.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("hands focus to the status line even when other content is added before it", () => {
+    const view = render(host({ loaded: context(FILE_8_CONTEXT()) }));
+    buttonNamed(view, "Change limit").focus();
+    const root = view.get("[data-limit-control]");
+    const stranger = document.createElement("p");
+    root.prepend(stranger);
+
+    view.rerender(host({ loaded: context({ limitsNotice: NOTICES.invalid }) }));
+
+    expect(document.activeElement).toBe(view.get("[data-limit-status]"));
+    stranger.remove();
   });
 
   it("sends one request for a double press while it is in flight", async () => {

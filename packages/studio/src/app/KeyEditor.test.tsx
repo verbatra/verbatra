@@ -1360,6 +1360,59 @@ describe("KeyEditor length limit", () => {
     expect(rpcCalls.map((call) => call.method)).not.toContain("key.setMaxLength");
   });
 
+  it.each(["drawer", "pane"] as const)(
+    "returns focus to the limit field on Keep editing when only the limit is unsaved, and to the value field when the value is (%s)",
+    async (layout) => {
+      stubWritable();
+      stubRpc({ "key.context": context("Hallo") });
+      const view = await renderAsync(layoutOf(layout, () => {}, [DE_CHANGED, FR_MISSING]));
+      await startEditing(view);
+      await clickAsync(view.getByText("button", "Set limit"));
+      typeInto(textboxNamed(view, "Limit in characters"), "7");
+      await clickAsync(view.get('button[data-edit-locale="fr"]'));
+
+      await clickAsync(promptNamed(view, "Keep editing"));
+
+      expect(document.activeElement).toBe(textboxNamed(view, "Limit in characters"));
+
+      typeInto(field(view), "Hallo Welt");
+      await clickAsync(view.get('button[data-edit-locale="fr"]'));
+      await clickAsync(promptNamed(view, "Keep editing"));
+
+      expect(document.activeElement).toBe(field(view));
+    },
+  );
+
+  it("falls back to the value field when the limit field is gone", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+    view.get("[data-limit-form]").remove();
+
+    await clickAsync(promptNamed(view, "Keep editing"));
+
+    expect(document.activeElement).toBe(field(view));
+  });
+
+  it("lowers Save limit while the unsaved prompt is shown, so the prompt's Save is the only primary", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+    expect(view.get("[data-limit-save]").getAttribute("data-variant")).toBe("primary");
+
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+
+    expect(view.get("[data-limit-save]").getAttribute("data-variant")).toBe("secondary");
+    expect(promptNamed(view, "Save").getAttribute("data-variant")).toBe("primary");
+  });
+
   it("drops both the value draft and the limit on Discard", async () => {
     stubWritable();
     stubRpc({ "key.context": context("Hallo") });
