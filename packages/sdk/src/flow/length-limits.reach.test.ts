@@ -143,6 +143,45 @@ describe("length limits: the config wins per key", () => {
   });
 });
 
+describe("length limits: generated plural forms are measured against their own key only", () => {
+  const SOURCE_PLURAL = { items_one: "One item", items_other: "Many items" };
+  const POLISH = {
+    items_one: "Jeden element tutaj",
+    items_few: "Kilka elementow tutaj",
+    items_many: "Wiele elementow tutaj",
+    items_other: "Inne elementy tutaj",
+  };
+  const plural = (maxLength: Record<string, number>) => cfg({ targetLocales: ["pl"], maxLength });
+
+  async function exceeded(limits: Record<string, number>, sidecar: boolean): Promise<string[]> {
+    const dir = await project(SOURCE_PLURAL, {}, sidecar ? limitsDocument(limits) : undefined);
+    await writeJsonFile(join(dir, "locales", "pl.json"), POLISH);
+    const config = plural(sidecar ? {} : limits);
+    const summary = await check({ config, cwd: dir, qa: true });
+    return (summary.locales[0]?.qa?.findings ?? [])
+      .filter((finding) => finding.reason === "MAX_LENGTH_EXCEEDED")
+      .map((finding) => finding.key)
+      .sort();
+  }
+
+  it.each([
+    ["config", false],
+    ["limits file", true],
+  ])(
+    "a limit on the governing key (%s) does not reach the generated forms",
+    async (_label, sidecar) => {
+      expect(await exceeded({ items_other: 3 }, sidecar)).toEqual(["items_other"]);
+    },
+  );
+
+  it.each([
+    ["config", false],
+    ["limits file", true],
+  ])("a limit on a generated form's own key (%s) applies to it", async (_label, sidecar) => {
+    expect(await exceeded({ items_few: 3 }, sidecar)).toEqual(["items_few"]);
+  });
+});
+
 describe("length limits: keys named like Object.prototype members", () => {
   const KEYS = ["constructor", "__proto__", "toString", "hasOwnProperty"];
 

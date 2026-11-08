@@ -183,7 +183,7 @@ function findingsFor(context: QaContext, locale: string, pair: QaPair): readonly
     targetLocale: locale,
     integrity: gate.integrity,
     glossary: glossaryForLocale(context.config.glossary, locale),
-    maxLength: context.maxLength?.get(pair.sourceEntry.key),
+    maxLength: context.maxLength?.get(pair.key),
   });
   const dropped = droppedForeignPlaceholders(
     context.adapter.format,

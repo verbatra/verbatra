@@ -214,7 +214,7 @@ maxLength: {
 }
 ```
 
-- **Hier oder in `verbatra.limits.json`.** Keys werden wörtlich verglichen, nie als Globs; ein Key, der an keinem der beiden Orte gesetzt ist, wird nie gemessen. Studio kann für eine erzeugte Pluralform kein Limit setzen: Die Datei nimmt nur Keys der Quelle. Die eingecheckte Datei neben der Lock-Datei nimmt `{ "version": 1, "maxLength": { ... } }`, die Konfiguration gewinnt pro Key, und [`setKeyLengthLimit`](/de/docs/sdk/config#setkeylengthlimit) schreibt sie.
+- **Hier oder in `verbatra.limits.json`.** Keys werden wörtlich verglichen, nie als Globs; ein Key, der an keinem der beiden Orte gesetzt ist, wird nie gemessen. `setKeyLengthLimit` nimmt nur Keys der Quelle, also kann Studio für eine erzeugte Pluralform kein Limit setzen; ein von Hand geschriebener Eintrag für ihren eigenen Key gilt. Die eingecheckte Datei neben der Lock-Datei nimmt `{ "version": 1, "maxLength": { ... } }`, die Konfiguration gewinnt pro Key, und [`setKeyLengthLimit`](/de/docs/sdk/config#setkeylengthlimit) schreibt sie.
 - **Graphemcluster.** Die Länge zählt wahrgenommene Zeichen, Leerraum eingeschlossen: Ein Emoji, ein Buchstabe mit Akzent oder ein CJK-Zeichen zählt als eines. Die Grenze ist inklusiv.
 - **Wann.** Jeder Wert, den `translate` für den Key erzeugt, Cache-Wiederverwendungen eingeschlossen; ein aktueller Key wird erst gemessen, wenn sich seine Quelle ändert, oder durch [`export --include-unchanged`](/de/docs/cli/export).
 - **Beratend.** Eine Überschreitung wird trotzdem geschrieben und gelockt und als [`MAX_LENGTH_EXCEEDED`](/de/docs/error-codes#max_length_exceeded) zum Review markiert.
@@ -276,7 +276,7 @@ extract: {
 - **`framework`** muss eines mit Extractor nennen ([Aufrufformen](/de/docs/cli/extract#was-er-findet)); jedes andere wird abgelehnt.
 - **`roots`** werden gegen die Projektwurzel aufgelöst; **`exclude`** ergänzt Verzeichnisnamen (keine Pfade), die überall unterhalb eines Roots passen, zur [immer übersprungenen Menge](/de/docs/cli/extract#grenzen-des-scans).
 - **`literals.ignore`** trifft den ganzen Text eines Literals, Leerraum zusammengefasst und Referenzen aufgelöst ([Nicht übersetzte Literale](/de/docs/cli/doctor#nicht-übersetzte-literale)).
-- **`unused.ignore`** nimmt exakte Keys oder `*`-Muster für Keys, die nur außerhalb des gescannten Quellcodes verwendet werden, abgeglichen mit dem dekodierten Key ([`diff --unused`](/de/docs/cli/diff#ungenutzte-quell-keys)).
+- **`unused.ignore`** gleicht den dekodierten Key ab ([`diff --unused`](/de/docs/cli/diff#ungenutzte-quell-keys)).
 
 ## Suchreihenfolge
 

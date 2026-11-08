@@ -214,7 +214,7 @@ maxLength: {
 }
 ```
 
-- **Ici ou dans `verbatra.limits.json`.** Les clés sont comparées littéralement, jamais comme des globs ; une clé fixée dans aucun des deux n'est jamais mesurée. Studio ne peut pas limiter une forme plurielle générée : le fichier n'accepte que des clés de la source. Le fichier versionné à côté du fichier de verrou accepte `{ "version": 1, "maxLength": { ... } }`, la config l'emporte par clé et [`setKeyLengthLimit`](/fr/docs/sdk/config#setkeylengthlimit) l'écrit.
+- **Ici ou dans `verbatra.limits.json`.** Les clés sont comparées littéralement, jamais comme des globs ; une clé fixée dans aucun des deux n'est jamais mesurée. `setKeyLengthLimit` n'accepte que des clés de la source, donc Studio ne peut pas limiter une forme plurielle générée ; une entrée écrite à la main pour sa propre clé s'applique. Le fichier versionné à côté du fichier de verrou accepte `{ "version": 1, "maxLength": { ... } }`, la config l'emporte par clé et [`setKeyLengthLimit`](/fr/docs/sdk/config#setkeylengthlimit) l'écrit.
 - **Groupes de graphèmes.** La longueur compte les caractères perçus, espaces compris : un emoji, une lettre accentuée ou un caractère CJK compte pour un. La limite est inclusive.
 - **Quand.** Chaque valeur que `translate` produit pour la clé, réutilisations du cache comprises ; une clé à jour n'est mesurée que quand sa source change, ou par [`export --include-unchanged`](/fr/docs/cli/export).
 - **Consultatif.** Un dépassement est quand même écrit et verrouillé, et signalé pour relecture comme [`MAX_LENGTH_EXCEEDED`](/fr/docs/error-codes#max_length_exceeded).
@@ -276,7 +276,7 @@ extract: {
 - **`framework`** doit en nommer un doté d'un extracteur ([formes d'appel](/fr/docs/cli/extract#ce-quelle-trouve)) ; tout autre est refusé.
 - **`roots`** se résolvent par rapport à la racine du projet ; **`exclude`** ajoute des noms de répertoire (pas des chemins), reconnus n'importe où sous une racine, à l'[ensemble toujours ignoré](/fr/docs/cli/extract#limites-de-lanalyse).
 - **`literals.ignore`** correspond au texte complet d'un littéral, espaces regroupés et références décodées ([Littéraux non traduits](/fr/docs/cli/doctor#littéraux-non-traduits)).
-- **`unused.ignore`** prend des clés exactes ou des motifs `*` pour les clés utilisées uniquement hors du code analysé, comparés à la clé décodée ([`diff --unused`](/fr/docs/cli/diff#clés-source-inutilisées)).
+- **`unused.ignore`** est comparé à la clé décodée ([`diff --unused`](/fr/docs/cli/diff#clés-source-inutilisées)).
 
 ## Ordre de découverte
 
