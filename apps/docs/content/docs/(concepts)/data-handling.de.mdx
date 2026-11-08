@@ -75,7 +75,7 @@ geht nur an den konfigurierten Endpunkt (`google-translate` sendet ihn im Query-
 | `block` | Hält den Key zurück, die Locale endet also `partial`. |
 | `redact` | Sendet für jeden Treffer im Wert ein Token und setzt den Treffer wieder ein; ein Treffer in einer Beschreibung oder Bedeutung geht als `[redacted]` hinaus. Ein Treffer im Key-Namen oder ein Token, das nicht genau einmal zurückkommt, hält den Key zurück. Bei DeepL, Google und LibreTranslate zählt ein Token als Platzhalter, ein Wert, den sie nicht schützen können, wird also als `PLACEHOLDER_UNSUPPORTED` zurückgehalten. |
 
-`block` und `redact` lassen außerdem einen passenden Glossarbegriff weg. `verbatra init` schreibt bei einem maschinellen Provider `warn`. Bei einem Fehlalarm trägst du den Text in `allow` ein oder entfernst seinen Detektor. [`verbatra check --sensitive`](/de/docs/cli/check#sensible-inhalte) prüft ohne Key. Namen in freiem Text werden nicht gefunden.
+`block` und `redact` lassen außerdem einen passenden Glossarbegriff weg. `verbatra init` schreibt bei einem maschinellen Provider `warn`. [`verbatra check --sensitive`](/de/docs/cli/check#sensible-inhalte) prüft ohne Key. Namen in freiem Text werden nicht gefunden.
 
 ## Aufbewahrung und Auftragsverarbeitung beim Anbieter
 
@@ -108,6 +108,7 @@ September 2026.
 | Deine Locale-Dateien | die Übersetzungen | ja |
 | `verbatra.lock.json` | einen Hash jedes Quell-Strings, aus dem eine Übersetzung entstand | ja |
 | `verbatra.provenance.json` | pro Key Schreibpfad, Provider und Modell hinter dem Wert und eine etwaige Review-Entscheidung samt Namen des Reviewers; kein übersetzter Text, keine Zeitstempel | ja |
+| `verbatra.limits.json` | pro Key ein Längenlimit; kein Quell- und kein übersetzter Text | ja |
 | `verbatra.cache.json` | Quelltext und seine Übersetzungen, pro Provider, Modell, Tonfall, Glossar und `localeMap` | nein, `verbatra init` trägt es in die `.gitignore` ein |
 | `.verbatra-local/` | Status, Review-Flags und Token-Verbrauch des letzten Laufs, erzeugte Pseudolocales und Schreibsperren mit Hostnamen und Prozess-ID des haltenden Laufs | nein, ignoriert |
 | `.env`, `.env.local` | deine API-Keys, falls du sie dort ablegst | nie, `verbatra init` ignoriert beide |

@@ -7,7 +7,10 @@ import { z } from "zod";
 import type { ProviderId } from "../config/provider-config.js";
 import type { DataFlowApiKey, DataFlowField } from "../config/provider-data-flow.js";
 
-/** The {@link DataFlowManifest.version} this build writes. A renamed or removed field raises it. */
+/**
+ * The {@link DataFlowManifest.version} this build writes. A renamed or removed field raises it; an
+ * added enum member or optional field does not.
+ */
 export const DATA_FLOW_MANIFEST_VERSION = 1;
 
 /** Whether the provider is a prompt-driven LLM, a machine-translation API, or `none`. */
@@ -160,8 +163,8 @@ export interface DataFlowLocale {
 
 /** One file or directory verbatra writes on the local disk. */
 export interface DataFlowLocalFile {
-  /** Which file: the lock file, the provenance file, the translation memory, or the local state directory. */
-  readonly id: "lock" | "provenance" | "cache" | "local-state";
+  /** Which file: the lock file, the provenance file, the length limits file, the translation memory, or the local state directory. */
+  readonly id: "lock" | "provenance" | "limits" | "cache" | "local-state";
   /** The project-relative path it is written to, with `/` separators. */
   readonly path: string;
   /** Whether it holds source text, or text derived from it. */
@@ -324,7 +327,7 @@ const dataFlowManifestObjectSchema = z.looseObject({
   ),
   local: z.array(
     z.looseObject({
-      id: z.enum(["lock", "provenance", "cache", "local-state"]),
+      id: z.enum(["lock", "provenance", "limits", "cache", "local-state"]),
       path: z.string().min(1),
       holdsSourceText: z.boolean(),
       holdsTranslations: z.boolean(),

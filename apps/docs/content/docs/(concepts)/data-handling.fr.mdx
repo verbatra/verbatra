@@ -75,7 +75,7 @@ qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaî
 | `block` | Retient la clé, donc la locale se termine `partial`. |
 | `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. Sur DeepL, Google et LibreTranslate, un jeton compte comme un placeholder, donc une valeur qu'ils ne peuvent pas protéger est retenue comme `PLACEHOLDER_UNSUPPORTED`. |
 
-`block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. `verbatra init` écrit `warn` pour un fournisseur automatique. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. [`verbatra check --sensitive`](/fr/docs/cli/check#contenu-sensible) analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
+`block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. `verbatra init` écrit `warn` pour un fournisseur automatique. [`verbatra check --sensitive`](/fr/docs/cli/check#contenu-sensible) analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
 
 ## Conservation et traitement des données chez le fournisseur
 
@@ -108,6 +108,7 @@ septembre 2026.
 | Tes fichiers de locale | les traductions | oui |
 | `verbatra.lock.json` | un hash de chaque chaîne source à partir de laquelle une traduction a été faite | oui |
 | `verbatra.provenance.json` | par clé, le chemin d'écriture, le fournisseur et le modèle de la valeur, et toute décision de relecture avec le nom du relecteur ; aucun texte traduit ni horodatage | oui |
+| `verbatra.limits.json` | par clé, une limite de longueur ; aucun texte source ni traduit | oui |
 | `verbatra.cache.json` | le texte source et ses traductions, par fournisseur, modèle, ton, glossaire et `localeMap` | non, `verbatra init` l'ajoute au `.gitignore` |
 | `.verbatra-local/` | le statut de la dernière exécution, les signalements de relecture et la consommation de tokens, les pseudolocales générées, et les verrous d'écriture avec le nom d'hôte et l'ID de processus de l'exécution qui les détient | non, ignoré par git |
 | `.env`, `.env.local` | tes clés d'API, si tu les gardes là | jamais, `verbatra init` les ajoute tous deux au `.gitignore` |

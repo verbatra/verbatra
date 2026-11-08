@@ -73,7 +73,7 @@ key goes only to the configured endpoint (`google-translate` sends it in the `?k
 | `block` | Withholds the key, so the locale ends `partial`. |
 | `redact` | Sends a token for each match in the value and restores the match; a match in a description or meaning is sent as `[redacted]`. A match in a key name, or a token that does not come back exactly once, withholds the key. On DeepL, Google and LibreTranslate a token is a placeholder, so an unprotectable value is withheld (`PLACEHOLDER_UNSUPPORTED`). |
 
-`block` and `redact` also drop a matching glossary term. `verbatra init` writes `warn` for a machine provider. For a false positive, add the text to `allow` or drop its detector. [`verbatra check --sensitive`](/docs/cli/check#sensitive-content) runs the scan without a key. Names in free text are not found.
+`block` and `redact` also drop a matching glossary term. `verbatra init` writes `warn` for a machine provider. [`verbatra check --sensitive`](/docs/cli/check#sensitive-content) runs the scan without a key. Names in free text are not found.
 
 ## Vendor retention and data processing terms
 
@@ -105,6 +105,7 @@ Retention is set by the vendor and your contract. Quotes as of September 2026.
 | Your locale files | the translations | yes |
 | `verbatra.lock.json` | a hash of each source string a translation was made from | yes |
 | `verbatra.provenance.json` | per key, the write path, provider and model behind the value, and any review decision with the reviewer's name; no translated text or timestamps | yes |
+| `verbatra.limits.json` | per key, a length limit; no source or translated text | yes |
 | `verbatra.cache.json` | source text and its translations, per provider, model, tone, glossary and `localeMap` | no, `verbatra init` gitignores it |
 | `.verbatra-local/` | the last run's status, review flags and token usage, generated pseudolocales, and write locks naming the host and process ID of the run holding them | no, gitignored |
 | `.env`, `.env.local` | your API keys, if you keep them there | never, `verbatra init` gitignores both |

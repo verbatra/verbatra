@@ -232,6 +232,6 @@ describe("run doctor --data-flow", () => {
     for (const file of result.dataFlow?.local ?? []) {
       expect([file.id, ignored.has(file.path)]).toEqual([file.id, file.gitignoredByInit]);
     }
-    expect(result.dataFlow?.local).toHaveLength(4);
+    expect(result.dataFlow?.local).toHaveLength(5);
   });
 });

@@ -75,7 +75,7 @@ solo va al endpoint configurado (`google-translate` la envía en la cadena de co
 | `block` | Retiene la clave, así que el locale termina `partial`. |
 | `redact` | Envía un token por cada coincidencia en el valor y restaura la coincidencia; una coincidencia en una descripción o un significado se envía como `[redacted]`. Una coincidencia en el nombre de la clave, o un token que no vuelve exactamente una vez, retiene la clave. En DeepL, Google y LibreTranslate un token cuenta como placeholder, así que un valor que no pueden proteger se retiene como `PLACEHOLDER_UNSUPPORTED`. |
 
-`block` y `redact` además dejan fuera un término del glosario que coincide. `verbatra init` escribe `warn` para un proveedor automático. Ante un falso positivo, añade el texto a `allow` o quita su detector. [`verbatra check --sensitive`](/es/docs/cli/check#contenido-sensible) revisa sin clave. Los nombres en texto libre no se detectan.
+`block` y `redact` además dejan fuera un término del glosario que coincide. `verbatra init` escribe `warn` para un proveedor automático. [`verbatra check --sensitive`](/es/docs/cli/check#contenido-sensible) revisa sin clave. Los nombres en texto libre no se detectan.
 
 ## Retención y tratamiento de datos del proveedor
 
@@ -108,6 +108,7 @@ La retención la deciden el proveedor y tu contrato. Citas en su inglés origina
 | Tus archivos de locale | las traducciones | sí |
 | `verbatra.lock.json` | un hash de cada texto de origen del que salió una traducción | sí |
 | `verbatra.provenance.json` | por clave, la vía de escritura, el proveedor y el modelo del valor, y cualquier decisión de revisión con el nombre del revisor; sin texto traducido ni marcas de tiempo | sí |
+| `verbatra.limits.json` | por clave, un límite de longitud; sin texto de origen ni traducido | sí |
 | `verbatra.cache.json` | el texto de origen y sus traducciones, por proveedor, modelo, tono, glosario y `localeMap` | no, `verbatra init` lo añade a `.gitignore` |
 | `.verbatra-local/` | el estado de la última ejecución, las señales de revisión y el uso de tokens, los pseudolocales generados y los bloqueos de escritura con el nombre de host y el ID de proceso de la ejecución que los tiene | no, está en `.gitignore` |
 | `.env`, `.env.local` | tus claves de API, si las guardas ahí | nunca, `verbatra init` añade ambos a `.gitignore` |

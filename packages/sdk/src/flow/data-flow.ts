@@ -16,6 +16,7 @@ import type { TranslationEntry } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { cacheFilePath } from "../cache/translation-memory.js";
 import { glossaryForLocale } from "../config/glossary.js";
+import { limitsFilePath } from "../config/limits-file.js";
 import {
   type LoadConfigOptions,
   type LoadedConfig,
@@ -314,6 +315,14 @@ function describeLocalFiles(cwd: string): readonly DataFlowLocalFile[] {
       holdsSourceText: false,
       holdsTranslations: false,
       holdsPersonalData: true,
+      gitignoredByInit: false,
+    },
+    {
+      id: "limits",
+      path: limitsFilePath(cwd),
+      holdsSourceText: false,
+      holdsTranslations: false,
+      holdsPersonalData: false,
       gitignoredByInit: false,
     },
     {
