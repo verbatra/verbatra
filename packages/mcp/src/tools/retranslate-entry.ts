@@ -21,6 +21,9 @@ const retranslateEntryResultSchema = z.object({
   reviewReasons: z.array(z.enum(REVIEW_REASON_CODES)).readonly().optional(),
   reason: z.enum(INTEGRITY_GATE_REASONS).optional(),
   details: z.array(z.string()).readonly().optional(),
+  limitsNotice: z
+    .object({ code: z.literal("LIMITS_FILE_IGNORED"), message: z.string() })
+    .optional(),
 });
 
 export type RetranslateEntryResult = z.infer<typeof retranslateEntryResultSchema>;

@@ -168,7 +168,7 @@ With `--json`, `result.sensitive` is `{ findings, glossaryTerms }`, each finding
 
 <AvailableFrom version="0.12.0" />
 
-`--file <path>` checks one locale file, for editor and agent hooks after an edit. It reads that file, `verbatra.limits.json` (ignored without a notice if unusable; [`doctor`](/docs/cli/doctor) names the problem) and, for a target locale, the source file, nothing else. The path is resolved against `--cwd` and matched against `files.pattern` to find its locale.
+`--file <path>` checks one locale file, for editor and agent hooks after an edit. It reads that file, `verbatra.limits.json` (if unusable, ignored with a notice on stderr, as under `--qa`; [`doctor`](/docs/cli/doctor) names the problem) and, for a target locale, the source file, nothing else. The path is resolved against `--cwd` and matched against `files.pattern` to find its locale.
 
 - A file that does not parse is one `syntax` error with the adapter's code (`INVALID_JSON`, `INVALID_YAML`, ...) and the line and column when the parser reports a position.
 - A target file is checked like [`--qa`](#quality-check), plural categories included; a source file for syntax only. An `apple-xcstrings` catalogue is checked for every target locale.

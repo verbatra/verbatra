@@ -23,6 +23,7 @@ import { baselineFor } from "../../lock/lock-file.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import { withForeignPlaceholderReason } from "../foreign-placeholders.js";
 import { branchArmProblems } from "../integrity-gate.js";
+import { type LimitsFileNotice, limitsNoticeField } from "../limits-notice.js";
 import { readCarriedOverLock, readCarriedOverProvenance } from "../locale-carry-over.js";
 import { readTargetResource } from "../read-target.js";
 import {
@@ -128,6 +129,12 @@ export interface ExportWorkbookResult {
    * newer verbatra (`unavailable`). The export itself succeeds either way.
    */
   readonly provenanceMarkers?: ProvenanceMarkers;
+  /**
+   * Present when `verbatra.limits.json` could not be used, so the `max-length-exceeded` review
+   * reasons in the handoff were judged against the config's `maxLength` budgets alone. The export
+   * itself succeeds.
+   */
+  readonly limitsNotice?: LimitsFileNotice;
 }
 
 function reasonLabel(reason: string): string {
@@ -447,8 +454,8 @@ async function resolveHandoffPath(
  * written surfaces as `EXPORT_UNWRITABLE`, never as a raw file-system error. An existing file at
  * the output path is replaced.
  *
- * A `verbatra.limits.json` that cannot be used is ignored here without a notice, so only the
- * config's `maxLength` budgets apply; {@link doctor} reports it under its `limits` check.
+ * A `verbatra.limits.json` that cannot be used is ignored, so only the config's `maxLength`
+ * budgets apply, and the result's `limitsNotice` says so; {@link doctor} names the problem.
  *
  * @param input - The config, output path, config and glossary paths to protect, locale filter, and
  * handoff format.
@@ -493,7 +500,8 @@ export async function exportWorkbook(
     locales,
   );
 
-  const { limits: maxLengthBudgets } = await resolveMaxLengths({ config, cwd, fs });
+  const maxLengths = await resolveMaxLengths({ config, cwd, fs });
+  const maxLengthBudgets = maxLengths.limits;
   const source = await readSourceResource(config, resolver, fs, adapter);
   const lock = await readCarriedOverLock(cwd, fs, locales);
 
@@ -539,5 +547,6 @@ export async function exportWorkbook(
     path,
     locales: sheets.map((sheet) => ({ locale: sheet.locale, rows: sheet.rows.length })),
     ...(provenanceMarkers !== undefined ? { provenanceMarkers } : {}),
+    ...limitsNoticeField(maxLengths.unusable),
   };
 }

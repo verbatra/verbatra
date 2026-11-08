@@ -3,13 +3,12 @@ import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { type Glossary, redactGlossary } from "../config/glossary.js";
 import { type GlossaryConfig, readCurrentGlossary } from "../config/glossary-file.js";
 import { glossaryDraftCheck, glossaryHits } from "../config/glossary-hits.js";
-import type { LimitsUnusable } from "../config/limits-file.js";
 import { projectCwd } from "../config/project-root.js";
 import { type MaxLengthSource, resolveMaxLengths } from "../config/resolve-max-lengths.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { redact } from "../redact.js";
 import { type KeyValueResult, keyValue } from "./key-value.js";
-import { limitsIgnoredNotice } from "./limits-notice.js";
+import { type LimitsFileNotice, limitsNoticeField } from "./limits-notice.js";
 
 /** Input for {@link keyContext}. */
 export interface KeyContextInput {
@@ -41,14 +40,6 @@ export interface KeyContextGlossaryNotice {
   readonly message: string;
 }
 
-/** Why the limits part of a {@link KeyContext} holds the config's budget alone although `verbatra.limits.json` exists. */
-export interface KeyContextLimitsNotice {
-  /** Always `LIMITS_FILE_IGNORED`. */
-  readonly code: "LIMITS_FILE_IGNORED";
-  /** What is wrong with the file, never a path or a value. */
-  readonly message: string;
-}
-
 /** What a translator needs to write one key in one target locale, as returned by {@link keyContext}. */
 export interface KeyContext extends KeyValueResult {
   /** The glossary terms whose source occurs in the source text, as that locale is held to them. */
@@ -58,7 +49,7 @@ export interface KeyContext extends KeyValueResult {
   /** Where `maxLength` comes from: the config wins over the limits file. Present exactly when `maxLength` is. */
   readonly maxLengthSource?: MaxLengthSource;
   /** Present when `verbatra.limits.json` could not be used, so `maxLength` is the config's alone. Its code is `LIMITS_FILE_IGNORED`. */
-  readonly limitsNotice?: KeyContextLimitsNotice;
+  readonly limitsNotice?: LimitsFileNotice;
   /** How the input's `draft` uses the applying terms, absent when no draft was given. */
   readonly draftCheck?: GlossaryDraftCheck;
   /** Present when the glossary could not be read; the glossary part is then empty. */
@@ -68,11 +59,6 @@ export interface KeyContext extends KeyValueResult {
 interface GlossaryRead {
   readonly glossary: Glossary | undefined;
   readonly notice?: KeyContextGlossaryNotice;
-}
-
-function limitsNoticeOf(unusable: LimitsUnusable): KeyContextLimitsNotice {
-  const { message } = limitsIgnoredNotice(unusable);
-  return { code: "LIMITS_FILE_IGNORED", message };
 }
 
 function codeOf(error: unknown): string {
@@ -153,8 +139,7 @@ export async function keyContext(
     resolveMaxLengths({ config, cwd, fs: deps.fs ?? defaultFs }),
   ]);
   const glossary = glossaryRead.glossary;
-  const maxLength = maxLengths.limits?.get(input.key);
-  const maxLengthSource = maxLengths.sources.get(input.key);
+  const budget = maxLengths.entries.get(input.key);
   return {
     ...value,
     glossary: glossaryHits({
@@ -163,12 +148,8 @@ export async function keyContext(
       sourceLocale: config.sourceLocale,
       source: value.source,
     }),
-    ...(maxLength !== undefined && maxLengthSource !== undefined
-      ? { maxLength, maxLengthSource }
-      : {}),
-    ...(maxLengths.unusable !== undefined
-      ? { limitsNotice: limitsNoticeOf(maxLengths.unusable) }
-      : {}),
+    ...(budget !== undefined ? { maxLength: budget.value, maxLengthSource: budget.source } : {}),
+    ...limitsNoticeField(maxLengths.unusable),
     ...(glossaryRead.notice !== undefined ? { glossaryNotice: glossaryRead.notice } : {}),
     ...(input.draft !== undefined
       ? {

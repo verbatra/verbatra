@@ -8,6 +8,7 @@ import {
   withDroppedPlaceholderReason,
 } from "./foreign-placeholders.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import type { LimitsFileNotice } from "./limits-notice.js";
 import { planPluralGeneration } from "./plural-categories.js";
 
 /**
@@ -96,6 +97,8 @@ export interface CheckQaSummary {
    * against such a source, so these keys are skipped in every locale until the source is fixed.
    */
   readonly invalidSourceKeys: readonly string[];
+  /** Present when `verbatra.limits.json` could not be used, so `MAX_LENGTH_EXCEEDED` was judged against the config's budgets alone. */
+  readonly limitsNotice?: LimitsFileNotice;
 }
 
 export interface QaContext {
@@ -223,6 +226,7 @@ export function qaLocale(
 export function totalQa(
   reports: readonly Pick<LocaleQaReport, "errors" | "warnings">[],
   invalidSourceKeys: readonly string[],
+  limitsNotice: LimitsFileNotice | undefined,
 ): CheckQaSummary {
   let errors = 0;
   let warnings = 0;
@@ -230,5 +234,10 @@ export function totalQa(
     errors += report.errors;
     warnings += report.warnings;
   }
-  return { errors, warnings, invalidSourceKeys: [...invalidSourceKeys].sort() };
+  return {
+    errors,
+    warnings,
+    invalidSourceKeys: [...invalidSourceKeys].sort(),
+    ...(limitsNotice !== undefined ? { limitsNotice } : {}),
+  };
 }

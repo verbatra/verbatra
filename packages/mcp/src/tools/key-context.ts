@@ -27,7 +27,9 @@ const keyContextResultSchema = z.object({
   }),
   maxLength: z.number().optional(),
   maxLengthSource: z.enum(["config", "limits-file"]).optional(),
-  limitsNotice: z.object({ code: z.string(), message: z.string() }).optional(),
+  limitsNotice: z
+    .object({ code: z.literal("LIMITS_FILE_IGNORED"), message: z.string() })
+    .optional(),
   draftCheck: z
     .object({
       terms: z

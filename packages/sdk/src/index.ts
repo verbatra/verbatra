@@ -341,7 +341,6 @@ export {
   type KeyContextDeps,
   type KeyContextGlossaryNotice,
   type KeyContextInput,
-  type KeyContextLimitsNotice,
   keyContext,
 } from "./flow/key-context.js";
 export {
@@ -370,6 +369,7 @@ export {
   type KeyValueResult,
   keyValue,
 } from "./flow/key-value.js";
+export type { LimitsFileNotice } from "./flow/limits-notice.js";
 export type {
   LanguageTableRefresh,
   LanguageTableRefreshStatus,

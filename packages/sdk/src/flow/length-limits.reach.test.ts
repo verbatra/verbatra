@@ -7,11 +7,14 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { baseConfig, makeStubProvider, makeTempDir, writeJsonFile } from "../test-support.js";
 import { check } from "./check.js";
 import { checkFile } from "./check-file.js";
+import { checkFileSummarySchema } from "./check-file-schema.js";
+import { checkSummarySchema } from "./check-schema.js";
 import { keyContext } from "./key-context.js";
 import { retranslateEntry } from "./retranslate-entry.js";
 import { runSummarySchema } from "./summary-schema.js";
 import { translate } from "./translate-project.js";
 import { exportWorkbook } from "./workbook/export-workbook.js";
+import { exportWorkbookResultSchema } from "./workbook/export-workbook-schema.js";
 
 const cfg = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
   baseConfig({ targetLocales: ["de"], format: "i18next-json", ...overrides });
@@ -225,9 +228,8 @@ describe("length limits: an unusable limits file", () => {
     );
   });
 
-  it("does not throw from keyContext, check, export or retranslate, and keyContext says why", async () => {
+  it("returns the notice from keyContext, with the reason", async () => {
     const dir = await project(SOURCE, LONG_TARGET, CORRUPT);
-    const stub = makeStubProvider();
 
     const context = await keyContext({
       loaded: { config: cfg(), glossary: { source: "inline" } },
@@ -235,17 +237,86 @@ describe("length limits: an unusable limits file", () => {
       locale: "de",
       key: "a",
     });
-    await check({ config: cfg(), cwd: dir, qa: true });
-    await checkFile({ config: cfg(), cwd: dir, file: "locales/de.json" });
-    await exportWorkbook({ config: cfg(), cwd: dir, includeUnchanged: true });
-    await retranslateEntry(
-      { config: cfg(), cwd: dir, locale: "de", key: "a" },
-      { createProvider: () => stub.provider },
-    );
 
     expect(context.limitsNotice?.code).toBe("LIMITS_FILE_IGNORED");
     expect(context.limitsNotice?.message).toContain("not valid JSON");
     expect(context.maxLength).toBeUndefined();
+  });
+
+  it("returns the notice from check --qa, and none without qa or for a usable file", async () => {
+    const dir = await project(SOURCE, LONG_TARGET, CORRUPT);
+    const usable = await project(SOURCE, LONG_TARGET, limitsDocument({ a: 99 }));
+
+    const withQa = await check({ config: cfg(), cwd: dir, qa: true });
+    const withoutQa = await check({ config: cfg(), cwd: dir });
+    const fine = await check({ config: cfg(), cwd: usable, qa: true });
+
+    expect(withQa.qa?.limitsNotice).toEqual({
+      code: "LIMITS_FILE_IGNORED",
+      message: expect.stringContaining("not valid JSON"),
+    });
+    expect(withoutQa.qa).toBeUndefined();
+    expect(fine.qa?.limitsNotice).toBeUndefined();
+    expect(checkSummarySchema.parse(withQa).qa?.limitsNotice).toEqual(withQa.qa?.limitsNotice);
+  });
+
+  it("returns the notice from checkFile for a target, a source and a usable file", async () => {
+    const dir = await project(SOURCE, LONG_TARGET, CORRUPT);
+    const usable = await project(SOURCE, LONG_TARGET, limitsDocument({ a: 99 }));
+
+    const target = await checkFile({ config: cfg(), cwd: dir, file: "locales/de.json" });
+    const source = await checkFile({ config: cfg(), cwd: dir, file: "locales/en.json" });
+    const fine = await checkFile({ config: cfg(), cwd: usable, file: "locales/de.json" });
+
+    expect(target.qa.limitsNotice?.code).toBe("LIMITS_FILE_IGNORED");
+    expect(source.qa.limitsNotice?.code).toBe("LIMITS_FILE_IGNORED");
+    expect(fine.qa.limitsNotice).toBeUndefined();
+    expect(checkFileSummarySchema.parse(target).qa.limitsNotice).toEqual(target.qa.limitsNotice);
+  });
+
+  it("returns the notice from exportWorkbook, valid under the published schema", async () => {
+    const dir = await project(SOURCE, LONG_TARGET, CORRUPT);
+    const usable = await project(SOURCE, LONG_TARGET, limitsDocument({ a: 99 }));
+
+    const result = await exportWorkbook({ config: cfg(), cwd: dir, includeUnchanged: true });
+    const fine = await exportWorkbook({ config: cfg(), cwd: usable, includeUnchanged: true });
+
+    expect(result.limitsNotice?.code).toBe("LIMITS_FILE_IGNORED");
+    expect(fine.limitsNotice).toBeUndefined();
+    expect(exportWorkbookResultSchema.parse(result).limitsNotice).toEqual(result.limitsNotice);
+  });
+
+  it("returns the notice from retranslateEntry on an accepted and on a refused value", async () => {
+    const dir = await project(SOURCE, LONG_TARGET, CORRUPT);
+    const refusing = await project(SOURCE, LONG_TARGET, CORRUPT);
+    const accepting = makeStubProvider();
+    const refused = makeStubProvider({ failIntegrity: new Set(["a"]) });
+
+    const ok = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "a" },
+      { createProvider: () => accepting.provider },
+    );
+    const bad = await retranslateEntry(
+      { config: cfg(), cwd: refusing, locale: "de", key: "a" },
+      { createProvider: () => refused.provider },
+    );
+
+    expect(ok.accepted).toBe(true);
+    expect(ok.limitsNotice?.code).toBe("LIMITS_FILE_IGNORED");
+    expect(bad.accepted).toBe(false);
+    expect(bad.limitsNotice?.code).toBe("LIMITS_FILE_IGNORED");
+  });
+
+  it("returns no notice from retranslateEntry for a usable file", async () => {
+    const dir = await project(SOURCE, LONG_TARGET, limitsDocument({ a: 99 }));
+    const stub = makeStubProvider();
+
+    const result = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "a" },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(result.limitsNotice).toBeUndefined();
   });
 
   it("falls back to the config limits for a key the config sets", async () => {

@@ -168,7 +168,7 @@ Mit `--json` ist `result.sensitive` gleich `{ findings, glossaryTerms }`, jeder 
 
 <AvailableFrom version="0.12.0" />
 
-`--file <path>` prüft eine einzelne Locale-Datei, gedacht für Editor- und Agent-Hooks nach einer Änderung. Es liest diese Datei, `verbatra.limits.json` (ohne Meldung ignoriert, wenn unbrauchbar; [`doctor`](/de/docs/cli/doctor) nennt das Problem) und, bei einer Ziel-Locale, die Quelldatei, sonst nichts. Der Pfad wird gegen `--cwd` aufgelöst und über `files.pattern` einer Locale zugeordnet.
+`--file <path>` prüft eine einzelne Locale-Datei, gedacht für Editor- und Agent-Hooks nach einer Änderung. Es liest diese Datei, `verbatra.limits.json` (wenn unbrauchbar, mit einem Hinweis auf stderr ignoriert, wie unter `--qa`; [`doctor`](/de/docs/cli/doctor) nennt das Problem) und, bei einer Ziel-Locale, die Quelldatei, sonst nichts. Der Pfad wird gegen `--cwd` aufgelöst und über `files.pattern` einer Locale zugeordnet.
 
 - Eine Datei, die sich nicht parsen lässt, ergibt einen `syntax`-Fehler mit dem Code des Adapters (`INVALID_JSON`, `INVALID_YAML`, ...) und Zeile und Spalte, wenn der Parser eine Position meldet.
 - Eine Zieldatei wird wie bei [`--qa`](#qualitätsprüfung) geprüft, Pluralkategorien eingeschlossen, eine Quelldatei nur auf Syntax. Ein `apple-xcstrings`-Katalog wird für jede Ziel-Locale geprüft.

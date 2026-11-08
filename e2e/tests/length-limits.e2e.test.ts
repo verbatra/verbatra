@@ -83,6 +83,17 @@ describe("length limits in the published binary", () => {
     );
   });
 
+  it("check --qa and export say on stderr that an unusable file was ignored", async () => {
+    const dir = await project("limits-corrupt-stderr", "{ not json");
+
+    const check = await runVerbatra(consumer, ["check", "--qa", "--cwd", dir]);
+    const exported = await runVerbatra(consumer, ["export", "--cwd", dir]);
+
+    expect(check.stderr).toContain("verbatra.limits.json is not valid JSON");
+    expect(exported.exitCode).toBe(0);
+    expect(exported.stderr).toContain("verbatra.limits.json is not valid JSON");
+  });
+
   it("doctor --data-flow lists the limits file as holding no source text", async () => {
     const dir = await project("limits-data-flow");
 

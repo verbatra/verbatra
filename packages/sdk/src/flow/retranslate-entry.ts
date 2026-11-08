@@ -38,6 +38,7 @@ import { throwIfCancelled, unlessCancelled } from "./cancellation.js";
 import { readTarget } from "./diff-locales.js";
 import { withForeignPlaceholderReason } from "./foreign-placeholders.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import { type LimitsFileNotice, limitsNoticeField } from "./limits-notice.js";
 import { assertConfiguredLocalesSupported } from "./locale-capabilities.js";
 import { carryOverBeforeWrite } from "./locale-carry-over.js";
 import {
@@ -121,6 +122,11 @@ export type RetranslateEntryResult =
        * when nothing was flagged. The value is written either way; these are advisory.
        */
       readonly reviewReasons: readonly ReviewReasonCode[];
+      /**
+       * Present when `verbatra.limits.json` could not be used, so `reviewReasons` was judged against
+       * the config's `maxLength` budgets alone.
+       */
+      readonly limitsNotice?: LimitsFileNotice;
     }
   | {
       /** The value was refused; nothing was written and the previous translation is intact. */
@@ -140,6 +146,11 @@ export type RetranslateEntryResult =
       readonly details?: readonly string[];
       /** The rejected value, echoed back so a UI can show what was refused. */
       readonly value: string;
+      /**
+       * Present when `verbatra.limits.json` could not be used, so the provider was given the
+       * config's `maxLength` budgets alone.
+       */
+      readonly limitsNotice?: LimitsFileNotice;
     };
 
 const RETRANSLATION_CANCELLED =
@@ -165,6 +176,7 @@ interface UnderLockContext {
   readonly key: string;
   readonly sourceEntry: TranslationEntry;
   readonly maxLength: ReadonlyMap<string, number> | undefined;
+  readonly limitsNotice: { readonly limitsNotice?: LimitsFileNotice };
   readonly policy: ProtectionPolicy;
   readonly provider: TranslationProvider;
   readonly recordLock: LocaleWriteLockOptions;
@@ -286,10 +298,11 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
       reason: gate.reason,
       ...(gate.details !== undefined ? { details: gate.details } : {}),
       value,
+      ...context.limitsNotice,
     };
   }
   await saveAccepted(context, target, value);
-  return { accepted: true, value, reviewReasons };
+  return { accepted: true, value, reviewReasons, ...context.limitsNotice };
 }
 
 /**
@@ -320,8 +333,9 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * adapter codes to its own copy. A caller that maps SDK codes should be ready for an unrecognized
  * error from a target file on either path.
  *
- * A `verbatra.limits.json` that cannot be used is ignored here without a notice, so the value is
- * held to the config's `maxLength` budgets only; {@link doctor} reports it under its `limits` check.
+ * A `verbatra.limits.json` that cannot be used is ignored, so the value is held to the config's
+ * `maxLength` budgets only, and the result's `limitsNotice` says so; {@link doctor} names the
+ * problem.
  *
  * It spends outside the token budget. `maxTokens` and `budgetBehavior` bound a {@link translate}
  * run, and this is its own single-key path with its own provider, so a configured ceiling neither
@@ -430,7 +444,7 @@ export async function retranslateEntry(
   });
   assertSendable(sensitive, sourceEntry, locale);
   await assertProvenanceReadable(cwd, fs);
-  const { limits: maxLength } = await resolveMaxLengths({ config, cwd, fs });
+  const maxLengths = await resolveMaxLengths({ config, cwd, fs });
   throwIfCancelled(input.signal, RETRANSLATION_CANCELLED);
   await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
 
@@ -447,7 +461,8 @@ export async function retranslateEntry(
         locale,
         key: input.key,
         sourceEntry,
-        maxLength,
+        maxLength: maxLengths.limits,
+        limitsNotice: limitsNoticeField(maxLengths.unusable),
         policy,
         provider,
         recordLock: recordLockOptions(input),

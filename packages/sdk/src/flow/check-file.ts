@@ -16,6 +16,7 @@ import { createLocalePathResolver, type LocalePathResolver } from "../locale-pat
 import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
 import { projectRelativeMessage } from "../project-relative.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { type LimitsFileNotice, limitsIgnoredNotice } from "./limits-notice.js";
 import { findIncompletePlurals, type IncompletePlural } from "./plural-completeness.js";
 import {
   type CheckQaSummary,
@@ -151,6 +152,7 @@ interface FileCheckContext {
   readonly fs: SdkFs;
   readonly severity: QaSeverity;
   readonly maxLength: ReadonlyMap<string, number> | undefined;
+  readonly limitsNotice: LimitsFileNotice | undefined;
 }
 
 type FileRead =
@@ -242,6 +244,7 @@ function summary(
     qa: totalQa(
       locales.map((entry) => entry.qa),
       invalidSourceKeys,
+      context.limitsNotice,
     ),
   };
 }
@@ -329,8 +332,8 @@ const CHECKS_BY_ROLE: Readonly<
  * syntax alone, since there is nothing to hold it against; its keys whose value is not a valid ICU
  * message are listed in `qa.invalidSourceKeys`.
  *
- * A `verbatra.limits.json` that cannot be used is ignored here without a notice, so only the
- * config's `maxLength` budgets apply; {@link doctor} reports it under its `limits` check.
+ * A `verbatra.limits.json` that cannot be used is ignored, so only the config's `maxLength`
+ * budgets apply, and the result's `qa.limitsNotice` says so; {@link doctor} names the problem.
  *
  * @param input - The config, the file, and the optional severity floor.
  * @param deps - Optional adapter registry and file-system overrides.
@@ -353,6 +356,7 @@ export async function checkFile(
 ): Promise<CheckFileSummary> {
   const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
+  const maxLengths = await resolveMaxLengths({ config: input.config, cwd, fs });
   const context: FileCheckContext = {
     config: input.config,
     cwd,
@@ -361,7 +365,9 @@ export async function checkFile(
     resolver: createLocalePathResolver(cwd, input.config),
     fs,
     severity: input.qaSeverity ?? "warning",
-    maxLength: (await resolveMaxLengths({ config: input.config, cwd, fs })).limits,
+    maxLength: maxLengths.limits,
+    limitsNotice:
+      maxLengths.unusable === undefined ? undefined : limitsIgnoredNotice(maxLengths.unusable),
   };
   const named = namedFileOf(context);
   if (!(await fs.fileExists(context.path))) {

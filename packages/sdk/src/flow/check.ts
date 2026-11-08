@@ -22,6 +22,7 @@ import {
   scanProjectForSensitiveContent,
 } from "../sensitive/check-scan.js";
 import { diffLocalesWithSource, type LocaleDiffResult } from "./diff-locales.js";
+import { limitsIgnoredNotice } from "./limits-notice.js";
 import { findIncompletePlurals, type IncompletePlural } from "./plural-completeness.js";
 import { reportedProtectedKeys } from "./protection.js";
 import {
@@ -358,8 +359,9 @@ function qaReports(
  * locale and the resolved path. A caller that maps SDK codes should be ready for an unrecognized
  * error from a target file.
  *
- * A `verbatra.limits.json` that cannot be used is ignored here without a notice, so only the
- * config's `maxLength` budgets apply; {@link doctor} reports it under its `limits` check.
+ * With `qa` set, a `verbatra.limits.json` that cannot be used is ignored, so only the config's
+ * `maxLength` budgets apply, and `qa.limitsNotice` in the result says so; {@link doctor} names the
+ * problem.
  *
  * @param input - The config and the optional locale filter.
  * @param deps - Optional adapter registry and file-system overrides.
@@ -384,17 +386,15 @@ export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<Ch
   );
   const consistency =
     input.consistency === true ? consistencyOptions(input.config.format) : undefined;
-  const maxLength =
+  const maxLengths =
     input.qa === true
-      ? (
-          await resolveMaxLengths({
-            config: input.config,
-            cwd: projectCwd(input),
-            fs: deps.fs ?? defaultFs,
-          })
-        ).limits
+      ? await resolveMaxLengths({
+          config: input.config,
+          cwd: projectCwd(input),
+          fs: deps.fs ?? defaultFs,
+        })
       : undefined;
-  const qa = qaReports(input, adapter, sourceInvalidIcuKeys, results, maxLength);
+  const qa = qaReports(input, adapter, sourceInvalidIcuKeys, results, maxLengths?.limits);
   const review = input.requireReviewed === true ? results.map(reviewReport) : undefined;
   const locales = results.map((result, index) =>
     toCheckSummary(input.config, result, consistency, qa?.[index], review?.[index]),
@@ -402,7 +402,17 @@ export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<Ch
   return {
     inSync: locales.every((entry) => entry.inSync),
     locales,
-    ...(qa !== undefined ? { qa: totalQa(qa, sourceInvalidIcuKeys) } : {}),
+    ...(qa !== undefined
+      ? {
+          qa: totalQa(
+            qa,
+            sourceInvalidIcuKeys,
+            maxLengths?.unusable === undefined
+              ? undefined
+              : limitsIgnoredNotice(maxLengths.unusable),
+          ),
+        }
+      : {}),
     ...(review !== undefined ? { review: reviewSummary(results, review) } : {}),
     ...(input.sensitive === true
       ? {

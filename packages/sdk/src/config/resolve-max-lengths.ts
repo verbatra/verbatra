@@ -6,9 +6,14 @@ import type { VerbatraConfig } from "./schema.js";
 /** Where a key's `maxLength` budget comes from: the config's own `maxLength`, or `verbatra.limits.json`. The config wins per key. */
 export type MaxLengthSource = "config" | "limits-file";
 
+export interface ResolvedMaxLength {
+  readonly value: number;
+  readonly source: MaxLengthSource;
+}
+
 export interface ResolvedMaxLengths {
   readonly limits: ReadonlyMap<string, number> | undefined;
-  readonly sources: ReadonlyMap<string, MaxLengthSource>;
+  readonly entries: ReadonlyMap<string, ResolvedMaxLength>;
   readonly unusable?: LimitsUnusable;
 }
 
@@ -22,21 +27,21 @@ export async function resolveMaxLengths(
   input: ResolveMaxLengthsInput,
 ): Promise<ResolvedMaxLengths> {
   const read = await readLimitsFile(limitsFilePath(input.cwd), input.fs);
-  const merged = new Map<string, number>();
-  const sources = new Map<string, MaxLengthSource>();
+  const entries = new Map<string, ResolvedMaxLength>();
   if (read.kind === "ok") {
     for (const [key, value] of read.limits) {
-      merged.set(key, value);
-      sources.set(key, "limits-file");
+      entries.set(key, { value, source: "limits-file" });
     }
   }
   for (const [key, value] of toMaxLengthMap(input.config.maxLength) ?? []) {
-    merged.set(key, value);
-    sources.set(key, "config");
+    entries.set(key, { value, source: "config" });
   }
   return {
-    limits: merged.size === 0 ? undefined : merged,
-    sources,
+    limits:
+      entries.size === 0
+        ? undefined
+        : new Map([...entries].map(([key, entry]) => [key, entry.value])),
+    entries,
     ...(read.kind === "unusable" ? { unusable: read.unusable } : {}),
   };
 }
