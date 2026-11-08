@@ -51,7 +51,7 @@ describe("lengthSummary", () => {
   });
 });
 
-describe("lengthSummary agrees with the review flag on what a character is", () => {
+describe("lengthSummary counts the ZWJ and combining-mark fixtures of the ai-providers review flag tests with the same counts", () => {
   const family = String.fromCodePoint(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467);
   const decomposed = `cafe${String.fromCodePoint(0x301)}`;
 
