@@ -273,16 +273,14 @@ describe("setKeyLengthLimit: refusing input", () => {
     expect(error.code).toBe("SOURCE_UNREADABLE");
   });
 
-  it("writes U+FFFD as an escape, not as raw bytes, so the file stays readable", async () => {
+  it("keeps a key holding U+FFFD readable: it is valid UTF-8 and the file stays usable", async () => {
     const key = "a\uFFFDb";
     const dir = await project();
     await writeJsonFile(join(dir, "locales", "en.json"), { [key]: "Value", a: "A" });
 
     await setKeyLengthLimit({ config: cfg(), cwd: dir, key, maxLength: 9 });
-    const text = await limitsText(dir);
     const next = await setKeyLengthLimit({ config: cfg(), cwd: dir, key: "a", maxLength: 3 });
 
-    expect(text).not.toContain("\uFFFD");
     expect(next.changed).toBe(true);
     expect(JSON.parse(await limitsText(dir)).maxLength[key]).toBe(9);
   });
@@ -336,7 +334,7 @@ describe("setKeyLengthLimit: an unusable limits file is never overwritten", () =
     },
   );
 
-  it("refuses a directory at the path", async () => {
+  it("treats a file that exists but cannot be read as a permissions problem, not as one to restore or delete", async () => {
     const dir = await project();
     await mkdir(join(dir, LIMITS_FILE_NAME));
 
@@ -344,7 +342,11 @@ describe("setKeyLengthLimit: an unusable limits file is never overwritten", () =
       setKeyLengthLimit({ config: cfg(), cwd: dir, key: "a", maxLength: 5 }),
     );
 
-    expect(error.code).toBe("LIMITS_FILE_UNUSABLE");
+    expect(error.code).toBe("LIMITS_FILE_UNWRITABLE");
+    expect(error.message).toBe(
+      "verbatra.limits.json exists but could not be read (a permissions problem). Nothing was written.",
+    );
+    expect(error.message).not.toMatch(/restore|delete/i);
   });
 });
 
@@ -485,11 +487,11 @@ describe("setKeyLengthLimit: failures of the file system", () => {
     const failure = Object.assign(new Error("EIO: i/o error"), { code: "EIO" });
     const fs: SdkFs = {
       ...defaultFs,
-      readFileBounded: async (path, maxBytes) => {
+      readBytesBounded: async (path, maxBytes) => {
         if (path.endsWith(LIMITS_FILE_NAME)) {
           throw failure;
         }
-        return defaultFs.readFileBounded(path, maxBytes);
+        return defaultFs.readBytesBounded(path, maxBytes);
       },
     };
 

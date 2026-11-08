@@ -6,13 +6,18 @@ import { makeFakeFs, makeTempDir } from "../test-support.js";
 import {
   LIMITS_FILE_NAME,
   limitsFilePath,
+  limitsRemedy,
   MAX_LIMITS_ENTRIES,
   MAX_LIMITS_FILE_BYTES,
   MAX_LIMITS_KEY_LENGTH,
-  parseLimitsContent,
+  parseLimitsBytes,
   readLimitsFile,
   serializeLimits,
 } from "./limits-file.js";
+
+function parseLimitsContent(content: string): ReturnType<typeof parseLimitsBytes> {
+  return parseLimitsBytes(new TextEncoder().encode(content));
+}
 
 function document(maxLength: Record<string, unknown>): string {
   return JSON.stringify({ version: 1, maxLength });
@@ -82,32 +87,39 @@ describe("parseLimitsContent", () => {
     expect(reasonOf('{"version":2,"somethingNew":true}')).toBe("unsupported-version");
   });
 
-  it("refuses text that is not JSON, or not UTF-8", () => {
+  it("refuses text that is not JSON", () => {
     expect(reasonOf("{")).toBe("not-json");
     expect(reasonOf("")).toBe("not-json");
-    expect(reasonOf(`${document({})}�`)).toBe("not-utf8");
-    expect(reasonOf(`${document({})}\u0000`)).toBe("not-utf8");
   });
 
-  it("names the escape for a literal U+FFFD and reads the escaped spelling", () => {
-    const literal = parseLimitsContent(
-      `{"version":1,"maxLength":{"a${String.fromCodePoint(0xfffd)}b":5}}`,
-    );
+  it.each([
+    ["a stray continuation byte", [0x7b, 0x80, 0x7d]],
+    ["a truncated multi-byte sequence", [0x7b, 0xe2, 0x82]],
+    ["an invalid lead byte", [0x7b, 0xff, 0xfe, 0x7d]],
+    ["an overlong encoding", [0x7b, 0xc0, 0xaf, 0x7d]],
+  ])("refuses %s as not UTF-8", (_label, bytes) => {
+    const read = parseLimitsBytes(Uint8Array.from(bytes));
+
+    expect(read).toMatchObject({
+      kind: "unusable",
+      unusable: { reason: "not-utf8", message: "verbatra.limits.json is not UTF-8 text" },
+    });
+  });
+
+  it("accepts a literal U+FFFD, which is valid UTF-8, and its escaped spelling alike", () => {
+    const key = `a${String.fromCodePoint(0xfffd)}b`;
+    const literal = parseLimitsContent(`{"version":1,"maxLength":{"${key}":5}}`);
     const escaped = parseLimitsContent('{"version":1,"maxLength":{"a\\ufffdb":5}}');
 
-    expect(literal.kind === "unusable" && literal.unusable.message).toContain(
-      "write it as the escape",
-    );
-    expect(escaped).toEqual({
-      kind: "ok",
-      limits: new Map([[`a${String.fromCodePoint(0xfffd)}b`, 5]]),
-    });
+    expect(literal).toEqual({ kind: "ok", limits: new Map([[key, 5]]) });
+    expect(escaped).toEqual(literal);
   });
 
   it("reads through a byte order mark and CRLF line endings", () => {
     const crlf = '{\r\n  "version": 1,\r\n  "maxLength": {\r\n    "a": 3\r\n  }\r\n}\r\n';
+    const withBom = Uint8Array.from([0xef, 0xbb, 0xbf, ...new TextEncoder().encode(crlf)]);
 
-    expect(parseLimitsContent(`﻿${crlf}`)).toEqual({
+    expect(parseLimitsBytes(withBom)).toEqual({
       kind: "ok",
       limits: new Map([["a", 3]]),
     });
@@ -206,6 +218,24 @@ describe("readLimitsFile", () => {
     expect(read).toMatchObject({ kind: "unusable", unusable: { reason: "unreadable" } });
   });
 
+  it("calls an unreadable file a permissions problem and never says to delete it", async () => {
+    const dir = await makeTempDir();
+    await mkdir(limitsFilePath(dir));
+
+    const read = await readLimitsFile(limitsFilePath(dir), defaultFs);
+
+    const message = read.kind === "unusable" ? read.unusable.message : "";
+    expect(message).toBe(
+      "verbatra.limits.json exists but could not be read (a permissions problem)",
+    );
+    expect(limitsRemedy({ reason: "unreadable", message })).toBe(
+      "Check the permissions of verbatra.limits.json",
+    );
+    expect(limitsRemedy({ reason: "not-json", message })).toBe(
+      "Fix or delete verbatra.limits.json",
+    );
+  });
+
   it("follows a symbolic link to a regular file and reports a dangling one as no limits", async () => {
     const dir = await makeTempDir();
     await writeFile(join(dir, "real.json"), document({ a: 3 }));
@@ -234,7 +264,9 @@ describe("readLimitsFile", () => {
   });
 
   it("never throws for any file state: the verdict carries the file's name, not its path", async () => {
-    const fs = makeFakeFs({ readFileBounded: async () => ({ kind: "ok", content: "{" }) });
+    const fs = makeFakeFs({
+      readBytesBounded: async () => ({ kind: "ok", bytes: new TextEncoder().encode("{") }),
+    });
 
     const read = await readLimitsFile("/secret/place/verbatra.limits.json", fs);
 

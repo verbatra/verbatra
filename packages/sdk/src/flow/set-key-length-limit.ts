@@ -126,7 +126,9 @@ async function applyLimit(
   const path = limitsFilePath(cwd);
   const read = await readLimitsFile(path, fs);
   if (read.kind === "unusable") {
-    throw unusableFile(read.unusable.message);
+    throw read.unusable.reason === "unreadable"
+      ? new SdkError("LIMITS_FILE_UNWRITABLE", `${read.unusable.message}. Nothing was written.`)
+      : unusableFile(read.unusable.message);
   }
   const { key, maxLength } = input;
   const held = read.limits.get(key);
@@ -208,9 +210,10 @@ async function applyLimit(
  * @throws {@link SdkError} `LIMITS_FILE_UNUSABLE`: the limits file cannot be read as one (over
  * 1 MiB, not UTF-8 or JSON, another shape, a newer version, or more than 10,000 entries). Nothing
  * is overwritten.
- * @throws {@link SdkError} `LIMITS_FILE_UNWRITABLE`: the limits file or the limits lock could not be
- * written, or the lock could not be released after the limit was saved, which the message says. The
- * file-system error is the `cause`.
+ * @throws {@link SdkError} `LIMITS_FILE_UNWRITABLE`: the limits file exists but could not be read (a
+ * permissions problem), or it or the limits lock could not be written, or the lock could not be
+ * released after the limit was saved, which the message says. A write failure carries the
+ * file-system error as its `cause`.
  */
 export async function setKeyLengthLimit(
   input: SetKeyLengthLimitInput,

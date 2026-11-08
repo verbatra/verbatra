@@ -462,21 +462,21 @@ El archivo de glosario no se pudo escribir, o no se pudo crear el bloqueo de esc
 `setKeyLengthLimit` rechazó su entrada: el límite no es un número entero de 1 a 9007199254740991 (ni `null`), la clave está vacía o tiene más de 1024 caracteres, o el límite es un número y el `maxLength` de la config ya fija la clave y tiene prioridad sobre [`verbatra.limits.json`](/es/docs/config-file#maxlength), o la escritura haría crecer el archivo por encima de 10.000 entradas o 1 MiB. No se escribe nada.
 
 - **Lo lanza**: `setKeyLengthLimit` (SDK)
-- **Siguiente paso**: Pass a whole number from 1 to 9007199254740991 (or null to remove) for a key of 1 to 1024 characters; the config's `maxLength` takes precedence, so a number is refused for a key it sets. The file holds at most 10,000 limits and 1 MiB, so remove some first.
+- **Siguiente paso**: Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.
 
 ### LIMITS_FILE_UNUSABLE
 
-`verbatra.limits.json` no se puede usar: no es un archivo normal, pesa más de 1 MiB, no es UTF-8 ni JSON, tiene otra forma o una versión más nueva, o tiene más de 10.000 entradas. Un archivo que no se puede usar nunca se sobrescribe. Una ejecución que se topa con un archivo así no lanza nada: devuelve [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
+`verbatra.limits.json` no se puede usar: pesa más de 1 MiB, no es UTF-8 ni JSON, tiene otra forma o una versión más nueva, o tiene más de 10.000 entradas. Un archivo que no se puede usar nunca se sobrescribe. Una ejecución que se topa con un archivo así no lanza nada: devuelve [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
 
 - **Lo lanza**: `setKeyLengthLimit` (SDK)
 - **Siguiente paso**: Restore verbatra.limits.json from version control or delete it, then try again.
 
 ### LIMITS_FILE_UNWRITABLE
 
-No se pudo escribir el archivo de límites ni el bloqueo de escritura de límites del proyecto, por ejemplo en un proyecto de solo lectura, o no se pudo liberar el bloqueo tras guardar el límite (el mensaje lo dice y el límite se queda); el error del sistema de archivos es la `cause`.
+El archivo de límites existe pero no se pudo leer (un problema de permisos), o no se pudo escribir él ni el bloqueo de escritura de límites del proyecto, por ejemplo en un proyecto de solo lectura, o no se pudo liberar el bloqueo tras guardar el límite (el mensaje lo dice y el límite se queda); el error del sistema de archivos es la `cause`.
 
 - **Lo lanza**: `setKeyLengthLimit` (SDK)
-- **Siguiente paso**: Make verbatra.limits.json, its directory and .verbatra-local writable, then try again.
+- **Siguiente paso**: Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again.
 
 ### LOCALE_LAYOUT_INVALID
 
@@ -1176,7 +1176,7 @@ Registrar este locale habría hecho crecer `verbatra.provenance.json` por encima
 
 ### LIMITS_FILE_IGNORED
 
-`verbatra.limits.json` no se pudo usar (no es un archivo normal, demasiado grande, ni UTF-8 ni JSON válido, otra forma, una versión más nueva o demasiadas entradas), así que la llamada sujetó los valores solo a los presupuestos `maxLength` de la config y no marcó ninguno frente a un límite que fije ese archivo. Es un aviso en cada locale de una ejecución y el `limitsNotice` de un resultado. El archivo se queda como está.
+`verbatra.limits.json` no se pudo usar (ilegible, demasiado grande, ni UTF-8 ni JSON válido, otra forma, una versión más nueva o demasiadas entradas), así que la llamada sujetó los valores solo a los presupuestos `maxLength` de la config y no marcó ninguno frente a un límite que fije ese archivo. Es un aviso en cada locale de una ejecución y el `limitsNotice` de un resultado. El archivo se queda como está.
 
 - **Lo lanza**: `translate`, `watch`; lo devuelven como `limitsNotice` `check --qa`, `check --file`, `export`, `retranslateEntry`, `keyContext` y las herramientas MCP `key.context` y `translation.retranslateEntry`; `doctor` informa del archivo en Length limits
 - **Código de salida**: ninguno

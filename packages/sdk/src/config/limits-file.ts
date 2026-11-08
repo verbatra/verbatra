@@ -17,10 +17,6 @@ export function limitsFilePath(cwd: string): string {
   return resolve(cwd, LIMITS_FILE_NAME);
 }
 
-const BOM = "﻿";
-const REPLACEMENT_CHARACTER = String.fromCodePoint(0xfffd);
-const NUL = "\u0000";
-
 export type LimitsUnusableReason =
   | "unreadable"
   | "too-large"
@@ -87,13 +83,14 @@ function entriesOf(maxLength: Readonly<Record<string, unknown>>): LimitsFileRead
   return { kind: "ok", limits };
 }
 
-export function parseLimitsContent(content: string): LimitsFileRead {
-  const text = content.startsWith(BOM) ? content.slice(BOM.length) : content;
-  if (text.includes(REPLACEMENT_CHARACTER) || text.includes(NUL)) {
-    return unusable(
-      "not-utf8",
-      "is not UTF-8 text, or holds a literal U+FFFD (write it as the escape \\ufffd)",
-    );
+const UTF8 = new TextDecoder("utf-8", { fatal: true });
+
+export function parseLimitsBytes(bytes: Uint8Array): LimitsFileRead {
+  let text: string;
+  try {
+    text = UTF8.decode(bytes);
+  } catch {
+    return unusable("not-utf8", "is not UTF-8 text");
   }
   let parsed: unknown;
   try {
@@ -119,7 +116,7 @@ export function parseLimitsContent(content: string): LimitsFileRead {
 }
 
 export async function readLimitsFile(path: string, fs: SdkFs): Promise<LimitsFileRead> {
-  const read = await fs.readFileBounded(path, MAX_LIMITS_FILE_BYTES);
+  const read = await fs.readBytesBounded(path, MAX_LIMITS_FILE_BYTES);
   if (read.kind === "too-large") {
     return unusable(
       "too-large",
@@ -128,14 +125,20 @@ export async function readLimitsFile(path: string, fs: SdkFs): Promise<LimitsFil
   }
   if (read.kind === "missing") {
     return read.unreadable === true
-      ? unusable("unreadable", "exists but could not be read as a file")
+      ? unusable("unreadable", "exists but could not be read (a permissions problem)")
       : { kind: "ok", limits: new Map() };
   }
-  return parseLimitsContent(read.content);
+  return parseLimitsBytes(read.bytes);
+}
+
+export function limitsRemedy(unusable: LimitsUnusable): string {
+  return unusable.reason === "unreadable"
+    ? `Check the permissions of ${LIMITS_FILE_NAME}`
+    : `Fix or delete ${LIMITS_FILE_NAME}`;
 }
 
 export function serializeLimits(limits: ReadonlyMap<string, number>): string {
   const sorted = [...limits.entries()].sort(([left], [right]) => (left < right ? -1 : 1));
   const document = { version: LIMITS_FILE_VERSION, maxLength: Object.fromEntries(sorted) };
-  return `${JSON.stringify(document, null, 2).replaceAll(REPLACEMENT_CHARACTER, "\\ufffd")}\n`;
+  return `${JSON.stringify(document, null, 2)}\n`;
 }

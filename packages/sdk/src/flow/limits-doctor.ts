@@ -1,5 +1,10 @@
 import type { FormatAdapter } from "@verbatra/format-adapters";
-import { LIMITS_FILE_NAME, limitsFilePath, readLimitsFile } from "../config/limits-file.js";
+import {
+  LIMITS_FILE_NAME,
+  limitsFilePath,
+  limitsRemedy,
+  readLimitsFile,
+} from "../config/limits-file.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage } from "../errors.js";
 import type { SdkFs } from "../fs.js";
@@ -67,7 +72,7 @@ export async function describeLimits(
   const read = await readLimitsFile(limitsFilePath(cwd), fs);
   if (read.kind === "unusable") {
     return warnFinding(
-      `${read.unusable.message}. Runs ignore it and hold values to the config's maxLength budgets only, and a limit cannot be set until it is fixed. Fix or delete ${LIMITS_FILE_NAME}.`,
+      `${read.unusable.message}. Runs ignore it and hold values to the config's maxLength budgets only, and a limit cannot be set until it is fixed. ${limitsRemedy(read.unusable)}.`,
     );
   }
   if (read.limits.size === 0) {

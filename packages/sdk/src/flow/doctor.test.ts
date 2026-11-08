@@ -533,7 +533,10 @@ describe("doctor: the source locale file check", () => {
             read.push(path);
             return { kind: "ok", content: JSON.stringify({ hi: "Hi" }) };
           },
-          readBytesBounded: async () => ({ kind: "missing" }),
+          readBytesBounded: async (path) => {
+            read.push(path);
+            return { kind: "missing" };
+          },
           writeFile: async () => {},
           writeBytes: async () => {},
           createExclusive: async () => true,

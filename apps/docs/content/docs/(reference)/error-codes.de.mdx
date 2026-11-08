@@ -462,21 +462,21 @@ Die Glossardatei konnte nicht geschrieben oder die Glossar-Schreibsperre nicht a
 `setKeyLengthLimit` hat seine Eingabe abgelehnt: Das Limit ist keine ganze Zahl von 1 bis 9007199254740991 (oder `null`), der Schlüssel ist leer oder länger als 1024 Zeichen, oder das Limit ist eine Zahl und das `maxLength` der Config setzt den Schlüssel bereits und geht [`verbatra.limits.json`](/de/docs/config-file#maxlength) vor, oder der Schreibvorgang würde die Datei über 10.000 Einträge oder 1 MiB wachsen lassen. Es wird nichts geschrieben.
 
 - **Ausgelöst von**: `setKeyLengthLimit` (SDK)
-- **Nächster Schritt**: Pass a whole number from 1 to 9007199254740991 (or null to remove) for a key of 1 to 1024 characters; the config's `maxLength` takes precedence, so a number is refused for a key it sets. The file holds at most 10,000 limits and 1 MiB, so remove some first.
+- **Nächster Schritt**: Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.
 
 ### LIMITS_FILE_UNUSABLE
 
-`verbatra.limits.json` lässt sich nicht verwenden: Sie ist keine reguläre Datei, über 1 MiB groß, kein UTF-8 oder JSON, hat eine andere Form oder eine neuere Version oder enthält mehr als 10.000 Einträge. Eine Datei, die sich nicht verwenden lässt, wird nie überschrieben. Ein Lauf, der auf so eine Datei trifft, wirft nicht: Er gibt [`LIMITS_FILE_IGNORED`](#limits_file_ignored) zurück.
+`verbatra.limits.json` lässt sich nicht verwenden: Sie ist über 1 MiB groß, kein UTF-8 oder JSON, hat eine andere Form oder eine neuere Version oder enthält mehr als 10.000 Einträge. Eine Datei, die sich nicht verwenden lässt, wird nie überschrieben. Ein Lauf, der auf so eine Datei trifft, wirft nicht: Er gibt [`LIMITS_FILE_IGNORED`](#limits_file_ignored) zurück.
 
 - **Ausgelöst von**: `setKeyLengthLimit` (SDK)
 - **Nächster Schritt**: Restore verbatra.limits.json from version control or delete it, then try again.
 
 ### LIMITS_FILE_UNWRITABLE
 
-Die Limits-Datei oder die Limits-Schreibsperre des Projekts ließ sich nicht schreiben, etwa in einem schreibgeschützten Projekt, oder die Sperre ließ sich nach dem Speichern des Limits nicht freigeben (die Meldung sagt es, und das Limit bleibt); der Dateisystem-Fehler ist die `cause`.
+Die Limits-Datei existiert, ließ sich aber nicht lesen (ein Rechteproblem), oder sie oder die Limits-Schreibsperre des Projekts ließ sich nicht schreiben, etwa in einem schreibgeschützten Projekt, oder die Sperre ließ sich nach dem Speichern des Limits nicht freigeben (die Meldung sagt es, und das Limit bleibt); der Dateisystem-Fehler ist die `cause`.
 
 - **Ausgelöst von**: `setKeyLengthLimit` (SDK)
-- **Nächster Schritt**: Make verbatra.limits.json, its directory and .verbatra-local writable, then try again.
+- **Nächster Schritt**: Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again.
 
 ### LOCALE_LAYOUT_INVALID
 
@@ -1175,7 +1175,7 @@ Das Festhalten dieser Locale hätte `verbatra.provenance.json` über die Größe
 
 ### LIMITS_FILE_IGNORED
 
-`verbatra.limits.json` ließ sich nicht verwenden (keine reguläre Datei, zu groß, kein UTF-8 oder gültiges JSON, andere Form, neuere Version oder zu viele Einträge), also hielt der Aufruf die Werte nur an die `maxLength`-Budgets der Config und markierte keinen gegen ein Limit, das diese Datei setzt. Es ist ein Hinweis an jeder Locale eines Laufs und das `limitsNotice` eines Ergebnisses. Die Datei bleibt, wie sie ist.
+`verbatra.limits.json` ließ sich nicht verwenden (nicht lesbar, zu groß, kein UTF-8 oder gültiges JSON, andere Form, neuere Version oder zu viele Einträge), also hielt der Aufruf die Werte nur an die `maxLength`-Budgets der Config und markierte keinen gegen ein Limit, das diese Datei setzt. Es ist ein Hinweis an jeder Locale eines Laufs und das `limitsNotice` eines Ergebnisses. Die Datei bleibt, wie sie ist.
 
 - **Ausgelöst von**: `translate`, `watch`; als `limitsNotice` zurückgegeben von `check --qa`, `check --file`, `export`, `retranslateEntry`, `keyContext` und den MCP-Tools `key.context` und `translation.retranslateEntry`; `doctor` meldet die Datei unter Length limits
 - **Exit-Code**: keiner

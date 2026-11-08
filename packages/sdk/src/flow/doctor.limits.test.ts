@@ -63,6 +63,18 @@ describe("doctor: the limits check", () => {
     expect(check?.detail).toContain("a limit cannot be set until it is fixed");
   });
 
+  it("sends a file that exists but cannot be read to its permissions, not to delete", async () => {
+    const dir = await projectWith();
+    await mkdir(join(dir, "verbatra.limits.json"));
+
+    const { check } = await limitsCheck(dir);
+
+    expect(check?.status).toBe("warn");
+    expect(check?.detail).toContain("a permissions problem");
+    expect(check?.detail).toContain("Check the permissions of verbatra.limits.json.");
+    expect(check?.detail).not.toMatch(/delete|restore/i);
+  });
+
   it("warns on a newer version by name", async () => {
     const { check } = await limitsCheck(await projectWith('{"version":2,"maxLength":{}}'));
 

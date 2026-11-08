@@ -462,21 +462,21 @@ The glossary file could not be written, or the glossary write lock could not be 
 `setKeyLengthLimit` refused its input: the limit is not a whole number from 1 to 9007199254740991 (or `null`), the key is empty or longer than 1024 characters, or the limit is a number and the config's `maxLength` already sets the key, which wins over [`verbatra.limits.json`](/docs/config-file#maxlength), or the write would take the file past 10,000 entries or 1 MiB. Nothing is written.
 
 - **Raised by**: `setKeyLengthLimit` (SDK)
-- **Next step**: Pass a whole number from 1 to 9007199254740991 (or null to remove) for a key of 1 to 1024 characters; the config's `maxLength` takes precedence, so a number is refused for a key it sets. The file holds at most 10,000 limits and 1 MiB, so remove some first.
+- **Next step**: Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.
 
 ### LIMITS_FILE_UNUSABLE
 
-`verbatra.limits.json` cannot be used: it is not a regular file, is over 1 MiB, is not UTF-8 or JSON, has another shape or a newer version, or holds more than 10,000 entries. A file that cannot be used is never overwritten. A run that meets such a file does not throw: it returns [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
+`verbatra.limits.json` cannot be used: it is over 1 MiB, is not UTF-8 or JSON, has another shape or a newer version, or holds more than 10,000 entries. A file that cannot be used is never overwritten. A run that meets such a file does not throw: it returns [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
 
 - **Raised by**: `setKeyLengthLimit` (SDK)
 - **Next step**: Restore verbatra.limits.json from version control or delete it, then try again.
 
 ### LIMITS_FILE_UNWRITABLE
 
-The limits file or the project's limits write lock could not be written, for instance in a read-only project, or the lock could not be released after the limit was saved (the message says so, and the limit stays); the file-system error is the `cause`.
+The limits file exists but could not be read (a permissions problem), or it or the project's limits write lock could not be written, for instance in a read-only project, or the lock could not be released after the limit was saved (the message says so, and the limit stays); the file-system error is the `cause`.
 
 - **Raised by**: `setKeyLengthLimit` (SDK)
-- **Next step**: Make verbatra.limits.json, its directory and .verbatra-local writable, then try again.
+- **Next step**: Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again.
 
 ### LOCALE_LAYOUT_INVALID
 
@@ -1161,7 +1161,7 @@ Recording this locale would have grown `verbatra.provenance.json` past the size 
 
 ### LIMITS_FILE_IGNORED
 
-`verbatra.limits.json` could not be used (not a regular file, too large, not UTF-8 or valid JSON, another shape, a newer version, or too many entries), so the call held values to the config's `maxLength` budgets only and flagged none against a limit that file sets. It is a notice on every locale of a run, and the `limitsNotice` of a result. The file is left as it is.
+`verbatra.limits.json` could not be used (unreadable, too large, not UTF-8 or valid JSON, another shape, a newer version, or too many entries), so the call held values to the config's `maxLength` budgets only and flagged none against a limit that file sets. It is a notice on every locale of a run, and the `limitsNotice` of a result. The file is left as it is.
 
 - **Raised by**: `translate`, `watch`; returned as `limitsNotice` by `check --qa`, `check --file`, `export`, `retranslateEntry`, `keyContext` and the MCP tools `key.context` and `translation.retranslateEntry`; `doctor` reports the file under Length limits
 - **Exit code**: none

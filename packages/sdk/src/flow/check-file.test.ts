@@ -193,6 +193,10 @@ describe("checkFile: a target locale file", () => {
         reads.push(path);
         return disk.readFileBounded(path, maxBytes);
       },
+      readBytesBounded: (path, maxBytes) => {
+        reads.push(path);
+        return disk.readBytesBounded(path, maxBytes);
+      },
       writeFile: refuse,
       writeBytes: refuse,
       createExclusive: refuse,
