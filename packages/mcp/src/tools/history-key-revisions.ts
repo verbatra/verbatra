@@ -142,8 +142,9 @@ export const historyKeyRevisionsTool = defineTool({
     "commit-limit (older commits exist than limit examines, so a larger limit can reach " +
     "them), shallow-clone, unreadable-revision, file-too-large, byte-budget, deadline, " +
     "source-unreadable, records-unreadable (a lock or provenance file), and scrub-cap (more " +
-    "than 256 distinct keys, or one key longer than 4096 characters, turned up: every value, " +
-    "diff segment, subject and author name is then [REDACTED] and valueRedacted is set). " +
+    "than 256 distinct keys, one key longer than 4096 characters, or keys adding up to more " +
+    "than 65,536 UTF-16 code units turned up: every non-empty value, diff segment, subject and " +
+    "author name is then [REDACTED], empty text stays empty, and valueRedacted is set). " +
     "available: false is not an " +
     "empty history: its reason names why git could not be read (" +
     `${REASON_LIST}). Renames ` +

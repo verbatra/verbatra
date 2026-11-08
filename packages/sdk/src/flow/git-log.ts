@@ -81,7 +81,7 @@ export type LocaleHistoryResult =
       readonly available: true;
       /** The commits that touched the locale files, newest first. */
       readonly commits: readonly LocaleHistoryCommit[];
-      /** `true` when more than 256 distinct keys, or one key longer than 4096 characters, turned up in author names and subjects, so every `subject` and `author` was replaced by `[REDACTED]`. Absent otherwise. */
+      /** `true` when more than 256 distinct keys, one key longer than 4096 characters, or keys adding up to more than 65,536 UTF-16 code units turned up in author names and subjects, so every non-empty `subject` and `author` was replaced by `[REDACTED]` (empty text stays empty). Absent otherwise. */
       readonly truncated?: true;
     };
 

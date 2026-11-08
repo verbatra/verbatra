@@ -70,7 +70,7 @@ function pause(): Promise<void> {
  * size cap for its format), `byte-budget` (the files read in one call reached their total size
  * budget), `deadline` (the time ran out), `source-unreadable` (the source file could not be read in
  * full), `records-unreadable` (a lock-file or provenance file could not be read in full) and
- * `scrub-cap` (more than 256 distinct keys, or one key longer than 4096 characters, turned up: the answer then replaces every value, diff segment, subject and author name with `[REDACTED]` and sets `valueRedacted` on every revision).
+ * `scrub-cap` (more than 256 distinct keys, one key longer than 4096 characters, or keys adding up to more than 65,536 UTF-16 code units turned up: the answer then replaces every non-empty value, diff segment, subject and author name with `[REDACTED]`, leaves empty text empty, and sets `valueRedacted` on every revision).
  */
 export const KEY_HISTORY_TRUNCATION_REASONS = [
   "commit-limit",
@@ -158,7 +158,7 @@ export type KeyHistoryResult =
       readonly workingTree?: KeyWorkingTreeValue;
       /** `true` when the value on disk could not be compared with `HEAD`, so `workingTree` is absent: the file on disk does not parse, is a symbolic link or is above its size limit, its value is longer than {@link KEY_HISTORY_MAX_VALUE_CHARS}, the copy at `HEAD` could not be read (it is above its size limit, does not parse or was not reached), or the time ran out. */
       readonly workingTreeUnreadable?: true;
-      /** `true` when the answer may leave history out or leave a field unknown because something was not read in full: older commits were not examined (the commit limit, the size budget of the call or the time), the clone is shallow, more than 256 distinct keys, or one key longer than 4096 characters, turned up, so every value, diff segment, subject and author name was replaced by `[REDACTED]`, a commit could not be read or parsed, was above its size limit or held a value that is too long, or a lock-file, provenance file or the source file could not be read, parsed or was above its size limit. `false` means every commit and record examined was read; the file on disk is reported only by `workingTreeUnreadable`. */
+      /** `true` when the answer may leave history out or leave a field unknown because something was not read in full: older commits were not examined (the commit limit, the size budget of the call or the time), the clone is shallow, more than 256 distinct keys, one key longer than 4096 characters, or keys adding up to more than 65,536 UTF-16 code units turned up, so every non-empty value, diff segment, subject and author name was replaced by `[REDACTED]`, a commit could not be read or parsed, was above its size limit or held a value that is too long, or a lock-file, provenance file or the source file could not be read, parsed or was above its size limit. `false` means every commit and record examined was read; the file on disk is reported only by `workingTreeUnreadable`. */
       readonly truncated: boolean;
       /** Why `truncated` is `true`: every member of {@link KEY_HISTORY_TRUNCATION_REASONS} that applies, in that order. Empty exactly when `truncated` is `false`. */
       readonly truncatedBy: readonly KeyHistoryTruncation[];
