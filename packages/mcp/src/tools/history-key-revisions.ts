@@ -121,6 +121,8 @@ export const historyKeyRevisionsTool = defineTool({
     "difference from the key's previous value as segments of kind equal, added or removed. " +
     "A value that held an API key comes back with [REDACTED] in its place and valueRedacted " +
     "true: it is not the stored text, so never write it back with translation.editEntry. " +
+    "Redaction covers the key shapes it recognises and the key values currently configured, so " +
+    "a former custom key in an unrecognised shape can remain. " +
     "workingTree is the uncommitted value on disk, present only when it differs from HEAD; " +
     "workingTreeUnreadable is true when the file on disk could not be compared with HEAD: it " +
     "does not parse (as in a merge conflict), is a symbolic link or above the size limit, the " +
