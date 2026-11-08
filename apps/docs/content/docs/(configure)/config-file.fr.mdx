@@ -214,7 +214,7 @@ maxLength: {
 }
 ```
 
-- **Ici ou dans `verbatra.limits.json`.** Les clés sont comparées littéralement, jamais comme des globs ; une clé fixée dans aucun des deux n'est jamais mesurée. Aucun budget n'est déduit d'une description ni des métadonnées d'un format. Le fichier versionné à côté du fichier de verrou accepte `{ "version": 1, "maxLength": { ... } }`, la config l'emporte par clé et [`setKeyLengthLimit`](/fr/docs/sdk/config#setkeylengthlimit) l'écrit.
+- **Ici ou dans `verbatra.limits.json`.** Les clés sont comparées littéralement, jamais comme des globs ; une clé fixée dans aucun des deux n'est jamais mesurée. Studio ne peut pas limiter une forme plurielle générée : le fichier n'accepte que des clés de la source. Le fichier versionné à côté du fichier de verrou accepte `{ "version": 1, "maxLength": { ... } }`, la config l'emporte par clé et [`setKeyLengthLimit`](/fr/docs/sdk/config#setkeylengthlimit) l'écrit.
 - **Groupes de graphèmes.** La longueur compte les caractères perçus, espaces compris : un emoji, une lettre accentuée ou un caractère CJK compte pour un. La limite est inclusive.
 - **Quand.** Chaque valeur que `translate` produit pour la clé, réutilisations du cache comprises ; une clé à jour n'est mesurée que quand sa source change, ou par [`export --include-unchanged`](/fr/docs/cli/export).
 - **Consultatif.** Un dépassement est quand même écrit et verrouillé, et signalé pour relecture comme [`MAX_LENGTH_EXCEEDED`](/fr/docs/error-codes#max_length_exceeded).

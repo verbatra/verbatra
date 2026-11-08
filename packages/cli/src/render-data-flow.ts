@@ -43,7 +43,7 @@ function describeCounts(counts: DataFlowCounts): string {
 const PERSONAL_DATA_LABELS: Readonly<Record<DataFlowLocalFile["id"], string>> = {
   lock: "personal data",
   provenance: "reviewer names",
-  limits: "personal data",
+  limits: "key names",
   cache: "personal data",
   "local-state": "host name and process ID of a run holding a write lock",
 };
