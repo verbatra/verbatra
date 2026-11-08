@@ -50,6 +50,23 @@ async function repoWith(
   return fx;
 }
 
+function expectEverythingHidden(result: Awaited<ReturnType<typeof run>>): void {
+  expect(result.revisions.length).toBeGreaterThan(0);
+  for (const revision of result.revisions) {
+    expect(revision.value).toBe("[REDACTED]");
+    expect(revision.valueRedacted).toBe(true);
+    expect(revision.subject === "" || revision.subject === "[REDACTED]").toBe(true);
+    expect(revision.author === "" || revision.author === "[REDACTED]").toBe(true);
+    for (const segment of revision.diff) {
+      expect(segment.text).toBe("[REDACTED]");
+    }
+  }
+  if (result.workingTree !== undefined) {
+    expect(result.workingTree.value).toBe("[REDACTED]");
+    expect(result.workingTree.valueRedacted).toBe(true);
+  }
+}
+
 async function run(fx: GitFixture) {
   const result = await keyHistory(
     { config: baseConfig(), cwd: fx.root, locale: "de", key: "a" },
@@ -159,6 +176,53 @@ describe("a key that only some revisions give away", () => {
     );
 
     expect(result.available && result.truncated).toBe(true);
+    expect(result.available && result.truncatedBy).toContain("scrub-cap");
+    if (!result.available) {
+      throw new Error("unavailable");
+    }
+    expectEverythingHidden(result);
+  });
+
+  it("hides everything when one literal is longer than the cross-scrub keeps, in a subject, author or value", async () => {
+    const long = `sk-${"a1B2c3D4".repeat(600)}`;
+    const fx = await repoWith(
+      [
+        { value: "one", subject: `leaked ${long}` },
+        { value: `two api_key=${UUID}`, author: `Dev ${long}` },
+      ],
+      `three ${UUID}`,
+    );
+
+    const result = await run(fx);
+
+    expect(result.truncatedBy).toContain("scrub-cap");
+    expectEverythingHidden(result);
+  });
+
+  it("flags even an empty value, or one that already reads like the marker, as hidden on overflow", async () => {
+    const long = `sk-${"a1B2c3D4".repeat(600)}`;
+    const fx = await repoWith([
+      { value: "[REDACTED]", subject: `leaked ${long}` },
+      { value: "" },
+      { value: "plain" },
+    ]);
+
+    const result = await run(fx);
+
+    expect(result.revisions.map((revision) => revision.valueRedacted)).toEqual([true, true, true]);
+  });
+
+  it("keeps a real key under the length limit out of the overflow", async () => {
+    const real = `sk-proj-${"A1b2C3d4".repeat(20)}`;
+    const fx = await repoWith([{ value: `k ${real}` }, { value: `x${real}` }], undefined, true);
+
+    const result = await keyHistory(
+      { config: baseConfig(), cwd: fx.root, locale: "de", key: "a" },
+      {},
+    );
+
+    expect(result.available && result.truncatedBy).toEqual([]);
+    expect(JSON.stringify(result)).not.toContain("A1b2C3d4");
   });
 
   it("does not call the answer incomplete while every key fits the cross-scrub", async () => {

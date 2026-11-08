@@ -103,7 +103,7 @@ const UNAVAILABLE_MESSAGES: Readonly<Record<HistoryUnavailableReason, string>> =
 };
 
 const TRUNCATED_NOTICE =
-  "More distinct keys turned up in these subjects and author names than Studio could hide from every commit, so a key may stay readable in part of this list.";
+  "More distinct keys turned up in these subjects and author names than Studio could hide one by one, so every subject and author name in this list is hidden.";
 
 type LoadedHistory = Extract<HistoryState, { readonly kind: "loaded" }>;
 

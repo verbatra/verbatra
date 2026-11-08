@@ -278,7 +278,9 @@ describe("CommitList", () => {
         <CommitList state={state} compact={compact} emptyMessage="No commits." />,
       );
 
-      expect(view.get("[data-history-truncated]").textContent).toContain("may stay readable");
+      expect(view.get("[data-history-truncated]").textContent).toContain(
+        "every subject and author name in this list is hidden",
+      );
     },
   );
 

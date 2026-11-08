@@ -97,6 +97,20 @@ describe("useBannerAnchor", () => {
     expect((scroller as HTMLDivElement).scrollTop).toBe(0);
   });
 
+  it("remembers where the row was after the user scrolled, so the next banner change measures from there", () => {
+    rowTop = 300;
+    const view = render(<Host shown={false} />);
+    const node = scroller as HTMLDivElement;
+    node.scrollTop = 200;
+
+    rowTop = 180;
+    node.dispatchEvent(new Event("scroll"));
+    nextTop = 286;
+    view.rerender(<Host shown />);
+
+    expect(node.scrollTop).toBe(306);
+  });
+
   it("does nothing when the banner state did not change", () => {
     rowTop = 300;
     const view = render(<Host shown={false} />);

@@ -27,24 +27,28 @@ export function useBannerAnchor(
 ): void {
   const shown = useRef<boolean | null>(null);
   const anchor = useRef<Anchor | null>(null);
-  const scroller = scrollerRef.current;
-
-  if (scroller !== null && shown.current !== null && shown.current !== bannerShown) {
-    anchor.current = firstVisible(scroller);
-  }
 
   useLayoutEffect(() => {
     const node = scrollerRef.current;
-    shown.current = bannerShown;
-    const held = anchor.current;
-    anchor.current = null;
     if (node !== null) {
       node.style.overflowAnchor = "none";
-      if (held?.element.isConnected === true) {
+      const held = anchor.current;
+      if (shown.current !== null && shown.current !== bannerShown && held?.element.isConnected) {
         node.scrollTop += held.element.getBoundingClientRect().top - held.top;
       }
+      anchor.current = firstVisible(node);
     }
-  }, [bannerShown, scrollerRef]);
+    shown.current = bannerShown;
+  });
+
+  useEffect(() => {
+    const node = scrollerRef.current;
+    const remember = (): void => {
+      anchor.current = node === null ? null : firstVisible(node);
+    };
+    node?.addEventListener("scroll", remember, { passive: true });
+    return () => node?.removeEventListener("scroll", remember);
+  }, [scrollerRef]);
 }
 
 export function useRevealEdit(

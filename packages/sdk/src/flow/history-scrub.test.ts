@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { baseConfig, type GitFixture, makeGitFixture } from "../test-support.js";
 import { keyHistory } from "./key-history.js";
+import { makeScrubber } from "./key-scrub.js";
 import { localeHistory } from "./locale-history.js";
 
 const ENV_KEY = `lt-${"Q7x9".repeat(15)}`;
@@ -167,5 +168,39 @@ describe("commit subjects and author names", () => {
     const list = await localeHistory({ config: baseConfig(), cwd: fx.root, limit: 200 }, {});
 
     expect(list.available && list.truncated).toBe(true);
+    if (!list.available) {
+      throw new Error("unavailable");
+    }
+    for (const commit of list.commits) {
+      expect(commit.subject).toBe("[REDACTED]");
+      expect(commit.author === "" || commit.author === "[REDACTED]").toBe(true);
+    }
+  });
+
+  it("hides every subject and author, and says so, when one literal is longer than the cross-scrub keeps", async () => {
+    const fx = await makeGitFixture();
+    fixtures.push(fx);
+    const long = `sk-${"a1B2c3D4".repeat(600)}`;
+    for (const subject of [`plain subject`, `leaked ${long}`]) {
+      await fx.write("locales/de.json", `${JSON.stringify({ a: subject.length.toString() })}\n`);
+      await fx.git(["add", "-A"]);
+      await fx.git(["commit", "-q", "-m", subject]);
+    }
+
+    const list = await localeHistory({ config: baseConfig(), cwd: fx.root, limit: 200 }, {});
+
+    expect(list.available && list.truncated).toBe(true);
+    expect(list.available && list.commits.map((commit) => commit.subject)).toEqual([
+      "[REDACTED]",
+      "[REDACTED]",
+    ]);
+  });
+
+  it("leaves empty text empty and hides any other text once the pass overflowed", () => {
+    const scrubber = makeScrubber([`sk-${"a1B2c3D4".repeat(600)}`]);
+
+    expect(scrubber.overflowed).toBe(true);
+    expect(scrubber.scrub("")).toBe("");
+    expect(scrubber.scrub("anything")).toBe("[REDACTED]");
   });
 });

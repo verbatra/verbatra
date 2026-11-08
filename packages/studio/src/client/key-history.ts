@@ -127,7 +127,7 @@ const REASON_NOTICES: Readonly<
   "records-unreadable":
     "A lock or provenance file could not be read in full, so the origin or the source change is unknown for some revisions.",
   "scrub-cap":
-    "More distinct keys turned up than Studio could hide from every revision, so a key may stay readable in part of this list.",
+    "More distinct keys turned up than Studio could hide one by one, so every value, change, subject and author name in this list is hidden.",
 };
 
 export function incompleteNotices(
