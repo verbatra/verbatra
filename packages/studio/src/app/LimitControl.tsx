@@ -16,15 +16,17 @@ const TOUCH = "max-md:min-h-11";
 
 const ITEM = "data-limit-item";
 
+const ITEMS = ["open", "remove", "input", "save", "cancel"];
+
+function findItem(root: HTMLElement, item: string): HTMLElement | undefined {
+  return root.querySelector<HTMLElement>(`[${ITEM}="${item}"]`) ?? undefined;
+}
+
 const KEEPER: FocusKeeperAdapter = {
-  items: (root) =>
-    [...root.querySelectorAll<HTMLElement>(`[${ITEM}]`)].map(
-      (node) => node.dataset.limitItem ?? "",
-    ),
+  items: (root) => ITEMS.filter((item) => findItem(root, item) !== undefined),
   itemOf: (active) => active.dataset.limitItem,
-  find: (root, item) => root.querySelector<HTMLElement>(`[${ITEM}="${item}"]`) ?? undefined,
-  fallback: (root) =>
-    root.querySelector<HTMLElement>("[data-limit-status]")?.focus({ preventScroll: true }),
+  find: findItem,
+  fallback: (root) => (root.firstElementChild as HTMLElement).focus({ preventScroll: true }),
 };
 
 function statusText(view: LimitControlView): string {

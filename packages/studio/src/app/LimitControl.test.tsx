@@ -447,6 +447,45 @@ describe("LimitControl refresh", () => {
     expect(field(view).value).toBe("5");
   });
 
+  it("shows what the re-read says once a newer context arrives after a save", async () => {
+    stubRpc({
+      "key.setMaxLength": { ok: true, result: { key: "k", maxLength: 21, changed: true } },
+    });
+    const view = render(host({ loaded: context() }));
+    open(view, "Set limit");
+    typeInto(field(view), "21");
+    save(view);
+    await flush();
+    expect(lastEffective).toBe(21);
+
+    view.rerender(host({ loaded: context({ maxLength: 30, maxLengthSource: "limits-file" }) }));
+
+    expect(lastEffective).toBe(30);
+    expect(view.get("[data-limit-status]").textContent).toMatch(/Limit: 30 characters/);
+  });
+
+  it("ignores the answer of a save that finishes after the key has changed", async () => {
+    const pending = deferredAnswer();
+    stubRpc({ "key.setMaxLength": () => pending.promise });
+    const reload = vi.fn();
+    const view = render(host({ loaded: context(), identity: "a", reload }));
+    open(view, "Set limit");
+    typeInto(field(view), "5");
+    save(view);
+    await flush();
+
+    view.rerender(host({ loaded: context(), identity: "b", reload }));
+    await act(async () => {
+      pending.resolve({ ok: true, result: { key: "k", maxLength: 5, changed: true } });
+      await Promise.resolve();
+    });
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(view.query("[data-limit-form]")).toBeNull();
+    expect(lastDirty).toBe(false);
+    expect(view.get("[data-limit-status]").textContent).toBe("No limit is set for this key.");
+  });
+
   it("measures against the saved value and says so when the re-read failed", async () => {
     stubRpc({
       "key.setMaxLength": { ok: true, result: { key: "k", maxLength: 21, changed: true } },
