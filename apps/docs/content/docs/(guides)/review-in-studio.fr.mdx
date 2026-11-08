@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Ouvre l'URL qu'il affiche, token compris, et arrête Studio avec Ctrl+C. [`verbatra studio`](/fr/docs/cli/studio) couvre le port, le token et toutes les options. Chaque page se rafraîchit en direct quand un fichier de locale, le fichier de verrouillage ou le fichier de provenance change.
+Ouvre l'URL qu'il affiche, token compris, et arrête Studio avec Ctrl+C. [`verbatra studio`](/fr/docs/cli/studio) couvre le port, le token et toutes les options. Chaque page se rafraîchit en direct quand un fichier de locale, le fichier de verrouillage, le fichier de provenance ou le fichier de limites change.
 
 ## Lire la page Translations
 
@@ -51,11 +51,17 @@ Les puces à côté de la recherche restreignent le tableau par état, notamment
 
 L'éditeur montre la description de la clé, les termes du glossaire que ton brouillon utilise ou oublie, et sa longueur par rapport à la source et à `maxLength`. Ctrl ou Cmd avec Entrée enregistre.
 
+#### Définir une limite de longueur
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Sous la ligne de longueur, **Set limit**, **Change limit** et **Remove limit** modifient l'entrée de la clé dans [`verbatra.limits.json`](/fr/docs/config-file#maxlength), pour toutes les locales. Le `maxLength` de la configuration l'emporte et reste en lecture seule. Un fichier inutilisable en donne la raison et bloque le contrôle. Une limite est indicative : une valeur plus longue est signalée pour relecture, jamais bloquée. Une forme de pluriel générée n'en a pas.
+
 #### Vérifier les messages avec l'ICU preview
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Avec `next-intl-json` ou `arb`, l'éditeur propose sous le brouillon une **ICU preview** repliée. Elle rend le brouillon une fois par branche : chaque catégorie de pluriel, branche exacte et option de select, dans la langue et le sens d'écriture de la locale, les branches imbriquées étant regroupées sous leur branche extérieure. Une valeur d'exemple saisie ajoute une ligne quand elle atteint une branche, ou une note si elle n'est pas utilisée. Les lignes au-delà de 24 sont omises ; un brouillon invalide garde les dernières bonnes lignes, atténuées. Les nombres et les dates utilisent les données de langue de cet ordinateur, ton application peut donc différer.
+Avec `next-intl-json` ou `arb`, une **ICU preview** repliée sous le brouillon le rend une fois par branche (catégorie de pluriel, branche exacte, option de select) dans la langue et le sens d'écriture de la locale. Une valeur d'exemple saisie ajoute une ligne quand elle atteint une branche, ou une note si elle n'est pas utilisée. Les nombres et les dates utilisent les données de langue de cet ordinateur, ton application peut donc différer.
 
 #### À côté du tableau
 

@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token y cada opción. Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo o el archivo de procedencia.
+Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token y cada opción. Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo, el archivo de procedencia o el archivo de límites.
 
 ## Lee la página Translations
 
@@ -51,11 +51,17 @@ Los chips junto a la búsqueda acotan la tabla por estado, incluidos **Review qu
 
 El editor muestra la descripción de la clave, los términos del glosario que tu borrador usa u omite, y su longitud frente al origen y a `maxLength`. Ctrl o Cmd con Enter guarda.
 
+#### Fijar un límite de longitud
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Bajo la línea de longitud, **Set limit**, **Change limit** y **Remove limit** editan la entrada de la clave en [`verbatra.limits.json`](/es/docs/config-file#maxlength), para todos los locales. El `maxLength` de la configuración gana y es de solo lectura. Un archivo inutilizable muestra el motivo y bloquea el control. Un límite es solo un aviso: un valor más largo se marca para revisión y nunca se bloquea. Una forma de plural generada no tiene ninguno.
+
 #### Revisar mensajes con la ICU preview
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Con `next-intl-json` o `arb`, el editor tiene una **ICU preview** plegada bajo el borrador. Renderiza el borrador una vez por rama: cada categoría de plural, rama exacta y opción de select, en el idioma y la dirección de la configuración regional, con las ramas anidadas agrupadas bajo su rama exterior. Un valor de ejemplo que escribes añade una fila cuando alcanza una rama, o una nota si no se usa. Las filas posteriores a la 24 se omiten; un borrador no válido conserva las últimas filas buenas, atenuadas. Los números y las fechas usan los datos de idioma de este equipo, así que tu app puede diferir.
+Con `next-intl-json` o `arb`, una **ICU preview** plegada bajo el borrador lo renderiza una vez por rama (categoría de plural, rama exacta, opción de select) en el idioma y la dirección de la configuración regional. Un valor de ejemplo que escribes añade una fila cuando alcanza una rama, o una nota si no se usa. Los números y las fechas usan los datos de idioma de este equipo, así que tu app puede diferir.
 
 #### Junto a la tabla
 
