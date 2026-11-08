@@ -16,6 +16,7 @@ const DOCTOR_CHECK_IDS = [
   "plural-completeness",
   "locale-codes",
   "locale-state",
+  "limits",
   "locales",
   "untranslated-literals",
   "data-flow",

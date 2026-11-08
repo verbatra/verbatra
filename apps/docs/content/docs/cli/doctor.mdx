@@ -56,7 +56,7 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 
 <AvailableFrom version="0.12.0" />
 
-A setup run reports these checks, in this order. Plural rules, Plural completeness, Locale codes and Locale state are informational and never fail: each prints `[warn]` when it names something and `[ok  ]` otherwise.
+A setup run reports these checks, in this order. Plural rules, Plural completeness, Locale codes, Locale state and Length limits are informational and never fail: each prints `[warn]` when it names something and `[ok  ]` otherwise.
 
 | Check | Fails when |
 | --- | --- |
@@ -70,6 +70,7 @@ A setup run reports these checks, in this order. Plural rules, Plural completene
 | Plural completeness | never; warns and names each target plural that lacks a CLDR category its language uses, judging a plural the target has no forms for by what a run would write there (a blank source form counts as absent, and plural generation only where it actually runs), deliberately stricter than the i18next-only notice of `translate` (at most ten; [`verbatra check`](/docs/cli/check#plural-categories) lists the gaps in plurals a target already holds); skipped for a format that does not store plural forms by CLDR category |
 | Locale codes | never; warns and names every valid but non-canonical code, such as `en-us` or `iw`, with the canonical form (see [Locale codes](/docs/config-file#locale-codes)) |
 | Locale state | never; warns and names every locale the lock file, cache or provenance file holds state for that the config does not list, and whether `translate` [carries it over](/docs/the-lock-file#a-respelled-locale-code) |
+| Length limits | never; warns when `verbatra.limits.json` cannot be used (a run ignores it and a limit cannot be set until it is fixed), names a limit for a key the source no longer has or one the config's `maxLength` overrides, and says so when the source could not be read to check the keys; passes when the file is absent ([length limits](/docs/config-file#maxlength)) |
 | Locale support | the provider does not support the source or a target locale; warns when a locale carries a warning (see [Locale support](#locale-support)) |
 
 Every check runs even when an earlier one failed. The one exception is the config: when it cannot be loaded, the checks that need it print as `[skip]` (`"status": "skipped"` in JSON), as does Plural completeness for a format without CLDR plural forms. A check that found something worth attention without failing prints `[warn]` (`"status": "warn"` in JSON) and never changes the exit code. A failed check also carries a `fix`, one imperative next step printed as a `fix:` line and sent as `"fix"` in JSON, so an agent can act without parsing `detail`.
@@ -208,6 +209,7 @@ interface DoctorCheck {
     | "plural-completeness"
     | "locale-codes"
     | "locale-state"
+    | "limits"
     | "locales"
     | "untranslated-literals"
     | "data-flow";
