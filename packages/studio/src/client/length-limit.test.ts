@@ -78,6 +78,23 @@ describe("limitControlView", () => {
     ).toMatchObject({ mode: "none", value: undefined });
   });
 
+  it("treats a source without a value as no limit rather than inventing one", () => {
+    expect(
+      limitControlView({
+        maxLength: undefined,
+        maxLengthSource: "config",
+        limitsNotice: undefined,
+      }),
+    ).toMatchObject({ mode: "none", value: undefined });
+    expect(
+      limitControlView({
+        maxLength: undefined,
+        maxLengthSource: "limits-file",
+        limitsNotice: undefined,
+      }),
+    ).toMatchObject({ mode: "none", value: undefined });
+  });
+
   it("blocks writes and carries the sdk's own words when the file is unusable", () => {
     expect(
       limitControlView({ maxLength: undefined, maxLengthSource: undefined, limitsNotice: NOTICE }),

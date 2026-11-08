@@ -9,10 +9,8 @@ function withHint(error: unknown): unknown {
   if (!(error instanceof SdkError)) {
     return error;
   }
-  const hint = errorHint(error);
-  return hint === undefined
-    ? error
-    : new SdkError(error.code, `${error.message} ${hint}`, { cause: error });
+  const message = [error.message, errorHint(error)].filter(Boolean).join(" ");
+  return new SdkError(error.code, message, { cause: error });
 }
 
 export const keySetMaxLengthHandler: RpcHandler<"key.setMaxLength"> = async (params, deps) => {

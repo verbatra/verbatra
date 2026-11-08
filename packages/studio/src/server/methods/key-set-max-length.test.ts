@@ -1,5 +1,6 @@
 import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createDefaultRegistry, type SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
@@ -181,4 +182,38 @@ describe("keySetMaxLengthHandler", () => {
       }
     },
   );
+
+  it("uses the adapter registry it is given", async () => {
+    const project = await makeFixtureProject();
+    try {
+      const result = await keySetMaxLengthHandler(
+        { key: "greeting", maxLength: 6 },
+        { ...deps(project), adapterRegistry: createDefaultRegistry() },
+      );
+
+      expect(result).toEqual({ key: "greeting", maxLength: 6, changed: true });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("passes a failure that is not an sdk error through unchanged and unhinted", async () => {
+    const project = await makeFixtureProject();
+    const boom = new TypeError("disk on fire");
+    const failing = new Proxy({} as SdkFs, {
+      get: () => async () => {
+        throw boom;
+      },
+    });
+    try {
+      await expect(
+        keySetMaxLengthHandler(
+          { key: "greeting", maxLength: 6 },
+          { ...deps(project), fs: failing },
+        ),
+      ).rejects.toBe(boom);
+    } finally {
+      await project.cleanup();
+    }
+  });
 });

@@ -1,4 +1,3 @@
-import type { MaxLengthSource } from "@verbatra/sdk";
 import type { KeyValueContext } from "./key-value-context.js";
 
 export const NO_LIMIT_FOR_UNKNOWN_KEY =
@@ -36,27 +35,30 @@ export function parseLimitInput(text: string): LimitParse {
 
 type LoadedContext = Extract<KeyValueContext, { kind: "loaded" }>;
 
-export type LimitMode = "config" | "file" | "none" | "blocked";
+export type LimitControlView =
+  | {
+      readonly mode: "config" | "file";
+      readonly value: number;
+      readonly notice: string | undefined;
+    }
+  | { readonly mode: "none"; readonly value: undefined; readonly notice: string | undefined }
+  | { readonly mode: "blocked"; readonly value: undefined; readonly notice: string };
 
-export interface LimitControlView {
-  readonly mode: LimitMode;
-  readonly value: number | undefined;
-  readonly notice: string | undefined;
-}
+export type LimitMode = LimitControlView["mode"];
 
 export function limitControlView(
   context: Pick<LoadedContext, "maxLength" | "maxLengthSource" | "limitsNotice">,
 ): LimitControlView {
   const notice = context.limitsNotice?.message;
-  const source: MaxLengthSource | undefined = context.maxLengthSource;
-  if (source === "config") {
-    return { mode: "config", value: context.maxLength, notice };
+  const { maxLength, maxLengthSource: source } = context;
+  if (source === "config" && maxLength !== undefined) {
+    return { mode: "config", value: maxLength, notice };
   }
   if (notice !== undefined) {
-    return { mode: "blocked", value: context.maxLength, notice };
+    return { mode: "blocked", value: undefined, notice };
   }
-  return source === "limits-file"
-    ? { mode: "file", value: context.maxLength, notice }
+  return source === "limits-file" && maxLength !== undefined
+    ? { mode: "file", value: maxLength, notice }
     : { mode: "none", value: undefined, notice };
 }
 

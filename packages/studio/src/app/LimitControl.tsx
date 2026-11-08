@@ -36,16 +36,16 @@ function awaitedView(
     return base;
   }
   return awaiting.value === null
-    ? { mode: "none", value: undefined, notice: base.notice }
-    : { mode: "file", value: awaiting.value, notice: base.notice };
+    ? { mode: "none", value: undefined, notice: undefined }
+    : { mode: "file", value: awaiting.value, notice: undefined };
 }
 
 function statusText(view: LimitControlView): string {
   switch (view.mode) {
     case "config":
-      return `Limit: ${limitCountText(view.value ?? 0)}, set by the config. Change it in the config. Studio read the config when it started, so a change made since needs a restart of Studio.`;
+      return `Limit: ${limitCountText(view.value)}, set by the config. Change it in the config. Studio read the config when it started, so a change made since needs a restart of Studio.`;
     case "file":
-      return `Limit: ${limitCountText(view.value ?? 0)}, from verbatra.limits.json.`;
+      return `Limit: ${limitCountText(view.value)}, from verbatra.limits.json.`;
     case "none":
       return "No limit is set for this key.";
     case "blocked":

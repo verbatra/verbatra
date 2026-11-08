@@ -247,6 +247,19 @@ describe("LimitControl setting", () => {
     }
   });
 
+  it("ignores Escape pressed while an input method is composing", () => {
+    const view = render(control(context()));
+    open(view, "Set limit");
+
+    act(() => {
+      textboxNamed(view, "Limit in characters").dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, isComposing: true }),
+      );
+    });
+
+    expect(view.query("[data-limit-form]")).not.toBeNull();
+  });
+
   it("closes on Cancel", () => {
     const view = render(control(context()));
     open(view, "Set limit");
