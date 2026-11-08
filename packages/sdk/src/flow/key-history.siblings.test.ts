@@ -22,6 +22,7 @@ function available(result: KeyHistoryResult): Extract<KeyHistoryResult, { availa
   if (!result.available) {
     throw new Error(`unavailable: ${result.reason}`);
   }
+  expect(result.truncated).toBe(result.truncatedBy.length > 0);
   return result;
 }
 

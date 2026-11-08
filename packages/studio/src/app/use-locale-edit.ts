@@ -89,6 +89,7 @@ export function useLocaleEdit(
   keyName: string,
   refreshToken: number,
   session = 0,
+  seed: string | null = null,
 ): LocaleEdit {
   const identity = draftIdentity(locale, keyName, session);
   const { context, retrying, retry } = useHeldContext(identity, locale, keyName, refreshToken);
@@ -96,7 +97,7 @@ export function useLocaleEdit(
   const [heldSubmit, setHeldSubmit] = useState<HeldSubmit>(NO_SUBMIT);
 
   const baseline = context.kind === "loaded" ? (context.target ?? "") : null;
-  const current = reconcileDraft(draftState, identity, baseline);
+  const current = reconcileDraft(draftState, identity, baseline, seed);
   if (current !== draftState) {
     setDraftState(current);
   }

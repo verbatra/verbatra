@@ -81,7 +81,7 @@ function localeHistory(
 
 **Throws:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
-Each commit carries `hash`, `author` (the name after `.mailmap`, never the email), `authorDate`, `subject` and `touchedPaths`. `limit` defaults to `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`), capped at `LOCALE_HISTORY_LIMIT_CAP` (`200`), rounded down and at least 1. Control and bidirectional formatting characters are stripped from `author` and `subject`; a commit whose metadata does not parse is left out. Like `localeGitStatus`, a repository git cannot read, or a `git log` over `LOCALE_HISTORY_TIMEOUT_MS` or `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, gives `{ available: false, reason }`, a reason from `LOCALE_HISTORY_UNAVAILABLE_REASONS`. See [Studio and MCP](/docs/data-handling#studio-and-mcp).
+Each commit carries `hash`, `author` (the name after `.mailmap`, never the email), `authorDate`, `subject` and `touchedPaths`. `limit` defaults to `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`), at most `LOCALE_HISTORY_LIMIT_CAP` (`200`), at least 1. `author` and `subject` lose control and bidirectional characters, have known keys replaced by `[REDACTED]` and are cut to 200 and 500; a commit with unreadable metadata is left out. An unreadable repository, or a `git log` over `LOCALE_HISTORY_TIMEOUT_MS` or `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, gives `{ available: false, reason }` from `LOCALE_HISTORY_UNAVAILABLE_REASONS`. See [Studio and MCP](/docs/data-handling#studio-and-mcp).
 
 ### localeGitStatus
 

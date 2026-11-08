@@ -53,6 +53,7 @@ function available(result: KeyHistoryResult): Extract<KeyHistoryResult, { availa
   if (!result.available) {
     throw new Error(`unavailable: ${result.reason}`);
   }
+  expect(result.truncated).toBe(result.truncatedBy.length > 0);
   return result;
 }
 
@@ -299,6 +300,7 @@ describe("keyHistory limits and truncation", () => {
 
     expect(values(result.revisions)).toEqual(["four", "three"]);
     expect(result.truncated).toBe(true);
+    expect(result.truncatedBy).toEqual(["commit-limit"]);
     expect(result.revisions[1]?.diff).toEqual([
       { kind: "removed", text: "two" },
       { kind: "added", text: "three" },
@@ -339,6 +341,7 @@ describe("keyHistory limits and truncation", () => {
     const result = available(await history(fx, "a", { cwd: clone }));
 
     expect(result.truncated).toBe(true);
+    expect(result.truncatedBy).toEqual(["shallow-clone"]);
     expect(values(result.revisions)).toEqual(["three"]);
   });
 
@@ -351,6 +354,7 @@ describe("keyHistory limits and truncation", () => {
     const result = available(await history(fx, "a", { cwd: clone }));
 
     expect(result.truncated).toBe(false);
+    expect(result.truncatedBy).toEqual([]);
     expect(values(result.revisions)).toEqual(["two", "one"]);
   });
 

@@ -6,6 +6,7 @@ import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { GIT_LOCALE_DIFF_METHOD, GIT_STATUS_METHOD } from "../shared/rpc/git.js";
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { KEY_PREVIEW_ICU_METHOD } from "../shared/rpc/key-preview-icu.js";
+import { HISTORY_KEY_REVISIONS_METHOD } from "../shared/rpc/key-revisions.js";
 import { RETRANSLATE_ENTRIES_METHOD } from "../shared/rpc/retranslate-entries.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
 import {
@@ -50,6 +51,8 @@ const DEFAULT_GIT_STATUS_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_GIT_STATUS_RATE_LIMIT_MAX = 120;
 const DEFAULT_GIT_LOCALE_DIFF_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_GIT_LOCALE_DIFF_RATE_LIMIT_MAX = 240;
+const DEFAULT_KEY_REVISIONS_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_KEY_REVISIONS_RATE_LIMIT_MAX = 60;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX = 60;
 
@@ -106,6 +109,10 @@ function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits
       windowMs:
         options.gitLocaleDiffRateLimitWindowMs ?? DEFAULT_GIT_LOCALE_DIFF_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.gitLocaleDiffRateLimitMax ?? DEFAULT_GIT_LOCALE_DIFF_RATE_LIMIT_MAX,
+    },
+    [HISTORY_KEY_REVISIONS_METHOD]: {
+      windowMs: options.keyRevisionsRateLimitWindowMs ?? DEFAULT_KEY_REVISIONS_RATE_LIMIT_WINDOW_MS,
+      maxCalls: options.keyRevisionsRateLimitMax ?? DEFAULT_KEY_REVISIONS_RATE_LIMIT_MAX,
     },
     [REVIEW_APPROVE_METHOD]: reviewDecision,
     [REVIEW_REJECT_METHOD]: reviewDecision,

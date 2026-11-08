@@ -18,6 +18,7 @@ export function reconcileDraft(
   state: DraftState,
   identity: string | null,
   baseline: string | null,
+  seed: string | null = null,
 ): DraftState {
   if (identity === null) {
     return state.identity === null ? state : EMPTY_DRAFT;
@@ -29,5 +30,6 @@ export function reconcileDraft(
     return state;
   }
   const keepsEdits = state.identity === identity && isDraftDirty(state);
-  return { identity, baseline, text: keepsEdits ? state.text : baseline };
+  const fresh = state.identity !== identity && seed !== null ? seed : baseline;
+  return { identity, baseline, text: keepsEdits ? state.text : fresh };
 }

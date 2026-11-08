@@ -79,4 +79,23 @@ describe("reconcileDraft", () => {
       draft(DE_BODY, "Text", "Text"),
     );
   });
+
+  it("starts a new entry from the seed, dirty against the saved value", () => {
+    const next = reconcileDraft(EMPTY_DRAFT, DE_TITLE, "Hallo", "Servus");
+
+    expect(next).toEqual(draft(DE_TITLE, "Hallo", "Servus"));
+    expect(isDraftDirty(next)).toBe(true);
+  });
+
+  it("applies the seed once: a later saved value keeps the edit and ignores the seed", () => {
+    const seeded = reconcileDraft(EMPTY_DRAFT, DE_TITLE, "Hallo", "Servus");
+
+    expect(reconcileDraft(seeded, DE_TITLE, "Moin", "Servus")).toEqual(
+      draft(DE_TITLE, "Moin", "Servus"),
+    );
+  });
+
+  it("waits for the saved value before seeding", () => {
+    expect(reconcileDraft(EMPTY_DRAFT, DE_TITLE, null, "Servus")).toBe(EMPTY_DRAFT);
+  });
 });

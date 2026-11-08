@@ -25,7 +25,7 @@ verbatra studio --expose-agent-tools
 
 To let the agent call your provider, start Studio with `--allow-spend` as well ([Spend and agent tools](/docs/cli/studio#spend-and-agent-tools)).
 
-The agent reads every value unredacted, as the page shows it: Studio does not redact, because an agent on the tab can read the page anyway. The one exception is the glossary tools: their values pass through secret redaction, so a value shaped like an API key comes back as a placeholder. To keep values from an agent, use the MCP server with [`--redact-values`](/docs/cli/mcp#redacted-values) instead; for an NDA project, see [Studio and MCP](/docs/data-handling#studio-and-mcp).
+The agent reads every value unredacted, as the page shows it: Studio does not redact, because an agent on the tab can read the page anyway. The exceptions are the glossary tools and `verbatra_history_keyRevisions`: their values pass through secret redaction, so a value shaped like an API key comes back as a placeholder. To keep values from an agent, use the MCP server with [`--redact-values`](/docs/cli/mcp#redacted-values) instead; for an NDA project, see [Studio and MCP](/docs/data-handling#studio-and-mcp).
 
 ## Know what the agent can call
 
@@ -41,6 +41,7 @@ Each tool is a Studio action with a `verbatra_` prefix. Read tools are marked re
 | `verbatra_glossary_get` | the resolved glossary, secret-redacted |
 | `verbatra_lock_state` | the lock file's state per locale |
 | `verbatra_history_list` | recent commits to the locale files, with the author's name ([never the email](/docs/data-handling#studio-and-mcp)) |
+| `verbatra_history_keyRevisions` | one key's commits in one locale, with word diffs, keys scrubbed <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_integrity` | placeholder, markup and ICU checks for one key, in the locales where its source changed |
 | `verbatra_review_queue` | every machine-written value nobody has approved, from the committed files <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | one key's source and target, with who wrote the target |
@@ -85,7 +86,7 @@ Every call goes through the dashboard's own authenticated loopback RPC, with the
 
 ## Read a failed call
 
-Every tool returns the dashboard's envelope, so a failure reads `{ "ok": false, "error": { "code": ..., "message": ... } }`. Besides the SDK's own codes, such as an integrity rejection or `UNKNOWN_KEY`, the RPC layer adds:
+Every tool returns the dashboard's envelope, so a failure reads `{ "ok": false, "error": { "code": ..., "message": ... } }`. Besides the SDK's own codes, the RPC layer adds:
 
 | Code | Meaning |
 | --- | --- |
@@ -105,7 +106,7 @@ If the browser rejects a registration, every view shows a warning such as:
 
 > Agent tools degraded: 2 of the agent tool registrations failed with SecurityError. The dashboard itself is unaffected. The browser console lists every failing tool.
 
-The tools that did register stay callable, and the dashboard works as usual. The console has one line naming each failure:
+The console has one line naming each failure:
 
 ```text output
 Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)

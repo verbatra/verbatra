@@ -12,6 +12,7 @@ import {
   resolveWatchedPaths,
   sanitizeGitText,
 } from "./git-exec.js";
+import { clipText, makeScrubber } from "./key-scrub.js";
 
 export {
   defaultGitExecFile,
@@ -27,11 +28,11 @@ export {
 export interface LocaleHistoryCommit {
   /** The full commit hash. */
   readonly hash: string;
-  /** The author's name as git records it, after `.mailmap`. Never the email address. */
+  /** The author's name as git records it, after `.mailmap`, with anything shaped like an API key replaced by `[REDACTED]`, cut to 200 characters. Never the email address. */
   readonly author: string;
   /** The author date in strict ISO 8601. */
   readonly authorDate: string;
-  /** The first line of the commit message. */
+  /** The first line of the commit message, with anything shaped like an API key replaced by `[REDACTED]`, cut to 500 characters. */
   readonly subject: string;
   /** The watched locale files the commit touched, relative to the repository root. */
   readonly touchedPaths: readonly string[];
@@ -80,6 +81,8 @@ export type LocaleHistoryResult =
       readonly available: true;
       /** The commits that touched the locale files, newest first. */
       readonly commits: readonly LocaleHistoryCommit[];
+      /** `true` when more than 256 distinct keys, one key longer than 4096 characters, or keys adding up to more than 65,536 UTF-16 code units turned up in author names and subjects, so every non-empty `subject` and `author` was replaced by `[REDACTED]` (empty text stays empty). Absent otherwise. */
+      readonly truncated?: true;
     };
 
 /** How long {@link localeHistory} lets `git log` run before stopping it, in milliseconds. */
@@ -158,9 +161,17 @@ function parsePathLine(line: string): string {
   return line.length >= 2 && line.startsWith('"') && line.endsWith('"') ? unquoteCPath(line) : line;
 }
 
-export function parseCommitHeader(
-  line: string,
-): Omit<LocaleHistoryCommit, "touchedPaths"> | undefined {
+export const COMMIT_AUTHOR_MAX_CHARS = 200;
+export const COMMIT_SUBJECT_MAX_CHARS = 500;
+
+export interface RawCommitHeader {
+  readonly hash: string;
+  readonly authorDate: string;
+  readonly author: string;
+  readonly subject: string;
+}
+
+export function parseRawCommitHeader(line: string): RawCommitHeader | undefined {
   const fields = line.split(FIELD_SEPARATOR);
   if (fields.length !== HEADER_FIELD_COUNT) {
     return undefined;
@@ -169,33 +180,49 @@ export function parseCommitHeader(
   if (!COMMIT_HASH.test(hash) || !ISO_DATE.test(authorDate)) {
     return undefined;
   }
-  return { hash, author: sanitizeGitText(author), authorDate, subject: sanitizeGitText(subject) };
+  return { hash, authorDate, author: sanitizeGitText(author), subject: sanitizeGitText(subject) };
 }
 
-interface PendingCommit {
-  readonly header: Omit<LocaleHistoryCommit, "touchedPaths"> | undefined;
+interface RawCommit extends RawCommitHeader {
   readonly touchedPaths: string[];
 }
 
-function completed(pending: PendingCommit | undefined): LocaleHistoryCommit[] {
-  return pending?.header === undefined
-    ? []
-    : [{ ...pending.header, touchedPaths: pending.touchedPaths }];
-}
-
-export function parseGitLogOutput(stdout: string): LocaleHistoryCommit[] {
-  const commits: LocaleHistoryCommit[] = [];
-  let pending: PendingCommit | undefined;
+function parseRawLog(stdout: string): RawCommit[] {
+  const commits: RawCommit[] = [];
+  let pending: RawCommit | undefined;
   for (const line of stdout.split("\n")) {
     if (line.includes(FIELD_SEPARATOR)) {
-      commits.push(...completed(pending));
-      pending = { header: parseCommitHeader(line), touchedPaths: [] };
+      const header = parseRawCommitHeader(line);
+      pending = header === undefined ? undefined : { ...header, touchedPaths: [] };
+      if (pending !== undefined) {
+        commits.push(pending);
+      }
     } else if (line.length > 0 && pending !== undefined) {
       pending.touchedPaths.push(parsePathLine(line));
     }
   }
-  commits.push(...completed(pending));
   return commits;
+}
+
+function scrubCommits(raw: readonly RawCommit[]): {
+  readonly commits: LocaleHistoryCommit[];
+  readonly overflowed: boolean;
+} {
+  const scrubber = makeScrubber(raw.flatMap((commit) => [commit.author, commit.subject]));
+  return {
+    overflowed: scrubber.overflowed,
+    commits: raw.map((commit) => ({
+      hash: commit.hash,
+      author: clipText(scrubber.scrub(commit.author), COMMIT_AUTHOR_MAX_CHARS),
+      authorDate: commit.authorDate,
+      subject: clipText(scrubber.scrub(commit.subject), COMMIT_SUBJECT_MAX_CHARS),
+      touchedPaths: commit.touchedPaths,
+    })),
+  };
+}
+
+export function parseGitLogOutput(stdout: string): LocaleHistoryCommit[] {
+  return scrubCommits(parseRawLog(stdout)).commits;
 }
 
 const HISTORY_UNAVAILABLE_REASONS: ReadonlySet<string> = new Set(
@@ -234,7 +261,8 @@ export async function runGitLog(input: RunGitLogInput): Promise<LocaleHistoryRes
       timeout: LOCALE_HISTORY_TIMEOUT_MS,
       maxBuffer: LOCALE_HISTORY_MAX_OUTPUT_BYTES,
     });
-    return { available: true, commits: parseGitLogOutput(stdout) };
+    const { commits, overflowed } = scrubCommits(parseRawLog(stdout));
+    return { available: true, commits, ...(overflowed ? { truncated: true as const } : {}) };
   } catch (error) {
     return interpretGitFailure(classifyGitFailure(error));
   }

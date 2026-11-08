@@ -80,6 +80,10 @@ export function provenanceBadgeView(
   return provenance === undefined ? null : ORIGIN_VIEWS[provenance.origin];
 }
 
+export function originBadgeView(origin: KeyOrigin): ProvenanceBadgeView {
+  return ORIGIN_VIEWS[origin];
+}
+
 export interface ProvenanceDetailItem {
   readonly label: string;
   readonly value: string;

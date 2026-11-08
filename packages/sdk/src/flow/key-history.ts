@@ -14,13 +14,14 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { readWorkingSide, type Side, type SideInput } from "./git-diff.js";
 import { defaultGitExecFile, type GitExecFile } from "./git-exec.js";
 import {
+  COMMIT_AUTHOR_MAX_CHARS,
+  COMMIT_SUBJECT_MAX_CHARS,
   clampHistoryLimit,
   FIELD_SEPARATOR,
   GIT_LOG_FORMAT,
   LOCALE_HISTORY_MAX_OUTPUT_BYTES,
   LOCALE_HISTORY_TIMEOUT_MS,
-  type LocaleHistoryCommit,
-  parseCommitHeader,
+  parseRawCommitHeader,
 } from "./git-log.js";
 import {
   type BlobStat,
@@ -43,6 +44,7 @@ import {
   RECORD_LIMITS,
   type ReadDecision,
 } from "./key-history-limits.js";
+import { clipText, makeScrubber, type Scrubber } from "./key-scrub.js";
 import { assertTargetLocale } from "./select-locales.js";
 import { readSource } from "./source.js";
 import { diffValues, type KeyHistorySegment } from "./value-diff.js";
@@ -55,12 +57,35 @@ export const KEY_HISTORY_MAX_KEY_CHARS = 1024;
 export const KEY_HISTORY_DEADLINE_MS = 30_000;
 
 const READ_CONCURRENCY = 4;
-const MAX_AUTHOR_CHARS = 200;
-const MAX_SUBJECT_CHARS = 500;
 
 function pause(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
+
+/**
+ * Why a {@link keyHistory} answer may be incomplete, in the order they are listed:
+ * `commit-limit` (older commits exist than the limit examines), `shallow-clone`,
+ * `unreadable-revision` (a commit's file could not be read or parsed, held a value that is too
+ * long, or had a log line that did not parse), `file-too-large` (a commit's file was above the
+ * size cap for its format), `byte-budget` (the files read in one call reached their total size
+ * budget), `deadline` (the time ran out), `source-unreadable` (the source file could not be read in
+ * full), `records-unreadable` (a lock-file or provenance file could not be read in full) and
+ * `scrub-cap` (more than 256 distinct keys, one key longer than 4096 characters, or keys adding up to more than 65,536 UTF-16 code units turned up: the answer then replaces every non-empty value, diff segment, subject and author name with `[REDACTED]`, leaves empty text empty, and sets `valueRedacted` on every revision).
+ */
+export const KEY_HISTORY_TRUNCATION_REASONS = [
+  "commit-limit",
+  "shallow-clone",
+  "unreadable-revision",
+  "file-too-large",
+  "byte-budget",
+  "deadline",
+  "source-unreadable",
+  "records-unreadable",
+  "scrub-cap",
+] as const;
+
+/** One member of {@link KEY_HISTORY_TRUNCATION_REASONS}. */
+export type KeyHistoryTruncation = (typeof KEY_HISTORY_TRUNCATION_REASONS)[number];
 
 /**
  * One commit in which a key's value changed, as {@link keyHistory} lists it.
@@ -70,11 +95,11 @@ export interface KeyRevision {
   readonly commit: string;
   /** The author date in strict ISO 8601. */
   readonly authorDate: string;
-  /** The author's name after `.mailmap`, never the email address, cut to 200 characters. */
+  /** The author's name after `.mailmap`, never the email address, scrubbed with {@link redact} before it is cut to 200 characters. */
   readonly author: string;
-  /** The first line of the commit message, cut to 500 characters. */
+  /** The first line of the commit message, scrubbed with {@link redact} before it is cut to 500 characters. */
   readonly subject: string;
-  /** The key's value in that commit. Untrusted: show it as text. */
+  /** The key's value in that commit. Untrusted: show it as text. Anything shaped like an API key is replaced by `[REDACTED]`, and so is any other text equal to a key that {@link redact} replaced in a value, subject or author name elsewhere in the same answer. */
   readonly value: string;
   /**
    * Which write path produced the value, read from `verbatra.provenance.json` as committed with it:
@@ -133,8 +158,10 @@ export type KeyHistoryResult =
       readonly workingTree?: KeyWorkingTreeValue;
       /** `true` when the value on disk could not be compared with `HEAD`, so `workingTree` is absent: the file on disk does not parse, is a symbolic link or is above its size limit, its value is longer than {@link KEY_HISTORY_MAX_VALUE_CHARS}, the copy at `HEAD` could not be read (it is above its size limit, does not parse or was not reached), or the time ran out. */
       readonly workingTreeUnreadable?: true;
-      /** `true` when the answer may leave history out or leave a field unknown because something was not read in full: older commits were not examined (the commit limit, the size budget of the call or the time), the clone is shallow, a commit could not be read or parsed, was above its size limit or held a value that is too long, or a lock-file, provenance file or the source file could not be read, parsed or was above its size limit. `false` means every commit and record examined was read; the file on disk is reported only by `workingTreeUnreadable`. */
+      /** `true` when the answer may leave history out or leave a field unknown because something was not read in full: older commits were not examined (the commit limit, the size budget of the call or the time), the clone is shallow, more than 256 distinct keys, one key longer than 4096 characters, or keys adding up to more than 65,536 UTF-16 code units turned up, so every non-empty value, diff segment, subject and author name was replaced by `[REDACTED]`, a commit could not be read or parsed, was above its size limit or held a value that is too long, or a lock-file, provenance file or the source file could not be read, parsed or was above its size limit. `false` means every commit and record examined was read; the file on disk is reported only by `workingTreeUnreadable`. */
       readonly truncated: boolean;
+      /** Why `truncated` is `true`: every member of {@link KEY_HISTORY_TRUNCATION_REASONS} that applies, in that order. Empty exactly when `truncated` is `false`. */
+      readonly truncatedBy: readonly KeyHistoryTruncation[];
       /** How many examined commits held the locale file in a state that could not be read or whose value was too long. */
       readonly unreadableRevisions: number;
     };
@@ -195,14 +222,6 @@ function assertUsableKey(key: string): void {
       `The key must be a string of 1 to ${KEY_HISTORY_MAX_KEY_CHARS} characters.`,
     );
   }
-}
-
-function clipText(text: string, max: number): string {
-  if (text.length <= max) {
-    return text;
-  }
-  const lastUnit = text.charCodeAt(max - 1);
-  return text.slice(0, lastUnit >= 0xd800 && lastUnit <= 0xdbff ? max - 1 : max);
 }
 
 type LocaleProbe =
@@ -279,7 +298,12 @@ async function readKeyState(
 }
 
 type LogEntry =
-  | { readonly malformed: false; readonly commit: LocaleHistoryCommit }
+  | {
+      readonly malformed: false;
+      readonly commit: { readonly hash: string; readonly authorDate: string };
+      readonly rawAuthor: string;
+      readonly rawSubject: string;
+    }
   | { readonly malformed: true };
 
 type ListedCommits =
@@ -290,11 +314,16 @@ function parseLogEntries(stdout: string): LogEntry[] {
   const entries: LogEntry[] = [];
   for (const line of stdout.split("\n")) {
     if (line.includes(FIELD_SEPARATOR)) {
-      const header = parseCommitHeader(line);
+      const raw = parseRawCommitHeader(line);
       entries.push(
-        header === undefined
+        raw === undefined
           ? { malformed: true }
-          : { malformed: false, commit: { ...header, touchedPaths: [] } },
+          : {
+              malformed: false,
+              commit: { hash: raw.hash, authorDate: raw.authorDate },
+              rawAuthor: raw.author,
+              rawSubject: raw.subject,
+            },
       );
     }
   }
@@ -594,26 +623,33 @@ interface ScrubbedDiff {
   readonly diff: KeyHistorySegment[];
 }
 
-function scrubbedDiff(previous: string | undefined, value: string): ScrubbedDiff {
-  const scrubbed = redact(value);
+function scrubbedDiff(
+  scrubber: Scrubber,
+  previous: string | undefined,
+  value: string,
+): ScrubbedDiff {
+  const scrubbed = scrubber.scrub(value);
   return {
     value: scrubbed,
-    valueRedacted: scrubbed !== value,
-    diff: diffValues(redact(previous ?? ""), scrubbed),
+    valueRedacted: scrubber.overflowed || scrubbed !== value,
+    diff: diffValues(scrubber.scrub(previous ?? ""), scrubbed),
   };
 }
 
-function revisionOf(
-  commit: LocaleHistoryCommit,
-  change: Changed,
-  context: RevisionContext,
-): KeyRevision {
-  const { value, valueRedacted, diff } = scrubbedDiff(change.previous, change.value);
+interface PendingRevision {
+  readonly entry: Extract<LogEntry, { readonly malformed: false }>;
+  readonly change: Changed;
+  readonly context: RevisionContext;
+}
+
+function revisionOf(scrubber: Scrubber, pending: PendingRevision): KeyRevision {
+  const { entry, change, context } = pending;
+  const { value, valueRedacted, diff } = scrubbedDiff(scrubber, change.previous, change.value);
   return {
-    commit: commit.hash,
-    authorDate: commit.authorDate,
-    author: clipText(commit.author, MAX_AUTHOR_CHARS),
-    subject: clipText(commit.subject, MAX_SUBJECT_CHARS),
+    commit: entry.commit.hash,
+    authorDate: entry.commit.authorDate,
+    author: clipText(scrubber.scrub(entry.rawAuthor), COMMIT_AUTHOR_MAX_CHARS),
+    subject: clipText(scrubber.scrub(entry.rawSubject), COMMIT_SUBJECT_MAX_CHARS),
     value,
     ...(valueRedacted ? { valueRedacted: true as const } : {}),
     ...(context.origin !== undefined ? { origin: context.origin } : {}),
@@ -623,8 +659,8 @@ function revisionOf(
 }
 
 interface Collected {
-  readonly revisions: KeyRevision[];
-  readonly truncated: boolean;
+  readonly pending: PendingRevision[];
+  readonly truncatedBy: ReadonlySet<KeyHistoryTruncation>;
   readonly unreadableRevisions: number;
   readonly head: KeyState | undefined;
 }
@@ -636,32 +672,47 @@ function hashOf(entry: LogEntry | undefined): string {
 interface Coverage {
   readonly moreCommits: boolean;
   readonly shallow: boolean;
-  readonly states: readonly (KeyState | undefined)[];
+  readonly deadline: boolean;
+  readonly reads: ReadonlySet<KeyHistoryTruncation>;
   readonly contexts: readonly RevisionContext[];
   readonly source: SourceHash | undefined;
 }
 
-function isTruncated(coverage: Coverage): boolean {
-  return (
-    coverage.moreCommits ||
-    coverage.shallow ||
-    coverage.source?.kind === "skipped" ||
-    coverage.states.some((state) => state === undefined || state.kind === "unreadable") ||
-    coverage.contexts.some((context) => !context.complete)
-  );
+function truncationReasons(coverage: Coverage): Set<KeyHistoryTruncation> {
+  const reasons = new Set(coverage.reads);
+  if (coverage.moreCommits) {
+    reasons.add("commit-limit");
+  }
+  if (coverage.shallow) {
+    reasons.add("shallow-clone");
+  }
+  if (coverage.deadline) {
+    reasons.add("deadline");
+  }
+  if (coverage.source?.kind === "skipped") {
+    reasons.add("source-unreadable");
+  }
+  if (coverage.contexts.some((context) => !context.complete)) {
+    reasons.add("records-unreadable");
+  }
+  return reasons;
 }
 
 async function readStates(
   tree: GitWorkTree,
   scope: Scope,
   commits: readonly LogEntry[],
-): Promise<(KeyState | undefined)[]> {
+): Promise<{
+  readonly states: (KeyState | undefined)[];
+  readonly reads: Set<KeyHistoryTruncation>;
+}> {
   const probes = await runPool(commits.length, scope.expired, (index) => {
     const hash = hashOf(commits[index]);
     return hash === "" ? Promise.resolve(SETTLED_UNREADABLE) : probeLocale(tree, hash, scope);
   });
-  const decisions = planReads(probes.map(probeBytes), scope.limits);
-  return runPool(commits.length, scope.expired, async (index) => {
+  const sizes = probes.map(probeBytes);
+  const decisions = planReads(sizes, scope.limits);
+  const states = await runPool(commits.length, scope.expired, async (index) => {
     const probe = probes[index];
     switch (decisions[index]) {
       case "nothing":
@@ -679,6 +730,30 @@ async function readStates(
         return undefined;
     }
   });
+  return { states, reads: readReasons(states, decisions, sizes) };
+}
+
+function readReasons(
+  states: readonly (KeyState | undefined)[],
+  decisions: readonly ReadDecision[],
+  sizes: readonly (number | null | undefined)[],
+): Set<KeyHistoryTruncation> {
+  const reasons = new Set<KeyHistoryTruncation>();
+  let cutBy: KeyHistoryTruncation | undefined;
+  states.forEach((state, index) => {
+    const decision = decisions[index];
+    if (decision === "over-cap") {
+      reasons.add("file-too-large");
+    } else if (decision === "cut") {
+      cutBy ??= sizes[index] === undefined ? "deadline" : "byte-budget";
+      reasons.add(cutBy);
+    } else if (state === undefined) {
+      reasons.add("deadline");
+    } else if (state.kind === "unreadable") {
+      reasons.add("unreadable-revision");
+    }
+  });
+  return reasons;
 }
 
 async function collectRevisions(
@@ -692,12 +767,13 @@ async function collectRevisions(
     return { reason: listed.reason };
   }
   const commits = listed.commits;
-  const states = await readStates(tree, scope, commits);
+  const { states, reads } = await readStates(tree, scope, commits);
   const examined = Math.min(limit, commits.length);
   const moreCommits = commits.length > limit;
-  const shallow =
-    commits.length > 0 && !moreCommits && (scope.expired() || (await isShallow(tree)));
-  const changes = changedValues(states, examined, !shallow);
+  const atListEnd = commits.length > 0 && !moreCommits;
+  const stopped = atListEnd && scope.expired();
+  const shallow = atListEnd && !stopped && (await isShallow(tree));
+  const changes = changedValues(states, examined, !(shallow || stopped));
   const source = changes.length > 0 ? await currentSourceHash(scope, cwd) : undefined;
   const contexts =
     source === undefined
@@ -709,25 +785,35 @@ async function collectRevisions(
           source,
         );
   return {
-    revisions: changes.map((change, index) =>
-      revisionOf(
-        (commits[change.index] as { readonly commit: LocaleHistoryCommit }).commit,
-        change,
-        contexts[index] as RevisionContext,
-      ),
-    ),
-    truncated: isTruncated({ moreCommits, shallow, states, contexts, source }),
+    pending: changes.map((change, index) => ({
+      entry: commits[change.index] as Extract<LogEntry, { readonly malformed: false }>,
+      change,
+      context: contexts[index] as RevisionContext,
+    })),
+    truncatedBy: truncationReasons({
+      moreCommits,
+      shallow,
+      deadline: stopped,
+      reads,
+      contexts,
+      source,
+    }),
     unreadableRevisions: states.slice(0, examined).filter((state) => state?.kind === "unreadable")
       .length,
     head: commits.length === 0 ? ABSENT : states[0],
   };
 }
 
+interface RawWorkingTree {
+  readonly value: string;
+  readonly previous: string | undefined;
+}
+
 function workingTreeValue(
   scope: Scope,
   working: Extract<Side, { readonly ok: true }>,
   head: KeyState | undefined,
-): KeyWorkingTreeValue | "unreadable" | undefined {
+): RawWorkingTree | "unreadable" | undefined {
   const value = working.entries.get(scope.key)?.value;
   if (value === undefined) {
     return undefined;
@@ -739,11 +825,23 @@ function workingTreeValue(
     return "unreadable";
   }
   const previous = head.kind === "value" ? head.value : undefined;
-  if (previous === value) {
-    return undefined;
+  return previous === value ? undefined : { value, previous };
+}
+
+function* scrubSources(
+  pending: readonly PendingRevision[],
+  workingTree: RawWorkingTree | undefined,
+): Generator<string> {
+  for (const { entry, change } of pending) {
+    yield change.value;
+    yield change.previous ?? "";
+    yield entry.rawSubject;
+    yield entry.rawAuthor;
   }
-  const { value: shown, valueRedacted, diff } = scrubbedDiff(previous, value);
-  return { value: shown, ...(valueRedacted ? { valueRedacted: true as const } : {}), diff };
+  if (workingTree !== undefined) {
+    yield workingTree.value;
+    yield workingTree.previous ?? "";
+  }
 }
 
 function latchedDeadline(deadline: number): () => boolean {
@@ -911,13 +1009,29 @@ export async function keyHistory(
   if ("reason" in collected) {
     return { available: false, reason: collected.reason };
   }
-  const workingTree = working.ok ? workingTreeValue(scope, working, collected.head) : "unreadable";
+  const rawWorking = working.ok ? workingTreeValue(scope, working, collected.head) : "unreadable";
+  const rawTree = typeof rawWorking === "object" ? rawWorking : undefined;
+  const scrubber = makeScrubber(scrubSources(collected.pending, rawTree));
+  const workingTree =
+    rawTree === undefined
+      ? undefined
+      : (({ value, valueRedacted, diff }): KeyWorkingTreeValue => ({
+          value,
+          ...(valueRedacted ? { valueRedacted: true as const } : {}),
+          diff,
+        }))(scrubbedDiff(scrubber, rawTree.previous, rawTree.value));
+  const reasons = new Set(collected.truncatedBy);
+  if (scrubber.overflowed) {
+    reasons.add("scrub-cap");
+  }
+  const truncatedBy = KEY_HISTORY_TRUNCATION_REASONS.filter((reason) => reasons.has(reason));
   return {
     available: true,
-    revisions: collected.revisions,
-    ...(typeof workingTree === "object" ? { workingTree } : {}),
-    ...(workingTree === "unreadable" ? { workingTreeUnreadable: true as const } : {}),
-    truncated: collected.truncated,
+    revisions: collected.pending.map((pending) => revisionOf(scrubber, pending)),
+    ...(workingTree !== undefined ? { workingTree } : {}),
+    ...(rawWorking === "unreadable" ? { workingTreeUnreadable: true as const } : {}),
+    truncated: truncatedBy.length > 0,
+    truncatedBy,
     unreadableRevisions: collected.unreadableRevisions,
   };
 }

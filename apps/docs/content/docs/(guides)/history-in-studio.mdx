@@ -1,0 +1,59 @@
+---
+title: See and restore a key's history in Studio
+seoTitle: "See and restore a key's history in Studio"
+description: Read how one translation changed from commit to commit, and load an earlier value back into the editor, from the History tab in Verbatra Studio.
+type: how-to
+---
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Use this when a translation was reworded and you want the earlier wording back, or to see who changed one key and when. It reads git. Studio never stages, commits or reverts anything: restoring only fills the editor with the old text, and you save it like any edit.
+
+## Open the History tab
+
+Start Studio ([Review in Studio](/docs/review-in-studio#start-studio)), open a key in Translations and choose **History** next to **Locales**. Pick the locale if the project has several. Studio reads this key's history from git only when you open the tab.
+
+The list starts with **Working tree (uncommitted)** when the file on disk differs from the last commit. Under it, newest first, comes every commit that changed the key's value in that locale, twenty rows at a time with **Show N more** for the rest. Each row shows:
+
+| Part | What it tells you |
+| --- | --- |
+| Author, date, short hash, subject | the commit, with the author's name and never the email |
+| Origin | who wrote the value, as recorded with that commit, left out when that record could not be read |
+| Value | the text at that commit, in the locale's own language and direction, never cut short |
+| Changes from the previous value | words added or removed, marked by underline and strike-through as well as colour, and read aloud as "added" and "removed" |
+
+Everything is plain text, never markup. A key that appears in a value, a subject or an author name is replaced by `[REDACTED]`.
+
+## Restore an earlier value
+
+1. Press **Restore** on a row. The editor opens on **Locales** with that value as a draft. Nothing is written yet.
+2. Read the draft and press **Save**. The usual checks run, including placeholders and ICU, and a refusal is shown as it is with the file left alone. A saved value is recorded with the origin `human`.
+
+If you have unsaved changes, Studio asks first. **Save draft, then restore** keeps your draft and then loads the old value, **Discard draft and restore** drops it, and **Keep editing** leaves everything as it was. In the Review editor the question sits at the top of the dialog and **Discard draft and restore** is the only way to replace the draft.
+
+A row gets no **Restore**, and says why, when its value is the one the key has now, when Studio has not read the current value yet or could not, and when the value looks like an API key: History does not show that value and it cannot be restored from here.
+
+A key in `pinnedKeys` is reserved for a person, so a restore saved from Studio goes through, while an agent's edit of it is refused.
+
+### When the source has changed
+
+If the source text has changed since that commit, **Restore** first asks you to confirm, and if Studio cannot tell (the lock file at that commit could not be read or has no entry for the key) it says so. Saving then marks the key as up to date against the current source and adds the value to translation memory, so an old wording can be reused for similar keys. **Cancel** or Escape leaves everything as it was.
+
+## Know what the list leaves out
+
+Studio never presents a partial list as complete. A notice appears when:
+
+- older commits were not read, because of the commit limit, a shallow clone or the read budget;
+- a commit's file could not be read or parsed, or the value was too long, and Studio counts how many;
+- the file on disk could not be compared with the last commit, for example during a merge conflict.
+
+Studio first examines 50 commits. When that limit cut the list short, the notice says so and **Read further back** reads up to 200 in one step; after that the notice only says that is as far as Studio reads. Every other cause gets its own notice, and **Read further back** never appears for one of them. An empty list says whether it is empty or only the part Studio read. Renames are not followed, edits that were never committed are missed, a key renamed in the source looks new, and a change that arrived by merge shows on the merge commit.
+
+When git is missing, the folder is not a repository or git refuses it, Studio says so in a sentence. A read that fails or times out shows **Retry** and keeps the last list.
+
+## Know how fresh it is
+
+The tab reads again when a locale, lock or provenance file changes, when git's index or `HEAD` changes and when you return to the Studio tab. Reads are spaced out, so a run of commits does not flood Studio. A background read never moves your focus.
+
+In the Review editor, **Show history** opens the same list for that entry, reads again the same way, and **Restore** fills its field.
+
+The same reads are available as [`keyHistory`](/docs/sdk/history#keyhistory), to an [MCP client](/docs/cli/mcp) and to a [browser agent](/docs/agent-tools-in-studio).

@@ -47,6 +47,43 @@ const STUDIO_APP_ASSETS = "packages/studio/dist/app/assets";
 
 const ZOD_JITLESS_CONFIG = /\(\{\s*jitless\s*:\s*(?:!0|true)\s*\}\)/;
 
+const NODE_ONLY_TOKENS = [
+  "homedir",
+  "tmpdir",
+  "readFileSync",
+  "execFile",
+  "child_process",
+  "fs/promises",
+];
+
+const NODE_SPECIFIER_IMPORT = /(?:\bfrom|\bimport\s*\(|\brequire\s*\()\s*["'`]node:[a-z_]+/;
+
+function findNodeOnlyTokens(text) {
+  const found = NODE_ONLY_TOKENS.filter((token) => text.includes(token));
+  return NODE_SPECIFIER_IMPORT.test(text) ? [...found, "node: import"] : found;
+}
+
+const HTML_SCRIPT_REFERENCE = /(?:src|href)="\/assets\/([^"]+\.js)"/g;
+const CHUNK_REFERENCE = /["'`]\.\/([\w.-]+\.js)["'`]/g;
+
+function referencedScripts(html, readAsset) {
+  const seen = new Set();
+  const queue = [...html.matchAll(HTML_SCRIPT_REFERENCE)].map((match) => match[1]);
+  while (queue.length > 0) {
+    const name = queue.shift();
+    if (seen.has(name)) {
+      continue;
+    }
+    const text = readAsset(name);
+    if (text === undefined) {
+      continue;
+    }
+    seen.add(name);
+    queue.push(...[...text.matchAll(CHUNK_REFERENCE)].map((match) => match[1]));
+  }
+  return [...seen];
+}
+
 function hasZodJitlessConfig(text) {
   return ZOD_JITLESS_CONFIG.test(text);
 }
@@ -378,9 +415,10 @@ function checkStudioBundle() {
     }
   }
   checkStudioZodJitless();
+  checkStudioClientNodeFree();
   return (
     "the studio and mcp commands survive bundling as runtime dynamic imports, and the Studio " +
-    "client bundle keeps its zod jitless config."
+    "client bundle keeps its zod jitless config and holds no Node-only code."
   );
 }
 
@@ -401,6 +439,31 @@ function checkStudioZodJitless() {
       `${STUDIO_APP_ASSETS} has no z.config({ jitless: true }) call, so zod probes for eval under ` +
         "the dashboard's script-src 'self' policy. Check that packages/studio/package.json " +
         "sideEffects keeps src/app/zod-jitless.ts.",
+    );
+  }
+}
+
+function checkStudioClientNodeFree() {
+  const assetsDir = resolve(REPO_ROOT, STUDIO_APP_ASSETS);
+  const html = readBuildOutput("packages/studio/dist/app/index.html");
+  const readAsset = (name) =>
+    existsSync(resolve(assetsDir, name))
+      ? readBuildOutput(`${STUDIO_APP_ASSETS}/${name}`)
+      : undefined;
+  const scripts = referencedScripts(html, readAsset);
+  if (scripts.length === 0) {
+    throw new Error(
+      "packages/studio/dist/app/index.html references no script. Run the build first.",
+    );
+  }
+  const hits = scripts.flatMap((name) =>
+    findNodeOnlyTokens(readAsset(name)).map((token) => `${name}: ${token}`),
+  );
+  if (hits.length > 0) {
+    throw new Error(
+      `${STUDIO_APP_ASSETS} holds Node-only code, so a browser module pulled in a value from ` +
+        "@verbatra/sdk or a node: module and the dashboard throws when it loads; import only " +
+        `types from the sdk in src/app, src/client, src/shared and src/webmcp:\n  ${hits.join("\n  ")}`,
     );
   }
 }
@@ -611,6 +674,7 @@ export {
   findEagerProviderImports,
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
+  findNodeOnlyTokens,
   findRenamedDeclarations,
   findSchemaDocumentProblems,
   findSchemaSetProblems,
@@ -621,6 +685,7 @@ export {
   hasZodJitlessConfig,
   PUBLISHED_DECLARATIONS,
   PUBLISHED_PACKAGES,
+  referencedScripts,
   staticImportPattern,
   staticRequirePattern,
 };

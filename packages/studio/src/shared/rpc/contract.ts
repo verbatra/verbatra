@@ -36,6 +36,11 @@ import {
   type KeyPreviewIcuResult,
   keyPreviewIcuParamsSchema,
 } from "./key-preview-icu.js";
+import {
+  HISTORY_KEY_REVISIONS_METHOD,
+  type KeyRevisionsResult,
+  keyRevisionsParamsSchema,
+} from "./key-revisions.js";
 import { KEY_VALUE_METHOD, type KeyValueResult, keyValueParamsSchema } from "./key-value.js";
 import {
   LOCALE_INTEGRITY_METHOD,
@@ -104,6 +109,7 @@ export const rpcParamsSchemas = {
   [GLOSSARY_WRITE_METHOD]: glossaryWriteParamsSchema,
   [LOCK_STATE_METHOD]: lockStateParamsSchema,
   [HISTORY_LIST_METHOD]: historyListParamsSchema,
+  [HISTORY_KEY_REVISIONS_METHOD]: keyRevisionsParamsSchema,
   [GIT_STATUS_METHOD]: gitStatusParamsSchema,
   [GIT_LOCALE_DIFF_METHOD]: gitLocaleDiffParamsSchema,
   [KEY_INTEGRITY_METHOD]: keyIntegrityParamsSchema,
@@ -139,6 +145,7 @@ export interface RpcResultMap {
   readonly [GLOSSARY_WRITE_METHOD]: GlossaryWriteResult;
   readonly [LOCK_STATE_METHOD]: LockStateResult;
   readonly [HISTORY_LIST_METHOD]: HistoryListResult;
+  readonly [HISTORY_KEY_REVISIONS_METHOD]: KeyRevisionsResult;
   readonly [GIT_STATUS_METHOD]: GitStatusResult;
   readonly [GIT_LOCALE_DIFF_METHOD]: GitLocaleDiffResult;
   readonly [KEY_INTEGRITY_METHOD]: KeyIntegrityResult;

@@ -452,7 +452,7 @@ describe("EditEntryDialog", () => {
 
     const view = await renderAsync(dialog());
     act(() => {
-      saveButton(view).focus();
+      view.get("button[data-edit-history-toggle]").focus();
     });
     pressKey("Tab");
 
@@ -467,7 +467,7 @@ describe("EditEntryDialog", () => {
     const view = await renderAsync(dialog());
     pressKey("Tab", { shiftKey: true });
 
-    expect(document.activeElement).toBe(saveButton(view));
+    expect(document.activeElement).toBe(view.get("button[data-edit-history-toggle]"));
   });
 
   it("ignores a value read that answers after the dialog moved to another key", async () => {

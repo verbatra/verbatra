@@ -54,6 +54,16 @@ describe("useHistoryList", () => {
     expect(seen).toEqual({ kind: "loaded", commits: [FIRST_COMMIT, SECOND_COMMIT] });
   });
 
+  it("carries the truncated flag of the answer and leaves it out otherwise", async () => {
+    stubRpc({
+      "history.list": historyAnswer({ available: true, commits: [FIRST_COMMIT], truncated: true }),
+    });
+
+    await renderAsync(<Probe />);
+
+    expect(seen).toEqual({ kind: "loaded", commits: [FIRST_COMMIT], truncated: true });
+  });
+
   it("asks history.list for the whole history, with no limit of its own", async () => {
     stubRpc({ "history.list": historyAnswer({ available: true, commits: [] }) });
 

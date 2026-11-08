@@ -113,7 +113,7 @@ describe("history.keyRevisions", () => {
       { kind: "equal", text: "Welt" },
     ]);
     expect(result.workingTree?.value).toBe("Hallo schöne neue Welt");
-    expect(result).toMatchObject({ truncated: false, unreadableRevisions: 0 });
+    expect(result).toMatchObject({ truncated: false, truncatedBy: [], unreadableRevisions: 0 });
     expect(JSON.stringify(result)).not.toContain("ada@example.com");
   });
 
@@ -229,6 +229,24 @@ describe("history.keyRevisions", () => {
 
     expect(result.workingTree).not.toHaveProperty("valueRedacted");
   });
+
+  it.each([
+    ["without redaction", undefined],
+    ["under redaction", createValueMarker()],
+  ])(
+    "declares truncatedBy and passes the answer through its output schema %s",
+    async (_name, valueMarker) => {
+      const dir = await project();
+
+      const outcome = await historyKeyRevisionsTool.execute(
+        { locale: "de", key: "greeting", limit: 1 },
+        makeContext({ cwd: dir, ...(valueMarker === undefined ? {} : { valueMarker }) }),
+      );
+
+      expect(okResult(outcome)).toMatchObject({ truncated: true, truncatedBy: ["commit-limit"] });
+      expect(JSON.stringify(historyKeyRevisionsTool.outputSchema)).toContain("commit-limit");
+    },
+  );
 
   it("leaves an unavailable answer as it is under redaction", async () => {
     const dir = await makeTempDir();

@@ -11,6 +11,7 @@ import { IN_FLIGHT_METHOD } from "../shared/rpc/in-flight.js";
 import { KEY_CONTEXT_METHOD } from "../shared/rpc/key-context.js";
 import { KEY_INTEGRITY_METHOD } from "../shared/rpc/key-integrity.js";
 import { KEY_PREVIEW_ICU_METHOD } from "../shared/rpc/key-preview-icu.js";
+import { HISTORY_KEY_REVISIONS_METHOD } from "../shared/rpc/key-revisions.js";
 import { KEY_VALUE_METHOD } from "../shared/rpc/key-value.js";
 import { LOCALE_INTEGRITY_METHOD } from "../shared/rpc/locale-integrity.js";
 import { LOCALE_VALUES_METHOD } from "../shared/rpc/locale-values.js";
@@ -44,6 +45,7 @@ import { inFlightHandler } from "./methods/in-flight.js";
 import { keyContextHandler } from "./methods/key-context.js";
 import { keyIntegrityHandler } from "./methods/key-integrity.js";
 import { keyPreviewIcuHandler } from "./methods/key-preview-icu.js";
+import { keyRevisionsHandler } from "./methods/key-revisions.js";
 import { keyValueHandler } from "./methods/key-value.js";
 import { localeIntegrityHandler } from "./methods/locale-integrity.js";
 import { localeValuesHandler } from "./methods/locale-values.js";
@@ -88,6 +90,7 @@ const readOnlyHandlers: HandlersRegistry = {
   [GLOSSARY_GET_METHOD]: glossaryGetHandler,
   [LOCK_STATE_METHOD]: lockStateHandler,
   [HISTORY_LIST_METHOD]: historyListHandler,
+  [HISTORY_KEY_REVISIONS_METHOD]: keyRevisionsHandler,
   [GIT_STATUS_METHOD]: gitStatusHandler,
   [GIT_LOCALE_DIFF_METHOD]: gitLocaleDiffHandler,
   [KEY_INTEGRITY_METHOD]: keyIntegrityHandler,

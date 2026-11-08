@@ -29,6 +29,7 @@ function available(result: KeyHistoryResult): Extract<KeyHistoryResult, { availa
   if (!result.available) {
     throw new Error(`unavailable: ${result.reason}`);
   }
+  expect(result.truncated).toBe(result.truncatedBy.length > 0);
   return result;
 }
 
@@ -53,6 +54,7 @@ describe("keyHistory over a hostile history", () => {
 
     expect(result.unreadableRevisions).toBe(1);
     expect(result.truncated).toBe(true);
+    expect(result.truncatedBy).toContain("unreadable-revision");
     expect(result.revisions.map((revision) => revision.value)).toEqual(["one"]);
   });
 
@@ -327,6 +329,7 @@ describe("keyHistory deadline", () => {
     const result = available(await run(fx, "a", execFile));
 
     expect(result.truncated).toBe(true);
+    expect(result.truncatedBy).toContain("deadline");
     expect(result.revisions.map((revision) => revision.value)).toEqual(["9", "8", "7"]);
   });
 

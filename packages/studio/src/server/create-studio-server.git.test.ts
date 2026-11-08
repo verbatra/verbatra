@@ -131,6 +131,40 @@ describe("git.status and git.localeDiff over HTTP", () => {
     }
   });
 
+  it("serves history.keyRevisions to an authenticated caller and rate limits it on its own ceiling", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] });
+    try {
+      await withServer(
+        async (server) => {
+          const cookie = await authenticatedCookie(server.url, TOKEN);
+          const call = (): Promise<{ status: number; body: RpcResponseBody }> =>
+            postRpc(server.url, cookie, "history.keyRevisions", { locale: "de", key: "greeting" });
+
+          const calls = [await call(), await call(), await call()];
+
+          expect(calls.map((entry) => entry.status)).toEqual([200, 200, 429]);
+          expect(calls[0]?.body).toMatchObject({
+            ok: true,
+            result: { available: false, reason: "not-a-repository" },
+          });
+          expect(calls[2]?.body).toMatchObject({
+            ok: false,
+            error: { code: "METHOD_RATE_LIMITED" },
+          });
+        },
+        {
+          token: TOKEN,
+          loader: fixtureLoader(project),
+          cwd: project.root,
+          keyRevisionsRateLimitWindowMs: 60_000,
+          keyRevisionsRateLimitMax: 2,
+        },
+      );
+    } finally {
+      await project.cleanup();
+    }
+  });
+
   it("answers a project outside a repository as an unavailable result with status 200", async () => {
     const project = await makeFixtureProject({ targetLocales: ["de"] });
     try {
