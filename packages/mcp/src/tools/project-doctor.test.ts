@@ -46,6 +46,7 @@ describe("project.doctor", () => {
       "plural-completeness",
       "locale-codes",
       "locale-state",
+      "limits",
       "locales",
     ]);
     expect(report.checks[0]?.detail).toBe("Loaded verbatra.config.json.");

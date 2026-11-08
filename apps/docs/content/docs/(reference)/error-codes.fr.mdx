@@ -65,6 +65,9 @@ Chaque code d'erreur avec sa famille et les codes de sortie avec lesquels il peu
 | [`LOCK_CONTENDED`](#lock_contended) | SDK | `1` |
 | [`GLOSSARY_NOT_FILE_BACKED`](#glossary_not_file_backed) | SDK | aucun |
 | [`GLOSSARY_UNWRITABLE`](#glossary_unwritable) | SDK | aucun |
+| [`LENGTH_LIMIT_INVALID`](#length_limit_invalid) | SDK | aucun |
+| [`LIMITS_FILE_UNUSABLE`](#limits_file_unusable) | SDK | aucun |
+| [`LIMITS_FILE_UNWRITABLE`](#limits_file_unwritable) | SDK | aucun |
 | [`LOCALE_LAYOUT_INVALID`](#locale_layout_invalid) | SDK | `2` |
 | [`LOCALE_PATH_COLLISION`](#locale_path_collision) | SDK | `2` |
 | [`CONCURRENCY_INVALID`](#concurrency_invalid) | SDK | aucun |
@@ -453,6 +456,27 @@ Le fichier de glossaire n'a pas pu être écrit, ou le verrou d'écriture du glo
 
 - **Levé par** : Studio et le serveur MCP
 - **Étape suivante** : Make the glossary file and its directory writable, then try again.
+
+### LENGTH_LIMIT_INVALID
+
+`setKeyLengthLimit` a refusé son entrée : la limite n'est pas un entier de 1 à 9007199254740991 (ni `null`), la clé est vide ou dépasse 1024 caractères, ou la limite est un nombre et le `maxLength` de la config fixe déjà la clé et l'emporte sur [`verbatra.limits.json`](/fr/docs/config-file#maxlength), ou l'écriture ferait dépasser au fichier 10 000 entrées ou 1 Mio. Rien n'est écrit.
+
+- **Levé par** : `setKeyLengthLimit` (SDK)
+- **Étape suivante** : Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first.
+
+### LIMITS_FILE_UNUSABLE
+
+`verbatra.limits.json` est inutilisable : ce n'est pas un fichier ordinaire, il dépasse 1 Mio, n'est ni UTF-8 ni JSON, a une autre forme ou une version plus récente, ou compte plus de 10 000 entrées. Un fichier inutilisable n'est jamais écrasé. Une exécution qui tombe sur un tel fichier ne lève rien : elle renvoie [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
+
+- **Levé par** : `setKeyLengthLimit` (SDK)
+- **Étape suivante** : Restore verbatra.limits.json from version control, or replace it with a regular file or delete it, then try again.
+
+### LIMITS_FILE_UNWRITABLE
+
+Le fichier de limites existe mais n'a pas pu être lu (un problème de droits), ou lui ou le verrou d'écriture des limites du projet n'a pas pu être écrit, par exemple dans un projet en lecture seule, ou le verrou n'a pas pu être libéré après l'enregistrement de la limite (le message le dit, et la limite reste). Un échec d'écriture porte l'erreur du système de fichiers comme `cause` ; une lecture refusée, non.
+
+- **Levé par** : `setKeyLengthLimit` (SDK)
+- **Étape suivante** : Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again.
 
 ### LOCALE_LAYOUT_INVALID
 
@@ -1149,6 +1173,14 @@ Enregistrer cette locale aurait fait grossir `verbatra.provenance.json` au-delà
 - **Levé par** : `translate`, `watch`, `import`
 - **Code de sortie** : aucun
 - **Étape suivante** : Les valeurs restent écrites ; seul leur enregistrement manque. Vérifie avant la prochaine exécution pourquoi le fichier a autant grossi.
+
+### LIMITS_FILE_IGNORED
+
+`verbatra.limits.json` n'a pas pu servir (illisible, pas un fichier ordinaire, trop gros, ni UTF-8 ni JSON valide, autre forme, version plus récente ou trop d'entrées), donc l'appel n'a tenu les valeurs qu'aux budgets `maxLength` de la config et n'en a signalé aucune par rapport à une limite fixée par ce fichier. C'est un avis sur chaque locale d'une exécution et le `limitsNotice` d'un résultat. Le fichier reste tel quel.
+
+- **Levé par** : `translate`, `watch` ; renvoyé comme `qa.limitsNotice` par `check --qa` et `check --file`, et comme `limitsNotice` par `export`, `retranslateEntry`, `keyContext` et les outils MCP `key.context` et `translation.retranslateEntry` ; `doctor` signale le fichier sous Length limits
+- **Code de sortie** : aucun
+- **Étape suivante** : Répare ou supprime `verbatra.limits.json` ; `verbatra doctor` indique ce qui cloche dans le fichier.
 
 ### LOCALE_STATE_CARRIED_OVER
 

@@ -336,6 +336,27 @@ function editConfiguredGlossaryTerm(
 
 **Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/docs/error-codes#glossary_unwritable)
 
+## Length limits
+
+### setKeyLengthLimit
+
+<AvailableFrom version="0.13.0" />
+
+Sets, changes or removes one key's length limit in `verbatra.limits.json`, the committed file beside the lock file that holds the limits the config's [`maxLength`](/docs/config-file#maxlength) does not. The key must exist in the source, a limit for a key the config's `maxLength` sets is refused, and `null` removes the file's entry, also one for a key that has left the source or that the config sets. The read-modify-write runs under a project-wide limits lock and the file is replaced atomically, so concurrent calls from one process or several lose no update. A call that changes nothing writes nothing, and a file that cannot be read as a limits file is never overwritten.
+
+```ts title="Signature"
+function setKeyLengthLimit(
+  input: SetKeyLengthLimitInput,
+  deps?: SetKeyLengthLimitDeps,
+): Promise<SetKeyLengthLimitResult>;
+```
+
+<SdkTypeTable name="SetKeyLengthLimitInput" />
+
+**Returns:** `SetKeyLengthLimitResult`
+
+**Throws:** [`LENGTH_LIMIT_INVALID`](/docs/error-codes#length_limit_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`LIMITS_FILE_UNUSABLE`](/docs/error-codes#limits_file_unusable), [`LIMITS_FILE_UNWRITABLE`](/docs/error-codes#limits_file_unwritable)
+
 ## Authoring, detection, and human-only mode
 
 ### defineConfig

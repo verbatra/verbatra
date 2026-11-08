@@ -50,3 +50,20 @@ describe("lengthSummary", () => {
     });
   });
 });
+
+describe("lengthSummary counts the ZWJ and combining-mark fixtures of the ai-providers review flag tests with the same counts", () => {
+  const family = String.fromCodePoint(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467);
+  const decomposed = `cafe${String.fromCodePoint(0x301)}`;
+
+  it("counts a ZWJ emoji sequence as one character, so one is within a budget of 1 and over 0", () => {
+    expect(characterCount(family)).toBe(1);
+    expect(lengthSummary(compareLength("Hi", family), 1).overBudget).toBe(false);
+    expect(lengthSummary(compareLength("Hi", family), 0).overBudget).toBe(true);
+  });
+
+  it("counts a base letter and its combining mark as one character, so four are within 4 and over 3", () => {
+    expect(characterCount(decomposed)).toBe(4);
+    expect(lengthSummary(compareLength("Hi", decomposed), 4).overBudget).toBe(false);
+    expect(lengthSummary(compareLength("Hi", decomposed), 3).overBudget).toBe(true);
+  });
+});

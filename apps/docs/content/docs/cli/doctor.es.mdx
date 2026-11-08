@@ -56,7 +56,7 @@ También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--co
 
 <AvailableFrom version="0.12.0" />
 
-Una ejecución de configuración informa de estas comprobaciones, en este orden. Plural rules, Plural completeness, Locale codes y Locale state son informativas y nunca fallan: cada una muestra `[warn]` cuando nombra algo y `[ok  ]` en caso contrario.
+Una ejecución de configuración informa de estas comprobaciones, en este orden. Plural rules, Plural completeness, Locale codes, Locale state y Length limits son informativas y nunca fallan: cada una muestra `[warn]` cuando nombra algo y `[ok  ]` en caso contrario.
 
 | Comprobación | Falla cuando |
 | --- | --- |
@@ -70,6 +70,7 @@ Una ejecución de configuración informa de estas comprobaciones, en este orden.
 | Plural completeness | nunca; avisa y nombra cada plural de destino al que le falta una categoría CLDR que usa su idioma, y juzga un plural sin formas en el destino por lo que una ejecución escribiría allí (una forma de origen vacía cuenta como ausente, y la generación de plurales solo donde de verdad se ejecuta), a propósito más estricto que el aviso de `translate`, solo para i18next (diez como máximo; [`verbatra check`](/es/docs/cli/check#categorías-de-plural) lista los huecos de los plurales que un destino ya tiene); se omite para un formato que no guarda las formas de plural por categoría CLDR |
 | Locale codes | nunca; avisa y nombra cada código válido pero no canónico, como `en-us` o `iw`, con su forma canónica (ver [Códigos de locale](/es/docs/config-file#códigos-de-locale)) |
 | Locale state | nunca; avisa y nombra cada locale con estado en el archivo de bloqueo, la caché o el archivo de procedencia que la configuración no lista, y si `translate` lo [traslada](/es/docs/the-lock-file#un-código-de-locale-reescrito) |
+| Length limits | nunca; avisa cuando `verbatra.limits.json` no se puede usar (una ejecución lo ignora y no se puede fijar un límite hasta arreglarlo), nombra un límite de una clave que la fuente ya no tiene o uno que el `maxLength` de la configuración sobrescribe, y lo dice si no se pudo leer la fuente para comprobar las claves; pasa cuando el archivo no existe ([límites de longitud](/es/docs/config-file#maxlength)) |
 | Locale support | el proveedor no admite el locale de origen o un locale de destino; avisa cuando un locale lleva un aviso (ver [Soporte de locales](#soporte-de-locales)) |
 
 Cada comprobación se ejecuta aunque una anterior haya fallado. La única excepción es la configuración: si no se puede cargar, las comprobaciones que la necesitan aparecen como `[skip]` (`"status": "skipped"` en JSON), igual que Plural completeness para un formato sin formas de plural CLDR. Una comprobación que encuentra algo que merece atención sin fallar aparece como `[warn]` (`"status": "warn"` en JSON) y nunca cambia el código de salida. Una comprobación fallida lleva además un `fix`, un siguiente paso en imperativo que se imprime como línea `fix:` y viaja como `"fix"` en JSON, para que un agente actúe sin analizar `detail`.
@@ -208,6 +209,7 @@ interface DoctorCheck {
     | "plural-completeness"
     | "locale-codes"
     | "locale-state"
+    | "limits"
     | "locales"
     | "untranslated-literals"
     | "data-flow";

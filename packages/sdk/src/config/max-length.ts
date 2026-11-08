@@ -1,3 +1,7 @@
+import { z } from "zod";
+
+export const maxLengthValueSchema = z.number().int().positive();
+
 export function toMaxLengthMap(
   budgets: Readonly<Record<string, number>> | undefined,
 ): ReadonlyMap<string, number> | undefined {

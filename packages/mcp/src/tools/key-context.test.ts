@@ -1,4 +1,6 @@
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createValueMarker } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
   baseLoadedConfig,
@@ -49,6 +51,7 @@ describe("key.context", () => {
           doNotTranslate: [],
         },
         maxLength: 30,
+        maxLengthSource: "config",
         draftCheck: {
           terms: [
             { source: "cart", target: "Warenkorb", targetUsed: false, forbiddenUsed: ["Karren"] },
@@ -56,6 +59,49 @@ describe("key.context", () => {
           doNotTranslate: [],
         },
       },
+    });
+  });
+
+  it("reads a limit from verbatra.limits.json and names it as the source, also when values are redacted", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    await writeFile(
+      join(dir, "verbatra.limits.json"),
+      JSON.stringify({ version: 1, maxLength: { greeting: 12 } }),
+    );
+    const config = baseLoadedConfig({ config: baseVerbatraConfig() });
+
+    const plain = await keyContextTool.execute(
+      { locale: "de", key: "greeting" },
+      makeContext({ cwd: dir, fs: nodeFs, config }),
+    );
+    const redacted = await keyContextTool.execute(
+      { locale: "de", key: "greeting" },
+      makeContext({ cwd: dir, fs: nodeFs, config, valueMarker: createValueMarker() }),
+    );
+
+    expect(plain).toMatchObject({
+      kind: "ok",
+      result: { maxLength: 12, maxLengthSource: "limits-file" },
+    });
+    expect(redacted).toMatchObject({
+      kind: "ok",
+      result: { maxLength: 12, maxLengthSource: "limits-file" },
+    });
+  });
+
+  it("passes the limits notice through when verbatra.limits.json cannot be used, also when values are redacted", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    await writeFile(join(dir, "verbatra.limits.json"), "{ nope");
+    const config = baseLoadedConfig({ config: baseVerbatraConfig() });
+
+    const redacted = await keyContextTool.execute(
+      { locale: "de", key: "greeting" },
+      makeContext({ cwd: dir, fs: nodeFs, config, valueMarker: createValueMarker() }),
+    );
+
+    expect(redacted).toMatchObject({
+      kind: "ok",
+      result: { limitsNotice: { code: "LIMITS_FILE_IGNORED" } },
     });
   });
 

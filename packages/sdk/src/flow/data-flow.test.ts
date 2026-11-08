@@ -411,6 +411,7 @@ describe("buildDataFlowManifest: what is sent", () => {
     expect(manifest.local.map(({ id, path }) => [id, path])).toEqual([
       ["lock", "verbatra.lock.json"],
       ["provenance", "verbatra.provenance.json"],
+      ["limits", "verbatra.limits.json"],
       ["cache", "verbatra.cache.json"],
       ["local-state", ".verbatra-local"],
     ]);
@@ -419,6 +420,14 @@ describe("buildDataFlowManifest: what is sent", () => {
       holdsTranslations: true,
       holdsPersonalData: false,
       gitignoredByInit: true,
+    });
+    expect(manifest.local.find(({ id }) => id === "limits")).toEqual({
+      id: "limits",
+      path: "verbatra.limits.json",
+      holdsSourceText: false,
+      holdsTranslations: false,
+      holdsPersonalData: false,
+      gitignoredByInit: false,
     });
     expect(manifest.local.find(({ id }) => id === "provenance")?.holdsPersonalData).toBe(true);
     expect(manifest.local.find(({ id }) => id === "local-state")?.holdsPersonalData).toBe(true);
@@ -450,6 +459,7 @@ describe("buildDataFlowManifest: what is sent", () => {
     expect(manifest.local.map(({ path }) => path)).toEqual([
       "verbatra.lock.json",
       "verbatra.provenance.json",
+      "verbatra.limits.json",
       "verbatra.cache.json",
       ".verbatra-local",
     ]);

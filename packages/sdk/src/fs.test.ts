@@ -42,6 +42,7 @@ describe("defaultFs binary read/write", () => {
     expect(await defaultFs.readBytesBounded(dir, 100)).toEqual({
       kind: "missing",
       unreadable: true,
+      notRegularFile: true,
     });
   });
 
@@ -83,6 +84,7 @@ describe("defaultFs bounded text read: why a file is missing", () => {
     expect(await defaultFs.readFileBounded(dir, 100)).toEqual({
       kind: "missing",
       unreadable: true,
+      notRegularFile: true,
     });
   });
 

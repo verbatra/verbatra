@@ -88,11 +88,12 @@ describe("doctor: the config check", () => {
     expect(detailOf(result, "config")).toContain("'verbatra' property in package.json");
   });
 
-  it("marks the ten config-dependent checks skipped rather than failed when the config is absent", async () => {
+  it("marks the eleven config-dependent checks skipped rather than failed when the config is absent", async () => {
     const result = await doctor({ cwd: projectDir });
 
     expect(result.checks.map((entry) => entry.status)).toEqual([
       "fail",
+      "skipped",
       "skipped",
       "skipped",
       "skipped",
@@ -415,7 +416,7 @@ describe("doctor: the source locale file check", () => {
 
     const result = await doctor({ cwd: projectDir });
 
-    expect(result.checks).toHaveLength(11);
+    expect(result.checks).toHaveLength(12);
     expect(statusOf(result, "config")).toBe("pass");
     expect(statusOf(result, "format-adapter")).toBe("pass");
     expect(statusOf(result, "provider")).toBe("pass");
@@ -532,7 +533,10 @@ describe("doctor: the source locale file check", () => {
             read.push(path);
             return { kind: "ok", content: JSON.stringify({ hi: "Hi" }) };
           },
-          readBytesBounded: async () => ({ kind: "missing" }),
+          readBytesBounded: async (path) => {
+            read.push(path);
+            return { kind: "missing" };
+          },
           writeFile: async () => {},
           writeBytes: async () => {},
           createExclusive: async () => true,
@@ -545,7 +549,13 @@ describe("doctor: the source locale file check", () => {
     const source = join(projectDir, "locales", "en.json");
     const target = join(projectDir, "locales", "de.json");
     expect(probed).toEqual([source, source, target]);
-    expect(read).toEqual([source, source, target, join(projectDir, "verbatra.lock.json")]);
+    expect(read).toEqual([
+      source,
+      source,
+      target,
+      join(projectDir, "verbatra.lock.json"),
+      join(projectDir, "verbatra.limits.json"),
+    ]);
   });
 
   it("never touches real disk for the parse when a file-system port is supplied", async () => {
@@ -638,6 +648,7 @@ describe("doctor: it reports every independent problem and spends nothing", () =
       "plural-completeness",
       "locale-codes",
       "locale-state",
+      "limits",
       "locales",
     ]);
   });

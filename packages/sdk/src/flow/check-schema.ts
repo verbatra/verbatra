@@ -3,6 +3,7 @@ import { z } from "zod";
 import { SENSITIVE_DETECTORS } from "../config/sensitive-config.js";
 import { provenanceSummarySchema } from "../lock/key-provenance-schema.js";
 import type { SensitiveField } from "../sensitive/guard.js";
+import { limitsFileNoticeSchema } from "./limits-notice-schema.js";
 import { integrityGateReasonSchema, reviewReasonCodeSchema } from "./summary-schema.js";
 
 const SENSITIVE_FIELDS = [
@@ -42,6 +43,7 @@ export const checkQaSummarySchema = z.object({
   errors: z.number(),
   warnings: z.number(),
   invalidSourceKeys: keyListSchema,
+  limitsNotice: limitsFileNoticeSchema.exactOptional(),
 });
 
 const inconsistencyGroupSchema = z.object({

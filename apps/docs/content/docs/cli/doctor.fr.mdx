@@ -56,7 +56,7 @@ Accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--
 
 <AvailableFrom version="0.12.0" />
 
-Une exécution de configuration rapporte ces vérifications, dans cet ordre. Plural rules, Plural completeness, Locale codes et Locale state sont informatives et n'échouent jamais : chacune affiche `[warn]` quand elle nomme quelque chose et `[ok  ]` sinon.
+Une exécution de configuration rapporte ces vérifications, dans cet ordre. Plural rules, Plural completeness, Locale codes, Locale state et Length limits sont informatives et n'échouent jamais : chacune affiche `[warn]` quand elle nomme quelque chose et `[ok  ]` sinon.
 
 | Vérification | Échoue quand |
 | --- | --- |
@@ -70,6 +70,7 @@ Une exécution de configuration rapporte ces vérifications, dans cet ordre. Plu
 | Plural completeness | jamais ; avertit et nomme chaque pluriel cible auquel il manque une catégorie CLDR utilisée par sa langue, et juge un pluriel sans formes dans la cible d'après ce qu'une exécution y écrirait (une forme source vide compte comme absente, et la génération des pluriels seulement là où elle s'exécute vraiment), volontairement plus strict que l'avis de `translate`, propre à i18next (dix au plus ; [`verbatra check`](/fr/docs/cli/check#catégories-de-pluriel) liste les manques des pluriels qu'une cible contient déjà) ; ignorée pour un format qui ne stocke pas les formes de pluriel par catégorie CLDR |
 | Locale codes | jamais ; avertit et nomme chaque code valide mais non canonique, comme `en-us` ou `iw`, avec sa forme canonique (voir [Codes de locale](/fr/docs/config-file#codes-de-locale)) |
 | Locale state | jamais ; avertit et nomme chaque locale pour laquelle le fichier de verrou, le cache ou le fichier de provenance gardent un état que la configuration ne liste pas, et si `translate` le [reprend](/fr/docs/the-lock-file#un-code-de-locale-réécrit) |
+| Length limits | jamais ; avertit quand `verbatra.limits.json` est inutilisable (une exécution l'ignore et une limite ne peut être fixée qu'une fois réparé), nomme une limite pour une clé que la source n'a plus ou une que le `maxLength` de la configuration remplace, et le dit quand la source n'a pas pu être lue pour vérifier les clés ; réussit quand le fichier est absent ([limites de longueur](/fr/docs/config-file#maxlength)) |
 | Locale support | le fournisseur ne prend pas en charge la locale source ou une locale cible ; avertit quand une locale porte un avertissement (voir [Prise en charge des locales](#prise-en-charge-des-locales)) |
 
 Chaque vérification s'exécute même si une précédente a échoué. La seule exception est la configuration : si elle ne peut pas être chargée, les vérifications qui en dépendent s'affichent en `[skip]` (`"status": "skipped"` en JSON), tout comme Plural completeness pour un format sans formes de pluriel CLDR. Une vérification qui trouve quelque chose méritant attention sans échouer s'affiche en `[warn]` (`"status": "warn"` en JSON) et ne change jamais le code de sortie. Une vérification échouée porte aussi un `fix`, une prochaine étape à l'impératif affichée en ligne `fix:` et transmise comme `"fix"` en JSON, pour qu'un agent agisse sans analyser `detail`.
@@ -208,6 +209,7 @@ interface DoctorCheck {
     | "plural-completeness"
     | "locale-codes"
     | "locale-state"
+    | "limits"
     | "locales"
     | "untranslated-literals"
     | "data-flow";

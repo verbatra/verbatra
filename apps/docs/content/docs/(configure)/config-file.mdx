@@ -119,7 +119,7 @@ A script the language and region imply is left out, so `zh-TW` and `zh-Hant-TW` 
 
 <AvailableFrom version="0.12.0" />
 
-Every locale code must be a tag `Intl.getCanonicalLocales` accepts, with a two- or three-letter language subtag, or loading fails with `CONFIG_INVALID`: `pt_BR` (write `pt-BR` with `localeStyle: "posix"`) and `german` are rejected. A valid non-canonical code such as `zh-hant-tw` or the deprecated `iw` works as written, and [`verbatra doctor`](/docs/cli/doctor) suggests the canonical form. A respelled code keeps its state and no file is renamed ([A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)).
+Every locale code must be a tag `Intl.getCanonicalLocales` accepts, with a two- or three-letter language subtag, or loading fails with `CONFIG_INVALID`: `pt_BR` (write `pt-BR` with `localeStyle: "posix"`) and `german` are rejected. A valid non-canonical code such as `zh-hant-tw` or the deprecated `iw` works as written.
 
 ### provider
 
@@ -214,7 +214,7 @@ maxLength: {
 }
 ```
 
-- **Only here.** Keys match literally, never as globs; a key not in the map is never measured. No budget is derived from a description or a format's metadata.
+- **Here or in `verbatra.limits.json`.** Keys match literally, never as globs; a key set in neither is never measured. `setKeyLengthLimit` takes only source keys, so Studio cannot limit a generated plural form; an entry written by hand for its own key applies. The file beside the lock file takes `{ "version": 1, "maxLength": { ... } }`, the config wins per key, and [`setKeyLengthLimit`](/docs/sdk/config#setkeylengthlimit) writes it.
 - **Grapheme clusters.** Length counts perceived characters, whitespace included: an emoji, an accented letter or a CJK character is one. The limit is inclusive.
 - **When.** Every value `translate` produces for the key, cache reuses included; an up-to-date key is measured only once its source changes, or by [`export --include-unchanged`](/docs/cli/export).
 - **Advisory.** An overrun is still written and locked, and flagged [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) for review.
@@ -276,7 +276,7 @@ extract: {
 - **`framework`** must name one with an extractor ([call shapes](/docs/cli/extract#what-it-finds)); any other is rejected.
 - **`roots`** resolve against the project root; **`exclude`** adds directory names (not paths), matched anywhere under a root, to the [always-skipped set](/docs/cli/extract#scan-boundaries).
 - **`literals.ignore`** matches a literal's whole text, whitespace collapsed and references decoded ([Untranslated literals](/docs/cli/doctor#untranslated-literals)).
-- **`unused.ignore`** takes exact keys or `*` patterns for keys used only outside the scanned source, matched against the decoded key ([`diff --unused`](/docs/cli/diff#unused-source-keys)).
+- **`unused.ignore`** matches the decoded key ([`diff --unused`](/docs/cli/diff#unused-source-keys)).
 
 ## Discovery order
 

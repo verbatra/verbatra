@@ -1,5 +1,6 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createValueMarker } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
   baseLoadedConfig,
@@ -29,6 +30,34 @@ describe("translation.retranslateEntry", () => {
       result: { accepted: true, value: "[de] Hello" },
     });
   });
+
+  it.each([
+    ["plain", undefined],
+    ["under --redact-values", createValueMarker()],
+  ])(
+    "returns the limits notice for an unusable verbatra.limits.json, %s",
+    async (_label, marker) => {
+      const dir = await makeProject({ greeting: "Hello" }, { de: {} });
+      await writeFile(join(dir, "verbatra.limits.json"), "{ nope");
+      const context = makeContext({
+        cwd: dir,
+        fs: nodeFs,
+        adapterRegistry: defaultAdapterRegistry,
+        createProvider: () => makeStubProvider(),
+        ...(marker !== undefined ? { valueMarker: marker } : {}),
+      });
+
+      const outcome = await retranslateEntryTool.execute(
+        { locale: "de", key: "greeting" },
+        context,
+      );
+
+      expect(outcome).toMatchObject({
+        kind: "ok",
+        result: { accepted: true, limitsNotice: { code: "LIMITS_FILE_IGNORED" } },
+      });
+    },
+  );
 
   it("returns an error outcome when the provider fails", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });

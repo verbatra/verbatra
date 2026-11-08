@@ -12,14 +12,17 @@ import {
   gettextKeyPluralIndex,
   pluralCategoryOf,
 } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
+import { resolveMaxLengths } from "../config/resolve-max-lengths.js";
 import type { VerbatraConfig } from "../config/schema.js";
-import type { SdkFs } from "../fs.js";
+import { defaultFs, type SdkFs } from "../fs.js";
 import { type ProvenanceSummary, summarizeProvenance } from "../lock/key-provenance.js";
 import {
   type CheckSensitiveSummary,
   scanProjectForSensitiveContent,
 } from "../sensitive/check-scan.js";
 import { diffLocalesWithSource, type LocaleDiffResult } from "./diff-locales.js";
+import { limitsIgnoredNotice } from "./limits-notice.js";
 import { findIncompletePlurals, type IncompletePlural } from "./plural-completeness.js";
 import { reportedProtectedKeys } from "./protection.js";
 import {
@@ -301,6 +304,7 @@ function qaReports(
   adapter: FormatAdapter,
   sourceInvalidIcuKeys: readonly string[],
   results: readonly LocaleDiffResult[],
+  maxLength: ReadonlyMap<string, number> | undefined,
 ): readonly LocaleQaReport[] | undefined {
   if (input.qa !== true) {
     return undefined;
@@ -310,6 +314,7 @@ function qaReports(
     adapter,
     input.qaSeverity ?? "warning",
     sourceInvalidIcuKeys,
+    maxLength,
   );
   return results.map((result) => qaLocale(context, result.locale, result.source, result.target));
 }
@@ -354,6 +359,10 @@ function qaReports(
  * locale and the resolved path. A caller that maps SDK codes should be ready for an unrecognized
  * error from a target file.
  *
+ * With `qa` set, a `verbatra.limits.json` that cannot be used is ignored, so only the config's
+ * `maxLength` budgets apply, and `qa.limitsNotice` in the result says so; {@link doctor} names the
+ * problem.
+ *
  * @param input - The config and the optional locale filter.
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns Per-locale counts and the project-wide in-sync verdict.
@@ -377,7 +386,15 @@ export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<Ch
   );
   const consistency =
     input.consistency === true ? consistencyOptions(input.config.format) : undefined;
-  const qa = qaReports(input, adapter, sourceInvalidIcuKeys, results);
+  const maxLengths =
+    input.qa === true
+      ? await resolveMaxLengths({
+          config: input.config,
+          cwd: projectCwd(input),
+          fs: deps.fs ?? defaultFs,
+        })
+      : undefined;
+  const qa = qaReports(input, adapter, sourceInvalidIcuKeys, results, maxLengths?.limits);
   const review = input.requireReviewed === true ? results.map(reviewReport) : undefined;
   const locales = results.map((result, index) =>
     toCheckSummary(input.config, result, consistency, qa?.[index], review?.[index]),
@@ -385,7 +402,17 @@ export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<Ch
   return {
     inSync: locales.every((entry) => entry.inSync),
     locales,
-    ...(qa !== undefined ? { qa: totalQa(qa, sourceInvalidIcuKeys) } : {}),
+    ...(qa !== undefined
+      ? {
+          qa: totalQa(
+            qa,
+            sourceInvalidIcuKeys,
+            maxLengths?.unusable === undefined
+              ? undefined
+              : limitsIgnoredNotice(maxLengths.unusable),
+          ),
+        }
+      : {}),
     ...(review !== undefined ? { review: reviewSummary(results, review) } : {}),
     ...(input.sensitive === true
       ? {

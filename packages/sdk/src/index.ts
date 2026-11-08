@@ -154,6 +154,7 @@ export type {
   TokenRate,
 } from "./config/rate-card.js";
 export type { GlossaryProvenance } from "./config/resolve-glossary.js";
+export type { MaxLengthSource } from "./config/resolve-max-lengths.js";
 export {
   type VerbatraConfig,
   type VerbatraConfigInput,
@@ -368,6 +369,7 @@ export {
   type KeyValueResult,
   keyValue,
 } from "./flow/key-value.js";
+export type { LimitsFileNotice } from "./flow/limits-notice.js";
 export type {
   LanguageTableRefresh,
   LanguageTableRefreshStatus,
@@ -500,6 +502,12 @@ export {
   runStatus,
 } from "./flow/run-status.js";
 export { assertTargetLocale } from "./flow/select-locales.js";
+export {
+  type SetKeyLengthLimitDeps,
+  type SetKeyLengthLimitInput,
+  type SetKeyLengthLimitResult,
+  setKeyLengthLimit,
+} from "./flow/set-key-length-limit.js";
 export type {
   BudgetBehavior,
   CharacterRunQuantity,

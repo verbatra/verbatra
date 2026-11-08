@@ -30,6 +30,7 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { buildDataFlowManifest } from "./data-flow.js";
 import type { DataFlowManifest } from "./data-flow-manifest.js";
 import type { DoctorFinding } from "./doctor-finding.js";
+import { describeLimits } from "./limits-doctor.js";
 import { describeLiteralScan, isCleanLiteralScan, lintLiterals } from "./literal-lint.js";
 import {
   assessProviderLocales,
@@ -83,6 +84,11 @@ import { readSourceResource } from "./source.js";
  *   left behind after the config respelled it `pt-BR`, says whether the next {@link translate} run
  *   carries it over to the configured spelling, and suggests removing it or respelling the
  *   configured locale otherwise. It is `warn` when it names one or cannot read that state.
+ * - `limits`: informational, never fails. Reads `verbatra.limits.json`, the file of per-key length
+ *   limits that sits beside the lock file. It is `warn` when the file cannot be used (a run ignores
+ *   it and a limit cannot be set until it is fixed), when a limit names a key the source does not
+ *   have, when the config's `maxLength` overrides a limit, or when the source could not be read to
+ *   check the keys. It is `pass` when the file is absent or empty.
  * - `locales`: the configured provider supports the source locale and every target locale, judged
  *   against the language table verbatra ships for a machine-translation provider (see
  *   {@link LocaleSupport}). It fails when a locale is `unsupported`, exactly the case
@@ -110,6 +116,7 @@ export type DoctorCheckId =
   | "plural-completeness"
   | "locale-codes"
   | "locale-state"
+  | "limits"
   | "locales"
   | "untranslated-literals"
   | "data-flow";
@@ -257,6 +264,7 @@ const CHECK_TITLES: Record<DoctorCheckId, string> = {
   "plural-completeness": "Plural completeness",
   "locale-codes": "Locale codes",
   "locale-state": "Locale state",
+  limits: "Length limits",
   locales: "Locale support",
   "untranslated-literals": "Untranslated literals",
   "data-flow": "Data flow",
@@ -272,6 +280,7 @@ const CONFIG_DEPENDENT_IDS: readonly DoctorCheckId[] = [
   "plural-completeness",
   "locale-codes",
   "locale-state",
+  "limits",
   "locales",
 ];
 
@@ -288,6 +297,7 @@ const CHECK_FIXES: Record<DoctorCheckId, string | undefined> = {
   "plural-completeness": undefined,
   "locale-codes": undefined,
   "locale-state": undefined,
+  limits: undefined,
   locales:
     "Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.",
   "untranslated-literals":
@@ -813,6 +823,15 @@ export async function doctor(
       describeLocaleCodes([config.sourceLocale, ...config.targetLocales]),
     ),
     informational("locale-state", await describeLocaleState(config, cwd, fs)),
+    informational(
+      "limits",
+      await describeLimits(
+        config,
+        cwd,
+        fs,
+        adapter.kind === "resolved" ? adapter.adapter : undefined,
+      ),
+    ),
     locales.check,
   ]);
   return locales.report === undefined ? result : { ...result, locales: locales.report };

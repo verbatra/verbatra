@@ -26,6 +26,10 @@ const keyContextResultSchema = z.object({
     doNotTranslate: z.array(doNotTranslateSchema).readonly(),
   }),
   maxLength: z.number().optional(),
+  maxLengthSource: z.enum(["config", "limits-file"]).optional(),
+  limitsNotice: z
+    .object({ code: z.literal("LIMITS_FILE_IGNORED"), message: z.string() })
+    .optional(),
   draftCheck: z
     .object({
       terms: z
@@ -91,7 +95,8 @@ export const keyContextTool = defineTool({
     "the glossary entries that apply (every term whose source occurs in the source text, with " +
     "the translation and forbidden renderings that locale is held to, and every term to keep " +
     "untranslated that occurs in it) and the key's maxLength budget in characters when the " +
-    "config sets one. Call it before translation.editEntry so the value follows the project's " +
+    "config or verbatra.limits.json sets one (maxLengthSource says which; limitsNotice appears " +
+    "when that file cannot be used). Call it before translation.editEntry so the value follows the project's " +
     "terminology. Pass the value you intend to write as the optional draft parameter and the " +
     "result gains draftCheck: per applying term whether the draft uses the required " +
     "translation (targetUsed) and which forbidden renderings it uses, and per term to keep " +

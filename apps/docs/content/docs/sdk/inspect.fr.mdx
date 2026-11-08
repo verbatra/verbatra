@@ -157,8 +157,8 @@ Avec `sensitive: true`, `check` lance aussi l'analyse de [contenu sensible](/fr/
 
 <AvailableFrom version="0.12.0" />
 
-Vérifie un seul fichier de locale juste après qu'une personne ou un agent l'a modifié. Il ne lit que
-ce fichier et, pour une locale cible, le fichier source ; il n'appelle aucun fournisseur, ne lit
+Vérifie un seul fichier de locale après qu'une personne ou un agent l'a modifié. Il lit ce
+fichier, le fichier de limites (un avis s'il est inutilisable) et, pour une locale cible, le fichier source ; il n'appelle aucun fournisseur, ne lit
 aucune clé d'API et n'écrit rien.
 
 ```ts title="Signature"

@@ -35,6 +35,11 @@ export type BoundedFileRead =
        * a file the process may not open or a directory. Absent when nothing exists at the path.
        */
       readonly unreadable?: boolean;
+      /**
+       * `true` together with `unreadable` when what exists at the path is not a regular file, such
+       * as a directory. Absent when the process was refused access to a file.
+       */
+      readonly notRegularFile?: boolean;
     }
   | {
       /** The file exists but exceeds the requested byte limit, so nothing was read. */
@@ -60,6 +65,11 @@ export type BoundedBytesRead =
        * a file the process may not open or a directory. Absent when nothing exists at the path.
        */
       readonly unreadable?: boolean;
+      /**
+       * `true` together with `unreadable` when what exists at the path is not a regular file, such
+       * as a directory. Absent when the process was refused access to a file.
+       */
+      readonly notRegularFile?: boolean;
     }
   | {
       /** The file exists but exceeds the requested byte limit, so nothing was read. */
@@ -226,8 +236,15 @@ const NOT_FOUND = { kind: "missing" } as const;
 
 const UNREADABLE = { kind: "missing", unreadable: true } as const;
 
-function openFailure(error: unknown): typeof NOT_FOUND | typeof UNREADABLE {
+const NOT_A_REGULAR_FILE = { kind: "missing", unreadable: true, notRegularFile: true } as const;
+
+function openFailure(
+  error: unknown,
+): typeof NOT_FOUND | typeof UNREADABLE | typeof NOT_A_REGULAR_FILE {
   const code = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
+  if (code === "EISDIR") {
+    return NOT_A_REGULAR_FILE;
+  }
   return NOT_FOUND_CODES.has(code) ? NOT_FOUND : UNREADABLE;
 }
 
@@ -254,7 +271,7 @@ async function readBounded(path: string, maxBytes: number): Promise<BoundedFileR
   try {
     const info = await handle.stat();
     if (!info.isFile()) {
-      return UNREADABLE;
+      return NOT_A_REGULAR_FILE;
     }
     if (info.size > maxBytes) {
       return { kind: "too-large" };
@@ -288,7 +305,7 @@ async function readBoundedBytes(path: string, maxBytes: number): Promise<Bounded
   try {
     const info = await handle.stat();
     if (!info.isFile()) {
-      return UNREADABLE;
+      return NOT_A_REGULAR_FILE;
     }
     if (info.size > maxBytes) {
       return { kind: "too-large" };

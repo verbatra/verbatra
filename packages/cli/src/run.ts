@@ -1098,6 +1098,15 @@ function exportInput(
   };
 }
 
+function warnLimitsNotice(
+  context: CommandContext,
+  notice: { readonly message: string } | undefined,
+): void {
+  if (notice !== undefined) {
+    context.ui.warn(notice.message);
+  }
+}
+
 function hintImportOfExport(
   context: CommandContext,
   opts: LocationOpts & { readonly format: ExchangeFormat | undefined },
@@ -1147,6 +1156,7 @@ async function runExport(
               ? `${renderSuccessEnvelope("export", result)}\n`
               : `${renderExportHuman(result, process.cwd())}\n`,
           );
+          warnLimitsNotice(context, result.limitsNotice);
           hintImportOfExport(context, opts, cwd, result);
           return 0;
         },
@@ -1426,6 +1436,7 @@ async function runCheckFile(
       ? `${renderSuccessEnvelope("check", summary)}\n`
       : `${renderCheckFileHuman(summary)}\n`,
   );
+  warnLimitsNotice(context, summary.qa.limitsNotice);
   return checkFileExitCode(summary, opts.strict === true);
 }
 
@@ -1461,6 +1472,7 @@ async function runCheck(
               ? `${renderSuccessEnvelope("check", summary)}\n`
               : `${renderCheckHuman(summary, isMachineTranslationEnabled(config))}\n`,
           );
+          warnLimitsNotice(context, summary.qa?.limitsNotice);
           return checkExitCode(summary, opts.strict === true);
         },
       );

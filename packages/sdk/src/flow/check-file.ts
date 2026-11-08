@@ -8,6 +8,7 @@ import {
   type ReadResult,
 } from "@verbatra/format-adapters";
 import { projectCwd } from "../config/project-root.js";
+import { resolveMaxLengths } from "../config/resolve-max-lengths.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
@@ -15,6 +16,7 @@ import { createLocalePathResolver, type LocalePathResolver } from "../locale-pat
 import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
 import { projectRelativeMessage } from "../project-relative.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { type LimitsFileNotice, limitsIgnoredNotice } from "./limits-notice.js";
 import { findIncompletePlurals, type IncompletePlural } from "./plural-completeness.js";
 import {
   type CheckQaSummary,
@@ -149,6 +151,8 @@ interface FileCheckContext {
   readonly resolver: LocalePathResolver;
   readonly fs: SdkFs;
   readonly severity: QaSeverity;
+  readonly maxLength: ReadonlyMap<string, number> | undefined;
+  readonly limitsNotice: LimitsFileNotice | undefined;
 }
 
 type FileRead =
@@ -240,12 +244,19 @@ function summary(
     qa: totalQa(
       locales.map((entry) => entry.qa),
       invalidSourceKeys,
+      context.limitsNotice,
     ),
   };
 }
 
 function qaContextFor(context: FileCheckContext, invalidSourceKeys: readonly string[]): QaContext {
-  return createQaContext(context.config, context.adapter, context.severity, invalidSourceKeys);
+  return createQaContext(
+    context.config,
+    context.adapter,
+    context.severity,
+    invalidSourceKeys,
+    context.maxLength,
+  );
 }
 
 async function checkSourceFile(
@@ -308,8 +319,9 @@ const CHECKS_BY_ROLE: Readonly<
 /**
  * Checks one locale file, the fast path for validating a file right after it was edited by hand
  * or by an agent. It reads that file and, for a target locale, the source locale file, and
- * nothing else: no other locale, no lock-file, no provenance file, no source code, and no
- * provider. It writes nothing and needs no API key.
+ * nothing else but the project's `verbatra.limits.json`, which it reads for the `maxLength` budgets:
+ * no other locale, no lock-file, no provenance file, no source code,
+ * and no provider. It writes nothing and needs no API key.
  *
  * The file is resolved against the config's `files.pattern` and `files.localeStyle` to the locale
  * it holds. A file that cannot be parsed is reported as a {@link QaSyntaxFinding}, with the line
@@ -319,6 +331,9 @@ const CHECKS_BY_ROLE: Readonly<
  * warnings, plus the plurals that lack CLDR categories. The source locale file is checked for
  * syntax alone, since there is nothing to hold it against; its keys whose value is not a valid ICU
  * message are listed in `qa.invalidSourceKeys`.
+ *
+ * A `verbatra.limits.json` that cannot be used is ignored, so only the config's `maxLength`
+ * budgets apply, and the result's `qa.limitsNotice` says so; {@link doctor} names the problem.
  *
  * @param input - The config, the file, and the optional severity floor.
  * @param deps - Optional adapter registry and file-system overrides.
@@ -341,6 +356,7 @@ export async function checkFile(
 ): Promise<CheckFileSummary> {
   const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
+  const maxLengths = await resolveMaxLengths({ config: input.config, cwd, fs });
   const context: FileCheckContext = {
     config: input.config,
     cwd,
@@ -349,6 +365,9 @@ export async function checkFile(
     resolver: createLocalePathResolver(cwd, input.config),
     fs,
     severity: input.qaSeverity ?? "warning",
+    maxLength: maxLengths.limits,
+    limitsNotice:
+      maxLengths.unusable === undefined ? undefined : limitsIgnoredNotice(maxLengths.unusable),
   };
   const named = namedFileOf(context);
   if (!(await fs.fileExists(context.path))) {

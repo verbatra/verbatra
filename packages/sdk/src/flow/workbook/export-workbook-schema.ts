@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { limitsFileNoticeSchema } from "../limits-notice-schema.js";
 
 export const provenanceMarkersSchema = z.enum(["written", "unavailable"]);
 
@@ -11,4 +12,5 @@ export const exportWorkbookResultSchema = z.object({
   path: z.string(),
   locales: z.array(z.object({ locale: z.string(), rows: z.number() })).readonly(),
   provenanceMarkers: provenanceMarkersSchema.exactOptional(),
+  limitsNotice: limitsFileNoticeSchema.exactOptional(),
 });

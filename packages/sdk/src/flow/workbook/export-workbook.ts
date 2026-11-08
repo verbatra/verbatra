@@ -12,8 +12,8 @@ import {
 } from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { glossaryForLocale } from "../../config/glossary.js";
-import { toMaxLengthMap } from "../../config/max-length.js";
 import { projectCwd } from "../../config/project-root.js";
+import { resolveMaxLengths } from "../../config/resolve-max-lengths.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
@@ -23,6 +23,7 @@ import { baselineFor } from "../../lock/lock-file.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import { withForeignPlaceholderReason } from "../foreign-placeholders.js";
 import { branchArmProblems } from "../integrity-gate.js";
+import { type LimitsFileNotice, limitsNoticeField } from "../limits-notice.js";
 import { readCarriedOverLock, readCarriedOverProvenance } from "../locale-carry-over.js";
 import { readTargetResource } from "../read-target.js";
 import {
@@ -128,6 +129,12 @@ export interface ExportWorkbookResult {
    * newer verbatra (`unavailable`). The export itself succeeds either way.
    */
   readonly provenanceMarkers?: ProvenanceMarkers;
+  /**
+   * Present when `verbatra.limits.json` could not be used, so the `max-length-exceeded` review
+   * reasons in the handoff were judged against the config's `maxLength` budgets alone. The export
+   * itself succeeds.
+   */
+  readonly limitsNotice?: LimitsFileNotice;
 }
 
 function reasonLabel(reason: string): string {
@@ -447,6 +454,9 @@ async function resolveHandoffPath(
  * written surfaces as `EXPORT_UNWRITABLE`, never as a raw file-system error. An existing file at
  * the output path is replaced.
  *
+ * A `verbatra.limits.json` that cannot be used is ignored, so only the config's `maxLength`
+ * budgets apply, and the result's `limitsNotice` says so; {@link doctor} names the problem.
+ *
  * @param input - The config, output path, config and glossary paths to protect, locale filter, and
  * handoff format.
  * @param deps - Optional adapter registry and file-system overrides.
@@ -481,7 +491,6 @@ export async function exportWorkbook(
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
-  const maxLengthBudgets = toMaxLengthMap(config.maxLength);
   const locales = selectLocales(config, input.locales);
   const format = input.format ?? DEFAULT_EXCHANGE_FORMAT;
   const path = await resolveHandoffPath(
@@ -491,6 +500,8 @@ export async function exportWorkbook(
     locales,
   );
 
+  const maxLengths = await resolveMaxLengths({ config, cwd, fs });
+  const maxLengthBudgets = maxLengths.limits;
   const source = await readSourceResource(config, resolver, fs, adapter);
   const lock = await readCarriedOverLock(cwd, fs, locales);
 
@@ -536,5 +547,6 @@ export async function exportWorkbook(
     path,
     locales: sheets.map((sheet) => ({ locale: sheet.locale, rows: sheet.rows.length })),
     ...(provenanceMarkers !== undefined ? { provenanceMarkers } : {}),
+    ...limitsNoticeField(maxLengths.unusable),
   };
 }
