@@ -14,12 +14,26 @@ export function withoutCliStep(message: string): string {
   return kept.join(". ").replace(/\.?$/, ".");
 }
 
+const WRITE_FAILURE_CAUSE = /^Could not write .*? \((E[A-Z]+)\)\./;
+
+const PERMISSION_CAUSES: ReadonlySet<string> = new Set(["EACCES", "EPERM"]);
+
+export function nextStepFor(error: SdkError): string | undefined {
+  if (SELF_DESCRIBING_CODES.has(error.code)) {
+    return undefined;
+  }
+  if (error.message.startsWith("Could not write ")) {
+    const cause = WRITE_FAILURE_CAUSE.exec(error.message)?.[1];
+    return cause !== undefined && PERMISSION_CAUSES.has(cause) ? errorHint(error) : undefined;
+  }
+  return errorHint(error);
+}
+
 function withHint(error: unknown): unknown {
   if (!(error instanceof SdkError)) {
     return error;
   }
-  const step = SELF_DESCRIBING_CODES.has(error.code) ? undefined : errorHint(error);
-  const message = [withoutCliStep(error.message), step].filter(Boolean).join(" ");
+  const message = [withoutCliStep(error.message), nextStepFor(error)].filter(Boolean).join(" ");
   return new SdkError(error.code, message, { cause: error });
 }
 

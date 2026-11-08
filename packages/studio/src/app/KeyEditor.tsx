@@ -401,7 +401,7 @@ export function KeyEditor({
         },
         onRelease: () => {
           setPending(null);
-          focusUnsavedField(textAreaRef.current, limitOnlyRef.current);
+          focusUnsavedField(textAreaRef.current, limitOnlyRef.current, localesTargetRef.current);
         },
       }),
     [],
@@ -435,7 +435,7 @@ export function KeyEditor({
       return false;
     }
     if (!saved) {
-      focusUnsavedField(textAreaRef.current, limitOnlyRef.current);
+      focusUnsavedField(textAreaRef.current, limitOnlyRef.current, localesTargetRef.current);
       return false;
     }
     resolvedRef.current = true;
@@ -501,7 +501,7 @@ export function KeyEditor({
   function keepEditing(): void {
     restoreHeldRoute();
     setPending(null);
-    focusUnsavedField(textAreaRef.current, limitOnlyRef.current);
+    focusUnsavedField(textAreaRef.current, limitOnlyRef.current, localesTargetRef.current);
   }
 
   const prompt =

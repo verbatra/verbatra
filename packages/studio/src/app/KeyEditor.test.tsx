@@ -6,6 +6,7 @@ import type { DiffLocale } from "../client/diff-view.js";
 import type { KeyIntegrityLocaleEntry } from "../client/integrity-pill.js";
 import type { RpcResultFor } from "../shared/rpc/contract.js";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
+import { focusUnsavedField } from "./entry-editor-parts.js";
 import { KeyEditor, type KeyEditorProps } from "./KeyEditor.js";
 import {
   click,
@@ -1382,6 +1383,60 @@ describe("KeyEditor length limit", () => {
       expect(document.activeElement).toBe(field(view));
     },
   );
+
+  it("focuses its own limit field, never another editor's, when two are mounted", () => {
+    const first = render(
+      <div data-editor="first">
+        <input data-limit-item="input" aria-label="first limit" />
+        <textarea aria-label="first value" />
+      </div>,
+    );
+    const second = render(
+      <div data-editor="second">
+        <input data-limit-item="input" aria-label="second limit" />
+        <textarea aria-label="second value" />
+      </div>,
+    );
+
+    focusUnsavedField(
+      second.get("textarea") as HTMLTextAreaElement,
+      true,
+      second.get("[data-editor]"),
+    );
+    expect(document.activeElement).toBe(second.get("input"));
+
+    focusUnsavedField(
+      first.get("textarea") as HTMLTextAreaElement,
+      true,
+      first.get("[data-editor]"),
+    );
+    expect(document.activeElement).toBe(first.get("input"));
+
+    focusUnsavedField(second.get("textarea") as HTMLTextAreaElement, true, null);
+    expect(document.activeElement).toBe(second.get("textarea"));
+    focusUnsavedField(
+      second.get("textarea") as HTMLTextAreaElement,
+      false,
+      second.get("[data-editor]"),
+    );
+    expect(document.activeElement).toBe(second.get("textarea"));
+  });
+
+  it("keeps editing in its own limit field while a lookalike field sits earlier in the page", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const decoy = render(<input data-limit-item="input" aria-label="decoy" />);
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+
+    await clickAsync(promptNamed(view, "Keep editing"));
+
+    expect(document.activeElement).toBe(textboxNamed(view, "Limit in characters"));
+    expect(document.activeElement).not.toBe(decoy.get("input"));
+  });
 
   it("falls back to the value field when the limit field is gone", async () => {
     stubWritable();

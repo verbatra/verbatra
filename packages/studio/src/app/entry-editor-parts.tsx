@@ -21,9 +21,13 @@ export type SubmitState =
   | { readonly kind: "submitting" }
   | { readonly kind: "settled"; readonly outcome: EditEntryOutcome };
 
-export function focusUnsavedField(textarea: { focus(): void } | null, limitOnly: boolean): void {
+export function focusUnsavedField(
+  textarea: { focus(): void } | null,
+  limitOnly: boolean,
+  scope: ParentNode | null,
+): void {
   const limitField = limitOnly
-    ? document.querySelector<HTMLElement>('[data-limit-item="input"]')
+    ? (scope?.querySelector<HTMLElement>('[data-limit-item="input"]') ?? null)
     : null;
   (limitField ?? textarea)?.focus();
 }

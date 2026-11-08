@@ -1,12 +1,13 @@
 import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createDefaultRegistry, type SdkFs } from "@verbatra/sdk";
+import { createDefaultRegistry, SdkError, type SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
 import {
   CONFIG_KEY_REFUSAL,
   keySetMaxLengthHandler,
+  nextStepFor,
   withoutCliStep,
 } from "./key-set-max-length.js";
 
@@ -322,5 +323,63 @@ describe("keySetMaxLengthHandler", () => {
     } finally {
       await project.cleanup();
     }
+  });
+
+  describe("nextStepFor", () => {
+    const writeFailure = (cause: string, remedy: string): SdkError =>
+      new SdkError(
+        "LIMITS_FILE_UNWRITABLE",
+        `Could not write the limits file verbatra.limits.json (${cause}). ${remedy}`,
+      );
+
+    it.each([
+      ["EACCES", "Check the write permissions on the containing directory, then run again."],
+      ["EPERM", "Check the write permissions on the containing directory, then run again."],
+    ])("gives the permissions step for %s", (cause, remedy) => {
+      expect(nextStepFor(writeFailure(cause, remedy))).toContain(
+        "Check the permissions of verbatra.limits.json",
+      );
+    });
+
+    it.each([
+      ["ENOSPC", "The device it lives on has no space left."],
+      ["EROFS", "That file system is mounted read-only, so nothing can be written there."],
+      ["EISDIR", "A directory already exists at that path, so no file can take its place."],
+      ["ENOENT", "Check that the containing directory exists and is reachable, then run again."],
+    ])("gives no permissions step for %s", (cause, remedy) => {
+      expect(nextStepFor(writeFailure(cause, remedy))).toBeUndefined();
+    });
+
+    it("gives no permissions step for a write failure with no cause code", () => {
+      const error = new SdkError(
+        "LIMITS_FILE_UNWRITABLE",
+        "Could not write the limits file verbatra.limits.json. Check that the containing directory exists and is writable, then run again.",
+      );
+
+      expect(nextStepFor(error)).toBeUndefined();
+    });
+
+    it("shows a non-permission cause with its own remedy and no permissions step, end to end", () => {
+      const shown = [
+        "Could not write the limits file verbatra.limits.json (EROFS). That file system is mounted read-only, so nothing can be written there.",
+        nextStepFor(
+          new SdkError(
+            "LIMITS_FILE_UNWRITABLE",
+            "Could not write the limits file verbatra.limits.json (EROFS). That file system is mounted read-only, so nothing can be written there.",
+          ),
+        ),
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      expect(shown).toContain("mounted read-only");
+      expect(shown).not.toContain("Check the permissions");
+    });
+
+    it("still gives the sdk step for a refusal that is not a write failure", () => {
+      const error = new SdkError("LIMITS_FILE_UNUSABLE", "verbatra.limits.json is not valid JSON.");
+
+      expect(nextStepFor(error)).toContain("Restore verbatra.limits.json");
+    });
   });
 });

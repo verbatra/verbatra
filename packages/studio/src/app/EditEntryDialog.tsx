@@ -176,7 +176,12 @@ export function EditEntryDialog({
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const unsavedFieldRef = useRef<{ focus(): void } | null>(null);
   unsavedFieldRef.current = {
-    focus: () => focusUnsavedField(textAreaRef.current, edit.limit.dirty && !edit.valueDirty),
+    focus: () =>
+      focusUnsavedField(
+        textAreaRef.current,
+        edit.limit.dirty && !edit.valueDirty,
+        containerRef.current,
+      ),
   };
   const guard = useDialogDraftGuard({
     dirty: edit.dirty,
