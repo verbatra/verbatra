@@ -320,6 +320,9 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * adapter codes to its own copy. A caller that maps SDK codes should be ready for an unrecognized
  * error from a target file on either path.
  *
+ * A `verbatra.limits.json` that cannot be used is ignored here without a notice, so the value is
+ * held to the config's `maxLength` budgets only; {@link doctor} reports it under its `limits` check.
+ *
  * It spends outside the token budget. `maxTokens` and `budgetBehavior` bound a {@link translate}
  * run, and this is its own single-key path with its own provider, so a configured ceiling neither
  * withholds this call nor counts it. A caller that exposes retranslation to users, as the Studio

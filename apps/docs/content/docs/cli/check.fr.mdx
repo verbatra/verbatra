@@ -168,7 +168,7 @@ Avec `--json`, `result.sensitive` vaut `{ findings, glossaryTerms }`, chaque tro
 
 <AvailableFrom version="0.12.0" />
 
-`--file <path>` vérifie un seul fichier de locale, pour les hooks d'éditeur et d'agent après une modification. Il lit ce fichier, `verbatra.limits.json` et, pour une locale cible, le fichier source, rien d'autre. Le chemin est résolu par rapport à `--cwd` et associé à sa locale via `files.pattern`.
+`--file <path>` vérifie un seul fichier de locale, pour les hooks d'éditeur et d'agent après une modification. Il lit ce fichier, `verbatra.limits.json` (ignoré sans avis s'il est inutilisable ; [`doctor`](/fr/docs/cli/doctor) nomme le problème) et, pour une locale cible, le fichier source, rien d'autre. Le chemin est résolu par rapport à `--cwd` et associé à sa locale via `files.pattern`.
 
 - Un fichier dont l'analyse échoue donne une erreur `syntax` avec le code de l'adaptateur (`INVALID_JSON`, `INVALID_YAML`, ...) et la ligne et la colonne quand l'analyseur signale une position.
 - Un fichier cible est vérifié comme avec [`--qa`](#contrôle-qualité), catégories de pluriel comprises ; un fichier source, pour sa syntaxe seulement. Un catalogue `apple-xcstrings` est vérifié pour chaque locale cible.

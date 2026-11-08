@@ -148,8 +148,9 @@
  *   key, so the limits file cannot override it. Nothing is written.
  * - `LIMITS_FILE_UNUSABLE`: `verbatra.limits.json` could not be used for a write: it is unreadable,
  *   over 1 MiB, not UTF-8 or JSON, of another shape or a newer version, or holds more than 10,000
- *   entries; the write would grow it past 10,000 entries or 1 MiB; or the file or the project's
- *   limits lock could not be written. A file that cannot be read is never overwritten. The
+ *   entries; the write would grow it past 10,000 entries or 1 MiB; the file or the project's
+ *   limits lock could not be written; or the lock could not be released after the limit was
+ *   saved, which the message says. A file that cannot be read is never overwritten. The
  *   file-system error is the `cause`. Thrown by {@link setKeyLengthLimit}. A run that meets such a
  *   file does not throw: it raises the `LIMITS_FILE_IGNORED` notice.
  * - `LOCALE_LAYOUT_INVALID`: the configured `files.pattern` and `files.localeStyle` cannot be

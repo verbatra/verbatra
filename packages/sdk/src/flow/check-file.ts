@@ -329,6 +329,9 @@ const CHECKS_BY_ROLE: Readonly<
  * syntax alone, since there is nothing to hold it against; its keys whose value is not a valid ICU
  * message are listed in `qa.invalidSourceKeys`.
  *
+ * A `verbatra.limits.json` that cannot be used is ignored here without a notice, so only the
+ * config's `maxLength` budgets apply; {@link doctor} reports it under its `limits` check.
+ *
  * @param input - The config, the file, and the optional severity floor.
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns The file's role, one locale result (one per target locale for a catalogue), and totals.

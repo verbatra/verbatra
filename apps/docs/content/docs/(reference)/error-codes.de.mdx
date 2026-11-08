@@ -461,14 +461,14 @@ Die Glossardatei konnte nicht geschrieben oder die Glossar-Schreibsperre nicht a
 `setKeyLengthLimit` hat seine Eingabe abgelehnt: Das Limit ist keine ganze Zahl von 1 bis 9007199254740991 (oder `null`), der Schlüssel ist leer oder länger als 1024 Zeichen, oder das Limit ist eine Zahl und das `maxLength` der Config setzt den Schlüssel bereits und geht [`verbatra.limits.json`](/de/docs/config-file#maxlength) vor. Es wird nichts geschrieben.
 
 - **Ausgelöst von**: `setKeyLengthLimit` (SDK)
-- **Nächster Schritt**: Pass a whole number from 1 to 9007199254740991 (or null to remove), and a key of 1 to 1024 characters that the config's `maxLength` does not set.
+- **Nächster Schritt**: Pass a whole number from 1 to 9007199254740991 (or null to remove) for a key of 1 to 1024 characters; the config's `maxLength` takes precedence, so a number is refused for a key it sets.
 
 ### LIMITS_FILE_UNUSABLE
 
-`verbatra.limits.json` ließ sich für einen Schreibvorgang nicht verwenden: Die Datei lässt sich nicht als Limit-Datei lesen (keine reguläre Datei, über 1 MiB, kein UTF-8 oder JSON, andere Form, neuere Version oder mehr als 10.000 Einträge), der Schreibvorgang würde sie über 10.000 Einträge oder 1 MiB wachsen lassen, oder die Datei oder ihre Schreibsperre ließ sich nicht schreiben. Eine Datei, die sich nicht lesen lässt, wird nie überschrieben; der Dateisystem-Fehler ist die `cause`. Ein Lauf, der auf so eine Datei trifft, wirft nicht: Er löst [`LIMITS_FILE_IGNORED`](#limits_file_ignored) aus.
+`verbatra.limits.json` ließ sich für einen Schreibvorgang nicht verwenden: Die Datei lässt sich nicht als Limit-Datei lesen (keine reguläre Datei, über 1 MiB, kein UTF-8 oder JSON, andere Form, neuere Version oder mehr als 10.000 Einträge), der Schreibvorgang würde sie über 10.000 Einträge oder 1 MiB wachsen lassen, oder die Datei oder ihre Schreibsperre ließ sich nicht schreiben, oder die Sperre ließ sich nach dem Speichern des Limits nicht freigeben (die Meldung sagt es, und das Limit bleibt). Eine Datei, die sich nicht lesen lässt, wird nie überschrieben; der Dateisystem-Fehler ist die `cause`. Ein Lauf, der auf so eine Datei trifft, wirft nicht: Er löst [`LIMITS_FILE_IGNORED`](#limits_file_ignored) aus.
 
 - **Ausgelöst von**: `setKeyLengthLimit` (SDK)
-- **Nächster Schritt**: Restore verbatra.limits.json from version control or delete it, and make it and its directory writable, then try again.
+- **Nächster Schritt**: If the message names an unusable file, restore verbatra.limits.json from version control or delete it; otherwise make it, its directory and .verbatra-local writable. Then try again.
 
 ### LOCALE_LAYOUT_INVALID
 

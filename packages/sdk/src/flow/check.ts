@@ -358,6 +358,9 @@ function qaReports(
  * locale and the resolved path. A caller that maps SDK codes should be ready for an unrecognized
  * error from a target file.
  *
+ * A `verbatra.limits.json` that cannot be used is ignored here without a notice, so only the
+ * config's `maxLength` budgets apply; {@link doctor} reports it under its `limits` check.
+ *
  * @param input - The config and the optional locale filter.
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns Per-locale counts and the project-wide in-sync verdict.

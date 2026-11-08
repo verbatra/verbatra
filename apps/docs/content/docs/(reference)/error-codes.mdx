@@ -461,14 +461,14 @@ The glossary file could not be written, or the glossary write lock could not be 
 `setKeyLengthLimit` refused its input: the limit is not a whole number from 1 to 9007199254740991 (or `null`), the key is empty or longer than 1024 characters, or the limit is a number and the config's `maxLength` already sets the key, which wins over [`verbatra.limits.json`](/docs/config-file#maxlength). Nothing is written.
 
 - **Raised by**: `setKeyLengthLimit` (SDK)
-- **Next step**: Pass a whole number from 1 to 9007199254740991 (or null to remove), and a key of 1 to 1024 characters that the config's `maxLength` does not set.
+- **Next step**: Pass a whole number from 1 to 9007199254740991 (or null to remove) for a key of 1 to 1024 characters; the config's `maxLength` takes precedence, so a number is refused for a key it sets.
 
 ### LIMITS_FILE_UNUSABLE
 
-`verbatra.limits.json` could not be used for a write: it cannot be read as a limits file (not a regular file, over 1 MiB, not UTF-8 or JSON, another shape, a newer version, or more than 10,000 entries), the write would grow it past 10,000 entries or 1 MiB, or the file or its write lock could not be written. A file that cannot be read is never overwritten; the file-system error is the `cause`. A run that meets such a file does not throw: it raises [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
+`verbatra.limits.json` could not be used for a write: it cannot be read as a limits file (not a regular file, over 1 MiB, not UTF-8 or JSON, another shape, a newer version, or more than 10,000 entries), the write would grow it past 10,000 entries or 1 MiB, or the file or its write lock could not be written, or the lock could not be released after the limit was saved (the message says so, and the limit stays). A file that cannot be read is never overwritten; the file-system error is the `cause`. A run that meets such a file does not throw: it raises [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
 
 - **Raised by**: `setKeyLengthLimit` (SDK)
-- **Next step**: Restore verbatra.limits.json from version control or delete it, and make it and its directory writable, then try again.
+- **Next step**: If the message names an unusable file, restore verbatra.limits.json from version control or delete it; otherwise make it, its directory and .verbatra-local writable. Then try again.
 
 ### LOCALE_LAYOUT_INVALID
 

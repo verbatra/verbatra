@@ -447,6 +447,9 @@ async function resolveHandoffPath(
  * written surfaces as `EXPORT_UNWRITABLE`, never as a raw file-system error. An existing file at
  * the output path is replaced.
  *
+ * A `verbatra.limits.json` that cannot be used is ignored here without a notice, so only the
+ * config's `maxLength` budgets apply; {@link doctor} reports it under its `limits` check.
+ *
  * @param input - The config, output path, config and glossary paths to protect, locale filter, and
  * handoff format.
  * @param deps - Optional adapter registry and file-system overrides.

@@ -461,14 +461,14 @@ Le fichier de glossaire n'a pas pu être écrit, ou le verrou d'écriture du glo
 `setKeyLengthLimit` a refusé son entrée : la limite n'est pas un entier de 1 à 9007199254740991 (ni `null`), la clé est vide ou dépasse 1024 caractères, ou la limite est un nombre et le `maxLength` de la config fixe déjà la clé et l'emporte sur [`verbatra.limits.json`](/fr/docs/config-file#maxlength). Rien n'est écrit.
 
 - **Levé par** : `setKeyLengthLimit` (SDK)
-- **Étape suivante** : Pass a whole number from 1 to 9007199254740991 (or null to remove), and a key of 1 to 1024 characters that the config's `maxLength` does not set.
+- **Étape suivante** : Pass a whole number from 1 to 9007199254740991 (or null to remove) for a key of 1 to 1024 characters; the config's `maxLength` takes precedence, so a number is refused for a key it sets.
 
 ### LIMITS_FILE_UNUSABLE
 
-`verbatra.limits.json` n'a pas pu servir pour une écriture : il ne se lit pas comme un fichier de limites (pas un fichier ordinaire, plus de 1 Mio, ni UTF-8 ni JSON, autre forme, version plus récente ou plus de 10 000 entrées), l'écriture le ferait dépasser 10 000 entrées ou 1 Mio, ou le fichier ou son verrou d'écriture n'a pas pu être écrit. Un fichier illisible n'est jamais écrasé ; l'erreur du système de fichiers est la `cause`. Une exécution qui tombe sur un tel fichier ne lève rien : elle émet [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
+`verbatra.limits.json` n'a pas pu servir pour une écriture : il ne se lit pas comme un fichier de limites (pas un fichier ordinaire, plus de 1 Mio, ni UTF-8 ni JSON, autre forme, version plus récente ou plus de 10 000 entrées), l'écriture le ferait dépasser 10 000 entrées ou 1 Mio, ou le fichier ou son verrou d'écriture n'a pas pu être écrit, ou le verrou n'a pas pu être libéré après l'enregistrement de la limite (le message le dit, et la limite reste). Un fichier illisible n'est jamais écrasé ; l'erreur du système de fichiers est la `cause`. Une exécution qui tombe sur un tel fichier ne lève rien : elle émet [`LIMITS_FILE_IGNORED`](#limits_file_ignored).
 
 - **Levé par** : `setKeyLengthLimit` (SDK)
-- **Étape suivante** : Restore verbatra.limits.json from version control or delete it, and make it and its directory writable, then try again.
+- **Étape suivante** : If the message names an unusable file, restore verbatra.limits.json from version control or delete it; otherwise make it, its directory and .verbatra-local writable. Then try again.
 
 ### LOCALE_LAYOUT_INVALID
 

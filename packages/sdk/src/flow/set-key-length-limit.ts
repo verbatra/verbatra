@@ -201,8 +201,9 @@ async function applyLimit(
  * went to take the write lock, so that lock was refused.
  * @throws {@link SdkError} `LIMITS_FILE_UNUSABLE`: the limits file cannot be read as one (over
  * 1 MiB, not UTF-8 or JSON, another shape, a newer version, or more than 10,000 entries), the
- * write would grow it past 10,000 entries or 1 MiB, or the file or the limits lock could not be
- * written. Nothing is overwritten.
+ * write would grow it past 10,000 entries or 1 MiB, the file or the limits lock could not be
+ * written, or the lock could not be released after the limit was saved, which the message says.
+ * Nothing is overwritten.
  */
 export async function setKeyLengthLimit(
   input: SetKeyLengthLimitInput,
