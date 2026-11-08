@@ -12,6 +12,7 @@ import { KEY_CONTEXT_METHOD } from "../shared/rpc/key-context.js";
 import { KEY_INTEGRITY_METHOD } from "../shared/rpc/key-integrity.js";
 import { KEY_PREVIEW_ICU_METHOD } from "../shared/rpc/key-preview-icu.js";
 import { HISTORY_KEY_REVISIONS_METHOD } from "../shared/rpc/key-revisions.js";
+import { KEY_SET_MAX_LENGTH_METHOD } from "../shared/rpc/key-set-max-length.js";
 import { KEY_VALUE_METHOD } from "../shared/rpc/key-value.js";
 import { LOCALE_INTEGRITY_METHOD } from "../shared/rpc/locale-integrity.js";
 import { LOCALE_VALUES_METHOD } from "../shared/rpc/locale-values.js";
@@ -46,6 +47,7 @@ import { keyContextHandler } from "./methods/key-context.js";
 import { keyIntegrityHandler } from "./methods/key-integrity.js";
 import { keyPreviewIcuHandler } from "./methods/key-preview-icu.js";
 import { keyRevisionsHandler } from "./methods/key-revisions.js";
+import { keySetMaxLengthHandler } from "./methods/key-set-max-length.js";
 import { keyValueHandler } from "./methods/key-value.js";
 import { localeIntegrityHandler } from "./methods/locale-integrity.js";
 import { localeValuesHandler } from "./methods/locale-values.js";
@@ -115,6 +117,7 @@ export function createRpcHandlers(capabilities: StudioCapabilities): HandlersReg
     ...readOnlyHandlers,
     [EDIT_ENTRY_METHOD]: editEntryHandler,
     [KEY_VALUE_METHOD]: keyValueHandler,
+    [KEY_SET_MAX_LENGTH_METHOD]: keySetMaxLengthHandler,
     [GLOSSARY_WRITE_METHOD]: glossaryWriteHandler,
     [REVIEW_APPROVE_METHOD]: reviewApproveHandler,
     [REVIEW_REJECT_METHOD]: reviewRejectHandler,

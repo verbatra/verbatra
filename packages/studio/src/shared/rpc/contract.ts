@@ -41,6 +41,11 @@ import {
   type KeyRevisionsResult,
   keyRevisionsParamsSchema,
 } from "./key-revisions.js";
+import {
+  KEY_SET_MAX_LENGTH_METHOD,
+  type KeySetMaxLengthResult,
+  keySetMaxLengthParamsSchema,
+} from "./key-set-max-length.js";
 import { KEY_VALUE_METHOD, type KeyValueResult, keyValueParamsSchema } from "./key-value.js";
 import {
   LOCALE_INTEGRITY_METHOD,
@@ -125,6 +130,7 @@ export const rpcParamsSchemas = {
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
   [KEY_VALUE_METHOD]: keyValueParamsSchema,
   [KEY_PREVIEW_ICU_METHOD]: keyPreviewIcuParamsSchema,
+  [KEY_SET_MAX_LENGTH_METHOD]: keySetMaxLengthParamsSchema,
   [KEY_CONTEXT_METHOD]: keyContextParamsSchema,
   [LOCALE_VALUES_METHOD]: localeValuesParamsSchema,
   [LOCALE_INTEGRITY_METHOD]: localeIntegrityParamsSchema,
@@ -161,6 +167,7 @@ export interface RpcResultMap {
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;
   readonly [KEY_VALUE_METHOD]: KeyValueResult;
   readonly [KEY_PREVIEW_ICU_METHOD]: KeyPreviewIcuResult;
+  readonly [KEY_SET_MAX_LENGTH_METHOD]: KeySetMaxLengthResult;
   readonly [KEY_CONTEXT_METHOD]: KeyContextResult;
   readonly [LOCALE_VALUES_METHOD]: LocaleValuesResult;
   readonly [LOCALE_INTEGRITY_METHOD]: LocaleIntegrityResult;

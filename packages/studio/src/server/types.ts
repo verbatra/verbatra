@@ -182,6 +182,10 @@ export interface StudioServerDeps {
   readonly previewIcuRateLimitWindowMs?: number;
   /** How many `key.previewIcu` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 240. */
   readonly previewIcuRateLimitMax?: number;
+  /** Rolling window in milliseconds for `key.setMaxLength`'s rate limit. Defaults to 60000. */
+  readonly setMaxLengthRateLimitWindowMs?: number;
+  /** How many `key.setMaxLength` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 20. */
+  readonly setMaxLengthRateLimitMax?: number;
   /** Rolling window in milliseconds for `git.status`'s rate limit. Defaults to 60000. */
   readonly gitStatusRateLimitWindowMs?: number;
   /** How many `git.status` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 120. */

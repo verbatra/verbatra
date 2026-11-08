@@ -25,6 +25,7 @@ const READ_ONLY_METHODS = [
 const ALWAYS_ON_WRITE_METHODS = [
   "translation.editEntry",
   "key.value",
+  "key.setMaxLength",
   "glossary.write",
   "review.approve",
   "review.reject",
@@ -40,11 +41,11 @@ const SPEND_METHODS = [
 ];
 
 describe("the shared contract's method list", () => {
-  it("is exactly the twenty-nine agreed methods, including the schema-only write methods", () => {
+  it("is exactly the thirty agreed methods, including the schema-only write methods", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(
       new Set([...READ_ONLY_METHODS, ...SPEND_METHODS, ...ALWAYS_ON_WRITE_METHODS]),
     );
-    expect(RPC_METHOD_NAMES).toHaveLength(29);
+    expect(RPC_METHOD_NAMES).toHaveLength(30);
   });
 });
 
