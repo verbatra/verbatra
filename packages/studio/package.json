@@ -69,7 +69,7 @@
     "@verbatra/config": "workspace:*",
     "@verbatra/format-adapters": "workspace:*",
     "@verbatra/ui": "workspace:*",
-    "@vitejs/plugin-react": "6.1.2",
+    "@vitejs/plugin-react": "6.2.1",
     "@vitest/coverage-v8": "catalog:",
     "jsdom": "catalog:",
     "react": "catalog:",
