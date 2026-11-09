@@ -23,7 +23,8 @@ Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra 
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Translations es una tabla de todas las claves que necesitan atención: faltantes, modificadas, huérfanas, protegidas, en la cola de revisión o con una comprobación de integridad fallida. Cada fila muestra la clave, el texto de origen y un estado por locale; elige una locale para ver traducción, estado y origen.
+Translations es una tabla de todas las claves que necesitan atención: faltantes, modificadas, huérfanas, protegidas, en la cola de revisión o con una comprobación de integridad fallida. Cada fila muestra la clave, el texto de origen y un estado por locale; elige una locale para ver traducción, estado y origen. La búsqueda también encuentra claves sincronizadas.
+
 ### Detalles de la clave
 
 Haz clic en una clave para abrir su editor. Lista el valor de cada locale con un indicador de integridad: los placeholders coinciden, un desajuste de placeholders con los tokens nombrados, o una sintaxis de mensaje no válida. También se muestra:
@@ -38,7 +39,7 @@ Haz clic en una clave para abrir su editor. Lista el valor de cada locale con un
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Los chips junto a la búsqueda acotan la tabla por estado, incluidos **Review queue** e **Integrity problems** (un valor que no pasa las comprobaciones de placeholders, marcado o ICU). **Copy as review report** copia las claves pendientes como Markdown para un pull request.
+Los chips junto a la búsqueda acotan la tabla por estado, incluidos **Review queue** e **Integrity problems**. **Copy as review report** copia las claves pendientes como Markdown para un pull request.
 
 ### Edita con la puerta de integridad
 
@@ -130,7 +131,7 @@ Los atajos se pausan mientras escribes, el foco está en la barra de filtros o h
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Marca filas (o la casilla de la cabecera para todo lo que muestra el filtro) y elige **Approve selected**, **Reject selected** o, con `--allow-spend`, **Retranslate selected**. Un lote admite como máximo 100 entradas para aprobar o rechazar, o 20 para retraducir.
+Marca filas (o la casilla de la cabecera para todo lo que muestra el filtro) y elige **Approve selected**, **Reject selected** o, con `--allow-spend`, **Retranslate selected**. Los fallos se listan por causa y siguen seleccionados. Un lote admite como máximo 100 entradas para aprobar o rechazar, o 20 para retraducir.
 
 ## Retraduce una clave marcada
 
@@ -152,7 +153,7 @@ Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nom
 
 Overview es la página con la que arranca Studio. Muestra la cobertura de cada locale con su estado en el [archivo de bloqueo](/es/docs/the-lock-file), el historial de git de tus archivos de locale y el uso de tokens de la última ejecución registrada, con el medidor de presupuesto cuando hay un presupuesto de tokens configurado.
 
-**Run history and cost**, debajo, muestra el coste y los tokens de las ejecuciones más recientes junto a una tabla, con la última cobertura conocida de cada locale. Se relee cuando cambia el archivo del historial, la pestaña recupera el foco o vuelve una ejecución.
+**Run history and cost**, debajo, muestra el coste y los tokens de las ejecuciones más recientes sobre una tabla, con la última cobertura conocida de cada locale. Se relee cuando cambia el archivo del historial, la pestaña recupera el foco o vuelve una ejecución.
 
 <StudioScreenshot
   shot="overview"
@@ -173,6 +174,7 @@ Una edición del glosario cambia lo que se le indica a la siguiente ejecución, 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 **Show translations for** cambia a la vista del [glosario](/es/docs/config-file#glossary) de un locale, con su traducción, las variantes prohibidas y la nota.
+
 ## Relacionado
 
 - [Maneja Studio con un agente del navegador](/es/docs/agent-tools-in-studio): el mismo flujo desde un agente de IA en el navegador.

@@ -23,9 +23,9 @@ verbatra studio --expose-agent-tools
 
 `VERBATRA_STUDIO_AGENT_TOOLS=1` fait la même chose ; [Dépenses et outils d'agent](/fr/docs/cli/studio#dépenses-et-outils-dagent) explique comment le flag et la variable sont résolus. Ouvre l'URL affichée dans le navigateur WebMCP, et l'agent de cet onglet trouve les outils. Dans un navigateur sans WebMCP, Studio n'enregistre rien et le tableau de bord ne change pas.
 
-Pour que l'agent puisse appeler ton fournisseur, lance aussi Studio avec `--allow-spend` ([Dépenses et outils d'agent](/fr/docs/cli/studio#dépenses-et-outils-dagent)).
+Pour que l'agent puisse appeler ton fournisseur, lance aussi Studio avec `--allow-spend`.
 
-L'agent lit chaque valeur sans masquage, comme la page l'affiche : Studio ne masque rien, car un agent dans l'onglet peut de toute façon lire la page. Les exceptions sont les outils de glossaire et `verbatra_history_keyRevisions` : leurs valeurs passent par un masquage des secrets, donc une valeur qui ressemble à une clé d'API revient sous forme de marqueur. Pour cacher les valeurs à un agent, utilise plutôt le serveur MCP avec [`--redact-values`](/fr/docs/cli/mcp#redacted-values) ; pour un projet sous NDA, voir [Studio et MCP](/fr/docs/data-handling#studio-et-mcp).
+L'agent lit chaque valeur sans masquage, comme la page l'affiche, car un agent dans l'onglet peut de toute façon lire la page. Les exceptions sont les outils de glossaire et `verbatra_history_keyRevisions` : leurs valeurs passent par un masquage des secrets, donc une valeur qui ressemble à une clé d'API revient sous forme de marqueur. Pour cacher les valeurs à un agent, utilise plutôt le serveur MCP avec [`--redact-values`](/fr/docs/cli/mcp#redacted-values) ; pour un projet sous NDA, voir [Studio et MCP](/fr/docs/data-handling#studio-et-mcp).
 
 ## Savoir ce que l'agent peut appeler
 
@@ -72,7 +72,7 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 
 ## Connaître les règles des outils
 
-Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la même validation des entrées et le même [contrôle d'intégrité](/fr/docs/translation-safety) : une valeur qui échoue à un contrôle est rejetée et rien n'est écrit.
+Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la même validation des entrées et le même [contrôle d'intégrité](/fr/docs/translation-safety) : une valeur qui échoue à un contrôle est rejetée, pas écrite.
 
 ### Règles par appel
 
@@ -99,7 +99,7 @@ Chaque outil renvoie l'enveloppe du tableau de bord, donc un échec se lit `{ "o
 | `BATCH_TOO_LARGE` | un lot dépasse toute une fenêtre de limite ; envoie moins d'entrées |
 | `ALREADY_IN_PROGRESS` | un second appel pour une entrée encore en cours (HTTP 409) |
 | `SESSION_EXPIRED` | Studio a redémarré avec un nouveau token ; ouvre l'URL qu'il a affichée |
-| `INTERNAL` | un handler a échoué avec une erreur inattendue (HTTP 500) ; le message est générique et ne donne aucun détail |
+| `INTERNAL` | un handler a échoué avec une erreur inattendue (HTTP 500) ; le message est générique |
 
 ## Réparer les outils dégradés
 
@@ -113,7 +113,7 @@ La console contient une ligne qui nomme chaque échec :
 Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-Lis d'abord le nom de l'erreur, puis recharge l'onglet, ce qui relance l'enregistrement. Un flag manquant ou un navigateur sans WebMCP n'affiche jamais cet avis ; rien n'est enregistré, en silence. Une session sans `--allow-spend` tente deux enregistrements de moins, et ce n'est pas un échec.
+Lis d'abord le nom de l'erreur, puis recharge l'onglet, ce qui relance l'enregistrement. Un flag manquant ou un navigateur sans WebMCP n'affiche jamais cet avis ; rien n'est enregistré. Une session sans `--allow-spend` tente deux enregistrements de moins, et ce n'est pas un échec.
 
 ## Mesurer le risque de dépense
 

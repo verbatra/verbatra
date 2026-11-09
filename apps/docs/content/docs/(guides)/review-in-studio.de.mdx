@@ -23,7 +23,8 @@ verbatra studio
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Translations ist eine Tabelle aller Keys, die Aufmerksamkeit brauchen: fehlend, geändert, verwaist, geschützt, in der Review-Warteschlange oder mit fehlgeschlagener Integritätsprüfung. Jede Zeile zeigt Key, Quelltext und einen Status pro Locale; wähl eine Locale für Übersetzung, Status und Herkunft.
+Translations ist eine Tabelle aller Keys, die Aufmerksamkeit brauchen: fehlend, geändert, verwaist, geschützt, in der Review-Warteschlange oder mit fehlgeschlagener Integritätsprüfung. Jede Zeile zeigt Key, Quelltext und einen Status pro Locale; wähl eine Locale für Übersetzung, Status und Herkunft. Die Suche findet auch Keys, die synchron sind.
+
 ### Key-Details
 
 Klick auf einen Key, um seinen Editor zu öffnen. Er listet den Wert jeder Locale mit einer Integritätsanzeige: Platzhalter stimmen, eine Platzhalter-Abweichung mit den benannten Tokens oder ungültige Nachrichtensyntax. Außerdem angezeigt:
@@ -38,7 +39,7 @@ Klick auf einen Key, um seinen Editor zu öffnen. Er listet den Wert jeder Local
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Die Chips neben der Suche grenzen die Tabelle nach Zustand ein, darunter **Review queue** und **Integrity problems** (ein Wert, der die Prüfungen für Platzhalter, Markup oder ICU nicht besteht). **Copy as review report** kopiert die offenen Keys als Markdown für einen Pull Request.
+Die Chips neben der Suche grenzen die Tabelle nach Zustand ein, darunter **Review queue** und **Integrity problems**. **Copy as review report** kopiert die offenen Keys als Markdown für einen Pull Request.
 
 ### Bearbeiten mit Integritäts-Gate
 
@@ -130,7 +131,7 @@ Tastenkürzel pausieren, während du tippst, der Fokus in der Filterleiste liegt
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Hak Zeilen an (oder das Kästchen im Tabellenkopf für alles, was der Filter zeigt), dann wähl **Approve selected**, **Reject selected** oder, mit `--allow-spend`, **Retranslate selected**. Ein Stapel umfasst höchstens 100 Einträge zum Freigeben oder Ablehnen oder 20 zum Neuübersetzen.
+Hak Zeilen an (oder das Kästchen im Tabellenkopf für alles, was der Filter zeigt), dann wähl **Approve selected**, **Reject selected** oder, mit `--allow-spend`, **Retranslate selected**. Fehlschläge werden nach Ursache gelistet und bleiben ausgewählt. Ein Stapel umfasst höchstens 100 Einträge zum Freigeben oder Ablehnen oder 20 zum Neuübersetzen.
 
 ## Übersetze einen markierten Key neu
 
@@ -152,7 +153,7 @@ Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor ei
 
 Overview ist die Seite, auf der Studio startet. Sie zeigt die Abdeckung jeder Locale mit ihrem Zustand in der [Lock-Datei](/de/docs/the-lock-file), die Git-Historie deiner Locale-Dateien und den Token-Verbrauch des letzten erfassten Laufs, mit der Budgetanzeige, wenn ein Token-Budget konfiguriert ist.
 
-**Run history and cost** darunter zeigt Kosten und Tokens der neuesten Läufe neben einer Tabelle, mit der zuletzt bekannten Abdeckung jeder Locale. Sie liest neu, wenn sich die Verlaufsdatei ändert, der Tab den Fokus zurückbekommt oder ein Lauf zurückkehrt.
+**Run history and cost** darunter zeigt Kosten und Tokens der neuesten Läufe über einer Tabelle, mit der zuletzt bekannten Abdeckung jeder Locale. Sie liest neu, wenn sich die Verlaufsdatei ändert, der Tab den Fokus zurückbekommt oder ein Lauf zurückkehrt.
 
 <StudioScreenshot
   shot="overview"
@@ -173,6 +174,7 @@ Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits g
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 **Show translations for** wechselt in die [Glossar](/de/docs/config-file#glossary)-Ansicht einer Locale, mit ihrer Übersetzung, verbotenen Varianten und Notiz.
+
 ## Siehe auch
 
 - [Studio mit einem Browser-Agenten steuern](/de/docs/agent-tools-in-studio): derselbe Ablauf aus einem KI-Agenten im Browser.

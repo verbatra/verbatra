@@ -23,9 +23,9 @@ verbatra studio --expose-agent-tools
 
 `VERBATRA_STUDIO_AGENT_TOOLS=1` does the same; [Spend and agent tools](/docs/cli/studio#spend-and-agent-tools) shows how the flag and the variable resolve. Open the printed URL in the WebMCP browser, and the agent on that tab finds the tools. In a browser without WebMCP, Studio registers nothing and the dashboard is unchanged.
 
-To let the agent call your provider, start Studio with `--allow-spend` as well ([Spend and agent tools](/docs/cli/studio#spend-and-agent-tools)).
+To let the agent call your provider, start Studio with `--allow-spend` as well.
 
-The agent reads every value unredacted, as the page shows it: Studio does not redact, because an agent on the tab can read the page anyway. The exceptions are the glossary tools and `verbatra_history_keyRevisions`: their values pass through secret redaction, so a value shaped like an API key comes back as a placeholder. To keep values from an agent, use the MCP server with [`--redact-values`](/docs/cli/mcp#redacted-values) instead; for an NDA project, see [Studio and MCP](/docs/data-handling#studio-and-mcp).
+The agent reads every value unredacted, as the page shows it, because an agent on the tab can read the page anyway. The exceptions are the glossary tools and `verbatra_history_keyRevisions`: their values pass through secret redaction, so a value shaped like an API key comes back as a placeholder. To keep values from an agent, use the MCP server with [`--redact-values`](/docs/cli/mcp#redacted-values) instead; for an NDA project, see [Studio and MCP](/docs/data-handling#studio-and-mcp).
 
 ## Know what the agent can call
 
@@ -72,7 +72,7 @@ Each tool is a Studio action with a `verbatra_` prefix. Read tools are marked re
 
 ## Know the rules the tools follow
 
-Every call goes through the dashboard's own authenticated loopback RPC, with the same input validation and [integrity gate](/docs/translation-safety): a value that fails a check is rejected and nothing is written.
+Every call goes through the dashboard's own authenticated loopback RPC, with the same input validation and [integrity gate](/docs/translation-safety): a value that fails a check is rejected, not written.
 
 ### Per-call rules
 
@@ -99,7 +99,7 @@ Every tool returns the dashboard's envelope, so a failure reads `{ "ok": false, 
 | `BATCH_TOO_LARGE` | a batch exceeds a whole rate-limit window; send fewer entries |
 | `ALREADY_IN_PROGRESS` | a second call for an entry still in flight (HTTP 409) |
 | `SESSION_EXPIRED` | Studio restarted with a new token; open the URL it printed |
-| `INTERNAL` | a handler failed with an unexpected error (HTTP 500); the message is generic and carries no detail |
+| `INTERNAL` | a handler failed with an unexpected error (HTTP 500); the message is generic |
 
 ## Fix degraded tools
 
