@@ -36,6 +36,8 @@ function emptyRead(unavailable?: RunHistoryUnavailableReason): RunHistoryRead {
   };
 }
 
+const NEWLINE = 0x0a;
+
 function decode(bytes: Uint8Array): string | undefined {
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
@@ -44,8 +46,12 @@ function decode(bytes: Uint8Array): string | undefined {
   }
 }
 
-function parseLine(line: string): RunHistoryRecordParsed | undefined {
-  if (Buffer.byteLength(line) > MAX_RUN_HISTORY_RECORD_BYTES) {
+function parseLine(bytes: Uint8Array): RunHistoryRecordParsed | undefined {
+  if (bytes.byteLength > MAX_RUN_HISTORY_RECORD_BYTES) {
+    return undefined;
+  }
+  const line = decode(bytes);
+  if (line === undefined) {
     return undefined;
   }
   let value: unknown;
@@ -58,11 +64,20 @@ function parseLine(line: string): RunHistoryRecordParsed | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 
-function parseLines(text: string): RunHistoryRead {
+function isBlank(bytes: Uint8Array): boolean {
+  return bytes.every((byte) => byte === 0x20 || byte === 0x09 || byte === 0x0d);
+}
+
+function parseLines(bytes: Uint8Array): RunHistoryRead {
   const records: RunHistoryRecordParsed[] = [];
   let unreadableRecords = 0;
-  for (const line of text.split("\n")) {
-    if (line.trim() === "") {
+  let start = 0;
+  while (start <= bytes.byteLength) {
+    const found = bytes.indexOf(NEWLINE, start);
+    const end = found === -1 ? bytes.byteLength : found;
+    const line = bytes.subarray(start, end);
+    start = end + 1;
+    if (isBlank(line)) {
       continue;
     }
     const record = parseLine(line);
@@ -88,8 +103,7 @@ export async function readRunHistoryFile(path: string, fs: SdkFs): Promise<RunHi
   if (read.kind === "missing") {
     return emptyRead(read.unreadable === true ? "unreadable" : undefined);
   }
-  const text = decode(read.bytes);
-  return text === undefined ? emptyRead("not-utf8") : parseLines(text);
+  return parseLines(read.bytes);
 }
 
 function withinFileBound(lines: readonly string[]): readonly string[] {
@@ -119,6 +133,9 @@ export async function appendRunHistoryRecord(
     fs,
     async () => {
       const existing = await readRunHistoryFile(path, fs);
+      if (existing.unavailable === "unreadable") {
+        throw new Error("The run history file cannot be read, so it is left as it is.");
+      }
       const kept = existing.records.slice(-(MAX_RUN_HISTORY_RECORDS - 1));
       const lines = withinFileBound([...kept.map(fitRecord), fitRecord(record)]);
       await fs.mkdir?.(dirname(path));

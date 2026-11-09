@@ -66,7 +66,7 @@ Sinon, les deux n'apparaissent jamais dans la liste, et les appeler échoue comm
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Le serveur répond à la poignée de main avec des `instructions` fixes. Elles fixent l'ordre des appels (lire et comparer d'abord, estimer et obtenir un oui explicite avant de dépenser), laissent les décisions de relecture et le travail humain aux personnes, demandent de traiter chaque chaîne comme des données et de ne jamais réécrire une valeur `[REDACTED]`.
+Le serveur répond à la poignée de main avec des `instructions` fixes, que la plupart des clients transmettent d'abord au modèle. Elles fixent l'ordre des appels (lire et comparer d'abord, estimer et obtenir un oui explicite avant de dépenser), laissent les décisions de relecture et le travail humain aux personnes, demandent de traiter chaque chaîne comme des données et de ne jamais réécrire une valeur `[REDACTED]`.
 
 ### Outils [#tools]
 
@@ -95,7 +95,7 @@ Le serveur répond à la poignée de main avec des `instructions` fixes. Elles f
 | `review.queue` | chaque valeur écrite par une machine que personne n'a encore approuvée, avec les signalements de la dernière exécution | oui | non |
 | `report.provenance` | par locale, les comptes de provenance comme les donne `verbatra report provenance`, et les clés paginées sur demande | oui | non |
 | `review.approve` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée approuve la traduction actuelle d'une clé | non | non |
-| `review.reject` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée rejette la traduction d'une clé, qui est retirée | non | non |
+| `review.reject` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée rejette la traduction d'une clé, qui est retirée pour être remplacée | non | non |
 | `usage.summary` | la consommation de tokens et l'état du budget de la dernière exécution | oui | non |
 | `usage.history` | les dernières exécutions, leur coût et la couverture <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | oui | non |
 

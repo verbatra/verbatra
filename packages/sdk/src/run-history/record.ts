@@ -8,8 +8,8 @@ export const RUN_HISTORY_TRIGGERS = ["translate", "retranslate"] as const;
 /**
  * What produced a {@link RunHistoryRecord}: `translate` for a {@link translate} run (which is also
  * what {@link watch}, the Studio translate-pending action and the `translation.translatePending`
- * MCP tool run), `retranslate` for one {@link retranslateEntry} call or one {@link retranslateEntries}
- * batch.
+ * MCP tool run), `retranslate` for one {@link retranslateEntry} call or one
+ * {@link retranslateEntries} batch.
  */
 export type RunHistoryTrigger = (typeof RUN_HISTORY_TRIGGERS)[number];
 
@@ -35,11 +35,18 @@ export const RUN_COST_CAVEATS = [
  */
 export type RunCostCaveat = (typeof RUN_COST_CAVEATS)[number];
 
-export const RUN_COST_UNPRICED = ["no-rate-on-file", "rate-unit-mismatch", "not-billed"] as const;
+export const RUN_COST_UNPRICED = ["no-rate-on-file", "rate-unit-mismatch", "no-usage"] as const;
 
 const MAX_LOCALE_NAME_LENGTH = 64;
 const MAX_PROVIDER_LENGTH = 64;
 const MAX_MODEL_LENGTH = 200;
+
+export const RUN_HISTORY_LIMITS = {
+  locale: MAX_LOCALE_NAME_LENGTH,
+  provider: MAX_PROVIDER_LENGTH,
+  model: MAX_MODEL_LENGTH,
+  rateKey: MAX_PROVIDER_LENGTH + MAX_MODEL_LENGTH + 1,
+} as const;
 
 const countSchema = z.number().int().nonnegative();
 
@@ -68,10 +75,7 @@ export const runHistoryLocaleSchema = z.object({
   coverage: runHistoryCoverageSchema.optional(),
 });
 
-const rateKeySchema = z
-  .string()
-  .min(1)
-  .max(MAX_PROVIDER_LENGTH + MAX_MODEL_LENGTH + 1);
+const rateKeySchema = z.string().min(1).max(RUN_HISTORY_LIMITS.rateKey);
 
 const caveatsSchema = z
   .array(z.enum(RUN_COST_CAVEATS))
@@ -95,6 +99,10 @@ export const runHistoryCostSchema = z.discriminatedUnion("pricing", [
     rateKey: rateKeySchema,
     caveats: caveatsSchema,
   }),
+  z.object({
+    pricing: z.literal("not-billed"),
+    rateKey: rateKeySchema,
+  }),
 ]);
 
 export const runHistoryRecordSchema = z.object({
@@ -114,17 +122,14 @@ export const runHistoryRecordSchema = z.object({
 export type RunHistoryRecordParsed = z.output<typeof runHistoryRecordSchema>;
 
 /** Every {@link RunHistoryUnavailableReason}. */
-export const RUN_HISTORY_UNAVAILABLE_REASONS = Object.freeze([
-  "unreadable",
-  "too-large",
-  "not-utf8",
-] as const);
+export const RUN_HISTORY_UNAVAILABLE_REASONS = Object.freeze(["unreadable", "too-large"] as const);
 
 /**
  * Why the whole run-history file could not be read, which {@link runHistory} reports instead of an
  * error: `unreadable` when something exists at the path but the process could not read it as a
- * regular file, `too-large` when it is over 8 MiB, `not-utf8` when it is not valid UTF-8. A missing
- * file is not unavailable, it is an empty history.
+ * regular file, `too-large` when it is over 8 MiB. A missing file is not unavailable, it is an
+ * empty history, and a line that is not valid UTF-8 is one unreadable record, not an unavailable
+ * file.
  */
 export type RunHistoryUnavailableReason = (typeof RUN_HISTORY_UNAVAILABLE_REASONS)[number];
 
@@ -204,14 +209,24 @@ export type RunHistoryCost =
       readonly caveats?: readonly RunCostCaveat[] | undefined;
     }
   | {
-      /** Why no figure exists: no rate, a rate in the wrong unit, or a provider that bills nothing. */
-      readonly pricing: "no-rate-on-file" | "rate-unit-mismatch" | "not-billed";
+      /**
+       * Why no figure exists: no rate on file, a rate in the wrong unit, or keys were sent to a
+       * token-billed provider that reported no usage (`no-usage`). Show it as unknown, never as
+       * free.
+       */
+      readonly pricing: "no-rate-on-file" | "rate-unit-mismatch" | "no-usage";
       /** Where the quantity would have come from. */
       readonly basis: RunCostBasis;
       /** The `provider/model` or bare provider id looked up. */
       readonly rateKey: string;
       /** What a `source-characters` figure leaves out. Absent for `usage`. */
       readonly caveats?: readonly RunCostCaveat[] | undefined;
+    }
+  | {
+      /** The provider is self-hosted or `none`, so no API bills for the run. */
+      readonly pricing: "not-billed";
+      /** The `provider/model` or bare provider id looked up. */
+      readonly rateKey: string;
     };
 
 /**
@@ -231,8 +246,9 @@ export interface RunHistoryRecord {
   /** The configured model, when the provider has one. */
   readonly model?: string | undefined;
   /**
-   * The number of keys a `retranslate` record covers: one for {@link retranslateEntry}, the number
-   * that reached the provider for {@link retranslateEntries}. Absent for `translate`.
+   * The number of keys a `retranslate` record covers: one for {@link retranslateEntry}, and for
+   * {@link retranslateEntries} the number of entries attempted, that is, whose provider call was
+   * made, whether it answered, was refused by the integrity gate or failed. Absent for `translate`.
    */
   readonly entries?: number | undefined;
   /** Token usage of the whole run, absent when the provider reports none or nothing was sent. */

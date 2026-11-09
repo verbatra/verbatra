@@ -205,8 +205,9 @@ interface UnderLockContext {
 
 async function translateOne(context: UnderLockContext) {
   const { config, locale, adapter, sourceEntry } = context;
-  const result = await unlessCancelled(context.signal, RETRANSLATION_CANCELLED, () =>
-    context.provider.translateBatch({
+  const result = await unlessCancelled(context.signal, RETRANSLATION_CANCELLED, () => {
+    context.spent.attempted = true;
+    return context.provider.translateBatch({
       ...buildTranslateRequest(
         {
           sourceLocale: config.sourceLocale,
@@ -219,11 +220,10 @@ async function translateOne(context: UnderLockContext) {
         [sourceEntry],
       ),
       ...signalField(context.signal),
-    }),
-  );
+    });
+  });
   const value = result.values.get(context.key);
   const usage = result.usage === undefined ? undefined : countableUsage(result.usage);
-  context.spent.answered = true;
   context.spent.usage = usage;
   if (value === undefined && sensitiveWithheldOf(result).has(context.key)) {
     throw sensitiveWithheldError(context.key, locale);

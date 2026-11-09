@@ -8,6 +8,7 @@ import { priceRun, sourceCharactersOfRun } from "../flow/estimate.js";
 import type { LocaleSummary, RunSummary } from "../flow/summary.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { baseConfig, makeTempDir } from "../test-support.js";
+import { RUN_HISTORY_LIMITS } from "./record.js";
 import {
   draftFromSummary,
   type RunDraft,
@@ -33,9 +34,12 @@ const CHAR_CARD: RateCard = {
   table: { deepl: { perMillionCharacters: 20 } },
 };
 
+const price = (input: Omit<Parameters<typeof priceRun>[0], "keysSent"> & { keysSent?: boolean }) =>
+  priceRun({ keysSent: false, ...input });
+
 describe("priceRun", () => {
   it("prices token usage at the rate on file and names the basis", () => {
-    const cost = priceRun({
+    const cost = price({
       provider: ANTHROPIC,
       rates: TOKEN_CARD,
       usage: { inputTokens: 1_000_000, outputTokens: 2_000_000 },
@@ -52,14 +56,51 @@ describe("priceRun", () => {
     });
   });
 
-  it("prices a token run that reported no usage as zero", () => {
-    const cost = priceRun({ provider: ANTHROPIC, rates: TOKEN_CARD, sourceCharacters: 0 });
+  it("prices a run that sent nothing as a real zero", () => {
+    const cost = price({ provider: ANTHROPIC, rates: TOKEN_CARD, sourceCharacters: 0 });
 
     expect(cost).toMatchObject({ pricing: "priced", amount: 0 });
   });
 
+  it("says no-usage, with no amount, when keys were sent and no usage came back", () => {
+    const cost = price({
+      provider: ANTHROPIC,
+      rates: TOKEN_CARD,
+      sourceCharacters: 0,
+      keysSent: true,
+    });
+
+    expect(cost).toEqual({
+      pricing: "no-usage",
+      basis: "usage",
+      rateKey: "anthropic/test-model",
+    });
+  });
+
+  it("does not call a character-billed run with sent keys no-usage", () => {
+    const cost = price({
+      provider: DEEPL,
+      rates: CHAR_CARD,
+      sourceCharacters: 10,
+      keysSent: true,
+    });
+
+    expect(cost.pricing).toBe("priced");
+  });
+
+  it("clips a rate key to the schema bound", () => {
+    const long: ProviderConfig = {
+      id: "anthropic",
+      options: { model: "m".repeat(300), maxTokens: 1 },
+    };
+
+    const cost = price({ provider: long, sourceCharacters: 0 });
+
+    expect(cost.rateKey).toHaveLength(RUN_HISTORY_LIMITS.rateKey);
+  });
+
   it("prices a machine-translation run by source characters, with the estimate's caveats", () => {
-    const cost = priceRun({ provider: DEEPL, rates: CHAR_CARD, sourceCharacters: 500_000 });
+    const cost = price({ provider: DEEPL, rates: CHAR_CARD, sourceCharacters: 500_000 });
 
     expect(cost).toEqual({
       pricing: "priced",
@@ -73,12 +114,12 @@ describe("priceRun", () => {
   });
 
   it("says no rate when the card has none for the provider, with the basis still present", () => {
-    expect(priceRun({ provider: ANTHROPIC, sourceCharacters: 0 })).toEqual({
+    expect(price({ provider: ANTHROPIC, sourceCharacters: 0 })).toEqual({
       pricing: "no-rate-on-file",
       basis: "usage",
       rateKey: "anthropic/test-model",
     });
-    expect(priceRun({ provider: DEEPL, rates: TOKEN_CARD, sourceCharacters: 1 })).toMatchObject({
+    expect(price({ provider: DEEPL, rates: TOKEN_CARD, sourceCharacters: 1 })).toMatchObject({
       pricing: "no-rate-on-file",
       basis: "source-characters",
     });
@@ -90,7 +131,7 @@ describe("priceRun", () => {
       table: { "anthropic/test-model": { perMillionCharacters: 1 } },
     };
 
-    expect(priceRun({ provider: ANTHROPIC, rates: wrong, sourceCharacters: 0 })).toMatchObject({
+    expect(price({ provider: ANTHROPIC, rates: wrong, sourceCharacters: 0 })).toMatchObject({
       pricing: "rate-unit-mismatch",
       basis: "usage",
     });
@@ -106,7 +147,7 @@ describe("priceRun", () => {
   ] as const)("reports %s as not billed whatever the card says", (_id, provider) => {
     const card: RateCard = { asOf: "2026-11-01", currency: "USD", table: {} };
 
-    const cost = priceRun({
+    const cost = price({
       provider: provider as ProviderConfig,
       rates: card,
       sourceCharacters: 9,
@@ -114,6 +155,8 @@ describe("priceRun", () => {
 
     expect(cost.pricing).toBe("not-billed");
     expect(cost).not.toHaveProperty("amount");
+    expect(cost).not.toHaveProperty("basis");
+    expect(cost).not.toHaveProperty("caveats");
   });
 
   it.each([
@@ -126,7 +169,7 @@ describe("priceRun", () => {
       table: { "anthropic/test-model": { inputPerMillionTokens: bad, outputPerMillionTokens: 1 } },
     };
 
-    const cost = priceRun({
+    const cost = price({
       provider: ANTHROPIC,
       rates: card,
       usage: { inputTokens: 5, outputTokens: 5 },
@@ -144,7 +187,7 @@ describe("priceRun", () => {
       },
     };
 
-    const cost = priceRun({
+    const cost = price({
       provider: ANTHROPIC,
       rates: card,
       usage: { inputTokens: Number.MAX_SAFE_INTEGER, outputTokens: Number.MAX_SAFE_INTEGER },
@@ -328,9 +371,66 @@ function draft(overrides: Partial<RunDraft> = {}): RunDraft {
     ],
     usage: undefined,
     sourceCharacters: 0,
+    keysSent: false,
     ...overrides,
   };
 }
+
+describe("recordRunHistory with long free strings", () => {
+  it("clips a 300-character model and a 65-character locale instead of dropping the record", async () => {
+    const dir = await makeTempDir();
+    const config = baseConfig({
+      provider: { id: "anthropic", options: { model: "m".repeat(300), maxTokens: 1 } },
+    });
+    const longLocale = "l".repeat(65);
+    const base = draft().locales[0];
+    if (base === undefined) {
+      throw new Error("fixture has no locale");
+    }
+
+    await recordRunHistory(
+      { config, cwd: dir, fs: defaultFs },
+      draft({ locales: [{ ...base, locale: longLocale }] }),
+    );
+
+    const [record] = (await readRunHistoryFile(runHistoryFilePath(dir), defaultFs)).records;
+    expect(record?.model).toHaveLength(RUN_HISTORY_LIMITS.model);
+    expect(record?.locales[0]?.locale).toHaveLength(RUN_HISTORY_LIMITS.locale);
+    expect(record?.cost.rateKey.length).toBeLessThanOrEqual(RUN_HISTORY_LIMITS.rateKey);
+  });
+});
+
+describe("draftFromSummary: spend-only and keys sent", () => {
+  const config = baseConfig();
+  const source = {
+    locale: "en",
+    namespace: "en",
+    format: "i18next-json" as const,
+    entries: new Map(),
+  };
+
+  it("keeps a locale that only carries usage", () => {
+    const spendOnly = localeSummary({ usage: { inputTokens: 5, outputTokens: 1 } });
+
+    const draftOf = draftFromSummary(runSummary([spendOnly]), source, config);
+
+    expect(draftOf.locales.map((entry) => entry.locale)).toEqual(["de"]);
+    expect(draftOf.locales[0]?.usage).toEqual({ inputTokens: 5, outputTokens: 1 });
+  });
+
+  it.each([
+    ["translated", { translated: ["a"] }, true],
+    ["generated", { generated: ["a_one"] }, true],
+    ["integrityMismatches", { integrityMismatches: ["a"] }, true],
+    ["providerFailures", { providerFailures: ["a"] }, true],
+    ["cacheHits only", { cacheHits: ["a"] }, false],
+    ["pruned only", { pruned: ["a"] }, false],
+  ])("sets keysSent for %s", (_label, overrides, expected) => {
+    const draftOf = draftFromSummary(runSummary([localeSummary(overrides)]), source, config);
+
+    expect(draftOf.keysSent).toBe(expected);
+  });
+});
 
 describe("recordRunHistory", () => {
   it("flags coverage as unavailable when the coverage pass fails, and still records", async () => {

@@ -69,6 +69,30 @@ describe("usage.history", () => {
     });
   });
 
+  it("returns the unknown and not-billed cost states as they were stored", async () => {
+    const unknown = JSON.stringify({
+      ...RECORD,
+      cost: { pricing: "no-usage", basis: "usage", rateKey: "anthropic/m" },
+    });
+    const notBilled = JSON.stringify({
+      ...RECORD,
+      cost: { pricing: "not-billed", rateKey: "libretranslate" },
+    });
+    const dir = await projectWith([unknown, notBilled]);
+
+    const outcome = await usageHistoryTool.execute({}, makeContext({ cwd: dir }));
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: {
+        records: [
+          { cost: { pricing: "not-billed", rateKey: "libretranslate" } },
+          { cost: { pricing: "no-usage", basis: "usage" } },
+        ],
+      },
+    });
+  });
+
   it("clamps a limit above the maximum and one below one", async () => {
     const dir = await projectWith(Array.from({ length: 5 }, (_, index) => line(index)));
 
@@ -90,7 +114,10 @@ describe("usage.history", () => {
 
   it("tells a reader to say estimated, to say no rate, and that empty is not proof", () => {
     expect(usageHistoryTool.description).toContain("say estimated");
-    expect(usageHistoryTool.description).toContain("report them as no rate and never as free");
+    expect(usageHistoryTool.description).toContain("no-usage");
+    expect(usageHistoryTool.description).toContain("never as free");
+    expect(usageHistoryTool.description).toContain("how many entries were attempted");
+    expect(usageHistoryTool.description).toContain("failed and refused runs included");
     expect(usageHistoryTool.description).toContain("not proof that no run happened");
     expect(usageHistoryTool.description).toContain("Read-only");
   });

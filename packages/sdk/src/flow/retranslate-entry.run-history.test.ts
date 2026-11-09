@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { TranslationProvider } from "@verbatra/ai-providers";
+import { ProviderError, type TranslationProvider } from "@verbatra/ai-providers";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs } from "../fs.js";
@@ -96,7 +96,7 @@ describe("retranslateEntry: run history", () => {
     expect(record?.locales[0]).toMatchObject({ providerFailures: 1, status: "failed" });
   });
 
-  it("records nothing when the provider never answered", async () => {
+  it("records a call that failed at the provider as a provider failure, with unknown cost", async () => {
     const dir = await project({ greeting: "Hello" });
     const stub = makeStubProvider({ throwForLocales: new Set(["de"]) });
 
@@ -107,7 +107,45 @@ describe("retranslateEntry: run history", () => {
       ),
     ).rejects.toThrow("stub provider failure");
 
-    expect(await historyOf(dir)).toEqual([]);
+    const [record] = await historyOf(dir);
+    expect(record).toMatchObject({
+      trigger: "retranslate",
+      entries: 1,
+      cost: { pricing: "no-usage", basis: "usage" },
+    });
+    expect(record?.usage).toBeUndefined();
+    expect(record?.locales[0]).toMatchObject({
+      status: "failed",
+      providerFailures: 1,
+      translated: 0,
+    });
+  });
+
+  it("counts a failed entry in a batch as attempted and as a provider failure", async () => {
+    const dir = await project({ a: "A", b: "B" });
+    const stub = makeStubProvider({
+      throwForLocales: new Set(["fr"]),
+      error: new ProviderError("INVALID_RESPONSE", "no value"),
+    });
+
+    await retranslateEntries(
+      {
+        config: cfg(),
+        cwd: dir,
+        entries: [
+          { locale: "de", key: "a" },
+          { locale: "fr", key: "b" },
+        ],
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    const [record] = await historyOf(dir);
+    expect(record?.entries).toBe(2);
+    expect(record?.locales.map((entry) => [entry.locale, entry.providerFailures])).toEqual([
+      ["de", 0],
+      ["fr", 1],
+    ]);
   });
 
   it("records nothing for a call refused before the provider is reached", async () => {
@@ -264,8 +302,9 @@ describe("retranslateEntries: run history", () => {
     const records = await historyOf(dir);
     expect(records).toHaveLength(1);
     expect(records[0]).toMatchObject({
-      entries: 2,
+      entries: 3,
       usage: { inputTokens: 20, outputTokens: 10 },
     });
+    expect(records[0]?.locales[0]).toMatchObject({ translated: 2, providerFailures: 1 });
   });
 });

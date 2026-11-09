@@ -64,11 +64,13 @@ function clampedLimit(limit: number | undefined): number {
  * frozen at the rates the config held then, and per locale the counts and, when measured, the
  * coverage. It writes nothing and calls no provider.
  *
- * A record holds counts only, never a key name or a translation. A run that changed nothing is not
- * recorded, and neither is a dry run. The file keeps the newest 1,000 records. The read is total: a
- * missing file is an empty history, an unreadable, oversized (over 8 MiB) or non-UTF-8 file is an
- * empty history with `unavailable` set, and a single bad line is dropped and counted in
- * `unreadableRecords`, so this call throws nothing.
+ * A record holds counts only, never a key name or a translation. A dry run is not recorded, and
+ * neither is a run that left no trace: every locale succeeded and nothing was translated, served
+ * from the cache, reused, generated, pruned, refused or failed, and no tokens were spent. A run
+ * that failed or was refused records too. The file keeps the newest 1,000 records. The read is
+ * total: a missing file is an empty history, an unreadable or oversized (over 8 MiB) file is an
+ * empty history with `unavailable` set, and a single bad line, one that is not valid UTF-8
+ * included, is dropped and counted in `unreadableRecords`, so this call throws nothing.
  *
  * @param input - The optional working directory and record limit.
  * @param deps - Optional file-system override.

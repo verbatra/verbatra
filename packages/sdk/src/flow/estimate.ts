@@ -10,7 +10,7 @@ import { type BillingUnit, billingFor, modelOf, rateKeyFor } from "../config/pro
 import type { ProviderConfig } from "../config/provider-config.js";
 import { isTokenRate, lookupRate, type ModelRate, type RateCard } from "../config/rate-card.js";
 import type { VerbatraConfig } from "../config/schema.js";
-import type { RunHistoryCost } from "../run-history/record.js";
+import { RUN_HISTORY_LIMITS, type RunHistoryCost } from "../run-history/record.js";
 import { chunk } from "./batching.js";
 import { planPluralGeneration, syntheticEntry } from "./plural-categories.js";
 import type {
@@ -372,6 +372,7 @@ export interface PriceRunInput {
   readonly rates?: RateCard | undefined;
   readonly usage?: UsageSummary | undefined;
   readonly sourceCharacters: number;
+  readonly keysSent: boolean;
 }
 
 const SOURCE_CHARACTER_CAVEATS = [
@@ -386,15 +387,21 @@ function usableRate(rate: ModelRate): boolean {
 export function priceRun(input: PriceRunInput): RunHistoryCost {
   const { unit } = billingFor(input.provider.id);
   const basis = unit === "tokens" ? "usage" : "source-characters";
-  const rateKey = rateKeyFor(input.provider);
+  const rateKey = rateKeyFor(input.provider).slice(0, RUN_HISTORY_LIMITS.rateKey);
   const caveats = unit === "characters" ? { caveats: [...SOURCE_CHARACTER_CAVEATS] } : {};
   const pricing = resolvePricing(
     { provider: input.provider, ...(input.rates === undefined ? {} : { rates: input.rates }) },
     unit,
   );
+  if (pricing.status === "not-billed") {
+    return { pricing: "not-billed", rateKey };
+  }
   if (pricing.status !== "priced" || !usableRate(pricing.rate)) {
     const status = pricing.status === "priced" ? "no-rate-on-file" : pricing.status;
     return { pricing: status, basis, rateKey, ...caveats };
+  }
+  if (unit === "tokens" && input.usage === undefined && input.keysSent) {
+    return { pricing: "no-usage", basis, rateKey };
   }
   const quantity: EstimatedQuantity = {
     keys: 0,

@@ -116,12 +116,39 @@ describe("readRunHistoryFile", () => {
     expect(read.unreadableRecords).toBe(1);
   });
 
-  it("reports a file that is not UTF-8 as unavailable", async () => {
+  it("does not repair an invalid byte inside an otherwise valid record", async () => {
+    const valid = Buffer.from(line());
+    const marker = valid.indexOf(Buffer.from("anthropic"));
+    const damaged = Buffer.concat([
+      valid.subarray(0, marker + 3),
+      Buffer.from([0xff]),
+      valid.subarray(marker + 4),
+    ]);
+    const dir = await project(Buffer.concat([damaged, Buffer.from("\n"), Buffer.from(line())]));
+
+    const read = await readBack(dir);
+
+    expect(read.records).toHaveLength(1);
+    expect(read.unreadableRecords).toBe(1);
+  });
+
+  it("counts a line that is not UTF-8 as one unreadable record, not an unavailable file", async () => {
     const dir = await project(Buffer.from([0xff, 0xfe, 0x7b, 0x7d, 0x0a]));
 
     const read = await readBack(dir);
 
-    expect(read).toEqual({ records: [], unreadableRecords: 0, unavailable: "not-utf8" });
+    expect(read).toEqual({ records: [], unreadableRecords: 1 });
+  });
+
+  it("keeps 999 good lines around one bad byte and counts the bad line", async () => {
+    const good = Buffer.from(`${Array.from({ length: 999 }, () => line()).join("\n")}\n`);
+    const dir = await project(Buffer.concat([good, Buffer.from([0xff, 0x0a])]));
+
+    const read = await readBack(dir);
+
+    expect(read.records).toHaveLength(999);
+    expect(read.unreadableRecords).toBe(1);
+    expect(read.unavailable).toBeUndefined();
   });
 
   it("reports a directory at the path as unavailable", async () => {
@@ -290,6 +317,46 @@ describe("appendRunHistoryRecord", () => {
     release.resolve();
     await holding;
     expect((await readBack(dir)).records).toHaveLength(0);
+  });
+
+  it("keeps the 999 good lines around one bad byte, dropping only the bad line", async () => {
+    const good = Buffer.from(`${Array.from({ length: 999 }, () => line()).join("\n")}\n`);
+    const dir = await project(Buffer.concat([good, Buffer.from([0xff, 0x0a])]));
+
+    await appendRunHistoryRecord(dir, defaultFs, makeRunHistoryRecord({ entries: 7 }));
+
+    const read = await readBack(dir);
+    expect(read.records).toHaveLength(1000);
+    expect(read.unreadableRecords).toBe(0);
+    expect(read.records.at(-1)?.entries).toBe(7);
+  });
+
+  it("leaves a file it cannot read alone instead of replacing it", async () => {
+    const dir = await project(`${line()}\n${line()}\n`);
+    const before = await readFile(runHistoryFilePath(dir), "utf8");
+    const writes: string[] = [];
+    const fs: SdkFs = {
+      ...defaultFs,
+      readBytesBounded: () => Promise.reject(new Error("EACCES")),
+      writeFile: (path, data) => {
+        writes.push(path);
+        return defaultFs.writeFile(path, data);
+      },
+    };
+
+    await expect(appendRunHistoryRecord(dir, fs, makeRunHistoryRecord())).rejects.toThrow(
+      "cannot be read",
+    );
+
+    expect(writes.filter((path) => path.endsWith("run-history.jsonl"))).toEqual([]);
+    expect(await readFile(runHistoryFilePath(dir), "utf8")).toBe(before);
+  });
+
+  it("leaves a directory at the path alone", async () => {
+    const dir = await makeTempDir();
+    await mkdir(runHistoryFilePath(dir), { recursive: true });
+
+    await expect(appendRunHistoryRecord(dir, defaultFs, makeRunHistoryRecord())).rejects.toThrow();
   });
 
   it("drops the oldest records so the file it writes stays under the read cap", async () => {

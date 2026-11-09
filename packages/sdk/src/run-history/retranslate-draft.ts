@@ -8,14 +8,14 @@ import { type DraftLocale, type RunDraft, recordRunHistory } from "./record-run.
 
 export interface RetranslateSpend {
   readonly locale: string;
-  answered: boolean;
+  attempted: boolean;
   usage: UsageSummary | undefined;
   characters: number;
   outcome: "accepted" | "refused" | "failed";
 }
 
 export function newRetranslateSpend(locale: string): RetranslateSpend {
-  return { locale, answered: false, usage: undefined, characters: 0, outcome: "failed" };
+  return { locale, attempted: false, usage: undefined, characters: 0, outcome: "failed" };
 }
 
 function localeStatus(accepted: number, answered: number): DraftLocale["status"] {
@@ -66,22 +66,23 @@ export async function recordRetranslations(
 }
 
 export function draftFromSpends(spends: readonly RetranslateSpend[]): RunDraft | undefined {
-  const answered = spends.filter((spend) => spend.answered);
-  if (answered.length === 0) {
+  const attempted = spends.filter((spend) => spend.attempted);
+  if (attempted.length === 0) {
     return undefined;
   }
   const byLocale = new Map<string, RetranslateSpend[]>();
-  for (const spend of answered) {
+  for (const spend of attempted) {
     byLocale.set(spend.locale, [...(byLocale.get(spend.locale) ?? []), spend]);
   }
   return {
     trigger: "retranslate",
-    entries: answered.length,
+    entries: attempted.length,
     locales: [...byLocale].map(([locale, group]) => draftLocale(locale, group)),
-    usage: answered.reduce<UsageSummary | undefined>(
+    usage: attempted.reduce<UsageSummary | undefined>(
       (total, spend) => combineUsage(total, spend.usage),
       undefined,
     ),
-    sourceCharacters: answered.reduce((total, spend) => total + spend.characters, 0),
+    sourceCharacters: attempted.reduce((total, spend) => total + spend.characters, 0),
+    keysSent: true,
   };
 }

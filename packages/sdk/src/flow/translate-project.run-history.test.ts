@@ -110,6 +110,29 @@ describe("translate: run history", () => {
     }
   });
 
+  it("freezes no-usage, not zero, when keys were sent and the provider reported no tokens", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider();
+
+    await translate(
+      { config: cfg({ rates: RATES }), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+    await rm(join(dir, "locales", "de.json"));
+    await rm(join(dir, "locales", "fr.json"));
+    await rm(join(dir, "verbatra.lock.json"));
+    await translate(
+      { config: cfg({ rates: RATES }), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    const records = await historyOf(dir);
+    expect(records[0]?.cost).toMatchObject({ pricing: "no-usage", basis: "usage" });
+    expect(records[0]?.cost).not.toHaveProperty("amount");
+    expect(records[1]?.locales[0]).toMatchObject({ cacheHits: 1, translated: 0 });
+    expect(records[1]?.cost).toMatchObject({ pricing: "priced", amount: 0 });
+  });
+
   it("records nothing for a dry run", async () => {
     const dir = await project({ greeting: "Hello" });
     const stub = makeStubProvider();
