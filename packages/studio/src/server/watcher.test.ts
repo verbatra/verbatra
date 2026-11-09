@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import type { LocaleFileSnapshot, SdkFs, VerbatraConfig } from "@verbatra/sdk";
 import { LOCK_FILE_NAME, PROVENANCE_FILE_NAME } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -852,7 +852,7 @@ describe("createProjectWatcher: run history file", () => {
   const FILE = join(PROJECT_ROOT, ".verbatra-local", "run-history.jsonl");
   const LOCAL_DIR = join(PROJECT_ROOT, ".verbatra-local");
 
-  async function build(directoryExists: boolean, debounceMs = 5) {
+  async function build(debounceMs = 5) {
     const harness = multiWatcherHarness();
     const { events, listener } = collectRefresh();
     const watcher = await createProjectWatcher(
@@ -865,36 +865,46 @@ describe("createProjectWatcher: run history file", () => {
         createWatcher: harness.createWatcher,
         readLocaleSnapshot: emptyReadLocaleSnapshot,
         readFileIdentity: unknownFileIdentity,
-        directoryExists: async () => directoryExists,
       },
     );
     watcher.onRefresh(listener);
     return { harness, events };
   }
 
-  it("watches the single file path, never the directory, once the local directory exists", async () => {
-    const { harness } = await build(true);
-
-    const call = harness.calls.find((entry) => entry.paths.includes(FILE));
-
-    expect(call?.paths).toEqual([FILE]);
-    expect(call?.options).toBeUndefined();
-    expect(harness.calls.some((entry) => entry.paths.includes(LOCAL_DIR))).toBe(false);
-  });
-
-  it("watches the project root for the local directory and the file only while the directory is missing", async () => {
-    const { harness } = await build(false);
+  it("always watches the project root for the local directory and the file, never the file alone", async () => {
+    const { harness } = await build();
 
     const call = harness.calls.find((entry) => entry.options?.only?.includes(FILE));
 
     expect(call?.paths).toEqual([PROJECT_ROOT]);
     expect(call?.options).toEqual({ only: [LOCAL_DIR, FILE], depth: 1 });
     expect(call?.options?.only?.some((path) => path.endsWith("locks"))).toBe(false);
+    expect(harness.calls.some((entry) => entry.paths.includes(FILE))).toBe(false);
+  });
+
+  it("watches the absolute project root when the project root is relative", async () => {
+    const harness = multiWatcherHarness();
+    await createProjectWatcher(
+      { config: baseStudioConfig({ targetLocales: [] }), projectRoot: "relative/project" },
+      { createWatcher: harness.createWatcher, readLocaleSnapshot: emptyReadLocaleSnapshot },
+    );
+
+    const call = harness.calls.find(
+      (entry) =>
+        entry.options?.only !== undefined &&
+        entry.options.only.some((path) => path.endsWith("run-history.jsonl")),
+    );
+
+    expect(call?.paths).toEqual([resolve("relative/project")]);
+    expect(call?.options?.only).toEqual([
+      resolve("relative/project", ".verbatra-local"),
+      resolve("relative/project", ".verbatra-local", "run-history.jsonl"),
+    ]);
   });
 
   it("reports a change to the file as a run-history refresh with no locale and no delta", async () => {
-    const { harness, events } = await build(true);
-    const index = harness.calls.findIndex((entry) => entry.paths.includes(FILE));
+    const { harness, events } = await build();
+    const index = harness.calls.findIndex((entry) => entry.options?.only?.includes(FILE));
 
     harness.emit(index);
 
@@ -904,7 +914,7 @@ describe("createProjectWatcher: run history file", () => {
   });
 
   it("never watches a path under the lock heartbeat directory", async () => {
-    const { harness } = await build(false);
+    const { harness } = await build();
 
     const watched = harness.calls.flatMap((call) => [...call.paths, ...(call.options?.only ?? [])]);
 
@@ -1029,7 +1039,7 @@ describe("defaultCreateStudioWatcher: real chokidar behavior", () => {
     await watcher.close();
   }, 8000);
 
-  it("watches the file path when the local directory exists at start, and ignores lock heartbeats", async () => {
+  it("raises one run-history refresh for a rewrite when the local directory exists at start, and none for lock heartbeats or run-status.json", async () => {
     await mkdir(join(root, ".verbatra-local", "locks"), { recursive: true });
     const history = join(root, ".verbatra-local", "run-history.jsonl");
     await writeFile(history, "a\n");
@@ -1043,10 +1053,62 @@ describe("defaultCreateStudioWatcher: real chokidar behavior", () => {
     await wait(200);
 
     await writeFile(join(root, ".verbatra-local", "locks", "heartbeat"), "1");
+    await writeFile(join(root, ".verbatra-local", "run-status.json"), "{}");
     await wait(500);
     expect(refresh.events).toEqual([]);
 
     await writeFile(`${history}.tmp`, "a\nb\n");
+    await rename(`${history}.tmp`, history);
+    await wait(600);
+
+    expect(refresh.events.map((event) => event.reason)).toEqual(["run-history"]);
+    await watcher.close();
+  }, 8000);
+
+  it("keeps raising run-history refreshes after the local directory is deleted and created again", async () => {
+    await mkdir(join(root, ".verbatra-local", "locks"), { recursive: true });
+    const history = join(root, ".verbatra-local", "run-history.jsonl");
+    await writeFile(history, "a\n");
+    await wait(300);
+    const refresh = collectRefresh();
+    const watcher = await createProjectWatcher(
+      { config: baseStudioConfig({ targetLocales: [] }), projectRoot: root, debounceMs: 50 },
+      { createWatcher: defaultCreateStudioWatcher },
+    );
+    watcher.onRefresh(refresh.listener);
+    await wait(200);
+
+    await rm(join(root, ".verbatra-local"), { recursive: true, force: true });
+    await wait(600);
+    refresh.events.length = 0;
+    await mkdir(join(root, ".verbatra-local"), { recursive: true });
+    await writeFile(`${history}.tmp`, "b\n");
+    await rename(`${history}.tmp`, history);
+    await wait(600);
+    await writeFile(`${history}.tmp`, "b\nc\n");
+    await rename(`${history}.tmp`, history);
+    await wait(600);
+
+    expect(refresh.events.map((event) => event.reason)).toEqual(["run-history", "run-history"]);
+    await watcher.close();
+  }, 10000);
+
+  it("raises a run-history refresh for a project root given as a relative path", async () => {
+    const refresh = collectRefresh();
+    const watcher = await createProjectWatcher(
+      {
+        config: baseStudioConfig({ targetLocales: [] }),
+        projectRoot: relative(process.cwd(), root),
+        debounceMs: 50,
+      },
+      { createWatcher: defaultCreateStudioWatcher },
+    );
+    watcher.onRefresh(refresh.listener);
+    await wait(200);
+
+    const history = join(root, ".verbatra-local", "run-history.jsonl");
+    await mkdir(join(root, ".verbatra-local"), { recursive: true });
+    await writeFile(`${history}.tmp`, "a\n");
     await rename(`${history}.tmp`, history);
     await wait(600);
 

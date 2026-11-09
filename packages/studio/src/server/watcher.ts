@@ -41,16 +41,14 @@ interface WatchedEntry {
   };
 }
 
-function runHistoryEntry(projectRoot: string, localDirExists: boolean): WatchedEntry {
-  const localDir = resolve(projectRoot, LOCAL_DIR_NAME);
+function runHistoryEntry(projectRoot: string): WatchedEntry {
+  const root = resolve(projectRoot);
+  const localDir = resolve(root, LOCAL_DIR_NAME);
   const file = resolve(localDir, RUN_HISTORY_FILE_NAME);
-  if (localDirExists) {
-    return { reason: "run-history", paths: [file] };
-  }
   return {
     reason: "run-history",
     paths: [file],
-    observe: { paths: [projectRoot], options: { only: [localDir, file], depth: 1 } },
+    observe: { paths: [root], options: { only: [localDir, file], depth: 1 } },
   };
 }
 
@@ -59,7 +57,6 @@ function watchedEntries(
   projectRoot: string,
   glossaryPath: string | undefined,
   locales: readonly { readonly locale: string; readonly paths: readonly string[] }[],
-  localDirExists: boolean,
 ): readonly WatchedEntry[] {
   const localeEntries: WatchedEntry[] = locales.map(({ locale, paths }) => ({
     reason: locale === config.sourceLocale ? "source" : "targets",
@@ -74,7 +71,7 @@ function watchedEntries(
     { reason: "lock", paths: [resolve(projectRoot, PROVENANCE_FILE_NAME)] },
     { reason: "lock", paths: [resolve(projectRoot, LIMITS_FILE_NAME)] },
     ...(glossaryPath === undefined ? [] : [{ reason: "lock" as const, paths: [glossaryPath] }]),
-    runHistoryEntry(projectRoot, localDirExists),
+    runHistoryEntry(projectRoot),
   ];
 }
 
@@ -123,16 +120,6 @@ async function buildRefreshEvent(
 }
 
 export type ReadFileIdentity = (path: string) => Promise<string | undefined>;
-
-export type DirectoryExists = (path: string) => Promise<boolean>;
-
-const directoryExistsOnDisk: DirectoryExists = async (path) => {
-  try {
-    return (await stat(path)).isDirectory();
-  } catch {
-    return false;
-  }
-};
 
 const readFileIdentityFromDisk: ReadFileIdentity = async (path) => {
   try {
@@ -232,7 +219,6 @@ export interface ProjectWatcherDeps {
   readonly execFile?: ExecFileImpl;
   readonly readLocaleSnapshot?: ReadLocaleSnapshot;
   readonly readFileIdentity?: ReadFileIdentity;
-  readonly directoryExists?: DirectoryExists;
   readonly gitPollMs?: number;
 }
 
@@ -298,17 +284,10 @@ export async function createProjectWatcher(
     { config: input.config, cwd: input.projectRoot },
     deps.execFile !== undefined ? { execFile: deps.execFile } : {},
   );
-  const localDirExists = await (deps.directoryExists ?? directoryExistsOnDisk)(
-    resolve(input.projectRoot, LOCAL_DIR_NAME),
-  );
   const primed = await Promise.all(
-    watchedEntries(
-      input.config,
-      input.projectRoot,
-      input.glossaryPath,
-      watch.locales,
-      localDirExists,
-    ).map((entry) => primeEntry(entry, readSnapshot)),
+    watchedEntries(input.config, input.projectRoot, input.glossaryPath, watch.locales).map(
+      (entry) => primeEntry(entry, readSnapshot),
+    ),
   );
 
   const readIdentity = deps.readFileIdentity ?? readFileIdentityFromDisk;
