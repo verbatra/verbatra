@@ -216,7 +216,7 @@ describe("provenance: every SDK write path records the origin of what it wrote",
 describe("provenance: the set of SDK functions that write a locale file is closed", () => {
   const WRITERS_WITH_PROVENANCE = new Map([
     ["flow/locale-run.ts", "translate"],
-    ["flow/edit-entry.ts", "editEntry"],
+    ["flow/apply-entry-edits.ts", "editEntry"],
     ["flow/retranslate-entry.ts", "retranslateEntry"],
     ["flow/workbook/import-workbook.ts", "importWorkbook"],
     ["flow/review-decision.ts", "rejectEntry"],
