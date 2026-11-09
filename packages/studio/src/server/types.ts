@@ -85,10 +85,11 @@ export interface StudioWatcherOptions {
  * `.stringsdict` file beside it), one for the lock file, one for the provenance file
  * (`verbatra.provenance.json`), one for the run history file `.verbatra-local/run-history.jsonl`
  * and, in a git work tree, one for the directories that hold git's index, `HEAD` and `HEAD`
- * reflog, with `options.only` naming those files. While `.verbatra-local` does not exist yet, the
- * run history entry watches the project root instead, with `options.only` naming that directory
- * and the file and `options.depth` set to `1`, because a watcher on a file whose directory is
- * missing never sees it appear; an implementation that ignores `depth` misses the first record.
+ * reflog, with `options.only` naming those files. The run history
+ * entry always watches the resolved project root, with `options.only` naming the
+ * `.verbatra-local` directory and the file and `options.depth` set to `1`, whether or not that
+ * directory exists yet, because a watcher on a file whose directory is missing never sees it
+ * appear; an implementation that ignores `depth` misses the first record.
  * An implementation must therefore construct a fresh watcher on every call; one that builds a
  * watcher only the first time observes the source file alone and never reports a target,
  * lock-file or provenance-file change. A git entry can be built again later, when the repository
