@@ -97,6 +97,23 @@ describe("api module wiring", () => {
     });
   });
 
+  it("tells the refresh bus a run history re-read is due after a run call returns, and not after a read", async () => {
+    const { rpcClient, refreshBus } = await loadApi();
+    const received: RefreshEvent[] = [];
+    refreshBus.subscribe((event) => received.push(event));
+
+    await rpcClient.call("history.list", {});
+    expect(received).toEqual([]);
+
+    fetchResponse = { status: 200, body: { ok: false, error: { code: "X", message: "m" } } };
+    await rpcClient.call("translation.retranslateEntry", {
+      locale: "de",
+      key: "a",
+    } as never);
+
+    expect(received.map((event) => event.reason)).toEqual(["run-history"]);
+  });
+
   it("marks the shared session store expired when an rpc call is answered with a 401", async () => {
     const { rpcClient, sessionStore } = await loadApi();
     fetchResponse = { status: 401, body: {} };

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { errorDetail } from "../../client/error-copy.js";
 import { HISTORY_MAX, HISTORY_PAGE_SIZE } from "../../client/history-limit.js";
 import type { ReviewQueueData } from "../../client/review-queue-data.js";
+import { type RunHistoryData, toRunHistoryDisplay } from "../../client/run-history-view.js";
 import type { RefreshableView } from "../../client/state.js";
 import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import type {
@@ -24,10 +25,12 @@ import { OverviewMetrics } from "../OverviewMetrics.js";
 import { pageFailure } from "../overview-failures.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
+import { RunHistorySection } from "../RunHistorySection.js";
 import { type DiffState, useDiffState } from "../use-diff-state.js";
 import { useGitChanges } from "../use-git-changes.js";
 import { type HistoryState, useHistoryList } from "../use-history-list.js";
 import { useLockState } from "../use-lock-state.js";
+import { useRunHistory } from "../use-run-history.js";
 import { useStatusData } from "../use-status-data.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
 
@@ -88,12 +91,58 @@ type UsageView = RefreshableView<UsageTickerData>;
 
 const SEE_ABOVE = "See the error above.";
 
+interface RailHistory {
+  readonly complete: boolean;
+  readonly records: number;
+  readonly hasTranslate: boolean;
+}
+
+function railHistory(view: RefreshableView<RunHistoryData>): RailHistory {
+  if (view.kind !== "data") {
+    return { complete: false, records: 0, hasTranslate: false };
+  }
+  return {
+    complete: !view.stale && toRunHistoryDisplay(view.data).notices.length === 0,
+    records: view.data.records.length,
+    hasTranslate: view.data.records.some((record) => record.trigger === "translate"),
+  };
+}
+
+function NoRunYet({ history }: { readonly history: RailHistory }): ReactNode {
+  if (history.hasTranslate) {
+    return (
+      <p className="m-0 text-sm text-muted-foreground">
+        The details of the last translate run are unavailable. The run itself is listed under Run
+        history and cost.
+      </p>
+    );
+  }
+  if (!history.complete) {
+    return (
+      <p className="m-0 text-sm text-muted-foreground">
+        The details of the last run are unavailable.
+      </p>
+    );
+  }
+  if (history.records === 0) {
+    return <p className="m-0 text-sm text-muted-foreground">No translate run recorded yet.</p>;
+  }
+  return (
+    <EmptyState icon="gauge" title="No translate run recorded yet">
+      Run <code>verbatra translate</code> or <code>verbatra watch</code> to record one. Runs
+      recorded as retranslations are listed under Run history and cost.
+    </EmptyState>
+  );
+}
+
 function LastRunRail({
   view,
   hideCode,
+  history,
 }: {
   readonly view: UsageView;
   readonly hideCode: string | undefined;
+  readonly history: RailHistory;
 }): ReactNode {
   if (view.kind === "loading") {
     return <Loading />;
@@ -116,9 +165,7 @@ function LastRunRail({
     return (
       <div>
         {staleNotice}
-        <EmptyState icon="gauge" title="No run recorded yet">
-          Run <code>verbatra translate</code> or <code>verbatra watch</code> to record one.
-        </EmptyState>
+        <NoRunYet history={history} />
       </div>
     );
   }
@@ -233,6 +280,7 @@ type ReadName =
   | "lock"
   | "review"
   | "usage"
+  | "runHistory"
   | "history"
   | "gitStatus"
   | "gitDiff";
@@ -262,6 +310,7 @@ function startedReads(reads: OverviewReadsNow, reviewRefreshed: boolean): readon
 
 export interface OverviewPanelProps extends PanelProps {
   readonly gitRefreshToken?: number;
+  readonly runHistoryToken?: number;
   readonly reviewQueue?: RefreshableView<ReviewQueueData> | undefined;
   readonly onRetry?: (() => void) | undefined;
 }
@@ -269,6 +318,7 @@ export interface OverviewPanelProps extends PanelProps {
 export function OverviewPanel({
   refreshToken,
   gitRefreshToken = 0,
+  runHistoryToken = 0,
   reviewQueue,
   onRetry,
 }: OverviewPanelProps): ReactNode {
@@ -279,6 +329,7 @@ export function OverviewPanel({
   const status = useStatusData(token);
   const lock = useLockState(token);
   const usage = useUsageTicker(token);
+  const runHistory = useRunHistory(token + runHistoryToken);
   const history = useHistoryList(token + gitRefreshToken, limit);
   const git = useGitChanges(token + gitRefreshToken);
   const [retried, setRetried] = useState<RetryRound | null>(null);
@@ -291,6 +342,7 @@ export function OverviewPanel({
     lock,
     review: reviewQueue,
     usage,
+    runHistory,
     history,
     gitStatus: git.status,
     gitDiff: git.diff,
@@ -301,6 +353,7 @@ export function OverviewPanel({
     lock,
     review: reviewQueue,
     usage,
+    runHistory,
     history,
     gitStatus: git.status,
     gitDiff: git.diff,
@@ -375,16 +428,23 @@ export function OverviewPanel({
       />
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <PageSection title="Last run" className="mb-0 lg:col-start-2 lg:row-start-1">
-          <LastRunRail view={usage} hideCode={failure?.error.code} />
-        </PageSection>
-        <PageSection title="Locale file history" className="mb-0 lg:col-start-1 lg:row-start-1">
-          <LocaleFileHistory
-            history={history}
-            limit={limit}
-            onLimit={setLimit}
+          <LastRunRail
+            view={usage}
             hideCode={failure?.error.code}
+            history={railHistory(runHistory)}
           />
         </PageSection>
+        <div className="grid min-w-0 grid-cols-1 gap-y-10 lg:col-start-1 lg:row-start-1">
+          <RunHistorySection view={runHistory} hideCode={failure?.error.code} className="mb-0" />
+          <PageSection title="Locale file history" className="mb-0">
+            <LocaleFileHistory
+              history={history}
+              limit={limit}
+              onLimit={setLimit}
+              hideCode={failure?.error.code}
+            />
+          </PageSection>
+        </div>
       </div>
     </>
   );

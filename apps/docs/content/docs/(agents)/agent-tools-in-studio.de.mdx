@@ -23,9 +23,9 @@ verbatra studio --expose-agent-tools
 
 `VERBATRA_STUDIO_AGENT_TOOLS=1` bewirkt dasselbe; wie Flag und Variable aufgelöst werden, steht unter [Ausgaben und Agent-Tools](/de/docs/cli/studio#ausgaben-und-agent-tools). Öffne die ausgegebene URL im WebMCP-Browser, und der Agent in diesem Tab findet die Tools. In einem Browser ohne WebMCP registriert Studio nichts, und das Dashboard bleibt unverändert.
 
-Damit der Agent deinen Provider aufrufen darf, startest du Studio zusätzlich mit `--allow-spend` ([Ausgaben und Agent-Tools](/de/docs/cli/studio#ausgaben-und-agent-tools)).
+Damit der Agent deinen Provider aufrufen darf, startest du Studio zusätzlich mit `--allow-spend`.
 
-Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt: Studio schwärzt nichts, weil ein Agent im Tab die Seite ohnehin lesen kann. Ausnahmen sind die Glossar-Tools und `verbatra_history_keyRevisions`: Ihre Werte durchlaufen eine Geheimnis-Schwärzung, ein Wert in der Form eines API-Schlüssels kommt daher als Platzhalter zurück. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/de/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
+Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt, weil ein Agent im Tab die Seite ohnehin lesen kann. Ausnahmen sind die Glossar-Tools und `verbatra_history_keyRevisions`: Ihre Werte durchlaufen eine Geheimnis-Schwärzung, ein Wert in der Form eines API-Schlüssels kommt daher als Platzhalter zurück. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/de/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
 
 ## Wissen, was der Agent aufrufen kann
 
@@ -50,6 +50,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_locale_integrity` | jede Übersetzung, die die Integritätsprüfungen nicht besteht <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_translation_estimate` | was ein Translate-Pending-Aufruf senden und kosten würde, ohne einen Provider aufzurufen |
 | `verbatra_usage_summary` | Token-Verbrauch und Budget des letzten Laufs |
+| `verbatra_usage_history` | aufgezeichnete Läufe, neueste zuerst, mit Tokens, Kosten und Abdeckung, nur als Zahlen <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
 
 ### Schreib-Tools
 
@@ -71,7 +72,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 
 ## Die Regeln der Tools kennen
 
-Jeder Aufruf läuft über den eigenen, angemeldeten Loopback-RPC des Dashboards, mit derselben Eingabeprüfung und demselben [Integritäts-Gate](/de/docs/translation-safety): Ein Wert, der eine Prüfung nicht besteht, wird abgelehnt, und nichts wird geschrieben.
+Jeder Aufruf läuft über den eigenen, angemeldeten Loopback-RPC des Dashboards, mit derselben Eingabeprüfung und demselben [Integritäts-Gate](/de/docs/translation-safety): Ein Wert, der eine Prüfung nicht besteht, wird abgelehnt, nicht geschrieben.
 
 ### Regeln je Aufruf
 
@@ -98,7 +99,7 @@ Jedes Tool liefert den Umschlag des Dashboards, ein Fehler sieht also so aus: `{
 | `BATCH_TOO_LARGE` | ein Batch übersteigt ein ganzes Rate-Limit-Fenster; sende weniger Einträge |
 | `ALREADY_IN_PROGRESS` | ein zweiter Aufruf für einen Eintrag, der noch läuft (HTTP 409) |
 | `SESSION_EXPIRED` | Studio wurde mit neuem Token neu gestartet; öffne die URL, die es ausgegeben hat |
-| `INTERNAL` | ein Handler ist mit einem unerwarteten Fehler gescheitert (HTTP 500); die Meldung ist generisch und enthält keine Details |
+| `INTERNAL` | ein Handler ist mit einem unerwarteten Fehler gescheitert (HTTP 500); die Meldung ist generisch |
 
 ## Eingeschränkte Tools beheben
 
@@ -112,7 +113,7 @@ Die Konsole enthält eine Zeile, die jeden Fehler nennt:
 Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-Lies dort zuerst den Fehlernamen und lade dann den Tab neu, damit die Registrierung erneut läuft. Ein fehlendes Flag oder ein Browser ohne WebMCP zeigt diesen Hinweis nie; dann wird still nichts registriert. Eine Sitzung ohne `--allow-spend` versucht zwei Registrierungen weniger, und das ist kein Fehler.
+Lies dort zuerst den Fehlernamen und lade dann den Tab neu, damit die Registrierung erneut läuft. Ein fehlendes Flag oder ein Browser ohne WebMCP zeigt diesen Hinweis nie; dann wird stillschweigend nichts registriert. Eine Sitzung ohne `--allow-spend` versucht zwei Registrierungen weniger, und das ist kein Fehler.
 
 ## Das Ausgabenrisiko abwägen
 

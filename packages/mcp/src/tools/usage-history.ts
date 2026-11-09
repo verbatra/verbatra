@@ -40,13 +40,14 @@ export const usageHistoryTool = defineTool({
     "Records hold counts only, never a key name or a text. cost is frozen when the run ended, " +
     "from the rates the config held then: pricing priced carries currency, asOf and amount; " +
     "no-rate-on-file, rate-unit-mismatch, no-usage (keys were sent but the provider reported " +
-    "no tokens) and not-billed (a self-hosted provider or none) carry no amount, so report " +
+    "no tokens) and not-billed (verbatra does not price the provider, though a hosted " +
+    "openai-compatible endpoint may still bill) carry no amount, so report " +
     "them as no rate or unknown and never as free. A cost with basis source-characters is an estimate from the " +
     "source characters sent to a machine-translation provider that reports no usage: say " +
     "estimated, and mention its caveats; keys the provider failed on are not counted. " +
-    "A priced cost with the caveat USAGE_PARTIAL is a lower bound: a locale sent keys and " +
-    "reported no tokens, so say at least, never exactly (a locale that reported for only some " +
-    "of its sub-batches cannot be detected). " +
+    "A cost with the caveat USAGE_PARTIAL, priced, unpriced or not-billed, is a lower bound: a locale sent keys " +
+    "and reported no tokens, so say at least, never exactly, and read the tokens the same way " +
+    "(a locale that reported for only some of its sub-batches cannot be detected). " +
     "A locale without coverage was not measured in that run. Dry runs and runs that left no " +
     "trace are not recorded, and the file keeps the newest 1000 records. " +
     "The optional limit says how many of the newest records to return: " +

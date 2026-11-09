@@ -27,10 +27,29 @@ export const LIMITS_FILE_NAME = "verbatra.limits.json";
 const DEFAULT_DEBOUNCE_MS = 300;
 const DEFAULT_GIT_POLL_MS = 5000;
 
+export const LOCAL_DIR_NAME = ".verbatra-local";
+
+export const RUN_HISTORY_FILE_NAME = "run-history.jsonl";
+
 interface WatchedEntry {
   readonly reason: RefreshReason;
   readonly paths: readonly string[];
   readonly locale?: string;
+  readonly observe?: {
+    readonly paths: readonly string[];
+    readonly options: StudioWatcherOptions;
+  };
+}
+
+function runHistoryEntry(projectRoot: string): WatchedEntry {
+  const root = resolve(projectRoot);
+  const localDir = resolve(root, LOCAL_DIR_NAME);
+  const file = resolve(localDir, RUN_HISTORY_FILE_NAME);
+  return {
+    reason: "run-history",
+    paths: [file],
+    observe: { paths: [root], options: { only: [localDir, file], depth: 1 } },
+  };
 }
 
 function watchedEntries(
@@ -52,6 +71,7 @@ function watchedEntries(
     { reason: "lock", paths: [resolve(projectRoot, PROVENANCE_FILE_NAME)] },
     { reason: "lock", paths: [resolve(projectRoot, LIMITS_FILE_NAME)] },
     ...(glossaryPath === undefined ? [] : [{ reason: "lock" as const, paths: [glossaryPath] }]),
+    runHistoryEntry(projectRoot),
   ];
 }
 
@@ -279,7 +299,10 @@ export async function createProjectWatcher(
       debounceMs,
       emit,
     );
-    const watcher = deps.createWatcher(entry.paths);
+    const watcher =
+      entry.observe === undefined
+        ? deps.createWatcher(entry.paths)
+        : deps.createWatcher(entry.observe.paths, entry.observe.options);
     watcher.onChange(debounced.trigger);
     return { debounced, watcher };
   });
@@ -338,7 +361,7 @@ export function onlyThese(
   const files = new Set(options.only.map(slashed));
   const directories = new Set(paths.map(slashed));
   return {
-    depth: 0,
+    depth: options.depth ?? 0,
     ignored: (path) => !files.has(slashed(path)) && !directories.has(slashed(path)),
   };
 }

@@ -39,7 +39,7 @@ Clique sur une clé pour ouvrir son éditeur. Il liste la valeur de chaque local
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Les puces à côté de la recherche restreignent le tableau par état, notamment **Review queue** et **Integrity problems** (une valeur qui échoue aux contrôles de placeholders, de balisage ou ICU). **Copy as review report** copie les clés en attente en Markdown pour une pull request.
+Les puces à côté de la recherche restreignent le tableau par état, notamment **Review queue** et **Integrity problems**. **Copy as review report** copie les clés en attente en Markdown pour une pull request.
 
 ### Modifier avec la barrière d'intégrité
 
@@ -70,7 +70,7 @@ Avec `next-intl-json` ou `arb`, une **ICU preview** repliée sous le brouillon l
 
 ## Traiter la file de relecture
 
-La page Review liste chaque valeur écrite par une machine que personne n'a approuvée : une ligne par locale et par clé, avec le texte source complet au-dessus de la traduction (les longues valeurs passent à la ligne), son origine et les éventuels [signalements de relecture](/fr/docs/translation-safety#signalements-de-relecture) de la dernière exécution sur cette machine.
+La page Review liste chaque valeur écrite par une machine que personne n'a approuvée : une ligne par locale et par clé, avec le texte source complet au-dessus de la traduction, son origine et les éventuels [signalements de relecture](/fr/docs/translation-safety#signalements-de-relecture) de la dernière exécution sur cette machine.
 
 <StudioScreenshot
   shot="review"
@@ -125,13 +125,13 @@ Appuie sur `j` ou la flèche bas pour mettre en surbrillance la première entré
 | `x` | la sélectionner ou désélectionner pour une action groupée |
 | `?` | afficher ou masquer la liste des raccourcis |
 
-Les raccourcis sont en pause pendant que tu tapes, que le focus est dans la barre de filtres ou qu'une boîte de dialogue est ouverte. Après une décision, l'entrée suivante est mise en surbrillance.
+Les raccourcis sont en pause pendant que tu tapes, que le focus est dans la barre de filtres ou qu'une boîte de dialogue est ouverte.
 
 ### Agir sur plusieurs entrées à la fois
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Coche des lignes (ou la case d'en-tête pour tout ce que le filtre affiche), puis choisis **Approve selected**, **Reject selected** ou, avec `--allow-spend`, **Retranslate selected**. Chaque entrée est tranchée comme elle le serait seule ; les échecs sont listés par cause et restent sélectionnés. Un lot contient au plus 100 entrées à approuver ou rejeter, ou 20 à retraduire.
+Coche des lignes (ou la case d'en-tête pour tout ce que le filtre affiche), puis choisis **Approve selected**, **Reject selected** ou, avec `--allow-spend`, **Retranslate selected**. Les échecs sont listés par cause et restent sélectionnés. Un lot contient au plus 100 entrées à approuver ou rejeter, ou 20 à retraduire.
 
 ## Retraduire une clé signalée
 
@@ -153,6 +153,8 @@ Quand le fichier source change pendant que Studio tourne, une notification nomme
 
 Overview est la page sur laquelle Studio s'ouvre. Elle montre la couverture de chaque locale avec son état dans le [fichier de verrouillage](/fr/docs/the-lock-file), l'historique git de tes fichiers de locale et la consommation de tokens de la dernière exécution enregistrée, avec la jauge de budget quand un budget de tokens est configuré.
 
+**Run history and cost**, en dessous, trace le coût et les tokens des exécutions les plus récentes au-dessus d'un tableau, avec la dernière couverture connue de chaque locale. Elle se relit quand le fichier d'historique change, que l'onglet retrouve le focus ou qu'une exécution se termine.
+
 <StudioScreenshot
   shot="overview"
   alt="La page Overview de Verbatra Studio avec quatre chiffres, Needs attention, Waiting for review, Avg coverage et Locales in sync, au-dessus d'un tableau de la couverture des locales de, es et fr et des liens vers les traductions et la revue de chaque locale."
@@ -171,7 +173,7 @@ Une modification du glossaire change ce que la prochaine exécution reçoit comm
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-**Show translations for** bascule vers la vue du [glossaire](/fr/docs/config-file#glossary) d'une locale, avec sa traduction, ses rendus interdits et sa note. La liste **Do not translate** garde les noms de marque tels quels.
+**Show translations for** bascule vers la vue du [glossaire](/fr/docs/config-file#glossary) d'une locale, avec sa traduction, ses rendus interdits et sa note.
 
 ## Voir aussi
 

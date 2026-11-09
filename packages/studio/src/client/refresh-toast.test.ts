@@ -154,4 +154,11 @@ describe("handleRefreshEvent", () => {
     expect(handleRefreshEvent(event)).toEqual({ kind: "git" });
     expect(deriveRefreshToastView(event)).toBeUndefined();
   });
+
+  it("reads a run-history event as its own refresh that carries no toast and never clears one", () => {
+    const event: RefreshEvent = { reason: "run-history", at: "2026-05-04T10:00:00.000Z" };
+
+    expect(handleRefreshEvent(event)).toEqual({ kind: "run-history" });
+    expect(deriveRefreshToastView(event)).toBeUndefined();
+  });
 });

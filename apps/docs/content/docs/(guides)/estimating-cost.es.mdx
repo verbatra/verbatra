@@ -120,6 +120,12 @@ verbatra translate
 
 Multiplica por el número de locales que quedan. Con `--json`, las cifras son `usage.inputTokens` y `usage.outputTokens`. La ejecución gasta dinero real, pero el trabajo se conserva: ese locale ya está hecho.
 
+## Lee lo que costaron las ejecuciones pasadas
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+El Overview de Studio lista las ejecuciones registradas con su coste, fijado cuando terminó la ejecución, así que un cambio posterior en `rates` nunca lo reescribe. Un importe son los tokens que informó el proveedor por la tarifa vigente entonces. **Estimated** es una cifra de caracteres de origen para un proveedor que no informa del uso. **At least** es un mínimo, porque un locale no informó de tokens. **No rate** significa que ninguna tarifa coincidía con ese modelo, y **unknown** significa que se enviaron claves pero no volvieron tokens; ninguno es gratis. Los proveedores autoalojados muestran **not billed**. El registro está documentado en [`runHistory`](/es/docs/sdk/history#runhistory); [Review in Studio](/es/docs/review-in-studio) muestra la página.
+
 ## Proveedores de traducción automática
 
 DeepL y Google Cloud Translation facturan caracteres de origen, no tokens, y LibreTranslate cuenta caracteres de origen sin facturar nada. verbatra les envía el texto de origen con los placeholders como marcadores numerados cortos, sin reglas de sistema, nombres de clave ni JSON alrededor. La estimación solo cuenta caracteres de origen. DeepL no factura las etiquetas alrededor de sus marcadores; si Google factura el marcado `span` que los rodea no está documentado. Un valor que estos proveedores retienen ([`PLACEHOLDER_UNSUPPORTED`](/es/docs/error-codes#placeholder_unsupported)) no se envía, así que los caracteres enviados pueden ser menos que el total bruto.

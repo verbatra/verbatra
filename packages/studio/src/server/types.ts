@@ -63,6 +63,12 @@ export interface StudioWatcherOptions {
    */
   readonly only?: readonly string[];
   /**
+   * With `only`, how many directory levels below each path the watcher descends. The default is
+   * `0`: the files directly inside the paths. Studio sets `1` to watch a project root for a local
+   * directory that does not exist yet, which a watcher on the file path alone never sees appear.
+   */
+  readonly depth?: number;
+  /**
    * Called when the underlying source fails, for example with a permission error on a directory.
    * The watcher then keeps running as far as it can and never throws. Studio closes a failed git
    * watcher and builds it again with exponential backoff (one second, doubling, at most 30 seconds); while it is down, live git refresh stops and the
@@ -77,11 +83,17 @@ export interface StudioWatcherOptions {
  * Builds a {@link StudioWatcher} over a set of absolute paths. Called once per watched entry during
  * {@link startStudioServer}: one for each configured locale (its file, and for `apple-strings` the
  * `.stringsdict` file beside it), one for the lock file, one for the provenance file
- * (`verbatra.provenance.json`) and, in a git work tree, one for the directories that hold git's
- * index, `HEAD` and `HEAD` reflog, with `options.only` naming those files. An implementation must
- * therefore construct a fresh watcher on every call; one that builds a watcher only the first time
- * observes the source file alone and never reports a target, lock-file or provenance-file change.
- * A git entry can be built again later, when the repository appears, moves or is replaced.
+ * (`verbatra.provenance.json`), one for the run history file `.verbatra-local/run-history.jsonl`
+ * and, in a git work tree, one for the directories that hold git's index, `HEAD` and `HEAD`
+ * reflog, with `options.only` naming those files. The run history
+ * entry always watches the resolved project root, with `options.only` naming the
+ * `.verbatra-local` directory and the file and `options.depth` set to `1`, whether or not that
+ * directory exists yet, because a watcher on a file whose directory is missing never sees it
+ * appear; an implementation that ignores `depth` misses the first record.
+ * An implementation must therefore construct a fresh watcher on every call; one that builds a
+ * watcher only the first time observes the source file alone and never reports a target,
+ * lock-file or provenance-file change. A git entry can be built again later, when the repository
+ * appears, moves or is replaced.
  *
  * @param paths - The absolute paths to observe.
  * @param options - Narrows what is reported.

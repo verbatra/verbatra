@@ -4,7 +4,7 @@ seoTitle: "Review machine translations in Verbatra Studio"
 description: Start Verbatra Studio, work the needs-review queue, fix entries in place, and retranslate flagged keys from the local dashboard.
 type: how-to
 ---
-Find pending machine translations, fix values, and approve or reject what a provider wrote, in Verbatra Studio, a local dashboard.
+Find pending machine translations, fix values, and approve or reject what a provider wrote, in Verbatra Studio.
 
 Two rules: **local editing is always on**, gated by the same integrity checks as other writes, and **provider spend is always off** unless you start Studio with `--allow-spend`.
 
@@ -39,7 +39,7 @@ Click a key to open its editor, which lists each locale's value with an integrit
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Chips beside the search narrow the table by state, including **Review queue** and **Integrity problems** (a value failing placeholder, markup or ICU checks). **Copy as review report** copies the pending keys as Markdown for a pull request.
+Chips beside the search narrow the table by state, including **Review queue** and **Integrity problems**. **Copy as review report** copies the pending keys as Markdown for a pull request.
 
 ### Edit with integrity gating
 
@@ -71,7 +71,7 @@ From 1280px wide the editor sits beside the table; below that it is a drawer. Le
 
 ## Work the Review queue
 
-The Review page lists every value a machine wrote that nobody approved: one row per locale and key with the full source and translation (long values wrap), origin and any [review flags](/docs/translation-safety#review-flags) from the last run on this machine.
+The Review page lists every value a machine wrote that nobody approved: one row per locale and key with the full source and translation, origin and any [review flags](/docs/translation-safety#review-flags) from the last run on this machine.
 
 <StudioScreenshot
   shot="review"
@@ -107,7 +107,7 @@ Both decisions are saved in `verbatra.provenance.json` under the [Review decisio
 
 The queue is read from the committed files, so a teammate who pulls them sees it too. A value leaves it once a person approves, rejects, writes or imports it; an approved value that a machine rewrites comes back.
 
-The **Needs review** and **Approved** chips switch the list and show counts; the bar narrows by origin; with a locale chosen, **Approve all in** approves all of it after a confirmation. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
+The **Needs review** and **Approved** chips switch the list and show counts; the bar narrows by origin; with a locale chosen, **Approve all in** approves it all after confirming. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
 
 ### Work the queue from the keyboard
 
@@ -126,13 +126,13 @@ Press `j` or the down arrow to highlight the first entry, then:
 | `x` | select or unselect it for a bulk action |
 | `?` | show or hide the shortcut list |
 
-Shortcuts pause while you type, in the filter bar or in a dialog; after a decision the next entry is highlighted.
+Shortcuts pause while you type, in the filter bar or in a dialog.
 
 ### Act on several entries at once
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Tick rows (or the header box for all filtered rows), then choose **Approve selected**, **Reject selected** or, with `--allow-spend`, **Retranslate selected**. Each entry is decided on its own; failures are listed by cause and stay selected. A batch holds at most 100 entries to approve or reject, or 20 to retranslate.
+Tick rows (or the header box for all filtered rows), then choose **Approve selected**, **Reject selected** or, with `--allow-spend`, **Retranslate selected**. Failures are listed by cause and stay selected. A batch holds at most 100 entries to approve or reject, or 20 to retranslate.
 
 ## Retranslate a flagged key
 
@@ -154,6 +154,8 @@ When the source file changes while Studio runs, a toast names the file and its a
 
 Studio opens on Overview: each locale's coverage with its [lock file](/docs/the-lock-file) state, the locale files' git history and the last run's token usage, with the budget meter when set.
 
+**Run history and cost** below it charts cost and tokens for the newest runs above a table, with each locale's last known coverage. It rereads when the history file changes, the tab regains focus or a run returns.
+
 <StudioScreenshot
   shot="overview"
   alt="The Verbatra Studio Overview page with four figures, Needs attention, Waiting for review, Avg coverage and Locales in sync, above a table with the coverage of the de, es and fr locales and links to each locale's translations and review queue."
@@ -172,7 +174,7 @@ A glossary edit changes what the next run is told, never text already written; r
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-**Show translations for** switches to one locale's [glossary](/docs/config-file#glossary) view: translation, forbidden renderings and note. The **Do not translate** list keeps brand names.
+**Show translations for** switches to one locale's [glossary](/docs/config-file#glossary) view: translation, forbidden renderings and note.
 
 ## Related
 

@@ -286,4 +286,23 @@ describe("pageFailure", () => {
 
     expect(pageFailure(reads({ gitStatus: view }))?.error).toEqual(OTHER);
   });
+
+  it("puts a failed run history read into the page alert, named as the run history when kept", () => {
+    const empty = { records: [], total: 0, unreadableRecords: 0 };
+
+    expect(pageFailure(reads({ runHistory: { kind: "error", error: OTHER } }))?.error).toEqual(
+      OTHER,
+    );
+    expect(
+      pageFailure(
+        reads({
+          status: staleStatus(OTHER),
+          runHistory: { kind: "data", data: empty, stale: true, error: OTHER },
+        }),
+      ),
+    ).toEqual({ error: OTHER, prefix: "Showing the last known coverage and run history." });
+    expect(
+      pageFailure(reads({ runHistory: { kind: "data", data: empty, stale: false } })),
+    ).toBeNull();
+  });
 });

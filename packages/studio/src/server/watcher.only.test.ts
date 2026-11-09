@@ -90,7 +90,7 @@ describe("the project watcher's first lookup", () => {
       const listeners: (() => void)[] = [];
       const createWatcher: CreateStudioWatcher = (_paths, options) => ({
         onChange: (listener) => {
-          if (options?.only !== undefined) {
+          if (options?.only?.some((path) => path.includes(".git")) === true) {
             listeners.push(listener);
           }
         },

@@ -8,7 +8,7 @@ import { priceRun, sourceCharactersOfRun } from "../flow/estimate.js";
 import type { LocaleSummary, RunSummary } from "../flow/summary.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { baseConfig, makeTempDir } from "../test-support.js";
-import { clipText, RUN_HISTORY_LIMITS } from "./record.js";
+import { clipText, RUN_HISTORY_LIMITS, runHistoryCostSchema } from "./record.js";
 import {
   draftFromSummary,
   type RunDraft,
@@ -181,6 +181,30 @@ describe("priceRun", () => {
     });
   });
 
+  it("keeps the lower-bound caveat on a run with no usable rate when usage was partial", () => {
+    const partial = { inputTokens: 5, outputTokens: 5 };
+    const wrong: RateCard = {
+      ...TOKEN_CARD,
+      table: { "anthropic/test-model": { perMillionCharacters: 1 } },
+    };
+
+    expect(
+      price({ provider: ANTHROPIC, sourceCharacters: 0, usage: partial, usagePartial: true }),
+    ).toMatchObject({ pricing: "no-rate-on-file", caveats: ["USAGE_PARTIAL"] });
+    expect(
+      price({
+        provider: ANTHROPIC,
+        rates: wrong,
+        sourceCharacters: 0,
+        usage: partial,
+        usagePartial: true,
+      }),
+    ).toMatchObject({ pricing: "rate-unit-mismatch", caveats: ["USAGE_PARTIAL"] });
+    expect(price({ provider: ANTHROPIC, sourceCharacters: 0, usage: partial })).not.toHaveProperty(
+      "caveats",
+    );
+  });
+
   it.each([
     [
       "openai-compatible",
@@ -201,6 +225,30 @@ describe("priceRun", () => {
     expect(cost).not.toHaveProperty("amount");
     expect(cost).not.toHaveProperty("basis");
     expect(cost).not.toHaveProperty("caveats");
+  });
+
+  it("keeps the lower-bound caveat on a not-billed run whose usage was partial", () => {
+    const selfHosted: ProviderConfig = {
+      id: "openai-compatible",
+      options: { model: "m", baseUrl: "http://x", maxOutputTokens: 256 },
+    };
+    const usage = { inputTokens: 5, outputTokens: 5 };
+
+    const partial = price({
+      provider: selfHosted,
+      sourceCharacters: 0,
+      usage,
+      usagePartial: true,
+    });
+    const complete = price({ provider: selfHosted, sourceCharacters: 0, usage });
+
+    expect(partial).toEqual({
+      pricing: "not-billed",
+      rateKey: "openai-compatible/m",
+      caveats: ["USAGE_PARTIAL"],
+    });
+    expect(complete).not.toHaveProperty("caveats");
+    expect(runHistoryCostSchema.parse(partial)).toEqual(partial);
   });
 
   it.each([

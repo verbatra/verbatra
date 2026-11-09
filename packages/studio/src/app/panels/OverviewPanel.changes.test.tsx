@@ -53,6 +53,7 @@ function stubPage(overrides: Readonly<Record<string, StubRpcResult | StubRpcHand
     "status.check": OK_CHECK,
     "lock.state": NO_LOCK,
     "usage.summary": NO_USAGE,
+    "usage.history": { ok: true, result: { records: [], total: 0, unreadableRecords: 0 } },
     "history.list": NO_HISTORY,
     "git.status": statusOf([DE_MODIFIED]),
     "git.localeDiff": diffOf(),
@@ -440,6 +441,28 @@ describe("OverviewPanel Changes section", () => {
     expect(changesSection(view).textContent).toContain(
       "Changes are unavailable. See the error above.",
     );
+  });
+
+  it("gives a failed run history read to the page alert, and its one Retry re-reads and recovers it", async () => {
+    stubPage({
+      "usage.history": inOrder([
+        rpcError("INTERNAL", "history boom"),
+        { ok: true, result: { records: [], total: 0, unreadableRecords: 0 } },
+      ]),
+    });
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+
+    expect(view.all('[role="alert"]')).toHaveLength(1);
+    expect(retryButtons(view)).toHaveLength(1);
+    const section = view.getByText("h2", "Run history and cost").closest("section");
+    expect(section?.textContent).toContain("Run history is unavailable. See the error above.");
+
+    await clickAsync(retryButtons(view)[0] as HTMLElement);
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(section?.textContent).toContain("No runs recorded yet");
+    expect(callsTo("usage.history")).toBe(2);
   });
 
   it("re-reads the changes on Retry after a git-failed answer and recovers", async () => {

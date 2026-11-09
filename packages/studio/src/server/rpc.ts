@@ -33,6 +33,7 @@ import {
   type StudioRateLimits,
 } from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
+import { USAGE_HISTORY_METHOD } from "../shared/rpc/usage-history.js";
 import { USAGE_SUMMARY_METHOD } from "../shared/rpc/usage-summary.js";
 import type { InFlightEntry } from "./in-flight-guard.js";
 import { statusCheckHandler } from "./methods/check.js";
@@ -63,6 +64,7 @@ import { reviewApproveLocaleHandler } from "./methods/review-locale.js";
 import { reviewQueueHandler } from "./methods/review-queue.js";
 import { snapshotHandler } from "./methods/snapshot.js";
 import { translatePendingHandler } from "./methods/translate-pending.js";
+import { usageHistoryHandler } from "./methods/usage-history.js";
 import { usageSummaryHandler } from "./methods/usage-summary.js";
 import type { StudioServerDeps } from "./types.js";
 
@@ -102,6 +104,7 @@ const readOnlyHandlers: HandlersRegistry = {
   [LOCALE_INTEGRITY_METHOD]: localeIntegrityHandler,
   [REVIEW_QUEUE_METHOD]: reviewQueueHandler,
   [USAGE_SUMMARY_METHOD]: usageSummaryHandler,
+  [USAGE_HISTORY_METHOD]: usageHistoryHandler,
   [ESTIMATE_METHOD]: estimateHandler,
 };
 
