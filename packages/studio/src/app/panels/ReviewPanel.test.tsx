@@ -21,6 +21,8 @@ import {
   stubRpc,
   typeInto,
 } from "../test-support.js";
+import { ValueReplaceHost } from "../ValueReplaceHost.js";
+import { openValueReplace } from "../value-replace-session.js";
 import { ReviewPanel } from "./ReviewPanel.js";
 
 vi.mock("../api.js", () => import("../test-support.js").then((module) => module.apiMock()));
@@ -1157,6 +1159,43 @@ describe("ReviewPanel: keyboard queue", () => {
 
     expect(rpcCalls.some((call) => call.method === "review.approve")).toBe(false);
     expect(activeRowKey(view)).toBe("checkout.title");
+  });
+
+  it("pauses the queue shortcuts while the search and replace dialog is open over it", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(
+      <>
+        <ReviewPanel refreshToken={0} />
+        <ValueReplaceHost refreshToken={0} />
+      </>,
+    );
+    act(() => openValueReplace(["de"], null));
+    await flush();
+
+    pressKey("j");
+    pressKey("a");
+    await flush();
+
+    expect(rpcCalls.some((call) => call.method === "review.approve")).toBe(false);
+    expect(activeRowKey(view)).toBeNull();
+  });
+
+  it("opens no second modal on ? while the search and replace dialog is open", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(
+      <>
+        <ReviewPanel refreshToken={0} />
+        <ValueReplaceHost refreshToken={0} />
+      </>,
+    );
+    act(() => openValueReplace(["de"], null));
+    await flush();
+
+    pressKey("?");
+    await flush();
+
+    expect(view.all('[aria-modal="true"]')).toHaveLength(1);
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Search and replace");
   });
 
   it("offers no row shortcut when the session may not write to disk", async () => {

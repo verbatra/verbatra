@@ -79,10 +79,19 @@ function shortcutTargetOf(target: EventTarget | null): ShortcutTargetShape | nul
   };
 }
 
+function modalsOpen(): number {
+  return document.querySelectorAll('[aria-modal="true"]').length;
+}
+
 export function useReviewShortcuts(
   enabled: boolean,
   onAction: (action: ReviewShortcutAction) => void,
+  ownModalOpen = false,
 ): void {
+  const ownRef = useRef(ownModalOpen);
+  useLayoutEffect(() => {
+    ownRef.current = ownModalOpen;
+  });
   const handler = useRef(onAction);
   useLayoutEffect(() => {
     handler.current = onAction;
@@ -92,6 +101,9 @@ export function useReviewShortcuts(
       return;
     }
     function onKeyDown(event: KeyboardEvent): void {
+      if (modalsOpen() > (ownRef.current ? 1 : 0)) {
+        return;
+      }
       const action = resolveReviewShortcut({
         key: event.key,
         ctrlKey: event.ctrlKey,
