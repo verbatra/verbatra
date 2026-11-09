@@ -58,6 +58,7 @@ export {
   renderIcuMessage,
   renderPreparedIcuMessage,
 } from "./icu/render.js";
+export { icuStructureChanges } from "./icu/structure.js";
 export { createIniAdapter } from "./ini/ini-adapter.js";
 export type { DeriveEntry, KeyMode } from "./json/flatten.js";
 export type { JsonLeaf, JsonRecord, JsonTree } from "./json/json-tree.js";

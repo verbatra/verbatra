@@ -11,7 +11,7 @@ const COVERED_BY: Readonly<Record<string, readonly string[]>> = {
   "flow/markup-verdict.ts": ["markup-verdict.test.ts"],
   "flow/locale-run.ts": ["integrity-gate-agreement.test.ts"],
   "flow/apply-entry-edits.ts": ["integrity-gate-agreement.test.ts"],
-  "flow/value-replace.ts": ["value-replace.test.ts"],
+  "flow/value-replace-evaluate.ts": ["value-replace.test.ts"],
   "flow/retranslate-entry.ts": ["integrity-gate-agreement.test.ts"],
   "flow/workbook/import-locale.ts": ["integrity-gate-agreement.test.ts"],
   "flow/plural-generation.ts": ["plural-generation.markup.test.ts"],

@@ -9,7 +9,11 @@ import { updateLockFileLocale } from "../lock/lock-file.js";
 import { settleProvenance } from "../lock/provenance-file.js";
 import { readTarget } from "./diff-locales.js";
 import type { EditEntryActor } from "./edit-entry.js";
-import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import {
+  gateCandidateValue,
+  type IntegrityGateReason,
+  type IntegrityGateRejection,
+} from "./integrity-gate.js";
 import { writeTargetResource } from "./write-target.js";
 
 export interface EntryEdit {
@@ -31,6 +35,7 @@ export interface EntryEditsContext {
 
 export interface EntryEditsOptions {
   readonly freshProvenance?: boolean;
+  readonly extraGate?: (edit: EntryEdit) => IntegrityGateRejection | undefined;
 }
 
 export type EntryEditOutcome =
@@ -95,11 +100,12 @@ async function applyEntryEditsInLock(
   const accepted: EntryEdit[] = [];
   for (const edit of edits) {
     const gate = gateCandidateValue(edit.sourceEntry, edit.value, adapter, locale);
-    if (gate.accepted) {
+    const refusal = gate.accepted ? options.extraGate?.(edit) : gate;
+    if (refusal === undefined) {
       accepted.push(edit);
       outcomes.push({ accepted: true, value: edit.value });
     } else {
-      outcomes.push(refusalOutcome(gate, edit.value));
+      outcomes.push(refusalOutcome(refusal, edit.value));
     }
   }
   if (accepted.length === 0) {

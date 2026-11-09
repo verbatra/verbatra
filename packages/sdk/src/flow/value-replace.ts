@@ -18,7 +18,7 @@ import { projectRelativeMessage } from "../project-relative.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { applyEntryEdits, type EntryEdit, type EntryEditOutcome } from "./apply-entry-edits.js";
 import type { EditEntryActor } from "./edit-entry.js";
-import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import type { IntegrityGateReason } from "./integrity-gate.js";
 import { isWellFormedText } from "./literal-match.js";
 import {
   carryOverBeforeWrite,
@@ -32,12 +32,14 @@ import { readSourceResource } from "./source.js";
 import {
   evaluateBeforeGate,
   excerptAround,
+  judgeReplacement,
   type LocaleFacts,
   MAX_REPLACE_VALUE_LENGTH,
   type PreGate,
   type ReplaceAllowance,
   type ReplaceCriteria,
   staleKeysOf,
+  structureRefusal,
 } from "./value-replace-evaluate.js";
 
 const PREVIEW_ENTRY_CAP = 1_000;
@@ -277,13 +279,13 @@ function previewEntry(
   if (pre.verdict !== "candidate") {
     return { ...base, status: pre.verdict };
   }
-  const gate = gateCandidateValue(pre.sourceEntry, pre.newValue, facts.adapter, locale);
-  if (!gate.accepted) {
+  const refusal = judgeReplacement(facts, pre.sourceEntry, locale, current, pre.newValue);
+  if (refusal !== undefined) {
     return {
       ...base,
       status: "gate-refused",
-      reason: gate.reason,
-      ...(gate.details !== undefined ? { details: gate.details } : {}),
+      reason: refusal.reason,
+      ...(refusal.details !== undefined ? { details: refusal.details } : {}),
     };
   }
   return { ...base, status: pre.stale ? "stale-source" : "ready" };
@@ -526,7 +528,11 @@ async function applyLocaleInLock(
   const outcomes = await applyEntryEdits(
     { cwd, config, adapter, fs, locale, target },
     pending.map((item) => item.edit),
-    { freshProvenance: true },
+    {
+      freshProvenance: true,
+      extraGate: (edit) =>
+        structureRefusal(adapter, target.entries.get(edit.key)?.value ?? "", edit.value),
+    },
   );
   pending.forEach(({ indexed, edit }, position) => {
     results[indexed.index] = appliedOutcome(

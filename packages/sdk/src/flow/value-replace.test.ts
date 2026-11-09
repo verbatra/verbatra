@@ -1198,4 +1198,66 @@ describe("applyValueReplace: ICU and markup", () => {
       "{count, plural, one {# Posten} other {# Eintraege}}",
     );
   });
+
+  describe("a replacement that changes what an ICU argument does", () => {
+    const cases = [
+      {
+        name: "drops the # of a plural arm",
+        source: "{n, plural, one {# item} other {# items}}",
+        target: "{n, plural, one {# Stueck} other {# Stuecke}}",
+        find: "#",
+        replace: "",
+        details: ["-#:>n:one", "-#:>n:other"],
+      },
+      {
+        name: "changes the currency of a number skeleton",
+        source: "{n, number, ::currency/USD}",
+        target: "{n, number, ::currency/USD}",
+        find: "USD",
+        replace: "EUR",
+        details: [/^\+number:n:::/, /^-number:n:::/],
+      },
+      {
+        name: "changes the style of a date",
+        source: "{d, date, short}",
+        target: "{d, date, short}",
+        find: "short",
+        replace: "full",
+        details: ["+date:d:full", "-date:d:short"],
+      },
+    ];
+
+    it.each(cases)(
+      "refuses a replacement that $name, in the preview and under the lock",
+      async (c) => {
+        const p = await icu({ a: c.source }, { a: c.target });
+
+        const listed = await preview(p, c.find, c.replace);
+        const result = await apply(p, c.find, c.replace, [
+          { locale: "de", key: "a", valueHash: valueHash(c.target) },
+        ]);
+
+        expect(listed.entries[0]).toMatchObject({ status: "gate-refused", reason: "icu" });
+        expect(listed.entries[0]?.details).toEqual(
+          c.details.map((detail) =>
+            typeof detail === "string" ? detail : expect.stringMatching(detail),
+          ),
+        );
+        expect(result.outcomes[0]).toMatchObject({ status: "refused", reason: "icu" });
+        expect(result.counts.refused).toBe(1);
+        expect((await readLocale(p.dir, "de")).a).toBe(c.target);
+      },
+    );
+
+    it("leaves a format that is not ICU alone", async () => {
+      const p = await project({
+        source: { a: "Total {n, number, ::currency/USD}" },
+        targets: { de: { a: "Summe {n, number, ::currency/USD}" } },
+      });
+
+      const listed = await preview(p, "USD", "EUR");
+
+      expect(listed.entries[0]?.status).toBe("ready");
+    });
+  });
 });

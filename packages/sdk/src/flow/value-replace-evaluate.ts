@@ -1,5 +1,6 @@
 import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
-import type { FormatAdapter } from "@verbatra/format-adapters";
+import { type FormatAdapter, icuStructureChanges } from "@verbatra/format-adapters";
+import { gateCandidateValue, type IntegrityGateRejection } from "./integrity-gate.js";
 import {
   findLiteralMatches,
   type LiteralMatch,
@@ -7,11 +8,12 @@ import {
   replaceMatches,
   splitsSurrogatePair,
 } from "./literal-match.js";
+import { isIcuMessageFormat } from "./message-arguments.js";
 import {
   isPinned,
+  originProtectionFor,
   type ProtectionPolicy,
   type ProvenanceView,
-  protectionFor,
 } from "./protection.js";
 
 export const MAX_REPLACE_VALUE_LENGTH = 20_000;
@@ -54,7 +56,28 @@ export type PreGate =
       readonly sourceEntry: TranslationEntry;
     });
 
-const PROTECT_ORIGINS: ProtectionPolicy = { humanEdits: "protect", pinnedKeys: [] };
+export function structureRefusal(
+  adapter: FormatAdapter,
+  current: string,
+  replaced: string,
+): IntegrityGateRejection | undefined {
+  if (!isIcuMessageFormat(adapter.format)) {
+    return undefined;
+  }
+  const changes = icuStructureChanges(current, replaced);
+  return changes.length === 0 ? undefined : { accepted: false, reason: "icu", details: changes };
+}
+
+export function judgeReplacement(
+  facts: LocaleFacts,
+  sourceEntry: TranslationEntry,
+  locale: string,
+  current: string,
+  replaced: string,
+): IntegrityGateRejection | undefined {
+  const gate = gateCandidateValue(sourceEntry, replaced, facts.adapter, locale);
+  return gate.accepted ? structureRefusal(facts.adapter, current, replaced) : gate;
+}
 
 function settle(
   facts: LocaleFacts,
@@ -74,7 +97,7 @@ function settle(
   if (!allow.pinned && isPinned(facts.policy, key)) {
     return { ...base, verdict: "pinned", newValue };
   }
-  if (!allow.protected && protectionFor(PROTECT_ORIGINS, facts.provenance, key, current)) {
+  if (!allow.protected && originProtectionFor(facts.policy, facts.provenance, key, current)) {
     return { ...base, verdict: "protected", newValue };
   }
   if (newValue === undefined) {
