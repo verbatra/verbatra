@@ -12,7 +12,7 @@ import {
 } from "../lock/locale-write-lock.js";
 import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { selectAdapter } from "../selection/select-adapter.js";
-import { applyEntryEdits } from "./apply-entry-edits.js";
+import { applyEntryEdit } from "./apply-entry-edits.js";
 import type { IntegrityGateReason } from "./integrity-gate.js";
 import { carryOverBeforeWrite } from "./locale-carry-over.js";
 import { assertNotPinned, protectionPolicy } from "./protection.js";
@@ -192,8 +192,9 @@ export async function editEntry(
     cwd,
     writeLockKeyFor(config.format, locale),
     fs,
-    async () => {
-      const [outcome] = await applyEntryEdits({ cwd, config, adapter, fs, locale }, [
+    () =>
+      applyEntryEdit(
+        { cwd, config, adapter, fs, locale },
         {
           key: input.key,
           sourceEntry,
@@ -201,9 +202,7 @@ export async function editEntry(
           origin: input.actor ?? "human",
           stale: false,
         },
-      ]);
-      return outcome;
-    },
+      ),
     writeLockOptions(input),
   );
 }

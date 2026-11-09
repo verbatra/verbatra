@@ -41,6 +41,7 @@ export interface LocaleFacts {
 }
 
 interface PreGateBase {
+  readonly current: string;
   readonly matchStart: number;
   readonly stale: boolean;
 }
@@ -127,6 +128,7 @@ export function evaluateBeforeGate(
       ? undefined
       : replaceMatches(current, matches, criteria.replace);
   return settle(facts, allow, key, current, newValue, {
+    current,
     matchStart: first.start,
     stale: facts.staleKeys.has(key),
   });

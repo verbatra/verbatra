@@ -481,18 +481,15 @@ function groupByLocale(entries: readonly ValueReplaceEntryRef[]): Map<string, In
   return groups;
 }
 
-interface PendingEdit {
+interface ReplaceEdit extends EntryEdit {
   readonly indexed: IndexedRef;
-  readonly edit: EntryEdit;
+  readonly current: string;
 }
 
-function appliedOutcome(
-  ref: ValueReplaceEntryRef,
-  outcome: EntryEditOutcome,
-  stale: boolean,
-): ValueReplaceOutcome {
+function appliedOutcome(edit: ReplaceEdit, outcome: EntryEditOutcome): ValueReplaceOutcome {
+  const { ref } = edit.indexed;
   if (outcome.accepted) {
-    return { locale: ref.locale, key: ref.key, status: "applied", staleSource: stale };
+    return { locale: ref.locale, key: ref.key, status: "applied", staleSource: edit.stale };
   }
   return {
     locale: ref.locale,
@@ -523,7 +520,7 @@ async function applyLocaleInLock(
     provenance: await readProvenanceView(policy, cwd, fs, locale),
   };
 
-  const pending: PendingEdit[] = [];
+  const pending: ReplaceEdit[] = [];
   for (const indexed of refs) {
     const { ref } = indexed;
     const current = target.entries.get(ref.key)?.value;
@@ -540,35 +537,22 @@ async function applyLocaleInLock(
     } else {
       pending.push({
         indexed,
-        edit: {
-          key: ref.key,
-          sourceEntry: pre.sourceEntry,
-          value: pre.newValue,
-          origin: input.actor,
-          stale: pre.stale,
-        },
+        current: pre.current,
+        key: ref.key,
+        sourceEntry: pre.sourceEntry,
+        value: pre.newValue,
+        origin: input.actor,
+        stale: pre.stale,
       });
     }
   }
-  if (pending.length === 0) {
-    return;
-  }
-  const outcomes = await applyEntryEdits(
-    { cwd, config, adapter, fs, locale, target },
-    pending.map((item) => item.edit),
-    {
-      freshProvenance: true,
-      extraGate: (edit) =>
-        structureRefusal(adapter, target.entries.get(edit.key)?.value ?? "", edit.value),
-    },
-  );
-  pending.forEach(({ indexed, edit }, position) => {
-    results[indexed.index] = appliedOutcome(
-      indexed.ref,
-      outcomes[position] as EntryEditOutcome,
-      edit.stale,
-    );
+  const judged = await applyEntryEdits({ cwd, config, adapter, fs, locale, target }, pending, {
+    freshProvenance: true,
+    extraGate: (edit) => structureRefusal(adapter, edit.current, edit.value),
   });
+  for (const { edit, outcome } of judged) {
+    results[edit.indexed.index] = appliedOutcome(edit, outcome);
+  }
 }
 
 function markDuplicates(

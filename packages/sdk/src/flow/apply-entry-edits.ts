@@ -33,9 +33,9 @@ export interface EntryEditsContext {
   readonly target?: LocaleResource;
 }
 
-export interface EntryEditsOptions {
+export interface EntryEditsOptions<E extends EntryEdit> {
   readonly freshProvenance?: boolean;
-  readonly extraGate?: (edit: EntryEdit) => IntegrityGateRejection | undefined;
+  readonly extraGate?: (edit: E) => IntegrityGateRejection | undefined;
 }
 
 export type EntryEditOutcome =
@@ -76,42 +76,61 @@ interface TranslationMemoryAddition {
   readonly source: string;
 }
 
-export type EntryEditOutcomes<E extends readonly EntryEdit[]> = {
-  readonly [K in keyof E]: EntryEditOutcome;
-};
-
-export async function applyEntryEdits<const E extends readonly EntryEdit[]>(
-  context: EntryEditsContext,
-  edits: E,
-  options: EntryEditsOptions = {},
-): Promise<EntryEditOutcomes<E>> {
-  return (await applyEntryEditsInLock(context, edits, options)) as unknown as EntryEditOutcomes<E>;
+export interface JudgedEdit<E extends EntryEdit> {
+  readonly edit: E;
+  readonly outcome: EntryEditOutcome;
 }
 
-async function applyEntryEditsInLock(
+function judgeEdit<E extends EntryEdit>(
   context: EntryEditsContext,
-  edits: readonly EntryEdit[],
-  options: EntryEditsOptions,
-): Promise<readonly EntryEditOutcome[]> {
+  edit: E,
+  options: EntryEditsOptions<E>,
+): EntryEditOutcome {
+  const gate = gateCandidateValue(edit.sourceEntry, edit.value, context.adapter, context.locale);
+  const refusal = gate.accepted ? options.extraGate?.(edit) : gate;
+  return refusal === undefined
+    ? { accepted: true, value: edit.value }
+    : refusalOutcome(refusal, edit.value);
+}
+
+async function readTargetOf(context: EntryEditsContext): Promise<LocaleResource> {
   const { cwd, config, adapter, fs, locale } = context;
-  const target = context.target ?? (await readTarget(cwd, config, adapter, fs, locale));
+  return context.target ?? (await readTarget(cwd, config, adapter, fs, locale));
+}
 
-  const outcomes: EntryEditOutcome[] = [];
-  const accepted: EntryEdit[] = [];
-  for (const edit of edits) {
-    const gate = gateCandidateValue(edit.sourceEntry, edit.value, adapter, locale);
-    const refusal = gate.accepted ? options.extraGate?.(edit) : gate;
-    if (refusal === undefined) {
-      accepted.push(edit);
-      outcomes.push({ accepted: true, value: edit.value });
-    } else {
-      outcomes.push(refusalOutcome(refusal, edit.value));
-    }
+export async function applyEntryEdit(
+  context: EntryEditsContext,
+  edit: EntryEdit,
+): Promise<EntryEditOutcome> {
+  const target = await readTargetOf(context);
+  const outcome = judgeEdit(context, edit, {});
+  if (outcome.accepted) {
+    await writeAcceptedEdits(context, target, [edit], false);
   }
-  if (accepted.length === 0) {
-    return outcomes;
-  }
+  return outcome;
+}
 
+export async function applyEntryEdits<E extends EntryEdit>(
+  context: EntryEditsContext,
+  edits: readonly E[],
+  options: EntryEditsOptions<E> = {},
+): Promise<readonly JudgedEdit<E>[]> {
+  const target = await readTargetOf(context);
+  const judged = edits.map((edit) => ({ edit, outcome: judgeEdit(context, edit, options) }));
+  const accepted = judged.filter(({ outcome }) => outcome.accepted).map(({ edit }) => edit);
+  if (accepted.length > 0) {
+    await writeAcceptedEdits(context, target, accepted, options.freshProvenance === true);
+  }
+  return judged;
+}
+
+async function writeAcceptedEdits(
+  context: EntryEditsContext,
+  target: LocaleResource,
+  accepted: readonly EntryEdit[],
+  freshProvenance: boolean,
+): Promise<void> {
+  const { cwd, config, adapter, fs, locale } = context;
   const merged = new Map(target.entries);
   for (const edit of accepted) {
     merged.set(edit.key, { ...edit.sourceEntry, value: edit.value, namespace: target.namespace });
@@ -138,7 +157,7 @@ async function applyEntryEditsInLock(
     fs,
     locale,
     { mode: "merge", entries: lockEntries },
-    options.freshProvenance === true
+    freshProvenance
       ? { ...provenance, replace: new Set(accepted.map((edit) => edit.key)) }
       : provenance,
   );
@@ -149,6 +168,4 @@ async function applyEntryEditsInLock(
     fingerprintsFor(config),
     new Map(current.length === 0 ? [] : [[locale, memoryAdditions(current)]]),
   );
-
-  return outcomes;
 }

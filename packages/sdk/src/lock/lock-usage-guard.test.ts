@@ -37,7 +37,7 @@ describe("static proof: every updateLockFileLocale caller also holds withLocaleW
     expect(offenders).toEqual([]);
   });
 
-  it("holds for every caller of applyEntryEdits, which updates the lock-file inside the caller's lock", async () => {
+  it("holds for every caller of applyEntryEdit and applyEntryEdits, which updates the lock-file inside the caller's lock", async () => {
     const files = await listSourceFiles(SDK_SRC);
     const callers: string[] = [];
     const offenders: string[] = [];
@@ -46,7 +46,7 @@ describe("static proof: every updateLockFileLocale caller also holds withLocaleW
         continue;
       }
       const content = await readFile(file, "utf8");
-      if (content.includes("applyEntryEdits(")) {
+      if (/\bapplyEntryEdits?\(/.test(content)) {
         callers.push(relative(SDK_SRC, file));
         if (!content.includes("withLocaleWriteLock(")) {
           offenders.push(relative(SDK_SRC, file));

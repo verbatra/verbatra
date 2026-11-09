@@ -66,12 +66,12 @@ describe("applyEntryEdits", () => {
     );
     const { fs, writes } = countingFs();
 
-    const outcomes = await applyEntryEdits(
+    const judged = await applyEntryEdits(
       { cwd: dir, config, adapter: adapterFor(fs), fs, locale: "de" },
       keys.map((key) => edit(key, `Source ${key}`, `Neu ${key}`)),
     );
 
-    expect(outcomes.every((outcome) => outcome.accepted)).toBe(true);
+    expect(judged.every(({ outcome }) => outcome.accepted)).toBe(true);
     expect(writes.filter((name) => name === "de.json")).toHaveLength(1);
     expect(writes.filter((name) => name === "verbatra.lock.json")).toHaveLength(1);
     expect(writes.filter((name) => name === "verbatra.provenance.json")).toHaveLength(1);
@@ -84,7 +84,7 @@ describe("applyEntryEdits", () => {
     const dir = await project({ a: "Hello {{name}}", b: "Bye" }, { a: "alt", b: "alt" });
     const fs = defaultFs;
 
-    const outcomes = await applyEntryEdits(
+    const judged = await applyEntryEdits(
       { cwd: dir, config, adapter: adapterFor(fs), fs, locale: "de" },
       [
         {
@@ -94,6 +94,8 @@ describe("applyEntryEdits", () => {
         edit("b", "Bye", "Tschuess"),
       ],
     );
+    const outcomes = judged.map(({ outcome }) => outcome);
+    expect(judged.map(({ edit: judgedEdit }) => judgedEdit.key)).toEqual(["a", "b"]);
 
     expect(outcomes[0]).toMatchObject({ accepted: false, reason: "placeholder", value: "Hallo" });
     expect(outcomes[1]).toEqual({ accepted: true, value: "Tschuess" });
@@ -105,12 +107,12 @@ describe("applyEntryEdits", () => {
     const dir = await project({ a: "Hello" }, { a: "alt" });
     const { fs, writes } = countingFs();
 
-    const outcomes = await applyEntryEdits(
+    const judged = await applyEntryEdits(
       { cwd: dir, config, adapter: adapterFor(fs), fs, locale: "de" },
       [edit("a", "Hello", "   ")],
     );
 
-    expect(outcomes[0]).toMatchObject({ accepted: false, reason: "empty" });
+    expect(judged[0]?.outcome).toMatchObject({ accepted: false, reason: "empty" });
     expect(writes).toEqual([]);
   });
 
