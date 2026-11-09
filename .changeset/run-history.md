@@ -1,0 +1,12 @@
+---
+"@verbatra/sdk": minor
+"@verbatra/mcp": minor
+---
+
+Keep a local history of finished runs, with the cost frozen at the rates of the day, and read it with `runHistory` and the `usage.history` MCP tool.
+
+- **What gets recorded:** every `translate`, `watch`, Studio or MCP translate-pending run, `retranslateEntry` call and `retranslateEntries` batch that changed something adds one record to `.verbatra-local/run-history.jsonl`: the time, what triggered it, the provider and model, the token usage, the cost, and per locale the counts of translated keys, cache hits, fuzzy hits, generated plural forms, pruned keys, integrity refusals and provider failures. A record holds counts only, never a key name or a text, and the file stays out of git. A dry run is not recorded, a run that changed nothing (a `watch` cycle with nothing to do) is not recorded, and a batch of retranslations is one record. The newest 1,000 are kept.
+- **Cost is frozen:** the `rates` the config held when the run ended are applied then and stored with their currency and `asOf` date, so a later rate change never rewrites an old run. Token-billed providers are priced from the usage they reported. DeepL and Google Cloud Translation report none, so their cost is an estimate from the source characters sent, marked `source-characters`, with the same caveats as `--estimate`; keys the provider failed on are not counted. With no rate on file the record says so (`no-rate-on-file`, `rate-unit-mismatch`, `not-billed`) instead of showing zero.
+- **Coverage:** after the run, one `check` over the locales it touched adds `missing`, `stale` and `upToDate` to each locale. When that pass fails the record says `coverageUnavailable` and still lands.
+- **Reading it:** `runHistory({ cwd, limit })` returns the newest records first (50 by default, 200 at most), the number of records the file holds, `unreadableRecords` for lines it could not read, and `unavailable` when the whole file could not be read. `usage.history` returns the same to an MCP client, read-only, with an output schema in both value modes. The result schema is published as `run-history-result.json`.
+- **Never in the way of a run:** a bad line is dropped alone and counted, and the next record rewrites the file without it. The write waits at most three seconds for the lock-file guard and gives up silently, so a held guard or an unwritable `.verbatra-local` never fails or stalls a finished run. `verbatra doctor --data-flow` counts the history under the local state directory, which still holds no translations.

@@ -106,6 +106,14 @@ Describe un `ExportTmxResult`, el `result` de [`exportTmx`](/es/docs/sdk/exchang
 const exportTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
 ```
 
+### runHistoryResultSchema
+
+Describe un `RunHistoryResult`, el resultado de [`runHistory`](/es/docs/sdk/history#runhistory). Se publica como `run-history-result.json`.
+
+```ts title="Firma"
+const runHistoryResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
 ## Esquemas compartidos
 
 ### localeSummarySchema

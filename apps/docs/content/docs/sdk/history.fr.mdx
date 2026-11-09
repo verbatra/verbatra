@@ -34,3 +34,28 @@ Les commits viennent de `git log --first-parent` sur le fichier de la locale (et
 Git donne les tailles avant que quoi que ce soit soit analysé, donc le même dépôt prend les mêmes décisions sur les limites de taille et les budgets sur chaque machine ; un appel git qui expire, le délai de 30 secondes et les clés de fournisseur de l'environnement (qui décident de ce qui est masqué) peuvent encore changer une réponse. Un fichier de locale de plus de 512 Kio pour `yaml` et les formats XML (`xliff`, `android-xml`, `resx`, `apple-strings`) ou de plus de 4 Mio pour les autres formats est ignoré sans être analysé, et les deux fichiers d'un commit `apple-strings` comptent comme leur somme. Un appel lit au plus 16 Mio de fichiers de locale pour `yaml` et les formats XML et 128 Mio pour les autres : les commits plus anciens au-delà ne sont pas examinés. Un lock-file ou un fichier de provenance de plus de 4 Mio n'est pas lu, et un appel en lit au plus 128 Mio ensemble : au-delà, les révisions plus anciennes n'ont pas d'`origin` et `sourceChanged` vaut `"unknown"`. Le fichier source est lu jusqu'à la même taille que les fichiers de locale. L'analyse rend la main à la boucle d'événements entre les fichiers. Un commit ignoré à cause de sa taille, illisible ou qui ne s'analyse pas, dont la ligne de log ne s'est pas analysée, ou dont la valeur dépasse `KEY_HISTORY_MAX_VALUE_CHARS` (`4096`) caractères, compte dans `unreadableRevisions` et n'est jamais renvoyé en partie ; un commit au-delà d'un budget n'est pas examiné et ne compte pas. `key` fait au plus `KEY_HISTORY_MAX_KEY_CHARS` (`1024`) caractères et n'atteint jamais git. `workingTree` porte la valeur sur le disque, avec son `diff`, quand elle diffère de `HEAD`. Quand la valeur sur le disque ne peut pas être comparée à `HEAD` (le fichier ne s'analyse pas, comme pendant un conflit de merge, c'est un lien symbolique ou il dépasse sa limite, sa valeur est trop longue, la copie dans `HEAD` n'a pas pu être lue, ou le temps a manqué), les révisions sont quand même listées et `workingTreeUnreadable` vaut `true`.
 
 Les renommages ne sont pas suivis, donc l'historique d'avant un renommage n'est pas listé ; les modifications jamais commitées ne sont pas vues, et une clé renommée dans la source paraît nouvelle. Les garde-fous git sont ceux de `localeGitStatus`, et le résultat est `{ available: false, reason }` avec une raison de `LOCALE_GIT_UNAVAILABLE_REASONS`, `custom-adapter` compris pour un format `custom:`.
+
+## Historique des exécutions
+
+### runHistory
+
+Lit `.verbatra-local/run-history.jsonl`, où chaque exécution de `translate`, `watch`, `retranslateEntry` et `retranslateEntries` qui a changé quelque chose laisse un enregistrement. Elle n'écrit rien, n'appelle aucun fournisseur et ne lève rien.
+
+```ts title="Signature"
+function runHistory(
+  input?: RunHistoryInput,
+  deps?: RunHistoryDeps,
+): Promise<RunHistoryResult>;
+```
+
+<SdkTypeTable name="RunHistoryInput" />
+
+**Renvoie :** `RunHistoryResult`
+
+`records` arrivent du plus récent au plus ancien, au plus `limit` (`RUN_HISTORY_DEFAULT_LIMIT` vaut 50, `RUN_HISTORY_MAX_LIMIT` vaut 200 ; toute autre valeur est bornée). Chaque enregistrement porte l'heure, le `trigger` (`translate` ou `retranslate`), le fournisseur et le modèle, l'`usage` de tokens, le `cost` et, par locale, les nombres de clés traduites, de succès de cache, de succès approchants, de formes de pluriel générées, de clés élaguées, de refus d'intégrité et d'échecs du fournisseur. Un enregistrement ne contient jamais un nom de clé ni un texte. Une exécution à blanc n'est pas enregistrée, ni une exécution qui n'a rien changé, comme un cycle de `watch` sans travail. Un lot de retraductions fait un enregistrement, et le fichier garde les 1 000 plus récents.
+
+`cost` est figé à la fin de l'exécution, d'après les `rates` que la config contenait alors. `pricing` `priced` ajoute `currency`, `asOf` et `amount` ; `no-rate-on-file`, `rate-unit-mismatch` et `not-billed` ne portent aucun montant, ce qui veut dire pas de tarif, pas gratuit. `basis` (l'une de `RUN_COST_BASES`) `usage` est le nombre de tokens du fournisseur. `source-characters` est une estimation pour DeepL et Google Cloud Translation, qui ne signalent aucune consommation : les caractères source des clés envoyées, sans les succès de cache, avec les clés refusées et sans les clés en échec, avec des `caveats` qui nomment ce qu'elle laisse de côté.
+
+Après l'exécution, un `check` sur les locales touchées fixe la `coverage` de chacune (`missing`, `stale`, `upToDate`). Une locale sans elle n'a pas été mesurée, et `coverageUnavailable` indique que la passe a échoué.
+
+`unreadableRecords` compte les lignes qui n'ont pas pu être lues et ont été écartées ; la prochaine exécution enregistrée réécrit le fichier sans elles. `unavailable` (l'une de `RUN_HISTORY_UNAVAILABLE_REASONS` : `unreadable`, `too-large` au-delà de 8 MiB ou `not-utf8`) indique que le fichier entier n'a pas pu être lu, donc une liste vide ne prouve pas que rien n'a tourné.

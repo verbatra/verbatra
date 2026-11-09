@@ -4,6 +4,7 @@ import type { FormatId } from "@verbatra/core";
 import { cancelledError, isCancelled, signalField } from "../cancellation.js";
 import { errorMessage, SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
+import { LOCAL_DIR_NAME } from "../local-dir.js";
 import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
 import {
   currentHostLiveness,
@@ -31,8 +32,6 @@ import {
 } from "./lock-ownership.js";
 
 export { assertLocksHeld } from "./lock-ownership.js";
-
-const LOCAL_DIR_NAME = ".verbatra-local";
 
 const LOCK_FILE_GUARD_STEM = "_lockfile";
 

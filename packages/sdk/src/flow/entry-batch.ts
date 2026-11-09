@@ -12,9 +12,14 @@ import {
 } from "../lock/locale-write-lock.js";
 import { redact } from "../redact.js";
 import {
+  newRetranslateSpend,
+  type RetranslateSpend,
+  recordRetranslations,
+} from "../run-history/retranslate-draft.js";
+import {
   type RetranslateEntryDeps,
   type RetranslateEntryResult,
-  retranslateEntry,
+  retranslateEntryTracked,
 } from "./retranslate-entry.js";
 import {
   approveEntry,
@@ -443,10 +448,13 @@ export async function retranslateEntries(
 ): Promise<RetranslateEntriesResult> {
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const cwd = projectCwd(input);
+  const spends: RetranslateSpend[] = [];
   const results = await runEntries(
     input.entries,
     async (entry) => {
-      const result = await retranslateEntry(
+      const spent = newRetranslateSpend(entry.locale);
+      spends.push(spent);
+      const result = await retranslateEntryTracked(
         {
           config: input.config,
           ...(input.cwd !== undefined ? { cwd: input.cwd } : {}),
@@ -459,10 +467,11 @@ export async function retranslateEntries(
             : {}),
         },
         deps,
+        spent,
       );
       return { locale: entry.locale, key: entry.key, ok: true as const, result };
     },
     retranslationSkips(entryLockPath(input.config, cwd)),
-  );
+  ).finally(() => recordRetranslations(input, deps, spends));
   return { results };
 }

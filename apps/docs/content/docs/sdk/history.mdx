@@ -34,3 +34,28 @@ The commits come from `git log --first-parent` on the locale file (and the `.str
 Sizes come from git before anything is parsed, so the same repository gets the same byte-limit and budget decisions on every machine; a git call that times out, the 30 second deadline and the provider keys in the environment (which decide what is scrubbed) can still change an answer. A locale file above 512 KiB for `yaml` and the XML formats (`xliff`, `android-xml`, `resx`, `apple-strings`) or above 4 MiB for the other formats is skipped unparsed, and the two files of an `apple-strings` commit count as their sum. One call reads at most 16 MiB of locale files for `yaml` and the XML formats and 128 MiB for the others: older commits past that are not examined. A lock file or provenance file above 4 MiB is not read, and one call reads at most 128 MiB of them together: past that, older revisions have no `origin` and `sourceChanged` is `"unknown"`. The source file is read up to the same size as the locale files. Parsing yields to the event loop between files. A commit skipped for its size, that cannot be read or parsed, whose log line did not parse, or whose value is longer than `KEY_HISTORY_MAX_VALUE_CHARS` (`4096`) characters, counts in `unreadableRevisions` and is never returned in part; a commit past a budget is not examined and does not count. `key` is at most `KEY_HISTORY_MAX_KEY_CHARS` (`1024`) characters and never reaches git. `workingTree` carries the value on disk, with its `diff`, when it differs from `HEAD`. When the value on disk cannot be compared with `HEAD` (the file does not parse, as during a merge conflict, is a symbolic link or is above its limit, its value is too long, the copy at `HEAD` could not be read, or time ran out) the revisions are still listed and `workingTreeUnreadable` is `true`.
 
 Renames are not followed, so history before a rename is not listed; edits that were never committed are not seen, and a key renamed in the source looks new. The git safeguards are those of `localeGitStatus`, and the result is `{ available: false, reason }` with a reason from `LOCALE_GIT_UNAVAILABLE_REASONS`, `custom-adapter` for a `custom:` format included.
+
+## Run history
+
+### runHistory
+
+Reads `.verbatra-local/run-history.jsonl`, where every `translate`, `watch`, `retranslateEntry` and `retranslateEntries` run that changed something leaves one record. It writes nothing, calls no provider and throws nothing.
+
+```ts title="Signature"
+function runHistory(
+  input?: RunHistoryInput,
+  deps?: RunHistoryDeps,
+): Promise<RunHistoryResult>;
+```
+
+<SdkTypeTable name="RunHistoryInput" />
+
+**Returns:** `RunHistoryResult`
+
+`records` come newest first, at most `limit` of them (`RUN_HISTORY_DEFAULT_LIMIT` is 50, `RUN_HISTORY_MAX_LIMIT` is 200; any other value is clamped). Each record holds the time, the `trigger` (`translate` or `retranslate`), the provider and model, token `usage`, the `cost`, and per locale the counts of translated keys, cache hits, fuzzy hits, generated plural forms, pruned keys, integrity refusals and provider failures. A record never holds a key name or a text. A dry run is not recorded, and neither is a run that changed nothing, such as a `watch` cycle with nothing to do. A batch of retranslations is one record, and the file keeps the newest 1,000.
+
+`cost` is frozen when the run ends, from the `rates` the config held then. `pricing` `priced` adds `currency`, `asOf` and `amount`; `no-rate-on-file`, `rate-unit-mismatch` and `not-billed` carry no amount, which means no rate, not free. `basis` (one of `RUN_COST_BASES`) `usage` is the provider's token count. `source-characters` is an estimate for DeepL and Google Cloud Translation, which report no usage: the source characters of the keys sent, cache hits left out, refused keys counted, failed keys not, with `caveats` naming what it leaves out.
+
+After the run, one `check` over the locales it touched sets each locale's `coverage` (`missing`, `stale`, `upToDate`). A locale without it was not measured, and `coverageUnavailable` says the pass failed.
+
+`unreadableRecords` counts lines left out because they could not be read, and the next recorded run rewrites the file without them. `unavailable` (one of `RUN_HISTORY_UNAVAILABLE_REASONS`: `unreadable`, `too-large` above 8 MiB or `not-utf8`) says the whole file could not be read, so an empty list is then not proof that nothing ran.

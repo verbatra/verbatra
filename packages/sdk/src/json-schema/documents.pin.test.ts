@@ -17,6 +17,7 @@ import type { ProvenanceReportResult } from "../flow/provenance-report.js";
 import type { provenanceReportResultSchema } from "../flow/provenance-report-schema.js";
 import type { PseudolocalizeResult } from "../flow/pseudo.js";
 import type { pseudolocalizeResultSchema } from "../flow/pseudo-schema.js";
+import type { RunHistoryResult } from "../flow/run-history.js";
 import type {
   FuzzyCacheHit,
   IntegrityRefusal,
@@ -54,6 +55,15 @@ import type { LockWaitEvent } from "../lock/locale-write-lock.js";
 import type { lockWaitEventSchema } from "../lock/lock-wait-schema.js";
 import type { progressEventSchema } from "../progress/progress-schema.js";
 import type { ProgressEvent } from "../progress/types.js";
+import type {
+  RunHistoryCost,
+  RunHistoryLocale,
+  RunHistoryRecord,
+  runHistoryCostSchema,
+  runHistoryLocaleSchema,
+  runHistoryRecordSchema,
+  runHistoryResultSchema,
+} from "../run-history/record.js";
 
 describe("every result schema is pinned both ways to the interface it describes", () => {
   it("pins the run summary and the shapes inside it", () => {
@@ -114,6 +124,17 @@ describe("every result schema is pinned both ways to the interface it describes"
     expectTypeOf<ImportTmxResult>().toExtend<z.output<typeof importTmxResultSchema>>();
     expectTypeOf<z.output<typeof exportTmxResultSchema>>().toExtend<ExportTmxResult>();
     expectTypeOf<ExportTmxResult>().toExtend<z.output<typeof exportTmxResultSchema>>();
+  });
+
+  it("pins the run history result and the record inside it", () => {
+    expectTypeOf<z.output<typeof runHistoryResultSchema>>().toExtend<RunHistoryResult>();
+    expectTypeOf<RunHistoryResult>().toExtend<z.output<typeof runHistoryResultSchema>>();
+    expectTypeOf<z.output<typeof runHistoryRecordSchema>>().toExtend<RunHistoryRecord>();
+    expectTypeOf<RunHistoryRecord>().toExtend<z.output<typeof runHistoryRecordSchema>>();
+    expectTypeOf<z.output<typeof runHistoryLocaleSchema>>().toExtend<RunHistoryLocale>();
+    expectTypeOf<RunHistoryLocale>().toExtend<z.output<typeof runHistoryLocaleSchema>>();
+    expectTypeOf<z.output<typeof runHistoryCostSchema>>().toExtend<RunHistoryCost>();
+    expectTypeOf<RunHistoryCost>().toExtend<z.output<typeof runHistoryCostSchema>>();
   });
 
   it("pins the stderr records", () => {

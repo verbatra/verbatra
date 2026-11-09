@@ -163,7 +163,11 @@ export interface DataFlowLocale {
 
 /** One file or directory verbatra writes on the local disk. */
 export interface DataFlowLocalFile {
-  /** Which file: the lock file, the provenance file, the length limits file, the translation memory, or the local state directory. */
+  /**
+   * Which file: the lock file, the provenance file, the length limits file, the translation memory,
+   * or the local state directory, which holds the run status, the run history (counts, token usage
+   * and cost per run, no key name and no text) and the write locks.
+   */
   readonly id: "lock" | "provenance" | "limits" | "cache" | "local-state";
   /** The project-relative path it is written to, with `/` separators. */
   readonly path: string;

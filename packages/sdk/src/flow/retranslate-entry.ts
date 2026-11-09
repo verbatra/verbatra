@@ -30,6 +30,11 @@ import { updateLockFileLocale } from "../lock/lock-file.js";
 import { machineAttribution } from "../lock/machine-attribution.js";
 import { type PendingProvenance, settleProvenance } from "../lock/provenance-file.js";
 import { assertProvenanceReadable } from "../lock/provenance-notice.js";
+import {
+  newRetranslateSpend,
+  type RetranslateSpend,
+  recordRetranslations,
+} from "../run-history/retranslate-draft.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import { type SensitiveGuard, sensitiveGuardFor } from "../sensitive/guard.js";
@@ -194,6 +199,7 @@ interface UnderLockContext {
   readonly policy: ProtectionPolicy;
   readonly provider: TranslationProvider;
   readonly recordLock: LocaleWriteLockOptions;
+  readonly spent: RetranslateSpend;
   readonly signal?: AbortSignal;
 }
 
@@ -216,12 +222,16 @@ async function translateOne(context: UnderLockContext) {
     }),
   );
   const value = result.values.get(context.key);
+  const usage = result.usage === undefined ? undefined : countableUsage(result.usage);
+  context.spent.answered = true;
+  context.spent.usage = usage;
   if (value === undefined && sensitiveWithheldOf(result).has(context.key)) {
     throw sensitiveWithheldError(context.key, locale);
   }
   if (value === undefined) {
     throw missingValueError(result, context.key);
   }
+  context.spent.characters = sourceEntry.value.length;
   const flag = withForeignPlaceholderReason(
     result.reviewFlags?.get(context.key),
     adapter.format,
@@ -231,7 +241,7 @@ async function translateOne(context: UnderLockContext) {
   return {
     value,
     reviewReasons: flag?.reasons ?? [],
-    ...(result.usage === undefined ? {} : { usage: countableUsage(result.usage) }),
+    ...(usage === undefined ? {} : { usage }),
   };
 }
 
@@ -312,6 +322,7 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
   const usageField = usage === undefined ? {} : { usage };
   const gate = gateCandidateValue(sourceEntry, value, adapter, locale);
   if (!gate.accepted) {
+    context.spent.outcome = "refused";
     return {
       accepted: false,
       reason: gate.reason,
@@ -322,6 +333,7 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
     };
   }
   await saveAccepted(context, target, value);
+  context.spent.outcome = "accepted";
   return { accepted: true, value, reviewReasons, ...context.limitsNotice, ...usageField };
 }
 
@@ -432,6 +444,19 @@ export async function retranslateEntry(
   input: RetranslateEntryInput,
   deps: RetranslateEntryDeps = {},
 ): Promise<RetranslateEntryResult> {
+  const spent = newRetranslateSpend(input.locale);
+  try {
+    return await retranslateEntryTracked(input, deps, spent);
+  } finally {
+    await recordRetranslations(input, deps, [spent]);
+  }
+}
+
+export async function retranslateEntryTracked(
+  input: RetranslateEntryInput,
+  deps: RetranslateEntryDeps,
+  spent: RetranslateSpend,
+): Promise<RetranslateEntryResult> {
   const config = input.config;
   assertMachineTranslationEnabled(config, "retranslating a key");
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
@@ -486,6 +511,7 @@ export async function retranslateEntry(
         policy,
         provider,
         recordLock: recordLockOptions(input),
+        spent,
         ...signalField(input.signal),
       }),
     writeLockOptions(input),

@@ -34,3 +34,28 @@ Die Commits kommen aus `git log --first-parent` über die Locale-Datei (bei `app
 Die Größen liefert Git, bevor etwas geparst wird, daher trifft dasselbe Repository auf jeder Maschine dieselben Entscheidungen zu Größengrenzen und Budgets; ein Git-Aufruf mit Timeout, die Deadline von 30 Sekunden und die Provider-Keys in der Umgebung (sie bestimmen, was bereinigt wird) können eine Antwort trotzdem ändern. Eine Locale-Datei über 512 KiB bei `yaml` und den XML-Formaten (`xliff`, `android-xml`, `resx`, `apple-strings`) oder über 4 MiB bei den übrigen Formaten wird ungeparst übersprungen, und die beiden Dateien eines `apple-strings`-Commits zählen als Summe. Ein Aufruf liest höchstens 16 MiB Locale-Dateien für `yaml` und die XML-Formate und 128 MiB für die übrigen: Ältere Commits darüber hinaus werden nicht untersucht. Eine Lock- oder Provenance-Datei über 4 MiB wird nicht gelesen, und ein Aufruf liest davon zusammen höchstens 128 MiB: Darüber hinaus haben ältere Revisionen kein `origin` und `sourceChanged` ist `"unknown"`. Die Quelldatei wird bis zur selben Größe gelesen wie die Locale-Dateien. Das Parsen gibt zwischen den Dateien die Event-Loop frei. Ein Commit, der wegen seiner Größe übersprungen wurde, sich nicht lesen oder parsen lässt, dessen Logzeile nicht parste oder dessen Wert länger als `KEY_HISTORY_MAX_VALUE_CHARS` (`4096`) Zeichen ist, zählt in `unreadableRevisions` und wird nie teilweise zurückgegeben; ein Commit hinter einem Budget wird nicht untersucht und zählt nicht. `key` hat höchstens `KEY_HISTORY_MAX_KEY_CHARS` (`1024`) Zeichen und erreicht Git nie. `workingTree` trägt den Wert auf der Platte samt `diff`, wenn er von `HEAD` abweicht. Lässt sich der Wert auf der Platte nicht mit `HEAD` vergleichen (die Datei parst nicht, etwa bei einem Merge-Konflikt, ist ein symbolischer Link oder liegt über ihrer Grenze, ihr Wert ist zu lang, die Kopie in `HEAD` ließ sich nicht lesen oder die Zeit lief ab), werden die Revisionen trotzdem gelistet und `workingTreeUnreadable` ist `true`.
 
 Umbenennungen werden nicht verfolgt, der Verlauf vor einer Umbenennung fehlt also; nie committete Änderungen sieht es nicht, und ein in der Quelle umbenannter Key wirkt neu. Die Git-Schutzmaßnahmen sind die von `localeGitStatus`, und das Ergebnis ist `{ available: false, reason }` mit einem Grund aus `LOCALE_GIT_UNAVAILABLE_REASONS`, auch `custom-adapter` bei einem `custom:`-Format.
+
+## Laufverlauf
+
+### runHistory
+
+Liest `.verbatra-local/run-history.jsonl`, in dem jeder Lauf von `translate`, `watch`, `retranslateEntry` und `retranslateEntries`, der etwas geändert hat, einen Eintrag hinterlässt. Es schreibt nichts, ruft keinen Provider auf und wirft nichts.
+
+```ts title="Signatur"
+function runHistory(
+  input?: RunHistoryInput,
+  deps?: RunHistoryDeps,
+): Promise<RunHistoryResult>;
+```
+
+<SdkTypeTable name="RunHistoryInput" />
+
+**Gibt zurück:** `RunHistoryResult`
+
+`records` kommen neueste zuerst, höchstens `limit` Stück (`RUN_HISTORY_DEFAULT_LIMIT` ist 50, `RUN_HISTORY_MAX_LIMIT` ist 200; jeder andere Wert wird begrenzt). Jeder Eintrag enthält die Zeit, den `trigger` (`translate` oder `retranslate`), Provider und Modell, den Token-`usage`, die `cost` und pro Locale die Zahl der übersetzten Keys, Cache-Treffer, Fuzzy-Treffer, erzeugten Pluralformen, entfernten Keys, Integritätsablehnungen und Provider-Fehler. Ein Eintrag enthält nie einen Key-Namen oder einen Text. Ein Trockenlauf wird nicht erfasst, ebenso wenig ein Lauf, der nichts geändert hat, etwa ein `watch`-Zyklus ohne Arbeit. Ein Stapel von Neuübersetzungen ist ein Eintrag, und die Datei behält die neuesten 1.000.
+
+`cost` wird eingefroren, wenn der Lauf endet, aus den `rates`, die die Konfiguration damals hatte. `pricing` `priced` ergänzt `currency`, `asOf` und `amount`; `no-rate-on-file`, `rate-unit-mismatch` und `not-billed` tragen keinen Betrag, das heißt kein Preis, nicht gratis. `basis` (eines aus `RUN_COST_BASES`) `usage` ist die Token-Zahl des Providers. `source-characters` ist eine Schätzung für DeepL und Google Cloud Translation, die keinen Verbrauch melden: die Quellzeichen der gesendeten Keys, ohne Cache-Treffer, mit abgelehnten Keys, ohne fehlgeschlagene, mit `caveats`, die nennen, was fehlt.
+
+Nach dem Lauf setzt ein `check` über die berührten Locales die `coverage` jeder Locale (`missing`, `stale`, `upToDate`). Eine Locale ohne sie wurde nicht gemessen, und `coverageUnavailable` sagt, dass der Durchlauf scheiterte.
+
+`unreadableRecords` zählt Zeilen, die nicht gelesen werden konnten und ausgelassen wurden; der nächste erfasste Lauf schreibt die Datei ohne sie neu. `unavailable` (eines aus `RUN_HISTORY_UNAVAILABLE_REASONS`: `unreadable`, `too-large` über 8 MiB oder `not-utf8`) sagt, dass die ganze Datei nicht gelesen werden konnte, eine leere Liste ist dann also kein Beweis, dass nichts lief.

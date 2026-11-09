@@ -560,6 +560,7 @@ const EXPECTED_SCHEMAS = {
     "export-workbook-result",
     "import-tmx-result",
     "export-tmx-result",
+    "run-history-result",
     "progress-event",
     "lock-wait-event",
   ],

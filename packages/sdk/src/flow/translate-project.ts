@@ -1,4 +1,5 @@
 import { processEnvironment } from "@verbatra/ai-providers";
+import type { LocaleResource } from "@verbatra/core";
 import type { AdapterRegistry, FormatAdapter, ReadResult } from "@verbatra/format-adapters";
 import { type FingerprintFor, fingerprintsFor } from "../cache/fingerprint.js";
 import {
@@ -52,6 +53,7 @@ import {
 } from "../lock/provenance-notice.js";
 import type { LockFile } from "../lock/types.js";
 import type { ProgressListener } from "../progress/types.js";
+import { draftFromSummary, recordRunHistory, runLeavesNoTrace } from "../run-history/record-run.js";
 import {
   buildRunStatusFile,
   runStatusFilePath,
@@ -237,6 +239,31 @@ async function recordRunStatus(
   try {
     await writeRunStatusFile(runStatusFilePath(cwd), buildRunStatusFile(summary), fs);
   } catch {}
+}
+
+async function recordTranslateHistory(
+  run: {
+    readonly config: VerbatraConfig;
+    readonly cwd: string;
+    readonly fs: SdkFs;
+    readonly deps: TranslateDeps;
+  },
+  dryRun: boolean,
+  summary: RunSummary,
+  source: LocaleResource,
+): Promise<void> {
+  if (dryRun || runLeavesNoTrace(summary)) {
+    return;
+  }
+  await recordRunHistory(
+    {
+      config: run.config,
+      cwd: run.cwd,
+      fs: run.fs,
+      adapterRegistry: run.deps.adapterRegistry,
+    },
+    draftFromSummary(summary, source, run.config),
+  );
 }
 
 interface RunCacheState {
@@ -915,6 +942,7 @@ export async function translate(
 
   await recordCacheAdditions(cwd, cache, fs);
   await recordRunStatus(cwd, dryRun, summary, fs);
+  await recordTranslateHistory({ config, cwd, fs, deps }, dryRun, summary, source.resource);
 
   return summary;
 }

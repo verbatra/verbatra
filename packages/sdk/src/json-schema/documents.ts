@@ -15,6 +15,7 @@ import { importTmxResultSchema } from "../flow/tmx/import-tmx-schema.js";
 import { exportWorkbookResultSchema } from "../flow/workbook/export-workbook-schema.js";
 import { lockWaitEventSchema } from "../lock/lock-wait-schema.js";
 import { progressEventSchema } from "../progress/progress-schema.js";
+import { runHistoryResultSchema } from "../run-history/record.js";
 
 /**
  * Where verbatra serves its JSON Schemas. `v1` tracks envelope `version: 1` and always serves the
@@ -111,6 +112,12 @@ export const SDK_JSON_SCHEMAS: readonly JsonSchemaDocument[] = [
     name: "export-tmx-result",
     title: "verbatra tmx export result",
     schema: exportTmxResultSchema,
+    io: "output",
+  },
+  {
+    name: "run-history-result",
+    title: "verbatra run history result",
+    schema: runHistoryResultSchema,
     io: "output",
   },
   {
