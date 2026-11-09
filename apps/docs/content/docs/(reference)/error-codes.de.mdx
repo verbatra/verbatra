@@ -76,6 +76,7 @@ Jeder Fehlercode mit seiner Familie und den Exit-Codes, mit denen er einen CLI-L
 | [`LOCK_TIMEOUT_INVALID`](#lock_timeout_invalid) | SDK | keiner |
 | [`PAGE_CURSOR_INVALID`](#page_cursor_invalid) | SDK | keiner |
 | [`PAGE_LIMIT_INVALID`](#page_limit_invalid) | SDK | keiner |
+| [`FIND_TEXT_INVALID`](#find_text_invalid) | SDK | keiner |
 | [`TARGET_UNWRITABLE`](#target_unwritable) | SDK | `1` oder `2` |
 | [`PSEUDO_OUTPUT_CONFLICT`](#pseudo_output_conflict) | SDK | `2` |
 | [`SOURCE_UNWRITABLE`](#source_unwritable) | SDK | `2` |
@@ -533,6 +534,13 @@ Das an `localeValuesPage` oder `provenanceReportPage` übergebene `limit` ist ke
 
 - **Ausgelöst von**: nur das SDK
 - **Nächster Schritt**: Pass a page limit that is a whole number from 1 to 1000.
+
+### FIND_TEXT_INVALID
+
+Der an `previewValueReplace` oder `applyValueReplace` übergebene `find`-Text ist leer oder länger als 20.000 Zeichen, oder `find` oder `replace` enthält ein einzelnes Surrogat ohne Partner.
+
+- **Ausgelöst von**: nur das SDK
+- **Nächster Schritt**: Pass a find text of 1 to 20000 characters, and a find and replace text with no unpaired surrogates.
 
 ### TARGET_UNWRITABLE
 

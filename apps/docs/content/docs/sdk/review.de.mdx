@@ -1,9 +1,11 @@
 ---
-title: "Bearbeiten und prüfen"
-seoTitle: "SDK: Übersetzungen bearbeiten und prüfen"
-description: "Einen Key lesen, bearbeiten, freigeben, ablehnen oder neu übersetzen, Werte gesammelt oder seitenweise lesen, oder viele Keys auf einmal prüfen."
+title: "Prüfen und neu übersetzen"
+seoTitle: "SDK: Übersetzungen prüfen und neu übersetzen"
+description: "Werte gesammelt oder seitenweise lesen, einen Key freigeben, ablehnen oder neu übersetzen, oder viele Keys auf einmal prüfen und neu übersetzen."
 type: reference
 ---
+<SdkAnchorForward />
+
 ## Operationen auf einzelnen Keys
 
 Das sind die Nahtstellen, an denen Verbatra Studio ansetzt; nutze sie, um dein eigenes
@@ -125,54 +127,6 @@ function localeGitDiff(
 **Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision)
 
 `added` und `removed` listen `{ key, value }`, `changed` listet `{ key, before, after }`, und `state` ist der Zustand der Datei oder `unchanged`; eine `conflicted` oder `unchanged` Datei listet keinen Unterschied. Die committete Datei wird mit `git cat-file blob` gelesen, nur wenn sie eine reguläre Datei von höchstens `LOCALE_GIT_BLOB_MAX_BYTES` ist. Höchstens `LOCALE_GIT_DIFF_MAX_ENTRIES` Schlüssel werden gelistet und jeder Text wird auf `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` Zeichen gekürzt; beides setzt `truncated`. Nur der Diff antwortet `custom-adapter`, bei einem `custom:`-Format oder einer `adapterRegistry`; eine fehlende Seite ist leer, eine Seite, die keine reguläre Datei ist oder sich nicht parsen lässt, liefert `revision-unreadable` oder `working-file-unreadable`. Die übrigen Gründe sind die von `localeGitStatus`.
-
-### editEntry
-
-<AvailableFrom version="0.5.0" />
-
-Schreibt eine von Hand getippte Korrektur für einen Key und eine Locale. Der Kandidatenwert
-durchläuft dasselbe Integritäts-Gate wie eine Provider-Übersetzung, bevor irgendetwas die Platte
-erreicht; bei Annahme werden die Locale-Datei und der Lock-Eintrag für diesen Key innerhalb der
-Schreibsperre dieser Locale aktualisiert. Ruft nie einen Provider auf.
-
-```ts title="Signatur"
-function editEntry(
-  input: EditEntryInput,
-  deps?: EditEntryDeps,
-): Promise<EditEntryResult>;
-```
-
-<SdkTypeTable name="EditEntryInput" />
-
-**Rückgabe:** `EditEntryResult`
-
-**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/de/docs/error-codes#unknown_key), [`KEY_PINNED`](/de/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/de/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/de/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/de/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/de/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/de/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/de/docs/error-codes#provenance_file_invalid)
-
-**Beispiel:** [Einen einzelnen Key bearbeiten und neu übersetzen](/de/docs/programmatic-api#einen-einzelnen-key-bearbeiten-und-neu-übersetzen)
-
-Gibt `{ accepted: true, value }` zurück oder
-`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`,
-wobei nichts geschrieben wird ([das Integritäts-Gate](/de/docs/translation-safety#das-integritäts-gate)).
-Baue jedes Schema über die Gründe aus dem exportierten Tupel `INTEGRITY_GATE_REASONS`. `"empty"`
-lehnt einen leeren Wert für eine Quelle mit Text ab; leere einen Key stattdessen mit dem
-`[[CLEAR]]`-Sentinel der Arbeitsmappe. Eine `placeholder`- oder `markup`-Ablehnung trägt zusätzlich
-`details`: jeden betroffenen Platzhalter oder Tag, mit `-`, wenn der Kandidat ihn weggelassen, oder
-`+`, wenn er ihn erfunden hat.
-
-Der Wert wird in `verbatra.provenance.json` mit der Herkunft `human` festgehalten; übergib
-`actor: "agent"`, wenn ein KI-Agent ihn geschrieben hat, damit der Eintrag das sagt (der Aufrufer
-behauptet es, geprüft wird es nicht). Eine beschädigte Herkunftsdatei wirft
-`PROVENANCE_FILE_INVALID`, bevor der Wert das Gate durchläuft, und nichts wird geschrieben; eine von
-einem neueren verbatra, oder eine, die der Eintrag über die Größe wachsen ließe, die verbatra
-zurückliest, bleibt unangetastet und der Wert wird ohne Eintrag geschrieben.
-
-<AvailableFrom version="0.12.0" />
-
-Mit `actor: "agent"` wirft ein Key, der auf die `pinnedKeys` der Konfiguration passt, `KEY_PINNED`, bevor etwas geschrieben wird. Die Bearbeitung eines gepinnten Keys durch einen Menschen wird angenommen.
-
-<AvailableFrom version="0.12.0" />
-
-`lockAcquireTimeoutMs` begrenzt die Wartezeit auf die Schreibsperre der Locale, bevor der Aufruf mit `LOCK_CONTENDED` scheitert (standardmäßig zehn Minuten), `onLockWait` meldet diese Wartezeit, und eine ungültige Grenze scheitert mit `LOCK_TIMEOUT_INVALID`, bevor etwas gelesen wird.
 
 ### retranslateEntry
 

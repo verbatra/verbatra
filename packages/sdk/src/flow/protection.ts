@@ -57,6 +57,18 @@ function originProtection(
     : undefined;
 }
 
+export function originProtectionFor(
+  policy: ProtectionPolicy,
+  provenance: ProvenanceView,
+  key: string,
+  value: string | undefined,
+): ProtectionReason | undefined {
+  if (!needsProvenance(policy) || value === undefined) {
+    return undefined;
+  }
+  return originProtection(provenance, key, value);
+}
+
 export function protectionFor(
   policy: ProtectionPolicy,
   provenance: ProvenanceView,
@@ -66,10 +78,7 @@ export function protectionFor(
   if (isPinned(policy, key)) {
     return "pinned";
   }
-  if (!needsProvenance(policy) || value === undefined) {
-    return undefined;
-  }
-  return originProtection(provenance, key, value);
+  return originProtectionFor(policy, provenance, key, value);
 }
 
 export function protectedKeys(

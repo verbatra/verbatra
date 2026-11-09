@@ -1,9 +1,11 @@
 ---
-title: "Edit and review"
-seoTitle: "SDK entry points to edit and review translations"
-description: "Read, edit, approve, reject and retranslate one key, read values in bulk or page by page, or review and retranslate many at once."
+title: "Review and retranslate"
+seoTitle: "SDK: review and retranslate translations"
+description: "Read values in bulk or page by page, approve, reject or retranslate one key, or review and retranslate many at once."
 type: reference
 ---
+<SdkAnchorForward />
+
 ## Single-key operations
 
 These are the seams Verbatra Studio drives; use them to build your own review tooling. Those that take
@@ -124,52 +126,6 @@ function localeGitDiff(
 **Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
 `added` and `removed` list `{ key, value }`, `changed` lists `{ key, before, after }`, and `state` is the file's state or `unchanged`; a `conflicted` or `unchanged` file lists no difference. The committed file is read with `git cat-file blob`, only if it is a regular file of at most `LOCALE_GIT_BLOB_MAX_BYTES`. At most `LOCALE_GIT_DIFF_MAX_ENTRIES` keys are listed and each text is cut to `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` characters, either sets `truncated`. Only the diff answers `custom-adapter`, for a `custom:` format or an `adapterRegistry`; a missing side is empty, one that is not a regular file or does not parse gives `revision-unreadable` or `working-file-unreadable`. The other reasons are those of `localeGitStatus`.
-
-### editEntry
-
-<AvailableFrom version="0.5.0" />
-
-Writes one human-typed correction for one key and locale. The candidate value passes the same
-integrity gate as a provider translation before anything reaches disk; on acceptance the
-locale file and the lock entry for that key are updated inside the locale's write lock. Never
-calls a provider.
-
-```ts title="Signature"
-function editEntry(
-  input: EditEntryInput,
-  deps?: EditEntryDeps,
-): Promise<EditEntryResult>;
-```
-
-<SdkTypeTable name="EditEntryInput" />
-
-**Returns:** `EditEntryResult`
-
-**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`KEY_PINNED`](/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
-
-**Example:** [Edit and retranslate a single key](/docs/programmatic-api#edit-and-retranslate-a-single-key)
-
-Returns `{ accepted: true, value }`, or
-`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` with
-nothing written ([the integrity gate](/docs/translation-safety#the-integrity-gate)). Build any
-schema over the reasons from the exported `INTEGRITY_GATE_REASONS` tuple. `"empty"` refuses a blank
-value for a source that has text; clear a key with the workbook's `[[CLEAR]]` sentinel instead. A
-`placeholder` or `markup` refusal also carries `details`: each placeholder or tag behind it,
-prefixed `-` when the candidate dropped it or `+` when it invented it.
-
-The value is recorded in `verbatra.provenance.json` with the origin `human`; pass
-`actor: "agent"` when an AI agent wrote it, so the record says so (the caller asserts it, nothing
-verifies it). A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the value is gated
-and nothing is written; one from a newer verbatra, or one the record would grow past the size
-verbatra reads back, is left untouched and the value is written without a record.
-
-<AvailableFrom version="0.12.0" />
-
-With `actor: "agent"`, a key matching the config's `pinnedKeys` throws `KEY_PINNED` before anything is written. A person's edit of a pinned key is accepted.
-
-<AvailableFrom version="0.12.0" />
-
-`lockAcquireTimeoutMs` bounds the wait for the locale's write lock before the call fails with `LOCK_CONTENDED` (ten minutes by default), `onLockWait` reports that wait, and an invalid bound fails with `LOCK_TIMEOUT_INVALID` before anything is read.
 
 ### retranslateEntry
 

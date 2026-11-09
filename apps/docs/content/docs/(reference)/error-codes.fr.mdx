@@ -76,6 +76,7 @@ Chaque code d'erreur avec sa famille et les codes de sortie avec lesquels il peu
 | [`LOCK_TIMEOUT_INVALID`](#lock_timeout_invalid) | SDK | aucun |
 | [`PAGE_CURSOR_INVALID`](#page_cursor_invalid) | SDK | aucun |
 | [`PAGE_LIMIT_INVALID`](#page_limit_invalid) | SDK | aucun |
+| [`FIND_TEXT_INVALID`](#find_text_invalid) | SDK | aucun |
 | [`TARGET_UNWRITABLE`](#target_unwritable) | SDK | `1` ou `2` |
 | [`PSEUDO_OUTPUT_CONFLICT`](#pseudo_output_conflict) | SDK | `2` |
 | [`SOURCE_UNWRITABLE`](#source_unwritable) | SDK | `2` |
@@ -533,6 +534,13 @@ Le `limit` passé à `localeValuesPage` ou `provenanceReportPage` n'est pas un n
 
 - **Levé par** : le SDK uniquement
 - **Étape suivante** : Pass a page limit that is a whole number from 1 to 1000.
+
+### FIND_TEXT_INVALID
+
+Le texte `find` passé à `previewValueReplace` ou `applyValueReplace` est vide ou dépasse 20 000 caractères, ou `find` ou `replace` contient un substitut isolé sans son partenaire.
+
+- **Levé par** : le SDK uniquement
+- **Étape suivante** : Pass a find text of 1 to 20000 characters, and a find and replace text with no unpaired surrogates.
 
 ### TARGET_UNWRITABLE
 

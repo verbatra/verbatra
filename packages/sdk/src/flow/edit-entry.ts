@@ -1,12 +1,8 @@
-import { contentHash } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
-import { fingerprintsFor } from "../cache/fingerprint.js";
-import { feedTranslationMemory } from "../cache/translation-memory.js";
 import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
-import { createLocalePathResolver } from "../locale-path/resolver.js";
 import {
   assertLockAcquireTimeout,
   type LockWaitListener,
@@ -14,17 +10,14 @@ import {
   writeLockKeyFor,
   writeLockOptions,
 } from "../lock/locale-write-lock.js";
-import { updateLockFileLocale } from "../lock/lock-file.js";
-import { settleProvenance } from "../lock/provenance-file.js";
 import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { selectAdapter } from "../selection/select-adapter.js";
-import { readTarget } from "./diff-locales.js";
-import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import { applyEntryEdit } from "./apply-entry-edits.js";
+import type { IntegrityGateReason } from "./integrity-gate.js";
 import { carryOverBeforeWrite } from "./locale-carry-over.js";
 import { assertNotPinned, protectionPolicy } from "./protection.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
-import { writeTargetResource } from "./write-target.js";
 
 /** Input for {@link editEntry}. */
 export interface EditEntryInput {
@@ -199,61 +192,17 @@ export async function editEntry(
     cwd,
     writeLockKeyFor(config.format, locale),
     fs,
-    async () => {
-      const target = await readTarget(cwd, config, adapter, fs, locale);
-
-      const gate = gateCandidateValue(sourceEntry, input.value, adapter, locale);
-      if (!gate.accepted) {
-        return {
-          accepted: false,
-          reason: gate.reason,
-          ...(gate.details !== undefined ? { details: gate.details } : {}),
+    () =>
+      applyEntryEdit(
+        { cwd, config, adapter, fs, locale },
+        {
+          key: input.key,
+          sourceEntry,
           value: input.value,
-        };
-      }
-
-      const merged = new Map(target.entries);
-      merged.set(input.key, { ...sourceEntry, value: input.value, namespace: target.namespace });
-      const resolver = createLocalePathResolver(cwd, config);
-      await writeTargetResource(
-        adapter,
-        { locale, namespace: target.namespace, format: config.format, entries: merged },
-        resolver.pathFor(locale),
-        cwd,
-        { sourcePath: resolver.pathFor(config.sourceLocale) },
-      );
-
-      await updateLockFileLocale(
-        cwd,
-        fs,
-        locale,
-        { mode: "merge", entries: { [input.key]: contentHash(sourceEntry) } },
-        settleProvenance(
-          new Map([[input.key, { origin: input.actor ?? "human", value: input.value }]]),
-          await readTarget(cwd, config, adapter, fs, locale),
-        ),
-      );
-
-      await feedTranslationMemory(
-        cwd,
-        fs,
-        fingerprintsFor(config),
-        new Map([
-          [
-            locale,
-            {
-              [contentHash(sourceEntry)]: {
-                contentHash: contentHash(sourceEntry),
-                value: input.value,
-                source: sourceEntry.value,
-              },
-            },
-          ],
-        ]),
-      );
-
-      return { accepted: true, value: input.value };
-    },
+          origin: input.actor ?? "human",
+          stale: false,
+        },
+      ),
     writeLockOptions(input),
   );
 }

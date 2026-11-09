@@ -1,0 +1,103 @@
+---
+title: "Edit"
+seoTitle: "SDK: edit a value or replace text in locales"
+description: "Write one corrected value, or preview and apply a literal find-and-replace across the values of your target locales."
+type: reference
+---
+<AvailableFrom version="0.13.0" />
+
+## Edit one key
+
+### editEntry
+
+<AvailableFrom version="0.5.0" />
+
+Writes one human-typed correction for one key and locale. The candidate value passes the same
+integrity gate as a provider translation before anything reaches disk; on acceptance the
+locale file and the lock entry for that key are updated inside the locale's write lock. Never
+calls a provider.
+
+```ts title="Signature"
+function editEntry(
+  input: EditEntryInput,
+  deps?: EditEntryDeps,
+): Promise<EditEntryResult>;
+```
+
+<SdkTypeTable name="EditEntryInput" />
+
+**Returns:** `EditEntryResult`
+
+**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`KEY_PINNED`](/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+**Example:** [Edit and retranslate a single key](/docs/programmatic-api#edit-and-retranslate-a-single-key)
+
+Returns `{ accepted: true, value }`, or
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` with
+nothing written ([the integrity gate](/docs/translation-safety#the-integrity-gate)). Build any
+schema over the reasons from the exported `INTEGRITY_GATE_REASONS` tuple. `"empty"` refuses a blank
+value for a source that has text; clear a key with the workbook's `[[CLEAR]]` sentinel instead. A
+`placeholder` or `markup` refusal also carries `details`: each placeholder or tag behind it,
+prefixed `-` when the candidate dropped it or `+` when it invented it.
+
+The value is recorded in `verbatra.provenance.json` with the origin `human`; pass
+`actor: "agent"` when an AI agent wrote it, so the record says so (the caller asserts it, nothing
+verifies it). A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the value is gated
+and nothing is written; one from a newer verbatra, or one the record would grow past the size
+verbatra reads back, is left untouched and the value is written without a record.
+
+<AvailableFrom version="0.12.0" />
+
+With `actor: "agent"`, a key matching the config's `pinnedKeys` throws `KEY_PINNED` before anything is written. A person's edit of a pinned key is accepted.
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` bounds the wait for the locale's write lock before the call fails with `LOCK_CONTENDED` (ten minutes by default), `onLockWait` reports that wait, and an invalid bound fails with `LOCK_TIMEOUT_INVALID` before anything is read.
+
+## Replace across locales
+
+A literal find-and-replace over the values of your target locales, in two steps. `previewValueReplace` lists what would change and why some values would not. `applyValueReplace` changes the ones you pick, deciding each again under the write lock. Neither reads the source locale for matches, and neither calls a provider.
+
+### previewValueReplace
+
+Lists the target values that contain `find`, with a status for each. Matching is literal: no pattern syntax, no Unicode normalization (an NFD `find` does not match an NFC value) and no line-ending translation. `replace` is inserted as written, so `$&` and `$1` mean nothing special. `caseSensitive` defaults to `true`. A match never starts or ends inside a surrogate pair, and a `find` or `replace` that holds an unpaired surrogate throws `FIND_TEXT_INVALID`. Read-only.
+
+```ts title="Signature"
+function previewValueReplace(
+  input: PreviewValueReplaceInput,
+  deps?: ValueReplaceDeps,
+): Promise<ValueReplacePreview>;
+```
+
+<SdkTypeTable name="PreviewValueReplaceInput" />
+
+**Returns:** `ValueReplacePreview`
+
+**Throws:** [`FIND_TEXT_INVALID`](/docs/error-codes#find_text_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+Every entry has one status. `ready` and `stale-source` can be applied; `stale-source` marks a key whose source text changed since its translation was recorded. `gate-refused` carries the `reason` the replaced value breaks, held to [the same integrity gate](/docs/translation-safety#the-integrity-gate) as an edit against the current source text. For the ICU formats (next-intl and ARB) a replacement is also refused with the reason `icu` when it changes what an argument does: its type, a number or date style or skeleton, or the number of `#` in a plural arm, compared with the current value, or with the source text when the current value is not valid ICU. An argument renamed away from the source text is refused as `placeholder`. `details` list each difference, `-` for the compared value and `+` for the replaced one. `too-long` is a value that would grow past 20,000 characters; it is not an integrity refusal and has no `reason`. `pinned` is a key matching `pinnedKeys`. `protected` is a value a person wrote or imported, a value changed outside verbatra, or any value when the provenance file cannot be read, which includes a file from a newer verbatra; it holds whatever `humanEdits` says. `no-source-entry` is a key with no source text to check against, and `unchanged` is a value the replacement leaves as it is.
+
+At most 1,000 values are listed, in the order of the config's `targetLocales` whatever order `locales` names them in. `truncated` says when more matched, and `before` and `after` are cut to 200 characters around the first match. `valueHash` is the hash the provenance record stores for the current value; hand it back to `applyValueReplace`. `baselineUnavailable: true` says the lock file could not be read, so no value was compared with its recorded source text and none is `stale-source`.
+
+### applyValueReplace
+
+Replaces `find` in the values you picked, recomputing each new value from the text on disk inside the locale's write lock. It never takes a computed value from the caller, and the preview is advisory: every entry is decided again.
+
+```ts title="Signature"
+function applyValueReplace(
+  input: ApplyValueReplaceInput,
+  deps?: ValueReplaceDeps,
+): Promise<ApplyValueReplaceResult>;
+```
+
+<SdkTypeTable name="ApplyValueReplaceInput" />
+
+**Returns:** `ApplyValueReplaceResult`
+
+**Throws:** [`FIND_TEXT_INVALID`](/docs/error-codes#find_text_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+Each entry ends as `applied`, `skipped` (with its reason), `refused` (with the integrity reason), `changed` or `too-long`. `changed` means the value no longer matches its `valueHash`, no longer contains `find`, or is gone, and nothing was written for it. The hash ignores Unicode normalization and line endings, so a value that differs from the preview only that way is replaced when `find` still matches and is `changed` when it does not. Pinned keys and protected values are skipped unless `includePinned` or `includeProtected` is set; an agent never changes a pinned key. With a provenance file from a newer verbatra every value counts as protected; `includeProtected` still changes it, but the file is left untouched and the value gets no record. When the same `locale` and `key` appear more than once, the first one decides, whatever its `valueHash`, and each later one is `skipped` as `duplicate-entry`.
+
+Locales are processed one after another, in the order each first appears in `entries`, each under its own lock, with one write of the locale file, one update of the lock file and provenance file, and one translation-memory update. A stale key keeps its old lock hash, so `check` still reports it out of date, and its value is not added to the translation memory. Every written value gets a new provenance record with `actor` as its origin and no review decision.
+
+A locale that fails does not stop the others. `localeFailures` lists each one with its `code` and `message`, such as `LOCK_CONTENDED` when its write lock is not free within `lockAcquireTimeoutMs`, `TARGET_UNWRITABLE`, `SOURCE_INVALID` or an adapter error. An entry the integrity gate refused still comes back `refused`, and one a check had settled before the failure keeps its outcome; the rest are `skipped` as `locale-failed`, with nothing written for them. When the failure carries `fileWritten: true`, it came after the locale file was written, while the lock file or provenance file was updated or the write lock was released: the accepted entries are `applied`, their values are on disk, and the lock or provenance may lag, so review the locale before any retry. Do not run a replacement again whose `find` occurs in its `replace` without checking. The wait for the lock file's own guard uses the default of ten minutes, not `lockAcquireTimeoutMs`.

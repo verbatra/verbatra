@@ -7,6 +7,8 @@ const SDK_SRC = fileURLToPath(new URL("../", import.meta.url));
 
 const DEFINITION_FILE = join(SDK_SRC, "lock", "lock-file.ts");
 
+const RUNS_INSIDE_CALLERS_LOCK = join(SDK_SRC, "flow", "apply-entry-edits.ts");
+
 async function listSourceFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true, recursive: true });
   return entries
@@ -23,7 +25,7 @@ describe("static proof: every updateLockFileLocale caller also holds withLocaleW
 
     const offenders: string[] = [];
     for (const file of files) {
-      if (file === DEFINITION_FILE) {
+      if (file === DEFINITION_FILE || file === RUNS_INSIDE_CALLERS_LOCK) {
         continue;
       }
       const content = await readFile(file, "utf8");
@@ -32,6 +34,27 @@ describe("static proof: every updateLockFileLocale caller also holds withLocaleW
       }
     }
 
+    expect(offenders).toEqual([]);
+  });
+
+  it("holds for every caller of applyEntryEdit and applyEntryEdits, which updates the lock-file inside the caller's lock", async () => {
+    const files = await listSourceFiles(SDK_SRC);
+    const callers: string[] = [];
+    const offenders: string[] = [];
+    for (const file of files) {
+      if (file === RUNS_INSIDE_CALLERS_LOCK) {
+        continue;
+      }
+      const content = await readFile(file, "utf8");
+      if (/\bapplyEntryEdits?\(/.test(content)) {
+        callers.push(relative(SDK_SRC, file));
+        if (!content.includes("withLocaleWriteLock(")) {
+          offenders.push(relative(SDK_SRC, file));
+        }
+      }
+    }
+
+    expect(callers.sort()).toEqual(["flow/edit-entry.ts", "flow/value-replace.ts"]);
     expect(offenders).toEqual([]);
   });
 

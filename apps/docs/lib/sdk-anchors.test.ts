@@ -82,7 +82,7 @@ describe.each(i18n.languages)("the %s SDK reference folder", (locale) => {
   const onIndex = anchorsOf(index);
 
   it("reads the whole folder, so the checks cannot pass vacuously", () => {
-    expect(pages).toHaveLength(10);
+    expect(pages).toHaveLength(11);
     expect(Object.keys(targets).length).toBeGreaterThanOrEqual(80);
   });
 
@@ -120,6 +120,21 @@ describe.each(i18n.languages)("the %s SDK reference folder", (locale) => {
       ).toBe(`${errors?.url}#${anchor}`);
     },
   );
+
+  it("forwards the old /docs/sdk/review#editentry link to the edit page", () => {
+    const review = pages.find((page) => page.url.endsWith("/sdk/review"));
+    const edit = pages.find((page) => page.url.endsWith("/sdk/edit"));
+
+    expect(readPage("review", locale)).toContain("<SdkAnchorForward />");
+    expect(review && anchorsOf(review).has("editentry")).toBe(false);
+    expect(
+      forwardedUrl(
+        "#editentry",
+        targets,
+        (id) => review !== undefined && anchorsOf(review).has(id),
+      ),
+    ).toBe(`${edit?.url}#editentry`);
+  });
 
   it("lists the same entries on each page as the English folder", () => {
     const english = folder(i18n.defaultLanguage).pages;
