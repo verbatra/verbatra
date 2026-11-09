@@ -66,7 +66,13 @@ Con `next-intl-json` o `arb`, una **ICU preview** plegada bajo el borrador lo re
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Desde 1280px de ancho el editor se coloca junto a la tabla; por debajo se abre como cajón. Si sales de la clave con cambios sin guardar, ya sea a otra clave, un filtro, una búsqueda, otra página o Atrás, Studio pregunta si guardar, descartar o seguir editando; al salir de Studio en sí, confirma el navegador.
+Desde 1280px de ancho el editor se coloca junto a la tabla; por debajo se abre como cajón. Si sales de la clave con cambios sin guardar, Studio pregunta si guardar, descartar o seguir editando; al salir de Studio en sí, confirma el navegador.
+
+### Buscar y reemplazar
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Search and replace** reemplaza texto literal en los valores traducidos: elige el texto, el reemplazo, si distingue mayúsculas y los locales, revisa cada coincidencia (hasta 1000) con su estado y el antes y el después, y aplica. Las claves ancladas y los valores que escribió una persona quedan fuera salvo que marques su casilla. El resultado lista cada valor.
 
 ## Trabaja la cola de Review
 
@@ -106,7 +112,7 @@ Ambas decisiones se guardan en `verbatra.provenance.json` según las reglas de [
 
 La cola se lee de los archivos confirmados, así que un compañero que los descarga ve la misma cola. Un valor sale de ella en cuanto una persona lo aprueba, lo rechaza, lo escribe o lo importa; un valor aprobado que una máquina reescribe vuelve a entrar.
 
-Los chips **Needs review** y **Approved** cambian la lista y muestran contadores; la barra acota por origen; con un locale elegido, **Approve all in** lo aprueba entero tras una confirmación. Para que un pull request falle mientras haya traducciones automáticas esperando, ejecuta [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas) en la CI.
+Los chips **Needs review** y **Approved** cambian la lista; con un locale elegido, **Approve all in** lo aprueba entero tras una confirmación. Para que un pull request falle mientras haya traducciones automáticas esperando, ejecuta [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas) en la CI.
 
 ### Trabaja la cola con el teclado
 
@@ -125,7 +131,7 @@ Pulsa `j` o la flecha abajo para resaltar la primera entrada, y luego:
 | `x` | seleccionarla o quitarla de la selección para una acción en bloque |
 | `?` | mostrar u ocultar la lista de atajos |
 
-Los atajos se pausan mientras escribes, el foco está en la barra de filtros o hay un diálogo abierto.
+Los atajos se pausan mientras escribes.
 
 ### Actúa sobre varias entradas a la vez
 
@@ -145,7 +151,7 @@ Aparece entonces un botón **Retranslate** en cada fila de Review, y en el edito
 
 ## Traduce los cambios pendientes
 
-Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nombra el archivo y las claves añadidas, modificadas o eliminadas. Con `--allow-spend`, además ofrece **Translate pending changes across all locales**: la misma ejecución que haría `verbatra translate`.
+Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nombra el archivo. Con `--allow-spend`, además ofrece **Translate pending changes across all locales**: la misma ejecución que haría `verbatra translate`.
 
 ## Revisa la cobertura y la última ejecución en Overview
 
@@ -153,7 +159,7 @@ Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nom
 
 Overview es la página con la que arranca Studio. Muestra la cobertura de cada locale con su estado en el [archivo de bloqueo](/es/docs/the-lock-file), el historial de git de tus archivos de locale y el uso de tokens de la última ejecución registrada, con el medidor de presupuesto cuando hay un presupuesto de tokens configurado.
 
-**Run history and cost**, debajo, muestra el coste y los tokens de las ejecuciones más recientes sobre una tabla, con la última cobertura conocida de cada locale. Se relee cuando cambia el archivo del historial, la pestaña recupera el foco o vuelve una ejecución.
+**Run history and cost**, debajo, muestra el coste y los tokens de las ejecuciones más recientes sobre una tabla, con la última cobertura conocida de cada locale.
 
 <StudioScreenshot
   shot="overview"

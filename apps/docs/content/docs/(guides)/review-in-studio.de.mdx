@@ -66,7 +66,13 @@ Mit `next-intl-json` oder `arb` rendert eine eingeklappte **ICU preview** unter 
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Ab 1280px Breite sitzt der Editor neben der Tabelle; darunter öffnet er sich als Schublade. Verlässt du den Key mit ungespeicherten Änderungen, ob du einen anderen Key öffnest, filterst, suchst, eine andere Seite aufrufst oder zurückgehst, fragt Studio, ob du speichern, verwerfen oder weiterbearbeiten willst; beim Verlassen von Studio selbst bestätigt der Browser.
+Ab 1280px Breite sitzt der Editor neben der Tabelle; darunter öffnet er sich als Schublade. Verlässt du den Key mit ungespeicherten Änderungen, fragt Studio, ob du speichern, verwerfen oder weiterbearbeiten willst; beim Verlassen von Studio selbst bestätigt der Browser.
+
+### Suchen und ersetzen
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Search and replace** ersetzt wörtlichen Text in übersetzten Werten: Wähle Text, Ersatz, Groß-/Kleinschreibung und Locales, prüfe jeden Treffer (bis zu 1.000) mit Status sowie davor und danach und wende dann an. Angepinnte Keys und von einer Person geschriebene Werte bleiben draußen, solange du ihr Kästchen nicht ankreuzt. Das Ergebnis listet jeden Wert.
 
 ## Arbeite die Review-Warteschlange ab
 
@@ -106,7 +112,7 @@ Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter 
 
 Die Warteschlange wird aus den committeten Dateien gelesen, sodass eine Teamkollegin, die sie pullt, dieselbe Warteschlange sieht. Ein Wert verlässt sie, sobald eine Person ihn freigibt, ablehnt, schreibt oder importiert; ein freigegebener Wert, den eine Maschine neu schreibt, kommt zurück.
 
-Die Chips **Needs review** und **Approved** wechseln die Liste und zeigen Zähler; die Leiste grenzt nach Herkunft ein; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
+Die Chips **Needs review** und **Approved** wechseln die Liste; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
 
 ### Arbeite die Warteschlange mit der Tastatur ab
 
@@ -125,7 +131,7 @@ Drück `j` oder Pfeil nach unten, um den ersten Eintrag hervorzuheben, dann:
 | `x` | ihn für eine Sammelaktion auswählen oder abwählen |
 | `?` | die Tastenkürzel ein- oder ausblenden |
 
-Tastenkürzel pausieren, während du tippst, der Fokus in der Filterleiste liegt oder ein Dialog offen ist.
+Tastenkürzel pausieren, während du tippst.
 
 ### Bearbeite mehrere Einträge auf einmal
 
@@ -145,7 +151,7 @@ Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor ei
 
 ## Übersetze ausstehende Änderungen
 
-Ändert sich die Quelldatei, während Studio läuft, nennt eine Benachrichtigung die Datei und die hinzugefügten, geänderten oder entfernten Keys. Mit `--allow-spend` bietet sie außerdem **Translate pending changes across all locales** an: denselben Lauf, den `verbatra translate` machen würde.
+Ändert sich die Quelldatei, während Studio läuft, nennt eine Benachrichtigung die Datei. Mit `--allow-spend` bietet sie außerdem **Translate pending changes across all locales** an: denselben Lauf, den `verbatra translate` machen würde.
 
 ## Prüfe Abdeckung und letzten Lauf unter Overview
 
@@ -153,7 +159,7 @@ Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor ei
 
 Overview ist die Seite, auf der Studio startet. Sie zeigt die Abdeckung jeder Locale mit ihrem Zustand in der [Lock-Datei](/de/docs/the-lock-file), die Git-Historie deiner Locale-Dateien und den Token-Verbrauch des letzten erfassten Laufs, mit der Budgetanzeige, wenn ein Token-Budget konfiguriert ist.
 
-**Run history and cost** darunter zeigt Kosten und Tokens der neuesten Läufe über einer Tabelle, mit der zuletzt bekannten Abdeckung jeder Locale. Sie liest neu, wenn sich die Verlaufsdatei ändert, der Tab den Fokus zurückbekommt oder ein Lauf zurückkehrt.
+**Run history and cost** darunter zeigt Kosten und Tokens der neuesten Läufe über einer Tabelle, mit der zuletzt bekannten Abdeckung jeder Locale.
 
 <StudioScreenshot
   shot="overview"

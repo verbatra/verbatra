@@ -4,7 +4,7 @@ seoTitle: "Review machine translations in Verbatra Studio"
 description: Start Verbatra Studio, work the needs-review queue, fix entries in place, and retranslate flagged keys from the local dashboard.
 type: how-to
 ---
-Find pending machine translations, fix values, and approve or reject what a provider wrote, in Verbatra Studio.
+Review machine translations in Verbatra Studio.
 
 Two rules: **local editing is always on**, gated by the same integrity checks as other writes, and **provider spend is always off** unless you start Studio with `--allow-spend`.
 
@@ -55,7 +55,7 @@ The editor shows the key's description, the glossary terms your draft uses or mi
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Under the length line, **Set limit**, **Change limit** and **Remove limit** edit the key's entry in [`verbatra.limits.json`](/docs/config-file#maxlength), for every locale. The config's `maxLength` wins, read-only. An unusable file shows why and blocks the control. A limit is advisory: translate runs flag a longer value for review, and nothing is blocked. Studio sets limits only for source keys; a limit written for a generated form's own key still applies.
+Under the length line, **Set limit**, **Change limit** and **Remove limit** edit the key's entry in [`verbatra.limits.json`](/docs/config-file#maxlength), for every locale. The config's `maxLength` wins, read-only. An unusable file shows why and blocks the control. A limit is advisory: a longer value is flagged for review, never blocked. Studio sets limits only for source keys; a limit written for a generated form's own key still applies.
 
 #### Preview ICU messages
 
@@ -67,7 +67,13 @@ With `next-intl-json` or `arb`, a collapsed **ICU preview** under the draft rend
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-From 1280px wide the editor sits beside the table; below that it is a drawer. Leaving the key with unsaved edits (another key, filter, search, page or Back) asks you to save, discard or keep editing; leaving Studio gets the browser's own confirmation.
+From 1280px wide the editor sits beside the table; below that it is a drawer. Leaving the key with unsaved edits asks you to save, discard or keep editing; leaving Studio gets the browser's own confirmation.
+
+### Search and replace
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Search and replace** replaces literal text in translated values: pick the text, replacement, case matching and locales, review each match (up to 1,000) with its status and before and after, then apply. Pinned keys and values a person wrote stay out unless you tick their box. The result lists every value.
 
 ## Work the Review queue
 
@@ -107,7 +113,7 @@ Both decisions are saved in `verbatra.provenance.json` under the [Review decisio
 
 The queue is read from the committed files, so a teammate who pulls them sees it too. A value leaves it once a person approves, rejects, writes or imports it; an approved value that a machine rewrites comes back.
 
-The **Needs review** and **Approved** chips switch the list and show counts; the bar narrows by origin; with a locale chosen, **Approve all in** approves it all after confirming. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
+The **Needs review** and **Approved** chips switch the list; with a locale chosen, **Approve all in** approves it all after confirming. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
 
 ### Work the queue from the keyboard
 
@@ -126,7 +132,7 @@ Press `j` or the down arrow to highlight the first entry, then:
 | `x` | select or unselect it for a bulk action |
 | `?` | show or hide the shortcut list |
 
-Shortcuts pause while you type, in the filter bar or in a dialog.
+Shortcuts pause while you type.
 
 ### Act on several entries at once
 
@@ -146,7 +152,7 @@ A **Retranslate** button appears on each Review row, and in a key's editor for a
 
 ## Translate pending changes
 
-When the source file changes while Studio runs, a toast names the file and its added, changed or removed keys. With `--allow-spend` it also offers **Translate pending changes across all locales**, the run `verbatra translate` would do.
+When the source file changes while Studio runs, a toast names the file. With `--allow-spend` it also offers **Translate pending changes across all locales**, the run `verbatra translate` would do.
 
 ## Check coverage and the last run on Overview
 
@@ -154,7 +160,7 @@ When the source file changes while Studio runs, a toast names the file and its a
 
 Studio opens on Overview: each locale's coverage with its [lock file](/docs/the-lock-file) state, the locale files' git history and the last run's token usage, with the budget meter when set.
 
-**Run history and cost** below it charts cost and tokens for the newest runs above a table, with each locale's last known coverage. It rereads when the history file changes, the tab regains focus or a run returns.
+**Run history and cost** below it charts cost and tokens for the newest runs above a table, with each locale's last known coverage.
 
 <StudioScreenshot
   shot="overview"

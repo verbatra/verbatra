@@ -66,7 +66,13 @@ Avec `next-intl-json` ou `arb`, une **ICU preview** repliée sous le brouillon l
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-À partir de 1280px de large, l'éditeur s'affiche à côté du tableau ; en dessous, il s'ouvre en tiroir. Si tu quittes la clé avec des modifications non enregistrées, que ce soit vers une autre clé, un filtre, une recherche, une autre page ou Retour, Studio demande d'enregistrer, d'abandonner ou de continuer à modifier ; en quittant Studio lui-même, c'est le navigateur qui demande confirmation.
+À partir de 1280px de large, l'éditeur s'affiche à côté du tableau ; en dessous, il s'ouvre en tiroir. Si tu quittes la clé avec des modifications non enregistrées, Studio demande d'enregistrer, d'abandonner ou de continuer à modifier ; en quittant Studio lui-même, c'est le navigateur qui demande confirmation.
+
+### Rechercher et remplacer
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Search and replace** remplace du texte littéral dans les valeurs traduites : choisis le texte, le remplacement, la casse et les locales, relis chaque correspondance (jusqu'à 1 000) avec son statut et l'avant et l'après, puis applique. Les clés épinglées et les valeurs écrites par une personne restent exclues tant que tu ne coches pas leur case. Le résultat liste chaque valeur.
 
 ## Traiter la file de relecture
 
@@ -106,7 +112,7 @@ Les deux décisions sont enregistrées dans `verbatra.provenance.json` selon les
 
 La file est lue depuis les fichiers commités, donc un coéquipier qui les récupère voit la même file. Une valeur la quitte dès qu'une personne l'approuve, la rejette, l'écrit ou l'importe ; une valeur approuvée qu'une machine réécrit y revient.
 
-Les puces **Needs review** et **Approved** basculent la liste et affichent des compteurs ; la barre restreint par origine ; une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) en CI.
+Les puces **Needs review** et **Approved** basculent la liste ; une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) en CI.
 
 ### Traiter la file au clavier
 
@@ -125,7 +131,7 @@ Appuie sur `j` ou la flèche bas pour mettre en surbrillance la première entré
 | `x` | la sélectionner ou désélectionner pour une action groupée |
 | `?` | afficher ou masquer la liste des raccourcis |
 
-Les raccourcis sont en pause pendant que tu tapes, que le focus est dans la barre de filtres ou qu'une boîte de dialogue est ouverte.
+Les raccourcis sont en pause pendant que tu tapes.
 
 ### Agir sur plusieurs entrées à la fois
 
@@ -145,7 +151,7 @@ Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans l'
 
 ## Traduire les changements en attente
 
-Quand le fichier source change pendant que Studio tourne, une notification nomme le fichier et les clés ajoutées, modifiées ou supprimées. Avec `--allow-spend`, elle propose aussi **Translate pending changes across all locales** : la même exécution que `verbatra translate`.
+Quand le fichier source change pendant que Studio tourne, une notification nomme le fichier. Avec `--allow-spend`, elle propose aussi **Translate pending changes across all locales** : la même exécution que `verbatra translate`.
 
 ## Voir la couverture et la dernière exécution sur Overview
 
@@ -153,7 +159,7 @@ Quand le fichier source change pendant que Studio tourne, une notification nomme
 
 Overview est la page sur laquelle Studio s'ouvre. Elle montre la couverture de chaque locale avec son état dans le [fichier de verrouillage](/fr/docs/the-lock-file), l'historique git de tes fichiers de locale et la consommation de tokens de la dernière exécution enregistrée, avec la jauge de budget quand un budget de tokens est configuré.
 
-**Run history and cost**, en dessous, trace le coût et les tokens des exécutions les plus récentes au-dessus d'un tableau, avec la dernière couverture connue de chaque locale. Elle se relit quand le fichier d'historique change, que l'onglet retrouve le focus ou qu'une exécution se termine.
+**Run history and cost**, en dessous, trace le coût et les tokens des exécutions les plus récentes au-dessus d'un tableau, avec la dernière couverture connue de chaque locale.
 
 <StudioScreenshot
   shot="overview"
