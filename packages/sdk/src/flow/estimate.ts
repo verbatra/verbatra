@@ -10,7 +10,7 @@ import { type BillingUnit, billingFor, modelOf, rateKeyFor } from "../config/pro
 import type { ProviderConfig } from "../config/provider-config.js";
 import { isTokenRate, lookupRate, type ModelRate, type RateCard } from "../config/rate-card.js";
 import type { VerbatraConfig } from "../config/schema.js";
-import { RUN_HISTORY_LIMITS, type RunHistoryCost } from "../run-history/record.js";
+import { clipText, RUN_HISTORY_LIMITS, type RunHistoryCost } from "../run-history/record.js";
 import { chunk } from "./batching.js";
 import { planPluralGeneration, syntheticEntry } from "./plural-categories.js";
 import type {
@@ -373,6 +373,7 @@ export interface PriceRunInput {
   readonly usage?: UsageSummary | undefined;
   readonly sourceCharacters: number;
   readonly keysSent: boolean;
+  readonly usagePartial?: boolean;
 }
 
 const SOURCE_CHARACTER_CAVEATS = [
@@ -387,7 +388,7 @@ function usableRate(rate: ModelRate): boolean {
 export function priceRun(input: PriceRunInput): RunHistoryCost {
   const { unit } = billingFor(input.provider.id);
   const basis = unit === "tokens" ? "usage" : "source-characters";
-  const rateKey = rateKeyFor(input.provider).slice(0, RUN_HISTORY_LIMITS.rateKey);
+  const rateKey = clipText(rateKeyFor(input.provider), RUN_HISTORY_LIMITS.rateKey);
   const caveats = unit === "characters" ? { caveats: [...SOURCE_CHARACTER_CAVEATS] } : {};
   const pricing = resolvePricing(
     { provider: input.provider, ...(input.rates === undefined ? {} : { rates: input.rates }) },
@@ -403,6 +404,7 @@ export function priceRun(input: PriceRunInput): RunHistoryCost {
   if (unit === "tokens" && input.usage === undefined && input.keysSent) {
     return { pricing: "no-usage", basis, rateKey };
   }
+  const lowerBound = unit === "tokens" && input.usage !== undefined && input.usagePartial === true;
   const quantity: EstimatedQuantity = {
     keys: 0,
     requests: 0,
@@ -417,7 +419,7 @@ export function priceRun(input: PriceRunInput): RunHistoryCost {
     currency: pricing.currency,
     asOf: pricing.asOf,
     amount: costOf(quantity, pricing.rate),
-    ...caveats,
+    ...(lowerBound ? { caveats: ["USAGE_PARTIAL" as const] } : caveats),
   };
 }
 

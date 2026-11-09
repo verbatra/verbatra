@@ -96,7 +96,8 @@ export interface DirectoryEntry {
  * The seam carries every file the SDK touches once a config is loaded: the run-status file, the
  * run-history file, the lock-file and the write locks, the translation-memory cache, the config
  * glossary, workbook and TMX I/O, generated declaration and pseudolocale files, the source scan,
- * and the locale files themselves, which the adapters read and write through a port built from this one. Two exceptions
+ * and the locale files themselves, which the adapters read and write through a port built from this
+ * one. Two exceptions
  * remain. {@link loadConfig} finds and loads the config file itself directly from disk; only its
  * glossary goes through the port. And a caller-supplied `deps.adapterRegistry` holds adapters the
  * caller constructed, so their file access is whatever the caller wired into them, and supplying

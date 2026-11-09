@@ -121,6 +121,33 @@ describe("retranslateEntry: run history", () => {
     });
   });
 
+  it("marks a batch as a lower bound when an attempted entry reported no usage", async () => {
+    const dir = await project({ a: "A", b: "B" });
+    const inner = makeStubProvider({ usage: { inputTokens: 1_000_000, outputTokens: 0 } });
+    const provider: TranslationProvider = {
+      ...inner.provider,
+      translateBatch: (request) =>
+        request.targetLocale === "fr"
+          ? Promise.reject(new ProviderError("INVALID_RESPONSE", "no value"))
+          : inner.provider.translateBatch(request),
+    };
+
+    await retranslateEntries(
+      {
+        config: cfg(),
+        cwd: dir,
+        entries: [
+          { locale: "de", key: "a" },
+          { locale: "fr", key: "b" },
+        ],
+      },
+      { createProvider: () => provider },
+    );
+
+    const [record] = await historyOf(dir);
+    expect(record?.cost).toMatchObject({ pricing: "priced", caveats: ["USAGE_PARTIAL"] });
+  });
+
   it("counts a failed entry in a batch as attempted and as a provider failure", async () => {
     const dir = await project({ a: "A", b: "B" });
     const stub = makeStubProvider({

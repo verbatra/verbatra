@@ -84,5 +84,6 @@ export function draftFromSpends(spends: readonly RetranslateSpend[]): RunDraft |
     ),
     sourceCharacters: attempted.reduce((total, spend) => total + spend.characters, 0),
     keysSent: true,
+    usagePartial: attempted.some((spend) => spend.usage === undefined),
   };
 }

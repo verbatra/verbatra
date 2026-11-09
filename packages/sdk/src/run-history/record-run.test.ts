@@ -8,7 +8,7 @@ import { priceRun, sourceCharactersOfRun } from "../flow/estimate.js";
 import type { LocaleSummary, RunSummary } from "../flow/summary.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { baseConfig, makeTempDir } from "../test-support.js";
-import { RUN_HISTORY_LIMITS } from "./record.js";
+import { clipText, RUN_HISTORY_LIMITS } from "./record.js";
 import {
   draftFromSummary,
   type RunDraft,
@@ -74,6 +74,50 @@ describe("priceRun", () => {
       pricing: "no-usage",
       basis: "usage",
       rateKey: "anthropic/test-model",
+    });
+  });
+
+  it("keeps the amount for what was reported and marks it a lower bound when usage is partial", () => {
+    const cost = price({
+      provider: ANTHROPIC,
+      rates: TOKEN_CARD,
+      usage: { inputTokens: 1_000_000, outputTokens: 0 },
+      sourceCharacters: 0,
+      keysSent: true,
+      usagePartial: true,
+    });
+
+    expect(cost).toMatchObject({ pricing: "priced", amount: 3, caveats: ["USAGE_PARTIAL"] });
+  });
+
+  it("does not mark a complete figure, nor a character-billed one, as partial", () => {
+    const complete = price({
+      provider: ANTHROPIC,
+      rates: TOKEN_CARD,
+      usage: { inputTokens: 10, outputTokens: 10 },
+      sourceCharacters: 0,
+      keysSent: true,
+    });
+    const characters = price({
+      provider: DEEPL,
+      rates: CHAR_CARD,
+      sourceCharacters: 10,
+      keysSent: true,
+      usagePartial: true,
+    });
+
+    const nothingReported = price({
+      provider: ANTHROPIC,
+      rates: TOKEN_CARD,
+      sourceCharacters: 0,
+      usagePartial: true,
+    });
+
+    expect(complete).not.toHaveProperty("caveats");
+    expect(nothingReported).toMatchObject({ pricing: "priced", amount: 0 });
+    expect(nothingReported).not.toHaveProperty("caveats");
+    expect(characters).toMatchObject({
+      caveats: ["SOURCE_DUPLICATES_NOT_DEDUPLICATED", "TRANSPORT_RETRIES_NOT_COUNTED"],
     });
   });
 
@@ -372,6 +416,7 @@ function draft(overrides: Partial<RunDraft> = {}): RunDraft {
     usage: undefined,
     sourceCharacters: 0,
     keysSent: false,
+    usagePartial: false,
     ...overrides,
   };
 }
@@ -397,6 +442,79 @@ describe("recordRunHistory with long free strings", () => {
     expect(record?.model).toHaveLength(RUN_HISTORY_LIMITS.model);
     expect(record?.locales[0]?.locale).toHaveLength(RUN_HISTORY_LIMITS.locale);
     expect(record?.cost.rateKey.length).toBeLessThanOrEqual(RUN_HISTORY_LIMITS.rateKey);
+  });
+
+  it("does not split an emoji at the model bound, so the stored line stays valid UTF-8", async () => {
+    const dir = await makeTempDir();
+    const model = `${"m".repeat(RUN_HISTORY_LIMITS.model - 1)}\u{1F600}more`;
+    const config = baseConfig({
+      provider: { id: "anthropic", options: { model, maxTokens: 1 } },
+    });
+
+    await recordRunHistory({ config, cwd: dir, fs: defaultFs }, draft());
+
+    const read = await readRunHistoryFile(runHistoryFilePath(dir), defaultFs);
+    expect(read.unreadableRecords).toBe(0);
+    expect(read.records[0]?.model).toBe("m".repeat(RUN_HISTORY_LIMITS.model - 1));
+  });
+});
+
+describe("clipText", () => {
+  it("returns a short text unchanged and cuts a long one to the bound", () => {
+    expect(clipText("abc", 5)).toBe("abc");
+    expect(clipText("abcdef", 5)).toBe("abcde");
+  });
+
+  it("never splits a surrogate pair at the boundary", () => {
+    const text = `${"a".repeat(63)}\u{1F600}tail`;
+
+    const clipped = clipText(text, 64);
+
+    expect(clipped).toBe("a".repeat(63));
+    expect(clipText(`${"a".repeat(62)}\u{1F600}tail`, 64)).toBe(`${"a".repeat(62)}\u{1F600}`);
+  });
+});
+
+describe("draftFromSummary: partial usage", () => {
+  const config = baseConfig();
+  const source = {
+    locale: "en",
+    namespace: "en",
+    format: "i18next-json" as const,
+    entries: new Map(),
+  };
+  const used = { inputTokens: 5, outputTokens: 1 };
+
+  it("is partial when one locale sent keys and reported none, while another reported", () => {
+    const summary = runSummary(
+      [
+        localeSummary({ locale: "de", translated: ["a"], usage: used }),
+        localeSummary({ locale: "fr", translated: ["a"] }),
+      ],
+      { usage: used },
+    );
+
+    expect(draftFromSummary(summary, source, config).usagePartial).toBe(true);
+  });
+
+  it("is not partial when every locale that sent keys reported, or the silent one sent none", () => {
+    const allReported = runSummary(
+      [
+        localeSummary({ locale: "de", translated: ["a"], usage: used }),
+        localeSummary({ locale: "fr", translated: ["a"], usage: used }),
+      ],
+      { usage: used },
+    );
+    const cacheOnly = runSummary(
+      [
+        localeSummary({ locale: "de", translated: ["a"], usage: used }),
+        localeSummary({ locale: "fr", cacheHits: ["a"] }),
+      ],
+      { usage: used },
+    );
+
+    expect(draftFromSummary(allReported, source, config).usagePartial).toBe(false);
+    expect(draftFromSummary(cacheOnly, source, config).usagePartial).toBe(false);
   });
 });
 

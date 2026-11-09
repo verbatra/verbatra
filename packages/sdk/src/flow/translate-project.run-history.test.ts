@@ -1,5 +1,6 @@
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { TranslationProvider } from "@verbatra/ai-providers";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
@@ -131,6 +132,30 @@ describe("translate: run history", () => {
     expect(records[0]?.cost).not.toHaveProperty("amount");
     expect(records[1]?.locales[0]).toMatchObject({ cacheHits: 1, translated: 0 });
     expect(records[1]?.cost).toMatchObject({ pricing: "priced", amount: 0 });
+  });
+
+  it("marks a mixed run as a lower bound when one locale sent keys and reported no usage", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const inner = makeStubProvider();
+    const provider: TranslationProvider = {
+      ...inner.provider,
+      translateBatch: async (request) => {
+        const result = await inner.provider.translateBatch(request);
+        return request.targetLocale === "de"
+          ? { ...result, usage: { inputTokens: 1_000_000, outputTokens: 0 } }
+          : result;
+      },
+    };
+
+    await translate(
+      { config: cfg({ rates: RATES }), cwd: dir },
+      { createProvider: () => provider },
+    );
+
+    const [record] = await historyOf(dir);
+    expect(record?.cost).toMatchObject({ pricing: "priced", caveats: ["USAGE_PARTIAL"] });
+    expect(amountOf(record)).toBeCloseTo(3, 9);
+    expect(record?.locales.find((entry) => entry.locale === "fr")?.usage).toBeUndefined();
   });
 
   it("records nothing for a dry run", async () => {

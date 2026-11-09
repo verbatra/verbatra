@@ -26,12 +26,17 @@ export type RunCostBasis = (typeof RUN_COST_BASES)[number];
 export const RUN_COST_CAVEATS = [
   "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
   "TRANSPORT_RETRIES_NOT_COUNTED",
+  "USAGE_PARTIAL",
 ] as const;
 
 /**
- * What a `source-characters` cost figure leaves out, with the meaning the same code has on a run
- * estimate: `SOURCE_DUPLICATES_NOT_DEDUPLICATED` and `TRANSPORT_RETRIES_NOT_COUNTED`. Keys the
- * provider failed on are not counted either; the locale's `providerFailures` says how many.
+ * What a cost figure leaves out. `SOURCE_DUPLICATES_NOT_DEDUPLICATED` and
+ * `TRANSPORT_RETRIES_NOT_COUNTED` mark a `source-characters` estimate, with the meaning the same
+ * code has on a run estimate; keys the provider failed on are not counted either, and the locale's
+ * `providerFailures` says how many. `USAGE_PARTIAL` marks a `usage` figure that is a lower bound:
+ * at least one locale sent keys and reported no tokens, so the amount covers only what was
+ * reported. A locale that reported usage for some of its sub-batches but not all cannot be told
+ * apart, and shows no mark.
  */
 export type RunCostCaveat = (typeof RUN_COST_CAVEATS)[number];
 
@@ -43,10 +48,21 @@ const MAX_MODEL_LENGTH = 200;
 
 export const RUN_HISTORY_LIMITS = {
   locale: MAX_LOCALE_NAME_LENGTH,
-  provider: MAX_PROVIDER_LENGTH,
   model: MAX_MODEL_LENGTH,
   rateKey: MAX_PROVIDER_LENGTH + MAX_MODEL_LENGTH + 1,
 } as const;
+
+const HIGH_SURROGATE_START = 0xd800;
+const HIGH_SURROGATE_END = 0xdbff;
+
+export function clipText(text: string, max: number): string {
+  if (text.length <= max) {
+    return text;
+  }
+  const last = text.charCodeAt(max - 1);
+  const splitsPair = last >= HIGH_SURROGATE_START && last <= HIGH_SURROGATE_END;
+  return text.slice(0, splitsPair ? max - 1 : max);
+}
 
 const countSchema = z.number().int().nonnegative();
 

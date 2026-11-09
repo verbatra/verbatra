@@ -69,6 +69,27 @@ describe("usage.history", () => {
     });
   });
 
+  it.each([
+    ["plain", undefined],
+    ["under --redact-values", createValueMarker()],
+  ])("returns the lower-bound caveat of a partial usage figure, %s", async (_label, marker) => {
+    const partial = JSON.stringify({
+      ...RECORD,
+      cost: { ...RECORD.cost, caveats: ["USAGE_PARTIAL"] },
+    });
+    const dir = await projectWith([partial]);
+
+    const outcome = await usageHistoryTool.execute(
+      {},
+      makeContext({ cwd: dir, ...(marker !== undefined ? { valueMarker: marker } : {}) }),
+    );
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: { records: [{ cost: { pricing: "priced", caveats: ["USAGE_PARTIAL"] } }] },
+    });
+  });
+
   it("returns the unknown and not-billed cost states as they were stored", async () => {
     const unknown = JSON.stringify({
       ...RECORD,
@@ -114,6 +135,7 @@ describe("usage.history", () => {
 
   it("tells a reader to say estimated, to say no rate, and that empty is not proof", () => {
     expect(usageHistoryTool.description).toContain("say estimated");
+    expect(usageHistoryTool.description).toContain("USAGE_PARTIAL");
     expect(usageHistoryTool.description).toContain("no-usage");
     expect(usageHistoryTool.description).toContain("never as free");
     expect(usageHistoryTool.description).toContain("how many entries were attempted");

@@ -7,6 +7,7 @@ import { priceRun, sourceCharactersOfRun } from "../flow/estimate.js";
 import type { LocaleSummary, RunSummary, UsageSummary } from "../flow/summary.js";
 import type { SdkFs } from "../fs.js";
 import {
+  clipText,
   RUN_HISTORY_LIMITS,
   RUN_HISTORY_VERSION,
   type RunHistoryCoverage,
@@ -43,6 +44,7 @@ export interface RunDraft {
   readonly usage?: UsageSummary | undefined;
   readonly sourceCharacters: number;
   readonly keysSent: boolean;
+  readonly usagePartial: boolean;
 }
 
 function localeLeavesNoTrace(locale: LocaleSummary): boolean {
@@ -78,6 +80,16 @@ function draftLocale(locale: LocaleSummary): DraftLocale {
   };
 }
 
+function sentKeys(locale: LocaleSummary): boolean {
+  return (
+    locale.translated.length +
+      locale.generated.length +
+      locale.integrityMismatches.length +
+      locale.providerFailures.length >
+    0
+  );
+}
+
 export function draftFromSummary(
   summary: RunSummary,
   source: LocaleResource,
@@ -89,14 +101,8 @@ export function draftFromSummary(
     locales: touched.map(draftLocale),
     usage: summary.usage,
     sourceCharacters: sourceCharactersOfRun(source, config, touched),
-    keysSent: touched.some(
-      (locale) =>
-        locale.translated.length +
-          locale.generated.length +
-          locale.integrityMismatches.length +
-          locale.providerFailures.length >
-        0,
-    ),
+    keysSent: touched.some(sentKeys),
+    usagePartial: touched.some((locale) => sentKeys(locale) && locale.usage === undefined),
   };
 }
 
@@ -134,7 +140,7 @@ function localeRecord(
 ): RunHistoryRecordParsed["locales"][number] {
   const measured = coverage?.get(locale.locale);
   return {
-    locale: locale.locale.slice(0, RUN_HISTORY_LIMITS.locale),
+    locale: clipText(locale.locale, RUN_HISTORY_LIMITS.locale),
     status: locale.status,
     translated: locale.translated,
     cacheHits: locale.cacheHits,
@@ -163,7 +169,7 @@ export async function buildRunHistoryRecord(
     at: new Date().toISOString(),
     trigger: draft.trigger,
     provider: config.provider.id,
-    ...(model === undefined ? {} : { model: model.slice(0, RUN_HISTORY_LIMITS.model) }),
+    ...(model === undefined ? {} : { model: clipText(model, RUN_HISTORY_LIMITS.model) }),
     ...(draft.entries === undefined ? {} : { entries: draft.entries }),
     ...(draft.usage === undefined ? {} : { usage: draft.usage }),
     cost: priceRun({
@@ -172,6 +178,7 @@ export async function buildRunHistoryRecord(
       usage: draft.usage,
       sourceCharacters: draft.sourceCharacters,
       keysSent: draft.keysSent,
+      usagePartial: draft.usagePartial,
     }),
     locales: draft.locales.map((locale) => localeRecord(locale, coverage)),
     ...(coverage === undefined ? { coverageUnavailable: true as const } : {}),
