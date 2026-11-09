@@ -256,6 +256,41 @@ describe("applyValueReplace: a locale that fails", () => {
     expect(await readFile(lockPath, "utf8")).toBe(before);
   });
 
+  it("reports a failure that is not an entry-edits failure as a locale failure and writes nothing", async () => {
+    const { dir } = await fixture({ a: "Hallo X" }, { a: "Salut X" });
+    const resolution = createDefaultRegistry().resolve("", { format: "i18next-json" });
+    if (resolution.status !== "resolved") {
+      throw new Error("no adapter registered for i18next-json");
+    }
+    const base = resolution.adapter;
+    const adapterRegistry = new AdapterRegistry().register({
+      ...base,
+      validateMessage: () => {
+        throw new AdapterError("ADAPTER_FAILED", "the validator blew up");
+      },
+    });
+
+    const result = await applyValueReplace(
+      {
+        config,
+        cwd: dir,
+        find: "X",
+        replace: "Y",
+        entries: [{ locale: "de", key: "a", valueHash: valueHash("Hallo X") }],
+        actor: "human",
+      },
+      { adapterRegistry },
+    );
+
+    expect(result.outcomes).toEqual([
+      { locale: "de", key: "a", status: "skipped", reason: "locale-failed" },
+    ]);
+    expect(result.localeFailures).toEqual([
+      { locale: "de", code: "ADAPTER_FAILED", message: "the validator blew up" },
+    ]);
+    expect(await readDe(dir)).toEqual({ a: "Hallo X" });
+  });
+
   it("reports no failures when every locale applies", async () => {
     const { dir } = await fixture({ a: "Hallo X" }, { a: "Salut X" });
 
