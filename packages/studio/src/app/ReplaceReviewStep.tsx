@@ -7,6 +7,7 @@ import {
   countRows,
   EXCERPT_CUT_NOTICE,
   entriesToApply,
+  isSendable,
   keyedDetails,
   matchSentence,
   PIN_OPT_IN_LABEL,
@@ -50,7 +51,13 @@ function Excerpt({
   );
 }
 
-function PreviewRow({ entry }: { readonly entry: ValueReplacePreviewEntry }): ReactNode {
+function PreviewRow({
+  entry,
+  optedIn,
+}: {
+  readonly entry: ValueReplacePreviewEntry;
+  readonly optedIn: boolean;
+}): ReactNode {
   return (
     <div data-replace-entry="" data-locale={entry.locale} data-status={entry.status}>
       <p className="m-0 mb-1 flex min-w-0 flex-wrap items-center gap-2">
@@ -63,7 +70,7 @@ function PreviewRow({ entry }: { readonly entry: ValueReplacePreviewEntry }): Re
         </Badge>
       </p>
       <p className="m-0 mb-2 text-sm text-muted-foreground" data-replace-note="">
-        {statusNote(entry.status)}
+        {statusNote(entry.status, optedIn)}
       </p>
       {entry.reason !== undefined ? (
         <p className="m-0 mb-2 text-sm text-danger" data-replace-reason="">
@@ -197,7 +204,7 @@ export function ReplaceReviewStep({
       <ReplacePagedList
         items={preview.entries}
         itemKey={(entry) => `${entry.locale}\u0000${entry.key}`}
-        render={(entry) => <PreviewRow entry={entry} />}
+        render={(entry) => <PreviewRow entry={entry} optedIn={isSendable(entry.status, optIns)} />}
         listAttribute="data-replace-list"
       />
       {sendable === 0 && !none ? (
@@ -217,11 +224,7 @@ export function ReplaceReviewStep({
         >
           {applying ? "Replacing…" : `Replace ${valueCount(sendable)}`}
         </Button>
-        <Button
-          size="md"
-          aria-disabled={applying || undefined}
-          onClick={applying ? undefined : onBack}
-        >
+        <Button size="md" disabled={applying} onClick={onBack}>
           Back
         </Button>
       </span>

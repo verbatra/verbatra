@@ -269,6 +269,54 @@ describe("ValueReplaceDialog review step", () => {
     expect(call?.params.replace).toBe("Erde");
   });
 
+  it("stops saying a pinned or protected row is left out once its box is ticked", async () => {
+    rpcCalls.length = 0;
+    stubRpc({ "translation.previewValueReplace": previewResult(MIXED) });
+    const view = mount();
+    await search(view);
+    const noteOf = (status: string): string =>
+      view.get(`[data-replace-entry][data-status="${status}"] [data-replace-note]`).textContent ??
+      "";
+    expect(noteOf("pinned")).toContain("Left out unless you opt in");
+    expect(noteOf("protected")).toContain("Left out unless you opt in");
+
+    click(view.get('[data-replace-optin="pinned"]'));
+    expect(noteOf("pinned")).toContain("Included in this run");
+    expect(noteOf("protected")).toContain("Left out unless you opt in");
+
+    click(view.get('[data-replace-optin="protected"]'));
+    expect(noteOf("protected")).toContain("Included in this run");
+    click(view.get('[data-replace-optin="pinned"]'));
+    expect(noteOf("pinned")).toContain("Left out unless you opt in");
+  });
+
+  it("disables Back while the apply runs, and enables it again after a failure", async () => {
+    rpcCalls.length = 0;
+    let fail: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      fail = resolve;
+    });
+    stubRpc({
+      "translation.previewValueReplace": previewResult([entry("a", "ready")]),
+      "translation.applyValueReplace": async () => {
+        await held;
+        return rpcError("INTERNAL_ERROR", "boom");
+      },
+    });
+    const view = mount();
+    await search(view);
+    const back = view.getByText("button", "Back") as HTMLButtonElement;
+    expect(back.disabled).toBe(false);
+
+    click(view.get("[data-replace-apply]"));
+    await flush();
+    expect((view.getByText("button", "Back") as HTMLButtonElement).disabled).toBe(true);
+
+    fail();
+    await flush();
+    expect((view.getByText("button", "Back") as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("applies the criteria that were previewed, not text typed afterwards", async () => {
     rpcCalls.length = 0;
     stubRpc({

@@ -81,8 +81,14 @@ const STATUS_NOTE: Readonly<Record<ValueReplaceStatus, string>> = {
   unchanged: "The replacement would not change this value.",
 };
 
-export function statusNote(status: ValueReplaceStatus): string {
-  return STATUS_NOTE[status];
+const OPTED_IN_NOTE: Readonly<Partial<Record<ValueReplaceStatus, string>>> = {
+  pinned: "A pinned key. Included in this run because you ticked its box.",
+  protected:
+    "A person wrote, imported or changed this outside verbatra. Included in this run because you ticked its box.",
+};
+
+export function statusNote(status: ValueReplaceStatus, optedIn = false): string {
+  return (optedIn ? OPTED_IN_NOTE[status] : undefined) ?? STATUS_NOTE[status];
 }
 
 const STATUS_TONE: Readonly<Record<ValueReplaceStatus, ReplaceTone>> = {
@@ -316,7 +322,8 @@ const COUNT_PLURALS = new Intl.PluralRules("en");
 
 export function matchSentence(count: number): string {
   const verb = COUNT_PLURALS.select(count) === "one" ? "matches" : "match";
-  return `${valueCount(count)} ${verb}.`;
+  const noun = count === 1 ? "value" : "values";
+  return `${count.toLocaleString("en-US")} ${noun} ${verb}.`;
 }
 
 export type CriteriaField = "find" | "replace";
