@@ -32,7 +32,7 @@ import {
   totalLocales,
 } from "../client/run-history-view.js";
 import type { RefreshableView } from "../client/state.js";
-import { formatCount, formatTimestamp } from "../client/ui-format.js";
+import { formatCount, formatShortTimestamp, formatTimestamp } from "../client/ui-format.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { Loading } from "./Loading.js";
 import { RunHistoryChart } from "./RunHistoryChart.js";
@@ -46,10 +46,27 @@ const PAGE_ROWS = 10;
 const INITIAL_COVERAGE_ROWS = 10;
 
 const WHEN_HEAD =
-  "sticky start-0 z-10 whitespace-nowrap bg-(--surface-table-head) max-md:border-e max-md:border-(--border-default)";
+  "sticky start-0 z-10 whitespace-nowrap border-e border-(--border-default) bg-(--surface-table-head)";
 
-const WHEN_CELL =
-  "sticky start-0 z-10 whitespace-nowrap bg-card group-hover:bg-(--surface-row-hover) max-md:border-e max-md:border-(--border-default)";
+const RING_ENDS = {
+  first:
+    "group-focus-visible:shadow-[inset_2px_0_0_0_var(--focus-ring),inset_0_2px_0_0_var(--focus-ring),inset_0_-2px_0_0_var(--focus-ring)]",
+  middle:
+    "group-focus-visible:shadow-[inset_0_2px_0_0_var(--focus-ring),inset_0_-2px_0_0_var(--focus-ring)]",
+  last: "group-focus-visible:shadow-[inset_-2px_0_0_0_var(--focus-ring),inset_0_2px_0_0_var(--focus-ring),inset_0_-2px_0_0_var(--focus-ring)]",
+};
+
+const RUN_CELL = "border-b border-(--border-default) group-last:border-b-0";
+
+const WHEN_CELL = `${RUN_CELL} ${RING_ENDS.first} sticky start-0 z-10 whitespace-nowrap border-e bg-card group-hover:bg-(--surface-row-hover)`;
+
+const RUN_COLUMN_CELL = `${RUN_CELL} ${RING_ENDS.middle} md:min-w-72`;
+
+const RUN_MIDDLE_CELL = `${RUN_CELL} ${RING_ENDS.middle}`;
+
+const RUN_LAST_CELL = `${RUN_CELL} ${RING_ENDS.last}`;
+
+const RUN_ROW = "group focus-visible:outline-none";
 
 const FOCUSABLE_ROW =
   "group focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
@@ -63,10 +80,24 @@ const COST_TONE: Readonly<Record<CostDisplay["kind"], "warning" | "neutral">> = 
   "not-billed": "neutral",
 };
 
-function LtrMono({ children }: { readonly children: string }): ReactNode {
+function LtrMono({
+  children,
+  breaks,
+}: {
+  readonly children: string;
+  readonly breaks: "small-screens" | "anywhere";
+}): ReactNode {
   return (
     <span dir="ltr">
-      <MonoValue breakAnywhere>{children}</MonoValue>
+      <span
+        className={
+          breaks === "anywhere"
+            ? "font-mono wrap-anywhere"
+            : "font-mono max-md:break-all md:wrap-anywhere"
+        }
+      >
+        {children}
+      </span>
     </span>
   );
 }
@@ -128,7 +159,7 @@ function CostCell({ cost }: { readonly cost: CostDisplay }): ReactNode {
       {cost.kind === "priced" ? (
         <span className="whitespace-nowrap font-medium tabular-nums">{cost.label}</span>
       ) : (
-        <Badge tone={COST_TONE[cost.kind]} verbatim>
+        <Badge tone={COST_TONE[cost.kind]} verbatim wrap>
           {cost.label}
         </Badge>
       )}
@@ -136,6 +167,25 @@ function CostCell({ cost }: { readonly cost: CostDisplay }): ReactNode {
     </div>
   );
 }
+
+type UnpricedKind = Exclude<RunHistoryRecord["cost"]["pricing"], "priced">;
+
+const UNPRICED_ORDER: readonly UnpricedKind[] = [
+  "no-rate-on-file",
+  "rate-unit-mismatch",
+  "no-usage",
+  "not-billed",
+];
+
+const UNPRICED_NOTE: Readonly<Record<UnpricedKind, string>> = {
+  "no-rate-on-file":
+    "No rate: your config has no rate on file for that provider and model. Add one under rates to price these runs.",
+  "rate-unit-mismatch":
+    "No rate: the rate on file for that model is in a different unit than the run was measured in, tokens or characters. Correct the unit under rates.",
+  "no-usage":
+    "Unknown: keys were sent, but the provider reported no tokens, so no cost can be worked out.",
+  "not-billed": "Not billed: a self-hosted provider, or none, so no API bills for the run.",
+};
 
 function CostNotes({ records }: { readonly records: readonly RunHistoryRecord[] }): ReactNode {
   const costs = records.map((record) => describeCost(record.cost));
@@ -147,7 +197,9 @@ function CostNotes({ records }: { readonly records: readonly RunHistoryRecord[] 
   }
   const estimated = costs.some((cost) => cost.kind === "estimated");
   const lowerBound = records.some((record) => describeTokens(record).lowerBound);
-  if (rates.size === 0 && !estimated && !lowerBound) {
+  const present = new Set(records.map((record) => record.cost.pricing));
+  const unpriced = UNPRICED_ORDER.filter((pricing) => present.has(pricing));
+  if (rates.size === 0 && !estimated && !lowerBound && unpriced.length === 0) {
     return null;
   }
   return (
@@ -161,12 +213,15 @@ function CostNotes({ records }: { readonly records: readonly RunHistoryRecord[] 
           {[...rates.entries()].map(([key, rate], index) => (
             <span key={key}>
               {index === 0 ? "" : ", "}
-              <LtrMono>{rate.rateKey}</LtrMono> as of {rate.asOf}
+              <LtrMono breaks="anywhere">{rate.rateKey}</LtrMono> as of {rate.asOf}
             </span>
           ))}
           .
         </li>
       )}
+      {unpriced.map((pricing) => (
+        <li key={pricing}>{UNPRICED_NOTE[pricing]}</li>
+      ))}
       {estimated ? (
         <li>
           Estimated: worked out from the source characters sent, not from reported tokens. Repeated
@@ -190,9 +245,10 @@ function TokensCell({ record }: { readonly record: RunHistoryRecord }): ReactNod
     return <span className="text-muted-foreground">not reported</span>;
   }
   return (
-    <span className="whitespace-nowrap">
+    <span>
       {tokens.lowerBound ? "at least " : ""}
-      {formatCount(tokens.input ?? 0)} in / {formatCount(tokens.output ?? 0)} out
+      <span className="whitespace-nowrap">{formatCount(tokens.input ?? 0)} in</span> /{" "}
+      <span className="whitespace-nowrap">{formatCount(tokens.output ?? 0)} out</span>
     </span>
   );
 }
@@ -246,7 +302,7 @@ function ResultCell({ record }: { readonly record: RunHistoryRecord }): ReactNod
   return (
     <div className="flex flex-col items-start gap-1">
       {badge === undefined ? null : (
-        <Badge tone={badge.tone} verbatim>
+        <Badge tone={badge.tone} verbatim wrap>
           {badge.text}
         </Badge>
       )}
@@ -255,19 +311,29 @@ function ResultCell({ record }: { readonly record: RunHistoryRecord }): ReactNod
   );
 }
 
+function rowKeys(records: readonly RunHistoryRecord[]): readonly string[] {
+  const seen = new Map<string, number>();
+  return records.map((record) => {
+    const occurrence = seen.get(record.at) ?? 0;
+    seen.set(record.at, occurrence + 1);
+    return `${record.at}#${occurrence}`;
+  });
+}
+
 function RunsTable({ records }: { readonly records: readonly RunHistoryRecord[] }): ReactNode {
   const [shown, setShown] = useState(INITIAL_RUN_ROWS);
   const regionRef = useRef<HTMLDivElement>(null);
   const overflows = useHorizontalOverflow(regionRef);
   const markReveal = useFocusRevealedRow(regionRef, shown);
   const rows = records.slice(0, shown);
+  const keys = rowKeys(rows);
 
   return (
     <div className="mt-6">
       <CostNotes records={records} />
       <ScrollHint targetRef={regionRef} className="mb-2" />
       <TableCard aria-label="Recorded runs" ref={regionRef} tabIndex={overflows ? 0 : undefined}>
-        <Table>
+        <Table className="border-separate border-spacing-0">
           <caption className="sr-only">Recorded runs, newest first</caption>
           <TableHead>
             <tr>
@@ -280,23 +346,26 @@ function RunsTable({ records }: { readonly records: readonly RunHistoryRecord[] 
           </TableHead>
           <TableBody>
             {rows.map((record, index) => (
-              <TableRow key={`${record.at}-${index}`} className={FOCUSABLE_ROW} tabIndex={-1}>
+              <TableRow key={keys[index]} className={RUN_ROW} tabIndex={-1}>
                 <TableCell className={WHEN_CELL}>
-                  <time dateTime={record.at}>{formatTimestamp(record.at)}</time>
+                  <time dateTime={record.at}>
+                    <span className="md:hidden">{formatShortTimestamp(record.at)}</span>
+                    <span className="max-md:hidden">{formatTimestamp(record.at)}</span>
+                  </time>
                 </TableCell>
-                <TableCell>
+                <TableCell className={RUN_COLUMN_CELL}>
                   <div className="font-medium">{describeTrigger(record)}</div>
                   <div className="text-xs text-muted-foreground">
-                    <LtrMono>{describeProvider(record)}</LtrMono>
+                    <LtrMono breaks="small-screens">{describeProvider(record)}</LtrMono>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className={RUN_MIDDLE_CELL}>
                   <TokensCell record={record} />
                 </TableCell>
-                <TableCell>
+                <TableCell className={RUN_MIDDLE_CELL}>
                   <CostCell cost={describeCost(record.cost)} />
                 </TableCell>
-                <TableCell>
+                <TableCell className={RUN_LAST_CELL}>
                   <ResultCell record={record} />
                 </TableCell>
               </TableRow>

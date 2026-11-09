@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCount, formatTimestamp, UI_LOCALE } from "./ui-format.js";
+import { formatCount, formatShortTimestamp, formatTimestamp, UI_LOCALE } from "./ui-format.js";
 
 describe("formatTimestamp", () => {
   it("formats in the English UI locale whatever the browser's locale", () => {
@@ -16,6 +16,25 @@ describe("formatTimestamp", () => {
 
   it("returns an unparseable value unchanged", () => {
     expect(formatTimestamp("not a date")).toBe("not a date");
+  });
+});
+
+describe("formatShortTimestamp", () => {
+  it("drops the year and keeps the day and time, in the English UI locale", () => {
+    const iso = "2026-10-03T12:49:09.000Z";
+    const expected = new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(iso));
+
+    expect(formatShortTimestamp(iso)).toBe(expected);
+    expect(formatShortTimestamp(iso)).not.toContain("2026");
+  });
+
+  it("returns an unparseable value unchanged", () => {
+    expect(formatShortTimestamp("not a date")).toBe("not a date");
   });
 });
 

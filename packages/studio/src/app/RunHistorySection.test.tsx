@@ -25,6 +25,7 @@ function section(view: RefreshableView<RunHistoryData>, hideCode?: string) {
 const T1 = "2026-07-01T10:00:00.000Z";
 const T2 = "2026-07-02T10:00:00.000Z";
 const T3 = "2026-07-03T10:00:00.000Z";
+const T4 = "2026-07-04T10:00:00.000Z";
 
 describe("RunHistorySection states", () => {
   it("shows a loading status while the first read is open", () => {
@@ -428,9 +429,11 @@ describe("RunHistorySection table and charts", () => {
       '[aria-label="Coverage after the last measured run"] tbody td[dir="ltr"]',
     );
 
-    expect(provider.querySelector(".font-mono.break-all")?.textContent).toBe(
+    expect(provider.querySelector(".font-mono.max-md\\:break-all")?.textContent).toBe(
       "anthropic / claude-sonnet-5-5",
     );
+    expect(provider.querySelector(".font-mono.md\\:wrap-anywhere")).not.toBeNull();
+    expect(provider.querySelector(".break-all:not(.max-md\\:break-all)")).toBeNull();
     expect(locale.querySelector(".font-mono.break-all")?.textContent).toBe("de");
   });
 
@@ -529,7 +532,269 @@ describe("RunHistorySection table and charts", () => {
   });
 });
 
+describe("RunHistorySection round 3", () => {
+  const runRows = (view: ReturnType<typeof section>) =>
+    view.all('[aria-label="Recorded runs"] tbody tr');
+
+  it("keeps focus on the same row when a refresh brings in a newer run, even with equal timestamps", () => {
+    const first = recordAt(T2);
+    const twin = recordAt(T2, { trigger: "retranslate", entries: 1 });
+    const oldest = recordAt(T1);
+    const view = render(
+      <RunHistorySection view={data([first, twin, oldest])} hideCode={undefined} />,
+    );
+    const focused = runRows(view)[2];
+    focused?.focus();
+
+    view.rerender(
+      <RunHistorySection view={data([recordAt(T3), first, twin, oldest])} hideCode={undefined} />,
+    );
+
+    expect(runRows(view)).toHaveLength(4);
+    expect(runRows(view)[3]).toBe(focused);
+    expect(document.activeElement).toBe(focused);
+  });
+
+  it("keeps focus on a revealed row across a refresh that adds a run", () => {
+    const records = Array.from({ length: INITIAL_RUN_ROWS + 5 }, (_, index) =>
+      recordAt(new Date(Date.UTC(2026, 6, 1, 0, index)).toISOString()),
+    );
+    const view = render(<RunHistorySection view={data(records)} hideCode={undefined} />);
+    click(view.getByText("button", "Show more runs"));
+    const revealed = runRows(view)[INITIAL_RUN_ROWS];
+    expect(document.activeElement).toBe(revealed);
+
+    view.rerender(
+      <RunHistorySection
+        view={data([recordAt("2026-08-01T00:00:00.000Z"), ...records])}
+        hideCode={undefined}
+      />,
+    );
+
+    expect(document.activeElement).toBe(revealed);
+  });
+
+  it("draws the hover on the row group and the pinned When cell with the matching row hover fill", () => {
+    const view = section(data([recordAt(T1)]));
+    const row = view.get('[aria-label="Recorded runs"] tbody tr');
+    const when = view.get('[aria-label="Recorded runs"] tbody td');
+
+    expect(row.className.split(" ")).toContain("group");
+    expect(when.className).toContain("group-hover:bg-(--surface-row-hover)");
+  });
+
+  it("draws the focus ring as an inset shadow on every cell, including the pinned one, and no outline", () => {
+    const view = section(data([recordAt(T1)]));
+    const row = view.get('[aria-label="Recorded runs"] tbody tr');
+    const cells = [...row.querySelectorAll("td")];
+
+    expect(row.className).toContain("focus-visible:outline-none");
+    expect(row.className).not.toContain("focus-visible:outline-2");
+    expect(cells).toHaveLength(5);
+    for (const cell of cells) {
+      expect(cell.className).toMatch(
+        /group-focus-visible:shadow-\[inset_[^\]]*var\(--focus-ring\)/,
+      );
+    }
+    expect(cells[0]?.className).toContain("sticky");
+    expect(cells[0]?.className).toContain("group-focus-visible:shadow-[inset_2px_0_0_0");
+    expect(cells[4]?.className).toContain("group-focus-visible:shadow-[inset_-2px_0_0_0");
+  });
+
+  it("keeps a seam and separate borders so the pinned column stays divided while the table scrolls", () => {
+    const view = section(data([recordAt(T1)]));
+    const table = view.get('[aria-label="Recorded runs"] table');
+    const head = view.get('[aria-label="Recorded runs"] thead th');
+    const when = view.get('[aria-label="Recorded runs"] tbody td');
+
+    expect(table.className).toContain("border-separate");
+    expect(table.className).toContain("border-spacing-0");
+    expect(head.className).toContain("border-e");
+    expect(when.className).toContain("border-e");
+    expect(when.className).not.toContain("max-md:border-e");
+  });
+
+  it("gives a Run column a minimum width from md up and wraps the result badge and the token figures cleanly", () => {
+    const view = section(
+      data([
+        recordAt(T1, {
+          locales: [
+            localeEntry("de", { status: "failed" }),
+            localeEntry("fr", { status: "partial" }),
+          ],
+        }),
+      ]),
+    );
+    const row = view.get('[aria-label="Recorded runs"] tbody tr');
+
+    expect(row.querySelector("td:nth-child(2)")?.className).toContain("md:min-w-72");
+    expect(row.querySelector('td:nth-child(5) [data-tone="danger"]')?.className).toContain(
+      "whitespace-normal",
+    );
+    const figures = [...(row.querySelectorAll("td:nth-child(3) .whitespace-nowrap") ?? [])];
+    expect(figures.map((figure) => figure.textContent)).toEqual(["100 in", "50 out"]);
+  });
+
+  it("shows a short date below md and the full one from md up, with the full instant in datetime", () => {
+    const view = section(data([recordAt(T1)]));
+    const time = view.get('[aria-label="Recorded runs"] tbody time');
+    const [short, full] = [...time.querySelectorAll("span")];
+
+    expect(time.getAttribute("datetime")).toBe(T1);
+    expect(short?.className).toContain("md:hidden");
+    expect(full?.className).toContain("max-md:hidden");
+    expect(short?.textContent).not.toContain("2026");
+    expect(full?.textContent).toContain("2026");
+  });
+
+  it("breaks a long rate key in the cost note with wrap-anywhere, never break-all", () => {
+    const view = section(data([recordAt(T1)]));
+    const note = view.get("[data-run-history-cost-notes]");
+
+    expect(note.querySelector(".font-mono.wrap-anywhere")?.textContent).toBe(
+      "anthropic/claude-sonnet-5-5",
+    );
+    expect(note.querySelector(".break-all")).toBeNull();
+  });
+
+  it("labels the peak of each chart with its own figure", () => {
+    const view = section(
+      data([
+        recordAt(T2, {
+          usage: { inputTokens: 1000, outputTokens: 500 },
+          cost: { ...PRICED, amount: 2 } as RunHistoryCost,
+        }),
+        recordAt(T1),
+      ]),
+    );
+    const [cost, tokens] = view.all("figure");
+
+    expect(cost?.textContent).toContain("Peak $2.00");
+    expect(tokens?.textContent).toContain("Peak 1,500");
+  });
+
+  it("anchors a minimum-height bar to the baseline", () => {
+    const view = section(
+      data([
+        recordAt(T2, { usage: { inputTokens: 100000, outputTokens: 0 } }),
+        recordAt(T1, { usage: { inputTokens: 1, outputTokens: 0 } }),
+      ]),
+    );
+    const [, tokens] = view.all("svg");
+    const baseline = Number(tokens?.querySelector("line")?.getAttribute("y1"));
+    const bars = [...(tokens?.querySelectorAll("rect") ?? [])];
+    const tiny = bars.find((bar) => bar.getAttribute("height") === "4");
+
+    expect(tiny).toBeDefined();
+    expect(Number(tiny?.getAttribute("y")) + 4).toBe(baseline);
+    for (const bar of bars) {
+      expect(Number(bar.getAttribute("y")) + Number(bar.getAttribute("height"))).toBe(baseline);
+    }
+  });
+
+  it("explains each reason a cost is missing once above the table, with its own remedy", () => {
+    const view = section(
+      data([
+        recordAt(T4, { cost: { pricing: "no-rate-on-file", basis: "usage", rateKey: "x" } }),
+        recordAt(T3, { cost: { pricing: "rate-unit-mismatch", basis: "usage", rateKey: "x" } }),
+        recordAt(T2, { cost: { pricing: "no-usage", basis: "usage", rateKey: "x" } }),
+        recordAt(T1, { cost: { pricing: "not-billed", rateKey: "x" } }),
+      ]),
+    );
+    const notes = view.get("[data-run-history-cost-notes]");
+    const items = [...notes.querySelectorAll("li")].map((item) => item.textContent);
+
+    expect(items).toEqual([
+      "No rate: your config has no rate on file for that provider and model. Add one under rates to price these runs.",
+      "No rate: the rate on file for that model is in a different unit than the run was measured in, tokens or characters. Correct the unit under rates.",
+      "Unknown: keys were sent, but the provider reported no tokens, so no cost can be worked out.",
+      "Not billed: a self-hosted provider, or none, so no API bills for the run.",
+    ]);
+  });
+
+  it("shows only the unpriced reasons a listed run has", () => {
+    const view = section(data([recordAt(T1, { cost: { pricing: "not-billed", rateKey: "x" } })]));
+    const items = [...view.all("[data-run-history-cost-notes] li")].map((item) => item.textContent);
+
+    expect(items).toEqual([
+      "Not billed: a self-hosted provider, or none, so no API bills for the run.",
+    ]);
+  });
+
+  it("says the token count is a lower bound for a rate-unit mismatch and a not-billed run, and keeps the At least note", () => {
+    const view = section(
+      data([
+        recordAt(T2, {
+          cost: {
+            pricing: "rate-unit-mismatch",
+            basis: "usage",
+            rateKey: "x",
+            caveats: ["USAGE_PARTIAL"],
+          },
+        }),
+        recordAt(T1, { cost: { pricing: "not-billed", rateKey: "x", caveats: ["USAGE_PARTIAL"] } }),
+      ]),
+    );
+    const cells = view.all("tbody tr td:nth-child(4)");
+
+    expect(cells[0]?.querySelector(".sr-only")?.textContent).toContain(
+      "the token count is a lower bound",
+    );
+    expect(cells[1]?.querySelector(".sr-only")?.textContent).toContain(
+      "the token count is a lower bound",
+    );
+    expect(view.get("[data-run-history-cost-notes]").textContent).toContain(
+      "At least: a locale sent keys and reported no tokens",
+    );
+    expect(view.all("tbody tr")[0]?.textContent).toContain("at least 100 in / 50 out");
+  });
+
+  it("shows the At least note for a no-rate run whose usage was partial, and not for a complete one", () => {
+    const partial = section(
+      data([
+        recordAt(T1, {
+          cost: {
+            pricing: "no-rate-on-file",
+            basis: "usage",
+            rateKey: "x",
+            caveats: ["USAGE_PARTIAL"],
+          },
+        }),
+      ]),
+    );
+    const complete = section(
+      data([recordAt(T1, { cost: { pricing: "no-rate-on-file", basis: "usage", rateKey: "x" } })]),
+    );
+
+    expect(partial.get("[data-run-history-cost-notes]").textContent).toContain("At least:");
+    expect(complete.get("[data-run-history-cost-notes]").textContent).not.toContain("At least:");
+  });
+});
+
 describe("RunHistorySection coverage", () => {
+  it("marks a coverage check that failed with a warning badge and a measured one with none", () => {
+    const failed = section(data([recordAt(T1, { coverageUnavailable: true })]));
+    const missing = section(
+      data([
+        recordAt(T2, { locales: [localeEntry("de")] }),
+        recordAt(T1, {
+          locales: [localeEntry("fr", { coverage: { missing: 0, stale: 0, upToDate: 1 } })],
+        }),
+      ]),
+    );
+
+    expect(
+      failed.get('[aria-label="Coverage after the last measured run"] [data-tone]').dataset.tone,
+    ).toBe("warning");
+    expect(
+      failed.get('[aria-label="Coverage after the last measured run"] [data-tone]').textContent,
+    ).toBe("Coverage check failed in this run");
+    expect(
+      missing.all('[aria-label="Coverage after the last measured run"] [data-tone]')[0]?.dataset
+        .tone,
+    ).toBe("neutral");
+  });
+
   it("shows the last known value per locale and marks a locale the latest run did not measure", () => {
     const view = section(
       data([
@@ -547,12 +812,12 @@ describe("RunHistorySection coverage", () => {
     const rows = view.all('[aria-label="Coverage after the last measured run"] tbody tr');
 
     expect(rows).toHaveLength(2);
-    expect(rows[0]?.textContent).toContain("de");
-    expect(rows[0]?.textContent).toContain("9");
-    expect(rows[0]?.textContent).not.toContain("Not measured in this run");
-    expect(rows[1]?.textContent).toContain("fr");
-    expect(rows[1]?.textContent).toContain("Not measured in this run");
-    expect(rows[1]?.textContent).toContain("Last known");
+    expect(rows[0]?.textContent).toContain("fr");
+    expect(rows[0]?.textContent).toContain("Not measured in this run");
+    expect(rows[0]?.textContent).toContain("Last known");
+    expect(rows[1]?.textContent).toContain("de");
+    expect(rows[1]?.textContent).toContain("9");
+    expect(rows[1]?.textContent).not.toContain("Not measured in this run");
   });
 
   it("lists a locale that was never measured with no figures, never zeros, and marks it", () => {
