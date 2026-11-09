@@ -1,4 +1,4 @@
-import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
+import { diffResources, type LocaleResource, type TranslationEntry } from "@verbatra/core";
 import { type FormatAdapter, icuStructureChanges } from "@verbatra/format-adapters";
 import { gateCandidateValue, type IntegrityGateRejection } from "./integrity-gate.js";
 import {
@@ -137,22 +137,7 @@ export function staleKeysOf(
   target: LocaleResource,
   baseline: ReadonlyMap<string, string> | undefined,
 ): ReadonlySet<string> {
-  const stale = new Set<string>();
-  if (baseline === undefined) {
-    return stale;
-  }
-  for (const [key, sourceEntry] of source.entries) {
-    const previous = baseline.get(key);
-    if (
-      previous !== undefined &&
-      target.entries.has(key) &&
-      sourceEntry.value.trim() !== "" &&
-      contentHash(sourceEntry) !== previous
-    ) {
-      stale.add(key);
-    }
-  }
-  return stale;
+  return new Set(diffResources(source, target, baseline === undefined ? {} : { baseline }).changed);
 }
 
 export interface Excerpt {

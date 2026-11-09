@@ -94,12 +94,18 @@ export interface ValueReplacePreviewEntry {
 
 /** The result of {@link previewValueReplace}. */
 export interface ValueReplacePreview {
-  /** Matched values, by locale in the order requested and by key in file order, at most 1,000. */
+  /** Matched values, by locale in the config's `targetLocales` order whatever order `locales` names them in, and by key in file order, at most 1,000. */
   readonly entries: readonly ValueReplacePreviewEntry[];
   /** True when more values matched than the 1,000 listed. */
   readonly truncated: boolean;
   /** How many of {@link ValueReplacePreview.entries} have each status. */
   readonly counts: Readonly<Record<ValueReplaceStatus, number>>;
+  /**
+   * True when the lock file is corrupt, oversized, or from a newer verbatra, so no value could be
+   * compared with its recorded source text and none is reported as `stale-source`. Absent
+   * otherwise, including when there is no lock file.
+   */
+  readonly baselineUnavailable?: true;
 }
 
 interface ValueReplaceFindInput {
@@ -408,7 +414,16 @@ export async function previewValueReplace(
   for (const entry of entries) {
     counts[entry.status] += 1;
   }
-  return { entries, truncated, counts };
+  return {
+    entries,
+    truncated,
+    counts,
+    ...baselineFlag(baselineOf),
+  };
+}
+
+function baselineFlag(baselineOf: unknown): { readonly baselineUnavailable?: true } {
+  return baselineOf === undefined ? { baselineUnavailable: true } : {};
 }
 
 function emptyApplyCounts(): Record<ValueReplaceOutcome["status"], number> {

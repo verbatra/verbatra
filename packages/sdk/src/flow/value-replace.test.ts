@@ -408,7 +408,23 @@ describe("previewValueReplace: statuses", () => {
 
   it("does not mark a key stale when the lock file has no baseline for it", async () => {
     const p = await project({ source: { a: "Hello" }, targets: { de: { a: "Hallo X" } } });
-    expect((await preview(p, "X", "Y")).entries[0]?.status).toBe("ready");
+    const result = await preview(p, "X", "Y");
+    expect(result.entries[0]?.status).toBe("ready");
+    expect(result).not.toHaveProperty("baselineUnavailable");
+  });
+
+  it("says the baseline is unavailable when the lock file cannot be read, and marks nothing stale", async () => {
+    const p = await project({
+      source: { a: "Hello new" },
+      targets: { de: { a: "Hallo X" } },
+      lock: { de: { a: "hash-of-the-old-source" } },
+    });
+    await writeFile(join(p.dir, "verbatra.lock.json"), "{ not json", "utf8");
+
+    const result = await preview(p, "X", "Y");
+
+    expect(result.baselineUnavailable).toBe(true);
+    expect(result.entries[0]?.status).toBe("ready");
   });
 
   it("does not mark a key stale when its source text is blank", async () => {
