@@ -101,6 +101,11 @@ import {
   translatePendingParamsSchema,
 } from "./translate-pending.js";
 import {
+  USAGE_HISTORY_METHOD,
+  type UsageHistoryResult,
+  usageHistoryParamsSchema,
+} from "./usage-history.js";
+import {
   USAGE_SUMMARY_METHOD,
   type UsageSummaryResult,
   usageSummaryParamsSchema,
@@ -137,6 +142,7 @@ export const rpcParamsSchemas = {
   [ESTIMATE_METHOD]: estimateParamsSchema,
   [TRANSLATE_PENDING_METHOD]: translatePendingParamsSchema,
   [USAGE_SUMMARY_METHOD]: usageSummaryParamsSchema,
+  [USAGE_HISTORY_METHOD]: usageHistoryParamsSchema,
 } as const;
 
 export type RpcMethodName = keyof typeof rpcParamsSchemas;
@@ -174,6 +180,7 @@ export interface RpcResultMap {
   readonly [ESTIMATE_METHOD]: EstimateResult;
   readonly [TRANSLATE_PENDING_METHOD]: TranslatePendingResult;
   readonly [USAGE_SUMMARY_METHOD]: UsageSummaryResult;
+  readonly [USAGE_HISTORY_METHOD]: UsageHistoryResult;
 }
 
 export type RpcParamsFor<M extends RpcMethodName> = z.infer<(typeof rpcParamsSchemas)[M]>;

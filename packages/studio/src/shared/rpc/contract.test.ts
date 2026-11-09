@@ -25,6 +25,7 @@ const EXPECTED_METHOD_NAMES = [
   "translation.estimate",
   "translation.translatePending",
   "usage.summary",
+  "usage.history",
   "review.approve",
   "review.reject",
   "review.approveMany",
@@ -35,7 +36,7 @@ const EXPECTED_METHOD_NAMES = [
 ];
 
 describe("RPC_METHOD_NAMES", () => {
-  it("contains exactly the thirty agreed method names, no more, no fewer", () => {
+  it("contains exactly the thirty-one agreed method names, no more, no fewer", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(new Set(EXPECTED_METHOD_NAMES));
     expect(RPC_METHOD_NAMES).toHaveLength(EXPECTED_METHOD_NAMES.length);
   });

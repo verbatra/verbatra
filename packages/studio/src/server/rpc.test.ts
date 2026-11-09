@@ -19,6 +19,7 @@ const READ_ONLY_METHODS = [
   "locale.integrity",
   "review.queue",
   "usage.summary",
+  "usage.history",
   "translation.estimate",
 ] as const;
 
@@ -41,11 +42,11 @@ const SPEND_METHODS = [
 ];
 
 describe("the shared contract's method list", () => {
-  it("is exactly the thirty agreed methods, including the schema-only write methods", () => {
+  it("is exactly the thirty-one agreed methods, including the schema-only write methods", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(
       new Set([...READ_ONLY_METHODS, ...SPEND_METHODS, ...ALWAYS_ON_WRITE_METHODS]),
     );
-    expect(RPC_METHOD_NAMES).toHaveLength(30);
+    expect(RPC_METHOD_NAMES).toHaveLength(31);
   });
 });
 
