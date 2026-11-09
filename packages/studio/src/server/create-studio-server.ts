@@ -78,6 +78,18 @@ export function studioRateLimits(options: StudioServerOptions): StudioRateLimits
         options.reviewDecisionRateLimitWindowMs ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS,
       max: options.reviewDecisionRateLimitMax ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX,
     },
+    previewValueReplace: {
+      windowMs:
+        options.previewValueReplaceRateLimitWindowMs ??
+        DEFAULT_PREVIEW_VALUE_REPLACE_RATE_LIMIT_WINDOW_MS,
+      max: options.previewValueReplaceRateLimitMax ?? DEFAULT_PREVIEW_VALUE_REPLACE_RATE_LIMIT_MAX,
+    },
+    applyValueReplace: {
+      windowMs:
+        options.applyValueReplaceRateLimitWindowMs ??
+        DEFAULT_APPLY_VALUE_REPLACE_RATE_LIMIT_WINDOW_MS,
+      max: options.applyValueReplaceRateLimitMax ?? DEFAULT_APPLY_VALUE_REPLACE_RATE_LIMIT_MAX,
+    },
   };
 }
 
@@ -89,24 +101,6 @@ function setMaxLengthRule(options: StudioServerOptions): RateLimitRule {
   return {
     windowMs: options.setMaxLengthRateLimitWindowMs ?? DEFAULT_SET_MAX_LENGTH_RATE_LIMIT_WINDOW_MS,
     maxCalls: options.setMaxLengthRateLimitMax ?? DEFAULT_SET_MAX_LENGTH_RATE_LIMIT_MAX,
-  };
-}
-
-function valueReplaceRules(options: StudioServerOptions): Readonly<Record<string, RateLimitRule>> {
-  return {
-    [PREVIEW_VALUE_REPLACE_METHOD]: {
-      windowMs:
-        options.previewValueReplaceRateLimitWindowMs ??
-        DEFAULT_PREVIEW_VALUE_REPLACE_RATE_LIMIT_WINDOW_MS,
-      maxCalls:
-        options.previewValueReplaceRateLimitMax ?? DEFAULT_PREVIEW_VALUE_REPLACE_RATE_LIMIT_MAX,
-    },
-    [APPLY_VALUE_REPLACE_METHOD]: {
-      windowMs:
-        options.applyValueReplaceRateLimitWindowMs ??
-        DEFAULT_APPLY_VALUE_REPLACE_RATE_LIMIT_WINDOW_MS,
-      maxCalls: options.applyValueReplaceRateLimitMax ?? DEFAULT_APPLY_VALUE_REPLACE_RATE_LIMIT_MAX,
-    },
   };
 }
 
@@ -151,7 +145,8 @@ function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits
       windowMs: options.keyRevisionsRateLimitWindowMs ?? DEFAULT_KEY_REVISIONS_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.keyRevisionsRateLimitMax ?? DEFAULT_KEY_REVISIONS_RATE_LIMIT_MAX,
     },
-    ...valueReplaceRules(options),
+    [PREVIEW_VALUE_REPLACE_METHOD]: ruleOf(limits.previewValueReplace),
+    [APPLY_VALUE_REPLACE_METHOD]: ruleOf(limits.applyValueReplace),
     [REVIEW_APPROVE_METHOD]: reviewDecision,
     [REVIEW_REJECT_METHOD]: reviewDecision,
     [REVIEW_APPROVE_MANY_METHOD]: reviewDecision,

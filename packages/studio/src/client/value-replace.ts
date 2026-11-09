@@ -9,6 +9,7 @@ import type {
   ApplyValueReplaceParams,
   PreviewValueReplaceParams,
 } from "../shared/rpc/value-replace.js";
+import type { StructuredError } from "./state.js";
 
 export interface ReplaceCriteria {
   readonly find: string;
@@ -257,4 +258,15 @@ export function replacedCount(outcomes: readonly ValueReplaceOutcome[]): number 
 
 export function valueCount(count: number): string {
   return `${count} ${count === 1 ? "value" : "values"}`;
+}
+
+export type CriteriaField = "find" | "replace";
+
+const FIND_TEXT_INVALID = "FIND_TEXT_INVALID";
+
+export function criteriaFieldOf(error: StructuredError | null): CriteriaField | null {
+  if (error === null || error.code !== FIND_TEXT_INVALID) {
+    return null;
+  }
+  return error.message.startsWith("The replace text") ? "replace" : "find";
 }

@@ -162,3 +162,149 @@ describe("translation.applyValueReplaceHandler", () => {
     }
   });
 });
+
+async function withGatedProject(): Promise<FixtureProject> {
+  const project = await makeFixtureProject(
+    { targetLocales: ["de", "fr"], pinnedKeys: ["pinnedKey"] },
+    { plainKey: "world", pinnedKey: "world pin", protectedKey: "world prot" },
+  );
+  const target = {
+    plainKey: "Hallo Welt",
+    pinnedKey: "Hallo Welt pin",
+    protectedKey: "Hallo Welt prot",
+  };
+  for (const locale of ["de", "fr"]) {
+    await writeFile(
+      join(project.root, "locales", `${locale}.json`),
+      `${JSON.stringify(target, null, 2)}\n`,
+      "utf8",
+    );
+  }
+  const { editEntry } = await import("@verbatra/sdk");
+  for (const key of ["plainKey", "pinnedKey", "protectedKey"]) {
+    const value = (target as Record<string, string>)[key] ?? "";
+    for (const locale of ["de", "fr"]) {
+      await editEntry({
+        config: project.config,
+        cwd: project.root,
+        locale,
+        key,
+        value,
+        actor: key === "plainKey" ? "agent" : "human",
+      });
+    }
+  }
+  return project;
+}
+
+async function previewHashes(
+  project: FixtureProject,
+  find: string,
+): Promise<{ locale: string; key: string; valueHash: string }[]> {
+  const preview = await previewValueReplaceHandler(
+    { find, replace: "Erde", caseSensitive: false },
+    deps(project),
+  );
+  return preview.entries.map((item) => ({
+    locale: item.locale,
+    key: item.key,
+    valueHash: item.valueHash,
+  }));
+}
+
+async function deValues(project: FixtureProject): Promise<Record<string, string>> {
+  return JSON.parse(await readFile(join(project.root, "locales", "de.json"), "utf8"));
+}
+
+describe("handler forwards every option to the sdk", () => {
+  it("changes a pinned key only when includePinned is sent (a human-written one also needs includeProtected)", async () => {
+    const project = await withGatedProject();
+    try {
+      const entries = await previewHashes(project, "welt");
+      const without = await applyValueReplaceHandler(
+        { find: "welt", replace: "Erde", caseSensitive: false, entries },
+        deps(project),
+      );
+      expect(
+        without.outcomes.find((o) => o.key === "pinnedKey" && o.locale === "de"),
+      ).toMatchObject({ status: "skipped", reason: "pinned" });
+      expect((await deValues(project)).pinnedKey).toBe("Hallo Welt pin");
+
+      await applyValueReplaceHandler(
+        {
+          find: "welt",
+          replace: "Erde",
+          caseSensitive: false,
+          entries,
+          includePinned: true,
+          includeProtected: true,
+        },
+        deps(project),
+      );
+      expect((await deValues(project)).pinnedKey).toBe("Hallo Erde pin");
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("changes a protected value only when includeProtected is sent", async () => {
+    const project = await withGatedProject();
+    try {
+      const entries = await previewHashes(project, "welt");
+      await applyValueReplaceHandler(
+        { find: "welt", replace: "Erde", caseSensitive: false, entries },
+        deps(project),
+      );
+      expect((await deValues(project)).protectedKey).toBe("Hallo Welt prot");
+
+      await applyValueReplaceHandler(
+        { find: "welt", replace: "Erde", caseSensitive: false, entries, includeProtected: true },
+        deps(project),
+      );
+      expect((await deValues(project)).protectedKey).toBe("Hallo Erde prot");
+      expect((await deValues(project)).pinnedKey).toBe("Hallo Welt pin");
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("honours caseSensitive and the locale list on preview", async () => {
+    const project = await withGatedProject();
+    try {
+      const sensitive = await previewValueReplaceHandler(
+        { find: "welt", replace: "Erde", caseSensitive: true },
+        deps(project),
+      );
+      const insensitive = await previewValueReplaceHandler(
+        { find: "welt", replace: "Erde", caseSensitive: false },
+        deps(project),
+      );
+      const frOnly = await previewValueReplaceHandler(
+        { find: "Welt", replace: "Erde", locales: ["fr"] },
+        deps(project),
+      );
+
+      expect(sensitive.entries).toHaveLength(0);
+      expect(insensitive.entries.length).toBeGreaterThan(0);
+      expect(new Set(frOnly.entries.map((item) => item.locale))).toEqual(new Set(["fr"]));
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("honours caseSensitive on apply", async () => {
+    const project = await withGatedProject();
+    try {
+      const entries = await previewHashes(project, "welt");
+      const result = await applyValueReplaceHandler(
+        { find: "welt", replace: "Erde", caseSensitive: true, entries },
+        deps(project),
+      );
+
+      expect(result.outcomes.every((outcome) => outcome.status === "changed")).toBe(true);
+      expect((await deValues(project)).plainKey).toBe("Hallo Welt");
+    } finally {
+      await project.cleanup();
+    }
+  });
+});

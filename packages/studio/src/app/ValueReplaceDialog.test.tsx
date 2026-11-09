@@ -138,6 +138,23 @@ describe("ValueReplaceDialog criteria step", () => {
     expect((find as HTMLInputElement).value).toBe("xxxxx");
   });
 
+  it("shows FIND_TEXT_INVALID for the replace text at the replace field only", async () => {
+    stubRpc({
+      "translation.previewValueReplace": rpcError(
+        "FIND_TEXT_INVALID",
+        "The replace text must not contain an unpaired surrogate code unit.",
+      ),
+    });
+    const view = mount();
+
+    await search(view, "Welt", "x");
+
+    expect(view.get("[data-replace-with]").getAttribute("aria-invalid")).toBe("true");
+    expect(view.get("[data-replace-find]").getAttribute("aria-invalid")).toBeNull();
+    expect(view.text()).toContain("The replace text must not contain");
+    expect(view.query('[role="alert"]')).toBeNull();
+  });
+
   it("shows any other preview failure as an alert and keeps the typed text", async () => {
     stubRpc({ "translation.previewValueReplace": rpcError("METHOD_RATE_LIMITED") });
     const view = mount();

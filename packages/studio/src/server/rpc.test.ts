@@ -53,7 +53,7 @@ describe("the shared contract's method list", () => {
 });
 
 describe("createRpcHandlers: capability gating", () => {
-  it("registers the seventeen read handlers plus the ten unpriced write handlers by default, without spend", () => {
+  it("registers the seventeen read handlers plus the eleven unpriced write handlers by default, without spend", () => {
     const handlers = createRpcHandlers({ spend: false, writeToDisk: true });
     expect(new Set(Object.keys(handlers))).toEqual(
       new Set([...READ_ONLY_METHODS, ...ALWAYS_ON_WRITE_METHODS]),

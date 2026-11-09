@@ -4,7 +4,7 @@ seoTitle: "Review machine translations in Verbatra Studio"
 description: Start Verbatra Studio, work the needs-review queue, fix entries in place, and retranslate flagged keys from the local dashboard.
 type: how-to
 ---
-Review machine translations in Verbatra Studio.
+Find pending machine translations, fix values, and approve or reject what a provider wrote, in Verbatra Studio.
 
 Two rules: **local editing is always on**, gated by the same integrity checks as other writes, and **provider spend is always off** unless you start Studio with `--allow-spend`.
 
@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Open the URL it prints, token included; stop Studio with Ctrl+C. [`verbatra studio`](/docs/cli/studio) covers the port, token and flags. Every page refreshes live when a locale, lock, provenance or limits file changes.
+Open the URL it prints, token included. [`verbatra studio`](/docs/cli/studio) covers the port, token and flags. Every page refreshes live when a locale, lock, provenance or limits file changes.
 
 ## Read the Translations page
 
@@ -55,7 +55,7 @@ The editor shows the key's description, the glossary terms your draft uses or mi
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Under the length line, **Set limit**, **Change limit** and **Remove limit** edit the key's entry in [`verbatra.limits.json`](/docs/config-file#maxlength), for every locale. The config's `maxLength` wins, read-only. An unusable file shows why and blocks the control. A limit is advisory: a longer value is flagged for review, never blocked. Studio sets limits only for source keys; a limit written for a generated form's own key still applies.
+Under the length line, **Set limit**, **Change limit** and **Remove limit** edit the key's entry in [`verbatra.limits.json`](/docs/config-file#maxlength), for every locale. The config's `maxLength` wins, read-only. An unusable file shows why and blocks the control. A limit is advisory: translate runs flag a longer value for review, and nothing is blocked. Studio sets limits only for source keys; a limit written for a generated form's own key still applies.
 
 #### Preview ICU messages
 
@@ -73,7 +73,7 @@ From 1280px wide the editor sits beside the table; below that it is a drawer. Le
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-**Search and replace** replaces literal text in translated values: pick the text, replacement, case matching and locales, review each match (up to 1,000) with its status and before and after, then apply. Pinned keys and values a person wrote stay out unless you tick their box. The result lists every value.
+**Search and replace** replaces literal text in translated values: pick the text, replacement, case and locales, review each match (up to 1,000) and apply. Pinned keys and values a person wrote stay out unless you tick their box.
 
 ## Work the Review queue
 
@@ -113,7 +113,7 @@ Both decisions are saved in `verbatra.provenance.json` under the [Review decisio
 
 The queue is read from the committed files, so a teammate who pulls them sees it too. A value leaves it once a person approves, rejects, writes or imports it; an approved value that a machine rewrites comes back.
 
-The **Needs review** and **Approved** chips switch the list; with a locale chosen, **Approve all in** approves it all after confirming. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
+The **Needs review** and **Approved** chips switch the list and show counts; the bar narrows by origin; with a locale chosen, **Approve all in** approves it all after confirming. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
 
 ### Work the queue from the keyboard
 

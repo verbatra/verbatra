@@ -2,11 +2,9 @@ import { Button, TextField } from "@verbatra/ui";
 import type { FormEvent, ReactNode } from "react";
 import { useId, useState } from "react";
 import type { StructuredError } from "../client/state.js";
-import type { ReplaceCriteria } from "../client/value-replace.js";
+import { criteriaFieldOf, type ReplaceCriteria } from "../client/value-replace.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { ReplaceCheck } from "./ReplaceCheck.js";
-
-const FIND_FIELD_CODE = "FIND_TEXT_INVALID";
 
 function Field({
   label,
@@ -92,8 +90,10 @@ export function ReplaceCriteriaStep({
   const [replace, setReplace] = useState(initial?.replace ?? "");
   const [caseSensitive, setCaseSensitive] = useState(initial?.caseSensitive ?? true);
   const [locales, setLocales] = useState<readonly string[]>(initial?.locales ?? allLocales);
-  const findError = error?.code === FIND_FIELD_CODE ? error.message : undefined;
-  const otherError = error !== null && findError === undefined ? error : null;
+  const invalidField = criteriaFieldOf(error);
+  const findError = invalidField === "find" ? error?.message : undefined;
+  const replaceError = invalidField === "replace" ? error?.message : undefined;
+  const otherError = invalidField === null ? error : null;
   const ready = find !== "" && locales.length > 0 && !busy;
 
   function submit(event: FormEvent): void {
@@ -129,6 +129,7 @@ export function ReplaceCriteriaStep({
       <Field
         label="Replace with"
         hint="Inserted exactly as typed. $&, $1 and backslashes have no special meaning. Leave empty to remove the text."
+        invalid={replaceError}
       >
         {({ input, described }) => (
           <TextField
@@ -137,6 +138,7 @@ export function ReplaceCriteriaStep({
             dir="auto"
             autoComplete="off"
             spellCheck={false}
+            aria-invalid={replaceError !== undefined ? true : undefined}
             aria-describedby={described}
             readOnly={busy}
             onChange={(event) => setReplace(event.target.value)}

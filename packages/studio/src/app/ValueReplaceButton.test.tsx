@@ -5,34 +5,77 @@ import { ValueReplaceButton } from "./ValueReplaceButton.js";
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
+function dialogOpen(view: ReturnType<typeof render>): boolean {
+  return view.query('[role="dialog"]') !== null;
+}
+
 describe("ValueReplaceButton", () => {
-  it("opens the dialog when no editor draft is unsaved", () => {
-    const view = render(<ValueReplaceButton locales={["de"]} draftKey={null} />);
+  it("opens the dialog at once when no editor draft is unsaved", () => {
+    const holdForDraft = vi.fn(() => false);
+    const view = render(
+      <ValueReplaceButton locales={["de"]} draftKey={null} holdForDraft={holdForDraft} />,
+    );
 
     click(view.get("[data-value-replace-open]"));
 
-    expect(view.query('[role="dialog"]')).not.toBeNull();
-    expect(view.query("[data-value-replace-hold]")).toBeNull();
+    expect(dialogOpen(view)).toBe(true);
+    expect(holdForDraft).not.toHaveBeenCalled();
   });
 
-  it("holds while an editor draft is unsaved, names the key, and opens nothing", () => {
-    const view = render(<ValueReplaceButton locales={["de"]} draftKey="greeting.hello" />);
+  it("hands an unsaved draft to the editor's own hold and opens only when that hold proceeds", () => {
+    let proceed: () => void = () => {};
+    const holdForDraft = vi.fn((onProceed: () => void) => {
+      proceed = onProceed;
+      return true;
+    });
+    const view = render(
+      <ValueReplaceButton locales={["de"]} draftKey="greeting" holdForDraft={holdForDraft} />,
+    );
 
-    const button = view.get("[data-value-replace-open]");
-    click(button);
+    click(view.get("[data-value-replace-open]"));
+    expect(holdForDraft).toHaveBeenCalledTimes(1);
+    expect(dialogOpen(view)).toBe(false);
 
-    expect(button.getAttribute("aria-disabled")).toBe("true");
-    expect(button.getAttribute("aria-describedby")).toBe("value-replace-hold");
-    expect(view.query('[role="dialog"]')).toBeNull();
-    expect(view.get("[data-value-replace-hold]").textContent).toContain("greeting.hello");
+    proceed();
+    view.rerender(
+      <ValueReplaceButton locales={["de"]} draftKey="greeting" holdForDraft={holdForDraft} />,
+    );
+    expect(dialogOpen(view)).toBe(true);
+  });
+
+  it("opens nothing when the hold is never proceeded, as after Keep editing", () => {
+    const holdForDraft = vi.fn(() => true);
+    const view = render(
+      <ValueReplaceButton locales={["de"]} draftKey="greeting" holdForDraft={holdForDraft} />,
+    );
+
+    click(view.get("[data-value-replace-open]"));
+    view.rerender(
+      <ValueReplaceButton locales={["de"]} draftKey="greeting" holdForDraft={holdForDraft} />,
+    );
+
+    expect(dialogOpen(view)).toBe(false);
+  });
+
+  it("opens at once when the editor reports a draft but nothing blocks", () => {
+    const holdForDraft = vi.fn(() => false);
+    const view = render(
+      <ValueReplaceButton locales={["de"]} draftKey="greeting" holdForDraft={holdForDraft} />,
+    );
+
+    click(view.get("[data-value-replace-open]"));
+
+    expect(dialogOpen(view)).toBe(true);
   });
 
   it("closes the dialog from its close button", () => {
-    const view = render(<ValueReplaceButton locales={["de"]} draftKey={null} />);
+    const view = render(
+      <ValueReplaceButton locales={["de"]} draftKey={null} holdForDraft={vi.fn(() => false)} />,
+    );
     click(view.get("[data-value-replace-open]"));
 
     click(view.get('[aria-label="Close search and replace"]'));
 
-    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(dialogOpen(view)).toBe(false);
   });
 });

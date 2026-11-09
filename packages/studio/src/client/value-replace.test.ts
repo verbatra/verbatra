@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyParams,
   countRows,
+  criteriaFieldOf,
   entriesToApply,
   failureViews,
   isSendable,
@@ -115,6 +116,26 @@ describe("applyParams", () => {
     expect(
       applyParams(CRITERIA, refusedOnly, { includePinned: true, includeProtected: true }),
     ).toBeNull();
+  });
+});
+
+describe("applyParams request size", () => {
+  it("fits 1,000 entries with 20,000-character excerpts behind them in 1 MiB, because it sends keys and hashes only", () => {
+    const entries = Array.from({ length: 1000 }, (_, index) =>
+      entry(`section.subsection.entry_${String(index).padStart(6, "0")}.label`, "ready", {
+        valueHash: "0123456789abcdef",
+        before: "x".repeat(20_000),
+        after: "y".repeat(20_000),
+      }),
+    );
+
+    const params = applyParams(CRITERIA, preview(entries), NO_OPT_INS);
+    const body = JSON.stringify({ method: "translation.applyValueReplace", params });
+
+    expect(params?.entries).toHaveLength(1000);
+    expect(Buffer.byteLength(body)).toBeLessThan(1024 * 1024);
+    expect(body).not.toContain("xxxxxxxxxx");
+    expect(Object.keys(params?.entries[0] ?? {}).sort()).toEqual(["key", "locale", "valueHash"]);
   });
 });
 
@@ -241,5 +262,26 @@ describe("small helpers", () => {
         { locale: "fr", code: "X", message: "n", fileWritten: true },
       ]).map((failure) => failure.fileWritten),
     ).toEqual([false, true]);
+  });
+});
+
+describe("criteriaFieldOf", () => {
+  it("names the field a FIND_TEXT_INVALID message is about, and nothing for other errors", () => {
+    expect(
+      criteriaFieldOf({
+        code: "FIND_TEXT_INVALID",
+        message: "The find text must be 1 to 20000 characters, got 0.",
+      }),
+    ).toBe("find");
+    expect(
+      criteriaFieldOf({
+        code: "FIND_TEXT_INVALID",
+        message: "The replace text must not contain an unpaired surrogate code unit.",
+      }),
+    ).toBe("replace");
+    expect(
+      criteriaFieldOf({ code: "METHOD_RATE_LIMITED", message: "The replace text" }),
+    ).toBeNull();
+    expect(criteriaFieldOf(null)).toBeNull();
   });
 });

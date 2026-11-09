@@ -1477,6 +1477,8 @@ describe("ReviewPanel: bulk actions", () => {
         limits: {
           retranslate: { windowMs: 60_000, max: 20 },
           reviewDecision: { windowMs: 60_000, max: 1 },
+          previewValueReplace: { windowMs: 60_000, max: 60 },
+          applyValueReplace: { windowMs: 60_000, max: 10 },
         },
       },
     });
@@ -1511,6 +1513,8 @@ describe("ReviewPanel: bulk actions", () => {
         limits: {
           retranslate: { windowMs: 60_000, max: 1 },
           reviewDecision: { windowMs: 60_000, max: 60 },
+          previewValueReplace: { windowMs: 60_000, max: 60 },
+          applyValueReplace: { windowMs: 60_000, max: 10 },
         },
       },
     });
@@ -2166,6 +2170,8 @@ describe("ReviewPanel: approving a whole locale within the budget", () => {
         limits: {
           retranslate: { windowMs: 60_000, max: 20 },
           reviewDecision: { windowMs: 60_000, max: 1 },
+          previewValueReplace: { windowMs: 60_000, max: 60 },
+          applyValueReplace: { windowMs: 60_000, max: 10 },
         },
       },
     });

@@ -90,6 +90,8 @@ describe("SettingsPanel", () => {
         limits: {
           retranslate: { windowMs: 60_000, max: 20 },
           reviewDecision: { windowMs: 120_000, max: 500 },
+          previewValueReplace: { windowMs: 60_000, max: 60 },
+          applyValueReplace: { windowMs: 60_000, max: 10 },
         },
       },
     });
@@ -111,6 +113,8 @@ describe("SettingsPanel", () => {
         limits: {
           retranslate: { windowMs: 1_000, max: 1 },
           reviewDecision: { windowMs: 90_000, max: 3 },
+          previewValueReplace: { windowMs: 60_000, max: 60 },
+          applyValueReplace: { windowMs: 60_000, max: 10 },
         },
       },
     });
