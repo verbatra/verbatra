@@ -81,7 +81,13 @@ describe("applyValueReplace: a locale that fails", () => {
       { locale: "de", key: "a", status: "applied", staleSource: false },
       { locale: "fr", key: "a", status: "skipped", reason: "locale-failed" },
     ]);
-    expect(result.counts).toEqual({ applied: 1, skipped: 1, refused: 0, changed: 0 });
+    expect(result.counts).toEqual({
+      applied: 1,
+      skipped: 1,
+      refused: 0,
+      changed: 0,
+      "too-long": 0,
+    });
     expect(result.localeFailures).toEqual([
       {
         locale: "fr",

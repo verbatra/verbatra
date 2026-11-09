@@ -82,7 +82,14 @@ describe("applyValueReplace: apple-xcstrings, one catalogue for 40 locales", () 
       { fs },
     );
 
-    expect(result.counts).toEqual({ applied: 80, skipped: 0, refused: 0, changed: 0 });
+    expect(result.counts).toEqual({
+      applied: 80,
+      skipped: 0,
+      refused: 0,
+      changed: 0,
+      "too-long": 0,
+    });
+    expect(result.localeFailures).toEqual([]);
     expect(contended.filter((name) => name === "_catalogue.lock")).toEqual([]);
     const written = JSON.parse(await readFile(join(dir, "Localizable.xcstrings"), "utf8")) as {
       strings: Record<string, { localizations: Record<string, { stringUnit: { value: string } }> }>;

@@ -274,17 +274,15 @@ describe("previewValueReplace: statuses", () => {
     expect(result.entries[0]).toMatchObject({ status: "gate-refused", reason: "degenerate" });
   });
 
-  it("refuses a replaced value above 20,000 characters as degenerate without building it", async () => {
+  it("reports too-long for a replaced value above 20,000 characters, without building it", async () => {
     const p = await project({ source: { a: "Hello" }, targets: { de: { a: "Hallo Welt" } } });
 
     const result = await preview(p, "Welt", "x".repeat(20_000));
 
-    expect(result.entries[0]).toMatchObject({
-      status: "gate-refused",
-      reason: "degenerate",
-      after: "",
-      excerptCut: true,
-    });
+    expect(result.entries[0]).toMatchObject({ status: "too-long", after: "", excerptCut: true });
+    expect(result.entries[0]?.reason).toBeUndefined();
+    expect(result.counts["too-long"]).toBe(1);
+    expect(result.counts["gate-refused"]).toBe(0);
   });
 
   it("reports pinned for a key matching pinnedKeys", async () => {
@@ -563,7 +561,13 @@ describe("applyValueReplace: writes", () => {
 
     const result = await apply(p, "X", "$&", refsOf(listed.entries));
 
-    expect(result.counts).toEqual({ applied: 2, skipped: 0, refused: 0, changed: 0 });
+    expect(result.counts).toEqual({
+      applied: 2,
+      skipped: 0,
+      refused: 0,
+      changed: 0,
+      "too-long": 0,
+    });
     expect(await readLocale(p.dir, "de")).toEqual({
       a: "Hallo $&",
       b: "Tschuess $& $&",
@@ -725,7 +729,7 @@ describe("applyValueReplace: writes", () => {
 
     expect(result).toEqual({
       outcomes: [],
-      counts: { applied: 0, skipped: 0, refused: 0, changed: 0 },
+      counts: { applied: 0, skipped: 0, refused: 0, changed: 0, "too-long": 0 },
       localeFailures: [],
     });
     expect(await defaultFs.fileExists(join(p.dir, "verbatra.lock.json"))).toBe(false);
@@ -839,13 +843,20 @@ describe("applyValueReplace: decided again under the lock", () => {
     expect(await defaultFs.fileExists(join(p.dir, "verbatra.lock.json"))).toBe(false);
   });
 
-  it("refuses a replaced value above 20,000 characters under the lock as degenerate", async () => {
+  it("reports too-long for a replaced value above 20,000 characters under the lock", async () => {
     const p = await project({ source: { a: "Hello" }, targets: { de: { a: "Hallo Welt" } } });
     const listed = await preview(p, "Welt", "Erde");
 
     const result = await apply(p, "Welt", "x".repeat(20_000), refsOf(listed.entries));
 
-    expect(result.outcomes[0]).toMatchObject({ status: "refused", reason: "degenerate" });
+    expect(result.outcomes[0]).toEqual({ locale: "de", key: "a", status: "too-long" });
+    expect(result.counts).toEqual({
+      applied: 0,
+      skipped: 0,
+      refused: 0,
+      changed: 0,
+      "too-long": 1,
+    });
     expect((await readLocale(p.dir, "de")).a).toBe("Hallo Welt");
   });
 
@@ -1068,6 +1079,18 @@ describe("applyValueReplace: pinned and protected opt-ins", () => {
     const result = await apply(p, "X", "Y", refs({ a: "Hallo X" }));
 
     expect(result.outcomes[0]).toMatchObject({ status: "skipped", reason: "protected" });
+  });
+
+  it("writes a value without a record and leaves a provenance file from a newer verbatra untouched", async () => {
+    const p = await project({ source: { a: "Hello" }, targets: { de: { a: "Hallo X" } } });
+    const newer = { version: 99, locales: { de: { a: { origin: "future" } } } };
+    await writeJsonFile(join(p.dir, "verbatra.provenance.json"), newer);
+
+    const result = await apply(p, "X", "Y", refs({ a: "Hallo X" }), { includeProtected: true });
+
+    expect(result.outcomes[0]).toMatchObject({ status: "applied" });
+    expect((await readLocale(p.dir, "de")).a).toBe("Hallo Y");
+    expect(await readJsonFile(join(p.dir, "verbatra.provenance.json"))).toEqual(newer);
   });
 });
 

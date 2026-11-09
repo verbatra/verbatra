@@ -47,7 +47,7 @@ interface PreGateBase {
 
 export type PreGate =
   | (PreGateBase & {
-      readonly verdict: "no-source-entry" | "unchanged" | "pinned" | "protected" | "oversize";
+      readonly verdict: "no-source-entry" | "unchanged" | "pinned" | "protected" | "too-long";
       readonly newValue: string | undefined;
     })
   | (PreGateBase & {
@@ -101,7 +101,7 @@ function settle(
     return { ...base, verdict: "protected", newValue };
   }
   if (newValue === undefined) {
-    return { ...base, verdict: "oversize", newValue };
+    return { ...base, verdict: "too-long", newValue };
   }
   return { ...base, verdict: "candidate", newValue, sourceEntry };
 }

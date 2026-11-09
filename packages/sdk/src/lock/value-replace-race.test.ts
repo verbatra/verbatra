@@ -124,8 +124,20 @@ describe("two applyValueReplace calls at once on the SAME locale", () => {
     const [first, second] = await Promise.all([call(), call()]);
 
     const statuses = [first, second].map((result) => result.counts);
-    expect(statuses).toContainEqual({ applied: 30, skipped: 0, refused: 0, changed: 0 });
-    expect(statuses).toContainEqual({ applied: 0, skipped: 0, refused: 0, changed: 30 });
+    expect(statuses).toContainEqual({
+      applied: 30,
+      skipped: 0,
+      refused: 0,
+      changed: 0,
+      "too-long": 0,
+    });
+    expect(statuses).toContainEqual({
+      applied: 0,
+      skipped: 0,
+      refused: 0,
+      changed: 30,
+      "too-long": 0,
+    });
     const de = await deFile(dir);
     for (const key of keys) {
       expect(de[key]).toBe("Hallo XX");

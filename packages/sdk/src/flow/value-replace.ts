@@ -52,7 +52,8 @@ const PREVIEW_ENTRY_CAP = 1_000;
  * `pinnedKeys`. `protected` is a value a person wrote, imported, or changed outside verbatra, or
  * any value when the provenance file cannot be read. `no-source-entry` is a key with no source
  * text to check the new value against, such as an orphan or a generated plural form. `unchanged`
- * is a value the replacement would leave as it is.
+ * is a value the replacement would leave as it is. `too-long` is a value the replacement would
+ * grow past 20,000 characters; it is not an integrity refusal and carries no `reason`.
  */
 export type ValueReplaceStatus =
   | "ready"
@@ -61,7 +62,8 @@ export type ValueReplaceStatus =
   | "pinned"
   | "protected"
   | "no-source-entry"
-  | "unchanged";
+  | "unchanged"
+  | "too-long";
 
 /** One matched value in a {@link ValueReplacePreview}. */
 export interface ValueReplacePreviewEntry {
@@ -203,6 +205,12 @@ export type ValueReplaceOutcome =
       readonly key: string;
       /** The value no longer matches the `valueHash`, no longer contains the text, or is gone. Nothing was written. */
       readonly status: "changed";
+    }
+  | {
+      readonly locale: string;
+      readonly key: string;
+      /** The replaced value would be longer than 20,000 characters. Nothing was written. */
+      readonly status: "too-long";
     };
 
 /** The result of {@link applyValueReplace}. */
@@ -250,6 +258,7 @@ function emptyPreviewCounts(): Record<ValueReplaceStatus, number> {
     protected: 0,
     "no-source-entry": 0,
     unchanged: 0,
+    "too-long": 0,
   };
 }
 
@@ -273,9 +282,6 @@ function previewEntry(
     after: after.text,
     excerptCut: before.cut || after.cut,
   };
-  if (pre.verdict === "oversize") {
-    return { ...base, status: "gate-refused", reason: "degenerate" };
-  }
   if (pre.verdict !== "candidate") {
     return { ...base, status: pre.verdict };
   }
@@ -299,17 +305,24 @@ function previewEntry(
  * Matching is literal and compares UTF-16 text as it is stored: no pattern syntax, no Unicode
  * normalization, and no line-ending translation, so an NFD `find` does not match an NFC value and
  * `\n` does not match `\r\n`. With `caseSensitive: false` letters are compared by their lower-case
- * form, one character at a time. The replacement is inserted as given.
+ * form, one character at a time. A match never starts or ends inside a surrogate pair. The
+ * replacement is inserted as given.
  *
  * Every candidate value is held to the same integrity gate as an edit, against its current source
  * text, so a replacement that drops a placeholder, breaks markup or ICU syntax, blanks the value,
- * or runs away into a repetition-dominated or oversized value is listed as `gate-refused`. A
- * replaced value longer than 20,000 characters is refused the same way, as `degenerate`. Keys that
+ * or runs away into a repetition-dominated value is listed as `gate-refused`. For the ICU formats
+ * (next-intl and ARB) the replacement is also refused as `gate-refused` with the reason `icu` when
+ * it changes what an argument does: an argument's name or type, a number or date style or
+ * skeleton, or how many `#` a plural arm holds, compared with the current value. The `details`
+ * list each difference, prefixed `-` for what the current value had and `+` for what the replaced
+ * value has. A replaced value longer than 20,000 characters is listed as `too-long`, which is not an
+ * integrity refusal and carries no `reason`. Keys that
  * match `pinnedKeys`, and values a person wrote, imported, or changed outside verbatra, are listed
  * as `pinned` and `protected` whatever the config's `humanEdits` says, and every value counts as
- * protected when the provenance file cannot be read. A key whose source text changed since its
- * translation was recorded is `stale-source`, and its replacement is checked against the current
- * source text.
+ * protected when the provenance file cannot be read, which includes a file from a newer verbatra:
+ * that file is never rewritten, and a value changed with `includeProtected` gets no record in it. A
+ * key whose source text changed since its translation was recorded is `stale-source`, and its
+ * replacement is checked against the current source text.
  *
  * At most 1,000 matched values are listed, `truncated` says when there were more, and each
  * excerpt is at most 200 characters. The preview is advisory: {@link applyValueReplace} decides
@@ -399,7 +412,7 @@ export async function previewValueReplace(
 }
 
 function emptyApplyCounts(): Record<ValueReplaceOutcome["status"], number> {
-  return { applied: 0, skipped: 0, refused: 0, changed: 0 };
+  return { applied: 0, skipped: 0, refused: 0, changed: 0, "too-long": 0 };
 }
 
 function localeFailureOf(locale: string, error: unknown, cwd: string): ValueReplaceLocaleFailure {
@@ -505,8 +518,8 @@ async function applyLocaleInLock(
         : evaluateBeforeGate(facts, criteria, context.allow, ref.key, current);
     if (pre === undefined) {
       results[indexed.index] = changed(ref);
-    } else if (pre.verdict === "oversize") {
-      results[indexed.index] = { locale, key: ref.key, status: "refused", reason: "degenerate" };
+    } else if (pre.verdict === "too-long") {
+      results[indexed.index] = { locale, key: ref.key, status: "too-long" };
     } else if (pre.verdict !== "candidate") {
       results[indexed.index] = skipped(ref, pre.verdict);
     } else {
