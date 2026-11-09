@@ -747,3 +747,19 @@ describe("ValueReplaceDialog result accounting", () => {
     expect(view.get("[data-replace-truncated]").textContent).toContain("1,000");
   });
 });
+
+describe("ValueReplaceDialog opt-in visibility", () => {
+  it("hides the pinned opt-in when no pinned key matched", async () => {
+    stubRpc({
+      "translation.previewValueReplace": previewResult([
+        entry("a", "ready"),
+        entry("p", "protected"),
+      ]),
+    });
+    const view = mount();
+    await search(view);
+
+    expect(view.query('[data-replace-optin="pinned"]')).toBeNull();
+    expect(view.query('[data-replace-optin="protected"]')).not.toBeNull();
+  });
+});
