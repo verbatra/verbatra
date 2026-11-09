@@ -5,18 +5,28 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { deriveIntegrityPillView, type IntegrityPillView } from "../client/integrity-pill.js";
 import type { KeyRevisionRow } from "../client/key-history.js";
 import { hasGlossaryHits, type KeyValueContext } from "../client/key-value-context.js";
+import type { StructuredError } from "../client/state.js";
 import { EditEntryHistory } from "./EditEntryHistory.js";
 import { ErrorMessage } from "./ErrorMessage.js";
-import { GlossaryHitList, SaveRow, submitFailure, TranslationField } from "./entry-editor-parts.js";
+import {
+  focusUnsavedField,
+  GlossaryHitList,
+  SaveRow,
+  submitFailure,
+  TranslationField,
+} from "./entry-editor-parts.js";
 import { KeyDescription } from "./KeyDescription.js";
+import { LimitControl } from "./LimitControl.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { ReviewReasonChips } from "./ReviewReasonChips.js";
 import { TranslationValue } from "./TranslationValue.js";
 import { UnsavedPrompt } from "./UnsavedPrompt.js";
+import { UnsavedSubject } from "./UnsavedSubject.js";
 import { useBannerAnchor } from "./use-banner-anchor.js";
 import { useDialogDraftGuard } from "./use-dialog-draft-guard.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
+import type { LimitDraft } from "./use-limit-draft.js";
 import { useLocaleEdit } from "./use-locale-edit.js";
 
 interface Replacing {
@@ -99,6 +109,9 @@ function TranslationColumn({
   value,
   onChangeValue,
   onSave,
+  limit,
+  readFailure,
+  promptOpen,
   busy,
   textAreaRef,
 }: {
@@ -108,6 +121,9 @@ function TranslationColumn({
   readonly value: string;
   readonly onChangeValue: (next: string) => void;
   readonly onSave: () => void;
+  readonly limit: LimitDraft;
+  readonly readFailure: StructuredError | null;
+  readonly promptOpen: boolean;
   readonly busy: boolean;
   readonly textAreaRef: Ref<HTMLTextAreaElement>;
 }): ReactNode {
@@ -128,7 +144,10 @@ function TranslationColumn({
           locale={locale}
           value={value}
           source={context.source}
-          maxLength={context.maxLength}
+          maxLength={limit.effectiveMaxLength}
+          limitControl={
+            <LimitControl limit={limit} readFailure={readFailure} promptOpen={promptOpen} />
+          }
           invalid={pill?.tone === "danger" && value === context.target}
           busy={busy}
           textAreaRef={textAreaRef}
@@ -155,11 +174,18 @@ export function EditEntryDialog({
   const { context, submit } = edit;
   const value = edit.draft;
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const unsavedFieldRef = useRef<{ focus(): void } | null>(null);
+  const limitOnly = edit.limit.dirty && !edit.valueDirty;
+  useLayoutEffect(() => {
+    unsavedFieldRef.current = {
+      focus: () => focusUnsavedField(textAreaRef.current, limitOnly, containerRef.current),
+    };
+  });
   const guard = useDialogDraftGuard({
     dirty: edit.dirty,
-    saving: submit.kind === "submitting",
+    saving: edit.saving,
     onClose,
-    fieldRef: textAreaRef,
+    fieldRef: unsavedFieldRef,
   });
   const { confirming } = guard;
 
@@ -236,11 +262,13 @@ export function EditEntryDialog({
   async function handleSubmit(): Promise<void> {
     if (await edit.save(locale)) {
       const proceed = guard.takeHeldRoute();
-      onAccepted(locale, keyName);
+      if (edit.wroteValue()) {
+        onAccepted(locale, keyName);
+      }
       void proceed?.();
       return;
     }
-    textAreaRef.current?.focus();
+    unsavedFieldRef.current?.focus();
   }
 
   const recoveredRef = useRef(false);
@@ -286,13 +314,10 @@ export function EditEntryDialog({
         ) : confirming ? (
           <UnsavedPrompt
             subject={
-              <>
-                The <span className="font-mono">{locale}</span> translation has changes that are not
-                saved.
-              </>
+              <UnsavedSubject locale={locale} value={edit.valueDirty} limit={edit.limit.dirty} />
             }
-            saving={submit.kind === "submitting"}
-            error={submitFailure(submit)}
+            saving={edit.saving}
+            error={edit.promptError}
             placement="drawer"
             onSave={() => void handleSubmit()}
             onDiscard={guard.discard}
@@ -323,6 +348,9 @@ export function EditEntryDialog({
               value={value}
               onChangeValue={edit.setDraft}
               onSave={() => void handleSubmit()}
+              limit={edit.limit}
+              readFailure={edit.readFailure}
+              promptOpen={confirming || replacing !== null}
               busy={submit.kind === "submitting"}
               textAreaRef={textAreaRef}
             />
@@ -330,7 +358,7 @@ export function EditEntryDialog({
           <SaveRow
             submit={confirming && submitFailure(submit) !== null ? { kind: "idle" } : submit}
             onSave={() => void handleSubmit()}
-            primary={!confirming && replacing === null}
+            primary={!confirming && replacing === null && !edit.limit.open}
           />
           <EditEntryHistory
             locale={locale}

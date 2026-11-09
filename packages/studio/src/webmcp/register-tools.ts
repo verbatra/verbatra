@@ -285,7 +285,8 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
   [KEY_CONTEXT_METHOD]: {
     description:
       "Reads what a translator needs to write one key in one target locale: the current source text, the current target text when it exists with who wrote it, the description the source file gives for the key when its format carries one, and the glossary entries that apply, meaning every term whose source occurs in the source text as a whole term with the translation and forbidden renderings that locale is held to, and every term to keep untranslated that occurs in it. " +
-      "The result also carries the key's configured maxLength budget in characters when the config sets one. " +
+      "The result also carries the key's maxLength budget in characters when one is set, from the config's maxLength or from verbatra.limits.json, with maxLengthSource saying which (the config wins), and a limitsNotice when verbatra.limits.json could not be used, so only the config's budgets apply. " +
+      "A budget is advisory: a longer value is flagged for review and never refused. This tool cannot set, change or remove a budget; that is a human action in the Studio editor. " +
       "Use it before writing a value with verbatra_translation_editEntry, so the value follows the project's terminology. " +
       "Pass the value you intend to write as the optional `draft` parameter and the result gains a draftCheck: for each applying term whether the draft uses the required translation and which forbidden renderings it uses, and for each term to keep untranslated whether the draft kept it, judged by the same rules a translate run uses to flag a translation for review. " +
       "Do not use it for bulk reads or to list the whole glossary: it answers for one key in one locale, and verbatra_glossary_get returns every term. " +

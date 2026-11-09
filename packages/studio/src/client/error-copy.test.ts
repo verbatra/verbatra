@@ -32,6 +32,9 @@ const REACHABLE_TODAY_CODES = [
   "REVIEW_SOURCE_CHANGED",
   "REVIEW_REJECT_UNSUPPORTED",
   "REVIEW_RESTORE_FAILED",
+  "LENGTH_LIMIT_INVALID",
+  "LIMITS_FILE_UNUSABLE",
+  "LIMITS_FILE_UNWRITABLE",
 ];
 
 const PROVIDER_CODES = ["RATE_LIMITED", "AUTH_FAILED", "TIMEOUT", "PROVIDER_UNAVAILABLE"];
@@ -166,6 +169,15 @@ describe("errorDetail", () => {
       }),
     ).toBe("The lock-file at verbatra.lock.json is not valid JSON.");
   });
+
+  it.each(["LENGTH_LIMIT_INVALID", "LIMITS_FILE_UNUSABLE", "LIMITS_FILE_UNWRITABLE"])(
+    "returns the server's message, which carries the sdk's next step, for %s",
+    (code) => {
+      expect(errorDetail({ code, message: "specific text. Do this next." })).toBe(
+        "specific text. Do this next.",
+      );
+    },
+  );
 
   it.each(["INTERNAL", "NETWORK_ERROR", "METHOD_RATE_LIMITED"])(
     "adds no detail for the generic code %s",

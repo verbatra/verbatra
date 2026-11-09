@@ -33,7 +33,24 @@ describe("deriveKeyValueContext", () => {
       provenance: { origin: "human", reviewState: "unreviewed" },
       glossary,
       maxLength: undefined,
+      maxLengthSource: undefined,
+      limitsNotice: undefined,
     });
+  });
+
+  it("carries the limit, where it comes from, and the limits file notice", () => {
+    const limitsNotice = { code: "LIMITS_FILE_IGNORED", message: "x" } as const;
+    const context = deriveKeyValueContext({
+      ok: true,
+      result: {
+        source: "Hello",
+        glossary: NO_GLOSSARY,
+        maxLength: 12,
+        maxLengthSource: "limits-file",
+        limitsNotice,
+      },
+    });
+    expect(context).toMatchObject({ maxLength: 12, maxLengthSource: "limits-file", limitsNotice });
   });
 
   it("preserves an absent target as undefined, never coercing it to an empty string", () => {

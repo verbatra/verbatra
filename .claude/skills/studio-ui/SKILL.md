@@ -346,7 +346,13 @@ never the pane. The toast has no auto-hide; it stays until dismissed.
 
 Editor state (the open locale, its draft, the unsaved prompt) lives in `KeyEditor`, above the
 container, so crossing `xl` keeps a draft, and focus and the selection in the field are restored
-after the swap. The translation form is inline in the locale block, built from
+after the swap. The key's length-limit control (`LimitControl`, state in `use-limit-draft.ts`, held
+by `useLocaleEdit`) is part of that state: a typed, unsaved limit counts as dirty, the prompt names
+it, Save writes the value and then the limit, and a failure of either keeps the hold. It sits under
+the length line (`data-limit-*` hooks), shows the config's limit read-only, shows the SDK's notice
+and no control for an unusable limits file, and hands focus to its status line when a background
+refresh removes the control that held it (`useFocusKeeper`). While its form is open the translation
+Save is secondary. The translation form is inline in the locale block, built from
 `entry-editor-parts.tsx` and the `useLocaleEdit` hook, both shared with `EditEntryDialog` (Review);
 a second editor dialog or a copy of either is a defect. A failed read shows `ErrorMessage` with
 Retry (and Cancel in the form), never an empty state, and after a successful Retry focus moves to

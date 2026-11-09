@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Ouvre l'URL qu'il affiche, token compris, et arrête Studio avec Ctrl+C. [`verbatra studio`](/fr/docs/cli/studio) couvre le port, le token et toutes les options. Chaque page se rafraîchit en direct quand un fichier de locale, le fichier de verrouillage ou le fichier de provenance change.
+Ouvre l'URL qu'il affiche, token compris, et arrête Studio avec Ctrl+C. [`verbatra studio`](/fr/docs/cli/studio) couvre le port, le token et toutes les options. Chaque page se rafraîchit en direct quand un fichier de locale, le fichier de verrouillage, le fichier de provenance ou le fichier de limites change.
 
 ## Lire la page Translations
 
@@ -50,12 +50,17 @@ Les puces à côté de la recherche restreignent le tableau par état, notamment
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 L'éditeur montre la description de la clé, les termes du glossaire que ton brouillon utilise ou oublie, et sa longueur par rapport à la source et à `maxLength`. Ctrl ou Cmd avec Entrée enregistre.
+#### Définir une limite de longueur
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Sous la ligne de longueur, **Set limit**, **Change limit** et **Remove limit** modifient l'entrée de la clé dans [`verbatra.limits.json`](/fr/docs/config-file#maxlength), pour toutes les locales. Le `maxLength` de la configuration l'emporte et reste en lecture seule. Un fichier inutilisable en donne la raison et bloque le contrôle. Une limite est indicative : les exécutions de translate signalent une valeur plus longue pour relecture, et rien n'est bloqué. Studio ne définit de limites que pour les clés de la source ; une limite écrite pour la clé propre d'une forme générée s'applique toujours.
 
 #### Vérifier les messages avec l'ICU preview
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Avec `next-intl-json` ou `arb`, l'éditeur propose sous le brouillon une **ICU preview** repliée. Elle rend le brouillon une fois par branche : chaque catégorie de pluriel, branche exacte et option de select, dans la langue et le sens d'écriture de la locale, les branches imbriquées étant regroupées sous leur branche extérieure. Une valeur d'exemple saisie ajoute une ligne quand elle atteint une branche, ou une note si elle n'est pas utilisée. Les lignes au-delà de 24 sont omises ; un brouillon invalide garde les dernières bonnes lignes, atténuées. Les nombres et les dates utilisent les données de langue de cet ordinateur, ton application peut donc différer.
+Avec `next-intl-json` ou `arb`, une **ICU preview** repliée sous le brouillon le rend une fois par branche dans la langue et le sens d'écriture de la locale. Une valeur d'exemple saisie ajoute une ligne quand elle atteint une branche, ou une note si elle n'est pas utilisée. Les nombres et les dates utilisent les données de langue de cet ordinateur, ton application peut donc différer.
 
 #### À côté du tableau
 
@@ -93,7 +98,7 @@ Filtre par locale ou texte, puis traite chaque ligne :
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Les deux décisions sont enregistrées dans `verbatra.provenance.json` selon les règles des [Décisions de relecture](/fr/docs/the-lock-file#décisions-de-relecture), y compris ce qu'un rejet retire. Une approbation exige aussi que la valeur soit à jour par rapport à sa source. Commite ensemble le fichier de locale, le fichier de verrouillage et le fichier de provenance ; dans un projet XLIFF, modifie au lieu de rejeter.
+Les deux décisions sont enregistrées dans `verbatra.provenance.json` selon les règles des [Décisions de relecture](/fr/docs/the-lock-file#décisions-de-relecture). Une approbation exige aussi que la valeur soit à jour par rapport à sa source. Commite ensemble le fichier de locale, le fichier de verrouillage et le fichier de provenance ; dans un projet XLIFF, modifie au lieu de rejeter.
 
 ### Une seule file pour toute l'équipe
 
@@ -140,7 +145,7 @@ Un bouton **Retranslate** apparaît alors sur chaque ligne de Review, et dans l'
 
 ## Traduire les changements en attente
 
-Quand le fichier source change pendant que Studio tourne, une notification nomme le fichier et les clés ajoutées, modifiées ou supprimées. Avec `--allow-spend`, elle propose aussi **Translate pending changes across all locales** : la même exécution que `verbatra translate`, avec le résultat affiché sur place.
+Quand le fichier source change pendant que Studio tourne, une notification nomme le fichier et les clés ajoutées, modifiées ou supprimées. Avec `--allow-spend`, elle propose aussi **Translate pending changes across all locales** : la même exécution que `verbatra translate`.
 
 ## Voir la couverture et la dernière exécution sur Overview
 
@@ -158,7 +163,7 @@ Overview est la page sur laquelle Studio s'ouvre. Elle montre la couverture de c
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary a sa propre page, où il se trouvait dans Settings avant 0.7.0. Avec un glossaire JSON, tu peux chercher, ajouter, modifier et supprimer des termes. Supprimer demande d'abord confirmation ; les modifications non enregistrées demandent avant de quitter. Un glossaire inline reste en lecture seule.
+Glossary a sa propre page, auparavant dans Settings. Avec un glossaire JSON, tu peux chercher, ajouter, modifier et supprimer des termes. Supprimer demande d'abord confirmation ; les modifications non enregistrées demandent avant de quitter. Un glossaire inline reste en lecture seule.
 
 Une modification du glossaire change ce que la prochaine exécution reçoit comme consigne, jamais un texte déjà écrit ; redémarre Studio pour que ses propres retraductions l'utilisent.
 

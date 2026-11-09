@@ -7,6 +7,7 @@ import { GIT_LOCALE_DIFF_METHOD, GIT_STATUS_METHOD } from "../shared/rpc/git.js"
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { KEY_PREVIEW_ICU_METHOD } from "../shared/rpc/key-preview-icu.js";
 import { HISTORY_KEY_REVISIONS_METHOD } from "../shared/rpc/key-revisions.js";
+import { KEY_SET_MAX_LENGTH_METHOD } from "../shared/rpc/key-set-max-length.js";
 import { RETRANSLATE_ENTRIES_METHOD } from "../shared/rpc/retranslate-entries.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
 import {
@@ -47,6 +48,8 @@ const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX = 20;
 const DEFAULT_PREVIEW_ICU_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_PREVIEW_ICU_RATE_LIMIT_MAX = 240;
+const DEFAULT_SET_MAX_LENGTH_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_SET_MAX_LENGTH_RATE_LIMIT_MAX = 20;
 const DEFAULT_GIT_STATUS_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_GIT_STATUS_RATE_LIMIT_MAX = 120;
 const DEFAULT_GIT_LOCALE_DIFF_RATE_LIMIT_WINDOW_MS = 60_000;
@@ -72,6 +75,13 @@ export function studioRateLimits(options: StudioServerOptions): StudioRateLimits
 
 function ruleOf(limit: StudioRateLimit): RateLimitRule {
   return { windowMs: limit.windowMs, maxCalls: limit.max };
+}
+
+function setMaxLengthRule(options: StudioServerOptions): RateLimitRule {
+  return {
+    windowMs: options.setMaxLengthRateLimitWindowMs ?? DEFAULT_SET_MAX_LENGTH_RATE_LIMIT_WINDOW_MS,
+    maxCalls: options.setMaxLengthRateLimitMax ?? DEFAULT_SET_MAX_LENGTH_RATE_LIMIT_MAX,
+  };
 }
 
 function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits): RpcRateLimiter {
@@ -101,6 +111,7 @@ function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits
       windowMs: options.previewIcuRateLimitWindowMs ?? DEFAULT_PREVIEW_ICU_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.previewIcuRateLimitMax ?? DEFAULT_PREVIEW_ICU_RATE_LIMIT_MAX,
     },
+    [KEY_SET_MAX_LENGTH_METHOD]: setMaxLengthRule(options),
     [GIT_STATUS_METHOD]: {
       windowMs: options.gitStatusRateLimitWindowMs ?? DEFAULT_GIT_STATUS_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.gitStatusRateLimitMax ?? DEFAULT_GIT_STATUS_RATE_LIMIT_MAX,
@@ -128,6 +139,7 @@ function buildInFlightGuard(): RpcInFlightGuard {
       TRANSLATE_PENDING_METHOD,
       RETRANSLATE_ENTRY_METHOD,
       EDIT_ENTRY_METHOD,
+      KEY_SET_MAX_LENGTH_METHOD,
       REVIEW_APPROVE_METHOD,
       REVIEW_REJECT_METHOD,
       REVIEW_APPROVE_MANY_METHOD,

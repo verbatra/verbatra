@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Öffne die ausgegebene URL samt Token und beende Studio mit Strg+C. [`verbatra studio`](/de/docs/cli/studio) erklärt Port, Token und jedes Flag. Jede Seite aktualisiert sich live, wenn sich eine Locale-Datei, die Lock-Datei oder die Herkunftsdatei ändert.
+Öffne die ausgegebene URL samt Token und beende Studio mit Strg+C. [`verbatra studio`](/de/docs/cli/studio) erklärt Port, Token und jedes Flag. Jede Seite aktualisiert sich live, wenn sich eine Locale-Datei, die Lock-Datei, die Herkunftsdatei oder die Limit-Datei ändert.
 
 ## Lies die Seite Translations
 
@@ -50,12 +50,17 @@ Die Chips neben der Suche grenzen die Tabelle nach Zustand ein, darunter **Revie
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 Der Editor zeigt dir die Beschreibung des Keys, welche Glossarbegriffe dein Entwurf trifft oder auslässt und wie lang er im Vergleich zur Quelle und zu `maxLength` ist. Strg oder Cmd mit Enter speichert.
+#### Ein Längenlimit setzen
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Unter der Längenzeile bearbeiten **Set limit**, **Change limit** und **Remove limit** den Eintrag des Keys in [`verbatra.limits.json`](/de/docs/config-file#maxlength), für jede Locale. Das `maxLength` der Konfiguration gewinnt und ist schreibgeschützt. Eine unbrauchbare Datei zeigt den Grund und sperrt das Bedienelement. Ein Limit ist nur ein Hinweis: Translate-Läufe markieren einen längeren Wert zur Prüfung, nichts wird blockiert. Studio setzt Limits nur für Keys der Quelle; ein Limit, das für den eigenen Key einer erzeugten Form geschrieben wurde, gilt weiterhin.
 
 #### Nachrichten mit der ICU preview prüfen
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Mit `next-intl-json` oder `arb` hat der Editor unter dem Entwurf eine eingeklappte **ICU preview**. Sie rendert den Entwurf einmal pro Zweig: jede Plural-Kategorie, jeden exakten Zweig und jede Select-Option, in Sprache und Schreibrichtung der Locale, verschachtelte Zweige gruppiert unter ihrem äußeren Zweig. Ein eingegebener Beispielwert fügt eine Zeile hinzu, wenn er einen Zweig erreicht, oder einen Hinweis, wenn er ungenutzt bleibt. Zeilen nach den ersten 24 entfallen; ein ungültiger Entwurf behält die letzten guten Zeilen, abgeblendet. Zahlen und Datumsangaben nutzen die Sprachdaten dieses Computers, deine App kann abweichen.
+Mit `next-intl-json` oder `arb` rendert eine eingeklappte **ICU preview** unter dem Entwurf diesen einmal pro Zweig in Sprache und Schreibrichtung der Locale. Ein eingegebener Beispielwert fügt eine Zeile hinzu, wenn er einen Zweig erreicht, oder einen Hinweis, wenn er ungenutzt bleibt. Zahlen und Datumsangaben nutzen die Sprachdaten dieses Computers, deine App kann abweichen.
 
 #### Neben der Tabelle
 
@@ -93,7 +98,7 @@ Filtere nach Locale oder Text, dann arbeite jede Zeile ab:
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter [Review-Entscheidungen](/de/docs/the-lock-file#review-entscheidungen) gespeichert, auch was eine Ablehnung entfernt. Eine Freigabe verlangt außerdem, dass der Wert zu seiner Quelle passt. Committe Locale-Datei, Lock-Datei und Herkunftsdatei zusammen; in einem XLIFF-Projekt bearbeitest du, statt abzulehnen.
+Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter [Review-Entscheidungen](/de/docs/the-lock-file#review-entscheidungen) gespeichert. Eine Freigabe verlangt außerdem, dass der Wert zu seiner Quelle passt. Committe Locale-Datei, Lock-Datei und Herkunftsdatei zusammen; in einem XLIFF-Projekt bearbeitest du, statt abzulehnen.
 
 ### Eine Warteschlange für das ganze Team
 
@@ -140,7 +145,7 @@ Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor ei
 
 ## Übersetze ausstehende Änderungen
 
-Ändert sich die Quelldatei, während Studio läuft, nennt eine Benachrichtigung die Datei und die hinzugefügten, geänderten oder entfernten Keys. Mit `--allow-spend` bietet sie außerdem **Translate pending changes across all locales** an: denselben Lauf, den `verbatra translate` machen würde, mit dem Ergebnis direkt daneben.
+Ändert sich die Quelldatei, während Studio läuft, nennt eine Benachrichtigung die Datei und die hinzugefügten, geänderten oder entfernten Keys. Mit `--allow-spend` bietet sie außerdem **Translate pending changes across all locales** an: denselben Lauf, den `verbatra translate` machen würde.
 
 ## Prüfe Abdeckung und letzten Lauf unter Overview
 
@@ -158,7 +163,7 @@ Overview ist die Seite, auf der Studio startet. Sie zeigt die Abdeckung jeder Lo
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary hat eine eigene Seite, auf der es vor 0.7.0 unter Settings lag. Bei einem JSON-Glossar kannst du Begriffe suchen, hinzufügen, bearbeiten und entfernen. Entfernen fragt zuerst; ungespeicherte Änderungen fragen vor dem Verlassen nach. Ein Inline-Glossar bleibt schreibgeschützt.
+Glossary hat eine eigene Seite, früher unter Settings. Bei einem JSON-Glossar kannst du Begriffe suchen, hinzufügen, bearbeiten und entfernen. Entfernen fragt zuerst; ungespeicherte Änderungen fragen vor dem Verlassen nach. Ein Inline-Glossar bleibt schreibgeschützt.
 
 Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits geschriebenen Text; starte Studio neu, damit seine eigenen Neuübersetzungen sie nutzen.
 

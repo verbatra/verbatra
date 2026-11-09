@@ -21,6 +21,17 @@ export type SubmitState =
   | { readonly kind: "submitting" }
   | { readonly kind: "settled"; readonly outcome: EditEntryOutcome };
 
+export function focusUnsavedField(
+  textarea: { focus(): void } | null,
+  limitOnly: boolean,
+  scope: ParentNode | null,
+): void {
+  const limitField = limitOnly
+    ? (scope?.querySelector<HTMLElement>('[data-limit-item="input"]') ?? null)
+    : null;
+  (limitField ?? textarea)?.focus();
+}
+
 export function submitFailure(submit: SubmitState): StructuredError | null {
   if (submit.kind !== "settled" || submit.outcome.kind === "success") {
     return null;
@@ -188,6 +199,7 @@ export function TranslationField({
   value,
   source,
   maxLength,
+  limitControl,
   invalid,
   busy,
   textAreaRef,
@@ -200,6 +212,7 @@ export function TranslationField({
   readonly value: string;
   readonly source: string;
   readonly maxLength: number | undefined;
+  readonly limitControl?: ReactNode;
   readonly invalid: boolean;
   readonly busy: boolean;
   readonly textAreaRef: Ref<HTMLTextAreaElement>;
@@ -232,6 +245,7 @@ export function TranslationField({
         rows={rows}
       />
       <LengthLine id={lengthId} source={source} value={value} maxLength={maxLength} />
+      {limitControl}
       <DraftPreview value={value} locale={locale} />
       <IcuPreviewPanel keyName={keyName} locale={locale} value={value} />
     </>

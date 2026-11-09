@@ -6,6 +6,7 @@ import type { DiffLocale } from "../client/diff-view.js";
 import type { KeyIntegrityLocaleEntry } from "../client/integrity-pill.js";
 import type { RpcResultFor } from "../shared/rpc/contract.js";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
+import { focusUnsavedField } from "./entry-editor-parts.js";
 import { KeyEditor, type KeyEditorProps } from "./KeyEditor.js";
 import {
   click,
@@ -18,6 +19,7 @@ import {
   rpcError,
   type StubRpcResult,
   stubRpc,
+  textboxNamed,
   typeInto,
 } from "./test-support.js";
 
@@ -1157,6 +1159,417 @@ function field(view: Awaited<ReturnType<typeof renderAsync>>, locale = "de"): HT
   }
   return found;
 }
+
+function promptNamed(
+  view: { get(selector: string): HTMLElement },
+  name: "Save" | "Discard" | "Keep editing",
+): HTMLElement {
+  const found = Array.from(view.get("[data-unsaved-prompt]").querySelectorAll("button")).find(
+    (button) => button.textContent === name,
+  );
+  if (found === undefined) {
+    throw new Error(`no prompt button named ${name}`);
+  }
+  return found;
+}
+
+function layoutOf(
+  layout: "drawer" | "pane",
+  onDirtyChange: (dirty: boolean) => void = () => {},
+  locales: readonly DiffLocale[] = [DE_CHANGED],
+): ReactNode {
+  return (
+    <KeyEditor
+      layout={layout}
+      keyName={KEY}
+      locales={locales}
+      refreshToken={0}
+      onClose={vi.fn()}
+      onEscape={() => {}}
+      onRouteSettled={() => {}}
+      missing={false}
+      onDirtyChange={onDirtyChange}
+    />
+  );
+}
+
+describe("KeyEditor length limit", () => {
+  const FILE_LIMIT = { maxLength: 20, maxLengthSource: "limits-file" };
+
+  it("shows the limit control in the editing form and keeps the draft through a limit save and re-read", async () => {
+    stubWritable();
+    let reads = 0;
+    stubRpc({
+      "key.context": () => {
+        reads += 1;
+        return reads === 1 ? context("Hallo") : context("Hallo", FILE_LIMIT);
+      },
+      "key.setMaxLength": { ok: true, result: { key: KEY, maxLength: 20, changed: true } },
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+    typeInto(field(view), "Hallo Welt");
+
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "20");
+    await clickAsync(view.get("[data-limit-save]"));
+    await flush();
+
+    expect(rpcCalls.filter((call) => call.method === "key.setMaxLength")).toHaveLength(1);
+    expect(reads).toBe(2);
+    expect(field(view).value).toBe("Hallo Welt");
+    expect(view.get("[data-limit-status]").textContent).toBe(
+      "Limit: 20 characters, from verbatra.limits.json.",
+    );
+    expect(view.get("[data-edit-length]").textContent).toContain("of 20 characters");
+  });
+
+  it("keeps a limit being typed, in the same field, through a refresh read", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    const input = textboxNamed(view, "Limit in characters");
+    typeInto(input, "33");
+    input.focus();
+
+    view.rerender(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+    );
+    await flush();
+
+    expect(textboxNamed(view, "Limit in characters")).toBe(input);
+    expect(input.value).toBe("33");
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("says, calmly and only for an orphaned key, that Studio sets limits for source keys only", async () => {
+    stubWritable();
+    stubRpc({ "key.context": rpcError("UNKNOWN_KEY", "not in the source") });
+    const orphan = localeDiff("de", [], [], [KEY]);
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[orphan]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    const note = view.get("[data-orphan-limit-note]");
+    expect(note.textContent).toContain("only for keys in the source file");
+    expect(note.textContent).toContain("still applies");
+    expect(note.closest('[role="alert"]')).toBeNull();
+  });
+
+  it("shows no such note for a key that is in the source, even when the context read fails", async () => {
+    stubWritable();
+    stubRpc({ "key.context": rpcError("UNKNOWN_KEY", "not in the source") });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+
+    expect(view.query("[data-orphan-limit-note]")).toBeNull();
+    expect(view.get('[role="alert"]').textContent).not.toContain("source file");
+  });
+
+  it("counts a typed, unsaved limit as unsaved work: the prompt names it, and Save saves the limit", async () => {
+    stubWritable();
+    stubRpc({
+      "key.context": context("Hallo"),
+      "key.setMaxLength": { ok: true, result: { key: KEY, maxLength: 7, changed: true } },
+    });
+    const dirty = vi.fn();
+    const view = await renderAsync(layoutOf("drawer", dirty, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+    expect(dirty).toHaveBeenLastCalledWith(true);
+
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+    const prompt = view.get("[data-unsaved-prompt]");
+    expect(prompt.textContent).toContain("The limit you are typing for this key is not saved.");
+    await clickAsync(promptNamed(view, "Save"));
+    await flush();
+
+    const calls = rpcCalls.map((call) => call.method);
+    expect(calls).toContain("key.setMaxLength");
+    expect(calls).not.toContain("translation.editEntry");
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(dirty).toHaveBeenLastCalledWith(false);
+  });
+
+  it("names the translation and the limit together, saves the value first and the limit second", async () => {
+    stubWritable();
+    stubRpc({
+      "key.context": context("Hallo"),
+      "translation.editEntry": { ok: true, result: { accepted: true, value: "Hallo Welt" } },
+      "key.setMaxLength": { ok: true, result: { key: KEY, maxLength: 7, changed: true } },
+    });
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    typeInto(field(view), "Hallo Welt");
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+    expect(view.get("[data-unsaved-prompt]").textContent).toContain(
+      "translation and the limit you are typing have changes that are not saved",
+    );
+    await clickAsync(promptNamed(view, "Save"));
+    await flush();
+
+    const writes = rpcCalls
+      .map((call) => call.method)
+      .filter((method) => method === "translation.editEntry" || method === "key.setMaxLength");
+    expect(writes).toEqual(["translation.editEntry", "key.setMaxLength"]);
+  });
+
+  it("keeps the hold, with the error, when the limit save inside the prompt fails", async () => {
+    stubWritable();
+    stubRpc({
+      "key.context": context("Hallo"),
+      "key.setMaxLength": rpcError("LIMITS_FILE_UNWRITABLE", "Check the permissions."),
+    });
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+
+    await clickAsync(promptNamed(view, "Save"));
+    await flush();
+
+    const prompt = view.get("[data-unsaved-prompt]");
+    expect(prompt.textContent).toContain("could not be written");
+    expect(textboxNamed(view, "Limit in characters").value).toBe("7");
+  });
+
+  it("keeps the hold when the typed limit is not valid, and shows why", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "abc");
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+
+    await clickAsync(promptNamed(view, "Save"));
+
+    expect(view.get("[data-unsaved-prompt]").textContent).toContain("Enter a whole number");
+    expect(rpcCalls.map((call) => call.method)).not.toContain("key.setMaxLength");
+  });
+
+  it.each(["drawer", "pane"] as const)(
+    "returns focus to the limit field on Keep editing when only the limit is unsaved, and to the value field when the value is (%s)",
+    async (layout) => {
+      stubWritable();
+      stubRpc({ "key.context": context("Hallo") });
+      const view = await renderAsync(layoutOf(layout, () => {}, [DE_CHANGED, FR_MISSING]));
+      await startEditing(view);
+      await clickAsync(view.getByText("button", "Set limit"));
+      typeInto(textboxNamed(view, "Limit in characters"), "7");
+      await clickAsync(view.get('button[data-edit-locale="fr"]'));
+
+      await clickAsync(promptNamed(view, "Keep editing"));
+
+      expect(document.activeElement).toBe(textboxNamed(view, "Limit in characters"));
+
+      typeInto(field(view), "Hallo Welt");
+      await clickAsync(view.get('button[data-edit-locale="fr"]'));
+      await clickAsync(promptNamed(view, "Keep editing"));
+
+      expect(document.activeElement).toBe(field(view));
+    },
+  );
+
+  it("focuses its own limit field, never another editor's, when two are mounted", () => {
+    const first = render(
+      <div data-editor="first">
+        <input data-limit-item="input" aria-label="first limit" />
+        <textarea aria-label="first value" />
+      </div>,
+    );
+    const second = render(
+      <div data-editor="second">
+        <input data-limit-item="input" aria-label="second limit" />
+        <textarea aria-label="second value" />
+      </div>,
+    );
+
+    focusUnsavedField(
+      second.get("textarea") as HTMLTextAreaElement,
+      true,
+      second.get("[data-editor]"),
+    );
+    expect(document.activeElement).toBe(second.get("input"));
+
+    focusUnsavedField(
+      first.get("textarea") as HTMLTextAreaElement,
+      true,
+      first.get("[data-editor]"),
+    );
+    expect(document.activeElement).toBe(first.get("input"));
+
+    focusUnsavedField(second.get("textarea") as HTMLTextAreaElement, true, null);
+    expect(document.activeElement).toBe(second.get("textarea"));
+    focusUnsavedField(
+      second.get("textarea") as HTMLTextAreaElement,
+      false,
+      second.get("[data-editor]"),
+    );
+    expect(document.activeElement).toBe(second.get("textarea"));
+  });
+
+  it("keeps editing in its own limit field while a lookalike field sits earlier in the page", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const decoy = render(<input data-limit-item="input" aria-label="decoy" />);
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+
+    await clickAsync(promptNamed(view, "Keep editing"));
+
+    expect(document.activeElement).toBe(textboxNamed(view, "Limit in characters"));
+    expect(document.activeElement).not.toBe(decoy.get("input"));
+  });
+
+  it("falls back to the value field when the limit field is gone", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+    view.get("[data-limit-form]").remove();
+
+    await clickAsync(promptNamed(view, "Keep editing"));
+
+    expect(document.activeElement).toBe(field(view));
+  });
+
+  it("lowers Save limit while the unsaved prompt is shown, so the prompt's Save is the only primary", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+    expect(view.get("[data-limit-save]").getAttribute("data-variant")).toBe("primary");
+
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+
+    expect(view.get("[data-limit-save]").getAttribute("data-variant")).toBe("secondary");
+    expect(promptNamed(view, "Save").getAttribute("data-variant")).toBe("primary");
+  });
+
+  it("drops both the value draft and the limit on Discard", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    typeInto(field(view), "Hallo Welt");
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+
+    await clickAsync(promptNamed(view, "Discard"));
+    await flush();
+
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(rpcCalls.map((call) => call.method)).not.toContain("key.setMaxLength");
+    expect(rpcCalls.map((call) => call.method)).not.toContain("translation.editEntry");
+    expect(
+      view.query('input[aria-label="Limit in characters"], [data-limit-form] input'),
+    ).toBeNull();
+  });
+
+  it("holds navigation for a typed limit and keeps it on Keep editing", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(layoutOf("drawer", () => {}, [DE_CHANGED, FR_MISSING]));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "7");
+    await clickAsync(view.get('button[data-edit-locale="fr"]'));
+
+    await clickAsync(promptNamed(view, "Keep editing"));
+
+    expect(view.query("[data-unsaved-prompt]")).toBeNull();
+    expect(textboxNamed(view, "Limit in characters").value).toBe("7");
+  });
+
+  it("lowers the translation Save while the limit form is open, so one action is primary", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(layoutOf("drawer"));
+    await startEditing(view);
+    expect(view.getByText("button", "Save").getAttribute("data-variant")).toBe("primary");
+
+    await clickAsync(view.getByText("button", "Set limit"));
+
+    expect(view.getByText("button", "Save").getAttribute("data-variant")).toBe("secondary");
+    expect(view.get("[data-limit-save]").getAttribute("data-variant")).toBe("primary");
+  });
+
+  it("keeps a typed limit, its focus and the form when the layout crosses xl", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo") });
+    const view = await renderAsync(layoutOf("drawer"));
+    await startEditing(view);
+    await clickAsync(view.getByText("button", "Set limit"));
+    typeInto(textboxNamed(view, "Limit in characters"), "12");
+    textboxNamed(view, "Limit in characters").focus();
+
+    view.rerender(layoutOf("pane"));
+    await flush();
+
+    expect(textboxNamed(view, "Limit in characters").value).toBe("12");
+    expect(document.activeElement).toBe(textboxNamed(view, "Limit in characters"));
+  });
+
+  it("shows a config limit read-only beside the length line", async () => {
+    stubWritable();
+    stubRpc({ "key.context": context("Hallo", { maxLength: 9, maxLengthSource: "config" }) });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    await startEditing(view);
+
+    expect(view.get("[data-limit-control]").getAttribute("data-limit-mode")).toBe("config");
+    expect(view.query("[data-limit-open]")).toBeNull();
+  });
+
+  it("follows a limits-file edit on a refresh without touching the draft or the focus", async () => {
+    stubWritable();
+    let limit = 20;
+    stubRpc({
+      "key.context": () => context("Hallo", { maxLength: limit, maxLengthSource: "limits-file" }),
+    });
+    const view = await renderAsync(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    await startEditing(view);
+    typeInto(field(view), "Hallo Welt");
+    field(view).focus();
+
+    limit = 5;
+    view.rerender(
+      <Drawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={1} onClose={vi.fn()} />,
+    );
+    await flush();
+
+    expect(view.get("[data-limit-status]").textContent).toMatch(/Limit: 5 characters/);
+    expect(field(view).value).toBe("Hallo Welt");
+    expect(document.activeElement).toBe(field(view));
+  });
+});
 
 describe("KeyEditor editing", () => {
   it("starts an empty draft and says so for a locale with no translation yet", async () => {

@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token y cada opción. Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo o el archivo de procedencia.
+Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token y cada opción. Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo, el archivo de procedencia o el archivo de límites.
 
 ## Lee la página Translations
 
@@ -50,12 +50,17 @@ Los chips junto a la búsqueda acotan la tabla por estado, incluidos **Review qu
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 El editor muestra la descripción de la clave, los términos del glosario que tu borrador usa u omite, y su longitud frente al origen y a `maxLength`. Ctrl o Cmd con Enter guarda.
+#### Fijar un límite de longitud
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Bajo la línea de longitud, **Set limit**, **Change limit** y **Remove limit** editan la entrada de la clave en [`verbatra.limits.json`](/es/docs/config-file#maxlength), para todos los locales. El `maxLength` de la configuración gana y es de solo lectura. Un archivo inutilizable muestra el motivo y bloquea el control. Un límite es solo un aviso: las ejecuciones de translate marcan un valor más largo para revisión y nada se bloquea. Studio fija límites solo para claves del origen; un límite escrito para la propia clave de una forma generada sigue aplicándose.
 
 #### Revisar mensajes con la ICU preview
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Con `next-intl-json` o `arb`, el editor tiene una **ICU preview** plegada bajo el borrador. Renderiza el borrador una vez por rama: cada categoría de plural, rama exacta y opción de select, en el idioma y la dirección de la configuración regional, con las ramas anidadas agrupadas bajo su rama exterior. Un valor de ejemplo que escribes añade una fila cuando alcanza una rama, o una nota si no se usa. Las filas posteriores a la 24 se omiten; un borrador no válido conserva las últimas filas buenas, atenuadas. Los números y las fechas usan los datos de idioma de este equipo, así que tu app puede diferir.
+Con `next-intl-json` o `arb`, una **ICU preview** plegada bajo el borrador lo renderiza una vez por rama en el idioma y la dirección de la configuración regional. Un valor de ejemplo que escribes añade una fila cuando alcanza una rama, o una nota si no se usa. Los números y las fechas usan los datos de idioma de este equipo, así que tu app puede diferir.
 
 #### Junto a la tabla
 
@@ -93,7 +98,7 @@ Filtra por locale o texto y luego trabaja cada fila:
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Ambas decisiones se guardan en `verbatra.provenance.json` según las reglas de [Decisiones de revisión](/es/docs/the-lock-file#decisiones-de-revisión), incluido lo que quita un rechazo. Una aprobación además necesita que el valor esté al día con su origen. Confirma juntos el archivo de locale, el archivo de bloqueo y el archivo de procedencia; en un proyecto XLIFF, edita en lugar de rechazar.
+Ambas decisiones se guardan en `verbatra.provenance.json` según las reglas de [Decisiones de revisión](/es/docs/the-lock-file#decisiones-de-revisión). Una aprobación además necesita que el valor esté al día con su origen. Confirma juntos el archivo de locale, el archivo de bloqueo y el archivo de procedencia; en un proyecto XLIFF, edita en lugar de rechazar.
 
 ### Una cola para todo el equipo
 
@@ -140,7 +145,7 @@ Aparece entonces un botón **Retranslate** en cada fila de Review, y en el edito
 
 ## Traduce los cambios pendientes
 
-Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nombra el archivo y las claves añadidas, modificadas o eliminadas. Con `--allow-spend`, además ofrece **Translate pending changes across all locales**: la misma ejecución que haría `verbatra translate`, con el resultado indicado en el propio aviso.
+Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nombra el archivo y las claves añadidas, modificadas o eliminadas. Con `--allow-spend`, además ofrece **Translate pending changes across all locales**: la misma ejecución que haría `verbatra translate`.
 
 ## Revisa la cobertura y la última ejecución en Overview
 
@@ -158,7 +163,7 @@ Overview es la página con la que arranca Studio. Muestra la cobertura de cada l
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary tiene su propia página, donde antes de 0.7.0 estaba en Settings. Con un glosario JSON puedes buscar, añadir, editar y eliminar términos. Eliminar pregunta primero; los cambios sin guardar preguntan al salir. Un glosario inline sigue siendo de solo lectura.
+Glossary tiene su propia página, antes en Settings. Con un glosario JSON puedes buscar, añadir, editar y eliminar términos. Eliminar pregunta primero; los cambios sin guardar preguntan al salir. Un glosario inline sigue siendo de solo lectura.
 
 Una edición del glosario cambia lo que se le indica a la siguiente ejecución, nunca el texto ya escrito; reinicia Studio para que sus propias retraducciones la usen.
 

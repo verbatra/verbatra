@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import { baseStudioConfig } from "./test-support.js";
 import type { CreateStudioWatcher, StudioWatcher } from "./types.js";
-import { createProjectWatcher, defaultCreateStudioWatcher } from "./watcher.js";
+import { createProjectWatcher, defaultCreateStudioWatcher, LIMITS_FILE_NAME } from "./watcher.js";
 
 const PROJECT_ROOT = "/proj";
 
@@ -91,19 +91,20 @@ function sequencedReadLocaleSnapshot(
 }
 
 describe("createProjectWatcher: category wiring", () => {
-  it("watches the source file, every target locale file as its own call, the lock file, and the provenance file", async () => {
+  it("watches the source file, every target locale file as its own call, the lock file, the provenance file, and the limits file", async () => {
     const harness = multiWatcherHarness();
     const config: VerbatraConfig = baseStudioConfig({ targetLocales: ["de", "fr"] });
     await createProjectWatcher(
       { config, projectRoot: PROJECT_ROOT },
       { createWatcher: harness.createWatcher, readLocaleSnapshot: emptyReadLocaleSnapshot },
     );
-    expect(harness.calls).toHaveLength(5);
+    expect(harness.calls).toHaveLength(6);
     expect(harness.calls[0]?.paths).toEqual([join(PROJECT_ROOT, "locales/en.json")]);
     expect(harness.calls[1]?.paths).toEqual([join(PROJECT_ROOT, "locales/de.json")]);
     expect(harness.calls[2]?.paths).toEqual([join(PROJECT_ROOT, "locales/fr.json")]);
     expect(harness.calls[3]?.paths).toEqual([join(PROJECT_ROOT, LOCK_FILE_NAME)]);
     expect(harness.calls[4]?.paths).toEqual([join(PROJECT_ROOT, PROVENANCE_FILE_NAME)]);
+    expect(harness.calls[5]?.paths).toEqual([join(PROJECT_ROOT, LIMITS_FILE_NAME)]);
   });
 
   it("also watches a file-backed glossary and reports its change as a lock refresh", async () => {
@@ -125,8 +126,8 @@ describe("createProjectWatcher: category wiring", () => {
     );
     watcher.onRefresh(listener);
 
-    expect(harness.calls[3]?.paths).toEqual([glossaryPath]);
-    harness.emit(3);
+    expect(harness.calls[4]?.paths).toEqual([glossaryPath]);
+    harness.emit(4);
     await vi.waitFor(() => expect(events.map((event) => event.reason)).toEqual(["lock"]));
   });
 
@@ -137,10 +138,11 @@ describe("createProjectWatcher: category wiring", () => {
       { config, projectRoot: PROJECT_ROOT },
       { createWatcher: harness.createWatcher, readLocaleSnapshot: emptyReadLocaleSnapshot },
     );
-    expect(harness.calls).toHaveLength(3);
+    expect(harness.calls).toHaveLength(4);
     expect(harness.calls[0]?.paths).toEqual([join(PROJECT_ROOT, "locales/en.json")]);
     expect(harness.calls[1]?.paths).toEqual([join(PROJECT_ROOT, LOCK_FILE_NAME)]);
     expect(harness.calls[2]?.paths).toEqual([join(PROJECT_ROOT, PROVENANCE_FILE_NAME)]);
+    expect(harness.calls[3]?.paths).toEqual([join(PROJECT_ROOT, LIMITS_FILE_NAME)]);
   });
 
   it("never emits a refresh event until a raw change is seen", async () => {
@@ -830,7 +832,7 @@ describe("createProjectWatcher: close", () => {
     await flushMicrotasks();
 
     expect(refresh.events).toEqual([]);
-    expect(harness.calls).toHaveLength(5);
+    expect(harness.calls).toHaveLength(6);
     expect(harness.calls.every((call) => call.closed)).toBe(true);
   });
 });
@@ -924,6 +926,35 @@ describe("defaultCreateStudioWatcher: real chokidar behavior", () => {
     expect(refresh.events).toEqual([{ reason: "lock", at: expect.any(String) }]);
     await watcher.close();
   }, 5000);
+
+  it("raises a lock refresh when the limits file is created after start, rewritten, made invalid and deleted", async () => {
+    const config: VerbatraConfig = baseStudioConfig({ targetLocales: ["de"] });
+    const refresh = collectRefresh();
+    const watcher = await createProjectWatcher(
+      { config, projectRoot: root, debounceMs: 50 },
+      { createWatcher: defaultCreateStudioWatcher },
+    );
+    watcher.onRefresh(refresh.listener);
+    await wait(200);
+    const limitsPath = join(root, LIMITS_FILE_NAME);
+
+    await writeFile(limitsPath, JSON.stringify({ version: 1, maxLength: { a: 1 } }));
+    await wait(600);
+    const afterCreate = refresh.events.length;
+    await writeFile(limitsPath, JSON.stringify({ version: 1, maxLength: { a: 2 } }));
+    await wait(600);
+    const afterRewrite = refresh.events.length;
+    await writeFile(limitsPath, "{ not json");
+    await wait(600);
+    const afterInvalid = refresh.events.length;
+    await rm(limitsPath);
+    await wait(600);
+
+    expect([afterCreate, afterRewrite, afterInvalid]).toEqual([1, 2, 3]);
+    expect(refresh.events.length).toBe(4);
+    expect(new Set(refresh.events.map((event) => event.reason))).toEqual(new Set(["lock"]));
+    await watcher.close();
+  }, 8000);
 
   it("a real atomic temp-write-then-rename over the provenance file raises exactly one lock refresh", async () => {
     const config: VerbatraConfig = baseStudioConfig({ targetLocales: ["de"] });

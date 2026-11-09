@@ -4,6 +4,7 @@ import type { IntegrityPillView } from "../client/integrity-pill.js";
 import { hasGlossaryHits } from "../client/key-value-context.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { GlossaryHitList, SaveRow, TranslationField } from "./entry-editor-parts.js";
+import { LimitControl } from "./LimitControl.js";
 import { useDraftCheck } from "./use-draft-check.js";
 import type { LocaleEdit } from "./use-locale-edit.js";
 
@@ -79,7 +80,10 @@ export function LocaleEditForm({
         locale={locale}
         value={draft}
         source={context.source}
-        maxLength={context.maxLength}
+        maxLength={edit.limit.effectiveMaxLength}
+        limitControl={
+          <LimitControl limit={edit.limit} readFailure={edit.readFailure} promptOpen={promptOpen} />
+        }
         invalid={pill?.tone === "danger" && draft === context.target}
         busy={submit.kind === "submitting"}
         textAreaRef={attach}
@@ -88,7 +92,12 @@ export function LocaleEditForm({
         onSave={onSave}
       />
       <div className="mt-3">
-        <SaveRow submit={submit} onSave={onSave} onCancel={onCancel} primary={!promptOpen} />
+        <SaveRow
+          submit={submit}
+          onSave={onSave}
+          onCancel={onCancel}
+          primary={!promptOpen && !edit.limit.open}
+        />
       </div>
     </div>
   );

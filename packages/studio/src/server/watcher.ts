@@ -22,6 +22,8 @@ import type {
   StudioWatcherOptions,
 } from "./types.js";
 
+export const LIMITS_FILE_NAME = "verbatra.limits.json";
+
 const DEFAULT_DEBOUNCE_MS = 300;
 const DEFAULT_GIT_POLL_MS = 5000;
 
@@ -48,6 +50,7 @@ function watchedEntries(
     ...localeEntries,
     { reason: "lock", paths: [lock] },
     { reason: "lock", paths: [resolve(projectRoot, PROVENANCE_FILE_NAME)] },
+    { reason: "lock", paths: [resolve(projectRoot, LIMITS_FILE_NAME)] },
     ...(glossaryPath === undefined ? [] : [{ reason: "lock" as const, paths: [glossaryPath] }]),
   ];
 }
