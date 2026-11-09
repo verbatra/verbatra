@@ -94,17 +94,29 @@ function surplus(
   return lines;
 }
 
+function armAgnostic(signatures: readonly string[]): string[] {
+  const unique = new Set(
+    signatures.map((signature) =>
+      signature.startsWith("#:") ? `#:${signature.slice(2).replace(/:[^>]*/g, "")}` : signature,
+    ),
+  );
+  return [...unique];
+}
+
 export function icuStructureChanges(
   before: string,
   after: string,
   fallback?: string,
 ): readonly string[] {
-  const beforeSignatures =
-    signaturesOf(before) ?? (fallback === undefined ? undefined : signaturesOf(fallback));
-  const afterSignatures = signaturesOf(after);
-  if (beforeSignatures === undefined || afterSignatures === undefined) {
+  const own = signaturesOf(before);
+  const fromFallback =
+    own === undefined && fallback !== undefined ? signaturesOf(fallback) : undefined;
+  const afterOwn = signaturesOf(after);
+  if ((own === undefined && fromFallback === undefined) || afterOwn === undefined) {
     return [];
   }
+  const beforeSignatures = own ?? armAgnostic(fromFallback ?? []);
+  const afterSignatures = own === undefined ? armAgnostic(afterOwn) : afterOwn;
   const beforeCounts = countsOf(beforeSignatures);
   const afterCounts = countsOf(afterSignatures);
   return [...surplus(afterCounts, beforeCounts, "+"), ...surplus(beforeCounts, afterCounts, "-")];

@@ -123,3 +123,26 @@ describe("icuStructureChanges", () => {
     expect(icuStructureChanges("{n}", "{n}", "{n, number, ::percent}")).toEqual([]);
   });
 });
+
+describe("icuStructureChanges against a source fallback with target plural arms", () => {
+  const broken = "{n, plural, one {# Datei} few {# {x}";
+  const source = "{n, plural, one {# file} other {# files}}";
+
+  it("accepts a repair that adds the target language plural arms with #", () => {
+    const repaired = "{n, plural, one {# plik} few {# pliki} many {# plikow} other {# pliku}}";
+    expect(icuStructureChanges(broken, repaired, source)).toEqual([]);
+  });
+
+  it("still reports a # dropped from every arm", () => {
+    const repaired = "{n, plural, one {plik} few {pliki} many {plikow} other {pliku}}";
+    expect(icuStructureChanges(broken, repaired, source)).toEqual(["-#:>n"]);
+  });
+
+  it("still reports a changed argument type", () => {
+    expect(icuStructureChanges(broken, "{n, select, other {plik}}", source)).toEqual([
+      "+select:n",
+      "-plural:n",
+      "-#:>n",
+    ]);
+  });
+});
