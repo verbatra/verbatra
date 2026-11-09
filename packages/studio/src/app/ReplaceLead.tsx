@@ -12,7 +12,7 @@ export function ReplaceLead({ children }: { readonly children: ReactNode }): Rea
       tabIndex={-1}
       role="status"
       data-replace-lead=""
-      className="m-0 mb-3 text-sm font-medium text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className="m-0 mb-3 -mx-1.5 rounded-sm px-1.5 py-1 text-sm font-medium text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       {children}
     </p>
