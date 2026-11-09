@@ -195,16 +195,13 @@ describe("lastKnownCoverage", () => {
     expect(lastKnownCoverage([latest, older])).toEqual([
       {
         locale: "de",
-        missing: 0,
-        stale: 0,
-        upToDate: 9,
-        measuredAt: "2026-07-03T00:00:00.000Z",
+        known: { missing: 0, stale: 0, upToDate: 9, measuredAt: "2026-07-03T00:00:00.000Z" },
         measuredInLatestRun: true,
       },
+      { locale: "es", known: undefined, measuredInLatestRun: false },
       {
         locale: "fr",
-        ...measured,
-        measuredAt: "2026-07-02T00:00:00.000Z",
+        known: { ...measured, measuredAt: "2026-07-02T00:00:00.000Z" },
         measuredInLatestRun: false,
       },
     ]);

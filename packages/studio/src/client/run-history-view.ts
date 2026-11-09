@@ -202,10 +202,14 @@ export function describeTokens(record: RunHistoryRecord): TokenDisplay {
 
 export interface CoverageRow {
   readonly locale: string;
-  readonly missing: number;
-  readonly stale: number;
-  readonly upToDate: number;
-  readonly measuredAt: string;
+  readonly known:
+    | {
+        readonly missing: number;
+        readonly stale: number;
+        readonly upToDate: number;
+        readonly measuredAt: string;
+      }
+    | undefined;
   readonly measuredInLatestRun: boolean;
 }
 
@@ -217,14 +221,18 @@ export function lastKnownCoverage(records: readonly RunHistoryRecord[]): readonl
   const rows = new Map<string, CoverageRow>();
   for (const record of records) {
     for (const entry of record.locales) {
-      if (entry.coverage !== undefined && !rows.has(entry.locale)) {
+      const held = rows.get(entry.locale);
+      if (entry.coverage !== undefined && (held === undefined || held.known === undefined)) {
         rows.set(entry.locale, {
           locale: entry.locale,
-          missing: entry.coverage.missing,
-          stale: entry.coverage.stale,
-          upToDate: entry.coverage.upToDate,
-          measuredAt: record.at,
+          known: { ...entry.coverage, measuredAt: record.at },
           measuredInLatestRun: record === latest,
+        });
+      } else if (held === undefined) {
+        rows.set(entry.locale, {
+          locale: entry.locale,
+          known: undefined,
+          measuredInLatestRun: false,
         });
       }
     }

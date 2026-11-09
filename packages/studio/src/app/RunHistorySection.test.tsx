@@ -156,12 +156,15 @@ describe("RunHistorySection cost states", () => {
     }
   });
 
-  it("never prints a free or zero amount for a run that had no figure", () => {
-    const view = section(
-      data([recordAt(T1, { cost: { pricing: "no-usage", basis: "usage", rateKey: "x" } })]),
-    );
+  it.each([
+    { pricing: "no-rate-on-file", basis: "usage", rateKey: "x" },
+    { pricing: "rate-unit-mismatch", basis: "usage", rateKey: "x" },
+    { pricing: "no-usage", basis: "usage", rateKey: "x" },
+    { pricing: "not-billed", rateKey: "x" },
+  ] as const)("never prints a free or zero amount for a $pricing run", (cost) => {
+    const view = section(data([recordAt(T1, { cost })]));
 
-    expect(view.get("table").textContent).not.toMatch(/\$0|free/);
+    expect(view.get("table").textContent).not.toMatch(/\$|free|\b0\.0/);
   });
 });
 
@@ -188,7 +191,7 @@ describe("RunHistorySection table and charts", () => {
     );
     expect(tokens?.querySelectorAll("rect")).toHaveLength(2);
     expect(cost?.querySelectorAll("circle title")[0]?.textContent).toContain("$0.50");
-    expect(cost?.querySelector("polyline")?.getAttribute("points")).not.toBe("");
+    expect(cost?.querySelector("polyline")?.getAttribute("points")).toContain(",");
   });
 
   it("writes the chart with attributes and token classes only, never a style attribute or a style element", () => {
@@ -231,12 +234,12 @@ describe("RunHistorySection table and charts", () => {
       recordAt(new Date(Date.UTC(2026, 6, 1, 0, index)).toISOString()),
     );
     const view = section(data(records));
-    expect(view.all("tbody tr").length).toBe(INITIAL_RUN_ROWS);
+    expect(view.all('[aria-label="Recorded runs"] tbody tr').length).toBe(INITIAL_RUN_ROWS);
 
     const more = view.getByText("button", "Show more runs");
     click(more);
 
-    expect(view.all("tbody tr").length).toBe(INITIAL_RUN_ROWS + 5);
+    expect(view.all('[aria-label="Recorded runs"] tbody tr').length).toBe(INITIAL_RUN_ROWS + 5);
     expect(view.query("button")).toBeNull();
   });
 
@@ -306,8 +309,18 @@ describe("RunHistorySection coverage", () => {
     expect(rows[1]?.textContent).toContain("Last known");
   });
 
-  it("says nothing was measured when no record carries coverage", () => {
+  it("lists a locale that was never measured with no figures, never zeros, and marks it", () => {
     const view = section(data([recordAt(T1, { coverageUnavailable: true })]));
+    const rows = view.all('[aria-label="Coverage after the last measured run"] tbody tr');
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.textContent).toContain("Not measured in this run");
+    expect(rows[0]?.textContent).not.toContain("Last known");
+    expect(rows[0]?.textContent).not.toMatch(/\b0\b/);
+  });
+
+  it("says nothing was measured when the records name no locale", () => {
+    const view = section(data([recordAt(T1, { locales: [] })]));
 
     expect(view.text()).toContain("No coverage was measured in these runs.");
   });

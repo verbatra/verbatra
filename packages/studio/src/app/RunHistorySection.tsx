@@ -223,19 +223,31 @@ function CoverageTable({ rows }: { readonly rows: readonly CoverageRow[] }): Rea
                 <TableCell mono dir="ltr">
                   {row.locale}
                 </TableCell>
-                <TableCell numeric>{formatCount(row.missing)}</TableCell>
-                <TableCell numeric>{formatCount(row.stale)}</TableCell>
-                <TableCell numeric>{formatCount(row.upToDate)}</TableCell>
+                <TableCell numeric>
+                  {row.known === undefined ? "-" : formatCount(row.known.missing)}
+                </TableCell>
+                <TableCell numeric>
+                  {row.known === undefined ? "-" : formatCount(row.known.stale)}
+                </TableCell>
+                <TableCell numeric>
+                  {row.known === undefined ? "-" : formatCount(row.known.upToDate)}
+                </TableCell>
                 <TableCell>
-                  {row.measuredInLatestRun ? (
-                    <time dateTime={row.measuredAt}>{formatTimestamp(row.measuredAt)}</time>
+                  {row.known !== undefined && row.measuredInLatestRun ? (
+                    <time dateTime={row.known.measuredAt}>
+                      {formatTimestamp(row.known.measuredAt)}
+                    </time>
                   ) : (
                     <div className="flex flex-col items-start gap-1">
                       <Badge tone="neutral">Not measured in this run</Badge>
-                      <span className="text-xs text-muted-foreground">
-                        Last known{" "}
-                        <time dateTime={row.measuredAt}>{formatTimestamp(row.measuredAt)}</time>
-                      </span>
+                      {row.known === undefined ? null : (
+                        <span className="text-xs text-muted-foreground">
+                          Last known{" "}
+                          <time dateTime={row.known.measuredAt}>
+                            {formatTimestamp(row.known.measuredAt)}
+                          </time>
+                        </span>
+                      )}
                     </div>
                   )}
                 </TableCell>

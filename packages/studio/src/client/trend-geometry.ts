@@ -29,7 +29,7 @@ export interface TrendBar {
 export interface TrendGeometry {
   readonly max: number;
   readonly baselineY: number;
-  readonly polyline: string;
+  readonly segments: readonly string[];
   readonly dots: readonly TrendDot[];
   readonly bars: readonly TrendBar[];
 }
@@ -40,6 +40,21 @@ function round(value: number): number {
 
 function usable(value: number | undefined): value is number {
   return value !== undefined && Number.isFinite(value) && value >= 0;
+}
+
+function lineSegments(dots: readonly TrendDot[]): readonly string[] {
+  const runs: TrendDot[][] = [];
+  for (const dot of dots) {
+    const last = runs.at(-1);
+    if (last !== undefined && last.at(-1)?.index === dot.index - 1) {
+      last.push(dot);
+    } else {
+      runs.push([dot]);
+    }
+  }
+  return runs
+    .filter((run) => run.length > 1)
+    .map((run) => run.map((dot) => `${dot.cx},${dot.cy}`).join(" "));
 }
 
 export function trendGeometry(points: readonly TrendPoint[]): TrendGeometry {
@@ -78,7 +93,7 @@ export function trendGeometry(points: readonly TrendPoint[]): TrendGeometry {
   return {
     max,
     baselineY,
-    polyline: dots.map((dot) => `${dot.cx},${dot.cy}`).join(" "),
+    segments: lineSegments(dots),
     dots,
     bars,
   };

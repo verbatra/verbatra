@@ -52,16 +52,19 @@ export function RunHistoryChart({
             strokeWidth={1}
             className="stroke-border"
           />
-          {kind === "line" ? (
-            <polyline
-              points={geometry.polyline}
-              fill="none"
-              strokeWidth={2}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              className="stroke-primary"
-            />
-          ) : null}
+          {kind === "line"
+            ? geometry.segments.map((segment) => (
+                <polyline
+                  key={segment}
+                  points={segment}
+                  fill="none"
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  className="stroke-primary"
+                />
+              ))
+            : null}
           {kind === "line"
             ? geometry.dots.map((dot) => (
                 <circle

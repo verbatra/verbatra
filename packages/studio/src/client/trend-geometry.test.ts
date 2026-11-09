@@ -15,9 +15,24 @@ describe("trendGeometry", () => {
     expect(geometry.dots[1]?.cy).toBe(TREND_BOX.padTop);
     expect(geometry.dots[0]?.cx).toBe(TREND_BOX.padX);
     expect(geometry.dots[1]?.cx).toBe(TREND_BOX.width - TREND_BOX.padX);
-    expect(geometry.polyline).toBe(
+    expect(geometry.segments).toEqual([
       `${TREND_BOX.padX},${geometry.baselineY} ${TREND_BOX.width - TREND_BOX.padX},${TREND_BOX.padTop}`,
-    );
+    ]);
+  });
+
+  it("breaks the line at a run with no figure instead of bridging it", () => {
+    const geometry = trendGeometry([
+      { value: 1, ...FILLED },
+      { value: 2, ...FILLED },
+      { value: undefined, ...FILLED },
+      { value: 3, ...FILLED },
+      { value: 4, ...FILLED },
+      { value: undefined, ...FILLED },
+      { value: 5, ...FILLED },
+    ]);
+
+    expect(geometry.segments).toHaveLength(2);
+    expect(geometry.dots).toHaveLength(5);
   });
 
   it("centers a lone point and gives a bar a bounded width", () => {
@@ -54,6 +69,6 @@ describe("trendGeometry", () => {
   });
 
   it("returns nothing to draw for an empty series", () => {
-    expect(trendGeometry([])).toMatchObject({ polyline: "", dots: [], bars: [] });
+    expect(trendGeometry([])).toMatchObject({ segments: [], dots: [], bars: [] });
   });
 });
