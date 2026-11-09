@@ -198,11 +198,11 @@ with a stable `code` such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: {
 
 <AvailableFrom version="0.13.0" />
 
-Either result carries `usage`, the token counts the provider reports.
+Either result carries `usage`, the provider's token counts, only when it reports them.
 
-The new value is recorded in `verbatra.provenance.json` as `machine`, with the `id` of the provider
-that answered and the configured model. A provider from your own `createProvider` is recorded
-under its own `id`, and without the model when that `id` differs from the configured one. A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the provider is called.
+The new value is recorded in `verbatra.provenance.json` as `machine`, with the `id` of the answering
+provider and the configured model. A provider from your `createProvider` is recorded
+under its own `id`, and without the model when it differs from the configured one. A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the provider is called.
 
 <AvailableFrom version="0.12.0" />
 

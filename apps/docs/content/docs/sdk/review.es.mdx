@@ -201,7 +201,7 @@ Devuelve `{ accepted: true, value, reviewReasons }` o el rechazo que devuelve `e
 
 <AvailableFrom version="0.13.0" />
 
-Cada resultado lleva `usage`, los recuentos de tokens que informa el proveedor.
+Cada resultado lleva `usage`, los recuentos de tokens del proveedor, solo cuando los informa.
 
 El nuevo valor queda registrado en `verbatra.provenance.json` como `machine`, con el `id` del
 proveedor que respondió y el modelo configurado. Un proveedor de tu propio `createProvider` queda

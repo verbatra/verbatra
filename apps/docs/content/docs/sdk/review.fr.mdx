@@ -177,7 +177,7 @@ Renvoie `{ accepted: true, value, reviewReasons }` ou le refus que renvoie `edit
 
 <AvailableFrom version="0.13.0" />
 
-Chaque résultat porte `usage`, les nombres de tokens que le fournisseur indique.
+Chaque résultat porte `usage`, les nombres de tokens du fournisseur, seulement quand il les indique.
 
 La nouvelle valeur est enregistrée dans `verbatra.provenance.json` comme `machine`, avec l'`id` du fournisseur qui a répondu et le modèle configuré. Un fournisseur issu de ton propre `createProvider` est enregistré sous son propre `id`, et sans le modèle quand cet `id` diffère de celui configuré. Un fichier de provenance corrompu lève `PROVENANCE_FILE_INVALID` avant l'appel au fournisseur.
 
