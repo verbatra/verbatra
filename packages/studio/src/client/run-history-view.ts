@@ -143,6 +143,8 @@ export interface LocaleTotals {
   readonly pruned: number;
   readonly integrityMismatches: number;
   readonly providerFailures: number;
+  readonly failedLocales: number;
+  readonly partialLocales: number;
 }
 
 export function totalLocales(record: RunHistoryRecord): LocaleTotals {
@@ -154,8 +156,15 @@ export function totalLocales(record: RunHistoryRecord): LocaleTotals {
     pruned: 0,
     integrityMismatches: 0,
     providerFailures: 0,
+    failedLocales: 0,
+    partialLocales: 0,
   };
   for (const locale of record.locales) {
+    if (locale.status === "failed") {
+      totals.failedLocales += 1;
+    } else if (locale.status === "partial") {
+      totals.partialLocales += 1;
+    }
     totals.translated += locale.translated;
     totals.cacheHits += locale.cacheHits;
     totals.fuzzyHits += locale.fuzzyHits;
@@ -186,17 +195,25 @@ export interface TokenDisplay {
   readonly total: number | undefined;
   readonly input: number | undefined;
   readonly output: number | undefined;
+  readonly lowerBound: boolean;
 }
 
 export function describeTokens(record: RunHistoryRecord): TokenDisplay {
   if (record.usage === undefined) {
-    return { reported: false, total: undefined, input: undefined, output: undefined };
+    return {
+      reported: false,
+      total: undefined,
+      input: undefined,
+      output: undefined,
+      lowerBound: false,
+    };
   }
   return {
     reported: true,
     total: record.usage.inputTokens + record.usage.outputTokens,
     input: record.usage.inputTokens,
     output: record.usage.outputTokens,
+    lowerBound: describeCost(record.cost).kind === "lower-bound",
   };
 }
 
@@ -211,6 +228,7 @@ export interface CoverageRow {
       }
     | undefined;
   readonly measuredInLatestRun: boolean;
+  readonly coverageCheckFailed: boolean;
 }
 
 export function lastKnownCoverage(records: readonly RunHistoryRecord[]): readonly CoverageRow[] {
@@ -218,21 +236,26 @@ export function lastKnownCoverage(records: readonly RunHistoryRecord[]): readonl
   if (latest === undefined) {
     return [];
   }
+  const latestCheckFailed = latest.coverageUnavailable === true;
+  const latestLocales = new Set(latest.locales.map((entry) => entry.locale));
   const rows = new Map<string, CoverageRow>();
   for (const record of records) {
     for (const entry of record.locales) {
       const held = rows.get(entry.locale);
+      const coverageCheckFailed = latestCheckFailed && latestLocales.has(entry.locale);
       if (entry.coverage !== undefined && (held === undefined || held.known === undefined)) {
         rows.set(entry.locale, {
           locale: entry.locale,
           known: { ...entry.coverage, measuredAt: record.at },
           measuredInLatestRun: record === latest,
+          coverageCheckFailed,
         });
       } else if (held === undefined) {
         rows.set(entry.locale, {
           locale: entry.locale,
           known: undefined,
           measuredInLatestRun: false,
+          coverageCheckFailed,
         });
       }
     }
@@ -272,7 +295,7 @@ export function tokenSeries(records: readonly RunHistoryRecord[]): readonly Tren
   return [...records].reverse().map(
     (record): TrendPoint => ({
       value: describeTokens(record).total,
-      hollow: false,
+      hollow: describeTokens(record).lowerBound,
     }),
   );
 }
@@ -299,7 +322,12 @@ export function toRunHistoryDisplay(data: RunHistoryData): RunHistoryDisplay {
   if (data.total > data.records.length) {
     notices.push({ kind: "truncated", shown: data.records.length, total: data.total });
   }
-  return { records: data.records, notices, empty: data.records.length === 0 };
+  return {
+    records: data.records,
+    notices,
+    empty:
+      data.records.length === 0 && data.unavailable === undefined && data.unreadableRecords === 0,
+  };
 }
 
 export function toRunHistoryOutcome(

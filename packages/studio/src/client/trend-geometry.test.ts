@@ -55,6 +55,7 @@ describe("trendGeometry", () => {
     expect(geometry.dots).toHaveLength(1);
     expect(geometry.dots[0]).toMatchObject({ index: 4, hollow: true });
     expect(geometry.bars).toHaveLength(1);
+    expect(geometry.bars[0]).toMatchObject({ index: 4, hollow: true });
   });
 
   it("scales an all-zero series against 1 so nothing divides by zero", () => {

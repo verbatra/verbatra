@@ -46,7 +46,8 @@ describe("RunHistorySection states", () => {
 
     expect(view.text()).toContain("3 records could not be read and are left out.");
     expect(view.text()).toContain("rewrites the file without them");
-    expect(view.text()).toContain("No runs recorded yet");
+    expect(view.text()).not.toContain("No runs recorded yet");
+    expect(view.query("table")).toBeNull();
   });
 
   it("says a single unreadable record in the singular", () => {
@@ -61,7 +62,17 @@ describe("RunHistorySection states", () => {
     const large = section(data([], { unavailable: "too-large" }));
 
     expect(unreadable.text()).toContain("not proof that no run happened");
+    expect(unreadable.text()).toContain("It is left as it is");
+    expect(unreadable.text()).not.toContain("No runs recorded yet");
     expect(large.text()).toContain("over 8 MiB");
+    expect(large.text()).not.toContain("No runs recorded yet");
+  });
+
+  it("says the next recorded run replaces an oversized file, never that it is left as it is", () => {
+    const large = section(data([], { unavailable: "too-large" }));
+
+    expect(large.text()).toContain("The next recorded run replaces the file");
+    expect(large.text()).not.toContain("left as it is");
   });
 
   it("says when only the newest records are shown", () => {
@@ -275,6 +286,49 @@ describe("RunHistorySection table and charts", () => {
     );
   });
 
+  it("shows failed and partial locales and omitted locales, so an all-failed run is not a bare zero", () => {
+    const view = section(
+      data([
+        recordAt(T1, {
+          localesOmitted: 3,
+          locales: [
+            localeEntry("de", { status: "failed" }),
+            localeEntry("fr", { status: "failed" }),
+            localeEntry("es", { status: "partial", translated: 2 }),
+          ],
+        }),
+        recordAt(T2, {
+          localesOmitted: 1,
+          locales: [localeEntry("de", { status: "failed" })],
+        }),
+      ]),
+    );
+    const rows = view.all("tbody tr");
+
+    expect(rows[0]?.textContent).toContain(
+      "2 translated, 2 locales failed, 1 locale partial, 3 locales not listed",
+    );
+    expect(rows[1]?.textContent).toContain("0 translated, 1 locale failed, 1 locale not listed");
+  });
+
+  it("marks tokens and the token bar as a lower bound when the cost is a lower bound", () => {
+    const view = section(
+      data([
+        recordAt(T1, { cost: { ...PRICED, caveats: ["USAGE_PARTIAL"] } as RunHistoryCost }),
+        recordAt(T2),
+      ]),
+    );
+    const rows = view.all("tbody tr");
+    const [, tokens] = view.all("svg");
+
+    expect(rows[0]?.textContent).toContain("at least 100 in / 50 out");
+    expect(rows[1]?.textContent).not.toContain("at least 100");
+    expect(tokens?.querySelectorAll("rect.fill-card")).toHaveLength(1);
+    expect(tokens?.querySelectorAll("rect.fill-primary")).toHaveLength(1);
+    expect(tokens?.querySelector("rect.fill-card title")?.textContent).toContain("at least 150");
+    expect(view.text()).toContain("A hollow bar is a lower bound.");
+  });
+
   it("falls back to the bare provider when a record carries no model", () => {
     const view = section(data([recordAt(T1, { model: undefined })]));
 
@@ -314,9 +368,31 @@ describe("RunHistorySection coverage", () => {
     const rows = view.all('[aria-label="Coverage after the last measured run"] tbody tr');
 
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.textContent).toContain("Not measured in this run");
+    expect(rows[0]?.textContent).toContain("Coverage check failed in this run");
+    expect(rows[0]?.textContent).not.toContain("Not measured in this run");
     expect(rows[0]?.textContent).not.toContain("Last known");
     expect(rows[0]?.textContent).not.toMatch(/\b0\b/);
+  });
+
+  it("keeps the last known value and says the check failed for a locale in a run whose coverage check failed", () => {
+    const view = section(
+      data([
+        recordAt(T2, { coverageUnavailable: true }),
+        recordAt(T1, {
+          locales: [localeEntry("de", { coverage: { missing: 1, stale: 2, upToDate: 3 } })],
+        }),
+      ]),
+    );
+    const rows = view.all('[aria-label="Coverage after the last measured run"] tbody tr');
+
+    expect(rows[0]?.textContent).toContain("Coverage check failed in this run");
+    expect(rows[0]?.textContent).toContain("Last known");
+  });
+
+  it("says the coverage table covers the newest recorded runs shown", () => {
+    const view = section(data([recordAt(T1)]));
+
+    expect(view.text()).toContain("Read from the newest 30 recorded runs.");
   });
 
   it("says nothing was measured when the records name no locale", () => {

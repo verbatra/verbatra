@@ -24,6 +24,7 @@ export interface TrendBar {
   readonly y: number;
   readonly width: number;
   readonly height: number;
+  readonly hollow: boolean;
 }
 
 export interface TrendGeometry {
@@ -87,6 +88,7 @@ export function trendGeometry(points: readonly TrendPoint[]): TrendGeometry {
       y: round(baselineY - barHeight),
       width: round(barWidth),
       height: round(barHeight),
+      hollow: point.hollow,
     });
   });
 

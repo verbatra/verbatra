@@ -88,7 +88,8 @@ export function RunHistoryChart({
                   width={bar.width}
                   height={Math.max(bar.height, 1)}
                   rx={2}
-                  className="fill-primary"
+                  strokeWidth={bar.hollow ? 2 : 0}
+                  className={bar.hollow ? "fill-card stroke-primary" : "fill-primary"}
                 >
                   <title>{labels[bar.index]}</title>
                 </rect>

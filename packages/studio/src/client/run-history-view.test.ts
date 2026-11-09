@@ -1,5 +1,5 @@
 import type { RunHistoryCost } from "@verbatra/sdk";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { localeEntry, PRICED, recordAt } from "./run-history-test-support.js";
 import {
   costSeries,
@@ -101,7 +101,16 @@ describe("formatCost", () => {
   });
 
   it("reuses one formatter per currency", () => {
-    expect(formatCost(1, "GBP")).toBe(formatCost(1, "GBP"));
+    const constructed = vi.spyOn(Intl, "NumberFormat");
+
+    formatCost(1, "SEK");
+    formatCost(2, "SEK");
+    formatCost(3, "SEK");
+    formatCost(1, "NOK");
+
+    const currencies = constructed.mock.calls.map((call) => call[1]?.currency);
+    constructed.mockRestore();
+    expect(currencies).toEqual(["SEK", "NOK"]);
   });
 });
 
@@ -136,13 +145,24 @@ describe("record descriptions", () => {
       total: 150,
       input: 100,
       output: 50,
+      lowerBound: false,
     });
     expect(describeTokens(recordAt("2026-07-01T00:00:00.000Z", { usage: undefined }))).toEqual({
       reported: false,
       total: undefined,
       input: undefined,
       output: undefined,
+      lowerBound: false,
     });
+  });
+
+  it("marks reported tokens as a lower bound when the cost carries USAGE_PARTIAL", () => {
+    const partial = recordAt("2026-07-01T00:00:00.000Z", {
+      cost: { ...PRICED, caveats: ["USAGE_PARTIAL"] } as RunHistoryCost,
+    });
+
+    expect(describeTokens(partial)).toMatchObject({ reported: true, lowerBound: true });
+    expect(tokenSeries([partial])).toEqual([{ value: 150, hollow: true }]);
   });
 
   it("sums every counter across the locales of a record", () => {
@@ -157,7 +177,9 @@ describe("record descriptions", () => {
           integrityMismatches: 1,
           providerFailures: 1,
         }),
-        localeEntry("fr", { translated: 3, providerFailures: 2 }),
+        localeEntry("fr", { translated: 3, providerFailures: 2, status: "partial" }),
+        localeEntry("es", { status: "failed" }),
+        localeEntry("it", { status: "failed" }),
       ],
     });
 
@@ -169,6 +191,8 @@ describe("record descriptions", () => {
       pruned: 1,
       integrityMismatches: 1,
       providerFailures: 3,
+      failedLocales: 2,
+      partialLocales: 1,
     });
   });
 });
@@ -197,12 +221,14 @@ describe("lastKnownCoverage", () => {
         locale: "de",
         known: { missing: 0, stale: 0, upToDate: 9, measuredAt: "2026-07-03T00:00:00.000Z" },
         measuredInLatestRun: true,
+        coverageCheckFailed: false,
       },
-      { locale: "es", known: undefined, measuredInLatestRun: false },
+      { locale: "es", known: undefined, measuredInLatestRun: false, coverageCheckFailed: false },
       {
         locale: "fr",
         known: { ...measured, measuredAt: "2026-07-02T00:00:00.000Z" },
         measuredInLatestRun: false,
+        coverageCheckFailed: false,
       },
     ]);
   });
@@ -218,8 +244,29 @@ describe("lastKnownCoverage", () => {
 
     const rows = lastKnownCoverage([latest, older]);
 
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ locale: "de", measuredInLatestRun: false });
+    expect(rows).toEqual([
+      {
+        locale: "de",
+        known: { ...measured, measuredAt: "2026-07-02T00:00:00.000Z" },
+        measuredInLatestRun: false,
+        coverageCheckFailed: true,
+      },
+    ]);
+  });
+
+  it("does not mark a locale a failed check never reached", () => {
+    const latest = recordAt("2026-07-03T00:00:00.000Z", {
+      coverageUnavailable: true,
+      locales: [localeEntry("de")],
+    });
+    const older = recordAt("2026-07-02T00:00:00.000Z", {
+      locales: [localeEntry("fr", { coverage: measured })],
+    });
+
+    expect(lastKnownCoverage([latest, older]).map((row) => row.coverageCheckFailed)).toEqual([
+      true,
+      false,
+    ]);
   });
 
   it("sorts locales by name", () => {
@@ -298,6 +345,18 @@ describe("toRunHistoryDisplay", () => {
       notices: [],
       empty: true,
     });
+  });
+
+  it("is not empty when the file was unreadable or held only unreadable records", () => {
+    expect(toRunHistoryDisplay({ records: [], total: 0, unreadableRecords: 2 }).empty).toBe(false);
+    expect(
+      toRunHistoryDisplay({
+        records: [],
+        total: 0,
+        unreadableRecords: 0,
+        unavailable: "unreadable",
+      }).empty,
+    ).toBe(false);
   });
 
   it("reports a corrupt file as its unreadable count while the readable records still show", () => {
