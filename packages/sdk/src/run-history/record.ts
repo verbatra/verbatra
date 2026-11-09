@@ -33,9 +33,9 @@ export const RUN_COST_CAVEATS = [
  * What a cost figure leaves out. `SOURCE_DUPLICATES_NOT_DEDUPLICATED` and
  * `TRANSPORT_RETRIES_NOT_COUNTED` mark a `source-characters` estimate, with the meaning the same
  * code has on a run estimate; keys the provider failed on are not counted either, and the locale's
- * `providerFailures` says how many. `USAGE_PARTIAL` marks a `usage` figure that is a lower bound:
- * at least one locale sent keys and reported no tokens, so the amount covers only what was
- * reported. A locale that reported usage for some of its sub-batches but not all cannot be told
+ * `providerFailures` says how many. `USAGE_PARTIAL` marks a `usage` figure that is a lower bound,
+ * whether or not a rate was found: at least one locale sent keys and reported no tokens, so the
+ * amount, when there is one, and the recorded token count cover only what was reported. A locale that reported usage for some of its sub-batches but not all cannot be told
  * apart, and shows no mark.
  */
 export type RunCostCaveat = (typeof RUN_COST_CAVEATS)[number];

@@ -181,6 +181,30 @@ describe("priceRun", () => {
     });
   });
 
+  it("keeps the lower-bound caveat on a run with no usable rate when usage was partial", () => {
+    const partial = { inputTokens: 5, outputTokens: 5 };
+    const wrong: RateCard = {
+      ...TOKEN_CARD,
+      table: { "anthropic/test-model": { perMillionCharacters: 1 } },
+    };
+
+    expect(
+      price({ provider: ANTHROPIC, sourceCharacters: 0, usage: partial, usagePartial: true }),
+    ).toMatchObject({ pricing: "no-rate-on-file", caveats: ["USAGE_PARTIAL"] });
+    expect(
+      price({
+        provider: ANTHROPIC,
+        rates: wrong,
+        sourceCharacters: 0,
+        usage: partial,
+        usagePartial: true,
+      }),
+    ).toMatchObject({ pricing: "rate-unit-mismatch", caveats: ["USAGE_PARTIAL"] });
+    expect(price({ provider: ANTHROPIC, sourceCharacters: 0, usage: partial })).not.toHaveProperty(
+      "caveats",
+    );
+  });
+
   it.each([
     [
       "openai-compatible",

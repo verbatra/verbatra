@@ -389,7 +389,13 @@ export function priceRun(input: PriceRunInput): RunHistoryCost {
   const { unit } = billingFor(input.provider.id);
   const basis = unit === "tokens" ? "usage" : "source-characters";
   const rateKey = clipText(rateKeyFor(input.provider), RUN_HISTORY_LIMITS.rateKey);
-  const caveats = unit === "characters" ? { caveats: [...SOURCE_CHARACTER_CAVEATS] } : {};
+  const lowerBound = unit === "tokens" && input.usage !== undefined && input.usagePartial === true;
+  const caveats =
+    unit === "characters"
+      ? { caveats: [...SOURCE_CHARACTER_CAVEATS] }
+      : lowerBound
+        ? { caveats: ["USAGE_PARTIAL" as const] }
+        : {};
   const pricing = resolvePricing(
     { provider: input.provider, ...(input.rates === undefined ? {} : { rates: input.rates }) },
     unit,
@@ -404,7 +410,6 @@ export function priceRun(input: PriceRunInput): RunHistoryCost {
   if (unit === "tokens" && input.usage === undefined && input.keysSent) {
     return { pricing: "no-usage", basis, rateKey };
   }
-  const lowerBound = unit === "tokens" && input.usage !== undefined && input.usagePartial === true;
   const quantity: EstimatedQuantity = {
     keys: 0,
     requests: 0,
@@ -419,7 +424,7 @@ export function priceRun(input: PriceRunInput): RunHistoryCost {
     currency: pricing.currency,
     asOf: pricing.asOf,
     amount: costOf(quantity, pricing.rate),
-    ...(lowerBound ? { caveats: ["USAGE_PARTIAL" as const] } : caveats),
+    ...caveats,
   };
 }
 
