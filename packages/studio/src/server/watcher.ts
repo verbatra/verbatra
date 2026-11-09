@@ -27,10 +27,31 @@ export const LIMITS_FILE_NAME = "verbatra.limits.json";
 const DEFAULT_DEBOUNCE_MS = 300;
 const DEFAULT_GIT_POLL_MS = 5000;
 
+export const LOCAL_DIR_NAME = ".verbatra-local";
+
+export const RUN_HISTORY_FILE_NAME = "run-history.jsonl";
+
 interface WatchedEntry {
   readonly reason: RefreshReason;
   readonly paths: readonly string[];
   readonly locale?: string;
+  readonly observe?: {
+    readonly paths: readonly string[];
+    readonly options: StudioWatcherOptions;
+  };
+}
+
+function runHistoryEntry(projectRoot: string, localDirExists: boolean): WatchedEntry {
+  const localDir = resolve(projectRoot, LOCAL_DIR_NAME);
+  const file = resolve(localDir, RUN_HISTORY_FILE_NAME);
+  if (localDirExists) {
+    return { reason: "run-history", paths: [file] };
+  }
+  return {
+    reason: "run-history",
+    paths: [file],
+    observe: { paths: [projectRoot], options: { only: [localDir, file], depth: 1 } },
+  };
 }
 
 function watchedEntries(
@@ -38,6 +59,7 @@ function watchedEntries(
   projectRoot: string,
   glossaryPath: string | undefined,
   locales: readonly { readonly locale: string; readonly paths: readonly string[] }[],
+  localDirExists: boolean,
 ): readonly WatchedEntry[] {
   const localeEntries: WatchedEntry[] = locales.map(({ locale, paths }) => ({
     reason: locale === config.sourceLocale ? "source" : "targets",
@@ -52,6 +74,7 @@ function watchedEntries(
     { reason: "lock", paths: [resolve(projectRoot, PROVENANCE_FILE_NAME)] },
     { reason: "lock", paths: [resolve(projectRoot, LIMITS_FILE_NAME)] },
     ...(glossaryPath === undefined ? [] : [{ reason: "lock" as const, paths: [glossaryPath] }]),
+    runHistoryEntry(projectRoot, localDirExists),
   ];
 }
 
@@ -100,6 +123,16 @@ async function buildRefreshEvent(
 }
 
 export type ReadFileIdentity = (path: string) => Promise<string | undefined>;
+
+export type DirectoryExists = (path: string) => Promise<boolean>;
+
+const directoryExistsOnDisk: DirectoryExists = async (path) => {
+  try {
+    return (await stat(path)).isDirectory();
+  } catch {
+    return false;
+  }
+};
 
 const readFileIdentityFromDisk: ReadFileIdentity = async (path) => {
   try {
@@ -199,6 +232,7 @@ export interface ProjectWatcherDeps {
   readonly execFile?: ExecFileImpl;
   readonly readLocaleSnapshot?: ReadLocaleSnapshot;
   readonly readFileIdentity?: ReadFileIdentity;
+  readonly directoryExists?: DirectoryExists;
   readonly gitPollMs?: number;
 }
 
@@ -264,10 +298,17 @@ export async function createProjectWatcher(
     { config: input.config, cwd: input.projectRoot },
     deps.execFile !== undefined ? { execFile: deps.execFile } : {},
   );
+  const localDirExists = await (deps.directoryExists ?? directoryExistsOnDisk)(
+    resolve(input.projectRoot, LOCAL_DIR_NAME),
+  );
   const primed = await Promise.all(
-    watchedEntries(input.config, input.projectRoot, input.glossaryPath, watch.locales).map(
-      (entry) => primeEntry(entry, readSnapshot),
-    ),
+    watchedEntries(
+      input.config,
+      input.projectRoot,
+      input.glossaryPath,
+      watch.locales,
+      localDirExists,
+    ).map((entry) => primeEntry(entry, readSnapshot)),
   );
 
   const readIdentity = deps.readFileIdentity ?? readFileIdentityFromDisk;
@@ -279,7 +320,10 @@ export async function createProjectWatcher(
       debounceMs,
       emit,
     );
-    const watcher = deps.createWatcher(entry.paths);
+    const watcher =
+      entry.observe === undefined
+        ? deps.createWatcher(entry.paths)
+        : deps.createWatcher(entry.observe.paths, entry.observe.options);
     watcher.onChange(debounced.trigger);
     return { debounced, watcher };
   });
@@ -338,7 +382,7 @@ export function onlyThese(
   const files = new Set(options.only.map(slashed));
   const directories = new Set(paths.map(slashed));
   return {
-    depth: 0,
+    depth: options.depth ?? 0,
     ignored: (path) => !files.has(slashed(path)) && !directories.has(slashed(path)),
   };
 }

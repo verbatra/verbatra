@@ -63,6 +63,12 @@ export interface StudioWatcherOptions {
    */
   readonly only?: readonly string[];
   /**
+   * With `only`, how many directory levels below each path the watcher descends. The default is
+   * `0`: the files directly inside the paths. Studio sets `1` to watch a project root for a local
+   * directory that does not exist yet, which a watcher on the file path alone never sees appear.
+   */
+  readonly depth?: number;
+  /**
    * Called when the underlying source fails, for example with a permission error on a directory.
    * The watcher then keeps running as far as it can and never throws. Studio closes a failed git
    * watcher and builds it again with exponential backoff (one second, doubling, at most 30 seconds); while it is down, live git refresh stops and the

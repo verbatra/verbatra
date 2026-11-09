@@ -1,5 +1,5 @@
 import type { RefreshEvent } from "../shared/sse-events.js";
-import { SSE_EVENT_REFRESH, SSE_EVENT_SHUTDOWN } from "../shared/sse-events.js";
+import { isRefreshReason, SSE_EVENT_REFRESH, SSE_EVENT_SHUTDOWN } from "../shared/sse-events.js";
 import type { SessionStore } from "./state.js";
 
 export const EVENT_SOURCE_CLOSED = 2;
@@ -76,10 +76,7 @@ function parseRefreshEvent(data: string): RefreshEvent | undefined {
     locale?: unknown;
     delta?: unknown;
   };
-  if (
-    (reason === "source" || reason === "targets" || reason === "lock" || reason === "git") &&
-    typeof at === "string"
-  ) {
+  if (isRefreshReason(reason) && typeof at === "string") {
     const parsedDelta = parseDelta(delta);
     return {
       reason,

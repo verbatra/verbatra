@@ -105,6 +105,31 @@ describe("createReconnectController: refresh delivery", () => {
     expect(onRefresh).toHaveBeenCalledWith({ reason: "git", at: "2026-01-01T00:00:00.000Z" });
   });
 
+  it("passes a run-history refresh through and drops an unknown reason", () => {
+    const source = fakeEventSourceFactory();
+    const onRefresh = vi.fn();
+    createReconnectController({
+      url: "/events",
+      createEventSource: source.createEventSource,
+      probe: async () => "network-error",
+      session: createSessionStore(),
+      onRefresh,
+    });
+
+    source.fire(
+      0,
+      "refresh",
+      JSON.stringify({ reason: "run-history", at: "2026-01-01T00:00:00.000Z" }),
+    );
+    source.fire(0, "refresh", JSON.stringify({ reason: "other", at: "2026-01-01T00:00:00.000Z" }));
+
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(onRefresh).toHaveBeenCalledWith({
+      reason: "run-history",
+      at: "2026-01-01T00:00:00.000Z",
+    });
+  });
+
   it("drops a malformed refresh payload instead of throwing", () => {
     const source = fakeEventSourceFactory();
     const onRefresh = vi.fn();

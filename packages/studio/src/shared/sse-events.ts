@@ -1,4 +1,10 @@
-export type RefreshReason = "source" | "targets" | "lock" | "git";
+export const REFRESH_REASONS = ["source", "targets", "lock", "git", "run-history"] as const;
+
+export type RefreshReason = (typeof REFRESH_REASONS)[number];
+
+export function isRefreshReason(value: unknown): value is RefreshReason {
+  return REFRESH_REASONS.some((reason) => reason === value);
+}
 
 export interface RefreshKeyDelta {
   readonly added: number;

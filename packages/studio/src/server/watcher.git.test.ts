@@ -67,7 +67,10 @@ function harness(): {
 }
 
 function gitCalls(calls: readonly WatcherCall[]): WatcherCall[] {
-  return calls.filter((call) => call.only !== undefined);
+  return calls.filter(
+    (call) =>
+      call.only !== undefined && !call.only.some((path) => path.includes(".verbatra-local")),
+  );
 }
 
 async function until(check: () => boolean, ms = 6000): Promise<boolean> {
