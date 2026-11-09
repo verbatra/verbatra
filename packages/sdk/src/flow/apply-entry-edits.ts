@@ -81,6 +81,18 @@ export interface JudgedEdit<E extends EntryEdit> {
   readonly outcome: EntryEditOutcome;
 }
 
+export class EntryEditsFailure<E extends EntryEdit> extends Error {
+  readonly judged: readonly JudgedEdit<E>[];
+  readonly fileWritten: boolean;
+
+  constructor(judged: readonly JudgedEdit<E>[], fileWritten: boolean, cause: unknown) {
+    super("The entry edits could not be completed.", { cause });
+    this.name = "EntryEditsFailure";
+    this.judged = judged;
+    this.fileWritten = fileWritten;
+  }
+}
+
 function judgeEdit<E extends EntryEdit>(
   context: EntryEditsContext,
   edit: E,
@@ -118,8 +130,19 @@ export async function applyEntryEdits<E extends EntryEdit>(
   const target = await readTargetOf(context);
   const judged = edits.map((edit) => ({ edit, outcome: judgeEdit(context, edit, options) }));
   const accepted = judged.filter(({ outcome }) => outcome.accepted).map(({ edit }) => edit);
-  if (accepted.length > 0) {
-    await writeAcceptedEdits(context, target, accepted, options.freshProvenance === true);
+  if (accepted.length === 0) {
+    return judged;
+  }
+  const freshProvenance = options.freshProvenance === true;
+  try {
+    await writeTargetFile(context, target, accepted);
+  } catch (error) {
+    throw new EntryEditsFailure(judged, false, error);
+  }
+  try {
+    await recordAcceptedEdits(context, accepted, freshProvenance);
+  } catch (error) {
+    throw new EntryEditsFailure(judged, true, error);
   }
   return judged;
 }
@@ -130,7 +153,16 @@ async function writeAcceptedEdits(
   accepted: readonly EntryEdit[],
   freshProvenance: boolean,
 ): Promise<void> {
-  const { cwd, config, adapter, fs, locale } = context;
+  await writeTargetFile(context, target, accepted);
+  await recordAcceptedEdits(context, accepted, freshProvenance);
+}
+
+async function writeTargetFile(
+  context: EntryEditsContext,
+  target: LocaleResource,
+  accepted: readonly EntryEdit[],
+): Promise<void> {
+  const { cwd, config, adapter, locale } = context;
   const merged = new Map(target.entries);
   for (const edit of accepted) {
     merged.set(edit.key, { ...edit.sourceEntry, value: edit.value, namespace: target.namespace });
@@ -143,7 +175,14 @@ async function writeAcceptedEdits(
     cwd,
     { sourcePath: resolver.pathFor(config.sourceLocale) },
   );
+}
 
+async function recordAcceptedEdits(
+  context: EntryEditsContext,
+  accepted: readonly EntryEdit[],
+  freshProvenance: boolean,
+): Promise<void> {
+  const { cwd, config, adapter, fs, locale } = context;
   const current = accepted.filter((edit) => !edit.stale);
   const lockEntries = Object.fromEntries(
     current.map((edit) => [edit.key, contentHash(edit.sourceEntry)]),

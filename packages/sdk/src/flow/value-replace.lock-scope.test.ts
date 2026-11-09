@@ -22,27 +22,48 @@ function refsOf(
   return entries.map(({ locale, key, valueHash: hash }) => ({ locale, key, valueHash: hash }));
 }
 
+const SOURCE_LOCALE = "en";
+
+interface ObservedCalls {
+  reads: number;
+  writes: number;
+  lockedSourceReads: number;
+  sourceReadsBeforeLock: number;
+  unlocked: string[];
+}
+
+function observedCalls(): ObservedCalls {
+  return { reads: 0, writes: 0, lockedSourceReads: 0, sourceReadsBeforeLock: 0, unlocked: [] };
+}
+
 function registryObservingLocks(
   format: "i18next-json" | "apple-xcstrings",
   expectedLocksFor: (locale: string) => readonly string[],
-  seen: { reads: number; writes: number; unlocked: string[] },
+  seen: ObservedCalls,
 ): AdapterRegistry {
   const resolution = createDefaultRegistry().resolve("", { format });
   if (resolution.status !== "resolved") {
     throw new Error(`no adapter registered for ${format}`);
   }
   const base = resolution.adapter;
+  const isHeld = (locale: string): boolean =>
+    expectedLocksFor(locale).some((lockPath) => existsSync(lockPath));
   const assertHeld = (call: string, locale: string): void => {
-    const lockPaths = expectedLocksFor(locale);
-    if (!lockPaths.some((lockPath) => existsSync(lockPath))) {
-      seen.unlocked.push(`${call} ${locale}: no lock at ${lockPaths.join(" or ")}`);
+    if (!isHeld(locale)) {
+      seen.unlocked.push(`${call} ${locale}: no lock at ${expectedLocksFor(locale).join(" or ")}`);
     }
   };
   return new AdapterRegistry().register({
     ...base,
     read: async (filePath, locale) => {
       seen.reads += 1;
-      assertHeld("read", locale);
+      if (locale !== SOURCE_LOCALE) {
+        assertHeld("read", locale);
+      } else if (isHeld(locale)) {
+        seen.lockedSourceReads += 1;
+      } else {
+        seen.sourceReadsBeforeLock += 1;
+      }
       return base.read(filePath, locale);
     },
     write: async (resource, filePath, context) => {
@@ -61,7 +82,7 @@ describe("applyValueReplace reads and writes only while it holds the locale writ
     await writeJsonFile(join(dir, "locales", "de.json"), { a: "Hallo X" });
     await writeJsonFile(join(dir, "locales", "fr.json"), { a: "Salut X" });
     const config = baseConfig({ targetLocales: ["de", "fr"], format: "i18next-json" });
-    const seen = { reads: 0, writes: 0, unlocked: [] as string[] };
+    const seen = observedCalls();
     const held = (locale: string): readonly string[] =>
       (locale === "en" ? ["de", "fr"] : [locale]).map((target) =>
         localeLockPath(dir, writeLockKeyFor("i18next-json", target)),
@@ -87,6 +108,8 @@ describe("applyValueReplace reads and writes only while it holds the locale writ
     expect(result.counts.applied).toBe(2);
     expect(seen.reads).toBeGreaterThan(0);
     expect(seen.writes).toBe(2);
+    expect(seen.sourceReadsBeforeLock).toBe(2);
+    expect(seen.lockedSourceReads).toBe(2);
     expect(seen.unlocked).toEqual([]);
   });
 
@@ -109,7 +132,7 @@ describe("applyValueReplace reads and writes only while it holds the locale writ
       format: "apple-xcstrings",
       files: { pattern: "{locale}Localizable.xcstrings" },
     });
-    const seen = { reads: 0, writes: 0, unlocked: [] as string[] };
+    const seen = observedCalls();
     const registry = registryObservingLocks(
       "apple-xcstrings",
       () => [localeLockPath(dir, "_catalogue")],
@@ -135,6 +158,8 @@ describe("applyValueReplace reads and writes only while it holds the locale writ
     expect(result.localeFailures).toEqual([]);
     expect(result.counts.applied).toBe(2);
     expect(seen.reads).toBeGreaterThan(0);
+    expect(seen.sourceReadsBeforeLock).toBe(2);
+    expect(seen.lockedSourceReads).toBe(2);
     expect(seen.unlocked).toEqual([]);
   });
 });

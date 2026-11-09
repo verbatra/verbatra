@@ -1,3 +1,4 @@
+import type { LocaleResource } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
@@ -16,7 +17,13 @@ import { valueHash } from "../lock/provenance-file.js";
 import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { projectRelativeMessage } from "../project-relative.js";
 import { selectAdapter } from "../selection/select-adapter.js";
-import { applyEntryEdits, type EntryEdit, type EntryEditOutcome } from "./apply-entry-edits.js";
+import {
+  applyEntryEdits,
+  type EntryEdit,
+  type EntryEditOutcome,
+  EntryEditsFailure,
+  type JudgedEdit,
+} from "./apply-entry-edits.js";
 import type { EditEntryActor } from "./edit-entry.js";
 import type { IntegrityGateReason } from "./integrity-gate.js";
 import { isWellFormedText } from "./literal-match.js";
@@ -181,6 +188,13 @@ export interface ValueReplaceLocaleFailure {
   readonly code: string;
   /** What went wrong, with file paths relative to the project. Never carries a translation value. */
   readonly message: string;
+  /**
+   * True when the failure came after the locale file was written, while the lock file, the
+   * provenance file or the translation memory was updated. The accepted values are then on disk and
+   * reported `applied`, and the lock file or provenance record may lag behind them, so review the
+   * locale before any retry. Absent when nothing was written for the locale.
+   */
+  readonly fileWritten?: true;
 }
 
 /** What {@link applyValueReplace} did with one entry. */
@@ -318,10 +332,11 @@ function previewEntry(
  * text, so a replacement that drops a placeholder, breaks markup or ICU syntax, blanks the value,
  * or runs away into a repetition-dominated value is listed as `gate-refused`. For the ICU formats
  * (next-intl and ARB) the replacement is also refused as `gate-refused` with the reason `icu` when
- * it changes what an argument does: an argument's name or type, a number or date style or
- * skeleton, or how many `#` a plural arm holds, compared with the current value. The `details`
- * list each difference, prefixed `-` for what the current value had and `+` for what the replaced
- * value has. A replaced value longer than 20,000 characters is listed as `too-long`, which is not an
+ * it changes what an argument does: an argument's type, a number or date style or skeleton, or how
+ * many `#` a plural arm holds, compared with the current value, or with the source text when the
+ * current value is not valid ICU. An argument renamed away from the source text is refused as
+ * `placeholder`. The `details` list each difference, prefixed `-` for what the compared value had
+ * and `+` for what the replaced value has. A replaced value longer than 20,000 characters is listed as `too-long`, which is not an
  * integrity refusal and carries no `reason`. Keys that
  * match `pinnedKeys`, and values a person wrote, imported, or changed outside verbatra, are listed
  * as `pinned` and `protected` whatever the config's `humanEdits` says, and every value counts as
@@ -430,12 +445,18 @@ function emptyApplyCounts(): Record<ValueReplaceOutcome["status"], number> {
   return { applied: 0, skipped: 0, refused: 0, changed: 0, "too-long": 0 };
 }
 
-function localeFailureOf(locale: string, error: unknown, cwd: string): ValueReplaceLocaleFailure {
+function localeFailureOf(
+  locale: string,
+  error: unknown,
+  cwd: string,
+  fileWritten: boolean,
+): ValueReplaceLocaleFailure {
   const described = describeError(error, "LOCALE_FAILED");
   return {
     locale,
     code: described.code,
     message: projectRelativeMessage(described.message, cwd),
+    ...(fileWritten ? { fileWritten: true as const } : {}),
   };
 }
 
@@ -500,12 +521,20 @@ function appliedOutcome(edit: ReplaceEdit, outcome: EntryEditOutcome): ValueRepl
   };
 }
 
+interface WrittenFileFailure {
+  readonly error: unknown;
+}
+
+interface LocaleAttemptFailure extends WrittenFileFailure {
+  readonly fileWritten: boolean;
+}
+
 async function applyLocaleInLock(
   context: ApplyContext,
   locale: string,
   refs: readonly IndexedRef[],
   results: ValueReplaceOutcome[],
-): Promise<void> {
+): Promise<WrittenFileFailure | undefined> {
   const { input, cwd, fs, adapter, resolver, criteria } = context;
   const config = input.config;
   const target = await readTargetResource({ resolver, format: config.format, locale, adapter, fs });
@@ -546,12 +575,49 @@ async function applyLocaleInLock(
       });
     }
   }
-  const judged = await applyEntryEdits({ cwd, config, adapter, fs, locale, target }, pending, {
-    freshProvenance: true,
-    extraGate: (edit) => structureRefusal(adapter, edit.current, edit.value),
-  });
+  return writeAndSettle(context, locale, target, pending, results);
+}
+
+async function writeAndSettle(
+  context: ApplyContext,
+  locale: string,
+  target: LocaleResource,
+  pending: readonly ReplaceEdit[],
+  results: ValueReplaceOutcome[],
+): Promise<WrittenFileFailure | undefined> {
+  const { input, cwd, fs, adapter } = context;
+  try {
+    const judged = await applyEntryEdits(
+      { cwd, config: input.config, adapter, fs, locale, target },
+      pending,
+      {
+        freshProvenance: true,
+        extraGate: (edit) => structureRefusal(adapter, edit.current, edit.value, edit.sourceEntry),
+      },
+    );
+    settle(judged, results, true);
+    return undefined;
+  } catch (error) {
+    if (!(error instanceof EntryEditsFailure)) {
+      throw error;
+    }
+    settle(error.judged, results, error.fileWritten);
+    if (!error.fileWritten) {
+      throw error.cause;
+    }
+    return { error: error.cause };
+  }
+}
+
+function settle(
+  judged: readonly JudgedEdit<ReplaceEdit>[],
+  results: ValueReplaceOutcome[],
+  written: boolean,
+): void {
   for (const { edit, outcome } of judged) {
-    results[edit.indexed.index] = appliedOutcome(edit, outcome);
+    if (written || !outcome.accepted) {
+      results[edit.indexed.index] = appliedOutcome(edit, outcome);
+    }
   }
 }
 
@@ -595,11 +661,16 @@ function markDuplicates(
  * A locale that fails does not stop the others. Failures that only one locale's own processing
  * can cause, such as `LOCK_CONTENDED` when its write lock is not free within `lockAcquireTimeoutMs`,
  * `TARGET_UNWRITABLE`, `LOCALE_STATE_NOT_CARRIED_OVER`, `RUN_CANCELLED`, `SOURCE_UNREADABLE` and
- * `SOURCE_INVALID` (the source file is read again under each locale's lock), or an `AdapterError`
- * from its file, are recorded in `localeFailures`, and its entries that no check had settled yet come
- * back `skipped` with the reason `locale-failed`. A locale that failed while writing may have
- * changed its file before the failure was raised, so preview again before retrying it. The wait for
- * the lock file's own guard uses the default of ten minutes, not `lockAcquireTimeoutMs`.
+ * `SOURCE_INVALID` (the source file is read before any locale is touched and again under each locale's
+ * lock), or an `AdapterError` from its file, are recorded in `localeFailures`. An entry the
+ * integrity gate refused still comes back `refused`, and one a check had settled before the failure
+ * keeps its outcome; the rest come back `skipped` with the reason `locale-failed`, and nothing was
+ * written for them. When the failure came after the locale file was written, such as a failed lock
+ * file, provenance or translation-memory update, the failure carries `fileWritten: true` and the
+ * accepted entries come back `applied`: their values are on disk and the lock file or provenance may
+ * lag, so review the locale before any retry. Do not run a replacement again whose `find` occurs in
+ * its `replace` without checking, because it would change the written values a second time. The
+ * wait for the lock file's own guard uses the default of ten minutes, not `lockAcquireTimeoutMs`.
  *
  * Entries are grouped by locale in the order each locale first appears in `entries`. When the same
  * `locale` and `key` appear more than once, the first one decides: it is processed whatever its
@@ -672,17 +743,24 @@ export async function applyValueReplace(
   markDuplicates(input.entries, results, groups);
   const localeFailures: ValueReplaceLocaleFailure[] = [];
   for (const [locale, refs] of groups) {
+    let failure: LocaleAttemptFailure | undefined;
     try {
+      await readSourceResource(config, resolver, fs, adapter);
       await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
-      await withLocaleWriteLock(
+      const afterWrite = await withLocaleWriteLock(
         cwd,
         writeLockKeyFor(config.format, locale),
         fs,
         () => applyLocaleInLock(context, locale, refs, results),
         writeLockOptions(input),
       );
+      failure =
+        afterWrite === undefined ? undefined : { error: afterWrite.error, fileWritten: true };
     } catch (error) {
-      localeFailures.push(localeFailureOf(locale, error, cwd));
+      failure = { error, fileWritten: false };
+    }
+    if (failure !== undefined) {
+      localeFailures.push(localeFailureOf(locale, failure.error, cwd, failure.fileWritten));
       for (const { index, ref } of refs) {
         results[index] ??= skipped(ref, "locale-failed");
       }

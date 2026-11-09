@@ -104,4 +104,22 @@ describe("icuStructureChanges", () => {
     expect(icuStructureChanges("{n, plural, one {#}", "{n}")).toEqual([]);
     expect(icuStructureChanges("{n}", "{n, plural, one {#}")).toEqual([]);
   });
+
+  it("compares against the fallback when the before value does not parse", () => {
+    const broken = "{n, number, ::percent} {";
+    expect(
+      icuStructureChanges(broken, "{n, number, ::percent}", "{n, number, ::currency/USD}"),
+    ).toEqual(["+number:n:::percent", "-number:n:::currency/USD"]);
+    expect(
+      icuStructureChanges(broken, "{n, number, ::currency/USD}", "{n, number, ::currency/USD}"),
+    ).toEqual([]);
+  });
+
+  it("reports nothing when the fallback does not parse either", () => {
+    expect(icuStructureChanges("{n, plural, one {#}", "{n}", "{n, plural, other {#")).toEqual([]);
+  });
+
+  it("ignores the fallback when the before value parses", () => {
+    expect(icuStructureChanges("{n}", "{n}", "{n, number, ::percent}")).toEqual([]);
+  });
 });

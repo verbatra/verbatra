@@ -94,8 +94,13 @@ function surplus(
   return lines;
 }
 
-export function icuStructureChanges(before: string, after: string): readonly string[] {
-  const beforeSignatures = signaturesOf(before);
+export function icuStructureChanges(
+  before: string,
+  after: string,
+  fallback?: string,
+): readonly string[] {
+  const beforeSignatures =
+    signaturesOf(before) ?? (fallback === undefined ? undefined : signaturesOf(fallback));
   const afterSignatures = signaturesOf(after);
   if (beforeSignatures === undefined || afterSignatures === undefined) {
     return [];

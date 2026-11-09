@@ -1291,6 +1291,33 @@ describe("applyValueReplace: ICU and markup", () => {
       },
     );
 
+    it("compares the replaced value with the source text when the current value is not valid ICU", async () => {
+      const broken = "{n, number, ::percent} {";
+      const p = await icu({ a: "{n, number, ::currency/USD}" }, { a: broken });
+
+      const listed = await preview(p, " {", " ok");
+      const result = await apply(p, " {", " ok", [
+        { locale: "de", key: "a", valueHash: valueHash(broken) },
+      ]);
+
+      const details = ["+number:n:::percent", "-number:n:::currency/USD"];
+      expect(listed.entries[0]).toMatchObject({ status: "gate-refused", reason: "icu", details });
+      expect(result.outcomes[0]).toMatchObject({ status: "refused", reason: "icu", details });
+      expect((await readLocale(p.dir, "de")).a).toBe(broken);
+    });
+
+    it("lets a replacement repair an invalid ICU value back to the source structure", async () => {
+      const broken = "{n, number, ::currency/USD} {";
+      const p = await icu({ a: "{n, number, ::currency/USD}" }, { a: broken });
+
+      const listed = await preview(p, " {", " ok");
+      const result = await apply(p, " {", " ok", refsOf(listed.entries));
+
+      expect(listed.entries[0]?.status).toBe("ready");
+      expect(result.outcomes[0]).toMatchObject({ status: "applied" });
+      expect((await readLocale(p.dir, "de")).a).toBe("{n, number, ::currency/USD} ok");
+    });
+
     it("leaves a format that is not ICU alone", async () => {
       const p = await project({
         source: { a: "Total {n, number, ::currency/USD}" },

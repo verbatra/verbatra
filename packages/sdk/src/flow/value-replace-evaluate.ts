@@ -61,11 +61,12 @@ export function structureRefusal(
   adapter: FormatAdapter,
   current: string,
   replaced: string,
+  sourceEntry: TranslationEntry,
 ): IntegrityGateRejection | undefined {
   if (!isIcuMessageFormat(adapter.format)) {
     return undefined;
   }
-  const changes = icuStructureChanges(current, replaced);
+  const changes = icuStructureChanges(current, replaced, sourceEntry.value);
   return changes.length === 0 ? undefined : { accepted: false, reason: "icu", details: changes };
 }
 
@@ -77,7 +78,7 @@ export function judgeReplacement(
   replaced: string,
 ): IntegrityGateRejection | undefined {
   const gate = gateCandidateValue(sourceEntry, replaced, facts.adapter, locale);
-  return gate.accepted ? structureRefusal(facts.adapter, current, replaced) : gate;
+  return gate.accepted ? structureRefusal(facts.adapter, current, replaced, sourceEntry) : gate;
 }
 
 function settle(

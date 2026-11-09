@@ -1,7 +1,8 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { AdapterError, AdapterRegistry, createDefaultRegistry } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
+import { defaultFs, type SdkFs } from "../fs.js";
 import { valueHash } from "../lock/provenance-file.js";
 import { baseConfig, makeTempDir, readJsonFile, writeJsonFile } from "../test-support.js";
 import { applyValueReplace, previewValueReplace } from "./value-replace.js";
@@ -152,6 +153,107 @@ describe("applyValueReplace: a locale that fails", () => {
     expect(result.localeFailures).toEqual([
       { locale: "fr", code: "ADAPTER_FAILED", message: "the disk refused the write" },
     ]);
+  });
+
+  it("keeps a gate-refused entry refused when the locale then fails to write", async () => {
+    const { dir } = await fixture({ a: "Hallo Z", b: "Z" }, { a: "Salut" });
+
+    const result = await applyValueReplace(
+      {
+        config,
+        cwd: dir,
+        find: "Z",
+        replace: "",
+        entries: [
+          { locale: "de", key: "a", valueHash: valueHash("Hallo Z") },
+          { locale: "de", key: "b", valueHash: valueHash("Z") },
+        ],
+        actor: "human",
+      },
+      { adapterRegistry: registryFailingWriteFor("de") },
+    );
+
+    expect(result.outcomes).toEqual([
+      { locale: "de", key: "a", status: "skipped", reason: "locale-failed" },
+      { locale: "de", key: "b", status: "refused", reason: "empty" },
+    ]);
+    expect(result.localeFailures).toEqual([
+      { locale: "de", code: "ADAPTER_FAILED", message: "the disk refused the write" },
+    ]);
+    expect(await readDe(dir)).toEqual({ a: "Hallo Z", b: "Z" });
+  });
+
+  it.each(["verbatra.provenance.json", "verbatra.lock.json"])(
+    "reports written values as applied and the failure as fileWritten when %s cannot be written",
+    async (stateFile) => {
+      const { dir } = await fixture({ a: "Hallo Z", b: "Z" }, { a: "Salut" });
+      let localeFileWritten = false;
+      const fs: SdkFs = {
+        ...defaultFs,
+        writeFile: async (path, data) => {
+          if (localeFileWritten && path.endsWith(stateFile)) {
+            throw Object.assign(new Error("EACCES injected"), { code: "EACCES" });
+          }
+          await defaultFs.writeFile(path, data);
+          localeFileWritten ||= path.endsWith("de.json");
+        },
+      };
+
+      const result = await applyValueReplace(
+        {
+          config,
+          cwd: dir,
+          find: "Z",
+          replace: "",
+          entries: [
+            { locale: "de", key: "a", valueHash: valueHash("Hallo Z") },
+            { locale: "de", key: "b", valueHash: valueHash("Z") },
+          ],
+          actor: "human",
+        },
+        { fs },
+      );
+
+      expect(result.outcomes).toEqual([
+        { locale: "de", key: "a", status: "applied", staleSource: false },
+        { locale: "de", key: "b", status: "refused", reason: "empty" },
+      ]);
+      expect(result.counts).toEqual({
+        applied: 1,
+        skipped: 0,
+        refused: 1,
+        changed: 0,
+        "too-long": 0,
+      });
+      expect(result.localeFailures).toEqual([
+        { locale: "de", code: "EACCES", message: "EACCES injected", fileWritten: true },
+      ]);
+      expect(await readDe(dir)).toEqual({ a: "Hallo ", b: "Z" });
+    },
+  );
+
+  it("leaves verbatra.lock.json untouched when the source file is missing", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "pt-BR.json"), { a: "Ola X" });
+    const lockPath = join(dir, "verbatra.lock.json");
+    await writeJsonFile(lockPath, { version: 1, locales: { pt_BR: { a: "older-hash" } } });
+    const before = await readFile(lockPath, "utf8");
+
+    const result = await applyValueReplace({
+      config: baseConfig({ targetLocales: ["pt-BR"], format: "i18next-json" }),
+      cwd: dir,
+      find: "X",
+      replace: "Y",
+      entries: [{ locale: "pt-BR", key: "a", valueHash: valueHash("Ola X") }],
+      actor: "human",
+    });
+
+    expect(result.localeFailures.map((failure) => [failure.locale, failure.code])).toEqual([
+      ["pt-BR", "SOURCE_UNREADABLE"],
+    ]);
+    expect(result.localeFailures[0]).not.toHaveProperty("fileWritten");
+    expect(await readFile(lockPath, "utf8")).toBe(before);
   });
 
   it("reports no failures when every locale applies", async () => {
