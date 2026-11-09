@@ -30,6 +30,7 @@ export type ReplacePhase =
       readonly criteria: ReplaceCriteria;
       readonly result: ApplyValueReplaceResult;
       readonly notSent: readonly ValueReplacePreviewEntry[];
+      readonly previewedCount: number;
       readonly truncated: boolean;
     };
 
@@ -133,6 +134,7 @@ export function useValueReplace(allLocales: readonly string[]): ValueReplaceFlow
               criteria: review.criteria,
               result: response.result,
               notSent: notSentEntries(review.preview, review.optIns),
+              previewedCount: review.preview.entries.length,
               truncated: review.preview.truncated,
             }
           : { ...review, applying: false, error: response.error },

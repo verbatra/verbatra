@@ -95,11 +95,13 @@ function NotSentItem({ entry }: { readonly entry: ValueReplacePreviewEntry }): R
 export function ReplaceResultStep({
   result,
   notSent,
+  previewedCount,
   truncated,
   onSearchAgain,
   onClose,
 }: {
   readonly result: ApplyValueReplaceResult;
+  readonly previewedCount: number;
   readonly notSent: readonly ValueReplacePreviewEntry[];
   readonly truncated: boolean;
   readonly onSearchAgain: () => void;
@@ -107,7 +109,6 @@ export function ReplaceResultStep({
 }): ReactNode {
   const rows = outcomeRows(result.outcomes);
   const replaced = replacedCount(result.outcomes);
-  const previewed = rows.length + notSent.length;
   return (
     <div data-replace-step="result">
       <ReplaceLead>
@@ -117,7 +118,7 @@ export function ReplaceResultStep({
         {notSent.length > 0 ? (
           <span data-replace-accounting="">
             {" "}
-            The preview listed {valueCount(previewed)}; {notSent.length}{" "}
+            The preview listed {valueCount(previewedCount)}; {notSent.length}{" "}
             {notSent.length === 1 ? "was" : "were"} not sent.
           </span>
         ) : null}

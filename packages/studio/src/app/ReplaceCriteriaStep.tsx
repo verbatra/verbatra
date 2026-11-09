@@ -29,23 +29,21 @@ function Field({
   const base = useId();
   const input = `${base}-input`;
   const note = `${base}-note`;
+  const hintId = `${base}-hint`;
+  const described = invalid === undefined ? hintId : `${note} ${hintId}`;
   return (
     <div>
       <label htmlFor={input} className="mb-1 block text-sm font-medium text-foreground">
         {label}
       </label>
-      {children({ input, described: note })}
-      <p
-        id={note}
-        role={invalid === undefined ? undefined : "alert"}
-        className={
-          invalid === undefined
-            ? "m-0 mt-1 text-xs text-muted-foreground"
-            : "m-0 mt-1 text-xs text-danger"
-        }
-        data-field-note=""
-      >
-        {invalid ?? hint}
+      {children({ input, described })}
+      {invalid === undefined ? null : (
+        <p id={note} role="alert" className="m-0 mt-1 text-xs text-danger" data-field-note="">
+          {invalid}
+        </p>
+      )}
+      <p id={hintId} className="m-0 mt-1 text-xs text-muted-foreground" data-field-hint="">
+        {hint}
       </p>
     </div>
   );

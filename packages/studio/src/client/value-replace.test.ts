@@ -13,6 +13,7 @@ import {
   failureViews,
   isSendable,
   keyedDetails,
+  matchSentence,
   NO_OPT_INS,
   notSentEntries,
   outcomeRows,
@@ -263,6 +264,12 @@ describe("small helpers", () => {
     expect(statusTone("protected")).toBe("protected");
     expect(valueCount(1)).toBe("1 value");
     expect(valueCount(2)).toBe("2 values");
+  });
+
+  it("agrees the match verb with the count", () => {
+    expect(matchSentence(1)).toBe("1 value matches.");
+    expect(matchSentence(2)).toBe("2 values match.");
+    expect(matchSentence(1000)).toBe("1000 values match.");
   });
 
   it("reports fileWritten only when the sdk says so", () => {

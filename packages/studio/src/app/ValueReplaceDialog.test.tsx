@@ -132,10 +132,11 @@ describe("ValueReplaceDialog criteria step", () => {
 
     const find = view.get("[data-replace-find]");
     expect(find.getAttribute("aria-invalid")).toBe("true");
-    expect(find.getAttribute("aria-describedby")).toBeTruthy();
     expect(view.text()).toContain("The find text must be 1 to 20,000 characters, got 20,001");
     const note = view.get("[data-field-note][role='alert']");
-    expect(note.id).toBe(find.getAttribute("aria-describedby"));
+    const hint = view.get("[data-field-hint]");
+    expect(hint.textContent).toContain("Up to 20,000 characters.");
+    expect(find.getAttribute("aria-describedby")).toBe(`${note.id} ${hint.id}`);
     expect(view.all('[role="alert"]')).toHaveLength(1);
     expect((find as HTMLInputElement).value).toBe("xxxxx");
     expect(document.activeElement).toBe(find);
@@ -552,7 +553,7 @@ describe("ValueReplaceDialog focus and announcements", () => {
     await search(view);
     expect(document.activeElement).toBe(view.get("[data-replace-lead]"));
     expect(view.get("[data-replace-lead]").getAttribute("role")).toBe("status");
-    expect(view.get("[data-replace-lead]").textContent).toBe("1 value match.");
+    expect(view.get("[data-replace-lead]").textContent).toBe("1 value matches.");
 
     await clickAsync(view.get("[data-replace-apply]"));
     expect(document.activeElement).toBe(view.get("[data-replace-lead]"));
@@ -722,6 +723,31 @@ describe("ValueReplaceDialog result accounting", () => {
     expect(keys).toEqual(["pinned", "protected", "refused", "same"]);
     expect(view.get("[data-replace-not-sent] h3").textContent).toBe("Not sent (4)");
     expect(view.get("[data-replace-not-sent]").textContent).toContain("Pinned");
+  });
+
+  it("counts the preview from its entries when the apply answered for fewer than it was sent", async () => {
+    stubRpc({
+      "translation.previewValueReplace": previewResult([
+        entry("a", "ready"),
+        entry("b", "ready"),
+        entry("pinned", "pinned"),
+      ]),
+      "translation.applyValueReplace": {
+        ok: true,
+        result: {
+          outcomes: [{ locale: "de", key: "a", status: "applied", staleSource: false }],
+          counts: {},
+          localeFailures: [],
+        },
+      },
+    });
+    const view = mount();
+    await search(view);
+    await clickAsync(view.get("[data-replace-apply]"));
+
+    expect(view.get("[data-replace-accounting]").textContent).toContain(
+      "The preview listed 3 values; 1 was not sent.",
+    );
   });
 
   it("omits the section when everything was sent, and repeats the 1,000 cap notice", async () => {

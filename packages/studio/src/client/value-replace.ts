@@ -312,6 +312,13 @@ export function valueCount(count: number): string {
   return `${count} ${count === 1 ? "value" : "values"}`;
 }
 
+const COUNT_PLURALS = new Intl.PluralRules("en");
+
+export function matchSentence(count: number): string {
+  const verb = COUNT_PLURALS.select(count) === "one" ? "matches" : "match";
+  return `${valueCount(count)} ${verb}.`;
+}
+
 export type CriteriaField = "find" | "replace";
 
 const FIND_TEXT_INVALID = "FIND_TEXT_INVALID";

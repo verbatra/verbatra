@@ -8,6 +8,7 @@ import {
   EXCERPT_CUT_NOTICE,
   entriesToApply,
   keyedDetails,
+  matchSentence,
   PIN_OPT_IN_LABEL,
   PROTECT_OPT_IN_LABEL,
   type ReplaceOptIns,
@@ -179,7 +180,7 @@ export function ReplaceReviewStep({
       <ReplaceLead>
         {none
           ? "No translation contains this text in the chosen locales."
-          : `${valueCount(preview.entries.length)} match.`}
+          : matchSentence(preview.entries.length)}
       </ReplaceLead>
       {error !== null ? <ErrorMessage error={error} /> : null}
       {none ? null : (

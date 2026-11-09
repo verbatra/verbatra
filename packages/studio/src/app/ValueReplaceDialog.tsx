@@ -71,6 +71,7 @@ export function ValueReplaceDialog({
         <ReplaceResultStep
           result={phase.result}
           notSent={phase.notSent}
+          previewedCount={phase.previewedCount}
           truncated={phase.truncated}
           onSearchAgain={flow.backToCriteria}
           onClose={onClose}
