@@ -14,7 +14,6 @@ import {
   type ReplaceOptIns,
 } from "../client/value-replace.js";
 import { rpcClient } from "./api.js";
-import { installRouteGuard, restoreHeldRoute, setUnloadWarning } from "./route-guard.js";
 
 export type ReplacePhase =
   | { readonly kind: "criteria"; readonly error: StructuredError | null; readonly busy: boolean }
@@ -37,32 +36,25 @@ export type ReplacePhase =
 export interface ValueReplaceFlow {
   readonly phase: ReplacePhase;
   readonly lastCriteria: ReplaceCriteria | null;
-  readonly navigationHeld: boolean;
   runPreview(criteria: ReplaceCriteria): void;
   setOptIn(name: keyof ReplaceOptIns, value: boolean): void;
   apply(): void;
   backToCriteria(): void;
 }
 
-function useApplyHold(applying: boolean): boolean {
-  const [navigationHeld, setNavigationHeld] = useState(false);
+function warnBeforeUnload(event: BeforeUnloadEvent): void {
+  event.preventDefault();
+  event.returnValue = "";
+}
+
+function useUnloadWarningWhile(applying: boolean): void {
   useEffect(() => {
     if (!applying) {
       return;
     }
-    setUnloadWarning(true);
-    const uninstall = installRouteGuard({
-      isDirty: () => true,
-      onBlock: () => setNavigationHeld(true),
-    });
-    return () => {
-      restoreHeldRoute();
-      uninstall();
-      setUnloadWarning(false);
-      setNavigationHeld(false);
-    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, [applying]);
-  return navigationHeld;
 }
 
 const IDLE: ReplacePhase = { kind: "criteria", error: null, busy: false };
@@ -72,7 +64,7 @@ export function useValueReplace(allLocales: readonly string[]): ValueReplaceFlow
   const [lastCriteria, setLastCriteria] = useState<ReplaceCriteria | null>(null);
   const alive = useRef(true);
   const inFlight = useRef(false);
-  const navigationHeld = useApplyHold(phase.kind === "review" && phase.applying);
+  useUnloadWarningWhile(phase.kind === "review" && phase.applying);
 
   useEffect(() => {
     alive.current = true;
@@ -154,5 +146,5 @@ export function useValueReplace(allLocales: readonly string[]): ValueReplaceFlow
     }
   }
 
-  return { phase, lastCriteria, navigationHeld, runPreview, setOptIn, apply, backToCriteria };
+  return { phase, lastCriteria, runPreview, setOptIn, apply, backToCriteria };
 }

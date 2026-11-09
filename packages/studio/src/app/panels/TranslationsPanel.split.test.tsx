@@ -19,6 +19,7 @@ import {
   stubViewport,
   typeInto,
 } from "../test-support.js";
+import { ValueReplaceHost } from "../ValueReplaceHost.js";
 import { TranslationsPanel } from "./TranslationsPanel.js";
 
 vi.mock("../api.js", () => import("../test-support.js").then((module) => module.apiMock()));
@@ -152,6 +153,7 @@ function Harness({ token }: { readonly token: number }): ReactNode {
     <>
       <AppHeader activePage="translations" pageBadges={{}} onOpenMenu={() => {}} />
       <TranslationsPanel refreshToken={token} />
+      <ValueReplaceHost />
     </>
   );
 }

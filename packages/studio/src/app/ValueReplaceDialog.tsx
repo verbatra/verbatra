@@ -43,13 +43,6 @@ export function ValueReplaceDialog({
       onClose={closeUnlessBusy}
       containerRef={containerRef}
       size="wide"
-      banner={
-        flow.navigationHeld ? (
-          <p role="status" className="m-0 mt-2 text-sm text-warning" data-replace-nav-held="">
-            Leaving this page is paused while the replace runs, so the result is not lost.
-          </p>
-        ) : undefined
-      }
     >
       {phase.kind === "criteria" ? (
         <ReplaceCriteriaStep

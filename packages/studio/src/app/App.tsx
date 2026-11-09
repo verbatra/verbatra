@@ -27,6 +27,7 @@ import { useMediaQuery, XL_QUERY } from "./use-media-query.js";
 import { useReviewQueue } from "./use-review-queue.js";
 import { useCanonicalHash, useRoute } from "./use-route.js";
 import { useRunHistoryRefreshOnFocus } from "./use-run-history-refresh-on-focus.js";
+import { ValueReplaceHost } from "./ValueReplaceHost.js";
 
 const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = {
   overview: OverviewPanel,
@@ -206,6 +207,7 @@ function AppShell({
         </div>
       </main>
       {toast !== undefined ? <RefreshToast view={toast} onDismiss={onDismissToast} /> : null}
+      <ValueReplaceHost />
     </div>
   );
 }
