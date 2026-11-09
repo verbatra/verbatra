@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { KeyValueContext } from "../client/key-value-context.js";
 import {
   type LimitControlView,
@@ -107,7 +107,9 @@ export function useLimitDraft({
   const [stored, setStored] = useState<Held>(fresh(identity));
   const held = stored.identity === identity ? stored : fresh(identity);
   const identityRef = useRef(identity);
-  identityRef.current = identity;
+  useLayoutEffect(() => {
+    identityRef.current = identity;
+  });
   const savingRef = useRef(false);
   const base = context === null ? NONE : limitControlView(context);
   const view = context === null ? NONE : awaitedView(base, held, context);

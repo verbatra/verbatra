@@ -175,14 +175,12 @@ export function EditEntryDialog({
   const value = edit.draft;
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const unsavedFieldRef = useRef<{ focus(): void } | null>(null);
-  unsavedFieldRef.current = {
-    focus: () =>
-      focusUnsavedField(
-        textAreaRef.current,
-        edit.limit.dirty && !edit.valueDirty,
-        containerRef.current,
-      ),
-  };
+  const limitOnly = edit.limit.dirty && !edit.valueDirty;
+  useLayoutEffect(() => {
+    unsavedFieldRef.current = {
+      focus: () => focusUnsavedField(textAreaRef.current, limitOnly, containerRef.current),
+    };
+  });
   const guard = useDialogDraftGuard({
     dirty: edit.dirty,
     saving: edit.saving,
