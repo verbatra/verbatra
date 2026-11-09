@@ -1,6 +1,7 @@
 import type { StatusData } from "../client/coverage.js";
 import { type GitDiffView, type GitStatusView, transientGitError } from "../client/git-changes.js";
 import type { ReviewQueueData } from "../client/review-queue-data.js";
+import type { RunHistoryData } from "../client/run-history-view.js";
 import type { RefreshableView, StructuredError } from "../client/state.js";
 import type { UsageTickerData } from "../client/usage-ticker-data.js";
 import type { DiffState } from "./use-diff-state.js";
@@ -18,6 +19,7 @@ export interface OverviewReads {
   readonly lock: LockView;
   readonly review: RefreshableView<ReviewQueueData> | undefined;
   readonly usage: RefreshableView<UsageTickerData>;
+  readonly runHistory?: RefreshableView<RunHistoryData> | undefined;
   readonly history: HistoryState;
   readonly gitStatus?: GitStatusView | undefined;
   readonly gitDiff?: GitDiffView | undefined;
@@ -104,6 +106,7 @@ export function pageFailure(reads: OverviewReads): PageFailure | null {
     lockSource(reads.lock),
     reviewSource(reads.review),
     refreshable("usage", reads.usage),
+    reads.runHistory === undefined ? undefined : refreshable("run history", reads.runHistory),
     historySource(reads.history),
     gitSource("changed files", reads.gitStatus),
     gitSource("key changes", reads.gitDiff),

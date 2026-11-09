@@ -8,6 +8,7 @@ import type {
 import { createReconnectController } from "../client/reconnect.js";
 import type { FetchLike, RpcClient } from "../client/rpc-client.js";
 import { createRpcClient } from "../client/rpc-client.js";
+import { refreshAfterRuns } from "../client/run-history-refresh.js";
 import { createSessionStore, type SessionStore } from "../client/state.js";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import {
@@ -21,9 +22,9 @@ export const sessionStore: SessionStore = createSessionStore();
 
 export const rateBudget: RateBudget = createRateBudget();
 
-export const rpcClient: RpcClient = budgetTracking(
-  createRpcClient({ fetchImpl: browserFetch, session: sessionStore }),
-  rateBudget,
+export const rpcClient: RpcClient = refreshAfterRuns(
+  budgetTracking(createRpcClient({ fetchImpl: browserFetch, session: sessionStore }), rateBudget),
+  () => notifyRefresh({ reason: "run-history", at: new Date().toISOString() }),
 );
 
 export const agentToolsStatusStore: AgentToolsStatusStore = createAgentToolsStatusStore();

@@ -24,10 +24,12 @@ import { OverviewMetrics } from "../OverviewMetrics.js";
 import { pageFailure } from "../overview-failures.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
+import { RunHistorySection } from "../RunHistorySection.js";
 import { type DiffState, useDiffState } from "../use-diff-state.js";
 import { useGitChanges } from "../use-git-changes.js";
 import { type HistoryState, useHistoryList } from "../use-history-list.js";
 import { useLockState } from "../use-lock-state.js";
+import { useRunHistory } from "../use-run-history.js";
 import { useStatusData } from "../use-status-data.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
 
@@ -233,6 +235,7 @@ type ReadName =
   | "lock"
   | "review"
   | "usage"
+  | "runHistory"
   | "history"
   | "gitStatus"
   | "gitDiff";
@@ -262,6 +265,7 @@ function startedReads(reads: OverviewReadsNow, reviewRefreshed: boolean): readon
 
 export interface OverviewPanelProps extends PanelProps {
   readonly gitRefreshToken?: number;
+  readonly runHistoryToken?: number;
   readonly reviewQueue?: RefreshableView<ReviewQueueData> | undefined;
   readonly onRetry?: (() => void) | undefined;
 }
@@ -269,6 +273,7 @@ export interface OverviewPanelProps extends PanelProps {
 export function OverviewPanel({
   refreshToken,
   gitRefreshToken = 0,
+  runHistoryToken = 0,
   reviewQueue,
   onRetry,
 }: OverviewPanelProps): ReactNode {
@@ -279,6 +284,7 @@ export function OverviewPanel({
   const status = useStatusData(token);
   const lock = useLockState(token);
   const usage = useUsageTicker(token);
+  const runHistory = useRunHistory(token + runHistoryToken);
   const history = useHistoryList(token + gitRefreshToken, limit);
   const git = useGitChanges(token + gitRefreshToken);
   const [retried, setRetried] = useState<RetryRound | null>(null);
@@ -291,6 +297,7 @@ export function OverviewPanel({
     lock,
     review: reviewQueue,
     usage,
+    runHistory,
     history,
     gitStatus: git.status,
     gitDiff: git.diff,
@@ -301,6 +308,7 @@ export function OverviewPanel({
     lock,
     review: reviewQueue,
     usage,
+    runHistory,
     history,
     gitStatus: git.status,
     gitDiff: git.diff,
@@ -377,14 +385,17 @@ export function OverviewPanel({
         <PageSection title="Last run" className="mb-0 lg:col-start-2 lg:row-start-1">
           <LastRunRail view={usage} hideCode={failure?.error.code} />
         </PageSection>
-        <PageSection title="Locale file history" className="mb-0 lg:col-start-1 lg:row-start-1">
-          <LocaleFileHistory
-            history={history}
-            limit={limit}
-            onLimit={setLimit}
-            hideCode={failure?.error.code}
-          />
-        </PageSection>
+        <div className="grid min-w-0 gap-y-10 lg:col-start-1 lg:row-start-1">
+          <RunHistorySection view={runHistory} hideCode={failure?.error.code} className="mb-0" />
+          <PageSection title="Locale file history" className="mb-0">
+            <LocaleFileHistory
+              history={history}
+              limit={limit}
+              onLimit={setLimit}
+              hideCode={failure?.error.code}
+            />
+          </PageSection>
+        </div>
       </div>
     </>
   );

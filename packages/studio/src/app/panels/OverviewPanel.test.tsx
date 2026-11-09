@@ -74,6 +74,11 @@ const NOT_A_REPOSITORY: StubRpcResult = {
   result: { available: false, reason: "not-a-repository" },
 };
 
+const NO_RUN_HISTORY: StubRpcResult = {
+  ok: true,
+  result: { records: [], total: 0, unreadableRecords: 0 },
+};
+
 type Stubs = Readonly<Record<string, StubRpcResult | StubRpcHandler>>;
 
 function stubOverview(overrides: Stubs = {}): void {
@@ -82,6 +87,7 @@ function stubOverview(overrides: Stubs = {}): void {
     "status.check": checkResult(DEFAULT_ROWS),
     "lock.state": NO_LOCK,
     "usage.summary": NO_USAGE,
+    "usage.history": NO_RUN_HISTORY,
     "history.list": historyAnswer(LOADED_HISTORY),
     "git.status": NOT_A_REPOSITORY,
     ...overrides,
@@ -266,6 +272,7 @@ const ONCE_EACH = {
   "status.check": 1,
   "status.diff": 1,
   "usage.summary": 1,
+  "usage.history": 1,
 };
 
 const TWICE_EACH = {
@@ -275,6 +282,7 @@ const TWICE_EACH = {
   "status.check": 2,
   "status.diff": 2,
   "usage.summary": 2,
+  "usage.history": 2,
 };
 
 function callCounts(): Record<string, number> {
@@ -300,6 +308,7 @@ describe("OverviewPanel", () => {
       "status.check": checkResult(DEFAULT_ROWS),
       "lock.state": NO_LOCK,
       "usage.summary": () => new Promise(() => {}),
+      "usage.history": () => new Promise(() => {}),
       "history.list": () => new Promise(() => {}),
     });
 
@@ -307,7 +316,7 @@ describe("OverviewPanel", () => {
 
     expect(
       view.all('[role="status"]').filter((node) => node.textContent?.trim() === "Loading..."),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
   });
 
   it("reads every source once, with no parameters, so the last run is read a single time", async () => {
@@ -1157,13 +1166,19 @@ describe("OverviewPanel attention link, notices, history paging and order", () =
     expect(view.text()).toContain("Scroll sideways to see every column.");
   });
 
-  it("orders the page as metrics, then locales, then the changes, the last run and the file history", async () => {
+  it("orders the page as metrics, then locales, then the changes, the last run, the run history and the file history", async () => {
     stubActivity(TRACKED_RUN);
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
     const headings = view.all("h2").map((heading) => heading.textContent);
 
-    expect(headings).toEqual(["Locales", "Changes", "Last run", "Locale file history"]);
+    expect(headings).toEqual([
+      "Locales",
+      "Changes",
+      "Last run",
+      "Run history and cost",
+      "Locale file history",
+    ]);
     expect(
       metricCard(view, "Needs attention").compareDocumentPosition(localesSection(view)) &
         Node.DOCUMENT_POSITION_FOLLOWING,

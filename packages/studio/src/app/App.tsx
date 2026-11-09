@@ -26,6 +26,7 @@ import { useAgentToolsFailures } from "./use-agent-tools-status.js";
 import { useMediaQuery, XL_QUERY } from "./use-media-query.js";
 import { useReviewQueue } from "./use-review-queue.js";
 import { useCanonicalHash, useRoute } from "./use-route.js";
+import { useRunHistoryRefreshOnFocus } from "./use-run-history-refresh-on-focus.js";
 
 const PAGE_PANELS: Readonly<Record<PageId, (props: PanelProps) => ReactNode>> = {
   overview: OverviewPanel,
@@ -72,7 +73,9 @@ export function App(): ReactNode {
   const [toast, setToast] = useState<RefreshToastView | undefined>(undefined);
   const [refreshToken, setRefreshToken] = useState(0);
   const [gitRefreshToken, setGitRefreshToken] = useState(0);
+  const [runHistoryToken, setRunHistoryToken] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  useRunHistoryRefreshOnFocus(() => setRunHistoryToken((token) => token + 1));
 
   useEffect(
     () => sessionStore.subscribe((state) => setSessionExpired(state.kind === "session-expired")),
@@ -84,6 +87,10 @@ export function App(): ReactNode {
         const handled = handleRefreshEvent(event);
         if (handled.kind === "git") {
           setGitRefreshToken((token) => token + 1);
+          return;
+        }
+        if (handled.kind === "run-history") {
+          setRunHistoryToken((token) => token + 1);
           return;
         }
         setRefreshToken((token) => token + 1);
@@ -105,6 +112,7 @@ export function App(): ReactNode {
       page={page}
       refreshToken={refreshToken}
       gitRefreshToken={gitRefreshToken}
+      runHistoryToken={runHistoryToken}
       toast={toast}
       onDismissToast={handleDismissToast}
       mobileNavOpen={mobileNavOpen}
@@ -117,6 +125,7 @@ function AppShell({
   page,
   refreshToken,
   gitRefreshToken,
+  runHistoryToken,
   toast,
   onDismissToast,
   mobileNavOpen,
@@ -125,6 +134,7 @@ function AppShell({
   readonly page: PageId;
   readonly refreshToken: number;
   readonly gitRefreshToken: number;
+  readonly runHistoryToken: number;
   readonly toast: RefreshToastView | undefined;
   readonly onDismissToast: () => void;
   readonly mobileNavOpen: boolean;
@@ -186,6 +196,7 @@ function AppShell({
             <OverviewPanel
               refreshToken={refreshToken + retries}
               gitRefreshToken={gitRefreshToken}
+              runHistoryToken={runHistoryToken}
               reviewQueue={reviewQueue}
               onRetry={() => setRetries((count) => count + 1)}
             />

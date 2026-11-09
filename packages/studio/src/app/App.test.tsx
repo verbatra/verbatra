@@ -87,6 +87,7 @@ function stubPanelReads(): void {
     "status.diff": { ok: true, result: { hasPendingChanges: false, locales: [] } },
     "lock.state": { ok: true, result: { exists: false } },
     "usage.summary": { ok: true, result: { available: false } },
+    "usage.history": { ok: true, result: { records: [], total: 0, unreadableRecords: 0 } },
     "history.list": { ok: true, result: { available: false } },
     "git.status": { ok: true, result: { available: false, reason: "not-a-repository" } },
     "glossary.get": {
@@ -321,6 +322,35 @@ describe("App live refresh", () => {
     await flush();
 
     expect(countCalls("review.queue")).toBe(before + 1);
+  });
+
+  it("re-reads only the run history, and leaves the toast alone, on a run-history event", async () => {
+    const view = await mount();
+    emitRefresh(sourceEvent(1, 3));
+    await flush();
+    const historyBefore = countCalls("usage.history");
+    const reviewBefore = countCalls("review.queue");
+    const diffBefore = countCalls("status.diff");
+
+    emitRefresh({ reason: "run-history", at: "2026-07-18T09:41:12.000Z" });
+    await flush();
+
+    expect(countCalls("usage.history")).toBe(historyBefore + 1);
+    expect(countCalls("review.queue")).toBe(reviewBefore);
+    expect(countCalls("status.diff")).toBe(diffBefore);
+    expect(view.getByText("span", "1 added, 3 changed")).not.toBeNull();
+  });
+
+  it("re-reads the run history when the window regains focus", async () => {
+    await mount();
+    const before = countCalls("usage.history");
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await flush();
+
+    expect(countCalls("usage.history")).toBe(before + 1);
   });
 
   it("re-reads the active panel's own data too, not just the shell's", async () => {
