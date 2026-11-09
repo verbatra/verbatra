@@ -632,7 +632,7 @@ describe("RunHistorySection round 3", () => {
       "whitespace-normal",
     );
     const figures = [...(row.querySelectorAll("td:nth-child(3) .whitespace-nowrap") ?? [])];
-    expect(figures.map((figure) => figure.textContent)).toEqual(["100 in", "50 out"]);
+    expect(figures.map((figure) => figure.textContent)).toEqual(["100 in /", "50 out"]);
   });
 
   it("shows a short date below md and the full one from md up, with the full instant in datetime", () => {

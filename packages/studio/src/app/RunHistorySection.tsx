@@ -46,7 +46,7 @@ const PAGE_ROWS = 10;
 const INITIAL_COVERAGE_ROWS = 10;
 
 const WHEN_HEAD =
-  "sticky start-0 z-10 whitespace-nowrap border-e border-(--border-default) bg-(--surface-table-head)";
+  "sticky start-0 z-10 border-e border-(--border-default) bg-(--surface-table-head) max-md:whitespace-nowrap";
 
 const RING_ENDS = {
   first:
@@ -58,13 +58,13 @@ const RING_ENDS = {
 
 const RUN_CELL = "border-b border-(--border-default) group-last:border-b-0";
 
-const WHEN_CELL = `${RUN_CELL} ${RING_ENDS.first} sticky start-0 z-10 whitespace-nowrap border-e bg-card group-hover:bg-(--surface-row-hover)`;
+const WHEN_CELL = `${RUN_CELL} ${RING_ENDS.first} sticky start-0 z-10 border-e bg-card group-hover:bg-(--surface-row-hover) max-md:whitespace-nowrap md:min-w-28`;
 
 const RUN_COLUMN_CELL = `${RUN_CELL} ${RING_ENDS.middle} md:min-w-72`;
 
 const RUN_MIDDLE_CELL = `${RUN_CELL} ${RING_ENDS.middle}`;
 
-const RUN_LAST_CELL = `${RUN_CELL} ${RING_ENDS.last}`;
+const RUN_LAST_CELL = `${RUN_CELL} ${RING_ENDS.last} min-w-28`;
 
 const RUN_ROW = "group focus-visible:outline-none";
 
@@ -155,7 +155,7 @@ function Notices({ notices }: { readonly notices: readonly RunHistoryNotice[] })
 function CostCell({ cost }: { readonly cost: CostDisplay }): ReactNode {
   const reason = [cost.hint, ...cost.caveats].filter((part) => part !== undefined).join(" ");
   return (
-    <div className="flex min-w-28 flex-col items-start gap-1">
+    <div className="flex min-w-20 flex-col items-start gap-1">
       {cost.kind === "priced" ? (
         <span className="whitespace-nowrap font-medium tabular-nums">{cost.label}</span>
       ) : (
@@ -247,7 +247,7 @@ function TokensCell({ record }: { readonly record: RunHistoryRecord }): ReactNod
   return (
     <span>
       {tokens.lowerBound ? "at least " : ""}
-      <span className="whitespace-nowrap">{formatCount(tokens.input ?? 0)} in</span> /{" "}
+      <span className="whitespace-nowrap">{formatCount(tokens.input ?? 0)} in /</span>{" "}
       <span className="whitespace-nowrap">{formatCount(tokens.output ?? 0)} out</span>
     </span>
   );
