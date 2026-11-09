@@ -102,12 +102,12 @@ Retention is set by the vendor and your contract. Quotes as of September 2026.
 
 | File | Holds | Commit it? |
 | --- | --- | --- |
-| Your locale files | the translations | yes |
+| Locale files | the translations | yes |
 | `verbatra.lock.json` | a hash of each source string a translation was made from | yes |
 | `verbatra.provenance.json` | per key, the write path, provider and model behind the value, and any review decision with the reviewer's name; no translated text or timestamps | yes |
 | `verbatra.limits.json` | per key, a length limit | yes |
 | `verbatra.cache.json` | source text and its translations, per provider, model, tone, glossary and `localeMap` | no, `verbatra init` gitignores it |
-| `.verbatra-local/` | the last run's status, review flags and token usage, generated pseudolocales, and write locks naming the host and process ID of the run holding them | no, gitignored |
+| `.verbatra-local/` | the last run's status, review flags and token usage, the run history (counts, usage, cost), generated pseudolocales, and write locks naming the holder's host and PID | no, gitignored |
 | `.env`, `.env.local` | your API keys, if you keep them there | never, `verbatra init` gitignores both |
 
 ## API keys

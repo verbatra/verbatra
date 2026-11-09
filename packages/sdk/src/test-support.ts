@@ -16,6 +16,7 @@ import { type GlossaryInput, glossaryForLocale } from "./config/glossary.js";
 import type { VerbatraConfig } from "./config/schema.js";
 import { hardenedGitEnv } from "./flow/git-exec.js";
 import { type BoundedBytesRead, type BoundedFileRead, defaultFs, type SdkFs } from "./fs.js";
+import type { RunHistoryRecordParsed } from "./run-history/record.js";
 
 export interface StubCall {
   readonly request: TranslateRequest;
@@ -152,6 +153,33 @@ export function baseConfig(overrides: Partial<VerbatraConfig> = {}): VerbatraCon
 
 export async function makeTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "verbatra-sdk-"));
+}
+
+export function makeRunHistoryRecord(
+  overrides: Partial<RunHistoryRecordParsed> = {},
+): RunHistoryRecordParsed {
+  return {
+    version: 1,
+    at: "2026-11-09T10:00:00.000Z",
+    trigger: "translate",
+    provider: "anthropic",
+    model: "test-model",
+    cost: { pricing: "no-rate-on-file", basis: "usage", rateKey: "anthropic/test-model" },
+    locales: [
+      {
+        locale: "de",
+        status: "succeeded",
+        translated: 2,
+        cacheHits: 0,
+        fuzzyHits: 0,
+        generated: 0,
+        pruned: 0,
+        integrityMismatches: 0,
+        providerFailures: 0,
+      },
+    ],
+    ...overrides,
+  };
 }
 
 export async function writeJsonFile(path: string, value: unknown): Promise<void> {

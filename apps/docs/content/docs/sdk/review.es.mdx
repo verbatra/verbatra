@@ -196,9 +196,12 @@ function retranslateEntry(
 
 **Ejemplo:** [Edita y retraduce una sola clave](/es/docs/programmatic-api#edita-y-retraduce-una-sola-clave)
 
-Devuelve `{ accepted: true, value, reviewReasons }` (los códigos de motivo de revisión del nuevo
-valor) o el rechazo que devuelve `editEntry`. A diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError`, exportado desde
+Devuelve `{ accepted: true, value, reviewReasons }` o el rechazo que devuelve `editEntry`. A diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError`, exportado desde
 `@verbatra/sdk`, con un `code` estable como `RATE_LIMITED` o `AUTH_FAILED`. Con `provider: { id: "none" }` lanza primero `MACHINE_TRANSLATION_DISABLED`, antes de leer o bloquear nada.
+
+<AvailableFrom version="0.13.0" />
+
+Cada resultado lleva `usage`, los recuentos de tokens del proveedor, solo cuando los informa.
 
 El nuevo valor queda registrado en `verbatra.provenance.json` como `machine`, con el `id` del
 proveedor que respondió y el modelo configurado. Un proveedor de tu propio `createProvider` queda

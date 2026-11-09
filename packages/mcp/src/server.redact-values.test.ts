@@ -212,6 +212,7 @@ const READS: readonly Call[] = [
     arguments: { locale: "de", key: "greeting", value: `${CANARY}-dropped-placeholder` },
   },
   { name: "translation.retranslateEntry", arguments: { locale: "de", key: "long" } },
+  { name: "usage.history", arguments: {} },
   { name: "key.value", arguments: { locale: "xx-unknown", key: "greeting" } },
   { name: "key.value", arguments: { locale: "de", key: "missing.key" } },
 ];

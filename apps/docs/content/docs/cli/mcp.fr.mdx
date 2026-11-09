@@ -97,6 +97,7 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 | `review.approve` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée approuve la traduction actuelle d'une clé | non | non |
 | `review.reject` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée rejette la traduction d'une clé, qui est retirée pour être remplacée | non | non |
 | `usage.summary` | la consommation de tokens et l'état du budget de la dernière exécution | oui | non |
+| `usage.history` | les dernières exécutions, leur coût et la couverture <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | oui | non |
 
 - **Un appel à la fois.** Un second appel au même outil pour la même entrée (`translation.editEntry`, `translation.retranslateEntry`), ou une seconde exécution de `translation.translatePending`, est refusé avec `isError` tant que le premier tourne.
 - **Travail humain.** `translation.retranslateEntry` refuse une clé épinglée avec `KEY_PINNED` et, sauf avec `humanEdits: "overwrite"`, la valeur d'une personne avec `KEY_PROTECTED` ; `translation.editEntry` refuse une clé épinglée. `translation.translatePending` liste ces clés sous `protected`. Voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations).
@@ -109,7 +110,7 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 
 - `status.check`, `status.diff` et `key.integrity` prennent un tableau `locales` optionnel ; `key.integrity` prend aussi la `key`.
 - `key.integrity` renvoie `{ locales: [{ locale, entries }] }`, chaque entrée avec `matches`, `missing`, `extra`, `icuValid`, `markupMatches` et leurs détails.
-- `translation.editEntry` prend `locale`, `key` et une `value` de 20 000 caractères au plus. Il renvoie `{ accepted, value, reason?, details? }`, et `translation.retranslateEntry` la même chose plus `reviewReasons?`, où `reason` vaut `placeholder`, `markup`, `icu`, `degenerate` ou `empty`.
+- `translation.editEntry` prend `locale`, `key` et une `value` de 20 000 caractères au plus. Il renvoie `{ accepted, value, reason?, details? }`, et `translation.retranslateEntry` la même chose plus `reviewReasons?` et `usage?`, où `reason` vaut `placeholder`, `markup`, `icu`, `degenerate` ou `empty`.
 - `glossary.write` exige un glossaire dans un fichier, sinon il échoue avec `GLOSSARY_NOT_FILE_BACKED`.
 
 ### Autres entrées et résultats

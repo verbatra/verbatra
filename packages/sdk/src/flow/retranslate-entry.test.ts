@@ -402,6 +402,63 @@ describe("retranslateEntry: provider request shape", () => {
   });
 });
 
+describe("retranslateEntry: usage", () => {
+  it("returns the provider's usage on an accepted value", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider({ usage: { inputTokens: 120, outputTokens: 30 } });
+
+    const result = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(result).toMatchObject({ accepted: true, usage: { inputTokens: 120, outputTokens: 30 } });
+  });
+
+  it("returns the usage of a refused value, which spent tokens too", async () => {
+    const dir = await project({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    const stub = makeStubProvider({
+      translate: () => "",
+      usage: { inputTokens: 7, outputTokens: 3 },
+    });
+
+    const result = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(result).toMatchObject({
+      accepted: false,
+      reason: "empty",
+      usage: { inputTokens: 7, outputTokens: 3 },
+    });
+  });
+
+  it("leaves usage out when the provider reports none", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider();
+
+    const result = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(result).not.toHaveProperty("usage");
+  });
+
+  it("counts a non-finite or negative token figure as zero", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider({ usage: { inputTokens: Number.NaN, outputTokens: -5 } });
+
+    const result = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(result).toMatchObject({ usage: { inputTokens: 0, outputTokens: 0 } });
+  });
+});
+
 describe("retranslateEntry: the token budget does not reach this path", () => {
   it("sends the request even under a ceiling of one token in stop behavior", async () => {
     const dir = await project({ greeting: "Hello" });

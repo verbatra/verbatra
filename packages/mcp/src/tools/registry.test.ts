@@ -23,6 +23,7 @@ const EXPECTED_READ_ONLY_ORDER = [
   "review.approve",
   "review.reject",
   "usage.summary",
+  "usage.history",
 ];
 
 const SPEND_TOOL_NAMES = ["translation.retranslateEntry", "translation.translatePending"];
@@ -38,11 +39,11 @@ describe("buildToolRegistry", () => {
     }
   });
 
-  it("includes all 23 tools, with the two spend tools present, when spending is allowed", () => {
+  it("includes all 24 tools, with the two spend tools present, when spending is allowed", () => {
     const tools = buildToolRegistry(true);
     const names = tools.map((tool) => tool.name);
 
-    expect(names).toHaveLength(23);
+    expect(names).toHaveLength(24);
     for (const spendTool of SPEND_TOOL_NAMES) {
       expect(names).toContain(spendTool);
     }

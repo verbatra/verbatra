@@ -1,4 +1,9 @@
-import { INTEGRITY_GATE_REASONS, REVIEW_REASON_CODES, retranslateEntry } from "@verbatra/sdk";
+import {
+  INTEGRITY_GATE_REASONS,
+  REVIEW_REASON_CODES,
+  retranslateEntry,
+  runSummarySchema,
+} from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolCallContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -24,6 +29,7 @@ const retranslateEntryResultSchema = z.object({
   limitsNotice: z
     .object({ code: z.literal("LIMITS_FILE_IGNORED"), message: z.string() })
     .optional(),
+  usage: runSummarySchema.shape.usage.unwrap().optional(),
 });
 
 export type RetranslateEntryResult = z.infer<typeof retranslateEntryResultSchema>;
@@ -64,7 +70,9 @@ export const retranslateEntryTool = defineTool({
     "locale and the required key parameter must exist in the source. A rejected result is " +
     "returned as accepted: false with a reason and writes nothing. An accepted result may " +
     "still carry reviewReasons flagging it for a person (for example a length outlier or a " +
-    "missed glossary term) even though it was written. A key matching the config's " +
+    "missed glossary term) even though it was written. Either result carries usage, the " +
+    "input and output tokens the provider reported, when the provider reports tokens at " +
+    "all; a rejected result spent them too. A key matching the config's " +
     "pinnedKeys is always refused with KEY_PINNED. A key whose value a person wrote, " +
     "imported, or changed outside verbatra is refused with KEY_PROTECTED unless " +
     "project.snapshot reports humanEdits: overwrite, in which case it is replaced like any " +

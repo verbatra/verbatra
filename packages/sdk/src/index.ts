@@ -494,6 +494,15 @@ export {
   reviewQueue,
 } from "./flow/review-queue.js";
 export {
+  RUN_HISTORY_DEFAULT_LIMIT,
+  RUN_HISTORY_MAX_LIMIT,
+  RUN_HISTORY_UNAVAILABLE_REASONS,
+  type RunHistoryDeps,
+  type RunHistoryInput,
+  type RunHistoryResult,
+  runHistory,
+} from "./flow/run-history.js";
+export {
   RUN_STATUS_UNAVAILABLE_REASONS,
   type RunStatusDeps,
   type RunStatusInput,
@@ -686,6 +695,18 @@ export type {
 } from "./progress/types.js";
 export { projectRelativeMessage } from "./project-relative.js";
 export { redact } from "./redact.js";
+export {
+  RUN_COST_BASES,
+  type RunCostBasis,
+  type RunCostCaveat,
+  type RunHistoryCost,
+  type RunHistoryCoverage,
+  type RunHistoryLocale,
+  type RunHistoryRecord,
+  type RunHistoryTrigger,
+  type RunHistoryUnavailableReason,
+  runHistoryResultSchema,
+} from "./run-history/record.js";
 export type { RunStatusFile, RunStatusLocale } from "./run-status/types.js";
 export { type ScaffoldableProviderId, scaffoldingMetadata } from "./scaffolding.js";
 export type {

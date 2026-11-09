@@ -59,6 +59,36 @@ describe("translation.retranslateEntry", () => {
     },
   );
 
+  it.each([
+    ["plain", undefined],
+    ["under --redact-values", createValueMarker()],
+  ])(
+    "returns the provider's token usage for an accepted and a refused value, %s",
+    async (_label, marker) => {
+      const usage = { inputTokens: 120, outputTokens: 30 };
+      for (const [translate, expected] of [
+        [undefined, { accepted: true }],
+        [() => "", { accepted: false, reason: "empty" }],
+      ] as const) {
+        const dir = await makeProject({ greeting: "Hello" }, { de: {} });
+        const context = makeContext({
+          cwd: dir,
+          fs: nodeFs,
+          adapterRegistry: defaultAdapterRegistry,
+          createProvider: () => makeStubProvider({ usage, ...(translate ? { translate } : {}) }),
+          ...(marker !== undefined ? { valueMarker: marker } : {}),
+        });
+
+        const outcome = await retranslateEntryTool.execute(
+          { locale: "de", key: "greeting" },
+          context,
+        );
+
+        expect(outcome).toMatchObject({ kind: "ok", result: { ...expected, usage } });
+      }
+    },
+  );
+
   it("returns an error outcome when the provider fails", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const context = makeContext({

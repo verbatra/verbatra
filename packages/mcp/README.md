@@ -85,6 +85,7 @@ Every tool, listed in the order the server advertises them.
 | `review.approve` | Record, on the user's instruction, that a named person approves one key's current translation |
 | `review.reject` | Record, on the user's instruction, that a named person rejects one key's current translation, removing it so it gets replaced |
 | `usage.summary` | Token usage and budget status left behind by the last run |
+| `usage.history` | The recent runs, newest first, with token usage, the cost frozen at the rates of that day and per-locale counts and coverage; counts only, never keys or texts |
 
 ## Security and spend
 

@@ -3,6 +3,7 @@ import { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/ai-provide
 import { z } from "zod";
 import type { LocaleSummary, NeedsReviewEntry, RunSummary } from "../flow/summary.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
+import { LOCAL_DIR_NAME } from "../local-dir.js";
 import type { RunStatusFile, RunStatusLocale } from "./types.js";
 
 /**
@@ -27,7 +28,6 @@ export const RUN_STATUS_UNAVAILABLE_REASONS = Object.freeze([
   "unsupported-version",
 ] as const);
 
-const RUN_STATUS_DIR_NAME = ".verbatra-local";
 const RUN_STATUS_FILE_NAME = "run-status.json";
 
 const CURRENT_VERSION = 1;
@@ -80,7 +80,7 @@ const runStatusFileSchema = z.object({
 });
 
 export function runStatusFilePath(cwd: string): string {
-  return resolve(cwd, RUN_STATUS_DIR_NAME, RUN_STATUS_FILE_NAME);
+  return resolve(cwd, LOCAL_DIR_NAME, RUN_STATUS_FILE_NAME);
 }
 
 function toRunStatusLocale(locale: LocaleSummary): RunStatusLocale {

@@ -10,6 +10,7 @@ import { type BillingUnit, billingFor, modelOf, rateKeyFor } from "../config/pro
 import type { ProviderConfig } from "../config/provider-config.js";
 import { isTokenRate, lookupRate, type ModelRate, type RateCard } from "../config/rate-card.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { clipText, RUN_HISTORY_LIMITS, type RunHistoryCost } from "../run-history/record.js";
 import { chunk } from "./batching.js";
 import { planPluralGeneration, syntheticEntry } from "./plural-categories.js";
 import type {
@@ -24,6 +25,7 @@ import type {
   RunEstimateQuantity,
   TokenRunQuantity,
   UnpricedLocaleEstimate,
+  UsageSummary,
 } from "./summary.js";
 
 export const ESTIMATED_CHARACTERS_PER_TOKEN = 4;
@@ -152,7 +154,10 @@ type Pricing =
     }
   | { readonly status: Exclude<EstimatePricing, "priced"> };
 
-function resolvePricing(input: EstimateRunInput, unit: BillingUnit): Pricing {
+function resolvePricing(
+  input: Pick<EstimateRunInput, "provider" | "rates">,
+  unit: BillingUnit,
+): Pricing {
   if (!billingFor(input.provider.id).billedByApi) {
     return { status: "not-billed" };
   }
@@ -360,4 +365,102 @@ export function estimateForRun(input: EstimateForRunInput): RunEstimate {
       generatedEntries: generatedEntriesFor(input, summary),
     })),
   });
+}
+
+export interface PriceRunInput {
+  readonly provider: ProviderConfig;
+  readonly rates?: RateCard | undefined;
+  readonly usage?: UsageSummary | undefined;
+  readonly sourceCharacters: number;
+  readonly keysSent: boolean;
+  readonly usagePartial?: boolean;
+}
+
+const SOURCE_CHARACTER_CAVEATS = [
+  "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
+  "TRANSPORT_RETRIES_NOT_COUNTED",
+] as const;
+
+function usableRate(rate: ModelRate): boolean {
+  return Object.values(rate).every((amount) => Number.isFinite(amount) && amount >= 0);
+}
+
+export function priceRun(input: PriceRunInput): RunHistoryCost {
+  const { unit } = billingFor(input.provider.id);
+  const basis = unit === "tokens" ? "usage" : "source-characters";
+  const rateKey = clipText(rateKeyFor(input.provider), RUN_HISTORY_LIMITS.rateKey);
+  const caveats = unit === "characters" ? { caveats: [...SOURCE_CHARACTER_CAVEATS] } : {};
+  const pricing = resolvePricing(
+    { provider: input.provider, ...(input.rates === undefined ? {} : { rates: input.rates }) },
+    unit,
+  );
+  if (pricing.status === "not-billed") {
+    return { pricing: "not-billed", rateKey };
+  }
+  if (pricing.status !== "priced" || !usableRate(pricing.rate)) {
+    const status = pricing.status === "priced" ? "no-rate-on-file" : pricing.status;
+    return { pricing: status, basis, rateKey, ...caveats };
+  }
+  if (unit === "tokens" && input.usage === undefined && input.keysSent) {
+    return { pricing: "no-usage", basis, rateKey };
+  }
+  const lowerBound = unit === "tokens" && input.usage !== undefined && input.usagePartial === true;
+  const quantity: EstimatedQuantity = {
+    keys: 0,
+    requests: 0,
+    inputTokens: input.usage?.inputTokens ?? 0,
+    outputTokens: input.usage?.outputTokens ?? 0,
+    sourceCharacters: input.sourceCharacters,
+  };
+  return {
+    pricing: "priced",
+    basis,
+    rateKey,
+    currency: pricing.currency,
+    asOf: pricing.asOf,
+    amount: costOf(quantity, pricing.rate),
+    ...(lowerBound ? { caveats: ["USAGE_PARTIAL" as const] } : caveats),
+  };
+}
+
+function keyedEntries(
+  source: LocaleResource,
+  config: VerbatraConfig,
+  locale: string,
+  keys: readonly string[],
+): readonly TranslationEntry[] {
+  const planned = new Map<string, TranslationEntry>();
+  const entries: TranslationEntry[] = [];
+  for (const key of keys) {
+    const entry = source.entries.get(key);
+    if (entry !== undefined) {
+      entries.push(entry);
+      continue;
+    }
+    if (planned.size === 0) {
+      for (const item of planPluralGeneration(source, locale, config.format).items) {
+        planned.set(item.targetKey, syntheticEntry(item));
+      }
+    }
+    const synthetic = planned.get(key);
+    if (synthetic !== undefined) {
+      entries.push(synthetic);
+    }
+  }
+  return entries;
+}
+
+export function sourceCharactersOfRun(
+  source: LocaleResource,
+  config: VerbatraConfig,
+  summaries: readonly LocaleSummary[],
+): number {
+  let characters = 0;
+  for (const summary of summaries) {
+    const keys = [...summary.translated, ...summary.integrityMismatches, ...summary.generated];
+    for (const entry of keyedEntries(source, config, summary.locale, keys)) {
+      characters += entry.value.length;
+    }
+  }
+  return characters;
 }

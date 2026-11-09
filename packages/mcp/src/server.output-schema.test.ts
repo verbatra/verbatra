@@ -188,6 +188,8 @@ const CALLS_IN_ORDER: readonly { name: string; arguments: Record<string, unknown
     arguments: { locale: "de", key: "long", expectedValue: "[de] Hi", reviewer: "mk" },
   },
   { name: "translation.retranslateEntry", arguments: { locale: "fr", key: "greeting" } },
+  { name: "usage.history", arguments: {} },
+  { name: "usage.history", arguments: { limit: 1 } },
   { name: "glossary.get", arguments: {} },
   { name: "glossary.write", arguments: { term: "SDK", translation: "SDK" } },
 ];
@@ -240,7 +242,7 @@ describe("createMcpServer: output schemas", () => {
 
     const { tools } = await client.listTools();
 
-    expect(tools).toHaveLength(23);
+    expect(tools).toHaveLength(24);
     for (const tool of tools) {
       expect(tool.outputSchema?.type, tool.name).toBe("object");
     }

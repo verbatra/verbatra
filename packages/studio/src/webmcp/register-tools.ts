@@ -338,6 +338,7 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
       "The write cannot be undone through this surface: the previous value is replaced, and only verbatra_translation_editEntry can restore it, and only if you read it with verbatra_key_value first. " +
       "The required `locale` parameter must be a configured target locale and the required `key` parameter must exist in the source. " +
       "A key whose value a person wrote, imported, or changed outside verbatra is refused with KEY_PROTECTED, and a key matching the config's pinnedKeys with KEY_PINNED; leave those for a person. " +
+      "Either result carries usage, the input and output tokens the provider reported, when the provider reports tokens at all; a rejected result spent them too. " +
       "It is registered only when the server was started with the spend capability granted.",
     readOnlyHint: false,
     untrustedContentHint: true,
