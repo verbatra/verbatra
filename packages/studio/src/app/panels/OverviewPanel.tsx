@@ -385,7 +385,7 @@ export function OverviewPanel({
         <PageSection title="Last run" className="mb-0 lg:col-start-2 lg:row-start-1">
           <LastRunRail view={usage} hideCode={failure?.error.code} />
         </PageSection>
-        <div className="grid min-w-0 gap-y-10 lg:col-start-1 lg:row-start-1">
+        <div className="grid min-w-0 grid-cols-1 gap-y-10 lg:col-start-1 lg:row-start-1">
           <RunHistorySection view={runHistory} hideCode={failure?.error.code} className="mb-0" />
           <PageSection title="Locale file history" className="mb-0">
             <LocaleFileHistory

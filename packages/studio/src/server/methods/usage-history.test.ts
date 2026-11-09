@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { LoadedConfig } from "@verbatra/sdk";
+import type { LoadedConfig, SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { usageHistoryParamsSchema } from "../../shared/rpc/usage-history.js";
 import type { RpcHandlerDeps } from "../rpc.js";
@@ -86,6 +86,44 @@ describe("usageHistoryHandler", () => {
 
       expect(result.records).toHaveLength(200);
       expect(result.total).toBe(205);
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("passes a smaller limit through, keeping the newest records and the full total", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
+    try {
+      await writeHistory(
+        project,
+        `${record("2026-07-01T00:00:00.000Z")}\n${record("2026-07-02T00:00:00.000Z")}\n${record("2026-07-03T00:00:00.000Z")}\n`,
+      );
+
+      const result = await usageHistoryHandler({ limit: 2 }, deps(project));
+
+      expect(result.records.map((entry) => entry.at)).toEqual([
+        "2026-07-03T00:00:00.000Z",
+        "2026-07-02T00:00:00.000Z",
+      ]);
+      expect(result.total).toBe(3);
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("reads through an injected file system and reports an oversized file as unavailable, not empty", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
+    try {
+      const fs = { readBytesBounded: async () => ({ kind: "too-large" }) } as unknown as SdkFs;
+
+      const result = await usageHistoryHandler({}, { ...deps(project), fs });
+
+      expect(result).toEqual({
+        records: [],
+        total: 0,
+        unreadableRecords: 0,
+        unavailable: "too-large",
+      });
     } finally {
       await project.cleanup();
     }
