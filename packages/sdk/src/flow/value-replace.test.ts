@@ -1260,7 +1260,7 @@ describe("applyValueReplace: ICU and markup", () => {
         target: "{n, number, ::currency/USD}",
         find: "USD",
         replace: "EUR",
-        details: [/^\+number:n:::/, /^-number:n:::/],
+        details: ["+number:n:::currency/EUR", "-number:n:::currency/USD"],
       },
       {
         name: "changes the style of a date",
@@ -1283,11 +1283,8 @@ describe("applyValueReplace: ICU and markup", () => {
         ]);
 
         expect(listed.entries[0]).toMatchObject({ status: "gate-refused", reason: "icu" });
-        expect(listed.entries[0]?.details).toEqual(
-          c.details.map((detail) =>
-            typeof detail === "string" ? detail : expect.stringMatching(detail),
-          ),
-        );
+        expect(listed.entries[0]?.details).toEqual(c.details);
+        expect(result.outcomes[0]).toMatchObject({ details: c.details });
         expect(result.outcomes[0]).toMatchObject({ status: "refused", reason: "icu" });
         expect(result.counts.refused).toBe(1);
         expect((await readLocale(p.dir, "de")).a).toBe(c.target);

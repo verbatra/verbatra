@@ -15,7 +15,9 @@ function styleText(style: Style): string {
   if (typeof style === "string") {
     return style;
   }
-  return "pattern" in style ? `::${style.pattern}` : `::${JSON.stringify(style.tokens)}`;
+  return "pattern" in style
+    ? `::${style.pattern}`
+    : `::${style.tokens.map((token) => [token.stem, ...token.options].join("/")).join(" ")}`;
 }
 
 function collect(elements: readonly MessageFormatElement[], scope: string, found: string[]): void {

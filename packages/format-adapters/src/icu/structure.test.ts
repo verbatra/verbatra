@@ -63,9 +63,7 @@ describe("icuStructureChanges", () => {
       "{n, number, ::currency/USD}",
       "{n, number, ::currency/EUR}",
     );
-    expect(changes).toHaveLength(2);
-    expect(changes[0]).toMatch(/^\+number:n:::/);
-    expect(changes[1]).toMatch(/^-number:n:::/);
+    expect(changes).toEqual(["+number:n:::currency/EUR", "-number:n:::currency/USD"]);
   });
 
   it("reports a changed style of a date and a time argument", () => {
