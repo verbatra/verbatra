@@ -576,29 +576,66 @@ describe("OverviewPanel", () => {
     expect(rail?.querySelector(".border-dashed")).toBeNull();
   });
 
-  it("keeps the short form while the run history has not settled, so no empty state is swapped away", async () => {
-    stubOverview({ "usage.history": PENDING });
+  it.each([
+    ["has not settled", PENDING],
+    ["failed to read", rpcError("INTERNAL", "history gone")],
+    [
+      "is unavailable as a whole",
+      {
+        ok: true,
+        result: { records: [], total: 0, unreadableRecords: 0, unavailable: "unreadable" },
+      } as StubRpcResult,
+    ],
+    [
+      "has unreadable records",
+      { ok: true, result: { records: [], total: 0, unreadableRecords: 2 } } as StubRpcResult,
+    ],
+    [
+      "holds more records than it lists",
+      { ok: true, result: { records: [], total: 3, unreadableRecords: 0 } } as StubRpcResult,
+    ],
+  ])(
+    "never claims no translate run was recorded while the run history %s",
+    async (_name, answer) => {
+      stubOverview({ "usage.history": answer });
+
+      const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+      const rail = view.getByText("h2", "Last run").closest("section");
+
+      expect(rail?.textContent).toContain("The details of the last run are unavailable.");
+      expect(rail?.textContent).not.toContain("No translate run recorded yet");
+      expect(rail?.querySelector(".border-dashed")).toBeNull();
+    },
+  );
+
+  it("never claims no translate run was recorded when the run history is a stale read", async () => {
+    stubOverview({
+      "usage.history": answersInOrder([
+        { ok: true, result: { records: [], total: 0, unreadableRecords: 0 } },
+        rpcError("INTERNAL", "history gone"),
+      ]),
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+    view.rerender(<OverviewPanel refreshToken={1} />);
+    await flush();
+    const rail = view.getByText("h2", "Last run").closest("section");
+
+    expect(rail?.textContent).toContain("The details of the last run are unavailable.");
+    expect(rail?.textContent).not.toContain("No translate run recorded yet");
+    expect(rail?.querySelector(".border-dashed")).toBeNull();
+  });
+
+  it("keeps the short claim and no empty-state swap once the run history has settled empty", async () => {
+    stubOverview({
+      "usage.history": { ok: true, result: { records: [], total: 0, unreadableRecords: 0 } },
+    });
 
     const view = await renderAsync(<OverviewPanel refreshToken={0} />);
     const rail = view.getByText("h2", "Last run").closest("section");
 
     expect(rail?.textContent).toContain("No translate run recorded yet.");
     expect(rail?.querySelector(".border-dashed")).toBeNull();
-  });
-
-  it("points to Run history only when the history holds a record", async () => {
-    stubOverview({
-      "usage.history": {
-        ok: true,
-        result: { records: [], total: 0, unreadableRecords: 2 },
-      },
-    });
-
-    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
-    const rail = view.getByText("h2", "Last run").closest("section");
-
-    expect(rail?.textContent).toContain("to record one.");
-    expect(rail?.textContent).not.toContain("Run history and cost");
   });
 
   it("renders a first usage read that fails as a hard error, with no rail data", async () => {

@@ -92,19 +92,17 @@ type UsageView = RefreshableView<UsageTickerData>;
 const SEE_ABOVE = "See the error above.";
 
 interface RailHistory {
-  readonly settled: boolean;
-  readonly empty: boolean;
+  readonly complete: boolean;
   readonly records: number;
   readonly hasTranslate: boolean;
 }
 
 function railHistory(view: RefreshableView<RunHistoryData>): RailHistory {
   if (view.kind !== "data") {
-    return { settled: false, empty: false, records: 0, hasTranslate: false };
+    return { complete: false, records: 0, hasTranslate: false };
   }
   return {
-    settled: true,
-    empty: toRunHistoryDisplay(view.data).empty,
+    complete: !view.stale && toRunHistoryDisplay(view.data).notices.length === 0,
     records: view.data.records.length,
     hasTranslate: view.data.records.some((record) => record.trigger === "translate"),
   };
@@ -119,15 +117,20 @@ function NoRunYet({ history }: { readonly history: RailHistory }): ReactNode {
       </p>
     );
   }
-  if (!history.settled || history.empty) {
+  if (!history.complete) {
+    return (
+      <p className="m-0 text-sm text-muted-foreground">
+        The details of the last run are unavailable.
+      </p>
+    );
+  }
+  if (history.records === 0) {
     return <p className="m-0 text-sm text-muted-foreground">No translate run recorded yet.</p>;
   }
   return (
     <EmptyState icon="gauge" title="No translate run recorded yet">
-      Run <code>verbatra translate</code> or <code>verbatra watch</code> to record one.
-      {history.records > 0
-        ? " Runs recorded as retranslations are listed under Run history and cost."
-        : ""}
+      Run <code>verbatra translate</code> or <code>verbatra watch</code> to record one. Runs
+      recorded as retranslations are listed under Run history and cost.
     </EmptyState>
   );
 }
