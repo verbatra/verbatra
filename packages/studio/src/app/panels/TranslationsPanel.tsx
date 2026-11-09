@@ -40,6 +40,7 @@ import {
   type TranslationsRoute,
   useTranslationsRoute,
 } from "../use-translations-route.js";
+import { ValueReplaceButton } from "../ValueReplaceButton.js";
 
 const COPY_CONFIRMATION_MS = 2000;
 
@@ -410,7 +411,17 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
       <PageHeader
         title="Translations"
         description="Every pending change across your target locales, and the keys behind it."
-        actions={diff.kind === "loaded" ? <ReviewReportButton locales={diff.locales} /> : undefined}
+        actions={
+          diff.kind === "loaded" ? (
+            <>
+              <ValueReplaceButton
+                locales={diff.locales.map((entry) => entry.locale)}
+                draftKey={dirtyKey}
+              />
+              <ReviewReportButton locales={diff.locales} />
+            </>
+          ) : undefined
+        }
       />
       <DiffNotices diff={diff} brokenInSync={brokenInSync} />
       {diff.kind === "loading" || diff.kind === "loaded" ? (
