@@ -610,8 +610,9 @@ function markDuplicates(
  *
  * A locale that fails does not stop the others. Failures that only one locale's own processing
  * can cause, such as `LOCK_CONTENDED` when its write lock is not free within `lockAcquireTimeoutMs`,
- * `TARGET_UNWRITABLE`, `LOCALE_STATE_NOT_CARRIED_OVER`, `RUN_CANCELLED`, or an `AdapterError` from
- * its file, are recorded in `localeFailures`, and its entries that no check had settled yet come
+ * `TARGET_UNWRITABLE`, `LOCALE_STATE_NOT_CARRIED_OVER`, `RUN_CANCELLED`, `SOURCE_UNREADABLE` and
+ * `SOURCE_INVALID` (the source file is read again under each locale's lock), or an `AdapterError`
+ * from its file, are recorded in `localeFailures`, and its entries that no check had settled yet come
  * back `skipped` with the reason `locale-failed`. A locale that failed while writing may have
  * changed its file before the failure was raised, so preview again before retrying it. The wait for
  * the lock file's own guard uses the default of ten minutes, not `lockAcquireTimeoutMs`.
@@ -632,8 +633,6 @@ function markDuplicates(
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or a locale has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
- * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
- * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
  * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
@@ -681,7 +680,6 @@ export async function applyValueReplace(
       protected: input.includeProtected === true,
     },
   };
-  await readSourceResource(config, resolver, fs, adapter);
   await readLockFile(lockFilePath(cwd), fs);
   await assertProvenanceReadable(cwd, fs);
 

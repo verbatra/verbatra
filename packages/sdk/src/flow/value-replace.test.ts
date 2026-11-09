@@ -13,6 +13,7 @@ import {
   readTextFile,
   writeJsonFile,
 } from "../test-support.js";
+import { check } from "./check.js";
 import {
   applyValueReplace,
   previewValueReplace,
@@ -1141,6 +1142,9 @@ describe("applyValueReplace: stale keys", () => {
     const memory = await readTextFile(join(p.dir, "verbatra.cache.json"));
     expect(memory).toContain("Tschuess Y");
     expect(memory).not.toContain("Hallo Y");
+    const summary = await check({ config: p.config, cwd: p.dir });
+    expect(summary.inSync).toBe(false);
+    expect(summary.locales[0]).toMatchObject({ stale: 1, upToDate: 1, missing: 0 });
   });
 
   it("writes no memory file at all when every applied key is stale", async () => {
@@ -1168,6 +1172,8 @@ describe("applyValueReplace: stale keys", () => {
     const after = await preview(p, "Z", "W");
 
     expect(after.entries[0]?.status).toBe("stale-source");
+    const summary = await check({ config: p.config, cwd: p.dir });
+    expect(summary.locales[0]).toMatchObject({ stale: 1, upToDate: 0 });
   });
 });
 

@@ -169,20 +169,27 @@ describe("applyValueReplace: a locale that fails", () => {
     expect(result.localeFailures).toEqual([]);
   });
 
-  it("still refuses a source file that cannot be parsed before writing any locale", async () => {
+  it("reports a source file that cannot be parsed as a failure of every locale, writing nothing", async () => {
     const { dir } = await fixture({ a: "Hallo X" }, { a: "Salut X" });
     await writeFile(join(dir, "locales", "en.json"), "{ not json", "utf8");
 
-    await expect(
-      applyValueReplace({
-        config,
-        cwd: dir,
-        find: "X",
-        replace: "Y",
-        entries: [{ locale: "de", key: "a", valueHash: valueHash("Hallo X") }],
-        actor: "human",
-      }),
-    ).rejects.toMatchObject({ code: "SOURCE_INVALID" });
+    const result = await applyValueReplace({
+      config,
+      cwd: dir,
+      find: "X",
+      replace: "Y",
+      entries: [
+        { locale: "de", key: "a", valueHash: valueHash("Hallo X") },
+        { locale: "fr", key: "a", valueHash: valueHash("Salut X") },
+      ],
+      actor: "human",
+    });
+
+    expect(result.localeFailures.map((failure) => [failure.locale, failure.code])).toEqual([
+      ["de", "SOURCE_INVALID"],
+      ["fr", "SOURCE_INVALID"],
+    ]);
+    expect(result.counts.skipped).toBe(2);
     expect((await readDe(dir)).a).toBe("Hallo X");
   });
 
