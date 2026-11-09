@@ -118,7 +118,7 @@ Los chips **Needs review** y **Approved** cambian la lista y muestran contadores
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Pulsa `j` o la flecha abajo para resaltar la primera entrada, y luego:
+Pulsa `j` o la flecha abajo para empezar, y luego:
 
 | Tecla | Acción |
 | --- | --- |
@@ -151,7 +151,7 @@ Aparece entonces un botón **Retranslate** en cada fila de Review, y en el edito
 
 ## Traduce los cambios pendientes
 
-Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nombra el archivo. Con `--allow-spend`, además ofrece **Translate pending changes across all locales**: la misma ejecución que haría `verbatra translate`.
+Cuando el archivo de origen o un archivo de locale de destino cambia mientras Studio está en marcha, un aviso dice `Source changed` o `Target changed: de` y cuenta las claves, por ejemplo `2 added, 1 changed`. Con `--allow-spend`, además ofrece **Translate pending changes across all locales**: la misma ejecución que haría `verbatra translate`.
 
 ## Revisa la cobertura y la última ejecución en Overview
 
@@ -171,7 +171,7 @@ Overview es la página con la que arranca Studio. Muestra la cobertura de cada l
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary tiene su propia página, antes en Settings. Con un glosario JSON puedes buscar, añadir, editar y eliminar términos. Eliminar pregunta primero; los cambios sin guardar preguntan al salir. Un glosario inline sigue siendo de solo lectura.
+Glossary tiene su propia página. Con un glosario JSON puedes buscar, añadir, editar y eliminar términos. Eliminar pregunta primero; los cambios sin guardar preguntan al salir. Un glosario inline sigue siendo de solo lectura.
 
 Una edición del glosario cambia lo que se le indica a la siguiente ejecución, nunca el texto ya escrito; reinicia Studio para que sus propias retraducciones la usen.
 
