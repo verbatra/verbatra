@@ -218,18 +218,18 @@ describe("lastKnownCoverage", () => {
 
     expect(lastKnownCoverage([latest, older])).toEqual([
       {
+        locale: "fr",
+        known: { ...measured, measuredAt: "2026-07-02T00:00:00.000Z" },
+        measuredInLatestRun: false,
+        coverageCheckFailed: false,
+      },
+      {
         locale: "de",
         known: { missing: 0, stale: 0, upToDate: 9, measuredAt: "2026-07-03T00:00:00.000Z" },
         measuredInLatestRun: true,
         coverageCheckFailed: false,
       },
       { locale: "es", known: undefined, measuredInLatestRun: false, coverageCheckFailed: false },
-      {
-        locale: "fr",
-        known: { ...measured, measuredAt: "2026-07-02T00:00:00.000Z" },
-        measuredInLatestRun: false,
-        coverageCheckFailed: false,
-      },
     ]);
   });
 
@@ -264,20 +264,42 @@ describe("lastKnownCoverage", () => {
     });
 
     expect(lastKnownCoverage([latest, older]).map((row) => row.coverageCheckFailed)).toEqual([
-      true,
       false,
+      true,
     ]);
   });
 
-  it("sorts locales by name", () => {
+  it("lists the least translated locale first, so a row cap never hides the worst", () => {
     const record = recordAt("2026-07-03T00:00:00.000Z", {
       locales: [
-        localeEntry("fr", { coverage: measured }),
-        localeEntry("de", { coverage: measured }),
+        localeEntry("aa", { coverage: { missing: 0, stale: 0, upToDate: 10 } }),
+        localeEntry("bb", { coverage: { missing: 9, stale: 0, upToDate: 1 } }),
+        localeEntry("cc", { coverage: { missing: 5, stale: 0, upToDate: 5 } }),
+        localeEntry("dd"),
       ],
     });
 
-    expect(lastKnownCoverage([record]).map((row) => row.locale)).toEqual(["de", "fr"]);
+    expect(lastKnownCoverage([record]).map((row) => row.locale)).toEqual(["bb", "cc", "aa", "dd"]);
+  });
+
+  it("breaks a tie on percent by the most missing keys, then by name, and sorts unmeasured locales by name", () => {
+    const record = recordAt("2026-07-03T00:00:00.000Z", {
+      locales: [
+        localeEntry("fr", { coverage: { missing: 1, stale: 1, upToDate: 2 } }),
+        localeEntry("de", { coverage: { missing: 1, stale: 1, upToDate: 2 } }),
+        localeEntry("es", { coverage: { missing: 2, stale: 0, upToDate: 2 } }),
+        localeEntry("zz"),
+        localeEntry("yy"),
+      ],
+    });
+
+    expect(lastKnownCoverage([record]).map((row) => row.locale)).toEqual([
+      "es",
+      "de",
+      "fr",
+      "yy",
+      "zz",
+    ]);
   });
 });
 
@@ -332,10 +354,37 @@ describe("series", () => {
 
     expect(describeCost(partial.cost)).toMatchObject({
       kind: "no-rate",
-      caveats: ["A locale sent keys and reported no tokens, so this is a lower bound."],
+      caveats: ["A locale sent keys and reported no tokens, so the token count is a lower bound."],
     });
     expect(describeTokens(partial)).toMatchObject({ reported: true, lowerBound: true });
     expect(tokenSeries([partial])).toEqual([{ value: 150, hollow: true }]);
+  });
+
+  it("carries the token lower bound on a rate-unit mismatch and on a not-billed run, never an amount", () => {
+    const mismatch = describeCost({
+      pricing: "rate-unit-mismatch",
+      basis: "usage",
+      rateKey: "x",
+      caveats: ["USAGE_PARTIAL"],
+    });
+    const notBilled = describeCost({
+      pricing: "not-billed",
+      rateKey: "x",
+      caveats: ["USAGE_PARTIAL"],
+    });
+    const complete = describeCost({ pricing: "not-billed", rateKey: "x" });
+
+    const text = "A locale sent keys and reported no tokens, so the token count is a lower bound.";
+    expect(mismatch).toMatchObject({ kind: "no-rate", caveats: [text], amount: undefined });
+    expect(notBilled).toMatchObject({ kind: "not-billed", caveats: [text], amount: undefined });
+    expect(complete.caveats).toEqual([]);
+    expect(
+      describeTokens(
+        recordAt("2026-07-01T00:00:00.000Z", {
+          cost: { pricing: "not-billed", rateKey: "x", caveats: ["USAGE_PARTIAL"] },
+        }),
+      ).lowerBound,
+    ).toBe(true);
   });
 
   it("draws an estimate and a lower bound hollow", () => {

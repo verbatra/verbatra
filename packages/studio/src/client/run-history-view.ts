@@ -1,5 +1,6 @@
 import type { RunHistoryCost, RunHistoryRecord } from "@verbatra/sdk";
 import type { RpcResultFor } from "../shared/rpc/contract.js";
+import { coveragePercent } from "./coverage.js";
 import type { RpcCallResult } from "./rpc-client.js";
 import type { FetchOutcome } from "./state.js";
 import type { TrendPoint } from "./trend-geometry.js";
@@ -68,8 +69,11 @@ function reportsPartialUsage(cost: RunHistoryCost): boolean {
   return "caveats" in cost && cost.caveats?.includes("USAGE_PARTIAL") === true;
 }
 
-function partialUsageCaveats(cost: RunHistoryCost): readonly string[] {
-  return reportsPartialUsage(cost) ? caveatTexts(["USAGE_PARTIAL"]) : [];
+const PARTIAL_TOKENS_TEXT =
+  "A locale sent keys and reported no tokens, so the token count is a lower bound.";
+
+function partialTokenCaveats(cost: RunHistoryCost): readonly string[] {
+  return reportsPartialUsage(cost) ? [PARTIAL_TOKENS_TEXT] : [];
 }
 
 function pricedDisplay(cost: Extract<RunHistoryCost, { pricing: "priced" }>): CostDisplay {
@@ -113,7 +117,7 @@ export function describeCost(cost: RunHistoryCost): CostDisplay {
         kind: "no-rate",
         label: "no rate",
         hint: `No rate is on file for ${cost.rateKey}.`,
-        caveats: partialUsageCaveats(cost),
+        caveats: partialTokenCaveats(cost),
         ...NO_AMOUNT,
       };
     case "rate-unit-mismatch":
@@ -121,7 +125,7 @@ export function describeCost(cost: RunHistoryCost): CostDisplay {
         kind: "no-rate",
         label: "no rate",
         hint: `The rate on file for ${cost.rateKey} is in a different unit than this run was measured in.`,
-        caveats: partialUsageCaveats(cost),
+        caveats: partialTokenCaveats(cost),
         ...NO_AMOUNT,
       };
     case "no-usage":
@@ -137,7 +141,7 @@ export function describeCost(cost: RunHistoryCost): CostDisplay {
         kind: "not-billed",
         label: "not billed",
         hint: "A self-hosted provider, or none, so no API bills for the run.",
-        caveats: [],
+        caveats: partialTokenCaveats(cost),
         ...NO_AMOUNT,
       };
   }
@@ -268,8 +272,25 @@ export function lastKnownCoverage(records: readonly RunHistoryRecord[]): readonl
       }
     }
   }
-  return [...rows.values()].sort((left, right) =>
-    left.locale.localeCompare(right.locale, UI_LOCALE),
+  return [...rows.values()].sort(worstCoverageFirst);
+}
+
+function byLocale(left: CoverageRow, right: CoverageRow): number {
+  return left.locale.localeCompare(right.locale, UI_LOCALE);
+}
+
+function worstCoverageFirst(left: CoverageRow, right: CoverageRow): number {
+  const { known: leftKnown } = left;
+  const { known: rightKnown } = right;
+  if (leftKnown === undefined || rightKnown === undefined) {
+    return (
+      Number(leftKnown === undefined) - Number(rightKnown === undefined) || byLocale(left, right)
+    );
+  }
+  return (
+    coveragePercent(leftKnown) - coveragePercent(rightKnown) ||
+    rightKnown.missing - leftKnown.missing ||
+    byLocale(left, right)
   );
 }
 
