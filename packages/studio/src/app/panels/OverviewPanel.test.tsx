@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import type { DiffLocale } from "../../client/diff-view.js";
+import { recordAt } from "../../client/run-history-test-support.js";
 import { formatTimestamp } from "../../client/ui-format.js";
 import type { HistoryCommit, HistoryListResult } from "../../shared/rpc/history.js";
 import type { UsageSummaryResult } from "../../shared/rpc/usage-summary.js";
@@ -525,9 +526,38 @@ describe("OverviewPanel", () => {
 
     const view = await renderAsync(<OverviewPanel refreshToken={0} />);
 
-    expect(view.text()).toContain("No run recorded yet");
-    expect(view.text()).toContain("to record one.");
+    expect(view.text()).toContain("No translate run recorded yet");
     expect(view.query('[role="alert"]')).toBeNull();
+  });
+
+  it("shows one empty state, not two, when the run history is empty as well", async () => {
+    stubActivity({ available: false });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+
+    expect(view.text()).toContain("No runs recorded yet");
+    expect(view.text()).toContain("No translate run recorded yet.");
+    expect(view.text()).not.toContain("to record one.");
+  });
+
+  it("names the last translate run and points to the history when only retranslations were recorded", async () => {
+    stubOverview({
+      "usage.history": {
+        ok: true,
+        result: {
+          records: [recordAt("2026-07-01T10:00:00.000Z", { trigger: "retranslate", entries: 1 })],
+          total: 1,
+          unreadableRecords: 0,
+        },
+      },
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+
+    expect(view.text()).toContain("No translate run recorded yet");
+    expect(view.text()).toContain("to record one.");
+    expect(view.text()).toContain("listed under Run history and cost");
+    expect(view.text()).not.toContain("No runs recorded yet");
   });
 
   it("renders a first usage read that fails as a hard error, with no rail data", async () => {
@@ -1253,7 +1283,7 @@ describe("OverviewPanel figures, links and text direction", () => {
 
     const view = await renderAsync(<OverviewPanel refreshToken={1} />);
 
-    expect(view.text()).toContain("No run recorded yet");
+    expect(view.text()).toContain("No translate run recorded yet");
     expect(coverageRows(view)).toHaveLength(2);
   });
 });
@@ -1370,7 +1400,7 @@ describe("OverviewPanel failed reads", () => {
     expect(alertTexts(view)).toEqual([
       "Showing the last known usage. An unexpected server error occurred. Check the terminal running Studio for details.",
     ]);
-    expect(view.text()).toContain("No run recorded yet");
+    expect(view.text()).toContain("No translate run recorded yet");
   });
 });
 

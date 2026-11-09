@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { errorDetail } from "../../client/error-copy.js";
 import { HISTORY_MAX, HISTORY_PAGE_SIZE } from "../../client/history-limit.js";
 import type { ReviewQueueData } from "../../client/review-queue-data.js";
+import { toRunHistoryDisplay } from "../../client/run-history-view.js";
 import type { RefreshableView } from "../../client/state.js";
 import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import type {
@@ -93,9 +94,11 @@ const SEE_ABOVE = "See the error above.";
 function LastRunRail({
   view,
   hideCode,
+  historyEmpty,
 }: {
   readonly view: UsageView;
   readonly hideCode: string | undefined;
+  readonly historyEmpty: boolean;
 }): ReactNode {
   if (view.kind === "loading") {
     return <Loading />;
@@ -118,9 +121,14 @@ function LastRunRail({
     return (
       <div>
         {staleNotice}
-        <EmptyState icon="gauge" title="No run recorded yet">
-          Run <code>verbatra translate</code> or <code>verbatra watch</code> to record one.
-        </EmptyState>
+        {historyEmpty ? (
+          <p className="m-0 text-sm text-muted-foreground">No translate run recorded yet.</p>
+        ) : (
+          <EmptyState icon="gauge" title="No translate run recorded yet">
+            Run <code>verbatra translate</code> or <code>verbatra watch</code> to record one. Runs
+            recorded as retranslations are listed under Run history and cost.
+          </EmptyState>
+        )}
       </div>
     );
   }
@@ -383,7 +391,11 @@ export function OverviewPanel({
       />
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <PageSection title="Last run" className="mb-0 lg:col-start-2 lg:row-start-1">
-          <LastRunRail view={usage} hideCode={failure?.error.code} />
+          <LastRunRail
+            view={usage}
+            hideCode={failure?.error.code}
+            historyEmpty={runHistory.kind === "data" && toRunHistoryDisplay(runHistory.data).empty}
+          />
         </PageSection>
         <div className="grid min-w-0 grid-cols-1 gap-y-10 lg:col-start-1 lg:row-start-1">
           <RunHistorySection view={runHistory} hideCode={failure?.error.code} className="mb-0" />
