@@ -189,9 +189,9 @@ export interface ValueReplaceLocaleFailure {
   /** What went wrong, with file paths relative to the project. Never carries a translation value. */
   readonly message: string;
   /**
-   * True when the failure came after the locale file was written, while the lock file, the
-   * provenance file or the translation memory was updated. The accepted values are then on disk and
-   * reported `applied`, and the lock file or provenance record may lag behind them, so review the
+   * True when the failure came after the locale file was written, while the lock file or the
+   * provenance file was updated or the write lock was released. The accepted values are then on disk
+   * and reported `applied`, and the lock file or provenance record may lag behind them, so review the
    * locale before any retry. Absent when nothing was written for the locale.
    */
   readonly fileWritten?: true;
@@ -521,12 +521,41 @@ function appliedOutcome(edit: ReplaceEdit, outcome: EntryEditOutcome): ValueRepl
   };
 }
 
-interface WrittenFileFailure {
+interface LocaleAttemptFailure {
   readonly error: unknown;
+  readonly fileWritten: boolean;
 }
 
-interface LocaleAttemptFailure extends WrittenFileFailure {
-  readonly fileWritten: boolean;
+interface LocaleWriteState {
+  fileWritten: boolean;
+  postWriteError: { readonly error: unknown } | undefined;
+}
+
+async function applyLocale(
+  context: ApplyContext,
+  locale: string,
+  refs: readonly IndexedRef[],
+  results: ValueReplaceOutcome[],
+): Promise<LocaleAttemptFailure | undefined> {
+  const { input, cwd, fs, adapter, resolver } = context;
+  const config = input.config;
+  const state: LocaleWriteState = { fileWritten: false, postWriteError: undefined };
+  try {
+    await readSourceResource(config, resolver, fs, adapter);
+    await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
+    await withLocaleWriteLock(
+      cwd,
+      writeLockKeyFor(config.format, locale),
+      fs,
+      () => applyLocaleInLock(context, locale, refs, results, state),
+      writeLockOptions(input),
+    );
+  } catch (error) {
+    return { error: state.postWriteError?.error ?? error, fileWritten: state.fileWritten };
+  }
+  return state.postWriteError === undefined
+    ? undefined
+    : { error: state.postWriteError.error, fileWritten: true };
 }
 
 async function applyLocaleInLock(
@@ -534,7 +563,8 @@ async function applyLocaleInLock(
   locale: string,
   refs: readonly IndexedRef[],
   results: ValueReplaceOutcome[],
-): Promise<WrittenFileFailure | undefined> {
+  state: LocaleWriteState,
+): Promise<void> {
   const { input, cwd, fs, adapter, resolver, criteria } = context;
   const config = input.config;
   const target = await readTargetResource({ resolver, format: config.format, locale, adapter, fs });
@@ -575,16 +605,19 @@ async function applyLocaleInLock(
       });
     }
   }
-  return writeAndSettle(context, locale, target, pending, results);
+  await writeAndSettle(context, { locale, target, pending, results, state });
 }
 
-async function writeAndSettle(
-  context: ApplyContext,
-  locale: string,
-  target: LocaleResource,
-  pending: readonly ReplaceEdit[],
-  results: ValueReplaceOutcome[],
-): Promise<WrittenFileFailure | undefined> {
+interface SettleRequest {
+  readonly locale: string;
+  readonly target: LocaleResource;
+  readonly pending: readonly ReplaceEdit[];
+  readonly results: ValueReplaceOutcome[];
+  readonly state: LocaleWriteState;
+}
+
+async function writeAndSettle(context: ApplyContext, request: SettleRequest): Promise<void> {
+  const { locale, target, pending, results, state } = request;
   const { input, cwd, fs, adapter } = context;
   try {
     const judged = await applyEntryEdits(
@@ -596,7 +629,7 @@ async function writeAndSettle(
       },
     );
     settle(judged, results, true);
-    return undefined;
+    state.fileWritten = judged.some(({ outcome }) => outcome.accepted);
   } catch (error) {
     if (!(error instanceof EntryEditsFailure)) {
       throw error;
@@ -605,7 +638,8 @@ async function writeAndSettle(
     if (!error.fileWritten) {
       throw error.cause;
     }
-    return { error: error.cause };
+    state.fileWritten = true;
+    state.postWriteError = { error: error.cause };
   }
 }
 
@@ -666,7 +700,7 @@ function markDuplicates(
  * integrity gate refused still comes back `refused`, and one a check had settled before the failure
  * keeps its outcome; the rest come back `skipped` with the reason `locale-failed`, and nothing was
  * written for them. When the failure came after the locale file was written, such as a failed lock
- * file, provenance or translation-memory update, the failure carries `fileWritten: true` and the
+ * file or provenance update or a write lock that could not be released, the failure carries `fileWritten: true` and the
  * accepted entries come back `applied`: their values are on disk and the lock file or provenance may
  * lag, so review the locale before any retry. Do not run a replacement again whose `find` occurs in
  * its `replace` without checking, because it would change the written values a second time. The
@@ -743,22 +777,7 @@ export async function applyValueReplace(
   markDuplicates(input.entries, results, groups);
   const localeFailures: ValueReplaceLocaleFailure[] = [];
   for (const [locale, refs] of groups) {
-    let failure: LocaleAttemptFailure | undefined;
-    try {
-      await readSourceResource(config, resolver, fs, adapter);
-      await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
-      const afterWrite = await withLocaleWriteLock(
-        cwd,
-        writeLockKeyFor(config.format, locale),
-        fs,
-        () => applyLocaleInLock(context, locale, refs, results),
-        writeLockOptions(input),
-      );
-      failure =
-        afterWrite === undefined ? undefined : { error: afterWrite.error, fileWritten: true };
-    } catch (error) {
-      failure = { error, fileWritten: false };
-    }
+    const failure = await applyLocale(context, locale, refs, results);
     if (failure !== undefined) {
       localeFailures.push(localeFailureOf(locale, failure.error, cwd, failure.fileWritten));
       for (const { index, ref } of refs) {

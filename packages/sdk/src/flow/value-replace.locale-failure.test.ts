@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { AdapterError, AdapterRegistry, createDefaultRegistry } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
@@ -229,6 +229,52 @@ describe("applyValueReplace: a locale that fails", () => {
         { locale: "de", code: "EACCES", message: "EACCES injected", fileWritten: true },
       ]);
       expect(await readDe(dir)).toEqual({ a: "Hallo ", b: "Z" });
+    },
+  );
+
+  it.each([
+    { name: "no write fails", failLockFile: false, code: "LOCK_CONTENDED" },
+    { name: "the lock file write fails", failLockFile: true, code: "EACCES" },
+  ])(
+    "keeps fileWritten and the real cause when the write lock is gone at release and $name",
+    async ({ failLockFile, code }) => {
+      const { dir } = await fixture({ a: "Hallo X" }, { a: "Salut X" });
+      const writeLock = join(dir, ".verbatra-local", "locks", "de.lock");
+      let localeFileWritten = false;
+      const fs: SdkFs = {
+        ...defaultFs,
+        writeFile: async (path, data) => {
+          if (localeFileWritten && path.endsWith("verbatra.lock.json")) {
+            await rm(writeLock, { force: true });
+            if (failLockFile) {
+              throw Object.assign(new Error("EACCES injected"), { code: "EACCES" });
+            }
+          }
+          await defaultFs.writeFile(path, data);
+          localeFileWritten ||= path.endsWith("de.json");
+        },
+      };
+
+      const result = await applyValueReplace(
+        {
+          config,
+          cwd: dir,
+          find: "X",
+          replace: "Y",
+          entries: [{ locale: "de", key: "a", valueHash: valueHash("Hallo X") }],
+          actor: "human",
+        },
+        { fs },
+      );
+
+      expect(result.outcomes).toEqual([
+        { locale: "de", key: "a", status: "applied", staleSource: false },
+      ]);
+      expect(result.localeFailures.map(({ locale, fileWritten }) => [locale, fileWritten])).toEqual(
+        [["de", true]],
+      );
+      expect(result.localeFailures[0]?.code).toBe(code);
+      expect(await readDe(dir)).toEqual({ a: "Hallo Y" });
     },
   );
 
