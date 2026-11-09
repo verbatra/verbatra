@@ -129,14 +129,27 @@ describe("usageHistoryHandler", () => {
     }
   });
 
-  it("carries no key name and no text in what it returns", async () => {
+  it("strips a key name and a text a line carries beyond the schema", async () => {
     const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
     try {
-      await writeHistory(project, `${record("2026-07-01T00:00:00.000Z")}\n`);
+      const line = JSON.parse(record("2026-07-01T00:00:00.000Z")) as {
+        locales: Record<string, unknown>[];
+      };
+      const hostile = {
+        ...line,
+        key: "greeting",
+        text: "Hello there",
+        locales: line.locales.map((locale) => ({ ...locale, keys: ["greeting"], value: "Hallo" })),
+      };
+      await writeHistory(project, `${JSON.stringify(hostile)}\n`);
 
-      const serialized = JSON.stringify(await usageHistoryHandler({}, deps(project)));
+      const result = await usageHistoryHandler({}, deps(project));
 
+      expect(result.records).toHaveLength(1);
+      const serialized = JSON.stringify(result);
       expect(serialized).not.toContain("greeting");
+      expect(serialized).not.toContain("Hello there");
+      expect(serialized).not.toContain("Hallo");
     } finally {
       await project.cleanup();
     }

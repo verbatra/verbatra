@@ -79,6 +79,26 @@ describe("useRunHistory", () => {
     });
   });
 
+  it("keeps the answer to the newest token when an older read answers last", async () => {
+    const answers: ((result: RunHistoryData) => void)[] = [];
+    stubRpc({
+      "usage.history": () =>
+        new Promise((resolve) => {
+          answers.push((result) => resolve({ ok: true, result }));
+        }),
+    });
+
+    const view = render(<Probe token={1} />);
+    view.rerender(<Probe token={2} />);
+    answers[1]?.(TWO);
+    await flush();
+    answers[0]?.(ONE);
+    await flush();
+
+    expect(answers).toHaveLength(2);
+    expect(seen).toEqual({ kind: "data", data: TWO, stale: false });
+  });
+
   it("ignores an answer that arrives after the caller unmounted", async () => {
     let answer: (() => void) | undefined;
     const pending = new Promise<{ readonly ok: true; readonly result: unknown }>((resolve) => {
