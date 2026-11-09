@@ -126,53 +126,6 @@ function localeGitDiff(
 
 `added` y `removed` listan `{ key, value }`, `changed` lista `{ key, before, after }`, y `state` es el estado del archivo o `unchanged`; un archivo `conflicted` o `unchanged` no lista ninguna diferencia. El archivo confirmado se lee con `git cat-file blob`, solo si es un archivo regular de como máximo `LOCALE_GIT_BLOB_MAX_BYTES`. Se listan como máximo `LOCALE_GIT_DIFF_MAX_ENTRIES` claves y cada texto se corta a `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` caracteres; cualquiera de los dos activa `truncated`. Solo el diff responde `custom-adapter`, con un formato `custom:` o un `adapterRegistry`; un lado ausente está vacío, uno que no es un archivo regular o no se puede analizar da `revision-unreadable` o `working-file-unreadable`. Los demás motivos son los de `localeGitStatus`.
 
-### editEntry
-
-<AvailableFrom version="0.5.0" />
-
-Escribe una corrección tecleada por un humano para una clave y un locale. El valor candidato pasa por la
-misma puerta de integridad que una traducción del proveedor antes de que nada llegue
-al disco; al aceptarse, el archivo de locale y la entrada del bloqueo de esa clave se actualizan dentro
-del bloqueo de escritura del locale. Nunca llama a un proveedor.
-
-```ts title="Firma"
-function editEntry(
-  input: EditEntryInput,
-  deps?: EditEntryDeps,
-): Promise<EditEntryResult>;
-```
-
-<SdkTypeTable name="EditEntryInput" />
-
-**Devuelve:** `EditEntryResult`
-
-**Lanza:** [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/es/docs/error-codes#unknown_key), [`KEY_PINNED`](/es/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/es/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/es/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/es/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/es/docs/error-codes#provenance_file_invalid)
-
-**Ejemplo:** [Edita y retraduce una sola clave](/es/docs/programmatic-api#edita-y-retraduce-una-sola-clave)
-
-Devuelve `{ accepted: true, value }`, o
-`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sin
-escribir nada ([la puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad)).
-Construye cualquier esquema sobre los motivos a partir de la tupla exportada `INTEGRITY_GATE_REASONS`.
-`"empty"` rechaza un valor vacío para un origen con texto; vacía una clave con el centinela
-`[[CLEAR]]` del libro. Un rechazo `placeholder` o `markup` lleva además `details`: cada marcador o
-etiqueta causante, con `-` si la candidata lo perdió o `+` si lo inventó.
-
-El valor queda registrado en `verbatra.provenance.json` con el origen `human`; pasa
-`actor: "agent"` cuando lo escribió un agente de IA, para que el registro lo diga (lo afirma quien
-llama, nada lo verifica). Un archivo de procedencia corrupto lanza `PROVENANCE_FILE_INVALID` antes
-de pasar el valor por la puerta y no se escribe nada; uno de un verbatra más nuevo, o uno que el
-registro haría crecer por encima de lo que verbatra vuelve a leer, se deja intacto y el valor se
-escribe sin registro.
-
-<AvailableFrom version="0.12.0" />
-
-Con `actor: "agent"`, una clave que coincide con los `pinnedKeys` de la configuración lanza `KEY_PINNED` antes de escribir nada. La edición de una clave fijada por parte de una persona se acepta.
-
-<AvailableFrom version="0.12.0" />
-
-`lockAcquireTimeoutMs` limita la espera del bloqueo de escritura del locale antes de que la llamada falle con `LOCK_CONTENDED` (diez minutos por defecto), `onLockWait` informa de esa espera, y un límite no válido falla con `LOCK_TIMEOUT_INVALID` antes de leer nada.
-
 ### retranslateEntry
 
 <AvailableFrom version="0.5.0" />

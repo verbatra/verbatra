@@ -54,7 +54,7 @@ describe("static proof: every updateLockFileLocale caller also holds withLocaleW
       }
     }
 
-    expect(callers.sort()).toEqual(["flow/edit-entry.ts"]);
+    expect(callers.sort()).toEqual(["flow/edit-entry.ts", "flow/value-replace.ts"]);
     expect(offenders).toEqual([]);
   });
 

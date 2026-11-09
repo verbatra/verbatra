@@ -594,6 +594,20 @@ export type {
 export type { KeyHistorySegment, KeyHistorySegmentKind } from "./flow/value-diff.js";
 export { createValueMarker, type ValueMarker } from "./flow/value-marker.js";
 export {
+  type ApplyValueReplaceInput,
+  type ApplyValueReplaceResult,
+  applyValueReplace,
+  type PreviewValueReplaceInput,
+  previewValueReplace,
+  type ValueReplaceDeps,
+  type ValueReplaceEntryRef,
+  type ValueReplaceOutcome,
+  type ValueReplacePreview,
+  type ValueReplacePreviewEntry,
+  type ValueReplaceSkipReason,
+  type ValueReplaceStatus,
+} from "./flow/value-replace.js";
+export {
   DEFAULT_EXCHANGE_FORMAT,
   EXCHANGE_FORMATS,
   type ExchangeFormat,

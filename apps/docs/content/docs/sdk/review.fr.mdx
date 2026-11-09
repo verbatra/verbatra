@@ -119,39 +119,6 @@ function localeGitDiff(
 
 `added` et `removed` listent `{ key, value }`, `changed` liste `{ key, before, after }`, et `state` est l'état du fichier ou `unchanged` ; un fichier `conflicted` ou `unchanged` ne liste aucune différence. Le fichier validé est lu avec `git cat-file blob`, seulement s'il s'agit d'un fichier régulier d'au plus `LOCALE_GIT_BLOB_MAX_BYTES`. Au plus `LOCALE_GIT_DIFF_MAX_ENTRIES` clés sont listées et chaque texte est coupé à `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` caractères ; l'un ou l'autre active `truncated`. Seul le diff répond `custom-adapter`, pour un format `custom:` ou un `adapterRegistry` ; un côté absent est vide, un côté qui n'est pas un fichier régulier ou ne s'analyse pas donne `revision-unreadable` ou `working-file-unreadable`. Les autres raisons sont celles de `localeGitStatus`.
 
-### editEntry
-
-<AvailableFrom version="0.5.0" />
-
-Écrit une correction saisie par un humain pour une clé et une locale. La valeur candidate passe la même barrière d'intégrité qu'une traduction de fournisseur avant que quoi que ce soit n'atteigne le disque ; à l'acceptation, le fichier de locale et l'entrée de verrou de cette clé sont mis à jour sous le verrou d'écriture de la locale. N'appelle jamais de fournisseur.
-
-```ts title="Signature"
-function editEntry(
-  input: EditEntryInput,
-  deps?: EditEntryDeps,
-): Promise<EditEntryResult>;
-```
-
-<SdkTypeTable name="EditEntryInput" />
-
-**Renvoie :** `EditEntryResult`
-
-**Lève :** [`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/fr/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/fr/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/fr/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/fr/docs/error-codes#unknown_key), [`KEY_PINNED`](/fr/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/fr/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/fr/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/fr/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/fr/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/fr/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/fr/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/fr/docs/error-codes#provenance_file_invalid)
-
-**Exemple :** [Modifier et retraduire une seule clé](/fr/docs/programmatic-api#modifier-et-retraduire-une-seule-clé)
-
-Renvoie `{ accepted: true, value }`, ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sans rien écrire ([la barrière d'intégrité](/fr/docs/translation-safety#la-barrière-dintégrité)). Construis tout schéma sur les raisons à partir du tuple exporté `INTEGRITY_GATE_REASONS`. `"empty"` refuse une valeur vide pour une source qui a du texte ; efface une clé avec la sentinelle `[[CLEAR]]` du classeur. Un refus `placeholder` ou `markup` porte en plus `details` : chaque placeholder ou balise en cause, préfixé de `-` quand la valeur candidate l'a supprimé ou de `+` quand elle l'a inventé.
-
-La valeur est enregistrée dans `verbatra.provenance.json` avec l'origine `human` ; passe `actor: "agent"` quand un agent d'IA l'a écrite, pour que l'enregistrement le dise (l'appelant l'affirme, rien ne le vérifie). Un fichier de provenance corrompu lève `PROVENANCE_FILE_INVALID` avant que la valeur ne passe le contrôle, et rien n'est écrit ; celui d'un verbatra plus récent, ou celui que l'enregistrement ferait dépasser la taille que verbatra relit, est laissé intact et la valeur est écrite sans enregistrement.
-
-<AvailableFrom version="0.12.0" />
-
-Avec `actor: "agent"`, une clé qui correspond aux `pinnedKeys` de la config lève `KEY_PINNED` avant toute écriture. La modification d'une clé épinglée par une personne est acceptée.
-
-<AvailableFrom version="0.12.0" />
-
-`lockAcquireTimeoutMs` borne l'attente du verrou d'écriture de la locale avant que l'appel échoue avec `LOCK_CONTENDED` (dix minutes par défaut), `onLockWait` signale cette attente, et une borne invalide échoue avec `LOCK_TIMEOUT_INVALID` avant toute lecture.
-
 ### retranslateEntry
 
 <AvailableFrom version="0.5.0" />

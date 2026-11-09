@@ -187,6 +187,9 @@
  *   changed between pages. Call again without a cursor.
  * - `PAGE_LIMIT_INVALID`: the `limit` passed to {@link localeValuesPage} or
  *   {@link provenanceReportPage} is not a whole number from 1 to {@link PAGE_LIMIT_CAP}.
+ * - `FIND_TEXT_INVALID`: the `find` text passed to {@link previewValueReplace} or
+ *   {@link applyValueReplace} is empty or longer than 20,000 characters. Thrown before anything is
+ *   read.
  * - `TARGET_UNWRITABLE`: a target locale file could not be written, because its directory is not
  *   writable, does not exist, is read-only, or is out of space. The message names the target file
  *   relative to `cwd` and the underlying file-system code, never the internal temporary file the
@@ -318,6 +321,7 @@ export type SdkErrorCode =
   | "LOCK_TIMEOUT_INVALID"
   | "PAGE_CURSOR_INVALID"
   | "PAGE_LIMIT_INVALID"
+  | "FIND_TEXT_INVALID"
   | "TARGET_UNWRITABLE"
   | "PSEUDO_OUTPUT_CONFLICT"
   | "SOURCE_UNWRITABLE"
