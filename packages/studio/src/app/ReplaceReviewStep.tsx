@@ -7,6 +7,7 @@ import {
   countRows,
   EXCERPT_CUT_NOTICE,
   entriesToApply,
+  groupedCount,
   isSendable,
   keyedDetails,
   matchSentence,
@@ -146,7 +147,7 @@ function OptIns({
           onChange={(value) => onChange("includePinned", value)}
           data-replace-optin="pinned"
         >
-          {PIN_OPT_IN_LABEL} ({pinned})
+          {PIN_OPT_IN_LABEL} ({groupedCount(pinned)})
         </ReplaceCheck>
       ) : null}
       {guarded > 0 ? (
@@ -156,7 +157,7 @@ function OptIns({
           onChange={(value) => onChange("includeProtected", value)}
           data-replace-optin="protected"
         >
-          {PROTECT_OPT_IN_LABEL} ({guarded})
+          {PROTECT_OPT_IN_LABEL} ({groupedCount(guarded)})
         </ReplaceCheck>
       ) : null}
     </fieldset>
@@ -194,7 +195,7 @@ export function ReplaceReviewStep({
         <p className="m-0 mb-3 flex flex-wrap gap-2" data-replace-counts="">
           {countRows(preview).map((row) => (
             <Badge key={row.status} tone={statusTone(row.status)} verbatim>
-              {row.label}: {row.count}
+              {row.label}: {groupedCount(row.count)}
             </Badge>
           ))}
         </p>

@@ -209,6 +209,12 @@ describe("outcomeView", () => {
       /pinned/,
     ],
     [
+      { locale: "de", key: "k", status: "skipped", reason: "a-reason-from-a-newer-sdk" as never },
+      "Skipped",
+      "neutral",
+      /^a-reason-from-a-newer-sdk$/,
+    ],
+    [
       { locale: "de", key: "k", status: "refused", reason: "placeholder" },
       "Refused",
       "danger",
@@ -264,6 +270,8 @@ describe("small helpers", () => {
     expect(statusTone("protected")).toBe("protected");
     expect(valueCount(1)).toBe("1 value");
     expect(valueCount(2)).toBe("2 values");
+    expect(valueCount(1000)).toBe("1,000 values");
+    expect(valueCount(1_234_567)).toBe("1,234,567 values");
   });
 
   it("agrees the match verb with the count", () => {

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
   click,
@@ -288,6 +289,91 @@ describe("ValueReplaceDialog review step", () => {
     expect(noteOf("protected")).toContain("Included in this run");
     click(view.get('[data-replace-optin="pinned"]'));
     expect(noteOf("pinned")).toContain("Left out unless you opt in");
+  });
+
+  it("submits no second preview while the first is still running", async () => {
+    rpcCalls.length = 0;
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    stubRpc({
+      "translation.previewValueReplace": async () => {
+        await held;
+        return previewResult([entry("a", "ready")]);
+      },
+    });
+    const view = mount();
+    typeInto(view.get("[data-replace-find]") as HTMLInputElement, "Welt");
+    click(view.getByText("button", "Preview"));
+    await flush();
+
+    await act(async () => {
+      view.get("form").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(
+      rpcCalls.filter((call) => call.method === "translation.previewValueReplace"),
+    ).toHaveLength(1);
+    release();
+    await flush();
+  });
+
+  it("shows a refused entry without details by its reason alone", async () => {
+    rpcCalls.length = 0;
+    stubRpc({
+      "translation.previewValueReplace": previewResult([
+        entry("a", "gate-refused", { reason: "placeholder" }),
+      ]),
+    });
+    const view = mount();
+    await search(view);
+
+    expect(view.get("[data-replace-reason]").textContent).toBe(
+      "Would be refused: a placeholder would change.",
+    );
+    expect(view.query("[data-replace-detail]")).toBeNull();
+  });
+
+  it("groups every count the same way at 1,000", async () => {
+    rpcCalls.length = 0;
+    const ready = Array.from({ length: 1000 }, (_, index) => entry(`r${index}`, "ready"));
+    const pinned = Array.from({ length: 1000 }, (_, index) => entry(`p${index}`, "pinned"));
+    stubRpc({
+      "translation.previewValueReplace": previewResult([...ready, ...pinned]),
+      "translation.applyValueReplace": {
+        ok: true,
+        result: {
+          outcomes: ready.map((item) => ({
+            locale: "de",
+            key: (item as { key: string }).key,
+            status: "applied",
+            staleSource: false,
+          })),
+          counts: {},
+          localeFailures: [],
+        },
+      },
+    });
+    const view = mount();
+    await search(view);
+
+    expect(view.get("[data-replace-lead]").textContent).toBe("2,000 values match.");
+    expect(view.get("[data-replace-counts]").textContent).toContain("Ready: 1,000");
+    expect(view.get("[data-replace-counts]").textContent).toContain("Pinned: 1,000");
+    expect(view.get('[data-replace-optin="pinned"]').closest("label")?.textContent).toContain(
+      "(1,000)",
+    );
+    expect(view.get("[data-replace-apply]").textContent).toBe("Replace 1,000 values");
+
+    await clickAsync(view.get("[data-replace-apply]"));
+    await flush();
+
+    expect(view.get("[data-replace-summary]").textContent).toBe("1,000 of 1,000 values replaced.");
+    expect(view.get("[data-replace-accounting]").textContent).toContain(
+      "The preview listed 2,000 values; 1,000 were not sent.",
+    );
+    expect(view.get("[data-replace-not-sent] h3").textContent).toBe("Not sent (1,000)");
   });
 
   it("disables Back while the apply runs, and enables it again after a failure", async () => {

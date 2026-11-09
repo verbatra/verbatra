@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import {
   FILE_WRITTEN_NOTICE,
   failureViews,
+  groupedCount,
   keyedDetails,
   type OutcomeRow,
   outcomeRows,
@@ -113,12 +114,12 @@ export function ReplaceResultStep({
     <div data-replace-step="result">
       <ReplaceLead>
         <span data-replace-summary="">
-          {replaced} of {valueCount(rows.length)} replaced.
+          {groupedCount(replaced)} of {valueCount(rows.length)} replaced.
         </span>
         {notSent.length > 0 ? (
           <span data-replace-accounting="">
             {" "}
-            The preview listed {valueCount(previewedCount)}; {notSent.length}{" "}
+            The preview listed {valueCount(previewedCount)}; {groupedCount(notSent.length)}{" "}
             {notSent.length === 1 ? "was" : "were"} not sent.
           </span>
         ) : null}
@@ -138,7 +139,7 @@ export function ReplaceResultStep({
       {notSent.length > 0 ? (
         <section className="mb-4" data-replace-not-sent="">
           <h3 className="m-0 mb-2 text-sm font-medium text-foreground">
-            Not sent ({notSent.length})
+            Not sent ({groupedCount(notSent.length)})
           </h3>
           <ReplacePagedList
             items={notSent}

@@ -1,5 +1,6 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createDefaultRegistry } from "@verbatra/sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { criteriaFieldOf } from "../../client/value-replace.js";
 import type { RpcHandlerDeps } from "../rpc.js";
@@ -43,6 +44,51 @@ async function withTarget(
 
 afterEach(() => {
   seen.applyInputs.length = 0;
+});
+
+describe("injected sdk dependencies", () => {
+  it("routes the preview through the injected file system and adapter registry", async () => {
+    const project = await withTarget({ greeting: "Hallo Welt", bye: "Tschuess" });
+    const reads: string[] = [];
+    const registry = createDefaultRegistry();
+    try {
+      const preview = await previewValueReplaceHandler(
+        { find: "Welt", replace: "Erde" },
+        {
+          ...deps(project),
+          fs: {
+            fileExists: async (path) => {
+              try {
+                await access(path);
+                return true;
+              } catch {
+                return false;
+              }
+            },
+            readFileBounded: async (path) => {
+              reads.push(path);
+              try {
+                return { kind: "ok", content: await readFile(path, "utf8") };
+              } catch {
+                return { kind: "missing" };
+              }
+            },
+            readBytesBounded: async () => ({ kind: "missing" }),
+            writeFile: async () => {},
+            writeBytes: async () => {},
+            createExclusive: async () => false,
+            deleteFile: async () => {},
+          },
+          adapterRegistry: registry,
+        },
+      );
+
+      expect(preview.entries).toHaveLength(1);
+      expect(reads.length).toBeGreaterThan(0);
+    } finally {
+      await project.cleanup();
+    }
+  });
 });
 
 describe("translation.previewValueReplace handler", () => {

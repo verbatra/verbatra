@@ -111,7 +111,8 @@ const REASON_LABEL: Readonly<Record<string, string>> = {
 };
 
 export function reasonLabel(reason: string): string {
-  return Object.hasOwn(REASON_LABEL, reason) ? (REASON_LABEL[reason] ?? reason) : reason;
+  const label = Object.hasOwn(REASON_LABEL, reason) ? REASON_LABEL[reason] : undefined;
+  return label ?? reason;
 }
 
 export function statusTone(status: ValueReplaceStatus): ReplaceTone {
@@ -314,16 +315,19 @@ export function replacedCount(outcomes: readonly ValueReplaceOutcome[]): number 
   return outcomes.filter((outcome) => outcome.status === "applied").length;
 }
 
+export function groupedCount(count: number): string {
+  return count.toLocaleString("en-US");
+}
+
 export function valueCount(count: number): string {
-  return `${count} ${count === 1 ? "value" : "values"}`;
+  return `${groupedCount(count)} ${count === 1 ? "value" : "values"}`;
 }
 
 const COUNT_PLURALS = new Intl.PluralRules("en");
 
 export function matchSentence(count: number): string {
   const verb = COUNT_PLURALS.select(count) === "one" ? "matches" : "match";
-  const noun = count === 1 ? "value" : "values";
-  return `${count.toLocaleString("en-US")} ${noun} ${verb}.`;
+  return `${valueCount(count)} ${verb}.`;
 }
 
 export type CriteriaField = "find" | "replace";
