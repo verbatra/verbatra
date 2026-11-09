@@ -115,6 +115,7 @@ export function ReplaceCriteriaStep({
   const [caseSensitive, setCaseSensitive] = useState(initial?.caseSensitive ?? true);
   const [locales, setLocales] = useState<readonly string[]>(initial?.locales ?? allLocales);
   const [problem, setProblem] = useState<LocalProblem | null>(null);
+  const chosen = locales.filter((locale) => allLocales.includes(locale));
   const replaceRef = useRef<HTMLInputElement | null>(null);
   const scopeRef = useRef<HTMLFieldSetElement | null>(null);
   const invalidField = criteriaFieldOf(error);
@@ -144,12 +145,12 @@ export function ReplaceCriteriaStep({
     if (find === "") {
       setProblem("find");
       findRef.current?.focus();
-    } else if (locales.length === 0) {
+    } else if (chosen.length === 0) {
       setProblem("locales");
       scopeRef.current?.querySelector("input")?.focus();
     } else {
       setProblem(null);
-      onPreview({ find, replace, caseSensitive, locales });
+      onPreview({ find, replace, caseSensitive, locales: chosen });
     }
   }
 
@@ -215,7 +216,7 @@ export function ReplaceCriteriaStep({
       </ReplaceCheck>
       <LocaleScope
         locales={allLocales}
-        chosen={locales}
+        chosen={chosen}
         invalid={problem === "locales"}
         scopeRef={scopeRef}
         onToggle={toggleLocale}

@@ -21,7 +21,7 @@ function Pair({
   return (
     <>
       <ValueReplaceButton locales={["de"]} draftKey={draftKey} holdForDraft={holdForDraft} />
-      <ValueReplaceHost />
+      <ValueReplaceHost refreshToken={0} />
     </>
   );
 }

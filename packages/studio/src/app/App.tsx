@@ -207,7 +207,7 @@ function AppShell({
         </div>
       </main>
       {toast !== undefined ? <RefreshToast view={toast} onDismiss={onDismissToast} /> : null}
-      <ValueReplaceHost />
+      <ValueReplaceHost refreshToken={refreshToken} />
     </div>
   );
 }

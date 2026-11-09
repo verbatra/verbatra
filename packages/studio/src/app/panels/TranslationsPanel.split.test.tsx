@@ -153,7 +153,7 @@ function Harness({ token }: { readonly token: number }): ReactNode {
     <>
       <AppHeader activePage="translations" pageBadges={{}} onOpenMenu={() => {}} />
       <TranslationsPanel refreshToken={token} />
-      <ValueReplaceHost />
+      <ValueReplaceHost refreshToken={token} />
     </>
   );
 }

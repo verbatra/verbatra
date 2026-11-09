@@ -11,15 +11,15 @@ export function ValueReplaceButton({
   readonly draftKey: string | null;
   readonly holdForDraft: (onProceed: () => void) => boolean;
 }): ReactNode {
-  function request(): void {
-    const openDialog = (): void => openValueReplace(locales);
+  function request(opener: HTMLElement): void {
+    const openDialog = (): void => openValueReplace(locales, opener);
     if (draftKey === null || !holdForDraft(openDialog)) {
       openDialog();
     }
   }
 
   return (
-    <Button onClick={request} data-value-replace-open="">
+    <Button onClick={(event) => request(event.currentTarget)} data-value-replace-open="">
       <Icon name="search" size={14} />
       Search and replace
     </Button>
