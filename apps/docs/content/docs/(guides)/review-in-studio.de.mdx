@@ -54,13 +54,13 @@ Der Editor zeigt dir die Beschreibung des Keys, welche Glossarbegriffe dein Entw
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Unter der Längenzeile bearbeiten **Set limit**, **Change limit** und **Remove limit** den Eintrag des Keys in [`verbatra.limits.json`](/de/docs/config-file#maxlength), für jede Locale. Das `maxLength` der Konfiguration gewinnt und ist schreibgeschützt. Eine unbrauchbare Datei zeigt den Grund und sperrt das Bedienelement. Ein Limit ist nur ein Hinweis: Translate-Läufe markieren einen längeren Wert zur Prüfung, nichts wird blockiert. Studio setzt Limits nur für Keys der Quelle; ein Limit, das für den eigenen Key einer erzeugten Form geschrieben wurde, gilt weiterhin.
+Unter der Längenzeile bearbeiten **Set limit**, **Change limit** und **Remove limit** den Eintrag des Keys in [`verbatra.limits.json`](/de/docs/config-file#maxlength), für jede Locale. Das `maxLength` der Konfiguration gewinnt und ist schreibgeschützt. Eine unbrauchbare Datei zeigt den Grund und sperrt das Bedienelement. Ein Limit ist nur ein Hinweis: Translate-Läufe markieren einen längeren Wert zur Prüfung, nichts wird blockiert.
 
 #### Nachrichten mit der ICU preview prüfen
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Mit `next-intl-json` oder `arb` rendert eine eingeklappte **ICU preview** unter dem Entwurf diesen einmal pro Zweig in Sprache und Schreibrichtung der Locale. Ein eingegebener Beispielwert fügt eine Zeile hinzu, wenn er einen Zweig erreicht, oder einen Hinweis, wenn er ungenutzt bleibt. Zahlen und Datumsangaben nutzen die Sprachdaten dieses Computers, deine App kann abweichen.
+Mit `next-intl-json` oder `arb` rendert eine eingeklappte **ICU preview** unter dem Entwurf diesen einmal pro Zweig in Sprache und Schreibrichtung der Locale. Ein eingegebener Beispielwert fügt eine Zeile hinzu, wenn er einen Zweig erreicht, oder einen Hinweis, wenn er ungenutzt bleibt.
 
 #### Neben der Tabelle
 
@@ -70,7 +70,7 @@ Ab 1280px Breite sitzt der Editor neben der Tabelle; darunter öffnet er sich al
 
 ## Arbeite die Review-Warteschlange ab
 
-Die Seite Review listet jeden Wert, den eine Maschine geschrieben und niemand freigegeben hat: eine Zeile pro Locale und Key, mit dem vollständigen Quelltext über der Übersetzung (lange Werte umbrechen), seiner Herkunft und etwaigen [Review-Flags](/de/docs/translation-safety#review-flags) aus dem letzten Lauf auf diesem Rechner.
+Die Seite Review listet jeden Wert, den eine Maschine geschrieben und niemand freigegeben hat: eine Zeile pro Locale und Key, mit dem vollständigen Quelltext über der Übersetzung, seiner Herkunft und etwaigen [Review-Flags](/de/docs/translation-safety#review-flags) aus dem letzten Lauf auf diesem Rechner.
 
 <StudioScreenshot
   shot="review"
@@ -125,7 +125,7 @@ Drück `j` oder Pfeil nach unten, um den ersten Eintrag hervorzuheben, dann:
 | `x` | ihn für eine Sammelaktion auswählen oder abwählen |
 | `?` | die Tastenkürzel ein- oder ausblenden |
 
-Tastenkürzel pausieren, während du tippst, der Fokus in der Filterleiste liegt oder ein Dialog offen ist. Nach einer Entscheidung wird der nächste Eintrag hervorgehoben.
+Tastenkürzel pausieren, während du tippst, der Fokus in der Filterleiste liegt oder ein Dialog offen ist.
 
 ### Bearbeite mehrere Einträge auf einmal
 
@@ -152,6 +152,8 @@ Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor ei
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
 Overview ist die Seite, auf der Studio startet. Sie zeigt die Abdeckung jeder Locale mit ihrem Zustand in der [Lock-Datei](/de/docs/the-lock-file), die Git-Historie deiner Locale-Dateien und den Token-Verbrauch des letzten erfassten Laufs, mit der Budgetanzeige, wenn ein Token-Budget konfiguriert ist.
+
+**Run history and cost** darunter zeigt Kosten und Tokens pro Lauf neben einer Tabelle jedes aufgezeichneten Laufs mit Provider, Tokens, Kosten und Abdeckung. Sie liest neu, wenn sich die Verlaufsdatei ändert, der Tab den Fokus zurückbekommt oder ein Lauf zurückkehrt.
 
 <StudioScreenshot
   shot="overview"

@@ -120,6 +120,12 @@ verbatra translate
 
 Multiply by the number of remaining locales. With `--json`, the figures are `usage.inputTokens` and `usage.outputTokens`. The run spends real money, but the work is kept: that locale is done.
 
+## Read what past runs cost
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Studio's Overview lists every recorded run with its cost, frozen when the run ended, so a later change to `rates` never rewrites it. An amount is exact. **Estimated** is a source-characters figure for a provider that reports no usage. **At least** is a lower bound, because a locale reported no tokens. **No rate** means no rate matched that model, and **unknown** means keys were sent but no tokens came back; neither is free. Self-hosted providers read **not billed**. The record is documented under [`runHistory`](/docs/sdk/history#runhistory); [Review in Studio](/docs/review-in-studio) shows the page.
+
 ## Machine-translation providers
 
 DeepL and Google Cloud Translation bill source characters, not tokens, and LibreTranslate counts source characters without billing anything. verbatra sends them the source text with placeholders as short numbered markers, and no system rules, key names or JSON around it. The estimate counts source characters only. DeepL does not bill the tags around its markers; whether Google bills the span markup around them is not documented. A value these providers withhold ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)) is not sent, so the characters sent can be fewer than the raw total.

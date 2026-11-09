@@ -54,13 +54,13 @@ El editor muestra la descripción de la clave, los términos del glosario que tu
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Bajo la línea de longitud, **Set limit**, **Change limit** y **Remove limit** editan la entrada de la clave en [`verbatra.limits.json`](/es/docs/config-file#maxlength), para todos los locales. El `maxLength` de la configuración gana y es de solo lectura. Un archivo inutilizable muestra el motivo y bloquea el control. Un límite es solo un aviso: las ejecuciones de translate marcan un valor más largo para revisión y nada se bloquea. Studio fija límites solo para claves del origen; un límite escrito para la propia clave de una forma generada sigue aplicándose.
+Bajo la línea de longitud, **Set limit**, **Change limit** y **Remove limit** editan la entrada de la clave en [`verbatra.limits.json`](/es/docs/config-file#maxlength), para todos los locales. El `maxLength` de la configuración gana y es de solo lectura. Un archivo inutilizable muestra el motivo y bloquea el control. Un límite es solo un aviso: las ejecuciones de translate marcan un valor más largo para revisión y nada se bloquea.
 
 #### Revisar mensajes con la ICU preview
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Con `next-intl-json` o `arb`, una **ICU preview** plegada bajo el borrador lo renderiza una vez por rama en el idioma y la dirección de la configuración regional. Un valor de ejemplo que escribes añade una fila cuando alcanza una rama, o una nota si no se usa. Los números y las fechas usan los datos de idioma de este equipo, así que tu app puede diferir.
+Con `next-intl-json` o `arb`, una **ICU preview** plegada bajo el borrador lo renderiza una vez por rama en el idioma y la dirección de la configuración regional. Un valor de ejemplo que escribes añade una fila cuando alcanza una rama, o una nota si no se usa.
 
 #### Junto a la tabla
 
@@ -70,7 +70,7 @@ Desde 1280px de ancho el editor se coloca junto a la tabla; por debajo se abre c
 
 ## Trabaja la cola de Review
 
-La página Review lista cada valor que escribió una máquina y que nadie ha aprobado: una fila por locale y clave, con el texto de origen completo sobre la traducción (los valores largos se ajustan), su origen y cualquier [señal de revisión](/es/docs/translation-safety#señales-de-revisión) de la última ejecución en esta máquina.
+La página Review lista cada valor que escribió una máquina y que nadie ha aprobado: una fila por locale y clave, con el texto de origen completo sobre la traducción, su origen y cualquier [señal de revisión](/es/docs/translation-safety#señales-de-revisión) de la última ejecución en esta máquina.
 
 <StudioScreenshot
   shot="review"
@@ -125,7 +125,7 @@ Pulsa `j` o la flecha abajo para resaltar la primera entrada, y luego:
 | `x` | seleccionarla o quitarla de la selección para una acción en bloque |
 | `?` | mostrar u ocultar la lista de atajos |
 
-Los atajos se pausan mientras escribes, el foco está en la barra de filtros o hay un diálogo abierto. Tras una decisión se resalta la entrada siguiente.
+Los atajos se pausan mientras escribes, el foco está en la barra de filtros o hay un diálogo abierto.
 
 ### Actúa sobre varias entradas a la vez
 
@@ -152,6 +152,8 @@ Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nom
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
 Overview es la página con la que arranca Studio. Muestra la cobertura de cada locale con su estado en el [archivo de bloqueo](/es/docs/the-lock-file), el historial de git de tus archivos de locale y el uso de tokens de la última ejecución registrada, con el medidor de presupuesto cuando hay un presupuesto de tokens configurado.
+
+**Run history and cost**, debajo, muestra el coste y los tokens por ejecución junto a una tabla de cada ejecución registrada con su proveedor, tokens, coste y cobertura. Se relee cuando cambia el archivo del historial, la pestaña recupera el foco o vuelve una ejecución.
 
 <StudioScreenshot
   shot="overview"
