@@ -35,6 +35,10 @@ import {
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { USAGE_HISTORY_METHOD } from "../shared/rpc/usage-history.js";
 import { USAGE_SUMMARY_METHOD } from "../shared/rpc/usage-summary.js";
+import {
+  APPLY_VALUE_REPLACE_METHOD,
+  PREVIEW_VALUE_REPLACE_METHOD,
+} from "../shared/rpc/value-replace.js";
 import type { InFlightEntry } from "./in-flight-guard.js";
 import { statusCheckHandler } from "./methods/check.js";
 import { statusDiffHandler } from "./methods/diff.js";
@@ -66,6 +70,7 @@ import { snapshotHandler } from "./methods/snapshot.js";
 import { translatePendingHandler } from "./methods/translate-pending.js";
 import { usageHistoryHandler } from "./methods/usage-history.js";
 import { usageSummaryHandler } from "./methods/usage-summary.js";
+import { applyValueReplaceHandler, previewValueReplaceHandler } from "./methods/value-replace.js";
 import type { StudioServerDeps } from "./types.js";
 
 export type { StudioCapabilities } from "../shared/rpc/snapshot.js";
@@ -127,6 +132,8 @@ export function createRpcHandlers(capabilities: StudioCapabilities): HandlersReg
     [REVIEW_APPROVE_MANY_METHOD]: reviewApproveManyHandler,
     [REVIEW_REJECT_MANY_METHOD]: reviewRejectManyHandler,
     [REVIEW_APPROVE_LOCALE_METHOD]: reviewApproveLocaleHandler,
+    [PREVIEW_VALUE_REPLACE_METHOD]: previewValueReplaceHandler,
+    [APPLY_VALUE_REPLACE_METHOD]: applyValueReplaceHandler,
     ...(capabilities.spend ? spendHandlers : {}),
   };
 }

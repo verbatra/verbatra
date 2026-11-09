@@ -198,6 +198,14 @@ export interface StudioServerDeps {
   readonly setMaxLengthRateLimitWindowMs?: number;
   /** How many `key.setMaxLength` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 20. */
   readonly setMaxLengthRateLimitMax?: number;
+  /** Rolling window in milliseconds for `translation.previewValueReplace`'s rate limit. Defaults to 60000. */
+  readonly previewValueReplaceRateLimitWindowMs?: number;
+  /** How many `translation.previewValueReplace` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 60. */
+  readonly previewValueReplaceRateLimitMax?: number;
+  /** Rolling window in milliseconds for `translation.applyValueReplace`'s rate limit. Defaults to 60000. */
+  readonly applyValueReplaceRateLimitWindowMs?: number;
+  /** How many `translation.applyValueReplace` calls the window allows before `METHOD_RATE_LIMITED`; one call counts one whatever its entry count. Defaults to 10. */
+  readonly applyValueReplaceRateLimitMax?: number;
   /** Rolling window in milliseconds for `git.status`'s rate limit. Defaults to 60000. */
   readonly gitStatusRateLimitWindowMs?: number;
   /** How many `git.status` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 120. */

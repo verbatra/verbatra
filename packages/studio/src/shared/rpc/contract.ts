@@ -110,6 +110,14 @@ import {
   type UsageSummaryResult,
   usageSummaryParamsSchema,
 } from "./usage-summary.js";
+import {
+  APPLY_VALUE_REPLACE_METHOD,
+  type ApplyValueReplaceResultPayload,
+  applyValueReplaceParamsSchema,
+  PREVIEW_VALUE_REPLACE_METHOD,
+  type PreviewValueReplaceResult,
+  previewValueReplaceParamsSchema,
+} from "./value-replace.js";
 
 export const rpcParamsSchemas = {
   [PROJECT_SNAPSHOT_METHOD]: projectSnapshotParamsSchema,
@@ -143,6 +151,8 @@ export const rpcParamsSchemas = {
   [TRANSLATE_PENDING_METHOD]: translatePendingParamsSchema,
   [USAGE_SUMMARY_METHOD]: usageSummaryParamsSchema,
   [USAGE_HISTORY_METHOD]: usageHistoryParamsSchema,
+  [PREVIEW_VALUE_REPLACE_METHOD]: previewValueReplaceParamsSchema,
+  [APPLY_VALUE_REPLACE_METHOD]: applyValueReplaceParamsSchema,
 } as const;
 
 export type RpcMethodName = keyof typeof rpcParamsSchemas;
@@ -181,6 +191,8 @@ export interface RpcResultMap {
   readonly [TRANSLATE_PENDING_METHOD]: TranslatePendingResult;
   readonly [USAGE_SUMMARY_METHOD]: UsageSummaryResult;
   readonly [USAGE_HISTORY_METHOD]: UsageHistoryResult;
+  readonly [PREVIEW_VALUE_REPLACE_METHOD]: PreviewValueReplaceResult;
+  readonly [APPLY_VALUE_REPLACE_METHOD]: ApplyValueReplaceResultPayload;
 }
 
 export type RpcParamsFor<M extends RpcMethodName> = z.infer<(typeof rpcParamsSchemas)[M]>;
