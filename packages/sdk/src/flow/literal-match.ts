@@ -3,6 +3,18 @@ export interface LiteralMatch {
   readonly end: number;
 }
 
+const UNPAIRED_SURROGATE = /\p{Surrogate}/u;
+
+export function isWellFormedText(text: string): boolean {
+  return !UNPAIRED_SURROGATE.test(text);
+}
+
+export function splitsSurrogatePair(text: string, at: number): boolean {
+  const before = text.charCodeAt(at - 1);
+  const after = text.charCodeAt(at);
+  return before >= 0xd800 && before <= 0xdbff && after >= 0xdc00 && after <= 0xdfff;
+}
+
 interface FoldedText {
   readonly folded: string;
   readonly origin: readonly number[];
@@ -62,8 +74,13 @@ function exactMatches(value: string, find: string): readonly LiteralMatch[] {
     if (at === -1) {
       break;
     }
-    matches.push({ start: at, end: at + find.length });
-    from = at + find.length;
+    const end = at + find.length;
+    if (splitsSurrogatePair(value, at) || splitsSurrogatePair(value, end)) {
+      from = at + 1;
+    } else {
+      matches.push({ start: at, end });
+      from = end;
+    }
   }
   return matches;
 }

@@ -537,10 +537,10 @@ Le `limit` passé à `localeValuesPage` ou `provenanceReportPage` n'est pas un n
 
 ### FIND_TEXT_INVALID
 
-Le texte `find` passé à `previewValueReplace` ou `applyValueReplace` est vide ou dépasse 20 000 caractères.
+Le texte `find` passé à `previewValueReplace` ou `applyValueReplace` est vide ou dépasse 20 000 caractères, ou `find` ou `replace` contient un substitut isolé sans son partenaire.
 
 - **Levé par** : le SDK uniquement
-- **Étape suivante** : Pass a find text of 1 to 20000 characters.
+- **Étape suivante** : Pass a find text of 1 to 20000 characters, and a find and replace text with no unpaired surrogates.
 
 ### TARGET_UNWRITABLE
 

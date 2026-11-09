@@ -196,6 +196,18 @@ describe("previewValueReplace: find text bounds", () => {
     expect(result.entries).toEqual([]);
   });
 
+  it("refuses a find text or a replace text with an unpaired surrogate", async () => {
+    const p = await project({ source: { a: "x" }, targets: { de: { a: "Hi 😀" } } });
+    await rejectsFind(preview(p, "\ud83d", "y"));
+    await rejectsFind(preview(p, "\ude00", "y"));
+    await rejectsFind(preview(p, "Hi", "\ud800"));
+    await rejectsFind(apply(p, "\ud83d", "y", []));
+    await rejectsFind(apply(p, "Hi", "\udfff", []));
+
+    const result = await preview(p, "😀", "🙂");
+    expect(result.entries).toHaveLength(1);
+  });
+
   async function rejectsFind(call: Promise<unknown>): Promise<void> {
     await expect(call).rejects.toMatchObject({ code: "FIND_TEXT_INVALID" });
   }

@@ -19,6 +19,7 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { applyEntryEdits, type EntryEdit, type EntryEditOutcome } from "./apply-entry-edits.js";
 import type { EditEntryActor } from "./edit-entry.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import { isWellFormedText } from "./literal-match.js";
 import {
   carryOverBeforeWrite,
   readCarriedOverBaselines,
@@ -102,9 +103,9 @@ interface ValueReplaceFindInput {
   readonly config: VerbatraConfig;
   /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
-  /** The text to find, matched literally in target values only: 1 to 20,000 characters. */
+  /** The text to find, matched literally in target values only: 1 to 20,000 characters, with no unpaired surrogate. */
   readonly find: string;
-  /** The text to put in its place, inserted exactly as given. `$&`, `$1` and the like have no special meaning. */
+  /** The text to put in its place, inserted exactly as given, with no unpaired surrogate. `$&`, `$1` and the like have no special meaning. */
   readonly replace: string;
   /** Whether letter case must match. Defaults to `true`. */
   readonly caseSensitive?: boolean;
@@ -212,11 +213,24 @@ export interface ApplyValueReplaceResult {
   readonly localeFailures: readonly ValueReplaceLocaleFailure[];
 }
 
-function assertFindText(find: string): void {
+function assertFindText(input: ValueReplaceFindInput): void {
+  const { find, replace } = input;
   if (find.length === 0 || find.length > MAX_REPLACE_VALUE_LENGTH) {
     throw new SdkError(
       "FIND_TEXT_INVALID",
       `The find text must be 1 to ${MAX_REPLACE_VALUE_LENGTH} characters, got ${find.length}.`,
+    );
+  }
+  if (!isWellFormedText(find)) {
+    throw new SdkError(
+      "FIND_TEXT_INVALID",
+      "The find text must not contain an unpaired surrogate code unit.",
+    );
+  }
+  if (!isWellFormedText(replace)) {
+    throw new SdkError(
+      "FIND_TEXT_INVALID",
+      "The replace text must not contain an unpaired surrogate code unit.",
     );
   }
 }
@@ -303,7 +317,8 @@ function previewEntry(
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns The matched values with a status each, a truncation flag, and counts per status.
  *
- * @throws {@link SdkError} `FIND_TEXT_INVALID`: `find` is empty or longer than 20,000 characters.
+ * @throws {@link SdkError} `FIND_TEXT_INVALID`: `find` is empty or longer than 20,000 characters, or
+ * `find` or `replace` holds an unpaired surrogate.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
@@ -327,7 +342,7 @@ export async function previewValueReplace(
   input: PreviewValueReplaceInput,
   deps: ValueReplaceDeps = {},
 ): Promise<ValueReplacePreview> {
-  assertFindText(input.find);
+  assertFindText(input);
   const config = input.config;
   const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
@@ -575,7 +590,8 @@ function markDuplicates(
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns One outcome per entry, in order, counts per status, and the locales that failed.
  *
- * @throws {@link SdkError} `FIND_TEXT_INVALID`: `find` is empty or longer than 20,000 characters.
+ * @throws {@link SdkError} `FIND_TEXT_INVALID`: `find` is empty or longer than 20,000 characters, or
+ * `find` or `replace` holds an unpaired surrogate.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: an entry names a locale that is not a configured target
  * locale. Thrown before anything is written.
@@ -608,7 +624,7 @@ export async function applyValueReplace(
   input: ApplyValueReplaceInput,
   deps: ValueReplaceDeps = {},
 ): Promise<ApplyValueReplaceResult> {
-  assertFindText(input.find);
+  assertFindText(input);
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const config = input.config;
   const cwd = projectCwd(input);

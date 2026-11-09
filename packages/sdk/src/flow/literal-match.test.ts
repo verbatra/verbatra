@@ -36,6 +36,16 @@ describe("findLiteralMatches: case sensitive", () => {
   it("does not equate a line feed with a carriage return and line feed", () => {
     expect(findLiteralMatches("a\r\nb", "a\nb", true)).toEqual([]);
   });
+
+  it("never matches half of a surrogate pair", () => {
+    expect(findLiteralMatches("a😀b", "\ud83d", true)).toEqual([]);
+    expect(findLiteralMatches("a😀b", "\ude00", true)).toEqual([]);
+    expect(findLiteralMatches("a😀b", "😀", true)).toEqual([{ start: 1, end: 3 }]);
+  });
+
+  it("matches an unpaired surrogate that stands alone in the value", () => {
+    expect(findLiteralMatches("a\ud83db", "\ud83d", true)).toEqual([{ start: 1, end: 2 }]);
+  });
 });
 
 describe("findLiteralMatches: case insensitive", () => {

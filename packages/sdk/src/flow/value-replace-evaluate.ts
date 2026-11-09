@@ -5,6 +5,7 @@ import {
   type LiteralMatch,
   replacedLength,
   replaceMatches,
+  splitsSurrogatePair,
 } from "./literal-match.js";
 import {
   isPinned,
@@ -131,14 +132,6 @@ export function staleKeysOf(
   return stale;
 }
 
-function isHighSurrogate(code: number): boolean {
-  return code >= 0xd800 && code <= 0xdbff;
-}
-
-function isLowSurrogate(code: number): boolean {
-  return code >= 0xdc00 && code <= 0xdfff;
-}
-
 export interface Excerpt {
   readonly text: string;
   readonly cut: boolean;
@@ -147,18 +140,10 @@ export interface Excerpt {
 export function excerptAround(text: string, at: number): Excerpt {
   let start = Math.max(0, at - EXCERPT_LEAD);
   let end = Math.min(text.length, start + EXCERPT_LENGTH);
-  if (
-    start > 0 &&
-    isLowSurrogate(text.charCodeAt(start)) &&
-    isHighSurrogate(text.charCodeAt(start - 1))
-  ) {
+  if (splitsSurrogatePair(text, start)) {
     start += 1;
   }
-  if (
-    end < text.length &&
-    isHighSurrogate(text.charCodeAt(end - 1)) &&
-    isLowSurrogate(text.charCodeAt(end))
-  ) {
+  if (splitsSurrogatePair(text, end)) {
     end -= 1;
   }
   return { text: text.slice(start, end), cut: start > 0 || end < text.length };
