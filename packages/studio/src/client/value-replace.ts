@@ -59,14 +59,31 @@ const STATUS_ORDER: readonly ValueReplaceStatus[] = [
 
 export const STATUS_LABEL: Readonly<Record<ValueReplaceStatus, string>> = {
   ready: "Ready",
-  "stale-source": "Ready, source changed",
-  "gate-refused": "Refused by the integrity gate",
+  "stale-source": "Source changed",
+  "gate-refused": "Refused",
   "too-long": "Too long",
-  pinned: "Pinned key",
-  protected: "Protected value",
-  "no-source-entry": "No source text",
+  pinned: "Pinned",
+  protected: "Protected",
+  "no-source-entry": "No source",
   unchanged: "Unchanged",
 };
+
+const STATUS_NOTE: Readonly<Record<ValueReplaceStatus, string>> = {
+  ready: "Can be replaced.",
+  "stale-source":
+    "Can be replaced. The source text changed since this was translated, so the key stays out of date.",
+  "gate-refused": "The integrity gate would refuse the new value.",
+  "too-long": "The new value would be over 20,000 characters.",
+  pinned: "A pinned key. Left out unless you opt in.",
+  protected:
+    "A person wrote, imported or changed this outside verbatra. Left out unless you opt in.",
+  "no-source-entry": "There is no source text to check the new value against.",
+  unchanged: "The replacement would not change this value.",
+};
+
+export function statusNote(status: ValueReplaceStatus): string {
+  return STATUS_NOTE[status];
+}
 
 const STATUS_TONE: Readonly<Record<ValueReplaceStatus, ReplaceTone>> = {
   ready: "success",
@@ -172,52 +189,87 @@ export function applyParams(
 
 export interface OutcomeView {
   readonly label: string;
+  readonly note: string;
   readonly tone: ReplaceTone;
   readonly details: readonly string[];
 }
 
-const SKIP_LABEL: Readonly<Record<string, string>> = {
-  pinned: "Skipped: pinned key",
-  protected: "Skipped: protected value",
-  "no-source-entry": "Skipped: no source text to check against",
-  unchanged: "Skipped: the value would not change",
-  "duplicate-entry": "Skipped: listed twice",
-  "locale-failed": "Not attempted: the locale failed",
+const SKIP_NOTE: Readonly<Record<string, string>> = {
+  pinned: "A pinned key, left out.",
+  protected: "A protected value, left out.",
+  "no-source-entry": "There is no source text to check the new value against.",
+  unchanged: "The value would not change.",
+  "duplicate-entry": "Listed twice, so only the first was used.",
+  "locale-failed": "The locale failed before this value was reached, so nothing was written.",
 };
 
 export function outcomeView(outcome: ValueReplaceOutcome): OutcomeView {
   switch (outcome.status) {
     case "applied":
-      return {
-        label: outcome.staleSource ? "Replaced, still out of date" : "Replaced",
-        tone: "success",
-        details: [],
-      };
+      return outcome.staleSource
+        ? {
+            label: "Replaced",
+            note: "Still out of date: the source text changed since this was translated.",
+            tone: "warning",
+            details: [],
+          }
+        : { label: "Replaced", note: "", tone: "success", details: [] };
     case "skipped":
       return {
-        label: SKIP_LABEL[outcome.reason] ?? `Skipped: ${outcome.reason}`,
+        label: outcome.reason === "locale-failed" ? "Not attempted" : "Skipped",
+        note: SKIP_NOTE[outcome.reason] ?? outcome.reason,
         tone: outcome.reason === "locale-failed" ? "danger" : "neutral",
         details: [],
       };
     case "refused":
       return {
-        label: `Refused: ${reasonLabel(outcome.reason)}`,
+        label: "Refused",
+        note: `Not written: ${reasonLabel(outcome.reason)}.`,
         tone: "danger",
         details: outcome.details ?? [],
       };
     case "changed":
       return {
-        label: "Not changed: the value changed since the preview",
+        label: "Not changed",
+        note: "The value changed since the preview, so nothing was written.",
         tone: "warning",
         details: [],
       };
     case "too-long":
       return {
-        label: "Not changed: the new value would be over 20,000 characters",
+        label: "Too long",
+        note: "The new value would be over 20,000 characters, so nothing was written.",
         tone: "danger",
         details: [],
       };
   }
+}
+
+export interface KeyedDetail {
+  readonly key: string;
+  readonly text: string;
+}
+
+export function keyedDetails(details: readonly string[]): readonly KeyedDetail[] {
+  const seen = new Map<string, number>();
+  return details.map((text) => {
+    const count = (seen.get(text) ?? 0) + 1;
+    seen.set(text, count);
+    return { key: `${text}\u0000${count}`, text };
+  });
+}
+
+export function notSentEntries(
+  preview: ValueReplacePreview,
+  optIns: ReplaceOptIns,
+): readonly ValueReplacePreviewEntry[] {
+  return preview.entries.filter((entry) => !isSendable(entry.status, optIns));
+}
+
+const LARGE_NUMBER = /\d{4,}/g;
+
+export function withGroupedNumbers(message: string): string {
+  return message.replace(LARGE_NUMBER, (digits) => Number(digits).toLocaleString("en-US"));
 }
 
 export interface OutcomeRow {

@@ -1,5 +1,6 @@
 import { DrawerShell, useDialogA11y } from "@verbatra/ui";
 import type { ReactNode } from "react";
+import { useRef } from "react";
 import { ReplaceCriteriaStep } from "./ReplaceCriteriaStep.js";
 import { ReplaceResultStep } from "./ReplaceResultStep.js";
 import { ReplaceReviewStep } from "./ReplaceReviewStep.js";
@@ -27,7 +28,12 @@ export function ValueReplaceDialog({
       onClose();
     }
   };
-  const containerRef = useDialogA11y<HTMLDivElement>({ isOpen: true, onClose: closeUnlessBusy });
+  const findRef = useRef<HTMLInputElement | null>(null);
+  const containerRef = useDialogA11y<HTMLDivElement>({
+    isOpen: true,
+    onClose: closeUnlessBusy,
+    initialFocus: findRef,
+  });
   const title = STEP_TITLE[phase.kind];
   return (
     <DrawerShell
@@ -37,16 +43,24 @@ export function ValueReplaceDialog({
       onClose={closeUnlessBusy}
       containerRef={containerRef}
       size="wide"
+      banner={
+        flow.navigationHeld ? (
+          <p role="status" className="m-0 mt-2 text-sm text-warning" data-replace-nav-held="">
+            Leaving this page is paused while the replace runs, so the result is not lost.
+          </p>
+        ) : undefined
+      }
     >
       {phase.kind === "criteria" ? (
         <ReplaceCriteriaStep
           key="criteria"
+          findRef={findRef}
           allLocales={locales}
           busy={phase.busy}
           error={phase.error}
           initial={flow.lastCriteria}
           onPreview={flow.runPreview}
-          onClose={onClose}
+          onClose={closeUnlessBusy}
         />
       ) : null}
       {phase.kind === "review" ? (
@@ -63,6 +77,8 @@ export function ValueReplaceDialog({
       {phase.kind === "result" ? (
         <ReplaceResultStep
           result={phase.result}
+          notSent={phase.notSent}
+          truncated={phase.truncated}
           onSearchAgain={flow.backToCriteria}
           onClose={onClose}
         />

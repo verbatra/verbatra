@@ -52,6 +52,8 @@ Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
 
 Ein fehlgeschlagenes Binden meldet Studio auf stderr als `verbatra: error [<code>] <message>`: `PORT_IN_USE`, wenn ein anderer Prozess den Port hält (gib `--port <n>` an oder beende diesen Prozess), oder `BIND_FAILED`, wenn der Socket auf einer anderen Adresse als `127.0.0.1` hochkam.
 
+Beende Studio mit Strg+C. Jede Seite aktualisiert sich live, wenn sich eine Locale-Datei, die Lock-Datei, die Herkunftsdatei oder die Limits-Datei ändert. Ändert sich die Quelldatei, nennt eine Benachrichtigung die Datei und ihre hinzugefügten, geänderten oder entfernten Keys, und **Run history and cost** liest neu, wenn sich die Verlaufsdatei ändert, der Tab den Fokus zurückbekommt oder ein Lauf zurückkehrt.
+
 ### Was es auf stderr ausgibt
 
 <AvailableFrom version="0.12.0" />

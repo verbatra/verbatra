@@ -6,7 +6,7 @@ type: how-to
 ---
 Damit prüfst du maschinelle Übersetzungen, bevor sie ausgeliefert werden: Du findest, was offen ist, korrigierst Werte von Hand und gibst frei oder lehnst ab, was ein Provider geschrieben hat, in Verbatra Studio, einem lokalen Dashboard über deinem Projekt.
 
-Zwei Regeln gelten durchgehend. **Lokales Bearbeiten ist immer an**, abgesichert durch dieselben Integritätsprüfungen wie jeder andere Schreibvorgang. **Kostenpflichtige Provider-Aufrufe sind immer aus**, außer du startest Studio mit `--allow-spend`.
+Zwei Regeln gelten durchgehend. **Lokales Bearbeiten ist immer an**. **Kostenpflichtige Provider-Aufrufe sind immer aus**, außer du startest Studio mit `--allow-spend`.
 
 ## Starte Studio
 
@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Öffne die ausgegebene URL samt Token. [`verbatra studio`](/de/docs/cli/studio) erklärt Port, Token und jedes Flag. Jede Seite aktualisiert sich live, wenn sich eine Locale-Datei, die Lock-Datei, die Herkunftsdatei oder die Limit-Datei ändert.
+Öffne die ausgegebene URL samt Token. [`verbatra studio`](/de/docs/cli/studio) erklärt Port, Token, Flags und die Live-Aktualisierung.
 
 ## Lies die Seite Translations
 
@@ -72,7 +72,7 @@ Ab 1280px Breite sitzt der Editor neben der Tabelle; darunter öffnet er sich al
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-**Search and replace** ersetzt wörtlichen Text in übersetzten Werten: Wähle Text, Ersatz, Groß-/Kleinschreibung und Locales, prüfe jeden Treffer (bis zu 1.000) und wende dann an. Angepinnte Keys und von einer Person geschriebene Werte bleiben draußen, solange du ihr Kästchen nicht ankreuzt.
+**Search and replace** ersetzt wörtlichen Text in übersetzten Werten: Wähle Text, Ersatz, Groß-/Kleinschreibung und Locales, prüfe jeden Treffer (bis zu 1.000) und wende dann an. Angepinnte Keys und geschützte Werte bleiben draußen, solange du ihr Kästchen nicht ankreuzt. Geschützt heißt: Eine Person hat den Wert geschrieben, importiert oder außerhalb von verbatra geändert, oder es ist jeder Wert, wenn sich `verbatra.provenance.json` nicht lesen lässt.
 
 ## Arbeite die Review-Warteschlange ab
 
@@ -112,7 +112,7 @@ Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter 
 
 Die Warteschlange wird aus den committeten Dateien gelesen, sodass eine Teamkollegin, die sie pullt, dieselbe Warteschlange sieht. Ein Wert verlässt sie, sobald eine Person ihn freigibt, ablehnt, schreibt oder importiert; ein freigegebener Wert, den eine Maschine neu schreibt, kommt zurück.
 
-Die Chips **Needs review** und **Approved** wechseln die Liste; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
+Die Chips **Needs review** und **Approved** wechseln die Liste und zeigen Zähler; die Leiste grenzt nach Herkunft ein; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
 
 ### Arbeite die Warteschlange mit der Tastatur ab
 
@@ -131,7 +131,7 @@ Drück `j` oder Pfeil nach unten, um den ersten Eintrag hervorzuheben, dann:
 | `x` | ihn für eine Sammelaktion auswählen oder abwählen |
 | `?` | die Tastenkürzel ein- oder ausblenden |
 
-Tastenkürzel pausieren, während du tippst.
+Tastenkürzel pausieren, während du tippst, der Fokus in der Filterleiste liegt oder ein Dialog offen ist.
 
 ### Bearbeite mehrere Einträge auf einmal
 

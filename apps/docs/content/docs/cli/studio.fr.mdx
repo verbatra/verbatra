@@ -52,6 +52,8 @@ Ouvre exactement cette URL. Le jeton n'est accepté que comme `?token=` au premi
 
 Un échec de réservation du port est signalé sur stderr sous la forme `verbatra: error [<code>] <message>` : `PORT_IN_USE` quand un autre processus tient le port (passe `--port <n>` ou arrête ce processus), ou `BIND_FAILED` quand le socket s'est ouvert sur une autre adresse que `127.0.0.1`.
 
+Arrête Studio avec Ctrl+C. Chaque page se rafraîchit en direct quand un fichier de locale, le fichier de verrouillage, le fichier de provenance ou le fichier de limites change. Quand le fichier source change, une notification nomme le fichier et ses clés ajoutées, modifiées ou supprimées, et **Run history and cost** se relit quand le fichier d'historique change, que l'onglet retrouve le focus ou qu'une exécution se termine.
+
 ### Ce qu'il affiche sur stderr
 
 <AvailableFrom version="0.12.0" />

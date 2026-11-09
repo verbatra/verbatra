@@ -12,7 +12,9 @@ import {
   entriesToApply,
   failureViews,
   isSendable,
+  keyedDetails,
   NO_OPT_INS,
+  notSentEntries,
   outcomeRows,
   outcomeView,
   previewParams,
@@ -20,6 +22,7 @@ import {
   replacedCount,
   statusTone,
   valueCount,
+  withGroupedNumbers,
 } from "./value-replace.js";
 
 function entry(
@@ -173,50 +176,57 @@ describe("countRows", () => {
 
     expect(rows.map((row) => [row.status, row.count, row.label])).toEqual([
       ["ready", 2, "Ready"],
-      ["protected", 1, "Protected value"],
+      ["protected", 1, "Protected"],
     ]);
   });
 });
 
 describe("outcomeView", () => {
-  const cases: readonly [ValueReplaceOutcome, string, string][] = [
-    [{ locale: "de", key: "k", status: "applied", staleSource: false }, "Replaced", "success"],
+  const cases: readonly [ValueReplaceOutcome, string, string, RegExp][] = [
+    [
+      { locale: "de", key: "k", status: "applied", staleSource: false },
+      "Replaced",
+      "success",
+      /^$/,
+    ],
     [
       { locale: "de", key: "k", status: "applied", staleSource: true },
-      "Replaced, still out of date",
-      "success",
+      "Replaced",
+      "warning",
+      /Still out of date/,
     ],
     [
       { locale: "de", key: "k", status: "skipped", reason: "locale-failed" },
-      "Not attempted: the locale failed",
+      "Not attempted",
       "danger",
+      /locale failed/,
     ],
     [
       { locale: "de", key: "k", status: "skipped", reason: "pinned" },
-      "Skipped: pinned key",
+      "Skipped",
       "neutral",
+      /pinned/,
     ],
     [
       { locale: "de", key: "k", status: "refused", reason: "placeholder" },
-      "Refused: a placeholder would change",
+      "Refused",
       "danger",
+      /a placeholder would change/,
     ],
     [
       { locale: "de", key: "k", status: "changed" },
-      "Not changed: the value changed since the preview",
+      "Not changed",
       "warning",
+      /changed since the preview/,
     ],
-    [
-      { locale: "de", key: "k", status: "too-long" },
-      "Not changed: the new value would be over 20,000 characters",
-      "danger",
-    ],
+    [{ locale: "de", key: "k", status: "too-long" }, "Too long", "danger", /20,000 characters/],
   ];
 
-  it.each(cases)("describes %j", (outcome, label, tone) => {
+  it.each(cases)("describes %j", (outcome, label, tone, note) => {
     const view = outcomeView(outcome);
     expect(view.label).toBe(label);
     expect(view.tone).toBe(tone);
+    expect(view.note).toMatch(note);
   });
 
   it("carries the details of a refusal", () => {
@@ -283,5 +293,46 @@ describe("criteriaFieldOf", () => {
       criteriaFieldOf({ code: "METHOD_RATE_LIMITED", message: "The replace text" }),
     ).toBeNull();
     expect(criteriaFieldOf(null)).toBeNull();
+  });
+});
+
+describe("keyedDetails", () => {
+  it("gives repeated detail lines distinct keys", () => {
+    const keyed = keyedDetails(["{name} is missing", "{name} is missing", "other"]);
+
+    expect(new Set(keyed.map((item) => item.key)).size).toBe(3);
+    expect(keyed.map((item) => item.text)).toEqual([
+      "{name} is missing",
+      "{name} is missing",
+      "other",
+    ]);
+  });
+});
+
+describe("notSentEntries", () => {
+  it("lists every previewed entry the apply leaves out, by the opt-ins", () => {
+    const all = preview([
+      entry("ready", "ready"),
+      entry("pinned", "pinned"),
+      entry("protected", "protected"),
+      entry("refused", "gate-refused"),
+    ]);
+
+    expect(notSentEntries(all, NO_OPT_INS).map((item) => item.key)).toEqual([
+      "pinned",
+      "protected",
+      "refused",
+    ]);
+    expect(
+      notSentEntries(all, { includePinned: true, includeProtected: true }).map((item) => item.key),
+    ).toEqual(["refused"]);
+  });
+});
+
+describe("withGroupedNumbers", () => {
+  it("groups numbers of four digits or more and leaves the rest", () => {
+    expect(withGroupedNumbers("must be 1 to 20000 characters, got 20001 (3)")).toBe(
+      "must be 1 to 20,000 characters, got 20,001 (3)",
+    );
   });
 });

@@ -6,7 +6,7 @@ type: how-to
 ---
 Usa esto para revisar traducciones automáticas antes de publicarlas: encuentra lo pendiente, corrige valores a mano y aprueba o rechaza lo que escribió un proveedor, en Verbatra Studio, un panel local sobre tu proyecto.
 
-Dos reglas valen en todo momento. **La edición local está siempre activa**, sujeta a las mismas comprobaciones de integridad que cualquier otra escritura. **El gasto con el proveedor está siempre desactivado** salvo que arranques Studio con `--allow-spend`.
+Dos reglas valen en todo momento. **La edición local está siempre activa**. **El gasto con el proveedor está siempre desactivado** salvo que arranques Studio con `--allow-spend`.
 
 ## Arranca Studio
 
@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Abre la URL que imprime, token incluido. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token y cada opción. Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo, el archivo de procedencia o el archivo de límites.
+Abre la URL que imprime, token incluido. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token, cada opción y la actualización en vivo.
 
 ## Lee la página Translations
 
@@ -72,7 +72,7 @@ Desde 1280px de ancho el editor se coloca junto a la tabla; por debajo se abre c
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-**Search and replace** reemplaza texto literal en los valores traducidos: elige el texto, el reemplazo, si distingue mayúsculas y los locales, revisa cada coincidencia (hasta 1000) y aplica. Las claves ancladas y los valores que escribió una persona quedan fuera salvo que marques su casilla.
+**Search and replace** reemplaza texto literal en los valores traducidos: elige el texto, el reemplazo, si distingue mayúsculas y los locales, revisa cada coincidencia (hasta 1000) y aplica. Las claves ancladas y los valores protegidos quedan fuera salvo que marques su casilla. Protegido significa que una persona lo escribió, lo importó o lo cambió fuera de verbatra, o cualquier valor cuando `verbatra.provenance.json` no se puede leer.
 
 ## Trabaja la cola de Review
 
@@ -112,7 +112,7 @@ Ambas decisiones se guardan en `verbatra.provenance.json` según las reglas de [
 
 La cola se lee de los archivos confirmados, así que un compañero que los descarga ve la misma cola. Un valor sale de ella en cuanto una persona lo aprueba, lo rechaza, lo escribe o lo importa; un valor aprobado que una máquina reescribe vuelve a entrar.
 
-Los chips **Needs review** y **Approved** cambian la lista; con un locale elegido, **Approve all in** lo aprueba entero tras una confirmación. Para que un pull request falle mientras haya traducciones automáticas esperando, ejecuta [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas) en la CI.
+Los chips **Needs review** y **Approved** cambian la lista y muestran contadores; la barra acota por origen; con un locale elegido, **Approve all in** lo aprueba entero tras una confirmación. Para que un pull request falle mientras haya traducciones automáticas esperando, ejecuta [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas) en la CI.
 
 ### Trabaja la cola con el teclado
 
@@ -131,7 +131,7 @@ Pulsa `j` o la flecha abajo para resaltar la primera entrada, y luego:
 | `x` | seleccionarla o quitarla de la selección para una acción en bloque |
 | `?` | mostrar u ocultar la lista de atajos |
 
-Los atajos se pausan mientras escribes.
+Los atajos se pausan mientras escribes, el foco está en la barra de filtros o hay un diálogo abierto.
 
 ### Actúa sobre varias entradas a la vez
 

@@ -128,14 +128,19 @@ function stubDeps(): RpcHandlerDeps {
 }
 
 function gatedHandlers(release: Promise<void>, onCall: () => void): HandlersRegistry {
-  const slow = async (): Promise<never> => {
+  let applyCalls = 0;
+  const apply = async (): Promise<never> => {
     onCall();
-    await release;
+    applyCalls += 1;
+    if (applyCalls === 1) {
+      await release;
+    }
     return { outcomes: [], counts: {}, localeFailures: [] } as never;
   };
+  const retranslate = async (): Promise<never> => ({ results: [] }) as never;
   return {
-    "translation.applyValueReplace": slow,
-    "translation.retranslateEntries": slow,
+    "translation.applyValueReplace": apply,
+    "translation.retranslateEntries": retranslate,
   } as unknown as HandlersRegistry;
 }
 

@@ -6,7 +6,7 @@ type: how-to
 ---
 Utilise ceci pour vérifier les traductions automatiques avant leur mise en ligne : trouve ce qui est en attente, corrige des valeurs à la main, et approuve ou rejette ce qu'un fournisseur a écrit, dans Verbatra Studio, un tableau de bord local au-dessus de ton projet.
 
-Deux règles valent tout du long. **La modification locale est toujours active**, soumise aux mêmes contrôles d'intégrité que toute autre écriture. **La dépense auprès du fournisseur est toujours désactivée**, sauf si tu démarres Studio avec `--allow-spend`.
+Deux règles valent tout du long. **La modification locale est toujours active**. **La dépense auprès du fournisseur est toujours désactivée**, sauf si tu démarres Studio avec `--allow-spend`.
 
 ## Démarrer Studio
 
@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Ouvre l'URL qu'il affiche, token compris. [`verbatra studio`](/fr/docs/cli/studio) couvre le port, le token et toutes les options. Chaque page se rafraîchit en direct quand un fichier de locale, le fichier de verrouillage, le fichier de provenance ou le fichier de limites change.
+Ouvre l'URL qu'il affiche, token compris. [`verbatra studio`](/fr/docs/cli/studio) couvre le port, le token, toutes les options et le rafraîchissement en direct.
 
 ## Lire la page Translations
 
@@ -72,7 +72,7 @@ Avec `next-intl-json` ou `arb`, une **ICU preview** repliée sous le brouillon l
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-**Search and replace** remplace du texte littéral dans les valeurs traduites : choisis le texte, le remplacement, la casse et les locales, relis chaque correspondance (jusqu'à 1 000), puis applique. Les clés épinglées et les valeurs écrites par une personne restent exclues tant que tu ne coches pas leur case.
+**Search and replace** remplace du texte littéral dans les valeurs traduites : choisis le texte, le remplacement, la casse et les locales, relis chaque correspondance (jusqu'à 1 000), puis applique. Les clés épinglées et les valeurs protégées restent exclues tant que tu ne coches pas leur case. Protégé signifie qu'une personne l'a écrit, importé ou modifié hors de verbatra, ou n'importe quelle valeur quand `verbatra.provenance.json` est illisible.
 
 ## Traiter la file de relecture
 
@@ -112,7 +112,7 @@ Les deux décisions sont enregistrées dans `verbatra.provenance.json` selon les
 
 La file est lue depuis les fichiers commités, donc un coéquipier qui les récupère voit la même file. Une valeur la quitte dès qu'une personne l'approuve, la rejette, l'écrit ou l'importe ; une valeur approuvée qu'une machine réécrit y revient.
 
-Les puces **Needs review** et **Approved** basculent la liste ; une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) en CI.
+Les puces **Needs review** et **Approved** basculent la liste et affichent des compteurs ; la barre restreint par origine ; une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) en CI.
 
 ### Traiter la file au clavier
 
@@ -131,7 +131,7 @@ Appuie sur `j` ou la flèche bas pour mettre en surbrillance la première entré
 | `x` | la sélectionner ou désélectionner pour une action groupée |
 | `?` | afficher ou masquer la liste des raccourcis |
 
-Les raccourcis sont en pause pendant que tu tapes.
+Les raccourcis sont en pause pendant que tu tapes, que le focus est dans la barre de filtres ou qu'une boîte de dialogue est ouverte.
 
 ### Agir sur plusieurs entrées à la fois
 

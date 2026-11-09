@@ -17,7 +17,11 @@ export function ReplaceCheck({
 }): ReactNode {
   const id = useId();
   return (
-    <div className="flex items-start gap-2 text-sm text-foreground max-md:min-h-11">
+    <label
+      htmlFor={id}
+      className="flex cursor-pointer items-start gap-2 text-sm text-foreground max-md:min-h-11 max-md:items-center"
+      data-replace-check-row=""
+    >
       <Checkbox
         id={id}
         checked={checked}
@@ -25,9 +29,7 @@ export function ReplaceCheck({
         onChange={(event) => onChange(event.target.checked)}
         {...dataAttributes}
       />
-      <label htmlFor={id} className="min-w-0 wrap-anywhere">
-        {children}
-      </label>
-    </div>
+      <span className="min-w-0 wrap-anywhere">{children}</span>
+    </label>
   );
 }

@@ -1,10 +1,19 @@
 import { Button, TextField } from "@verbatra/ui";
-import type { FormEvent, ReactNode } from "react";
-import { useId, useState } from "react";
+import type { FormEvent, ReactNode, RefObject } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { StructuredError } from "../client/state.js";
-import { criteriaFieldOf, type ReplaceCriteria } from "../client/value-replace.js";
+import {
+  criteriaFieldOf,
+  type ReplaceCriteria,
+  withGroupedNumbers,
+} from "../client/value-replace.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { ReplaceCheck } from "./ReplaceCheck.js";
+
+const FIND_MISSING = "Enter the text to find.";
+const LOCALES_MISSING = "Choose at least one locale to search.";
+
+type LocalProblem = "find" | "locales";
 
 function Field({
   label,
@@ -21,13 +30,14 @@ function Field({
   const input = `${base}-input`;
   const note = `${base}-note`;
   return (
-    <div className="mb-4">
+    <div>
       <label htmlFor={input} className="mb-1 block text-sm font-medium text-foreground">
         {label}
       </label>
       {children({ input, described: note })}
       <p
         id={note}
+        role={invalid === undefined ? undefined : "alert"}
         className={
           invalid === undefined
             ? "m-0 mt-1 text-xs text-muted-foreground"
@@ -44,16 +54,25 @@ function Field({
 function LocaleScope({
   locales,
   chosen,
+  invalid,
+  scopeRef,
   onToggle,
 }: {
   readonly locales: readonly string[];
   readonly chosen: readonly string[];
+  readonly invalid: boolean;
+  readonly scopeRef: RefObject<HTMLFieldSetElement | null>;
   readonly onToggle: (locale: string) => void;
 }): ReactNode {
   return (
-    <fieldset className="m-0 mb-4 min-w-0 border-0 p-0" data-replace-locales="">
+    <fieldset
+      ref={scopeRef}
+      className="m-0 min-w-0 border-0 p-0"
+      aria-describedby={invalid ? "replace-locales-note" : undefined}
+      data-replace-locales=""
+    >
       <legend className="mb-1 text-sm font-medium text-foreground">Locales to search</legend>
-      <div className="flex flex-wrap gap-x-4 gap-y-2">
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
         {locales.map((locale) => (
           <ReplaceCheck
             key={locale}
@@ -67,6 +86,11 @@ function LocaleScope({
           </ReplaceCheck>
         ))}
       </div>
+      {invalid ? (
+        <p id="replace-locales-note" role="alert" className="m-0 mt-1 text-xs text-danger">
+          {LOCALES_MISSING}
+        </p>
+      ) : null}
     </fieldset>
   );
 }
@@ -76,9 +100,11 @@ export function ReplaceCriteriaStep({
   busy,
   error,
   initial,
+  findRef,
   onPreview,
   onClose,
 }: {
+  readonly findRef: RefObject<HTMLInputElement | null>;
   readonly allLocales: readonly string[];
   readonly busy: boolean;
   readonly error: StructuredError | null;
@@ -90,21 +116,56 @@ export function ReplaceCriteriaStep({
   const [replace, setReplace] = useState(initial?.replace ?? "");
   const [caseSensitive, setCaseSensitive] = useState(initial?.caseSensitive ?? true);
   const [locales, setLocales] = useState<readonly string[]>(initial?.locales ?? allLocales);
+  const [problem, setProblem] = useState<LocalProblem | null>(null);
+  const replaceRef = useRef<HTMLInputElement | null>(null);
+  const scopeRef = useRef<HTMLFieldSetElement | null>(null);
   const invalidField = criteriaFieldOf(error);
-  const findError = invalidField === "find" ? error?.message : undefined;
-  const replaceError = invalidField === "replace" ? error?.message : undefined;
+  const serverMessage = error === null ? undefined : withGroupedNumbers(error.message);
+  const findError =
+    problem === "find" ? FIND_MISSING : invalidField === "find" ? serverMessage : undefined;
+  const replaceError = invalidField === "replace" ? serverMessage : undefined;
   const otherError = invalidField === null ? error : null;
-  const ready = find !== "" && locales.length > 0 && !busy;
+
+  useEffect(() => {
+    findRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (invalidField === "find") {
+      findRef.current?.focus();
+    } else if (invalidField === "replace") {
+      replaceRef.current?.focus();
+    }
+  }, [invalidField, error]);
 
   function submit(event: FormEvent): void {
     event.preventDefault();
-    if (ready) {
+    if (busy) {
+      return;
+    }
+    if (find === "") {
+      setProblem("find");
+      findRef.current?.focus();
+    } else if (locales.length === 0) {
+      setProblem("locales");
+      scopeRef.current?.querySelector("input")?.focus();
+    } else {
+      setProblem(null);
       onPreview({ find, replace, caseSensitive, locales });
     }
   }
 
+  function toggleLocale(locale: string): void {
+    setProblem(null);
+    setLocales((current) =>
+      current.includes(locale)
+        ? current.filter((candidate) => candidate !== locale)
+        : allLocales.filter((candidate) => candidate === locale || current.includes(candidate)),
+    );
+  }
+
   return (
-    <form onSubmit={submit} data-replace-step="criteria" noValidate>
+    <form onSubmit={submit} data-replace-step="criteria" noValidate className="flex flex-col gap-4">
       {otherError !== null ? <ErrorMessage error={otherError} /> : null}
       <Field
         label="Find"
@@ -114,6 +175,7 @@ export function ReplaceCriteriaStep({
         {({ input, described }) => (
           <TextField
             id={input}
+            ref={findRef}
             value={find}
             dir="auto"
             autoComplete="off"
@@ -121,7 +183,10 @@ export function ReplaceCriteriaStep({
             aria-invalid={findError !== undefined ? true : undefined}
             aria-describedby={described}
             readOnly={busy}
-            onChange={(event) => setFind(event.target.value)}
+            onChange={(event) => {
+              setProblem(null);
+              setFind(event.target.value);
+            }}
             data-replace-find=""
           />
         )}
@@ -134,6 +199,7 @@ export function ReplaceCriteriaStep({
         {({ input, described }) => (
           <TextField
             id={input}
+            ref={replaceRef}
             value={replace}
             dir="auto"
             autoComplete="off"
@@ -146,30 +212,22 @@ export function ReplaceCriteriaStep({
           />
         )}
       </Field>
-      <div className="mb-4">
-        <ReplaceCheck checked={caseSensitive} onChange={setCaseSensitive} data-replace-case="">
-          Match case
-        </ReplaceCheck>
-      </div>
+      <ReplaceCheck checked={caseSensitive} onChange={setCaseSensitive} data-replace-case="">
+        Match case
+      </ReplaceCheck>
       <LocaleScope
         locales={allLocales}
         chosen={locales}
-        onToggle={(locale) =>
-          setLocales((current) =>
-            current.includes(locale)
-              ? current.filter((candidate) => candidate !== locale)
-              : allLocales.filter(
-                  (candidate) => candidate === locale || current.includes(candidate),
-                ),
-          )
-        }
+        invalid={problem === "locales"}
+        scopeRef={scopeRef}
+        onToggle={toggleLocale}
       />
       <span className="flex flex-wrap items-center gap-3">
         <Button
           type="submit"
           variant="primary"
           size="md"
-          aria-disabled={!ready || undefined}
+          aria-disabled={busy || undefined}
           aria-busy={busy || undefined}
         >
           {busy ? "Searching…" : "Preview"}

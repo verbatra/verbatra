@@ -655,3 +655,35 @@ describe("leaving the page", () => {
     expect(leave().defaultPrevented).toBe(false);
   });
 });
+
+describe("nested guards", () => {
+  it("gives the route back to the guard under it when the inner guard goes", () => {
+    dirty = true;
+    window.history.replaceState({ idx: 10 }, "", "#/translations");
+    uninstall = installRouteGuard(guard);
+    const innerBlock = vi.fn();
+    const removeInner = installRouteGuard({ isDirty: () => true, onBlock: innerBlock });
+
+    expect(routeChangeBlocked("#/review", "push")).toBe(true);
+    expect(innerBlock).toHaveBeenCalledTimes(1);
+    expect(onBlock).not.toHaveBeenCalled();
+
+    removeInner();
+    expect(routeChangeBlocked("#/review", "push")).toBe(true);
+    expect(onBlock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not hand the route to a guard that has itself already gone", () => {
+    dirty = true;
+    window.history.replaceState({ idx: 10 }, "", "#/translations");
+    const removeOuter = installRouteGuard(guard);
+    const removeInner = installRouteGuard({ isDirty: () => true, onBlock: vi.fn() });
+    uninstall = () => {};
+
+    removeOuter();
+    removeInner();
+
+    expect(routeChangeBlocked("#/review", "push")).toBe(false);
+    expect(onBlock).not.toHaveBeenCalled();
+  });
+});

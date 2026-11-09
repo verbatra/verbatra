@@ -88,7 +88,7 @@ export function Sheet({
   children,
 }: SheetProps): ReactNode {
   return (
-    <div className={cn("fixed inset-0 z-20 flex", CONTAINER[side])} data-side={side}>
+    <div className={cn("fixed inset-0 z-50 flex", CONTAINER[side])} data-side={side}>
       <OverlayBackdrop onClose={onClose} />
       <div
         className={cn(

@@ -102,6 +102,8 @@ describe("SettingsPanel", () => {
     expect(detailValue(view, "Edit glossary")).toBe("no");
     expect(detailValue(view, "Retranslate limit")).toBe("20 per minute");
     expect(detailValue(view, "Review decision limit")).toBe("500 per 2 minutes");
+    expect(detailValue(view, "Replace preview limit")).toBe("60 per minute");
+    expect(detailValue(view, "Replace apply limit")).toBe("10 per minute");
   });
 
   it("states a limit window in seconds when it is not a whole number of minutes", async () => {

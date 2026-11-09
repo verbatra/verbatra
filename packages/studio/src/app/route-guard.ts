@@ -15,6 +15,7 @@ interface Held {
 }
 
 let activeGuard: RouteGuard | null = null;
+const retiredGuards = new WeakSet<RouteGuard>();
 let position: number | null = null;
 let positionHash = "";
 let held: Held | null = null;
@@ -178,14 +179,17 @@ if (typeof window !== "undefined") {
 }
 
 export function installRouteGuard(guard: RouteGuard): () => void {
+  const previous = activeGuard;
+  retiredGuards.delete(guard);
   activeGuard = guard;
   position = readIdx();
   positionHash = window.location.hash;
   held = null;
   returning = false;
   return () => {
+    retiredGuards.add(guard);
     if (activeGuard === guard) {
-      activeGuard = null;
+      activeGuard = previous !== null && !retiredGuards.has(previous) ? previous : null;
       adoptHeldRoute();
       held = null;
       returning = false;

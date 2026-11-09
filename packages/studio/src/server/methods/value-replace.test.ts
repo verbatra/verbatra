@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { criteriaFieldOf } from "../../client/value-replace.js";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
 
@@ -306,5 +307,35 @@ describe("handler forwards every option to the sdk", () => {
     } finally {
       await project.cleanup();
     }
+  });
+});
+
+describe("criteriaFieldOf against the real sdk messages", () => {
+  async function failureOf(
+    find: string,
+    replace: string,
+  ): Promise<{ code: string; message: string }> {
+    const project = await withTarget({ greeting: "Hallo Welt" });
+    try {
+      await previewValueReplaceHandler({ find, replace }, deps(project));
+    } catch (error) {
+      const { code, message } = error as { code: string; message: string };
+      return { code, message };
+    } finally {
+      await project.cleanup();
+    }
+    throw new Error("the sdk accepted the criteria");
+  }
+
+  it.each([
+    ["an empty find", "", "x", "find"],
+    ["a find over the cap", "x".repeat(20_001), "x", "find"],
+    ["a find with a lone surrogate", "\uD800", "x", "find"],
+    ["a replace with a lone surrogate", "Welt", "\uD800", "replace"],
+  ] as const)("maps %s to the %s field", async (_name, find, replace, field) => {
+    const failure = await failureOf(find, replace);
+
+    expect(failure.code).toBe("FIND_TEXT_INVALID");
+    expect(criteriaFieldOf(failure)).toBe(field);
   });
 });

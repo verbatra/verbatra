@@ -6,7 +6,7 @@ type: how-to
 ---
 Find pending machine translations, fix values, and approve or reject what a provider wrote, in Verbatra Studio.
 
-Two rules: **local editing is always on**, gated by the same integrity checks as other writes, and **provider spend is always off** unless you start Studio with `--allow-spend`.
+Two rules: **local editing is always on**, and **provider spend is always off** unless you start Studio with `--allow-spend`.
 
 ## Start Studio
 
@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Open the URL it prints, token included. [`verbatra studio`](/docs/cli/studio) covers the port, token and flags. Every page refreshes live when a locale, lock, provenance or limits file changes.
+Open the URL it prints, token included. [`verbatra studio`](/docs/cli/studio) covers the port, token, flags and live refresh.
 
 ## Read the Translations page
 
@@ -73,7 +73,7 @@ From 1280px wide the editor sits beside the table; below that it is a drawer. Le
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-**Search and replace** replaces literal text in translated values: pick the text, replacement, case and locales, review each match (up to 1,000) and apply. Pinned keys and values a person wrote stay out unless you tick their box.
+**Search and replace** replaces literal text in translated values: pick the text, replacement, case and locales, review each match (up to 1,000) and apply. Pinned keys and protected values stay out unless you tick their box. Protected means a person wrote, imported or changed it outside verbatra, or any value when `verbatra.provenance.json` cannot be read.
 
 ## Work the Review queue
 
@@ -119,7 +119,7 @@ The **Needs review** and **Approved** chips switch the list and show counts; the
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Press `j` or the down arrow to highlight the first entry, then:
+Press `j` or the down arrow to start, then:
 
 | Key | Action |
 | --- | --- |
@@ -132,7 +132,7 @@ Press `j` or the down arrow to highlight the first entry, then:
 | `x` | select or unselect it for a bulk action |
 | `?` | show or hide the shortcut list |
 
-Shortcuts pause while you type.
+Shortcuts pause while you type, in the filter bar or in a dialog.
 
 ### Act on several entries at once
 
@@ -172,7 +172,7 @@ Studio opens on Overview: each locale's coverage with its [lock file](/docs/the-
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary has its own page, formerly on Settings. With a JSON glossary you can search, add, edit and remove terms. Removing one asks first; unsaved edits ask before you leave. An inline glossary stays read-only.
+Glossary has its own page. With a JSON glossary you can search, add, edit and remove terms. Removing one asks first; unsaved edits ask before you leave. An inline glossary stays read-only.
 
 A glossary edit changes what the next run is told, never text already written; restart Studio so its own retranslations use it.
 

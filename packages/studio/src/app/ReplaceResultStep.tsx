@@ -1,16 +1,22 @@
-import type { ApplyValueReplaceResult } from "@verbatra/sdk";
+import type { ApplyValueReplaceResult, ValueReplacePreviewEntry } from "@verbatra/sdk";
 import { Badge, Button } from "@verbatra/ui";
 import type { ReactNode } from "react";
-import { useState } from "react";
 import {
   FILE_WRITTEN_NOTICE,
   failureViews,
+  keyedDetails,
+  type OutcomeRow,
   outcomeRows,
   replacedCount,
+  STATUS_LABEL,
+  statusNote,
+  statusTone,
+  TRUNCATED_NOTICE,
   valueCount,
 } from "../client/value-replace.js";
-
-const PAGE_SIZE = 50;
+import { ReplaceLead } from "./ReplaceLead.js";
+import { ReplacePagedList } from "./ReplacePagedList.js";
+import { TranslationValue } from "./TranslationValue.js";
 
 function LocaleFailures({ result }: { readonly result: ApplyValueReplaceResult }): ReactNode {
   const failures = failureViews(result.localeFailures);
@@ -41,53 +47,105 @@ function LocaleFailures({ result }: { readonly result: ApplyValueReplaceResult }
   );
 }
 
+function OutcomeItem({ row }: { readonly row: OutcomeRow }): ReactNode {
+  return (
+    <div data-replace-outcome="" data-locale={row.locale}>
+      <p className="m-0 flex min-w-0 flex-wrap items-center gap-2">
+        <Badge verbatim>{row.locale}</Badge>
+        <span dir="ltr" className="min-w-0 font-mono text-sm wrap-anywhere text-foreground">
+          {row.key}
+        </span>
+        <Badge tone={row.view.tone} verbatim>
+          {row.view.label}
+        </Badge>
+      </p>
+      {row.view.note !== "" ? (
+        <p className="m-0 mt-1 text-sm text-muted-foreground">{row.view.note}</p>
+      ) : null}
+      {keyedDetails(row.view.details).map((detail) => (
+        <TranslationValue
+          key={detail.key}
+          value={detail.text}
+          locale={row.locale}
+          className="mt-1 block text-sm text-danger wrap-anywhere"
+          data-replace-detail=""
+        />
+      ))}
+    </div>
+  );
+}
+
+function NotSentItem({ entry }: { readonly entry: ValueReplacePreviewEntry }): ReactNode {
+  return (
+    <div data-replace-not-sent-entry="" data-locale={entry.locale}>
+      <p className="m-0 flex min-w-0 flex-wrap items-center gap-2">
+        <Badge verbatim>{entry.locale}</Badge>
+        <span dir="ltr" className="min-w-0 font-mono text-sm wrap-anywhere text-foreground">
+          {entry.key}
+        </span>
+        <Badge tone={statusTone(entry.status)} verbatim>
+          {STATUS_LABEL[entry.status]}
+        </Badge>
+      </p>
+      <p className="m-0 mt-1 text-sm text-muted-foreground">{statusNote(entry.status)}</p>
+    </div>
+  );
+}
+
 export function ReplaceResultStep({
   result,
+  notSent,
+  truncated,
   onSearchAgain,
   onClose,
 }: {
   readonly result: ApplyValueReplaceResult;
+  readonly notSent: readonly ValueReplacePreviewEntry[];
+  readonly truncated: boolean;
   readonly onSearchAgain: () => void;
   readonly onClose: () => void;
 }): ReactNode {
-  const [shown, setShown] = useState(PAGE_SIZE);
   const rows = outcomeRows(result.outcomes);
   const replaced = replacedCount(result.outcomes);
+  const previewed = rows.length + notSent.length;
   return (
     <div data-replace-step="result">
-      <p className="m-0 mb-3 text-sm text-foreground" role="status" data-replace-summary="">
-        {replaced} of {valueCount(rows.length)} replaced.
-      </p>
+      <ReplaceLead>
+        <span data-replace-summary="">
+          {replaced} of {valueCount(rows.length)} replaced.
+        </span>
+        {notSent.length > 0 ? (
+          <span data-replace-accounting="">
+            {" "}
+            The preview listed {valueCount(previewed)}; {notSent.length}{" "}
+            {notSent.length === 1 ? "was" : "were"} not sent.
+          </span>
+        ) : null}
+      </ReplaceLead>
+      {truncated ? (
+        <p className="m-0 mb-3 text-sm text-warning" data-replace-truncated="">
+          {TRUNCATED_NOTICE}
+        </p>
+      ) : null}
       <LocaleFailures result={result} />
-      <ul className="m-0 mb-4 list-none space-y-2 p-0" data-replace-outcomes="">
-        {rows.slice(0, shown).map((row) => (
-          <li
-            key={`${row.locale}\u0000${row.key}`}
-            className="min-w-0 rounded-lg border border-border p-3"
-            data-replace-outcome=""
-            data-locale={row.locale}
-          >
-            <p className="m-0 flex min-w-0 flex-wrap items-center gap-2">
-              <Badge verbatim>{row.locale}</Badge>
-              <span dir="ltr" className="min-w-0 font-mono text-sm wrap-anywhere text-foreground">
-                {row.key}
-              </span>
-              <Badge tone={row.view.tone} wrap verbatim>
-                {row.view.label}
-              </Badge>
-            </p>
-            {row.view.details.map((detail) => (
-              <p key={detail} className="m-0 mt-1 text-sm text-danger wrap-anywhere">
-                {detail}
-              </p>
-            ))}
-          </li>
-        ))}
-      </ul>
-      {shown < rows.length ? (
-        <Button size="sm" className="mb-4" onClick={() => setShown(shown + PAGE_SIZE)}>
-          Show {Math.min(PAGE_SIZE, rows.length - shown)} more
-        </Button>
+      <ReplacePagedList
+        items={rows}
+        itemKey={(row) => `${row.locale}\u0000${row.key}`}
+        render={(row) => <OutcomeItem row={row} />}
+        listAttribute="data-replace-outcomes"
+      />
+      {notSent.length > 0 ? (
+        <section className="mb-4" data-replace-not-sent="">
+          <h3 className="m-0 mb-2 text-sm font-medium text-foreground">
+            Not sent ({notSent.length})
+          </h3>
+          <ReplacePagedList
+            items={notSent}
+            itemKey={(entry) => `${entry.locale}\u0000${entry.key}`}
+            render={(entry) => <NotSentItem entry={entry} />}
+            listAttribute="data-replace-not-sent-list"
+          />
+        </section>
       ) : null}
       <span className="flex flex-wrap items-center gap-3">
         <Button variant="primary" size="md" onClick={onClose} data-replace-done="">
