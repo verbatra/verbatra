@@ -1,4 +1,4 @@
-import type { IntegrityGateReason, ReviewReasonCode } from "@verbatra/sdk";
+import type { IntegrityGateReason, ReviewReasonCode, UsageSummary } from "@verbatra/sdk";
 import { z } from "zod";
 
 export const RETRANSLATE_ENTRY_METHOD = "translation.retranslateEntry";
@@ -20,10 +20,12 @@ export type RetranslateEntryResult =
       readonly accepted: true;
       readonly value: string;
       readonly reviewReasons: readonly ReviewReasonCode[];
+      readonly usage?: UsageSummary;
     }
   | {
       readonly accepted: false;
       readonly reason: IntegrityGateReason;
       readonly details?: readonly string[];
       readonly value: string;
+      readonly usage?: UsageSummary;
     };

@@ -193,9 +193,10 @@ function retranslateEntry(
 
 **Example:** [Edit and retranslate a single key](/docs/programmatic-api#edit-and-retranslate-a-single-key)
 
-Returns `{ accepted: true, value, reviewReasons }` (the review reason codes of the new value) or
-the refusal `editEntry` returns. Unlike `translate`, a provider failure here throws: a `ProviderError`, exported from `@verbatra/sdk`,
-with a stable `code` such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: { id: "none" }` it throws `MACHINE_TRANSLATION_DISABLED` first, before reading or locking anything.
+<AvailableFrom version="0.13.0" />
+
+Returns `{ accepted: true, value, reviewReasons }` or the refusal `editEntry` returns, either with `usage`, the provider's token counts when it reports them. Unlike `translate`, a provider failure here throws: a `ProviderError`
+with a stable `code` such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: { id: "none" }` it throws `MACHINE_TRANSLATION_DISABLED` first.
 
 The new value is recorded in `verbatra.provenance.json` as `machine`, with the `id` of the provider
 that answered and the configured model. A provider from your own `createProvider` is recorded

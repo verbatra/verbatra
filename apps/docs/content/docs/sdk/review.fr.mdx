@@ -173,7 +173,9 @@ function retranslateEntry(
 
 **Exemple :** [Modifier et retraduire une seule clé](/fr/docs/programmatic-api#modifier-et-retraduire-une-seule-clé)
 
-Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de relecture de la nouvelle valeur) ou le refus que renvoie `editEntry`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError`, exportée depuis `@verbatra/sdk`, avec un `code` stable comme `RATE_LIMITED` ou `AUTH_FAILED`. Sous `provider: { id: "none" }`, il lève d'abord `MACHINE_TRANSLATION_DISABLED`, avant de lire ou de verrouiller quoi que ce soit.
+<AvailableFrom version="0.13.0" />
+
+Renvoie `{ accepted: true, value, reviewReasons }` ou le refus que renvoie `editEntry`, chacun avec `usage`, les nombres de tokens du fournisseur quand il les indique. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError`, exportée depuis `@verbatra/sdk`, avec un `code` stable comme `RATE_LIMITED` ou `AUTH_FAILED`. Sous `provider: { id: "none" }`, il lève d'abord `MACHINE_TRANSLATION_DISABLED`, avant de lire ou de verrouiller quoi que ce soit.
 
 La nouvelle valeur est enregistrée dans `verbatra.provenance.json` comme `machine`, avec l'`id` du fournisseur qui a répondu et le modèle configuré. Un fournisseur issu de ton propre `createProvider` est enregistré sous son propre `id`, et sans le modèle quand cet `id` diffère de celui configuré. Un fichier de provenance corrompu lève `PROVENANCE_FILE_INVALID` avant l'appel au fournisseur.
 

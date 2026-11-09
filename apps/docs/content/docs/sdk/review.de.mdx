@@ -197,8 +197,9 @@ function retranslateEntry(
 
 **Beispiel:** [Einen einzelnen Key bearbeiten und neu übersetzen](/de/docs/programmatic-api#einen-einzelnen-key-bearbeiten-und-neu-übersetzen)
 
-Gibt `{ accepted: true, value, reviewReasons }` zurück (die Review-Grund-Codes des neuen Werts)
-oder die Ablehnung, die `editEntry` liefert. Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError`, exportiert aus
+<AvailableFrom version="0.13.0" />
+
+Gibt `{ accepted: true, value, reviewReasons }` oder die Ablehnung, die `editEntry` liefert, zurück, jeweils mit `usage`, den Token-Zahlen des Providers, sofern er sie meldet. Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError`, exportiert aus
 `@verbatra/sdk`, mit einem stabilen `code` wie `RATE_LIMITED` oder `AUTH_FAILED`. Unter `provider: { id: "none" }` wirft es zuerst `MACHINE_TRANSLATION_DISABLED`, bevor es irgendetwas liest oder sperrt.
 
 Der neue Wert wird in `verbatra.provenance.json` als `machine` festgehalten, mit der `id` des

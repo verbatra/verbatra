@@ -183,6 +183,7 @@ export function makeContext(overrides: Partial<McpToolContext> = {}): McpToolCon
 export interface StubProviderOptions {
   readonly translate?: (value: string, key: string, targetLocale: string) => string;
   readonly error?: Error;
+  readonly usage?: { readonly inputTokens: number; readonly outputTokens: number };
 }
 
 export function makeStubProvider(options: StubProviderOptions = {}): TranslationProvider {
@@ -201,7 +202,12 @@ export function makeStubProvider(options: StubProviderOptions = {}): Translation
         values.set(entry.key, translate(entry.value, entry.key, request.targetLocale));
         integrity.set(entry.key, { matches: true, missing: [], extra: [], reordered: false });
       }
-      return { values, integrity, notices: [] };
+      return {
+        values,
+        integrity,
+        notices: [],
+        ...(options.usage !== undefined ? { usage: options.usage } : {}),
+      };
     },
   };
 }
