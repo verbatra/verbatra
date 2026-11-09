@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { RpcCallResult, RpcClient } from "../client/rpc-client.js";
@@ -557,6 +559,24 @@ describe("registerAgentTools tool descriptions", () => {
     expect(description).toContain("spends no provider budget");
     expect(description).toContain("always registered");
     expect(description).toContain("never gated behind the spend flag");
+  });
+
+  it("gives the run history tool the limits and the coverage reading the sdk and the mcp tool give", async () => {
+    const description = (await describedTools()).get("usage.history") ?? "";
+    const sdk = (path: string, name: string): string | undefined =>
+      new RegExp(`export const ${name} = (\\d+);`).exec(
+        readFileSync(fileURLToPath(new URL(`../../../sdk/src/${path}`, import.meta.url)), "utf8"),
+      )?.[1];
+
+    expect(description).toContain(
+      `${sdk("flow/run-history.ts", "RUN_HISTORY_DEFAULT_LIMIT")} by default and at most ${sdk("flow/run-history.ts", "RUN_HISTORY_MAX_LIMIT")}`,
+    );
+    expect(description).toContain(
+      `newest ${sdk("run-history/run-history-file.ts", "MAX_RUN_HISTORY_RECORDS")} records`,
+    );
+    expect(description).toContain("A locale without coverage was not measured in that run");
+    expect(description).toContain("coverageUnavailable");
+    expect(description).toContain("localesOmitted");
   });
 
   it("has every read-only tool say that it calls no provider", async () => {

@@ -271,12 +271,14 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
   },
   [USAGE_HISTORY_METHOD]: {
     description:
-      "Reads the local run history: one record per finished translate, watch, translate-pending or retranslation run that left a trace, newest first, with when it ran, what triggered it, the provider and model, the tokens it used, what it cost, and per locale the counts of translated keys, cache hits, integrity refusals and provider failures, plus how many keys were missing, stale or up to date afterwards. " +
+      "Reads the local run history: one record per finished translate, watch, translate-pending or retranslation run that left a trace, failed and refused runs included, newest first, with when it ran, what triggered it, the provider and model, the tokens it used, what it cost, and per locale the counts of translated keys, cache hits, fuzzy hits, generated plural forms, pruned keys, integrity refusals and provider failures, plus how many keys were missing, stale or up to date afterwards. " +
       "Use it to report spend and coverage over time, where verbatra_usage_summary only reports the last run. " +
       "Do not read a cost without its pricing: only priced carries an amount, while no-rate-on-file, rate-unit-mismatch, no-usage and not-billed carry none and must be reported as no rate, unknown or not billed, never as free. " +
       "A cost with basis source-characters is an estimate from the source characters sent to a machine-translation provider that reports no usage, and a priced cost with the caveat USAGE_PARTIAL is a lower bound, so say estimated and at least. " +
-      "The optional `limit` parameter says how many of the newest records to return, a larger value is reduced to the most the server allows. " +
-      "The result also counts the lines that could not be read as unreadableRecords and sets unavailable when the whole file could not be read, so an empty list is then not proof that no run happened. " +
+      "A locale without coverage was not measured in that run, never zero missing: a record with coverageUnavailable had its coverage check fail, so no locale in it carries coverage, and localesOmitted counts the locales left out of a record to keep it small. " +
+      "Dry runs and runs that left no trace are not recorded, and the file keeps the newest 1000 records. " +
+      "The optional `limit` parameter says how many of the newest records to return: 50 by default and at most 200, a larger value is reduced to that. " +
+      "The result counts every readable record as total and the lines that could not be read as unreadableRecords, and sets unavailable when the whole file could not be read, so an empty list is then not proof that no run happened. " +
       "Records hold counts only, never a key name or a text. Read-only: it calls no provider and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: false,
