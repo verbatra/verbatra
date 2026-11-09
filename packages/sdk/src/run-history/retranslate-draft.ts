@@ -50,21 +50,19 @@ export async function recordRetranslations(
   deps: { readonly fs?: SdkFs; readonly adapterRegistry?: AdapterRegistry },
   spends: readonly RetranslateSpend[],
 ): Promise<void> {
-  try {
-    const draft = draftFromSpends(spends);
-    if (draft === undefined) {
-      return;
-    }
-    await recordRunHistory(
-      {
-        config: input.config,
-        cwd: projectCwd(input),
-        fs: deps.fs ?? defaultFs,
-        adapterRegistry: deps.adapterRegistry,
-      },
-      draft,
-    );
-  } catch {}
+  const draft = draftFromSpends(spends);
+  if (draft === undefined) {
+    return;
+  }
+  await recordRunHistory(
+    {
+      config: input.config,
+      cwd: projectCwd(input),
+      fs: deps.fs ?? defaultFs,
+      adapterRegistry: deps.adapterRegistry,
+    },
+    draft,
+  );
 }
 
 export function draftFromSpends(spends: readonly RetranslateSpend[]): RunDraft | undefined {

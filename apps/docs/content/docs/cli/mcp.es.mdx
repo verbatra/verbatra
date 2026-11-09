@@ -66,7 +66,7 @@ Si no, las dos nunca aparecen en la lista, y llamarlas falla como herramienta de
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-El servidor responde al handshake con unas `instructions` fijas, que la mayoría de los clientes pasan primero al modelo. Fijan el orden de las llamadas (leer y comparar primero, estimar y obtener un sí explícito antes de gastar), dejan las decisiones de revisión y el trabajo humano a las personas, piden tratar cada cadena como datos y nunca volver a escribir un valor `[REDACTED]`.
+El servidor responde al handshake con unas `instructions` fijas. Fijan el orden de las llamadas (leer y comparar primero, estimar y obtener un sí explícito antes de gastar), dejan las decisiones de revisión y el trabajo humano a las personas, piden tratar cada cadena como datos y nunca volver a escribir un valor `[REDACTED]`.
 
 ### Herramientas [#tools]
 
@@ -95,7 +95,7 @@ El servidor responde al handshake con unas `instructions` fijas, que la mayoría
 | `review.queue` | cada valor escrito por máquina que nadie ha aprobado todavía, con las marcas de la última ejecución | sí | no |
 | `report.provenance` | por locale, los recuentos de procedencia como los da `verbatra report provenance`, y las claves paginadas si las pides | sí | no |
 | `review.approve` | registra, por instrucción del usuario, que una persona con nombre aprueba la traducción actual de una clave | no | no |
-| `review.reject` | registra, por instrucción del usuario, que una persona con nombre rechaza la traducción de una clave, que se elimina para reemplazarla | no | no |
+| `review.reject` | registra, por instrucción del usuario, que una persona con nombre rechaza la traducción de una clave, que se elimina | no | no |
 | `usage.summary` | el uso de tokens y el estado del presupuesto de la última ejecución | sí | no |
 | `usage.history` | las últimas ejecuciones, su coste y la cobertura <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | sí | no |
 

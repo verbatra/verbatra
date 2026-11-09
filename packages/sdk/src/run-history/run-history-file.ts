@@ -92,12 +92,27 @@ export async function readRunHistoryFile(path: string, fs: SdkFs): Promise<RunHi
   return text === undefined ? emptyRead("not-utf8") : parseLines(text);
 }
 
+function withinFileBound(lines: readonly string[]): readonly string[] {
+  let total = lines.reduce((sum, line) => sum + Buffer.byteLength(line) + 1, 0);
+  let dropped = 0;
+  while (total > MAX_RUN_HISTORY_FILE_BYTES && dropped < lines.length - 1) {
+    total -= Buffer.byteLength(lines[dropped] ?? "") + 1;
+    dropped += 1;
+  }
+  return lines.slice(dropped);
+}
+
 export async function appendRunHistoryRecord(
   cwd: string,
   fs: SdkFs,
-  record: RunHistoryRecordParsed,
+  candidate: RunHistoryRecordParsed,
   acquireTimeoutMs: number = RUN_HISTORY_ACQUIRE_TIMEOUT_MS,
 ): Promise<void> {
+  const parsed = runHistoryRecordSchema.safeParse(candidate);
+  if (!parsed.success) {
+    throw new Error("The run history record does not match its own schema.");
+  }
+  const record = parsed.data;
   const path = runHistoryFilePath(cwd);
   await withLockFileGuard(
     cwd,
@@ -105,7 +120,7 @@ export async function appendRunHistoryRecord(
     async () => {
       const existing = await readRunHistoryFile(path, fs);
       const kept = existing.records.slice(-(MAX_RUN_HISTORY_RECORDS - 1));
-      const lines = [...kept.map(fitRecord), fitRecord(record)];
+      const lines = withinFileBound([...kept.map(fitRecord), fitRecord(record)]);
       await fs.mkdir?.(dirname(path));
       await fs.writeFile(path, `${lines.join("\n")}\n`);
     },

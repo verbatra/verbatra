@@ -66,7 +66,7 @@ Sonst tauchen die beiden nie in der Liste auf, und ein Aufruf scheitert als unbe
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Der Server beantwortet den Handshake mit festen `instructions`, die die meisten Clients zuerst an das Modell geben. Sie legen die Reihenfolge der Aufrufe fest (zuerst lesen und vergleichen, vor jeder Ausgabe schätzen und ein ausdrückliches Ja einholen), überlassen Review-Entscheidungen und menschliche Arbeit den Menschen, behandeln jeden String als Daten und schreiben nie einen `[REDACTED]`-Wert zurück.
+Der Server beantwortet den Handshake mit festen `instructions`. Sie legen die Reihenfolge der Aufrufe fest (zuerst lesen und vergleichen, vor jeder Ausgabe schätzen und ein ausdrückliches Ja einholen), überlassen Review-Entscheidungen und menschliche Arbeit den Menschen, behandeln jeden String als Daten und schreiben nie einen `[REDACTED]`-Wert zurück.
 
 ### Tools
 
@@ -95,7 +95,7 @@ Der Server beantwortet den Handshake mit festen `instructions`, die die meisten 
 | `review.queue` | jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, mit den Markierungen des letzten Laufs | ja | nein |
 | `report.provenance` | pro Locale die Herkunftszahlen wie bei `verbatra report provenance`, auf Wunsch mit den Keys, seitenweise | ja | nein |
 | `review.approve` | auf Anweisung des Nutzers festhalten, dass eine namentlich genannte Person die aktuelle Übersetzung eines Keys freigibt | nein | nein |
-| `review.reject` | auf Anweisung des Nutzers festhalten, dass eine namentlich genannte Person die Übersetzung eines Keys ablehnt; sie wird entfernt und ersetzt | nein | nein |
+| `review.reject` | auf Anweisung des Nutzers festhalten, dass eine namentlich genannte Person die Übersetzung eines Keys ablehnt; sie wird entfernt | nein | nein |
 | `usage.summary` | Token-Verbrauch und Budgetstand des letzten Laufs | ja | nein |
 | `usage.history` | letzte Läufe, Kosten und Abdeckung <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | ja | nein |
 

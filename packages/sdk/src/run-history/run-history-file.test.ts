@@ -292,6 +292,50 @@ describe("appendRunHistoryRecord", () => {
     expect((await readBack(dir)).records).toHaveLength(0);
   });
 
+  it("drops the oldest records so the file it writes stays under the read cap", async () => {
+    const locale = makeRunHistoryRecord().locales[0];
+    if (locale === undefined) {
+      throw new Error("fixture has no locale");
+    }
+    const many = Array.from({ length: 260 }, (_, index) => ({ ...locale, locale: `l${index}` }));
+    const big = (entries: number) => makeRunHistoryRecord({ locales: many, entries });
+    const lineBytes = Buffer.byteLength(serializeRunHistoryRecord(big(0))) + 1;
+    const fits = Math.floor(MAX_RUN_HISTORY_FILE_BYTES / lineBytes) - 1;
+    const dir = await project(
+      `${Array.from({ length: fits }, (_, i) => serializeRunHistoryRecord(big(i))).join("\n")}\n`,
+    );
+    expect((await readBack(dir)).records).toHaveLength(fits);
+
+    await appendRunHistoryRecord(dir, defaultFs, big(fits));
+    await appendRunHistoryRecord(dir, defaultFs, big(fits + 1));
+
+    const text = await readFile(runHistoryFilePath(dir), "utf8");
+    expect(Buffer.byteLength(text)).toBeLessThanOrEqual(MAX_RUN_HISTORY_FILE_BYTES);
+    const read = await readBack(dir);
+    expect(read.unavailable).toBeUndefined();
+    expect(read.unreadableRecords).toBe(0);
+    expect(read.records.at(-1)?.entries).toBe(fits + 1);
+    expect(read.records.length).toBeGreaterThan(fits - 5);
+  });
+
+  it("refuses to write a record its own reader would reject", async () => {
+    const dir = await project();
+    const bad = makeRunHistoryRecord({
+      cost: {
+        pricing: "priced",
+        basis: "usage",
+        rateKey: "anthropic/m",
+        currency: "usd",
+        asOf: "2026-11-01",
+        amount: 1,
+      },
+    });
+
+    await expect(appendRunHistoryRecord(dir, defaultFs, bad)).rejects.toThrow("schema");
+
+    await expect(readFile(runHistoryFilePath(dir))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("trims locales to fit a record into 16 KiB and says how many it left out", async () => {
     const dir = await project();
     const locale = makeRunHistoryRecord().locales[0];

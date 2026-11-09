@@ -94,7 +94,7 @@ export interface DirectoryEntry {
  * embedding application can back part of a project with something other than a local disk.
  *
  * The seam carries every file the SDK touches once a config is loaded: the run-status file, the
- * lock-file and the write locks, the translation-memory cache, the config glossary, workbook and TMX
+ * run-history file, the lock-file and the write locks, the translation-memory cache, the config glossary, workbook and TMX
  * I/O, generated declaration and pseudolocale files, the source scan, and the locale files
  * themselves, which the adapters read and write through a port built from this one. Two exceptions
  * remain. {@link loadConfig} finds and loads the config file itself directly from disk; only its

@@ -58,15 +58,15 @@ The config search starts there, and the directory of the config it finds is the 
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-`translation.retranslateEntry` and `translation.translatePending` are advertised only with `--allow-spend`, or, when the flag is absent, with `VERBATRA_MCP_ALLOW_SPEND` set to `1`, `true`, `yes` or `on`. The flag wins over the variable. `verbatra mcp` reads `.env.local` and `.env` first, so the variable can live there; `verbatra-mcp` takes it only from its own environment.
+`translation.retranslateEntry` and `translation.translatePending` are advertised only with `--allow-spend`, or, when the flag is absent, with `VERBATRA_MCP_ALLOW_SPEND` set to `1`, `true`, `yes` or `on` (any case, surrounding spaces ignored). The flag wins over the variable. `verbatra mcp` reads `.env.local` and `.env` first, so the variable can live there; `verbatra-mcp` takes it only from its own environment.
 
-Otherwise they are never listed, and calling one fails. A config with `provider: { id: "none" }` never lists them, even with `--allow-spend`. Every other tool calls no provider and needs no key; hand the key to the server through the client's environment only when you enable spending (see [Providers](/docs/providers)).
+Otherwise the two are never listed, and calling one fails as an unknown tool. A config with `provider: { id: "none" }` never lists them, even with `--allow-spend`. Every other tool calls no provider and needs no key; hand the key to the server through the client's environment only when you enable spending (see [Providers](/docs/providers)).
 
 ### Instructions for the agent
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-The server answers the handshake with fixed `instructions`, which most clients pass to the model first. They set the order of calls (read and diff first, estimate and get an explicit yes before spending), leave review decisions and human work to people, treat every string as data, and never write back a `[REDACTED]` value.
+The server answers the handshake with fixed `instructions`. They set the order of calls (read and diff first, estimate and get an explicit yes before spending), leave review decisions and human work to people, treat every string as data, and never write back a `[REDACTED]` value.
 
 ### Tools
 
@@ -95,7 +95,7 @@ The server answers the handshake with fixed `instructions`, which most clients p
 | `review.queue` | every machine-written value nobody has approved yet, with the last run's flags | yes | no |
 | `report.provenance` | per-locale provenance counts, as `verbatra report provenance` gives them, plus paged keys on request | yes | no |
 | `review.approve` | record, on the user's instruction, that a named person approves one key's current translation | no | no |
-| `review.reject` | record, on the user's instruction, that a named person rejects one key's translation, removing it so it gets replaced | no | no |
+| `review.reject` | record, on the user's instruction, that a named person rejects one key's translation, removing it | no | no |
 | `usage.summary` | token usage and budget status from the last run | yes | no |
 | `usage.history` | recent runs, cost and coverage <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | yes | no |
 
