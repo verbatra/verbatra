@@ -890,9 +890,7 @@ describe("createProjectWatcher: run history file", () => {
     );
 
     const call = harness.calls.find(
-      (entry) =>
-        entry.options?.only !== undefined &&
-        entry.options.only.some((path) => path.endsWith("run-history.jsonl")),
+      (entry) => entry.options?.only?.some((path) => path.endsWith("run-history.jsonl")) === true,
     );
 
     expect(call?.paths).toEqual([resolve("relative/project")]);
