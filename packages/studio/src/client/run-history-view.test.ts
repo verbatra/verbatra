@@ -73,7 +73,7 @@ describe("describeCost", () => {
     });
 
     expect(missing).toMatchObject({ kind: "no-rate", label: "no rate", amount: undefined });
-    expect(missing.hint).toBe("No rate is on file for openai/x.");
+    expect(missing.hint).toBe("No rate was on file for openai/x when the run ended.");
     expect(mismatch).toMatchObject({ kind: "no-rate", label: "no rate" });
     expect(mismatch.hint).toContain("different unit");
   });

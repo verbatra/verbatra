@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import type { RunHistoryCost } from "@verbatra/sdk";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { localeEntry, PRICED, recordAt } from "../client/run-history-test-support.js";
 import type { RunHistoryData } from "../client/run-history-view.js";
 import type { RefreshableView } from "../client/state.js";
-import { INITIAL_RUN_ROWS, RunHistorySection } from "./RunHistorySection.js";
+import { CostNotes, INITIAL_RUN_ROWS, RunHistorySection, Trends } from "./RunHistorySection.js";
 import { click, render } from "./test-support.js";
 
 function data(
@@ -145,7 +145,7 @@ describe("RunHistorySection cost states", () => {
     {
       name: "no rate",
       cost: { pricing: "no-rate-on-file", basis: "usage", rateKey: "openai/x" },
-      shows: ["no rate", "No rate is on file for openai/x."],
+      shows: ["no rate", "No rate was on file for openai/x when the run ended."],
     },
     {
       name: "no usage",
@@ -705,10 +705,10 @@ describe("RunHistorySection round 3", () => {
     const items = [...notes.querySelectorAll("li")].map((item) => item.textContent);
 
     expect(items).toEqual([
-      "No rate: your config has no rate on file for that provider and model. Add one under rates to price these runs.",
-      "No rate: the rate on file for that model is in a different unit than the run was measured in, tokens or characters. Correct the unit under rates.",
+      "No rate: your config had no rate on file for that provider and model when the run ended. A rate added under rates prices future runs, not these.",
+      "No rate: the rate on file for that model was in a different unit than the run was measured in, tokens or characters, when the run ended. A corrected unit under rates prices future runs, not these.",
       "Unknown: keys were sent, but the provider reported no tokens, so no cost can be worked out.",
-      "Not billed: a self-hosted provider, or none, so no API bills for the run.",
+      "Not billed: verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
     ]);
   });
 
@@ -717,7 +717,7 @@ describe("RunHistorySection round 3", () => {
     const items = [...view.all("[data-run-history-cost-notes] li")].map((item) => item.textContent);
 
     expect(items).toEqual([
-      "Not billed: a self-hosted provider, or none, so no API bills for the run.",
+      "Not billed: verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
     ]);
   });
 
@@ -876,5 +876,69 @@ describe("RunHistorySection coverage", () => {
     const view = section(data([recordAt(T1, { locales: [] })]));
 
     expect(view.text()).toContain("No coverage was measured in these runs.");
+  });
+});
+
+describe("RunHistorySection edges", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("makes both tables focusable only when they overflow their card", () => {
+    const records = [
+      recordAt(T1, {
+        locales: [localeEntry("de", { coverage: { missing: 0, stale: 0, upToDate: 1 } })],
+      }),
+    ];
+    const fits = section(data(records));
+    vi.spyOn(Element.prototype, "scrollWidth", "get").mockReturnValue(600);
+    const overflowing = section(data(records));
+
+    expect(fits.get('[aria-label="Recorded runs"]').getAttribute("tabindex")).toBeNull();
+    expect(
+      fits.get('[aria-label="Coverage after the last measured run"]').getAttribute("tabindex"),
+    ).toBeNull();
+    expect(overflowing.get('[aria-label="Recorded runs"]').getAttribute("tabindex")).toBe("0");
+    expect(
+      overflowing
+        .get('[aria-label="Coverage after the last measured run"]')
+        .getAttribute("tabindex"),
+    ).toBe("0");
+  });
+
+  it("says runs in more than one other currency in the plural", () => {
+    const eur = { ...PRICED, currency: "EUR" } as RunHistoryCost;
+    const view = section(
+      data([
+        recordAt(T4, { cost: eur }),
+        recordAt(T3, { cost: eur }),
+        recordAt(T2),
+        recordAt(T1),
+        recordAt("2026-06-30T10:00:00.000Z"),
+      ]),
+    );
+
+    expect(view.text()).toContain("2 runs in another currency are not drawn.");
+  });
+
+  it("lists each rate on file once, separated, when runs were priced from more than one", () => {
+    const view = section(
+      data([
+        recordAt(T2, { cost: { ...PRICED, rateKey: "openai/gpt-x" } as RunHistoryCost }),
+        recordAt(T1),
+      ]),
+    );
+    const note = view.get("[data-run-history-cost-notes] li").textContent;
+
+    expect(note).toContain("openai/gpt-x as of 2026-01-01, anthropic/claude-sonnet-5-5 as of");
+  });
+
+  it("renders no cost notes and a trend without a span for an empty list of runs", () => {
+    const notes = render(<CostNotes records={[]} />);
+    const trends = render(<Trends records={[]} />);
+
+    expect(notes.query("[data-run-history-cost-notes]")).toBeNull();
+    expect(trends.query("time")).toBeNull();
+    expect(trends.all("figure")).toHaveLength(2);
   });
 });

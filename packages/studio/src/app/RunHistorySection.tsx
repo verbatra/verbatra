@@ -179,15 +179,20 @@ const UNPRICED_ORDER: readonly UnpricedKind[] = [
 
 const UNPRICED_NOTE: Readonly<Record<UnpricedKind, string>> = {
   "no-rate-on-file":
-    "No rate: your config has no rate on file for that provider and model. Add one under rates to price these runs.",
+    "No rate: your config had no rate on file for that provider and model when the run ended. A rate added under rates prices future runs, not these.",
   "rate-unit-mismatch":
-    "No rate: the rate on file for that model is in a different unit than the run was measured in, tokens or characters. Correct the unit under rates.",
+    "No rate: the rate on file for that model was in a different unit than the run was measured in, tokens or characters, when the run ended. A corrected unit under rates prices future runs, not these.",
   "no-usage":
     "Unknown: keys were sent, but the provider reported no tokens, so no cost can be worked out.",
-  "not-billed": "Not billed: a self-hosted provider, or none, so no API bills for the run.",
+  "not-billed":
+    "Not billed: verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
 };
 
-function CostNotes({ records }: { readonly records: readonly RunHistoryRecord[] }): ReactNode {
+export function CostNotes({
+  records,
+}: {
+  readonly records: readonly RunHistoryRecord[];
+}): ReactNode {
   const costs = records.map((record) => describeCost(record.cost));
   const rates = new Map<string, { readonly rateKey: string; readonly asOf: string }>();
   for (const { cost } of records) {
@@ -493,7 +498,7 @@ function CoverageTable({
   );
 }
 
-function Trends({ records }: { readonly records: readonly RunHistoryRecord[] }): ReactNode {
+export function Trends({ records }: { readonly records: readonly RunHistoryRecord[] }): ReactNode {
   const cost = costSeries(records);
   const tokens = tokenSeries(records);
   const chronological = [...records].reverse();
@@ -561,7 +566,7 @@ function Body({ data }: { readonly data: RunHistoryData }): ReactNode {
       {display.empty ? (
         <EmptyState icon="gauge" title="No runs recorded yet">
           A run that translates something, or one retranslation, appears here once it finishes. Dry
-          runs and runs that change nothing are not recorded.
+          runs and runs that leave no trace are not recorded.
         </EmptyState>
       ) : null}
       {display.records.length > 0 ? (

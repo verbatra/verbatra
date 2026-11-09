@@ -116,7 +116,7 @@ export function describeCost(cost: RunHistoryCost): CostDisplay {
       return {
         kind: "no-rate",
         label: "no rate",
-        hint: `No rate is on file for ${cost.rateKey}.`,
+        hint: `No rate was on file for ${cost.rateKey} when the run ended.`,
         caveats: partialTokenCaveats(cost),
         ...NO_AMOUNT,
       };
@@ -124,7 +124,7 @@ export function describeCost(cost: RunHistoryCost): CostDisplay {
       return {
         kind: "no-rate",
         label: "no rate",
-        hint: `The rate on file for ${cost.rateKey} is in a different unit than this run was measured in.`,
+        hint: `The rate on file for ${cost.rateKey} was in a different unit than this run was measured in when the run ended.`,
         caveats: partialTokenCaveats(cost),
         ...NO_AMOUNT,
       };
@@ -140,7 +140,7 @@ export function describeCost(cost: RunHistoryCost): CostDisplay {
       return {
         kind: "not-billed",
         label: "not billed",
-        hint: "A self-hosted provider, or none, so no API bills for the run.",
+        hint: "verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
         caveats: partialTokenCaveats(cost),
         ...NO_AMOUNT,
       };
