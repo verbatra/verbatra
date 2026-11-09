@@ -97,6 +97,7 @@ El servidor responde al handshake con unas `instructions` fijas, que la mayoría
 | `review.approve` | registra, por instrucción del usuario, que una persona con nombre aprueba la traducción actual de una clave | no | no |
 | `review.reject` | registra, por instrucción del usuario, que una persona con nombre rechaza la traducción de una clave, que se elimina para reemplazarla | no | no |
 | `usage.summary` | el uso de tokens y el estado del presupuesto de la última ejecución | sí | no |
+| `usage.history` | las últimas ejecuciones, su coste y la cobertura <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | sí | no |
 
 - **Una llamada a la vez.** Una segunda llamada a la misma herramienta para la misma entrada (`translation.editEntry`, `translation.retranslateEntry`), o una segunda ejecución de `translation.translatePending`, se rechaza con `isError` mientras la primera sigue en marcha.
 - **Trabajo humano.** `translation.retranslateEntry` rechaza una clave fijada con `KEY_PINNED` y, salvo con `humanEdits: "overwrite"`, el valor de una persona con `KEY_PROTECTED`; `translation.editEntry` rechaza una clave fijada. `translation.translatePending` lista esas claves en `protected`. Consulta [Proteger las traducciones humanas](/es/docs/protecting-human-translations).
@@ -109,7 +110,7 @@ El servidor responde al handshake con unas `instructions` fijas, que la mayoría
 
 - `status.check`, `status.diff` y `key.integrity` aceptan un array opcional `locales`; `key.integrity` también recibe la `key`.
 - `key.integrity` devuelve `{ locales: [{ locale, entries }] }`, cada entrada con `matches`, `missing`, `extra`, `icuValid`, `markupMatches` y sus detalles.
-- `translation.editEntry` recibe `locale`, `key` y un `value` de hasta 20.000 caracteres. Devuelve `{ accepted, value, reason?, details? }`, y `translation.retranslateEntry` lo mismo más `reviewReasons?`, donde `reason` es `placeholder`, `markup`, `icu`, `degenerate` o `empty`.
+- `translation.editEntry` recibe `locale`, `key` y un `value` de hasta 20.000 caracteres. Devuelve `{ accepted, value, reason?, details? }`, y `translation.retranslateEntry` lo mismo más `reviewReasons?` y `usage?`, donde `reason` es `placeholder`, `markup`, `icu`, `degenerate` o `empty`.
 - `glossary.write` necesita un glosario en archivo; si no, falla con `GLOSSARY_NOT_FILE_BACKED`.
 
 ### Más entradas y resultados

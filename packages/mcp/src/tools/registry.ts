@@ -19,6 +19,7 @@ import { reviewQueueTool } from "./review-queue.js";
 import { statusCheckTool } from "./status-check.js";
 import { statusDiffTool } from "./status-diff.js";
 import { translatePendingTool } from "./translate-pending.js";
+import { usageHistoryTool } from "./usage-history.js";
 import { usageSummaryTool } from "./usage-summary.js";
 
 const SPEND_TOOL_NAMES: ReadonlySet<string> = new Set([
@@ -50,6 +51,7 @@ const ALL_TOOLS_IN_ORDER: readonly RegisteredMcpTool[] = [
   reviewApproveTool,
   reviewRejectTool,
   usageSummaryTool,
+  usageHistoryTool,
 ];
 
 export function buildToolRegistry(allowSpend: boolean): readonly RegisteredMcpTool[] {

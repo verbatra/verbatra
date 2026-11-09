@@ -13,7 +13,7 @@ export const MCP_SERVER_INSTRUCTIONS = [
     "glossary.get lists the glossary terms, narrowed to one target locale when you pass locale. " +
     "translation.editEntry is free and passes the same integrity gate as a provider result; " +
     "a rejection comes back as accepted: false with a reason, and sending the identical value again is rejected again. " +
-    "4. Afterwards, review.queue lists every machine-written value no person has approved yet, and usage.summary reports what the last run consumed. " +
+    "4. Afterwards, review.queue lists every machine-written value no person has approved yet, and usage.summary reports what the last run consumed, while usage.history lists the recent runs with their cost and coverage. " +
     "report.provenance counts who wrote each value, history.list shows who last committed a change to a locale file, and history.keyRevisions shows how one key's value changed from commit to commit.",
   "Review decisions: review.approve and review.reject record a person's decision on one value in the committed " +
     "verbatra.provenance.json, under the reviewer name you pass. Call them only when the user has read the value " +
