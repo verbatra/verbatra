@@ -6,7 +6,7 @@ import { RunHistorySection } from "./RunHistorySection.js";
 import { render } from "./test-support.js";
 
 function sdkSource(path: string): string {
-  return readFileSync(join(process.cwd(), "..", "sdk", "src", path), "utf8");
+  return readFileSync(join(import.meta.dirname, "..", "..", "..", "sdk", "src", path), "utf8");
 }
 
 describe("the size limit the too-large notice names", () => {
