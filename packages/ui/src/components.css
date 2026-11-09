@@ -7,11 +7,6 @@
       0 8px 20px -10px var(--halo-strong);
   }
 
-  .vk-btn-primary:disabled {
-    box-shadow: none;
-    filter: grayscale(1);
-  }
-
   @media (hover: hover) {
     .vk-btn-primary:hover {
       box-shadow:
