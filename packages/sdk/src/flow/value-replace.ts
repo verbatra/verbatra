@@ -1,9 +1,9 @@
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
-import { SdkError } from "../errors.js";
+import { describeError, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
-import { createLocalePathResolver } from "../locale-path/resolver.js";
+import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import {
   assertLockAcquireTimeout,
   type LockWaitListener,
@@ -14,6 +14,7 @@ import {
 import { baselineFor, lockFilePath, readLockFile } from "../lock/lock-file.js";
 import { valueHash } from "../lock/provenance-file.js";
 import { assertProvenanceReadable } from "../lock/provenance-notice.js";
+import { projectRelativeMessage } from "../project-relative.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { applyEntryEdits, type EntryEdit, type EntryEditOutcome } from "./apply-entry-edits.js";
 import type { EditEntryActor } from "./edit-entry.js";
@@ -158,7 +159,18 @@ export type ValueReplaceSkipReason =
   | "protected"
   | "no-source-entry"
   | "unchanged"
-  | "duplicate-entry";
+  | "duplicate-entry"
+  | "locale-failed";
+
+/** A locale {@link applyValueReplace} could not finish. */
+export interface ValueReplaceLocaleFailure {
+  /** The locale that failed. */
+  readonly locale: string;
+  /** The failure's own code where it has one, and `LOCALE_FAILED` otherwise. */
+  readonly code: string;
+  /** What went wrong, with file paths relative to the project. Never carries a translation value. */
+  readonly message: string;
+}
 
 /** What {@link applyValueReplace} did with one entry. */
 export type ValueReplaceOutcome =
@@ -196,6 +208,8 @@ export interface ApplyValueReplaceResult {
   readonly outcomes: readonly ValueReplaceOutcome[];
   /** How many outcomes have each status. */
   readonly counts: Readonly<Record<ValueReplaceOutcome["status"], number>>;
+  /** The locales that failed, in the order they were processed. Empty when every locale finished. */
+  readonly localeFailures: readonly ValueReplaceLocaleFailure[];
 }
 
 function assertFindText(find: string): void {
@@ -367,6 +381,19 @@ export async function previewValueReplace(
   return { entries, truncated, counts };
 }
 
+function emptyApplyCounts(): Record<ValueReplaceOutcome["status"], number> {
+  return { applied: 0, skipped: 0, refused: 0, changed: 0 };
+}
+
+function localeFailureOf(locale: string, error: unknown, cwd: string): ValueReplaceLocaleFailure {
+  const described = describeError(error, "LOCALE_FAILED");
+  return {
+    locale,
+    code: described.code,
+    message: projectRelativeMessage(described.message, cwd),
+  };
+}
+
 interface IndexedRef {
   readonly index: number;
   readonly ref: ValueReplaceEntryRef;
@@ -377,6 +404,7 @@ interface ApplyContext {
   readonly cwd: string;
   readonly fs: SdkFs;
   readonly adapter: ReturnType<typeof selectAdapter>;
+  readonly resolver: LocalePathResolver;
   readonly criteria: ReplaceCriteria;
   readonly allow: ReplaceAllowance;
 }
@@ -436,9 +464,8 @@ async function applyLocaleInLock(
   refs: readonly IndexedRef[],
   results: ValueReplaceOutcome[],
 ): Promise<void> {
-  const { input, cwd, fs, adapter, criteria } = context;
+  const { input, cwd, fs, adapter, resolver, criteria } = context;
   const config = input.config;
-  const resolver = createLocalePathResolver(cwd, config);
   const target = await readTargetResource({ resolver, format: config.format, locale, adapter, fs });
   const source = await readSourceResource(config, resolver, fs, adapter);
   const baseline = baselineFor(await readLockFile(lockFilePath(cwd), fs), locale);
@@ -532,12 +559,21 @@ function markDuplicates(
  * value is not added to the translation memory. Every written value gets a fresh provenance
  * record with `actor` as its origin and no review decision, whatever it had before.
  *
- * A failure partway, such as `LOCK_CONTENDED` on a later locale, is thrown and leaves the locales
- * before it applied; preview again to see where things stand.
+ * A locale that fails does not stop the others. Failures that only one locale's own processing
+ * can cause, such as `LOCK_CONTENDED` when its write lock is not free within `lockAcquireTimeoutMs`,
+ * `TARGET_UNWRITABLE`, `LOCALE_STATE_NOT_CARRIED_OVER`, `RUN_CANCELLED`, or an `AdapterError` from
+ * its file, are recorded in `localeFailures`, and its entries that no check had settled yet come
+ * back `skipped` with the reason `locale-failed`. A locale that failed while writing may have
+ * changed its file before the failure was raised, so preview again before retrying it. The wait for
+ * the lock file's own guard uses the default of ten minutes, not `lockAcquireTimeoutMs`.
+ *
+ * Entries are grouped by locale in the order each locale first appears in `entries`. When the same
+ * `locale` and `key` appear more than once, the first one decides: it is processed whatever its
+ * `valueHash` is, and every later one is `skipped` with the reason `duplicate-entry`.
  *
  * @param input - The config, the find and replace text, the entries, and the actor.
  * @param deps - Optional adapter registry and file-system overrides.
- * @returns One outcome per entry, in order, and counts per status.
+ * @returns One outcome per entry, in order, counts per status, and the locales that failed.
  *
  * @throws {@link SdkError} `FIND_TEXT_INVALID`: `find` is empty or longer than 20,000 characters.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
@@ -548,23 +584,12 @@ function markDuplicates(
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
- * @throws {@link SdkError} `LOCK_CONTENDED`: a locale's write lock or the lock-file guard could not
- * be acquired before the timeout elapsed.
- * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call went
- * to take a write lock, so that lock was refused.
- * @throws {@link SdkError} `TARGET_UNWRITABLE`: a target locale file could not be written because
- * of a file-system failure.
- * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
- * of a locale could not be moved to it first, so nothing was written for that locale.
  * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
  * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
- * unsupported version.
+ * unsupported version. Checked before anything is written.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
  * structurally wrong. Checked before anything is written.
- * @throws `AdapterError`: the adapter itself refused a target locale file, on the read because it
- * is malformed or on the write because the entries cannot be represented in the configured format.
- * Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  *
  * @example
  * ```ts
@@ -590,37 +615,50 @@ export async function applyValueReplace(
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   selectLocales(config, [...new Set(input.entries.map((ref) => ref.locale))]);
+  if (input.entries.length === 0) {
+    return { outcomes: [], counts: emptyApplyCounts(), localeFailures: [] };
+  }
+  const resolver = createLocalePathResolver(cwd, config);
   const context: ApplyContext = {
     input,
     cwd,
     fs,
     adapter,
+    resolver,
     criteria: criteriaOf(input),
     allow: {
       pinned: input.includePinned === true && input.actor === "human",
       protected: input.includeProtected === true,
     },
   };
+  await readSourceResource(config, resolver, fs, adapter);
+  await readLockFile(lockFilePath(cwd), fs);
+  await assertProvenanceReadable(cwd, fs);
 
   const groups = groupByLocale(input.entries);
   const results: ValueReplaceOutcome[] = [];
   markDuplicates(input.entries, results, groups);
-  if (input.entries.length > 0) {
-    await assertProvenanceReadable(cwd, fs);
-  }
+  const localeFailures: ValueReplaceLocaleFailure[] = [];
   for (const [locale, refs] of groups) {
-    await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
-    await withLocaleWriteLock(
-      cwd,
-      writeLockKeyFor(config.format, locale),
-      fs,
-      () => applyLocaleInLock(context, locale, refs, results),
-      writeLockOptions(input),
-    );
+    try {
+      await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
+      await withLocaleWriteLock(
+        cwd,
+        writeLockKeyFor(config.format, locale),
+        fs,
+        () => applyLocaleInLock(context, locale, refs, results),
+        writeLockOptions(input),
+      );
+    } catch (error) {
+      localeFailures.push(localeFailureOf(locale, error, cwd));
+      for (const { index, ref } of refs) {
+        results[index] ??= skipped(ref, "locale-failed");
+      }
+    }
   }
-  const counts = { applied: 0, skipped: 0, refused: 0, changed: 0 };
+  const counts = emptyApplyCounts();
   for (const outcome of results) {
     counts[outcome.status] += 1;
   }
-  return { outcomes: results, counts };
+  return { outcomes: results, counts, localeFailures };
 }

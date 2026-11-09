@@ -601,6 +601,7 @@ export {
   previewValueReplace,
   type ValueReplaceDeps,
   type ValueReplaceEntryRef,
+  type ValueReplaceLocaleFailure,
   type ValueReplaceOutcome,
   type ValueReplacePreview,
   type ValueReplacePreviewEntry,

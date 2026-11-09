@@ -714,6 +714,7 @@ describe("applyValueReplace: writes", () => {
     expect(result).toEqual({
       outcomes: [],
       counts: { applied: 0, skipped: 0, refused: 0, changed: 0 },
+      localeFailures: [],
     });
     expect(await defaultFs.fileExists(join(p.dir, "verbatra.lock.json"))).toBe(false);
   });
