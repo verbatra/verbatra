@@ -23,8 +23,7 @@ Open the URL it prints, token included; stop Studio with Ctrl+C. [`verbatra stud
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Translations is one table of every key that needs attention: missing, changed, orphaned, protected, in the review queue or failing an integrity check. Each row shows the key, source text and a status per locale; pick a locale for translation, status and origin. Search also finds in-sync keys.
-
+Translations is one table of every key that needs attention: missing, changed, orphaned, protected, in the review queue or failing an integrity check. Each row shows the key, source text and a status per locale; pick a locale for translation, status and origin.
 ### Key details
 
 Click a key to open its editor, which lists each locale's value with an integrity indicator: placeholders match, a mismatch with the tokens named, or invalid message syntax. Also shown:
@@ -55,13 +54,13 @@ The editor shows the key's description, the glossary terms your draft uses or mi
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Under the length line, **Set limit**, **Change limit** and **Remove limit** edit the key's entry in [`verbatra.limits.json`](/docs/config-file#maxlength), for every locale. The config's `maxLength` wins, read-only. An unusable file shows why and blocks the control. A limit is advisory: translate runs flag a longer value for review, and nothing is blocked.
+Under the length line, **Set limit**, **Change limit** and **Remove limit** edit the key's entry in [`verbatra.limits.json`](/docs/config-file#maxlength), for every locale. The config's `maxLength` wins, read-only. An unusable file shows why and blocks the control. A limit is advisory: translate runs flag a longer value for review, and nothing is blocked. Studio sets limits only for source keys; a limit written for a generated form's own key still applies.
 
 #### Preview ICU messages
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-With `next-intl-json` or `arb`, a collapsed **ICU preview** under the draft renders it once per arm in the locale's language and direction. A typed sample adds a row when it reaches an arm, else a note.
+With `next-intl-json` or `arb`, a collapsed **ICU preview** under the draft renders it once per arm in the locale's language and direction. A typed sample adds a row when it reaches an arm, else a note. Numbers and dates use this computer's language data, so your app may differ.
 
 #### Beside the table
 
@@ -132,7 +131,7 @@ Shortcuts pause while you type, in the filter bar or in a dialog.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Tick rows (or the header box for all filtered rows), then choose **Approve selected**, **Reject selected** or, with `--allow-spend`, **Retranslate selected**. Each entry is decided on its own; failures are listed by cause and stay selected. A batch holds at most 100 entries to approve or reject, or 20 to retranslate.
+Tick rows (or the header box for all filtered rows), then choose **Approve selected**, **Reject selected** or, with `--allow-spend`, **Retranslate selected**. A batch holds at most 100 entries to approve or reject, or 20 to retranslate.
 
 ## Retranslate a flagged key
 
@@ -154,7 +153,7 @@ When the source file changes while Studio runs, a toast names the file and its a
 
 Studio opens on Overview: each locale's coverage with its [lock file](/docs/the-lock-file) state, the locale files' git history and the last run's token usage, with the budget meter when set.
 
-**Run history and cost** below it charts cost and tokens per run beside a table of every recorded run with its provider, tokens, cost and coverage. It rereads when the history file changes, the tab regains focus or a run returns.
+**Run history and cost** below it charts cost and tokens for the newest runs beside a table, with each locale's last known coverage. It rereads when the history file changes, the tab regains focus or a run returns.
 
 <StudioScreenshot
   shot="overview"
@@ -174,8 +173,7 @@ A glossary edit changes what the next run is told, never text already written; r
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-**Show translations for** switches to one locale's [glossary](/docs/config-file#glossary) view: translation, forbidden renderings and note. The **Do not translate** list keeps brand names.
-
+**Show translations for** switches to one locale's [glossary](/docs/config-file#glossary) view: translation, forbidden renderings and note.
 ## Related
 
 - [Drive Studio with a browser agent](/docs/agent-tools-in-studio): the same workflow from a browser AI agent.

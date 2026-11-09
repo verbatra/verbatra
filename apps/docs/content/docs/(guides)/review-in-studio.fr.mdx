@@ -23,8 +23,7 @@ Ouvre l'URL qu'il affiche, token compris, et arrête Studio avec Ctrl+C. [`verba
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Translations est un tableau de toutes les clés qui demandent de l'attention : manquantes, modifiées, orphelines, protégées, dans la file de relecture ou en échec de contrôle d'intégrité. Chaque ligne montre la clé, le texte source et un statut par locale ; choisis une locale pour voir traduction, statut et origine. La recherche trouve aussi les clés synchronisées.
-
+Translations est un tableau de toutes les clés qui demandent de l'attention : manquantes, modifiées, orphelines, protégées, dans la file de relecture ou en échec de contrôle d'intégrité. Chaque ligne montre la clé, le texte source et un statut par locale ; choisis une locale pour voir traduction, statut et origine.
 ### Détails de la clé
 
 Clique sur une clé pour ouvrir son éditeur. Il liste la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide. Également affiché :
@@ -54,13 +53,13 @@ L'éditeur montre la description de la clé, les termes du glossaire que ton bro
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Sous la ligne de longueur, **Set limit**, **Change limit** et **Remove limit** modifient l'entrée de la clé dans [`verbatra.limits.json`](/fr/docs/config-file#maxlength), pour toutes les locales. Le `maxLength` de la configuration l'emporte et reste en lecture seule. Un fichier inutilisable en donne la raison et bloque le contrôle. Une limite est indicative : les exécutions de translate signalent une valeur plus longue pour relecture, et rien n'est bloqué.
+Sous la ligne de longueur, **Set limit**, **Change limit** et **Remove limit** modifient l'entrée de la clé dans [`verbatra.limits.json`](/fr/docs/config-file#maxlength), pour toutes les locales. Le `maxLength` de la configuration l'emporte et reste en lecture seule. Un fichier inutilisable en donne la raison et bloque le contrôle. Une limite est indicative : les exécutions de translate signalent une valeur plus longue pour relecture, et rien n'est bloqué. Studio ne définit de limites que pour les clés de la source ; une limite écrite pour la clé propre d'une forme générée s'applique toujours.
 
 #### Vérifier les messages avec l'ICU preview
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Avec `next-intl-json` ou `arb`, une **ICU preview** repliée sous le brouillon le rend une fois par branche dans la langue et le sens d'écriture de la locale. Une valeur d'exemple saisie ajoute une ligne quand elle atteint une branche, ou une note si elle n'est pas utilisée. Les nombres et les dates utilisent les données de langue de cet ordinateur.
+Avec `next-intl-json` ou `arb`, une **ICU preview** repliée sous le brouillon le rend une fois par branche dans la langue et le sens d'écriture de la locale. Une valeur d'exemple saisie ajoute une ligne quand elle atteint une branche, ou une note si elle n'est pas utilisée. Les nombres et les dates utilisent les données de langue de cet ordinateur, ton application peut donc différer.
 
 #### À côté du tableau
 
@@ -131,7 +130,7 @@ Les raccourcis sont en pause pendant que tu tapes, que le focus est dans la barr
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Coche des lignes (ou la case d'en-tête pour tout ce que le filtre affiche), puis choisis **Approve selected**, **Reject selected** ou, avec `--allow-spend`, **Retranslate selected**. Chaque entrée est tranchée comme elle le serait seule ; les échecs sont listés par cause et restent sélectionnés. Un lot contient au plus 100 entrées à approuver ou rejeter, ou 20 à retraduire.
+Coche des lignes (ou la case d'en-tête pour tout ce que le filtre affiche), puis choisis **Approve selected**, **Reject selected** ou, avec `--allow-spend`, **Retranslate selected**. Un lot contient au plus 100 entrées à approuver ou rejeter, ou 20 à retraduire.
 
 ## Retraduire une clé signalée
 
@@ -153,7 +152,7 @@ Quand le fichier source change pendant que Studio tourne, une notification nomme
 
 Overview est la page sur laquelle Studio s'ouvre. Elle montre la couverture de chaque locale avec son état dans le [fichier de verrouillage](/fr/docs/the-lock-file), l'historique git de tes fichiers de locale et la consommation de tokens de la dernière exécution enregistrée, avec la jauge de budget quand un budget de tokens est configuré.
 
-**Run history and cost**, en dessous, trace le coût et les tokens par exécution à côté d'un tableau de chaque exécution enregistrée avec son fournisseur, ses tokens, son coût et sa couverture. Elle se relit quand le fichier d'historique change, que l'onglet retrouve le focus ou qu'une exécution se termine.
+**Run history and cost**, en dessous, trace le coût et les tokens des exécutions les plus récentes à côté d'un tableau, avec la dernière couverture connue de chaque locale. Elle se relit quand le fichier d'historique change, que l'onglet retrouve le focus ou qu'une exécution se termine.
 
 <StudioScreenshot
   shot="overview"
@@ -173,8 +172,7 @@ Une modification du glossaire change ce que la prochaine exécution reçoit comm
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-**Show translations for** bascule vers la vue du [glossaire](/fr/docs/config-file#glossary) d'une locale, avec sa traduction, ses rendus interdits et sa note. La liste **Do not translate** garde les noms de marque tels quels.
-
+**Show translations for** bascule vers la vue du [glossaire](/fr/docs/config-file#glossary) d'une locale, avec sa traduction, ses rendus interdits et sa note.
 ## Voir aussi
 
 - [Piloter Studio avec un agent de navigateur](/fr/docs/agent-tools-in-studio) : le même flux depuis un agent d'IA dans le navigateur.

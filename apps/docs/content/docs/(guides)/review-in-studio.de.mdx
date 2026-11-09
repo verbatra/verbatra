@@ -23,8 +23,7 @@ verbatra studio
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Translations ist eine Tabelle aller Keys, die Aufmerksamkeit brauchen: fehlend, geändert, verwaist, geschützt, in der Review-Warteschlange oder mit fehlgeschlagener Integritätsprüfung. Jede Zeile zeigt Key, Quelltext und einen Status pro Locale; wähl eine Locale für Übersetzung, Status und Herkunft. Die Suche findet auch Keys, die synchron sind.
-
+Translations ist eine Tabelle aller Keys, die Aufmerksamkeit brauchen: fehlend, geändert, verwaist, geschützt, in der Review-Warteschlange oder mit fehlgeschlagener Integritätsprüfung. Jede Zeile zeigt Key, Quelltext und einen Status pro Locale; wähl eine Locale für Übersetzung, Status und Herkunft.
 ### Key-Details
 
 Klick auf einen Key, um seinen Editor zu öffnen. Er listet den Wert jeder Locale mit einer Integritätsanzeige: Platzhalter stimmen, eine Platzhalter-Abweichung mit den benannten Tokens oder ungültige Nachrichtensyntax. Außerdem angezeigt:
@@ -54,13 +53,13 @@ Der Editor zeigt dir die Beschreibung des Keys, welche Glossarbegriffe dein Entw
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Unter der Längenzeile bearbeiten **Set limit**, **Change limit** und **Remove limit** den Eintrag des Keys in [`verbatra.limits.json`](/de/docs/config-file#maxlength), für jede Locale. Das `maxLength` der Konfiguration gewinnt und ist schreibgeschützt. Eine unbrauchbare Datei zeigt den Grund und sperrt das Bedienelement. Ein Limit ist nur ein Hinweis: Translate-Läufe markieren einen längeren Wert zur Prüfung, nichts wird blockiert.
+Unter der Längenzeile bearbeiten **Set limit**, **Change limit** und **Remove limit** den Eintrag des Keys in [`verbatra.limits.json`](/de/docs/config-file#maxlength), für jede Locale. Das `maxLength` der Konfiguration gewinnt und ist schreibgeschützt. Eine unbrauchbare Datei zeigt den Grund und sperrt das Bedienelement. Ein Limit ist nur ein Hinweis: Translate-Läufe markieren einen längeren Wert zur Prüfung, nichts wird blockiert. Studio setzt Limits nur für Keys der Quelle; ein Limit, das für den eigenen Key einer erzeugten Form geschrieben wurde, gilt weiterhin.
 
 #### Nachrichten mit der ICU preview prüfen
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Mit `next-intl-json` oder `arb` rendert eine eingeklappte **ICU preview** unter dem Entwurf diesen einmal pro Zweig in Sprache und Schreibrichtung der Locale. Ein eingegebener Beispielwert fügt eine Zeile hinzu, wenn er einen Zweig erreicht, oder einen Hinweis, wenn er ungenutzt bleibt.
+Mit `next-intl-json` oder `arb` rendert eine eingeklappte **ICU preview** unter dem Entwurf diesen einmal pro Zweig in Sprache und Schreibrichtung der Locale. Ein eingegebener Beispielwert fügt eine Zeile hinzu, wenn er einen Zweig erreicht, oder einen Hinweis, wenn er ungenutzt bleibt. Zahlen und Datumsangaben nutzen die Sprachdaten dieses Computers, deine App kann abweichen.
 
 #### Neben der Tabelle
 
@@ -131,7 +130,7 @@ Tastenkürzel pausieren, während du tippst, der Fokus in der Filterleiste liegt
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Hak Zeilen an (oder das Kästchen im Tabellenkopf für alles, was der Filter zeigt), dann wähl **Approve selected**, **Reject selected** oder, mit `--allow-spend`, **Retranslate selected**. Jeder Eintrag wird so entschieden wie einzeln; Fehlschläge werden nach Ursache gelistet und bleiben ausgewählt. Ein Stapel umfasst höchstens 100 Einträge zum Freigeben oder Ablehnen oder 20 zum Neuübersetzen.
+Hak Zeilen an (oder das Kästchen im Tabellenkopf für alles, was der Filter zeigt), dann wähl **Approve selected**, **Reject selected** oder, mit `--allow-spend`, **Retranslate selected**. Ein Stapel umfasst höchstens 100 Einträge zum Freigeben oder Ablehnen oder 20 zum Neuübersetzen.
 
 ## Übersetze einen markierten Key neu
 
@@ -153,7 +152,7 @@ Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor ei
 
 Overview ist die Seite, auf der Studio startet. Sie zeigt die Abdeckung jeder Locale mit ihrem Zustand in der [Lock-Datei](/de/docs/the-lock-file), die Git-Historie deiner Locale-Dateien und den Token-Verbrauch des letzten erfassten Laufs, mit der Budgetanzeige, wenn ein Token-Budget konfiguriert ist.
 
-**Run history and cost** darunter zeigt Kosten und Tokens pro Lauf neben einer Tabelle jedes aufgezeichneten Laufs mit Provider, Tokens, Kosten und Abdeckung. Sie liest neu, wenn sich die Verlaufsdatei ändert, der Tab den Fokus zurückbekommt oder ein Lauf zurückkehrt.
+**Run history and cost** darunter zeigt Kosten und Tokens der neuesten Läufe neben einer Tabelle, mit der zuletzt bekannten Abdeckung jeder Locale. Sie liest neu, wenn sich die Verlaufsdatei ändert, der Tab den Fokus zurückbekommt oder ein Lauf zurückkehrt.
 
 <StudioScreenshot
   shot="overview"
@@ -173,8 +172,7 @@ Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits g
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-**Show translations for** wechselt in die [Glossar](/de/docs/config-file#glossary)-Ansicht einer Locale, mit ihrer Übersetzung, verbotenen Varianten und Notiz. Die Liste **Do not translate** hält Markennamen so, wie sie geschrieben sind.
-
+**Show translations for** wechselt in die [Glossar](/de/docs/config-file#glossary)-Ansicht einer Locale, mit ihrer Übersetzung, verbotenen Varianten und Notiz.
 ## Siehe auch
 
 - [Studio mit einem Browser-Agenten steuern](/de/docs/agent-tools-in-studio): derselbe Ablauf aus einem KI-Agenten im Browser.

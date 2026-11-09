@@ -124,7 +124,7 @@ Multiplica por el número de locales que quedan. Con `--json`, las cifras son `u
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-El Overview de Studio lista cada ejecución registrada con su coste, fijado cuando terminó la ejecución, así que un cambio posterior en `rates` nunca lo reescribe. Un importe es exacto. **Estimated** es una cifra de caracteres de origen para un proveedor que no informa del uso. **At least** es un mínimo, porque un locale no informó de tokens. **No rate** significa que ninguna tarifa coincidía con ese modelo, y **unknown** significa que se enviaron claves pero no volvieron tokens; ninguno es gratis. Los proveedores autoalojados muestran **not billed**. El registro está documentado en [`runHistory`](/es/docs/sdk/history#runhistory); [Review in Studio](/es/docs/review-in-studio) muestra la página.
+El Overview de Studio lista las ejecuciones registradas con su coste, fijado cuando terminó la ejecución, así que un cambio posterior en `rates` nunca lo reescribe. Un importe son los tokens que informó el proveedor por la tarifa vigente entonces. **Estimated** es una cifra de caracteres de origen para un proveedor que no informa del uso. **At least** es un mínimo, porque un locale no informó de tokens. **No rate** significa que ninguna tarifa coincidía con ese modelo, y **unknown** significa que se enviaron claves pero no volvieron tokens; ninguno es gratis. Los proveedores autoalojados muestran **not billed**. El registro está documentado en [`runHistory`](/es/docs/sdk/history#runhistory); [Review in Studio](/es/docs/review-in-studio) muestra la página.
 
 ## Proveedores de traducción automática
 

@@ -124,7 +124,7 @@ Multiply by the number of remaining locales. With `--json`, the figures are `usa
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Studio's Overview lists every recorded run with its cost, frozen when the run ended, so a later change to `rates` never rewrites it. An amount is exact. **Estimated** is a source-characters figure for a provider that reports no usage. **At least** is a lower bound, because a locale reported no tokens. **No rate** means no rate matched that model, and **unknown** means keys were sent but no tokens came back; neither is free. Self-hosted providers read **not billed**. The record is documented under [`runHistory`](/docs/sdk/history#runhistory); [Review in Studio](/docs/review-in-studio) shows the page.
+Studio's Overview lists recorded runs with their cost, frozen when the run ended, so a later change to `rates` never rewrites it. An amount is the tokens the provider reported times the rate on file at that time. **Estimated** is a source-characters figure for a provider that reports no usage. **At least** is a lower bound, because a locale reported no tokens. **No rate** means no rate matched that model, and **unknown** means keys were sent but no tokens came back; neither is free. Self-hosted providers read **not billed**. The record is documented under [`runHistory`](/docs/sdk/history#runhistory); [Review in Studio](/docs/review-in-studio) shows the page.
 
 ## Machine-translation providers
 

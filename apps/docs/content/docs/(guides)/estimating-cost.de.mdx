@@ -124,7 +124,7 @@ Multipliziere mit der Zahl der übrigen Locales. Mit `--json` heißen die Werte 
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Die Overview von Studio listet jeden aufgezeichneten Lauf mit seinen Kosten, eingefroren beim Ende des Laufs, sodass eine spätere Änderung an `rates` sie nie umschreibt. Ein Betrag ist exakt. **Estimated** ist ein Wert aus Quellzeichen für einen Dienst, der keinen Verbrauch meldet. **At least** ist eine Untergrenze, weil eine Locale keine Tokens gemeldet hat. **No rate** heißt, kein Preis passte zu diesem Modell, und **unknown** heißt, Schlüssel wurden gesendet, aber es kamen keine Tokens zurück; beides ist nicht kostenlos. Selbst gehostete Dienste zeigen **not billed**. Der Eintrag ist unter [`runHistory`](/de/docs/sdk/history#runhistory) dokumentiert; [Review in Studio](/de/docs/review-in-studio) zeigt die Seite.
+Die Overview von Studio listet aufgezeichnete Läufe mit ihren Kosten, eingefroren beim Ende des Laufs, sodass eine spätere Änderung an `rates` sie nie umschreibt. Ein Betrag sind die vom Dienst gemeldeten Tokens mal dem damals hinterlegten Preis. **Estimated** ist ein Wert aus Quellzeichen für einen Dienst, der keinen Verbrauch meldet. **At least** ist eine Untergrenze, weil eine Locale keine Tokens gemeldet hat. **No rate** heißt, kein Preis passte zu diesem Modell, und **unknown** heißt, Schlüssel wurden gesendet, aber es kamen keine Tokens zurück; beides ist nicht kostenlos. Selbst gehostete Dienste zeigen **not billed**. Der Eintrag ist unter [`runHistory`](/de/docs/sdk/history#runhistory) dokumentiert; [Review in Studio](/de/docs/review-in-studio) zeigt die Seite.
 
 ## Maschinelle Übersetzungsdienste
 
