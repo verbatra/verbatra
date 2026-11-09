@@ -118,6 +118,7 @@ export const runHistoryCostSchema = z.discriminatedUnion("pricing", [
   z.object({
     pricing: z.literal("not-billed"),
     rateKey: rateKeySchema,
+    caveats: caveatsSchema,
   }),
 ]);
 
@@ -221,7 +222,10 @@ export type RunHistoryCost =
       readonly asOf: string;
       /** The cost in `currency`. */
       readonly amount: number;
-      /** What a `source-characters` figure leaves out. Absent for `usage`. */
+      /**
+       * What a `source-characters` figure leaves out, or `USAGE_PARTIAL` when part of the usage
+       * went unreported. Absent for a complete `usage` figure.
+       */
       readonly caveats?: readonly RunCostCaveat[] | undefined;
     }
   | {
@@ -235,7 +239,10 @@ export type RunHistoryCost =
       readonly basis: RunCostBasis;
       /** The `provider/model` or bare provider id looked up. */
       readonly rateKey: string;
-      /** What a `source-characters` figure leaves out. Absent for `usage`. */
+      /**
+       * What a `source-characters` figure leaves out, or `USAGE_PARTIAL` when part of the usage
+       * went unreported. Absent for a complete `usage` figure.
+       */
       readonly caveats?: readonly RunCostCaveat[] | undefined;
     }
   | {
@@ -243,6 +250,11 @@ export type RunHistoryCost =
       readonly pricing: "not-billed";
       /** The `provider/model` or bare provider id looked up. */
       readonly rateKey: string;
+      /**
+       * `USAGE_PARTIAL` when part of the reported token usage is missing, so the recorded token
+       * count is a lower bound. Absent otherwise.
+       */
+      readonly caveats?: readonly RunCostCaveat[] | undefined;
     };
 
 /**

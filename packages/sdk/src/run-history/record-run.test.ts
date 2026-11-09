@@ -8,7 +8,7 @@ import { priceRun, sourceCharactersOfRun } from "../flow/estimate.js";
 import type { LocaleSummary, RunSummary } from "../flow/summary.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { baseConfig, makeTempDir } from "../test-support.js";
-import { clipText, RUN_HISTORY_LIMITS } from "./record.js";
+import { clipText, RUN_HISTORY_LIMITS, runHistoryCostSchema } from "./record.js";
 import {
   draftFromSummary,
   type RunDraft,
@@ -225,6 +225,30 @@ describe("priceRun", () => {
     expect(cost).not.toHaveProperty("amount");
     expect(cost).not.toHaveProperty("basis");
     expect(cost).not.toHaveProperty("caveats");
+  });
+
+  it("keeps the lower-bound caveat on a not-billed run whose usage was partial", () => {
+    const selfHosted: ProviderConfig = {
+      id: "openai-compatible",
+      options: { model: "m", baseUrl: "http://x", maxOutputTokens: 256 },
+    };
+    const usage = { inputTokens: 5, outputTokens: 5 };
+
+    const partial = price({
+      provider: selfHosted,
+      sourceCharacters: 0,
+      usage,
+      usagePartial: true,
+    });
+    const complete = price({ provider: selfHosted, sourceCharacters: 0, usage });
+
+    expect(partial).toEqual({
+      pricing: "not-billed",
+      rateKey: "openai-compatible/m",
+      caveats: ["USAGE_PARTIAL"],
+    });
+    expect(complete).not.toHaveProperty("caveats");
+    expect(runHistoryCostSchema.parse(partial)).toEqual(partial);
   });
 
   it.each([

@@ -10,7 +10,12 @@ import { type BillingUnit, billingFor, modelOf, rateKeyFor } from "../config/pro
 import type { ProviderConfig } from "../config/provider-config.js";
 import { isTokenRate, lookupRate, type ModelRate, type RateCard } from "../config/rate-card.js";
 import type { VerbatraConfig } from "../config/schema.js";
-import { clipText, RUN_HISTORY_LIMITS, type RunHistoryCost } from "../run-history/record.js";
+import {
+  clipText,
+  RUN_HISTORY_LIMITS,
+  type RunCostCaveat,
+  type RunHistoryCost,
+} from "../run-history/record.js";
 import { chunk } from "./batching.js";
 import { planPluralGeneration, syntheticEntry } from "./plural-categories.js";
 import type {
@@ -385,23 +390,28 @@ function usableRate(rate: ModelRate): boolean {
   return Object.values(rate).every((amount) => Number.isFinite(amount) && amount >= 0);
 }
 
+function costCaveats(
+  unit: BillingUnit,
+  lowerBound: boolean,
+): { readonly caveats?: RunCostCaveat[] } {
+  if (unit === "characters") {
+    return { caveats: [...SOURCE_CHARACTER_CAVEATS] };
+  }
+  return lowerBound ? { caveats: ["USAGE_PARTIAL"] } : {};
+}
+
 export function priceRun(input: PriceRunInput): RunHistoryCost {
   const { unit } = billingFor(input.provider.id);
   const basis = unit === "tokens" ? "usage" : "source-characters";
   const rateKey = clipText(rateKeyFor(input.provider), RUN_HISTORY_LIMITS.rateKey);
   const lowerBound = unit === "tokens" && input.usage !== undefined && input.usagePartial === true;
-  const caveats =
-    unit === "characters"
-      ? { caveats: [...SOURCE_CHARACTER_CAVEATS] }
-      : lowerBound
-        ? { caveats: ["USAGE_PARTIAL" as const] }
-        : {};
+  const caveats = costCaveats(unit, lowerBound);
   const pricing = resolvePricing(
     { provider: input.provider, ...(input.rates === undefined ? {} : { rates: input.rates }) },
     unit,
   );
   if (pricing.status === "not-billed") {
-    return { pricing: "not-billed", rateKey };
+    return { pricing: "not-billed", rateKey, ...(lowerBound ? caveats : {}) };
   }
   if (pricing.status !== "priced" || !usableRate(pricing.rate)) {
     const status = pricing.status === "priced" ? "no-rate-on-file" : pricing.status;
