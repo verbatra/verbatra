@@ -304,6 +304,40 @@ describe("series", () => {
     ]);
   });
 
+  it("charts the currency with the most runs in the window, not the newest run's", () => {
+    const usd = (day: string) =>
+      recordAt(`2026-07-${day}T00:00:00.000Z`, {
+        cost: { ...PRICED, currency: "USD", amount: 1 } as RunHistoryCost,
+      });
+    const euro = recordAt("2026-07-05T00:00:00.000Z", {
+      cost: { ...PRICED, currency: "EUR", amount: 9 } as RunHistoryCost,
+    });
+
+    const series = costSeries([euro, usd("04"), usd("03"), usd("02")]);
+
+    expect(series.currency).toBe("USD");
+    expect(series.otherCurrencies).toBe(1);
+    expect(series.points.map((point) => point.value)).toEqual([1, 1, 1, undefined]);
+  });
+
+  it("marks tokens as a lower bound on a run with no rate when usage was partial", () => {
+    const partial = recordAt("2026-07-01T00:00:00.000Z", {
+      cost: {
+        pricing: "no-rate-on-file",
+        basis: "usage",
+        rateKey: "x",
+        caveats: ["USAGE_PARTIAL"],
+      },
+    });
+
+    expect(describeCost(partial.cost)).toMatchObject({
+      kind: "no-rate",
+      caveats: ["A locale sent keys and reported no tokens, so this is a lower bound."],
+    });
+    expect(describeTokens(partial)).toMatchObject({ reported: true, lowerBound: true });
+    expect(tokenSeries([partial])).toEqual([{ value: 150, hollow: true }]);
+  });
+
   it("draws an estimate and a lower bound hollow", () => {
     const estimate = recordAt("2026-07-02T00:00:00.000Z", {
       cost: { ...PRICED, basis: "source-characters" } as RunHistoryCost,

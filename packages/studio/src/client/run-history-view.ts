@@ -64,6 +64,14 @@ function caveatTexts(codes: readonly string[] | undefined): readonly string[] {
   return (codes ?? []).map((code) => CAVEAT_TEXT[code] ?? code);
 }
 
+function reportsPartialUsage(cost: RunHistoryCost): boolean {
+  return "caveats" in cost && cost.caveats?.includes("USAGE_PARTIAL") === true;
+}
+
+function partialUsageCaveats(cost: RunHistoryCost): readonly string[] {
+  return reportsPartialUsage(cost) ? caveatTexts(["USAGE_PARTIAL"]) : [];
+}
+
 function pricedDisplay(cost: Extract<RunHistoryCost, { pricing: "priced" }>): CostDisplay {
   const formatted = formatCost(cost.amount, cost.currency);
   const common = { amount: cost.amount, currency: cost.currency } as const;
@@ -76,7 +84,7 @@ function pricedDisplay(cost: Extract<RunHistoryCost, { pricing: "priced" }>): Co
       ...common,
     };
   }
-  if (cost.caveats?.includes("USAGE_PARTIAL") === true) {
+  if (reportsPartialUsage(cost)) {
     return {
       kind: "lower-bound",
       label: `at least ${formatted}`,
@@ -105,7 +113,7 @@ export function describeCost(cost: RunHistoryCost): CostDisplay {
         kind: "no-rate",
         label: "no rate",
         hint: `No rate is on file for ${cost.rateKey}.`,
-        caveats: [],
+        caveats: partialUsageCaveats(cost),
         ...NO_AMOUNT,
       };
     case "rate-unit-mismatch":
@@ -113,7 +121,7 @@ export function describeCost(cost: RunHistoryCost): CostDisplay {
         kind: "no-rate",
         label: "no rate",
         hint: `The rate on file for ${cost.rateKey} is in a different unit than this run was measured in.`,
-        caveats: [],
+        caveats: partialUsageCaveats(cost),
         ...NO_AMOUNT,
       };
     case "no-usage":
@@ -213,7 +221,7 @@ export function describeTokens(record: RunHistoryRecord): TokenDisplay {
     total: record.usage.inputTokens + record.usage.outputTokens,
     input: record.usage.inputTokens,
     output: record.usage.outputTokens,
-    lowerBound: describeCost(record.cost).kind === "lower-bound",
+    lowerBound: reportsPartialUsage(record.cost),
   };
 }
 
@@ -271,12 +279,28 @@ export interface CostSeries {
   readonly otherCurrencies: number;
 }
 
+function busiestCurrency(newestFirst: readonly CostDisplay[]): string | undefined {
+  const counts = new Map<string, number>();
+  for (const display of newestFirst) {
+    if (display.amount !== undefined && display.currency !== undefined) {
+      counts.set(display.currency, (counts.get(display.currency) ?? 0) + 1);
+    }
+  }
+  let best: string | undefined;
+  let bestCount = 0;
+  for (const [currency, count] of counts) {
+    if (count > bestCount) {
+      best = currency;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
 export function costSeries(records: readonly RunHistoryRecord[]): CostSeries {
   const chronological = [...records].reverse();
   const displays = chronological.map((record) => describeCost(record.cost));
-  const currency = [...displays]
-    .reverse()
-    .find((display) => display.amount !== undefined)?.currency;
+  const currency = busiestCurrency([...displays].reverse());
   let otherCurrencies = 0;
   const points = displays.map((display): TrendPoint => {
     if (display.amount === undefined) {

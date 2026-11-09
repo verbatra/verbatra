@@ -9,7 +9,10 @@ export interface RunHistoryChartProps {
   readonly labels: readonly string[];
   readonly peak: string;
   readonly note?: string | undefined;
+  readonly span?: { readonly first: ReactNode; readonly last: ReactNode } | undefined;
 }
+
+const MIN_BAR_HEIGHT = 4;
 
 export function RunHistoryChart({
   title,
@@ -18,6 +21,7 @@ export function RunHistoryChart({
   labels,
   peak,
   note,
+  span,
 }: RunHistoryChartProps): ReactNode {
   const titleId = useId();
   const geometry = trendGeometry(points);
@@ -43,14 +47,14 @@ export function RunHistoryChart({
         >
           <title
             id={titleId}
-          >{`${title}, ${drawn} of ${points.length} runs, oldest to newest`}</title>
+          >{`${title}, ${drawn} of ${points.length} ${points.length === 1 ? "run" : "runs"}, oldest to newest`}</title>
           <line
             x1={TREND_BOX.padX}
             x2={TREND_BOX.width - TREND_BOX.padX}
             y1={geometry.baselineY}
             y2={geometry.baselineY}
             strokeWidth={1}
-            className="stroke-border"
+            className="stroke-(--border-field)"
           />
           {kind === "line"
             ? geometry.segments.map((segment) => (
@@ -74,28 +78,37 @@ export function RunHistoryChart({
                   r={4}
                   strokeWidth={2}
                   className={
-                    dot.hollow ? "fill-card stroke-primary" : "fill-primary stroke-primary"
+                    dot.hollow ? "fill-background stroke-primary" : "fill-primary stroke-primary"
                   }
                 >
                   <title>{labels[dot.index]}</title>
                 </circle>
               ))
-            : geometry.bars.map((bar) => (
-                <rect
-                  key={bar.index}
-                  x={bar.x}
-                  y={bar.y}
-                  width={bar.width}
-                  height={Math.max(bar.height, 1)}
-                  rx={2}
-                  strokeWidth={bar.hollow ? 2 : 0}
-                  className={bar.hollow ? "fill-card stroke-primary" : "fill-primary"}
-                >
-                  <title>{labels[bar.index]}</title>
-                </rect>
-              ))}
+            : geometry.bars.map((bar) => {
+                const height = Math.max(bar.height, MIN_BAR_HEIGHT);
+                return (
+                  <rect
+                    key={bar.index}
+                    x={bar.x}
+                    y={geometry.baselineY - height}
+                    width={bar.width}
+                    height={height}
+                    rx={2}
+                    strokeWidth={bar.hollow ? 2 : 0}
+                    className={bar.hollow ? "fill-background stroke-primary" : "fill-primary"}
+                  >
+                    <title>{labels[bar.index]}</title>
+                  </rect>
+                );
+              })}
         </svg>
       )}
+      {drawn > 0 && span !== undefined ? (
+        <p className="m-0 mt-1 flex justify-between gap-3 text-xs text-muted-foreground">
+          <span>{span.first}</span>
+          {points.length > 1 ? <span>{span.last}</span> : null}
+        </p>
+      ) : null}
       {note !== undefined ? <p className="m-0 mt-2 text-xs text-muted-foreground">{note}</p> : null}
     </figure>
   );

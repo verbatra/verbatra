@@ -3,6 +3,7 @@ import {
   Badge,
   Button,
   EmptyState,
+  MonoValue,
   PageSection,
   Table,
   TableBody,
@@ -12,8 +13,8 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@verbatra/ui";
-import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+import type { ReactNode, RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type CostDisplay,
   type CoverageRow,
@@ -24,7 +25,6 @@ import {
   describeTrigger,
   formatCost,
   lastKnownCoverage,
-  RUN_HISTORY_REQUEST_LIMIT,
   type RunHistoryData,
   type RunHistoryNotice,
   tokenSeries,
@@ -43,14 +43,51 @@ export const INITIAL_RUN_ROWS = 10;
 
 const PAGE_ROWS = 10;
 
-const COST_TONE: Readonly<Record<CostDisplay["kind"], "success" | "warning" | "neutral">> = {
-  priced: "success",
+const INITIAL_COVERAGE_ROWS = 10;
+
+const WHEN_HEAD =
+  "sticky start-0 z-10 whitespace-nowrap bg-(--surface-table-head) max-md:border-e max-md:border-(--border-default)";
+
+const WHEN_CELL =
+  "sticky start-0 z-10 whitespace-nowrap bg-card group-hover:bg-(--surface-row-hover) max-md:border-e max-md:border-(--border-default)";
+
+const FOCUSABLE_ROW =
+  "group focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
+
+const COST_TONE: Readonly<Record<CostDisplay["kind"], "warning" | "neutral">> = {
+  priced: "neutral",
   estimated: "warning",
   "lower-bound": "warning",
   "no-rate": "neutral",
   unknown: "neutral",
   "not-billed": "neutral",
 };
+
+function LtrMono({ children }: { readonly children: string }): ReactNode {
+  return (
+    <span dir="ltr">
+      <MonoValue breakAnywhere>{children}</MonoValue>
+    </span>
+  );
+}
+
+function useFocusRevealedRow(
+  regionRef: RefObject<HTMLDivElement | null>,
+  visibleCount: number,
+): (firstRevealed: number) => void {
+  const pending = useRef<number | null>(null);
+  useEffect(() => {
+    const index = pending.current;
+    if (index === null || visibleCount <= index) {
+      return;
+    }
+    pending.current = null;
+    regionRef.current?.querySelectorAll<HTMLElement>("tbody tr")[index]?.focus();
+  }, [visibleCount, regionRef]);
+  return (firstRevealed) => {
+    pending.current = firstRevealed;
+  };
+}
 
 function noticeText(notice: RunHistoryNotice): string {
   switch (notice.kind) {
@@ -85,20 +122,65 @@ function Notices({ notices }: { readonly notices: readonly RunHistoryNotice[] })
 }
 
 function CostCell({ cost }: { readonly cost: CostDisplay }): ReactNode {
+  const reason = [cost.hint, ...cost.caveats].filter((part) => part !== undefined).join(" ");
   return (
-    <div className="flex min-w-36 flex-col items-start gap-1">
-      <Badge tone={COST_TONE[cost.kind]} verbatim>
-        {cost.label}
-      </Badge>
-      {cost.kind === "priced" ? null : (
-        <span className="text-xs text-muted-foreground">{cost.hint}</span>
+    <div className="flex min-w-28 flex-col items-start gap-1">
+      {cost.kind === "priced" ? (
+        <span className="whitespace-nowrap font-medium tabular-nums">{cost.label}</span>
+      ) : (
+        <Badge tone={COST_TONE[cost.kind]} verbatim>
+          {cost.label}
+        </Badge>
       )}
-      {cost.caveats.map((caveat) => (
-        <span key={caveat} className="text-xs text-muted-foreground">
-          {caveat}
-        </span>
-      ))}
+      <span className="sr-only">{`. ${reason}`}</span>
     </div>
+  );
+}
+
+function CostNotes({ records }: { readonly records: readonly RunHistoryRecord[] }): ReactNode {
+  const costs = records.map((record) => describeCost(record.cost));
+  const rates = new Map<string, { readonly rateKey: string; readonly asOf: string }>();
+  for (const { cost } of records) {
+    if (cost.pricing === "priced") {
+      rates.set(`${cost.rateKey} ${cost.asOf}`, { rateKey: cost.rateKey, asOf: cost.asOf });
+    }
+  }
+  const estimated = costs.some((cost) => cost.kind === "estimated");
+  const lowerBound = records.some((record) => describeTokens(record).lowerBound);
+  if (rates.size === 0 && !estimated && !lowerBound) {
+    return null;
+  }
+  return (
+    <ul
+      className="m-0 mb-3 flex list-none flex-col gap-1 p-0 text-xs text-muted-foreground"
+      data-run-history-cost-notes=""
+    >
+      {rates.size === 0 ? null : (
+        <li>
+          Priced at the rate on file when each run ended:{" "}
+          {[...rates.entries()].map(([key, rate], index) => (
+            <span key={key}>
+              {index === 0 ? "" : ", "}
+              <LtrMono>{rate.rateKey}</LtrMono> as of {rate.asOf}
+            </span>
+          ))}
+          .
+        </li>
+      )}
+      {estimated ? (
+        <li>
+          Estimated: worked out from the source characters sent, not from reported tokens. Repeated
+          source strings are counted every time, and retried requests and keys the provider failed
+          on are not counted.
+        </li>
+      ) : null}
+      {lowerBound ? (
+        <li>
+          At least: a locale sent keys and reported no tokens, so the token count and any amount
+          cover only what was reported.
+        </li>
+      ) : null}
+    </ul>
   );
 }
 
@@ -115,44 +197,81 @@ function TokensCell({ record }: { readonly record: RunHistoryRecord }): ReactNod
   );
 }
 
-function localeSummary(record: RunHistoryRecord): string {
+function plural(count: number, one: string, many: string): string {
+  return `${formatCount(count)} ${count === 1 ? one : many}`;
+}
+
+interface ResultView {
+  readonly badge: { readonly tone: "danger" | "warning"; readonly text: string } | undefined;
+  readonly summary: string;
+}
+
+function resultView(record: RunHistoryRecord): ResultView {
   const totals = totalLocales(record);
+  const failed = totals.failedLocales > 0;
+  const partialText = plural(totals.partialLocales, "locale partial", "locales partial");
+  let badge: ResultView["badge"];
+  if (failed) {
+    badge = {
+      tone: "danger",
+      text: plural(totals.failedLocales, "locale failed", "locales failed"),
+    };
+  } else if (totals.partialLocales > 0) {
+    badge = { tone: "warning", text: partialText };
+  }
+  const omitted = record.localesOmitted ?? 0;
   const counters: readonly (readonly [number, string])[] = [
-    [totals.failedLocales, `${totals.failedLocales === 1 ? "locale" : "locales"} failed`],
-    [totals.partialLocales, `${totals.partialLocales === 1 ? "locale" : "locales"} partial`],
-    [totals.cacheHits + totals.fuzzyHits, "from memory"],
-    [totals.generated, "generated"],
-    [totals.pruned, "pruned"],
-    [totals.integrityMismatches, "refused"],
-    [totals.providerFailures, "failed"],
+    [failed ? totals.partialLocales : 0, partialText],
     [
-      record.localesOmitted ?? 0,
-      `${record.localesOmitted === 1 ? "locale" : "locales"} not listed`,
+      totals.cacheHits + totals.fuzzyHits,
+      `${formatCount(totals.cacheHits + totals.fuzzyHits)} from memory`,
     ],
+    [totals.generated, `${formatCount(totals.generated)} generated`],
+    [totals.pruned, `${formatCount(totals.pruned)} pruned`],
+    [totals.integrityMismatches, `${formatCount(totals.integrityMismatches)} refused`],
+    [totals.providerFailures, plural(totals.providerFailures, "key failed", "keys failed")],
+    [omitted, plural(omitted, "locale not listed", "locales not listed")],
   ];
-  return [
-    `${formatCount(totals.translated)} translated`,
-    ...counters
-      .filter(([count]) => count > 0)
-      .map(([count, label]) => `${formatCount(count)} ${label}`),
-  ].join(", ");
+  return {
+    badge,
+    summary: [
+      `${formatCount(totals.translated)} translated`,
+      ...counters.filter(([count]) => count > 0).map(([, text]) => text),
+    ].join(", "),
+  };
+}
+
+function ResultCell({ record }: { readonly record: RunHistoryRecord }): ReactNode {
+  const { badge, summary } = resultView(record);
+  return (
+    <div className="flex flex-col items-start gap-1">
+      {badge === undefined ? null : (
+        <Badge tone={badge.tone} verbatim>
+          {badge.text}
+        </Badge>
+      )}
+      <span className="text-xs text-muted-foreground">{summary}</span>
+    </div>
+  );
 }
 
 function RunsTable({ records }: { readonly records: readonly RunHistoryRecord[] }): ReactNode {
   const [shown, setShown] = useState(INITIAL_RUN_ROWS);
   const regionRef = useRef<HTMLDivElement>(null);
   const overflows = useHorizontalOverflow(regionRef);
+  const markReveal = useFocusRevealedRow(regionRef, shown);
   const rows = records.slice(0, shown);
 
   return (
     <div className="mt-6">
+      <CostNotes records={records} />
       <ScrollHint targetRef={regionRef} className="mb-2" />
       <TableCard aria-label="Recorded runs" ref={regionRef} tabIndex={overflows ? 0 : undefined}>
         <Table>
           <caption className="sr-only">Recorded runs, newest first</caption>
           <TableHead>
             <tr>
-              <TableHeaderCell className="whitespace-nowrap">When</TableHeaderCell>
+              <TableHeaderCell className={WHEN_HEAD}>When</TableHeaderCell>
               <TableHeaderCell>Run</TableHeaderCell>
               <TableHeaderCell>Tokens</TableHeaderCell>
               <TableHeaderCell>Cost</TableHeaderCell>
@@ -161,13 +280,15 @@ function RunsTable({ records }: { readonly records: readonly RunHistoryRecord[] 
           </TableHead>
           <TableBody>
             {rows.map((record, index) => (
-              <TableRow key={`${record.at}-${index}`}>
-                <TableCell className="whitespace-nowrap">
+              <TableRow key={`${record.at}-${index}`} className={FOCUSABLE_ROW} tabIndex={-1}>
+                <TableCell className={WHEN_CELL}>
                   <time dateTime={record.at}>{formatTimestamp(record.at)}</time>
                 </TableCell>
                 <TableCell>
                   <div className="font-medium">{describeTrigger(record)}</div>
-                  <div className="text-xs text-muted-foreground">{describeProvider(record)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    <LtrMono>{describeProvider(record)}</LtrMono>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <TokensCell record={record} />
@@ -175,7 +296,9 @@ function RunsTable({ records }: { readonly records: readonly RunHistoryRecord[] 
                 <TableCell>
                   <CostCell cost={describeCost(record.cost)} />
                 </TableCell>
-                <TableCell>{localeSummary(record)}</TableCell>
+                <TableCell>
+                  <ResultCell record={record} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -183,16 +306,69 @@ function RunsTable({ records }: { readonly records: readonly RunHistoryRecord[] 
       </TableCard>
       {records.length > shown ? (
         <div className="mt-3">
-          <Button onClick={() => setShown((count) => count + PAGE_ROWS)}>Show more runs</Button>
+          <Button
+            onClick={() => {
+              markReveal(shown);
+              setShown(shown + PAGE_ROWS);
+            }}
+          >
+            Show more runs
+          </Button>
         </div>
       ) : null}
     </div>
   );
 }
 
-function CoverageTable({ rows }: { readonly rows: readonly CoverageRow[] }): ReactNode {
+function MeasuredCell({ row }: { readonly row: CoverageRow }): ReactNode {
+  if (row.known !== undefined && row.measuredInLatestRun) {
+    return <time dateTime={row.known.measuredAt}>{formatTimestamp(row.known.measuredAt)}</time>;
+  }
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <Badge tone={row.coverageCheckFailed ? "warning" : "neutral"} verbatim>
+        {row.coverageCheckFailed ? "Coverage check failed in this run" : "Not measured in this run"}
+      </Badge>
+      {row.known === undefined ? null : (
+        <span className="text-xs text-muted-foreground">
+          Last known{" "}
+          <time dateTime={row.known.measuredAt}>{formatTimestamp(row.known.measuredAt)}</time>
+        </span>
+      )}
+    </div>
+  );
+}
+
+function CoverageRowView({ row }: { readonly row: CoverageRow }): ReactNode {
+  const figure = (pick: "missing" | "stale" | "upToDate"): string =>
+    row.known === undefined ? "-" : formatCount(row.known[pick]);
+  return (
+    <TableRow className={FOCUSABLE_ROW} tabIndex={-1}>
+      <TableCell dir="ltr">
+        <MonoValue breakAnywhere>{row.locale}</MonoValue>
+      </TableCell>
+      <TableCell numeric>{figure("missing")}</TableCell>
+      <TableCell numeric>{figure("stale")}</TableCell>
+      <TableCell numeric>{figure("upToDate")}</TableCell>
+      <TableCell>
+        <MeasuredCell row={row} />
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function CoverageTable({
+  rows,
+  runCount,
+}: {
+  readonly rows: readonly CoverageRow[];
+  readonly runCount: number;
+}): ReactNode {
   const regionRef = useRef<HTMLDivElement>(null);
   const overflows = useHorizontalOverflow(regionRef);
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? rows : rows.slice(0, INITIAL_COVERAGE_ROWS);
+  const markReveal = useFocusRevealedRow(regionRef, visible.length);
   if (rows.length === 0) {
     return (
       <p className="m-0 mt-6 text-sm text-muted-foreground">
@@ -204,8 +380,8 @@ function CoverageTable({ rows }: { readonly rows: readonly CoverageRow[] }): Rea
     <div className="mt-6">
       <h3 className="m-0 text-sm font-medium text-foreground">Coverage after the run</h3>
       <p className="m-0 mb-2 text-xs text-muted-foreground">
-        Read from the newest {formatCount(RUN_HISTORY_REQUEST_LIMIT)} recorded runs. A locale that
-        none of them measured is not listed.
+        Read from the newest {formatCount(runCount)} recorded {runCount === 1 ? "run" : "runs"}{" "}
+        listed above. A locale that no listed run names is left out.
       </p>
       <ScrollHint targetRef={regionRef} className="mb-2" />
       <TableCard
@@ -226,48 +402,24 @@ function CoverageTable({ rows }: { readonly rows: readonly CoverageRow[] }): Rea
             </tr>
           </TableHead>
           <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.locale}>
-                <TableCell mono dir="ltr">
-                  {row.locale}
-                </TableCell>
-                <TableCell numeric>
-                  {row.known === undefined ? "-" : formatCount(row.known.missing)}
-                </TableCell>
-                <TableCell numeric>
-                  {row.known === undefined ? "-" : formatCount(row.known.stale)}
-                </TableCell>
-                <TableCell numeric>
-                  {row.known === undefined ? "-" : formatCount(row.known.upToDate)}
-                </TableCell>
-                <TableCell>
-                  {row.known !== undefined && row.measuredInLatestRun ? (
-                    <time dateTime={row.known.measuredAt}>
-                      {formatTimestamp(row.known.measuredAt)}
-                    </time>
-                  ) : (
-                    <div className="flex flex-col items-start gap-1">
-                      <Badge tone="neutral">
-                        {row.coverageCheckFailed
-                          ? "Coverage check failed in this run"
-                          : "Not measured in this run"}
-                      </Badge>
-                      {row.known === undefined ? null : (
-                        <span className="text-xs text-muted-foreground">
-                          Last known{" "}
-                          <time dateTime={row.known.measuredAt}>
-                            {formatTimestamp(row.known.measuredAt)}
-                          </time>
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
+            {visible.map((row) => (
+              <CoverageRowView key={row.locale} row={row} />
             ))}
           </TableBody>
         </Table>
       </TableCard>
+      {rows.length > visible.length ? (
+        <div className="mt-3">
+          <Button
+            onClick={() => {
+              markReveal(visible.length);
+              setShowAll(true);
+            }}
+          >
+            Show all {formatCount(rows.length)} locales
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -286,6 +438,21 @@ function Trends({ records }: { readonly records: readonly RunHistoryRecord[] }):
       ? `${formatCount(cost.otherCurrencies)} ${cost.otherCurrencies === 1 ? "run" : "runs"} in another currency ${cost.otherCurrencies === 1 ? "is" : "are"} not drawn.`
       : undefined,
   ].filter((note) => note !== undefined);
+  const tokenNotes = [
+    tokens.some((point) => point.value === undefined)
+      ? "A run with no bar did not report tokens."
+      : undefined,
+    tokens.some((point) => point.hollow) ? "A hollow bar is a lower bound." : undefined,
+  ].filter((note) => note !== undefined);
+  const oldest = chronological[0];
+  const newest = chronological.at(-1);
+  const span =
+    oldest === undefined || newest === undefined
+      ? undefined
+      : {
+          first: <time dateTime={oldest.at}>{formatTimestamp(oldest.at)}</time>,
+          last: <time dateTime={newest.at}>{formatTimestamp(newest.at)}</time>,
+        };
 
   return (
     <div className="grid gap-6 sm:grid-cols-2">
@@ -298,6 +465,7 @@ function Trends({ records }: { readonly records: readonly RunHistoryRecord[] }):
         )}
         peak={cost.currency === undefined ? "" : formatCost(costPeak, cost.currency)}
         note={costNotes.length === 0 ? undefined : costNotes.join(" ")}
+        span={span}
       />
       <RunHistoryChart
         title="Tokens per run"
@@ -309,11 +477,8 @@ function Trends({ records }: { readonly records: readonly RunHistoryRecord[] }):
           return `${formatTimestamp(record.at)}: ${described.lowerBound ? "at least " : ""}${figure}`;
         })}
         peak={formatCount(tokenPeak)}
-        note={
-          tokens.some((point) => point.hollow)
-            ? "A run with no bar did not report tokens. A hollow bar is a lower bound."
-            : "A run with no bar did not report tokens."
-        }
+        note={tokenNotes.length === 0 ? undefined : tokenNotes.join(" ")}
+        span={span}
       />
     </div>
   );
@@ -334,7 +499,10 @@ function Body({ data }: { readonly data: RunHistoryData }): ReactNode {
         <>
           <Trends records={display.records} />
           <RunsTable records={display.records} />
-          <CoverageTable rows={lastKnownCoverage(display.records)} />
+          <CoverageTable
+            rows={lastKnownCoverage(display.records)}
+            runCount={display.records.length}
+          />
         </>
       ) : null}
     </div>
