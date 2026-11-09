@@ -560,6 +560,47 @@ describe("OverviewPanel", () => {
     expect(view.text()).not.toContain("No runs recorded yet");
   });
 
+  it("says the last-run details are unavailable, not that no run was recorded, beside a recorded translate run", async () => {
+    stubOverview({
+      "usage.history": {
+        ok: true,
+        result: { records: [recordAt("2026-07-01T10:00:00.000Z")], total: 1, unreadableRecords: 0 },
+      },
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+    const rail = view.getByText("h2", "Last run").closest("section");
+
+    expect(rail?.textContent).toContain("The details of the last translate run are unavailable.");
+    expect(rail?.textContent).not.toContain("No translate run recorded yet");
+    expect(rail?.querySelector(".border-dashed")).toBeNull();
+  });
+
+  it("keeps the short form while the run history has not settled, so no empty state is swapped away", async () => {
+    stubOverview({ "usage.history": PENDING });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+    const rail = view.getByText("h2", "Last run").closest("section");
+
+    expect(rail?.textContent).toContain("No translate run recorded yet.");
+    expect(rail?.querySelector(".border-dashed")).toBeNull();
+  });
+
+  it("points to Run history only when the history holds a record", async () => {
+    stubOverview({
+      "usage.history": {
+        ok: true,
+        result: { records: [], total: 0, unreadableRecords: 2 },
+      },
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+    const rail = view.getByText("h2", "Last run").closest("section");
+
+    expect(rail?.textContent).toContain("to record one.");
+    expect(rail?.textContent).not.toContain("Run history and cost");
+  });
+
   it("renders a first usage read that fails as a hard error, with no rail data", async () => {
     stubOverview({
       "usage.summary": rpcError("SNAPSHOT_UNREADABLE", "the run snapshot could not be read"),

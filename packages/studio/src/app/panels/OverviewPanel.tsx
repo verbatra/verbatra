@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { errorDetail } from "../../client/error-copy.js";
 import { HISTORY_MAX, HISTORY_PAGE_SIZE } from "../../client/history-limit.js";
 import type { ReviewQueueData } from "../../client/review-queue-data.js";
-import { toRunHistoryDisplay } from "../../client/run-history-view.js";
+import { type RunHistoryData, toRunHistoryDisplay } from "../../client/run-history-view.js";
 import type { RefreshableView } from "../../client/state.js";
 import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import type {
@@ -91,14 +91,55 @@ type UsageView = RefreshableView<UsageTickerData>;
 
 const SEE_ABOVE = "See the error above.";
 
+interface RailHistory {
+  readonly settled: boolean;
+  readonly empty: boolean;
+  readonly records: number;
+  readonly hasTranslate: boolean;
+}
+
+function railHistory(view: RefreshableView<RunHistoryData>): RailHistory {
+  if (view.kind !== "data") {
+    return { settled: false, empty: false, records: 0, hasTranslate: false };
+  }
+  return {
+    settled: true,
+    empty: toRunHistoryDisplay(view.data).empty,
+    records: view.data.records.length,
+    hasTranslate: view.data.records.some((record) => record.trigger === "translate"),
+  };
+}
+
+function NoRunYet({ history }: { readonly history: RailHistory }): ReactNode {
+  if (history.hasTranslate) {
+    return (
+      <p className="m-0 text-sm text-muted-foreground">
+        The details of the last translate run are unavailable. The run itself is listed under Run
+        history and cost.
+      </p>
+    );
+  }
+  if (!history.settled || history.empty) {
+    return <p className="m-0 text-sm text-muted-foreground">No translate run recorded yet.</p>;
+  }
+  return (
+    <EmptyState icon="gauge" title="No translate run recorded yet">
+      Run <code>verbatra translate</code> or <code>verbatra watch</code> to record one.
+      {history.records > 0
+        ? " Runs recorded as retranslations are listed under Run history and cost."
+        : ""}
+    </EmptyState>
+  );
+}
+
 function LastRunRail({
   view,
   hideCode,
-  historyEmpty,
+  history,
 }: {
   readonly view: UsageView;
   readonly hideCode: string | undefined;
-  readonly historyEmpty: boolean;
+  readonly history: RailHistory;
 }): ReactNode {
   if (view.kind === "loading") {
     return <Loading />;
@@ -121,14 +162,7 @@ function LastRunRail({
     return (
       <div>
         {staleNotice}
-        {historyEmpty ? (
-          <p className="m-0 text-sm text-muted-foreground">No translate run recorded yet.</p>
-        ) : (
-          <EmptyState icon="gauge" title="No translate run recorded yet">
-            Run <code>verbatra translate</code> or <code>verbatra watch</code> to record one. Runs
-            recorded as retranslations are listed under Run history and cost.
-          </EmptyState>
-        )}
+        <NoRunYet history={history} />
       </div>
     );
   }
@@ -394,7 +428,7 @@ export function OverviewPanel({
           <LastRunRail
             view={usage}
             hideCode={failure?.error.code}
-            historyEmpty={runHistory.kind === "data" && toRunHistoryDisplay(runHistory.data).empty}
+            history={railHistory(runHistory)}
           />
         </PageSection>
         <div className="grid min-w-0 grid-cols-1 gap-y-10 lg:col-start-1 lg:row-start-1">
