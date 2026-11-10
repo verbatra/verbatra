@@ -1,5 +1,5 @@
 {
-  "packageCount": 335,
+  "packageCount": 333,
   "groups": [
     {
       "license": "MIT",
@@ -815,14 +815,6 @@
           "version": "2.1.1",
           "copyright": ["Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)"],
           "author": "Luke Edwards",
-          "textId": "text-1",
-          "notice": null
-        },
-        {
-          "name": "cn",
-          "version": "0.5.0",
-          "copyright": ["Copyright (c) 2026 shadcn"],
-          "author": null,
           "textId": "text-1",
           "notice": null
         },
@@ -2625,17 +2617,6 @@
           "copyright": ["Copyright (c) Keith McKnight <keith@mcknig.ht>"],
           "author": "Keith McKnight",
           "textId": "text-24",
-          "notice": null
-        },
-        {
-          "name": "lucide-react",
-          "version": "1.61.0",
-          "copyright": [
-            "Copyright (c) 2026 Lucide Icons and Contributors",
-            "Copyright (c) 2013-present Cole Bemis"
-          ],
-          "author": "Eric Fennis",
-          "textId": "text-25",
           "notice": null
         },
         {
