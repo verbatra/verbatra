@@ -8,11 +8,11 @@ import {
   EXCERPT_CUT_NOTICE,
   entriesToApply,
   groupedCount,
-  isSendable,
   keyedDetails,
   matchSentence,
   PIN_OPT_IN_LABEL,
   PROTECT_OPT_IN_LABEL,
+  protectedTotal,
   type ReplaceOptIns,
   reasonLabel,
   STALE_GATE_NOTICE,
@@ -54,10 +54,10 @@ function Excerpt({
 
 function PreviewRow({
   entry,
-  optedIn,
+  optIns,
 }: {
   readonly entry: ValueReplacePreviewEntry;
-  readonly optedIn: boolean;
+  readonly optIns: ReplaceOptIns;
 }): ReactNode {
   return (
     <div data-replace-entry="" data-locale={entry.locale} data-status={entry.status}>
@@ -71,7 +71,7 @@ function PreviewRow({
         </Badge>
       </p>
       <p className="m-0 mb-2 text-sm text-muted-foreground" data-replace-note="">
-        {statusNote(entry.status, optedIn)}
+        {statusNote(entry, optIns)}
       </p>
       {entry.reason !== undefined ? (
         <p className="m-0 mb-2 text-sm text-danger" data-replace-reason="">
@@ -131,7 +131,8 @@ function OptIns({
   readonly disabled: boolean;
   readonly onChange: (name: keyof ReplaceOptIns, value: boolean) => void;
 }): ReactNode {
-  const { pinned, protected: guarded } = preview.counts;
+  const { pinned } = preview.counts;
+  const guarded = protectedTotal(preview);
   if (pinned === 0 && guarded === 0) {
     return null;
   }
@@ -205,7 +206,7 @@ export function ReplaceReviewStep({
       <ReplacePagedList
         items={preview.entries}
         itemKey={(entry) => `${entry.locale}\u0000${entry.key}`}
-        render={(entry) => <PreviewRow entry={entry} optedIn={isSendable(entry.status, optIns)} />}
+        render={(entry) => <PreviewRow entry={entry} optIns={optIns} />}
         listAttribute="data-replace-list"
       />
       {sendable === 0 && !none ? (

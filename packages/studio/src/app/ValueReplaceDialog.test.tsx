@@ -291,6 +291,34 @@ describe("ValueReplaceDialog review step", () => {
     expect(noteOf("pinned")).toContain("Left out unless you opt in");
   });
 
+  it("offers both boxes for a lone pinned key that is also protected, and needs both to include it", async () => {
+    rpcCalls.length = 0;
+    stubRpc({
+      "translation.previewValueReplace": previewResult([
+        entry("both.key", "pinned", { protected: true }),
+      ]),
+      "translation.applyValueReplace": {
+        ok: true,
+        result: { outcomes: [], counts: {}, localeFailures: [] },
+      },
+    });
+    const view = mount();
+    await search(view);
+    const noteOf = (): string => view.get("[data-replace-note]").textContent ?? "";
+
+    expect(view.get('[data-replace-optin="pinned"]')).toBeDefined();
+    expect(view.get("[data-replace-optins]").textContent).toContain("changed outside verbatra (1)");
+    expect(noteOf()).toContain("Left out unless you tick both boxes");
+
+    click(view.get('[data-replace-optin="pinned"]'));
+    expect(noteOf()).not.toContain("Included in this run");
+    expect(view.get("[data-replace-apply]").textContent).toBe("Replace 0 values");
+
+    click(view.get('[data-replace-optin="protected"]'));
+    expect(noteOf()).toContain("Included in this run because you ticked both boxes");
+    expect(view.get("[data-replace-apply]").textContent).toBe("Replace 1 value");
+  });
+
   it("submits no second preview while the first is still running", async () => {
     rpcCalls.length = 0;
     let release: () => void = () => {};

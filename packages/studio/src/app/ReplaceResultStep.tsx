@@ -88,7 +88,7 @@ function NotSentItem({ entry }: { readonly entry: ValueReplacePreviewEntry }): R
           {STATUS_LABEL[entry.status]}
         </Badge>
       </p>
-      <p className="m-0 mt-1 text-sm text-muted-foreground">{statusNote(entry.status)}</p>
+      <p className="m-0 mt-1 text-sm text-muted-foreground">{statusNote(entry)}</p>
     </div>
   );
 }
