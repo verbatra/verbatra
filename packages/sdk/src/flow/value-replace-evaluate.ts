@@ -50,6 +50,7 @@ export type PreGate =
   | (PreGateBase & {
       readonly verdict: "no-source-entry" | "unchanged" | "pinned" | "protected" | "too-long";
       readonly newValue: string | undefined;
+      readonly alsoProtected?: true;
     })
   | (PreGateBase & {
       readonly verdict: "candidate";
@@ -96,10 +97,18 @@ function settle(
   if (newValue === current) {
     return { ...base, verdict: "unchanged", newValue };
   }
+  const protectedByOrigin =
+    !allow.protected &&
+    originProtectionFor(facts.policy, facts.provenance, key, current) !== undefined;
   if (!allow.pinned && isPinned(facts.policy, key)) {
-    return { ...base, verdict: "pinned", newValue };
+    return {
+      ...base,
+      verdict: "pinned",
+      newValue,
+      ...(protectedByOrigin ? { alsoProtected: true as const } : {}),
+    };
   }
-  if (!allow.protected && originProtectionFor(facts.policy, facts.provenance, key, current)) {
+  if (protectedByOrigin) {
     return { ...base, verdict: "protected", newValue };
   }
   if (newValue === undefined) {

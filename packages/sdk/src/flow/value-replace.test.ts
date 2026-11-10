@@ -483,7 +483,26 @@ describe("previewValueReplace: statuses", () => {
       provenance: { de: { a: { origin: "human", value: "Hallo {{n}} X" } } },
       config: { pinnedKeys: ["a"] },
     });
-    expect((await preview(p, "X", "")).entries[0]?.status).toBe("pinned");
+    const entry = (await preview(p, "X", "")).entries[0];
+    expect(entry?.status).toBe("pinned");
+    expect(entry?.protected).toBe(true);
+  });
+
+  it("flags only a pinned key whose value is also protected", async () => {
+    const p = await project({
+      source: { a: "Hello", b: "Bye", c: "Ciao" },
+      targets: { de: { a: "Hallo X", b: "Tschuess X", c: "Ciao X" } },
+      provenance: { de: { a: { origin: "human", value: "Hallo X" } } },
+      config: { pinnedKeys: ["a", "b"] },
+    });
+
+    const result = await preview(p, "X", "Y");
+
+    expect(result.entries.map((entry) => [entry.key, entry.status, entry.protected])).toEqual([
+      ["a", "pinned", true],
+      ["b", "pinned", undefined],
+      ["c", "ready", undefined],
+    ]);
   });
 });
 
@@ -1079,6 +1098,37 @@ describe("applyValueReplace: pinned and protected opt-ins", () => {
       expect((await readLocale(p.dir, "de")).a).toBe("Hallo X");
     },
   );
+
+  it("skips a pinned key that is also protected when only includePinned is set", async () => {
+    const p = await project({
+      source: { a: "Hello" },
+      targets: { de: { a: "Hallo X" } },
+      provenance: { de: { a: { origin: "human", value: "Hallo X" } } },
+      config: { pinnedKeys: ["a"] },
+    });
+
+    const result = await apply(p, "X", "Y", refs({ a: "Hallo X" }), { includePinned: true });
+
+    expect(result.outcomes[0]).toMatchObject({ status: "skipped", reason: "protected" });
+    expect((await readLocale(p.dir, "de")).a).toBe("Hallo X");
+  });
+
+  it("changes a pinned key that is also protected when both options are set", async () => {
+    const p = await project({
+      source: { a: "Hello" },
+      targets: { de: { a: "Hallo X" } },
+      provenance: { de: { a: { origin: "human", value: "Hallo X" } } },
+      config: { pinnedKeys: ["a"] },
+    });
+
+    const result = await apply(p, "X", "Y", refs({ a: "Hallo X" }), {
+      includePinned: true,
+      includeProtected: true,
+    });
+
+    expect(result.outcomes[0]?.status).toBe("applied");
+    expect((await readLocale(p.dir, "de")).a).toBe("Hallo Y");
+  });
 
   it("changes a protected value when asked to include protected values", async () => {
     const p = await protectedProject("overwrite");
