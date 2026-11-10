@@ -1,6 +1,7 @@
 import type { ValueReplacePreview, ValueReplacePreviewEntry } from "@verbatra/sdk";
 import { Badge, Button } from "@verbatra/ui";
 import type { ReactNode } from "react";
+import { useId } from "react";
 import type { StructuredError } from "../client/state.js";
 import {
   BASELINE_UNAVAILABLE_NOTICE,
@@ -15,6 +16,7 @@ import {
   PIN_OPT_IN_LABEL,
   PROTECT_OPT_IN_LABEL,
   pinnedAndProtectedTotal,
+  pinnedTotal,
   protectedTotal,
   type ReplaceOptIns,
   reasonLabel,
@@ -139,10 +141,13 @@ function OptIns({
   readonly disabled: boolean;
   readonly onChange: (name: keyof ReplaceOptIns, value: boolean) => void;
 }): ReactNode {
-  const { pinned } = preview.counts;
+  const pinnedAlone = pinnedTotal(preview);
   const guarded = protectedTotal(preview);
   const overlap = pinnedAndProtectedTotal(preview);
-  if (pinned === 0 && guarded === 0) {
+  const overlapId = useId();
+  const overlapProps = overlap > 0 ? { "aria-describedby": overlapId } : {};
+  const showPinned = preview.counts.pinned > 0 || overlap > 0;
+  if (!showPinned && guarded === 0) {
     return null;
   }
   return (
@@ -150,14 +155,17 @@ function OptIns({
       <legend className="mb-1 text-sm font-medium text-foreground">
         Left out unless you opt in
       </legend>
-      {pinned > 0 ? (
+      {showPinned ? (
         <ReplaceCheck
           checked={optIns.includePinned}
           disabled={disabled}
           onChange={(value) => onChange("includePinned", value)}
           data-replace-optin="pinned"
+          {...overlapProps}
         >
-          {PIN_OPT_IN_LABEL} ({groupedCount(pinned)})
+          {pinnedAlone > 0
+            ? `${PIN_OPT_IN_LABEL} (${groupedCount(pinnedAlone)})`
+            : PIN_OPT_IN_LABEL}
         </ReplaceCheck>
       ) : null}
       {guarded > 0 || overlap > 0 ? (
@@ -166,6 +174,7 @@ function OptIns({
           disabled={disabled}
           onChange={(value) => onChange("includeProtected", value)}
           data-replace-optin="protected"
+          {...overlapProps}
         >
           {guarded > 0
             ? `${PROTECT_OPT_IN_LABEL} (${groupedCount(guarded)})`
@@ -173,7 +182,11 @@ function OptIns({
         </ReplaceCheck>
       ) : null}
       {overlap > 0 ? (
-        <p className="m-0 mt-1 text-sm text-muted-foreground" data-replace-overlap="">
+        <p
+          id={overlapId}
+          className="m-0 mt-1 text-sm text-muted-foreground"
+          data-replace-overlap=""
+        >
           {overlapNote(overlap)}
         </p>
       ) : null}

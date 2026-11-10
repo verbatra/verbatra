@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { PIN_OPT_IN_LABEL } from "../client/value-replace.js";
 import {
   click,
   clickAsync,
@@ -64,6 +65,11 @@ async function search(
   typeInto(view.get("[data-replace-with]") as HTMLInputElement, replace);
   await clickAsync(view.getByText("button", "Preview"));
   await flush();
+}
+
+function boxDescription(view: ReturnType<typeof render>, name: string): string | undefined {
+  const id = view.get(`[data-replace-optin="${name}"]`).getAttribute("aria-describedby");
+  return id === null ? undefined : document.getElementById(id)?.textContent;
 }
 
 function applyCalls(): { params: Record<string, unknown> }[] {
@@ -338,16 +344,44 @@ describe("ValueReplaceDialog review step", () => {
     const view = mount();
     await search(view);
 
-    expect(view.get('[data-replace-optin="pinned"]').closest("label")?.textContent).toContain(
-      "(2)",
-    );
-    expect(view.get('[data-replace-optin="protected"]').closest("label")?.textContent).toContain(
-      "(1)",
-    );
+    const boxLabel = (name: string): string =>
+      view.get(`[data-replace-optin="${name}"]`).closest("label")?.textContent ?? "";
+    expect(boxLabel("pinned")).toContain("(1)");
+    expect(boxLabel("protected")).toContain("(1)");
 
     click(view.get('[data-replace-optin="protected"]'));
     expect(view.get("[data-replace-apply]").textContent).toBe("Replace 1 value");
+    click(view.get('[data-replace-optin="protected"]'));
+    click(view.get('[data-replace-optin="pinned"]'));
+    expect(view.get("[data-replace-apply]").textContent).toBe("Replace 1 value");
     expect(view.get("[data-replace-overlap]").textContent).toContain("1 pinned key was also");
+  });
+
+  it("points both checkboxes at the overlap line and omits the pinned count when only overlap remains", async () => {
+    stubRpc({
+      "translation.previewValueReplace": previewResult([
+        entry("both.key", "pinned", { protected: true }),
+      ]),
+    });
+    const view = mount();
+    await search(view);
+
+    const overlapText = view.get("[data-replace-overlap]").textContent;
+    expect(boxDescription(view, "pinned")).toBe(overlapText);
+    expect(boxDescription(view, "protected")).toBe(overlapText);
+    expect(view.get('[data-replace-optin="pinned"]').closest("label")?.textContent).toBe(
+      PIN_OPT_IN_LABEL,
+    );
+  });
+
+  it("describes no checkbox when there is no overlap", async () => {
+    stubRpc({
+      "translation.previewValueReplace": previewResult([entry("only.pinned", "pinned")]),
+    });
+    const view = mount();
+    await search(view);
+
+    expect(view.get('[data-replace-optin="pinned"]').getAttribute("aria-describedby")).toBeNull();
   });
 
   it("marks a pinned and protected key that was not sent with both badges on the result step", async () => {

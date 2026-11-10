@@ -13,6 +13,7 @@ export function ReplaceCheck({
   readonly disabled?: boolean;
   readonly onChange: (checked: boolean) => void;
   readonly children: ReactNode;
+  readonly "aria-describedby"?: string;
   readonly [dataAttribute: `data-${string}`]: string;
 }): ReactNode {
   const id = useId();

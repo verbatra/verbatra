@@ -112,6 +112,11 @@ export function protectedTotal(preview: ValueReplacePreview): number {
   return preview.entries.filter((entry) => entry.status === "protected").length;
 }
 
+export function pinnedTotal(preview: ValueReplacePreview): number {
+  return preview.entries.filter((entry) => entry.status === "pinned" && entry.protected !== true)
+    .length;
+}
+
 export function pinnedAndProtectedTotal(preview: ValueReplacePreview): number {
   return preview.entries.filter(isPinnedAndProtected).length;
 }
