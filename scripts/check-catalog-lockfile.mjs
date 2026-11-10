@@ -38,6 +38,13 @@ function keyOf(line) {
   return { key: unquote(match[1]), value: match[2] === undefined ? "" : unquote(match[2].trim()) };
 }
 
+function mainDocument(lockText) {
+  const documents = lockText.split(/^---\r?$/m).filter((document) => document.trim() !== "");
+  return (
+    documents.find((document) => !/^ {4}packageManagerDependencies:/m.test(document)) ?? lockText
+  );
+}
+
 function topLevelBlock(text, key) {
   const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
   const start = lines.findIndex((line) => line.trimEnd() === `${key}:`);
@@ -74,7 +81,7 @@ const LINE_HANDLERS = {
 
 function parseLockImporters(lockText) {
   const state = { importers: {}, specifiers: null, inSection: false, dependency: null };
-  for (const line of topLevelBlock(lockText, "importers")) {
+  for (const line of topLevelBlock(mainDocument(lockText), "importers")) {
     const entry = line.trim() === "" ? null : keyOf(line);
     const handler = LINE_HANDLERS[indentOf(line)];
     if (entry !== null && handler !== undefined) {

@@ -7,7 +7,7 @@ the npm scope `@verbatra`. The binding rules are in [CLAUDE.md](CLAUDE.md) and
 
 ## Setup and commands
 
-- Node.js `^22.18.0 || >=24`, pnpm `11.6.0` (pinned in `packageManager`; run `corepack enable`).
+- Node.js `^22.18.0 || >=24`, pnpm `12.18.0` (pinned in `packageManager`; install it with `npm install --global pnpm@12.18.0`).
 - `pnpm install` from the repository root; it also installs the Git hooks (lefthook).
 - Every script is defined in the root `package.json`. `pnpm verify` is the CI merge gate; read
   its `scripts` entry for the checks it chains, and run it before you call a change done.

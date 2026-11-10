@@ -11,8 +11,8 @@ open a public issue for vulnerabilities.
 ## Prerequisites
 
 - Node.js ^22.18.0 || >=24
-- pnpm >= 11 (the repository pins pnpm 11.6.0 via the `packageManager` field; run
-  `corepack enable` to use the pinned version)
+- pnpm >= 11 (the repository pins pnpm 12.18.0 via the `packageManager` field; install
+  it with `npm install --global pnpm@12.18.0`)
 
 ## Setup
 

@@ -111,6 +111,33 @@ describe("parseLockImporters", () => {
     });
   });
 
+  it("reads the workspace importers from the main document of a two-document pnpm 12 lockfile", () => {
+    const environmentDocument = `---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies: {}
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.18.0
+        version: 12.18.0
+
+packages:
+
+  '@pnpm/exe.darwin-arm64@12.18.0':
+    resolution: {integrity: sha512-x}
+    cpu: [arm64]
+    os: [darwin]
+
+---
+`;
+    expect(parseLockImporters(`${environmentDocument}${CLEAN_LOCK}`)).toEqual(
+      parseLockImporters(CLEAN_LOCK),
+    );
+  });
+
   it("returns nothing for a lockfile without importers", () => {
     expect(parseLockImporters("lockfileVersion: '9.0'\n")).toEqual({});
   });
