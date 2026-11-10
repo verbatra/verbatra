@@ -192,6 +192,33 @@ describe("importWorkbook: delimited formats", () => {
     expect(await readJsonFile(join(dir, "locales", "fr.json"))).toEqual({ greeting: "Bonjour" });
   });
 
+  it("leaves a value, its file and its provenance alone when the same filled file is imported again", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const config = cfg({ targetLocales: ["de"] });
+    await exportWorkbook({ config, cwd: dir, format: "csv", out: "handoff" });
+    await fillExported(join(dir, "handoff", "de.csv"), "de", "csv", { greeting: "Hallo" });
+    const options = { config, cwd: dir, workbook: "handoff", format: "csv" } as const;
+    const first = await importWorkbook(options);
+    expect(first.locales[0]?.translated).toEqual(["greeting"]);
+
+    const provenancePath = join(dir, "verbatra.provenance.json");
+    const provenance = JSON.parse(await readFile(provenancePath, "utf8")) as {
+      locales: { de: { greeting: { origin: string; reviewState?: string } } };
+    };
+    provenance.locales.de.greeting.origin = "human";
+    provenance.locales.de.greeting.reviewState = "approved";
+    await writeFile(provenancePath, `${JSON.stringify(provenance, null, 2)}\n`, "utf8");
+    const localeBefore = await readFile(join(dir, "locales", "de.json"), "utf8");
+    const provenanceBefore = await readFile(provenancePath, "utf8");
+
+    const second = await importWorkbook(options);
+
+    expect(second.locales[0]?.translated).toEqual([]);
+    expect(second.locales[0]?.unchanged).toEqual(["greeting"]);
+    expect(await readFile(join(dir, "locales", "de.json"), "utf8")).toBe(localeBefore);
+    expect(await readFile(provenancePath, "utf8")).toBe(provenanceBefore);
+  });
+
   it("imports a single interchange file, taking the locale from its file name", async () => {
     const dir = await project({ greeting: "Hello" });
     await exportWorkbook({
