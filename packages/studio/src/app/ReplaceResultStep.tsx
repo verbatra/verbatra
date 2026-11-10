@@ -5,6 +5,7 @@ import {
   FILE_WRITTEN_NOTICE,
   failureViews,
   groupedCount,
+  isPinnedAndProtected,
   keyedDetails,
   type OutcomeRow,
   outcomeRows,
@@ -87,8 +88,13 @@ function NotSentItem({ entry }: { readonly entry: ValueReplacePreviewEntry }): R
         <Badge tone={statusTone(entry.status)} verbatim>
           {STATUS_LABEL[entry.status]}
         </Badge>
+        {isPinnedAndProtected(entry) ? (
+          <Badge tone={statusTone("protected")} verbatim>
+            {STATUS_LABEL.protected}
+          </Badge>
+        ) : null}
       </p>
-      <p className="m-0 mt-1 text-sm text-muted-foreground">{statusNote(entry.status)}</p>
+      <p className="m-0 mt-1 text-sm text-muted-foreground">{statusNote(entry)}</p>
     </div>
   );
 }

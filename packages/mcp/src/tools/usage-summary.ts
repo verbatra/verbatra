@@ -56,7 +56,9 @@ export const usageSummaryTool = defineTool({
     "true when every request reported its own usage, false when at least one did not and " +
     "the figure is partly verbatra's own estimate, which is the case for every " +
     "machine-translation provider, since none reports token usage, and for any request " +
-    "that failed. It is true with tokensUsed 0 when " +
+    "that failed. When supported is false, tokensUsed adds verbatra's own projection for " +
+    "each request the provider did not report, or reported as zero, to the usage it did report, so it is not a " +
+    "figure the provider billed. It is true with tokensUsed 0 when " +
     "the run sent no request at all, since nothing was estimated. The budget is enforced " +
     "either way, and it covers one translate run: it does not cap a single-entry " +
     "retranslation. Takes no parameters. Read-only: it calls no provider and writes " +

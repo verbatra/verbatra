@@ -1,4 +1,4 @@
-import type { RunHistoryCost, RunHistoryRecord } from "@verbatra/sdk";
+import type { ProviderId, RunHistoryCost, RunHistoryRecord } from "@verbatra/sdk";
 import type { RpcResultFor } from "../shared/rpc/contract.js";
 import { coveragePercent } from "./coverage.js";
 import type { RpcCallResult } from "./rpc-client.js";
@@ -25,6 +25,65 @@ export interface CostDisplay {
   readonly caveats: readonly string[];
   readonly amount: number | undefined;
   readonly currency: string | undefined;
+}
+
+interface NotBilledProvider {
+  readonly label: string;
+  readonly detail: string;
+}
+
+const NOT_BILLED_PROVIDERS: readonly (readonly [ProviderId, NotBilledProvider])[] = [
+  ["none", { label: "none", detail: "no provider was called" }],
+  [
+    "libretranslate",
+    {
+      label: "LibreTranslate",
+      detail:
+        "verbatra does not price it; a hosted instance used with an API key may still bill you",
+    },
+  ],
+  [
+    "openai-compatible",
+    {
+      label: "openai-compatible",
+      detail: "verbatra does not price it; a hosted endpoint may still bill you",
+    },
+  ],
+];
+
+const NOT_BILLED_BY_PROVIDER: ReadonlyMap<string, NotBilledProvider> = new Map(
+  NOT_BILLED_PROVIDERS,
+);
+
+const NOT_BILLED_RANK: ReadonlyMap<string, number> = new Map(
+  NOT_BILLED_PROVIDERS.map(([id], index) => [id, index]),
+);
+
+function providerOf(rateKey: string): string {
+  const slash = rateKey.indexOf("/");
+  return slash < 0 ? rateKey : rateKey.slice(0, slash);
+}
+
+function notBilledClause(provider: string): string {
+  const known = NOT_BILLED_BY_PROVIDER.get(provider);
+  return known === undefined
+    ? `${provider}: verbatra does not price it`
+    : `${known.label}: ${known.detail}`;
+}
+
+function notBilledRank(provider: string): number {
+  return NOT_BILLED_RANK.get(provider) ?? NOT_BILLED_PROVIDERS.length;
+}
+
+export function notBilledHint(rateKey: string): string {
+  return `${notBilledClause(providerOf(rateKey))}.`;
+}
+
+export function notBilledNote(rateKeys: Iterable<string>): string {
+  const providers = [...new Set([...rateKeys].map(providerOf))].sort(
+    (left, right) => notBilledRank(left) - notBilledRank(right) || left.localeCompare(right, "en"),
+  );
+  return `Not billed. ${providers.map(notBilledHint).join(" ")}`;
 }
 
 const CAVEAT_TEXT: Readonly<Record<string, string>> = {
@@ -140,7 +199,7 @@ export function describeCost(cost: RunHistoryCost): CostDisplay {
       return {
         kind: "not-billed",
         label: "not billed",
-        hint: "verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
+        hint: notBilledHint(cost.rateKey),
         caveats: partialTokenCaveats(cost),
         ...NO_AMOUNT,
       };

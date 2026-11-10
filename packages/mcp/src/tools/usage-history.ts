@@ -9,7 +9,7 @@ import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 
 const paramsSchema = z.strictObject({
-  limit: z.number().optional(),
+  limit: z.number().int().positive().optional(),
 });
 
 type UsageHistoryResult = z.infer<typeof runHistoryResultSchema>;
@@ -40,8 +40,9 @@ export const usageHistoryTool = defineTool({
     "Records hold counts only, never a key name or a text. cost is frozen when the run ended, " +
     "from the rates the config held then: pricing priced carries currency, asOf and amount; " +
     "no-rate-on-file, rate-unit-mismatch, no-usage (keys were sent but the provider reported " +
-    "no tokens) and not-billed (verbatra does not price the provider, though a hosted " +
-    "openai-compatible endpoint may still bill) carry no amount, so report " +
+    "no tokens) and not-billed (verbatra does not price the provider: a self-hosted " +
+    "openai-compatible or LibreTranslate server, or none; a hosted endpoint may still bill) " +
+    "carry no amount, so report " +
     "them as no rate or unknown and never as free. A cost with basis source-characters is an estimate from the " +
     "source characters sent to a machine-translation provider that reports no usage: say " +
     "estimated, and mention its caveats; keys the provider failed on are not counted. " +

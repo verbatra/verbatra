@@ -133,11 +133,16 @@ function classifyEcho(
   liveCandidates: ReadonlySet<string>,
 ): Echo {
   const state = params.states?.get(row.key);
-  if (state === undefined || params.target.entries.get(row.key)?.value !== row.translation) {
+  if (params.target.entries.get(row.key)?.value !== row.translation) {
     return "none";
   }
   if (liveCandidates.has(row.key)) {
     return state === "initial" ? "unfilled" : "none";
+  }
+  if (state === undefined) {
+    return judge(row, sourceEntry, params.adapter, params.target.locale) === "accepted"
+      ? "kept"
+      : "none";
   }
   if (isApprovedState(state) && contentHash(sourceEntry) === row.sourceHash) {
     buckets.approved.add(row.key);

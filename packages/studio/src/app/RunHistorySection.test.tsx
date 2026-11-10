@@ -698,7 +698,7 @@ describe("RunHistorySection round 3", () => {
         recordAt(T4, { cost: { pricing: "no-rate-on-file", basis: "usage", rateKey: "x" } }),
         recordAt(T3, { cost: { pricing: "rate-unit-mismatch", basis: "usage", rateKey: "x" } }),
         recordAt(T2, { cost: { pricing: "no-usage", basis: "usage", rateKey: "x" } }),
-        recordAt(T1, { cost: { pricing: "not-billed", rateKey: "x" } }),
+        recordAt(T1, { cost: { pricing: "not-billed", rateKey: "openai-compatible" } }),
       ]),
     );
     const notes = view.get("[data-run-history-cost-notes]");
@@ -708,16 +708,33 @@ describe("RunHistorySection round 3", () => {
       "No rate: your config had no rate on file for that provider and model when the run ended. A rate added under rates prices future runs, not these.",
       "No rate: the rate on file for that model was in a different unit than the run was measured in, tokens or characters, when the run ended. A corrected unit under rates prices future runs, not these.",
       "Unknown: keys were sent, but the provider reported no tokens, so no cost can be worked out.",
-      "Not billed: verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
+      "Not billed. openai-compatible: verbatra does not price it; a hosted endpoint may still bill you.",
     ]);
   });
 
   it("shows only the unpriced reasons a listed run has", () => {
-    const view = section(data([recordAt(T1, { cost: { pricing: "not-billed", rateKey: "x" } })]));
+    const view = section(
+      data([recordAt(T1, { cost: { pricing: "not-billed", rateKey: "libretranslate" } })]),
+    );
     const items = [...view.all("[data-run-history-cost-notes] li")].map((item) => item.textContent);
 
     expect(items).toEqual([
-      "Not billed: verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
+      "Not billed. LibreTranslate: verbatra does not price it; a hosted instance used with an API key may still bill you.",
+    ]);
+  });
+
+  it("builds the not-billed note from the providers present, once each", () => {
+    const view = section(
+      data([
+        recordAt(T3, { cost: { pricing: "not-billed", rateKey: "none" } }),
+        recordAt(T2, { cost: { pricing: "not-billed", rateKey: "libretranslate" } }),
+        recordAt(T1, { cost: { pricing: "not-billed", rateKey: "none" } }),
+      ]),
+    );
+    const items = [...view.all("[data-run-history-cost-notes] li")].map((item) => item.textContent);
+
+    expect(items).toEqual([
+      "Not billed. none: no provider was called. LibreTranslate: verbatra does not price it; a hosted instance used with an API key may still bill you.",
     ]);
   });
 

@@ -408,6 +408,114 @@ describe("importLocale", () => {
     expect(result.summary.unfilled).toEqual([]);
   });
 
+  it("reports an echo of the current up-to-date value unchanged, accepting nothing", () => {
+    const src = entry("greet", "Hi");
+    const sheet: WorkbookSheet = {
+      locale: "de",
+      rows: [{ ...row("greet", "Hallo", contentHash(src)), status: "unchanged" }],
+    };
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [src]),
+        target: resource("de", [entry("greet", "Hallo")]),
+        baseline: new Map([["greet", contentHash(src)]]),
+      }),
+    );
+
+    expect(result.accepted.size).toBe(0);
+    expect(result.summary.translated).toEqual([]);
+    expect(result.summary.unchanged).toEqual(["greet"]);
+  });
+
+  it("still accepts an echo of the current value when the key is stale", () => {
+    const src = entry("greet", "Hi there");
+    const sheet: WorkbookSheet = {
+      locale: "de",
+      rows: [{ ...row("greet", "Hallo", contentHash(src)), status: "changed" }],
+    };
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [src]),
+        target: resource("de", [entry("greet", "Hallo")]),
+        baseline: new Map([["greet", "an-older-source-hash"]]),
+      }),
+    );
+
+    expect(result.summary.translated).toEqual(["greet"]);
+    expect(result.accepted.get("greet")?.value).toBe("Hallo");
+  });
+
+  it("withholds an echo of an up-to-date value whose row carries an older source hash", () => {
+    const src = entry("greet", "Hi");
+    const sheet: WorkbookSheet = {
+      locale: "de",
+      rows: [{ ...row("greet", "Hallo", "an-older-source-hash"), status: "unchanged" }],
+    };
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [src]),
+        target: resource("de", [entry("greet", "Hallo")]),
+        baseline: new Map([["greet", contentHash(src)]]),
+      }),
+    );
+
+    expect(result.accepted.size).toBe(0);
+    expect(result.withheld.has("greet")).toBe(true);
+    expect(result.summary.integrityMismatches).toEqual(["greet"]);
+  });
+
+  it("reports an integrity mismatch for an echo of an up-to-date value that fails the gate", () => {
+    const src = entry("greet", "Hi {{name}}", ["name"]);
+    const sheet: WorkbookSheet = {
+      locale: "de",
+      rows: [{ ...row("greet", "Hallo", contentHash(src)), status: "unchanged" }],
+    };
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [src]),
+        target: resource("de", [entry("greet", "Hallo")]),
+        baseline: new Map([["greet", contentHash(src)]]),
+      }),
+    );
+
+    expect(result.accepted.size).toBe(0);
+    expect(result.withheld.has("greet")).toBe(true);
+    expect(result.summary.integrityMismatches).toEqual(["greet"]);
+    expect(result.summary.integrityRefusals).toHaveLength(1);
+    expect(result.summary.unchanged).toEqual([]);
+  });
+
+  it("accepts a filled row that differs from the current value only by line ending or Unicode form", () => {
+    const src = entry("greet", "Hi");
+    const sheet: WorkbookSheet = {
+      locale: "de",
+      rows: [
+        { ...row("greet", "Hällo", contentHash(src)), status: "unchanged" },
+        {
+          ...row("bye", "Zeile eins\r\nZeile zwei", contentHash(entry("bye", "Bye"))),
+          status: "unchanged",
+        },
+      ],
+    };
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [src, entry("bye", "Bye")]),
+        target: resource("de", [entry("greet", "Hällo"), entry("bye", "Zeile eins\nZeile zwei")]),
+        baseline: new Map([
+          ["greet", contentHash(src)],
+          ["bye", contentHash(entry("bye", "Bye"))],
+        ]),
+      }),
+    );
+
+    expect(result.summary.translated).toEqual(["bye", "greet"]);
+  });
+
   it("excludes a blank row exported as changed whose key is no longer a live candidate", () => {
     const src = entry("greet", "Hi");
     const sheet: WorkbookSheet = {

@@ -76,7 +76,7 @@ const STATUS_NOTE: Readonly<Record<ValueReplaceStatus, string>> = {
   "too-long": "The new value would be over 20,000 characters.",
   pinned: "A pinned key. Left out unless you opt in.",
   protected:
-    "A person wrote, imported or changed this outside verbatra. Left out unless you opt in.",
+    "A person wrote, imported, or changed this outside verbatra. Left out unless you opt in.",
   "no-source-entry": "There is no source text to check the new value against.",
   unchanged: "The replacement would not change this value.",
 };
@@ -84,11 +84,45 @@ const STATUS_NOTE: Readonly<Record<ValueReplaceStatus, string>> = {
 const OPTED_IN_NOTE: Readonly<Partial<Record<ValueReplaceStatus, string>>> = {
   pinned: "A pinned key. Included in this run because you ticked its box.",
   protected:
-    "A person wrote, imported or changed this outside verbatra. Included in this run because you ticked its box.",
+    "A person wrote, imported, or changed this outside verbatra. Included in this run because you ticked its box.",
 };
 
-export function statusNote(status: ValueReplaceStatus, optedIn = false): string {
-  return (optedIn ? OPTED_IN_NOTE[status] : undefined) ?? STATUS_NOTE[status];
+const PINNED_AND_PROTECTED_NOTE =
+  "This pinned value was written, imported, or changed by a person outside verbatra. It is left out unless you tick both boxes.";
+
+const PINNED_AND_PROTECTED_OPTED_IN_NOTE =
+  "This pinned value was written, imported, or changed by a person outside verbatra. It is included in this run because you ticked both boxes.";
+
+export function isPinnedAndProtected(entry: ValueReplacePreviewEntry): boolean {
+  return entry.status === "pinned" && entry.protected === true;
+}
+
+export function statusNote(
+  entry: ValueReplacePreviewEntry,
+  optIns: ReplaceOptIns = NO_OPT_INS,
+): string {
+  const optedIn = isSendable(entry, optIns);
+  if (isPinnedAndProtected(entry)) {
+    return optedIn ? PINNED_AND_PROTECTED_OPTED_IN_NOTE : PINNED_AND_PROTECTED_NOTE;
+  }
+  return (optedIn ? OPTED_IN_NOTE[entry.status] : undefined) ?? STATUS_NOTE[entry.status];
+}
+
+export function protectedTotal(preview: ValueReplacePreview): number {
+  return preview.entries.filter((entry) => entry.status === "protected").length;
+}
+
+export function pinnedTotal(preview: ValueReplacePreview): number {
+  return preview.entries.filter((entry) => entry.status === "pinned" && entry.protected !== true)
+    .length;
+}
+
+export function pinnedAndProtectedTotal(preview: ValueReplacePreview): number {
+  return preview.entries.filter(isPinnedAndProtected).length;
+}
+
+export function overlapNote(count: number): string {
+  return `${groupedCount(count)} pinned ${count === 1 ? "key was" : "keys were"} also written by a person: tick both boxes to change ${count === 1 ? "it" : "them"}.`;
 }
 
 const STATUS_TONE: Readonly<Record<ValueReplaceStatus, ReplaceTone>> = {
@@ -133,12 +167,13 @@ export function countRows(preview: ValueReplacePreview): readonly CountRow[] {
   })).filter((row) => row.count > 0);
 }
 
-export function isSendable(status: ValueReplaceStatus, optIns: ReplaceOptIns): boolean {
+export function isSendable(entry: ValueReplacePreviewEntry, optIns: ReplaceOptIns): boolean {
+  const { status } = entry;
   if (status === "ready" || status === "stale-source") {
     return true;
   }
   if (status === "pinned") {
-    return optIns.includePinned;
+    return optIns.includePinned && (entry.protected !== true || optIns.includeProtected);
   }
   return status === "protected" && optIns.includeProtected;
 }
@@ -147,7 +182,7 @@ export function entriesToApply(
   preview: ValueReplacePreview,
   optIns: ReplaceOptIns,
 ): readonly ValueReplacePreviewEntry[] {
-  return preview.entries.filter((entry) => isSendable(entry.status, optIns));
+  return preview.entries.filter((entry) => isSendable(entry, optIns));
 }
 
 function criteriaParams(criteria: ReplaceCriteria): {
@@ -270,7 +305,7 @@ export function notSentEntries(
   preview: ValueReplacePreview,
   optIns: ReplaceOptIns,
 ): readonly ValueReplacePreviewEntry[] {
-  return preview.entries.filter((entry) => !isSendable(entry.status, optIns));
+  return preview.entries.filter((entry) => !isSendable(entry, optIns));
 }
 
 const LARGE_NUMBER = /\d{4,}/g;

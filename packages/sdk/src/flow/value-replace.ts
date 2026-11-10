@@ -80,6 +80,12 @@ export interface ValueReplacePreviewEntry {
   readonly key: string;
   /** Whether and how the replacement would apply. */
   readonly status: ValueReplaceStatus;
+  /**
+   * Present, and `true`, only on a `pinned` entry whose value is also protected (a person wrote,
+   * imported, or changed it outside verbatra, or the provenance file cannot be read). Such a key is
+   * applied only when both `includePinned` and `includeProtected` are set. Absent otherwise.
+   */
+  readonly protected?: true;
   /** The integrity rule the replaced value would break. Present only for `gate-refused`. */
   readonly reason?: IntegrityGateReason;
   /** What is behind a `gate-refused` reason, as {@link EditEntryResult} reports it. Absent otherwise. */
@@ -303,7 +309,13 @@ function previewEntry(
     excerptCut: before.cut || after.cut,
   };
   if (pre.verdict !== "candidate") {
-    return { ...base, status: pre.verdict };
+    return {
+      ...base,
+      status: pre.verdict,
+      ...(pre.verdict === "pinned" && pre.alsoProtected === true
+        ? { protected: true as const }
+        : {}),
+    };
   }
   const refusal = judgeReplacement(facts, pre.sourceEntry, locale, current, pre.newValue);
   if (refusal !== undefined) {
@@ -339,7 +351,8 @@ function previewEntry(
  * and `+` for what the replaced value has. A replaced value longer than 20,000 characters is listed as `too-long`, which is not an
  * integrity refusal and carries no `reason`. Keys that
  * match `pinnedKeys`, and values a person wrote, imported, or changed outside verbatra, are listed
- * as `pinned` and `protected` whatever the config's `humanEdits` says, and every value counts as
+ * as `pinned` and `protected` whatever the config's `humanEdits` says (a key that is both is
+ * listed as `pinned` with `protected: true`), and every value counts as
  * protected when the provenance file cannot be read, which includes a file from a newer verbatra:
  * that file is never rewritten, and a value changed with `includeProtected` gets no record in it. A
  * key whose source text changed since its translation was recorded is `stale-source`, and its
@@ -682,8 +695,8 @@ function markDuplicates(
  * pinned key is `skipped` unless `includePinned` is set and `actor` is `human`; an agent never
  * changes a pinned key. A value that is protected as {@link previewValueReplace} describes it is
  * `skipped` unless `includeProtected` is set, and this holds whatever `humanEdits` the config
- * sets. A value the integrity gate refuses is `refused`, with its reason. Everything else is
- * written.
+ * sets, so a key that is both pinned and protected needs both options. A value the integrity gate
+ * refuses is `refused`, with its reason. Everything else is written.
  *
  * Locales are processed one after another, each under its own write lock, with one write of the
  * locale file, one update of the lock-file and provenance file, and one translation-memory update

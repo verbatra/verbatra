@@ -4,7 +4,7 @@ import { z } from "zod";
 export const USAGE_HISTORY_METHOD = "usage.history";
 
 export const usageHistoryParamsSchema = z.strictObject({
-  limit: z.number().optional(),
+  limit: z.number().int().positive().optional(),
 });
 
 export type UsageHistoryParams = z.infer<typeof usageHistoryParamsSchema>;

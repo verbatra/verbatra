@@ -18,9 +18,13 @@ import {
   notSentEntries,
   outcomeRows,
   outcomeView,
+  overlapNote,
+  pinnedAndProtectedTotal,
   previewParams,
+  protectedTotal,
   reasonLabel,
   replacedCount,
+  statusNote,
   statusTone,
   valueCount,
   withGroupedNumbers,
@@ -145,11 +149,88 @@ describe("applyParams request size", () => {
 
 describe("isSendable and entriesToApply", () => {
   it("keeps pinned and protected out by default", () => {
-    expect(isSendable("pinned", NO_OPT_INS)).toBe(false);
-    expect(isSendable("protected", NO_OPT_INS)).toBe(false);
-    expect(isSendable("protected", { includePinned: true, includeProtected: false })).toBe(false);
-    expect(isSendable("pinned", { includePinned: false, includeProtected: true })).toBe(false);
+    expect(isSendable(entry("p", "pinned"), NO_OPT_INS)).toBe(false);
+    expect(isSendable(entry("q", "protected"), NO_OPT_INS)).toBe(false);
+    expect(
+      isSendable(entry("q", "protected"), { includePinned: true, includeProtected: false }),
+    ).toBe(false);
+    expect(isSendable(entry("p", "pinned"), { includePinned: false, includeProtected: true })).toBe(
+      false,
+    );
     expect(entriesToApply(preview([entry("p", "pinned")]), NO_OPT_INS)).toEqual([]);
+  });
+
+  it.each([
+    [false, false, false],
+    [true, false, false],
+    [false, true, false],
+    [true, true, true],
+  ])(
+    "sends a pinned key that is also protected only with both boxes (pinned %s, protected %s)",
+    (includePinned, includeProtected, sent) => {
+      const both = entry("pp", "pinned", { protected: true });
+
+      expect(isSendable(both, { includePinned, includeProtected })).toBe(sent);
+    },
+  );
+
+  it("still sends a pinned key that is not protected on the pinned box alone", () => {
+    expect(isSendable(entry("p", "pinned"), { includePinned: true, includeProtected: false })).toBe(
+      true,
+    );
+  });
+});
+
+describe("statusNote and protectedTotal", () => {
+  it("says both boxes are needed for a pinned key that is also protected", () => {
+    const both = entry("pp", "pinned", { protected: true });
+
+    expect(statusNote(both, { includePinned: true, includeProtected: false })).toBe(
+      "This pinned value was written, imported, or changed by a person outside verbatra. It is left out unless you tick both boxes.",
+    );
+    expect(statusNote(both, { includePinned: true, includeProtected: true })).toBe(
+      "This pinned value was written, imported, or changed by a person outside verbatra. It is included in this run because you ticked both boxes.",
+    );
+  });
+
+  it("uses one comma style for every protected note", () => {
+    expect(statusNote(entry("c", "protected"))).toBe(
+      "A person wrote, imported, or changed this outside verbatra. Left out unless you opt in.",
+    );
+    expect(
+      statusNote(entry("c", "protected"), { includePinned: false, includeProtected: true }),
+    ).toBe(
+      "A person wrote, imported, or changed this outside verbatra. Included in this run because you ticked its box.",
+    );
+  });
+
+  it("keeps the plain pinned note for a pinned key that is not protected", () => {
+    expect(
+      statusNote(entry("p", "pinned"), { includePinned: true, includeProtected: false }),
+    ).toContain("Included in this run because you ticked its box.");
+  });
+
+  it("counts only the values the protected box alone adds, and the overlap separately", () => {
+    const counted = preview([
+      entry("a", "pinned", { protected: true }),
+      entry("b", "pinned"),
+      entry("c", "protected"),
+    ]);
+
+    expect(protectedTotal(counted)).toBe(1);
+    expect(pinnedAndProtectedTotal(counted)).toBe(1);
+    expect(entriesToApply(counted, { includePinned: false, includeProtected: true })).toHaveLength(
+      protectedTotal(counted),
+    );
+  });
+
+  it("words the overlap line in the singular and the plural", () => {
+    expect(overlapNote(1)).toBe(
+      "1 pinned key was also written by a person: tick both boxes to change it.",
+    );
+    expect(overlapNote(1200)).toBe(
+      "1,200 pinned keys were also written by a person: tick both boxes to change them.",
+    );
   });
 });
 
