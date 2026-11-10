@@ -467,6 +467,51 @@ describe("importLocale", () => {
     expect(result.summary.integrityMismatches).toEqual(["greet"]);
   });
 
+  it("reports an integrity mismatch for an echo of an up-to-date value that fails the gate", () => {
+    const src = entry("greet", "Hi {{name}}", ["name"]);
+    const sheet: WorkbookSheet = {
+      locale: "de",
+      rows: [{ ...row("greet", "Hallo", contentHash(src)), status: "unchanged" }],
+    };
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [src]),
+        target: resource("de", [entry("greet", "Hallo")]),
+        baseline: new Map([["greet", contentHash(src)]]),
+      }),
+    );
+
+    expect(result.accepted.size).toBe(0);
+    expect(result.withheld.has("greet")).toBe(true);
+    expect(result.summary.integrityMismatches).toEqual(["greet"]);
+    expect(result.summary.unchanged).toEqual([]);
+  });
+
+  it("accepts a filled row that differs from the current value only by line ending or Unicode form", () => {
+    const src = entry("greet", "Hi");
+    const sheet: WorkbookSheet = {
+      locale: "de",
+      rows: [
+        { ...row("greet", "Hällo", contentHash(src)), status: "unchanged" },
+        { ...row("bye", "Tschuess\r\n", contentHash(entry("bye", "Bye"))), status: "unchanged" },
+      ],
+    };
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [src, entry("bye", "Bye")]),
+        target: resource("de", [entry("greet", "Hällo"), entry("bye", "Tschuess")]),
+        baseline: new Map([
+          ["greet", contentHash(src)],
+          ["bye", contentHash(entry("bye", "Bye"))],
+        ]),
+      }),
+    );
+
+    expect(result.summary.translated).toEqual(["bye", "greet"]);
+  });
+
   it("excludes a blank row exported as changed whose key is no longer a live candidate", () => {
     const src = entry("greet", "Hi");
     const sheet: WorkbookSheet = {

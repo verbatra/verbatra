@@ -60,6 +60,7 @@ Every filled row is judged against the live project before anything is written:
 - **Integrity**: placeholders, inline markup and ICU structure must match the source, as in every run. See [the integrity gate](/docs/translation-safety#the-integrity-gate).
 - **Degenerate values**: a repetition loop, a runaway length or an empty value for a non-empty source is withheld.
 - **Unknown keys**: a filled row whose key exists in neither the source nor the target fails that locale's sheet. A key that exists only in the target is left unwritten.
+- **Unchanged rows**: a filled row equal to the value an up-to-date key already holds is left alone and reported unchanged, once it passes the same gate.
 
 A withheld or blank row keeps its lock baseline, so the key is exported again until it is resolved; a blank row whose source drifted also raises [`BLANK_ROW_BASELINE_RETAINED`](/docs/error-codes#blank_row_baseline_retained). An unreadable row or a repeated key is reported without failing the sheet. Each sheet is one locale in the run summary, and import uses the same exit codes as `translate`, so a handoff fits the same [CI checks](/docs/ci-and-exit-codes) as an automated run. [`verbatra import`](/docs/cli/import) has the details.
 

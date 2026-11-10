@@ -140,7 +140,9 @@ function classifyEcho(
     return state === "initial" ? "unfilled" : "none";
   }
   if (state === undefined) {
-    return contentHash(sourceEntry) === row.sourceHash ? "kept" : "none";
+    return judge(row, sourceEntry, params.adapter, params.target.locale) === "accepted"
+      ? "kept"
+      : "none";
   }
   if (isApprovedState(state) && contentHash(sourceEntry) === row.sourceHash) {
     buckets.approved.add(row.key);

@@ -60,6 +60,7 @@ Cada fila rellenada se evalúa contra el proyecto actual antes de escribir nada:
 - **Integridad**: los placeholders, el marcado en línea y la estructura ICU deben coincidir con el origen, como en cada ejecución. Consulta [la puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad).
 - **Valores degenerados**: un bucle de repeticiones, una longitud desbocada o un valor vacío para un origen no vacío se retienen.
 - **Claves desconocidas**: una fila rellenada cuya clave no existe ni en el origen ni en el destino hace fallar la hoja de ese locale. Una clave que solo existe en el destino no se escribe.
+- **Filas sin cambios**: una fila rellenada igual al valor de una clave al día se deja intacta y se informa como sin cambios, una vez que pasa la misma puerta.
 
 Una fila retenida o en blanco conserva su línea base en el bloqueo, así que la clave se vuelve a exportar hasta que se resuelve; una fila en blanco cuyo origen derivó también genera [`BLANK_ROW_BASELINE_RETAINED`](/es/docs/error-codes#blank_row_baseline_retained). Una fila ilegible o una clave repetida se informan sin hacer fallar la hoja. Cada hoja es un locale en el resumen de la ejecución, y la importación usa los mismos códigos de salida que `translate`, así que una entrega encaja en las mismas [comprobaciones de CI](/es/docs/ci-and-exit-codes) que una ejecución automática. [`verbatra import`](/es/docs/cli/import) tiene los detalles.
 

@@ -546,9 +546,10 @@ async function importSheet(run: SheetImport, sheet: WorkbookSheet): Promise<Loca
  * Imported values are held to the same integrity gate as provider output, so a translator who drops
  * a placeholder, breaks inline markup or breaks ICU syntax has that row refused rather than
  * written, and a row whose source text changed since the export is refused the same way. A row
- * holding exactly `[[CLEAR]]` empties that key's translation. Each locale takes its write lock, and
- * the lock-file and translation memory are updated exactly as in a {@link translate} run, so an
- * imported translation counts as up to date afterwards. Each accepted row is recorded in the
+ * holding exactly `[[CLEAR]]` empties that key's translation. A filled row equal to the value an
+ * up-to-date key already holds is left alone and reported unchanged once it passes the same gate.
+ * Each locale takes its write lock, and the lock-file and translation memory are updated exactly
+ * as in a {@link translate} run, so an imported translation counts as up to date afterwards. Each accepted row is recorded in the
  * provenance file with the origin `import`.
  *
  * Damage is contained rather than fatal: a blank row keeps the existing translation and its

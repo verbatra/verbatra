@@ -219,6 +219,74 @@ describe("importWorkbook: delimited formats", () => {
     expect(await readFile(provenancePath, "utf8")).toBe(provenanceBefore);
   });
 
+  it("keeps a machine-origin value, and seeds no translation memory, when its filled echo is imported", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const config = cfg({ targetLocales: ["de"] });
+    await exportWorkbook({ config, cwd: dir, format: "csv", out: "handoff" });
+    await fillExported(join(dir, "handoff", "de.csv"), "de", "csv", { greeting: "Hallo" });
+    const options = { config, cwd: dir, workbook: "handoff", format: "csv" } as const;
+    await importWorkbook(options);
+
+    const provenancePath = join(dir, "verbatra.provenance.json");
+    const provenance = JSON.parse(await readFile(provenancePath, "utf8")) as {
+      locales: { de: { greeting: { origin: string } } };
+    };
+    provenance.locales.de.greeting.origin = "machine";
+    await writeFile(provenancePath, `${JSON.stringify(provenance, null, 2)}\n`, "utf8");
+    await rm(join(dir, "verbatra.cache.json"));
+
+    const second = await importWorkbook(options);
+
+    expect(second.locales[0]?.unchanged).toEqual(["greeting"]);
+    const after = JSON.parse(await readFile(provenancePath, "utf8")) as typeof provenance;
+    expect(after.locales.de.greeting.origin).toBe("machine");
+    await expect(readFile(join(dir, "verbatra.cache.json"), "utf8")).rejects.toThrow();
+  });
+
+  it("reports an unchanged echo and still writes its lock entry when the project has no lock baseline", async () => {
+    const dir = await project({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    const config = cfg({ targetLocales: ["de"] });
+    await exportWorkbook({
+      config,
+      cwd: dir,
+      format: "csv",
+      out: "handoff",
+      includeUnchanged: true,
+    });
+    await fillExported(join(dir, "handoff", "de.csv"), "de", "csv", { greeting: "Hallo" });
+    await rm(join(dir, "verbatra.lock.json"), { force: true });
+
+    const result = await importWorkbook({ config, cwd: dir, workbook: "handoff", format: "csv" });
+
+    expect(result.locales[0]?.translated).toEqual([]);
+    expect(result.locales[0]?.unchanged).toEqual(["greeting"]);
+    const lock = JSON.parse(await readFile(join(dir, "verbatra.lock.json"), "utf8")) as {
+      locales: { de: Record<string, string> };
+    };
+    expect(Object.keys(lock.locales.de)).toEqual(["greeting"]);
+  });
+
+  it("still imports a filled row that differs from the current value only by line ending or Unicode form", async () => {
+    const dir = await project({ greeting: "Hello", bye: "Bye" });
+    const config = cfg({ targetLocales: ["de"] });
+    await exportWorkbook({ config, cwd: dir, format: "csv", out: "handoff" });
+    await fillExported(join(dir, "handoff", "de.csv"), "de", "csv", {
+      greeting: "Hällo",
+      bye: "Tschuess\nbis bald",
+    });
+    const options = { config, cwd: dir, workbook: "handoff", format: "csv" } as const;
+    await importWorkbook(options);
+    await fillExported(join(dir, "handoff", "de.csv"), "de", "csv", {
+      greeting: "Hällo",
+      bye: "Tschuess\r\nbis bald",
+    });
+
+    const second = await importWorkbook(options);
+
+    expect([...(second.locales[0]?.translated ?? [])].sort()).toEqual(["bye", "greeting"]);
+    expect(second.locales[0]?.unchanged).toEqual([]);
+  });
+
   it("imports a single interchange file, taking the locale from its file name", async () => {
     const dir = await project({ greeting: "Hello" });
     await exportWorkbook({

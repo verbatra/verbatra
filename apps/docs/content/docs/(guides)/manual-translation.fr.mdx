@@ -60,6 +60,7 @@ Chaque ligne remplie est jugée par rapport au projet tel qu'il est, avant toute
 - **Intégrité** : les placeholders, le balisage inline et la structure ICU doivent correspondre à la source, comme à chaque exécution. Voir [la barrière d'intégrité](/fr/docs/translation-safety#la-barrière-dintégrité).
 - **Valeurs dégénérées** : une boucle de répétition, une longueur qui s'emballe ou une valeur vide pour une source non vide est retenue.
 - **Clés inconnues** : une ligne remplie dont la clé n'existe ni dans la source ni dans la cible fait échouer la feuille de cette locale. Une clé qui n'existe que dans la cible n'est pas écrite.
+- **Lignes inchangées** : une ligne remplie égale à la valeur d'une clé à jour est laissée telle quelle et signalée comme inchangée, une fois qu'elle passe la même barrière.
 
 Une ligne retenue ou vide garde sa référence de verrouillage, donc la clé est exportée à nouveau jusqu'à ce qu'elle soit résolue ; une ligne vide dont la source a dérivé déclenche en plus [`BLANK_ROW_BASELINE_RETAINED`](/fr/docs/error-codes#blank_row_baseline_retained). Une ligne illisible ou une clé en double est signalée sans faire échouer la feuille. Chaque feuille correspond à une locale dans le résumé de l'exécution, et l'import utilise les mêmes codes de sortie que `translate`, donc une remise s'intègre aux mêmes [contrôles CI](/fr/docs/ci-and-exit-codes) qu'une exécution automatisée. [`verbatra import`](/fr/docs/cli/import) donne les détails.
 
