@@ -95,11 +95,11 @@ describe("describeCost", () => {
   it.each([
     [
       "libretranslate",
-      "LibreTranslate: verbatra does not price it, a hosted instance used with an API key may still bill you.",
+      "LibreTranslate: verbatra does not price it; a hosted instance used with an API key may still bill you.",
     ],
     [
       "openai-compatible/llama",
-      "openai-compatible: verbatra does not price it, a hosted endpoint may still bill you.",
+      "openai-compatible: verbatra does not price it; a hosted endpoint may still bill you.",
     ],
     ["none", "none: no provider was called."],
     ["constructor", "constructor: verbatra does not price it."],
@@ -110,18 +110,21 @@ describe("describeCost", () => {
 });
 
 describe("notBilledNote", () => {
-  const NOT_BILLED_PROVIDER_IDS = [
+  const KNOWN_NOT_BILLED_PROVIDER_IDS = [
     "none",
     "libretranslate",
     "openai-compatible",
   ] as const satisfies readonly ProviderId[];
 
-  it.each(NOT_BILLED_PROVIDER_IDS)("words a specific hint for the not-billed provider %s", (id) => {
-    expect(notBilledHint(id)).not.toContain("verbatra does not price it.");
-    expect(
-      notBilledHint(id).startsWith(`${id === "libretranslate" ? "LibreTranslate" : id}: `),
-    ).toBe(true);
-  });
+  it.each(KNOWN_NOT_BILLED_PROVIDER_IDS)(
+    "pins the fixed list of known not-billed providers, with a specific hint for %s (the SDK exports no such list)",
+    (id) => {
+      expect(notBilledHint(id)).not.toContain("verbatra does not price it.");
+      expect(
+        notBilledHint(id).startsWith(`${id === "libretranslate" ? "LibreTranslate" : id}: `),
+      ).toBe(true);
+    },
+  );
 
   it("labels each provider in a fixed order, once each, whatever order the runs came in", () => {
     expect(
@@ -134,7 +137,7 @@ describe("notBilledNote", () => {
         "aaa",
       ]),
     ).toBe(
-      "Not billed: none: no provider was called; LibreTranslate: verbatra does not price it, a hosted instance used with an API key may still bill you; openai-compatible: verbatra does not price it, a hosted endpoint may still bill you; aaa: verbatra does not price it; zzz: verbatra does not price it.",
+      "Not billed. none: no provider was called. LibreTranslate: verbatra does not price it; a hosted instance used with an API key may still bill you. openai-compatible: verbatra does not price it; a hosted endpoint may still bill you. aaa: verbatra does not price it. zzz: verbatra does not price it.",
     );
   });
 });

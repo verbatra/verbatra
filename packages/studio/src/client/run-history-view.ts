@@ -39,14 +39,14 @@ const NOT_BILLED_PROVIDERS: readonly (readonly [ProviderId, NotBilledProvider])[
     {
       label: "LibreTranslate",
       detail:
-        "verbatra does not price it, a hosted instance used with an API key may still bill you",
+        "verbatra does not price it; a hosted instance used with an API key may still bill you",
     },
   ],
   [
     "openai-compatible",
     {
       label: "openai-compatible",
-      detail: "verbatra does not price it, a hosted endpoint may still bill you",
+      detail: "verbatra does not price it; a hosted endpoint may still bill you",
     },
   ],
 ];
@@ -83,7 +83,7 @@ export function notBilledNote(rateKeys: Iterable<string>): string {
     (left, right) =>
       notBilledRank(left) - notBilledRank(right) || (left < right ? -1 : left > right ? 1 : 0),
   );
-  return `Not billed: ${providers.map(notBilledClause).join("; ")}.`;
+  return `Not billed. ${providers.map(notBilledHint).join(" ")}`;
 }
 
 const CAVEAT_TEXT: Readonly<Record<string, string>> = {
