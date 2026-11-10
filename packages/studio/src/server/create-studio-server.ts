@@ -18,6 +18,10 @@ import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/revie
 import { REVIEW_APPROVE_LOCALE_METHOD } from "../shared/rpc/review-locale.js";
 import type { StudioRateLimit, StudioRateLimits } from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
+import {
+  APPLY_VALUE_REPLACE_METHOD,
+  PREVIEW_VALUE_REPLACE_METHOD,
+} from "../shared/rpc/value-replace.js";
 import { buildBanner } from "./banner.js";
 import { resolveCapabilities } from "./capabilities.js";
 import { cookieName } from "./cookie.js";
@@ -58,6 +62,10 @@ const DEFAULT_KEY_REVISIONS_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_KEY_REVISIONS_RATE_LIMIT_MAX = 60;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX = 60;
+const DEFAULT_PREVIEW_VALUE_REPLACE_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_PREVIEW_VALUE_REPLACE_RATE_LIMIT_MAX = 60;
+const DEFAULT_APPLY_VALUE_REPLACE_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_APPLY_VALUE_REPLACE_RATE_LIMIT_MAX = 10;
 
 export function studioRateLimits(options: StudioServerOptions): StudioRateLimits {
   return {
@@ -69,6 +77,18 @@ export function studioRateLimits(options: StudioServerOptions): StudioRateLimits
       windowMs:
         options.reviewDecisionRateLimitWindowMs ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS,
       max: options.reviewDecisionRateLimitMax ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX,
+    },
+    previewValueReplace: {
+      windowMs:
+        options.previewValueReplaceRateLimitWindowMs ??
+        DEFAULT_PREVIEW_VALUE_REPLACE_RATE_LIMIT_WINDOW_MS,
+      max: options.previewValueReplaceRateLimitMax ?? DEFAULT_PREVIEW_VALUE_REPLACE_RATE_LIMIT_MAX,
+    },
+    applyValueReplace: {
+      windowMs:
+        options.applyValueReplaceRateLimitWindowMs ??
+        DEFAULT_APPLY_VALUE_REPLACE_RATE_LIMIT_WINDOW_MS,
+      max: options.applyValueReplaceRateLimitMax ?? DEFAULT_APPLY_VALUE_REPLACE_RATE_LIMIT_MAX,
     },
   };
 }
@@ -125,6 +145,8 @@ function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits
       windowMs: options.keyRevisionsRateLimitWindowMs ?? DEFAULT_KEY_REVISIONS_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.keyRevisionsRateLimitMax ?? DEFAULT_KEY_REVISIONS_RATE_LIMIT_MAX,
     },
+    [PREVIEW_VALUE_REPLACE_METHOD]: ruleOf(limits.previewValueReplace),
+    [APPLY_VALUE_REPLACE_METHOD]: ruleOf(limits.applyValueReplace),
     [REVIEW_APPROVE_METHOD]: reviewDecision,
     [REVIEW_REJECT_METHOD]: reviewDecision,
     [REVIEW_APPROVE_MANY_METHOD]: reviewDecision,
@@ -133,7 +155,7 @@ function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits
   });
 }
 
-function buildInFlightGuard(): RpcInFlightGuard {
+export function buildInFlightGuard(): RpcInFlightGuard {
   return createRpcInFlightGuard(
     new Set([
       TRANSLATE_PENDING_METHOD,
@@ -146,9 +168,10 @@ function buildInFlightGuard(): RpcInFlightGuard {
       REVIEW_REJECT_MANY_METHOD,
       REVIEW_APPROVE_LOCALE_METHOD,
       RETRANSLATE_ENTRIES_METHOD,
+      APPLY_VALUE_REPLACE_METHOD,
     ]),
     Date.now,
-    new Set([RETRANSLATE_ENTRY_METHOD, RETRANSLATE_ENTRIES_METHOD]),
+    new Set([RETRANSLATE_ENTRY_METHOD, RETRANSLATE_ENTRIES_METHOD, APPLY_VALUE_REPLACE_METHOD]),
   );
 }
 

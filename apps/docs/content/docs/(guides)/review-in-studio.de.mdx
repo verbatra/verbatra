@@ -6,7 +6,7 @@ type: how-to
 ---
 Damit prüfst du maschinelle Übersetzungen, bevor sie ausgeliefert werden: Du findest, was offen ist, korrigierst Werte von Hand und gibst frei oder lehnst ab, was ein Provider geschrieben hat, in Verbatra Studio, einem lokalen Dashboard über deinem Projekt.
 
-Zwei Regeln gelten durchgehend. **Lokales Bearbeiten ist immer an**, abgesichert durch dieselben Integritätsprüfungen wie jeder andere Schreibvorgang. **Kostenpflichtige Provider-Aufrufe sind immer aus**, außer du startest Studio mit `--allow-spend`.
+Zwei Regeln gelten durchgehend. **Lokales Bearbeiten ist immer an**. **Kostenpflichtige Provider-Aufrufe sind immer aus**, außer du startest Studio mit `--allow-spend`.
 
 ## Starte Studio
 
@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Öffne die ausgegebene URL samt Token und beende Studio mit Strg+C. [`verbatra studio`](/de/docs/cli/studio) erklärt Port, Token und jedes Flag. Jede Seite aktualisiert sich live, wenn sich eine Locale-Datei, die Lock-Datei, die Herkunftsdatei oder die Limit-Datei ändert.
+Öffne die ausgegebene URL samt Token. [`verbatra studio`](/de/docs/cli/studio) erklärt Port, Token, Flags und die Live-Aktualisierung.
 
 ## Lies die Seite Translations
 
@@ -66,7 +66,13 @@ Mit `next-intl-json` oder `arb` rendert eine eingeklappte **ICU preview** unter 
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Ab 1280px Breite sitzt der Editor neben der Tabelle; darunter öffnet er sich als Schublade. Verlässt du den Key mit ungespeicherten Änderungen, ob du einen anderen Key öffnest, filterst, suchst, eine andere Seite aufrufst oder zurückgehst, fragt Studio, ob du speichern, verwerfen oder weiterbearbeiten willst; beim Verlassen von Studio selbst bestätigt der Browser.
+Ab 1280px Breite sitzt der Editor neben der Tabelle; darunter öffnet er sich als Schublade. Verlässt du den Key mit ungespeicherten Änderungen, fragt Studio, ob du speichern, verwerfen oder weiterbearbeiten willst; beim Verlassen von Studio selbst bestätigt der Browser.
+
+### Suchen und ersetzen
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Search and replace** ersetzt wörtlichen Text in übersetzten Werten: Wähle Text, Ersatz, Groß-/Kleinschreibung und Locales, prüfe jeden Treffer (bis zu 1.000) und wende dann an. Angepinnte Keys und geschützte Werte bleiben draußen, solange du ihr Kästchen nicht ankreuzt. Geschützt heißt: Eine Person hat den Wert geschrieben, importiert oder außerhalb von verbatra geändert, oder es ist jeder Wert, wenn sich `verbatra.provenance.json` nicht lesen lässt.
 
 ## Arbeite die Review-Warteschlange ab
 
@@ -112,7 +118,7 @@ Die Chips **Needs review** und **Approved** wechseln die Liste und zeigen Zähle
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Drück `j` oder Pfeil nach unten, um den ersten Eintrag hervorzuheben, dann:
+Drück `j` oder Pfeil nach unten, um zu starten, dann:
 
 | Taste | Aktion |
 | --- | --- |
@@ -145,7 +151,7 @@ Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor ei
 
 ## Übersetze ausstehende Änderungen
 
-Ändert sich die Quelldatei, während Studio läuft, nennt eine Benachrichtigung die Datei und die hinzugefügten, geänderten oder entfernten Keys. Mit `--allow-spend` bietet sie außerdem **Translate pending changes across all locales** an: denselben Lauf, den `verbatra translate` machen würde.
+Ändert sich die Quelldatei oder eine Ziel-Locale-Datei, während Studio läuft, steht in einer Benachrichtigung `Source changed` oder `Target changed: de`, dazu die Anzahl der Keys. Mit `--allow-spend` bietet die Quell-Benachrichtigung außerdem **Translate pending changes across all locales** an: denselben Lauf, den `verbatra translate` machen würde.
 
 ## Prüfe Abdeckung und letzten Lauf unter Overview
 
@@ -153,7 +159,7 @@ Dann erscheint ein Button **Retranslate** in jeder Review-Zeile und im Editor ei
 
 Overview ist die Seite, auf der Studio startet. Sie zeigt die Abdeckung jeder Locale mit ihrem Zustand in der [Lock-Datei](/de/docs/the-lock-file), die Git-Historie deiner Locale-Dateien und den Token-Verbrauch des letzten erfassten Laufs, mit der Budgetanzeige, wenn ein Token-Budget konfiguriert ist.
 
-**Run history and cost** darunter zeigt Kosten und Tokens der neuesten Läufe über einer Tabelle, mit der zuletzt bekannten Abdeckung jeder Locale. Sie liest neu, wenn sich die Verlaufsdatei ändert, der Tab den Fokus zurückbekommt oder ein Lauf zurückkehrt.
+**Run history and cost** darunter zeigt Kosten und Tokens der neuesten Läufe über einer Tabelle, mit der zuletzt bekannten Abdeckung jeder Locale.
 
 <StudioScreenshot
   shot="overview"
@@ -165,7 +171,7 @@ Overview ist die Seite, auf der Studio startet. Sie zeigt die Abdeckung jeder Lo
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary hat eine eigene Seite, früher unter Settings. Bei einem JSON-Glossar kannst du Begriffe suchen, hinzufügen, bearbeiten und entfernen. Entfernen fragt zuerst; ungespeicherte Änderungen fragen vor dem Verlassen nach. Ein Inline-Glossar bleibt schreibgeschützt.
+Glossary hat eine eigene Seite. Bei einem JSON-Glossar kannst du Begriffe suchen, hinzufügen, bearbeiten und entfernen. Entfernen fragt zuerst; ungespeicherte Änderungen fragen vor dem Verlassen nach. Ein Inline-Glossar bleibt schreibgeschützt.
 
 Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits geschriebenen Text; starte Studio neu, damit seine eigenen Neuübersetzungen sie nutzen.
 
@@ -178,5 +184,5 @@ Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits g
 ## Siehe auch
 
 - [Studio mit einem Browser-Agenten steuern](/de/docs/agent-tools-in-studio): derselbe Ablauf aus einem KI-Agenten im Browser.
-- [Nachweis maschineller Übersetzungen festhalten](/de/docs/provenance-evidence): mach aus den Review-Entscheidungen eine Audit-Datei.
-- [Prüfen und neu übersetzen aus dem SDK](/de/docs/sdk/review): die Funktionen hinter diesen Buttons.
+- [Nachweis maschineller Übersetzungen festhalten](/de/docs/provenance-evidence)
+- [Prüfen und neu übersetzen aus dem SDK](/de/docs/sdk/review)

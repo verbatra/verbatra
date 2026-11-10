@@ -6,7 +6,7 @@ type: how-to
 ---
 Find pending machine translations, fix values, and approve or reject what a provider wrote, in Verbatra Studio.
 
-Two rules: **local editing is always on**, gated by the same integrity checks as other writes, and **provider spend is always off** unless you start Studio with `--allow-spend`.
+Two rules: **local editing is always on**, and **provider spend is always off** unless you start Studio with `--allow-spend`.
 
 ## Start Studio
 
@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Open the URL it prints, token included; stop Studio with Ctrl+C. [`verbatra studio`](/docs/cli/studio) covers the port, token and flags. Every page refreshes live when a locale, lock, provenance or limits file changes.
+Open the URL it prints, token included. [`verbatra studio`](/docs/cli/studio) covers the port, token, flags and live refresh.
 
 ## Read the Translations page
 
@@ -67,7 +67,13 @@ With `next-intl-json` or `arb`, a collapsed **ICU preview** under the draft rend
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-From 1280px wide the editor sits beside the table; below that it is a drawer. Leaving the key with unsaved edits (another key, filter, search, page or Back) asks you to save, discard or keep editing; leaving Studio gets the browser's own confirmation.
+From 1280px wide the editor sits beside the table; below that it is a drawer. Leaving the key with unsaved edits asks you to save, discard or keep editing; leaving Studio gets the browser's own confirmation.
+
+### Search and replace
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Search and replace** changes literal text in translated values: choose the text, replacement, case and locales, review up to 1,000 matches, then apply. Pinned keys and protected values stay out unless you tick their box. Protected means a person wrote, imported or changed it outside verbatra, or any value while `verbatra.provenance.json` is unreadable.
 
 ## Work the Review queue
 
@@ -113,7 +119,7 @@ The **Needs review** and **Approved** chips switch the list and show counts; the
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Press `j` or the down arrow to highlight the first entry, then:
+Press `j` or the down arrow to start, then:
 
 | Key | Action |
 | --- | --- |
@@ -146,7 +152,7 @@ A **Retranslate** button appears on each Review row, and in a key's editor for a
 
 ## Translate pending changes
 
-When the source file changes while Studio runs, a toast names the file and its added, changed or removed keys. With `--allow-spend` it also offers **Translate pending changes across all locales**, the run `verbatra translate` would do.
+When a source or target locale file changes while Studio runs, a toast reads `Source changed` or `Target changed: de` with its key counts. With `--allow-spend`, the source toast also offers **Translate pending changes across all locales**, the run `verbatra translate` would do.
 
 ## Check coverage and the last run on Overview
 
@@ -154,7 +160,7 @@ When the source file changes while Studio runs, a toast names the file and its a
 
 Studio opens on Overview: each locale's coverage with its [lock file](/docs/the-lock-file) state, the locale files' git history and the last run's token usage, with the budget meter when set.
 
-**Run history and cost** below it charts cost and tokens for the newest runs above a table, with each locale's last known coverage. It rereads when the history file changes, the tab regains focus or a run returns.
+**Run history and cost** below it charts cost and tokens for the newest runs above a table, with each locale's last known coverage.
 
 <StudioScreenshot
   shot="overview"
@@ -166,7 +172,7 @@ Studio opens on Overview: each locale's coverage with its [lock file](/docs/the-
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary has its own page, formerly on Settings. With a JSON glossary you can search, add, edit and remove terms. Removing one asks first; unsaved edits ask before you leave. An inline glossary stays read-only.
+Glossary has its own page. With a JSON glossary you can search, add, edit and remove terms. Removing one asks first; unsaved edits ask before you leave. An inline glossary stays read-only.
 
 A glossary edit changes what the next run is told, never text already written; restart Studio so its own retranslations use it.
 
@@ -179,5 +185,5 @@ A glossary edit changes what the next run is told, never text already written; r
 ## Related
 
 - [Drive Studio with a browser agent](/docs/agent-tools-in-studio): the same workflow from a browser AI agent.
-- [Record machine-translation evidence](/docs/provenance-evidence): turn the review decisions into an audit file.
-- [Review and retranslate from the SDK](/docs/sdk/review): the functions behind these buttons.
+- [Record machine-translation evidence](/docs/provenance-evidence)
+- [Review and retranslate from the SDK](/docs/sdk/review)

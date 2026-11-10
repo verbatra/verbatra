@@ -19,7 +19,7 @@ import type { LocaleValuesData } from "../../client/locale-values.js";
 import { localeValuesOrEmpty } from "../../client/locale-values.js";
 import { type ReviewQueueData, unreviewedRows } from "../../client/review-queue-data.js";
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
-import { parseRoute } from "../../client/routes.js";
+import { parseRoute, routeHash, routeParams } from "../../client/routes.js";
 import type { RefreshableView } from "../../client/state.js";
 import { DiffErrorNotice } from "../DiffErrorNotice.js";
 import { ErrorMessage } from "../ErrorMessage.js";
@@ -29,7 +29,7 @@ import { KeysTable } from "../KeysTable.js";
 import { cn } from "../lib/cn.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
-import { visibleHash } from "../route-guard.js";
+import { routeChangeBlocked, visibleHash } from "../route-guard.js";
 import { type DiffState, useDiffState } from "../use-diff-state.js";
 import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
@@ -40,8 +40,18 @@ import {
   type TranslationsRoute,
   useTranslationsRoute,
 } from "../use-translations-route.js";
+import { ValueReplaceButton } from "../ValueReplaceButton.js";
 
 const COPY_CONFIRMATION_MS = 2000;
+
+function holdForUnsavedDraft(onProceed: () => void): boolean {
+  const current = parseRoute(visibleHash());
+  const next = routeHash({
+    page: current.page,
+    params: routeParams({ ...current.params, statuses: current.params.statuses, key: null }),
+  });
+  return routeChangeBlocked(next, "replace", onProceed);
+}
 
 function ReviewReportButton({ locales }: { readonly locales: readonly DiffLocale[] }): ReactNode {
   const [copied, setCopied] = useState(false);
@@ -410,7 +420,18 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
       <PageHeader
         title="Translations"
         description="Every pending change across your target locales, and the keys behind it."
-        actions={diff.kind === "loaded" ? <ReviewReportButton locales={diff.locales} /> : undefined}
+        actions={
+          diff.kind === "loaded" ? (
+            <>
+              <ValueReplaceButton
+                locales={diff.locales.map((entry) => entry.locale)}
+                draftKey={dirtyKey}
+                holdForDraft={holdForUnsavedDraft}
+              />
+              <ReviewReportButton locales={diff.locales} />
+            </>
+          ) : undefined
+        }
       />
       <DiffNotices diff={diff} brokenInSync={brokenInSync} />
       {diff.kind === "loading" || diff.kind === "loaded" ? (

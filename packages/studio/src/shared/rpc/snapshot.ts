@@ -18,6 +18,8 @@ export interface StudioRateLimit {
 export interface StudioRateLimits {
   readonly retranslate: StudioRateLimit;
   readonly reviewDecision: StudioRateLimit;
+  readonly previewValueReplace: StudioRateLimit;
+  readonly applyValueReplace: StudioRateLimit;
 }
 
 export interface StudioCapabilities {

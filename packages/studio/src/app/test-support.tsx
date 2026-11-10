@@ -17,6 +17,7 @@ import type { RefreshEvent } from "../shared/sse-events.js";
 import type { AgentToolsStatusStore } from "../webmcp/registration-store.js";
 import { createAgentToolsStatusStore } from "../webmcp/registration-store.js";
 import { resetIcuPreviewSession } from "./icu-preview-open.js";
+import { closeValueReplace } from "./value-replace-session.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -363,6 +364,7 @@ afterEach(() => {
   handlers.clear();
   rpcCalls.length = 0;
   resetIcuPreviewSession();
+  closeValueReplace();
   refreshListeners.clear();
   connectionListeners.clear();
   connectionStatus = "live";

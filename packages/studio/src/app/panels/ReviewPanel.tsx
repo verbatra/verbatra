@@ -376,6 +376,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
         actions,
         toggleSelected: bulk.toggle,
       }),
+    helpOpen,
   );
 
   const dialogs = (

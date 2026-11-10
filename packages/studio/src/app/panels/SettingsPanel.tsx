@@ -135,6 +135,8 @@ function sessionItems(snapshot: ProjectSnapshotResult): Array<readonly [string, 
   if (limits !== undefined) {
     items.push(["Retranslate limit", limitLabel(limits.retranslate)]);
     items.push(["Review decision limit", limitLabel(limits.reviewDecision)]);
+    items.push(["Replace preview limit", limitLabel(limits.previewValueReplace)]);
+    items.push(["Replace apply limit", limitLabel(limits.applyValueReplace)]);
   }
   return items;
 }

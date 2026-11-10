@@ -33,10 +33,12 @@ const EXPECTED_METHOD_NAMES = [
   "translation.retranslateEntries",
   "translation.inFlight",
   "review.approveLocale",
+  "translation.previewValueReplace",
+  "translation.applyValueReplace",
 ];
 
 describe("RPC_METHOD_NAMES", () => {
-  it("contains exactly the thirty-one agreed method names, no more, no fewer", () => {
+  it("contains exactly the thirty-three agreed method names, no more, no fewer", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(new Set(EXPECTED_METHOD_NAMES));
     expect(RPC_METHOD_NAMES).toHaveLength(EXPECTED_METHOD_NAMES.length);
   });

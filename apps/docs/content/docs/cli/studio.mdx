@@ -52,6 +52,8 @@ Open that exact URL. The token is accepted only as `?token=` on the first page l
 
 A failed bind is reported on stderr as `verbatra: error [<code>] <message>`: `PORT_IN_USE` when another process holds the port (pass `--port <n>` or stop that process), or `BIND_FAILED` when the socket came up on an address other than `127.0.0.1`.
 
+Every page refreshes live when a locale, lock, provenance or limits file changes ([Review in Studio](/docs/review-in-studio#translate-pending-changes) describes the toast), and **Run history and cost** rereads when the history file changes, the tab regains focus or a run returns.
+
 ### What it prints on stderr
 
 <AvailableFrom version="0.12.0" />

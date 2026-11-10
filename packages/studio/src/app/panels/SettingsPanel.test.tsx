@@ -90,6 +90,8 @@ describe("SettingsPanel", () => {
         limits: {
           retranslate: { windowMs: 60_000, max: 20 },
           reviewDecision: { windowMs: 120_000, max: 500 },
+          previewValueReplace: { windowMs: 60_000, max: 60 },
+          applyValueReplace: { windowMs: 60_000, max: 10 },
         },
       },
     });
@@ -100,6 +102,8 @@ describe("SettingsPanel", () => {
     expect(detailValue(view, "Edit glossary")).toBe("no");
     expect(detailValue(view, "Retranslate limit")).toBe("20 per minute");
     expect(detailValue(view, "Review decision limit")).toBe("500 per 2 minutes");
+    expect(detailValue(view, "Replace preview limit")).toBe("60 per minute");
+    expect(detailValue(view, "Replace apply limit")).toBe("10 per minute");
   });
 
   it("states a limit window in seconds when it is not a whole number of minutes", async () => {
@@ -111,6 +115,8 @@ describe("SettingsPanel", () => {
         limits: {
           retranslate: { windowMs: 1_000, max: 1 },
           reviewDecision: { windowMs: 90_000, max: 3 },
+          previewValueReplace: { windowMs: 60_000, max: 60 },
+          applyValueReplace: { windowMs: 60_000, max: 10 },
         },
       },
     });

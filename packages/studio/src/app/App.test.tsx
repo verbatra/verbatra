@@ -24,6 +24,7 @@ import {
   rpcCalls,
   rpcError,
   sessionStore,
+  settleHistory,
   stubRpc,
   textboxNamed,
   typeInto,
@@ -1010,5 +1011,90 @@ describe("App scroll on navigation", () => {
 
     expect(window.location.hash).toBe("#/review");
     expect(scrollTo).not.toHaveBeenCalled();
+  });
+});
+
+describe("App search and replace", () => {
+  it("keeps the result of a running replace when Back leaves Translations", async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    stubRpc({
+      "status.diff": {
+        ok: true,
+        result: {
+          hasPendingChanges: true,
+          locales: [
+            {
+              locale: "de",
+              missing: [],
+              changed: ["greeting"],
+              orphaned: [],
+              hasPendingChanges: true,
+            },
+          ],
+        },
+      },
+      "translation.previewValueReplace": {
+        ok: true,
+        result: {
+          entries: [
+            {
+              locale: "de",
+              key: "greeting",
+              status: "ready",
+              valueHash: "h",
+              before: "x",
+              after: "y",
+              excerptCut: false,
+            },
+          ],
+          truncated: false,
+          counts: {
+            ready: 1,
+            "stale-source": 0,
+            "gate-refused": 0,
+            pinned: 0,
+            protected: 0,
+            "no-source-entry": 0,
+            unchanged: 0,
+            "too-long": 0,
+          },
+        },
+      },
+      "translation.applyValueReplace": async () => {
+        await held;
+        return {
+          ok: true,
+          result: {
+            outcomes: [{ locale: "de", key: "greeting", status: "applied", staleSource: false }],
+            counts: {},
+            localeFailures: [],
+          },
+        };
+      },
+    });
+    window.history.replaceState({ idx: 0 }, "", "#/overview");
+    window.history.pushState({ idx: 1 }, "", "#/translations");
+    const view = await mount();
+    await flush();
+
+    await clickAsync(view.get("[data-value-replace-open]"));
+    typeInto(view.get("[data-replace-find]") as HTMLInputElement, "x");
+    await clickAsync(view.getByText("button", "Preview"));
+    await clickAsync(view.get("[data-replace-apply]"));
+    await act(async () => {
+      window.history.back();
+    });
+    await settleHistory();
+    await flush();
+    expect(view.get("h1").textContent).toBe("Overview");
+
+    release();
+    await flush();
+
+    expect(view.query("[data-replace-step='result']")).not.toBeNull();
+    expect(view.text()).toContain("greeting");
   });
 });

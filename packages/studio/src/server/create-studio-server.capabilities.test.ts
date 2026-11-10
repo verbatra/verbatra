@@ -133,6 +133,8 @@ describe("project.snapshot's capabilities projection reflects the resolved flags
               limits: {
                 retranslate: { windowMs: 60_000, max: 20 },
                 reviewDecision: { windowMs: 30_000, max: 7 },
+                previewValueReplace: { windowMs: 60_000, max: 60 },
+                applyValueReplace: { windowMs: 60_000, max: 10 },
               },
             },
           },

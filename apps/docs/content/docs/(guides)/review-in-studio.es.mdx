@@ -6,7 +6,7 @@ type: how-to
 ---
 Usa esto para revisar traducciones automáticas antes de publicarlas: encuentra lo pendiente, corrige valores a mano y aprueba o rechaza lo que escribió un proveedor, en Verbatra Studio, un panel local sobre tu proyecto.
 
-Dos reglas valen en todo momento. **La edición local está siempre activa**, sujeta a las mismas comprobaciones de integridad que cualquier otra escritura. **El gasto con el proveedor está siempre desactivado** salvo que arranques Studio con `--allow-spend`.
+Dos reglas valen en todo momento. **La edición local está siempre activa**. **El gasto con el proveedor está siempre desactivado** salvo que arranques Studio con `--allow-spend`.
 
 ## Arranca Studio
 
@@ -15,7 +15,7 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token y cada opción. Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo, el archivo de procedencia o el archivo de límites.
+Abre la URL que imprime, token incluido. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token, cada opción y la actualización en vivo.
 
 ## Lee la página Translations
 
@@ -66,7 +66,13 @@ Con `next-intl-json` o `arb`, una **ICU preview** plegada bajo el borrador lo re
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-Desde 1280px de ancho el editor se coloca junto a la tabla; por debajo se abre como cajón. Si sales de la clave con cambios sin guardar, ya sea a otra clave, un filtro, una búsqueda, otra página o Atrás, Studio pregunta si guardar, descartar o seguir editando; al salir de Studio en sí, confirma el navegador.
+Desde 1280px de ancho el editor se coloca junto a la tabla; por debajo se abre como cajón. Si sales de la clave con cambios sin guardar, Studio pregunta si guardar, descartar o seguir editando; al salir de Studio en sí, confirma el navegador.
+
+### Buscar y reemplazar
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Search and replace** reemplaza texto literal en los valores traducidos: elige el texto, el reemplazo, si distingue mayúsculas y los locales, revisa cada coincidencia (hasta 1000) y aplica. Las claves ancladas y los valores protegidos quedan fuera salvo que marques su casilla. Protegido significa que una persona lo escribió, lo importó o lo cambió fuera de verbatra, o cualquier valor cuando `verbatra.provenance.json` no se puede leer.
 
 ## Trabaja la cola de Review
 
@@ -112,7 +118,7 @@ Los chips **Needs review** y **Approved** cambian la lista y muestran contadores
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Pulsa `j` o la flecha abajo para resaltar la primera entrada, y luego:
+Pulsa `j` o la flecha abajo para empezar, y luego:
 
 | Tecla | Acción |
 | --- | --- |
@@ -145,7 +151,7 @@ Aparece entonces un botón **Retranslate** en cada fila de Review, y en el edito
 
 ## Traduce los cambios pendientes
 
-Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nombra el archivo y las claves añadidas, modificadas o eliminadas. Con `--allow-spend`, además ofrece **Translate pending changes across all locales**: la misma ejecución que haría `verbatra translate`.
+Cuando el archivo de origen o un archivo de locale de destino cambia mientras Studio está en marcha, un aviso dice `Source changed` o `Target changed: de` con el recuento de claves. Con `--allow-spend`, el aviso de origen ofrece además **Translate pending changes across all locales**: la misma ejecución que haría `verbatra translate`.
 
 ## Revisa la cobertura y la última ejecución en Overview
 
@@ -153,7 +159,7 @@ Cuando el archivo de origen cambia mientras Studio está en marcha, un aviso nom
 
 Overview es la página con la que arranca Studio. Muestra la cobertura de cada locale con su estado en el [archivo de bloqueo](/es/docs/the-lock-file), el historial de git de tus archivos de locale y el uso de tokens de la última ejecución registrada, con el medidor de presupuesto cuando hay un presupuesto de tokens configurado.
 
-**Run history and cost**, debajo, muestra el coste y los tokens de las ejecuciones más recientes sobre una tabla, con la última cobertura conocida de cada locale. Se relee cuando cambia el archivo del historial, la pestaña recupera el foco o vuelve una ejecución.
+**Run history and cost**, debajo, muestra el coste y los tokens de las ejecuciones más recientes sobre una tabla, con la última cobertura conocida de cada locale.
 
 <StudioScreenshot
   shot="overview"
@@ -165,7 +171,7 @@ Overview es la página con la que arranca Studio. Muestra la cobertura de cada l
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Glossary tiene su propia página, antes en Settings. Con un glosario JSON puedes buscar, añadir, editar y eliminar términos. Eliminar pregunta primero; los cambios sin guardar preguntan al salir. Un glosario inline sigue siendo de solo lectura.
+Glossary tiene su propia página. Con un glosario JSON puedes buscar, añadir, editar y eliminar términos. Eliminar pregunta primero; los cambios sin guardar preguntan al salir. Un glosario inline sigue siendo de solo lectura.
 
 Una edición del glosario cambia lo que se le indica a la siguiente ejecución, nunca el texto ya escrito; reinicia Studio para que sus propias retraducciones la usen.
 
@@ -178,5 +184,5 @@ Una edición del glosario cambia lo que se le indica a la siguiente ejecución, 
 ## Relacionado
 
 - [Maneja Studio con un agente del navegador](/es/docs/agent-tools-in-studio): el mismo flujo desde un agente de IA en el navegador.
-- [Registrar evidencia de traducción automática](/es/docs/provenance-evidence): convierte las decisiones de revisión en un archivo de auditoría.
-- [Revisar y retraducir desde el SDK](/es/docs/sdk/review): las funciones detrás de estos botones.
+- [Registrar evidencia de traducción automática](/es/docs/provenance-evidence)
+- [Revisar y retraducir desde el SDK](/es/docs/sdk/review)

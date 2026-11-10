@@ -9,6 +9,7 @@ import {
   type SheetSide,
 } from "./sheet.tsx";
 import { click, render } from "./test-support.tsx";
+import { Toast } from "./toast.tsx";
 
 const REQUIRED = {
   title: "app.title",
@@ -111,6 +112,17 @@ describe("Sheet", () => {
   it("draws no banner slot when none is given, or when the banner is null", () => {
     expect(sheet().query("[data-sheet-banner]")).toBeNull();
     expect(sheet({ banner: null }).query("[data-sheet-banner]")).toBeNull();
+  });
+
+  it("stacks above the toast, so a page toast never sits over a modal", () => {
+    const stack = (element: Element | null): number => {
+      const match = /(?:^|\s)z-(\d+)(?:\s|$)/.exec(element?.className ?? "");
+      return Number(match?.[1] ?? Number.NaN);
+    };
+    const view = sheet();
+    const toast = render(<Toast>Pending</Toast>);
+
+    expect(stack(view.get("[data-side]"))).toBeGreaterThan(stack(toast.get("[role='status']")));
   });
 
   it("anchors to the inline-end edge at the default width", () => {

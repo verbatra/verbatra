@@ -19,6 +19,7 @@ import {
   stubViewport,
   typeInto,
 } from "../test-support.js";
+import { ValueReplaceHost } from "../ValueReplaceHost.js";
 import { TranslationsPanel } from "./TranslationsPanel.js";
 
 vi.mock("../api.js", () => import("../test-support.js").then((module) => module.apiMock()));
@@ -152,6 +153,7 @@ function Harness({ token }: { readonly token: number }): ReactNode {
     <>
       <AppHeader activePage="translations" pageBadges={{}} onOpenMenu={() => {}} />
       <TranslationsPanel refreshToken={token} />
+      <ValueReplaceHost refreshToken={token} />
     </>
   );
 }
@@ -458,6 +460,16 @@ const TRIGGERS: readonly Trigger[] = [
     proceeds: () => expect(window.location.hash).toBe("#/translations"),
   },
   {
+    name: "opening search and replace",
+    fire: async (view) => {
+      await clickAsync(view.get("[data-value-replace-open]"));
+    },
+    proceeds: (view) => {
+      expect(view.query('[role="dialog"][aria-label="Search and replace"]')).not.toBeNull();
+      expect(window.location.hash).toBe("#/translations");
+    },
+  },
+  {
     name: "back or forward",
     fire: async () => {
       window.history.back();
@@ -526,6 +538,20 @@ describe("split editor dirty guard", () => {
     expect(rpcCalls.filter((call) => call.method === "translation.editEntry")).toHaveLength(1);
     trigger.proceeds(view);
     expectFocusWithin(view, trigger);
+  });
+
+  it("opens no search and replace dialog after Keep editing, and keeps the draft", async () => {
+    stubServer();
+    const view = await mountAt(TITLE_HASH, true);
+    await startDirtyEdit(view);
+    await clickAsync(view.get("[data-value-replace-open]"));
+
+    await clickAsync(getRole(view, "button", "Keep editing"));
+    await settle();
+    await flush();
+
+    expect(view.query('[role="dialog"][aria-label="Search and replace"]')).toBeNull();
+    expect(textarea(view).value).toBe("Hallo!");
   });
 
   it("puts focus on Keep editing, never on Save, so a keystroke cannot save by accident", async () => {

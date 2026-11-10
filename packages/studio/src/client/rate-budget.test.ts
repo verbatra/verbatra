@@ -6,6 +6,8 @@ import type { RpcCallResult, RpcClient } from "./rpc-client.js";
 const LIMITS: StudioRateLimits = {
   retranslate: { windowMs: 60_000, max: 3 },
   reviewDecision: { windowMs: 10_000, max: 2 },
+  previewValueReplace: { windowMs: 60_000, max: 60 },
+  applyValueReplace: { windowMs: 60_000, max: 10 },
 };
 
 const OK = { ok: true, result: {} } as unknown as RpcCallResult<never>;
