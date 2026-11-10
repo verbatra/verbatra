@@ -8,6 +8,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import manifest from "@/lib/licenses.generated.json";
 
+const NEXT_VERSION = (
+  JSON.parse(
+    readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../../../package.json"), "utf8"),
+  ) as {
+    dependencies: { next: string };
+  }
+).dependencies.next;
+
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../../messages");
 
 vi.mock("next-intl/server", () => ({
@@ -56,7 +64,7 @@ describe("licenses page", () => {
     );
     const codes = [...doc.querySelectorAll("li > code")].map((node) => node.textContent);
     expect(codes).toHaveLength(manifest.packageCount);
-    expect(codes).toContain("next@16.4.4");
+    expect(codes).toContain(`next@${NEXT_VERSION}`);
   });
 
   it("prints every distinct license text once, each reachable by its anchor", async () => {
