@@ -33,7 +33,7 @@
 npm install --save-dev @verbatra/sdk
 ```
 
-Needs Node.js `^22.18.0 || >=24`. The package ships its own TypeScript types and a CommonJS and an ES module build.
+Needs Node.js `^22.22.0 || >=24`. The package ships its own TypeScript types and a CommonJS and an ES module build.
 
 ## Quick start
 

@@ -35,7 +35,7 @@ The part that matters when a run goes wrong is the integrity gate. Every candida
 
 ## Install and quick start
 
-Needs Node.js `^22.18.0 || >=24`.
+Needs Node.js `^22.22.0 || >=24`.
 
 ```bash
 # 1. Install as a dev dependency

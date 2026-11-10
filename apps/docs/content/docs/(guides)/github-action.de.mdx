@@ -155,7 +155,7 @@ Wird keine Konfiguration gefunden, schlägt der Schritt vor der Installation der
 | `require-reviewed` | `"false"` | `"true"` lässt auch nicht freigegebene maschinelle Übersetzungen fehlschlagen (`--require-reviewed`); nur `check` |
 | `sensitive` | `"false"` | `"true"` ergänzt die Prüfung auf sensible Inhalte (`--sensitive`); nur `check` |
 | `locales` | `""` | kommagetrennte Ziel-Locales, auf die der Lauf beschränkt wird (`--locales`) |
-| `node-version` | `"24"` | Node.js-Version, die die Action zum Ausführen der CLI einrichtet; sie muss den Engines der CLI genügen: `^22.18.0 || >=24` ab 0.12.0, davor `>=22.14.0` |
+| `node-version` | `"24"` | Node.js-Version, die die Action zum Ausführen der CLI einrichtet; sie muss den Engines der CLI genügen: `^22.22.0 || >=24` ab 0.13.0, `^22.18.0 || >=24` ab 0.12.0, davor `>=22.14.0` |
 
 Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger boolescher Wert oder eine Eingabe ohne den Befehl oder `qa`, den sie braucht, lässt den Schritt mit Exit `1` vor der CLI-Installation fehlschlagen. Die CLI lehnt ein unbekanntes `qa-severity` und `qa-severity: error` mit `qa-strict` mit Exit `2` danach ab.
 

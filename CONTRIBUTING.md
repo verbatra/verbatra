@@ -10,7 +10,7 @@ open a public issue for vulnerabilities.
 
 ## Prerequisites
 
-- Node.js ^22.18.0 || >=24
+- Node.js ^22.22.0 || >=24
 - pnpm >= 11 (the repository pins pnpm 12.18.0 via the `packageManager` field; install
   it with `npm install --global pnpm@12.18.0`)
 

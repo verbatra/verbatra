@@ -34,7 +34,7 @@ Most MCP clients spawn the server for you and need no local install at all: poin
 npm install --save-dev @verbatra/mcp
 ```
 
-Needs Node.js `^22.18.0 || >=24`. The server is also reachable through `verbatra mcp` once both `@verbatra/cli` and `@verbatra/mcp` are installed.
+Needs Node.js `^22.22.0 || >=24`. The server is also reachable through `verbatra mcp` once both `@verbatra/cli` and `@verbatra/mcp` are installed.
 
 ## Configuring an MCP client
 

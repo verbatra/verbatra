@@ -32,7 +32,7 @@
 npm install --save-dev @verbatra/cli @verbatra/studio
 ```
 
-Needs Node.js `^22.18.0 || >=24`.
+Needs Node.js `^22.22.0 || >=24`.
 
 ## Quick start
 
