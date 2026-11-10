@@ -27,6 +27,25 @@ export interface CostDisplay {
   readonly currency: string | undefined;
 }
 
+const NOT_BILLED_HINTS: ReadonlyMap<string, string> = new Map([
+  [
+    "openai-compatible",
+    "verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
+  ],
+  [
+    "libretranslate",
+    "verbatra does not price LibreTranslate. A hosted instance used with an API key may still bill you.",
+  ],
+  ["none", "No provider was called."],
+]);
+
+const NOT_BILLED_FALLBACK_HINT = "verbatra does not price this provider.";
+
+export function notBilledHint(rateKey: string): string {
+  const provider = rateKey.split("/")[0] ?? rateKey;
+  return NOT_BILLED_HINTS.get(provider) ?? NOT_BILLED_FALLBACK_HINT;
+}
+
 const CAVEAT_TEXT: Readonly<Record<string, string>> = {
   SOURCE_DUPLICATES_NOT_DEDUPLICATED: "Repeated source strings are counted every time.",
   TRANSPORT_RETRIES_NOT_COUNTED: "Retried requests are not counted.",
@@ -140,7 +159,7 @@ export function describeCost(cost: RunHistoryCost): CostDisplay {
       return {
         kind: "not-billed",
         label: "not billed",
-        hint: "verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
+        hint: notBilledHint(cost.rateKey),
         caveats: partialTokenCaveats(cost),
         ...NO_AMOUNT,
       };

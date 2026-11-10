@@ -89,6 +89,21 @@ describe("describeCost", () => {
 
     expect(display).toMatchObject({ kind: "not-billed", label: "not billed", amount: undefined });
   });
+
+  it.each([
+    [
+      "libretranslate",
+      "verbatra does not price LibreTranslate. A hosted instance used with an API key may still bill you.",
+    ],
+    [
+      "openai-compatible/llama",
+      "verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
+    ],
+    ["none", "No provider was called."],
+    ["constructor", "verbatra does not price this provider."],
+  ])("words the not-billed hint for %s from its own provider", (rateKey, hint) => {
+    expect(describeCost({ pricing: "not-billed", rateKey }).hint).toBe(hint);
+  });
 });
 
 describe("formatCost", () => {

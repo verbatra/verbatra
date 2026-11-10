@@ -25,6 +25,7 @@ import {
   describeTrigger,
   formatCost,
   lastKnownCoverage,
+  notBilledHint,
   type RunHistoryData,
   type RunHistoryNotice,
   tokenSeries,
@@ -177,16 +178,27 @@ const UNPRICED_ORDER: readonly UnpricedKind[] = [
   "not-billed",
 ];
 
-const UNPRICED_NOTE: Readonly<Record<UnpricedKind, string>> = {
+const UNPRICED_NOTE: Readonly<Record<Exclude<UnpricedKind, "not-billed">, string>> = {
   "no-rate-on-file":
     "No rate: your config had no rate on file for that provider and model when the run ended. A rate added under rates prices future runs, not these.",
   "rate-unit-mismatch":
     "No rate: the rate on file for that model was in a different unit than the run was measured in, tokens or characters, when the run ended. A corrected unit under rates prices future runs, not these.",
   "no-usage":
     "Unknown: keys were sent, but the provider reported no tokens, so no cost can be worked out.",
-  "not-billed":
-    "Not billed: verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
 };
+
+function unpricedNote(pricing: UnpricedKind, records: readonly RunHistoryRecord[]): string {
+  if (pricing !== "not-billed") {
+    return UNPRICED_NOTE[pricing];
+  }
+  const hints = new Set<string>();
+  for (const { cost } of records) {
+    if (cost.pricing === "not-billed") {
+      hints.add(notBilledHint(cost.rateKey));
+    }
+  }
+  return `Not billed: ${[...hints].join(" ")}`;
+}
 
 export function CostNotes({
   records,
@@ -225,7 +237,7 @@ export function CostNotes({
         </li>
       )}
       {unpriced.map((pricing) => (
-        <li key={pricing}>{UNPRICED_NOTE[pricing]}</li>
+        <li key={pricing}>{unpricedNote(pricing, records)}</li>
       ))}
       {estimated ? (
         <li>
