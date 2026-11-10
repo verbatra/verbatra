@@ -848,7 +848,11 @@ function dryRunHint(
 function reportTranslateOutcome(
   context: CommandContext,
   opts: LocationOpts,
-  run: { readonly summary: RunSummary; readonly machineTranslation: boolean },
+  run: {
+    readonly summary: RunSummary;
+    readonly machineTranslation: boolean;
+    readonly estimate: boolean;
+  },
   exitCode: number,
   startedAt: number,
 ): void {
@@ -856,7 +860,8 @@ function reportTranslateOutcome(
   const elapsed = formatElapsed(Date.now() - startedAt);
   const handOff = (): void => context.ui.hint(verbatraCommand(["export"], opts), HAND_OFF_PURPOSE);
   if (summary.dryRun) {
-    context.ui.status("ok", `dry run done in ${elapsed}, nothing written`);
+    const label = run.estimate ? "estimate" : "dry run";
+    context.ui.status("ok", `${label} done in ${elapsed}, nothing written`);
     if (exitCode === NEEDS_HUMAN_EXIT_CODE) {
       handOff();
       return;
@@ -974,7 +979,11 @@ export async function runTranslate(
           reportTranslateOutcome(
             context,
             opts,
-            { summary, machineTranslation: isMachineTranslationEnabled(config) },
+            {
+              summary,
+              machineTranslation: isMachineTranslationEnabled(config),
+              estimate: opts.estimate === true,
+            },
             exitCode,
             startedAt,
           );

@@ -69,6 +69,8 @@ describe("translate: start, outcome and next step", () => {
     });
 
     expect(err).toContain("verbatra: estimating 1 locale, no provider call\n");
+    expect(err).toMatch(/\[ok\] estimate done in \d+\.\ds, nothing written\n/);
+    expect(err).not.toContain("dry run done");
   });
 
   it("names the memory-only fill when machine translation is off", async () => {
