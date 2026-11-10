@@ -63,6 +63,8 @@ describe("rpcParamsSchemas", () => {
     ],
     ["lock.state", {}, { extra: true }],
     ["history.list", { limit: 5 }, { limit: 0 }],
+    ["usage.history", { limit: 5 }, { limit: 0 }],
+    ["usage.history", {}, { limit: 1.5 }],
     [
       "history.keyRevisions",
       { locale: "de", key: "greeting", limit: 5 },

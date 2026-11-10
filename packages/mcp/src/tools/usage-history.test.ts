@@ -114,17 +114,19 @@ describe("usage.history", () => {
     });
   });
 
-  it("clamps a limit above the maximum and one below one", async () => {
+  it("clamps a limit above the maximum", async () => {
     const dir = await projectWith(Array.from({ length: 5 }, (_, index) => line(index)));
 
     const big = await usageHistoryTool.execute({ limit: 100_000 }, makeContext({ cwd: dir }));
-    const small = await usageHistoryTool.execute({ limit: -3 }, makeContext({ cwd: dir }));
 
     expect(big).toMatchObject({ kind: "ok", result: { records: expect.any(Array) } });
     expect(big.kind === "ok" ? (big.result as { records: unknown[] }).records : []).toHaveLength(5);
-    expect(
-      small.kind === "ok" ? (small.result as { records: unknown[] }).records : [],
-    ).toHaveLength(1);
+  });
+
+  it.each([-3, 0, 1.5])("rejects the limit %s", async (limit) => {
+    const outcome = await usageHistoryTool.execute({ limit }, makeContext());
+
+    expect(outcome.kind).toBe("invalid");
   });
 
   it("rejects a parameter it does not declare", async () => {
