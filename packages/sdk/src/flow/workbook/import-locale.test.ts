@@ -485,6 +485,7 @@ describe("importLocale", () => {
     expect(result.accepted.size).toBe(0);
     expect(result.withheld.has("greet")).toBe(true);
     expect(result.summary.integrityMismatches).toEqual(["greet"]);
+    expect(result.summary.integrityRefusals).toHaveLength(1);
     expect(result.summary.unchanged).toEqual([]);
   });
 
@@ -494,14 +495,17 @@ describe("importLocale", () => {
       locale: "de",
       rows: [
         { ...row("greet", "Hällo", contentHash(src)), status: "unchanged" },
-        { ...row("bye", "Tschuess\r\n", contentHash(entry("bye", "Bye"))), status: "unchanged" },
+        {
+          ...row("bye", "Zeile eins\r\nZeile zwei", contentHash(entry("bye", "Bye"))),
+          status: "unchanged",
+        },
       ],
     };
     const result = importLocale(
       params({
         sheet,
         source: resource("en", [src, entry("bye", "Bye")]),
-        target: resource("de", [entry("greet", "Hällo"), entry("bye", "Tschuess")]),
+        target: resource("de", [entry("greet", "Hällo"), entry("bye", "Zeile eins\nZeile zwei")]),
         baseline: new Map([
           ["greet", contentHash(src)],
           ["bye", contentHash(entry("bye", "Bye"))],
