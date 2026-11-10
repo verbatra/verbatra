@@ -126,6 +126,19 @@ describe("notBilledNote", () => {
     },
   );
 
+  it("names a provider by the part of its rate key before the first slash, or the whole key without one", () => {
+    expect(notBilledHint("none/x/y")).toBe("none: no provider was called.");
+    expect(notBilledHint("custom")).toBe("custom: verbatra does not price it.");
+    expect(notBilledHint("custom/model")).toBe("custom: verbatra does not price it.");
+  });
+
+  it("orders unknown providers alphabetically in either input order", () => {
+    const expected =
+      "Not billed. aaa: verbatra does not price it. zzz: verbatra does not price it.";
+    expect(notBilledNote(["aaa", "zzz"])).toBe(expected);
+    expect(notBilledNote(["zzz", "aaa"])).toBe(expected);
+  });
+
   it("labels each provider in a fixed order, once each, whatever order the runs came in", () => {
     expect(
       notBilledNote([

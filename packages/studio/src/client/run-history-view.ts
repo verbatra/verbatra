@@ -60,7 +60,8 @@ const NOT_BILLED_RANK: ReadonlyMap<string, number> = new Map(
 );
 
 function providerOf(rateKey: string): string {
-  return rateKey.split("/")[0] ?? rateKey;
+  const slash = rateKey.indexOf("/");
+  return slash < 0 ? rateKey : rateKey.slice(0, slash);
 }
 
 function notBilledClause(provider: string): string {
@@ -80,8 +81,7 @@ export function notBilledHint(rateKey: string): string {
 
 export function notBilledNote(rateKeys: Iterable<string>): string {
   const providers = [...new Set([...rateKeys].map(providerOf))].sort(
-    (left, right) =>
-      notBilledRank(left) - notBilledRank(right) || (left < right ? -1 : left > right ? 1 : 0),
+    (left, right) => notBilledRank(left) - notBilledRank(right) || left.localeCompare(right, "en"),
   );
   return `Not billed. ${providers.map(notBilledHint).join(" ")}`;
 }
