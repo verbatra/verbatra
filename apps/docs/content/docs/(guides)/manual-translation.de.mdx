@@ -60,7 +60,7 @@ Jede ausgefüllte Zeile wird am aktuellen Projekt gemessen, bevor irgendetwas ge
 - **Integrität**: Platzhalter, Inline-Markup und ICU-Struktur müssen zur Quelle passen, wie bei jedem Lauf. Siehe [das Integritäts-Gate](/de/docs/translation-safety#das-integritäts-gate).
 - **Entartete Werte**: eine Wiederholungsschleife, eine ausufernde Länge oder ein leerer Wert für eine nicht leere Quelle wird zurückgehalten.
 - **Unbekannte Keys**: Eine ausgefüllte Zeile, deren Key weder in der Quelle noch im Ziel existiert, lässt das Blatt dieser Locale scheitern. Ein Key, der nur im Ziel existiert, wird nicht geschrieben.
-- **Unveränderte Zeilen**: Eine ausgefüllte Zeile, die dem Wert eines aktuellen Keys entspricht, bleibt unberührt und wird als unverändert gemeldet, sobald sie dasselbe Gate besteht.
+- **Unveränderte Zeilen**: In einer CSV-, TSV- oder xlsx-Übergabe bleibt eine ausgefüllte Zeile, die dem Wert eines aktuellen Keys entspricht, unberührt und wird als unverändert gemeldet, sobald sie dasselbe Gate besteht.
 
 Eine zurückgehaltene oder leere Zeile behält ihre Lock-Baseline, sodass der Key wieder exportiert wird, bis er erledigt ist; eine leere Zeile, deren Quelle gedriftet ist, löst zusätzlich [`BLANK_ROW_BASELINE_RETAINED`](/de/docs/error-codes#blank_row_baseline_retained) aus. Eine unlesbare Zeile oder ein doppelter Key wird gemeldet, ohne das Blatt scheitern zu lassen. Jedes Blatt ist eine Locale in der Laufzusammenfassung, und der Import nutzt dieselben Exit-Codes wie `translate`. Eine Übergabe passt also in dieselben [CI-Prüfungen](/de/docs/ci-and-exit-codes) wie ein automatischer Lauf. Die Details stehen unter [`verbatra import`](/de/docs/cli/import).
 
