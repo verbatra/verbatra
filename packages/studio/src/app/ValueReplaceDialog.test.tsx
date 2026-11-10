@@ -307,16 +307,73 @@ describe("ValueReplaceDialog review step", () => {
     const noteOf = (): string => view.get("[data-replace-note]").textContent ?? "";
 
     expect(view.get('[data-replace-optin="pinned"]')).toBeDefined();
-    expect(view.get("[data-replace-optins]").textContent).toContain("changed outside verbatra (1)");
-    expect(noteOf()).toContain("Left out unless you tick both boxes");
+    expect(view.get('[data-replace-optin="protected"]').closest("label")?.textContent).toBe(
+      "Also change values a person wrote, imported, or changed outside verbatra",
+    );
+    expect(view.get("[data-replace-overlap]").textContent).toBe(
+      "1 pinned key was also written by a person: tick both boxes to change it.",
+    );
+    expect(
+      view.all('[data-replace-entry] [data-tone="protected"]').map((badge) => badge.textContent),
+    ).toEqual(["Protected"]);
+    expect(noteOf()).toContain("It is left out unless you tick both boxes");
 
     click(view.get('[data-replace-optin="pinned"]'));
     expect(noteOf()).not.toContain("Included in this run");
     expect(view.get("[data-replace-apply]").textContent).toBe("Replace 0 values");
 
     click(view.get('[data-replace-optin="protected"]'));
-    expect(noteOf()).toContain("Included in this run because you ticked both boxes");
+    expect(noteOf()).toContain("It is included in this run because you ticked both boxes");
     expect(view.get("[data-replace-apply]").textContent).toBe("Replace 1 value");
+  });
+
+  it("counts the protected box by what ticking it alone adds, and explains the overlap", async () => {
+    stubRpc({
+      "translation.previewValueReplace": previewResult([
+        entry("only.pinned", "pinned"),
+        entry("both.key", "pinned", { protected: true }),
+        entry("only.protected", "protected"),
+      ]),
+    });
+    const view = mount();
+    await search(view);
+
+    expect(view.get('[data-replace-optin="pinned"]').closest("label")?.textContent).toContain(
+      "(2)",
+    );
+    expect(view.get('[data-replace-optin="protected"]').closest("label")?.textContent).toContain(
+      "(1)",
+    );
+
+    click(view.get('[data-replace-optin="protected"]'));
+    expect(view.get("[data-replace-apply]").textContent).toBe("Replace 1 value");
+    expect(view.get("[data-replace-overlap]").textContent).toContain("1 pinned key was also");
+  });
+
+  it("marks a pinned and protected key that was not sent with both badges on the result step", async () => {
+    stubRpc({
+      "translation.previewValueReplace": previewResult([
+        entry("ready", "ready"),
+        entry("both.key", "pinned", { protected: true }),
+      ]),
+      "translation.applyValueReplace": {
+        ok: true,
+        result: {
+          outcomes: [{ locale: "de", key: "ready", status: "applied", staleSource: false }],
+          counts: {},
+          localeFailures: [],
+        },
+      },
+    });
+    const view = mount();
+    await search(view);
+    await clickAsync(view.get("[data-replace-apply]"));
+
+    const row = view.get("[data-replace-not-sent-entry]");
+    expect(row.textContent).toContain("Pinned");
+    expect(
+      [...row.querySelectorAll('[data-tone="protected"]')].map((badge) => badge.textContent),
+    ).toEqual(["Protected"]);
   });
 
   it("submits no second preview while the first is still running", async () => {

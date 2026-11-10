@@ -8,10 +8,13 @@ import {
   EXCERPT_CUT_NOTICE,
   entriesToApply,
   groupedCount,
+  isPinnedAndProtected,
   keyedDetails,
   matchSentence,
+  overlapNote,
   PIN_OPT_IN_LABEL,
   PROTECT_OPT_IN_LABEL,
+  pinnedAndProtectedTotal,
   protectedTotal,
   type ReplaceOptIns,
   reasonLabel,
@@ -69,6 +72,11 @@ function PreviewRow({
         <Badge tone={statusTone(entry.status)} verbatim>
           {STATUS_LABEL[entry.status]}
         </Badge>
+        {isPinnedAndProtected(entry) ? (
+          <Badge tone={statusTone("protected")} verbatim>
+            {STATUS_LABEL.protected}
+          </Badge>
+        ) : null}
       </p>
       <p className="m-0 mb-2 text-sm text-muted-foreground" data-replace-note="">
         {statusNote(entry, optIns)}
@@ -133,6 +141,7 @@ function OptIns({
 }): ReactNode {
   const { pinned } = preview.counts;
   const guarded = protectedTotal(preview);
+  const overlap = pinnedAndProtectedTotal(preview);
   if (pinned === 0 && guarded === 0) {
     return null;
   }
@@ -151,15 +160,22 @@ function OptIns({
           {PIN_OPT_IN_LABEL} ({groupedCount(pinned)})
         </ReplaceCheck>
       ) : null}
-      {guarded > 0 ? (
+      {guarded > 0 || overlap > 0 ? (
         <ReplaceCheck
           checked={optIns.includeProtected}
           disabled={disabled}
           onChange={(value) => onChange("includeProtected", value)}
           data-replace-optin="protected"
         >
-          {PROTECT_OPT_IN_LABEL} ({groupedCount(guarded)})
+          {guarded > 0
+            ? `${PROTECT_OPT_IN_LABEL} (${groupedCount(guarded)})`
+            : PROTECT_OPT_IN_LABEL}
         </ReplaceCheck>
+      ) : null}
+      {overlap > 0 ? (
+        <p className="m-0 mt-1 text-sm text-muted-foreground" data-replace-overlap="">
+          {overlapNote(overlap)}
+        </p>
       ) : null}
     </fieldset>
   );

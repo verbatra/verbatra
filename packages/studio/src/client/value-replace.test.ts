@@ -18,6 +18,8 @@ import {
   notSentEntries,
   outcomeRows,
   outcomeView,
+  overlapNote,
+  pinnedAndProtectedTotal,
   previewParams,
   protectedTotal,
   reasonLabel,
@@ -184,10 +186,21 @@ describe("statusNote and protectedTotal", () => {
     const both = entry("pp", "pinned", { protected: true });
 
     expect(statusNote(both, { includePinned: true, includeProtected: false })).toBe(
-      "A pinned key a person wrote, imported or changed outside verbatra. Left out unless you tick both boxes.",
+      "This pinned value was written, imported, or changed by a person outside verbatra. It is left out unless you tick both boxes.",
     );
-    expect(statusNote(both, { includePinned: true, includeProtected: true })).toContain(
-      "Included in this run because you ticked both boxes.",
+    expect(statusNote(both, { includePinned: true, includeProtected: true })).toBe(
+      "This pinned value was written, imported, or changed by a person outside verbatra. It is included in this run because you ticked both boxes.",
+    );
+  });
+
+  it("uses one comma style for every protected note", () => {
+    expect(statusNote(entry("c", "protected"))).toBe(
+      "A person wrote, imported, or changed this outside verbatra. Left out unless you opt in.",
+    );
+    expect(
+      statusNote(entry("c", "protected"), { includePinned: false, includeProtected: true }),
+    ).toBe(
+      "A person wrote, imported, or changed this outside verbatra. Included in this run because you ticked its box.",
     );
   });
 
@@ -197,14 +210,27 @@ describe("statusNote and protectedTotal", () => {
     ).toContain("Included in this run because you ticked its box.");
   });
 
-  it("counts a pinned key that is also protected with the protected values", () => {
+  it("counts only the values the protected box alone adds, and the overlap separately", () => {
     const counted = preview([
       entry("a", "pinned", { protected: true }),
       entry("b", "pinned"),
       entry("c", "protected"),
     ]);
 
-    expect(protectedTotal(counted)).toBe(2);
+    expect(protectedTotal(counted)).toBe(1);
+    expect(pinnedAndProtectedTotal(counted)).toBe(1);
+    expect(entriesToApply(counted, { includePinned: false, includeProtected: true })).toHaveLength(
+      protectedTotal(counted),
+    );
+  });
+
+  it("words the overlap line in the singular and the plural", () => {
+    expect(overlapNote(1)).toBe(
+      "1 pinned key was also written by a person: tick both boxes to change it.",
+    );
+    expect(overlapNote(1200)).toBe(
+      "1,200 pinned keys were also written by a person: tick both boxes to change them.",
+    );
   });
 });
 
