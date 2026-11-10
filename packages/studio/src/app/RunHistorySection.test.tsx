@@ -708,7 +708,7 @@ describe("RunHistorySection round 3", () => {
       "No rate: your config had no rate on file for that provider and model when the run ended. A rate added under rates prices future runs, not these.",
       "No rate: the rate on file for that model was in a different unit than the run was measured in, tokens or characters, when the run ended. A corrected unit under rates prices future runs, not these.",
       "Unknown: keys were sent, but the provider reported no tokens, so no cost can be worked out.",
-      "Not billed: verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
+      "Not billed: openai-compatible: verbatra does not price it, a hosted endpoint may still bill you.",
     ]);
   });
 
@@ -719,7 +719,7 @@ describe("RunHistorySection round 3", () => {
     const items = [...view.all("[data-run-history-cost-notes] li")].map((item) => item.textContent);
 
     expect(items).toEqual([
-      "Not billed: verbatra does not price LibreTranslate. A hosted instance used with an API key may still bill you.",
+      "Not billed: LibreTranslate: verbatra does not price it, a hosted instance used with an API key may still bill you.",
     ]);
   });
 
@@ -734,7 +734,7 @@ describe("RunHistorySection round 3", () => {
     const items = [...view.all("[data-run-history-cost-notes] li")].map((item) => item.textContent);
 
     expect(items).toEqual([
-      "Not billed: No provider was called. verbatra does not price LibreTranslate. A hosted instance used with an API key may still bill you.",
+      "Not billed: none: no provider was called; LibreTranslate: verbatra does not price it, a hosted instance used with an API key may still bill you.",
     ]);
   });
 

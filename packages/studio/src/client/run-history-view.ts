@@ -1,4 +1,4 @@
-import type { RunHistoryCost, RunHistoryRecord } from "@verbatra/sdk";
+import type { ProviderId, RunHistoryCost, RunHistoryRecord } from "@verbatra/sdk";
 import type { RpcResultFor } from "../shared/rpc/contract.js";
 import { coveragePercent } from "./coverage.js";
 import type { RpcCallResult } from "./rpc-client.js";
@@ -27,23 +27,63 @@ export interface CostDisplay {
   readonly currency: string | undefined;
 }
 
-const NOT_BILLED_HINTS: ReadonlyMap<string, string> = new Map([
-  [
-    "openai-compatible",
-    "verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
-  ],
+interface NotBilledProvider {
+  readonly label: string;
+  readonly detail: string;
+}
+
+const NOT_BILLED_PROVIDERS: readonly (readonly [ProviderId, NotBilledProvider])[] = [
+  ["none", { label: "none", detail: "no provider was called" }],
   [
     "libretranslate",
-    "verbatra does not price LibreTranslate. A hosted instance used with an API key may still bill you.",
+    {
+      label: "LibreTranslate",
+      detail:
+        "verbatra does not price it, a hosted instance used with an API key may still bill you",
+    },
   ],
-  ["none", "No provider was called."],
-]);
+  [
+    "openai-compatible",
+    {
+      label: "openai-compatible",
+      detail: "verbatra does not price it, a hosted endpoint may still bill you",
+    },
+  ],
+];
 
-const NOT_BILLED_FALLBACK_HINT = "verbatra does not price this provider.";
+const NOT_BILLED_BY_PROVIDER: ReadonlyMap<string, NotBilledProvider> = new Map(
+  NOT_BILLED_PROVIDERS,
+);
+
+const NOT_BILLED_RANK: ReadonlyMap<string, number> = new Map(
+  NOT_BILLED_PROVIDERS.map(([id], index) => [id, index]),
+);
+
+function providerOf(rateKey: string): string {
+  return rateKey.split("/")[0] ?? rateKey;
+}
+
+function notBilledClause(provider: string): string {
+  const known = NOT_BILLED_BY_PROVIDER.get(provider);
+  return known === undefined
+    ? `${provider}: verbatra does not price it`
+    : `${known.label}: ${known.detail}`;
+}
+
+function notBilledRank(provider: string): number {
+  return NOT_BILLED_RANK.get(provider) ?? NOT_BILLED_PROVIDERS.length;
+}
 
 export function notBilledHint(rateKey: string): string {
-  const provider = rateKey.split("/")[0] ?? rateKey;
-  return NOT_BILLED_HINTS.get(provider) ?? NOT_BILLED_FALLBACK_HINT;
+  return `${notBilledClause(providerOf(rateKey))}.`;
+}
+
+export function notBilledNote(rateKeys: Iterable<string>): string {
+  const providers = [...new Set([...rateKeys].map(providerOf))].sort(
+    (left, right) =>
+      notBilledRank(left) - notBilledRank(right) || (left < right ? -1 : left > right ? 1 : 0),
+  );
+  return `Not billed: ${providers.map(notBilledClause).join("; ")}.`;
 }
 
 const CAVEAT_TEXT: Readonly<Record<string, string>> = {

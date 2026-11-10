@@ -1,4 +1,4 @@
-import type { RunHistoryCost } from "@verbatra/sdk";
+import type { ProviderId, RunHistoryCost } from "@verbatra/sdk";
 import { describe, expect, it, vi } from "vitest";
 import { localeEntry, PRICED, recordAt } from "./run-history-test-support.js";
 import {
@@ -9,6 +9,8 @@ import {
   describeTrigger,
   formatCost,
   lastKnownCoverage,
+  notBilledHint,
+  notBilledNote,
   tokenSeries,
   toRunHistoryDisplay,
   toRunHistoryOutcome,
@@ -93,16 +95,47 @@ describe("describeCost", () => {
   it.each([
     [
       "libretranslate",
-      "verbatra does not price LibreTranslate. A hosted instance used with an API key may still bill you.",
+      "LibreTranslate: verbatra does not price it, a hosted instance used with an API key may still bill you.",
     ],
     [
       "openai-compatible/llama",
-      "verbatra does not price this provider. A hosted openai-compatible endpoint may still bill you.",
+      "openai-compatible: verbatra does not price it, a hosted endpoint may still bill you.",
     ],
-    ["none", "No provider was called."],
-    ["constructor", "verbatra does not price this provider."],
+    ["none", "none: no provider was called."],
+    ["constructor", "constructor: verbatra does not price it."],
+    ["x", "x: verbatra does not price it."],
   ])("words the not-billed hint for %s from its own provider", (rateKey, hint) => {
     expect(describeCost({ pricing: "not-billed", rateKey }).hint).toBe(hint);
+  });
+});
+
+describe("notBilledNote", () => {
+  const NOT_BILLED_PROVIDER_IDS = [
+    "none",
+    "libretranslate",
+    "openai-compatible",
+  ] as const satisfies readonly ProviderId[];
+
+  it.each(NOT_BILLED_PROVIDER_IDS)("words a specific hint for the not-billed provider %s", (id) => {
+    expect(notBilledHint(id)).not.toContain("verbatra does not price it.");
+    expect(
+      notBilledHint(id).startsWith(`${id === "libretranslate" ? "LibreTranslate" : id}: `),
+    ).toBe(true);
+  });
+
+  it("labels each provider in a fixed order, once each, whatever order the runs came in", () => {
+    expect(
+      notBilledNote([
+        "openai-compatible/m",
+        "zzz",
+        "libretranslate",
+        "none",
+        "libretranslate",
+        "aaa",
+      ]),
+    ).toBe(
+      "Not billed: none: no provider was called; LibreTranslate: verbatra does not price it, a hosted instance used with an API key may still bill you; openai-compatible: verbatra does not price it, a hosted endpoint may still bill you; aaa: verbatra does not price it; zzz: verbatra does not price it.",
+    );
   });
 });
 

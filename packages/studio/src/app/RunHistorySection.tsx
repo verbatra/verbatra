@@ -25,7 +25,7 @@ import {
   describeTrigger,
   formatCost,
   lastKnownCoverage,
-  notBilledHint,
+  notBilledNote,
   type RunHistoryData,
   type RunHistoryNotice,
   tokenSeries,
@@ -191,13 +191,13 @@ function unpricedNote(pricing: UnpricedKind, records: readonly RunHistoryRecord[
   if (pricing !== "not-billed") {
     return UNPRICED_NOTE[pricing];
   }
-  const hints = new Set<string>();
+  const rateKeys: string[] = [];
   for (const { cost } of records) {
     if (cost.pricing === "not-billed") {
-      hints.add(notBilledHint(cost.rateKey));
+      rateKeys.push(cost.rateKey);
     }
   }
-  return `Not billed: ${[...hints].join(" ")}`;
+  return notBilledNote(rateKeys);
 }
 
 export function CostNotes({
