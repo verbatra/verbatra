@@ -312,7 +312,9 @@ function previewEntry(
     return {
       ...base,
       status: pre.verdict,
-      ...(pre.alsoProtected === true ? { protected: true as const } : {}),
+      ...(pre.verdict === "pinned" && pre.alsoProtected === true
+        ? { protected: true as const }
+        : {}),
     };
   }
   const refusal = judgeReplacement(facts, pre.sourceEntry, locale, current, pre.newValue);
@@ -693,8 +695,8 @@ function markDuplicates(
  * pinned key is `skipped` unless `includePinned` is set and `actor` is `human`; an agent never
  * changes a pinned key. A value that is protected as {@link previewValueReplace} describes it is
  * `skipped` unless `includeProtected` is set, and this holds whatever `humanEdits` the config
- * sets, so a key that is both pinned and protected needs both options. A value the integrity gate refuses is `refused`, with its reason. Everything else is
- * written.
+ * sets, so a key that is both pinned and protected needs both options. A value the integrity gate
+ * refuses is `refused`, with its reason. Everything else is written.
  *
  * Locales are processed one after another, each under its own write lock, with one write of the
  * locale file, one update of the lock-file and provenance file, and one translation-memory update

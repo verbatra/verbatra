@@ -48,7 +48,11 @@ interface PreGateBase {
 
 export type PreGate =
   | (PreGateBase & {
-      readonly verdict: "no-source-entry" | "unchanged" | "pinned" | "protected" | "too-long";
+      readonly verdict: "no-source-entry" | "unchanged" | "protected" | "too-long";
+      readonly newValue: string | undefined;
+    })
+  | (PreGateBase & {
+      readonly verdict: "pinned";
       readonly newValue: string | undefined;
       readonly alsoProtected?: true;
     })
