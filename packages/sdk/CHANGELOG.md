@@ -1,5 +1,14 @@
 # @verbatra/sdk
 
+## 0.13.2
+
+### Patch Changes
+
+- [#362](https://github.com/verbatra/verbatra/pull/362) [`d585112`](https://github.com/verbatra/verbatra/commit/d585112c54472748b1f20c556fa124c81dda7518) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Update bundled runtime dependencies.
+  
+  - **@verbatra/sdk:** @google/genai 2.32.0 -> 3.0.0.
+  - **Gemini:** the provider keeps calling the `v1beta` API, so `gemini-*-latest` model aliases keep working. No action needed.
+
 ## 0.13.1
 
 ### Patch Changes
