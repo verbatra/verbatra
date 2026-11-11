@@ -61,6 +61,7 @@ const de: UiTranslation = {
   "Search failed, showing results for {query}(search dialog)":
     "Suche fehlgeschlagen, zeige Ergebnisse für {query}",
   "Show Sidebar(sidebar)": "Seitenleiste einblenden",
+  "Skip to Content(skip link)": "Zum Inhalt springen",
   "System(theme switcher)(aria-label)": "System",
   "Table of Contents(inline table of contents)": "Inhaltsverzeichnis",
   "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.(404 page)":
@@ -126,6 +127,7 @@ const es: UiTranslation = {
   "Search failed, showing results for {query}(search dialog)":
     "La búsqueda falló, mostrando resultados para {query}",
   "Show Sidebar(sidebar)": "Mostrar barra lateral",
+  "Skip to Content(skip link)": "Saltar al contenido",
   "System(theme switcher)(aria-label)": "Sistema",
   "Table of Contents(inline table of contents)": "Índice",
   "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.(404 page)":
@@ -191,6 +193,7 @@ const fr: UiTranslation = {
   "Search failed, showing results for {query}(search dialog)":
     "La recherche a échoué, résultats affichés pour {query}",
   "Show Sidebar(sidebar)": "Afficher la barre latérale",
+  "Skip to Content(skip link)": "Aller au contenu",
   "System(theme switcher)(aria-label)": "Système",
   "Table of Contents(inline table of contents)": "Table des matières",
   "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.(404 page)":

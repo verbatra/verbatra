@@ -8,7 +8,7 @@
 # readability; the digest is what actually resolves. Update both together.
 
 # ---- Builder ----
-FROM node:24.22.1-bookworm-slim@sha256:be8204d4bd327363357f532187b752ff62759c31bedf98e9e18fc08c9cbd605c AS builder
+FROM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS builder
 WORKDIR /app
 
 # Install the pnpm version pinned in package.json's packageManager field.
@@ -27,7 +27,7 @@ RUN pnpm install --frozen-lockfile --filter @verbatra/docs...
 RUN pnpm --filter @verbatra/docs... build
 
 # ---- Runner ----
-FROM node:24.22.1-bookworm-slim@sha256:be8204d4bd327363357f532187b752ff62759c31bedf98e9e18fc08c9cbd605c AS runner
+FROM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS runner
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
 WORKDIR /app
 USER node
