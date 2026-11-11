@@ -72,9 +72,9 @@ const LINE_HANDLERS = {
   [FIELD_INDENT]: recordSpecifier,
 };
 
-function parseLockImporters(lockText) {
+function parseDocumentImporters(documentText) {
   const state = { importers: {}, specifiers: null, inSection: false, dependency: null };
-  for (const line of topLevelBlock(lockText, "importers")) {
+  for (const line of topLevelBlock(documentText, "importers")) {
     const entry = line.trim() === "" ? null : keyOf(line);
     const handler = LINE_HANDLERS[indentOf(line)];
     if (entry !== null && handler !== undefined) {
@@ -82,6 +82,16 @@ function parseLockImporters(lockText) {
     }
   }
   return state.importers;
+}
+
+function hasSpecifiers(importers) {
+  return Object.values(importers).some((specifiers) => Object.keys(specifiers).length > 0);
+}
+
+function parseLockImporters(lockText) {
+  const documents = lockText.split(/^---\r?$/m).filter((document) => document.trim() !== "");
+  const parsed = documents.map(parseDocumentImporters);
+  return parsed.findLast(hasSpecifiers) ?? parseDocumentImporters(lockText);
 }
 
 function manifestSpecifiers(manifestJson) {

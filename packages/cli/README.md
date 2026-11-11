@@ -33,7 +33,7 @@
 npm install --save-dev @verbatra/cli
 ```
 
-Needs Node.js `^22.18.0 || >=24`. A dev-dependency install puts the `verbatra` binary in `node_modules/.bin`, not on your PATH, so invoke it with `npx @verbatra/cli ...`, which runs the locally installed binary whichever package manager put it there, and fetches the CLI first when it is not installed, so `npx @verbatra/cli --help` also works before installing. Always use the scoped name: the unscoped name `verbatra` on npm does not belong to this project.
+Needs Node.js `^22.22.0 || >=24`. A dev-dependency install puts the `verbatra` binary in `node_modules/.bin`, not on your PATH, so invoke it with `npx @verbatra/cli ...`, which runs the locally installed binary whichever package manager put it there, and fetches the CLI first when it is not installed, so `npx @verbatra/cli --help` also works before installing. Always use the scoped name: the unscoped name `verbatra` on npm does not belong to this project.
 
 ## Quick start
 

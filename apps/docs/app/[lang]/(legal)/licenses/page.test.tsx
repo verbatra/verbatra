@@ -7,6 +7,7 @@ import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import manifest from "@/lib/licenses.generated.json";
+import docsPackage from "@/package.json";
 
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../../messages");
 
@@ -56,7 +57,7 @@ describe("licenses page", () => {
     );
     const codes = [...doc.querySelectorAll("li > code")].map((node) => node.textContent);
     expect(codes).toHaveLength(manifest.packageCount);
-    expect(codes).toContain("next@16.4.3");
+    expect(codes).toContain(`next@${docsPackage.dependencies.next}`);
   });
 
   it("prints every distinct license text once, each reachable by its anchor", async () => {

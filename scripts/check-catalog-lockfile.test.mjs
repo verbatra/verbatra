@@ -111,6 +111,94 @@ describe("parseLockImporters", () => {
     });
   });
 
+  it("reads the workspace importers from the main document of a two-document pnpm 12 lockfile", () => {
+    const environmentDocument = `---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies: {}
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.18.0
+        version: 12.18.0
+
+packages:
+
+  '@pnpm/exe.darwin-arm64@12.18.0':
+    resolution: {integrity: sha512-x}
+    cpu: [arm64]
+    os: [darwin]
+
+---
+`;
+    expect(parseLockImporters(`${environmentDocument}${CLEAN_LOCK}`)).toEqual(
+      parseLockImporters(CLEAN_LOCK),
+    );
+  });
+
+  it("skips a leading environment document that holds only configDependencies", () => {
+    const environmentDocument = `---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies: {}
+
+---
+`;
+    expect(parseLockImporters(`${environmentDocument}${CLEAN_LOCK}`)).toEqual(
+      parseLockImporters(CLEAN_LOCK),
+    );
+  });
+
+  it("reads the last document with specifiers when an unmarked extra document comes first", () => {
+    const extraDocument = `---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    devDependencies:
+      stray:
+        specifier: catalog:
+        version: 1.0.0
+
+`;
+    const environmentDocument = `---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies: {}
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.18.0
+        version: 12.18.0
+
+---
+`;
+    expect(parseLockImporters(`${extraDocument}${environmentDocument}${CLEAN_LOCK}`)).toEqual(
+      parseLockImporters(CLEAN_LOCK),
+    );
+  });
+
+  it("falls back to the environment importers of a lockfile with no main document", () => {
+    const environmentOnly = `---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies: {}
+
+`;
+    expect(parseLockImporters(environmentOnly)).toEqual({ ".": {} });
+  });
+
   it("returns nothing for a lockfile without importers", () => {
     expect(parseLockImporters("lockfileVersion: '9.0'\n")).toEqual({});
   });

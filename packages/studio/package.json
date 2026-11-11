@@ -41,7 +41,7 @@
     "dist"
   ],
   "engines": {
-    "node": "^22.18.0 || >=24"
+    "node": "^22.22.0 || >=24"
   },
   "publishConfig": {
     "access": "public",
@@ -62,19 +62,19 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "4.3.3",
+    "@tailwindcss/vite": "4.3.4",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@verbatra/config": "workspace:*",
     "@verbatra/format-adapters": "workspace:*",
     "@verbatra/ui": "workspace:*",
-    "@vitejs/plugin-react": "6.1.2",
+    "@vitejs/plugin-react": "6.2.1",
     "@vitest/coverage-v8": "catalog:",
     "jsdom": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "tailwindcss": "4.3.3",
+    "tailwindcss": "4.3.4",
     "tsup": "catalog:",
     "tsx": "4.23.15",
     "typescript": "catalog:",

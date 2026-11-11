@@ -1,5 +1,5 @@
 name: Setup workspace
-description: Set up Node, activate the pinned pnpm version, restore the pnpm store cache, and install dependencies with a frozen lockfile.
+description: Set up Node, install the pinned pnpm version, restore the pnpm store cache, and install dependencies with a frozen lockfile.
 
 inputs:
   node-version:
@@ -23,9 +23,8 @@ runs:
       shell: bash
       run: node scripts/check-catalog-lockfile.mjs
 
-    - name: Enable corepack and activate pnpm
-      shell: bash
-      run: corepack enable && corepack prepare pnpm@11.6.0 --activate
+    - name: Install pnpm
+      uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
     - name: Compute pnpm store path
       id: pnpm-store

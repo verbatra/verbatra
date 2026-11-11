@@ -14,10 +14,10 @@
   "bugs": {
     "url": "https://github.com/verbatra/verbatra/issues"
   },
-  "packageManager": "pnpm@11.6.0",
+  "packageManager": "pnpm@12.18.0",
   "engines": {
-    "node": "^22.18.0 || >=24",
-    "pnpm": ">=11.6.0"
+    "node": "^22.22.0 || >=24",
+    "pnpm": ">=12.18.0"
   },
   "scripts": {
     "build": "turbo run build",
@@ -44,7 +44,7 @@
     "release": "changeset publish"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.2",
+    "@biomejs/biome": "2.6.4",
     "@changesets/changelog-github": "1.0.1",
     "@changesets/cli": "3.0.3",
     "@commitlint/cli": "21.2.4",

@@ -33,7 +33,7 @@
     }
   },
   "engines": {
-    "node": "^22.18.0 || >=24"
+    "node": "^22.22.0 || >=24"
   },
   "scripts": {
     "lint": "biome check .",
