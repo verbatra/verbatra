@@ -1030,7 +1030,7 @@ Salta por debajo de 0.35 veces o por encima de 3.0 veces la longitud recortada d
 
 ### MAX_LENGTH_EXCEEDED
 
-La traducción es más larga que el presupuesto `maxLength` configurado para su clave.
+La traducción es más larga que el presupuesto `maxLength` configurado para su clave, en la config o en [`verbatra.limits.json`](/es/docs/config-file#maxlength) <AvailableFrom version="0.13.0" />.
 
 La longitud se cuenta en clústeres de grafemas sobre el valor tal como está escrito. El límite es inclusivo, así que un valor de exactamente el presupuesto no se marca, y una clave sin presupuesto nunca se mide.
 

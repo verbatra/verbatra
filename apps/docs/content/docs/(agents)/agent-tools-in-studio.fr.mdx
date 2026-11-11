@@ -80,8 +80,8 @@ Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la 
 
 - **Provenance** : une modification de l'agent est enregistrée avec l'origine `agent` et reste dans la file de relecture ; une modification depuis le tableau de bord est `human`. Les outils de lecture indiquent qui a écrit chaque valeur ([Le fichier de verrouillage](/fr/docs/the-lock-file#la-provenance-de-chaque-valeur)).
 - **Travail humain** : retraduire refuse la valeur d'une personne avec `KEY_PROTECTED` (sauf avec `humanEdits: "overwrite"`) et une clé épinglée avec `KEY_PINNED`, et modifier refuse une clé épinglée ([Garder les traductions humaines](/fr/docs/protecting-human-translations)).
-- **Décisions de relecture** : approuver et rejeter servent seulement à transmettre ta décision. Les deux exigent `reviewer`, le nom de la personne, et `expectedValue`, le texte relu ; une valeur modifiée est refusée avec `REVIEW_VALUE_CHANGED`.
-- **Pas d'outils groupés** : **Approve selected**, **Reject selected**, **Retranslate selected**, **Approve all in** et **Search and replace** restent entre les mains d'une personne.
+- **Décisions de relecture** : approuver et rejeter ne font que transmettre ta décision. Les deux exigent `reviewer`, le nom de la personne, et `expectedValue`, le texte relu ; une valeur modifiée est refusée avec `REVIEW_VALUE_CHANGED`.
+- **Pas d'outils groupés** : **Approve selected**, **Reject selected**, **Retranslate selected**, **Approve all in** et **Search and replace** sont réservés aux personnes.
 - **Estimer d'abord** : une locale inconnue est refusée avec `UNKNOWN_LOCALE` avant toute dépense, et c'est le plus bas des `maxTokens` de l'appel et de la config qui s'applique ([Estimer le coût avant une exécution](/fr/docs/estimating-cost)).
 - **Limites de débit** : par minute glissante, 20 retraductions, 20 modifications, 20 écritures de glossaire, 60 décisions de relecture et 5 appels translate-pending, un à la fois.
 

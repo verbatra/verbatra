@@ -1015,7 +1015,7 @@ It fires below 0.35 times or above 3.0 times the trimmed source length; very sho
 
 ### MAX_LENGTH_EXCEEDED
 
-The translation is longer than the `maxLength` budget configured for its key.
+The translation is longer than the `maxLength` budget configured for its key, in the config or in [`verbatra.limits.json`](/docs/config-file#maxlength) <AvailableFrom version="0.13.0" />.
 
 Length is counted in grapheme clusters on the value exactly as written. The budget is inclusive, so a value of exactly the budget is not flagged, and a key without a budget is never measured.
 
