@@ -51,7 +51,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsdown",
     "lint": "biome check .",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
@@ -70,7 +70,7 @@
     "@verbatra/core": "workspace:*",
     "@verbatra/format-adapters": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
-    "tsup": "catalog:",
+    "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

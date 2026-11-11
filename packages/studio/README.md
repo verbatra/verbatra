@@ -76,7 +76,7 @@ The entry point is `startStudioServer`, which binds the server to `127.0.0.1` an
 
 ## Development
 
-Working on this package inside the [verbatra monorepo](https://github.com/verbatra/verbatra): `src/server/` is the server, `src/app/` the React SPA that Vite builds into `dist/app`, `src/shared/` the RPC contract and SSE event names both sides compile against, and `src/webmcp/` the WebMCP adapter. `pnpm build` runs `tsup && vite build` in that order, because tsup cleans `dist/` and would otherwise delete the SPA output. For the dev flow, run `pnpm dev:app` in one terminal to keep an unminified `vite build --watch` refreshing `dist/app`, and `pnpm dev:server` in a second to serve those built assets; there is no hot module reloading, so wait for the first build pass before opening the printed URL.
+Working on this package inside the [verbatra monorepo](https://github.com/verbatra/verbatra): `src/server/` is the server, `src/app/` the React SPA that Vite builds into `dist/app`, `src/shared/` the RPC contract and SSE event names both sides compile against, and `src/webmcp/` the WebMCP adapter. `pnpm build` runs `tsdown && vite build` in that order, because tsdown cleans `dist/` and would otherwise delete the SPA output. For the dev flow, run `pnpm dev:app` in one terminal to keep an unminified `vite build --watch` refreshing `dist/app`, and `pnpm dev:server` in a second to serve those built assets; there is no hot module reloading, so wait for the first build pass before opening the printed URL.
 
 ## Documentation
 

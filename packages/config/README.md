@@ -16,8 +16,8 @@ strictness, formatting, build shape, and the coverage gate are defined once.
   `isolatedModules`, and `NodeNext` resolution. `tsconfig.package.json` is the per-package variant.
 - **Lint and format.** `biome.json` holds the rules the root `biome.json` extends, including the
   cognitive-complexity cap.
-- **Build.** `tsup.base.mjs` exports `createTsupConfig`, the shared bundler shape every package's
-  `tsup.config.ts` calls, including the `noExternal` seam and `dts` options the sdk uses to inline
+- **Build.** `tsdown.base.mjs` exports `createTsdownConfig`, the shared bundler shape every package's
+  `tsdown.config.ts` calls, including the `deps.alwaysBundle` seam and `dts` options the sdk uses to inline
   the bundled private packages.
 - **Test.** `vitest.base.mjs` exports `createVitestConfig`, which defaults tests to
   `src/**/*.test.ts`, excludes `src/index.ts` and `src/**/types.ts` from coverage, and sets the
@@ -36,7 +36,7 @@ It must not:
 - Take a workspace dependency. It sits at the bottom of the graph with nothing below it, and
   nothing in it may import another `@verbatra/*` package. See
   [`.claude/rules/architecture.md`](../../.claude/rules/architecture.md).
-- Be imported at runtime. Its exports are configuration consumed by `tsc`, Biome, tsup, Vitest, and
+- Be imported at runtime. Its exports are configuration consumed by `tsc`, Biome, tsdown, Vitest, and
   Turborepo; no shipped code path loads it.
 - Hold product logic. A rule that belongs to one package belongs in that package's own config file.
 
@@ -44,7 +44,7 @@ It must not:
 
 - `tsconfig.base.json`, `tsconfig.package.json`, `tsconfig.json`: TypeScript presets.
 - `biome.json`: lint and format rules.
-- `tsup.base.mjs`, `vitest.base.mjs`, `scaling.base.mjs` (each with a `.d.mts` and a test): the
+- `tsdown.base.mjs`, `vitest.base.mjs`, `scaling.base.mjs` (each with a `.d.mts` and a test): the
   build, test and scaling presets.
 - `turbo.json`: this package's task overrides.
 
@@ -54,7 +54,7 @@ It must not:
 pnpm turbo run test --filter=@verbatra/config
 ```
 
-The suite covers the two config factories and the scaling preset (`tsup.base.test.mjs`,
+The suite covers the two config factories and the scaling preset (`tsdown.base.test.mjs`,
 `vitest.base.test.mjs`, `scaling.base.test.mjs`), so a change to a shared preset cannot silently
 alter every package's build or coverage settings.
 

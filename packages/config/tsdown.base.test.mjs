@@ -1,29 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { createTsupConfig } from "./tsup.base.mjs";
+import { createTsdownConfig } from "./tsdown.base.mjs";
 
-describe("createTsupConfig", () => {
+describe("createTsdownConfig", () => {
   it("applies the baked defaults when called with no overrides", () => {
-    const config = createTsupConfig();
+    const config = createTsdownConfig();
 
     expect(config).toEqual({
       entry: ["src/index.ts"],
       format: ["esm", "cjs"],
-      dts: true,
+      dts: { sourcemap: false },
       sourcemap: true,
       clean: true,
       treeshake: true,
+      fixedExtension: false,
+      hash: false,
     });
   });
 
   it("lets an override win over the matching default", () => {
-    const config = createTsupConfig({ format: ["esm"], dts: false });
+    const config = createTsdownConfig({ format: ["esm"], dts: false });
 
     expect(config.format).toEqual(["esm"]);
     expect(config.dts).toBe(false);
   });
 
   it("keeps the untouched defaults when only some keys are overridden", () => {
-    const config = createTsupConfig({ format: ["esm"] });
+    const config = createTsdownConfig({ format: ["esm"] });
 
     expect(config.entry).toEqual(["src/index.ts"]);
     expect(config.sourcemap).toBe(true);
@@ -32,7 +34,7 @@ describe("createTsupConfig", () => {
   });
 
   it("passes through an override key that has no baked default", () => {
-    const config = createTsupConfig({ minify: true });
+    const config = createTsdownConfig({ minify: true });
 
     expect(config.minify).toBe(true);
   });

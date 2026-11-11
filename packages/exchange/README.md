@@ -1,7 +1,7 @@
 # @verbatra/exchange
 
-> Private package. Not published. Its source is bundled into `@verbatra/sdk` by tsup
-> (`WORKSPACE_INTERNALS` in `packages/sdk/tsup.config.ts`), so a change here ships inside the sdk's
+> Private package. Not published. Its source is bundled into `@verbatra/sdk` by tsdown
+> (`WORKSPACE_INTERNALS` in `packages/sdk/tsdown.config.ts`), so a change here ships inside the sdk's
 > published bytes and needs a changeset naming `@verbatra/sdk`. Do not install this directly;
 > install [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk).
 

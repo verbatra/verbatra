@@ -177,10 +177,13 @@ const TOP_LEVEL_DECLARATION_START =
 
 const MEMBER_DECLARATION = /^\s+(?:readonly\s+)?([A-Za-z_$][\w$]*)\??\s*[:(<]/gm;
 
+const INLINE_EXPORT_DECLARATION =
+  /^export\s+(?:declare\s+)?(?:abstract\s+)?(?:type|interface|class|function|enum|const\s+enum|const|let|var|namespace)\s+([A-Za-z_$][\w$]*)/gm;
+
 const LINK_TARGET = /\{@link(?:code|plain)?\s+([A-Za-z_$][\w$]*)/g;
 
 function exportedNames(text) {
-  const names = new Set();
+  const names = namesMatching(text, INLINE_EXPORT_DECLARATION);
   for (const match of text.matchAll(EXPORT_LIST)) {
     for (const specifier of (match[1] ?? "").split(",")) {
       const [local, alias] = specifier
@@ -354,7 +357,7 @@ function checkDts() {
   if (hits.length > 0) {
     throw new Error(
       `published declarations reference ${hits.length} unpublished @verbatra/* package(s); ` +
-        `check the dts options in the owning tsup config:\n  ${hits.join("\n  ")}`,
+        `check the dts options in the owning tsdown config:\n  ${hits.join("\n  ")}`,
     );
   }
 
@@ -364,7 +367,7 @@ function checkDts() {
   if (renamed.length > 0) {
     throw new Error(
       `the sdk declarations bundle a workspace type more than once, so the duplicate is renamed; ` +
-        `check dts.compilerOptions.paths in packages/sdk/tsup.config.ts:\n  ${renamed.join("\n  ")}`,
+        `check dts.compilerOptions.paths in packages/sdk/tsdown.config.ts:\n  ${renamed.join("\n  ")}`,
     );
   }
 
@@ -404,13 +407,13 @@ function checkStudioBundle() {
   for (const packageName of DYNAMIC_IMPORT_ONLY_PACKAGES) {
     if (!dynamicImportPattern(packageName).test(contents)) {
       throw new Error(
-        `${entry} has no dynamic import("${packageName}"); check external in packages/cli/tsup.config.ts.`,
+        `${entry} has no dynamic import("${packageName}"); check external in packages/cli/tsdown.config.ts.`,
       );
     }
     if (staticImportPattern(packageName).test(contents)) {
       throw new Error(
         `${entry} statically imports ${packageName}, which would bundle it; keep it a runtime ` +
-          "dynamic import and check external in packages/cli/tsup.config.ts.",
+          "dynamic import and check external in packages/cli/tsdown.config.ts.",
       );
     }
   }

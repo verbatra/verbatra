@@ -21,7 +21,7 @@ already has: a single public-surface entry point per package, with internal modu
 their real path.
 
 The one exception is `@verbatra/core`'s second entry, `packages/core/src/pure.ts` (subpath
-`@verbatra/core/pure`, built by `packages/core/tsup.pure.config.ts`): a package-root entry, not a
+`@verbatra/core/pure`, built by `packages/core/tsdown.pure.config.ts`): a package-root entry, not a
 subfolder barrel, that re-exports only the zod-free diff, hash and placeholder functions so a
 browser consumer can load them without zod (no app in this repository imports it today); do not
 add others.
@@ -38,7 +38,7 @@ monorepo source alias). Cross-package imports everywhere else resolve through th
 `@verbatra/<name>` package name, linked by pnpm's workspace protocol.
 
 Keep it that way. A `@scope/package-name` import resolved through pnpm's real workspace linking
-works identically across every tool in the chain (`tsc`, Vitest, tsup) with zero extra
+works identically across every tool in the chain (`tsc`, Vitest, tsdown) with zero extra
 configuration. A `paths` map does not: it needs matching, separately maintained resolution
 configuration in each consumer (a bundler, a test runner, `ts-node`/`tsx`), and drift between
 those configurations is a well-documented source of monorepo friction. Do not add a `paths` map to

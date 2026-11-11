@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "//": "Typecheck the repository-root knip.config.ts and the per-package tsup.config.ts, vitest.config.ts, and vite.config.ts files, which sit outside every package's include: [src] and so are never covered by `pnpm -r typecheck`. This guards against a missing types entry on a shared @verbatra/config preset (TS7016) and against a non-portable inferred default-export type (TS2883). Declaration checking is left on (inherited from the base) so it mirrors how an editor checks these files against the package config and catches the TS2883 portability class; types is empty because the config files use no Node globals.",
+  "//": "Typecheck the repository-root knip.config.ts and the per-package tsdown.config.ts, vitest.config.ts, and vite.config.ts files, which sit outside every package's include: [src] and so are never covered by `pnpm -r typecheck`. This guards against a missing types entry on a shared @verbatra/config preset (TS7016) and against a non-portable inferred default-export type (TS2883). Declaration checking is left on (inherited from the base) so it mirrors how an editor checks these files against the package config and catches the TS2883 portability class; types is empty because the config files use no Node globals.",
   "extends": "./packages/config/tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
@@ -8,8 +8,8 @@
   },
   "include": [
     "knip.config.ts",
-    "packages/*/tsup.config.ts",
-    "packages/*/tsup.*.config.ts",
+    "packages/*/tsdown.config.ts",
+    "packages/*/tsdown.*.config.ts",
     "packages/*/vitest.config.ts",
     "packages/*/vitest.setup.ts",
     "packages/*/vite.config.ts"

@@ -35,7 +35,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup && tsup --config tsup.pure.config.ts",
+    "build": "tsdown && tsdown --config tsdown.pure.config.ts",
     "lint": "biome check .",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
@@ -49,7 +49,7 @@
     "@vitest/coverage-v8": "catalog:",
     "fast-check": "4.10.2",
     "parse5": "catalog:",
-    "tsup": "catalog:",
+    "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

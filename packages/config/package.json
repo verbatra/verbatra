@@ -8,9 +8,9 @@
   "exports": {
     "./tsconfig.base.json": "./tsconfig.base.json",
     "./tsconfig.package.json": "./tsconfig.package.json",
-    "./tsup": {
-      "types": "./tsup.base.d.mts",
-      "default": "./tsup.base.mjs"
+    "./tsdown": {
+      "types": "./tsdown.base.d.mts",
+      "default": "./tsdown.base.mjs"
     },
     "./vitest": {
       "types": "./vitest.base.d.mts",
@@ -25,8 +25,8 @@
     "tsconfig.base.json",
     "tsconfig.package.json",
     "biome.json",
-    "tsup.base.mjs",
-    "tsup.base.d.mts",
+    "tsdown.base.mjs",
+    "tsdown.base.d.mts",
     "vitest.base.mjs",
     "vitest.base.d.mts",
     "scaling.base.mjs",
@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "catalog:",
-    "tsup": "catalog:",
+    "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

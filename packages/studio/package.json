@@ -48,7 +48,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup && vite build",
+    "build": "tsdown && vite build",
     "dev:app": "vite build --watch --minify false",
     "dev:server": "tsx watch src/dev/server.ts",
     "lint": "biome check .",
@@ -72,10 +72,11 @@
     "@vitejs/plugin-react": "6.3.0",
     "@vitest/coverage-v8": "catalog:",
     "jsdom": "catalog:",
+    "oxc-parser": "0.156.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "4.3.5",
-    "tsup": "catalog:",
+    "tsdown": "catalog:",
     "tsx": "4.23.15",
     "typescript": "catalog:",
     "vite": "8.3.7",

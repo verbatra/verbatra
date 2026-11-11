@@ -73,7 +73,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup && node scripts/emit-schemas.mjs",
+    "build": "tsdown && node scripts/emit-schemas.mjs",
     "lint": "biome check .",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
@@ -91,7 +91,7 @@
     "@verbatra/studio": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
     "ajv": "catalog:",
-    "tsup": "catalog:",
+    "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

@@ -381,6 +381,15 @@ describe("findUnexportedLinks", () => {
     expect(findUnexportedLinks(text, "dist/index.d.ts")).toEqual([]);
   });
 
+  it("accepts a link to a name exported inline by its declaration", () => {
+    const text = [
+      "/** See {@link Tone} and {@link load}. */",
+      "export type Tone = string;",
+      "export declare function load(): Tone;",
+    ].join("\n");
+    expect(findUnexportedLinks(text, "dist/index.d.ts")).toEqual([]);
+  });
+
   it("reports a link to a top-level declaration the bundle does not export", () => {
     const text = [
       "declare const SCHEMA: string;",

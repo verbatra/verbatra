@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { join, relative, resolve, sep } from "node:path";
-import ts from "typescript";
+import { parseSync } from "oxc-parser";
 import { describe, expect, it } from "vitest";
 
 const SRC = resolve(import.meta.dirname, "..");
@@ -21,63 +21,103 @@ interface ModuleReference {
   readonly typeOnly: boolean;
 }
 
-function importReference(node: ts.Node): ModuleReference | undefined {
-  if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-    return {
-      specifier: node.moduleSpecifier.text,
-      typeOnly: node.importClause?.isTypeOnly === true,
-    };
+interface AstNode {
+  readonly type: string;
+  readonly [key: string]: unknown;
+}
+
+interface TemplateQuasi {
+  readonly value: { readonly cooked: string };
+}
+
+function isNode(value: unknown): value is AstNode {
+  return typeof value === "object" && value !== null && typeof (value as AstNode).type === "string";
+}
+
+function stringValue(node: unknown): string | undefined {
+  if (!isNode(node)) {
+    return undefined;
   }
-  if (
-    ts.isExportDeclaration(node) &&
-    node.moduleSpecifier !== undefined &&
-    ts.isStringLiteral(node.moduleSpecifier)
-  ) {
-    return { specifier: node.moduleSpecifier.text, typeOnly: node.isTypeOnly };
+  if (node.type === "Literal" && typeof node.value === "string") {
+    return node.value;
   }
-  if (
-    ts.isImportEqualsDeclaration(node) &&
-    ts.isExternalModuleReference(node.moduleReference) &&
-    ts.isStringLiteral(node.moduleReference.expression)
-  ) {
-    return { specifier: node.moduleReference.expression.text, typeOnly: node.isTypeOnly };
+  const quasis = node.quasis;
+  if (node.type === "TemplateLiteral" && Array.isArray(quasis) && quasis.length === 1) {
+    return (quasis[0] as TemplateQuasi).value.cooked;
   }
   return undefined;
 }
 
-function callReference(node: ts.Node): ModuleReference | undefined {
-  if (!ts.isCallExpression(node)) {
+function declarationReference(node: AstNode): ModuleReference | undefined {
+  const isImport = node.type === "ImportDeclaration";
+  const isExport = node.type === "ExportNamedDeclaration" || node.type === "ExportAllDeclaration";
+  const specifier = isImport || isExport ? stringValue(node.source) : undefined;
+  if (specifier === undefined) {
     return undefined;
   }
-  const callee = node.expression;
-  const loads =
-    callee.kind === ts.SyntaxKind.ImportKeyword ||
-    (ts.isIdentifier(callee) && callee.text === "require");
-  const first = node.arguments[0];
-  return loads && first !== undefined && ts.isStringLiteralLike(first)
-    ? { specifier: first.text, typeOnly: false }
-    : undefined;
+  return { specifier, typeOnly: (isImport ? node.importKind : node.exportKind) === "type" };
 }
 
-function typeReference(node: ts.Node): ModuleReference | undefined {
-  return ts.isImportTypeNode(node) &&
-    ts.isLiteralTypeNode(node.argument) &&
-    ts.isStringLiteral(node.argument.literal)
-    ? { specifier: node.argument.literal.text, typeOnly: true }
-    : undefined;
+function importEqualsReference(node: AstNode): ModuleReference | undefined {
+  const reference = node.moduleReference;
+  if (node.type !== "TSImportEqualsDeclaration" || !isNode(reference)) {
+    return undefined;
+  }
+  const specifier =
+    reference.type === "TSExternalModuleReference" ? stringValue(reference.expression) : undefined;
+  return specifier === undefined ? undefined : { specifier, typeOnly: node.importKind === "type" };
+}
+
+function callReference(node: AstNode): ModuleReference | undefined {
+  if (node.type === "ImportExpression") {
+    const specifier = stringValue(node.source);
+    return specifier === undefined ? undefined : { specifier, typeOnly: false };
+  }
+  const callee = node.callee;
+  const args = node.arguments;
+  if (
+    node.type !== "CallExpression" ||
+    !isNode(callee) ||
+    callee.type !== "Identifier" ||
+    callee.name !== "require" ||
+    !Array.isArray(args)
+  ) {
+    return undefined;
+  }
+  const specifier = stringValue(args[0]);
+  return specifier === undefined ? undefined : { specifier, typeOnly: false };
+}
+
+function typeReference(node: AstNode): ModuleReference | undefined {
+  if (node.type !== "TSImportType") {
+    return undefined;
+  }
+  const specifier = stringValue(node.source);
+  return specifier === undefined ? undefined : { specifier, typeOnly: true };
 }
 
 export function moduleReferences(source: string): ModuleReference[] {
-  const file = ts.createSourceFile("probe.tsx", source, ts.ScriptTarget.Latest, true);
+  const { program } = parseSync("probe.tsx", source, { lang: "tsx" });
   const found: ModuleReference[] = [];
-  function visit(node: ts.Node): void {
-    const reference = importReference(node) ?? callReference(node) ?? typeReference(node);
+  function visit(value: unknown): void {
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    if (!isNode(value)) {
+      return;
+    }
+    const reference =
+      declarationReference(value) ??
+      importEqualsReference(value) ??
+      callReference(value) ??
+      typeReference(value);
     if (reference !== undefined) {
       found.push(reference);
     }
-    ts.forEachChild(node, visit);
+    Object.values(value).forEach(visit);
   }
-  visit(file);
+  visit(program);
   return found;
 }
 

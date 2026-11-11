@@ -61,7 +61,7 @@ repository's layout genuinely explains the finding, and record that reason here:
   module `next.config.mjs` needs, while knip follows the import to the `.mjs` and
   reports the declaration as unused.
 - `packages/sdk` `ignoreDependencies`: every `catalog:bundled` runtime dependency
-  no sdk source imports directly. tsup bundles the internal packages that import
+  no sdk source imports directly. tsdown bundles the internal packages that import
   them, so they ship to consumers; all are listed so the result is the same with
   and without built `dist` output.
 - `packages/studio` `entry`: each `src/shared/rpc` module exports its method name,
@@ -454,7 +454,7 @@ nested tables, arrays of tables and typed scalars (integers, floats, booleans,
 offset date-times), none of which the flat factory models. `yaml-adapter.ts` is
 the shape it would take. Two things block it rather than the factory choice.
 First, it needs a third-party TOML parser and serializer as a runtime dependency
-of a package tsup inlines straight into the published SDK, which is a
+of a package tsdown inlines straight into the published SDK, which is a
 supply-chain decision worth taking on its own. Second, the tree factory needs a
 parser that preserves declaration order for quoted integer-like keys, so that
 `"10"` before `"2"` survives a round trip; YAML gets that from the `yaml`
