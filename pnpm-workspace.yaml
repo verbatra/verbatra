@@ -14,10 +14,6 @@ packages:
 # manual bump only conflicts with the open proposal. Reach for a manual bump only when a
 # security fix cannot wait for the weekly schedule.
 #
-# One entry is deliberately pinned back: typescript stays on the 6.x line because TypeScript 7
-# is the native port and drops the JavaScript compiler API that tsup's bundled rollup-plugin-dts
-# needs to emit declarations. .github/dependabot.yml ignores it and records the full reasoning.
-#
 # The "catalogs.bundled" entries carry the most weight, since @verbatra/sdk re-declares them and
 # they ship to consumers rather than staying internal to this repo. Treat every version below as
 # part of the published contract: a change here lands in a consumer's node_modules, lockfile,
@@ -40,8 +36,8 @@ catalog:
   react: 19.3.1
   react-dom: 19.3.1
   tailwind-merge: 3.7.0
-  tsup: 9.0.0
-  typescript: 6.0.3
+  tsdown: 0.23.7
+  typescript: 7.0.2
   vitest: 5.1.0
   zod: 4.6.7
 
@@ -73,7 +69,7 @@ overrides:
   # required: read-yaml-file@1.1.0 (used by changesets) calls the v3-only yaml.safeLoad, so an unbounded
   # ">=3.15.0" would resolve v4/v5 and break `changeset version`.
   js-yaml@<3.15.0: ">=3.15.0 <4"
-  # GHSA-g7r4-m6w7-qqqr: esbuild dev-server arbitrary file read on Windows (dev-only, via vitest and tsup).
+  # GHSA-g7r4-m6w7-qqqr: esbuild dev-server arbitrary file read on Windows (dev-only, via vitest).
   # Vulnerable >=0.27.3 <0.28.1; lifts the 0.27.7 copy.
   esbuild@<0.28.1: ">=0.28.1"
   # GHSA-xcpc-8h2w-3j85 (CVE-2026-39244, a crafted ZIP uncompressed-size header forces a ~4GB
@@ -151,7 +147,7 @@ overrides:
   "next@>=16.0.0 <16.2.11": ">=16.2.11 <17"
   # GHSA-2v37-7h3g-55p8 (CVE-2026-67213, high): customAlphabet and customRandom loop forever when
   # called with a size of 0, hanging the calling thread. Vulnerable <3.3.17 on the v3 line; lifts the
-  # 3.3.16 copy postcss pulls (dev-only, via tsup and @tailwindcss/postcss) to the patched release.
+  # 3.3.16 copy postcss pulls (dev-only, via @tailwindcss/postcss) to the patched release.
   # The tree already resolves 3.3.18 for the other postcss copies, so this only dedupes onto it. The
   # <4 ceiling keeps it on the v3 API postcss declares, since v4 dropped the CommonJS entry point.
   nanoid@<3.3.17: ">=3.3.17 <4"

@@ -30,7 +30,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsdown",
     "lint": "biome check .",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
@@ -47,7 +47,7 @@
     "@verbatra/config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
     "intl-messageformat": "12.1.5",
-    "tsup": "catalog:",
+    "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

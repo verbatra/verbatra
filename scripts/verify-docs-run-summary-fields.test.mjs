@@ -12,16 +12,17 @@ const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 const INTERFACES = ["RunSummary", "LocaleSummary"];
 
 function interfaceBody(source, name) {
-  const body = new RegExp(`^(?:declare )?interface ${name} \\{\\n([\\s\\S]*?)^\\}`, "m").exec(
-    source,
-  )?.[1];
+  const body = new RegExp(
+    `^(?:export )?(?:declare )?interface ${name} \\{\\n([\\s\\S]*?)^\\}`,
+    "m",
+  ).exec(source)?.[1];
   if (body === undefined) throw new Error(`interface ${name} could not be located`);
   return body;
 }
 
 function declaredFields(name) {
   const body = interfaceBody(readFileSync(SDK_DECLARATIONS, "utf8"), name);
-  return [...body.matchAll(/^ {4}(?:readonly )?(\w+)(\??):/gm)]
+  return [...body.matchAll(/^ {2}(?:readonly )?(\w+)(\??):/gm)]
     .map(([, field, optional]) => `${field}${optional}`)
     .sort();
 }

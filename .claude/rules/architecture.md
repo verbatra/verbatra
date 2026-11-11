@@ -31,7 +31,7 @@ Alongside that chain, `ui` sits beside `config` as a leaf: `config <- ui <- docs
   (`SourceExtractor`) and its own file-system port (`packages/extract/src/source-fs-port.ts`,
   enforced by `source-fs-port.no-direct-node-fs.test.ts`).
 - `@verbatra/sdk` depends on `@verbatra/core`, `@verbatra/ai-providers`, `@verbatra/exchange`,
-  `@verbatra/extract`, `@verbatra/format-adapters` (all as `devDependencies` because tsup bundles
+  `@verbatra/extract`, `@verbatra/format-adapters` (all as `devDependencies` because tsdown bundles
   them into `dist/index.js`; see `packages/sdk/package.json`).
 - `@verbatra/cli` depends on `@verbatra/sdk` only, plus `commander` and `zod`
   (`packages/cli/package.json`). It carries `@verbatra/studio` as a `devDependency` only, reached
@@ -52,7 +52,7 @@ Alongside that chain, `ui` sits beside `config` as a leaf: `config <- ui <- docs
   assertion. That is a test-only, dev-time edge, not a runtime import against the dependency
   arrow.
 - `@verbatra/config` (`packages/config/package.json`) has no workspace dependencies; every other
-  package takes it as a `devDependency` for shared tsconfig, biome, tsup, and vitest presets.
+  package takes it as a `devDependency` for shared tsconfig, biome, tsdown, and vitest presets.
 - `@verbatra/ui` (`packages/ui/package.json`) is private, has no build and depends only on `clsx`
   and `tailwind-merge`, with `react` as a peer: `exports` point at raw source (`src/tokens.css`,
   `src/fonts.css`, `src/components.css`, `src/theme.ts`, `src/cn.ts`, `src/index.ts`, which

@@ -15,8 +15,6 @@ updates:
     labels:
       - "dependencies"
     ignore:
-      - dependency-name: "typescript"
-        versions: [">=7.0.0"]
       - dependency-name: "@anthropic-ai/sdk"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@formatjs/icu-messageformat-parser"
@@ -52,10 +50,20 @@ updates:
         patterns:
           - "vitest"
           - "@vitest/*"
+      typescript-toolchain:
+        patterns:
+          - "typescript"
+          - "tsdown"
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
       npm-minor-patch:
         exclude-patterns:
           - "vitest"
           - "@vitest/*"
+          - "typescript"
+          - "tsdown"
         update-types:
           - "minor"
           - "patch"
@@ -72,9 +80,6 @@ updates:
       include: "scope"
     labels:
       - "dependencies"
-    ignore:
-      - dependency-name: "typescript"
-        versions: [">=7.0.0"]
     groups:
       e2e-minor-patch:
         update-types:

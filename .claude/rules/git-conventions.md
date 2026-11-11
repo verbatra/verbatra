@@ -90,8 +90,8 @@ commit message for commitlint.
   (`@verbatra/core`, `@verbatra/format-adapters`, `@verbatra/ai-providers`, `@verbatra/exchange`,
   `@verbatra/extract`) needs a changeset too, naming `@verbatra/sdk` itself, not the private
   package, and follows the rules above (one changeset per change, nothing for a fix to an unreleased
-  feature). tsup inlines that source straight into `packages/sdk/dist` (`WORKSPACE_INTERNALS` in
-  `packages/sdk/tsup.config.ts`, passed to `noExternal`, and each package's built
+  feature). tsdown inlines that source straight into `packages/sdk/dist` (`WORKSPACE_INTERNALS` in
+  `packages/sdk/tsdown.config.ts`, passed to `deps.alwaysBundle`, and each package's built
   `dist/index.d.ts`, mapped through `dts.compilerOptions.paths`), and the sdk
   build always runs from the current checkout (`.github/workflows/release.yml`: the
   `Version or publish` job runs its own `Build` step rather than transferring an artifact from the

@@ -1,4 +1,4 @@
-import { createTsupConfig } from "@verbatra/config/tsup";
+import { createTsdownConfig } from "@verbatra/config/tsdown";
 
 const WORKSPACE_INTERNAL_DIRS = ["core", "format-adapters", "ai-providers", "exchange", "extract"];
 
@@ -8,7 +8,7 @@ const WORKSPACE_DECLARATIONS = Object.fromEntries(
   WORKSPACE_INTERNAL_DIRS.map((dir) => [`@verbatra/${dir}`, [`../${dir}/dist/index.d.ts`]]),
 );
 
-export default createTsupConfig({
-  noExternal: WORKSPACE_INTERNALS,
+export default createTsdownConfig({
+  deps: { alwaysBundle: WORKSPACE_INTERNALS },
   dts: { compilerOptions: { paths: WORKSPACE_DECLARATIONS } },
 });
