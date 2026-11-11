@@ -19,6 +19,7 @@ exits `1`.
 | `LOCK_CONTENDED` | Another process holds a write lock past the timeout, took over a lock this run held, or a lock was left by another machine or an older verbatra. See the lock paragraph in [EXIT-CODES.md](EXIT-CODES.md). |
 | `LOCK_TIMEOUT_INVALID` | An SDK caller passed a `lockAcquireTimeoutMs` that is not a whole number of milliseconds of at least 0. The CLI refuses a bad `--lock-timeout` first, as `INVALID_LOCK_TIMEOUT`. |
 | `PAGE_CURSOR_INVALID`, `PAGE_LIMIT_INVALID` | An SDK caller of `localeValuesPage` or `provenanceReportPage` passed a cursor made under other filters or one the files no longer match, or a `limit` that is not a whole number from 1 to 1000. No CLI command pages. Call again without the cursor. |
+| `FIND_TEXT_INVALID` | An SDK caller of `previewValueReplace` or `applyValueReplace` passed a `find` text that is empty or longer than 20,000 characters, or a `find` or `replace` text with an unpaired surrogate; it is thrown before anything is read. Next step: "Pass a find text of 1 to 20000 characters, and a find and replace text with no unpaired surrogates." |
 | `RUN_CANCELLED` | An SDK caller's `signal` aborted the work: `retranslateEntry` throws it before writing anything, and `translate` records it on each locale it kept from starting and sets `cancelled: true` on the summary. The MCP server's spend tools pass the client's cancellation as that signal; the CLI and Studio pass none, and an interrupted CLI run exits `130` or `143` instead. Run again to finish what is pending. |
 | `LOCALE_STATE_NOT_CARRIED_OVER` | Never thrown; a locale whose respelled state could not be moved did not run. Re-run once the other process is done. |
 | `KEY_PROTECTED`, `KEY_PINNED` | A single-key machine write refused a person's value or a `pinnedKeys` key. Leave it for a person. |
@@ -29,6 +30,8 @@ exits `1`.
 | `NETWORK_POLICY_VIOLATION` | The network policy refuses the provider's host. Report it; do not loosen the policy yourself. |
 | `LOCALE_UNSUPPORTED_BY_PROVIDER` | DeepL or Google Cloud Translation does not list a configured locale, so the whole run was refused before anything started or was spent. Run `doctor --locales`, then drop the locale with `--locales` or ask the human. |
 | `GLOSSARY_NOT_FILE_BACKED`, `GLOSSARY_UNWRITABLE` | The glossary is inline or absent, or its file or lock could not be written. |
+| `LENGTH_LIMIT_INVALID` | A length limit was refused. Next step: "Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first." |
+| `LIMITS_FILE_UNUSABLE`, `LIMITS_FILE_UNWRITABLE` | `verbatra.limits.json`, beside the lock file, cannot be used or cannot be read or written. Next steps: "Restore verbatra.limits.json from version control, or replace it with a regular file or delete it, then try again." and "Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again." An unreadable file is usually a permissions problem (any open error but not-found): fix the permissions, or the filesystem error if they are correct, and never delete it. Before restoring, replacing or deleting an invalid or non-regular file, copy the existing file first, even when it is in version control: it can hold uncommitted limits nowhere else. Limits are advisory and never block a translation; the config's `maxLength` wins per key. |
 | `CONCURRENCY_INVALID`, `CONCURRENCY_BUDGET_CONFLICT`, `MAX_TOKENS_INVALID` | Bad `--concurrency` or `--max-tokens`, or a concurrency above `1` together with a token budget. |
 | `LOCALE_LAYOUT_INVALID`, `LOCALE_PATH_COLLISION` | `files.pattern` and `files.localeStyle` do not fit, a `gettext-po` locale has a script with no gettext modifier, or two locales map to one file. |
 | `TARGET_UNWRITABLE`, `TYPES_UNWRITABLE`, `TMX_UNWRITABLE`, `EXPORT_UNWRITABLE`, `MEMORY_UNWRITABLE` | The file the command writes could not be written; `MEMORY_UNWRITABLE` is `verbatra.cache.json` during `tmx import`. |
@@ -49,7 +52,7 @@ A run that completed can still carry notices, each in
 `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `HANDOFF_REVIEWS_RECORDED`,
 `BUDGET_TOKENS_EXCEEDED`,
 `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`,
-`PROVENANCE_FILE_TOO_LARGE`, `LOCALE_STATE_CARRIED_OVER`,
+`PROVENANCE_FILE_TOO_LARGE`, `LIMITS_FILE_IGNORED` (the limits file could not be used: fix permissions or the filesystem error if it is unreadable, otherwise copy the existing file before restoring, replacing or deleting it), `LOCALE_STATE_CARRIED_OVER`,
 `LOCALE_STATE_CARRY_OVER_SKIPPED`, and the locale support warnings
 `LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`,
 `GLOSSARY_UNSUPPORTED_BY_PROVIDER` and `FORMALITY_UNSUPPORTED_BY_PROVIDER`,

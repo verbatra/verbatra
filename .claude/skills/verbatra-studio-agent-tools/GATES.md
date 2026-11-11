@@ -13,7 +13,7 @@ Studio decides twice what an agent may do, and the two decisions are independent
    `verbatra_translation_translatePending`, are still skipped during registration
    unless Studio was also started with `--allow-spend` (or
    `VERBATRA_STUDIO_ALLOW_SPEND`) and the config names a translation provider.
-   The other eighteen register either way. `verbatra_project_snapshot` says which:
+   The other twenty register either way. `verbatra_project_snapshot` says which:
    `capabilities.spend` is true only when both hold, and when it is false,
    `capabilities.spendWithheld` is `flag` (spend was not granted) or `policy` (the
    project is human-only, provider `none`, so no flag can grant it).
@@ -41,7 +41,12 @@ committed `verbatra.provenance.json`. Never invent a reviewer. The bulk forms
 approves a whole locale's queue, are never registered as tools. The same holds for
 `translation.retranslateEntries`, the dashboard's retranslate-a-selection action,
 and `translation.inFlight`, which only tells the page whether a run is already
-going. There is no agent tool for any of them; act on one key at a time with the
+going, and `key.previewIcu`, `key.setMaxLength`, `translation.previewValueReplace`,
+`translation.applyValueReplace`, `git.status` and `git.localeDiff`, the dashboard's
+ICU preview, its bulk find-and-replace preview and apply actions (from Studio 0.7.0),
+its per-key length limit editor (from Studio 0.7.0; only a person sets a limit, so ask
+the user for the budget) and its git status and locale diff views. There is no agent
+tool for any of them; act on one key at a time with the
 tools in [TOOLS.md](TOOLS.md), and leave bulk decisions to the person at the dashboard. The
 dashboard's keyboard shortcuts drive the same human-only actions and are not
 something an agent triggers. When a person rejects a value, it
@@ -59,6 +64,8 @@ Registered is not unlimited either. Studio rate-limits the methods that write or
 spend, and `verbatra_project_snapshot` reports two of those limits as
 `capabilities.limits.retranslate` and `capabilities.limits.reviewDecision`, each
 `{ windowMs, max }`. The review one bounds decisions only a person makes, so the
-retranslate one is the limit you can run into. A call over its limit fails with
+retranslate one is the limit the snapshot lets you plan for. Other methods are
+limited without being reported, `verbatra_history_keyRevisions` among them (60 calls
+a minute by default). A call over its limit fails with
 `METHOD_RATE_LIMITED` and carries `error.retryAfterSeconds`: wait that long
 instead of retrying at once, and do not loop on it.

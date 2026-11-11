@@ -4,7 +4,7 @@
 
 `verbatra doctor --json` returns `result.ok` and one entry per check in
 `result.checks`, each with an `id` and a `status` of `pass`, `warn`, `fail` or
-`skipped`, always these eleven in this order:
+`skipped`, always these twelve in this order (eleven before 0.13.0):
 
 | Check id | What it answers |
 | --- | --- |
@@ -18,6 +18,7 @@
 | `plural-completeness` | Informational: each plural in a target locale file that lacks CLDR categories its language uses, as `check` reports them; `skipped` when the format does not store plural forms by CLDR category. |
 | `locale-codes` | Informational: configured codes that are valid but not canonical BCP 47, with the canonical spelling. Nothing is renamed. |
 | `locale-state` | Informational: locales the lock file, translation memory or provenance file hold state for that the config does not list, and what the next `translate` does about them. |
+| `limits` | From 0.13.0; an older install has no such check and ignores the file, so check `verbatra --version` before relying on limits. Informational: `verbatra.limits.json`, the per-key length limits beside the lock file. `warn` when the file cannot be used (a zero-byte file is not valid JSON), a limit names a key the source lacks, the config's `maxLength` overrides a limit, or the source could not be read to check keys; `pass` when the file is absent or a valid document with no limits. |
 | `locales` | The provider supports the source and every target locale; fails on the locale `translate` would refuse, `warn` when a locale carries a support warning or a `--live` fetch failed, `skipped` for provider `none`. The per-locale report is in `result.locales`. |
 
 The informational checks never fail: they report `warn` when they name something

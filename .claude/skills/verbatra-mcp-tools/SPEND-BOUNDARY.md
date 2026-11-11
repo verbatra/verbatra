@@ -2,7 +2,7 @@
 
 ## The spend boundary
 
-The server registers twenty-two tools but advertises only twenty by default. The
+The server registers twenty-four tools but advertises only twenty-two by default. The
 tools that call a translation provider, `translation.retranslateEntry` and
 `translation.translatePending`, are filtered out of the tool list entirely unless
 the operator started the server with the spend capability granted

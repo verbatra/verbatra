@@ -1,6 +1,6 @@
 ---
 name: verbatra-studio-agent-tools
-description: Operate a verbatra i18n project from an open Verbatra Studio dashboard tab through its WebMCP browser tools. Use when a browser agent drives the Studio tab and translation status must be read, a key is missing or stale, translation values must be scanned in bulk, who last changed a locale file must be found, or a translation corrected in place. Also use when the Studio tools are absent from the tab or a provider-spending tool is missing.
+description: Operate a verbatra i18n project from an open Verbatra Studio dashboard tab through its WebMCP browser tools. Use when a browser agent drives the Studio tab and translation status must be read, a key is missing or stale, translation values must be scanned in bulk, who last changed a locale file or one value must be found, or a translation corrected in place. Also use when the Studio tools are absent from the tab or a provider-spending tool is missing.
 license: MIT
 metadata:
   source: 'https://github.com/verbatra/skills'
@@ -20,12 +20,13 @@ exits `2` and names the fix, including
 installing. Starting Studio is the operator's step, not yours.
 
 This is one of two agent surfaces and the sets differ. The stdio MCP server has
-twenty-two tools with dotted names such as `status.check`; Studio has twenty, with
+twenty-four tools with dotted names such as `status.check`; Studio has twenty-two, with
 underscored names such as `verbatra_status_check`, adds none the stdio server
-does not have, and lacks two the stdio server has, `project.doctor` and
-`report.provenance`. A tool with the same method name can still answer in a
+does not have, and lacks two the stdio server has, `project.doctor`
+and `report.provenance`. A tool with the same method name can still answer in a
 different shape on each surface, and only the stdio server has a values-redacted
 mode.
+If the other Studio tools are present but `verbatra_usage_history` is absent, Studio is older than 0.7.0: upgrade `@verbatra/studio`.
 `verbatra-mcp-tools` covers the stdio server. `verbatra-cli` covers
 the binary. Do not assume a tool exists on one surface because you saw it on the
 other.
@@ -77,7 +78,11 @@ See [GATES.md](GATES.md).
    call depends on, and the capabilities this session was granted, so you learn
    whether spend is available without guessing from a missing tool.
 2. `verbatra_status_check` for counts, `verbatra_status_diff` for exact key names.
-   Both are read-only.
+   Both are read-only. For who changed one value and what it was before,
+   `verbatra_history_keyRevisions` with the locale and key: read-only, git is the
+   store, no provider call, but it returns values, so do not call it when translation
+   content must stay out of context (this surface has no redaction mode). Read its flags in [TRAPS.md](TRAPS.md) before you quote
+   anything it returns.
 3. Reach for `verbatra_key_value` for one key and `verbatra_locale_values` only
    when you genuinely need bulk content, such as searching values rather than key
    names. Pass a `query` rather than reading every page.
