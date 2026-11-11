@@ -1,5 +1,15 @@
 # @verbatra/cli
 
+## 0.13.3
+
+### Patch Changes
+
+- [#366](https://github.com/verbatra/verbatra/pull/366) [`fdff8e0`](https://github.com/verbatra/verbatra/commit/fdff8e0af382da204628f14f96e34660638a8bed) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Build the published packages with tsdown and TypeScript 7.
+  
+  - **All packages:** the same exports, entry points, binaries and type declarations, produced by a new bundler. No action needed.
+- Updated dependencies [[`7213997`](https://github.com/verbatra/verbatra/commit/721399754a35de846786608e2dfc73e6b415fbc9), [`fdff8e0`](https://github.com/verbatra/verbatra/commit/fdff8e0af382da204628f14f96e34660638a8bed)]:
+  - @verbatra/sdk@0.13.3
+
 ## 0.13.2
 
 ### Patch Changes
