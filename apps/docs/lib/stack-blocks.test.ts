@@ -287,7 +287,7 @@ describe("the .md output of a stack page", () => {
     expect(await markdownOf(value, "flutter")).toBe(
       `A\n\nOn ${stackText(STACKS.flutter, "name")}.\n\nB\n`,
     );
-    expect(await markdownOf(value, "react")).toBe("A\n\n\n\nB\n");
+    expect(await markdownOf(value, "react")).toBe("A\n\nB\n");
   });
 });
 
