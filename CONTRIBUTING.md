@@ -114,10 +114,12 @@ Describe the change and select the affected package(s) and bump type. Changes
 that do not affect published packages (for example internal tooling) do not need
 one.
 
-Until 0.12.0 is released, `.changeset/` holds one file per release theme: extend
-the matching theme file instead of adding a new one, and add nothing for a
-test-only, docs-only or internal change or for a fix to an unreleased feature.
-The full policy is the changeset bullet in `.claude/rules/git-conventions.md`.
+Add one changeset per change, named after the capability, and reword it instead of
+adding another while that capability is unreleased. Add nothing for a test-only,
+docs-only or internal change or for a fix to an unreleased feature. Put an
+**Upgrade:** bullet in the changeset when a change alters released behavior, and
+name a dependency bump that reaches consumers as `name from -> to`. The full
+policy is the changeset bullet in `.claude/rules/git-conventions.md`.
 
 To see what the next release would ship before the release workflow opens its
 `Version Packages` pull request, run:
@@ -173,7 +175,8 @@ the symbol name are what you should search for.
 - SDK-first. Business logic lives in `@verbatra/sdk` and below. The CLI stays a
   thin wrapper; do not push logic into it.
 - The dependency direction is acyclic and one-way:
-  config <- core <- format-adapters / ai-providers / exchange <- sdk <- cli.
+  config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <- cli / studio / mcp.
+  `exchange` and `extract` have no runtime workspace dependency and join the graph at the sdk.
   `@verbatra/ui` (design tokens, fonts, theme store, no build) sits beside `config`, consumed by
   `apps/docs` and `packages/studio`.
   Never import against the arrow.
@@ -313,11 +316,6 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
     `.fr.mdx` sibling of each in the same change. Add its row to the "What each
     provider receives" table of `(concepts)/data-handling.mdx` and its siblings;
     `scripts/verify-docs-data-flow-parity.test.mjs` fails until all four list it.
-    If `verbatra init` offers the
-    provider, add it to the `--provider` list in `apps/docs/lib/ai-setup-prompt.ts`
-    too; `ai-setup-prompt.test.ts` only checks that constant against the fenced
-    block in the four `start-with-ai` pages, so it catches a stale page but never
-    a provider you forgot to add to both.
 
 13. **The agent skills pack**, `skills/verbatra-cli/SKILL.md` in
     [verbatra/skills](https://github.com/verbatra/skills) - open a pull request
@@ -404,13 +402,6 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    the license asks for one, and run `pnpm --filter @verbatra/docs licenses:sync` to regenerate
    the notices. Otherwise use a chip. Those tables are easy to miss, and the error surfaces in the
    docs app rather than where you were working.
-
-   `apps/docs/lib/ai-setup-prompt.ts` names the format set in several places: the
-   detection list, the mapping from file shape to format id, the two warnings
-   about what `verbatra init` cannot auto-detect, and a caveat paragraph where the
-   format needs one. Nothing compares that constant to `SUPPORTED_FORMATS`, so
-   nothing fails if you skip it. Do it here, and grep the file for a neighbouring
-   format id rather than trusting one edit to have covered every mention.
 
 8. **The agent skills pack**, `skills/verbatra-cli/SKILL.md` in
    [verbatra/skills](https://github.com/verbatra/skills) - open a pull request
