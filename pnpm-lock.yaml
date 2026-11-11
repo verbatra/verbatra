@@ -168,8 +168,8 @@ catalogs:
       specifier: 0.137.0
       version: 0.137.0
     '@formatjs/icu-messageformat-parser':
-      specifier: 3.5.22
-      version: 3.5.22
+      specifier: 3.5.23
+      version: 3.5.23
     '@google/genai':
       specifier: 2.32.0
       version: 2.32.0
@@ -189,8 +189,8 @@ catalogs:
       specifier: 1.9.2
       version: 1.9.2
     openai:
-      specifier: 7.47.0
-      version: 7.47.0
+      specifier: 7.55.0
+      version: 7.55.0
     yaml:
       specifier: 2.9.1
       version: 2.9.1
@@ -451,7 +451,7 @@ importers:
         version: 1.9.2
       openai:
         specifier: catalog:bundled
-        version: 7.47.0(google-auth-library@10.7.0)(undici@8.12.3)(ws@8.21.0)(zod@4.6.7)
+        version: 7.55.0(google-auth-library@10.7.0)(undici@8.12.3)(ws@8.21.0)(zod@4.6.7)
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -484,8 +484,8 @@ importers:
         specifier: workspace:*
         version: link:../sdk
       commander:
-        specifier: 15.0.0
-        version: 15.0.0
+        specifier: 15.1.0
+        version: 15.1.0
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -624,7 +624,7 @@ importers:
     dependencies:
       '@formatjs/icu-messageformat-parser':
         specifier: catalog:bundled
-        version: 3.5.22
+        version: 3.5.23
       '@verbatra/core':
         specifier: workspace:*
         version: link:../core
@@ -707,7 +707,7 @@ importers:
         version: 0.137.0(zod@4.6.7)
       '@formatjs/icu-messageformat-parser':
         specifier: catalog:bundled
-        version: 3.5.22
+        version: 3.5.23
       '@google/genai':
         specifier: catalog:bundled
         version: 2.32.0
@@ -737,7 +737,7 @@ importers:
         version: 1.9.2
       openai:
         specifier: catalog:bundled
-        version: 7.47.0(google-auth-library@10.7.0)(undici@8.12.3)(ws@8.21.0)(zod@4.6.7)
+        version: 7.55.0(google-auth-library@10.7.0)(undici@8.12.3)(ws@8.21.0)(zod@4.6.7)
       yaml:
         specifier: catalog:bundled
         version: 2.9.1
@@ -1470,17 +1470,11 @@ packages:
   '@formatjs/icu-messageformat-parser@3.5.18':
     resolution: {integrity: sha512-wX1efcL8d7K5QapOTRsP/OLTA/kpwe4LwqWyNxDNg5iRs8i9jJbCyxB5P8jc4KOW5oiLzz2DJr+BRY5xMV9+bA==}
 
-  '@formatjs/icu-messageformat-parser@3.5.22':
-    resolution: {integrity: sha512-YuwN+dDKgssfuYwtOyGQD0CSn7K46g9cv1Fp0VgKpjZDDFvv8b8crzP990IcJhRPWHhKzCGsbUSJVIguyyFA5A==}
-
   '@formatjs/icu-messageformat-parser@3.5.23':
     resolution: {integrity: sha512-iB1fYfhtSGd8uH9A8b1m01Ujcv6QtQnJasefP3jPApmz72L/zNipzf3BdoinTMd1xuviVChjUJWL60iTwjUQ+w==}
 
   '@formatjs/icu-skeleton-parser@2.1.11':
     resolution: {integrity: sha512-j8cUmOJzVgkHuS0QiQ6ga76UIoLOFSAMWhs7aZJztH3aAdCOAE6vpC8KVvFB4cU10ON0y2/5oOVmPJ43s2lTwA==}
-
-  '@formatjs/icu-skeleton-parser@2.1.12':
-    resolution: {integrity: sha512-ca7tZMLpfHX3sUD7hP6gE/qr6Iq89EDd3ZLeRhbsB7r0UD55DGJq+tmFLzrGrnx5StahUevQmQQVtbDRHsfDHA==}
 
   '@formatjs/icu-skeleton-parser@2.1.13':
     resolution: {integrity: sha512-IdAJ9NrHn7AF0zqncD9UpxQozTYyJtbwwrZnJMEKVxTcOOXtVkUb2XYTpNOGTAv58NCsk0rjRB9G+i2SvBmGAQ==}
@@ -3709,8 +3703,8 @@ packages:
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
 
-  commander@15.0.0:
-    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+  commander@15.1.0:
+    resolution: {integrity: sha512-cgnQ88TRrWcC7pVq46RzJVRMktu3W2RcbnoidnfBsl1bmDCBwJS/udcIZpKoCrbAYYaCqsz1yZCVIgbIaU3ddQ==}
     engines: {node: '>=22.12.0'}
 
   commander@4.1.1:
@@ -5010,8 +5004,8 @@ packages:
   oniguruma-to-es@4.3.6:
     resolution: {integrity: sha512-csuQ9x3Yr0cEIs/Zgx/OEt9iBw9vqIunAPQkx19R/fiMq2oGVTgcMqO/V3Ybqefr1TBvosI6jU539ksaBULJyA==}
 
-  openai@7.47.0:
-    resolution: {integrity: sha512-BYa2RYgocAv9WjPUJmNu8fICuA1fFhkTBEpiR3sC5L1K6v8Hnhc8pcnQEhu8l/+W1XKA+JUaBa7HpT+AK1s77w==}
+  openai@7.55.0:
+    resolution: {integrity: sha512-0r4snVSRN46m4wL2vXCW5Xw6CKGPbdNI8t79KZOpe8GKKPmhL8peDXN8YOY/2ipsOVWSfsP/vgkLjTmWB+kMug==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@aws-sdk/credential-provider-node': '>=3.972.0 <4'
@@ -6382,17 +6376,11 @@ snapshots:
     dependencies:
       '@formatjs/icu-skeleton-parser': 2.1.11
 
-  '@formatjs/icu-messageformat-parser@3.5.22':
-    dependencies:
-      '@formatjs/icu-skeleton-parser': 2.1.12
-
   '@formatjs/icu-messageformat-parser@3.5.23':
     dependencies:
       '@formatjs/icu-skeleton-parser': 2.1.13
 
   '@formatjs/icu-skeleton-parser@2.1.11': {}
-
-  '@formatjs/icu-skeleton-parser@2.1.12': {}
 
   '@formatjs/icu-skeleton-parser@2.1.13': {}
 
@@ -8087,7 +8075,7 @@ snapshots:
 
   comma-separated-tokens@2.0.3: {}
 
-  commander@15.0.0: {}
+  commander@15.1.0: {}
 
   commander@4.1.1: {}
 
@@ -8791,7 +8779,7 @@ snapshots:
 
   icu-minify@4.14.9:
     dependencies:
-      '@formatjs/icu-messageformat-parser': 3.5.22
+      '@formatjs/icu-messageformat-parser': 3.5.23
 
   ieee754@1.2.1: {}
 
@@ -9716,7 +9704,7 @@ snapshots:
       regex: 6.1.0
       regex-recursion: 6.0.2
 
-  openai@7.47.0(google-auth-library@10.7.0)(undici@8.12.3)(ws@8.21.0)(zod@4.6.7):
+  openai@7.55.0(google-auth-library@10.7.0)(undici@8.12.3)(ws@8.21.0)(zod@4.6.7):
     optionalDependencies:
       google-auth-library: 10.7.0
       undici: 8.12.3
