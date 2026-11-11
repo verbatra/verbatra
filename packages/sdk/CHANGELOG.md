@@ -1,5 +1,13 @@
 # @verbatra/sdk
 
+## 0.13.4
+
+### Patch Changes
+
+- [#371](https://github.com/verbatra/verbatra/pull/371) [`9a7db41`](https://github.com/verbatra/verbatra/commit/9a7db414d1d1d777bc15634121bf1a66484e12aa) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Update bundled runtime dependencies.
+  
+  - **@verbatra/sdk:** @google/genai 3.0.0 -> 3.1.0.
+
 ## 0.13.3
 
 ### Patch Changes
