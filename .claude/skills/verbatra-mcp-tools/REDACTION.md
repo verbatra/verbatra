@@ -8,7 +8,7 @@ starts the server with `verbatra mcp --redact-values` (or `verbatra-mcp
 
 - Every source text, translation, description and glossary term in a result is
   replaced by a marker such as `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`, and
-  reviewer and author names are left out. `history.keyRevisions` goes
+  reviewer and author names are left out. `history.keyRevisions` (0.4.0 and newer) goes
   further: each revision's `value` is a marker, and its `diff`, `author` and
   `subject` are left out (a subject can quote a value), as is the `diff` of
   `workingTree`; commits, dates, `origin` and `sourceChanged` stay. Equal
@@ -37,7 +37,7 @@ that probes on purpose, so not probing is your part of it. Report keys and
 statuses instead. Without the mode, `valuesRedacted` is false and the values come
 back in full, except that `history.keyRevisions` (values, diffs, subjects and
 authors) and `history.list` (subjects and authors) replace text they recognise as an
-API key, or that equals a configured key value, with `[REDACTED]` (see
+API key, or that equals a configured key value of 8 or more characters (a shorter configured value is never scrubbed), with `[REDACTED]` (see
 [RESULTS.md](RESULTS.md)), so what they return is not always the stored text, and a
 key they do not recognise is not replaced.
 

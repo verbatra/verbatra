@@ -1,6 +1,6 @@
 ---
 name: verbatra-studio-agent-tools
-description: Operate a verbatra i18n project from an open Verbatra Studio dashboard tab through its WebMCP browser tools. Use when a browser agent drives the Studio tab and translation status must be read, a key is missing or stale, translation values must be scanned in bulk, who last changed a locale file or one value must be found, or a translation corrected in place. Also use when the Studio tools are absent from the tab or a provider-spending tool is missing.
+description: Operate a verbatra i18n project from an open Verbatra Studio tab through its WebMCP browser tools. Use when a browser agent drives the tab and status must be read, values scanned, a value's history found, or a translation corrected in place. Also use when the Studio tools or a spending tool are missing.
 license: MIT
 metadata:
   source: 'https://github.com/verbatra/skills'
@@ -26,7 +26,7 @@ does not have, and lacks two the stdio server has, `project.doctor`
 and `report.provenance`. A tool with the same method name can still answer in a
 different shape on each surface, and only the stdio server has a values-redacted
 mode.
-If the other Studio tools are present but `verbatra_usage_history` is absent, Studio is older than 0.7.0: upgrade `@verbatra/studio`.
+Studio 0.6.0 registers twenty tools and advertises eighteen without spend: `verbatra_history_keyRevisions` and `verbatra_usage_history` came in 0.7.0. If the other tools are listed but those are not, Studio may be older than 0.7.0, or the tab is a stale page; reload it, then ask the operator for the installed `@verbatra/studio` version before suggesting an upgrade.
 `verbatra-mcp-tools` covers the stdio server. `verbatra-cli` covers
 the binary. Do not assume a tool exists on one surface because you saw it on the
 other.
@@ -79,7 +79,7 @@ See [GATES.md](GATES.md).
    whether spend is available without guessing from a missing tool.
 2. `verbatra_status_check` for counts, `verbatra_status_diff` for exact key names.
    Both are read-only. For who changed one value and what it was before,
-   `verbatra_history_keyRevisions` with the locale and key: read-only, git is the
+   `verbatra_history_keyRevisions` (needs `@verbatra/studio` 0.7.0 or newer) with the locale and key: read-only, git is the
    store, no provider call, but it returns values, so do not call it when translation
    content must stay out of context (this surface has no redaction mode). Read its flags in [TRAPS.md](TRAPS.md) before you quote
    anything it returns.
@@ -93,7 +93,10 @@ See [GATES.md](GATES.md).
 5. If you already know the correct text, `verbatra_translation_editEntry`. It
    spends nothing, and it never obtains a translation: exactly the text you send is
    what gets written. It goes through the placeholder and ICU integrity gate first,
-   so a rejected value is returned with a reason and nothing is written.
+   so a rejected value is returned with a reason and nothing is written. It does
+   replace a protected value without a refusal, so read `provenance` in the
+   `verbatra_key_context` result and ask the user first unless its `origin` is
+   `machine`, `memory`, `fuzzy` or `agent`. A pinned key is refused with `KEY_PINNED`.
 6. Before asking, `verbatra_translation_estimate` with the same `locales` you
    intend to translate, and show its figure next to the diff.
 7. Only after an explicit yes, and only if the tool is registered, use the two

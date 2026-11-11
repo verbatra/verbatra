@@ -2,7 +2,8 @@
 
 ## The spend boundary
 
-The server registers twenty-four tools but advertises only twenty-two by default. The
+The server registers twenty-four tools but advertises only twenty-two by default. (`@verbatra/mcp` 0.3.0 registers
+twenty-two and advertises twenty; `history.keyRevisions` and `usage.history` came in 0.4.0, and neither is spend gated.) The
 tools that call a translation provider, `translation.retranslateEntry` and
 `translation.translatePending`, are filtered out of the tool list entirely unless
 the operator started the server with the spend capability granted

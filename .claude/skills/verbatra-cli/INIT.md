@@ -1,6 +1,13 @@
 # Initialising a project
 
+- [Setting a project up](#setting-a-project-up)
+  - [Unattended init](#unattended-init)
+  - [Wiring coding agents](#wiring-coding-agents)
+  - [Defaults, failures and re-running](#defaults-failures-and-re-running)
+
 ## Setting a project up
+
+### Unattended init
 
 `verbatra init` detects the format and the file layout from the locale files it
 finds and falls back to the `package.json` dependencies only when no locale file
@@ -12,6 +19,8 @@ optionally `--api-key-env-var`, which names a variable and never holds a key, or
 `--yes` to accept a default for anything neither passed nor detected. The success
 record names the files it wrote, the resolved config, where each value came from
 (`sources`), what was detected with its `confidence`, and `nextSteps`.
+
+### Wiring coding agents
 
 `--agent` (off by default) also sets the project up for coding agents: it writes
 a verbatra section between `<!-- verbatra:start -->` and `<!-- verbatra:end -->`
@@ -75,6 +84,8 @@ no config flag and no `--force`: it keeps the config untouched (listed
 and `detection` are `null`) and writes only the agent files. Adding a config flag
 puts the config back into the run, so a differing answer is refused with
 `CONFIG_EXISTS`.
+
+### Defaults, failures and re-running
 
 What neither a flag nor detection decides falls back to a default: format
 `i18next-json`, source `en`, targets `de`, and the path (with its

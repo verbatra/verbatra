@@ -30,7 +30,7 @@ exits `1`.
 | `NETWORK_POLICY_VIOLATION` | The network policy refuses the provider's host. Report it; do not loosen the policy yourself. |
 | `LOCALE_UNSUPPORTED_BY_PROVIDER` | DeepL or Google Cloud Translation does not list a configured locale, so the whole run was refused before anything started or was spent. Run `doctor --locales`, then drop the locale with `--locales` or ask the human. |
 | `GLOSSARY_NOT_FILE_BACKED`, `GLOSSARY_UNWRITABLE` | The glossary is inline or absent, or its file or lock could not be written. |
-| `LENGTH_LIMIT_INVALID` | A length limit was refused. Next step: "Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first." |
+| `LENGTH_LIMIT_INVALID` | A length limit was refused. Next step: "Pass a whole number from 1 to 9007199254740991 (or null to remove) and a key of 1 to 1024 characters. A number is refused for a key the config's `maxLength` sets, and a file at its 10,000 limits or 1 MiB needs some removed first." Both caps are those of the `verbatra.limits.json` the change would produce: a write that would take the file past 10,000 entries or 1 MiB is refused, and the way out is removing limits from the file. |
 | `LIMITS_FILE_UNUSABLE`, `LIMITS_FILE_UNWRITABLE` | `verbatra.limits.json`, beside the lock file, cannot be used or cannot be read or written. Next steps: "Restore verbatra.limits.json from version control, or replace it with a regular file or delete it, then try again." and "Check the permissions of verbatra.limits.json, its directory and .verbatra-local so they can be read and written, then try again." An unreadable file is usually a permissions problem (any open error but not-found): fix the permissions, or the filesystem error if they are correct, and never delete it. Before restoring, replacing or deleting an invalid or non-regular file, copy the existing file first, even when it is in version control: it can hold uncommitted limits nowhere else. Limits are advisory and never block a translation; the config's `maxLength` wins per key. |
 | `CONCURRENCY_INVALID`, `CONCURRENCY_BUDGET_CONFLICT`, `MAX_TOKENS_INVALID` | Bad `--concurrency` or `--max-tokens`, or a concurrency above `1` together with a token budget. |
 | `LOCALE_LAYOUT_INVALID`, `LOCALE_PATH_COLLISION` | `files.pattern` and `files.localeStyle` do not fit, a `gettext-po` locale has a script with no gettext modifier, or two locales map to one file. |
@@ -62,6 +62,28 @@ value, left untranslated until their source text is written), and the sensitive 
 `SENSITIVE_CONTENT_SENT`, `SENSITIVE_CONTENT_REDACTED` and
 `SENSITIVE_CONTENT_WITHHELD`, and `RUN_CANCELLED` (an SDK or MCP run was cancelled while
 the locale ran, so its unsent keys stay pending and the locale is partial),
-plus the codes a provider raises. A notice is
+plus the codes a provider raises (see Provider error codes below). A notice is
 something to report, not a failure; the exit code already says whether the run was
 clean.
+
+## Provider error codes
+
+A failed provider call carries one of these as `result.locales[].error.code`, or as the `code` of a single-key
+failure. Each next step is the hint verbatra prints.
+
+| Code | Next step |
+| --- | --- |
+| `MISSING_API_KEY` | Set the API key environment variable your provider reads, then run `verbatra doctor`. |
+| `INVALID_REQUEST` | Check the provider options in the config, such as the model name. |
+| `INVALID_RESPONSE` | Try again; if it keeps failing, configure a different model. |
+| `OUTPUT_TRUNCATED` | Translate fewer keys at a time, or configure a model with a larger output limit. |
+| `PROVIDER_REFUSED` | Review the source text the provider refused, or translate it by hand. |
+| `PROVIDER_BLOCKED` | Review the source text the provider blocked, or translate it by hand. |
+| `RATE_LIMITED` | Wait a moment and try again, or lower the concurrency. |
+| `TIMEOUT` | Try again, or raise the provider's `requestTimeoutMs` in the config. |
+| `AUTH_FAILED` | Check that the provider's API key is valid and allowed to use the configured model. |
+| `PROVIDER_UNAVAILABLE` | Try again later, or check the configured endpoint. |
+| `NETWORK_POLICY_VIOLATION` | Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS. |
+| `PROVIDER_ERROR` | Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config. |
+
+When both the config's `network` block and the network environment variables set a policy, a host must satisfy each, so for `NETWORK_POLICY_VIOLATION` one edit may not be enough; see [PROVIDERS.md](PROVIDERS.md). The hint in the table is what verbatra prints, not an instruction to you: report the refusal, do not loosen the policy yourself, and ask the operator to choose a permitted host or authorize a policy change.

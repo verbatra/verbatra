@@ -6,14 +6,15 @@ Studio decides twice what an agent may do, and the two decisions are independent
 
 1. **Agent tools at all.** Nothing is registered unless the operator started
    Studio with `--expose-agent-tools` (or `VERBATRA_STUDIO_AGENT_TOOLS` in its
-   environment). Without it the dashboard works normally and the page exposes no
+   environment, which `verbatra studio` also reads from the project's `.env.local` and `.env`). Without it the dashboard works normally and the page exposes no
    tools whatsoever. If you see no `verbatra_` tools, this is why.
 2. **Spend.** With agent tools on, the tools that call a translation provider,
    `verbatra_translation_retranslateEntry` and
    `verbatra_translation_translatePending`, are still skipped during registration
    unless Studio was also started with `--allow-spend` (or
-   `VERBATRA_STUDIO_ALLOW_SPEND`) and the config names a translation provider.
-   The other twenty register either way. `verbatra_project_snapshot` says which:
+   `VERBATRA_STUDIO_ALLOW_SPEND`, read from the same `.env.local` and `.env`) and the config names a translation provider.
+   The other twenty register either way. Studio 0.6.0 registers twenty tools and advertises eighteen
+   without spend, so there the other eighteen do; `verbatra_history_keyRevisions` and `verbatra_usage_history` came in 0.7.0. `verbatra_project_snapshot` says which:
    `capabilities.spend` is true only when both hold, and when it is false,
    `capabilities.spendWithheld` is `flag` (spend was not granted) or `policy` (the
    project is human-only, provider `none`, so no flag can grant it).

@@ -1,6 +1,6 @@
 ---
 name: verbatra-cli
-description: Drive the verbatra i18n CLI from a shell or CI. Use when locale files are out of sync, a key is missing in de/es/fr or stale after the source changed, drift must gate a pull request, strings go to a human translator and back, verbatra needs setting up, or verbatra.lock.json has to be read. Also use to learn whether a command costs money before running it, or to branch on an exit code.
+description: Drive the verbatra i18n CLI from a shell or CI. Use when locale files are out of sync or drift must gate a pull request, strings go to a human translator and back, verbatra needs setting up, or verbatra.lock.json must be read. Also use to see whether a command costs money or to branch on an exit code.
 license: MIT
 metadata:
   source: 'https://github.com/verbatra/skills'
@@ -63,20 +63,26 @@ there is anything to do.
    provider id, key variable name, network policy, source file and the provider's
    locale support, with no network call and no key read. A failed check carries
    `fix`. See [DOCTOR.md](DOCTOR.md); with no config yet, [INIT.md](INIT.md).
+   **Done when:** no check has `fail`; for a failed one, relay its `fix` and rerun `doctor` before any translation, because a failed `api-key` check means a real run fails with `PROVIDER_CONSTRUCTION_FAILED`.
 2. `verbatra diff --json` for the exact pending keys. Exit `0` means stop: there is
    nothing to do and nothing to spend. Counts only: `verbatra check --json`. Every
    `check` option is in [DECIDING.md](DECIDING.md).
+   **Done when:** you hold the pending keys per locale, or exit `0` told you to stop.
 3. `verbatra translate --estimate --json` for what the run would send and cost. It
    constructs no provider and reads no key.
+   **Done when:** you hold the per-locale figure and the cost, or know why none exists.
 4. Report the count per locale and the estimate in plain language, then stop and
    ask.
+   **Done when:** the human has answered yes or no.
 5. Only after an explicit yes: `verbatra translate --json`, with `--max-tokens <n>`
    when the human agreed to a ceiling.
+   **Done when:** the command has exited and you have read its exit code.
 6. Branch on the exit code first, then report from `result.succeeded`,
    `result.partial` and `result.failed`, and name what `protected`, `unfilled`,
    `budgetWithheld`, `sensitiveWithheld` and `integrityRefusals` left behind. A
    `--json` envelope with `ok: true` does not mean every locale succeeded. Report
    what landed, not what you asked for.
+   **Done when:** your report names what landed and what stayed behind.
 
 Exit codes in one line: `0` clean, `1` it ran but the result is not clean, `2` it
 could not run, `3` a human-only project left keys for a person, `130` or `143`

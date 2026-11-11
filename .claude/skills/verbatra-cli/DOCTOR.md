@@ -4,7 +4,7 @@
 
 `verbatra doctor --json` returns `result.ok` and one entry per check in
 `result.checks`, each with an `id` and a `status` of `pass`, `warn`, `fail` or
-`skipped`, always these twelve in this order (eleven before 0.13.0):
+`skipped`, always these twelve in this order (five in 0.11, eleven in 0.12):
 
 | Check id | What it answers |
 | --- | --- |
