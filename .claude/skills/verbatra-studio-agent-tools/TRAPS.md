@@ -65,7 +65,7 @@
 
 ## Length limits
 
-- Limits rule. Length limits from `verbatra.limits.json` need Studio 0.7.0 (pending).
+- Limits rule. Length limits from `verbatra.limits.json` need Studio 0.7.0.
   It applies to the tools that write a translation value:
   `verbatra_translation_editEntry`, `verbatra_translation_retranslateEntry` and the bulk
   `verbatra_translation_translatePending`. For one key call `verbatra_key_context`
