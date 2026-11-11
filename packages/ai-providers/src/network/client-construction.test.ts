@@ -88,7 +88,17 @@ describe("client construction without a network policy", () => {
   it("passes exactly the options it passed before the policy existed", async () => {
     await constructAll();
 
-    expect(constructed.anthropic).toEqual([{ apiKey: "test-key-value", logLevel: "off" }]);
+    expect(constructed.anthropic).toEqual([
+      {
+        apiKey: "test-key-value",
+        logLevel: "off",
+        defaultHeaders: {
+          "anthropic-version": "2023-06-01",
+          "X-Api-Key": "test-key-value",
+          Authorization: null,
+        },
+      },
+    ]);
     expect(constructed.openai).toEqual([
       { apiKey: "test-key-value", logLevel: "off" },
       {
@@ -109,6 +119,11 @@ describe("client construction under a restrictive network policy", () => {
     expect(constructed.anthropic[0]).toMatchObject({
       baseURL: "https://api.anthropic.com",
       fetch: expect.any(Function),
+      defaultHeaders: {
+        "anthropic-version": "2023-06-01",
+        "X-Api-Key": "test-key-value",
+        Authorization: null,
+      },
     });
     expect(constructed.openai[0]).toMatchObject({
       baseURL: "https://api.openai.com/v1",

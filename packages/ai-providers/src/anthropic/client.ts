@@ -6,6 +6,8 @@ import type { ProviderRetryListener } from "../provider-retry.js";
 import type { BuiltRequest } from "./request.js";
 import type { AnthropicCallOptions, AnthropicMessage, MessagesClient } from "./types.js";
 
+const ANTHROPIC_API_VERSION = "2023-06-01";
+
 export function createDefaultClient(
   network?: ProviderNetwork,
   onRetry?: ProviderRetryListener,
@@ -17,7 +19,16 @@ export function createDefaultClient(
       "@anthropic-ai/sdk",
       () => import("@anthropic-ai/sdk"),
     );
-    return new Anthropic({ apiKey, logLevel: "off", ...transport.options });
+    return new Anthropic({
+      apiKey,
+      logLevel: "off",
+      ...transport.options,
+      defaultHeaders: {
+        "anthropic-version": ANTHROPIC_API_VERSION,
+        "X-Api-Key": apiKey,
+        Authorization: null,
+      },
+    });
   });
   return {
     messages: {
