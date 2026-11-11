@@ -1232,7 +1232,7 @@
         },
         {
           "name": "icu-minify",
-          "version": "4.14.9",
+          "version": "4.14.10",
           "copyright": ["Copyright (c) 2024 Jan Amann"],
           "author": "Jan Amann",
           "textId": "text-1",
@@ -1835,7 +1835,7 @@
         },
         {
           "name": "next-intl",
-          "version": "4.14.9",
+          "version": "4.14.10",
           "copyright": ["Copyright (c) 2024 Jan Amann"],
           "author": "Jan Amann",
           "textId": "text-1",
@@ -1843,7 +1843,7 @@
         },
         {
           "name": "next-intl-swc-plugin-extractor",
-          "version": "4.14.9",
+          "version": "4.14.10",
           "copyright": ["Copyright (c) 2024 Jan Amann"],
           "author": "Jan Amann",
           "textId": "text-1",
@@ -2333,7 +2333,7 @@
         },
         {
           "name": "use-intl",
-          "version": "4.14.9",
+          "version": "4.14.10",
           "copyright": ["Copyright (c) 2024 Jan Amann"],
           "author": "Jan Amann",
           "textId": "text-1",

@@ -505,7 +505,7 @@ published at https://verbatra.kreitz-webdev.de/licenses.
 - html-void-elements@3.0.0
   - Copyright (c) 2016 Titus Wormer <tituswormer@gmail.com>
   - License text: text-7
-- icu-minify@4.14.9
+- icu-minify@4.14.10
   - Copyright (c) 2024 Jan Amann
   - License text: text-1
 - inline-style-parser@0.2.7
@@ -730,10 +730,10 @@ published at https://verbatra.kreitz-webdev.de/licenses.
 - next@16.4.6
   - Copyright (c) 2025 Vercel, Inc.
   - License text: text-5
-- next-intl@4.14.9
+- next-intl@4.14.10
   - Copyright (c) 2024 Jan Amann
   - License text: text-1
-- next-intl-swc-plugin-extractor@4.14.9
+- next-intl-swc-plugin-extractor@4.14.10
   - Copyright (c) 2024 Jan Amann
   - License text: text-1
 - next-themes@0.4.6
@@ -914,7 +914,7 @@ published at https://verbatra.kreitz-webdev.de/licenses.
 - use-callback-ref@1.3.3
   - Copyright (c) 2017 Anton Korzunov
   - License text: text-1
-- use-intl@4.14.9
+- use-intl@4.14.10
   - Copyright (c) 2024 Jan Amann
   - License text: text-1
 - use-sidecar@1.1.3
