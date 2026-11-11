@@ -145,7 +145,7 @@ verbatra: run finished, 2 locales processed
 next: verbatra check (confirm every locale is in sync)
 ```
 
-A dry run opens with `dry run over 2 locales, no provider call`, an estimate with `estimating 2 locales, no provider call`, and a human-only project with `filling 2 locales from the translation memory (provider none)`. A dry run or an estimate ends each locale with `would translate` instead. A locale that kept only some keys ends with `partly done`, one that failed with `failed`, and the closing line adds how many failed. These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
+A dry run opens with `dry run over 2 locales, no provider call`, an estimate with `estimating 2 locales, no provider call`, and a human-only project with `filling 2 locales from the translation memory (provider none)`. A dry run or an estimate ends each locale with `would translate` instead. A locale that kept only some keys ends with `partly done`, one that failed with `failed`, and the closing line adds how many failed. A dry run closes with `dry run done in 4.2s, nothing written`, and an estimate with `estimate done in 4.2s, nothing written` <AvailableFrom version="0.13.0" />. These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
 
 ## Exit codes
 

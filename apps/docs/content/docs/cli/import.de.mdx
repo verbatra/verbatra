@@ -71,6 +71,8 @@ Eine leere `Translation`-Zelle lässt eine Locale nie scheitern: Die Zeile wird 
 
 Eine einzelne unlesbare Zeile wird als fehlerhafte Zeile gemeldet, und der Rest der Locale wird trotzdem importiert. Eine Übergabe, die zu groß ist oder sich gar nicht parsen lässt (etwa kein lesbarer xlsx-Container), ist ein `SOURCE_INVALID`-Fehler des gesamten Laufs, dessen Meldung sagt, was nicht stimmte.
 
+In einer CSV-, TSV- oder xlsx-Übergabe bleibt eine ausgefüllte Zeile, die dem Wert eines aktuellen Keys entspricht, unberührt und wird als unverändert gemeldet, nicht als übersetzt, sobald sie das Integritäts-Gate passiert <AvailableFrom version="0.13.0" />. Siehe [Manuelle Übersetzung](/de/docs/manual-translation#was-der-import-akzeptiert).
+
 ### Rückmeldung im Terminal
 
 <AvailableFrom version="0.12.0" />

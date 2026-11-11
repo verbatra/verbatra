@@ -71,6 +71,8 @@ Una celda `Translation` vacía nunca hace fallar un locale: la fila se omite, se
 
 Una sola fila ilegible se informa como fila mal formada, y el resto del locale se importa igualmente. Una entrega demasiado grande o que no se puede analizar en absoluto (por ejemplo, que no es un contenedor xlsx legible) es un error `SOURCE_INVALID` de toda la ejecución cuyo mensaje dice qué le pasaba.
 
+En una entrega CSV, TSV o xlsx, una fila rellenada igual al valor de una clave al día se deja intacta y se informa como sin cambios, no como traducida, una vez que pasa la puerta de integridad <AvailableFrom version="0.13.0" />. Consulta [Traducción manual](/es/docs/manual-translation#qué-acepta-la-importación).
+
 ### Información en el terminal
 
 <AvailableFrom version="0.12.0" />

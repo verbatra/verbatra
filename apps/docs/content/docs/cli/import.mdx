@@ -71,6 +71,8 @@ A blank `Translation` cell never fails a locale: the row is skipped, its lock ba
 
 A single unreadable row is reported as a malformed row, and the rest of the locale still imports. A handoff that is oversized or cannot be parsed at all (for example, not a readable xlsx container) is a whole-run `SOURCE_INVALID` error whose message says what was wrong.
 
+In a CSV, TSV or xlsx handoff, a filled row equal to the value an up-to-date key already holds is left alone and reported unchanged, not translated, once it passes the integrity gate <AvailableFrom version="0.13.0" />. See [Manual translation](/docs/manual-translation#what-import-accepts).
+
 ### Terminal feedback
 
 <AvailableFrom version="0.12.0" />

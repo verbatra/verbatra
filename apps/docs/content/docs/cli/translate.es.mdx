@@ -145,7 +145,7 @@ verbatra: run finished, 2 locales processed
 next: verbatra check (confirm every locale is in sync)
 ```
 
-Una ejecución de prueba empieza con `dry run over 2 locales, no provider call`, una estimación con `estimating 2 locales, no provider call` y un proyecto solo humano con `filling 2 locales from the translation memory (provider none)`. Una ejecución de prueba o una estimación termina cada locale con `would translate`. Un locale que solo conservó parte de las claves termina con `partly done`, uno que falla con `failed`, y la línea final indica cuántos fallaron. Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
+Una ejecución de prueba empieza con `dry run over 2 locales, no provider call`, una estimación con `estimating 2 locales, no provider call` y un proyecto solo humano con `filling 2 locales from the translation memory (provider none)`. Una ejecución de prueba o una estimación termina cada locale con `would translate`. Un locale que solo conservó parte de las claves termina con `partly done`, uno que falla con `failed`, y la línea final indica cuántos fallaron. Una ejecución de prueba cierra con `dry run done in 4.2s, nothing written` y una estimación con `estimate done in 4.2s, nothing written` <AvailableFrom version="0.13.0" />. Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
 
 ## Códigos de salida
 
