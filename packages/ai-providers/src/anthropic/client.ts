@@ -23,7 +23,11 @@ export function createDefaultClient(
       apiKey,
       logLevel: "off",
       ...transport.options,
-      defaultHeaders: { "anthropic-version": ANTHROPIC_API_VERSION },
+      defaultHeaders: {
+        "anthropic-version": ANTHROPIC_API_VERSION,
+        "X-Api-Key": apiKey,
+        Authorization: null,
+      },
     });
   });
   return {

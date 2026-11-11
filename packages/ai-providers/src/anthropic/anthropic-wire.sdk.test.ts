@@ -34,7 +34,7 @@ afterEach(async () => {
 });
 
 describe("anthropic wire contract through the real SDK client", () => {
-  it("sends the pinned anthropic-version and parses a successful body", async () => {
+  it("sends the pinned anthropic-version and api-key header and parses a successful body", async () => {
     let seen: IncomingHttpHeaders = {};
     server = createServer((request, response) => {
       seen = request.headers;
@@ -58,6 +58,8 @@ describe("anthropic wire contract through the real SDK client", () => {
     });
 
     expect(seen["anthropic-version"]).toBe("2023-06-01");
+    expect(seen["x-api-key"]).toBe("test-key");
+    expect(seen.authorization).toBeUndefined();
     expect(Object.fromEntries(result.values)).toEqual({ greeting: "Hallo" });
   });
 });

@@ -92,7 +92,11 @@ describe("client construction without a network policy", () => {
       {
         apiKey: "test-key-value",
         logLevel: "off",
-        defaultHeaders: { "anthropic-version": "2023-06-01" },
+        defaultHeaders: {
+          "anthropic-version": "2023-06-01",
+          "X-Api-Key": "test-key-value",
+          Authorization: null,
+        },
       },
     ]);
     expect(constructed.openai).toEqual([
@@ -115,7 +119,11 @@ describe("client construction under a restrictive network policy", () => {
     expect(constructed.anthropic[0]).toMatchObject({
       baseURL: "https://api.anthropic.com",
       fetch: expect.any(Function),
-      defaultHeaders: { "anthropic-version": "2023-06-01" },
+      defaultHeaders: {
+        "anthropic-version": "2023-06-01",
+        "X-Api-Key": "test-key-value",
+        Authorization: null,
+      },
     });
     expect(constructed.openai[0]).toMatchObject({
       baseURL: "https://api.openai.com/v1",
