@@ -4,7 +4,7 @@ seoTitle: "verbatra studio: open the local review dashboard"
 description: "Start Verbatra Studio, the local translation dashboard, to see project state and work the review queue in your browser, with spending off unless you allow it."
 type: reference
 ---
-Start Verbatra Studio, a local web dashboard over your project: an overview of coverage, the last run and the run history with its cost, the translation status and key list, the needs-review queue, the glossary and your resolved settings, live over the files on disk, including `.verbatra-local/run-history.jsonl`. Editing locale files and a file-backed glossary works out of the box; only provider spend is opt-in, behind `--allow-spend`.
+Start Verbatra Studio, a local web dashboard over your project: an overview of coverage, the last run and the run history with its cost <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />, the translation status and key list, the needs-review queue, the glossary and your resolved settings, live over the files on disk, including `.verbatra-local/run-history.jsonl`. Editing locale files and a file-backed glossary works out of the box; only provider spend is opt-in, behind `--allow-spend`.
 
 <AvailableFrom version="0.5.0" />
 
@@ -53,6 +53,12 @@ Open that exact URL. The token is accepted only as `?token=` on the first page l
 A failed bind is reported on stderr as `verbatra: error [<code>] <message>`: `PORT_IN_USE` when another process holds the port (pass `--port <n>` or stop that process), or `BIND_FAILED` when the socket came up on an address other than `127.0.0.1`.
 
 Every page refreshes live when a locale, lock, provenance or limits file changes ([Review in Studio](/docs/review-in-studio#translate-pending-changes) describes the toast), and **Run history and cost** rereads when the history file changes, the tab regains focus or a run returns.
+
+### Navigation and links
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Overview, Translations, Review, Glossary and Settings are links in the header, with a menu drawer below 1280px wide. The header search opens Translations filtered by what you type, and the theme button cycles system, light and dark. Each page keeps its state in the address, so you can link to it: `#/translations?locale=de&status=missing&key=nav.title&q=text` (`status` may repeat) and `#/review?locale=de`.
 
 ### What it prints on stderr
 
