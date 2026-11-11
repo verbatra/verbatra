@@ -155,7 +155,7 @@ If no config is found, the step fails before installing the CLI and names the di
 | `require-reviewed` | `"false"` | `"true"` also fails on unapproved machine-written translations (`--require-reviewed`); `check` only |
 | `sensitive` | `"false"` | `"true"` adds the sensitive-content scan (`--sensitive`); `check` only |
 | `locales` | `""` | comma-separated target locales to limit the run to (`--locales`) |
-| `node-version` | `"24"` | Node.js version the action sets up to run the CLI; it must satisfy the CLI's engines: `^22.22.0 || >=24` from 0.13.0, `^22.18.0 || >=24` from 0.12.0, `>=22.14.0` before |
+| `node-version` | `"24"` | Node.js version to set up. CLI 0.13.0 or newer: `22.22.0` or newer on 22, or an even-numbered major from 24; 0.12.x: `^22.18.0 || >=24`; older: `>=22.14.0` |
 
 The boolean inputs accept only `"true"` or `"false"`. A bad boolean, or an input without the command or `qa` it needs, fails the step with exit `1` before the CLI install. The CLI rejects an unknown `qa-severity`, and `qa-severity: error` with `qa-strict`, with exit `2` after it.
 

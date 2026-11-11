@@ -155,7 +155,7 @@ Si no encuentra configuración, el paso falla antes de instalar la CLI y nombra 
 | `require-reviewed` | `"false"` | `"true"` falla también con traducciones de máquina sin aprobar (`--require-reviewed`); solo `check` |
 | `sensitive` | `"false"` | `"true"` añade el análisis de contenido sensible (`--sensitive`); solo `check` |
 | `locales` | `""` | locales de destino separados por comas para los que se ejecuta (`--locales`) |
-| `node-version` | `"24"` | versión de Node.js que la acción prepara para ejecutar la CLI; debe cumplir los engines de la CLI: `^22.22.0 || >=24` desde 0.13.0, `^22.18.0 || >=24` desde 0.12.0, antes `>=22.14.0` |
+| `node-version` | `"24"` | versión de Node.js que prepara la acción. CLI 0.13.0 o posterior: `22.22.0` o posterior en la 22, o una versión mayor par desde la 24; 0.12.x: `^22.18.0 || >=24`; anterior: `>=22.14.0` |
 
 Las entradas booleanas solo aceptan `"true"` o `"false"`. Un booleano no válido, o una entrada sin el comando o `qa` que necesita, hace fallar el paso con salida `1` antes de instalar la CLI. La CLI rechaza un `qa-severity` desconocido, y `qa-severity: error` con `qa-strict`, con salida `2` después.
 
