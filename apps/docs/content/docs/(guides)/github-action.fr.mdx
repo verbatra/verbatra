@@ -155,7 +155,7 @@ Si aucune configuration n'est trouvée, l'étape échoue avant d'installer la CL
 | `require-reviewed` | `"false"` | `"true"` échoue aussi sur les traductions machine non approuvées (`--require-reviewed`) ; uniquement `check` |
 | `sensitive` | `"false"` | `"true"` ajoute l'analyse du contenu sensible (`--sensitive`) ; uniquement `check` |
 | `locales` | `""` | locales cibles séparées par des virgules auxquelles limiter l'exécution (`--locales`) |
-| `node-version` | `"24"` | version de Node.js que l'action installe. Action v1.4.0 avec CLI 0.13.0+ : `22.22.0`+ sur la 22, ou une version majeure paire à partir de la 24 ; v1.3.0 et CLI 0.12.x : `^22.18.0 || >=24` ; plus ancienne : `>=22.14.0` |
+| `node-version` | `"24"` | version de Node.js que l'action installe. CLI 0.13.0+ : `22.22.0`+ sur la 22, 24+ (action v1.4.0 : versions majeures paires uniquement) ; CLI 0.12.x : `^22.18.0 || >=24` ; plus ancienne : `>=22.14.0` |
 
 Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Un booléen invalide, ou une entrée sans la commande ou `qa` qu'elle exige, fait échouer l'étape avec la sortie `1` avant l'installation de la CLI. La CLI refuse un `qa-severity` inconnu, et `qa-severity: error` avec `qa-strict`, avec la sortie `2` après.
 

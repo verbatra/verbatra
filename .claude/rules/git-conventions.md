@@ -73,7 +73,8 @@ commit message for commitlint.
      (`--diff-filter=AM`).
   2. **No changeset for a fix to something not yet released.** If the feature is still pending in
      `.changeset/`, reword its bullet when the fix changes what the bullet says; otherwise add
-     nothing.
+     nothing. A fix that changes a published package's non-workspace runtime dependencies still
+     adds or updates a changeset naming an affected published package (rule 5).
   3. **No changeset for test-only, docs-only, README-only, type-doc-only or internal refactor
      changes.** No empty changeset is needed either: the only changeset gate in CI is
      `check:dependency-changeset`, and it fires only on a runtime dependency change.

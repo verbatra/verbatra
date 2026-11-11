@@ -167,7 +167,7 @@ Jede Unit mit einem Ziel trägt außerdem ihre Herkunft: XLIFF 1.2 kennzeichnet 
 Liest eine ausgefüllte Arbeitsmappe zurück in die Locale-Dateien und führt dieselben Prüfungen auf
 Quelldrift und Integrität aus wie `translate`. Nur akzeptierte Zeilen rücken ihre
 Lock-Baseline vor; eine leere oder abgelehnte Zeile wird weiter exportiert, bis sie wirklich
-erledigt ist. In einer CSV-, TSV- oder xlsx-Übergabe bleibt eine ausgefüllte Zeile, die dem Wert eines aktuellen Keys entspricht, unberührt und wird als `unchanged` gemeldet, nicht als übersetzt <AvailableFrom version="0.13.0" />; siehe [Manuelle Übersetzung](/de/docs/manual-translation#was-der-import-akzeptiert).
+erledigt ist. In einer CSV-, TSV- oder xlsx-Übergabe bleibt eine ausgefüllte Zeile, die dem Wert eines aktuellen Keys entspricht und das Integritäts-Gate besteht, unberührt und wird als `unchanged` gemeldet, nicht als übersetzt <AvailableFrom version="0.13.0" />; siehe [Manuelle Übersetzung](/de/docs/manual-translation#was-der-import-akzeptiert).
 
 ```ts title="Signatur"
 function importWorkbook(
