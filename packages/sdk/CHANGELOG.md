@@ -1,5 +1,14 @@
 # @verbatra/sdk
 
+## 0.13.1
+
+### Patch Changes
+
+- [#359](https://github.com/verbatra/verbatra/pull/359) [`250276a`](https://github.com/verbatra/verbatra/commit/250276aa00deb89bde127872e9d53d56a249bd34) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Update bundled runtime dependencies.
+  
+  - **@verbatra/cli:** commander 15.0.0 -> 15.1.0.
+  - **@verbatra/sdk:** @formatjs/icu-messageformat-parser 3.5.22 -> 3.5.23, openai 7.47.0 -> 7.55.0.
+
 ## 0.13.0
 
 ### Minor Changes
