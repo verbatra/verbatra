@@ -5,12 +5,14 @@ import { geminiTransport, type ProviderNetwork } from "../network/transport.js";
 import type { GeminiRequest } from "./request.js";
 import type { GeminiClient, GeminiResponse } from "./types.js";
 
+const GEMINI_API_VERSION = "v1beta";
+
 export function createDefaultClient(network?: ProviderNetwork): GeminiClient {
   const transport = geminiTransport(network);
   const apiKey = requireGeminiKey();
   const loadClient = memoizeAsync(async () => {
     const { GoogleGenAI } = await loadSdkModule("@google/genai", () => import("@google/genai"));
-    return new GoogleGenAI({ apiKey, ...transport.options });
+    return new GoogleGenAI({ apiKey, apiVersion: GEMINI_API_VERSION, ...transport.options });
   });
   return {
     models: {
