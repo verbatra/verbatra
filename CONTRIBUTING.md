@@ -305,8 +305,8 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 10. **Tests.** A `*.test.ts` beside each new file, covering the happy path, the
     missing-key error, and upstream failures mapped to `ProviderError` codes.
 
-11. **A changeset.** Extend the matching theme file in `.changeset/`; run
-    `pnpm changeset` for a new file only when no theme covers the change.
+11. **A changeset.** Run `pnpm changeset` and name the file after the capability;
+    reword the pending file instead when the capability is unreleased.
     `@verbatra/sdk` and `@verbatra/cli` are published and version-locked
     together, so a change here ships in a release. The full policy is in
     `.claude/rules/git-conventions.md`.
@@ -386,8 +386,8 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    read a fixture, write it back, and assert the output is byte-identical.
    Key order and structure must survive the round trip.
 
-6. **A changeset.** Extend the matching theme file in `.changeset/`; run
-   `pnpm changeset` for a new file only when no theme covers the change. The
+6. **A changeset.** Run `pnpm changeset` and name the file after the capability;
+   reword the pending file instead when the capability is unreleased. The
    full policy is in `.claude/rules/git-conventions.md`.
 
 7. **Docs.** Add the format to `apps/docs/content/docs/(configure)/formats.mdx`

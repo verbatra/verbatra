@@ -88,7 +88,7 @@ commit message for commitlint.
 - A user-observable `src` change to a private package that `@verbatra/sdk` bundles
   (`@verbatra/core`, `@verbatra/format-adapters`, `@verbatra/ai-providers`, `@verbatra/exchange`,
   `@verbatra/extract`) needs a changeset too, naming `@verbatra/sdk` itself, not the private
-  package, and follows the rules above (extend a theme file, nothing for a fix to an unreleased
+  package, and follows the rules above (one changeset per change, nothing for a fix to an unreleased
   feature). tsup inlines that source straight into `packages/sdk/dist` (`WORKSPACE_INTERNALS` in
   `packages/sdk/tsup.config.ts`, passed to `noExternal`, and each package's built
   `dist/index.d.ts`, mapped through `dts.compilerOptions.paths`), and the sdk
