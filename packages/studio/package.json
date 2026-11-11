@@ -72,7 +72,7 @@
     "@vitejs/plugin-react": "6.3.0",
     "@vitest/coverage-v8": "catalog:",
     "jsdom": "catalog:",
-    "oxc-parser": "0.157.0",
+    "oxc-parser": "0.158.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "4.3.5",
