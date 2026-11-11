@@ -10,5 +10,5 @@ const WORKSPACE_DECLARATIONS = Object.fromEntries(
 
 export default createTsdownConfig({
   deps: { alwaysBundle: WORKSPACE_INTERNALS },
-  dts: { sourcemap: false, compilerOptions: { paths: WORKSPACE_DECLARATIONS } },
+  dts: { compilerOptions: { paths: WORKSPACE_DECLARATIONS } },
 });

@@ -96,8 +96,13 @@ function typeReference(node: AstNode): ModuleReference | undefined {
   return specifier === undefined ? undefined : { specifier, typeOnly: true };
 }
 
-export function moduleReferences(source: string): ModuleReference[] {
-  const { program } = parseSync("probe.tsx", source, { lang: "tsx" });
+export function moduleReferences(source: string, fileName = "probe.tsx"): ModuleReference[] {
+  const { program, errors } = parseSync(fileName, source, {
+    lang: fileName.endsWith(".tsx") ? "tsx" : "ts",
+  });
+  if (errors.length > 0) {
+    throw new Error(`${fileName} does not parse: ${errors[0]?.message ?? "unknown error"}`);
+  }
   const found: ModuleReference[] = [];
   function visit(value: unknown): void {
     if (Array.isArray(value)) {
@@ -166,7 +171,7 @@ describe("the browser bundle's imports", () => {
   it.each(BROWSER_DIRS.flatMap(sources).map((file) => [relative(SRC, file), file]))(
     "%s pulls in nothing that only runs on Node",
     (_name, file) => {
-      const problems = moduleReferences(readFileSync(file as string, "utf8"))
+      const problems = moduleReferences(readFileSync(file as string, "utf8"), file as string)
         .map((reference) => ({ reference, why: violation(reference, file as string) }))
         .filter((entry) => entry.why !== undefined)
         .map((entry) => `${entry.reference.specifier}: ${entry.why}`);
@@ -177,6 +182,14 @@ describe("the browser bundle's imports", () => {
 });
 
 describe("the import scanner", () => {
+  it("refuses source it cannot parse instead of reporting no imports", () => {
+    expect(() => moduleReferences("import {{ from;", "broken.ts")).toThrow(/does not parse/);
+  });
+
+  it("parses a .ts file with angle-bracket assertions", () => {
+    expect(moduleReferences("const a = <string>b;", "cast.ts")).toEqual([]);
+  });
+
   const HERE = join(SRC, "shared", "probe.ts");
   const bad = (code: string): string[] =>
     moduleReferences(code)

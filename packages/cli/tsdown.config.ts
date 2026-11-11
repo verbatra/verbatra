@@ -1,20 +1,26 @@
 import { createTsdownConfig } from "@verbatra/config/tsdown";
 
-const SDK_REEXPORT_IMPORT = 'import { defineConfig } from "@verbatra/sdk";';
+const LOCAL_IMPORT = 'import { defineConfig } from "@verbatra/sdk";';
+const DIRECT_REEXPORT = 'export { defineConfig } from "@verbatra/sdk";';
+const EXPORT_LIST = /^export \{ ([^}]*) \};$/m;
 
-const SDK_REEXPORT = 'export { defineConfig } from "@verbatra/sdk";';
+function reexportSdkDirectly(code: string): string {
+  if (!code.includes(LOCAL_IMPORT) || !EXPORT_LIST.test(code)) {
+    throw new Error(
+      "lib.js no longer imports defineConfig from @verbatra/sdk in the expected form",
+    );
+  }
+  const withoutLocalExport = code.replace(EXPORT_LIST, (_whole, names: string) => {
+    const kept = names.split(", ").filter((name) => name !== "defineConfig");
+    return `export { ${kept.join(", ")} };`;
+  });
+  return withoutLocalExport.replace(LOCAL_IMPORT, DIRECT_REEXPORT);
+}
 
 const keepSdkReexportDirect = {
   name: "keep-sdk-reexport-direct",
   renderChunk(code: string, chunk: { fileName: string }) {
-    if (!chunk.fileName.endsWith(".js") || !code.startsWith(SDK_REEXPORT_IMPORT)) {
-      return null;
-    }
-    const withoutLocalExport = code.replace(/^export \{ ([^}]*) \};$/m, (_whole, names: string) => {
-      const kept = names.split(", ").filter((name) => name !== "defineConfig");
-      return `export { ${kept.join(", ")} };`;
-    });
-    return { code: withoutLocalExport.replace(SDK_REEXPORT_IMPORT, SDK_REEXPORT), map: null };
+    return chunk.fileName === "lib.js" ? { code: reexportSdkDirectly(code), map: null } : null;
   },
 };
 
@@ -23,7 +29,6 @@ export default [
     entry: ["src/index.ts"],
     format: ["esm"],
     dts: false,
-    clean: ["dist/**", "!dist/lib.*"],
     banner: { js: "#!/usr/bin/env node" },
     deps: { neverBundle: ["@verbatra/studio", "@verbatra/mcp"] },
   }),

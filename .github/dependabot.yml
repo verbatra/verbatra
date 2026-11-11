@@ -50,10 +50,20 @@ updates:
         patterns:
           - "vitest"
           - "@vitest/*"
+      typescript-toolchain:
+        patterns:
+          - "typescript"
+          - "tsdown"
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
       npm-minor-patch:
         exclude-patterns:
           - "vitest"
           - "@vitest/*"
+          - "typescript"
+          - "tsdown"
         update-types:
           - "minor"
           - "patch"

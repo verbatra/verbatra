@@ -401,19 +401,36 @@ function checkDts() {
   );
 }
 
+const SDK_REEXPORT_AS_LOCAL_IMPORT =
+  /^import\s*\{[^}]*\bdefineConfig\b[^}]*\}\s*from\s*["']@verbatra\/sdk["']/m;
+
+const SDK_DIRECT_REEXPORT = /^export\s*\{\s*defineConfig\s*\}\s*from\s*["']@verbatra\/sdk["']/m;
+
+function findIndirectSdkReexport(text) {
+  return SDK_DIRECT_REEXPORT.test(text) && !SDK_REEXPORT_AS_LOCAL_IMPORT.test(text);
+}
+
 function checkStudioBundle() {
+  if (!findIndirectSdkReexport(readBuildOutput("packages/cli/dist/lib.js"))) {
+    throw new Error(
+      "packages/cli/dist/lib.js must re-export defineConfig straight from @verbatra/sdk; an " +
+        "import plus a local export defeats the docs site's tree-shaking and drags the sdk's " +
+        "dynamic import() into its Next build (keepSdkReexportDirect in packages/cli/tsdown.config.ts).",
+    );
+  }
+
   const entry = "packages/cli/dist/index.js";
   const contents = readBuildOutput(entry);
   for (const packageName of DYNAMIC_IMPORT_ONLY_PACKAGES) {
     if (!dynamicImportPattern(packageName).test(contents)) {
       throw new Error(
-        `${entry} has no dynamic import("${packageName}"); check external in packages/cli/tsdown.config.ts.`,
+        `${entry} has no dynamic import("${packageName}"); check deps.neverBundle in packages/cli/tsdown.config.ts.`,
       );
     }
     if (staticImportPattern(packageName).test(contents)) {
       throw new Error(
         `${entry} statically imports ${packageName}, which would bundle it; keep it a runtime ` +
-          "dynamic import and check external in packages/cli/tsdown.config.ts.",
+          "dynamic import and check deps.neverBundle in packages/cli/tsdown.config.ts.",
       );
     }
   }
@@ -678,6 +695,7 @@ export {
   findEagerProviderImports,
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
+  findIndirectSdkReexport,
   findNodeOnlyTokens,
   findRenamedDeclarations,
   findSchemaDocumentProblems,

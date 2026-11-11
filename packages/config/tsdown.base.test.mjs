@@ -14,6 +14,7 @@ describe("createTsdownConfig", () => {
       treeshake: true,
       fixedExtension: false,
       hash: false,
+      outputOptions: { comments: { jsdoc: false } },
     });
   });
 
@@ -37,5 +38,21 @@ describe("createTsdownConfig", () => {
     const config = createTsdownConfig({ minify: true });
 
     expect(config.minify).toBe(true);
+  });
+
+  it("keeps the dts sourcemap default when an override sets other dts options", () => {
+    const config = createTsdownConfig({ dts: { entry: "src/index.ts" } });
+
+    expect(config.dts).toEqual({ sourcemap: false, entry: "src/index.ts" });
+  });
+
+  it("lets an override win over the dts sourcemap default", () => {
+    const config = createTsdownConfig({ dts: { sourcemap: true } });
+
+    expect(config.dts).toEqual({ sourcemap: true });
+  });
+
+  it("passes a boolean dts override through unchanged", () => {
+    expect(createTsdownConfig({ dts: false }).dts).toBe(false);
   });
 });

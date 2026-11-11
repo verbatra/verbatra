@@ -6,6 +6,7 @@ import {
   findEagerProviderImports,
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
+  findIndirectSdkReexport,
   findNodeOnlyTokens,
   findRenamedDeclarations,
   findSchemaDocumentProblems,
@@ -747,5 +748,21 @@ describe("referencedScripts", () => {
       "index-A.js",
       "react-B.js",
     ]);
+  });
+});
+
+describe("findIndirectSdkReexport", () => {
+  it("accepts a direct re-export of defineConfig from the sdk", () => {
+    const text = 'export { defineConfig } from "@verbatra/sdk";\nconst a = 1;';
+    expect(findIndirectSdkReexport(text)).toBe(true);
+  });
+
+  it("rejects the import plus local export form that Turbopack cannot tree-shake", () => {
+    const text = 'import { defineConfig } from "@verbatra/sdk";\nexport { defineConfig };';
+    expect(findIndirectSdkReexport(text)).toBe(false);
+  });
+
+  it("rejects an output that does not re-export defineConfig at all", () => {
+    expect(findIndirectSdkReexport("const a = 1;")).toBe(false);
   });
 });
