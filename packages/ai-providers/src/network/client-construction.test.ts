@@ -98,7 +98,7 @@ describe("client construction without a network policy", () => {
         defaultHeaders: { "User-Agent": "verbatra" },
       },
     ]);
-    expect(constructed.gemini).toEqual([{ apiKey: "test-key-value" }]);
+    expect(constructed.gemini).toEqual([{ apiKey: "test-key-value", apiVersion: "v1beta" }]);
   });
 });
 
