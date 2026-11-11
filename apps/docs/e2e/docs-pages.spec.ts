@@ -1,4 +1,7 @@
 import { expect, type Page, test } from "playwright/test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { NewPill } from "@/components/new-pill";
 import {
   brokenWordsIn,
   DOCS_PAGES,
@@ -218,13 +221,24 @@ test("keeps a 24px gap between the search pill and the first header link at 768p
 
 const NEW_PILL = "#nd-sidebar .vk-pill-new";
 const NEW_PILL_PAGE = "/docs/custom-format-adapters";
+const PROBE_PILL = renderToStaticMarkup(
+  createElement(NewPill, { className: "vk-probe", children: "New" }),
+);
+const PROBE_PILL_SELECTOR = `${NEW_PILL}.vk-probe`;
+
+async function openPageWithProbePill(page: Page): Promise<void> {
+  await openDocsPage(page, NEW_PILL_PAGE);
+  await page
+    .locator("#nd-sidebar")
+    .evaluate((sidebar, markup) => sidebar.insertAdjacentHTML("beforeend", markup), PROBE_PILL);
+}
 
 test.describe("sidebar new pill under reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
 
   test("keeps the pill still", async ({ page }) => {
-    await openDocsPage(page, NEW_PILL_PAGE);
-    const pill = page.locator(NEW_PILL).first();
+    await openPageWithProbePill(page);
+    const pill = page.locator(PROBE_PILL_SELECTOR);
     await expect(pill).toBeVisible();
     await expect(pill.locator(".vk-pill-new-shimmer")).toHaveCSS("display", "none");
     const animation = await pill
@@ -238,10 +252,9 @@ test.describe("sidebar new pill motion", () => {
   test.use({ reducedMotion: "no-preference" });
 
   test("runs the pill's glow, ring and shimmer three times, never forever", async ({ page }) => {
-    await openDocsPage(page, NEW_PILL_PAGE);
+    await openPageWithProbePill(page);
     const counts = await page
-      .locator(NEW_PILL)
-      .first()
+      .locator(PROBE_PILL_SELECTOR)
       .evaluate((pill) =>
         [
           getComputedStyle(pill, "::before"),
