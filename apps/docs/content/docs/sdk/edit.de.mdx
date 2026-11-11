@@ -62,7 +62,7 @@ Ein wörtliches Suchen und Ersetzen über die Werte deiner Ziel-Locales, in zwei
 
 ### previewValueReplace
 
-Listet die Zielwerte auf, die `find` enthalten, mit einem Status je Wert. Der Abgleich ist wörtlich: keine Muster-Syntax, keine Unicode-Normalisierung (ein NFD-`find` trifft keinen NFC-Wert) und keine Umrechnung von Zeilenenden. `replace` wird so eingefügt, wie du es schreibst, `$&` und `$1` haben also keine besondere Bedeutung. `caseSensitive` ist standardmäßig `true`. Ein Treffer beginnt oder endet nie mitten in einem Surrogatpaar, und ein `find` oder `replace` mit einem einzelnen Surrogat ohne Partner wirft `FIND_TEXT_INVALID`. Nur lesend.
+Listet die Zielwerte auf, die `find` enthalten, mit einem Status je Wert. Der Abgleich ist wörtlich: keine Muster-Syntax, keine Unicode-Normalisierung (ein NFD-`find` trifft keinen NFC-Wert) und keine Umrechnung von Zeilenenden. `replace` wird so eingefügt, wie du es schreibst, `$&` und `$1` haben also keine besondere Bedeutung. `caseSensitive` ist standardmäßig `true`. Ein Treffer beginnt oder endet nie mitten in einem Surrogatpaar, und ein leeres `find`, eines über 20.000 Zeichen oder ein `find` oder `replace` mit einem einzelnen Surrogat ohne Partner wirft `FIND_TEXT_INVALID`. Nur lesend.
 
 ```ts title="Signatur"
 function previewValueReplace(
