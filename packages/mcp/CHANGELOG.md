@@ -1,5 +1,49 @@
 # @verbatra/mcp
 
+## 0.4.0
+
+### Minor Changes
+
+- [#340](https://github.com/verbatra/verbatra/pull/340) [`b64938c`](https://github.com/verbatra/verbatra/commit/b64938c4826113898530893ea85206a0b39b4f30) Thanks [@mariokreitz](https://github.com/mariokreitz)! - See how one translation key changed from commit to commit with `keyHistory` and the `history.keyRevisions` MCP tool.
+  
+  - **What you get:** `keyHistory({ config, locale, key })` lists the commits that changed the key's value in a locale, newest first, with date, author name (never the email), subject, value, origin and a word-level diff. `history.keyRevisions` returns the same to an MCP client, read-only.
+  - **Keys are scrubbed:** values, diffs, subjects and author names pass `redact`; a value that held an API key comes back as `[REDACTED]` and must not be restored. A former custom key, or a current key under 8 characters, with an unrecognized shape can remain in a revision.
+  - **Upgrade:** `localeHistory` and `history.list` now answer `dubious-ownership`, `bare-repository`, `unsafe-config` and `git-too-old` with `available: false` instead of an empty list. If you map every `LocaleHistoryUnavailableReason`, add those four.
+
+- [#354](https://github.com/verbatra/verbatra/pull/354) [`ecb681b`](https://github.com/verbatra/verbatra/commit/ecb681b382001abc0d29750789dff6e696001eab) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Node.js 22.22 is now the minimum on the 22 line, and file watching moves to chokidar 6.
+  
+  - **Upgrade:** the supported range changes from `^22.18.0 || >=24` to `^22.22.0 || >=24`. On Node 22.18 to 22.21 the install is refused or warns. Upgrade Node to 22.22 or newer, or use 24 or 26.
+  - **Dependencies:** chokidar 5.0.0 -> 6.0.0 (`@verbatra/sdk`, `@verbatra/studio`).
+
+- [#344](https://github.com/verbatra/verbatra/pull/344) [`114f985`](https://github.com/verbatra/verbatra/commit/114f98547784f2b1489be891b8b4572728519526) Thanks [@mariokreitz](https://github.com/mariokreitz)! - See what a single-key retranslation cost in tokens: `retranslateEntry` now returns the provider's `usage` (`inputTokens`, `outputTokens`), also for a refused value, in the SDK, the MCP tool `translation.retranslateEntry` and Studio. DeepL, Google Cloud Translation and LibreTranslate report none.
+
+- [#344](https://github.com/verbatra/verbatra/pull/344) [`995f267`](https://github.com/verbatra/verbatra/commit/995f2677fb3feb71340d6b2ae78ae23dd4bd71e0) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Keep a local history of finished runs, with the cost frozen at the rates of the day, and read it with `runHistory` and the `usage.history` MCP tool.
+  
+  - **What gets recorded:** each `translate`, `watch`, Studio or MCP translate-pending run and retranslation that left a trace adds a record to `.verbatra-local/run-history.jsonl` with time, provider and model, tokens, cost and per-locale counts, never a key name or text. A dry run is not recorded, and the newest 1,000 are kept. Recording is best-effort: a record is skipped when the history file cannot be written or its lock not acquired.
+  - **Cost is frozen:** the cost is calculated from the config's `rates` at the end of the run and stored with the record (with the rate card's currency and date, not the rates), so a later rate change never rewrites an old run. Where no figure exists the record says so instead of showing zero.
+
+### Patch Changes
+
+- [#354](https://github.com/verbatra/verbatra/pull/354) [`d5279a9`](https://github.com/verbatra/verbatra/commit/d5279a9b672c0ea9b901c2e2e9a9a6b47901e8e8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Update bundled runtime dependencies.
+  
+  - **@verbatra/sdk:** @google/genai 2.31.0 -> 2.32.0, deepl-node 1.28.1 -> 1.29.0, openai 7.43.0 -> 7.47.0.
+  - **@verbatra/mcp:** @modelcontextprotocol/server 2.3.1 -> 2.4.0.
+
+- [#342](https://github.com/verbatra/verbatra/pull/342) [`7b747b1`](https://github.com/verbatra/verbatra/commit/7b747b14840ddab5caaf3243d4407328bdd4340b) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Set per-key length limits in `verbatra.limits.json`, next to the lock file, with `setKeyLengthLimit`, in addition to the config's `maxLength`.
+  
+  - **What you get:** `setKeyLengthLimit({ config, key, maxLength })` sets, changes or removes (`null`) a key's limit. Translate, check and export flows read it; a limit stays advisory (a longer value is flagged `MAX_LENGTH_EXCEEDED`, never refused), and the config's `maxLength` wins for a key set in both. `verbatra doctor` has a new `limits` check.
+  - **Fixed:** `keyContext` reported a function as `maxLength` for a key named like an object property, such as `constructor`. `check --qa` and `checkFile` now measure a generated plural form only against a limit set for its own key (for example `items_few`), as `translate` already did.
+  - **Upgrade:** `checkFile` and `verbatra check --file` now read `verbatra.limits.json`, and `doctor` has a new check id, `limits`. A tool that lists every check id should add it.
+
+- [#341](https://github.com/verbatra/verbatra/pull/341) [`847fdf0`](https://github.com/verbatra/verbatra/commit/847fdf07950b034502131bab6e24137ba82eb221) Thanks [@mariokreitz](https://github.com/mariokreitz)! - `localeHistory` and `history.list` no longer return an API key that a commit subject or author name quotes.
+  
+  - **What changed:** anything shaped like a provider key, or equal to a configured key variable, is replaced by `[REDACTED]` in every commit `subject` and `author`; a former custom key, or a current key under 8 characters, in an unrecognized shape can remain.
+  - **Limits:** a `subject` is now cut to 500 characters and an `author` to 200.
+
+- [#353](https://github.com/verbatra/verbatra/pull/353) [`0963a36`](https://github.com/verbatra/verbatra/commit/0963a362cf362946a85005518de56c29a2b64ec8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - The `usage.summary` tool description now says that when `supported` is false, `tokensUsed` includes verbatra's own projection for the requests the provider did not report or reported as zero, so it is not a provider bill.
+- Updated dependencies [[`d5279a9`](https://github.com/verbatra/verbatra/commit/d5279a9b672c0ea9b901c2e2e9a9a6b47901e8e8), [`b84d6cf`](https://github.com/verbatra/verbatra/commit/b84d6cf0c464f7100e1d529fa1580d4926a34c94), [`6add383`](https://github.com/verbatra/verbatra/commit/6add38300e6ebd5069b490c32e70fb4ab5ba26ac), [`b64938c`](https://github.com/verbatra/verbatra/commit/b64938c4826113898530893ea85206a0b39b4f30), [`7b747b1`](https://github.com/verbatra/verbatra/commit/7b747b14840ddab5caaf3243d4407328bdd4340b), [`523ad3b`](https://github.com/verbatra/verbatra/commit/523ad3bf30c1fc3efe78b086440900d962d67a10), [`847fdf0`](https://github.com/verbatra/verbatra/commit/847fdf07950b034502131bab6e24137ba82eb221), [`ecb681b`](https://github.com/verbatra/verbatra/commit/ecb681b382001abc0d29750789dff6e696001eab), [`114f985`](https://github.com/verbatra/verbatra/commit/114f98547784f2b1489be891b8b4572728519526), [`995f267`](https://github.com/verbatra/verbatra/commit/995f2677fb3feb71340d6b2ae78ae23dd4bd71e0), [`981f9e3`](https://github.com/verbatra/verbatra/commit/981f9e3b382351137932d836add8ff740186281c), [`a5598dc`](https://github.com/verbatra/verbatra/commit/a5598dce2f5599f8478113436dcdedae57b6db96)]:
+  - @verbatra/sdk@0.13.0
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,5 +1,75 @@
 # @verbatra/studio
 
+## 0.7.0
+
+### Minor Changes
+
+- [#354](https://github.com/verbatra/verbatra/pull/354) [`ecb681b`](https://github.com/verbatra/verbatra/commit/ecb681b382001abc0d29750789dff6e696001eab) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Node.js 22.22 is now the minimum on the 22 line, and file watching moves to chokidar 6.
+  
+  - **Upgrade:** the supported range changes from `^22.18.0 || >=24` to `^22.22.0 || >=24`. On Node 22.18 to 22.21 the install is refused or warns. Upgrade Node to 22.22 or newer, or use 24 or 26.
+  - **Dependencies:** chokidar 5.0.0 -> 6.0.0 (`@verbatra/sdk`, `@verbatra/studio`).
+
+- [#344](https://github.com/verbatra/verbatra/pull/344) [`114f985`](https://github.com/verbatra/verbatra/commit/114f98547784f2b1489be891b8b4572728519526) Thanks [@mariokreitz](https://github.com/mariokreitz)! - See what a single-key retranslation cost in tokens: `retranslateEntry` now returns the provider's `usage` (`inputTokens`, `outputTokens`), also for a refused value, in the SDK, the MCP tool `translation.retranslateEntry` and Studio. DeepL, Google Cloud Translation and LibreTranslate report none.
+
+- [#339](https://github.com/verbatra/verbatra/pull/339) [`5cb1938`](https://github.com/verbatra/verbatra/commit/5cb19384792ccc2b3d15fae37f9769534f1ba709) Thanks [@mariokreitz](https://github.com/mariokreitz)! - See which locale files changed since the last commit, and which keys changed in each, on Overview.
+  
+  - **Changes section:** lists the locale, lock and provenance files that differ from the last commit, with the checked-out branch.
+  - **Key changes:** a button per locale opens the keys changed, added or removed, with the old and new text side by side.
+
+- [#328](https://github.com/verbatra/verbatra/pull/328) [`269e79a`](https://github.com/verbatra/verbatra/commit/269e79a1d0d8591acb9f7ad03c274051fa2c51ab) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Studio now uses a top navigation bar like the verbatra docs; the sidebar is gone.
+  
+  - **Navigation:** Overview, Translations, Review, Glossary and Settings are header links, with a menu drawer below 1280px wide.
+  - **Search:** the header search opens the Translations list filtered by what you typed.
+
+- [#337](https://github.com/verbatra/verbatra/pull/337) [`2ad8495`](https://github.com/verbatra/verbatra/commit/2ad8495c4449b97b91ffdac0ddd26219b58a8124) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Preview an ICU message in the translation editor.
+  
+  - **Where:** a collapsed **ICU preview** under the draft in the Translations editor and the Review edit dialog, for `next-intl-json` and `arb` projects.
+  - **What you see:** one row per arm of your draft, at most 24 rows, with sample values you can type for any argument. Numbers and dates use this computer's language data, so the text can differ from your application's runtime.
+
+- [#341](https://github.com/verbatra/verbatra/pull/341) [`0ab240c`](https://github.com/verbatra/verbatra/commit/0ab240cd03a8ee022e0eca7bf3b519b8b79c63f7) Thanks [@mariokreitz](https://github.com/mariokreitz)! - See how one translation changed from commit to commit and restore an earlier value from the key editor.
+  
+  - **History tab:** lists the uncommitted value, then each commit that changed the key within the last 50 commits (200 with **Read further back**) with author, date, subject and a word-level difference. The Review editor has the same list behind **Show history**.
+  - **Restore:** loads that value as a draft; nothing is written until you save, and it asks first when the source text has changed since. A value that looks like an API key is shown as `[REDACTED]` and cannot be restored.
+
+- [#343](https://github.com/verbatra/verbatra/pull/343) [`cfb0892`](https://github.com/verbatra/verbatra/commit/cfb089211bc1aa0501161816acd3c79abba2d101) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Set, change and remove a key's length limit from the translation editor in Studio.
+  
+  - **Where:** under the length line of the editor, **Set limit**, **Change limit** and **Remove limit** edit the key's entry in `verbatra.limits.json`. The limit is advisory and applies in every locale.
+  - **Config limits:** a limit from the config's `maxLength` is shown read-only, because the config wins.
+
+- [#329](https://github.com/verbatra/verbatra/pull/329) [`6139f80`](https://github.com/verbatra/verbatra/commit/6139f80011bc01fbcbe5f7c1bf78d9c31c8e6fe5) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Studio opens on a new Overview page with coverage per locale, the last run and file history; the glossary has its own page.
+  
+  - **Overview:** status figures, every locale's coverage and lock state, the last run's token usage and budget, and the git history of your locale files. It replaces the Activity page, and `#/activity` links keep working.
+  - **Glossary:** edited on its own page, no longer on Settings. Removing a term asks first, unsaved edits ask before you leave, and writes no longer overwrite each other.
+
+- [#345](https://github.com/verbatra/verbatra/pull/345) [`3291310`](https://github.com/verbatra/verbatra/commit/329131068067e013a5b416744d821fb19f9d1593) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Studio's Overview shows a run history with the cost of recorded runs, and a browser agent can read it.
+  
+  - **Run history and cost:** charts of cost and tokens per run, and a table of the newest runs. Estimates, lower bounds and missing rates are labelled and never shown as free.
+  - **Agent tool:** `verbatra_usage_history` returns the same records to a browser agent, read-only.
+
+- [#330](https://github.com/verbatra/verbatra/pull/330) [`18dcc3f`](https://github.com/verbatra/verbatra/commit/18dcc3f48f8d69b6334825924a1a33b3f55283b3) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Translations is one key table with working filters for every key state.
+  
+  - **One table:** every key that needs attention is a row, with one status per locale, or translation, status and origin once you pick a locale. Search finds any key, including keys already in sync.
+  - **Editing beside the table:** from 1280px wide a key opens in an editor next to the table, on narrower screens in a drawer, and leaving unsaved edits asks first.
+
+- [#351](https://github.com/verbatra/verbatra/pull/351) [`12f94ad`](https://github.com/verbatra/verbatra/commit/12f94adf60cc36122f8599c0468ed6eb808fa430) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Search and replace text across your translations from the Translations page.
+  
+  - **Two steps:** **Search and replace** lists up to 1,000 matching values with an excerpt before and after, and writes nothing until you confirm.
+  - **What is left alone:** values a person wrote, imported or changed outside verbatra, and `pinnedKeys`, stay out unless you tick their own checkboxes in that run (**Also change pinned keys** for `pinnedKeys`, **Also change values a person wrote, imported, or changed outside verbatra** for the rest); a key that is both needs both boxes. Replaced values are recorded as written by a person (`human`).
+
+### Patch Changes
+
+- [#327](https://github.com/verbatra/verbatra/pull/327) [`9877c84`](https://github.com/verbatra/verbatra/commit/9877c84241a48ef87bd28083287d076c49ccf755) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Link straight to a locale, status filter or key (`#/translations?locale=de&status=missing&key=...`).
+  
+  - **Deep links:** `#/translations` takes `locale`, `status` and `key`, and `#/review` takes `locale`.
+  - **Shareable state:** changing a filter or opening a key updates the address in place, without adding history entries.
+
+- [#321](https://github.com/verbatra/verbatra/pull/321) [`95e91bb`](https://github.com/verbatra/verbatra/commit/95e91bbe28a4a2150dff8c4b0419d26c382320d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Studio uses the verbatra site palette and the Geist typeface, and follows the system theme without a flash on load.
+  
+  - **Theme:** one header button cycles system, light and dark.
+  - **Fixes:** tooltips show on keyboard focus, Tab stays inside an open dialog, and long values in Review rows wrap instead of being cut off.
+- Updated dependencies [[`d5279a9`](https://github.com/verbatra/verbatra/commit/d5279a9b672c0ea9b901c2e2e9a9a6b47901e8e8), [`b84d6cf`](https://github.com/verbatra/verbatra/commit/b84d6cf0c464f7100e1d529fa1580d4926a34c94), [`6add383`](https://github.com/verbatra/verbatra/commit/6add38300e6ebd5069b490c32e70fb4ab5ba26ac), [`b64938c`](https://github.com/verbatra/verbatra/commit/b64938c4826113898530893ea85206a0b39b4f30), [`7b747b1`](https://github.com/verbatra/verbatra/commit/7b747b14840ddab5caaf3243d4407328bdd4340b), [`523ad3b`](https://github.com/verbatra/verbatra/commit/523ad3bf30c1fc3efe78b086440900d962d67a10), [`847fdf0`](https://github.com/verbatra/verbatra/commit/847fdf07950b034502131bab6e24137ba82eb221), [`ecb681b`](https://github.com/verbatra/verbatra/commit/ecb681b382001abc0d29750789dff6e696001eab), [`114f985`](https://github.com/verbatra/verbatra/commit/114f98547784f2b1489be891b8b4572728519526), [`995f267`](https://github.com/verbatra/verbatra/commit/995f2677fb3feb71340d6b2ae78ae23dd4bd71e0), [`981f9e3`](https://github.com/verbatra/verbatra/commit/981f9e3b382351137932d836add8ff740186281c), [`a5598dc`](https://github.com/verbatra/verbatra/commit/a5598dce2f5599f8478113436dcdedae57b6db96)]:
+  - @verbatra/sdk@0.13.0
+
 ## 0.6.0
 
 ### Minor Changes

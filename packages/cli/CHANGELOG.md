@@ -1,5 +1,22 @@
 # @verbatra/cli
 
+## 0.13.0
+
+### Minor Changes
+
+- [#354](https://github.com/verbatra/verbatra/pull/354) [`ecb681b`](https://github.com/verbatra/verbatra/commit/ecb681b382001abc0d29750789dff6e696001eab) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Node.js 22.22 is now the minimum on the 22 line, and file watching moves to chokidar 6.
+  
+  - **Upgrade:** the supported range changes from `^22.18.0 || >=24` to `^22.22.0 || >=24`. On Node 22.18 to 22.21 the install is refused or warns. Upgrade Node to 22.22 or newer, or use 24 or 26.
+  - **Dependencies:** chokidar 5.0.0 -> 6.0.0 (`@verbatra/sdk`, `@verbatra/studio`).
+
+### Patch Changes
+
+- [#353](https://github.com/verbatra/verbatra/pull/353) [`9fd1ad0`](https://github.com/verbatra/verbatra/commit/9fd1ad0fd46ec897f3059c335b850892c687214f) Thanks [@mariokreitz](https://github.com/mariokreitz)! - `verbatra translate --estimate` now ends with "estimate done in ..., nothing written" instead of the dry-run wording.
+  
+  - **Upgrade:** an `--estimate` run used to end with the dry-run wording ("dry run done in ..., nothing written") and now ends with "estimate done in ..., nothing written". A script that matches the old closing line should match the new one, or read `--json`.
+- Updated dependencies [[`d5279a9`](https://github.com/verbatra/verbatra/commit/d5279a9b672c0ea9b901c2e2e9a9a6b47901e8e8), [`b84d6cf`](https://github.com/verbatra/verbatra/commit/b84d6cf0c464f7100e1d529fa1580d4926a34c94), [`6add383`](https://github.com/verbatra/verbatra/commit/6add38300e6ebd5069b490c32e70fb4ab5ba26ac), [`b64938c`](https://github.com/verbatra/verbatra/commit/b64938c4826113898530893ea85206a0b39b4f30), [`7b747b1`](https://github.com/verbatra/verbatra/commit/7b747b14840ddab5caaf3243d4407328bdd4340b), [`523ad3b`](https://github.com/verbatra/verbatra/commit/523ad3bf30c1fc3efe78b086440900d962d67a10), [`847fdf0`](https://github.com/verbatra/verbatra/commit/847fdf07950b034502131bab6e24137ba82eb221), [`ecb681b`](https://github.com/verbatra/verbatra/commit/ecb681b382001abc0d29750789dff6e696001eab), [`114f985`](https://github.com/verbatra/verbatra/commit/114f98547784f2b1489be891b8b4572728519526), [`995f267`](https://github.com/verbatra/verbatra/commit/995f2677fb3feb71340d6b2ae78ae23dd4bd71e0), [`981f9e3`](https://github.com/verbatra/verbatra/commit/981f9e3b382351137932d836add8ff740186281c), [`a5598dc`](https://github.com/verbatra/verbatra/commit/a5598dce2f5599f8478113436dcdedae57b6db96)]:
+  - @verbatra/sdk@0.13.0
+
 ## 0.12.0
 
 ### Minor Changes
