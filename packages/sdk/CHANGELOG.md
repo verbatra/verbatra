@@ -1,5 +1,71 @@
 # @verbatra/sdk
 
+## 0.13.0
+
+### Minor Changes
+
+- [#335](https://github.com/verbatra/verbatra/pull/335) [`b84d6cf`](https://github.com/verbatra/verbatra/commit/b84d6cf0c464f7100e1d529fa1580d4926a34c94) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Preview an ICU message for a locale with `previewIcuMessage`.
+  
+  - **What it returns:** one row per arm of a `next-intl-json` or `arb` message, with the rendered text. Other formats answer `supported: false`.
+  - **Safe on any text:** an invalid, too long or too complex message comes back as `valid: false` with a reason instead of throwing.
+
+- [#340](https://github.com/verbatra/verbatra/pull/340) [`b64938c`](https://github.com/verbatra/verbatra/commit/b64938c4826113898530893ea85206a0b39b4f30) Thanks [@mariokreitz](https://github.com/mariokreitz)! - See how one translation key changed from commit to commit with `keyHistory` and the `history.keyRevisions` MCP tool.
+  
+  - **What you get:** `keyHistory({ config, locale, key })` lists the commits that changed the key's value in a locale, newest first, with date, author name (never the email), subject, value, origin and a word-level diff. `history.keyRevisions` returns the same to an MCP client, read-only.
+  - **Keys are scrubbed:** values, diffs, subjects and author names pass `redact`; a value that held an API key comes back as `[REDACTED]` and must not be restored. A former custom key, or a current key under 8 characters, with an unrecognized shape can remain in a revision.
+  - **Upgrade:** `localeHistory` and `history.list` now answer `dubious-ownership`, `bare-repository`, `unsafe-config` and `git-too-old` with `available: false` instead of an empty list. If you map every `LocaleHistoryUnavailableReason`, add those four.
+
+- [#342](https://github.com/verbatra/verbatra/pull/342) [`7b747b1`](https://github.com/verbatra/verbatra/commit/7b747b14840ddab5caaf3243d4407328bdd4340b) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Set per-key length limits in `verbatra.limits.json`, next to the lock file, with `setKeyLengthLimit`, in addition to the config's `maxLength`.
+  
+  - **What you get:** `setKeyLengthLimit({ config, key, maxLength })` sets, changes or removes (`null`) a key's limit. Translate, check and export flows read it; a limit stays advisory (a longer value is flagged `MAX_LENGTH_EXCEEDED`, never refused), and the config's `maxLength` wins for a key set in both. `verbatra doctor` has a new `limits` check.
+  - **Fixed:** `keyContext` reported a function as `maxLength` for a key named like an object property, such as `constructor`. `check --qa` and `checkFile` now measure a generated plural form only against a limit set for its own key (for example `items_few`), as `translate` already did.
+  - **Upgrade:** `checkFile` and `verbatra check --file` now read `verbatra.limits.json`, and `doctor` has a new check id, `limits`. A tool that lists every check id should add it.
+
+- [#338](https://github.com/verbatra/verbatra/pull/338) [`523ad3b`](https://github.com/verbatra/verbatra/commit/523ad3bf30c1fc3efe78b086440900d962d67a10) Thanks [@mariokreitz](https://github.com/mariokreitz)! - See which locale files changed in git, and what changed in each, with `localeGitStatus` and `localeGitDiff`.
+  
+  - **What you get:** `localeGitStatus({ config })` lists the locale, lock and provenance files that differ from the last commit, and `localeGitDiff({ config, locale })` lists the keys added, removed and changed in one locale. A missing or unusable git comes back as `available: false` with a reason instead of throwing.
+  - **Security fix in `localeHistory`:** git now runs without a shell and with a minimal environment, never inherits `GIT_*` variables, never opens a bare repository planted in the project folder and never fetches from a promisor remote.
+  - **Upgrade:** `localeHistory` now answers `dubious-ownership`, `bare-repository`, `unsafe-config` or `git-too-old` with `available: false` where it used to read as an empty history.
+
+- [#354](https://github.com/verbatra/verbatra/pull/354) [`ecb681b`](https://github.com/verbatra/verbatra/commit/ecb681b382001abc0d29750789dff6e696001eab) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Node.js 22.22 is now the minimum on the 22 line, and file watching moves to chokidar 6.
+  
+  - **Upgrade:** the supported range changes from `^22.18.0 || >=24` to `^22.22.0 || >=24`. On Node 22.18 to 22.21 the install is refused or warns. Upgrade Node to 22.22 or newer, or use 24 or 26.
+  - **Dependencies:** chokidar 5.0.0 -> 6.0.0 (`@verbatra/sdk`, `@verbatra/studio`).
+
+- [#344](https://github.com/verbatra/verbatra/pull/344) [`114f985`](https://github.com/verbatra/verbatra/commit/114f98547784f2b1489be891b8b4572728519526) Thanks [@mariokreitz](https://github.com/mariokreitz)! - See what a single-key retranslation cost in tokens: `retranslateEntry` now returns the provider's `usage` (`inputTokens`, `outputTokens`), also for a refused value, in the SDK, the MCP tool `translation.retranslateEntry` and Studio. DeepL, Google Cloud Translation and LibreTranslate report none.
+
+- [#344](https://github.com/verbatra/verbatra/pull/344) [`995f267`](https://github.com/verbatra/verbatra/commit/995f2677fb3feb71340d6b2ae78ae23dd4bd71e0) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Keep a local history of finished runs, with the cost frozen at the rates of the day, and read it with `runHistory` and the `usage.history` MCP tool.
+  
+  - **What gets recorded:** each `translate`, `watch`, Studio or MCP translate-pending run and retranslation that left a trace adds a record to `.verbatra-local/run-history.jsonl` with time, provider and model, tokens, cost and per-locale counts, never a key name or text. A dry run is not recorded, and the newest 1,000 are kept. Recording is best-effort: a record is skipped when the history file cannot be written or its lock not acquired.
+  - **Cost is frozen:** the cost is calculated from the config's `rates` at the end of the run and stored with the record (with the rate card's currency and date, not the rates), so a later rate change never rewrites an old run. Where no figure exists the record says so instead of showing zero.
+
+- [#346](https://github.com/verbatra/verbatra/pull/346) [`981f9e3`](https://github.com/verbatra/verbatra/commit/981f9e3b382351137932d836add8ff740186281c) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Replace text across the values of your target locales with `previewValueReplace` and `applyValueReplace`.
+  
+  - **What you get:** `previewValueReplace` lists up to 1,000 values that contain a literal `find` text (`truncated` says when there were more), and `applyValueReplace` changes the values you pick and reports the outcome of each. Matching is literal and the replacement is inserted as written.
+  - **Safe:** each new value is rechecked when you apply and held to the integrity gate, so a value that changed after the preview is not written.
+  - **What is left alone:** keys matching `pinnedKeys` and values a person wrote, imported or changed outside verbatra are skipped unless you pass `includeProtected`, or `includePinned` with `actor` set to `human`; a key that is both pinned and protected is listed as `pinned` with `protected: true` and needs both options; an agent never changes a pinned key.
+
+### Patch Changes
+
+- [#354](https://github.com/verbatra/verbatra/pull/354) [`d5279a9`](https://github.com/verbatra/verbatra/commit/d5279a9b672c0ea9b901c2e2e9a9a6b47901e8e8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Update bundled runtime dependencies.
+  
+  - **@verbatra/sdk:** @google/genai 2.31.0 -> 2.32.0, deepl-node 1.28.1 -> 1.29.0, openai 7.43.0 -> 7.47.0.
+  - **@verbatra/mcp:** @modelcontextprotocol/server 2.3.1 -> 2.4.0.
+
+- [#353](https://github.com/verbatra/verbatra/pull/353) [`6add383`](https://github.com/verbatra/verbatra/commit/6add38300e6ebd5069b490c32e70fb4ab5ba26ac) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Re-importing a filled workbook row that equals the current up-to-date value is now reported unchanged instead of translated.
+  
+  - **Unchanged echo:** a CSV, TSV or xlsx row equal to the value an up-to-date key already holds, and that passes the integrity gate, is left alone: the key's value is left as it was, the key is reported unchanged rather than translated, and its provenance origin stays as it was.
+  - **Still gated:** in a CSV, TSV or xlsx file, an echo that fails the gate (for example a missing placeholder) is still refused and reported as an integrity mismatch, as before.
+  - **Translation memory:** an echoed value no longer adds its source and translation to the translation memory.
+  - **Upgrade:** such a row used to count as translated, rewrite the value, record the origin `import` and add to the translation memory; it now counts as unchanged without rewriting its value or provenance origin or adding it to the translation memory. A script that counted these rows as translated should read the unchanged count too.
+
+- [#341](https://github.com/verbatra/verbatra/pull/341) [`847fdf0`](https://github.com/verbatra/verbatra/commit/847fdf07950b034502131bab6e24137ba82eb221) Thanks [@mariokreitz](https://github.com/mariokreitz)! - `localeHistory` and `history.list` no longer return an API key that a commit subject or author name quotes.
+  
+  - **What changed:** anything shaped like a provider key, or equal to a configured key variable, is replaced by `[REDACTED]` in every commit `subject` and `author`; a former custom key, or a current key under 8 characters, in an unrecognized shape can remain.
+  - **Limits:** a `subject` is now cut to 500 characters and an `author` to 200.
+
+- [#340](https://github.com/verbatra/verbatra/pull/340) [`a5598dc`](https://github.com/verbatra/verbatra/commit/a5598dce2f5599f8478113436dcdedae57b6db96) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Read large yaml locale files in linear time: the duplicate key check no longer takes quadratic time, and its error now points at the duplicate key itself (`a:` then `a: 1` was line 1 column 3, now line 2 column 1). The error code is unchanged.
+
 ## 0.12.0
 
 ### Minor Changes
