@@ -80,8 +80,8 @@ Every call goes through the dashboard's own authenticated loopback RPC, with the
 
 - **Provenance**: an agent's edit is recorded with the origin `agent` and stays in the review queue; a dashboard edit is `human`. The read tools report who wrote each value ([The lock file](/docs/the-lock-file#provenance-who-wrote-each-value)).
 - **Human work**: retranslating refuses a person's value with `KEY_PROTECTED` (except with `humanEdits: "overwrite"`) and a pinned key with `KEY_PINNED`, and editing refuses a pinned key ([Keep human translations](/docs/protecting-human-translations)).
-- **Review decisions**: approve and reject are for relaying your decision only. Both need `reviewer`, the person's name, and `expectedValue`, the text reviewed; a changed value is refused with `REVIEW_VALUE_CHANGED`.
-- **No bulk tools**: **Approve selected**, **Reject selected**, **Retranslate selected** and **Approve all in** stay with a person.
+- **Review decisions**: approve and reject only relay your decision. Both need `reviewer`, the person's name, and `expectedValue`, the text reviewed; a changed value is refused with `REVIEW_VALUE_CHANGED`.
+- **No bulk tools**: **Approve selected**, **Reject selected**, **Retranslate selected**, **Approve all in** and **Search and replace** stay person-only.
 - **Estimate first**: an unknown locale is refused with `UNKNOWN_LOCALE` before anything is spent, and the lower of the call's and the config's `maxTokens` applies ([Estimate cost before a run](/docs/estimating-cost)).
 - **Rate limits**: per rolling minute, 20 retranslations, 20 edits, 20 glossary writes, 60 review decisions and 5 translate-pending calls, one at a time.
 

@@ -1,5 +1,8 @@
 # Exit codes and the JSON envelope
 
+- [Exit codes](#exit-codes)
+- [The JSON envelope](#the-json-envelope)
+
 ## Exit codes
 
 Branch on the exit code first. It is the one signal that combines "did the command

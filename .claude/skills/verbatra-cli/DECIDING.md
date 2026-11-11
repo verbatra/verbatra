@@ -1,5 +1,11 @@
 # Deciding what to run
 
+- [Read-only questions](#read-only-questions)
+- [Provider locale support](#provider-locale-support)
+- [Review reasons worth knowing](#review-reasons-worth-knowing)
+
+## Read-only questions
+
 The single most useful habit: **ask what is pending before you translate.** A run
 bills per key sent, so the cheap read-only question comes first.
 
@@ -71,6 +77,8 @@ bills per key sent, so the cheap read-only question comes first.
   of the flag and the config's `maxTokens` applies, a request that would cross it
   is withheld rather than sent, and its keys are listed under `budgetWithheld`. A
   token budget and `--concurrency` above `1` cannot be combined.
+
+## Provider locale support
 
 Before the first run against DeepL or Google Cloud Translation, or after adding
 a target locale, `verbatra doctor --locales` shows what the provider supports for

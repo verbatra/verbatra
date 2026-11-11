@@ -61,7 +61,7 @@ Una búsqueda y sustitución literal sobre los valores de tus locales de destino
 
 ### previewValueReplace
 
-Lista los valores de destino que contienen `find`, con un estado para cada uno. La coincidencia es literal: sin sintaxis de patrones, sin normalización Unicode (un `find` en NFD no coincide con un valor en NFC) y sin traducción de finales de línea. `replace` se inserta tal como lo escribes, así que `$&` y `$1` no significan nada especial. `caseSensitive` es `true` por defecto. Una coincidencia nunca empieza ni termina dentro de un par sustituto, y un `find` o `replace` con un sustituto suelto lanza `FIND_TEXT_INVALID`. Solo lectura.
+Lista los valores de destino que contienen `find`, con un estado para cada uno. La coincidencia es literal: sin sintaxis de patrones, sin normalización Unicode (un `find` en NFD no coincide con un valor en NFC) y sin traducción de finales de línea. `replace` se inserta tal como lo escribes, así que `$&` y `$1` no significan nada especial. `caseSensitive` es `true` por defecto. Una coincidencia nunca empieza ni termina dentro de un par sustituto, y un `find` vacío, uno de más de 20.000 caracteres, o un `find` o `replace` con un sustituto suelto lanza `FIND_TEXT_INVALID`. Solo lectura.
 
 ```ts title="Firma"
 function previewValueReplace(

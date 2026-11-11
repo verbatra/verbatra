@@ -80,8 +80,8 @@ Jeder Aufruf läuft über den eigenen, angemeldeten Loopback-RPC des Dashboards,
 
 - **Herkunft**: Eine Änderung durch den Agenten wird mit der Herkunft `agent` festgehalten und bleibt in der Review-Warteschlange; eine Änderung im Dashboard ist `human`. Die Lese-Tools melden, wer welchen Wert geschrieben hat ([Die Lock-Datei](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat)).
 - **Menschliche Arbeit**: Neu übersetzen verweigert den Wert einer Person mit `KEY_PROTECTED` (außer bei `humanEdits: "overwrite"`) und einen gepinnten Key mit `KEY_PINNED`, Bearbeiten verweigert einen gepinnten Key ([Menschliche Übersetzungen behalten](/de/docs/protecting-human-translations)).
-- **Review-Entscheidungen**: Freigeben und Ablehnen dienen nur dazu, deine Entscheidung weiterzugeben. Beide brauchen `reviewer`, den Namen der Person, und `expectedValue`, den geprüften Text; ein geänderter Wert wird mit `REVIEW_VALUE_CHANGED` abgelehnt.
-- **Keine Sammel-Tools**: **Approve selected**, **Reject selected**, **Retranslate selected** und **Approve all in** bleiben bei einem Menschen.
+- **Review-Entscheidungen**: Freigeben und Ablehnen geben nur deine Entscheidung weiter. Beide brauchen `reviewer`, den Namen der Person, und `expectedValue`, den geprüften Text; ein geänderter Wert wird mit `REVIEW_VALUE_CHANGED` abgelehnt.
+- **Keine Sammel-Tools**: **Approve selected**, **Reject selected**, **Retranslate selected**, **Approve all in** und **Search and replace** bleiben Menschen vorbehalten.
 - **Erst schätzen**: Eine unbekannte Locale wird mit `UNKNOWN_LOCALE` abgelehnt, bevor etwas ausgegeben wird, und es gilt das niedrigere `maxTokens` von Aufruf und Konfiguration ([Kosten vor einem Lauf schätzen](/de/docs/estimating-cost)).
 - **Rate-Limits**: pro gleitender Minute 20 Neuübersetzungen, 20 Bearbeitungen, 20 Glossar-Schreibvorgänge, 60 Review-Entscheidungen und 5 Translate-Pending-Aufrufe, einer zur Zeit.
 

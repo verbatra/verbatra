@@ -108,9 +108,9 @@ septembre 2026.
 | Tes fichiers de locale | les traductions | oui |
 | `verbatra.lock.json` | un hash de chaque chaîne source à partir de laquelle une traduction a été faite | oui |
 | `verbatra.provenance.json` | par clé, le chemin d'écriture, le fournisseur et le modèle de la valeur, et toute décision de relecture avec le nom du relecteur ; aucun texte traduit ni horodatage | oui |
-| `verbatra.limits.json` | par clé, une limite de longueur | oui |
+| `verbatra.limits.json` | par clé, une limite de longueur <AvailableFrom version="0.13.0" /> | oui |
 | `verbatra.cache.json` | le texte source et ses traductions, par fournisseur, modèle, ton, glossaire et `localeMap` | non, `verbatra init` l'ajoute au `.gitignore` |
-| `.verbatra-local/` | le statut de la dernière exécution, les signalements de relecture et la consommation de tokens, l'historique des exécutions (compteurs, consommation, coût), les pseudolocales générées, et les verrous d'écriture avec le nom d'hôte et l'ID de processus de l'exécution qui les détient | non, ignoré par git |
+| `.verbatra-local/` | le statut de la dernière exécution, les signalements de relecture et la consommation de tokens, l'historique des exécutions (compteurs, consommation, coût) <AvailableFrom version="0.13.0" />, les pseudolocales générées, et les verrous d'écriture avec le nom d'hôte et l'ID de processus de l'exécution qui les détient | non, ignoré par git |
 | `.env`, `.env.local` | tes clés d'API, si tu les gardes là | jamais, `verbatra init` les ajoute tous deux au `.gitignore` |
 
 ## Clés d'API

@@ -164,7 +164,7 @@ Cada unidad con destino lleva además su origen: XLIFF 1.2 califica un destino d
 Lee un libro rellenado de vuelta a los archivos de locale, ejecutando las mismas comprobaciones de
 desfase del origen e integridad que `translate`. Solo las filas aceptadas avanzan su
 línea base del bloqueo; una fila en blanco o rechazada se sigue exportando hasta que se resuelve de
-verdad.
+verdad. En una entrega CSV, TSV o xlsx, una fila rellenada igual al valor de una clave al día que supera la barrera de integridad se deja intacta y se informa como `unchanged`, no como traducida <AvailableFrom version="0.13.0" />; consulta [Traducción manual](/es/docs/manual-translation#qué-acepta-la-importación).
 
 ```ts title="Firma"
 function importWorkbook(

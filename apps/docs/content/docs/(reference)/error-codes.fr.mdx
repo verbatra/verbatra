@@ -1030,7 +1030,7 @@ Il se déclenche en dessous de 0.35 fois ou au-dessus de 3.0 fois la longueur ro
 
 ### MAX_LENGTH_EXCEEDED
 
-La traduction est plus longue que le budget `maxLength` configuré pour sa clé.
+La traduction est plus longue que le budget `maxLength` configuré pour sa clé, dans la config ou dans [`verbatra.limits.json`](/fr/docs/config-file#maxlength) <AvailableFrom version="0.13.0" />.
 
 La longueur se compte en groupes de graphèmes sur la valeur telle qu'elle est écrite. La limite est inclusive : une valeur d'exactement le budget n'est pas signalée, et une clé sans budget n'est jamais mesurée.
 

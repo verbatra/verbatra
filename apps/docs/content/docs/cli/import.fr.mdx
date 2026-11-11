@@ -71,6 +71,8 @@ Une cellule `Translation` vide ne fait jamais échouer une locale : la ligne est
 
 Une seule ligne illisible est signalée comme ligne malformée, et le reste de la locale est quand même importé. Une remise trop volumineuse ou impossible à analyser (par exemple, pas un conteneur xlsx lisible) est une erreur `SOURCE_INVALID` de toute l'exécution, dont le message dit ce qui n'allait pas.
 
+Dans un fichier CSV, TSV ou xlsx, une ligne remplie égale à la valeur d'une clé à jour est laissée telle quelle et signalée comme inchangée, non traduite, une fois qu'elle passe la barrière d'intégrité <AvailableFrom version="0.13.0" />. Voir [Traduction manuelle](/fr/docs/manual-translation#ce-que-limport-accepte).
+
 ### Retour dans le terminal
 
 <AvailableFrom version="0.12.0" />

@@ -39,8 +39,8 @@ prose comments on internal code.
 Conventional Commits, enforced by commitlint in the `commit-msg` hook; branches are
 `<type>/<kebab-case>`. Whether a change needs a changeset, and where it goes, follows
 [.claude/rules/git-conventions.md](.claude/rules/git-conventions.md): a change to a private package
-the SDK bundles names `@verbatra/sdk`, not the private package, and during the 0.12.0 cycle a
-change extends the matching release theme file in `.changeset/` instead of adding one.
+the SDK bundles names `@verbatra/sdk`, not the private package, and each change adds one
+changeset named after its capability, or rewords the pending one.
 
 ## Do not
 

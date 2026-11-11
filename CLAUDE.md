@@ -69,8 +69,8 @@ each version independently.
 Binding dependency-direction and extension-pattern rules, with exact file pointers,
 live in `.claude/rules/architecture.md`. Read it before adding a package, a provider,
 or a format adapter. In short: business logic lives in the SDK and below, `cli` stays
-thin, dependencies flow one way (config -> core -> format-adapters / ai-providers /
-exchange / extract -> sdk -> cli), and new providers or formats extend the existing factory
+thin, dependencies flow one way (config -> core -> format-adapters / ai-providers ->
+sdk -> cli, with exchange and extract joining at the sdk), and new providers or formats extend the existing factory
 tables rather than reimplementing plumbing.
 
 For reusable design patterns already established in this codebase (Strategy,

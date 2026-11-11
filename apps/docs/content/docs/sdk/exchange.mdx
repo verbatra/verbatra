@@ -159,7 +159,7 @@ Each unit with a target also carries its origin: XLIFF 1.2 qualifies an unapprov
 
 Reads a filled workbook back into the locale files, running the same source-drift and integrity
 checks as `translate`. Only accepted rows advance their lock baseline; a blank or rejected
-row keeps re-exporting until it is genuinely resolved.
+row keeps re-exporting until it is genuinely resolved. In a CSV, TSV or xlsx handoff, a filled row equal to the value an up-to-date key already holds, and that passes the integrity gate, is left alone and reported `unchanged`, not translated <AvailableFrom version="0.13.0" />; see [Manual translation](/docs/manual-translation#what-import-accepts).
 
 ```ts title="Signature"
 function importWorkbook(

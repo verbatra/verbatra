@@ -60,7 +60,7 @@ A literal find-and-replace over the values of your target locales, in two steps.
 
 ### previewValueReplace
 
-Lists the target values that contain `find`, with a status for each. Matching is literal: no pattern syntax, no Unicode normalization (an NFD `find` does not match an NFC value) and no line-ending translation. `replace` is inserted as written, so `$&` and `$1` mean nothing special. `caseSensitive` defaults to `true`. A match never starts or ends inside a surrogate pair, and a `find` or `replace` that holds an unpaired surrogate throws `FIND_TEXT_INVALID`. Read-only.
+Lists the target values that contain `find`, with a status for each. Matching is literal: no pattern syntax, no Unicode normalization (an NFD `find` does not match an NFC value) and no line-ending translation. `replace` is inserted as written, so `$&` and `$1` mean nothing special. `caseSensitive` defaults to `true`. A match never starts or ends inside a surrogate pair, and an empty `find`, one over 20,000 characters, or a `find` or `replace` that holds an unpaired surrogate throws `FIND_TEXT_INVALID`. Read-only.
 
 ```ts title="Signature"
 function previewValueReplace(

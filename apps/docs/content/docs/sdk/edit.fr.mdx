@@ -47,7 +47,7 @@ Une recherche et un remplacement littéraux sur les valeurs de tes locales cible
 
 ### previewValueReplace
 
-Liste les valeurs cibles qui contiennent `find`, avec un statut pour chacune. La correspondance est littérale : pas de syntaxe de motif, pas de normalisation Unicode (un `find` en NFD ne correspond pas à une valeur en NFC) et pas de conversion des fins de ligne. `replace` est inséré tel que tu l'écris, donc `$&` et `$1` n'ont aucun sens particulier. `caseSensitive` vaut `true` par défaut. Une correspondance ne commence ni ne finit jamais au milieu d'une paire de substituts, et un `find` ou `replace` avec un substitut isolé lève `FIND_TEXT_INVALID`. Lecture seule.
+Liste les valeurs cibles qui contiennent `find`, avec un statut pour chacune. La correspondance est littérale : pas de syntaxe de motif, pas de normalisation Unicode (un `find` en NFD ne correspond pas à une valeur en NFC) et pas de conversion des fins de ligne. `replace` est inséré tel que tu l'écris, donc `$&` et `$1` n'ont aucun sens particulier. `caseSensitive` vaut `true` par défaut. Une correspondance ne commence ni ne finit jamais au milieu d'une paire de substituts, et un `find` vide, un `find` de plus de 20 000 caractères, ou un `find` ou `replace` avec un substitut isolé lève `FIND_TEXT_INVALID`. Lecture seule.
 
 ```ts title="Signature"
 function previewValueReplace(

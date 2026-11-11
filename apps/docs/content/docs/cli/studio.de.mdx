@@ -4,7 +4,7 @@ seoTitle: "verbatra studio: lokales Review-Dashboard starten"
 description: "Starte Verbatra Studio, das lokale Übersetzungs-Dashboard, sieh den Projektstand und arbeite die Review-Queue im Browser ab; Kosten nur mit deiner Freigabe."
 type: reference
 ---
-Starte Verbatra Studio, ein lokales Web-Dashboard über deinem Projekt: eine Übersicht mit Abdeckung, letztem Lauf und dem Laufverlauf samt Kosten, den Übersetzungsstatus mit Key-Liste, die Review-Warteschlange, das Glossar und deine aufgelösten Einstellungen, live über den Dateien auf der Platte, auch über `.verbatra-local/run-history.jsonl`. Locale-Dateien und ein dateibasiertes Glossar bearbeitest du ohne weiteres Flag; nur kostenpflichtige Provider-Aufrufe sind Opt-in, hinter `--allow-spend`.
+Starte Verbatra Studio, ein lokales Web-Dashboard über deinem Projekt: eine Übersicht mit Abdeckung, letztem Lauf und dem Laufverlauf samt Kosten <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />, den Übersetzungsstatus mit Key-Liste, die Review-Warteschlange, das Glossar und deine aufgelösten Einstellungen, live über den Dateien auf der Platte, auch über `.verbatra-local/run-history.jsonl`. Locale-Dateien und ein dateibasiertes Glossar bearbeitest du ohne weiteres Flag; nur kostenpflichtige Provider-Aufrufe sind Opt-in, hinter `--allow-spend`.
 
 <AvailableFrom version="0.5.0" />
 
@@ -53,6 +53,12 @@ Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
 Ein fehlgeschlagenes Binden meldet Studio auf stderr als `verbatra: error [<code>] <message>`: `PORT_IN_USE`, wenn ein anderer Prozess den Port hält (gib `--port <n>` an oder beende diesen Prozess), oder `BIND_FAILED`, wenn der Socket auf einer anderen Adresse als `127.0.0.1` hochkam.
 
 Jede Seite aktualisiert sich live, wenn sich eine Locale-Datei, die Lock-Datei, die Herkunftsdatei oder die Limits-Datei ändert ([In Studio prüfen](/de/docs/review-in-studio#übersetze-ausstehende-änderungen) beschreibt die Benachrichtigung), und **Run history and cost** liest neu, wenn sich die Verlaufsdatei ändert, der Tab den Fokus zurückbekommt oder ein Lauf zurückkehrt.
+
+### Navigation und Links
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Overview, Translations, Review, Glossary und Settings sind Links in der Kopfleiste, mit einem Menü unterhalb von 1280px Breite. Die Suche in der Kopfleiste öffnet Translations, gefiltert nach deiner Eingabe, und die Theme-Taste wechselt zwischen System, Hell und Dunkel. Translations und Review halten ihren Zustand in der Adresse, du kannst also darauf verlinken: `#/translations?locale=de&status=missing&key=nav.title&q=text` (`status` darf mehrfach stehen) und `#/review?locale=de`.
 
 ### Was es auf stderr ausgibt
 

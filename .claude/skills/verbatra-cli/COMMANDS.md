@@ -1,5 +1,8 @@
 # CLI commands reference
 
+- [Commands](#commands)
+- [Flags that are easy to miss](#flags-that-are-easy-to-miss)
+
 ## Commands
 
 Read this table before running anything unattended.
@@ -17,7 +20,7 @@ Read this table before running anything unattended.
 | `pseudo` | no | yes, a pseudolocale under the out directory | no |
 | `types` | no | yes, the generated declaration, unless `--check` | no |
 | `doctor` | no | no | no, its checks only test that the key variable is set and never read its value; `--literals` does not even check for one; `--live` fetches a machine-translation provider's language list, sending the key DeepL and Google use when it is set (optional, and it uses no translation quota); `--data-flow` reads no key, makes no network request and spends nothing |
-| `studio` | only with `--allow-spend` or `VERBATRA_STUDIO_ALLOW_SPEND` | yes, through in-place edits | only when spend is granted |
+| `studio` | only with `--allow-spend` or `VERBATRA_STUDIO_ALLOW_SPEND` (also read from `.env.local` and `.env`) | yes, through in-place edits | only when spend is granted |
 | `mcp` | only with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND` (also read from `.env.local` and `.env`) | yes, through in-place edits | only when spend is granted |
 | `init` | no | yes, the config, the env example unless the provider is `none`, and `.gitignore`; with `--agent` also `AGENTS.md` or `CLAUDE.md` and each wired client's MCP config (`.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `.codex/config.toml`, `.gemini/settings.json`); nothing with `--dry-run` | no |
 | `extract` | no | yes, the source locale, unless `--dry-run` | no |

@@ -104,6 +104,7 @@ when the CI workflow concludes successfully. A broken CLI cannot reach npm.
 | `extract.e2e.test.ts`, `types.e2e.test.ts`, `pseudo.e2e.test.ts` | `extract`, `types` including `--check` and `--out`, and `pseudo` |
 | `third-party-adapter.e2e.test.ts` | A format adapter built outside verbatra |
 | `tmx-round-trip.e2e.test.ts` | TMX interchange |
+| `length-limits.e2e.test.ts` | `verbatra.limits.json` in the published binary: `doctor` passes a file whose keys are all in the source, warns on an unusable one, `check --qa` and `export` say on stderr that it was ignored, and `doctor --data-flow` lists it as holding no source text |
 | `xliff-handoff.e2e.test.ts` | An XLIFF 2.0 handoff exported, filled as a CAT tool would, and imported with its review state |
 | `structure-lock-import.e2e.test.ts` | `export` then `import` of the untouched, structure-locked workbook bytes `export` wrote, opened directly with nothing applied |
 | `libretranslate.e2e.test.ts` | A `libretranslate` project with no server and no key: `init --provider libretranslate`, a `doctor` whose API key check passes without `LIBRETRANSLATE_API_KEY`, a character estimate carrying no cost, and a network policy refusing the server before anything is sent |

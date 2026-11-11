@@ -4,7 +4,7 @@ seoTitle: "verbatra studio: abre el panel local de revisión"
 description: "Inicia Verbatra Studio, el panel local de traducción, para ver el estado del proyecto y la cola de revisión en el navegador, sin gastar salvo que lo permitas."
 type: reference
 ---
-Inicia Verbatra Studio, un panel web local sobre tu proyecto: un resumen de la cobertura, la última ejecución y el historial de ejecuciones con su coste, el estado de las traducciones con la lista de claves, la cola de revisión, el glosario y tu configuración resuelta, en vivo sobre los archivos en disco, también sobre `.verbatra-local/run-history.jsonl`. Editar archivos de locale y un glosario basado en archivo funciona sin más; solo el gasto en el proveedor es opcional, detrás de `--allow-spend`.
+Inicia Verbatra Studio, un panel web local sobre tu proyecto: un resumen de la cobertura, la última ejecución y el historial de ejecuciones con su coste <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />, el estado de las traducciones con la lista de claves, la cola de revisión, el glosario y tu configuración resuelta, en vivo sobre los archivos en disco, también sobre `.verbatra-local/run-history.jsonl`. Editar archivos de locale y un glosario basado en archivo funciona sin más; solo el gasto en el proveedor es opcional, detrás de `--allow-spend`.
 
 <AvailableFrom version="0.5.0" />
 
@@ -53,6 +53,12 @@ Abre exactamente esa URL. El token solo se acepta como `?token=` en la primera c
 Un fallo al ocupar el puerto se informa en stderr como `verbatra: error [<code>] <message>`: `PORT_IN_USE` cuando otro proceso tiene el puerto (pasa `--port <n>` o detén ese proceso), o `BIND_FAILED` cuando el socket quedó en una dirección distinta de `127.0.0.1`.
 
 Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo, el archivo de procedencia o el archivo de límites ([Revisa en Studio](/es/docs/review-in-studio#traduce-los-cambios-pendientes) describe el aviso), y **Run history and cost** se relee cuando cambia el archivo del historial, la pestaña recupera el foco o vuelve una ejecución.
+
+### Navegación y enlaces
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Overview, Translations, Review, Glossary y Settings son enlaces en la cabecera, con un cajón de menú por debajo de 1280px de ancho. La búsqueda de la cabecera abre Translations filtrado por lo que escribes, y el botón de tema alterna entre sistema, claro y oscuro. Translations y Review guardan su estado en la dirección, así que puedes enlazarlas: `#/translations?locale=de&status=missing&key=nav.title&q=text` (`status` puede repetirse) y `#/review?locale=de`.
 
 ### Qué imprime en stderr
 
