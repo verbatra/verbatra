@@ -171,8 +171,8 @@ catalogs:
       specifier: 3.5.23
       version: 3.5.23
     '@google/genai':
-      specifier: 3.0.0
-      version: 3.0.0
+      specifier: 3.1.0
+      version: 3.1.0
     '@xmldom/xmldom':
       specifier: 0.9.12
       version: 0.9.12
@@ -439,7 +439,7 @@ importers:
         version: 1.8.0(zod@4.6.7)
       '@google/genai':
         specifier: catalog:bundled
-        version: 3.0.0
+        version: 3.1.0
       '@verbatra/core':
         specifier: workspace:*
         version: link:../core
@@ -710,7 +710,7 @@ importers:
         version: 3.5.23
       '@google/genai':
         specifier: catalog:bundled
-        version: 3.0.0
+        version: 3.1.0
       '@xmldom/xmldom':
         specifier: catalog:bundled
         version: 0.9.12
@@ -1515,8 +1515,8 @@ packages:
   '@fumari/image-size@0.1.1':
     resolution: {integrity: sha512-iaiV2wyzJ4mW358NX4CX3yGit+WjKYzpaQ+rldK9BjL/5jFpeV6ruWnZVq7MEyMn3Gd0DLi8g/79NZAAQaGscw==}
 
-  '@google/genai@3.0.0':
-    resolution: {integrity: sha512-0o2uBXPWBNUu0jWg2Id5iBtCnsd7lnxKPQfnijKvNublG/zj40CToERvz/eyfNjzzXt2kwuvxpouLUrRCZ2WUQ==}
+  '@google/genai@3.1.0':
+    resolution: {integrity: sha512-fKLeRkpULBDox+b5wmm4UN6PsUw1v5kP+8vJF1aq/wSpiI2sV4AuDtL0uZqu91AH4lc25fZ8sDa6cyCQOFyaXg==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@modelcontextprotocol/sdk': '>=1.32.0 <2'
@@ -6507,7 +6507,7 @@ snapshots:
 
   '@fumari/image-size@0.1.1': {}
 
-  '@google/genai@3.0.0':
+  '@google/genai@3.1.0':
     dependencies:
       google-auth-library: 10.7.0
       p-retry: 4.6.2
