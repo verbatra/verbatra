@@ -88,31 +88,40 @@ async function sectionHeight(page: Page): Promise<number> {
 type LoopFrame = {
   readonly row: string;
   readonly at: number;
+  readonly startSpread: number;
   readonly spans: ReadonlyArray<readonly [number, number]>;
 };
 
 async function loopFrames(page: Page): Promise<ReadonlyArray<LoopFrame>> {
-  return page.evaluate(() =>
-    Array.from(document.querySelectorAll<HTMLElement>("#marquee .vk-marquee-row")).flatMap(
-      (row) => {
-        const lists = Array.from(row.querySelectorAll<HTMLElement>(".vk-marquee-list"));
-        const animations = lists.flatMap((list) => list.getAnimations());
-        const duration = Number(animations[0]?.effect?.getComputedTiming().duration ?? 0);
-        return [0, 0.25, 0.5, 0.75, 0.999].map((at) => {
-          for (const animation of animations) {
-            animation.pause();
-            animation.currentTime = duration * at;
-          }
-          const spans = lists.map((list) => {
-            const box = list.getBoundingClientRect();
-            return [box.left, box.right] as const;
-          });
-          return { row: row.dataset.row ?? "", at, spans };
+  return page.evaluate(async () => {
+    const rows = Array.from(document.querySelectorAll<HTMLElement>("#marquee .vk-marquee-row"));
+    const frames: Array<LoopFrame> = [];
+    for (const row of rows) {
+      const lists = Array.from(row.querySelectorAll<HTMLElement>(".vk-marquee-list"));
+      const animations = lists.flatMap((list) => list.getAnimations());
+      await Promise.all(animations.map((animation) => animation.ready));
+      const starts = animations.map((animation) => Number(animation.startTime));
+      const startSpread = Math.max(...starts) - Math.min(...starts);
+      const first = Number(animations[0]?.currentTime);
+      const offsets = animations.map((animation) => Number(animation.currentTime) - first);
+      const duration = Number(animations[0]?.effect?.getComputedTiming().duration ?? 0);
+      for (const at of [0, 0.25, 0.5, 0.75, 0.999]) {
+        animations.forEach((animation, index) => {
+          animation.pause();
+          animation.currentTime = duration + duration * at + (offsets[index] ?? 0);
         });
-      },
-    ),
-  );
+        const spans = lists.map((list) => {
+          const box = list.getBoundingClientRect();
+          return [box.left, box.right] as const;
+        });
+        frames.push({ row: row.dataset.row ?? "", at, startSpread, spans });
+      }
+    }
+    return frames;
+  });
 }
+
+const MARQUEE_GAP_PX = 14;
 
 async function expectStatic(page: Page): Promise<void> {
   const marquee = page.locator(MARQUEE);
@@ -351,11 +360,21 @@ test.describe("marquee motion", () => {
       await expect(page.locator(`${MARQUEE} .vk-marquee-copy`).first()).toBeVisible();
       const frames = await loopFrames(page);
       expect(frames).toHaveLength(10);
-      for (const { row, at, spans } of frames) {
-        const left = Math.min(...spans.map(([start]) => start));
-        const right = Math.max(...spans.map(([, end]) => end));
-        expect(left, `${row} at ${at} of the loop`).toBeLessThanOrEqual(0);
-        expect(right, `${row} at ${at} of the loop`).toBeGreaterThanOrEqual(width);
+      for (const { row, at, startSpread, spans } of frames) {
+        const label = `${row} at ${at} of the loop`;
+        expect(startSpread, `${label}: start times`).toBe(0);
+        const ordered = [...spans].sort(([first], [second]) => first - second);
+        expect(ordered[0]?.[0] ?? 1, label).toBeLessThanOrEqual(0);
+        expect(Math.max(...ordered.map(([, end]) => end)), label).toBeGreaterThanOrEqual(width);
+        for (let index = 1; index < ordered.length; index += 1) {
+          const gap = (ordered[index]?.[0] ?? 0) - (ordered[index - 1]?.[1] ?? 0);
+          expect(gap, `${label}: between list ${index - 1} and ${index}`).toBeGreaterThanOrEqual(
+            MARQUEE_GAP_PX - 1,
+          );
+          expect(gap, `${label}: between list ${index - 1} and ${index}`).toBeLessThanOrEqual(
+            MARQUEE_GAP_PX + 1,
+          );
+        }
       }
     });
   }
