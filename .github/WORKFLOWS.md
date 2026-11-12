@@ -15,10 +15,11 @@ and is what renders on the org page.
 
 | Path | What it is |
 | --- | --- |
-| `workflows/` | The nine GitHub Actions workflows: CI, Release, Dependency audit, CodeQL, Scorecard, Unused code, Deploy Docs, Docs i18n check, and E2E (live) |
+| `workflows/` | The ten GitHub Actions workflows: CI, Release, Dependency audit, CodeQL, Scorecard, Unused code, Deploy Docs, Docs i18n check, E2E (live), and PR labels |
 | `actions/` | Three local composite actions the workflows reuse: `setup-workspace`, `ssh-connect`, `ssh-copy` |
 | `ISSUE_TEMPLATE/` | Bug report, feature request, new format, new provider, and documentation problem forms, each applying its `type:` label, any `scope:` label, and `needs triage`; `config.yml` turns blank issues off and routes questions to Discussions Q&A, security reports to a private advisory, and action and skills issues to their repositories |
 | `PULL_REQUEST_TEMPLATE.md` | The three sections every pull request fills in: what changed (with a `Closes #` line), how it was tested, and the checklist, including the breaking-change box |
+| `labeler.yml` | The changed-path globs `PR labels` turns into `scope:` labels |
 | `dependabot.yml` | Weekly update schedule for npm (root workspace and `e2e/`), GitHub Actions (workflows and the local composite actions), and the docs Docker image, with a seven-day cooldown and the major-version pins it deliberately holds back |
 | `assets/` | `verbatra-mark.png`, shown by the root README and hotlinked by the package READMEs through `raw.githubusercontent.com`, and `banner.webp`, kept for READMEs of already published versions that hotlink it |
 
@@ -41,6 +42,7 @@ raises on top of that.
 | Deploy Docs | `docs-deploy.yml` | push to `main` | `packages: write` (push the docs image to GHCR) |
 | Docs i18n check | `docs-i18n-check.yml` | pull request touching `apps/docs` messages, content, config, or lock file | none |
 | E2E (live) | `e2e-live.yml` | push to `main` and nightly schedule (`gemini` only), manual dispatch (`provider` and `google_batch` inputs) | none (one job per provider in the `live-e2e` environment, each given only its own key) |
+| PR labels | `pr-labels.yml` | `pull_request_target` opened, edited, synchronize, reopened; never checks out or runs pull request code | `pull-requests: write` (adds `scope:` labels from `labeler.yml` and a `type:` label, plus `breaking change` for a `!`, from the Conventional Commit title) |
 
 ## The SHA-pin convention
 
