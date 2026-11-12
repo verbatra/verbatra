@@ -31,14 +31,29 @@ function addCopies(root: HTMLElement): ReadonlyArray<HTMLElement> {
   );
 }
 
-function alignCopies(root: HTMLElement): void {
+function alignTo(reference: Animation, animation: Animation): void {
+  if (reference.startTime !== null) animation.startTime = reference.startTime;
+  else if (reference.currentTime !== null) animation.currentTime = reference.currentTime;
+}
+
+async function alignCopies(root: HTMLElement): Promise<void> {
   for (const track of root.querySelectorAll(".vk-marquee-track")) {
     const [first] = track.querySelectorAll<HTMLElement>(":scope > .vk-marquee-list");
-    const time = first?.getAnimations?.()[0]?.currentTime;
-    if (time === undefined) continue;
-    for (const copy of track.querySelectorAll<HTMLElement>(":scope > .vk-marquee-copy"))
-      for (const animation of copy.getAnimations?.() ?? []) animation.currentTime = time;
+    const reference = first?.getAnimations?.()[0];
+    if (reference === undefined) continue;
+    const copies = Array.from(
+      track.querySelectorAll<HTMLElement>(":scope > .vk-marquee-copy"),
+    ).flatMap((copy) => copy.getAnimations?.() ?? []);
+    await Promise.all([reference.ready, ...copies.map((animation) => animation.ready)]);
+    for (const animation of copies) alignTo(reference, animation);
   }
+}
+
+function alignOnceStarted(root: HTMLElement): () => void {
+  let frame = requestAnimationFrame(() => {
+    frame = requestAnimationFrame(() => void alignCopies(root));
+  });
+  return () => cancelAnimationFrame(frame);
 }
 
 export function MarqueeMotion({
@@ -61,16 +76,19 @@ export function MarqueeMotion({
     if (element === null) return;
     const query = window.matchMedia(MOTION_QUERY);
     let copies: ReadonlyArray<HTMLElement> = [];
+    let cancelAlign = () => {};
     const sync = () => {
+      cancelAlign();
       for (const copy of copies) copy.remove();
       copies = query.matches ? addCopies(element) : [];
-      alignCopies(element);
+      cancelAlign = alignOnceStarted(element);
     };
     sync();
     setReady(true);
     query.addEventListener("change", sync);
     return () => {
       query.removeEventListener("change", sync);
+      cancelAlign();
       for (const copy of copies) copy.remove();
     };
   }, [children]);
