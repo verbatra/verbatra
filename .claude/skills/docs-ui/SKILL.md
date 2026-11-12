@@ -364,7 +364,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   large sentence on a starfield whose counts come from `lib/hero-terminal.ts`, the lit part in an
   `em`, the rest `--text-faint`, with the first locale line of the translate run under it),
   `highlights.tsx` (`#highlights`, a split head aligned to the start over `.vk-bento`, six columns
-  from 64rem: the translate run from `HERO_TRANSLATE_OUTPUT` in a `ScrollBlock`, its total line in
+  from 64rem: the translate run from `HERO_TRANSLATE_OUTPUT` in a `ScrollBlock` (wrapped at its spaces under 40rem, so no line is cut or faded on a phone; the text stays the CLI's), its total line in
   `--accent` (span 4), the check's exit code in `--text-danger` (span 2; its glow is a strip of
   `--tile-halo-height` at the tile's end, under padding that clears the text, so no text ever sits
   over a halo), the playground's default item in every playground language with each placeholder

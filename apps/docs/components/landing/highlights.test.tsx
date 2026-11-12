@@ -159,6 +159,15 @@ describe("Highlights stylesheet", () => {
     expect(glow).toMatch(/radial-gradient\(\s*75% var\(--tile-halo-height\) at 50% 100%/);
   });
 
+  it("wraps the translate output on a phone instead of scrolling it", () => {
+    const phone = css.slice(
+      css.indexOf("@media (width < 40rem) {\n  .vk-tile-code .vk-tile-pre {"),
+    );
+    const block = phone.slice(0, phone.indexOf("\n}\n"));
+    expect(block).toContain("white-space: pre-wrap;");
+    expect(block).toContain("overflow-wrap: break-word;");
+  });
+
   it("wraps the MCP command instead of scrolling it", () => {
     expect(rule(".vk-tile-code-wrap .vk-tile-pre")).toContain("white-space: pre-wrap;");
     expect(rule(".vk-tile-code-wrap .vk-tile-pre")).toContain("overflow-wrap: break-word;");
