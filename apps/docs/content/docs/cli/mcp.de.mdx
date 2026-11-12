@@ -5,7 +5,7 @@ description: "Starte den stdio-MCP-Server, der die Tools von verbatra jedem MCP-
 status: new
 type: reference
 ---
-Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den Transport, mit dem Clients wie Claude Code oder Cursor einen Tool-Server starten. Er bedient die Protokollrevisionen 2024-10-07 bis 2026-07-28. Einen HTTP-Transport gibt es nicht: Er würde die schreibenden und kostenpflichtigen Tools an einem Port anbieten.
+Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den Transport, mit dem MCP-Clients einen Tool-Server starten. Er bedient die Protokollrevisionen 2024-10-07 bis 2026-07-28. Einen HTTP-Transport gibt es nicht: Er würde die schreibenden und kostenpflichtigen Tools an einem Port anbieten.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -75,7 +75,7 @@ Der Server beantwortet den Handshake mit festen `instructions`, die die meisten 
 | Tool | Was es tut | Nur lesend | Ruft einen Provider auf |
 | --- | --- | --- | --- |
 | `project.snapshot` | die aufgelöste Konfiguration: `configured`, `configSource`, Locales, Format, `files.pattern`, Provider, Glossar, `humanEdits`, `prune`, `valuesRedacted` | ja | nein |
-| `project.doctor` | jede Setup-Prüfung mit `status`, `detail` und, wenn sie fehlschlug, einem `fix`; funktioniert auch ohne brauchbare Konfiguration | ja | nein |
+| `project.doctor` | jede Setup-Prüfung mit `status`, `detail` und, wenn sie fehlschlug, einem `fix` | ja | nein |
 | `status.check` | pro Locale die Zahl fehlender, veralteter und aktueller Keys | ja | nein |
 | `status.diff` | pro Locale die Keys, die hinzukämen, neu übersetzt würden oder verwaist sind | ja | nein |
 | `glossary.get` | jeden Glossarbegriff mit Übersetzungen, verbotenen Wiedergaben und Kontext, mit geschwärzten Secrets | ja | nein |
@@ -89,13 +89,13 @@ Der Server beantwortet den Handshake mit festen `instructions`, die die meisten 
 | `key.context` | was `key.value` liefert, dazu die passenden Glossarbegriffe, `maxLength` und eine Prüfung eines optionalen `draft` | ja | nein |
 | `locale.values` | Quell- und Zieltext vieler Keys, gefiltert nach `keys` oder `query`, seitenweise | ja | nein |
 | `translation.editEntry` | eine manuelle Übersetzung für einen Key in einer Locale schreiben, geprüft durch die Integritätschecks | nein | nein |
-| `translation.estimate` | was `translation.translatePending` senden und kosten würde, wie `translate --estimate --json` es meldet | ja | nein |
+| `translation.estimate` | was `translation.translatePending` senden und kosten würde, wie `translate --estimate` | ja | nein |
 | `translation.retranslateEntry` | den konfigurierten Provider einen Key in einer Locale neu übersetzen lassen | nein | ja |
 | `translation.translatePending` | jeden fehlenden oder veralteten Key übersetzen, wahlweise nur für einige `locales` und unter einer `maxTokens`-Obergrenze | nein | ja |
 | `review.queue` | jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, mit den Markierungen des letzten Laufs | ja | nein |
 | `report.provenance` | pro Locale die Herkunftszahlen wie bei `verbatra report provenance`, auf Wunsch mit den Keys, seitenweise | ja | nein |
 | `review.approve` | auf Anweisung des Nutzers festhalten, dass eine namentlich genannte Person die aktuelle Übersetzung eines Keys freigibt | nein | nein |
-| `review.reject` | auf Anweisung des Nutzers festhalten, dass eine namentlich genannte Person die Übersetzung eines Keys ablehnt; sie wird entfernt und ersetzt | nein | nein |
+| `review.reject` | auf Anweisung des Nutzers festhalten, dass eine namentlich genannte Person die Übersetzung eines Keys ablehnt, und sie entfernen | nein | nein |
 | `usage.summary` | Token-Verbrauch und Budgetstand des letzten Laufs | ja | nein |
 | `usage.history` | letzte Läufe, Kosten und Abdeckung <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | ja | nein |
 
@@ -126,7 +126,7 @@ Der Server beantwortet den Handshake mit festen `instructions`, die die meisten 
 - `history.list` nimmt `limit` (Standard 50, höchstens 200). Bei `available: false` ist sein `reason` `git-missing`, `not-a-repository`, `bare-repository`, `dubious-ownership`, `timeout`, `output-too-large`, `unsafe-config` oder `git-too-old`.
 - `usage.history` nimmt `limit`, die Zahl der neuesten Läufe (Standard 50, höchstens 200) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
 - `history.keyRevisions` nimmt `locale`, `key` (höchstens 1.024 Zeichen) und `limit`, die Zahl der geprüften Commits (Standard 50, höchstens 200) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
-- `usage.summary` enthält die Budgetfelder nur, wenn der Lauf ein `maxTokens`-Budget hat, und meldet `budget.supported: false`, wenn eine Anfrage keinen eigenen Verbrauch gemeldet hat oder fehlgeschlagen ist; dann enthält `tokensUsed` die Schätzung von verbatra für jede Anfrage, die der Provider nicht oder mit null gemeldet hat, und ist keine vom Provider berechnete Zahl.
+- `usage.summary` liest nur den letzten Lauf (frühere listet `usage.history`), lässt `usage` weg, wenn dieser Lauf keinen gemeldet hat, und enthält die Budgetfelder nur unter einem `maxTokens`-Budget. `budget.supported: false` heißt, eine Anfrage hat keinen Verbrauch gemeldet oder ist fehlgeschlagen; dann enthält `tokensUsed` die Schätzung von verbatra für jede Anfrage, die mit null oder gar nicht gemeldet wurde, und ist keine vom Provider berechnete Zahl.
 - Die schreibenden Tools nehmen ein optionales `lockTimeoutMs`, `0` bis `600000`, Standard `30000`: so lange wartet der Aufruf auf eine gehaltene Schreibsperre, bevor er mit `LOCK_CONTENDED` scheitert, ohne etwas geschrieben zu haben.
 - Inputs und Outputs sind JSON-Schemas; ein falscher Input liefert ein Ergebnis, das das Feld nennt. Ein Ergebnis, das nicht zu seinem `outputSchema` passt, scheitert mit `OUTPUT_SCHEMA_MISMATCH`; bei einem schreibenden Tool wurde die Änderung trotzdem ausgeführt, also nicht wiederholen.
 - Der Text eines fehlgeschlagenen Aufrufs beginnt mit seinem Fehlercode, etwa `UNKNOWN_KEY: ...`, und endet mit einer Zeile `Next step: ...`, wenn der Fehler einen nächsten Schritt hat, demselben Text wie `hint` in der CLI.
@@ -165,7 +165,7 @@ Vor jedem Aufruf lädt der Server die Konfiguration neu, wenn sich die Konfigura
 
 ### Secrets werden geschwärzt
 
-Jedes Ergebnis und jede Log-Zeile wird wie in Studio geschwärzt: Ein Wert, der wie ein API-Schlüssel aussieht, oder der Wert einer konfigurierten Schlüsselvariable wird zu `[REDACTED]`; die Glossar-Tools nennen geschwärzte Begriffe.
+Secrets werden aus jedem Ergebnis und jeder Log-Zeile geschwärzt, wie Studio es auch tut: Ein Wert, der wie ein API-Schlüssel aussieht, oder der Wert einer konfigurierten Schlüsselvariable wird zu `[REDACTED]`; die Glossar-Tools nennen geschwärzte Begriffe. Übersetzungswerte verbirgt erst [`--redact-values`](#redacted-values).
 
 ### Geschwärzte Werte [#redacted-values]
 
