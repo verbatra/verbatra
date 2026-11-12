@@ -6,6 +6,7 @@ import { i18n } from "./i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ITEM_IDS } from "./landing-faq";
 import { landingProviders } from "./landing-providers";
+import { SITE_URL } from "./site";
 
 const MESSAGES_DIR = join(import.meta.dirname, "../messages");
 
@@ -84,5 +85,32 @@ describe.each(i18n.languages)("the %s landing markdown", (locale) => {
     for (const target of targets.filter((url) => url.includes("/docs"))) {
       expect(target).toMatch(/\.md(#.*)?$/);
     }
+  });
+});
+
+describe("the English landing markdown after the pain titles and the comparison link", () => {
+  it("lists the comparison link beside Get started in the hero", async () => {
+    const body = await landingMarkdown("en");
+    expect(body).toContain(
+      `- [Get started](${SITE_URL}/docs/quickstart.md)\n- [Compare with other tools](${SITE_URL}/compare)`,
+    );
+  });
+
+  it("titles the three pain tiles, with the run numbers in the cost body", async () => {
+    const body = await landingMarkdown("en");
+    expect(body).toContain("### Translate: Retranslating everything costs more");
+    expect(body).toContain("Only 4 of 28 strings changed, so only 4 go to your provider.");
+    expect(body).toContain("### Check: Missing keys reach production");
+    expect(body).toContain("### Integrity: One broken placeholder breaks a screen");
+    expect(body).not.toContain("Pay for");
+  });
+
+  it("ends the faq with the comparison answer linked to the comparison page", async () => {
+    const body = await landingMarkdown("en");
+    expect(body).toContain("### How is Verbatra different from other i18n tools?");
+    expect(body).toContain(
+      `The [comparison page](${SITE_URL}/compare) checks it against other tools`,
+    );
+    expect(body).not.toContain("re-translate strings that did not change");
   });
 });

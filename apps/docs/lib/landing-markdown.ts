@@ -18,6 +18,7 @@ import {
   INIT_COMMAND,
   MCP_ADD_COMMAND,
 } from "./install-commands";
+import { COMPARE_PATH } from "./landing-compare";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
 import { LANDING_FEATURES } from "./landing-features";
@@ -76,7 +77,10 @@ async function hero({ locale }: Context): Promise<string> {
   return blocks(
     `# ${t.markup("headline", { accent: (chunks: string) => markupChunks(chunks) })}`,
     t("lead"),
-    list([link(t("ctaPrimary"), quickstart)]),
+    list([
+      link(t("ctaPrimary"), quickstart),
+      link(t("ctaCompare"), localizedPath(locale, COMPARE_PATH)),
+    ]),
     fencedMarkdown("sh", null, HERO_INSTALL_COMMAND),
   );
 }
@@ -176,7 +180,8 @@ async function highlights({ locale }: Context): Promise<string> {
   return blocks(
     `## ${t("heading")}`,
     t("lead"),
-    `### ${t("translate.label")}: ${t("translate.title", { sent: HERO_SENT_STRINGS, total: HERO_TOTAL_STRINGS })}`,
+    `### ${t("translate.label")}: ${t("translate.title")}`,
+    t("translate.body", { sent: HERO_SENT_STRINGS, total: HERO_TOTAL_STRINGS }),
     fencedMarkdown(
       "text",
       null,
