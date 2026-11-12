@@ -76,6 +76,9 @@ function assertEditShape(edit: GlossaryEdit): void {
 }
 
 export function assertValidEdit(edit: GlossaryEdit): void {
+  if (typeof edit.term !== "string") {
+    throw invalid("A glossary term must not be blank.");
+  }
   assertNotBlank(edit.term, "A glossary term must not be blank.");
   assertNotBlank(
     edit.translation,
@@ -93,6 +96,19 @@ export function assertValidEdit(edit: GlossaryEdit): void {
     `The part of speech for "${edit.term}" must not be blank. Pass null to remove it.`,
   );
   assertEditShape(edit);
+}
+
+function storedIndex(
+  sources: readonly string[],
+  term: string,
+  foldsCase: (index: number) => boolean,
+): number {
+  const exact = sources.indexOf(term);
+  if (exact >= 0) {
+    return exact;
+  }
+  const folded = term.toLowerCase();
+  return sources.findIndex((source, index) => foldsCase(index) && source.toLowerCase() === folded);
 }
 
 export function isVersion1Edit(edit: GlossaryEdit): boolean {
@@ -113,13 +129,18 @@ export function applyVersion1Edit(
   translation: string | null,
 ): Version1Entries {
   const pairs = [...entries];
-  const index = pairs.findIndex(([existing]) => existing === term);
+  const index = storedIndex(
+    pairs.map(([existing]) => existing),
+    term,
+    () => true,
+  );
+  const stored = pairs[index];
   if (translation === null) {
-    if (index >= 0) {
+    if (stored !== undefined) {
       pairs.splice(index, 1);
     }
-  } else if (index >= 0) {
-    pairs[index] = [term, translation];
+  } else if (stored !== undefined) {
+    pairs[index] = [stored[0], translation];
   } else {
     pairs.push([term, translation]);
   }
@@ -226,7 +247,11 @@ function editTerms(
   terms: readonly GlossaryTermDefinition[],
   edit: GlossaryEdit,
 ): readonly GlossaryTermDefinition[] {
-  const index = terms.findIndex((term) => term.source === edit.term);
+  const index = storedIndex(
+    terms.map((term) => term.source),
+    edit.term,
+    (candidate) => edit.caseSensitive !== true && terms[candidate]?.caseSensitive !== true,
+  );
   const existing = index >= 0 ? terms[index] : undefined;
   if (existing === undefined && onlyClears(edit)) {
     return terms;
