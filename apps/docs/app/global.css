@@ -4346,13 +4346,6 @@ html:has(.vk-home) {
   overflow-wrap: break-word;
 }
 
-@media (width < 40rem) {
-  .vk-tile-code .vk-tile-pre {
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-  }
-}
-
 .vk-tile-langs {
   display: grid;
   gap: 0.5rem;

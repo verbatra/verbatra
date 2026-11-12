@@ -3,7 +3,7 @@ import { HERO_TRANSLATE_LOCALE_LINES } from "@/lib/hero-terminal";
 
 const TILE_SCROLLER = "#highlights .vk-bento > article:first-child [role='group']";
 
-for (const width of [320, 375, 391]) {
+for (const width of [320, 375, 391, 768, 1024]) {
   test.describe(`translate tile at ${width}px`, () => {
     test.use({ viewport: { width, height: 844 } });
 
@@ -42,6 +42,11 @@ for (const width of [320, 375, 391]) {
 
 test.describe("translate tile at 1440px", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("is not a tab stop, since it never scrolls", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator(TILE_SCROLLER)).not.toHaveAttribute("tabindex", /.*/);
+  });
 
   test("prints each locale line on one row", async ({ page }) => {
     await page.goto("/");

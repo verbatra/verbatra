@@ -16,7 +16,6 @@ import {
 } from "@/lib/landing-playground";
 import { keepPackageRunsWhole } from "@/lib/word-breaks";
 import { PlainList } from "./plain-list";
-import { ScrollBlock } from "./scroll-block";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -54,7 +53,13 @@ export async function Highlights(): Promise<ReactNode> {
           <h3 id={TRANSLATE_TITLE_ID} className="vk-tile-title">
             {t("translate.title", { sent: HERO_SENT_STRINGS, total: HERO_TOTAL_STRINGS })}
           </h3>
-          <ScrollBlock labelledBy={TRANSLATE_TITLE_ID} className="vk-tile-code" lang="en">
+          {/* biome-ignore lint/a11y/useSemanticElements: a fieldset groups form controls; this names a wrapped code block without adding a landmark */}
+          <div
+            role="group"
+            aria-labelledby={TRANSLATE_TITLE_ID}
+            className="vk-tile-code vk-tile-code-wrap"
+            lang="en"
+          >
             <pre className="vk-tile-pre">
               <code>
                 <span className="vk-tile-code-strong">$ {HERO_TRANSLATE_COMMAND}</span>
@@ -69,7 +74,7 @@ export async function Highlights(): Promise<ReactNode> {
                 )}
               </code>
             </pre>
-          </ScrollBlock>
+          </div>
         </article>
         <article className="vk-tile vk-tile-glow" data-span="2">
           <TileLabel>{t("ci.label")}</TileLabel>

@@ -77,9 +77,11 @@ describe("Highlights", () => {
     for (const line of HERO_TRANSLATE_OUTPUT.slice(1)) expect(run).toContain(line);
   });
 
-  it("names the scrolling run block by the tile title", () => {
-    const block = tiles()[0]?.querySelector("[role='group'][tabindex='0']");
+  it("names the run block by the tile title and wraps it instead of making it a tab stop", () => {
+    const block = tiles()[0]?.querySelector("[role='group']");
     expect(block?.getAttribute("aria-labelledby")).toBe("highlights-translate-title");
+    expect(block?.classList.contains("vk-tile-code-wrap")).toBe(true);
+    expect(tiles()[0]?.querySelector("[tabindex]")).toBeNull();
     expect(root.querySelector("#highlights-translate-title")?.tagName).toBe("H3");
   });
 
@@ -157,15 +159,6 @@ describe("Highlights stylesheet", () => {
     const glow = rule(".vk-tile-glow");
     expect(glow).toContain("padding-block-end: calc(1.75rem + var(--tile-halo-height));");
     expect(glow).toMatch(/radial-gradient\(\s*75% var\(--tile-halo-height\) at 50% 100%/);
-  });
-
-  it("wraps the translate output on a phone instead of scrolling it", () => {
-    const phone = css.slice(
-      css.indexOf("@media (width < 40rem) {\n  .vk-tile-code .vk-tile-pre {"),
-    );
-    const block = phone.slice(0, phone.indexOf("\n}\n"));
-    expect(block).toContain("white-space: pre-wrap;");
-    expect(block).toContain("overflow-wrap: break-word;");
   });
 
   it("wraps the MCP command instead of scrolling it", () => {
