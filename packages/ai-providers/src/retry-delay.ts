@@ -14,6 +14,14 @@ function fieldOf(value: unknown, field: string): unknown {
     : undefined;
 }
 
+function fieldOfAnyCase(value: unknown, name: string): unknown {
+  if (typeof value !== "object" || value === null) {
+    return undefined;
+  }
+  const key = Object.keys(value).find((candidate) => candidate.toLowerCase() === name);
+  return key === undefined ? undefined : (value as Readonly<Record<string, unknown>>)[key];
+}
+
 function toPositiveMs(milliseconds: number): number | undefined {
   return Number.isFinite(milliseconds) && milliseconds > 0 ? Math.ceil(milliseconds) : undefined;
 }
@@ -69,7 +77,7 @@ function headerOf(error: unknown, name: string): string | undefined {
   const value =
     typeof get === "function"
       ? (get as (header: string) => unknown).call(headers, name)
-      : fieldOf(headers, name);
+      : fieldOfAnyCase(headers, name);
   return typeof value === "string" ? value : undefined;
 }
 
@@ -91,9 +99,9 @@ export function statedRetryDelayMs(error: unknown): number | undefined {
 }
 
 export function formatWait(milliseconds: number): string {
-  const seconds = milliseconds / MS_PER_SECOND;
+  const seconds = Math.ceil(milliseconds / MS_PER_SECOND);
   if (seconds < SECONDS_PER_MINUTE) {
-    return `${Math.ceil(seconds)} s`;
+    return `${seconds} s`;
   }
   const totalMinutes = Math.round(seconds / SECONDS_PER_MINUTE);
   if (totalMinutes < MINUTES_PER_HOUR) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatWait, statedRetryDelayMs } from "./retry-delay.js";
+import { formatWait, MAX_HONOURED_RETRY_DELAY_MS, statedRetryDelayMs } from "./retry-delay.js";
 
 function geminiError(body: object): Error {
   return Object.assign(new Error(JSON.stringify(body)), { status: 429 });
@@ -33,6 +33,40 @@ describe("statedRetryDelayMs", () => {
     ).toBe(1_500);
   });
 
+  it("reads Retry-After from a plain header record whatever the key's case", () => {
+    expect(statedRetryDelayMs({ status: 429, headers: { "Retry-After": "12" } })).toBe(12_000);
+    expect(statedRetryDelayMs({ status: 429, headers: { "RETRY-AFTER-MS": "250" } })).toBe(250);
+  });
+
+  it("compares a stated wait to the cap exactly: 5000 ms is honoured, 5001 ms is not", () => {
+    const stated = (delay: string) =>
+      statedRetryDelayMs(
+        geminiError({
+          error: {
+            details: [{ "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: delay }],
+          },
+        }),
+      ) ?? 0;
+    expect(stated("5s")).toBeLessThanOrEqual(MAX_HONOURED_RETRY_DELAY_MS);
+    expect(stated("5.001s")).toBeGreaterThan(MAX_HONOURED_RETRY_DELAY_MS);
+  });
+
+  it("returns a huge stated wait unclamped, leaving the cap to the caller", () => {
+    expect(statedRetryDelayMs({ headers: { "retry-after": "86400000" } })).toBe(86_400_000_000);
+  });
+
+  it("prefers the Google error body over a Retry-After header when they disagree", () => {
+    const error = Object.assign(
+      geminiError({
+        error: {
+          details: [{ "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: "3s" }],
+        },
+      }),
+      { headers: { "retry-after": "60" } },
+    );
+    expect(statedRetryDelayMs(error)).toBe(3_000);
+  });
+
   it("reads Retry-After from a plain header record", () => {
     expect(statedRetryDelayMs({ status: 429, headers: { "retry-after": "12" } })).toBe(12_000);
   });
@@ -57,6 +91,11 @@ describe("formatWait", () => {
     [90_000, "2 min"],
     [8_929_000, "2 h 29 min"],
     [7_200_000, "2 h"],
+    [59_000, "59 s"],
+    [59_600, "1 min"],
+    [60_000, "1 min"],
+    [3_599_600, "1 h"],
+    [3_540_000, "59 min"],
   ])("renders %i ms as %s", (milliseconds, text) => {
     expect(formatWait(milliseconds)).toBe(text);
   });
