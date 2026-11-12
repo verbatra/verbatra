@@ -741,6 +741,7 @@ function markDuplicates(
  * unsupported version. Checked before anything is written.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
  * structurally wrong. Checked before anything is written.
+ * @throws {TypeError} `actor` is neither `human` nor `agent`. Checked before anything is read.
  *
  * @example
  * ```ts
