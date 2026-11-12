@@ -245,12 +245,23 @@ describe("export and import: task lines and hand-off hints", () => {
     );
   });
 
-  it("export suggests nothing when there was nothing to hand off", async () => {
-    const { err } = await stderrOf(["export", "--format", "csv"], {
+  it("export suggests --include-unchanged, not an import, when there was nothing to hand off", async () => {
+    const { err } = await stderrOf(["export", "--format", "csv", "--out", "h.csv"], {
       exportWorkbook: async () => makeExportResult({ locales: [{ locale: "de", rows: 0 }] }),
     });
 
     expect(err).toMatch(/^verbatra: exporting to csv\.\.\. done/);
+    expect(err).toContain(
+      "next: verbatra export --include-unchanged --format csv --out h.csv (nothing is pending, so the file has no rows: this also exports the up-to-date strings)\n",
+    );
+    expect(err).not.toContain("next: verbatra import");
+  });
+
+  it("export adds no hint when --include-unchanged was already passed and still found nothing", async () => {
+    const { err } = await stderrOf(["export", "--include-unchanged"], {
+      exportWorkbook: async () => makeExportResult({ locales: [{ locale: "de", rows: 0 }] }),
+    });
+
     expect(err).not.toContain("next:");
   });
 

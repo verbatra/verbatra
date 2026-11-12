@@ -1118,7 +1118,12 @@ function warnLimitsNotice(
 
 function hintImportOfExport(
   context: CommandContext,
-  opts: LocationOpts & { readonly format: ExchangeFormat | undefined },
+  opts: LocationOpts & {
+    readonly format: ExchangeFormat | undefined;
+    readonly out?: string | undefined;
+    readonly locales?: readonly string[] | undefined;
+    readonly includeUnchanged?: boolean | undefined;
+  },
   cwd: string,
   result: ExportWorkbookResult,
 ): void {
@@ -1126,6 +1131,20 @@ function hintImportOfExport(
     context.ui.hint(
       verbatraCommand(["import", displayPath(result.path, cwd), ...formatArgs(opts.format)], opts),
       "once your translators have filled it in",
+    );
+  } else if (opts.includeUnchanged !== true) {
+    context.ui.hint(
+      verbatraCommand(
+        [
+          "export",
+          "--include-unchanged",
+          ...formatArgs(opts.format),
+          ...(opts.out !== undefined ? ["--out", opts.out] : []),
+          ...(opts.locales !== undefined ? ["--locales", opts.locales.join(",")] : []),
+        ],
+        opts,
+      ),
+      "nothing is pending, so the file has no rows: this also exports the up-to-date strings",
     );
   }
 }

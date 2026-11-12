@@ -446,6 +446,25 @@ describe("render: human run summary", () => {
     expect(text).toContain("1 needs-review");
   });
 
+  it("names each flagged key with its review reasons under the locale", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            translated: ["a", "b"],
+            needsReview: [
+              { key: "a", reasons: ["EQUALS_SOURCE", "LENGTH_RATIO_OUTLIER"] },
+              { key: "b", reasons: ["FUZZY_CACHE_REUSE"] },
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(text).toContain(
+      "needs-review:    a (EQUALS_SOURCE, LENGTH_RATIO_OUTLIER), b (FUZZY_CACHE_REUSE)",
+    );
+  });
+
   it("omits the needs-review count when nothing was flagged", () => {
     const text = renderHuman(makeSummary({ locales: [makeLocale({ translated: ["a"] })] }));
     expect(text).not.toContain("needs-review");
