@@ -1,0 +1,39 @@
+name: Stale
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stale
+  cancel-in-progress: false
+
+jobs:
+  stale:
+    name: Close issues waiting on the reporter
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      issues: write
+    steps:
+      - name: Mark and close
+        uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
+        with:
+          any-of-labels: needs reproduction,needs info
+          days-before-stale: 14
+          days-before-close: 7
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          stale-issue-label: stale
+          close-issue-reason: not_planned
+          stale-issue-message: >-
+            This issue has been waiting on a reply for 14 days. It closes in 7 days unless
+            someone comments. A reply from the reporter puts it back into triage.
+          close-issue-message: >-
+            Closing this because the reproduction or information it was waiting on did not
+            arrive. Comment with it and the issue can be reopened.

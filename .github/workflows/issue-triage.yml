@@ -1,0 +1,102 @@
+name: Issue triage
+
+on:
+  issues:
+    types: [labeled, closed]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  request:
+    name: Ask the reporter
+    if: >-
+      github.event_name == 'issues' && github.event.action == 'labeled' &&
+      (github.event.label.name == 'needs reproduction' || github.event.label.name == 'needs info')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Post the request
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const requests = {
+              "needs reproduction": [
+                "Thanks for the report. We could not reproduce this from the details so far.",
+                "",
+                "Please add a minimal reproduction: a link to a public repository, or your verbatra config, one source locale file, and the exact command you ran. Remove API keys and other secrets first.",
+                "",
+                "This issue closes automatically after 21 days without a reply.",
+              ],
+              "needs info": [
+                "Thanks for the report. We need a little more information to look into this; the comment above says what is missing.",
+                "",
+                "This issue closes automatically after 21 days without a reply.",
+              ],
+            };
+            const lines = requests[context.payload.label.name];
+            if (!lines) return;
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.payload.issue.number,
+              body: lines.join("\n"),
+            });
+
+  closed:
+    name: Clear needs triage on close
+    if: >-
+      github.event_name == 'issues' && github.event.action == 'closed' &&
+      contains(github.event.issue.labels.*.name, 'needs triage')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Remove needs triage
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            await github.rest.issues.removeLabel({
+              ...context.repo,
+              issue_number: context.payload.issue.number,
+              name: "needs triage",
+            });
+
+  reply:
+    name: Return to triage on the author's reply
+    if: >-
+      github.event_name == 'issue_comment' && !github.event.issue.pull_request &&
+      github.event.issue.state == 'open' &&
+      github.event.comment.user.type != 'Bot' &&
+      github.event.comment.user.login == github.event.issue.user.login &&
+      (contains(github.event.issue.labels.*.name, 'needs reproduction') ||
+      contains(github.event.issue.labels.*.name, 'needs info'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Swap the waiting labels for needs triage
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const present = new Set(issue.labels.map((label) => label.name));
+            for (const name of ["needs reproduction", "needs info", "stale"]) {
+              if (present.has(name)) {
+                await github.rest.issues.removeLabel({
+                  ...context.repo,
+                  issue_number: issue.number,
+                  name,
+                });
+              }
+            }
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number: issue.number,
+              labels: ["needs triage"],
+            });

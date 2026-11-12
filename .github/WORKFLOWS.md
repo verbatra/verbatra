@@ -15,7 +15,7 @@ and is what renders on the org page.
 
 | Path | What it is |
 | --- | --- |
-| `workflows/` | The ten GitHub Actions workflows: CI, Release, Dependency audit, CodeQL, Scorecard, Unused code, Deploy Docs, Docs i18n check, E2E (live), and PR labels |
+| `workflows/` | The twelve GitHub Actions workflows: CI, Release, Dependency audit, CodeQL, Scorecard, Unused code, Deploy Docs, Docs i18n check, E2E (live), PR labels, Issue triage, and Stale |
 | `actions/` | Three local composite actions the workflows reuse: `setup-workspace`, `ssh-connect`, `ssh-copy` |
 | `ISSUE_TEMPLATE/` | Bug report, feature request, new format, new provider, and documentation problem forms, each applying its `type:` label, any `scope:` label, and `needs triage`; `config.yml` turns blank issues off and routes questions to Discussions Q&A, security reports to a private advisory, and action and skills issues to their repositories |
 | `PULL_REQUEST_TEMPLATE.md` | The three sections every pull request fills in: what changed (with a `Closes #` line), how it was tested, and the checklist, including the breaking-change box |
@@ -43,6 +43,8 @@ raises on top of that.
 | Docs i18n check | `docs-i18n-check.yml` | pull request touching `apps/docs` messages, content, config, or lock file | none |
 | E2E (live) | `e2e-live.yml` | push to `main` and nightly schedule (`gemini` only), manual dispatch (`provider` and `google_batch` inputs) | none (one job per provider in the `live-e2e` environment, each given only its own key) |
 | PR labels | `pr-labels.yml` | `pull_request_target` opened, edited, synchronize, reopened; never checks out or runs pull request code | `pull-requests: write` (adds `scope:` labels from `labeler.yml` and a `type:` label, plus `breaking change` for a `!`, from the Conventional Commit title) |
+| Issue triage | `issue-triage.yml` | issue labelled or closed, issue comment (never a pull request comment) | `issues: write` (posts the fixed request when `needs reproduction` or `needs info` is added, removes `needs triage` on close, and swaps the waiting label back to `needs triage` when the issue author replies) |
+| Stale | `stale.yml` | daily schedule, manual dispatch | `actions: write` (the stale action's saved state), `issues: write` (marks an issue labelled `needs reproduction` or `needs info` `stale` after 14 quiet days and closes it as not planned 7 days later; nothing else ever goes stale) |
 
 ## The SHA-pin convention
 
