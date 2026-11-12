@@ -50,7 +50,7 @@ export const lockStateTool = defineTool({
     "the recorded baseline. Each locale also carries provenance: counts byOrigin and " +
     "byReviewState over the keys present in both the source and that locale, read from " +
     "verbatra.provenance.json and absent when that file is corrupt or from a newer " +
-    "verbatra. byReviewState counts every value by its recorded decision, whatever its origin, so a value a person wrote or imported with no decision counts as unreviewed although the review queue holds only machine-class values; read it with byOrigin. " +
+    "verbatra. byReviewState counts every value by its effective review state, whatever its origin: a value with no recorded decision counts as unreviewed, and so does an approval recorded for a source that has since changed. A value a person wrote or imported with no decision therefore counts as unreviewed although the review queue holds only machine-class values; read it with byOrigin. " +
     "emptySource counts the source keys whose value is empty or whitespace only, " +
     "kept out of the other counts so the four add up to the source's keys. Takes no parameters. Read-only: it calls no provider and writes nothing.",
   paramsSchema,
