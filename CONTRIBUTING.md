@@ -182,7 +182,8 @@ When an issue arrives, or once a day from the `label:"needs triage"` filter:
 4. Add one `scope:` label.
 5. A bug: try to reproduce it from the form. If you cannot, add
    `needs reproduction` (the `Issue triage` workflow asks for one and the `Stale`
-   timer starts). If a version or the config is missing, add `needs info`. When
+   timer starts). If a version or the config is missing, first comment what is
+   missing, then add `needs info`: the bot's message points at that comment. When
    the reporter replies, the issue goes back to `needs triage` on its own.
 6. Reproduced or accepted: add `status: accepted`, plus `good first issue` or
    `help wanted` if it suits someone else.
