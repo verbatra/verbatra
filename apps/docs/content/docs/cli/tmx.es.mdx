@@ -97,7 +97,7 @@ El texto de origen de una unidad aceptada entra en el índice contra el que la [
 
 ### Qué escribe el export
 
-Un `tu` por cada cadena de origen distinta, con el segmento de origen y un segmento de destino por locale exportado, bajo una cabecera TMX 1.4b (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Solo se escriben las entradas bajo la huella de configuración actual. Las etiquetas de idioma salen en forma BCP 47 (`en_US` pasa a `en-US`), los caracteres que XML 1.0 no puede representar se eliminan y se cuentan, y una memoria vacía produce un archivo válido y vacío. Las entradas sin texto de origen guardado, heredadas de una caché antigua, se omiten y se cuentan. El resumen cuenta elementos `tu` en el total y segmentos de destino por locale, así que los recuentos por locale suman más que el total cuando una cadena está traducida a varios locales.
+Un `tu` por cada cadena de origen distinta, con el segmento de origen y un segmento de destino por locale exportado, bajo una cabecera TMX 1.4b (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Solo se escriben las entradas bajo la huella de configuración actual; las guardadas bajo una configuración anterior de proveedor, modelo, tono o glosario se omiten y se cuentan como `otherConfiguration`, con una línea propia en el resumen. Las etiquetas de idioma salen en forma BCP 47 (`en_US` pasa a `en-US`), los caracteres que XML 1.0 no puede representar se eliminan y se cuentan, y una memoria vacía produce un archivo válido y vacío. Las entradas sin texto de origen guardado, heredadas de una caché antigua, se omiten y se cuentan. El resumen cuenta elementos `tu` en el total y segmentos de destino por locale, así que los recuentos por locale suman más que el total cuando una cadena está traducida a varios locales.
 
 <AvailableFrom version="0.12.0" />
 
@@ -119,7 +119,7 @@ Con `--json`, el [envoltorio JSON](/es/docs/cli/output#salida-json) lleva el res
 
 // tmx export
 { path: string; units: number; locales: { locale: string; units: number }[];
-  withoutSource: number; illegalCharactersRemoved: number;
+  withoutSource: number; otherConfiguration?: number; illegalCharactersRemoved: number;
   provenanceMarkers: "written" | "unavailable" }
 ```
 

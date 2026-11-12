@@ -340,7 +340,7 @@ function exportTmx(
 
 **Ejemplo:** [El ciclo de ida y vuelta de TMX](/es/docs/programmatic-api#el-ciclo-de-ida-y-vuelta-de-tmx)
 
-Devuelve `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` cuenta las entradas dejadas fuera porque la memoria no tiene texto de origen para ellas, lo que solo ocurre con entradas arrastradas de una caché escrita antes de que la memoria guardase el texto de origen, e `illegalCharactersRemoved` cuenta los caracteres que XML 1.0 no puede representar y que se eliminaron del texto de los segmentos.
+Devuelve `{ path, units, locales, withoutSource, otherConfiguration, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` cuenta las entradas dejadas fuera porque la memoria no tiene texto de origen para ellas, lo que solo ocurre con entradas arrastradas de una caché escrita antes de que la memoria guardase el texto de origen, `otherConfiguration` cuenta las entradas dejadas fuera porque están guardadas bajo otra huella de configuración (un proveedor, modelo, tono o glosario anterior), una vez por locale y hash, e `illegalCharactersRemoved` cuenta los caracteres que XML 1.0 no puede representar y que se eliminaron del texto de los segmentos.
 
 <AvailableFrom version="0.12.0" />
 
