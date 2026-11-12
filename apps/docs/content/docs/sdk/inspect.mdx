@@ -400,7 +400,7 @@ function runStatus(
 **Returns:** `RunStatusResult`
 
 No config needed. Returns `{ available: false, reason }` (see `RUN_STATUS_UNAVAILABLE_REASONS`)
-or `{ available: true, version, generatedAt, usage?, budget?, locales }`.
+or `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }`, where `incomplete: { failed, partial }` counts the locales of the recorded run that failed or stopped partway and is left out when none did.
 
 A snapshot from before the token budget was enforced is still read, minus a `budget` with
 `supported: false` (its `tokensUsed: 0` was not a count). New snapshots add only a marker field, so

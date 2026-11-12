@@ -337,7 +337,7 @@ function runStatus(
 
 **Renvoie :** `RunStatusResult`
 
-Aucune config requise. Renvoie `{ available: false, reason }` (voir `RUN_STATUS_UNAVAILABLE_REASONS`) ou `{ available: true, version, generatedAt, usage?, budget?, locales }`.
+Aucune config requise. Renvoie `{ available: false, reason }` (voir `RUN_STATUS_UNAVAILABLE_REASONS`) ou `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }` ; `incomplete: { failed, partial }` compte les locales de l'exécution enregistrée qui ont échoué ou se sont arrêtées en cours de route et est omis quand il n'y en a aucune.
 
 Un instantané antérieur à l'application du budget de tokens est toujours lu, sans un `budget` avec `supported: false` (son `tokensUsed: 0` n'était pas un décompte). Les nouveaux instantanés ajoutent seulement un champ marqueur, donc un lecteur plus ancien peut afficher un budget estimé comme non suivi. Un motif de relecture inconnu est ignoré, et une entrée qui n'en a plus aucun est retirée.
 

@@ -410,7 +410,7 @@ function runStatus(
 **Devuelve:** `RunStatusResult`
 
 No necesita configuración. Devuelve `{ available: false, reason }` (consulta `RUN_STATUS_UNAVAILABLE_REASONS`)
-o `{ available: true, version, generatedAt, usage?, budget?, locales }`.
+o `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }`; `incomplete: { failed, partial }` cuenta los locales de la ejecución registrada que fallaron o se detuvieron a medias y se omite cuando no hubo ninguno.
 
 Una instantánea anterior a que el presupuesto de tokens se hiciera cumplir se sigue leyendo, sin un
 `budget` con `supported: false` (su `tokensUsed: 0` no era un recuento). Las instantáneas nuevas

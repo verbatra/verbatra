@@ -412,7 +412,7 @@ function runStatus(
 **Rückgabe:** `RunStatusResult`
 
 Keine Konfiguration nötig. Gibt `{ available: false, reason }` (siehe `RUN_STATUS_UNAVAILABLE_REASONS`)
-oder `{ available: true, version, generatedAt, usage?, budget?, locales }` zurück.
+oder `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }` zurück; `incomplete: { failed, partial }` zählt die fehlgeschlagenen oder auf halbem Weg gestoppten Locales des aufgezeichneten Laufs und entfällt, wenn es keine gab.
 
 Ein Schnappschuss von vor dem durchgesetzten Token-Budget wird weiter gelesen, ohne ein `budget` mit
 `supported: false` (sein `tokensUsed: 0` war keine Zählung). Neue Schnappschüsse ergänzen nur ein
