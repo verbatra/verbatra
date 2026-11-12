@@ -225,6 +225,7 @@ export default async function LicensesPage(props: { params: Promise<{ lang: stri
         {LICENSES.packageCount} packages in {LICENSES.groups.length} license groups, plus{" "}
         {LICENSES.assets.length} assets.
       </p>
+      <p>{t("brands")}</p>
       <JumpNav locale={locale} />
       <div lang="en">
         <section>

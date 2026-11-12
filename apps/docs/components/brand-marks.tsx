@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { brandMarkClass } from "@/lib/brand-colors";
 import { BRAND_MARKS, type BrandMark as BrandMarkData, type BrandMarkId } from "@/lib/brand-marks";
 
 const DEFAULT_VIEWBOX = "0 0 24 24";
@@ -47,7 +48,12 @@ export function BrandMark({
   className?: string;
 }): ReactNode {
   return (
-    <svg width={size} height={size} aria-hidden="true" className={className}>
+    <svg
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={[brandMarkClass(mark), className].filter(Boolean).join(" ")}
+    >
       <use href={`#${brandMarkSymbolId(prefix, mark)}`} />
     </svg>
   );

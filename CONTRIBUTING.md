@@ -395,12 +395,14 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    `Record<SupportedFormat, ...>` tables that will not compile until the new format has an
    entry: `FORMAT_DISPLAY` in `apps/docs/lib/landing-facts.ts` (its display `label`, which the
    landing marquee and the structured data read) and `FORMAT_ICONS` in
-   `apps/docs/components/landing/marquee.tsx`, which takes a `MarqueeMark`: a file-extension chip
-   (`chip(".ext")`) or a brand mark (`brand(id)`). A brand mark also needs a `BRAND_MARKS` entry in
-   `apps/docs/lib/brand-marks.ts` with its source, license and attribution; admit it only under a
-   license that allows commercial use and changes (no NC, no SA), carry the CC BY attribution where
-   the license asks for one, and run `pnpm --filter @verbatra/docs licenses:sync` to regenerate
-   the notices. Otherwise use a chip. Those tables are easy to miss, and the error surfaces in the
+   `apps/docs/components/landing/marquee.tsx`, which takes a `MarqueeMark`: the format's own brand
+   mark (`brand(id)`), a labelled file outline (`file(icon)`, for a format with no logo of its own,
+   such as XLIFF) or a neutral glyph (`glyph(id)`, only where no brand exists at all). A brand mark
+   also needs a `BRAND_MARKS` entry in `apps/docs/lib/brand-marks.ts` with its source, license and
+   attribution (prefer Simple Icons, then Lobe Icons, Devicon or the brand's own SVG, copy the path
+   data and never redraw it), carry the CC BY attribution where the license asks for one, record
+   a restricted license as it is, and run `pnpm --filter @verbatra/docs licenses:sync` to
+   regenerate the notices. Those tables are easy to miss, and the error surfaces in the
    docs app rather than where you were working.
 
 8. **The agent skills pack**, `skills/verbatra-cli/SKILL.md` in

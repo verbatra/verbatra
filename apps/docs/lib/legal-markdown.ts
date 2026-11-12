@@ -176,6 +176,7 @@ export async function licensesMarkdown(locale: Locale): Promise<string> {
     `# ${t("title")}`,
     t("intro"),
     `${LICENSES.packageCount} packages in ${LICENSES.groups.length} license groups, plus ${LICENSES.assets.length} assets.`,
+    t("brands"),
     "## Fonts and other assets",
     assets.join("\n"),
     ...textsUsedBy(LICENSES.assets).map((text) =>

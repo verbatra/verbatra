@@ -4,7 +4,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { FORMAT_ID_CLASS, type StackCard, StackCards } from "./stack-cards";
+import {
+  cardMark,
+  FORMAT_ID_CLASS,
+  ICON_BRAND_MARKS,
+  type StackCard,
+  StackCards,
+} from "./stack-cards";
 import { FILE_GLYPH_LABELS } from "./stack-icons";
 
 const CARDS: ReadonlyArray<StackCard> = [
@@ -388,7 +394,7 @@ describe("StackCards", () => {
         <StackCards
           labelledBy="stacks"
           locale="en"
-          cards={(["po", "xliff", "ini", "yaml", "json"] as const).map((icon) => ({
+          cards={(["xliff", "ini", "json"] as const).map((icon) => ({
             label: icon,
             icon,
             formats: [],
@@ -398,7 +404,7 @@ describe("StackCards", () => {
       ),
     );
     const labels = [...doc.querySelectorAll("symbol text")].map((text) => text.textContent);
-    expect(labels).toEqual([".po", "XLF", "INI", "YAML", "JSON"]);
+    expect(labels).toEqual(["XLF", "INI", "JSON"]);
     for (const text of doc.querySelectorAll("symbol text")) {
       expect(text.getAttribute("fill")).toBe("currentColor");
       expect(text.getAttribute("font-family")).toContain("var(--font-mono)");
@@ -411,7 +417,38 @@ describe("StackCards", () => {
       "xliff",
       "yaml",
     ]);
-    expect(doc.querySelectorAll("li > span > svg[aria-hidden='true']")).toHaveLength(5);
+    expect(doc.querySelectorAll("li > span > svg[aria-hidden='true']")).toHaveLength(3);
+  });
+
+  it("draws the official GNU and YAML marks for gettext and YAML, and a labelled glyph only for XLIFF, INI and the rest", () => {
+    expect(ICON_BRAND_MARKS).toEqual({ po: "simpleGnu", yaml: "deviconYaml" });
+    expect(cardMark({ icon: "po" })).toBe("simpleGnu");
+    expect(cardMark({ icon: "yaml" })).toBe("deviconYaml");
+    expect(cardMark({ icon: "yaml", mark: "react" })).toBe("react");
+    for (const icon of ["xliff", "ini", "json", "custom", "web"] as const) {
+      expect(cardMark({ icon }), icon).toBeUndefined();
+    }
+  });
+
+  it("fills a card's mark through a brand class the stylesheet colours, never an inline style", () => {
+    const doc = render(
+      renderToStaticMarkup(
+        <StackCards
+          labelledBy="stacks"
+          locale="en"
+          cards={[
+            { label: "gettext", icon: "po", formats: [], href: "#a" },
+            { label: "React", icon: "web", mark: "react", formats: [], href: "#b" },
+          ]}
+        />,
+      ),
+    );
+    const marks = [...doc.querySelectorAll("li > span > svg")];
+    expect(marks.map((mark) => mark.getAttribute("class"))).toEqual([
+      "vk-brand-simpleGnu",
+      "vk-brand-react",
+    ]);
+    for (const mark of marks) expect(mark.hasAttribute("style")).toBe(false);
   });
 
   it("keeps every sprite id unique when two card grids share a page", () => {
@@ -456,7 +493,7 @@ describe("StackCards", () => {
     expect(doc.body.innerHTML).not.toMatch(/dark:/);
   });
 
-  it("draws no stack mark from Simple Icons, whose CC0 data does not clear a brand's own logo terms", () => {
+  it("names every mark in the MDX by its registry id, never by a raw Simple Icons slug, and leaves YAML to the component default", () => {
     const content = join(process.cwd(), "content/docs");
     const files = readdirSync(content, { recursive: true, encoding: "utf8" }).filter(
       (file) =>
