@@ -437,13 +437,18 @@ describe("updateGlossaryTerm: edits that are refused before the file is read", (
 describe("updateGlossaryTerm: a term that differs only in case", () => {
   it("updates the stored version 1 term and keeps its spelling", async () => {
     const seeded = await seed({ cart: "Warenkorb" });
-    await edit(seeded, { term: "Cart", translation: "Einkaufswagen" });
+    await edit(seeded, { term: "Cart", translation: "Einkaufswagen", sourceLocale: "en" });
     expect(await onDisk(seeded.path)).toEqual({ cart: "Einkaufswagen" });
   });
 
   it("updates the stored version 2 term instead of adding a second one", async () => {
     const seeded = await seed({ version: 2, terms: [{ source: "cart", targets: { de: "Korb" } }] });
-    await edit(seeded, { term: "Cart", locale: "de", translation: "Warenkorb" });
+    await edit(seeded, {
+      term: "Cart",
+      locale: "de",
+      translation: "Warenkorb",
+      sourceLocale: "en",
+    });
     expect(await onDisk(seeded.path)).toEqual({
       version: 2,
       terms: [{ source: "cart", targets: { de: "Warenkorb" } }],
@@ -452,7 +457,7 @@ describe("updateGlossaryTerm: a term that differs only in case", () => {
 
   it("prefers the exactly spelled term when both spellings are stored", async () => {
     const seeded = await seed({ cart: "Korb", Cart: "Wagen" });
-    await edit(seeded, { term: "Cart", translation: "Warenkorb" });
+    await edit(seeded, { term: "Cart", translation: "Warenkorb", sourceLocale: "en" });
     expect(await onDisk(seeded.path)).toEqual({ cart: "Korb", Cart: "Warenkorb" });
   });
 
@@ -461,7 +466,7 @@ describe("updateGlossaryTerm: a term that differs only in case", () => {
       version: 2,
       terms: [{ source: "cart", target: "Korb", caseSensitive: true }],
     });
-    await edit(seeded, { term: "Cart", translation: "Warenkorb" });
+    await edit(seeded, { term: "Cart", translation: "Warenkorb", sourceLocale: "en" });
     expect(await onDisk(seeded.path)).toMatchObject({
       terms: [{ source: "cart" }, { source: "Cart", target: "Warenkorb" }],
     });
@@ -473,5 +478,69 @@ describe("updateGlossaryTerm: a term that differs only in case", () => {
     expect(await onDisk(seeded.path)).toMatchObject({
       terms: [{ source: "cart" }, { source: "Cart", caseSensitive: true }],
     });
+  });
+});
+
+describe("updateGlossaryTerm: case folding follows the source locale", () => {
+  it("adds a separate term when no source locale is known, matching only exactly", async () => {
+    const seeded = await seed({ cart: "Warenkorb" });
+    await edit(seeded, { term: "Cart", translation: "Einkaufswagen" });
+    expect(await onDisk(seeded.path)).toEqual({ cart: "Warenkorb", Cart: "Einkaufswagen" });
+  });
+
+  it("treats a dotted capital I as the same term as i with a Turkish source locale", async () => {
+    const seeded = await seed({ version: 2, terms: [{ source: "istanbul", target: "Istanbul" }] });
+    await edit(seeded, { term: "İstanbul", translation: "Stambul", sourceLocale: "tr" });
+    expect(await onDisk(seeded.path)).toEqual({
+      version: 2,
+      terms: [{ source: "istanbul", target: "Stambul" }],
+    });
+  });
+
+  it("keeps a dotless and a plain I apart with a Turkish source locale", async () => {
+    const seeded = await seed({ version: 2, terms: [{ source: "ilık", target: "warm" }] });
+    await edit(seeded, { term: "Ilık", translation: "lukewarm", sourceLocale: "tr" });
+    expect(await onDisk(seeded.path)).toMatchObject({
+      terms: [{ source: "ilık" }, { source: "Ilık", target: "lukewarm" }],
+    });
+  });
+
+  it("removes a stored lower-case term when its capitalized spelling is deleted from a version 1 glossary", async () => {
+    const seeded = await seed({ cart: "Warenkorb", other: "Anderes" });
+    await edit(seeded, { term: "Cart", translation: null, sourceLocale: "en" });
+    expect(await onDisk(seeded.path)).toEqual({ other: "Anderes" });
+  });
+
+  it("replaces a do-not-translate entry that does not match case instead of adding a case duplicate", async () => {
+    const seeded = await seed({
+      version: 2,
+      terms: [],
+      doNotTranslate: [{ term: "Acme", caseSensitive: false }],
+    });
+    await edit(seeded, {
+      term: "acme",
+      doNotTranslate: true,
+      caseSensitive: false,
+      sourceLocale: "en",
+    });
+    expect(await onDisk(seeded.path)).toMatchObject({
+      doNotTranslate: [{ term: "acme", caseSensitive: false }],
+    });
+  });
+
+  it("removes a do-not-translate entry that does not match case by any spelling", async () => {
+    const seeded = await seed({
+      version: 2,
+      terms: [{ source: "x", target: "y" }],
+      doNotTranslate: [{ term: "Acme", caseSensitive: false }],
+    });
+    await edit(seeded, { term: "ACME", doNotTranslate: false, sourceLocale: "en" });
+    expect(await onDisk(seeded.path)).not.toHaveProperty("doNotTranslate");
+  });
+
+  it("keeps a case-matching do-not-translate entry apart from another spelling", async () => {
+    const seeded = await seed({ version: 2, terms: [], doNotTranslate: ["Acme"] });
+    await edit(seeded, { term: "acme", doNotTranslate: true, sourceLocale: "en" });
+    expect(await onDisk(seeded.path)).toMatchObject({ doNotTranslate: ["Acme", "acme"] });
   });
 });
