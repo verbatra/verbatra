@@ -23,13 +23,34 @@ jobs:
       pull-requests: write
     steps:
       - name: Post the welcome message
-        uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d # v3.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          issue_message: >-
-            Thanks for opening your first issue in verbatra. A maintainer reads every new issue;
-            if it needs a reproduction or more information, a label and a comment will say so.
-          pr_message: >-
-            Thanks for your first pull request to verbatra. Please check that `pnpm verify`
-            passes locally and that a changeset is added if a published package changes in a
-            way users can see; CONTRIBUTING.md explains both. A maintainer approves the first
-            workflow run after reading the diff.
+          script: |
+            const messages = {
+              issue: [
+                "Thanks for opening your first issue in verbatra.",
+                "A maintainer reads every new issue; if it needs a reproduction or more information, a label and a comment will say so.",
+              ],
+              pullRequest: [
+                "Thanks for your first pull request to verbatra.",
+                "Please check that `pnpm verify` passes locally and that a changeset is added if a published package changes in a way users can see; CONTRIBUTING.md explains both.",
+                "A maintainer approves the first workflow run after reading the diff.",
+              ],
+            };
+            const isPullRequest = Boolean(context.payload.pull_request);
+            const opened = context.payload.pull_request ?? context.payload.issue;
+            const authored = await github.paginate(github.rest.issues.listForRepo, {
+              ...context.repo,
+              creator: opened.user.login,
+              state: "all",
+              per_page: 100,
+            });
+            const earlier = authored.filter(
+              (item) => Boolean(item.pull_request) === isPullRequest && item.number < opened.number,
+            );
+            if (earlier.length > 0) return;
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: opened.number,
+              body: (isPullRequest ? messages.pullRequest : messages.issue).join(" "),
+            });
