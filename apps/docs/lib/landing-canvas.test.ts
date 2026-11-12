@@ -12,7 +12,7 @@ import {
   runEndSeconds,
   STILL_TIME,
 } from "@/lib/landing-canvas";
-import { LANDING_FEATURES, type LandingFeatureId } from "@/lib/landing-features";
+import { CANVAS_FEATURES, type CanvasFeatureId, LANDING_FEATURES } from "@/lib/landing-features";
 
 const PALETTE: Palette = {
   accent: "#a",
@@ -141,7 +141,7 @@ function recorder(): Recorder {
   }) as unknown as Recorder;
 }
 
-function frame(id: LandingFeatureId, t: number, w = 255, h = 189): Recorder {
+function frame(id: CanvasFeatureId, t: number, w = 255, h = 189): Recorder {
   const c = recorder();
   drawFeature(id, c, w, h, t, PALETTE);
   return c;
@@ -174,8 +174,7 @@ const PHASES = LANDING_FEATURES.map((_, index) => index * PHASE_STEP);
 const VISIBLE_ALPHA = 0.05;
 const WRAP_EPSILON = 0.002;
 
-const WRAPS: Readonly<Record<LandingFeatureId, ReadonlyArray<number>>> = {
-  studio: [7, 14, 21, 42],
+const WRAPS: Readonly<Record<CanvasFeatureId, ReadonlyArray<number>>> = {
   handoff: [7.5, 15, 22.5],
   extract: [6, 12, 18],
   watch: [4.5, 9, 13.5, 18],
@@ -203,7 +202,7 @@ const SIZES = [
 ] as const;
 
 function expectSeam(
-  id: LandingFeatureId,
+  id: CanvasFeatureId,
   last: number,
   step: number,
   [w, h]: readonly [number, number],
@@ -230,7 +229,7 @@ function radii(c: Recorder): number[] {
 }
 
 describe("canvasClock", () => {
-  for (const { id } of LANDING_FEATURES) {
+  for (const { id } of CANVAS_FEATURES) {
     describe(id, () => {
       it("plays its bounded run and then holds the still frame", () => {
         const end = runEndSeconds(id, 1.3);
@@ -286,7 +285,7 @@ describe("canvasClock", () => {
 });
 
 describe("loop wraps", () => {
-  for (const { id } of LANDING_FEATURES) {
+  for (const { id } of CANVAS_FEATURES) {
     it(`${id} shows the same visible ink just before and just after every wrap`, () => {
       for (const wrap of WRAPS[id]) {
         for (const [w, h] of [
@@ -302,33 +301,18 @@ describe("loop wraps", () => {
   }
 });
 
-function barWidths(c: Recorder): number[] {
-  return c.log
-    .filter((entry) => entry.method === "fill" && entry.fill === PALETTE.dim)
-    .map((entry) => {
-      const xs = entry.points.map((point) => point.x);
-      return Math.max(...xs) - Math.min(...xs);
-    })
-    .sort((left, right) => left - right);
-}
-
-describe("studio tab switch", () => {
-  it("keeps every value bar width continuous across each wrap", () => {
-    for (const wrap of WRAPS.studio) {
-      for (const [w, h] of SIZES) {
-        const before = barWidths(frame("studio", wrap - WRAP_EPSILON, w, h));
-        const after = barWidths(frame("studio", wrap + WRAP_EPSILON, w, h));
-        expect(after, `${w}x${h} wrap ${wrap}`).toHaveLength(before.length);
-        before.forEach((value, index) => {
-          expect(Math.abs(value - (after[index] ?? Number.NaN))).toBeLessThan(0.5);
-        });
-      }
+describe("canvas motifs", () => {
+  it("cover exactly the cards that draw a canvas, never the studio card", () => {
+    const ids = CANVAS_FEATURES.map(({ id }) => id);
+    expect(ids).toEqual(LANDING_FEATURES.map(({ id }) => id).filter((id) => id !== "studio"));
+    for (const table of [LOOP_SECONDS, STILL_TIME, RUN_SECONDS]) {
+      expect(Object.keys(table)).toEqual(ids);
     }
   });
 });
 
 describe("drawFeature", () => {
-  for (const { id } of LANDING_FEATURES) {
+  for (const { id } of CANVAS_FEATURES) {
     describe(id, () => {
       it("draws shapes from the palette only, never text", () => {
         const c = recorder();
@@ -387,40 +371,6 @@ describe("drawFeature", () => {
       });
     });
   }
-
-  it("studio shows the review queue, the focus ring and an in-place edit at its still time", () => {
-    const still = frame("studio", STILL_TIME.studio);
-    expect(still.strokes.has(PALETTE.fg)).toBe(true);
-    expect(still.colors.has(PALETTE.warn)).toBe(true);
-    expect(still.colors.has(PALETTE.accent)).toBe(true);
-  });
-
-  it("studio draws no focus ring while browsing and no warn dot once the queue is cleared", () => {
-    const browsing = frame("studio", 0.3);
-    expect(browsing.strokes.has(PALETTE.fg)).toBe(false);
-    expect(browsing.colors.has(PALETTE.warn)).toBe(true);
-    const cleared = frame("studio", 6.3);
-    expect(cleared.colors.has(PALETTE.warn)).toBe(false);
-    expect(cleared.colors.has(PALETTE.accent)).toBe(true);
-  });
-
-  it("studio marks its three tabs as locales and never slides the highlight backwards at the start", () => {
-    const markers = frame("studio", 0.4).log.filter(
-      (entry) => entry.method === "arc" && entry.args[2] === 3,
-    );
-    expect(markers).toHaveLength(3);
-    const highlight = (t: number) =>
-      frame("studio", t)
-        .log.filter((entry) => entry.method === "arcTo" && entry.stroke === PALETTE.accent)
-        .map((entry) => entry.args);
-    expect(highlight(0.1)).toEqual(highlight(0.4));
-    expect(highlight(21.1)).not.toEqual(highlight(21.4));
-  });
-
-  it("studio visits every locale tab across its run", () => {
-    const frames = [0, 1, 2].map((tab) => frame("studio", tab * 7 + 0.7).coordinates.join(","));
-    expect(new Set(frames).size).toBe(3);
-  });
 
   it("handoff draws accent locks and a sweep that skips the locked rows at its still time", () => {
     const shackles = (t: number) =>

@@ -136,7 +136,7 @@ function mount(): HTMLCanvasElement {
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
-  act(() => root.render(<FeatureCanvas id="studio" phase={PHASE} />));
+  act(() => root.render(<FeatureCanvas id="handoff" phase={PHASE} />));
   mounted = { host, root };
   return host.querySelector("canvas") as HTMLCanvasElement;
 }
@@ -260,7 +260,7 @@ describe("FeatureCanvas", () => {
     fire(true);
     let now = 100;
     act(() => rafQueue.shift()?.(now));
-    const steps = Math.ceil((runEndSeconds("studio", PHASE) * 1000) / 100) + 20;
+    const steps = Math.ceil((runEndSeconds("handoff", PHASE) * 1000) / 100) + 20;
     for (let step = 0; step < steps && rafQueue.length > 0; step += 1) {
       now += 100;
       act(() => rafQueue.shift()?.(now));
