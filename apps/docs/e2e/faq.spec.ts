@@ -171,6 +171,62 @@ test.describe("faq keyboard", () => {
   });
 });
 
+type UnitSample = {
+  readonly y: number;
+  readonly gap: number;
+  readonly sliced: ReadonlyArray<string>;
+  readonly stuck: boolean;
+  readonly unitHeight: number;
+  readonly unitBottom: number;
+  readonly viewportHeight: number;
+  readonly linkHeights: ReadonlyArray<number>;
+};
+
+async function scanFaqUnit(page: Page): Promise<ReadonlyArray<UnitSample>> {
+  return page.evaluate(() => {
+    const section = document.querySelector("section#faq") as Element;
+    const unit = section.querySelector(".vk-faq-aside > .vk-section-aside-side") as Element;
+    const head = unit.querySelector(".vk-section-head-aside") as Element;
+    const top = window.scrollY + section.getBoundingClientRect().top;
+    const bottom = top + section.getBoundingClientRect().height;
+    const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+    const visible = (element: Element) => element.getClientRects().length > 0;
+    const results: Array<UnitSample> = [];
+    for (let y = top - 200; y < bottom; y += 37) {
+      window.scrollTo(0, y);
+      const label = Array.from(section.querySelectorAll(".vk-faq-docs-label")).find(visible);
+      if (label === undefined) continue;
+      const links = Array.from(section.querySelectorAll(".vk-faq-docs a")).filter(visible);
+      const sliced = [label, ...links].flatMap((target) => {
+        const box = target.getBoundingClientRect();
+        if (box.top < headerBottom || box.bottom > window.innerHeight) return [];
+        const points = [
+          [box.left + 2, box.top + 2],
+          [box.left + box.width / 2, box.top + box.height / 2],
+          [box.right - 2, box.bottom - 2],
+        ] as const;
+        const covered = points.some(([x, py]) => {
+          const hit = document.elementFromPoint(x, py);
+          return hit === null || !(target === hit || target.contains(hit));
+        });
+        return covered ? [target.textContent ?? ""] : [];
+      });
+      const unitBox = unit.getBoundingClientRect();
+      results.push({
+        y,
+        gap: label.getBoundingClientRect().top - head.getBoundingClientRect().bottom,
+        sliced,
+        stuck: Math.abs(unitBox.top - headerBottom) <= 1,
+        unitHeight: unitBox.height,
+        unitBottom: unitBox.bottom,
+        viewportHeight: window.innerHeight,
+        linkHeights: links.map((link) => link.getBoundingClientRect().height),
+      });
+    }
+    return results;
+  });
+}
+
 test.describe("faq layout", () => {
   test("keeps the aside head in view beside the open list and the docs links in its column", async ({
     page,
@@ -195,46 +251,36 @@ test.describe("faq layout", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     await openAll(page);
-    const samples = await page.evaluate(() => {
-      const section = document.querySelector("section#faq") as Element;
-      const head = section.querySelector(".vk-faq-aside .vk-section-head-aside") as Element;
-      const top = window.scrollY + section.getBoundingClientRect().top;
-      const bottom = top + section.getBoundingClientRect().height;
-      const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
-      const visible = (element: Element) => element.getClientRects().length > 0;
-      const results: Array<{ y: number; gap: number; sliced: Array<string> }> = [];
-      for (let y = top - 200; y < bottom; y += 37) {
-        window.scrollTo(0, y);
-        const label = Array.from(section.querySelectorAll(".vk-faq-docs-label")).find(visible);
-        if (label === undefined) continue;
-        const targets = [
-          label,
-          ...Array.from(section.querySelectorAll(".vk-faq-docs a")).filter(visible),
-        ];
-        const sliced = targets.flatMap((target) => {
-          const box = target.getBoundingClientRect();
-          if (box.top < headerBottom || box.top >= window.innerHeight) return [];
-          const points = [
-            [box.left + 2, box.top + 2],
-            [box.left + box.width / 2, box.top + box.height / 2],
-            [box.right - 2, box.bottom - 2],
-          ] as const;
-          const covered = points.some(([x, py]) => {
-            const hit = document.elementFromPoint(x, py);
-            return hit === null || !(target === hit || target.contains(hit));
-          });
-          return covered ? [target.textContent ?? ""] : [];
-        });
-        const labelBox = label.getBoundingClientRect();
-        results.push({ y, gap: labelBox.top - head.getBoundingClientRect().bottom, sliced });
-      }
-      return results;
-    });
+    const samples = await scanFaqUnit(page);
     expect(samples.length).toBeGreaterThan(20);
     expect(samples.filter(({ sliced }) => sliced.length > 0)).toEqual([]);
     const gaps = samples.map(({ gap }) => gap);
     expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(1);
   });
+
+  for (const locale of LOCALES) {
+    for (const width of [1024, 1440]) {
+      test(`fits the sticky unit between the header and the viewport bottom at ${width}x672 in ${locale}`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 672 });
+        await page.goto(homeUrl(locale));
+        await openAll(page);
+        const samples = await scanFaqUnit(page);
+        const stuck = samples.filter((sample) => sample.stuck);
+        expect(stuck.length).toBeGreaterThan(5);
+        const unitHeight = Math.max(...samples.map((sample) => sample.unitHeight));
+        test.info().annotations.push({
+          type: "faq-unit-height",
+          description: `${locale} ${width}x672: unit ${unitHeight}px`,
+        });
+        for (const sample of stuck) expect(sample.unitBottom).toBeLessThanOrEqual(672);
+        expect(samples.filter(({ sliced }) => sliced.length > 0)).toEqual([]);
+        for (const { linkHeights } of samples)
+          for (const height of linkHeights) expect(height).toBeGreaterThanOrEqual(44);
+      });
+    }
+  }
 
   test("pins the aside head right under the site header, so nothing scrolls through a gap above it", async ({
     page,
