@@ -334,6 +334,18 @@ describe("the landing faq copy", () => {
     expect(compare.answer.startsWith(NO.en)).toBe(false);
   });
 
+  it.each(i18n.languages)(
+    "opens the comparison answer without a yes or no word in %s",
+    (locale) => {
+      const items: Record<string, { answer: string } | undefined> =
+        CATALOGS[locale].landing.faq.items;
+      const answer = items.compare?.answer;
+      if (answer === undefined) return;
+      expect(answer.startsWith(YES[locale])).toBe(false);
+      expect(answer.startsWith(NO[locale])).toBe(false);
+    },
+  );
+
   it("points the comparison answer at the comparison page, beside the aside link", () => {
     expect(FAQ_ANSWER_LINKS.compare).toEqual({ page: "/compare" });
     expect(FAQ_ASIDE_LINKS.map(({ key }) => key)).toContain("compare");

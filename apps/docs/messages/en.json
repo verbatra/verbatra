@@ -213,7 +213,7 @@
       "translate": {
         "label": "Translate",
         "title": "Retranslating everything costs more",
-        "body": "Only {sent} of {total} strings changed, so only {sent} go to your provider."
+        "body": "Only {sent} of {total} translations are new or changed, so only {sent} go to your provider."
       },
       "ci": {
         "label": "Check",

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { stripAccentTags } from "@/test-support/accent-tags";
+import { HERO_SENT_STRINGS, HERO_TOTAL_STRINGS } from "./hero-terminal";
 import { i18n } from "./i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ITEM_IDS } from "./landing-faq";
@@ -99,7 +100,9 @@ describe("the English landing markdown after the pain titles and the comparison 
   it("titles the three pain tiles, with the run numbers in the cost body", async () => {
     const body = await landingMarkdown("en");
     expect(body).toContain("### Translate: Retranslating everything costs more");
-    expect(body).toContain("Only 4 of 28 strings changed, so only 4 go to your provider.");
+    expect(body).toContain(
+      `Only ${HERO_SENT_STRINGS} of ${HERO_TOTAL_STRINGS} translations are new or changed, so only ${HERO_SENT_STRINGS} go to your provider.`,
+    );
     expect(body).toContain("### Check: Missing keys reach production");
     expect(body).toContain("### Integrity: One broken placeholder breaks a screen");
     expect(body).not.toContain("Pay for");

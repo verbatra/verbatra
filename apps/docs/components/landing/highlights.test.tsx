@@ -72,7 +72,7 @@ describe("Highlights", () => {
     const sent = HERO_TERMINAL_NEW_KEYS.length * locales;
     const total = (HERO_TERMINAL_NEW_KEYS.length + HERO_TERMINAL_SYNCED_KEYS.length) * locales;
     expect(tiles()[0]?.querySelector(".vk-tile-body")?.textContent).toBe(
-      `Only ${sent} of ${total} strings changed, so only ${sent} go to your provider.`,
+      `Only ${sent} of ${total} translations are new or changed, so only ${sent} go to your provider.`,
     );
     expect(tiles()[0]?.querySelector("h3")?.textContent).not.toMatch(/\d/);
     const run = tiles()[0]?.querySelector("pre")?.textContent ?? "";
