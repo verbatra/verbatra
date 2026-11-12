@@ -17,7 +17,7 @@ works before the source locale file exists.
 **Symptom**: `pnpm add -D @verbatra/cli` prints its install summary and then exits `1`:
 
 ```
-[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@2.15.0, protobufjs@7.6.5
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@3.1.0, protobufjs@7.6.5
 Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
 ```
 
@@ -124,8 +124,8 @@ never from the config or a flag.
 401/403.
 
 **Fix**: nothing is lost; the keys are picked up again on the next run. Re-run later for
-[`RATE_LIMITED`](/docs/error-codes#rate_limited), one locale at a time with `--locales` against a
-strict quota. For a slow model, raise
+[`RATE_LIMITED`](/docs/error-codes#rate_limited), after the wait its message names if it names one
+(an exhausted daily quota), and one locale at a time with `--locales` against a strict quota. For a slow model, raise
 [`requestTimeoutMs`](/docs/providers#request-timeout) against
 [`TIMEOUT`](/docs/error-codes#timeout). [`AUTH_FAILED`](/docs/error-codes#auth_failed) does not
 resolve by retrying: replace the key.

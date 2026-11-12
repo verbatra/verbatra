@@ -116,7 +116,7 @@ provider: {
 | Opción | Tipo | Por defecto | Efecto |
 | --- | --- | --- | --- |
 | `glossaryId` | string | ninguno | Un glosario que creaste en DeepL, aplicado de forma nativa. |
-| `requestTimeoutMs` | entero positivo | `120000` | La espera mínima por intento, hasta cinco intentos. |
+| `requestTimeoutMs` | entero positivo | `120000` | La espera mínima por intento, hasta seis intentos. |
 | `localeMap` | mapa de locale a código | ninguno | Sustituye el código enviado por locale. |
 
 Lee `DEEPL_API_KEY`; `options` puede ser `{}`. DeepL no tiene modelo ni límite de tokens de salida, y se degrada con un aviso en lugar de fallar:
@@ -182,7 +182,7 @@ Endpoint fijo, sin `baseUrl`. Lee `OPENCODE_API_KEY`.
 
 Cualquier servidor que hable la API Chat Completions de OpenAI: LM Studio, Ollama, vLLM o una API alojada.
 
-El servidor debe servir Chat Completions en `<baseUrl>/chat/completions` con salida de JSON schema estricto. Las pasarelas que solo atienden a sus propias apps cliente, por ejemplo exigiendo una cabecera de sesión de cliente o una autenticación propia de la app, no funcionan.
+El servidor debe servir Chat Completions en `<baseUrl>/chat/completions` con salida de JSON schema estricto. Las pasarelas que solo atienden a sus propias apps cliente no funcionan.
 
 ```ts title="verbatra.config.ts"
 provider: {
@@ -231,7 +231,7 @@ La clave se resuelve en orden:
 `apiKeyEnvVar` no puede nombrar la variable de un proveedor alojado, y el cliente nunca lee `OPENAI_API_KEY`, así que una clave alojada nunca llega a un `baseUrl` personalizado.
 
 <Callout type="warn" title="Una clave real sobre http en claro viaja sin cifrar">
-`http://` se permite hacia cualquier host. Con una clave y una URL `http://` que no es loopback, la clave cruza tu red sin cifrar y sin aviso, así que usa `https://` para un servidor que necesite clave.
+Con una clave y una URL `http://` que no es loopback, la clave cruza tu red sin cifrar y sin aviso, así que usa `https://` para un servidor que necesite clave.
 </Callout>
 
 ### Elegir un modelo local
@@ -302,7 +302,7 @@ El trabajo de un locale se envía en sublotes secuenciales de como mucho [`maxBa
 
 ### Reintentos
 
-Los límites de tasa y los errores de servidor se reintentan con espera, por el cliente en OpenAI, OpenCode, openai-compatible, Anthropic y DeepL y por verbatra en Gemini. Google Cloud Translation y LibreTranslate no reintentan.
+Los límites de tasa y los errores de servidor se reintentan con espera, por el cliente en OpenAI, OpenCode, openai-compatible, Anthropic y DeepL y por verbatra en Gemini. Google Cloud Translation y LibreTranslate no reintentan. Gemini respeta una espera indicada de hasta 5 segundos y hace fallar una más larga, como una cuota diaria agotada, al instante con `RATE_LIMITED`, que nombra la espera.
 
 ### Tiempo de espera de petición
 
@@ -339,7 +339,7 @@ Los archivos, el bloqueo y la memoria siempre usan los códigos de tu configurac
 
 Un LLM recibe además los [nombres de idioma, escritura y región](/es/docs/translation-safety#nombres-de-idioma-escritura-y-región). DeepL no tiene un inglés ni un portugués genéricos como destino, así que un destino que acaba siendo un `en` o `pt` escueto (como `en-AU`) se rechaza antes de la ejecución: asígnalo a `EN-GB`, `EN-US`, `PT-BR` o `PT-PT`.
 
-`localeMap` sustituye el código por locale, y una entrada siempre gana:
+`localeMap` sustituye el código por locale:
 
 ```ts title="verbatra.config.ts"
 provider: {

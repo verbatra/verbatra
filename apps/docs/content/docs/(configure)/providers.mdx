@@ -99,7 +99,7 @@ provider: {
 Reads `GEMINI_API_KEY`.
 
 <Callout title="The free tier and its limits">
-A key from [Google AI Studio](https://aistudio.google.com/apikey) needs no billing, but its per-minute and per-day caps can stop a first run over many locales: translate one locale at a time or lower `maxBatchSize`, and re-run to pick up the rest.
+A key from [Google AI Studio](https://aistudio.google.com/apikey) needs no billing, but its per-minute and per-day caps can stop a first run over many locales: translate one locale at a time or lower `maxBatchSize`, and re-run for the rest.
 </Callout>
 
 ## DeepL
@@ -116,7 +116,7 @@ provider: {
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
 | `glossaryId` | string | none | A glossary you created in DeepL, applied natively. |
-| `requestTimeoutMs` | positive integer | `120000` | The minimum wait per attempt, up to five attempts. |
+| `requestTimeoutMs` | positive integer | `120000` | The minimum wait per attempt, up to six attempts. |
 | `localeMap` | map of locale to code | none | Overrides the code sent per locale. |
 
 Reads `DEEPL_API_KEY`; `options` may be `{}`. DeepL has no model and no output-token limit, and degrades with a notice rather than failing:
@@ -182,7 +182,7 @@ Fixed endpoint, no `baseUrl`. Reads `OPENCODE_API_KEY`.
 
 Any server speaking the OpenAI Chat Completions API: LM Studio, Ollama, vLLM, or a hosted API.
 
-The server must serve Chat Completions at `<baseUrl>/chat/completions` with strict JSON schema output. Gateways serving only their own client apps, for example by requiring a client session header or app-specific authentication, do not work.
+The server must serve Chat Completions at `<baseUrl>/chat/completions` with strict JSON schema output. Gateways serving only their own client apps do not work.
 
 ```ts title="verbatra.config.ts"
 provider: {
@@ -231,7 +231,7 @@ The key resolves in order:
 `apiKeyEnvVar` cannot name a hosted provider's variable, and the client never reads `OPENAI_API_KEY`, so a hosted key never reaches a custom `baseUrl`.
 
 <Callout type="warn" title="A real key over plaintext http travels in cleartext">
-`http://` is allowed to any host. With a key and a non-loopback `http://` URL, the key crosses your network unencrypted, without a warning, so use `https://` for a server that needs a key.
+With a key and a non-loopback `http://` URL, the key crosses your network unencrypted, without a warning, so use `https://` for a server that needs a key.
 </Callout>
 
 ### Choosing a local model
@@ -302,7 +302,7 @@ A locale's work goes out in sequential sub-batches of at most [`maxBatchSize`](/
 
 ### Retries
 
-Rate limits and server errors are retried with backoff, by the client for OpenAI, OpenCode, openai-compatible, Anthropic and DeepL and by verbatra for Gemini. Google Cloud Translation and LibreTranslate do not retry.
+Rate limits and server errors are retried with backoff, by the client for OpenAI, OpenCode, openai-compatible, Anthropic and DeepL and by verbatra for Gemini. Google Cloud Translation and LibreTranslate do not retry. Gemini honours a stated wait up to 5 seconds and fails a longer one (an exhausted daily quota) at once with `RATE_LIMITED` naming the wait.
 
 ### Request timeout
 
@@ -328,7 +328,7 @@ provider: {
 
 <AvailableFrom version="0.12.0" />
 
-Files, the lock and the memory always use your config's codes. Only the request is translated to what the provider expects:
+Files, the lock and the memory use your config's codes. Only the request is translated to what the provider expects:
 
 | Provider | Source locale | Target locale |
 | --- | --- | --- |
@@ -339,7 +339,7 @@ Files, the lock and the memory always use your config's codes. Only the request 
 
 An LLM also gets the [language, script and region names](/docs/translation-safety#language-script-and-region-names). DeepL has no generic English or Portuguese target, so a target ending up as bare `en` or `pt` (such as `en-AU`) is refused before the run: map it to `EN-GB`, `EN-US`, `PT-BR` or `PT-PT`.
 
-`localeMap` overrides the code per locale, and an entry always wins:
+`localeMap` overrides the code per locale:
 
 ```ts title="verbatra.config.ts"
 provider: {

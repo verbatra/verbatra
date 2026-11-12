@@ -116,7 +116,7 @@ provider: {
 | Option | Typ | Default | Wirkung |
 | --- | --- | --- | --- |
 | `glossaryId` | String | keine | Ein Glossar, das du in DeepL angelegt hast, nativ angewendet. |
-| `requestTimeoutMs` | positive Ganzzahl | `120000` | Die Mindestwartezeit pro Versuch, bis zu fünf Versuche. |
+| `requestTimeoutMs` | positive Ganzzahl | `120000` | Die Mindestwartezeit pro Versuch, bis zu sechs Versuche. |
 | `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
 
 Liest `DEEPL_API_KEY`; `options` darf `{}` sein. DeepL hat kein Modell und kein Ausgabe-Token-Limit und stuft mit einem Hinweis herab, statt fehlzuschlagen:
@@ -182,7 +182,7 @@ Fester Endpunkt, kein `baseUrl`. Liest `OPENCODE_API_KEY`.
 
 Jeder Server, der die OpenAI-Chat-Completions-API spricht: LM Studio, Ollama, vLLM oder eine gehostete API.
 
-Der Server muss Chat Completions unter `<baseUrl>/chat/completions` mit striktem JSON-Schema-Output bereitstellen. Gateways, die nur ihre eigenen Client-Apps bedienen, etwa indem sie einen Client-Session-Header oder eine app-spezifische Authentifizierung verlangen, funktionieren nicht.
+Der Server muss Chat Completions unter `<baseUrl>/chat/completions` mit striktem JSON-Schema-Output bereitstellen. Gateways, die nur ihre eigenen Client-Apps bedienen, funktionieren nicht.
 
 ```ts title="verbatra.config.ts"
 provider: {
@@ -231,7 +231,7 @@ Der Key wird der Reihe nach aufgelöst:
 `apiKeyEnvVar` kann nicht die Variable eines gehosteten Providers nennen, und der Client liest nie `OPENAI_API_KEY`, ein gehosteter Key erreicht also nie eine eigene `baseUrl`.
 
 <Callout type="warn" title="Ein echter Key über Klartext-http reist unverschlüsselt">
-`http://` ist zu jedem Host erlaubt. Mit einem Key und einer `http://`-URL zu einem Nicht-Loopback-Host geht der Key unverschlüsselt und ohne Warnung durch dein Netzwerk, verwende also `https://` für einen Server, der einen Key braucht.
+Mit einem Key und einer `http://`-URL zu einem Nicht-Loopback-Host geht der Key unverschlüsselt und ohne Warnung durch dein Netzwerk, verwende also `https://` für einen Server, der einen Key braucht.
 </Callout>
 
 ### Ein lokales Modell wählen
@@ -302,7 +302,7 @@ Die Arbeit einer Locale geht in sequenziellen Sub-Batches von höchstens [`maxBa
 
 ### Wiederholungen
 
-Rate-Limits und Serverfehler werden mit Backoff wiederholt, bei OpenAI, OpenCode, openai-compatible, Anthropic und DeepL vom Client und bei Gemini von verbatra. Google Cloud Translation und LibreTranslate wiederholen nicht.
+Rate-Limits und Serverfehler werden mit Backoff wiederholt, bei OpenAI, OpenCode, openai-compatible, Anthropic und DeepL vom Client und bei Gemini von verbatra. Google Cloud Translation und LibreTranslate wiederholen nicht. Gemini hält eine genannte Wartezeit von bis zu 5 Sekunden ein und lässt eine längere, etwa bei erschöpftem Tageskontingent, sofort mit `RATE_LIMITED` scheitern, das die Wartezeit nennt.
 
 ### Anfrage-Timeout
 
@@ -339,7 +339,7 @@ Dateien, Lock-Datei und Translation Memory verwenden immer die Codes deiner Konf
 
 Ein LLM bekommt zusätzlich die [Namen von Sprache, Schrift und Region](/de/docs/translation-safety#namen-von-sprache-schrift-und-region). DeepL hat kein allgemeines Englisch oder Portugiesisch als Ziel, ein Ziel, das am Ende ein bloßes `en` oder `pt` ist (etwa `en-AU`), wird deshalb vor dem Lauf abgelehnt: Bilde es auf `EN-GB`, `EN-US`, `PT-BR` oder `PT-PT` ab.
 
-`localeMap` überschreibt den Code pro Locale, und ein Eintrag gewinnt immer:
+`localeMap` überschreibt den Code pro Locale:
 
 ```ts title="verbatra.config.ts"
 provider: {
