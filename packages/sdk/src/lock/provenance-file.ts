@@ -140,6 +140,22 @@ function isRecord(value: unknown): value is ProvenanceRecord {
   );
 }
 
+function recordFault(value: unknown): string {
+  if (!isPlainObject(value)) {
+    return "is not an object";
+  }
+  if (typeof value.origin !== "string") {
+    return "has no valid origin";
+  }
+  if (typeof value.valueHash !== "string") {
+    return "has no valid valueHash";
+  }
+  const field = OPTIONAL_STRING_FIELDS.find(
+    (name) => value[name] !== undefined && typeof value[name] !== "string",
+  );
+  return field === undefined ? "has an unexpected shape" : `has a ${field} that is not a string`;
+}
+
 function nullPrototypeCopy<T>(
   source: Record<string, unknown>,
   accept: (value: unknown) => T,
@@ -239,7 +255,7 @@ function assertWritableRecords(file: ProvenanceFile): void {
       if (!isRecord(record)) {
         throw new SdkError(
           "PROVENANCE_FILE_INVALID",
-          `The provenance record for "${key}" in locale "${locale}" has no valid origin and was not written.`,
+          `The provenance record for "${key}" in locale "${locale}" ${recordFault(record)} and was not written.`,
         );
       }
     }
