@@ -394,7 +394,7 @@ describe("StackCards", () => {
         <StackCards
           labelledBy="stacks"
           locale="en"
-          cards={(["xliff", "ini", "json"] as const).map((icon) => ({
+          cards={(["ini", "json"] as const).map((icon) => ({
             label: icon,
             icon,
             formats: [],
@@ -404,7 +404,7 @@ describe("StackCards", () => {
       ),
     );
     const labels = [...doc.querySelectorAll("symbol text")].map((text) => text.textContent);
-    expect(labels).toEqual(["XLF", "INI", "JSON"]);
+    expect(labels).toEqual(["INI", "JSON"]);
     for (const text of doc.querySelectorAll("symbol text")) {
       expect(text.getAttribute("fill")).toBe("currentColor");
       expect(text.getAttribute("font-family")).toContain("var(--font-mono)");
@@ -417,15 +417,20 @@ describe("StackCards", () => {
       "xliff",
       "yaml",
     ]);
-    expect(doc.querySelectorAll("li > span > svg[aria-hidden='true']")).toHaveLength(3);
+    expect(doc.querySelectorAll("li > span > svg[aria-hidden='true']")).toHaveLength(2);
   });
 
-  it("draws the official GNU and YAML marks for gettext and YAML, and a labelled glyph only for XLIFF, INI and the rest", () => {
-    expect(ICON_BRAND_MARKS).toEqual({ po: "simpleGnu", yaml: "deviconYaml" });
+  it("draws the official GNU, YAML and OASIS marks for gettext, YAML and XLIFF, and a labelled glyph only for INI and the rest", () => {
+    expect(ICON_BRAND_MARKS).toEqual({
+      po: "simpleGnu",
+      yaml: "deviconYaml",
+      xliff: "commonsOasis",
+    });
+    expect(cardMark({ icon: "xliff" })).toBe("commonsOasis");
     expect(cardMark({ icon: "po" })).toBe("simpleGnu");
     expect(cardMark({ icon: "yaml" })).toBe("deviconYaml");
     expect(cardMark({ icon: "yaml", mark: "react" })).toBe("react");
-    for (const icon of ["xliff", "ini", "json", "custom", "web"] as const) {
+    for (const icon of ["ini", "json", "custom", "web"] as const) {
       expect(cardMark({ icon }), icon).toBeUndefined();
     }
   });

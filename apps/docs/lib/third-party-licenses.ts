@@ -137,6 +137,7 @@ const STACK_CARD_MARK_IDS: ReadonlyArray<string> = [
   "deviconNextjs",
   "simpleGnu",
   "deviconYaml",
+  "commonsOasis",
   "react",
   "fontawesomeVuejs",
   "deviconNuxt",

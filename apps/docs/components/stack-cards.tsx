@@ -17,6 +17,7 @@ const ICON_SIZE = 28;
 export const ICON_BRAND_MARKS: Readonly<Partial<Record<StackIconKey, BrandMarkId>>> = {
   po: "simpleGnu",
   yaml: "deviconYaml",
+  xliff: "commonsOasis",
 };
 
 export function cardMark(card: Pick<StackCard, "icon" | "mark">): BrandMarkId | undefined {

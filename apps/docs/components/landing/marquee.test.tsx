@@ -277,28 +277,23 @@ describe("Marquee", () => {
       );
       expect(entry, slug).toBeDefined();
       const tokens = entry?.license.toUpperCase().split(/[^A-Z0-9.]+/) ?? [];
-      if (slug !== "fontawesomeVuejs") {
-        expect(tokens, slug).not.toContain("NC");
+      if (slug !== "fontawesomeVuejs") expect(tokens, slug).not.toContain("NC");
+      if (slug !== "fontawesomeVuejs" && slug !== "simpleGnu")
         expect(tokens, slug).not.toContain("SA");
-      }
       expect(entry?.usage, slug).toContain(
         "Logos are trademarks of their owners, used to identify compatibility.",
       );
     }
   });
 
-  it("gives every provider and format its brand mark, keeping a neutral glyph only where no brand exists and a labelled file glyph for XLIFF", () => {
+  it("gives every provider and format its brand mark, keeping a neutral glyph only where no brand exists", () => {
     const entries = [
       ...Object.entries(PROVIDER_ICONS).map(([id, mark]) => [`provider:${id}`, mark] as const),
       ...Object.entries(FORMAT_ICONS).map(([id, mark]) => [`format:${id}`, mark] as const),
     ];
     const withoutBrand = entries.filter(([, mark]) => mark.kind !== "brand").map(([id]) => id);
-    expect(withoutBrand.sort()).toEqual([
-      "format:ini",
-      "format:xliff",
-      "provider:openai-compatible",
-    ]);
-    expect(FORMAT_ICONS.xliff).toEqual({ kind: "file", icon: "xliff" });
+    expect(withoutBrand.sort()).toEqual(["format:ini", "provider:openai-compatible"]);
+    expect(FORMAT_ICONS.xliff).toEqual({ kind: "brand", mark: "commonsOasis" });
     expect(FORMAT_ICONS.resx).toEqual({ kind: "brand", mark: "dotnet" });
   });
 

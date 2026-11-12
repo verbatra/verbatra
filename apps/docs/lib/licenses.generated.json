@@ -3132,6 +3132,16 @@
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/gnu.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
+    },
+    {
+      "name": "OASIS mark (commons.wikimedia.org@915503158ed0069263c082b301d6cc2c09c5eb5b, 5/50/Logo_OASIS.svg)",
+      "license": "Public domain (trademarked)",
+      "copyright": [
+        "OASIS Open logo, File:Logo_OASIS.svg on Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Logo_OASIS.svg, file SHA-1 915503158ed0069263c082b301d6cc2c09c5eb5b), marked public domain as a text logo with a trademark restriction. The OASIS name and logo are trademarks of OASIS Open, the steward of XLIFF, shown only to identify compatibility.",
+        "Changed: only the symbol is used (the wordmark is left out), flattened from its blue gradient to the gradient's end colour."
+      ],
+      "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://upload.wikimedia.org/wikipedia/commons/5/50/Logo_OASIS.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
     }
   ],
   "texts": [

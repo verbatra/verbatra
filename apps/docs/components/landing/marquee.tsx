@@ -32,7 +32,6 @@ export type MarqueeMark =
 
 const brand = (mark: BrandMarkId): MarqueeMark => ({ kind: "brand", mark });
 const glyph = (id: MarqueeGlyphId): MarqueeMark => ({ kind: "glyph", glyph: id });
-const file = (icon: StackIconKey): MarqueeMark => ({ kind: "file", icon });
 
 export const PROVIDER_ICONS: Readonly<Record<MachineProviderId, MarqueeMark>> = {
   anthropic: brand("simpleAnthropic"),
@@ -50,7 +49,7 @@ export const FORMAT_ICONS: Readonly<Record<SupportedFormat, MarqueeMark>> = {
   "vue-i18n-json": brand("fontawesomeVuejs"),
   "next-intl-json": brand("deviconNextjs"),
   "ngx-translate-json": brand("angular"),
-  xliff: file("xliff"),
+  xliff: brand("commonsOasis"),
   yaml: brand("deviconYaml"),
   arb: brand("fontawesomeFlutter"),
   properties: brand("deviconSpring"),

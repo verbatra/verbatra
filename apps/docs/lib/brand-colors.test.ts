@@ -22,7 +22,9 @@ describe("brand mark colours", () => {
       const { hex, source } = BRAND_MARKS[id].color;
       expect(hex, id).toMatch(/^#[0-9A-F]{6}$/);
       expect(source.length, id).toBeGreaterThan(20);
-      expect(source, id).toMatch(/Simple Icons 16\.35\.0|Lobe Icons|brand guidelines/);
+      expect(source, id).toMatch(
+        /Simple Icons 16\.35\.0|Lobe Icons|Wikimedia Commons|brand guidelines/,
+      );
     }
   });
 

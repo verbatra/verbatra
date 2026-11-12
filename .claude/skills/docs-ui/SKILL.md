@@ -699,8 +699,9 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   permission requests): React and Angular and Android from Simple Icons (their brand-granted
   licenses), Apple, Flutter and Vue from Font Awesome Free 7.3.1 (brands), Spring, Next.js and
   Nuxt from Devicon 2.18.0 (MIT; the monochrome "plain" drawing, or the single-color "original"
-  where no plain one exists), GNU for gettext (Simple Icons) and YAML (Devicon), both through
-  `ICON_BRAND_MARKS` in `stack-cards.tsx` (the card's `icon` `po` or `yaml` resolves to its mark
+  where no plain one exists), GNU for gettext (Simple Icons), the OASIS symbol for XLIFF (Wikimedia Commons, `File:Logo_OASIS.svg`, public domain
+  with a trademark restriction, the wordmark left out) and YAML (Devicon), all through
+  `ICON_BRAND_MARKS` in `stack-cards.tsx` (the card's `icon` `po`, `xliff` or `yaml` resolves to its mark
   without an MDX `mark:`), and .NET
   from the `dotnet/brand` repository at a pinned commit (`logo/dotnet-logo.svg`; recorded as "Brand
   permission", never as CC0: the README grants the CC0 license to the illustrations and lets
@@ -712,8 +713,8 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   trademarks of their owners, used to identify compatibility." (Font Awesome adds: use brand logos
   only to represent the company, product or service they refer to). Neither the marquee nor the cards hold a mark back for licence
   reasons (see the logo rule below for what each record must state, including the Vue mark's
-  CC BY-NC-SA terms and Simple Icons' CC0 data under the owners' trademarks). Only an entry with no
-  brand at all keeps a neutral stroke glyph or labelled file outline (XLIFF, INI, the custom
+  CC BY-NC-SA terms, the GNU mark's CC BY-SA 2.0 terms and Simple Icons' CC0 data under the owners' trademarks). Only an entry with no
+  brand at all keeps a neutral stroke glyph or labelled file outline (INI, the custom
   card), never a hand-drawn lookalike and no text chip (the text chip mechanism is gone).
   **Brand colour:** a mark is one path in one fill, and that fill is the brand's official hex
   (`color: { hex, source }` on every `BRAND_MARKS` record, the one source for the marquee and the
@@ -739,11 +740,12 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   icon package in `package.json`; it is drawn in one fill, the brand colour above or `currentColor`, with no gradient or glow, and never redrawn. Since the maintainer decision of 2026-11-12 a
   logo is not held back for licence reasons: brand permission requests are the maintainer's to
   make, and an entry with no brand at all (INI, the OpenAI-compatible endpoint) keeps a neutral
-  glyph. Each record states what is true: Simple Icons marks are CC0 data whose logos remain the
-  owners' trademarks; the Vue mark is Font Awesome's CC BY 4.0 drawing of a logo that vuejs/art
+  glyph. Each record states what is true: Simple Icons marks are CC0 data unless the icon's own `license` field in
+  `data/simple-icons.json` says otherwise (Angular CC BY 4.0, Android CC BY 3.0, GNU CC BY-SA 2.0; read
+  that field for every new mark), and their logos remain the owners' trademarks; the Vue mark is Font Awesome's CC BY 4.0 drawing of a logo that vuejs/art
   publishes under CC BY-NC-SA 4.0 with extra conditions (open source projects related to Vue.js
   and illustrating a product's Vue.js integration are allowed), and `third-party-licenses.test.ts`
-  names it as the only restricted mark. Every mark is
+  names it and the share-alike GNU mark as the only restricted marks. Every mark is
   listed as an asset in `THIRD_PARTY_NOTICES.md` and on `/licenses` through `ASSET_SOURCES` in
   `lib/third-party-licenses.ts` (run `licenses:sync` after a change), with the source URL, the
   CC BY attribution and change note where the license asks for one, and the sentence "Logos are

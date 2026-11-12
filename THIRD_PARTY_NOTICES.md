@@ -69,6 +69,9 @@ published at https://verbatra.kreitz-webdev.de/licenses.
   - GNU logo by Aurelio A. Heckert (https://www.gnu.org/graphics/heckert_gnu.html), licensed under CC BY-SA 2.0 (https://creativecommons.org/licenses/by-sa/2.0/). Simple Icons 16.35.0 records this license for its gnu icon in data/simple-icons.json.
   - Changed: redrawn in one color by Simple Icons and filled with the brand color (the page's text color in a theme where the brand color lacks contrast).
   - Share-alike: this redrawn mark stays under CC BY-SA 2.0; the surrounding site and its code are not derivative works of it. The GNU name and logo are marks of the Free Software Foundation, shown only to identify compatibility.
+- OASIS mark (commons.wikimedia.org@915503158ed0069263c082b301d6cc2c09c5eb5b, 5/50/Logo_OASIS.svg) (Public domain (trademarked)): Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://upload.wikimedia.org/wikipedia/commons/5/50/Logo_OASIS.svg. Logos are trademarks of their owners, used to identify compatibility.
+  - OASIS Open logo, File:Logo_OASIS.svg on Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Logo_OASIS.svg, file SHA-1 915503158ed0069263c082b301d6cc2c09c5eb5b), marked public domain as a text logo with a trademark restriction. The OASIS name and logo are trademarks of OASIS Open, the steward of XLIFF, shown only to identify compatibility.
+  - Changed: only the symbol is used (the wordmark is left out), flattened from its blue gradient to the gradient's end colour.
 
 ## MIT (292)
 
