@@ -5,14 +5,21 @@ import { THEMES } from "@/lib/theme";
 
 export const CARD_SHOT_SCALE = 2.9;
 
-const SINGLE_COLUMN_GUTTER = "3.125rem";
-const TWO_COLUMN_GUTTER = "6rem";
 const THREE_COLUMN_WIDTH = 389;
+
+const SIZE_STEPS = [
+  { below: "43.9375rem", inset: "50px", columns: 1 },
+  { below: "47.9375rem", inset: "68px", columns: 2 },
+  { below: "66.9375rem", inset: "100px", columns: 2 },
+  { below: "80.3125rem", inset: "118px", columns: 3 },
+] as const;
 
 export function studioCardShotSizes(): string {
   return [
-    `(max-width: 46rem) calc((100vw - ${SINGLE_COLUMN_GUTTER}) * ${CARD_SHOT_SCALE})`,
-    `(max-width: 67rem) calc((100vw - ${TWO_COLUMN_GUTTER}) / 2 * ${CARD_SHOT_SCALE})`,
+    ...SIZE_STEPS.map(
+      ({ below, inset, columns }) =>
+        `(max-width: ${below}) calc((100vw - ${inset}) / ${columns} * ${CARD_SHOT_SCALE})`,
+    ),
     `${Math.round(THREE_COLUMN_WIDTH * CARD_SHOT_SCALE)}px`,
   ].join(", ");
 }

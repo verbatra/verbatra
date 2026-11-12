@@ -96,10 +96,38 @@ describe("StudioCardShot", () => {
     );
   });
 
-  it("sizes the image from the same scale as the stylesheet, in viewport units", () => {
-    const sizes = studioCardShotSizes();
-    expect(sizes).toContain(`* ${CARD_SHOT_SCALE})`);
-    expect(sizes).toMatch(/100vw/);
-    expect(render().querySelector("img")?.getAttribute("sizes")).toBe(sizes);
+  it("reports the width the grid gives the image at each viewport, switching where the grid does", () => {
+    const widthAt = (viewport: number): number => {
+      const entry = studioCardShotSizes()
+        .split(/,\s(?=\()|,\s(?=\d)/)
+        .map((part) => /^(?:\(max-width: ([\d.]+)rem\) )?(.+)$/.exec(part))
+        .find((match) => match?.[1] === undefined || viewport <= Number(match[1]) * 16);
+      const expression = (entry?.[2] ?? "")
+        .replace(/calc/g, "")
+        .replace(/100vw/g, `${viewport}`)
+        .replace(/([\d.]+)rem/g, (_, rem) => `${Number(rem) * 16}`)
+        .replace(/([\d.]+)px/g, "$1");
+      return Function(`return ${expression}`)() as number;
+    };
+    const gridWidth = (viewport: number): number => {
+      const gutter = viewport >= 768 ? 40 : 24;
+      const content = Math.min(viewport, 1285) - 2 * gutter;
+      const columns = Math.min(3, Math.max(1, Math.floor((content + 16) / 336)));
+      return (content - 16 * (columns - 1)) / columns - 2;
+    };
+    for (const viewport of [
+      320, 391, 703, 704, 720, 767, 768, 1000, 1071, 1072, 1200, 1284, 1285,
+    ]) {
+      expect(widthAt(viewport), `${viewport}`).toBeCloseTo(
+        gridWidth(viewport) * CARD_SHOT_SCALE,
+        -1,
+      );
+    }
+    expect(widthAt(1440)).toBeCloseTo(389 * CARD_SHOT_SCALE, -1);
+    expect(widthAt(1920)).toBeCloseTo(389 * CARD_SHOT_SCALE, -1);
+  });
+
+  it("sizes the rendered images from that same list", () => {
+    expect(render().querySelector("img")?.getAttribute("sizes")).toBe(studioCardShotSizes());
   });
 });
