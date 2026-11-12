@@ -57,11 +57,23 @@ describe("landing providers", () => {
     expect(providerShortLabel("deepl")).toBe("DeepL");
   });
 
-  it("lists every machine provider in registry order and marks only the release's new ones", () => {
-    const providers = landingProviders();
-    expect(providers.map((provider) => provider.id)).toEqual([...MACHINE_PROVIDER_IDS]);
-    expect(providers.filter((provider) => provider.isNew).map((provider) => provider.id)).toEqual([
-      ...RELEASE_BADGE.providers,
-    ]);
+  it("lists every machine provider in registry order", () => {
+    expect(landingProviders().map((provider) => provider.id)).toEqual([...MACHINE_PROVIDER_IDS]);
+  });
+
+  it.each([
+    ["0.11.4", [...RELEASE_BADGE.providers]],
+    ["0.12.0", [...RELEASE_BADGE.providers]],
+    ["0.12.7", [...RELEASE_BADGE.providers]],
+    ["0.13.0", []],
+    ["0.13.4", []],
+  ])("marks the release's providers as new only while the CLI is on %s", (cli, expected) => {
+    const released = { cli, studio: "0.7.4", mcp: "0.4.4" };
+    const marked = landingProviders(released).filter((provider) => provider.isNew);
+    expect(marked.map((provider) => provider.id)).toEqual(expected);
+  });
+
+  it("marks nothing while the release badge names a line older than the current one", () => {
+    expect(landingProviders().filter((provider) => provider.isNew)).toEqual([]);
   });
 });

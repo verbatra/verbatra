@@ -1,7 +1,5 @@
 import { type HastNode, isBlank, visitParents } from "./hast";
 
-const BADGE_SPACE: HastNode = { type: "text", value: " " };
-
 const BADGE_HEADINGS: ReadonlySet<string> = new Set(["h2", "h3", "h4"]);
 
 function isBadgeHeading(node: HastNode): boolean {
@@ -27,11 +25,7 @@ function moveBadgesIntoHeadings(parent: HastNode): void {
     const badge = siblings[badgeIndex];
     if (!isAvailableFrom(badge)) continue;
     siblings.splice(index + 1, badgeIndex - index);
-    heading.children = [
-      ...(heading.children ?? []),
-      BADGE_SPACE,
-      { ...badge, type: "mdxJsxTextElement" },
-    ];
+    heading.children = [...(heading.children ?? []), { ...badge, type: "mdxJsxTextElement" }];
   }
 }
 

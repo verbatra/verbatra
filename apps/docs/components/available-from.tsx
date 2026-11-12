@@ -1,7 +1,10 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { PILL_CLASS } from "@/components/new-badge";
+import { NewPill } from "@/components/new-pill";
 import type { Locale } from "@/lib/i18n";
+import { RELEASED_VERSIONS } from "@/lib/new-status";
+import { isStillNew } from "@/lib/release-line";
 
 export const AVAILABLE_FROM_CLASS = "vk-available-from";
 
@@ -36,7 +39,17 @@ export async function AvailableFrom({
   pkg,
   locale,
 }: AvailableFromProps & { locale: Locale }): Promise<ReactNode> {
-  return <AvailableFromPill {...(await availableFromCopy(version, pkg, locale))} />;
+  if (!isStillNew(pkg === undefined ? { version } : { version, pkg }, RELEASED_VERSIONS))
+    return null;
+  const [{ detail }, t] = await Promise.all([
+    availableFromCopy(version, pkg, locale),
+    getTranslations({ locale, namespace: "docs.statusBadges" }),
+  ]);
+  return (
+    <NewPill className={AVAILABLE_FROM_CLASS} title={detail}>
+      {t("new")}
+    </NewPill>
+  );
 }
 
 export function AvailableFromPill({ label, detail }: AvailableFromCopy): ReactNode {

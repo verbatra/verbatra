@@ -295,7 +295,7 @@
         },
         "handoff": {
           "title": "Hand off to people",
-          "body": "Export an Excel workbook for a translator and import it back. Imported values stay protected from later machine runs."
+          "body": "Export an Excel workbook, CSV, TSV or XLIFF for a translator and import it back. Imported values stay protected from later machine runs."
         },
         "extract": {
           "title": "Extract from source",
@@ -629,7 +629,8 @@
         "description": "Licenses of the third-party software, fonts and assets that the verbatra documentation site ships."
       },
       "title": "Licenses",
-      "intro": "verbatra itself is MIT licensed. This site also ships third-party packages, fonts and assets, each under its own license. The list and the license texts below are given in English, as their authors wrote them."
+      "intro": "verbatra itself is MIT licensed. This site also ships third-party packages, fonts and assets, each under its own license. The list and the license texts below are given in English, as their authors wrote them.",
+      "brands": "All product names, logos and brands are the property of their respective owners. verbatra is not affiliated with or endorsed by them. They appear only to identify the formats and providers verbatra works with."
     }
   },
   "notFound": {

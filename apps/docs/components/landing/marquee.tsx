@@ -1,84 +1,71 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
-import { availableFromCopy } from "@/components/available-from";
 import { BrandMark, BrandMarkSprite } from "@/components/brand-marks";
 import { NewPill } from "@/components/new-pill";
+import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
-import type { BrandMarkId } from "@/lib/brand-marks";
+import { type BrandMarkId, MARQUEE_GLYPH_SIZE, marqueeMarkSize } from "@/lib/brand-marks";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, type MachineProviderId, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { landingProviders } from "@/lib/landing-providers";
-import { RELEASE_BADGE } from "@/lib/release-badge";
 import { MarqueeMotion } from "./islands";
 import { PlainList } from "./plain-list";
 
 export const MARQUEE_ICON_PREFIX = "marquee-mark";
 
+export const MARQUEE_FILE_PREFIX = "marquee-file";
+
 export const MARQUEE_COPIES = 2;
 
 export const MARQUEE_GLYPHS = {
-  braces:
-    "M8 4c-2 0-3 1-3 3v2c0 1.5-1 3-2.5 3 1.5 0 2.5 1.5 2.5 3v2c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.5 1 3 2.5 3-1.5 0-2.5 1.5-2.5 3v2c0 2-1 3-3 3",
-  swap: "M4 8h14l-4-4M20 16H6l4 4",
-  bubble: "M4 5h16v11H11l-4 4v-4H4z",
   sliders: "M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6",
-  cube: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9",
   plug: "M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4",
-  globe: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18",
-  chip: "M7 7h10v10H7zM10 10h4v4h-4zM9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4",
-  languages: "M3 4h11v8H9l-3 3v-3H3zM10 15v1h5l3 3v-3h3v-8h-4",
-  server: "M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01",
 } as const;
 
 export type MarqueeGlyphId = keyof typeof MARQUEE_GLYPHS;
 
 export type MarqueeMark =
   | { readonly kind: "brand"; readonly mark: BrandMarkId }
-  | { readonly kind: "glyph"; readonly glyph: MarqueeGlyphId };
+  | { readonly kind: "glyph"; readonly glyph: MarqueeGlyphId }
+  | { readonly kind: "file"; readonly icon: StackIconKey };
 
 const brand = (mark: BrandMarkId): MarqueeMark => ({ kind: "brand", mark });
 const glyph = (id: MarqueeGlyphId): MarqueeMark => ({ kind: "glyph", glyph: id });
 
 export const PROVIDER_ICONS: Readonly<Record<MachineProviderId, MarqueeMark>> = {
-  anthropic: glyph("chip"),
+  anthropic: brand("simpleAnthropic"),
   openai: brand("openai"),
-  gemini: glyph("chip"),
-  deepl: glyph("languages"),
-  "google-translate": glyph("languages"),
+  gemini: brand("simpleGemini"),
+  deepl: brand("simpleDeepl"),
+  "google-translate": brand("simpleGoogleTranslate"),
   "openai-compatible": glyph("plug"),
-  opencode: glyph("plug"),
-  libretranslate: glyph("server"),
+  opencode: brand("simpleOpencode"),
+  libretranslate: brand("simpleLibretranslate"),
 };
 
 export const FORMAT_ICONS: Readonly<Record<SupportedFormat, MarqueeMark>> = {
-  "i18next-json": glyph("globe"),
-  "vue-i18n-json": glyph("braces"),
+  "i18next-json": brand("simpleI18next"),
+  "vue-i18n-json": brand("fontawesomeVuejs"),
   "next-intl-json": brand("deviconNextjs"),
   "ngx-translate-json": brand("angular"),
-  xliff: glyph("swap"),
+  xliff: brand("commonsOasis"),
   yaml: brand("deviconYaml"),
   arb: brand("fontawesomeFlutter"),
   properties: brand("deviconSpring"),
   "apple-strings": brand("fontawesomeApple"),
   "apple-xcstrings": brand("fontawesomeApple"),
   "android-xml": brand("android"),
-  "gettext-po": glyph("bubble"),
+  "gettext-po": brand("simpleGnu"),
   ini: glyph("sliders"),
-  resx: glyph("cube"),
-};
-
-type MarqueeBadge = {
-  readonly label: string;
-  readonly release: string;
-  readonly version: string;
+  resx: brand("dotnet"),
 };
 
 type MarqueeItem = {
   readonly id: string;
   readonly label: string;
   readonly icon: MarqueeMark;
-  readonly badge: MarqueeBadge | null;
+  readonly newLabel: string | null;
 };
 
 type MarqueeRowProps = {
@@ -87,12 +74,12 @@ type MarqueeRowProps = {
   readonly items: ReadonlyArray<MarqueeItem>;
 };
 
-export function providerItems(releaseBadge: MarqueeBadge): ReadonlyArray<MarqueeItem> {
+export function providerItems(newLabel: string): ReadonlyArray<MarqueeItem> {
   return landingProviders().map((provider) => ({
     id: provider.id,
     label: provider.label,
     icon: PROVIDER_ICONS[provider.id],
-    badge: provider.isNew ? releaseBadge : null,
+    newLabel: provider.isNew ? newLabel : null,
   }));
 }
 
@@ -101,7 +88,7 @@ export function formatItems(): ReadonlyArray<MarqueeItem> {
     id,
     label: FORMAT_DISPLAY[id].label,
     icon: FORMAT_ICONS[id],
-    badge: null,
+    newLabel: null,
   }));
 }
 
@@ -112,19 +99,29 @@ function ItemMark({ mark }: { mark: MarqueeMark }): ReactNode {
         aria-hidden="true"
         focusable="false"
         viewBox="0 0 24 24"
-        width={18}
-        height={18}
+        width={MARQUEE_GLYPH_SIZE}
+        height={MARQUEE_GLYPH_SIZE}
         className="vk-marquee-glyph"
       >
         <path d={MARQUEE_GLYPHS[mark.glyph]} />
       </svg>
     );
   }
+  if (mark.kind === "file") {
+    return (
+      <StackIcon
+        prefix={MARQUEE_FILE_PREFIX}
+        icon={mark.icon}
+        size={MARQUEE_GLYPH_SIZE}
+        className="vk-marquee-glyph"
+      />
+    );
+  }
   return (
     <BrandMark
       prefix={MARQUEE_ICON_PREFIX}
       mark={mark.mark}
-      size={18}
+      size={marqueeMarkSize(mark.mark)}
       className="vk-marquee-mark"
     />
   );
@@ -134,22 +131,16 @@ function brandMarks(items: ReadonlyArray<MarqueeItem>): ReadonlyArray<BrandMarkI
   return items.flatMap((item) => (item.icon.kind === "brand" ? [item.icon.mark] : []));
 }
 
+function fileIcons(items: ReadonlyArray<MarqueeItem>): ReadonlyArray<StackIconKey> {
+  return items.flatMap((item) => (item.icon.kind === "file" ? [item.icon.icon] : []));
+}
+
 function Items({ items }: { items: ReadonlyArray<MarqueeItem> }): ReactNode {
   return items.map((item) => (
     <li key={item.id} className="vk-marquee-item" data-item={item.id}>
       <ItemMark mark={item.icon} />
       <span className="vk-marquee-name">{item.label}</span>
-      {item.badge === null ? null : (
-        <>
-          <NewPill>
-            {item.badge.label}
-            <span className="sr-only"> ({item.badge.release})</span>
-          </NewPill>
-          <span aria-hidden="true" className="vk-marquee-release">
-            {item.badge.version}
-          </span>
-        </>
-      )}
+      {item.newLabel === null ? null : <NewPill>{item.newLabel}</NewPill>}
     </li>
   ));
 }
@@ -193,8 +184,7 @@ function MarqueeRow({ id, title, items }: MarqueeRowProps): ReactNode {
 export async function Marquee(): Promise<ReactNode> {
   const t = await getTranslations("landing.marquee");
   const locale = toLocale(await getLocale());
-  const { label: release } = await availableFromCopy(RELEASE_BADGE.version, undefined, locale);
-  const providers = providerItems({ label: t("new"), release, version: RELEASE_BADGE.version });
+  const providers = providerItems(t("new"));
   const formats = formatItems();
 
   return (
@@ -206,6 +196,7 @@ export async function Marquee(): Promise<ReactNode> {
         prefix={MARQUEE_ICON_PREFIX}
         marks={brandMarks([...formats, ...providers])}
       />
+      <StackIconSprite prefix={MARQUEE_FILE_PREFIX} icons={fileIcons(formats)} />
       <MarqueeMotion pauseLabel={t("pause")} playLabel={t("play")}>
         <MarqueeRow id="formats" title={t("formats")} items={formats} />
         <MarqueeRow id="providers" title={t("providers")} items={providers} />

@@ -295,7 +295,7 @@
         },
         "handoff": {
           "title": "An Leute übergeben",
-          "body": "Exportiere eine Excel-Arbeitsmappe für einen Übersetzer und importiere sie zurück. Importierte Werte bleiben vor späteren Maschinenläufen geschützt."
+          "body": "Exportiere eine Excel-Arbeitsmappe, CSV, TSV oder XLIFF für einen Übersetzer und importiere sie zurück. Importierte Werte bleiben vor späteren Maschinenläufen geschützt."
         },
         "extract": {
           "title": "Aus der Quelle extrahieren",
@@ -629,7 +629,8 @@
         "description": "Lizenzen der Software, Schriftarten und Assets Dritter, die die verbatra-Dokumentationsseite ausliefert."
       },
       "title": "Lizenzen",
-      "intro": "verbatra selbst steht unter der MIT-Lizenz. Diese Website liefert außerdem Pakete, Schriftarten und Assets Dritter aus, jeweils unter ihrer eigenen Lizenz. Die Liste und die Lizenztexte unten stehen auf Englisch, so wie ihre Autoren sie verfasst haben."
+      "intro": "verbatra selbst steht unter der MIT-Lizenz. Diese Website liefert außerdem Pakete, Schriftarten und Assets Dritter aus, jeweils unter ihrer eigenen Lizenz. Die Liste und die Lizenztexte unten stehen auf Englisch, so wie ihre Autoren sie verfasst haben.",
+      "brands": "Alle Produktnamen, Logos und Marken sind Eigentum ihrer jeweiligen Inhaber. verbatra ist weder mit ihnen verbunden noch wird es von ihnen unterstützt oder empfohlen. Sie erscheinen nur, um die Formate und Anbieter zu kennzeichnen, mit denen verbatra arbeitet."
     }
   },
   "notFound": {

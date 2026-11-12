@@ -168,7 +168,7 @@
       "landing.features.items.doctor.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"ab2d5da6ed8d1e67"},
       "landing.features.items.extract.body": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"b7cc00ac298fd301"},
       "landing.features.items.extract.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"233b2439c3e9d94c"},
-      "landing.features.items.handoff.body": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"153b597130b2f79e"},
+      "landing.features.items.handoff.body": {"origin":"import","valueHash":"f6134b1dd36a3fb2"},
       "landing.features.items.handoff.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"a67148db15217169"},
       "landing.features.items.studio.body": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"0d87d688ac4a0d5f"},
       "landing.features.items.studio.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"5efa5382e3da3f1b"},
@@ -267,6 +267,7 @@
       "landing.playground.table.source": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"6e6cd95e2c73fb11"},
       "landing.statement.heading": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"bda52873e0e52926","reviewState":"approved","reviewedSourceHash":"9504d188ab82295e"},
       "landing.statement.label": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"5d08af834b36c279","reviewState":"approved","reviewedSourceHash":"42be2005e39131a1"},
+      "legal.licenses.brands": {"origin":"import","valueHash":"22feca51db7fe222"},
       "legal.privacy.s4.body": {"origin":"human","valueHash":"85b3c6746b11fa3a"}
     },
     "es": {
@@ -436,7 +437,7 @@
       "landing.features.items.doctor.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"b45b49db019407bc"},
       "landing.features.items.extract.body": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"bf8aa52e76d0974f"},
       "landing.features.items.extract.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"afcf0a972fa1bcc2"},
-      "landing.features.items.handoff.body": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"b2014c79a79353b7"},
+      "landing.features.items.handoff.body": {"origin":"import","valueHash":"074a0877d4c3550e"},
       "landing.features.items.handoff.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"5972d8a0f5518c32"},
       "landing.features.items.studio.body": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"57dfed707c0ee69c"},
       "landing.features.items.studio.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"49bf69f3173c5376"},
@@ -535,6 +536,7 @@
       "landing.playground.table.source": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"6f39022809584092"},
       "landing.statement.heading": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"f37cfab35220a807"},
       "landing.statement.label": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"7ae208457f8e91ee"},
+      "legal.licenses.brands": {"origin":"import","valueHash":"9e050d1b92b5c450"},
       "legal.privacy.s4.body": {"origin":"human","valueHash":"51087e389096999d"}
     },
     "fr": {
@@ -704,7 +706,7 @@
       "landing.features.items.doctor.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"0dfef28d9bc344c4"},
       "landing.features.items.extract.body": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"d31469bf979b98e8"},
       "landing.features.items.extract.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"606844c83b3c78f8"},
-      "landing.features.items.handoff.body": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"2db8a74bec8a86ea"},
+      "landing.features.items.handoff.body": {"origin":"import","valueHash":"aacfb4b69efa67bf"},
       "landing.features.items.handoff.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"b6c33e7ef2a12e08"},
       "landing.features.items.studio.body": {"origin":"import","valueHash":"50fa620a8c998efc"},
       "landing.features.items.studio.title": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"10130f072d4da138"},
@@ -803,6 +805,7 @@
       "landing.playground.table.source": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"dcbfd3b1d68d7abe"},
       "landing.statement.heading": {"origin":"import","valueHash":"a478c95cead4b0cf"},
       "landing.statement.label": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"f3e3fcb84a4a5fdf"},
+      "legal.licenses.brands": {"origin":"import","valueHash":"77bcb0b4611a05ae"},
       "legal.privacy.s4.body": {"origin":"human","valueHash":"e0cd0b6809849890"}
     }
   }

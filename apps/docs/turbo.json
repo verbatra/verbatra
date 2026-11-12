@@ -9,6 +9,7 @@
         "!.next/cache/**",
         "!.next/dev/**",
         "lib/version.generated.json",
+        "app/brand-colors.generated.css",
         "lib/translation-freshness.generated.json"
       ]
     },

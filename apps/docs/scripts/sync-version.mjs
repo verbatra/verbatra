@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { brandColorCss } from "../lib/brand-colors.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outputPath = resolve(here, "../lib/version.generated.json");
@@ -31,3 +32,5 @@ const versions = {
 };
 
 writeFileSync(outputPath, `${JSON.stringify(versions, null, 2)}\n`);
+
+writeFileSync(resolve(here, "../app/brand-colors.generated.css"), brandColorCss());

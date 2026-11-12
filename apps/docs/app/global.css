@@ -4,6 +4,7 @@
 @import "tw-animate-css";
 @import "@verbatra/ui/tokens.css";
 @import "@verbatra/ui/components.css";
+@import "./brand-colors.generated.css";
 @source "../../../packages/ui/src/**/*.{ts,tsx}";
 @source not "../../../packages/ui/src/**/*.test.{ts,tsx}";
 @source not "../../../packages/ui/src/test-support.tsx";
@@ -1797,11 +1798,12 @@ body > [data-radix-popper-content-wrapper] > * {
 }
 
 .vk-available-from {
+  max-width: 100%;
   vertical-align: 0.1em;
 }
 
 :where(h2, h3, h4) .vk-available-from {
-  margin-inline-start: 0.125rem;
+  margin-inline-start: 0.5rem;
   vertical-align: 0.2em;
 }
 
@@ -2962,11 +2964,6 @@ html:has(.vk-home) {
   scroll-margin-top: calc(var(--header-height) + 1rem);
 }
 
-#nd-page .prose :where(h2, h3, h4):has(.vk-available-from) {
-  flex-wrap: wrap;
-  row-gap: 0.25rem;
-}
-
 @media (width < 48rem) {
   #nd-page .prose :where(h2, h3, h4):not(:where(.not-prose, .not-prose *)) {
     scroll-margin-top: calc(var(--header-height) + var(--crumb-height) + 4rem);
@@ -3372,12 +3369,6 @@ html:has(.vk-home) {
 
 .vk-marquee :is(.vk-pill-new, .vk-pill-new-ring, .vk-pill-new-shimmer)::before {
   animation-name: none;
-}
-
-.vk-marquee-release {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--text-muted);
 }
 
 .vk-marquee-row {
@@ -4180,6 +4171,16 @@ html:has(.vk-home) {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
+  }
+
+  #nd-page .group\/heading > a[data-card]:has(.vk-available-from) {
+    flex-wrap: wrap;
+    column-gap: 0.5rem;
+    row-gap: 0.25rem;
+  }
+
+  #nd-page .group\/heading > a[data-card] > .vk-available-from {
+    margin-inline-start: 0;
   }
 
   .vk-home-tab {

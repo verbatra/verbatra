@@ -82,19 +82,34 @@ describe("third-party licenses", () => {
     }
   });
 
-  it("admits no brand mark under a non-commercial or share-alike license, and credits every attribution license", () => {
+  it("admits a brand mark under a non-commercial or share-alike license only with its permitted-use conditions recorded", () => {
     const marks = manifest.assets.filter((asset) => / mark \(.+@.+\)$/.test(asset.name));
     expect(marks).toHaveLength(BRAND_MARK_IDS.length);
+    const restricted = marks.filter((asset) => {
+      const tokens = asset.license.toUpperCase().split(/[^A-Z0-9.]+/);
+      return tokens.includes("NC") || tokens.includes("SA");
+    });
+    expect(restricted.map((asset) => asset.name)).toEqual([
+      "Vue mark (@fortawesome/fontawesome-free@7.3.1, svgs/brands/vuejs.svg)",
+      "GNU mark (simple-icons@16.35.0, icons/gnu.svg)",
+    ]);
+    const [vue, gnu] = restricted;
+    expect(gnu?.license).toBe("CC-BY-SA-2.0");
+    expect(gnu?.copyright.join(" ")).toContain("Aurelio A. Heckert");
+    expect(gnu?.copyright.join(" ")).toContain("Share-alike");
+    expect(vue?.license).toBe(
+      "CC-BY-4.0 (Font Awesome drawing), CC-BY-NC-SA-4.0 (Vue logo artwork)",
+    );
+    expect(vue?.copyright.join(" ")).toContain("https://github.com/vuejs/art");
+    expect(vue?.copyright.join(" ")).toContain("open source projects related to Vue.js");
     for (const asset of marks) {
       const tokens = asset.license.toUpperCase().split(/[^A-Z0-9.]+/);
-      expect(tokens, asset.name).not.toContain("NC");
-      expect(tokens, asset.name).not.toContain("SA");
       expect(asset.usage, asset.name).toContain(
         "Logos are trademarks of their owners, used to identify compatibility.",
       );
       if (tokens.includes("BY")) {
         expect(asset.copyright.join(" "), asset.name).toMatch(
-          /creativecommons\.org\/licenses\/by\//,
+          /creativecommons\.org\/licenses\/by(?:-sa)?\//,
         );
         expect(asset.copyright.join(" "), asset.name).toContain("Changed: ");
       }

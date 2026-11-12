@@ -295,7 +295,7 @@
         },
         "handoff": {
           "title": "Confie à des personnes",
-          "body": "Exporte un classeur Excel pour un traducteur et réimporte-le. Les valeurs importées restent protégées des exécutions machine ultérieures."
+          "body": "Exporte un classeur Excel, un CSV, un TSV ou un XLIFF pour un traducteur et réimporte-le. Les valeurs importées restent protégées des exécutions machine ultérieures."
         },
         "extract": {
           "title": "Extraire de la source",
@@ -629,7 +629,8 @@
         "description": "Licences des logiciels, polices et ressources de tiers que le site de documentation de verbatra embarque."
       },
       "title": "Licences",
-      "intro": "verbatra est sous licence MIT. Ce site embarque aussi des paquets, des polices et des ressources de tiers, chacun sous sa propre licence. La liste et les textes de licence ci-dessous sont en anglais, tels que leurs auteurs les ont rédigés."
+      "intro": "verbatra est sous licence MIT. Ce site embarque aussi des paquets, des polices et des ressources de tiers, chacun sous sa propre licence. La liste et les textes de licence ci-dessous sont en anglais, tels que leurs auteurs les ont rédigés.",
+      "brands": "Tous les noms de produits, logos et marques sont la propriété de leurs détenteurs respectifs. verbatra n'est ni affilié à eux ni approuvé par eux. Ils n'apparaissent que pour identifier les formats et les fournisseurs avec lesquels verbatra fonctionne."
     }
   },
   "notFound": {

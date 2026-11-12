@@ -221,6 +221,7 @@ export default async function LicensesPage(props: { params: Promise<{ lang: stri
   return (
     <LegalPage>
       <LegalPageHead eyebrow={tLegal("title")} title={t("title")} lead={t("intro")} />
+      <p>{t("brands")}</p>
       <p lang="en">
         {LICENSES.packageCount} packages in {LICENSES.groups.length} license groups, plus{" "}
         {LICENSES.assets.length} assets.

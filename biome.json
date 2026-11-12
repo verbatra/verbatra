@@ -12,6 +12,7 @@
       "!**/next-env.d.ts",
       "!**/verbatra.provenance.json",
       "!apps/docs/lib/fixtures",
+      "!apps/docs/app/brand-colors.generated.css",
       "!**/.agents",
       "!.claude/skills"
     ]

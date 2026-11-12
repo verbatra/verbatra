@@ -14,6 +14,16 @@ import { type Locale, localizeHref } from "@/lib/i18n";
 
 const ICON_SIZE = 28;
 
+export const ICON_BRAND_MARKS: Readonly<Partial<Record<StackIconKey, BrandMarkId>>> = {
+  po: "simpleGnu",
+  yaml: "deviconYaml",
+  xliff: "commonsOasis",
+};
+
+export function cardMark(card: Pick<StackCard, "icon" | "mark">): BrandMarkId | undefined {
+  return card.mark ?? ICON_BRAND_MARKS[card.icon];
+}
+
 export const FORMAT_ID_CLASS = "whitespace-nowrap @max-[23.5rem]:whitespace-normal";
 
 export type StackCard = {
@@ -77,6 +87,7 @@ function Card({
   markPrefix: string;
   locale: Locale;
 }): ReactNode {
+  const mark = cardMark(card);
   return (
     <li className="vk-stack-card">
       <div className="vk-stack-card-text">
@@ -101,14 +112,14 @@ function Card({
         {card.formats.length > 0 ? <FormatIds formats={card.formats} /> : null}
       </div>
       <span aria-hidden="true" className="vk-stack-card-chip">
-        {card.mark === undefined ? (
+        {mark === undefined ? (
           <StackIcon
             prefix={prefix}
             icon={card.icon}
             size={isFileGlyph(card.icon) ? FILE_GLYPH_SIZE : ICON_SIZE}
           />
         ) : (
-          <BrandMark prefix={markPrefix} mark={card.mark} size={ICON_SIZE} />
+          <BrandMark prefix={markPrefix} mark={mark} size={ICON_SIZE} />
         )}
       </span>
     </li>
@@ -126,8 +137,8 @@ export function StackCards({
 }): ReactNode {
   const prefix = stackIconPrefix(labelledBy);
   const markPrefix = stackMarkPrefix(labelledBy);
-  const glyphs = cards.filter((card) => card.mark === undefined).map((card) => card.icon);
-  const marks = cards.flatMap((card) => (card.mark === undefined ? [] : [card.mark]));
+  const glyphs = cards.filter((card) => cardMark(card) === undefined).map((card) => card.icon);
+  const marks = cards.flatMap((card) => cardMark(card) ?? []);
   return (
     <nav aria-labelledby={labelledBy} className="not-prose @container my-6">
       <StackIconSprite prefix={prefix} icons={glyphs} />

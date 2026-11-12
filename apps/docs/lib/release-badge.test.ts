@@ -5,6 +5,7 @@ import { i18n } from "./i18n";
 import { MACHINE_PROVIDER_IDS } from "./landing-facts";
 import {
   featureReleaseBadge,
+  providerIsNew,
   providerReleaseBadge,
   RELEASE_BADGE,
   versionAtLeast,
@@ -34,6 +35,26 @@ describe("versionAtLeast", () => {
   it("refuses a version that is not semantic instead of answering false", () => {
     expect(() => versionAtLeast("0.12", "0.12.0")).toThrow("not a semantic version");
     expect(() => versionAtLeast("0.12.0", "next")).toThrow("not a semantic version");
+  });
+});
+
+describe("providerIsNew", () => {
+  const [badged] = RELEASE_BADGE.providers;
+  const unbadged = MACHINE_PROVIDER_IDS.find((id) => !RELEASE_BADGE.providers.includes(id));
+  const [major = 0, minor = 0] = RELEASE_BADGE.version.split(".").map(Number);
+  const released = (cli: string) => ({ cli, studio: "0.7.4", mcp: "0.4.4" });
+
+  it("is true for a badged provider while the CLI is on the badge's line", () => {
+    expect(badged && providerIsNew(badged, released(`${major}.${minor}.0`))).toBe(true);
+    expect(badged && providerIsNew(badged, released(`${major}.${minor}.9`))).toBe(true);
+  });
+
+  it("is false once the CLI moves to the next line", () => {
+    expect(badged && providerIsNew(badged, released(`${major}.${minor + 1}.0`))).toBe(false);
+  });
+
+  it("is false for a provider the release badge does not name", () => {
+    expect(unbadged && providerIsNew(unbadged, released(`${major}.${minor}.0`))).toBe(false);
   });
 });
 
