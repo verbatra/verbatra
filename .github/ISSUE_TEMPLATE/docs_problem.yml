@@ -1,0 +1,39 @@
+name: Documentation problem
+description: Report something wrong, missing, or unclear on the documentation site.
+labels: ["type: docs", "scope: docs", "needs triage"]
+body:
+  - type: input
+    id: url
+    attributes:
+      label: Page URL
+      placeholder: https://verbatra.kreitz-webdev.de/docs/quickstart
+    validations:
+      required: true
+
+  - type: dropdown
+    id: locale
+    attributes:
+      label: Locale
+      options:
+        - English
+        - German
+        - Spanish
+        - French
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong
+      description: Quote the passage, and say what is wrong, missing, or unclear about it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix
+      description: Optional. What the page should say instead.
+    validations:
+      required: false

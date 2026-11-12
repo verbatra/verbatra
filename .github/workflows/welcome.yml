@@ -1,0 +1,56 @@
+name: Welcome
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  welcome:
+    name: Greet first-time contributors
+    if: >-
+      github.event.sender.type != 'Bot' &&
+      !contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'),
+      github.event.issue.author_association || github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Post the welcome message
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const messages = {
+              issue: [
+                "Thanks for opening your first issue in verbatra.",
+                "A maintainer reads every new issue; if it needs a reproduction or more information, a label and a comment will say so.",
+              ],
+              pullRequest: [
+                "Thanks for your first pull request to verbatra.",
+                "Please check that `pnpm verify` passes locally and that a changeset is added if a published package changes in a way users can see; CONTRIBUTING.md explains both.",
+                "A maintainer approves the first workflow run after reading the diff.",
+              ],
+            };
+            const isPullRequest = Boolean(context.payload.pull_request);
+            const opened = context.payload.pull_request ?? context.payload.issue;
+            const authored = await github.paginate(github.rest.issues.listForRepo, {
+              ...context.repo,
+              creator: opened.user.login,
+              state: "all",
+              per_page: 100,
+            });
+            const earlier = authored.filter(
+              (item) => Boolean(item.pull_request) === isPullRequest && item.number < opened.number,
+            );
+            if (earlier.length > 0) return;
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: opened.number,
+              body: (isPullRequest ? messages.pullRequest : messages.issue).join(" "),
+            });

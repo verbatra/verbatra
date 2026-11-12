@@ -109,4 +109,7 @@ commit message for commitlint.
 `.github/PULL_REQUEST_TEMPLATE.md` expects three sections: "What changed" (the change and why),
 "How it was tested" (commands run, cases covered), and a checklist confirming Conventional Commits,
 `pnpm verify` passing locally, and a changeset added or extended if a publishable package changed
-in a user-observable way. Fill in the template rather than replacing it with free-form text.
+in a user-observable way. "What changed" carries a `Closes #` line for the issue it resolves, and a
+breaking-change box is ticked when the change alters released behavior, which needs the
+**Upgrade:** bullet of rule 4 above. Fill in the template rather than replacing it with free-form
+text.

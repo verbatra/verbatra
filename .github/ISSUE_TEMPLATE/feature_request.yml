@@ -1,7 +1,7 @@
 name: Feature request
 description: Suggest an idea or improvement for verbatra.
-title: "[Feature]: "
-labels: ["enhancement"]
+labels: ["type: feature", "needs triage"]
+type: Feature
 body:
   - type: textarea
     id: problem
