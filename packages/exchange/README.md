@@ -49,7 +49,7 @@ It must not:
 - `src/build-delimited.ts`, `src/read-delimited.ts`: CSV and TSV.
 - `src/build-tmx.ts`, `src/read-tmx.ts`: TMX.
 - `src/build-xliff*.ts`, `src/read-xliff*.ts`: XLIFF 1.2 and 2.0.
-- `src/*-limits.ts`, `src/formula-guard.ts`, `src/zip-guard.ts`, `src/xml-*.ts`: bounds and guards.
+- `src/limits.ts`, `src/*-limits.ts`, `src/formula-guard.ts`, `src/zip-guard.ts`, `src/xml-*.ts`: bounds and guards.
 - `src/index.ts`: the package barrel.
 
 ## Development
