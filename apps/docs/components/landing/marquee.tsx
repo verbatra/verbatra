@@ -16,8 +16,6 @@ export const MARQUEE_ICON_PREFIX = "marquee-mark";
 
 export const MARQUEE_FILE_PREFIX = "marquee-file";
 
-export const MARQUEE_COPIES = 2;
-
 export const MARQUEE_GLYPHS = {
   sliders: "M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6",
   plug: "M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4",
@@ -165,16 +163,6 @@ function MarqueeRow({ id, title, items }: MarqueeRowProps): ReactNode {
           <PlainList aria-labelledby={titleId} className="vk-marquee-list">
             <Items items={items} />
           </PlainList>
-          {Array.from({ length: MARQUEE_COPIES }, (_, copy) => (
-            <PlainList
-              key={copy}
-              aria-hidden="true"
-              inert
-              className="vk-marquee-list vk-marquee-copy"
-            >
-              <Items items={items} />
-            </PlainList>
-          ))}
         </div>
       </div>
     </div>

@@ -85,6 +85,35 @@ async function sectionHeight(page: Page): Promise<number> {
   return page.locator(MARQUEE).evaluate((element) => element.getBoundingClientRect().height);
 }
 
+type LoopFrame = {
+  readonly row: string;
+  readonly at: number;
+  readonly spans: ReadonlyArray<readonly [number, number]>;
+};
+
+async function loopFrames(page: Page): Promise<ReadonlyArray<LoopFrame>> {
+  return page.evaluate(() =>
+    Array.from(document.querySelectorAll<HTMLElement>("#marquee .vk-marquee-row")).flatMap(
+      (row) => {
+        const lists = Array.from(row.querySelectorAll<HTMLElement>(".vk-marquee-list"));
+        const animations = lists.flatMap((list) => list.getAnimations());
+        const duration = Number(animations[0]?.effect?.getComputedTiming().duration ?? 0);
+        return [0, 0.25, 0.5, 0.75, 0.999].map((at) => {
+          for (const animation of animations) {
+            animation.pause();
+            animation.currentTime = duration * at;
+          }
+          const spans = lists.map((list) => {
+            const box = list.getBoundingClientRect();
+            return [box.left, box.right] as const;
+          });
+          return { row: row.dataset.row ?? "", at, spans };
+        });
+      },
+    ),
+  );
+}
+
 async function expectStatic(page: Page): Promise<void> {
   const marquee = page.locator(MARQUEE);
   await expect(marquee.locator(".vk-marquee-toggle")).toBeHidden();
@@ -278,6 +307,25 @@ test.describe("marquee motion", () => {
     expect(running.length).toBeGreaterThan(0);
     for (const [first, second] of running) expect(second).not.toBe(first);
   });
+
+  for (const width of [1440, 1920, 2560]) {
+    test(`keeps every row filled edge to edge across the whole loop at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
+      await expect(page.locator(`${MARQUEE} .vk-marquee-copy`).first()).toBeVisible();
+      const frames = await loopFrames(page);
+      expect(frames).toHaveLength(10);
+      for (const { row, at, spans } of frames) {
+        const left = Math.min(...spans.map(([start]) => start));
+        const right = Math.max(...spans.map(([, end]) => end));
+        expect(left, `${row} at ${at} of the loop`).toBeLessThanOrEqual(0);
+        expect(right, `${row} at ${at} of the loop`).toBeGreaterThanOrEqual(width);
+      }
+    });
+  }
 
   test("draws each item as a bare mark and label with no border or fill", async ({ page }) => {
     await page.goto("/");

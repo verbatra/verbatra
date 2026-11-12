@@ -562,10 +562,13 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   no version text, visible or hidden. It does not animate. The pause button is `variant="ghost"` with a
   `--radius-full` `--accent` 10 percent tint (18 percent on hover) and no border (a `ButtonText`
   outline under `forced-colors`). No count is typed. Each row is a muted `h3` that names its visible
-  list, the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button),
-  and an "All providers" or "All formats" link after the moving track, so nothing focusable moves.
+  list, the list, and an "All providers" or "All formats" link after the moving track, so nothing focusable moves.
   The list sits in `.vk-marquee-viewport`, a `.vk-edge-fade` `role="group"` keyboard stop named by
-  the row's `h3`. The server HTML is the static state, and the copies are `display: none` in it.
+  the row's `h3`. The server HTML is the static state with one list per row and no copy: once the island has
+  mounted, `MarqueeMotion` clones each list `MARQUEE_COPIES` (`lib/marquee-copies.ts`) times into its track (`aria-hidden`, `inert`, no
+  `aria-labelledby`, holding no link or button, `display: none` until motion runs), removes them on unmount and only then sets
+  `data-marquee`, so the lists and their copies start the loop in the same frame and stay in step; two copies keep a row
+  edge to edge up to at least 2560px (`e2e/marquee.spec.ts` checks 1440, 1920 and 2560 at five points of the loop).
   Under reduced motion or without JavaScript (`scripting: none`) the pause button is `display: none`
   and the list wraps from 40rem, which never changes; under 40rem the static list is one sideways-scrolling line instead
   (`flex-wrap: nowrap` in the `width < 40rem` block, the gutter kept, nothing moving), so a phone shows two one-line rows, about

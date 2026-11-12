@@ -10,6 +10,7 @@ import { BRAND_MARKS, type BrandMarkId } from "@/lib/brand-marks";
 import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
+import { MARQUEE_COPIES } from "@/lib/marquee-copies";
 import { providerIsNew, RELEASE_BADGE } from "@/lib/release-badge";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import german from "@/messages/de.json";
@@ -47,7 +48,7 @@ vi.mock("next-intl/server", async () => {
   };
 });
 
-const { Marquee, MARQUEE_COPIES, FORMAT_ICONS, PROVIDER_ICONS } = await import("./marquee");
+const { Marquee, FORMAT_ICONS, PROVIDER_ICONS } = await import("./marquee");
 const { MarqueeMotion } = await import("./marquee-motion");
 
 await preloadRegisteredIslands();
@@ -358,20 +359,53 @@ describe("Marquee", () => {
     }
   });
 
-  it("names each visible list by its row title and hides every copy from assistive technology and focus", async () => {
+  it("names each list by its row title and sends one list per row, no copy, from the server", async () => {
     const doc = await render();
+    expect(doc.querySelector(".vk-marquee-copy")).toBeNull();
     for (const id of ["providers", "formats"]) {
       const element = row(doc, id);
-      const [visible, ...copies] = Array.from(element.querySelectorAll(".vk-marquee-list"));
-      expect(visible?.getAttribute("aria-labelledby")).toBe(element.querySelector("h3")?.id);
+      const lists = Array.from(element.querySelectorAll(".vk-marquee-list"));
+      expect(lists).toHaveLength(1);
+      expect(lists[0]?.getAttribute("aria-labelledby")).toBe(element.querySelector("h3")?.id);
+      expect(lists[0]?.hasAttribute("aria-hidden")).toBe(false);
+    }
+    expect(doc.querySelectorAll(".vk-marquee-item")).toHaveLength(
+      SUPPORTED_FORMAT_IDS.length + MACHINE_PROVIDER_IDS.length,
+    );
+  });
+
+  it("adds the copies once the island has mounted, hidden from assistive technology and focus, and takes them away on unmount", async () => {
+    page.locale = "en";
+    const html = renderToStaticMarkup(await Marquee());
+    const rows = new DOMParser().parseFromString(html, "text/html").querySelector(".vk-marquee");
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    act(() =>
+      root.render(
+        <MarqueeMotion pauseLabel={copy.pause} playLabel={copy.play}>
+          <div dangerouslySetInnerHTML={{ __html: rows?.innerHTML ?? "" }} />
+        </MarqueeMotion>,
+      ),
+    );
+    for (const id of ["providers", "formats"]) {
+      const track = host.querySelector(`[data-row="${id}"] .vk-marquee-track`);
+      const [visible, ...copies] = Array.from(track?.children ?? []);
       expect(visible?.hasAttribute("aria-hidden")).toBe(false);
       expect(copies).toHaveLength(MARQUEE_COPIES);
       for (const hidden of copies) {
+        expect(hidden.className).toBe("vk-marquee-list vk-marquee-copy");
         expect(hidden.getAttribute("aria-hidden")).toBe("true");
         expect(hidden.hasAttribute("inert")).toBe(true);
+        expect(hidden.hasAttribute("aria-labelledby")).toBe(false);
         expect(hidden.querySelector("a, button")).toBeNull();
+        expect(hidden.innerHTML).toBe(visible?.innerHTML);
       }
     }
+    expect(host.querySelector(".vk-marquee")?.getAttribute("data-marquee")).toBe("running");
+    act(() => root.unmount());
+    expect(host.querySelector(".vk-marquee-copy")).toBeNull();
+    host.remove();
   });
 
   it("ends the section with a centred pair of docs links, outside every row and track", async () => {
