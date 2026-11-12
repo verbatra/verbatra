@@ -182,12 +182,9 @@ test.describe("docs shell on a phone", () => {
     expect(covered).toBe(false);
   });
 
-  test("never breaks a word of a heading that carries a version badge", async ({ page }) => {
+  test("never breaks a word of a heading", async ({ page }) => {
     await openDocsPage(page, "/de/docs/cli/translate");
-    const split = await page.evaluate(
-      brokenWordsIn,
-      "#nd-page :is(h2, h3, h4):has(.vk-available-from) > a[data-card]",
-    );
+    const split = await page.evaluate(brokenWordsIn, "#nd-page :is(h2, h3, h4) > a[data-card]");
     expect(split.checked).toBeGreaterThan(0);
     expect(split.found).toEqual([]);
   });
