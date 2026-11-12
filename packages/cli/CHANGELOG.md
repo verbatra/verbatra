@@ -1,5 +1,56 @@
 # @verbatra/cli
 
+## 0.13.5
+
+### Patch Changes
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`be73fd3`](https://github.com/verbatra/verbatra/commit/be73fd3847aab48893e84f4718909da984eabf9a) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Explain an empty `verbatra export`.
+  
+  - **Hint:** when an export has no rows and `--include-unchanged` was not passed, a `next:` line suggests `verbatra export --include-unchanged`. The file is still written as before.
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`40c9dda`](https://github.com/verbatra/verbatra/commit/40c9ddab60546d6cea79c58e51b5686d742a24b5) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Report an invalid Gemini API key as an authentication failure.
+  
+  - **Gemini:** an invalid key, which Gemini answers with HTTP 400 and the reason `API_KEY_INVALID`, is now `AUTH_FAILED` and names `GEMINI_API_KEY`, not a bare `PROVIDER_ERROR` "HTTP 400". Every other HTTP 400 is unchanged.
+  - **Upgrade:** a script that branched on `PROVIDER_ERROR` for a bad Gemini key must now branch on `AUTH_FAILED`.
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`a5c6c5b`](https://github.com/verbatra/verbatra/commit/a5c6c5b2bc66a5877c9f8f5ef2daea2f072280f3) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Editing a glossary term no longer adds a second term that differs only in case.
+  
+  - **Glossary writes:** `updateGlossaryTerm`, `editConfiguredGlossaryTerm`, the MCP `glossary.write` tool and Studio's glossary editor now update the stored term when the edited one differs only in case and neither matches case, keeping the stored spelling. Writing `Cart` used to add a second term beside `cart`, and both then matched the same text with different translations.
+  - **Unchanged:** a term stored with `caseSensitive: true`, or an edit that sets it, still gets its own entry, and a glossary that already holds both spellings loads as before.
+  - **Case folding:** the fold follows the project's source locale, as the matcher does, so with a Turkish source locale `İstanbul` and `istanbul` are one term and `Ilık` and `ilık` are not. `updateGlossaryTerm` takes an optional `sourceLocale` for this and matches only exactly without it; `editConfiguredGlossaryTerm` and the MCP and Studio writes pass the config's source locale.
+  - **Version 1 glossaries:** deleting `Cart` also removes a stored `cart`, since both are the same term.
+  - **Do-not-translate:** editing or removing an entry that does not match case updates the stored entry by any spelling instead of adding a case duplicate.
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`f8640e7`](https://github.com/verbatra/verbatra/commit/f8640e7290c8d5c7e9eb48ab02ef1eb5d829b632) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Show how to configure `extract`.
+  
+  - **Init:** for the `i18next-json` format, the generated `verbatra.config.ts` now ends with a commented `extract: { framework: "i18next", roots: ["src"] }` line to uncomment. Other formats are unchanged.
+  - **Error hint:** the hint for `EXTRACT_NOT_CONFIGURED` now shows the block, `extract: { framework: "i18next", roots: ["src"] }`, where it used to name only the framework and source roots in words.
+  - **Upgrade:** the hint text is longer; a script that matches the old sentence exactly ("Add an `extract` block to the config naming the framework and source roots.") should match the error code `EXTRACT_NOT_CONFIGURED` instead.
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`a5c6c5b`](https://github.com/verbatra/verbatra/commit/a5c6c5b2bc66a5877c9f8f5ef2daea2f072280f3) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Refuse two inputs that used to corrupt project files.
+  
+  - **Actor:** `applyValueReplace` and `editEntry` now refuse an `actor` that is not `human` or `agent` (a plain JavaScript caller that left it out) with a `TypeError` before writing anything. Such a call used to write a provenance record with no origin, after which approving, translating and other flows failed with `PROVENANCE_FILE_INVALID`. The provenance writer also refuses to write a record its own reader would reject.
+  - **Glossary:** `updateGlossaryTerm` and `editConfiguredGlossaryTerm` now refuse a missing `term` with the same `CONFIG_INVALID` error as a blank one, instead of storing a term named "undefined" in a version 1 glossary.
+  - **Upgrade:** a project that already holds a provenance record with no origin, or a glossary term named "undefined", must be repaired by hand; the fix only stops new ones.
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`908b5b2`](https://github.com/verbatra/verbatra/commit/908b5b273852ffe979ba5c9fbf4b4735f6d6c6c0) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Report an exhausted provider quota as such instead of retrying it.
+  
+  - **Rate limits:** when a provider states how long to wait after an HTTP 429 (Gemini's retry delay, or a `Retry-After` header), the `RATE_LIMITED` message now says how long, for example "the provider asks to wait about 2 h 29 min: its quota is likely exhausted". The code is unchanged.
+  - **Gemini:** after an HTTP 429, a stated wait of more than 5 seconds fails at once instead of retrying after 250 ms and 500 ms; a shorter one is honoured in place of the fixed backoff. A 5xx answer keeps the ordinary backoff whatever wait it states.
+  - **Hint:** the `RATE_LIMITED` next step now covers both a short throttle and an exhausted quota.
+  - **Upgrade:** a Gemini 429 with a stated wait over 5 seconds used to be retried twice before failing; it now fails on the first answer. Wait as long as the message says, or switch to another key or model.
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`3cc1185`](https://github.com/verbatra/verbatra/commit/3cc118525111106bec36ce002f21455c29e61d14) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Say when `verbatra tmx export` leaves memory entries out.
+  
+  - **Text output:** a line now names how many entries were left out because they are stored under an earlier provider, model, tone or glossary configuration.
+  - **SDK and JSON:** `ExportTmxResult` and the `--json` result gain an optional `otherConfiguration` count.
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`be73fd3`](https://github.com/verbatra/verbatra/commit/be73fd3847aab48893e84f4718909da984eabf9a) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Name the keys a translate run flagged for review.
+  
+  - **Text output:** each locale that has `N needs-review` now also lists those keys under a `needs-review:` line with their review reasons. The JSON output is unchanged.
+- Updated dependencies [[`40c9dda`](https://github.com/verbatra/verbatra/commit/40c9ddab60546d6cea79c58e51b5686d742a24b5), [`a5c6c5b`](https://github.com/verbatra/verbatra/commit/a5c6c5b2bc66a5877c9f8f5ef2daea2f072280f3), [`f8640e7`](https://github.com/verbatra/verbatra/commit/f8640e7290c8d5c7e9eb48ab02ef1eb5d829b632), [`908b5b2`](https://github.com/verbatra/verbatra/commit/908b5b273852ffe979ba5c9fbf4b4735f6d6c6c0), [`3cc1185`](https://github.com/verbatra/verbatra/commit/3cc118525111106bec36ce002f21455c29e61d14), [`c4ce122`](https://github.com/verbatra/verbatra/commit/c4ce122b86031eedb3b6067394e4efe9f1d929f2)]:
+  - @verbatra/sdk@0.13.5
+
 ## 0.13.4
 
 ### Patch Changes
