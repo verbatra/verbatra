@@ -25,9 +25,9 @@ vi.mock("next-intl/server", () => ({
 
 const { AvailableFrom, AVAILABLE_FROM_CLASS } = await import("./available-from");
 
-async function renderBadge(pkg?: string): Promise<HTMLElement> {
+async function renderBadge(pkg?: string, version = "0.12.0"): Promise<HTMLElement> {
   const node = await AvailableFrom({
-    version: "0.12.0",
+    version,
     locale: "en",
     ...(pkg === undefined ? {} : { pkg }),
   });
@@ -57,9 +57,48 @@ describe("AvailableFrom", () => {
   });
 
   it("names the package when the feature ships in its own package", async () => {
-    const badge = await renderBadge("@verbatra/studio");
+    const badge = await renderBadge("@verbatra/studio", "0.7.0");
 
-    expect(badge.textContent).toBe("Available from @verbatra/studio 0.12.0");
-    expect(badge.title).toContain("@verbatra/studio 0.12.0 or newer");
+    expect(badge.textContent).toBe("Available from @verbatra/studio 0.7.0");
+    expect(badge.title).toContain("@verbatra/studio 0.7.0 or newer");
+  });
+});
+
+describe("AvailableFrom version attributes", () => {
+  it("names the package line and the exact version the stylesheet reveals it by", async () => {
+    const badge = await renderBadge();
+
+    expect(badge.getAttribute("data-vk-pkg")).toBe("cli");
+    expect(badge.getAttribute("data-vk-line")).toBe("0.12");
+    expect(badge.getAttribute("data-vk-since")).toBe("0.12.0");
+    expect(badge.hasAttribute("data-vk-patch")).toBe(false);
+  });
+
+  it("maps a package badge to its own line and flags a patch release", async () => {
+    const node = await AvailableFrom({
+      version: "0.5.1",
+      pkg: "@verbatra/studio",
+      locale: "en",
+    });
+    const badge = new DOMParser().parseFromString(renderToStaticMarkup(node), "text/html").body
+      .firstElementChild;
+
+    expect(badge?.getAttribute("data-vk-pkg")).toBe("studio");
+    expect(badge?.getAttribute("data-vk-line")).toBe("0.5");
+    expect(badge?.getAttribute("data-vk-patch")).toBe("1");
+  });
+
+  it("refuses to render a badge no release line can place", async () => {
+    await expect(AvailableFrom({ version: "9.9.0", locale: "en" })).rejects.toThrow(
+      /no release line/,
+    );
+  });
+
+  it("leaves a pill outside the docs without attributes, so it stays visible", async () => {
+    const { AvailableFromPill } = await import("./available-from");
+    const markup = renderToStaticMarkup(
+      AvailableFromPill({ label: "Available from 0.12.0", detail: "d" }),
+    );
+    expect(markup).not.toContain("data-vk-");
   });
 });

@@ -60,6 +60,15 @@
     },
     "breadcrumb": {
       "label": "Fil d'Ariane"
+    },
+    "versionPicker": {
+      "cliSdk": "CLI/SDK",
+      "studio": "Studio",
+      "mcp": "MCP",
+      "latest": "Dernière",
+      "more": "Versions de Studio et MCP",
+      "noticeTitle": "Plus récent que ta version",
+      "noticeText": "Certaines parties de cette page nécessitent une version plus récente que celle que tu as choisie. Chacune est marquée avec la version qui l'ajoute. Choisis Dernière pour masquer les marques."
     }
   },
   "landing": {
@@ -629,7 +638,8 @@
         "description": "Licences des logiciels, polices et ressources de tiers que le site de documentation de verbatra embarque."
       },
       "title": "Licences",
-      "intro": "verbatra est sous licence MIT. Ce site embarque aussi des paquets, des polices et des ressources de tiers, chacun sous sa propre licence. La liste et les textes de licence ci-dessous sont en anglais, tels que leurs auteurs les ont rédigés."
+      "intro": "verbatra est sous licence MIT. Ce site embarque aussi des paquets, des polices et des ressources de tiers, chacun sous sa propre licence. La liste et les textes de licence ci-dessous sont en anglais, tels que leurs auteurs les ont rédigés.",
+      "brands": "Tous les noms de produits, logos et marques sont la propriété de leurs détenteurs respectifs. verbatra n'est ni affilié à eux ni soutenu par eux. Ils n'apparaissent que pour identifier les formats et les fournisseurs avec lesquels verbatra fonctionne."
     }
   },
   "notFound": {

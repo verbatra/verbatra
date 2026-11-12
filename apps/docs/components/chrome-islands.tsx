@@ -8,6 +8,10 @@ export const LanguageSelect = intlIsland(() =>
 export const ThemeToggle = intlIsland(() =>
   import("@/components/theme-toggle").then((m) => m.ThemeToggle),
 );
+export const VersionPicker = intlIsland(
+  () => import("@/components/version-picker").then((m) => m.VersionPicker),
+  { as: "div" },
+);
 export const HomeMobileMenu = island(() =>
   import("@/components/home-mobile-menu").then((m) => m.HomeMobileMenu),
 );
@@ -17,4 +21,4 @@ export const LocaleLinks = island(
   { as: "div" },
 );
 
-await preloadIslands([LanguageSelect, ThemeToggle, HomeMobileMenu, LocaleLinks]);
+await preloadIslands([LanguageSelect, ThemeToggle, VersionPicker, HomeMobileMenu, LocaleLinks]);

@@ -60,6 +60,15 @@
     },
     "breadcrumb": {
       "label": "Brotkrumen"
+    },
+    "versionPicker": {
+      "cliSdk": "CLI/SDK",
+      "studio": "Studio",
+      "mcp": "MCP",
+      "latest": "Aktuellste",
+      "more": "Studio- und MCP-Versionen",
+      "noticeTitle": "Neuer als deine Version",
+      "noticeText": "Teile dieser Seite benötigen eine neuere Version als die, die du ausgewählt hast. Jede ist mit der Version gekennzeichnet, die sie hinzufügt. Wähle „Aktuellste“, um die Markierungen auszublenden."
     }
   },
   "landing": {
@@ -629,7 +638,8 @@
         "description": "Lizenzen der Software, Schriftarten und Assets Dritter, die die verbatra-Dokumentationsseite ausliefert."
       },
       "title": "Lizenzen",
-      "intro": "verbatra selbst steht unter der MIT-Lizenz. Diese Website liefert außerdem Pakete, Schriftarten und Assets Dritter aus, jeweils unter ihrer eigenen Lizenz. Die Liste und die Lizenztexte unten stehen auf Englisch, so wie ihre Autoren sie verfasst haben."
+      "intro": "verbatra selbst steht unter der MIT-Lizenz. Diese Website liefert außerdem Pakete, Schriftarten und Assets Dritter aus, jeweils unter ihrer eigenen Lizenz. Die Liste und die Lizenztexte unten stehen auf Englisch, so wie ihre Autoren sie verfasst haben.",
+      "brands": "Alle Produktnamen, Logos und Marken sind Eigentum ihrer jeweiligen Inhaber. verbatra steht in keiner Verbindung zu ihnen und wird nicht von ihnen unterstützt. Sie erscheinen nur, um die Formate und Anbieter zu kennzeichnen, mit denen verbatra arbeitet."
     }
   },
   "notFound": {

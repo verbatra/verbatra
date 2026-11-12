@@ -60,6 +60,15 @@
     },
     "breadcrumb": {
       "label": "Ruta de navegación"
+    },
+    "versionPicker": {
+      "cliSdk": "CLI/SDK",
+      "studio": "Studio",
+      "mcp": "MCP",
+      "latest": "Última",
+      "more": "Versiones de Studio y MCP",
+      "noticeTitle": "Más reciente que tu versión",
+      "noticeText": "Partes de esta página necesitan una versión más reciente que la que has elegido. Cada una está marcada con la versión que la añade. Elige Última para ocultar las marcas."
     }
   },
   "landing": {
@@ -629,7 +638,8 @@
         "description": "Licencias del software, las fuentes y los recursos de terceros que incluye el sitio de documentación de verbatra."
       },
       "title": "Licencias",
-      "intro": "verbatra tiene licencia MIT. Este sitio también incluye paquetes, fuentes y recursos de terceros, cada uno con su propia licencia. La lista y los textos de las licencias de abajo están en inglés, tal como los escribieron sus autores."
+      "intro": "verbatra tiene licencia MIT. Este sitio también incluye paquetes, fuentes y recursos de terceros, cada uno con su propia licencia. La lista y los textos de las licencias de abajo están en inglés, tal como los escribieron sus autores.",
+      "brands": "Todos los nombres de productos, logotipos y marcas son propiedad de sus respectivos dueños. verbatra no está afiliado a ellos ni cuenta con su respaldo. Aparecen solo para identificar los formatos y proveedores con los que funciona verbatra."
     }
   },
   "notFound": {

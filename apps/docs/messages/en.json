@@ -32,6 +32,15 @@
       "packageTitle": "Available from {version}",
       "packageText": "This needs {version} or newer. Earlier releases do not have it, so upgrade that package if yours is older."
     },
+    "versionPicker": {
+      "cliSdk": "CLI/SDK",
+      "studio": "Studio",
+      "mcp": "MCP",
+      "latest": "Latest",
+      "more": "Studio and MCP versions",
+      "noticeTitle": "Newer than your version",
+      "noticeText": "Parts of this page need a newer release than the one you picked. Each is marked with the release that adds it. Pick Latest to hide the marks."
+    },
     "llms": {
       "heading": "For AI agents",
       "index": "llms.txt (index)",
@@ -629,7 +638,8 @@
         "description": "Licenses of the third-party software, fonts and assets that the verbatra documentation site ships."
       },
       "title": "Licenses",
-      "intro": "verbatra itself is MIT licensed. This site also ships third-party packages, fonts and assets, each under its own license. The list and the license texts below are given in English, as their authors wrote them."
+      "intro": "verbatra itself is MIT licensed. This site also ships third-party packages, fonts and assets, each under its own license. The list and the license texts below are given in English, as their authors wrote them.",
+      "brands": "All product names, logos and brands are the property of their respective owners. verbatra is not affiliated with and not endorsed by them. They appear only to identify the formats and providers verbatra works with."
     }
   },
   "notFound": {

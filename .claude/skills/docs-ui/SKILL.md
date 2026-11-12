@@ -535,27 +535,24 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `Record<MachineProviderId, MarqueeMark>`), and the formats, `SUPPORTED_FORMAT_IDS` by their
   `FORMAT_DISPLAY` label with their mark from `FORMAT_ICONS` (a `Record<SupportedFormat,
   MarqueeMark>`), so a new provider or format fails to compile until it has one. A `MarqueeMark` is
-  either a brand mark (`kind: "brand"`) or a stroke glyph (`kind: "glyph"`, one of
-  `MARQUEE_GLYPHS`). Brand marks follow the logo rule under "Reuse before you build" (the stack
+  a brand mark (`kind: "brand"`), a stroke glyph (`kind: "glyph"`, one of `MARQUEE_GLYPHS`: the
+  sliders of INI and the plug of the OpenAI-compatible endpoint, the two entries with no brand at
+  all) or the labelled file outline of XLIFF (`kind: "file"`, `StackIcon` of `stack-icons.tsx` in
+  its own `marquee-file` sprite, since XLIFF has no logo of its own). Every other provider and
+  format draws its official mark by maintainer decision (2026-11-12: use the logos, the
+  maintainer handles brand permission requests himself, no generic glyph on licence grounds):
+  Anthropic, Gemini, DeepL, Google Translate, OpenCode, LibreTranslate, i18next and GNU (gettext)
+  from Simple Icons 16.35.0, OpenAI from Lobe Icons, Vue, Apple and Flutter from Font Awesome Free,
+  Next.js, Spring and YAML from Devicon, Angular and Android from Simple Icons, `.NET` from
+  `dotnet/brand`. Brand marks follow the logo rule under "Reuse before you build" (the stack
   cards paragraph); every one is a `<use>` of the one `BrandMarkSprite`
-  (`components/brand-marks.tsx`, prefix `marquee-mark`), drawn at 18px in a single `currentColor`
-  fill. A glyph (`.vk-marquee-glyph`: an 18px unfilled `currentColor` stroke, 1.8 wide, round caps)
-  stands in for an item with no admissible mark: braces (vue-i18n), swap (XLIFF), a speech bubble
-  (gettext), sliders (INI), a cube (.NET resx), a plug (the OpenAI-compatible endpoint), a globe
-  (i18next), a chip (Anthropic, Gemini), two speech bubbles (DeepL, Google Translate) and a server
-  (LibreTranslate). Those six brands have no drawing in Font Awesome Free, Devicon or another
-  admitted set that their terms clear: Anthropic permits its marks only "as specifically permitted
-  by us and only in materials we approve beforehand" and bars alteration, Google asks for approval
-  of its product icons through the Partner Marketing Hub and bars changing its marks, LibreTranslate
-  allows a logo only for unmodified programs and compatibility "in words (not logos or images)",
-  DeepL's press page offers its logos for editorial use, and i18next publishes no logo terms. Mark and
+  (`components/brand-marks.tsx`, prefix `marquee-mark`), drawn at 18px in a single fill (its brand colour, see "Brand colour" below, or `currentColor`). A glyph (`.vk-marquee-glyph`: an 18px unfilled `currentColor` stroke, 1.8 wide, round caps)
+  is never a stand-in for a brand. Mark and
   glyph are `aria-hidden`; an item (`.vk-marquee-item`) is a bare `--text-muted` mark and label in
   `--text-base`, with no box, border or fill, and hovering it lifts it to `--text-strong`, with no
   glow, scale or brand color. The name (`.vk-marquee-name`) is the item's text. A provider that
-  `RELEASE_BADGE` dates carries the depth pill (`NewPill`, `landing.marquee.new`) with the "Available
-  from" label in an `sr-only` span and, after it, the release version as visible `aria-hidden` mono
-  text (`.vk-marquee-release`, `--text-muted`), so a reader on the current release sees the provider
-  is not in it yet. It does not animate. The pause button is `variant="ghost"` with a
+  `RELEASE_BADGE` dates carries the depth pill (`NewPill`, `landing.marquee.new`) and nothing else:
+  no version text, visible or hidden. It does not animate. The pause button is `variant="ghost"` with a
   `--radius-full` `--accent` 10 percent tint (18 percent on hover) and no border (a `ButtonText`
   outline under `forced-colors`). No count is typed. Each row is a muted `h3` that names its visible
   list, the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button),
@@ -697,11 +694,14 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `BRAND_MARKS`), drawn at 28px in the chip as a `<use>` of a `BrandMarkSprite` whose prefix
   (`vk-stack-mark-<labelledBy>`) differs from the glyph sprite's, since `yaml` is both a glyph and a
   mark; the glyph sprite then holds only the glyphs of cards without a mark or text (YAML among them).
-  A stack card shows the brand's logo as a mark drawn from a free-licensed icon set, or from a
-  license the brand itself grants: React (MIT), Angular (CC-BY-4.0) and Android (CC-BY-3.0) come from
-  the brand-granted licenses recorded in Simple Icons, Apple, Flutter and Vue from Font Awesome Free
-  7.3.1 (brands, CC BY 4.0), Spring, Next.js and Nuxt from Devicon 2.18.0 (MIT; the
-  monochrome "plain" drawing, or the single-color "original" where no plain one exists), and .NET
+  A stack card shows the brand's official logo as a mark wherever the stack has a brand (maintainer
+  decision of 2026-11-12: official logos everywhere, no generic substitute, the maintainer handles
+  permission requests): React and Angular and Android from Simple Icons (their brand-granted
+  licenses), Apple, Flutter and Vue from Font Awesome Free 7.3.1 (brands), Spring, Next.js and
+  Nuxt from Devicon 2.18.0 (MIT; the monochrome "plain" drawing, or the single-color "original"
+  where no plain one exists), GNU for gettext (Simple Icons) and YAML (Devicon), both through
+  `ICON_BRAND_MARKS` in `stack-cards.tsx` (the card's `icon` `po` or `yaml` resolves to its mark
+  without an MDX `mark:`), and .NET
   from the `dotnet/brand` repository at a pinned commit (`logo/dotnet-logo.svg`; recorded as "Brand
   permission", never as CC0: the README grants the CC0 license to the illustrations and lets
   you "use the illustrations and logo to represent .NET in related content, per the .NET Brand
@@ -710,15 +710,23 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   records its set, file, version, license and attribution in `BRAND_MARKS`, plus an optional
   `viewBox` for a drawing that is not on the 24 unit grid, and carries the notice "Logos are
   trademarks of their owners, used to identify compatibility." (Font Awesome adds: use brand logos
-  only to represent the company, product or service they refer to). A mark is never under a
-  non-commercial, share-alike or no-derivatives license, so an NC, SA or ND set is not admissible
-  however recognizable the logo; a Simple Icons CC0 entry for a restricted logo is not admissible
-  either, since the data license does not clear the brand's own terms. Simple Icons is the source
-  only of marks whose brand grants its own license (Angular, Android, React). A brand with no admissible
-  drawing in any verified set gets its generic stroke glyph, never a hand-drawn lookalike and no text
-  chip (the text chip mechanism is gone). The combined "Vue and Nuxt" card shows the Vue logo. YAML takes its `yaml` file glyph, not a mark. The
-  marquee draws Apple, Flutter, Next.js, Spring and YAML from the same Font Awesome and Devicon marks, so no
-  mark of a restricted brand rests on a Simple Icons CC0 entry. gettext, XLIFF, INI, YAML and the custom card keep their glyph. A format glyph is the one file
+  only to represent the company, product or service they refer to). Neither the marquee nor the cards hold a mark back for licence
+  reasons (see the logo rule below for what each record must state, including the Vue mark's
+  CC BY-NC-SA terms and Simple Icons' CC0 data under the owners' trademarks). Only an entry with no
+  brand at all keeps a neutral stroke glyph or labelled file outline (XLIFF, INI, the custom
+  card), never a hand-drawn lookalike and no text chip (the text chip mechanism is gone).
+  **Brand colour:** a mark is one path in one fill, and that fill is the brand's official hex
+  (`color: { hex, source }` on every `BRAND_MARKS` record, the one source for the marquee and the
+  cards, taken from Simple Icons' `hex` or the brand's own file). `BrandMark` adds the class
+  `vk-brand-<id>`; `app/brand-colors.generated.css` (`lib/brand-colors.ts`, written by
+  `scripts/sync-version.mjs`, imported by `global.css`) holds `html.dark .vk-brand-<id>` and
+  `html.light .vk-brand-<id>` rules, emitted for a theme only when the hex reaches 3:1 on both
+  surfaces of that theme (`BRAND_SURFACES`: the page and card tones), so a black mark is neutral in
+  the dark theme and a pale one in the light theme, inheriting the surrounding text colour. No inline
+  style, no `dark:` variant. `lib/brand-colors.test.ts` pins the data, the rule and the surfaces
+  against the resolved tokens. The combined "Vue and Nuxt" card shows the Vue logo. YAML takes its YAML mark. The
+  marquee draws Apple, Flutter, Next.js, Spring and YAML from the same Font Awesome and Devicon marks
+  and the rest from Simple Icons or Lobe Icons. A format glyph is the one file
   outline carrying the format's own extension label (`FILE_GLYPH_LABELS` in `stack-icons.tsx`: `.po`, `XLF`,
   `INI`, `YAML`, `JSON`), an SVG `<text>` in `--font-mono`, bold, `currentColor` fill, its width fixed by
   `textLength` so no label leaves the outline; the glyph is drawn at 40px (`FILE_GLYPH_SIZE`) against 28px for the
@@ -728,16 +736,21 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   logo rule for those:
   a mark is inline SVG path data in `lib/brand-marks.ts` (`BRAND_MARKS`, each with its source
   package and version, file, license and attribution), never an `<img>`, a network request or an
-  icon package in `package.json`; it is drawn in one `currentColor` fill, never in brand colors,
-  with a gradient or a glow; and it is admitted only under a license that allows commercial use
-  and changes (no NC, no SA, no ND: the Vue logo in `vuejs/art` is CC BY-NC-SA, so the marquee's vue-i18n item keeps its glyph; the stack cards use the Font Awesome drawing, which is CC BY 4.0). A Simple Icons
-  entry being CC0 data does not clear its logo: check the brand's own repository or guidelines first. Every mark is
+  icon package in `package.json`; it is drawn in one fill, the brand colour above or `currentColor`, with no gradient or glow, and never redrawn. Since the maintainer decision of 2026-11-12 a
+  logo is not held back for licence reasons: brand permission requests are the maintainer's to
+  make, and an entry with no brand at all (INI, the OpenAI-compatible endpoint) keeps a neutral
+  glyph. Each record states what is true: Simple Icons marks are CC0 data whose logos remain the
+  owners' trademarks; the Vue mark is Font Awesome's CC BY 4.0 drawing of a logo that vuejs/art
+  publishes under CC BY-NC-SA 4.0 with extra conditions (open source projects related to Vue.js
+  and illustrating a product's Vue.js integration are allowed), and `third-party-licenses.test.ts`
+  names it as the only restricted mark. Every mark is
   listed as an asset in `THIRD_PARTY_NOTICES.md` and on `/licenses` through `ASSET_SOURCES` in
   `lib/third-party-licenses.ts` (run `licenses:sync` after a change), with the source URL, the
   CC BY attribution and change note where the license asks for one, and the sentence "Logos are
   trademarks of their owners, used to identify compatibility." `marquee.test.tsx` fails on a
   sprite symbol without a notice entry, a non-sprite reference or an embedded image, and
-  `lib/third-party-licenses.test.ts` on an icon package, a missing entry or an NC or SA license.
+  `lib/third-party-licenses.test.ts` on an icon package, a missing entry or an NC or SA license
+  other than the documented Vue one.
   Anything with no admissible mark gets a generic stroke glyph, never a lookalike drawn by hand. The grid is a `nav` named by `labelledBy`, the id of the heading above it
   (the docs home section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its
   sprite's symbol ids, so two grids on one page never collide. On the docs home, a stack with its
@@ -1178,9 +1191,20 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   phone breadcrumb bar, which reads the sidebar's tree (the eyebrow and the prev/next footer take plain
   names and never show it); the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
-  inside a heading. Its markup is `AvailableFromPill` (`components/available-from.tsx`); the
-  landing's marquee does not render it, but takes its `docs.availableFrom` label for
-  `RELEASE_BADGE.version` through `availableFromCopy` (see "Marquee"). `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's one list of
+  inside a heading. Its markup is `AvailableFromPill` (`components/available-from.tsx`), which
+  carries `data-vk-pkg`, `data-vk-line`, `data-vk-since` (and `data-vk-patch` for a patch release)
+  and is `display: none` until the reader's picked release line makes it newer: the rules are
+  generated into `app/version-pills.generated.css` (`lib/release-lines.mjs`, written by
+  `scripts/sync-version.mjs`, imported by `global.css`) and reveal it, plus the page-top
+  `.vk-version-notice` through `#nd-page:has(...)`, from `html[data-vk-cli|studio|mcp]` set by
+  `VERSION_INIT_SCRIPT` before first paint. A pill without those attributes (the compare page's)
+  stays visible. The picker is `.vk-version-picker` (`components/version-picker.tsx`: native
+  `select`s with visible labels, `--text-faint` boundary, a fixed width so nothing shifts, Studio and
+  MCP in a `details` disclosure; hidden under `scripting: none`), in the docs header from 1024px (left of the
+  nav links, so they keep the position they have on the landing) and in the sidebar footer through
+  the `sidebar.footer` slot (the phone drawer, and the desktop sidebar below 1024px); the full rules are in
+  `.claude/rules/docs.md`. The landing's marquee does not render the pill and shows no version.
+  `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's one list of
   what is new in that release: `providers` (read through `providerReleaseBadge`) and `features`
   (`provider-none`, read through `featureReleaseBadge`), so emptying it removes every landing badge
   at once; the MDX badges stay literal (`<AvailableFrom version="0.12.0" />`), and
@@ -1209,7 +1233,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   shimmer is `display: none`; under `forced-colors` the layers drop and the chip gets a `CanvasText`
   border. `NewBadge` (`components/new-badge.tsx`) is the sidebar's NEW marker: the same pill with
   `ms-1.5`, hidden in `.vk-crumbs`. The hero carries no announcement or pill. The pill appears
-  in the marquee's upcoming-release provider badge (which always carries its visible version)
+  in the marquee's upcoming-release provider badge (the word alone, no version)
   and the sidebar NEW marker. A version, a dated feature or a quickstart tag stays the `.vk-pill` outline;
   never put the pill in a table or a heading.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
@@ -1393,6 +1417,7 @@ Tokens drift. Before quoting a value from this skill, confirm it:
 ```bash
 grep -n '\--surface-\|--text-\|--accent\|--radius-\|--shadow-\|--scrim\|--width-page\|--header-height\|--crumb-height' packages/ui/src/tokens.css apps/docs/app/global.css
 grep -n 'vk-page-\|vk-crumb\|vk-docs-footer\|vk-callout\|vk-header-search\|nd-toc\|nd-sidebar' apps/docs/app/global.css
+grep -n 'vk-version\|vk-available-from' apps/docs/app/global.css apps/docs/app/version-pills.generated.css | head
 ```
 
 If the file and this skill disagree, the file wins, and this skill needs updating in the

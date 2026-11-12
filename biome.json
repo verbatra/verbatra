@@ -12,6 +12,9 @@
       "!**/next-env.d.ts",
       "!**/verbatra.provenance.json",
       "!apps/docs/lib/fixtures",
+      "!apps/docs/app/version-pills.generated.css",
+      "!apps/docs/app/brand-colors.generated.css",
+      "!apps/docs/lib/release-lines.generated.json",
       "!**/.agents",
       "!.claude/skills"
     ]

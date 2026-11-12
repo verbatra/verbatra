@@ -151,6 +151,7 @@ type SiteHeaderFrameProps = ComponentProps<"header"> & {
   navItems: ReadonlyArray<LinkItemType>;
   mobileTrigger?: ReactNode;
   subBar?: ReactNode;
+  controls?: ReactNode;
   trailing?: ReactNode;
   navLabel?: string;
   externalHint?: string | undefined;
@@ -162,6 +163,7 @@ export function SiteHeaderFrame({
   navItems,
   mobileTrigger,
   subBar,
+  controls,
   trailing,
   navLabel,
   externalHint,
@@ -184,6 +186,9 @@ export function SiteHeaderFrame({
           />
         ) : null}
         <HeaderEnd>
+          {controls ? (
+            <div className="flex items-center md:me-6 max-lg:hidden">{controls}</div>
+          ) : null}
           <HeaderNav label={navLabel}>
             {textItems.map((item) => (
               <TextLink

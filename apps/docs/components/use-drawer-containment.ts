@@ -8,7 +8,11 @@ const FOCUS_ATTEMPTS = 30;
 export const ATTACH_ATTEMPTS = 30;
 
 const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+
+function reachable(element: HTMLElement): boolean {
+  return element.tagName === "SUMMARY" || element.closest("details:not([open])") === null;
+}
 
 const LIVE_HOST = "next-route-announcer, [aria-live], [role='status'], [role='alert']";
 
@@ -42,7 +46,10 @@ export function inertOutside(keep: ReadonlyArray<Element>): () => void {
 }
 
 function focusables(trigger: HTMLElement, drawer: HTMLElement): HTMLElement[] {
-  return [trigger, ...Array.from(drawer.querySelectorAll<HTMLElement>(FOCUSABLE))];
+  return [
+    trigger,
+    ...Array.from(drawer.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(reachable),
+  ];
 }
 
 function wrapTab(event: KeyboardEvent, trigger: HTMLElement, drawer: HTMLElement): void {

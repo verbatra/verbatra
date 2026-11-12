@@ -4,6 +4,7 @@ import { usePathname } from "fumadocs-core/framework";
 import { useSidebar } from "fumadocs-ui/components/sidebar/base";
 import { useNotebookLayout } from "fumadocs-ui/layouts/notebook";
 import { type ComponentProps, type ReactNode, useRef } from "react";
+import { VersionPicker } from "@/components/chrome-islands";
 import { DocsCrumbBar } from "@/components/docs-crumb-bar";
 import { MENU_TRIGGER } from "@/components/nav-link-classes";
 import { useRootTabs } from "@/components/root-tabs";
@@ -61,6 +62,7 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
           </sidebar.trigger>
         </DocsCrumbBar>
       }
+      controls={<VersionPicker layout="header" />}
       trailing={
         <sidebar.collapseTrigger className={cn(ICON_BUTTON, HEADER_TRAILING)}>
           <SidebarIcon />

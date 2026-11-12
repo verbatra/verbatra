@@ -17,6 +17,7 @@ import { getMDXComponents } from "@/components/mdx";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageNeighbours } from "@/components/page-neighbours";
 import { sdkReferenceComponents } from "@/components/sdk-reference";
+import { VersionNotice } from "@/components/version-notice";
 import { docsBreadcrumbTrail } from "@/lib/docs-breadcrumb";
 import { footerNeighbourUrls } from "@/lib/docs-neighbours";
 import { withShortCommandLabels } from "@/lib/docs-page-tree";
@@ -153,6 +154,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
         <JsonLd key={String(data["@type"])} data={data} />
       ))}
       <LocaleNotice page={page} slug={params.slug} lang={lang} />
+      {isHome ? null : <VersionNotice locale={lang} />}
       {isHome ? null : (
         <header className="vk-page-head">
           <div className="vk-page-head-row">
