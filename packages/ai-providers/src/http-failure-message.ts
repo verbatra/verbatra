@@ -1,4 +1,5 @@
 import type { ClassifiedProviderErrorCode } from "./error-classification.js";
+import { formatWait, QUOTA_EXHAUSTED_WAIT_MS } from "./retry-delay.js";
 
 const SAFE_VENDOR_ERROR_TYPE = /^[A-Za-z][A-Za-z0-9_]{0,39}$/;
 const GENERIC_VENDOR_ERROR_TYPE = "error";
@@ -49,6 +50,7 @@ const FORBIDDEN_STATUS = 403;
 export interface HttpFailure {
   readonly status: number;
   readonly vendorType: string | undefined;
+  readonly retryAfterMs?: number | undefined;
 }
 
 export interface FailureEndpoint {
@@ -108,12 +110,22 @@ function remedyFor(status: number, remedies: EndpointRemedies | undefined): stri
   return remedies === undefined ? undefined : REMEDY_TABLES[remedies][status];
 }
 
+function waitClause(code: ClassifiedProviderErrorCode, retryAfterMs: number | undefined): string {
+  if (code !== "RATE_LIMITED" || retryAfterMs === undefined) {
+    return "";
+  }
+  const exhausted =
+    retryAfterMs >= QUOTA_EXHAUSTED_WAIT_MS ? ": its quota is likely exhausted" : "";
+  return `; the provider asks to wait about ${formatWait(retryAfterMs)}${exhausted}`;
+}
+
 export function httpFailureMessage(
   code: ClassifiedProviderErrorCode,
   failure: HttpFailure,
   endpoint: FailureEndpoint,
 ): string {
-  const headline = `${leadFor(code, failure.status, endpoint.host)} (${statusLabel(failure)}).`;
+  const lead = leadFor(code, failure.status, endpoint.host);
+  const headline = `${lead} (${statusLabel(failure)})${waitClause(code, failure.retryAfterMs)}.`;
   const remedy = remedyFor(failure.status, endpoint.remedies);
   return remedy === undefined ? headline : `${headline} ${remedy}`;
 }

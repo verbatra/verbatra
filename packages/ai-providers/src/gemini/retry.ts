@@ -1,6 +1,7 @@
 import { getErrorStatus } from "../error-classification.js";
 import { ProviderError } from "../errors.js";
 import type { ProviderRetry, ProviderRetryListener } from "../provider-retry.js";
+import { MAX_HONOURED_RETRY_DELAY_MS, statedRetryDelayMs } from "../retry-delay.js";
 
 export interface GeminiRetryConfig {
   readonly attempts: number;
@@ -62,10 +63,15 @@ export async function withGeminiRetry<T>(
       if (isAborted(signal)) {
         throwAbort(signal);
       }
-      if (attempt >= config.attempts || !isRetryable(error)) {
+      const stated = statedRetryDelayMs(error);
+      if (
+        attempt >= config.attempts ||
+        !isRetryable(error) ||
+        (stated !== undefined && stated > MAX_HONOURED_RETRY_DELAY_MS)
+      ) {
         throw error;
       }
-      const delayMs = config.baseDelayMs * 2 ** (attempt - 1);
+      const delayMs = stated ?? config.baseDelayMs * 2 ** (attempt - 1);
       onRetry?.(retryEvent(attempt + 1, delayMs, error));
       await delay(delayMs, signal);
       if (isAborted(signal)) {

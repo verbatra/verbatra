@@ -14,6 +14,7 @@ import {
 } from "./http-failure-message.js";
 import { findNetworkPolicyViolation } from "./network/guarded-fetch.js";
 import { describeNetworkCause, findNetworkCause } from "./network-cause.js";
+import { statedRetryDelayMs } from "./retry-delay.js";
 
 export const PROVIDER_CALL_FAILED_MESSAGE = `${LEAD_BY_CODE.PROVIDER_ERROR}.`;
 export const TIMEOUT_MESSAGE = `${LEAD_BY_CODE.TIMEOUT}.`;
@@ -36,7 +37,11 @@ function messageFor(
 ): string {
   const status = getErrorStatus(error);
   if (status !== undefined) {
-    const failure = { status, vendorType: vendorErrorTypeOf(error) };
+    const failure = {
+      status,
+      vendorType: vendorErrorTypeOf(error),
+      retryAfterMs: statedRetryDelayMs(error),
+    };
     return httpFailureMessage(code, failure, {
       host: context?.endpointHost,
       remedies: context?.remedies,
