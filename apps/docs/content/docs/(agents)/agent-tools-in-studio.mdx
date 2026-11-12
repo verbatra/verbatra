@@ -21,7 +21,7 @@ WebMCP is a new browser capability behind a flag, and its surface may still chan
 verbatra studio --expose-agent-tools
 ```
 
-`VERBATRA_STUDIO_AGENT_TOOLS=1` does the same; [Spend and agent tools](/docs/cli/studio#spend-and-agent-tools) shows how the flag and the variable resolve. Open the printed URL in the WebMCP browser, and the agent on that tab finds the tools. In a browser without WebMCP, Studio registers nothing and the dashboard is unchanged.
+`VERBATRA_STUDIO_AGENT_TOOLS=1` does the same; [Spend and agent tools](/docs/cli/studio#spend-and-agent-tools) shows how the flag and the variable resolve. Open the printed URL in the WebMCP browser, and the agent on that tab finds the tools. In a browser without WebMCP, Studio registers nothing.
 
 To let the agent call your provider, start Studio with `--allow-spend` as well.
 
@@ -35,7 +35,7 @@ Each tool is a Studio action with a `verbatra_` prefix. Read tools are marked re
 
 | Tool | What it does |
 | --- | --- |
-| `verbatra_project_snapshot` | the loaded config, the capabilities, and, under `capabilities.limits`, the `retranslate` and `reviewDecision` rate limits |
+| `verbatra_project_snapshot` | the loaded config, the capabilities, and, under `capabilities.limits`, the rate limits of `retranslate`, `reviewDecision` and the two value-replace methods |
 | `verbatra_status_check` | coverage per locale |
 | `verbatra_status_diff` | missing, changed and orphaned keys per locale |
 | `verbatra_glossary_get` | the resolved glossary, secret-redacted |
