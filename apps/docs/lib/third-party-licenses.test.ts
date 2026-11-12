@@ -91,8 +91,12 @@ describe("third-party licenses", () => {
     });
     expect(restricted.map((asset) => asset.name)).toEqual([
       "Vue mark (@fortawesome/fontawesome-free@7.3.1, svgs/brands/vuejs.svg)",
+      "GNU mark (simple-icons@16.35.0, icons/gnu.svg)",
     ]);
-    const [vue] = restricted;
+    const [vue, gnu] = restricted;
+    expect(gnu?.license).toBe("CC-BY-SA-2.0");
+    expect(gnu?.copyright.join(" ")).toContain("Aurelio A. Heckert");
+    expect(gnu?.copyright.join(" ")).toContain("Share-alike");
     expect(vue?.license).toBe(
       "CC-BY-4.0 (Font Awesome drawing), CC-BY-NC-SA-4.0 (Vue logo artwork)",
     );
@@ -105,7 +109,7 @@ describe("third-party licenses", () => {
       );
       if (tokens.includes("BY")) {
         expect(asset.copyright.join(" "), asset.name).toMatch(
-          /creativecommons\.org\/licenses\/by\//,
+          /creativecommons\.org\/licenses\/by(?:-sa)?\//,
         );
         expect(asset.copyright.join(" "), asset.name).toContain("Changed: ");
       }

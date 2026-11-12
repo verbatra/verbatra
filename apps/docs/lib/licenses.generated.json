@@ -2943,7 +2943,7 @@
       "license": "CC-BY-4.0",
       "copyright": [
         "Angular logo by Google (https://angular.dev/press-kit), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).",
-        "Changed: redrawn in one color by Simple Icons and filled with the page's text color."
+        "Changed: redrawn in one color by Simple Icons and filled with the brand color (the page's text color in a theme where the brand color lacks contrast)."
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/angular.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
@@ -2953,7 +2953,7 @@
       "license": "CC-BY-3.0",
       "copyright": [
         "The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License (https://creativecommons.org/licenses/by/3.0/).",
-        "Changed: redrawn in one color by Simple Icons and filled with the page's text color."
+        "Changed: redrawn in one color by Simple Icons and filled with the brand color (the page's text color in a theme where the brand color lacks contrast)."
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/android.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
@@ -2983,7 +2983,7 @@
       "license": "CC-BY-4.0",
       "copyright": [
         "Font Awesome Free 7.3.1 by @fontawesome (https://fontawesome.com), Apple icon, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Copyright 2026 Fonticons, Inc.",
-        "Changed: filled with the page's text color (currentColor) and scaled to fit the stack card chip."
+        "Changed: filled with the brand color (the page's text color in a theme where the brand color lacks contrast) and scaled to fit the stack card chip."
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/svgs/brands/apple.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
@@ -2993,7 +2993,7 @@
       "license": "CC-BY-4.0",
       "copyright": [
         "Font Awesome Free 7.3.1 by @fontawesome (https://fontawesome.com), Flutter icon, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Copyright 2026 Fonticons, Inc.",
-        "Changed: filled with the page's text color (currentColor) and scaled to fit the stack card chip."
+        "Changed: filled with the brand color (the page's text color in a theme where the brand color lacks contrast) and scaled to fit the stack card chip."
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/svgs/brands/flutter.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
@@ -3004,7 +3004,7 @@
       "copyright": [
         "Font Awesome Free 7.3.1 by @fontawesome (https://fontawesome.com), Vue.js icon, drawing licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Copyright 2026 Fonticons, Inc. Font Awesome states that its brand icons stay the trademarks and artwork of their owners.",
         "The Vue logo is designed by Evan You and published in vuejs/art (https://github.com/vuejs/art) under CC BY-NC-SA 4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/) with extra conditions: use in open source projects related to Vue.js and to illustrate a product's Vue.js integration is allowed. verbatra is an open source project and the mark illustrates its vue-i18n support.",
-        "Changed: filled with the page's text color (currentColor) and scaled to fit the stack card chip and the marquee."
+        "Changed: filled with the brand color (the page's text color in a theme where the brand color lacks contrast) and scaled to fit the stack card chip and the marquee."
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/svgs/brands/vuejs.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
@@ -3014,7 +3014,7 @@
       "license": "MIT",
       "copyright": [
         "Copyright (c) 2015 konpa",
-        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/spring/spring-original.svg). Drawn in one color and filled with the page's text color."
+        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/spring/spring-original.svg). Drawn in one color and filled with the brand color (the page's text color in a theme where the brand color lacks contrast)."
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/spring/spring-original.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
@@ -3024,7 +3024,7 @@
       "license": "MIT",
       "copyright": [
         "Copyright (c) 2015 konpa",
-        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/nextjs/nextjs-plain.svg). Drawn in one color and filled with the page's text color."
+        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/nextjs/nextjs-plain.svg). Drawn in one color and filled with the brand color (the page's text color in a theme where the brand color lacks contrast)."
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/nextjs/nextjs-plain.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
@@ -3034,7 +3034,7 @@
       "license": "MIT",
       "copyright": [
         "Copyright (c) 2015 konpa",
-        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/nuxt/nuxt-original.svg). Drawn in one color and filled with the page's text color."
+        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/nuxt/nuxt-original.svg). Drawn in one color and filled with the brand color (the page's text color in a theme where the brand color lacks contrast)."
       ],
       "usage": "Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/nuxt/nuxt-original.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
@@ -3044,7 +3044,7 @@
       "license": "Brand permission (dotnet/brand README)",
       "copyright": [
         "The .NET logo is copyright of the .NET authors. dotnet/brand README, License section: \"use the illustrations and logo to represent .NET in related content, per the .NET Brand Guidelines. The .NET brand guidelines and .NET logo are copyright of the .NET authors.\" (https://github.com/dotnet/brand/blob/91845f6ddf2123b3bb1bfd1b6a386d9ce02b43aa/README.md).",
-        "Changed: the square drawn in one color with the lettering knocked out, filled with the page's text color."
+        "Changed: the square drawn in one color with the lettering knocked out, filled with the brand color (the page's text color in a theme where the brand color lacks contrast)."
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/gh/dotnet/brand@91845f6ddf2123b3bb1bfd1b6a386d9ce02b43aa/logo/dotnet-logo.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
@@ -3054,7 +3054,7 @@
       "license": "MIT",
       "copyright": [
         "Copyright (c) 2015 konpa",
-        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/yaml/yaml-plain.svg). Drawn in one color and filled with the page's text color."
+        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/yaml/yaml-plain.svg). Drawn in one color and filled with the brand color (the page's text color in a theme where the brand color lacks contrast)."
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/yaml/yaml-plain.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
@@ -3124,9 +3124,11 @@
     },
     {
       "name": "GNU mark (simple-icons@16.35.0, icons/gnu.svg)",
-      "license": "CC0-1.0",
+      "license": "CC-BY-SA-2.0",
       "copyright": [
-        "Simple Icons 16.35.0 (https://simpleicons.org), GNU icon, published under CC0 1.0 (https://github.com/simple-icons/simple-icons/blob/16.35.0/LICENSE.md). The GNU logo is a trademark of the Free Software Foundation; the brand's own terms are separate from that data license, and the logo is shown only to identify compatibility."
+        "GNU logo by Aurelio A. Heckert (https://www.gnu.org/graphics/heckert_gnu.html), licensed under CC BY-SA 2.0 (https://creativecommons.org/licenses/by-sa/2.0/). Simple Icons 16.35.0 records this license for its gnu icon in data/simple-icons.json.",
+        "Changed: redrawn in one color by Simple Icons and filled with the brand color (the page's text color in a theme where the brand color lacks contrast).",
+        "Share-alike: this redrawn mark stays under CC BY-SA 2.0; the surrounding site and its code are not derivative works of it. The GNU name and logo are marks of the Free Software Foundation, shown only to identify compatibility."
       ],
       "usage": "Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/gnu.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
