@@ -117,3 +117,21 @@ describe("the English landing markdown after the pain titles and the comparison 
     expect(body).not.toContain("re-translate strings that did not change");
   });
 });
+
+describe("the English landing markdown closing panel", () => {
+  it("lists the five proof links after the two commands, the docs page by its markdown form", async () => {
+    const body = await landingMarkdown("en");
+    expect(body).toContain(
+      [
+        "- [npm provenance](https://www.npmjs.com/package/@verbatra/cli)",
+        "- [MIT license](https://github.com/verbatra/verbatra/blob/main/LICENSE)",
+        `- [The CLI sends no telemetry](${SITE_URL}/docs/data-handling.md)`,
+        "- [90% coverage gate](https://codecov.io/gh/verbatra/verbatra)",
+        "- [CI workflow](https://github.com/verbatra/verbatra/actions/workflows/ci.yml)",
+      ].join("\n"),
+    );
+    expect(body.indexOf("npx @verbatra/cli translate --dry-run")).toBeLessThan(
+      body.indexOf("- [npm provenance]"),
+    );
+  });
+});

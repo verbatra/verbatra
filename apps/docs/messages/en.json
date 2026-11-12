@@ -490,7 +490,15 @@
     "closing": {
       "heading": "Start with a dry run",
       "lead": "This path is for a project that already has locale files, and neither step needs an API key.",
-      "label": "Before you spend a token"
+      "label": "Before you spend a token",
+      "proof": {
+        "label": "Project facts",
+        "provenance": "npm provenance",
+        "license": "MIT license",
+        "telemetry": "The CLI sends no telemetry",
+        "coverage": "{threshold}% coverage gate",
+        "ci": "CI workflow"
+      }
     },
     "fab": {
       "label": "Back to top"

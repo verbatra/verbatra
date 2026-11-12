@@ -33,12 +33,14 @@ import {
   PLAYGROUND_TRANSLATIONS,
   playgroundGeneratedOn,
 } from "./landing-playground";
+import { PROOF_IDS, proofHref } from "./landing-proof";
 import { landingProviders, PROVIDER_DISPLAY } from "./landing-providers";
 import { LANDING_SECTIONS, type LandingSectionId } from "./landing-sections";
 import { fencedMarkdown, inlineCodeMarkdown, markupChunks } from "./llm-markdown";
 import { absoluteMarkdownHref } from "./markdown-links";
 import { pageFrontmatter } from "./page-frontmatter";
 import { RELEASE_BADGE } from "./release-badge";
+import { COVERAGE_THRESHOLD } from "./site";
 
 type Context = { readonly locale: Locale; readonly badge: string };
 
@@ -223,6 +225,11 @@ async function finalCta({ locale }: Context): Promise<string> {
     t("label"),
     t("lead"),
     fencedMarkdown("sh", null, `${INIT_COMMAND}\n${DRY_RUN_COMMAND}`),
+    list(
+      PROOF_IDS.map((id) =>
+        link(t(`proof.${id}`, { threshold: COVERAGE_THRESHOLD }), proofHref(id, locale)),
+      ),
+    ),
   );
 }
 

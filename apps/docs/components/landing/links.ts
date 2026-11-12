@@ -10,6 +10,8 @@ export const CONTRIBUTING_URL = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 export const CODE_OF_CONDUCT_URL = `${GITHUB_URL}/blob/main/CODE_OF_CONDUCT.md`;
 export const SECURITY_URL = `${GITHUB_URL}/blob/main/SECURITY.md`;
 export const LICENSE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
+export const CODECOV_URL = "https://codecov.io/gh/verbatra/verbatra";
+export const CI_WORKFLOW_URL = `${GITHUB_URL}/actions/workflows/ci.yml`;
 
 export const LEGAL_PAGE_LINKS = [
   { key: "imprint", path: "/imprint" },

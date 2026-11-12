@@ -888,6 +888,17 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   background: var(--v-void);
 }
 
+.vk-closer-proof {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
 .vk-rhythm-lg {
   --section-rhythm: var(--section-lg);
 }
