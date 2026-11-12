@@ -28,18 +28,38 @@ jobs:
         with:
           script: |
             const pullRequest = context.payload.pull_request;
-            const match = /^(\w+)(\([^)]*\))?(!)?:/.exec(pullRequest.title);
-            if (!match) return;
             const types = {
               feat: "type: feature",
               fix: "type: bug",
               docs: "type: docs",
               perf: "type: performance",
             };
-            const labels = [types[match[1]] ?? "type: maintenance"];
-            if (match[3]) labels.push("breaking change");
-            await github.rest.issues.addLabels({
-              ...context.repo,
-              issue_number: pullRequest.number,
-              labels,
-            });
+            const managed = [...new Set(Object.values(types)), "type: maintenance", "breaking change"];
+            const match = /^(\w+)(\([^)]*\))?(!)?:/.exec(pullRequest.title);
+            const desired = new Set();
+            if (match) {
+              desired.add(types[match[1]] ?? "type: maintenance");
+              if (match[3]) desired.add("breaking change");
+            }
+            const current = new Set((pullRequest.labels ?? []).map((label) => label.name));
+            for (const name of managed) {
+              if (current.has(name) && !desired.has(name)) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    ...context.repo,
+                    issue_number: pullRequest.number,
+                    name,
+                  });
+                } catch (error) {
+                  if (error.status !== 404) throw error;
+                }
+              }
+            }
+            const missing = [...desired].filter((name) => !current.has(name));
+            if (missing.length > 0) {
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: pullRequest.number,
+                labels: missing,
+              });
+            }
