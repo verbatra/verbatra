@@ -5,7 +5,7 @@ description: "Démarre le serveur MCP en stdio qui expose les outils de verbatra
 status: new
 type: reference
 ---
-Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport qu'utilisent des clients comme Claude Code ou Cursor pour lancer un serveur d'outils. Il sert les révisions de protocole 2024-10-07 à 2026-07-28. Il n'y a pas de transport HTTP, qui exposerait les outils d'écriture et les outils payants sur un port.
+Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport qu'utilisent les clients MCP pour lancer un serveur d'outils. Il sert les révisions de protocole 2024-10-07 à 2026-07-28. Il n'y a pas de transport HTTP, qui exposerait les outils d'écriture et les outils payants sur un port.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -75,7 +75,7 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 | Outil | Ce qu'il fait | Lecture seule | Appelle un fournisseur |
 | --- | --- | --- | --- |
 | `project.snapshot` | la config résolue : `configured`, `configSource`, locales, format, `files.pattern`, fournisseur, glossaire, `humanEdits`, `prune`, `valuesRedacted` | oui | non |
-| `project.doctor` | chaque vérification de configuration avec son `status`, son `detail` et, en cas d'échec, un `fix` ; fonctionne sans config utilisable | oui | non |
+| `project.doctor` | chaque vérification de configuration avec son `status`, son `detail` et, en cas d'échec, un `fix` | oui | non |
 | `status.check` | par locale, le nombre de clés manquantes, obsolètes et à jour | oui | non |
 | `status.diff` | par locale, la liste des clés qui seraient ajoutées, retraduites ou orphelines | oui | non |
 | `glossary.get` | chaque terme du glossaire avec ses traductions, ses formes interdites et son contexte, secrets masqués | oui | non |
@@ -89,13 +89,13 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 | `key.context` | ce que renvoie `key.value`, plus les termes du glossaire qui s'appliquent, `maxLength` et une vérification d'un `draft` optionnel | oui | non |
 | `locale.values` | le texte source et cible de nombreuses clés, filtrées par `keys` ou `query`, page par page | oui | non |
 | `translation.editEntry` | écrit une traduction manuelle pour une clé dans une locale, filtrée par les contrôles d'intégrité | non | non |
-| `translation.estimate` | ce que `translation.translatePending` enverrait et coûterait, comme le rapporte `translate --estimate --json` | oui | non |
+| `translation.estimate` | ce que `translation.translatePending` enverrait et coûterait, comme `translate --estimate` | oui | non |
 | `translation.retranslateEntry` | demande au fournisseur configuré de retraduire une clé dans une locale | non | oui |
 | `translation.translatePending` | traduit chaque clé manquante ou obsolète, éventuellement pour certaines `locales` seulement et sous un plafond `maxTokens` | non | oui |
 | `review.queue` | chaque valeur écrite par une machine que personne n'a encore approuvée, avec les signalements de la dernière exécution | oui | non |
 | `report.provenance` | par locale, les comptes de provenance comme les donne `verbatra report provenance`, et les clés paginées sur demande | oui | non |
 | `review.approve` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée approuve la traduction actuelle d'une clé | non | non |
-| `review.reject` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée rejette la traduction d'une clé, qui est retirée pour être remplacée | non | non |
+| `review.reject` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée rejette la traduction d'une clé, et la retirer | non | non |
 | `usage.summary` | la consommation de tokens et l'état du budget de la dernière exécution | oui | non |
 | `usage.history` | les dernières exécutions, leur coût et la couverture <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | oui | non |
 
@@ -111,7 +111,7 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 - `status.check`, `status.diff` et `key.integrity` prennent un tableau `locales` optionnel ; `key.integrity` prend aussi la `key`.
 - `key.integrity` renvoie `{ locales: [{ locale, entries }] }`, chaque entrée avec `matches`, `missing`, `extra`, `icuValid`, `markupMatches` et leurs détails.
 - `translation.editEntry` prend `locale`, `key` et une `value` de 20 000 caractères au plus. Il renvoie `{ accepted, value, reason?, details? }`, et `translation.retranslateEntry` la même chose plus `reviewReasons?` et `usage?`, où `reason` vaut `placeholder`, `markup`, `icu`, `degenerate` ou `empty`.
-- `glossary.write` exige un glossaire dans un fichier, sinon il échoue avec `GLOSSARY_NOT_FILE_BACKED`.
+- `glossary.write` exige un glossaire dans un fichier, sinon il échoue avec `GLOSSARY_NOT_FILE_BACKED` ; [un terme qui ne diffère que par la casse](/fr/docs/sdk/config#updateglossaryterm) met à jour le terme stocké.
 
 ### Autres entrées et résultats
 
@@ -126,7 +126,7 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 - `history.list` prend `limit` (50 par défaut, 200 au plus). Avec `available: false`, sa `reason` vaut `git-missing`, `not-a-repository`, `bare-repository`, `dubious-ownership`, `timeout`, `output-too-large`, `unsafe-config` ou `git-too-old`.
 - `usage.history` prend `limit`, le nombre d'exécutions les plus récentes (50 par défaut, 200 au plus) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
 - `history.keyRevisions` prend `locale`, `key` (1 024 caractères au plus) et `limit`, le nombre de commits examinés (50 par défaut, 200 au plus) <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" />.
-- `usage.summary` ne porte les champs de budget que si l'exécution a un budget `maxTokens`, et signale `budget.supported: false` quand une requête n'a pas rapporté sa propre consommation ou a échoué ; `tokensUsed` ajoute alors la projection propre à verbatra pour chaque requête que le fournisseur n'a pas rapportée, ou rapportée à zéro, et n'est pas un montant facturé par le fournisseur.
+- `usage.summary` ne lit que la dernière exécution (`usage.history` liste les précédentes), omet `usage` quand cette exécution n'en a rapporté aucun, et ne porte les champs de budget que sous un budget `maxTokens`. `budget.supported: false` signifie qu'une requête n'a pas rapporté de consommation ou a échoué ; `tokensUsed` ajoute alors la projection propre à verbatra pour chaque requête rapportée à zéro ou pas du tout, et n'est pas un montant facturé par le fournisseur. Il porte aussi `incomplete: { failed, partial }` quand des locales ont échoué ou se sont arrêtées en cours de route, pour qu'une faible consommation ne soit pas lue comme une exécution réussie <AvailableFrom version="0.4.5" pkg="@verbatra/mcp" />.
 - Les outils qui écrivent prennent un `lockTimeoutMs` optionnel, de `0` à `600000`, par défaut `30000` : la durée d'attente d'un verrou d'écriture occupé avant d'échouer avec `LOCK_CONTENDED`, sans rien avoir écrit.
 - Les entrées et sorties sont des JSON Schemas ; une entrée invalide renvoie un résultat qui nomme le champ. Un résultat qui ne correspond pas à son `outputSchema` échoue avec `OUTPUT_SCHEMA_MISMATCH` ; pour un outil qui écrit, la modification a été appliquée, donc ne relance pas l'appel.
 - Le texte d'un appel en échec commence par son code d'erreur, comme `UNKNOWN_KEY: ...`, et se termine par une ligne `Next step: ...` quand l'erreur en a une, le même texte que le `hint` de la CLI.
@@ -165,7 +165,7 @@ Avant chaque appel, le serveur recharge la config si le fichier de config, un fi
 
 ### Expurgation des secrets
 
-Chaque résultat et chaque ligne de log sont expurgés comme dans Studio : une valeur qui ressemble à une clé d'API, ou la valeur d'une variable de clé configurée, devient `[REDACTED]` ; les outils de glossaire nomment les termes masqués.
+Les secrets sont expurgés de chaque résultat et de chaque ligne de log, comme le fait aussi Studio : une valeur qui ressemble à une clé d'API, ou la valeur d'une variable de clé configurée, devient `[REDACTED]` ; les outils de glossaire nomment les termes masqués. Masquer les valeurs de traduction, c'est [`--redact-values`](#redacted-values).
 
 ### Valeurs masquées [#redacted-values]
 

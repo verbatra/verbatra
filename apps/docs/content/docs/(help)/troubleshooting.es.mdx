@@ -18,7 +18,7 @@ gasta nada y funciona antes de que exista el archivo de locale fuente.
 **Síntoma**: `pnpm add -D @verbatra/cli` imprime su resumen de instalación y luego sale con `1`:
 
 ```
-[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@2.15.0, protobufjs@7.6.5
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@3.1.0, protobufjs@7.6.5
 Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
 ```
 
@@ -129,8 +129,9 @@ del entorno, nunca de la config ni de un flag.
 agotado o HTTP 401/403.
 
 **Solución**: no se pierde nada; las claves se retoman en la siguiente ejecución. Con
-[`RATE_LIMITED`](/es/docs/error-codes#rate_limited), vuelve a ejecutar más tarde, un locale cada vez
-con `--locales` si la cuota es estricta. Para un modelo lento, sube
+[`RATE_LIMITED`](/es/docs/error-codes#rate_limited), vuelve a ejecutar más tarde, tras la espera que
+nombre el mensaje si nombra una (una cuota diaria agotada), y un locale cada vez con `--locales` si
+la cuota es estricta. Para un modelo lento, sube
 [`requestTimeoutMs`](/es/docs/providers#tiempo-de-espera-de-petición) frente a
 [`TIMEOUT`](/es/docs/error-codes#timeout). [`AUTH_FAILED`](/es/docs/error-codes#auth_failed) no se
 resuelve reintentando: cambia la clave.

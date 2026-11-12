@@ -5,8 +5,8 @@
 
 ## Purpose
 
-The shared design tokens and base components (`Button`, `Badge`, `Card`, `Icon`) for the
-verbatra surfaces. `apps/docs` and `@verbatra/studio` consume them. `src/tokens.css` holds the
+The shared design tokens and base components (buttons, badges, cards, icons, form fields, tables,
+sheets, toasts, tooltips and more; `src/index.ts` is the list) for the verbatra surfaces. `apps/docs` and `@verbatra/studio` consume them. `src/tokens.css` holds the
 brand primitives (`--v-*`), the semantic layer (`--surface-*`, `--border-*`, `--text-*`,
 `--accent*`, `--focus-ring`, `--scrim`), the status and diff tones (`--status-*`, `--diff-*`, each
 with a `-soft` tint, plus `--status-danger-strong` for the danger hover), the `--halo-strong`
@@ -44,7 +44,7 @@ glow, the type, radius, shadow, motion and layout scales, and the heading font b
   `ghost`, `secondary-success`, `secondary-danger`, `danger`; sizes `xs`, `sm`, `md`, `lg`), `Badge`
   (tones `neutral`, `glow`, `new`, `changed`, `unchanged`, `solid`, `success`, `warning`,
   `danger`, `missing`, `orphaned`, `protected`; `changed` carries the diff look; `verbatim` and `wrap`
-  options), `Card`, `Icon` and `cn`. Components style through semantic tokens only, in
+  options), `Card`, `Icon`, `cn`, and the other components and hooks `src/index.ts` exports. Components style through semantic tokens only, in
   class form (`text-(--text-muted)`), and carry `data-variant`, `data-size`, `data-tone` and
   `data-padding` attributes. The modules that use React hooks (`Tooltip`, `ThemeToggle`,
   `useDialogA11y`) begin with `"use client"`; `client-boundary.test.ts` enforces that, so a

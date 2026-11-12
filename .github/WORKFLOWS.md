@@ -20,7 +20,7 @@ and is what renders on the org page.
 | `ISSUE_TEMPLATE/` | Bug report, feature request, and adapter-or-provider request forms, plus `config.yml`, which routes questions to Discussions |
 | `PULL_REQUEST_TEMPLATE.md` | The three sections every pull request fills in: what changed, how it was tested, and the checklist |
 | `dependabot.yml` | Weekly update schedule for npm (root workspace and `e2e/`), GitHub Actions (workflows and the local composite actions), and the docs Docker image, with a seven-day cooldown and the major-version pins it deliberately holds back |
-| `assets/` | `banner.webp` and `verbatra-mark.png`, hotlinked by the root and package READMEs through `raw.githubusercontent.com` |
+| `assets/` | `verbatra-mark.png`, shown by the root README and hotlinked by the package READMEs through `raw.githubusercontent.com`, and `banner.webp`, kept for READMEs of already published versions that hotlink it |
 
 `CI` is the merge gate and the release gate: `release.yml` publishes only when the CI workflow's
 conclusion is success. `E2E (live)` drives a real provider and is advisory, never a gate.

@@ -110,7 +110,7 @@ In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`
 
 <AvailableFrom version="0.9.0" />
 
-One locale failing is not fatal: the run finishes and exits `1`. A **partial** locale exits `1` too: its file was written but keys are still missing, typically because a provider sub-batch failed or the integrity gate refused a translation. The human output lists every refused key under `integrity-withheld` with its reason (`placeholder`, `markup`, `icu`, `degenerate`, or `empty`); with `--json`, each locale carries them in `integrityRefusals`.
+One locale failing is not fatal: the run finishes and exits `1`. A **partial** locale exits `1` too: its file was written but keys are still missing, typically because a provider sub-batch failed or the integrity gate refused a translation. The human output lists every refused key under `integrity-withheld` with its reason (`placeholder`, `markup`, `icu`, `degenerate`, or `empty`); with `--json`, each locale carries them in `integrityRefusals`. Keys the run flagged for review follow the locale's `N needs-review` count under a `needs-review:` line, each with its [review reasons](/docs/translation-safety#review-flags); with `--json` they are in `needsReview`.
 
 ### Unsupported locales
 

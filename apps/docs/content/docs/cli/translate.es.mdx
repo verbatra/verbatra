@@ -110,7 +110,7 @@ En un proyecto [solo humano](/es/docs/human-only-workflow) (`provider: { id: "no
 
 <AvailableFrom version="0.9.0" />
 
-Que falle un locale no es fatal: la ejecución termina y sale con `1`. Un locale **parcial** también sale con `1`: su archivo se escribió pero aún faltan claves, normalmente porque falló un sublote del proveedor o la puerta de integridad rechazó una traducción. La salida legible lista cada clave rechazada bajo `integrity-withheld` con su motivo (`placeholder`, `markup`, `icu`, `degenerate` o `empty`); con `--json`, cada locale los lleva en `integrityRefusals`.
+Que falle un locale no es fatal: la ejecución termina y sale con `1`. Un locale **parcial** también sale con `1`: su archivo se escribió pero aún faltan claves, normalmente porque falló un sublote del proveedor o la puerta de integridad rechazó una traducción. La salida legible lista cada clave rechazada bajo `integrity-withheld` con su motivo (`placeholder`, `markup`, `icu`, `degenerate` o `empty`); con `--json`, cada locale los lleva en `integrityRefusals`. Las claves que la ejecución marcó para revisión siguen al recuento `N needs-review` del locale bajo una línea `needs-review:`, cada una con sus [motivos de revisión](/es/docs/translation-safety#señales-de-revisión); con `--json` están en `needsReview`.
 
 ### Locales no admitidos
 

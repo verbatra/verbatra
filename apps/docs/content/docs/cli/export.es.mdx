@@ -76,6 +76,8 @@ verbatra: exporting to xlsx... done (0.3s)
 next: verbatra import verbatra-translations.xlsx (once your translators have filled it in)
 ```
 
+Cuando no hay nada pendiente y no pasaste `--include-unchanged`, el archivo no tiene filas, y la línea `next:` sugiere en su lugar la misma exportación con `--include-unchanged`, conservando `--format`, `--out`, `--locales`, `--cwd` y `--config`.
+
 Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
 
 ### Salida JSON

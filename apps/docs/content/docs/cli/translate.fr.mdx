@@ -110,7 +110,7 @@ Dans un projet [entièrement humain](/fr/docs/human-only-workflow) (`provider: {
 
 <AvailableFrom version="0.9.0" />
 
-L'échec d'une locale n'est pas fatal : l'exécution se termine et sort avec `1`. Une locale **partielle** sort aussi avec `1` : son fichier a été écrit mais des clés manquent encore, en général parce qu'un sous-lot du fournisseur a échoué ou que le contrôle d'intégrité a refusé une traduction. La sortie lisible liste chaque clé refusée sous `integrity-withheld` avec sa raison (`placeholder`, `markup`, `icu`, `degenerate` ou `empty`) ; avec `--json`, chaque locale les porte dans `integrityRefusals`.
+L'échec d'une locale n'est pas fatal : l'exécution se termine et sort avec `1`. Une locale **partielle** sort aussi avec `1` : son fichier a été écrit mais des clés manquent encore, en général parce qu'un sous-lot du fournisseur a échoué ou que le contrôle d'intégrité a refusé une traduction. La sortie lisible liste chaque clé refusée sous `integrity-withheld` avec sa raison (`placeholder`, `markup`, `icu`, `degenerate` ou `empty`) ; avec `--json`, chaque locale les porte dans `integrityRefusals`. Les clés que l'exécution a signalées pour relecture suivent le compte `N needs-review` de la locale sous une ligne `needs-review:`, chacune avec ses [raisons de relecture](/fr/docs/translation-safety#signalements-de-relecture) ; avec `--json`, elles sont dans `needsReview`.
 
 ### Locales non prises en charge
 

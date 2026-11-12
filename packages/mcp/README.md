@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/verbatra/verbatra/main/.github/assets/verbatra-mark.png" alt="verbatra logo, a glowing V mark on a dark square" width="96" height="96" />
+  <a href="https://verbatra.kreitz-webdev.de"><img src="https://raw.githubusercontent.com/verbatra/verbatra/main/.github/assets/verbatra-mark.png" alt="verbatra logo, a glowing V mark on a dark square" width="96" height="96" /></a>
 </p>
 
 <h1 align="center">@verbatra/mcp</h1>
@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@verbatra/mcp"><img src="https://img.shields.io/npm/v/%40verbatra%2Fmcp?label=%40verbatra%2Fmcp&amp;color=7b1fa2&amp;labelColor=0b0b12" alt="@verbatra/mcp npm version" /></a>
+  <a href="https://www.npmjs.com/package/@verbatra/mcp"><img src="https://img.shields.io/npm/dm/%40verbatra%2Fmcp?color=7b1fa2&amp;labelColor=0b0b12" alt="@verbatra/mcp npm downloads per month" /></a>
   <a href="https://github.com/verbatra/verbatra/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/verbatra/verbatra/ci.yml?branch=main&amp;label=CI&amp;labelColor=0b0b12" alt="CI status on main" /></a>
   <a href="https://www.npmjs.com/package/@verbatra/mcp#provenance"><img src="https://img.shields.io/badge/npm%20provenance-SLSA%20v1-7b1fa2?labelColor=0b0b12" alt="npm provenance: SLSA v1 build attestation" /></a>
   <a href="https://github.com/verbatra/verbatra/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?color=7b1fa2&amp;labelColor=0b0b12" alt="License: MIT" /></a>
@@ -84,7 +85,7 @@ Every tool, listed in the order the server advertises them.
 | `report.provenance` | Per locale, how many values fall into each provenance bucket; with `includeEntries`, the keys, paged |
 | `review.approve` | Record, on the user's instruction, that a named person approves one key's current translation |
 | `review.reject` | Record, on the user's instruction, that a named person rejects one key's current translation, removing it so it gets replaced |
-| `usage.summary` | Token usage and budget status left behind by the last run |
+| `usage.summary` | Token usage and budget status left behind by the last run, with `incomplete` when locales failed or stopped partway |
 | `usage.history` | The recent runs, newest first, with token usage, the cost frozen at the rates of that day and per-locale counts and coverage; counts only, never keys or texts |
 
 ## Security and spend

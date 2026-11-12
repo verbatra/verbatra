@@ -349,7 +349,7 @@ function exportTmx(
 
 **Beispiel:** [Der TMX-Roundtrip](/de/docs/programmatic-api#der-tmx-roundtrip)
 
-Gibt `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` zurück; `withoutSource` zählt Einträge, die ausgelassen wurden, weil der Übersetzungsspeicher keinen Quelltext zu ihnen hat, was nur bei Einträgen aus einem Cache passiert, der noch vor dem Speichern des Quelltexts geschrieben wurde, und `illegalCharactersRemoved` zählt die Zeichen, die XML 1.0 nicht darstellen kann und die aus dem Segmenttext entfernt wurden.
+Gibt `{ path, units, locales, withoutSource, otherConfiguration, illegalCharactersRemoved, provenanceMarkers }` zurück; `withoutSource` zählt Einträge, die ausgelassen wurden, weil der Übersetzungsspeicher keinen Quelltext zu ihnen hat, was nur bei Einträgen aus einem Cache passiert, der noch vor dem Speichern des Quelltexts geschrieben wurde, `otherConfiguration` zählt Einträge, die ausgelassen wurden, weil sie unter einem anderen Konfigurations-Fingerprint gespeichert sind (einem früheren Provider, Modell, Ton oder Glossar), einmal pro Locale und Hash, und `illegalCharactersRemoved` zählt die Zeichen, die XML 1.0 nicht darstellen kann und die aus dem Segmenttext entfernt wurden.
 
 <AvailableFrom version="0.12.0" />
 

@@ -326,7 +326,7 @@ function exportTmx(
 
 **Example:** [The TMX round-trip](/docs/programmatic-api#the-tmx-round-trip)
 
-Returns `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` counts entries left out because the memory holds no source text for them, which happens only for entries carried forward from a cache written before the memory stored source text, and `illegalCharactersRemoved` counts the characters XML 1.0 cannot represent that were removed from segment text.
+Returns `{ path, units, locales, withoutSource, otherConfiguration, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` counts entries left out because the memory holds no source text for them, which happens only for entries carried forward from a cache written before the memory stored source text, `otherConfiguration` counts entries left out because they are stored under another configuration fingerprint (an earlier provider, model, tone or glossary), once per locale and hash, and `illegalCharactersRemoved` counts the characters XML 1.0 cannot represent that were removed from segment text.
 
 <AvailableFrom version="0.12.0" />
 

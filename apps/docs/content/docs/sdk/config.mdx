@@ -160,13 +160,14 @@ It also takes `locale` (then `translation` is that locale's own and `null` remov
 to the terms kept untranslated, `false` removes it; it cannot be combined with the term fields).
 A version 1 file stays version 1 while an edit only sets or removes a translation for every
 locale; any other edit rewrites it as version 2, every existing term keeping its translation as
-`target`. `translation: null` without `locale` now removes only the shared translation; the term itself is removed once it has no translation and no forbidden rendering left, which for a version 1 term is at once.
+`target`. `translation: null` without `locale` removes only the shared translation; the term itself is removed once it has no translation and no forbidden rendering left, which for a version 1 term is at once.
 
-An inline glossary is refused with `GLOSSARY_NOT_FILE_BACKED` rather than converted: it lives inside
-an executable config module. A blank field, an edit that sets no field or mixes `doNotTranslate`
+A term that differs only in case from a stored term, when neither is `caseSensitive`, updates
+that term and keeps its stored spelling. An inline glossary is refused with
+`GLOSSARY_NOT_FILE_BACKED` rather than converted. A missing `term`, a blank field, an edit that sets no field or mixes `doNotTranslate`
 with the term fields, forbidden renderings without a locale, an invalid locale, an edit that would
 leave an invalid glossary, and an edit whose result would exceed the 1 MiB glossary limit are
-refused with `CONFIG_INVALID`; a failed write, including a glossary write lock that cannot be created in a read-only project or cannot be released after a saved edit, is `GLOSSARY_UNWRITABLE`, with the file-system error as its `cause`. An edit that leaves the
+refused with `CONFIG_INVALID`; a failed write, including of the glossary write lock, is [`GLOSSARY_UNWRITABLE`](/docs/error-codes#glossary_unwritable), with the file-system error as its `cause`. An edit that leaves the
 glossary as it already is succeeds and writes nothing.
 
 <AvailableFrom version="0.12.0" />
@@ -280,8 +281,7 @@ Passes every source term, translation, forbidden rendering, note, part of speech
 do-not-translate term of a normalized `Glossary` through `redact`, and returns `{ glossary, redactedTerms }`, where `redactedTerms` names each term
 that had a value replaced, a redacted source term itself as `[REDACTED]`, so the list never
 repeats a secret. The MCP
-server and Studio use it before a glossary leaves the process; use it the same way in your own
-tool.
+server and Studio use it before a glossary leaves the process.
 
 ```ts title="Signature"
 function redactGlossary(glossary: Glossary): RedactedGlossary;

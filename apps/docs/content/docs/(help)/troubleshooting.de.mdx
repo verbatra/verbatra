@@ -18,7 +18,7 @@ Durchgang, kostet nichts und funktioniert schon, bevor die Quell-Locale-Datei ex
 sich dann mit `1`:
 
 ```
-[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@2.15.0, protobufjs@7.6.5
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@3.1.0, protobufjs@7.6.5
 Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
 ```
 
@@ -131,8 +131,9 @@ Hinweis `SUB_BATCH_FAILED`, der den Provider-Code nennt, und der Befehl endet mi
 Timeout oder HTTP 401/403.
 
 **Lösung**: Nichts geht verloren; die Keys werden beim nächsten Lauf wieder aufgegriffen. Starte
-bei [`RATE_LIMITED`](/de/docs/error-codes#rate_limited) später erneut, bei einem strengen Kontingent
-eine Locale nach der anderen mit `--locales`. Für ein langsames Modell heb gegen
+bei [`RATE_LIMITED`](/de/docs/error-codes#rate_limited) später erneut, nach der Wartezeit, die die
+Meldung nennt, falls sie eine nennt (ein erschöpftes Tageskontingent), und bei einem strengen
+Kontingent eine Locale nach der anderen mit `--locales`. Für ein langsames Modell heb gegen
 [`TIMEOUT`](/de/docs/error-codes#timeout) den Wert [`requestTimeoutMs`](/de/docs/providers#anfrage-timeout)
 an. [`AUTH_FAILED`](/de/docs/error-codes#auth_failed) löst sich nicht durch Wiederholen: Ersetze den
 Schlüssel.

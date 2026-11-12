@@ -710,7 +710,7 @@ Anfrage oder Antwort wurde aus Sicherheitsgründen blockiert oder gefiltert.
 
 ### RATE_LIMITED
 
-HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit). Google nutzt 403 sowohl für Kontingent- als auch für Zugangsdaten-Fehler, erhöhe also das Cloud-Translation-Kontingent deines Projekts. LibreTranslate meldet ein HTTP 403, dessen Fehlertext "too many" enthält, ebenfalls mit diesem Code, weil sein Server einen gesperrten Client mit 403 beantwortet.
+HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit). Erhöhe das Cloud-Translation-Kontingent deines Projekts. LibreTranslate meldet ein HTTP 403, dessen Fehlertext "too many" enthält, ebenfalls mit diesem Code. Eine Wartezeit, die der Provider nennt (Geminis Retry-Delay, ein `Retry-After`-Header), steht in der Meldung, die ab fünf Minuten ergänzt, dass das Kontingent wahrscheinlich erschöpft ist.
 
 - **Nächster Schritt**: Wait as long as the message says, or a moment if it names no time, then try again. If it keeps failing, lower the concurrency or check the provider quota.
 
@@ -722,7 +722,7 @@ Ein Netzwerk- oder Anfrage-Timeout; [`requestTimeoutMs`](/de/docs/providers#anfr
 
 ### AUTH_FAILED
 
-HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Bei den Providern Anthropic, OpenAI, Gemini, OpenCode und `openai-compatible` nennt die Meldung den Status und ergänzt bei 403, dass der Server die Anfrage wegen seiner Richtlinie oder der Rechte des Keys abgelehnt hat. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Key für ein Projekt mit aktivierter Cloud Translation API ist. LibreTranslate meldet außerdem ein HTTP 400, dessen Fehlertext einen API-Key erwähnt, mit diesem Code, wenn ein Key konfiguriert ist. Wiederholen hilft nicht.
+HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Ebenso Geminis HTTP 400 `API_KEY_INVALID`, mit Nennung von `GEMINI_API_KEY`. Bei den LLM-Providern nennt die Meldung den Status und ergänzt bei 403, dass der Server die Anfrage wegen seiner Richtlinie oder der Rechte des Keys abgelehnt hat. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Key für ein Projekt mit aktivierter Cloud Translation API ist. LibreTranslate meldet außerdem ein HTTP 400, dessen Fehlertext einen API-Key erwähnt, mit diesem Code, wenn ein Key konfiguriert ist. Wiederholen hilft nicht.
 
 - **Nächster Schritt**: Check that the provider's API key is valid and allowed to use the configured model.
 
@@ -740,7 +740,7 @@ Die [Netzwerkrichtlinie](/de/docs/network-policy) hat die Anfrage direkt vor dem
 
 ### PROVIDER_ERROR
 
-Alles Unklassifizierbare. Bei den Providern Anthropic, OpenAI, Gemini, OpenCode und `openai-compatible` nennt ein HTTP-Fehlschlag seinen Status, etwa `HTTP 404`, und den Fehlertyp des Servers, wenn er ein kurzes Token aus Buchstaben, Ziffern und Unterstrichen ist, etwa `MissingSessionID`; die eigene Meldung des Servers, der Antworttext und der URL-Pfad erscheinen nie. Bei einer `openai-compatible`-`baseUrl` ergänzt ein 404 oder 405 die Prüfung, ob `baseUrl` die API-Wurzel ist, und ein 400 oder 422 die Prüfung des Modellnamens und der Unterstützung für Chat Completions mit striktem JSON-Schema-Output; bei einem 4xx-Status hilft Wiederholen nicht. Ist der Fehlschlag ein erkennbares Transportproblem, benennt die Meldung es (Verbindung abgelehnt, Hostname nicht aufgelöst, Verbindung geschlossen, Host nicht erreichbar, TLS-Zertifikat nicht verifiziert) und sagt, was zu prüfen ist; sonst fällt sie auf eine statische, geheimnisfreie Meldung zurück. Konnte ein Provider-Paket nicht geladen werden, nennt die Meldung das Paket und rät, `@verbatra/sdk` neu zu installieren.
+Alles Unklassifizierbare. Bei den LLM-Providern nennt ein HTTP-Fehlschlag seinen Status, etwa `HTTP 404`, und den Fehlertyp des Servers, wenn er ein kurzes Token aus Buchstaben, Ziffern und Unterstrichen ist, etwa `MissingSessionID`; die eigene Meldung des Servers, der Antworttext und der URL-Pfad erscheinen nie. Bei einer `openai-compatible`-`baseUrl` ergänzt ein 404 oder 405 die Prüfung, ob `baseUrl` die API-Wurzel ist, und ein 400 oder 422 die Prüfung des Modellnamens und der Unterstützung für Chat Completions mit striktem JSON-Schema-Output; bei einem 4xx-Status hilft Wiederholen nicht. Ein erkennbares Transportproblem (Verbindung abgelehnt, Hostname nicht aufgelöst, Verbindung geschlossen, Host nicht erreichbar, TLS-Zertifikat nicht verifiziert) wird mit dem, was zu prüfen ist, benannt; alles andere bekommt eine statische, geheimnisfreie Meldung. Konnte ein Provider-Paket nicht geladen werden, nennt die Meldung das Paket und rät, `@verbatra/sdk` neu zu installieren.
 
 - **Nächster Schritt**: Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
 

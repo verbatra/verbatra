@@ -306,7 +306,7 @@ function exportTmx(
 
 **Exemple :** [L'aller-retour TMX](/fr/docs/programmatic-api#laller-retour-tmx)
 
-Renvoie `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` ; `withoutSource` compte les entrées laissées de côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source, et `illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été retirés du texte des segments.
+Renvoie `{ path, units, locales, withoutSource, otherConfiguration, illegalCharactersRemoved, provenanceMarkers }` ; `withoutSource` compte les entrées laissées de côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source, `otherConfiguration` compte les entrées laissées de côté parce qu'elles sont stockées sous une autre empreinte de configuration (un fournisseur, un modèle, un ton ou un glossaire antérieur), une fois par locale et par hash, et `illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été retirés du texte des segments.
 
 <AvailableFrom version="0.12.0" />
 

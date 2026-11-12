@@ -307,8 +307,14 @@ if (!edit.accepted) {
   console.error(`rejected (${edit.reason} check failed), nothing written`);
 }
 
-// Or ask the provider for a fresh translation of just this key.
-const retry = await retranslateEntry({ config, locale: "de", key: "checkout.title" });
+// Or ask the provider for a fresh translation of just this key. The edit above
+// recorded a value a person wrote, which retranslateEntry protects unless told otherwise.
+const retry = await retranslateEntry({
+  config,
+  locale: "de",
+  key: "checkout.title",
+  includeHuman: true,
+});
 if (retry.accepted) {
   console.log(`wrote: ${retry.value}`);
   if (retry.reviewReasons.length > 0) {
@@ -323,8 +329,9 @@ if (retry.accepted) {
 
 <AvailableFrom version="0.12.0" />
 
-`retranslateEntry` refuses a value a person wrote unless you pass `includeHuman: true`, and a
-pinned key always; see [Protecting human translations](/docs/protecting-human-translations).
+`retranslateEntry` refuses a value a person wrote with `KEY_PROTECTED`, including the one
+`editEntry` just saved, unless you pass `includeHuman: true` or the config sets
+`humanEdits: "overwrite"`. That is why the recipe passes it. A pinned key is refused always; see [Protecting human translations](/docs/protecting-human-translations).
 
 ## Work through the review queue
 

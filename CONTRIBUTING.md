@@ -167,8 +167,8 @@ missing. Open an issue first if the design is unusual (a provider that is neithe
 a language model nor a machine-translation API, or a format that fits neither
 adapter factory), but a conventional addition needs no design discussion.
 
-Line numbers below are given as "around", because they move. The file path and
-the symbol name are what you should search for.
+Each step names a file path and a symbol. Search for the symbol rather than
+relying on its position in the file, which moves.
 
 ### Architecture rules that bind both
 
@@ -270,8 +270,8 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    and `flow/retranslate-entry.ts`).
 
    `ProviderRegistry` in `packages/ai-providers/src/registry.ts` is **not** the
-   registration path. It is exported from the package, but nothing outside its
-   own tests imports it, and no runtime code resolves a provider through it.
+   registration path. It is exported from the package, but nothing except tests
+   imports it, and no runtime code resolves a provider through it.
    Registering there and stopping produces a provider that compiles, appears
    registered, and is never reached. `providerFactories` is the table that
    matters.
@@ -316,6 +316,10 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
     `.fr.mdx` sibling of each in the same change. Add its row to the "What each
     provider receives" table of `(concepts)/data-handling.mdx` and its siblings;
     `scripts/verify-docs-data-flow-parity.test.mjs` fails until all four list it.
+    The landing page reads three total `Record<MachineProviderId, ...>` tables that will
+    not compile until the provider has an entry: `PROVIDER_DISPLAY` in
+    `apps/docs/lib/landing-providers.ts`, `PROVIDER_IDS` in `apps/docs/lib/landing-facts.ts`
+    and `PROVIDER_ICONS` in `apps/docs/components/landing/marquee.tsx`.
 
 13. **The agent skills pack**, `skills/verbatra-cli/SKILL.md` in
     [verbatra/skills](https://github.com/verbatra/skills) - open a pull request
@@ -346,10 +350,12 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    `supportedFormatSchema` states the rule and lists what each member means, so
    extend that list too.
 
-2. **`packages/format-adapters/src/<format>/<format>-adapter.ts`** - the
+2. **`packages/format-adapters/src/<dir>/<dir>-adapter.ts`** - the
    `create<Format>Adapter` factory. Build on a shared factory; do not implement
    `FormatAdapter` by hand, and do not reimplement read, write, or detection
-   logic. Pick by the file's shape:
+   logic. The folder carries a short name, not necessarily the format id
+   (`gettext/` holds `gettext-po`, `xcstrings/` holds `apple-xcstrings`). Pick by the
+   file's shape:
 
    - **Nested tree** (a value lives at a path of keys): use
      `createTreeFileAdapter` from `json/tree-file-adapter.js`. Supply `parse`,
@@ -381,6 +387,12 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    apply here.
 
 4. **`packages/format-adapters/src/index.ts`** - export the factory.
+
+   The new `SupportedFormat` member also breaks the build in three total
+   `Record<SupportedFormat, ...>` tables until each has an entry: `DEFAULT_LAYOUTS` in
+   `packages/cli/src/init-config.ts` (the file pattern `verbatra init` writes),
+   `FORMAT_CLASS` in `packages/sdk/src/flow/key-history-limits.ts`, and the
+   placeholder-syntax table in `packages/sdk/src/flow/foreign-placeholders.ts`.
 
 5. **Tests.** A `*.test.ts` beside the adapter, including a round-trip test:
    read a fixture, write it back, and assert the output is byte-identical.

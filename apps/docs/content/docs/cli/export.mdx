@@ -76,6 +76,8 @@ verbatra: exporting to xlsx... done (0.3s)
 next: verbatra import verbatra-translations.xlsx (once your translators have filled it in)
 ```
 
+When nothing is pending and `--include-unchanged` was not passed, the file has no rows, and the `next:` line suggests the same export with `--include-unchanged` instead, keeping `--format`, `--out`, `--locales`, `--cwd` and `--config`.
+
 These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
 
 ### JSON output

@@ -187,6 +187,8 @@ s'applique à la valeur exacte que le relecteur a vue et est refusée si elle a 
   peut pas retirer une seule traduction, donc un rejet y est refusé avec
   [`REVIEW_REJECT_UNSUPPORTED`](/fr/docs/error-codes#review_reject_unsupported).
 
+Seules les valeurs de classe machine entrent dans la file de relecture et dans la porte `--require-reviewed`. Les comptes `byReviewState` de `check` et de `lock.state` couvrent chaque valeur selon sa décision enregistrée, quelle que soit son origine : une valeur écrite ou importée par une personne sans décision y compte comme `unreviewed` sans figurer dans la file ; lis-les avec `byOrigin`.
+
 Les décisions vivent dans ce fichier commité, donc la file de relecture et
 [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) voient le même
 état partout, et le nom `reviewer` est public ; verbatra ne le remplit jamais.

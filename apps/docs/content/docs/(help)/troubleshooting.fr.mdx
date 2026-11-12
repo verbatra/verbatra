@@ -18,7 +18,7 @@ passe, ne dépense rien et fonctionne avant même que le fichier de locale sourc
 **Symptôme** : `pnpm add -D @verbatra/cli` affiche son résumé d'installation puis sort avec `1` :
 
 ```
-[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@2.15.0, protobufjs@7.6.5
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@3.1.0, protobufjs@7.6.5
 Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
 ```
 
@@ -128,8 +128,9 @@ avis `SUB_BATCH_FAILED` qui nomme le code du fournisseur, et la commande sort av
 ou HTTP 401/403.
 
 **Solution** : rien n'est perdu ; les clés sont reprises à la prochaine exécution. Avec
-[`RATE_LIMITED`](/fr/docs/error-codes#rate_limited), relance plus tard, une locale à la fois avec
-`--locales` si le quota est strict. Pour un modèle lent, relève
+[`RATE_LIMITED`](/fr/docs/error-codes#rate_limited), relance plus tard, après l'attente que nomme le
+message s'il en nomme une (un quota quotidien épuisé), et une locale à la fois avec `--locales` si le
+quota est strict. Pour un modèle lent, relève
 [`requestTimeoutMs`](/fr/docs/providers#délai-de-requête) face à
 [`TIMEOUT`](/fr/docs/error-codes#timeout). [`AUTH_FAILED`](/fr/docs/error-codes#auth_failed) ne se règle
 pas en réessayant : remplace la clé.
