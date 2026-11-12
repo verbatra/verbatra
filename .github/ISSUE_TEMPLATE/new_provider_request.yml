@@ -1,0 +1,49 @@
+name: New provider
+description: Request support for a new translation provider.
+labels: ["type: feature", "scope: providers", "needs triage"]
+type: Feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If the provider exposes an OpenAI-compatible API, the `openai-compatible` provider may already reach it with a `baseUrl`. Say in the form if you tried that.
+
+  - type: input
+    id: name
+    attributes:
+      label: Provider name
+      placeholder: e.g. Azure Translator, Amazon Translate, Mistral
+    validations:
+      required: true
+
+  - type: input
+    id: docs-link
+    attributes:
+      label: API documentation link
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why this matters
+      description: Who needs this, and what it offers that the existing providers do not.
+    validations:
+      required: true
+
+  - type: textarea
+    id: api
+    attributes:
+      label: API shape
+      description: How a request authenticates, what a translation call looks like, and whether it handles placeholders or glossaries.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to help implement this.
+          required: false

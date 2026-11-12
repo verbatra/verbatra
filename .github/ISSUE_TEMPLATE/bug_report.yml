@@ -1,7 +1,7 @@
 name: Bug report
 description: Report something that is not working as expected in verbatra.
-title: "[Bug]: "
-labels: ["bug"]
+labels: ["type: bug", "needs triage"]
+type: Bug
 body:
   - type: markdown
     attributes:
@@ -16,6 +16,15 @@ body:
       placeholder: "@verbatra/cli 0.12.0"
     validations:
       required: true
+
+  - type: input
+    id: last-working-version
+    attributes:
+      label: Last version that worked
+      description: If this worked in an earlier version, which one. Leave empty if it never worked or you have not tried.
+      placeholder: "@verbatra/cli 0.11.2"
+    validations:
+      required: false
 
   - type: input
     id: node-version
@@ -86,7 +95,7 @@ body:
     id: repro
     attributes:
       label: Minimal reproduction
-      description: A minimal config snippet, command, or source-file excerpt that reproduces the problem.
+      description: A link to a public repository that reproduces the problem, or your `verbatra.config` file, one source locale file, and the exact command you ran. Without a reproduction the issue is labelled `needs reproduction` and closes after 21 days.
     validations:
       required: true
 
@@ -109,6 +118,15 @@ body:
     attributes:
       label: Relevant log output
       description: Paste any relevant CLI output. Redact API keys and other secrets before posting.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`npx @verbatra/cli doctor` output"
+      description: Optional. Run it in the project root and paste the output. It checks your config, files, and provider setup in one go.
       render: shell
     validations:
       required: false

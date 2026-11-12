@@ -1,8 +1,17 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
   - name: Ask a question
-    url: https://github.com/verbatra/verbatra/discussions
-    about: Use GitHub Discussions for questions, ideas, and general discussion rather than the issue tracker.
+    url: https://github.com/verbatra/verbatra/discussions/categories/q-a
+    about: Use the Q&A category in GitHub Discussions for questions and how-tos rather than the issue tracker.
   - name: Documentation
     url: https://verbatra.kreitz-webdev.de
     about: Read the guides, CLI reference, and configuration docs before filing an issue.
+  - name: Security vulnerability
+    url: https://github.com/verbatra/verbatra/security/advisories/new
+    about: Report privately through GitHub's private vulnerability reporting. Do not open a public issue for a vulnerability.
+  - name: GitHub Action
+    url: https://github.com/verbatra/action/issues/new/choose
+    about: Problems with the verbatra GitHub Action itself (its inputs, annotations, or job summary) belong in verbatra/action.
+  - name: Agent skills
+    url: https://github.com/verbatra/skills/issues/new/choose
+    about: A verbatra agent skill that tells an agent something wrong belongs in verbatra/skills.
