@@ -1,5 +1,13 @@
 # @verbatra/studio
 
+## 0.7.7
+
+### Patch Changes
+
+- [#383](https://github.com/verbatra/verbatra/pull/383) [`7e33eb8`](https://github.com/verbatra/verbatra/commit/7e33eb8bb3d14e57c469c1801e23ec9389579c42) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Say what the keys on the Translations panel are waiting for when the locale files are in sync.
+  
+  - **Translations:** when nothing is missing, changed, orphaned or protected, the count above the table reads "N keys in the review queue", "N keys with integrity problems" or both, instead of "N keys need attention" next to a banner saying the locale files are in sync.
+
 ## 0.7.6
 
 ### Patch Changes
