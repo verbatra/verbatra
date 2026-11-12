@@ -91,6 +91,33 @@ describe("usage.summary", () => {
     });
   });
 
+  it("names the failed and partial locales of the recorded run, and leaves the field out of a clean one", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, ".verbatra-local"), { recursive: true });
+    const write = (statuses: readonly string[]) =>
+      writeJsonFile(join(dir, ".verbatra-local", "run-status.json"), {
+        version: 1,
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        locales: statuses.map((status, index) => ({
+          locale: `l${index}`,
+          status,
+          needsReview: [],
+        })),
+      });
+
+    await write(["failed", "partial", "partial", "succeeded"]);
+    const incomplete = await usageSummaryTool.execute({}, makeContext({ cwd: dir }));
+    await write(["succeeded"]);
+    const clean = await usageSummaryTool.execute({}, makeContext({ cwd: dir }));
+
+    expect(incomplete).toMatchObject({
+      kind: "ok",
+      result: { incomplete: { failed: 1, partial: 2 } },
+    });
+    expect(Object.hasOwn((clean as { result: object }).result, "incomplete")).toBe(false);
+    expect(usageSummaryTool.description).toContain("incomplete appears only when");
+  });
+
   it("explains each budget standing in its description", () => {
     expect(usageSummaryTool.description).toContain("budget.standing");
     expect(usageSummaryTool.description).toContain("within when it never reached it");

@@ -65,6 +65,32 @@ describe("runStatus", () => {
     expect(result).toEqual({ available: true, ...file });
   });
 
+  it("reports how many locales of the recorded run failed or stopped partway", async () => {
+    const dir = await makeTempDir();
+    const summary = runSummary();
+    const [first] = summary.locales;
+    if (first === undefined) {
+      throw new Error("fixture has no locale");
+    }
+    const file = buildRunStatusFile(
+      {
+        ...summary,
+        locales: [
+          first,
+          { ...first, locale: "fr", status: "failed" },
+          { ...first, locale: "es", status: "partial" },
+        ],
+      },
+      "2026-01-01T00:00:00.000Z",
+    );
+    await writeRunStatusFile(runStatusFilePath(dir), file, defaultFs);
+
+    expect(await runStatus({ cwd: dir })).toMatchObject({
+      available: true,
+      incomplete: { failed: 1, partial: 1 },
+    });
+  });
+
   it("degrades a corrupt file to available: false rather than throwing", async () => {
     const dir = await makeTempDir();
     await mkdir(join(dir, ".verbatra-local"));

@@ -1,16 +1,13 @@
-import type { RunBudget, UsageSummary } from "@verbatra/sdk";
+import type { IncompleteRun, RunBudget, UsageSummary } from "@verbatra/sdk";
 import { z } from "zod";
+
+export type { IncompleteRun };
 
 export const USAGE_SUMMARY_METHOD = "usage.summary";
 
 export const usageSummaryParamsSchema = z.strictObject({});
 
 export type UsageSummaryParams = z.infer<typeof usageSummaryParamsSchema>;
-
-export interface IncompleteRun {
-  readonly failed: number;
-  readonly partial: number;
-}
 
 export type UsageSummaryResult =
   | { readonly available: false }

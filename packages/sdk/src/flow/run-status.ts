@@ -1,4 +1,5 @@
 import { defaultFs, type SdkFs } from "../fs.js";
+import { type IncompleteRun, incompleteRun } from "../run-status/incomplete-run.js";
 import {
   type RunStatusUnavailableReason,
   readRunStatusFile,
@@ -41,6 +42,11 @@ export type RunStatusResult =
   | ({
       /** A status file was found and parsed; the {@link RunStatusFile} fields are spread alongside. */
       readonly available: true;
+      /**
+       * How many locales of the recorded run failed or stopped partway. Present only when at
+       * least one did, so a low or absent usage figure is not read as a successful run.
+       */
+      readonly incomplete?: IncompleteRun;
     } & RunStatusFile);
 
 /**
@@ -73,5 +79,10 @@ export async function runStatus(
   if (read.kind === "unavailable") {
     return { available: false, reason: read.reason };
   }
-  return { available: true, ...read.file };
+  const incomplete = incompleteRun(read.file.locales);
+  return {
+    available: true,
+    ...read.file,
+    ...(incomplete !== undefined ? { incomplete } : {}),
+  };
 }

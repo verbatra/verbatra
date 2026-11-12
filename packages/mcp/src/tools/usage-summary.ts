@@ -14,6 +14,7 @@ const usageSummaryResultSchema = z.object({
   generatedAt: z.string().optional(),
   usage: runSummarySchema.shape.usage.unwrap().optional(),
   budget: budgetSchema.optional(),
+  incomplete: z.object({ failed: z.number().int(), partial: z.number().int() }).optional(),
 });
 
 type UsageSummaryResult = z.infer<typeof usageSummaryResultSchema>;
@@ -29,6 +30,7 @@ async function usageSummary(
   if (!result.available) {
     return { available: false };
   }
+  const { incomplete } = result;
   return {
     available: true,
     generatedAt: result.generatedAt,
@@ -36,6 +38,7 @@ async function usageSummary(
     ...(result.budget !== undefined
       ? { budget: { ...result.budget, standing: budgetStanding(result.budget) } }
       : {}),
+    ...(incomplete !== undefined ? { incomplete } : {}),
   };
 }
 
@@ -61,7 +64,10 @@ export const usageSummaryTool = defineTool({
     "figure the provider billed. It is true with tokensUsed 0 when " +
     "the run sent no request at all, since nothing was estimated. The budget is enforced " +
     "either way, and it covers one translate run: it does not cap a single-entry " +
-    "retranslation. Takes no parameters. Read-only: it calls no provider and writes " +
+    "retranslation. incomplete appears only when the recorded run had locales that failed or " +
+    "stopped partway: failed counts the locales that failed and partial those that wrote only " +
+    "some of their values, so a low or absent usage figure beside it is not a successful run. " +
+    "Takes no parameters. Read-only: it calls no provider and writes " +
     "nothing.",
   paramsSchema,
   outputSchema: usageSummaryResultSchema,
