@@ -159,6 +159,43 @@ For what each workflow does, which composite actions exist, and the SHA-pin
 convention every third-party action follows, see
 [`.github/WORKFLOWS.md`](.github/WORKFLOWS.md).
 
+## Triage
+
+Every issue form applies `needs triage`, and the `PR labels` workflow labels each
+pull request by its changed paths and its Conventional Commit title.
+
+Labels come in groups, the same in verbatra/verbatra, verbatra/action and
+verbatra/skills, so a transferred issue keeps them: `type:` says what kind of
+work it is, `scope:` which area it touches, `status:` where it stands, and
+`resolution:` why it was closed. `needs reproduction` and `needs info` start a
+timer that closes the issue after 21 quiet days. The full list with descriptions
+is on the [labels page](https://github.com/verbatra/verbatra/labels);
+`scripts/sync-labels.sh <owner/repo>` creates or updates it in a repository.
+
+When an issue arrives, or once a day from the `label:"needs triage"` filter:
+
+1. A security problem reported in public: hide it, ask for a private advisory,
+   and open a draft advisory yourself.
+2. A question: convert it to a Discussion in Q&A.
+3. A duplicate: link the original and close it as a duplicate with
+   `resolution: duplicate`.
+4. Add one `scope:` label.
+5. A bug: try to reproduce it from the form. If you cannot, add
+   `needs reproduction` (the `Issue triage` workflow asks for one and the `Stale`
+   timer starts). If a version or the config is missing, add `needs info`. When
+   the reporter replies, the issue goes back to `needs triage` on its own.
+6. Reproduced or accepted: add `status: accepted`, plus `good first issue` or
+   `help wanted` if it suits someone else.
+7. Not doing it: add `resolution: wontfix` and close it as not planned with one
+   sentence saying why.
+8. Remove `needs triage`. The filter should be empty at the end.
+
+A fix then goes on an issue branch, and its changeset credits the reporter.
+
+For a pull request: check the labels the workflow set, approve the first
+workflow run of a first-time contributor only after reading the diff, read the
+CodeRabbit review, and confirm the changeset.
+
 ## Adding a provider or a format adapter
 
 These are the two extension seams the codebase is designed around. Both are
