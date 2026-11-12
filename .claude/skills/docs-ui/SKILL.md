@@ -476,7 +476,18 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   (`.vk-closer-title`, 36px to 72px), one lead sentence (a project that already has locale files, neither step needs an API key) and two
   `CommandRow`s in one `.vk-final-install` (36rem, commands start-aligned, the second `divided`):
   `INIT_COMMAND` (bare `npx @verbatra/cli init`), then `DRY_RUN_COMMAND`, in the quickstart's
-  order after the hero's `npm i -D`, with no button or link).
+  order after the hero's `npm i -D`), then one `ul.vk-closer-proof` of exactly five plain text links,
+  in this order: npm provenance (`NPM_CLI`), MIT license (`LICENSE_URL`), "The CLI sends no
+  telemetry" (the localized `/docs/data-handling`, the one same-tab link), "{threshold}% coverage
+  gate" (`CODECOV_URL`, the number `COVERAGE_THRESHOLD`, which `scripts/sync-version.mjs` reads
+  from the thresholds in `packages/config/vitest.base.mjs` into `lib/version.generated.json`, the
+  lowest of the four, never typed) and the CI workflow (`CI_WORKFLOW_URL`). The ids, hrefs and
+  external flag live in `lib/landing-proof.ts`, shared with the Markdown twin. Each link is a
+  `vk-tap vk-footer-link` (muted, no fill, no border, the footer's hover underline) in a centered
+  wrapping flex row (`.vk-closer-proof`, `--text-sm`), and the other-host ones open in a new tab with
+  the footer's `rel` and `landing.openSource.newTab` announcement; nothing is fetched from those
+  hosts, so no badge image and no Scorecard, star or download figure. There is no button and no
+  other link in the panel.
   `.vk-eyebrow` is the one section label style: mono, uppercase, `--text-muted`, wrapped in braces
   drawn as CSS content with empty alt text, so a screen reader reads the label alone (the closing
   brace follows a no-break space, so it never starts a line); it is never
@@ -489,15 +500,18 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `lib/contributors.json` (`contributors.tsx`: a `div` with `role="group"` named by a
   `.vk-footer-group-title`, never a landmark or heading, each a self-hosted 32px avatar from
   `public/contributors/` with the login beside it, refreshed by hand with `pnpm contributors`,
-  then one open slot, a borderless `--accent` 14 percent tint circle linking the issue list; the avatars carry no ring); then `FOOTER_GROUPS`, four named `nav`s on
+  then a "Contributing guide" text link to `CONTRIBUTING.md` (`.vk-contribute-guide`, muted, there is
+  no open avatar slot); the avatars carry no ring); then `FOOTER_GROUPS`, five named `nav`s on
   `.vk-footer-groups`, deliberately not a row of equal columns: product (`PRIMARY_GROUP`: the docs
-  pages, the localized `/compare` and the files for AI agents) leads as the wide group, its links in
+  pages and the localized `/compare`) leads as the wide group, its links in
   `--text-strong` at 15px flowing down CSS columns (`columns: 2 9rem`, three from 48rem), and
-  packages (every package on npm and the release notes), community (contributor guide, code of
+  for agents (`AGENTS_GROUP`, titled `cols.agents.title`: the localized MCP docs page, `/llms.txt`,
+  `/llms-full.txt` and `/.well-known/ai.txt`), packages (every package on npm and the release notes), community (contributor guide, code of
   conduct, security policy) and legal (license, Impressum, privacy, contact, `/licenses`) sit in
-  `.vk-footer-secondary` as muted columns: beside product from 80rem, narrow and content-sized behind a
-  `--border-default` start rule; under it before that, on product's three column tracks from 48rem
-  (three equal columns at `--grid-gap`, so each group starts where a product column does); group titles and the locale label are
+  `.vk-footer-secondary` as muted columns: beside product from 80rem on one row of four, narrow and
+  content-sized behind a `--border-default` start rule; under it before that, on product's three
+  column tracks from 48rem (three equal columns at `--grid-gap`, so each group starts where a
+  product column does and the fourth wraps under the first), two columns under 48rem; group titles and the locale label are
   medium `--text-strong`, links keep a 0.5rem row gap and a 2px focus offset; then `.vk-footer-bottom` (no rule): the locale switch, and
   the version line (`landing.footer.versionParts` with the `lib/site.ts` versions), the license and
   the copyright as plain spans. Links are `.vk-footer-link` (24px tall, muted, an `--accent`
