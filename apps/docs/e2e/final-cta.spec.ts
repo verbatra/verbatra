@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "playwright/test";
 import {
   expectNoAxeViolations,
@@ -7,6 +8,10 @@ import {
   openInTheme,
   THEMES,
 } from "./support";
+
+const { coverageThreshold: COVERAGE_THRESHOLD } = JSON.parse(
+  readFileSync(new URL("../lib/version.generated.json", import.meta.url), "utf8"),
+);
 
 const CLOSER = "section[aria-labelledby='closing-heading']";
 
@@ -62,7 +67,7 @@ test.describe("final call to action layout", () => {
       /^npm provenance/,
       /^MIT license/,
       /^The CLI sends no telemetry/,
-      /^90% coverage gate/,
+      new RegExp(`^${COVERAGE_THRESHOLD}% coverage gate`),
       /^CI workflow/,
     ]);
     await expect(links.nth(2)).toHaveAttribute("href", "/docs/data-handling");

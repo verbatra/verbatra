@@ -7,6 +7,7 @@ import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { DRY_RUN_COMMAND, INIT_COMMAND } from "@/lib/install-commands";
+import { COVERAGE_THRESHOLD } from "@/lib/site";
 import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
@@ -95,7 +96,7 @@ describe("FinalCta", () => {
       "npm provenance",
       "MIT license",
       "The CLI sends no telemetry",
-      "90% coverage gate",
+      `${COVERAGE_THRESHOLD}% coverage gate`,
       "CI workflow",
     ]);
     expect(copy.proof.coverage).toBe("{threshold}% coverage gate");
