@@ -567,7 +567,10 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   The list sits in `.vk-marquee-viewport`, a `.vk-edge-fade` `role="group"` keyboard stop named by
   the row's `h3`. The server HTML is the static state, and the copies are `display: none` in it.
   Under reduced motion or without JavaScript (`scripting: none`) the pause button is `display: none`
-  and the list wraps, which never changes. Where motion may start (`prefers-reduced-motion:
+  and the list wraps from 40rem, which never changes; under 40rem the static list is one sideways-scrolling line instead
+  (`flex-wrap: nowrap` in the `width < 40rem` block, the gutter kept, nothing moving), so a phone shows two one-line rows, about
+  300px, instead of a 1,000px wrapped block (`e2e/marquee.spec.ts` holds the section under half of an 844px screen, with
+  every item reachable by keyboard and by scrolling, in reduced motion and without JavaScript). Where motion may start (`prefers-reduced-motion:
   no-preference` and `scripting: enabled`) the static state already has the moving state's box: the
   pause button holds its row at `visibility: hidden` (so it is neither focusable nor announced) and
   each list is one line that scrolls sideways with no scrollbar, so every item stays reachable by
@@ -816,7 +819,7 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
   it runs only in the state described under "Marquee" above, pauses through its button, hover
   and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
-  start, wrapped rows under reduced motion or without JavaScript), so 2.2.2 holds without
+  start and on a phone, wrapped rows from 40rem under reduced motion or without JavaScript), so 2.2.2 holds without
   JavaScript.
 - **SDK playground.** `playground.tsx` (`#playground`, on the void, a `split` head (heading left,
   lead right) whose `h2` is

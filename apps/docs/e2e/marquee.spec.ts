@@ -114,6 +114,63 @@ test.describe("marquee under reduced motion", () => {
   });
 });
 
+const PHONE = { width: 391, height: 844 } as const;
+
+async function expectScrollingLines(page: Page): Promise<void> {
+  expect(await sectionHeight(page)).toBeLessThanOrEqual(PHONE.height / 2);
+  for (const id of ["formats", "providers"]) {
+    const row = page.locator(`${MARQUEE} [data-row="${id}"]`);
+    const list = row.locator(".vk-marquee-list:not(.vk-marquee-copy)");
+    const viewport = row.locator(".vk-marquee-viewport");
+    await expect(list).toHaveCSS("flex-wrap", "nowrap");
+    const lineHeight = await list.evaluate((element) => element.getBoundingClientRect().height);
+    expect(lineHeight).toBeLessThan(56);
+    const sizes = await viewport.evaluate((element) => ({
+      client: element.clientWidth,
+      scroll: element.scrollWidth,
+    }));
+    expect(sizes.scroll).toBeGreaterThan(sizes.client);
+    await viewport.focus();
+    await viewport.press("ArrowRight");
+    await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+    const lastVisible = await viewport.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth;
+      const items = element.querySelectorAll(".vk-marquee-list:not(.vk-marquee-copy) > li");
+      const last = items[items.length - 1]?.getBoundingClientRect();
+      const box = element.getBoundingClientRect();
+      return last !== undefined && last.left >= box.left && last.right <= box.right + 1;
+    });
+    expect(lastVisible, `${id} last item reachable`).toBe(true);
+  }
+  expect(await playStates(page)).toEqual([]);
+  await expectNoHorizontalScroll(page);
+}
+
+test.describe("marquee under reduced motion on a phone", () => {
+  test.use({ viewport: PHONE });
+
+  test("stays under half a screen as one scrolling line per row with every item reachable", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
+    await expect(page.locator(".vk-marquee-toggle")).toBeHidden();
+    await expectScrollingLines(page);
+    await expectNoAxeViolations(page, MARQUEE);
+  });
+});
+
+test.describe("marquee without JavaScript on a phone", () => {
+  test.use({ javaScriptEnabled: false, reducedMotion: "no-preference", viewport: PHONE });
+
+  test("stays under half a screen as one scrolling line per row with every item reachable", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expectScrollingLines(page);
+  });
+});
+
 test.describe("marquee without JavaScript", () => {
   test.use({ javaScriptEnabled: false, reducedMotion: "no-preference" });
 
@@ -261,10 +318,19 @@ test.describe("marquee motion", () => {
   });
 });
 
-test("the static marquee reflows at 320px without horizontal scroll", async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 800 });
+test("the static marquee reflows at 1024px without horizontal scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 800 });
   await page.goto("/");
   await expectStatic(page);
+  await expectNoHorizontalScroll(page);
+});
+
+test("the static marquee at 320px scrolls inside its rows, not the page", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/");
+  await expect(page.locator(".vk-marquee-toggle")).toBeHidden();
+  await expect(page.locator(FIRST_LIST)).toHaveCSS("flex-wrap", "nowrap");
+  expect(await playStates(page)).toEqual([]);
   await expectNoHorizontalScroll(page);
 });
 

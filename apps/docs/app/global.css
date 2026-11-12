@@ -3451,6 +3451,11 @@ html:has(.vk-home) {
     min-height: 2.5rem;
     padding-inline: 0.5rem 0.75rem;
   }
+
+  .vk-marquee-list {
+    flex: none;
+    flex-wrap: nowrap;
+  }
 }
 
 @supports (animation-timeline: scroll()) {

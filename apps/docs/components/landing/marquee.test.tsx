@@ -476,6 +476,18 @@ describe("the marquee stylesheet", () => {
     expect(list?.declarations.animation).toBeUndefined();
   });
 
+  it("scrolls each row as one line on a phone in the static state, never wrapping it into a tall block", () => {
+    const phone = rules.filter(
+      (rule) => rule.media === "@media (width < 40rem)" && rule.selector.startsWith(".vk-marquee-"),
+    );
+    const list = phone.find((rule) => rule.selector === ".vk-marquee-list");
+    expect(list?.declarations).toEqual({ flex: "none", "flex-wrap": "nowrap" });
+    const base = rules.find((rule) => rule.selector === ".vk-marquee-list" && !rule.media);
+    expect(base?.declarations["flex-wrap"]).toBe("wrap");
+    const viewport = rules.find((rule) => rule.selector === ".vk-marquee-viewport" && !rule.media);
+    expect(viewport?.declarations["padding-inline"]).toBe("var(--gutter)");
+  });
+
   it("holds the moving state's box before takeover where motion may start: a reserved toggle and one scrolling line", () => {
     const at = (selector: string) =>
       rules.find((rule) => rule.selector === selector && rule.media === MOTION_ALLOWED)
