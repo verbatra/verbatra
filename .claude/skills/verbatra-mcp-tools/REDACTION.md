@@ -1,5 +1,8 @@
 # Values redacted
 
+Read this when `project.snapshot` reports `valuesRedacted: true`, or when translation content
+must stay out of your context.
+
 An operator who wants translation content kept out of the agent's context
 starts the server with `verbatra mcp --redact-values` (or `verbatra-mcp
 --redact-values`, or `VERBATRA_MCP_REDACT_VALUES` set to `1`, `true`, `yes` or
@@ -18,7 +21,8 @@ starts the server with `verbatra mcp --redact-values` (or `verbatra-mcp
   subjects from `history.list`, and paths are not redacted. A `history.list`
   subject can quote a translation and still reaches you under this mode: it is
   scrubbed for API keys like everywhere else, which is not value redaction. When
-  translation content must stay out of your context, do not call `history.list`.
+  translation content must stay out of your context, do not call `history.list`, and call
+  `history.keyRevisions` only once `project.snapshot` reports `valuesRedacted: true`.
 - `review.approve` and `review.reject` take the marker's 16-character hexadecimal hash as
   `expectedHash` and refuse `expectedValue`. Relay the hash of the value the user
   reviewed; a changed value is still refused with `REVIEW_VALUE_CHANGED`.

@@ -1,5 +1,8 @@
 # The doctor command
 
+Read this to interpret a `verbatra doctor` run: which checks it makes, in what order, and which of
+them can fail.
+
 ## doctor
 
 `verbatra doctor --json` returns `result.ok` and one entry per check in

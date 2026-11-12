@@ -1,5 +1,7 @@
 # Sensitive content
 
+Read this when a run withholds or warns about sensitive content, or before changing `sensitiveData`.
+
 The config's `sensitiveData` block scans what a run would send to the provider
 before any request: by default for API keys, email addresses, IBANs and card
 numbers (`phone`, `ip` and `private-host` are opt-in `detectors`), plus the

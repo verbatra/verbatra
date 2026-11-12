@@ -1,4 +1,6 @@
-# Human output on stderr
+# What a person sees
+
+Read this when you describe a terminal run to a person or decide which output flags to pass.
 
 Everything below is for a person watching a terminal and goes to stderr, except
 the `studio` session URL, which goes to stdout. `--json` output is byte-identical
@@ -28,7 +30,8 @@ What a human-readable run prints:
 - `next:` hints with the command to run after it, such as `verbatra check` after a
   successful translate. A hint repeats the `--cwd` and `--config` the command was
   given, the `--format` of a `csv`, `tsv`, `xliff2` or `xliff12` export or import,
-  and the `--reviewer` of an import, so it can be run as printed.
+  and the `--reviewer` of an import, so it can be run as printed. An `export` with
+  nothing pending prints a `next:` hint naming `--include-unchanged`.
 - A dry run counts keys as `would translate` (`would import` for `import`) and
   `would prune`, never as translated.
 - File paths inside the working directory print relative to it; paths outside it

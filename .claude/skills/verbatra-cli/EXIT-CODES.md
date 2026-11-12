@@ -1,5 +1,7 @@
 # Exit codes and the JSON envelope
 
+Read this when a script or CI job has to branch on what verbatra returned.
+
 - [Exit codes](#exit-codes)
 - [The JSON envelope](#the-json-envelope)
 
@@ -17,7 +19,7 @@ run" with "did the work land".
 | `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt (all three return the same stoppable session), or `translate` or `import` was interrupted with SIGINT. |
 | `143` | `translate` or `import` was stopped with SIGTERM. |
 
-Two things that catch scripts out:
+Three things that catch scripts out:
 
 - A `--json` envelope with `ok: true` does not mean every locale succeeded. It
   means the command ran and produced a summary. A locale that failed inside that
