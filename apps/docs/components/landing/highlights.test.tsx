@@ -9,6 +9,7 @@ import {
   HERO_TERMINAL_LOCALES,
   HERO_TERMINAL_NEW_KEYS,
   HERO_TERMINAL_SYNCED_KEYS,
+  HERO_TRANSLATE_COMMAND,
   HERO_TRANSLATE_OUTPUT,
   HERO_TRANSLATE_TOTAL_LINE,
 } from "@/lib/hero-terminal";
@@ -114,8 +115,21 @@ describe("Highlights", () => {
 
   it("totals the run in the accent colour on its own line", () => {
     const total = tiles()[0]?.querySelector("pre .vk-tile-code-total");
-    expect(total?.textContent).toBe(`\n${HERO_TRANSLATE_OUTPUT.at(-2)}`);
     expect(total?.textContent?.trim()).toBe(HERO_TRANSLATE_TOTAL_LINE);
+  });
+
+  it("keeps the block's text byte for byte what the CLI prints, one element per line", () => {
+    const pre = tiles()[0]?.querySelector("pre");
+    expect(pre?.textContent).toBe(
+      [`$ ${HERO_TRANSLATE_COMMAND}`, ...HERO_TRANSLATE_OUTPUT.slice(1)].join("\n"),
+    );
+    const lines = [...(pre?.querySelectorAll(".vk-tile-line") ?? [])];
+    expect(lines).toHaveLength(HERO_TRANSLATE_OUTPUT.length);
+    for (const line of lines) {
+      const text = line.textContent?.replace(/\n$/, "") ?? "";
+      const leading = text.length - text.trimStart().length;
+      expect(line.getAttribute("style")).toBe(`--vk-hang:${Math.max(2, leading)}ch`);
+    }
   });
 
   it("prints the MCP setup command, wrapped rather than scrolled", () => {
@@ -159,6 +173,13 @@ describe("Highlights stylesheet", () => {
     const glow = rule(".vk-tile-glow");
     expect(glow).toContain("padding-block-end: calc(1.75rem + var(--tile-halo-height));");
     expect(glow).toMatch(/radial-gradient\(\s*75% var\(--tile-halo-height\) at 50% 100%/);
+  });
+
+  it("hangs the continuation rows of each output line under the start of its text", () => {
+    const line = rule(".vk-tile-line");
+    expect(line).toContain("display: block;");
+    expect(line).toContain("padding-inline-start: var(--vk-hang);");
+    expect(line).toContain("text-indent: calc(-1 * var(--vk-hang));");
   });
 
   it("wraps the MCP command instead of scrolling it", () => {

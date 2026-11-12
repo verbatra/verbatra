@@ -4329,6 +4329,12 @@ html:has(.vk-home) {
   padding: 1.125rem;
 }
 
+.vk-tile-line {
+  display: block;
+  padding-inline-start: var(--vk-hang);
+  text-indent: calc(-1 * var(--vk-hang));
+}
+
 .vk-tile-code-strong {
   color: var(--text-strong);
 }

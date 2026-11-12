@@ -40,6 +40,36 @@ for (const width of [320, 375, 391, 768, 1024]) {
   });
 }
 
+for (const width of [320, 391]) {
+  test.describe(`translate tile continuation rows at ${width}px`, () => {
+    test.use({ viewport: { width, height: 844 } });
+
+    test("never start left of the text of their own line", async ({ page }) => {
+      await page.goto("/");
+      const scroller = page.locator(TILE_SCROLLER);
+      await scroller.scrollIntoViewIfNeeded();
+      const rows = await scroller.evaluate((element) =>
+        Array.from(element.querySelectorAll(".vk-tile-line"), (line) => {
+          const node = line.firstChild as Text;
+          const start = (node.data.search(/\S/) ?? 0) as number;
+          const range = document.createRange();
+          range.setStart(node, start);
+          range.setEnd(node, start + 1);
+          const textStart = range.getBoundingClientRect().left;
+          range.selectNodeContents(node);
+          const rects = Array.from(range.getClientRects());
+          const firstTop = rects[0]?.top ?? 0;
+          const later = rects.filter((rect) => rect.top > firstTop + 2);
+          return { text: node.data.trim(), textStart, wrapped: later.map((rect) => rect.left) };
+        }),
+      );
+      expect(rows.some(({ wrapped }) => wrapped.length > 0)).toBe(true);
+      for (const { text, textStart, wrapped } of rows)
+        for (const left of wrapped) expect(left, text).toBeGreaterThanOrEqual(textStart - 0.5);
+    });
+  });
+}
+
 test.describe("translate tile at 1440px", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
