@@ -183,7 +183,24 @@ function keyCountText(rows: KeyTableRows, narrowed: boolean, incomplete: boolean
   if (narrowed) {
     return `${rows.totalMatches} matching ${rows.totalMatches === 1 ? "key" : "keys"}${soFar}`;
   }
+  const reason = waitingReason(rows.counts);
+  if (reason !== null && rows.totalMatches > 0) {
+    return `${rows.totalMatches} ${rows.totalMatches === 1 ? "key" : "keys"} ${reason}${soFar}`;
+  }
   return `${rows.totalMatches} ${rows.totalMatches === 1 ? "key needs" : "keys need"} attention${soFar}`;
+}
+
+function waitingReason(counts: KeyTableRows["counts"]): string | null {
+  if (counts.missing + counts.changed + counts.orphaned + counts.protected > 0) {
+    return null;
+  }
+  if (counts.review > 0 && counts.integrity > 0) {
+    return "in the review queue or with integrity problems";
+  }
+  if (counts.review > 0) {
+    return "in the review queue";
+  }
+  return counts.integrity > 0 ? "with integrity problems" : null;
 }
 
 function KeysFrame({

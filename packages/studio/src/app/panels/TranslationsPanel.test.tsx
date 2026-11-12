@@ -400,7 +400,8 @@ describe("TranslationsPanel all-clear state", () => {
     expect(banner).toContain("Locale files are in sync");
     expect(banner).toContain("Still waiting: 1 translation awaiting review");
     expect(banner).not.toContain("Everything is in sync");
-    expect(view.text()).toContain("1 key needs attention");
+    expect(view.get("[data-key-count]").textContent).toBe("1 key in the review queue");
+    expect(view.text()).not.toContain("needs attention");
   });
 
   it("lists a protected key of an otherwise clean project", async () => {
@@ -413,6 +414,48 @@ describe("TranslationsPanel all-clear state", () => {
 
     expect(rowKeys(view)).toEqual(["app.terms"]);
     expect(cellText(view, "app.terms", "de")).toBe("Protected");
+  });
+
+  it("names integrity problems in the key count when they are all that is left", async () => {
+    stubSyncedPage({
+      "locale.integrity": {
+        ok: true,
+        result: { locales: [{ locale: "de", entries: [integrityEntry("app.body", false)] }] },
+      },
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.get("[data-key-count]").textContent).toBe("1 key with integrity problems");
+  });
+
+  it("names both the review queue and integrity problems in the key count", async () => {
+    stubSyncedPage({
+      "review.queue": {
+        ok: true,
+        result: {
+          available: true,
+          locales: [
+            {
+              locale: "de",
+              needsReview: [{ key: "app.title", reasons: ["EQUALS_SOURCE"], provenance: MACHINE }],
+            },
+          ],
+        },
+      },
+      "locale.integrity": {
+        ok: true,
+        result: { locales: [{ locale: "de", entries: [integrityEntry("app.body", false)] }] },
+      },
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.get("[data-key-count]").textContent).toBe(
+      "2 keys in the review queue or with integrity problems",
+    );
   });
 
   it("says nothing needs attention when nothing is pending and every translation passes", async () => {
