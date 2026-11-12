@@ -40,7 +40,7 @@ También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--co
 
 ### Configuración
 
-`extract` se rige por el [bloque `extract`](/es/docs/config-file#extract) de tu configuración. Una ejecución sin él falla con `EXTRACT_NOT_CONFIGURED` y sale con `2`.
+`extract` se rige por el [bloque `extract`](/es/docs/config-file#extract) de tu configuración. Una ejecución sin él falla con `EXTRACT_NOT_CONFIGURED` y sale con `2`. Para `i18next-json`, `verbatra init` escribe el bloque como comentario en la configuración generada; quítale el comentario y ajusta `roots`.
 
 ```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/cli";

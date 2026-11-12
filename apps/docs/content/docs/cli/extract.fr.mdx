@@ -40,7 +40,7 @@ Accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--
 
 ### Configuration
 
-`extract` est piloté par le [bloc `extract`](/fr/docs/config-file#extract) de ta configuration. Une exécution sans lui échoue avec `EXTRACT_NOT_CONFIGURED` et la sortie `2`.
+`extract` est piloté par le [bloc `extract`](/fr/docs/config-file#extract) de ta configuration. Une exécution sans lui échoue avec `EXTRACT_NOT_CONFIGURED` et la sortie `2`. Pour `i18next-json`, `verbatra init` écrit le bloc en commentaire dans la configuration générée ; décommente-le et ajuste `roots`.
 
 ```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/cli";
