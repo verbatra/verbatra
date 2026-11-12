@@ -677,6 +677,36 @@ describe("createGeminiProvider: invalid API key", () => {
     expect(generateContent).toHaveBeenCalledTimes(1);
   });
 
+  it("finds the invalid key reason after details that carry no reason", async () => {
+    const generateContent = vi.fn(async () => {
+      throw new GoogleApiError(400, {
+        error: {
+          code: 400,
+          status: "INVALID_ARGUMENT",
+          details: [null, "text", {}, ...invalidKeyBody.error.details],
+        },
+      });
+    });
+    const provider = createGeminiProvider(config, { client: { models: { generateContent } } });
+
+    await expect(provider.translateBatch(request())).rejects.toMatchObject({
+      code: "AUTH_FAILED",
+    });
+  });
+
+  it("leaves a HTTP 400 whose details carry no reason as PROVIDER_ERROR", async () => {
+    const generateContent = vi.fn(async () => {
+      throw new GoogleApiError(400, {
+        error: { code: 400, status: "INVALID_ARGUMENT", details: [null, "text", {}] },
+      });
+    });
+    const provider = createGeminiProvider(config, { client: { models: { generateContent } } });
+
+    await expect(provider.translateBatch(request())).rejects.toMatchObject({
+      code: "PROVIDER_ERROR",
+    });
+  });
+
   it("leaves every other HTTP 400 as PROVIDER_ERROR", async () => {
     const generateContent = vi.fn(async () => {
       throw new GoogleApiError(400, {

@@ -92,6 +92,10 @@ describe("statedRetryDelayMs: an HTTP-date Retry-After", () => {
     expect(stated).toBeLessThanOrEqual(90_000);
   });
 
+  it("states nothing for a Retry-After that is neither a number nor a date", () => {
+    expect(statedRetryDelayMs({ headers: { "retry-after": "soon" } })).toBeUndefined();
+  });
+
   it("states nothing for a date that has passed", () => {
     const at = new Date(Date.now() - 60_000).toUTCString();
     expect(statedRetryDelayMs({ headers: { "Retry-After": at } })).toBeUndefined();

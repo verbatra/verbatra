@@ -257,6 +257,16 @@ describe("export and import: task lines and hand-off hints", () => {
     expect(err).not.toContain("next: verbatra import");
   });
 
+  it("export carries --locales into the --include-unchanged suggestion", async () => {
+    const { err } = await stderrOf(["export", "--locales", "de,fr"], {
+      exportWorkbook: async () => makeExportResult({ locales: [{ locale: "de", rows: 0 }] }),
+    });
+
+    expect(err).toContain(
+      "next: verbatra export --include-unchanged --locales de,fr (nothing is pending, so the file has no rows: this also exports the up-to-date strings)\n",
+    );
+  });
+
   it("export adds no hint when --include-unchanged was already passed and still found nothing", async () => {
     const { err } = await stderrOf(["export", "--include-unchanged"], {
       exportWorkbook: async () => makeExportResult({ locales: [{ locale: "de", rows: 0 }] }),

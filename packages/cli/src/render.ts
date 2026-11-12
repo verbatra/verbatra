@@ -1308,11 +1308,12 @@ export function renderTmxExportHuman(result: ExportTmxResult, base?: string): st
           )}`,
         ]
       : [];
+  const otherConfigurationCount = result.otherConfiguration ?? 0;
   const otherConfiguration =
-    (result.otherConfiguration ?? 0) > 0
+    otherConfigurationCount > 0
       ? [
           `  ${plural(
-            result.otherConfiguration ?? 0,
+            otherConfigurationCount,
             "entry left out: it is stored under an earlier provider, model, tone or glossary configuration",
             "entries left out: they are stored under an earlier provider, model, tone or glossary configuration",
           )}`,

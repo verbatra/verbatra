@@ -538,6 +538,23 @@ describe("updateGlossaryTerm: case folding follows the source locale", () => {
     expect(await onDisk(seeded.path)).not.toHaveProperty("doNotTranslate");
   });
 
+  it("collapses every spelling of a case-folded do-not-translate entry into the edited one", async () => {
+    const seeded = await seed({
+      version: 2,
+      terms: [],
+      doNotTranslate: ["Acme", { term: "ACME", caseSensitive: false }, "keep"],
+    });
+    await edit(seeded, {
+      term: "Acme",
+      doNotTranslate: true,
+      caseSensitive: false,
+      sourceLocale: "en",
+    });
+    expect(await onDisk(seeded.path)).toMatchObject({
+      doNotTranslate: [{ term: "Acme", caseSensitive: false }, "keep"],
+    });
+  });
+
   it("keeps a case-matching do-not-translate entry apart from another spelling", async () => {
     const seeded = await seed({ version: 2, terms: [], doNotTranslate: ["Acme"] });
     await edit(seeded, { term: "acme", doNotTranslate: true, sourceLocale: "en" });

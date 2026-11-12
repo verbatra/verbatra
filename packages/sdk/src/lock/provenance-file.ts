@@ -153,7 +153,7 @@ function recordFault(value: unknown): string {
   const field = OPTIONAL_STRING_FIELDS.find(
     (name) => value[name] !== undefined && typeof value[name] !== "string",
   );
-  return field === undefined ? "has an unexpected shape" : `has a ${field} that is not a string`;
+  return `has a ${field} that is not a string`;
 }
 
 function nullPrototypeCopy<T>(

@@ -422,6 +422,20 @@ describe("OverviewPanel", () => {
     expect(clean.text()).not.toContain("did not finish cleanly");
   });
 
+  it("names only the partly translated locales when none failed", async () => {
+    stubActivity({
+      available: true,
+      generatedAt: GENERATED_AT,
+      incomplete: { failed: 0, partial: 3 },
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+
+    expect(view.text()).toContain(
+      "The last run did not finish cleanly: 3 locales only partly translated.",
+    );
+  });
+
   it("renders a tracked budget as a meter plus a within-budget badge", async () => {
     stubActivity(TRACKED_RUN);
 
