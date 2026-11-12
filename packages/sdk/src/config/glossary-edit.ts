@@ -309,10 +309,12 @@ function editDoNotTranslate(
   if (edit.doNotTranslate !== true) {
     return entries.filter((entry) => !matches(entry));
   }
-  const entry: GlossaryDoNotTranslateDefinition =
-    edit.caseSensitive === false ? { term: edit.term, caseSensitive: false } : edit.term;
   const index = entries.findIndex(matches);
-  if (index < 0) {
+  const stored = entries[index];
+  const term = stored === undefined ? edit.term : doNotTranslateTermOf(stored);
+  const entry: GlossaryDoNotTranslateDefinition =
+    edit.caseSensitive === false ? { term, caseSensitive: false } : term;
+  if (stored === undefined) {
     return [...entries, entry];
   }
   return entries.flatMap((existing, at) => {

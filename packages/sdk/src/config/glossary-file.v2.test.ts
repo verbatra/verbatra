@@ -511,7 +511,7 @@ describe("updateGlossaryTerm: case folding follows the source locale", () => {
     expect(await onDisk(seeded.path)).toEqual({ other: "Anderes" });
   });
 
-  it("replaces a do-not-translate entry that does not match case instead of adding a case duplicate", async () => {
+  it("keeps the stored spelling of a do-not-translate entry that does not match case instead of adding a case duplicate", async () => {
     const seeded = await seed({
       version: 2,
       terms: [],
@@ -524,7 +524,7 @@ describe("updateGlossaryTerm: case folding follows the source locale", () => {
       sourceLocale: "en",
     });
     expect(await onDisk(seeded.path)).toMatchObject({
-      doNotTranslate: [{ term: "acme", caseSensitive: false }],
+      doNotTranslate: [{ term: "Acme", caseSensitive: false }],
     });
   });
 
@@ -538,7 +538,7 @@ describe("updateGlossaryTerm: case folding follows the source locale", () => {
     expect(await onDisk(seeded.path)).not.toHaveProperty("doNotTranslate");
   });
 
-  it("collapses every spelling of a case-folded do-not-translate entry into the edited one", async () => {
+  it("collapses every spelling of a case-folded do-not-translate entry into the first stored one", async () => {
     const seeded = await seed({
       version: 2,
       terms: [],
@@ -546,6 +546,23 @@ describe("updateGlossaryTerm: case folding follows the source locale", () => {
     });
     await edit(seeded, {
       term: "Acme",
+      doNotTranslate: true,
+      caseSensitive: false,
+      sourceLocale: "en",
+    });
+    expect(await onDisk(seeded.path)).toMatchObject({
+      doNotTranslate: [{ term: "Acme", caseSensitive: false }, "keep"],
+    });
+  });
+
+  it("keeps the stored spelling when a case-folded do-not-translate entry is written in upper case", async () => {
+    const seeded = await seed({
+      version: 2,
+      terms: [],
+      doNotTranslate: [{ term: "Acme", caseSensitive: false }, "keep"],
+    });
+    await edit(seeded, {
+      term: "ACME",
       doNotTranslate: true,
       caseSensitive: false,
       sourceLocale: "en",
