@@ -6,7 +6,11 @@ dist/
 *.tsbuildinfo
 
 # Local-only architecture decision records
-/docs/
+/docs/*
+!/docs/agents/
+
+# Local-only specs and tickets
+.scratch/
 
 # verbatra team workspace (audit trail, specs, ADRs, and agent memory; local only)
 .verbatra

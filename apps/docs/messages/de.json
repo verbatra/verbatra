@@ -104,7 +104,7 @@
           "answer": "{providers}{pending, select, yes {, plus {upcoming} from {next}} other {}}. Setze einen im <code>provider</code>-Block, oder <code>none</code>, wenn nur Menschen übersetzen; die <link>Anbieterseite</link> deckt jeden ab."
         },
         "privacy": {
-          "question": "Sendet Verbatra meine Zeichenketten oder API-Schlüssel irgendwohin?",
+          "question": "Sendet Verbatra meine Strings oder API-Schlüssel irgendwohin?",
           "answer": "Nur an den von dir konfigurierten Anbieter, wenn ein Befehl übersetzt; es gibt keine Telemetrie. Schlüssel bleiben in Umgebungsvariablen, und <link>Datenverarbeitung</link> listet auf, was jeder Anbieter erhält."
         },
         "ci": {
@@ -187,7 +187,7 @@
       }
     },
     "banner": {
-      "headline": "Übersetze nur <accent>was sich geändert hat</accent>",
+      "headline": "Übersetze nur, <accent>was sich geändert hat</accent>",
       "lead": "Verbatra füllt die fehlenden Schlüssel in deinen Sprachdateien, gibt deinem Code-Agenten einen MCP-Server und lässt die CI fehlschlagen, wenn Übersetzungen abweichen.",
       "ctaPrimary": "Loslegen",
       "keysAdded": "+{count, plural, one {# Schlüssel} other {# Schlüssel}}"
@@ -473,7 +473,7 @@
       "sourceRef": "Quelle {number}, {tool}",
       "noteRef": "Anmerkung M, manueller Workflow",
       "sources": "Quellen",
-      "manualNote": "Der manuelle Workflow ist kein Produkt und hat daher keine Quelle: Die Spalte beschreibt das manuelle Kopieren von Zeichenketten in einen Übersetzungsdienst und zurück.",
+      "manualNote": "Der manuelle Workflow ist kein Produkt und hat daher keine Quelle: Die Spalte beschreibt das manuelle Kopieren von Strings in einen Übersetzungsdienst und zurück.",
       "lastChecked": "Zuletzt geprüft",
       "fairness": "Verbatra ist eine CLI und ein SDK; die anderen Spalten sind Übersetzungsplattformen und ein manueller Workflow, verglichen als Möglichkeiten, Übersetzungsdateien auf dem neuesten Stand zu halten. Jede Zelle gibt an, was auf den eigenen Seiten des Anbieters an diesem Datum stand, und „keine offizielle ... gefunden“ bedeutet, dass unsere Suche keine gefunden hat, nicht dass das Produkt es nicht besitzt.",
       "scrollHint": "Scrolle die Tabelle seitwärts, um alle Spalten zu sehen."
