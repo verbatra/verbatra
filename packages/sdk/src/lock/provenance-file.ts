@@ -233,7 +233,21 @@ function serializeRecord(record: ProvenanceRecord): string {
   return `{${fields.map(([field, value]) => `${JSON.stringify(field)}:${JSON.stringify(value)}`).join(",")}}`;
 }
 
+function assertWritableRecords(file: ProvenanceFile): void {
+  for (const [locale, entries] of Object.entries(file.locales)) {
+    for (const [key, record] of Object.entries(entries)) {
+      if (!isRecord(record)) {
+        throw new SdkError(
+          "PROVENANCE_FILE_INVALID",
+          `The provenance record for "${key}" in locale "${locale}" has no valid origin and was not written.`,
+        );
+      }
+    }
+  }
+}
+
 export function serializeProvenanceFile(file: ProvenanceFile): string {
+  assertWritableRecords(file);
   const locales = sortedEntries(file.locales).filter(
     ([, entries]) => Object.keys(entries).length > 0,
   );

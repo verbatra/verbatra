@@ -125,6 +125,17 @@ describe("readProvenanceFile", () => {
   });
 });
 
+describe("serializeProvenanceFile: records its own reader would reject", () => {
+  it("throws PROVENANCE_FILE_INVALID for a record with no origin", () => {
+    const record = { valueHash: "h" } as unknown as ProvenanceRecord;
+    const file = { version: 1, locales: { de: { a: record } } };
+
+    expect(() => serializeProvenanceFile(file)).toThrowError(
+      expect.objectContaining({ code: "PROVENANCE_FILE_INVALID" }),
+    );
+  });
+});
+
 describe("serializeProvenanceFile", () => {
   it("writes locales and keys sorted, one record per line, fields in a fixed order", () => {
     const file = fileWith({

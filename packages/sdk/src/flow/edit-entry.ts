@@ -53,6 +53,12 @@ export interface EditEntryInput {
 /** Who wrote a value passed to {@link editEntry}. */
 export type EditEntryActor = "human" | "agent";
 
+export function assertEditActor(actor: unknown): void {
+  if (actor !== "human" && actor !== "agent") {
+    throw new TypeError('The actor must be "human" or "agent".');
+  }
+}
+
 /** Injectable dependencies for {@link editEntry}. Every field has a working default. */
 export interface EditEntryDeps {
   /** Format-adapter registry to resolve the configured format. Defaults to the built-in registry. */
@@ -162,6 +168,9 @@ export async function editEntry(
   deps: EditEntryDeps = {},
 ): Promise<EditEntryResult> {
   const config = input.config;
+  if (input.actor !== undefined) {
+    assertEditActor(input.actor);
+  }
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
