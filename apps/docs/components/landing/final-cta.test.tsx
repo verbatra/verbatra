@@ -6,7 +6,7 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { DRY_RUN_COMMAND } from "@/lib/install-commands";
+import { DRY_RUN_COMMAND, INIT_COMMAND } from "@/lib/install-commands";
 import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
@@ -57,9 +57,16 @@ describe("FinalCta", () => {
     expect(lead.match(/[.!?](\s|$)/g)).toHaveLength(1);
   });
 
-  it("offers the dry-run command as its one action, with no button or link", () => {
-    expect(root.querySelector("code")?.textContent).toBe(DRY_RUN_COMMAND);
-    expect(root.querySelectorAll("code")).toHaveLength(1);
+  it("says the path is for a project that already has locale files and needs no API key", () => {
+    expect(copy.lead).toMatch(/already has locale files/);
+    expect(copy.lead).toMatch(/API key/);
+    expect(copy.lead.split(/\s+/).length).toBeLessThanOrEqual(30);
+  });
+
+  it("offers init, then the dry run, as its only actions, with no button or link", () => {
+    const commands = [...root.querySelectorAll("code")].map((code) => code.textContent);
+    expect(commands).toEqual([INIT_COMMAND, DRY_RUN_COMMAND]);
+    expect(root.querySelectorAll(".vk-final-install")).toHaveLength(1);
     expect(root.querySelector("a")).toBeNull();
     expect(root.querySelector(".vk-closer-actions")).toBeNull();
   });

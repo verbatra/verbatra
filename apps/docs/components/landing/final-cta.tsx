@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { DRY_RUN_COMMAND } from "@/lib/install-commands";
+import { DRY_RUN_COMMAND, INIT_COMMAND } from "@/lib/install-commands";
 import { CommandRow } from "./islands";
 
 const CLOSING_HEADING_ID = "closing-heading";
@@ -21,7 +21,13 @@ export async function FinalCta(): Promise<ReactNode> {
         </h2>
         <p className="vk-lead max-w-[46ch]">{t("lead")}</p>
         <div className="vk-final-install @container">
-          <CommandRow command={DRY_RUN_COMMAND} label={tInstall("copyAria")} wrap="narrow" />
+          <CommandRow command={INIT_COMMAND} label={tInstall("copyAria")} wrap="narrow" />
+          <CommandRow
+            command={DRY_RUN_COMMAND}
+            label={tInstall("copyAria")}
+            wrap="narrow"
+            divided
+          />
         </div>
       </div>
     </section>

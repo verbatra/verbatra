@@ -125,6 +125,13 @@ describe("landing message parity", () => {
     }
   });
 
+  it("has the closing lead say the path needs no API key and starts from existing locale files", () => {
+    const lead = landingText("en", "closing.lead");
+    expect(lead).toMatch(/already has locale files/);
+    expect(lead).toMatch(/API key/);
+    expect(lead).not.toMatch(/After init/);
+  });
+
   it("keeps the home title between 50 and 60 characters in every locale", () => {
     for (const locale of i18n.languages) {
       const length = landingText(locale, "meta.title").length;

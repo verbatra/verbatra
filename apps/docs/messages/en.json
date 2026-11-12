@@ -188,7 +188,7 @@
     },
     "banner": {
       "headline": "Translate only <accent>what changed</accent>",
-      "lead": "Verbatra fills the missing keys in your locale files, gives your coding agent an MCP server, and fails CI when translations drift.",
+      "lead": "Verbatra hashes every key in a lock file, sends only changed keys to your provider, and fails CI on drift.",
       "ctaPrimary": "Get started",
       "keysAdded": "+{count, plural, one {# key} other {# keys}}"
     },
@@ -487,7 +487,7 @@
     },
     "closing": {
       "heading": "Start with a dry run",
-      "lead": "After init, a dry run needs no API key, writes nothing and lists exactly which keys a real run would send.",
+      "lead": "This path is for a project that already has locale files, and neither step needs an API key.",
       "label": "Before you spend a token"
     },
     "fab": {

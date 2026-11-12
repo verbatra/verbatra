@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { HERO_CHECK_COMMAND, HERO_CHECK_EXIT_CODE, HERO_TRANSLATE_COMMAND } from "./hero-terminal";
-import { DRY_RUN_COMMAND } from "./install-commands";
+import { DRY_RUN_COMMAND, INIT_COMMAND } from "./install-commands";
 
 const DOCS = process.cwd();
 const REPO = join(DOCS, "../..");
@@ -33,7 +33,7 @@ describe("the CLI lines run only what the published @verbatra/cli registers", ()
   it("uses only commands and flags of the recorded release, each value flag with its value", () => {
     expect(PUBLISHED_CLI.version).toBe("0.11.1");
     const run = read(join(REPO, "packages/cli/src/run.ts"));
-    const lines = [HERO_CHECK_COMMAND, HERO_TRANSLATE_COMMAND, DRY_RUN_COMMAND];
+    const lines = [HERO_CHECK_COMMAND, HERO_TRANSLATE_COMMAND, INIT_COMMAND, DRY_RUN_COMMAND];
     for (const line of lines) {
       const [runner, pkg, command = "", ...args] = cliWords(line);
       expect(`${runner} ${pkg}`).toBe("npx @verbatra/cli");

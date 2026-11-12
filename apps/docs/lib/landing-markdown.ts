@@ -12,7 +12,12 @@ import {
   HERO_TRANSLATE_OUTPUT,
 } from "./hero-terminal";
 import { type Locale, localizedPath } from "./i18n";
-import { DRY_RUN_COMMAND, HERO_INSTALL_COMMAND, MCP_ADD_COMMAND } from "./install-commands";
+import {
+  DRY_RUN_COMMAND,
+  HERO_INSTALL_COMMAND,
+  INIT_COMMAND,
+  MCP_ADD_COMMAND,
+} from "./install-commands";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
 import { LANDING_FEATURES } from "./landing-features";
@@ -212,7 +217,7 @@ async function finalCta({ locale }: Context): Promise<string> {
     `## ${t("heading")}`,
     t("label"),
     t("lead"),
-    fencedMarkdown("sh", null, DRY_RUN_COMMAND),
+    fencedMarkdown("sh", null, `${INIT_COMMAND}\n${DRY_RUN_COMMAND}`),
   );
 }
 

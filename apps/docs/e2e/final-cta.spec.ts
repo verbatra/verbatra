@@ -47,11 +47,12 @@ test.describe("final call to action layout", () => {
     });
   }
 
-  test("offers one command and no button or link", async ({ page }) => {
+  test("offers init then the dry run and no button or link", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator(`${CLOSER} .vk-final-install code`)).toHaveText(
+    await expect(page.locator(`${CLOSER} .vk-final-install code`)).toHaveText([
+      "npx @verbatra/cli init",
       "npx @verbatra/cli translate --dry-run",
-    );
+    ]);
     await expect(page.locator(`${CLOSER} a`)).toHaveCount(0);
   });
 

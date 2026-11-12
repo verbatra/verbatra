@@ -354,7 +354,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, statement, highlights,
   playground, features, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
-  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead, the Get started button beside the install chip, a
+  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button beside the install chip, a
   `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`; on the right an `aria-hidden`
   `.vk-banner-files` stack of three locale-file cards from `lib/landing-hero-files.ts`: `fr` and
   `es` behind, tilted, each its `heroFileName` and the `heroFilePreview` line, and `de` in front
@@ -473,8 +473,10 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   height (axe cannot measure text over a gradient, so no text ever sits over the halo at any
   width, and the lead takes `--text-body`), its first child an `aria-hidden` `.vk-closer-grid`
   (the hero's faded grid); it centers a bracketed `landing.closing.label`, one `h2`
-  (`.vk-closer-title`, 36px to 72px), one lead sentence and one `CommandRow` of `DRY_RUN_COMMAND`
-  in `.vk-final-install` (36rem, its command start-aligned), with no button or link).
+  (`.vk-closer-title`, 36px to 72px), one lead sentence (a project that already has locale files, neither step needs an API key) and two
+  `CommandRow`s in one `.vk-final-install` (36rem, commands start-aligned, the second `divided`):
+  `INIT_COMMAND` (bare `npx @verbatra/cli init`), then `DRY_RUN_COMMAND`, in the quickstart's
+  order after the hero's `npm i -D`, with no button or link).
   `.vk-eyebrow` is the one section label style: mono, uppercase, `--text-muted`, wrapped in braces
   drawn as CSS content with empty alt text, so a screen reader reads the label alone (the closing
   brace follows a no-break space, so it never starts a line); it is never
@@ -627,8 +629,8 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   social image and the statement and highlights counts draw from;
   `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer;
   `MCP_ADD_COMMAND` in `lib/install-commands.ts` is the `claude mcp add` line the highlights'
-  MCP tile and the markdown twin print, copied from the MCP client guide, and `DRY_RUN_COMMAND`
-  (same file) the one command of the closing panel;
+  MCP tile and the markdown twin print, copied from the MCP client guide, and `INIT_COMMAND` and
+  `DRY_RUN_COMMAND` (same file) the two commands of the closing panel;
   `lib/landing-hero-files.ts` builds the hero's locale-file cards from the playground data: its
   `HERO_FILE_IDS` list says which lines the front card shows and which are marked added (the badge
   counts those), and the preview line is `PLAYGROUND_DEFAULT_ITEM`,
@@ -1124,7 +1126,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   64rem, all sized in rem so a tall narrow column never stretches them into a strip behind the
   text): `.vk-banner-grid` is one column (copy, then cards), and from
   64rem an asymmetric 6fr / 5fr split, vertically centered, the copy (`.vk-banner-copy`: the `h1` `.vk-banner-title` (at most eight words, one sentence),
-  the `.vk-banner-lead` subline (at most 25 words), `.vk-banner-ctas` with Get started
+  the `.vk-banner-lead` subline (at most 25 words in English, 30 in de, es and fr, tested in all four), `.vk-banner-ctas` with Get started
   (`/docs/quickstart`) beside the `.vk-banner-install` chip, a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
   of `HERO_INSTALL_COMMAND`) in the wider column beside the demo (`.vk-banner-demo`: the
   `.vk-banner-files` stack, three `.vk-banner-file` cards of `--radius-lg` on `--surface-tile`; the

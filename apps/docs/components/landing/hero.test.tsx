@@ -87,6 +87,21 @@ describe("Hero copy", () => {
     expect(headlinePlain.split(/[.!?]\s/)).toHaveLength(1);
   });
 
+  it.each([
+    ["en", 25],
+    ["de", 30],
+    ["es", 30],
+    ["fr", 30],
+  ])("keeps the %s lead to %i words", (locale, cap) => {
+    expect(words(catalogFor(locale).landing.banner.lead)).toBeLessThanOrEqual(cap);
+  });
+
+  it("names the lock file, the changed keys and CI drift in the English lead, and no MCP server", () => {
+    expect(banner.lead).toBe(
+      "Verbatra hashes every key in a lock file, sends only changed keys to your provider, and fails CI on drift.",
+    );
+  });
+
   it("sets the gradient on the second line of the headline only, the first staying solid", async () => {
     const h1 = (await render()).querySelector("h1");
     const lit = h1?.querySelectorAll(".vk-banner-title-lit");
