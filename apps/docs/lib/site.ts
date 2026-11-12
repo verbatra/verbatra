@@ -14,6 +14,8 @@ export const MCP_VERSION = versionData.mcpVersion;
 
 export const NODE_RANGE = versionData.nodeRange;
 
+export const COVERAGE_THRESHOLD = versionData.coverageThreshold;
+
 export const LEGAL_LAST_UPDATED = "2026-10-16";
 
 export const LANDING_LAST_UPDATED = "2026-11-13";

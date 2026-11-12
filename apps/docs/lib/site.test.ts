@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { createVitestConfig } from "../../../packages/config/vitest.base.mjs";
 import {
+  COVERAGE_THRESHOLD,
   homeAlternates,
   homePath,
   localeAlternates,
@@ -53,6 +55,20 @@ describe("STUDIO_VERSION", () => {
 
   it("tracks the studio package, which versions independently of the cli", () => {
     expect(STUDIO_VERSION).toBe(packageVersion("studio"));
+  });
+});
+
+describe("COVERAGE_THRESHOLD", () => {
+  it("is the lowest coverage threshold the shared vitest config enforces, read at build time", () => {
+    const thresholds = createVitestConfig().test?.coverage?.thresholds ?? {};
+    const enforced = [
+      thresholds.lines,
+      thresholds.functions,
+      thresholds.statements,
+      thresholds.branches,
+    ];
+    expect(enforced.every((value) => typeof value === "number")).toBe(true);
+    expect(COVERAGE_THRESHOLD).toBe(Math.min(...(enforced as number[])));
   });
 });
 
