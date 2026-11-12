@@ -71,7 +71,7 @@ describe("statedRetryDelayMs", () => {
     expect(statedRetryDelayMs({ status: 429, headers: { "retry-after": "12" } })).toBe(12_000);
   });
 
-  it("states nothing for a date, junk, zero or a non-JSON message", () => {
+  it("states nothing for a past date, junk, zero or a non-JSON message", () => {
     expect(
       statedRetryDelayMs({
         headers: new Headers({ "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" }),
@@ -84,10 +84,25 @@ describe("statedRetryDelayMs", () => {
   });
 });
 
+describe("statedRetryDelayMs: an HTTP-date Retry-After", () => {
+  it("states the time remaining until a future date", () => {
+    const at = new Date(Date.now() + 90_000).toUTCString();
+    const stated = statedRetryDelayMs({ headers: new Headers({ "retry-after": at }) });
+    expect(stated).toBeGreaterThan(80_000);
+    expect(stated).toBeLessThanOrEqual(90_000);
+  });
+
+  it("states nothing for a date that has passed", () => {
+    const at = new Date(Date.now() - 60_000).toUTCString();
+    expect(statedRetryDelayMs({ headers: { "Retry-After": at } })).toBeUndefined();
+  });
+});
+
 describe("formatWait", () => {
   it.each([
     [900, "1 s"],
     [26_500, "27 s"],
+    [89_000, "2 min"],
     [90_000, "2 min"],
     [8_929_000, "2 h 29 min"],
     [7_200_000, "2 h"],

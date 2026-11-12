@@ -87,10 +87,20 @@ function numericHeaderMs(value: string | undefined, factor: number): number | un
     : toPositiveMs(Number(value) * factor);
 }
 
+function httpDateHeaderMs(value: string | undefined): number | undefined {
+  if (value === undefined || DECIMAL.test(value.trim())) {
+    return undefined;
+  }
+  const at = Date.parse(value);
+  return Number.isFinite(at) ? toPositiveMs(at - Date.now()) : undefined;
+}
+
 function retryAfterHeaderMs(error: unknown): number | undefined {
+  const retryAfter = headerOf(error, "retry-after");
   return (
     numericHeaderMs(headerOf(error, "retry-after-ms"), 1) ??
-    numericHeaderMs(headerOf(error, "retry-after"), MS_PER_SECOND)
+    numericHeaderMs(retryAfter, MS_PER_SECOND) ??
+    httpDateHeaderMs(retryAfter)
   );
 }
 
@@ -103,7 +113,7 @@ export function formatWait(milliseconds: number): string {
   if (seconds < SECONDS_PER_MINUTE) {
     return `${seconds} s`;
   }
-  const totalMinutes = Math.round(seconds / SECONDS_PER_MINUTE);
+  const totalMinutes = Math.ceil(seconds / SECONDS_PER_MINUTE);
   if (totalMinutes < MINUTES_PER_HOUR) {
     return `${totalMinutes} min`;
   }
