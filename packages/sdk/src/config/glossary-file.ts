@@ -164,15 +164,24 @@ function glossaryFilePath(glossary: GlossaryProvenance): string {
   return glossary.path;
 }
 
-function editedContent(content: GlossaryContent, edit: GlossaryEdit): GlossaryContent {
+function editedContent(
+  content: GlossaryContent,
+  edit: GlossaryEdit,
+  sourceLocale: string | undefined,
+): GlossaryContent {
   if (content.version === 1 && isVersion1Edit(edit)) {
     return {
       version: 1,
-      entries: applyVersion1Edit(content.entries, edit.term, edit.translation ?? null),
+      entries: applyVersion1Edit(
+        content.entries,
+        edit.term,
+        edit.translation ?? null,
+        sourceLocale,
+      ),
     };
   }
   const definition = content.version === 1 ? toDefinition(content.entries) : content.definition;
-  return { version: 2, definition: applyEdit(definition, edit) };
+  return { version: 2, definition: applyEdit(definition, edit, sourceLocale) };
 }
 
 function serializeGlossary(
@@ -238,6 +247,13 @@ export interface UpdateGlossaryTermInput extends GlossaryFileInput {
   readonly partOfSpeech?: string | null;
   /** Whether the term is matched with case. */
   readonly caseSensitive?: boolean;
+  /**
+   * The project's source locale. With it, an edited term that differs from a stored one only in case
+   * (folded the way the matcher folds it, so Turkish dotted and dotless I stay apart) updates that
+   * entry when neither matches case. Without it only an exact match updates an entry.
+   * {@link editConfiguredGlossaryTerm} passes the config's source locale.
+   */
+  readonly sourceLocale?: string;
   /**
    * `true` adds the term to the terms kept untranslated in every locale, `false` removes it from
    * them. Cannot be combined with any field but `caseSensitive`.
@@ -350,7 +366,13 @@ export async function updateGlossaryTerm(
   deps: GlossaryFileDeps = {},
 ): Promise<Glossary> {
   const path = glossaryFilePath(input.glossary);
-  const { glossary: _provenance, cwd: inputCwd, lockAcquireTimeoutMs, ...edit } = input;
+  const {
+    glossary: _provenance,
+    cwd: inputCwd,
+    lockAcquireTimeoutMs,
+    sourceLocale,
+    ...edit
+  } = input;
   assertLockAcquireTimeout(lockAcquireTimeoutMs);
   assertValidEdit(edit);
   const fs = deps.fs ?? defaultFs;
@@ -360,7 +382,7 @@ export async function updateGlossaryTerm(
     cwd,
     fs,
     guard: withGlossaryGuard,
-    run: () => applyGlossaryEdit(path, edit, fs),
+    run: () => applyGlossaryEdit(path, edit, fs, sourceLocale),
     options: writeLockOptions({
       ...(lockAcquireTimeoutMs !== undefined ? { lockAcquireTimeoutMs } : {}),
     }),
@@ -368,9 +390,14 @@ export async function updateGlossaryTerm(
   });
 }
 
-async function applyGlossaryEdit(path: string, edit: GlossaryEdit, fs: SdkFs): Promise<Glossary> {
+async function applyGlossaryEdit(
+  path: string,
+  edit: GlossaryEdit,
+  fs: SdkFs,
+  sourceLocale: string | undefined,
+): Promise<Glossary> {
   const document = await readGlossaryDocument(path, fs);
-  const content = editedContent(document.content, edit);
+  const content = editedContent(document.content, edit, sourceLocale);
   if (JSON.stringify(inputOf(content)) !== JSON.stringify(inputOf(document.content))) {
     await writeGlossary(path, serializeGlossary(content, document, path), fs);
   }
@@ -430,7 +457,7 @@ type OptionalFields<T> = { readonly [K in keyof T]?: T[K] | undefined };
 
 /** Input for {@link editConfiguredGlossaryTerm}. */
 export interface EditConfiguredGlossaryTermInput
-  extends OptionalFields<Omit<UpdateGlossaryTermInput, "glossary" | "term">> {
+  extends OptionalFields<Omit<UpdateGlossaryTermInput, "glossary" | "term" | "sourceLocale">> {
   /** The loaded config, as {@link loadConfigWithMeta} returns it. */
   readonly loaded: GlossaryConfig;
   /** The source term to add, change, or remove. Must not be blank. */
@@ -461,5 +488,8 @@ export async function editConfiguredGlossaryTerm(
   const defined = Object.fromEntries(
     Object.entries(edit).filter(([, value]) => value !== undefined),
   ) as Omit<UpdateGlossaryTermInput, "glossary">;
-  return updateGlossaryTerm({ ...defined, glossary: loaded.glossary }, deps);
+  return updateGlossaryTerm(
+    { ...defined, glossary: loaded.glossary, sourceLocale: loaded.config.sourceLocale },
+    deps,
+  );
 }

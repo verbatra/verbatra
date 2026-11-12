@@ -568,7 +568,7 @@ Le fichier de la locale source n'a pas pu être écrit (`extract` uniquement) ; 
 `extract` a été appelé avec une config qui ne porte aucun bloc `extract`.
 
 - **Levé par** : `extract`
-- **Étape suivante** : Add an `extract` block to the config naming the framework and source roots.
+- **Étape suivante** : Add an `extract` block to the config naming the framework and source roots, for example `extract: { framework: "i18next", roots: ["src"] }`.
 
 ### EXTRACT_FS_UNSUPPORTED
 
@@ -712,7 +712,7 @@ La requête ou la réponse a été bloquée ou filtrée pour raison de sécurit�
 
 HTTP 429 ou une erreur de limite de débit du SDK. Pour Google Cloud Translation, cela couvre aussi un HTTP 403 dont le corps nomme un motif de quota (une limite quotidienne ou par minute). Google réutilise le 403 à la fois pour les échecs de quota et d'identifiants, donc augmente le quota Cloud Translation de ton projet. LibreTranslate signale aussi avec ce code un HTTP 403 dont le texte d'erreur dit "too many", car son serveur répond 403 à un client banni.
 
-- **Étape suivante** : Wait a moment and try again, or lower the concurrency.
+- **Étape suivante** : Wait as long as the message says, or a moment if it names no time, then try again. If it keeps failing, lower the concurrency or check the provider quota.
 
 ### TIMEOUT
 

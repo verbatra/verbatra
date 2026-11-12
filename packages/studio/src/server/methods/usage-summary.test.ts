@@ -248,4 +248,40 @@ describe("usageSummaryHandler", () => {
       await project.cleanup();
     }
   });
+
+  it("reports how many locales of the last run failed or finished partially", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
+    try {
+      await writeRunStatusFile(project, {
+        version: 1,
+        generatedAt: "2026-07-16T00:00:00.000Z",
+        locales: [
+          { locale: "de", status: "failed", needsReview: [] },
+          { locale: "fr", status: "partial", needsReview: [] },
+          { locale: "es", status: "succeeded", needsReview: [] },
+        ],
+      });
+
+      const result = await usageSummaryHandler({}, deps(project));
+
+      expect(result).toMatchObject({ available: true, incomplete: { failed: 1, partial: 1 } });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("leaves incomplete out when every locale succeeded", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
+    try {
+      await writeRunStatusFile(project, {
+        version: 1,
+        generatedAt: "2026-07-16T00:00:00.000Z",
+        locales: [{ locale: "de", status: "succeeded", needsReview: [] }],
+      });
+
+      expect(await usageSummaryHandler({}, deps(project))).not.toHaveProperty("incomplete");
+    } finally {
+      await project.cleanup();
+    }
+  });
 });

@@ -587,6 +587,21 @@ describe("previewValueReplace: caps and excerpts", () => {
   });
 });
 
+describe("applyValueReplace: actor", () => {
+  it("refuses a missing or unknown actor before anything is written", async () => {
+    const p = await project({ source: { a: "Hello" }, targets: { de: { a: "Hallo X" } } });
+    const listed = await preview(p, "X", "Y");
+
+    for (const actor of [undefined, "robot", 5]) {
+      await expect(apply(p, "X", "Y", refsOf(listed.entries), { actor })).rejects.toBeInstanceOf(
+        TypeError,
+      );
+    }
+
+    expect(await readLocale(p.dir, "de")).toEqual({ a: "Hallo X" });
+  });
+});
+
 describe("applyValueReplace: writes", () => {
   it("recomputes each value from the text on disk, gates it, writes it, and stamps the lock", async () => {
     const p = await project({

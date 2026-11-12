@@ -73,7 +73,7 @@ const SDK_ERROR_HINTS = {
   SOURCE_UNWRITABLE:
     "Make the source locale file writable; for xliff and apple-xcstrings, create the catalog first.",
   EXTRACT_NOT_CONFIGURED:
-    "Add an `extract` block to the config naming the framework and source roots.",
+    'Add an `extract` block to the config naming the framework and source roots, for example `extract: { framework: "i18next", roots: ["src"] }`.',
   EXTRACT_FS_UNSUPPORTED:
     "Pass a file system that implements `readDirectory`, or use the default one.",
   TYPES_OUTPUT_CONFLICT:
@@ -124,7 +124,8 @@ const PROVIDER_ERROR_HINTS = {
     "Translate fewer keys at a time, or configure a model with a larger output limit.",
   PROVIDER_REFUSED: "Review the source text the provider refused, or translate it by hand.",
   PROVIDER_BLOCKED: "Review the source text the provider blocked, or translate it by hand.",
-  RATE_LIMITED: "Wait a moment and try again, or lower the concurrency.",
+  RATE_LIMITED:
+    "Wait as long as the message says, or a moment if it names no time, then try again. If it keeps failing, lower the concurrency or check the provider quota.",
   TIMEOUT: "Try again, or raise the provider's `requestTimeoutMs` in the config.",
   AUTH_FAILED:
     "Check that the provider's API key is valid and allowed to use the configured model.",

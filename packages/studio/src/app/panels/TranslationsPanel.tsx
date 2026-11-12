@@ -82,7 +82,8 @@ function ReviewReportButton({ locales }: { readonly locales: readonly DiffLocale
   );
 }
 
-function AllClearCard({ brokenInSync }: { readonly brokenInSync: boolean }): ReactNode {
+function AllClearCard({ waiting }: { readonly waiting: readonly string[] }): ReactNode {
+  const stillWaiting = waiting.length > 0;
   return (
     <Card
       role="status"
@@ -91,11 +92,13 @@ function AllClearCard({ brokenInSync }: { readonly brokenInSync: boolean }): Rea
     >
       <Icon name="check" size={16} className="flex-none text-success" />
       <div>
-        <p className="m-0 text-sm font-semibold text-foreground">Everything is in sync</p>
+        <p className="m-0 text-sm font-semibold text-foreground">
+          {stillWaiting ? "Locale files are in sync" : "Everything is in sync"}
+        </p>
         <p className="m-0 mt-0.5 text-sm text-muted-foreground">
           No missing, changed, or orphaned keys in any configured locale.
-          {brokenInSync
-            ? " Some translations still have integrity problems; they are listed under Keys."
+          {stillWaiting
+            ? ` Still waiting: ${waiting.join(" and ")}. They are listed under Keys.`
             : ""}
         </p>
       </div>
@@ -105,6 +108,19 @@ function AllClearCard({ brokenInSync }: { readonly brokenInSync: boolean }): Rea
 
 function hasIntegrityProblems(integrity: RefreshableView<LocaleIntegrityData>): boolean {
   return integrity.kind === "data" && integrity.data.some((locale) => locale.entries.length > 0);
+}
+
+function waitingFor(
+  review: RefreshableView<ReviewQueueData>,
+  integrity: RefreshableView<LocaleIntegrityData>,
+): readonly string[] {
+  const queued = review.kind === "data" ? unreviewedRows(review.data).length : 0;
+  return [
+    ...(queued > 0
+      ? [`${queued} ${queued === 1 ? "translation" : "translations"} awaiting review`]
+      : []),
+    ...(hasIntegrityProblems(integrity) ? ["translations with integrity problems"] : []),
+  ];
 }
 
 function statusSources(
@@ -346,15 +362,15 @@ function NoKeys({
 
 function DiffNotices({
   diff,
-  brokenInSync,
+  waiting,
 }: {
   readonly diff: DiffState;
-  readonly brokenInSync: boolean;
+  readonly waiting: readonly string[];
 }): ReactNode {
   return (
     <>
       {diff.kind === "loaded" && isFullyInSync(diff.locales) ? (
-        <AllClearCard brokenInSync={brokenInSync} />
+        <AllClearCard waiting={waiting} />
       ) : null}
       <DiffErrorNotice diff={diff} />
     </>
@@ -393,7 +409,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
 
   const allClear = diff.kind === "loaded" && isFullyInSync(diff.locales);
   const integrity = useLocaleIntegrity(refreshToken, diff.kind === "loaded");
-  const brokenInSync = allClear && hasIntegrityProblems(integrity);
+  const waiting = allClear ? waitingFor(review, integrity) : [];
   const editorKey = selectedKey ?? dirtyKey;
   const split = wide && editorKey !== null && diff.kind === "loaded";
 
@@ -433,7 +449,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
           ) : undefined
         }
       />
-      <DiffNotices diff={diff} brokenInSync={brokenInSync} />
+      <DiffNotices diff={diff} waiting={waiting} />
       {diff.kind === "loading" || diff.kind === "loaded" ? (
         <KeysSection
           locales={diff.kind === "loaded" ? diff.locales : null}

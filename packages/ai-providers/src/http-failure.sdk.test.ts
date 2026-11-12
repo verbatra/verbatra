@@ -140,7 +140,7 @@ const CASES: readonly {
     name: "a 429",
     reply: jsonReply(429, "rate_limit_exceeded"),
     code: "RATE_LIMITED",
-    fragments: ["(HTTP 429, rate_limit_exceeded)."],
+    fragments: ["(HTTP 429, rate_limit_exceeded); the provider asks to wait about 1 s."],
   },
   {
     name: "a 500",

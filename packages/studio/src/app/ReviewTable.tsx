@@ -110,6 +110,7 @@ function RowActionsFor({
   return (
     <ReviewRowActions
       wrap={wrap}
+      target={{ key: row.key, locale: row.locale }}
       decisionDisabled={value === undefined}
       approveDisabled={row.reviewState === "approved"}
       busy={actions.busyOf(row)}

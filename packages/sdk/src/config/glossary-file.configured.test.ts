@@ -83,3 +83,22 @@ describe("editConfiguredGlossaryTerm", () => {
     expect(await readFile(path, "utf8")).toBe('{"Save":"Speichern"}');
   });
 });
+
+describe("editConfiguredGlossaryTerm: case folding", () => {
+  it("folds case with the configured source locale", async () => {
+    const { loaded, path } = await fileBacked('{"ilık":"warm"}');
+    const turkish: GlossaryConfig = {
+      ...loaded,
+      config: { ...loaded.config, sourceLocale: "tr" },
+    };
+
+    await editConfiguredGlossaryTerm({
+      loaded: turkish,
+      cwd: join(path, ".."),
+      term: "Ilık",
+      translation: "lukewarm",
+    });
+
+    expect(JSON.parse(await readFile(path, "utf8"))).toEqual({ ilık: "warm", Ilık: "lukewarm" });
+  });
+});

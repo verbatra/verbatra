@@ -1,5 +1,7 @@
-import type { RunBudget, UsageSummary } from "@verbatra/sdk";
+import type { IncompleteRun, RunBudget, UsageSummary } from "@verbatra/sdk";
 import { z } from "zod";
+
+export type { IncompleteRun };
 
 export const USAGE_SUMMARY_METHOD = "usage.summary";
 
@@ -14,4 +16,5 @@ export type UsageSummaryResult =
       readonly generatedAt: string;
       readonly usage?: UsageSummary;
       readonly budget?: RunBudget;
+      readonly incomplete?: IncompleteRun;
     };

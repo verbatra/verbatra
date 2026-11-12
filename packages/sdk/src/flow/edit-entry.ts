@@ -53,6 +53,12 @@ export interface EditEntryInput {
 /** Who wrote a value passed to {@link editEntry}. */
 export type EditEntryActor = "human" | "agent";
 
+export function assertEditActor(actor: unknown): void {
+  if (actor !== "human" && actor !== "agent") {
+    throw new TypeError('The actor must be "human" or "agent".');
+  }
+}
+
 /** Injectable dependencies for {@link editEntry}. Every field has a working default. */
 export interface EditEntryDeps {
   /** Format-adapter registry to resolve the configured format. Defaults to the built-in registry. */
@@ -156,12 +162,16 @@ export type EditEntryResult =
  * @throws `AdapterError`: the adapter itself refused the target locale file, on the read because it
  * is malformed or on the write because the entries cannot be represented in the configured format.
  * Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
+ * @throws {TypeError} `actor` is given and is neither `human` nor `agent`. Checked before anything is read.
  */
 export async function editEntry(
   input: EditEntryInput,
   deps: EditEntryDeps = {},
 ): Promise<EditEntryResult> {
   const config = input.config;
+  if (input.actor !== undefined) {
+    assertEditActor(input.actor);
+  }
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;

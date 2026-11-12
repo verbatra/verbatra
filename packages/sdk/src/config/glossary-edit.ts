@@ -1,3 +1,4 @@
+import { foldGlossaryCase } from "@verbatra/ai-providers";
 import { SdkError } from "../errors.js";
 import {
   describeGlossaryIssues,
@@ -76,6 +77,9 @@ function assertEditShape(edit: GlossaryEdit): void {
 }
 
 export function assertValidEdit(edit: GlossaryEdit): void {
+  if (typeof edit.term !== "string") {
+    throw invalid("A glossary term must not be blank.");
+  }
   assertNotBlank(edit.term, "A glossary term must not be blank.");
   assertNotBlank(
     edit.translation,
@@ -95,6 +99,22 @@ export function assertValidEdit(edit: GlossaryEdit): void {
   assertEditShape(edit);
 }
 
+function storedIndex(
+  sources: readonly string[],
+  term: string,
+  foldsCase: (index: number) => boolean,
+  sourceLocale: string | undefined,
+): number {
+  const exact = sources.indexOf(term);
+  if (exact >= 0 || sourceLocale === undefined) {
+    return exact;
+  }
+  const folded = foldGlossaryCase(term, sourceLocale, false);
+  return sources.findIndex(
+    (source, index) => foldsCase(index) && foldGlossaryCase(source, sourceLocale, false) === folded,
+  );
+}
+
 export function isVersion1Edit(edit: GlossaryEdit): boolean {
   return (
     edit.translation !== undefined &&
@@ -111,15 +131,22 @@ export function applyVersion1Edit(
   entries: Version1Entries,
   term: string,
   translation: string | null,
+  sourceLocale: string | undefined,
 ): Version1Entries {
   const pairs = [...entries];
-  const index = pairs.findIndex(([existing]) => existing === term);
+  const index = storedIndex(
+    pairs.map(([existing]) => existing),
+    term,
+    () => true,
+    sourceLocale,
+  );
+  const stored = pairs[index];
   if (translation === null) {
-    if (index >= 0) {
+    if (stored !== undefined) {
       pairs.splice(index, 1);
     }
-  } else if (index >= 0) {
-    pairs[index] = [term, translation];
+  } else if (stored !== undefined) {
+    pairs[index] = [stored[0], translation];
   } else {
     pairs.push([term, translation]);
   }
@@ -225,8 +252,14 @@ function onlyClears(edit: GlossaryEdit): boolean {
 function editTerms(
   terms: readonly GlossaryTermDefinition[],
   edit: GlossaryEdit,
+  sourceLocale: string | undefined,
 ): readonly GlossaryTermDefinition[] {
-  const index = terms.findIndex((term) => term.source === edit.term);
+  const index = storedIndex(
+    terms.map((term) => term.source),
+    edit.term,
+    (candidate) => edit.caseSensitive !== true && terms[candidate]?.caseSensitive !== true,
+    sourceLocale,
+  );
   const existing = index >= 0 ? terms[index] : undefined;
   if (existing === undefined && onlyClears(edit)) {
     return terms;
@@ -248,20 +281,44 @@ function doNotTranslateTermOf(entry: GlossaryDoNotTranslateDefinition): string {
   return typeof entry === "string" ? entry : entry.term;
 }
 
+function matchesEditedTerm(
+  entry: GlossaryDoNotTranslateDefinition,
+  edit: GlossaryEdit,
+  sourceLocale: string | undefined,
+): boolean {
+  const term = doNotTranslateTermOf(entry);
+  if (term === edit.term) {
+    return true;
+  }
+  const foldsCase = typeof entry !== "string" && !entry.caseSensitive;
+  return (
+    sourceLocale !== undefined &&
+    edit.caseSensitive !== true &&
+    foldsCase &&
+    foldGlossaryCase(term, sourceLocale, false) === foldGlossaryCase(edit.term, sourceLocale, false)
+  );
+}
+
 function editDoNotTranslate(
   entries: readonly GlossaryDoNotTranslateDefinition[],
   edit: GlossaryEdit,
+  sourceLocale: string | undefined,
 ): readonly GlossaryDoNotTranslateDefinition[] {
-  const kept = entries.filter((entry) => doNotTranslateTermOf(entry) !== edit.term);
+  const matches = (entry: GlossaryDoNotTranslateDefinition) =>
+    matchesEditedTerm(entry, edit, sourceLocale);
   if (edit.doNotTranslate !== true) {
-    return kept;
+    return entries.filter((entry) => !matches(entry));
   }
   const entry: GlossaryDoNotTranslateDefinition =
     edit.caseSensitive === false ? { term: edit.term, caseSensitive: false } : edit.term;
-  const index = entries.findIndex((existing) => doNotTranslateTermOf(existing) === edit.term);
-  return index < 0
-    ? [...kept, entry]
-    : entries.map((existing, at) => (at === index ? entry : existing));
+  const index = entries.findIndex(matches);
+  if (index < 0) {
+    return [...entries, entry];
+  }
+  return entries.flatMap((existing, at) => {
+    if (at === index) return [entry];
+    return matches(existing) ? [] : [existing];
+  });
 }
 
 function validated(definition: GlossaryDefinition): GlossaryDefinition {
@@ -274,9 +331,13 @@ function validated(definition: GlossaryDefinition): GlossaryDefinition {
   return definition;
 }
 
-export function applyEdit(definition: GlossaryDefinition, edit: GlossaryEdit): GlossaryDefinition {
+export function applyEdit(
+  definition: GlossaryDefinition,
+  edit: GlossaryEdit,
+  sourceLocale?: string,
+): GlossaryDefinition {
   if (edit.doNotTranslate !== undefined) {
-    const doNotTranslate = editDoNotTranslate(definition.doNotTranslate ?? [], edit);
+    const doNotTranslate = editDoNotTranslate(definition.doNotTranslate ?? [], edit, sourceLocale);
     const next: { -readonly [K in keyof GlossaryDefinition]: GlossaryDefinition[K] } = {
       ...definition,
     };
@@ -287,5 +348,5 @@ export function applyEdit(definition: GlossaryDefinition, edit: GlossaryEdit): G
     }
     return validated(next);
   }
-  return validated({ ...definition, terms: editTerms(definition.terms, edit) });
+  return validated({ ...definition, terms: editTerms(definition.terms, edit, sourceLocale) });
 }

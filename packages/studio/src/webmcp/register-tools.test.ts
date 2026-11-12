@@ -749,3 +749,12 @@ describe("registerAgentTools: the advertised agent input schema is enforced", ()
     expect(calls.filter((call) => call.method === "translation.editEntry")).toEqual([]);
   });
 });
+
+describe("verbatra_usage_summary description", () => {
+  it("names the optional incomplete field and its counts", async () => {
+    const { tools } = await registerWith(SNAPSHOT_ON);
+    const description = tools.find((tool) => tool.name === "verbatra_usage_summary")?.description;
+    expect(description).toContain("The optional incomplete field, { failed, partial }");
+    expect(description).toContain("not mistaken for a cheap complete run");
+  });
+});

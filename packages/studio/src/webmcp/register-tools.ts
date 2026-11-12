@@ -264,6 +264,7 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
       "Use it to judge what previous work cost before deciding to spend more. " +
       "Do not expect live figures: nothing but a real translation run updates it, and an unavailable result means no run has ever recorded a status snapshot. " +
       "Usage and budget are each present only when the recorded run carried them, and are never defaulted to a fabricated zero. " +
+      "The optional incomplete field, { failed, partial }, appears only when the recorded run left locales unfinished and counts the locales that failed and the locales that stopped partway, so a low usage figure is not mistaken for a cheap complete run. " +
       "Takes no parameters. Read-only: it calls no provider and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: false,

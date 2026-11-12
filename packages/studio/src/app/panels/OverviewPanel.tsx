@@ -14,6 +14,7 @@ import type {
   UsageTickerData,
 } from "../../client/usage-ticker-data.js";
 import { budgetPercent, toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
+import type { IncompleteRun } from "../../shared/rpc/usage-summary.js";
 import { ChangesSection } from "../ChangesSection.js";
 import { CommitList } from "../CommitList.js";
 import { DiffErrorNotice } from "../DiffErrorNotice.js";
@@ -34,7 +35,30 @@ import { useRunHistory } from "../use-run-history.js";
 import { useStatusData } from "../use-status-data.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
 
-function UsageCards({ usage }: { readonly usage: UsageDisplay }): ReactNode {
+const NOT_REPORTED_HINT =
+  "No token usage was recorded: the run called no provider, or its provider does not report usage.";
+const NOT_REPORTED_AFTER_FAILURE_HINT =
+  "No token usage was recorded for this run: it stopped on an error before the provider reported usage, or its provider does not report usage.";
+
+function localeCount(count: number, what: string): string {
+  return `${formatCount(count)} ${count === 1 ? "locale" : "locales"} ${what}`;
+}
+
+function incompleteSummary(incomplete: IncompleteRun): string {
+  const parts = [
+    ...(incomplete.failed > 0 ? [localeCount(incomplete.failed, "failed")] : []),
+    ...(incomplete.partial > 0 ? [localeCount(incomplete.partial, "only partly translated")] : []),
+  ];
+  return `The last run did not finish cleanly: ${parts.join(", ")}.`;
+}
+
+function UsageCards({
+  usage,
+  incomplete,
+}: {
+  readonly usage: UsageDisplay;
+  readonly incomplete: IncompleteRun | undefined;
+}): ReactNode {
   if (usage.kind === "not-reported") {
     return (
       <div className="sm:col-span-2 lg:col-span-1">
@@ -43,7 +67,7 @@ function UsageCards({ usage }: { readonly usage: UsageDisplay }): ReactNode {
           icon="gauge"
           value="Not reported"
           quiet
-          hint="No token usage was recorded: the run called no provider, or its provider does not report usage."
+          hint={incomplete === undefined ? NOT_REPORTED_HINT : NOT_REPORTED_AFTER_FAILURE_HINT}
         />
       </div>
     );
@@ -176,8 +200,13 @@ function LastRunRail({
       <p className="mb-3 text-xs text-muted-foreground">
         As of {formatTimestamp(state.generatedAt)}
       </p>
+      {state.incomplete === undefined ? null : (
+        <p className="mb-3 text-sm text-danger" data-run-incomplete>
+          {incompleteSummary(state.incomplete)}
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
-        <UsageCards usage={state.usage} />
+        <UsageCards usage={state.usage} incomplete={state.incomplete} />
         <BudgetCards budget={state.budget} />
       </div>
     </div>

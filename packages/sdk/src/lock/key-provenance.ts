@@ -77,7 +77,12 @@ export interface KeyProvenance {
 export interface ProvenanceSummary {
   /** How many keys have each origin. Every {@link KeyOrigin} is present, zero included. */
   readonly byOrigin: Readonly<Record<KeyOrigin, number>>;
-  /** How many keys are in each review state. Every {@link KeyReviewState} is present. */
+  /**
+   * How many keys are in each review state, whatever their origin. Every {@link KeyReviewState} is
+   * present. A value with no recorded decision counts as `unreviewed` even when a person wrote or
+   * imported it, so this is wider than the review queue and the `--require-reviewed` gate, which
+   * hold only machine-class values. Read it together with `byOrigin`.
+   */
   readonly byReviewState: Readonly<Record<KeyReviewState, number>>;
 }
 

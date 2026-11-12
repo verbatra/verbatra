@@ -283,6 +283,15 @@ describe("render: tmx export summary", () => {
     expect(text).toContain("3 entries left out: the memory holds no source text for them");
   });
 
+  it("reports entries stored under another configuration, only when there are some", () => {
+    expect(renderTmxExportHuman(makeExportTmxResult({ otherConfiguration: 5 }))).toContain(
+      "5 entries left out: they are stored under an earlier provider, model, tone or glossary configuration",
+    );
+    expect(renderTmxExportHuman(makeExportTmxResult({ otherConfiguration: 0 }))).not.toContain(
+      "earlier provider",
+    );
+  });
+
   it("reports the characters XML does not allow that were removed, only when there are some", () => {
     expect(renderTmxExportHuman(makeExportTmxResult({ illegalCharactersRemoved: 4 }))).toContain(
       "4 characters XML 1.0 does not allow were removed from segment text",

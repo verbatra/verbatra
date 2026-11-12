@@ -35,6 +35,25 @@ function sourceEntry(value: string): TranslationEntry {
   return { key: "greeting", namespace: "en", value, placeholders: [], isPlural: false };
 }
 
+describe("editEntry: actor", () => {
+  it("refuses an actor that is neither human nor agent before writing", async () => {
+    const dir = await project({ greeting: "Hello" });
+
+    for (const actor of ["robot", 5, null]) {
+      await expect(
+        editEntry({
+          config: cfg(),
+          cwd: dir,
+          locale: "de",
+          key: "greeting",
+          value: "Hallo",
+          actor: actor as never,
+        }),
+      ).rejects.toBeInstanceOf(TypeError);
+    }
+  });
+});
+
 describe("editEntry: locale and key resolution", () => {
   it("throws UNKNOWN_LOCALE for a locale not among the configured target locales", async () => {
     const dir = await project({ greeting: "Hello" });

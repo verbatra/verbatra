@@ -568,7 +568,7 @@ Die Quell-Locale-Datei konnte nicht geschrieben werden (nur `extract`); `xliff` 
 `extract` wurde mit einer Konfiguration aufgerufen, die keinen `extract`-Block trägt.
 
 - **Ausgelöst von**: `extract`
-- **Nächster Schritt**: Add an `extract` block to the config naming the framework and source roots.
+- **Nächster Schritt**: Add an `extract` block to the config naming the framework and source roots, for example `extract: { framework: "i18next", roots: ["src"] }`.
 
 ### EXTRACT_FS_UNSUPPORTED
 
@@ -712,7 +712,7 @@ Anfrage oder Antwort wurde aus Sicherheitsgründen blockiert oder gefiltert.
 
 HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit). Google nutzt 403 sowohl für Kontingent- als auch für Zugangsdaten-Fehler, erhöhe also das Cloud-Translation-Kontingent deines Projekts. LibreTranslate meldet ein HTTP 403, dessen Fehlertext "too many" enthält, ebenfalls mit diesem Code, weil sein Server einen gesperrten Client mit 403 beantwortet.
 
-- **Nächster Schritt**: Wait a moment and try again, or lower the concurrency.
+- **Nächster Schritt**: Wait as long as the message says, or a moment if it names no time, then try again. If it keeps failing, lower the concurrency or check the provider quota.
 
 ### TIMEOUT
 

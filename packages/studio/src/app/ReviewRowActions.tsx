@@ -9,6 +9,11 @@ import {
 import { type ReviewShortcutAction, shortcutKeysFor } from "../client/review-shortcuts.js";
 import { cn } from "./lib/cn.js";
 
+export interface RowTarget {
+  readonly key: string;
+  readonly locale: string;
+}
+
 export interface RowBusy {
   readonly action: RowBusyAction;
   readonly elapsedSeconds?: number | undefined;
@@ -45,6 +50,7 @@ export function ReviewRowActions({
   busy,
   shortcutsActive = false,
   wrap = false,
+  target,
 }: {
   readonly onApprove: () => void;
   readonly onReject: () => void;
@@ -55,12 +61,15 @@ export function ReviewRowActions({
   readonly busy?: RowBusy | undefined;
   readonly shortcutsActive?: boolean;
   readonly wrap?: boolean;
+  readonly target?: RowTarget | undefined;
 }): ReactNode {
   const running = busy?.action;
   const label = (action: RowBusyAction, idle: string): string =>
     running === action ? rowBusyLabel(action) : idle;
   const reserve = (action: RowBusyAction, idle: string): string =>
     running === action ? idle : rowBusyLabel(action);
+  const named = (visible: string): string | undefined =>
+    target === undefined ? undefined : `${visible} ${target.key} (${target.locale})`;
   const reservesBusyWidth = !wrap && onRetranslate !== undefined;
   return (
     <span
@@ -75,6 +84,7 @@ export function ReviewRowActions({
       <Button
         size="xs"
         onClick={onEdit}
+        aria-label={named("Edit")}
         disabled={busy !== undefined}
         aria-keyshortcuts={shortcutFor("edit", shortcutsActive)}
       >
@@ -86,6 +96,7 @@ export function ReviewRowActions({
         reserve={reserve("approve", "Approve")}
         aria-busy={running === "approve" || undefined}
         onClick={onApprove}
+        aria-label={named(label("approve", "Approve"))}
         disabled={busy !== undefined || decisionDisabled || approveDisabled}
         aria-keyshortcuts={shortcutFor("approve", shortcutsActive)}
       >
@@ -97,6 +108,7 @@ export function ReviewRowActions({
         reserve={reserve("reject", "Reject…")}
         aria-busy={running === "reject" || undefined}
         onClick={onReject}
+        aria-label={named(label("reject", "Reject…"))}
         disabled={busy !== undefined || decisionDisabled}
         aria-keyshortcuts={shortcutFor("reject", shortcutsActive)}
       >
@@ -112,6 +124,7 @@ export function ReviewRowActions({
           aria-busy={running === "retranslate" || undefined}
           className={cn(running === "retranslate" && RETRANSLATE_BUSY_CLASSNAME)}
           onClick={onRetranslate}
+          aria-label={named(label("retranslate", "Retranslate"))}
           disabled={busy !== undefined}
           aria-keyshortcuts={shortcutFor("retranslate", shortcutsActive)}
         >

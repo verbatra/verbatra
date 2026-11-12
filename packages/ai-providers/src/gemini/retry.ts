@@ -1,6 +1,7 @@
 import { getErrorStatus } from "../error-classification.js";
 import { ProviderError } from "../errors.js";
 import type { ProviderRetry, ProviderRetryListener } from "../provider-retry.js";
+import { MAX_HONOURED_RETRY_DELAY_MS, statedRetryDelayMs } from "../retry-delay.js";
 
 export interface GeminiRetryConfig {
   readonly attempts: number;
@@ -48,6 +49,17 @@ function delay(ms: number, signal: AbortSignal | undefined): Promise<void> {
   });
 }
 
+function retryDelayMs(error: unknown, attempt: number, config: GeminiRetryConfig): number | null {
+  if (attempt >= config.attempts || !isRetryable(error)) {
+    return null;
+  }
+  const stated = getErrorStatus(error) === 429 ? statedRetryDelayMs(error) : undefined;
+  if (stated === undefined) {
+    return config.baseDelayMs * 2 ** (attempt - 1);
+  }
+  return stated > MAX_HONOURED_RETRY_DELAY_MS ? null : stated;
+}
+
 export async function withGeminiRetry<T>(
   call: () => Promise<T>,
   signal?: AbortSignal,
@@ -62,10 +74,10 @@ export async function withGeminiRetry<T>(
       if (isAborted(signal)) {
         throwAbort(signal);
       }
-      if (attempt >= config.attempts || !isRetryable(error)) {
+      const delayMs = retryDelayMs(error, attempt, config);
+      if (delayMs === null) {
         throw error;
       }
-      const delayMs = config.baseDelayMs * 2 ** (attempt - 1);
       onRetry?.(retryEvent(attempt + 1, delayMs, error));
       await delay(delayMs, signal);
       if (isAborted(signal)) {

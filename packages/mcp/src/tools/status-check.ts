@@ -82,7 +82,8 @@ export const statusCheckTool = defineTool({
     "provenance, the counts of who wrote its current values (byOrigin, byReviewState) over " +
     "the keys present in both the source and that locale, read from " +
     "verbatra.provenance.json and absent when that file is corrupt or from a newer " +
-    "verbatra. protected counts the missing and stale keys a translate run would leave for " +
+    "verbatra. byReviewState counts every value by its effective review state, whatever its origin: a value with no recorded decision counts as unreviewed, and so does an approval recorded for a source that has since changed. A value a person wrote or imported with no decision therefore counts as unreviewed although the review queue holds only machine-class values; read it with byOrigin. " +
+    "protected counts the missing and stale keys a translate run would leave for " +
     "a person (values a person wrote or imported, or pinned keys); they stay stale until a " +
     "person resolves them, and only pinned keys are counted when that file is unreadable. " +
     "incompletePlurals lists each plural whose forms in that locale lack CLDR plural categories " +

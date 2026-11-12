@@ -6,10 +6,12 @@ export const usageSummaryHandler: RpcHandler<"usage.summary"> = async (_params, 
   if (!result.available) {
     return { available: false };
   }
+  const { incomplete } = result;
   return {
     available: true,
     generatedAt: result.generatedAt,
     ...(result.usage !== undefined ? { usage: result.usage } : {}),
     ...(result.budget !== undefined ? { budget: result.budget } : {}),
+    ...(incomplete !== undefined ? { incomplete } : {}),
   };
 };

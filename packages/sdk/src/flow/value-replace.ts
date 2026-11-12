@@ -24,7 +24,7 @@ import {
   EntryEditsFailure,
   type JudgedEdit,
 } from "./apply-entry-edits.js";
-import type { EditEntryActor } from "./edit-entry.js";
+import { assertEditActor, type EditEntryActor } from "./edit-entry.js";
 import type { IntegrityGateReason } from "./integrity-gate.js";
 import { isWellFormedText } from "./literal-match.js";
 import {
@@ -741,6 +741,7 @@ function markDuplicates(
  * unsupported version. Checked before anything is written.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
  * structurally wrong. Checked before anything is written.
+ * @throws {TypeError} `actor` is neither `human` nor `agent`. Checked before anything is read.
  *
  * @example
  * ```ts
@@ -760,6 +761,7 @@ export async function applyValueReplace(
   deps: ValueReplaceDeps = {},
 ): Promise<ApplyValueReplaceResult> {
   assertFindText(input);
+  assertEditActor(input.actor);
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const config = input.config;
   const cwd = projectCwd(input);

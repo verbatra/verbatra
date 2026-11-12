@@ -1,4 +1,7 @@
+import { ProviderError } from "../errors.js";
 import { guardProviderCall } from "../guard.js";
+import { httpFailureMessage } from "../http-failure-message.js";
+import { PROVIDER_ENV } from "../key-env-vars.js";
 import { type LlmCompletion, type LlmMechanism, runLlmTranslation } from "../llm/run.js";
 import type { ProviderNetwork } from "../network/transport.js";
 import type { TranslateRequest, TranslateResult, TranslationProvider } from "../provider.js";
@@ -6,6 +9,7 @@ import type { ProviderRetryListener } from "../provider-retry.js";
 import { DEFAULT_REQUEST_TIMEOUT_MS, raceAttemptTimeout } from "../request-timeout.js";
 import { createDefaultClient } from "./client.js";
 import { type GeminiConfig, geminiConfigSchema } from "./config.js";
+import { isInvalidKeyFailure } from "./invalid-key.js";
 import { buildGeminiRequest } from "./request.js";
 import { extractGeminiResult } from "./response.js";
 import { DEFAULT_GEMINI_RETRY, type GeminiRetryConfig, withGeminiRetry } from "./retry.js";
@@ -36,6 +40,24 @@ export function createGeminiProvider(
   };
 }
 
+async function withInvalidKeyAsAuthFailure<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    if (!isInvalidKeyFailure(error)) {
+      throw error;
+    }
+    throw new ProviderError(
+      "AUTH_FAILED",
+      `${httpFailureMessage(
+        "AUTH_FAILED",
+        { status: 400, vendorType: undefined },
+        { host: undefined, remedies: undefined },
+      )} Gemini says the API key is invalid: check ${PROVIDER_ENV.gemini}.`,
+    );
+  }
+}
+
 function createMechanism(
   client: GeminiClient,
   config: GeminiConfig,
@@ -50,11 +72,13 @@ function createMechanism(
     translate: async ({ payloadJson, signal }): Promise<LlmCompletion> => {
       const response = await guardProviderCall(
         () =>
-          withGeminiRetry(
-            () => attempt(payloadJson, signal),
-            signal,
-            deps.retry ?? DEFAULT_GEMINI_RETRY,
-            deps.onRetry,
+          withInvalidKeyAsAuthFailure(() =>
+            withGeminiRetry(
+              () => attempt(payloadJson, signal),
+              signal,
+              deps.retry ?? DEFAULT_GEMINI_RETRY,
+              deps.onRetry,
+            ),
           ),
         signal,
       );

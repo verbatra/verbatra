@@ -568,7 +568,7 @@ The source locale file could not be written (`extract` only); `xliff` and `apple
 `extract` was called with a config that carries no `extract` block.
 
 - **Raised by**: `extract`
-- **Next step**: Add an `extract` block to the config naming the framework and source roots.
+- **Next step**: Add an `extract` block to the config naming the framework and source roots, for example `extract: { framework: "i18next", roots: ["src"] }`.
 
 ### EXTRACT_FS_UNSUPPORTED
 
@@ -712,7 +712,7 @@ The request or response was safety-blocked or filtered.
 
 HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also covers an HTTP 403 whose body names a quota reason (a daily or per-minute limit). Google reuses 403 for both quota and credential failures, so raise your project's Cloud Translation quota. LibreTranslate reports an HTTP 403 whose error text says "too many" as this code too, because its server answers a banned client with 403.
 
-- **Next step**: Wait a moment and try again, or lower the concurrency.
+- **Next step**: Wait as long as the message says, or a moment if it names no time, then try again. If it keeps failing, lower the concurrency or check the provider quota.
 
 ### TIMEOUT
 

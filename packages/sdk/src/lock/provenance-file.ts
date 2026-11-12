@@ -140,6 +140,22 @@ function isRecord(value: unknown): value is ProvenanceRecord {
   );
 }
 
+function recordFault(value: unknown): string {
+  if (!isPlainObject(value)) {
+    return "is not an object";
+  }
+  if (typeof value.origin !== "string") {
+    return "has no valid origin";
+  }
+  if (typeof value.valueHash !== "string") {
+    return "has no valid valueHash";
+  }
+  const field = OPTIONAL_STRING_FIELDS.find(
+    (name) => value[name] !== undefined && typeof value[name] !== "string",
+  );
+  return `has a ${field} that is not a string`;
+}
+
 function nullPrototypeCopy<T>(
   source: Record<string, unknown>,
   accept: (value: unknown) => T,
@@ -233,7 +249,21 @@ function serializeRecord(record: ProvenanceRecord): string {
   return `{${fields.map(([field, value]) => `${JSON.stringify(field)}:${JSON.stringify(value)}`).join(",")}}`;
 }
 
+function assertWritableRecords(file: ProvenanceFile): void {
+  for (const [locale, entries] of Object.entries(file.locales)) {
+    for (const [key, record] of Object.entries(entries)) {
+      if (!isRecord(record)) {
+        throw new SdkError(
+          "PROVENANCE_FILE_INVALID",
+          `The provenance record for "${key}" in locale "${locale}" ${recordFault(record)} and was not written.`,
+        );
+      }
+    }
+  }
+}
+
 export function serializeProvenanceFile(file: ProvenanceFile): string {
+  assertWritableRecords(file);
   const locales = sortedEntries(file.locales).filter(
     ([, entries]) => Object.keys(entries).length > 0,
   );

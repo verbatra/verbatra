@@ -241,6 +241,15 @@ function renderSensitiveData(choice: ProviderChoice): string[] {
   ];
 }
 
+function renderExtractExample(format: string): string[] {
+  return format === "i18next-json"
+    ? [
+        "  // To scan your source code for translation keys, uncomment and run verbatra extract.",
+        `  // extract: { framework: "i18next", roots: ["src"] },`,
+      ]
+    : [];
+}
+
 export function renderConfig(draft: ConfigDraft): string {
   return [
     `import { defineConfig } from ${JSON.stringify(draft.importName)};`,
@@ -259,6 +268,7 @@ export function renderConfig(draft: ConfigDraft): string {
     "  },",
     renderProviderBlock(draft.provider),
     ...renderSensitiveData(draft.provider),
+    ...renderExtractExample(draft.format),
     "});",
     "",
   ].join("\n");

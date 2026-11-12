@@ -264,3 +264,66 @@ describe("withGeminiRetry: backoff timing", () => {
     }
   });
 });
+
+function statedError(status: number, retryDelay: string): Error {
+  const body = {
+    error: {
+      details: [{ "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay }],
+    },
+  };
+  return Object.assign(new Error(JSON.stringify(body)), { status });
+}
+
+describe("withGeminiRetry: a stated wait", () => {
+  it("fails fast on a 429 stating a wait above the cap", async () => {
+    const error = statedError(429, "30s");
+    const call = vi.fn<() => Promise<string>>().mockRejectedValue(error);
+    await expect(withGeminiRetry(call, undefined, FAST)).rejects.toBe(error);
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the ordinary backoff for a 503 stating a wait above the cap", async () => {
+    const call = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(statedError(503, "30s"))
+      .mockResolvedValueOnce("ok");
+    const retries: number[] = [];
+    await expect(
+      withGeminiRetry(call, undefined, FAST, (event) => retries.push(event.delayMs ?? 0)),
+    ).resolves.toBe("ok");
+    expect(retries).toEqual([1]);
+  });
+
+  it("honours a 429 stating a wait within the cap", async () => {
+    vi.useFakeTimers();
+    try {
+      const call = vi
+        .fn<() => Promise<string>>()
+        .mockRejectedValueOnce(statedError(429, "2s"))
+        .mockResolvedValueOnce("ok");
+      const promise = withGeminiRetry(call, undefined, FAST);
+      await vi.advanceTimersByTimeAsync(1_999);
+      expect(call).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(promise).resolves.toBe("ok");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stops an honoured wait when the signal aborts during it", async () => {
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      const call = vi.fn<() => Promise<string>>().mockRejectedValue(statedError(429, "4s"));
+      const promise = withGeminiRetry(call, controller.signal, FAST).catch((e: unknown) => e);
+      await vi.advanceTimersByTimeAsync(1_000);
+      controller.abort();
+      const rejection = await promise;
+      expect((rejection as DOMException).name).toBe("AbortError");
+      expect(call).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

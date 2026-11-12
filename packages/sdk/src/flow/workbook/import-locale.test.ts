@@ -428,6 +428,41 @@ describe("importLocale", () => {
     expect(result.summary.unchanged).toEqual(["greet"]);
   });
 
+  it("is partial while one value is written beside a withheld one, and failed once a re-import writes nothing", () => {
+    const greet = entry("greet", "Hi");
+    const bye = entry("bye", "Bye {{name}}", ["name"]);
+    const rows = (greeting: string): WorkbookSheet => ({
+      locale: "de",
+      rows: [row("greet", greeting, contentHash(greet)), row("bye", "Tschuess", contentHash(bye))],
+    });
+    const source = resource("en", [greet, bye]);
+    const baseline = new Map([["bye", "stale"]]);
+
+    const first = importLocale(
+      params({ sheet: rows("Hallo"), source, target: resource("de", []), baseline }),
+    );
+    const again = importLocale(
+      params({
+        sheet: rows("Hallo"),
+        source,
+        target: resource("de", [entry("greet", "Hallo")]),
+        baseline: new Map([["greet", contentHash(greet)], ...baseline]),
+      }),
+    );
+
+    expect(first.summary).toMatchObject({
+      status: "partial",
+      translated: ["greet"],
+      integrityMismatches: ["bye"],
+    });
+    expect(again.summary).toMatchObject({
+      status: "failed",
+      translated: [],
+      unchanged: ["greet"],
+      integrityMismatches: ["bye"],
+    });
+  });
+
   it("still accepts an echo of the current value when the key is stale", () => {
     const src = entry("greet", "Hi there");
     const sheet: WorkbookSheet = {

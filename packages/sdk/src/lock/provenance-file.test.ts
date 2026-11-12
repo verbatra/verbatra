@@ -125,6 +125,40 @@ describe("readProvenanceFile", () => {
   });
 });
 
+describe("serializeProvenanceFile: records its own reader would reject", () => {
+  it("throws PROVENANCE_FILE_INVALID for a record with no origin", () => {
+    const record = { valueHash: "h" } as unknown as ProvenanceRecord;
+    const file = { version: 1, locales: { de: { a: record } } };
+
+    expect(() => serializeProvenanceFile(file)).toThrowError(
+      expect.objectContaining({ code: "PROVENANCE_FILE_INVALID" }),
+    );
+  });
+});
+
+describe("serializeProvenanceFile: the refusal names what is wrong with the record", () => {
+  const message = (record: unknown) => {
+    const file = { version: 1, locales: { de: { a: record as ProvenanceRecord } } };
+    try {
+      serializeProvenanceFile(file);
+    } catch (error) {
+      return (error as Error).message;
+    }
+    return "";
+  };
+
+  it.each([
+    [{ valueHash: "h" }, "has no valid origin"],
+    [{ origin: "human" }, "has no valid valueHash"],
+    [{ origin: "human", valueHash: "h", model: 3 }, "has a model that is not a string"],
+    ["text", "is not an object"],
+  ])("for %j says %s", (record, fault) => {
+    expect(message(record)).toBe(
+      `The provenance record for "a" in locale "de" ${fault} and was not written.`,
+    );
+  });
+});
+
 describe("serializeProvenanceFile", () => {
   it("writes locales and keys sorted, one record per line, fields in a fixed order", () => {
     const file = fileWith({

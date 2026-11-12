@@ -722,6 +722,7 @@ export {
   type RunHistoryUnavailableReason,
   runHistoryResultSchema,
 } from "./run-history/record.js";
+export type { IncompleteRun } from "./run-status/incomplete-run.js";
 export type { RunStatusFile, RunStatusLocale } from "./run-status/types.js";
 export { type ScaffoldableProviderId, scaffoldingMetadata } from "./scaffolding.js";
 export type {

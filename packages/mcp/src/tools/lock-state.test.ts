@@ -13,6 +13,13 @@ import {
 import { lockStateTool } from "./lock-state.js";
 
 describe("lock.state", () => {
+  it("says byReviewState counts every value by its effective review state, not only the machine values in the review queue", () => {
+    expect(lockStateTool.description).toContain(
+      "byReviewState counts every value by its effective review state, whatever its origin",
+    );
+    expect(lockStateTool.description).toContain("review queue holds only machine-class values");
+  });
+
   it("reports exists: false when no lock file has been written yet", async () => {
     const dir = await makeProject({ greeting: "Hello" });
 

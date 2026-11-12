@@ -567,3 +567,160 @@ describe("createGeminiProvider: the request timeout bounds each attempt", () => 
     expect((error as ProviderError).message).toContain("1000");
   });
 });
+
+class GoogleApiError extends Error {
+  readonly status: number;
+  constructor(status: number, body: object) {
+    super(JSON.stringify(body));
+    this.status = status;
+  }
+}
+
+const DAILY_QUOTA_BODY = {
+  error: {
+    code: 429,
+    message: "You exceeded your current quota. Please retry in 2h28m49.5s.",
+    status: "RESOURCE_EXHAUSTED",
+    details: [
+      { "@type": "type.googleapis.com/google.rpc.QuotaFailure", violations: [] },
+      { "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: "8929s" },
+    ],
+  },
+};
+
+describe("createGeminiProvider: stated rate-limit waits", () => {
+  it("fails fast on an exhausted quota and names the provider's wait", async () => {
+    const generateContent = vi.fn(async () => {
+      throw new GoogleApiError(429, DAILY_QUOTA_BODY);
+    });
+    const provider = createGeminiProvider(config, {
+      client: { models: { generateContent } },
+      retry: { attempts: 3, baseDelayMs: 1 },
+    });
+
+    await expect(provider.translateBatch(request())).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+      message:
+        "The translation provider rate-limited this request (HTTP 429); the provider asks to wait about 2 h 29 min: its quota is likely exhausted.",
+    });
+    expect(generateContent).toHaveBeenCalledTimes(1);
+  });
+
+  it("honours a short stated delay instead of the fixed backoff", async () => {
+    const retries: unknown[] = [];
+    const generateContent = vi
+      .fn<GeminiClient["models"]["generateContent"]>()
+      .mockRejectedValueOnce(
+        new GoogleApiError(429, {
+          error: {
+            code: 429,
+            status: "RESOURCE_EXHAUSTED",
+            message: "slow down",
+            details: [{ "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: "0.02s" }],
+          },
+        }),
+      )
+      .mockResolvedValueOnce(geminiResult([{ key: "greeting", value: "Hallo {{name}}" }]));
+    const provider = createGeminiProvider(config, {
+      client: { models: { generateContent } },
+      retry: { attempts: 3, baseDelayMs: 250 },
+      onRetry: (retry) => retries.push(retry),
+    });
+
+    await provider.translateBatch(request());
+
+    expect(retries).toEqual([{ attempt: 2, delayMs: 20, status: 429 }]);
+  });
+
+  it("keeps the generic message when the body states no wait", async () => {
+    const generateContent = vi.fn(async () => {
+      throw new GoogleApiError(429, { error: { code: 429, status: "RESOURCE_EXHAUSTED" } });
+    });
+    const provider = createGeminiProvider(config, {
+      client: { models: { generateContent } },
+      retry: { attempts: 1, baseDelayMs: 1 },
+    });
+
+    await expect(provider.translateBatch(request())).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+      message: "The translation provider rate-limited this request (HTTP 429).",
+    });
+  });
+});
+
+describe("createGeminiProvider: invalid API key", () => {
+  const invalidKeyBody = {
+    error: {
+      code: 400,
+      message: "API key not valid. Please pass a valid API key.",
+      status: "INVALID_ARGUMENT",
+      details: [
+        {
+          "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+          reason: "API_KEY_INVALID",
+          domain: "googleapis.com",
+        },
+      ],
+    },
+  };
+
+  it("reports AUTH_FAILED naming the key variable, not a bare HTTP 400", async () => {
+    const generateContent = vi.fn(async () => {
+      throw new GoogleApiError(400, invalidKeyBody);
+    });
+    const provider = createGeminiProvider(config, { client: { models: { generateContent } } });
+
+    await expect(provider.translateBatch(request())).rejects.toMatchObject({
+      code: "AUTH_FAILED",
+      message: expect.stringContaining("GEMINI_API_KEY"),
+    });
+    expect(generateContent).toHaveBeenCalledTimes(1);
+  });
+
+  it("finds the invalid key reason after details that carry no reason", async () => {
+    const generateContent = vi.fn(async () => {
+      throw new GoogleApiError(400, {
+        error: {
+          code: 400,
+          status: "INVALID_ARGUMENT",
+          details: [null, "text", {}, ...invalidKeyBody.error.details],
+        },
+      });
+    });
+    const provider = createGeminiProvider(config, { client: { models: { generateContent } } });
+
+    await expect(provider.translateBatch(request())).rejects.toMatchObject({
+      code: "AUTH_FAILED",
+    });
+  });
+
+  it("leaves a HTTP 400 whose details carry no reason as PROVIDER_ERROR", async () => {
+    const generateContent = vi.fn(async () => {
+      throw new GoogleApiError(400, {
+        error: { code: 400, status: "INVALID_ARGUMENT", details: [null, "text", {}] },
+      });
+    });
+    const provider = createGeminiProvider(config, { client: { models: { generateContent } } });
+
+    await expect(provider.translateBatch(request())).rejects.toMatchObject({
+      code: "PROVIDER_ERROR",
+    });
+  });
+
+  it("leaves every other HTTP 400 as PROVIDER_ERROR", async () => {
+    const generateContent = vi.fn(async () => {
+      throw new GoogleApiError(400, {
+        error: {
+          code: 400,
+          status: "INVALID_ARGUMENT",
+          details: [{ "@type": "type.googleapis.com/google.rpc.ErrorInfo", reason: "OTHER" }],
+        },
+      });
+    });
+    const provider = createGeminiProvider(config, { client: { models: { generateContent } } });
+
+    await expect(provider.translateBatch(request())).rejects.toMatchObject({
+      code: "PROVIDER_ERROR",
+    });
+  });
+});
