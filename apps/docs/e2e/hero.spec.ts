@@ -105,6 +105,10 @@ test.describe("hero layout at 1440px", () => {
     }
     const ctas = await box(".vk-banner-ctas");
     expect(ctas.y + ctas.height).toBeLessThanOrEqual(900);
+    const compare = await box(".vk-banner-ctas a[href='/compare']");
+    expect(compare.y + compare.height).toBeLessThanOrEqual(900);
+    expect(compare.x + compare.width).toBeLessThanOrEqual(copy.x + copy.width + 1);
+    expect(compare.height).toBeGreaterThanOrEqual(44);
     await expect(page.locator(`${HERO} > .vk-banner-halo`)).toHaveAttribute("aria-hidden", "true");
     await expect(page.locator(`${FILES} .vk-banner-file-line[data-added='true']`)).toHaveCount(2);
   });

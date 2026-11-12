@@ -130,8 +130,14 @@ describe("Hero copy", () => {
     const links = Array.from(ctas?.querySelectorAll("a") ?? []);
     expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       [banner.ctaPrimary, "/docs/quickstart"],
+      ["Compare with other tools", "/compare"],
     ]);
+    expect(banner.ctaCompare).toBe("Compare with other tools");
     expect(ctas?.firstElementChild).toBe(links[0]);
+    expect(links[0]?.className).toContain("vk-btn-primary");
+    expect(links[1]?.className).not.toContain("vk-btn-primary");
+    expect(links[1]?.className).toContain("vk-btn-ghost");
+    expect(links[1]?.textContent).not.toMatch(/\d/);
     expect(ctas?.lastElementChild?.className).toBe("vk-banner-install");
     expect(doc.querySelector(".vk-banner-trust, dl, .vk-facts")).toBeNull();
     expect(doc.querySelector(".vk-banner a[target='_blank']")).toBeNull();
@@ -144,6 +150,9 @@ describe("Hero copy", () => {
     );
     const de = catalogFor("de").landing.banner;
     expect(german.querySelector(".vk-banner-ctas a")?.textContent).toBe(de.ctaPrimary);
+    expect(german.querySelectorAll(".vk-banner-ctas a")[1]?.getAttribute("href")).toBe(
+      "/de/compare",
+    );
     expect(german.querySelector(".vk-banner-lead")?.textContent).toBe(de.lead);
   });
 });

@@ -190,6 +190,7 @@
       "headline": "Translate only <accent>what changed</accent>",
       "lead": "Verbatra hashes every key in a lock file, sends only changed keys to your provider, and fails CI on drift.",
       "ctaPrimary": "Get started",
+      "ctaCompare": "Compare with other tools",
       "keysAdded": "+{count, plural, one {# key} other {# keys}}"
     },
     "marquee": {
