@@ -162,6 +162,18 @@ describe("exportTmx writes the memory as TMX", () => {
     const result = await exportTmx({ config: cfg({ tone: "formal" }), cwd: dir });
 
     expect(result.units).toBe(0);
+    expect(result.otherConfiguration).toBe(1);
+  });
+
+  it("counts no entry as left out of another configuration when every entry is current", async () => {
+    const config = cfg();
+    const dir = await withMemory(
+      config,
+      { de: { [hashOf("Hello")]: "Hallo" } },
+      { [hashOf("Hello")]: "Hello" },
+    );
+
+    expect((await exportTmx({ config, cwd: dir })).otherConfiguration).toBe(0);
   });
 
   it("orders units by source hash, not by which locale contributed one first", async () => {

@@ -65,6 +65,13 @@ export interface ExportTmxResult {
    */
   readonly illegalCharactersRemoved: number;
   /**
+   * Memory entries for the exported locales left out because they are stored under another
+   * configuration fingerprint: translations made under an earlier provider, model, tone or glossary
+   * setting, which a run would no longer reuse. Counted once per locale and hash. Always present on
+   * a result {@link exportTmx} returns.
+   */
+  readonly otherConfiguration?: number | undefined;
+  /**
    * Whether each target segment carries its `x-origin` property (and `x-review` next to
    * `x-origin="machine"`): `written` when it does, `unavailable` when `verbatra.provenance.json` or
    * `verbatra.lock.json` could not be read, in which case no segment carries one.
@@ -168,6 +175,21 @@ function collect(
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([, unit]) => ({ source: unit.source, translations: unit.translations }));
   return { units, counts, withoutSource };
+}
+
+function countOtherConfiguration(
+  memory: TranslationMemory,
+  fingerprintFor: FingerprintFor,
+  locales: readonly string[],
+): number {
+  let count = 0;
+  for (const locale of locales) {
+    const current = fingerprintFor(locale);
+    for (const [fingerprint, byLocale] of Object.entries(memory.entries)) {
+      count += fingerprint === current ? 0 : Object.keys(byLocale[locale] ?? {}).length;
+    }
+  }
+  return count;
 }
 
 const OUTPUT_HINT = `Pass a path naming a file inside the project root, or omit it to use ${DEFAULT_TMX_PATH}.`;
@@ -277,7 +299,8 @@ export async function exportTmx(
   const path = await resolveOutputPath(fs, cwd, input.out, reserved);
   const { memory } = await readCarriedOverMemory(cwd, fs, locales);
   const originOf = await readTmxOriginLookup(cwd, fs, locales);
-  const collected = collect(memory, fingerprintsFor(input.config), locales, originOf);
+  const fingerprintFor = fingerprintsFor(input.config);
+  const collected = collect(memory, fingerprintFor, locales, originOf);
   const build: BuildTmxInput = {
     sourceLanguage: input.config.sourceLocale,
     units: collected.units,
@@ -290,6 +313,7 @@ export async function exportTmx(
     locales: collected.counts,
     withoutSource: collected.withoutSource,
     illegalCharactersRemoved: removedCharacterCount(build),
+    otherConfiguration: countOtherConfiguration(memory, fingerprintFor, locales),
     provenanceMarkers: originOf === undefined ? "unavailable" : "written",
   };
 }

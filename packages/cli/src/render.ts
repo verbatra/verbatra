@@ -31,6 +31,7 @@ import {
   type LocaleQaReport,
   type LocaleSummary,
   type LockWaitEvent,
+  type NeedsReviewEntry,
   PROVENANCE_BUCKETS,
   type ProgressEvent,
   type ProtectedKey,
@@ -310,6 +311,10 @@ function renderIntegrityWithheld(
   return lines.length === 0 ? [] : ["    integrity-withheld:", ...lines.map((entry) => entry.line)];
 }
 
+function renderNeedsReviewEntry(entry: NeedsReviewEntry): string {
+  return `${neutralizeControlCharacters(entry.key)} (${entry.reasons.join(", ")})`;
+}
+
 function renderNotices(notices: LocaleSummary["notices"]): readonly string[] {
   return notices.length === 0
     ? []
@@ -320,6 +325,7 @@ function renderLocaleDetail(locale: LocaleSummary, labels: RunCountLabels): read
   const groups = [
     renderDetailGroup("fuzzy-reused", locale.fuzzyHits.map(renderFuzzyHit)),
     renderDetailGroup("provider-failed", locale.providerFailures),
+    renderDetailGroup("needs-review", locale.needsReview.map(renderNeedsReviewEntry)),
     renderDetailGroup("sensitive-withheld", locale.sensitiveWithheld),
     ...renderNotices(locale.notices),
     renderDetailGroup("unfilled", locale.unfilled),
@@ -1302,6 +1308,16 @@ export function renderTmxExportHuman(result: ExportTmxResult, base?: string): st
           )}`,
         ]
       : [];
+  const otherConfiguration =
+    (result.otherConfiguration ?? 0) > 0
+      ? [
+          `  ${plural(
+            result.otherConfiguration ?? 0,
+            "entry left out: it is stored under an earlier provider, model, tone or glossary configuration",
+            "entries left out: they are stored under an earlier provider, model, tone or glossary configuration",
+          )}`,
+        ]
+      : [];
   const removed =
     result.illegalCharactersRemoved > 0
       ? [
@@ -1313,6 +1329,7 @@ export function renderTmxExportHuman(result: ExportTmxResult, base?: string): st
     ...localeLines,
     `${plural(result.units, "unit")} across ${plural(result.locales.length, "locale")}`,
     ...withoutSource,
+    ...otherConfiguration,
     ...removed,
     ...unavailableMarkersLine(
       result.provenanceMarkers,

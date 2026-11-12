@@ -11,5 +11,6 @@ export const exportTmxResultSchema = z.object({
   locales: z.array(z.object({ locale: z.string(), units: z.number() })).readonly(),
   withoutSource: z.number(),
   illegalCharactersRemoved: z.number(),
+  otherConfiguration: z.number().optional(),
   provenanceMarkers: provenanceMarkersSchema,
 });

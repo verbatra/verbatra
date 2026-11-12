@@ -229,6 +229,12 @@ describe("render: count wording agrees with the count", () => {
       "2 entries left out: the memory holds no source text for them",
     ],
     [
+      "tmx export entries under another configuration",
+      (n: number) => renderTmxExportHuman(makeExportTmxResult({ otherConfiguration: n })),
+      "1 entry left out: it is stored under an earlier provider, model, tone or glossary configuration",
+      "2 entries left out: they are stored under an earlier provider, model, tone or glossary configuration",
+    ],
+    [
       "tmx export removed characters",
       (n: number) => renderTmxExportHuman(makeExportTmxResult({ illegalCharactersRemoved: n })),
       "1 character XML 1.0 does not allow was removed from segment text",
