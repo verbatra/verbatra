@@ -304,7 +304,7 @@
         },
         "handoff": {
           "title": "Confie à des personnes",
-          "body": "Exporte un classeur Excel pour un traducteur et réimporte-le. Les valeurs importées restent protégées des exécutions machine ultérieures."
+          "body": "Exporte un classeur Excel, un CSV, un TSV ou un XLIFF pour un traducteur et réimporte-le. Les valeurs importées restent protégées des exécutions machine ultérieures."
         },
         "extract": {
           "title": "Extraire de la source",

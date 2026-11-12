@@ -304,7 +304,7 @@
         },
         "handoff": {
           "title": "Hand off to people",
-          "body": "Export an Excel workbook for a translator and import it back. Imported values stay protected from later machine runs."
+          "body": "Export an Excel workbook, CSV, TSV or XLIFF for a translator and import it back. Imported values stay protected from later machine runs."
         },
         "extract": {
           "title": "Extract from source",

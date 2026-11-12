@@ -304,7 +304,7 @@
         },
         "handoff": {
           "title": "An Leute übergeben",
-          "body": "Exportiere eine Excel-Arbeitsmappe für einen Übersetzer und importiere sie zurück. Importierte Werte bleiben vor späteren Maschinenläufen geschützt."
+          "body": "Exportiere eine Excel-Arbeitsmappe, CSV, TSV oder XLIFF für einen Übersetzer und importiere sie zurück. Importierte Werte bleiben vor späteren Maschinenläufen geschützt."
         },
         "extract": {
           "title": "Aus der Quelle extrahieren",
