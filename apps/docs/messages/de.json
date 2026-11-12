@@ -60,15 +60,6 @@
     },
     "breadcrumb": {
       "label": "Brotkrumen"
-    },
-    "versionPicker": {
-      "cliSdk": "CLI/SDK",
-      "studio": "Studio",
-      "mcp": "MCP",
-      "latest": "Aktuellste",
-      "more": "Studio- und MCP-Versionen",
-      "noticeTitle": "Neuer als deine Version",
-      "noticeText": "Teile dieser Seite benötigen eine neuere Version als die, die du ausgewählt hast. Jede ist mit der Version gekennzeichnet, die sie hinzufügt. Wähle „Aktuellste“, um die Markierungen auszublenden."
     }
   },
   "landing": {

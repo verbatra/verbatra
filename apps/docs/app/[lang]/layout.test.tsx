@@ -141,15 +141,3 @@ describe("Layout: Search Console verification", () => {
     expect(metadata.verification?.google).toBe("z0lelBJ5J1ajeyw1BedyvY1PrGlqa4b8IXZlMVGxRcM");
   });
 });
-
-describe("Layout: the version picker's init script", () => {
-  it("follows the theme script as a second inline script holding the constant source", async () => {
-    const { VERSION_INIT_SCRIPT } = await import("@/lib/docs-version");
-    const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
-    const doc = new DOMParser().parseFromString(renderToStaticMarkup(tree), "text/html");
-    const scripts = Array.from(doc.body.querySelectorAll<HTMLScriptElement>("script:not([src])"));
-    expect(scripts[1]?.textContent).toBe(VERSION_INIT_SCRIPT);
-    expect(scripts[0]?.nextElementSibling).toBe(scripts[1]);
-    expect(doc.documentElement.hasAttribute("data-vk-cli")).toBe(false);
-  });
-});

@@ -5,7 +5,6 @@ export const CLIENT_MESSAGE_NAMESPACES = [
   "docs.diffPanel",
   "docs.screenshot",
   "docs.theme",
-  "docs.versionPicker",
   "landing.install",
   "landing.nav.languageSwitcher",
   "legal.contact.form",

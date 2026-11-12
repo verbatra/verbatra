@@ -1,9 +1,10 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { PILL_CLASS } from "@/components/new-badge";
-import { placeAvailableFrom } from "@/lib/docs-version";
+import { NewPill } from "@/components/new-pill";
 import type { Locale } from "@/lib/i18n";
-import type { PlacedBadge } from "@/lib/release-lines.mjs";
+import { RELEASED_VERSIONS } from "@/lib/new-status";
+import { isStillNew } from "@/lib/release-line";
 
 export const AVAILABLE_FROM_CLASS = "vk-available-from";
 
@@ -38,37 +39,22 @@ export async function AvailableFrom({
   pkg,
   locale,
 }: AvailableFromProps & { locale: Locale }): Promise<ReactNode> {
+  if (!isStillNew(pkg === undefined ? { version } : { version, pkg }, RELEASED_VERSIONS))
+    return null;
+  const [{ detail }, t] = await Promise.all([
+    availableFromCopy(version, pkg, locale),
+    getTranslations({ locale, namespace: "docs.statusBadges" }),
+  ]);
   return (
-    <AvailableFromPill
-      {...(await availableFromCopy(version, pkg, locale))}
-      version={version}
-      placed={placeAvailableFrom(pkg, version)}
-    />
+    <NewPill className={AVAILABLE_FROM_CLASS} title={detail}>
+      {t("new")}
+    </NewPill>
   );
 }
 
-export function versionAttributes(
-  version: string,
-  placed: PlacedBadge,
-): Record<`data-vk-${string}`, string> {
-  return {
-    "data-vk-pkg": placed.package,
-    "data-vk-line": placed.line,
-    "data-vk-since": version,
-    ...(placed.patch > 0 ? { "data-vk-patch": String(placed.patch) } : {}),
-  };
-}
-
-export function AvailableFromPill({
-  label,
-  detail,
-  version,
-  placed,
-}: AvailableFromCopy & { version?: string; placed?: PlacedBadge }): ReactNode {
-  const attributes =
-    version === undefined || placed === undefined ? {} : versionAttributes(version, placed);
+export function AvailableFromPill({ label, detail }: AvailableFromCopy): ReactNode {
   return (
-    <span className={`${PILL_CLASS} ${AVAILABLE_FROM_CLASS}`} title={detail} {...attributes}>
+    <span className={`${PILL_CLASS} ${AVAILABLE_FROM_CLASS}`} title={detail}>
       {label}
     </span>
   );

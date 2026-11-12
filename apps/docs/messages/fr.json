@@ -60,15 +60,6 @@
     },
     "breadcrumb": {
       "label": "Fil d'Ariane"
-    },
-    "versionPicker": {
-      "cliSdk": "CLI/SDK",
-      "studio": "Studio",
-      "mcp": "MCP",
-      "latest": "Dernière",
-      "more": "Versions de Studio et MCP",
-      "noticeTitle": "Plus récent que ta version",
-      "noticeText": "Certaines parties de cette page nécessitent une version plus récente que celle que tu as choisie. Chacune est marquée avec la version qui l'ajoute. Choisis Dernière pour masquer les marques."
     }
   },
   "landing": {

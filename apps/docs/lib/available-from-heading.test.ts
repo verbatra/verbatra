@@ -32,7 +32,6 @@ describe("rehypeAvailableFromInHeading", () => {
     const [moved, rest] = tree.children ?? [];
     expect(moved?.children).toEqual([
       { type: "text", value: "translate" },
-      { type: "text", value: " " },
       { ...badge("0.12.0"), type: "mdxJsxTextElement" },
     ]);
     expect(rest).toBe(paragraph);

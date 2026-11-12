@@ -2,12 +2,13 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import en from "@/messages/en.json";
 
 type Values = Record<string, string | ((chunks: string) => string)>;
 
-function format(key: keyof typeof en.docs.availableFrom, values: Values): string {
-  return en.docs.availableFrom[key]
+function format(text: string, values: Values): string {
+  return text
     .replace(/<(\w+)>(.*?)<\/\1>/g, (_, tag: string, chunks: string) => {
       const wrap = values[tag];
       return typeof wrap === "function" ? wrap(chunks) : chunks;
@@ -16,89 +17,107 @@ function format(key: keyof typeof en.docs.availableFrom, values: Values): string
 }
 
 vi.mock("next-intl/server", () => ({
-  getTranslations: async () => {
-    const t = (key: keyof typeof en.docs.availableFrom, values: Values) => format(key, values);
+  getTranslations: async ({ namespace }: { namespace: string }) => {
+    const messages =
+      namespace === "docs.statusBadges" ? en.docs.statusBadges : en.docs.availableFrom;
+    const t = (key: string, values: Values = {}) =>
+      format((messages as Record<string, string>)[key] ?? "", values);
     t.markup = t;
     return t;
   },
 }));
 
-const { AvailableFrom, AVAILABLE_FROM_CLASS } = await import("./available-from");
+const { AvailableFrom, AvailableFromPill, AVAILABLE_FROM_CLASS } = await import("./available-from");
 
-async function renderBadge(pkg?: string, version = "0.12.0"): Promise<HTMLElement> {
+function line(version: string): readonly [number, number] {
+  const [major = 0, minor = 0] = version.split(".").map(Number);
+  return [major, minor];
+}
+
+function inLine(version: string, offset: number, patch = 0): string {
+  const [major, minor] = line(version);
+  return `${major}.${minor + offset}.${patch}`;
+}
+
+async function render(version: string, pkg?: string): Promise<string> {
   const node = await AvailableFrom({
     version,
     locale: "en",
     ...(pkg === undefined ? {} : { pkg }),
   });
-  const markup = renderToStaticMarkup(node);
-  const badge = new DOMParser().parseFromString(markup, "text/html").body.firstElementChild;
+  return renderToStaticMarkup(node);
+}
+
+async function renderedBadge(version: string, pkg?: string): Promise<HTMLElement> {
+  const badge = new DOMParser().parseFromString(await render(version, pkg), "text/html").body
+    .firstElementChild;
   if (!(badge instanceof HTMLElement)) throw new Error("no badge rendered");
   return badge;
 }
 
-describe("AvailableFrom", () => {
-  it("renders an inline badge with the version, not a callout box", async () => {
-    const badge = await renderBadge();
+describe("AvailableFrom for a release in the current line", () => {
+  it.each([
+    ["the first version of the line", inLine(PACKAGE_VERSION, 0)],
+    ["a patch of the line", inLine(PACKAGE_VERSION, 0, 3)],
+    ["the next unreleased minor", inLine(PACKAGE_VERSION, 1)],
+  ])("renders the New pill for %s", async (_name, version) => {
+    const badge = await renderedBadge(version);
 
     expect(badge.tagName).toBe("SPAN");
+    expect(badge.classList.contains("vk-pill-new")).toBe(true);
     expect(badge.classList.contains(AVAILABLE_FROM_CLASS)).toBe(true);
-    expect(badge.classList.contains("vk-pill")).toBe(true);
-    expect(badge.textContent).toBe("Available from 0.12.0");
-    expect(badge.querySelector("svg, [role='none']")).toBeNull();
+    expect(badge.textContent).toBe(en.docs.statusBadges.new);
   });
 
-  it("keeps the translated upgrade advice as the badge's title, without markup", async () => {
-    const badge = await renderBadge();
+  it("shows no version in the visible text and keeps the upgrade advice as the title", async () => {
+    const version = inLine(PACKAGE_VERSION, 0);
+    const badge = await renderedBadge(version);
 
-    expect(badge.title).toContain("verbatra 0.12.0 or newer");
+    expect(badge.textContent).not.toContain(version);
+    expect(badge.textContent).not.toContain("Available from");
+    expect(badge.title).toContain(`verbatra ${version} or newer`);
     expect(badge.title).toContain("verbatra --version");
     expect(badge.title).not.toContain("<code>");
+    expect(badge.querySelector(".sr-only")).toBeNull();
   });
 
-  it("names the package when the feature ships in its own package", async () => {
-    const badge = await renderBadge("@verbatra/studio", "0.7.0");
+  it("names the package in the title when the feature ships in its own package", async () => {
+    const badge = await renderedBadge(inLine(STUDIO_VERSION, 0), "@verbatra/studio");
 
-    expect(badge.textContent).toBe("Available from @verbatra/studio 0.7.0");
-    expect(badge.title).toContain("@verbatra/studio 0.7.0 or newer");
+    expect(badge.textContent).toBe(en.docs.statusBadges.new);
+    expect(badge.title).toContain(`@verbatra/studio ${inLine(STUDIO_VERSION, 0)} or newer`);
+  });
+
+  it("dates each package against its own line", async () => {
+    expect(await render(inLine(MCP_VERSION, 0), "@verbatra/mcp")).toContain("vk-pill-new");
+    expect(await render(inLine(MCP_VERSION, -1), "@verbatra/mcp")).toBe("");
+    expect(await render(inLine(PACKAGE_VERSION, 0), "@verbatra/sdk")).toContain("vk-pill-new");
   });
 });
 
-describe("AvailableFrom version attributes", () => {
-  it("names the package line and the exact version the stylesheet reveals it by", async () => {
-    const badge = await renderBadge();
-
-    expect(badge.getAttribute("data-vk-pkg")).toBe("cli");
-    expect(badge.getAttribute("data-vk-line")).toBe("0.12");
-    expect(badge.getAttribute("data-vk-since")).toBe("0.12.0");
-    expect(badge.hasAttribute("data-vk-patch")).toBe(false);
+describe("AvailableFrom for an older release", () => {
+  it.each([
+    ["the last version of the previous line", inLine(PACKAGE_VERSION, -1, 9)],
+    ["the first version of the previous line", inLine(PACKAGE_VERSION, -1)],
+    ["a much older line", "0.1.0"],
+  ])("renders nothing for %s", async (_name, version) => {
+    expect(await render(version)).toBe("");
+    expect(await AvailableFrom({ version, locale: "en" })).toBeNull();
   });
 
-  it("maps a package badge to its own line and flags a patch release", async () => {
-    const node = await AvailableFrom({
-      version: "0.5.1",
-      pkg: "@verbatra/studio",
-      locale: "en",
-    });
-    const badge = new DOMParser().parseFromString(renderToStaticMarkup(node), "text/html").body
-      .firstElementChild;
-
-    expect(badge?.getAttribute("data-vk-pkg")).toBe("studio");
-    expect(badge?.getAttribute("data-vk-line")).toBe("0.5");
-    expect(badge?.getAttribute("data-vk-patch")).toBe("1");
+  it("renders nothing for a package it does not know", async () => {
+    expect(await render(inLine(PACKAGE_VERSION, 0), "@verbatra/unknown")).toBe("");
   });
+});
 
-  it("refuses to render a badge no release line can place", async () => {
-    await expect(AvailableFrom({ version: "9.9.0", locale: "en" })).rejects.toThrow(
-      /no release line/,
-    );
-  });
-
-  it("leaves a pill outside the docs without attributes, so it stays visible", async () => {
-    const { AvailableFromPill } = await import("./available-from");
+describe("AvailableFromPill", () => {
+  it("is the compare page's outline pill with its version text and no version attributes", () => {
     const markup = renderToStaticMarkup(
       AvailableFromPill({ label: "Available from 0.12.0", detail: "d" }),
     );
+    expect(markup).toContain("Available from 0.12.0");
+    expect(markup).toContain("vk-pill");
+    expect(markup).not.toContain("vk-pill-new");
     expect(markup).not.toContain("data-vk-");
   });
 });

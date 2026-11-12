@@ -1,7 +1,6 @@
 import { DocsLayout } from "fumadocs-ui/layouts/notebook";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
-import { VersionPicker } from "@/components/chrome-islands";
 import { DocsSiteHeader } from "@/components/docs-site-header";
 import { FooterLocaleLinks } from "@/components/footer-locale-links";
 import { LegalFooter } from "@/components/legal-footer";
@@ -47,10 +46,7 @@ export default async function Layout({
           links={withNavOnlyTabLinks(links, tabs)}
           nav={{ ...nav, mode: "top" }}
           slots={{ ...base.slots, header: DocsSiteHeader }}
-          sidebar={{
-            banner: <SidebarTabs key="root-tabs" />,
-            footer: <VersionPicker key="version-picker" layout="sidebar" />,
-          }}
+          sidebar={{ banner: <SidebarTabs key="root-tabs" /> }}
           tabs={false}
           tree={tree}
         >

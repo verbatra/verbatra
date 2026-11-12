@@ -4,7 +4,6 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { DefaultThemeMeta } from "@/components/default-theme-meta";
 import { JsonLd } from "@/components/json-ld";
-import { VERSION_INIT_SCRIPT } from "@/lib/docs-version";
 import { FONT_VARIABLES } from "@/lib/fonts";
 import { i18n, toLocale } from "@/lib/i18n";
 import { homeAlternates, SITE_URL } from "@/lib/site";
@@ -84,7 +83,6 @@ export default async function Layout({
       </head>
       <body className="flex flex-col min-h-screen">
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: VERSION_INIT_SCRIPT }} />
         <JsonLd data={websiteLd({ lang: locale })} />
         <JsonLd data={organizationLd()} />
         {children}

@@ -60,15 +60,6 @@
     },
     "breadcrumb": {
       "label": "Ruta de navegación"
-    },
-    "versionPicker": {
-      "cliSdk": "CLI/SDK",
-      "studio": "Studio",
-      "mcp": "MCP",
-      "latest": "Última",
-      "more": "Versiones de Studio y MCP",
-      "noticeTitle": "Más reciente que tu versión",
-      "noticeText": "Partes de esta página necesitan una versión más reciente que la que has elegido. Cada una está marcada con la versión que la añade. Elige Última para ocultar las marcas."
     }
   },
   "landing": {
