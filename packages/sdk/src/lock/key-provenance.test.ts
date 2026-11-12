@@ -143,6 +143,22 @@ describe("summarizeProvenance and originsOf", () => {
     });
   });
 
+  it("counts an imported value with no decision as unreviewed although it is not machine class", () => {
+    const imported = new Map<string, ProvenanceRecord>([
+      ["a", { origin: "import", valueHash: valueHash("A") }],
+    ]);
+
+    const summary = summarizeProvenance(
+      imported,
+      resource({ a: "a" }),
+      resource({ a: "A" }),
+      new Map(),
+    );
+
+    expect(summary.byOrigin.import).toBe(1);
+    expect(summary.byReviewState).toEqual({ unreviewed: 1, approved: 0, rejected: 0 });
+  });
+
   it("counts an approval whose source changed as unreviewed", () => {
     const reviewed = new Map<string, ProvenanceRecord>([
       [

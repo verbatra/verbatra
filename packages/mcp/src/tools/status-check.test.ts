@@ -4,6 +4,13 @@ import { defaultAdapterRegistry, makeContext, makeProject, nodeFs } from "../tes
 import { statusCheckTool } from "./status-check.js";
 
 describe("status.check", () => {
+  it("says byReviewState counts every value by its decision, not only the machine values in the review queue", () => {
+    expect(statusCheckTool.description).toContain(
+      "byReviewState counts every value by its recorded decision, whatever its origin",
+    );
+    expect(statusCheckTool.description).toContain("review queue holds only machine-class values");
+  });
+
   it("reports missing keys per target locale", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
 
