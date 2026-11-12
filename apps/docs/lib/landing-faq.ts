@@ -7,7 +7,7 @@ import { PACKAGE_VERSION } from "./site";
 
 type FaqDocsLink = { readonly page: string; readonly anchors?: LocalizedAnchors };
 
-export const FAQ_ITEM_IDS = ["cost", "providers", "privacy", "ci", "incremental"] as const;
+export const FAQ_ITEM_IDS = ["cost", "providers", "privacy", "ci", "compare"] as const;
 
 export type FaqItemId = (typeof FAQ_ITEM_IDS)[number];
 
@@ -16,7 +16,7 @@ export const FAQ_ANSWER_LINKS: Readonly<Record<FaqItemId, FaqDocsLink>> = {
   providers: { page: "/docs/providers" },
   privacy: { page: "/docs/data-handling" },
   ci: { page: "/docs/github-action" },
-  incremental: { page: "/docs/the-lock-file" },
+  compare: { page: COMPARE_PATH },
 };
 
 export const FAQ_ASIDE_LINKS = [

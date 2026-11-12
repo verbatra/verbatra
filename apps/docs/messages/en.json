@@ -111,9 +111,9 @@
           "question": "Can Verbatra fail a pull request when translations are missing?",
           "answer": "Yes. <code>verbatra check</code> exits 1 while a locale has missing or stale keys, with no API key needed; the <link>GitHub Action</link> runs it on pull requests."
         },
-        "incremental": {
-          "question": "Does Verbatra re-translate strings that did not change?",
-          "answer": "No. Only new and changed keys go to your provider; a committed <link>lock file</link> records what is already translated."
+        "compare": {
+          "question": "How is Verbatra different from other i18n tools?",
+          "answer": "It is a CLI that runs on your own committed files, not a hosted platform. The <link>comparison page</link> checks it against other tools, with sources, including where they are stronger."
         }
       }
     },

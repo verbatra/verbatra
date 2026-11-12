@@ -320,7 +320,23 @@ describe("the landing faq copy", () => {
     const faq = CATALOGS[locale].landing.faq.items;
     expect(faq.cost.answer.startsWith(YES[locale])).toBe(true);
     expect(faq.ci.answer.startsWith(YES[locale])).toBe(true);
-    expect(faq.incremental.answer.startsWith(NO[locale])).toBe(true);
+  });
+
+  it("keeps the comparison question last and answers it without a yes or no opener in en", () => {
+    expect(FAQ_ITEM_IDS.at(-1)).toBe("compare");
+    expect(FAQ_ITEM_IDS).not.toContain("incremental");
+    const { compare } = en.landing.faq.items;
+    expect(compare.question).toBe("How is Verbatra different from other i18n tools?");
+    expect(compare.answer).toBe(
+      "It is a CLI that runs on your own committed files, not a hosted platform. The <link>comparison page</link> checks it against other tools, with sources, including where they are stronger.",
+    );
+    expect(compare.answer.startsWith(YES.en)).toBe(false);
+    expect(compare.answer.startsWith(NO.en)).toBe(false);
+  });
+
+  it("points the comparison answer at the comparison page, beside the aside link", () => {
+    expect(FAQ_ANSWER_LINKS.compare).toEqual({ page: "/compare" });
+    expect(FAQ_ASIDE_LINKS.map(({ key }) => key)).toContain("compare");
   });
 
   it.each(i18n.languages)("keeps the docs link out of the first sentence in %s", (locale) => {
