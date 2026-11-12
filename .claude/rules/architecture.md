@@ -85,7 +85,7 @@ surface.
 
 Business logic lives in `@verbatra/sdk` and below. `@verbatra/cli`
 (`packages/cli/src/run.ts`, the `Command` registrations for `translate`, `watch`, `export`,
-`import`, `tmx`, `check`, `diff`, `pseudo`, `types`, `doctor`, `studio`, `mcp`, `init`, `extract`)
+`import`, `tmx`, `check`, `diff`, `report`, `pseudo`, `types`, `doctor`, `studio`, `mcp`, `init`, `extract`)
 is a thin wrapper: it parses args with zod schemas, calls into the sdk, and renders the result.
 `@verbatra/studio` is the local dashboard; its provider-spending actions (retranslate, translate
 pending) are gated behind `--allow-spend` (`packages/cli/src/studio-command.ts`,
