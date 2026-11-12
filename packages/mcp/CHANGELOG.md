@@ -1,5 +1,21 @@
 # @verbatra/mcp
 
+## 0.4.5
+
+### Patch Changes
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`2c23869`](https://github.com/verbatra/verbatra/commit/2c238696c9048689f16ac7eb83fb5286a1d85b4e) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Say what the review-state counts cover.
+  
+  - **Agent tools:** the `status.check` and `lock.state` descriptions now state that `byReviewState` counts every value by its recorded decision, whatever its origin. A value a person wrote or imported with no decision counts as `unreviewed` there although the review queue holds only machine-class values. The counts themselves are unchanged.
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`c4ce122`](https://github.com/verbatra/verbatra/commit/c4ce122b86031eedb3b6067394e4efe9f1d929f2) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Say when the last recorded run did not finish cleanly.
+  
+  - **Agent tools:** `usage.summary` now returns an optional `incomplete` field with the number of locales that failed (`failed`) or stopped partway (`partial`), so a low or absent usage figure is no longer read as a successful run. The field is left out when every locale succeeded.
+  - **SDK:** `runStatus` returns the same optional `incomplete` field next to the recorded run when at least one locale failed or finished partially.
+  - **Upgrade:** `usage.summary` and `runStatus` results used to carry no `incomplete` field. They now include it when a recorded locale failed or finished partially. Nothing else in the result changed; a consumer that validates the result strictly must allow the optional field.
+- Updated dependencies [[`40c9dda`](https://github.com/verbatra/verbatra/commit/40c9ddab60546d6cea79c58e51b5686d742a24b5), [`a5c6c5b`](https://github.com/verbatra/verbatra/commit/a5c6c5b2bc66a5877c9f8f5ef2daea2f072280f3), [`f8640e7`](https://github.com/verbatra/verbatra/commit/f8640e7290c8d5c7e9eb48ab02ef1eb5d829b632), [`908b5b2`](https://github.com/verbatra/verbatra/commit/908b5b273852ffe979ba5c9fbf4b4735f6d6c6c0), [`3cc1185`](https://github.com/verbatra/verbatra/commit/3cc118525111106bec36ce002f21455c29e61d14), [`c4ce122`](https://github.com/verbatra/verbatra/commit/c4ce122b86031eedb3b6067394e4efe9f1d929f2)]:
+  - @verbatra/sdk@0.13.5
+
 ## 0.4.4
 
 ### Patch Changes

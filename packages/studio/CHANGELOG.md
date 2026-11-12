@@ -1,5 +1,18 @@
 # @verbatra/studio
 
+## 0.7.5
+
+### Patch Changes
+
+- [#374](https://github.com/verbatra/verbatra/pull/374) [`3521906`](https://github.com/verbatra/verbatra/commit/35219064ea0ddbce0ba5f3ead781a0f55bd52b83) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Fix three misleading or unclear spots in the dashboard.
+  
+  - **Overview:** the Last run card now says how many locales failed or finished partially, and no longer claims the run called no provider when it did.
+  - **Translations:** the banner no longer reads "Everything is in sync" above keys that need attention; with entries still awaiting review it says the locale files are in sync and names what is waiting.
+  - **Review:** the Edit, Approve, Reject and Retranslate buttons now carry the key and locale in their accessible names. The visible text and shortcuts are unchanged.
+  - **Agent tools:** `verbatra_usage_summary` now returns an optional `incomplete` field with the number of locales that failed or stopped partway, and its description says so.
+- Updated dependencies [[`40c9dda`](https://github.com/verbatra/verbatra/commit/40c9ddab60546d6cea79c58e51b5686d742a24b5), [`a5c6c5b`](https://github.com/verbatra/verbatra/commit/a5c6c5b2bc66a5877c9f8f5ef2daea2f072280f3), [`f8640e7`](https://github.com/verbatra/verbatra/commit/f8640e7290c8d5c7e9eb48ab02ef1eb5d829b632), [`908b5b2`](https://github.com/verbatra/verbatra/commit/908b5b273852ffe979ba5c9fbf4b4735f6d6c6c0), [`3cc1185`](https://github.com/verbatra/verbatra/commit/3cc118525111106bec36ce002f21455c29e61d14), [`c4ce122`](https://github.com/verbatra/verbatra/commit/c4ce122b86031eedb3b6067394e4efe9f1d929f2)]:
+  - @verbatra/sdk@0.13.5
+
 ## 0.7.4
 
 ### Patch Changes
