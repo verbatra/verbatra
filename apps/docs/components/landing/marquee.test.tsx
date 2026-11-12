@@ -2,10 +2,10 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, type ReactNode } from "react";
+import { act, type ReactNode, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BRAND_MARKS, type BrandMarkId } from "@/lib/brand-marks";
 import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
@@ -76,12 +76,68 @@ function visibleItems(rowElement: Element): ReadonlyArray<string> {
 
 const mounted: Array<{ root: Root; host: HTMLElement }> = [];
 
+const motion = { matches: true, listeners: new Set<() => void>() };
+
+beforeEach(() => {
+  motion.matches = true;
+  motion.listeners.clear();
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    media: query,
+    get matches() {
+      return motion.matches;
+    },
+    addEventListener: (_type: string, listener: () => void) => motion.listeners.add(listener),
+    removeEventListener: (_type: string, listener: () => void) => motion.listeners.delete(listener),
+  }));
+});
+
 afterEach(() => {
   for (const { root, host } of mounted.splice(0)) {
     act(() => root.unmount());
     host.remove();
   }
+  vi.unstubAllGlobals();
 });
+
+function setMotion(matches: boolean): void {
+  motion.matches = matches;
+  act(() => {
+    for (const listener of motion.listeners) listener();
+  });
+}
+
+function rowsOf(html: string): ReactNode {
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+function mountRows(html: string, strict = false): { host: HTMLElement; root: Root } {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  mounted.push({ root, host });
+  const tree = (
+    <MarqueeMotion pauseLabel={copy.pause} playLabel={copy.play}>
+      {rowsOf(html)}
+    </MarqueeMotion>
+  );
+  act(() => root.render(strict ? <StrictMode>{tree}</StrictMode> : tree));
+  return { host, root };
+}
+
+async function serverRowsHtml(): Promise<string> {
+  page.locale = "en";
+  const html = renderToStaticMarkup(await Marquee());
+  return (
+    new DOMParser().parseFromString(html, "text/html").querySelector(".vk-marquee")?.innerHTML ?? ""
+  );
+}
+
+function copiesPerRow(host: HTMLElement): ReadonlyArray<number> {
+  return Array.from(
+    host.querySelectorAll(".vk-marquee-track"),
+    (track) => track.querySelectorAll(":scope > .vk-marquee-copy").length,
+  );
+}
 
 function mountToggle(): HTMLElement {
   const host = document.createElement("div");
@@ -375,19 +431,7 @@ describe("Marquee", () => {
   });
 
   it("adds the copies once the island has mounted, hidden from assistive technology and focus, and takes them away on unmount", async () => {
-    page.locale = "en";
-    const html = renderToStaticMarkup(await Marquee());
-    const rows = new DOMParser().parseFromString(html, "text/html").querySelector(".vk-marquee");
-    const host = document.createElement("div");
-    document.body.append(host);
-    const root = createRoot(host);
-    act(() =>
-      root.render(
-        <MarqueeMotion pauseLabel={copy.pause} playLabel={copy.play}>
-          <div dangerouslySetInnerHTML={{ __html: rows?.innerHTML ?? "" }} />
-        </MarqueeMotion>,
-      ),
-    );
+    const { host, root } = mountRows(await serverRowsHtml());
     for (const id of ["providers", "formats"]) {
       const track = host.querySelector(`[data-row="${id}"] .vk-marquee-track`);
       const [visible, ...copies] = Array.from(track?.children ?? []);
@@ -405,7 +449,39 @@ describe("Marquee", () => {
     expect(host.querySelector(".vk-marquee")?.getAttribute("data-marquee")).toBe("running");
     act(() => root.unmount());
     expect(host.querySelector(".vk-marquee-copy")).toBeNull();
-    host.remove();
+  });
+
+  it("keeps exactly one set of copies per row under StrictMode's second effect run", async () => {
+    const { host } = mountRows(await serverRowsHtml(), true);
+    expect(copiesPerRow(host)).toEqual([MARQUEE_COPIES, MARQUEE_COPIES]);
+  });
+
+  it("makes no copy while motion will never run, and follows a change of the preference at runtime", async () => {
+    motion.matches = false;
+    const { host } = mountRows(await serverRowsHtml());
+    expect(copiesPerRow(host)).toEqual([0, 0]);
+    expect(host.querySelector(".vk-marquee")?.getAttribute("data-marquee")).toBe("running");
+    setMotion(true);
+    expect(copiesPerRow(host)).toEqual([MARQUEE_COPIES, MARQUEE_COPIES]);
+    setMotion(false);
+    expect(copiesPerRow(host)).toEqual([0, 0]);
+  });
+
+  it("rebuilds the copies from the new rows when a refresh sends different children", async () => {
+    const html = await serverRowsHtml();
+    const { host, root } = mountRows(html);
+    const changed = html.replaceAll("Anthropic", "Anthropic Claude");
+    act(() =>
+      root.render(
+        <MarqueeMotion pauseLabel={copy.pause} playLabel={copy.play}>
+          {rowsOf(changed)}
+        </MarqueeMotion>,
+      ),
+    );
+    expect(copiesPerRow(host)).toEqual([MARQUEE_COPIES, MARQUEE_COPIES]);
+    const track = host.querySelector('[data-row="providers"] .vk-marquee-track');
+    for (const hidden of track?.querySelectorAll(":scope > .vk-marquee-copy") ?? [])
+      expect(hidden.textContent).toContain("Anthropic Claude");
   });
 
   it("ends the section with a centred pair of docs links, outside every row and track", async () => {

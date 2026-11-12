@@ -565,9 +565,11 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   list, the list, and an "All providers" or "All formats" link after the moving track, so nothing focusable moves.
   The list sits in `.vk-marquee-viewport`, a `.vk-edge-fade` `role="group"` keyboard stop named by
   the row's `h3`. The server HTML is the static state with one list per row and no copy: once the island has
-  mounted, `MarqueeMotion` clones each list `MARQUEE_COPIES` (`lib/marquee-copies.ts`) times into its track (`aria-hidden`, `inert`, no
-  `aria-labelledby`, holding no link or button, `display: none` until motion runs), removes them on unmount and only then sets
-  `data-marquee`, so the lists and their copies start the loop in the same frame and stay in step; two copies keep a row
+  mounted and `prefers-reduced-motion: no-preference` matches, `MarqueeMotion` clones each list `MARQUEE_COPIES` (`lib/marquee-copies.ts`) times into its
+  track (`aria-hidden`, `inert`, no `aria-labelledby`, holding no link or button, `display: none` until motion runs) and only then sets
+  `data-marquee`, so the lists and their copies start the loop in the same frame and stay in step. Under reduced motion no copy
+  exists; a change of the preference at runtime adds or removes them and aligns their animation clock to the first list, and
+  new rows from a refresh clone the copies again (the effect depends on `children`), so none goes stale; unmount removes them; two copies keep a row
   edge to edge up to at least 2560px (`e2e/marquee.spec.ts` checks 1440, 1920 and 2560 at five points of the loop).
   Under reduced motion or without JavaScript (`scripting: none`) the pause button is `display: none`
   and the list wraps from 40rem, which never changes; under 40rem the static list is one sideways-scrolling line instead

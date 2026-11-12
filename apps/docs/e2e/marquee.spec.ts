@@ -189,6 +189,30 @@ test.describe("marquee under reduced motion on a phone", () => {
   });
 });
 
+test.describe("marquee when the motion preference changes at runtime", () => {
+  test("adds no copy while motion is reduced, then starts every list of a row in step", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
+    await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(0);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(4);
+    await expect.poll(() => playStates(page)).toContain("running");
+    const spread = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("#marquee .vk-marquee-track"), (track) => {
+        const times = Array.from(track.children, (list) =>
+          Number((list as HTMLElement).getAnimations()[0]?.currentTime ?? Number.NaN),
+        );
+        return Math.max(...times) - Math.min(...times);
+      }),
+    );
+    for (const difference of spread) expect(difference).toBeLessThan(50);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(0);
+  });
+});
+
 test.describe("marquee without JavaScript on a phone", () => {
   test.use({ javaScriptEnabled: false, reducedMotion: "no-preference", viewport: PHONE });
 

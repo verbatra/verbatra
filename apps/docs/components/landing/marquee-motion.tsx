@@ -13,6 +13,8 @@ const GLYPH = {
   fill: "currentColor",
 } as const;
 
+const MOTION_QUERY = "(prefers-reduced-motion: no-preference)";
+
 const TRACK_LIST_SELECTOR = ".vk-marquee-track > .vk-marquee-list";
 
 function addCopies(root: HTMLElement): ReadonlyArray<HTMLElement> {
@@ -29,6 +31,16 @@ function addCopies(root: HTMLElement): ReadonlyArray<HTMLElement> {
   );
 }
 
+function alignCopies(root: HTMLElement): void {
+  for (const track of root.querySelectorAll(".vk-marquee-track")) {
+    const [first] = track.querySelectorAll<HTMLElement>(":scope > .vk-marquee-list");
+    const time = first?.getAnimations?.()[0]?.currentTime;
+    if (time === undefined) continue;
+    for (const copy of track.querySelectorAll<HTMLElement>(":scope > .vk-marquee-copy"))
+      for (const animation of copy.getAnimations?.() ?? []) animation.currentTime = time;
+  }
+}
+
 export function MarqueeMotion({
   pauseLabel,
   playLabel,
@@ -43,13 +55,25 @@ export function MarqueeMotion({
   const [paused, setPaused] = useState(false);
   const state: MarqueeState = paused ? "paused" : "running";
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a refresh sends new rows, so the copies are cloned again from them
   useEffect(() => {
-    const copies = root.current === null ? [] : addCopies(root.current);
+    const element = root.current;
+    if (element === null) return;
+    const query = window.matchMedia(MOTION_QUERY);
+    let copies: ReadonlyArray<HTMLElement> = [];
+    const sync = () => {
+      for (const copy of copies) copy.remove();
+      copies = query.matches ? addCopies(element) : [];
+      alignCopies(element);
+    };
+    sync();
     setReady(true);
+    query.addEventListener("change", sync);
     return () => {
+      query.removeEventListener("change", sync);
       for (const copy of copies) copy.remove();
     };
-  }, []);
+  }, [children]);
 
   return (
     <div ref={root} className="vk-marquee" data-marquee={ready ? state : undefined}>
