@@ -635,7 +635,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `HERO_FILE_IDS` list says which lines the front card shows and which are marked added (the badge
   counts those), and the preview line is `PLAYGROUND_DEFAULT_ITEM`,
   `CommandRow` (`components/command-row.tsx`: the closing
-  section's npm install wraps under 30rem through `wrap="narrow"`, `wrap="always"` wraps a command at every width; elsewhere a `CommandRow` scrolls
+  section's two commands wrap under 30rem through `wrap="narrow"`, `wrap="always"` wraps a command at every width; elsewhere a `CommandRow` scrolls
   sideways inside `.vk-edge-fade`: a mask, not a painted background, so it stays see-through on any
   surface, and the end fade shows only while the command overflows, driven by a scroll timeline),
   `AiSetupPrompt` (`components/ai-setup-prompt.tsx`: the whole prompt, wrapped, under a `.vk-label`
@@ -700,7 +700,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `grid-rows-subgrid`, so a wrapped title never shifts the body or the link out of line. A
   backticked span in a header or section lead renders in code type (`withInlineCode`,
   `lib/inline-code-text.tsx`; the landing sets a command or value in a step
-  and the closing install hint the same way; the docs home
+  the same way; the docs home
   `DocsHomeSteps` reads `landing.steps.items`, the check, translate and CI steps, with its own
   `DOCS_HOME_STEP_IDS`), and a path card title keeps a hyphenated compound on
   one line (`keepCompoundsWhole`, `lib/word-breaks.tsx`). `StackCards`
@@ -1295,8 +1295,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   the page. A `` ```verbatra-run `` fence (`RUN_FENCE_LANG`) holds only the arguments (`<command>`)
   and becomes the same tabs with the binary each manager runs (`npx @verbatra/cli`, `pnpm verbatra`,
   `yarn verbatra`, `bun run verbatra`), sharing the remembered choice; `cli/index` uses it. The
-  landing's closing section takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` as plain
-  text (no link inside the command) and shows no package-manager tabs; the docs home has no install
+  landing's closing section shows `INIT_COMMAND` and `DRY_RUN_COMMAND` from `lib/install-commands.ts`
+  as two plain `CommandRow`s (no link inside a command) and no package-manager tabs; the docs home has no install
   box (its Quickstart tab and agent tip lead there).
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
   something to run. The flag, not a title, is the marker, so it reads the same in every locale:
