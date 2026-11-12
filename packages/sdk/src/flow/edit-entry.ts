@@ -162,7 +162,7 @@ export type EditEntryResult =
  * @throws `AdapterError`: the adapter itself refused the target locale file, on the read because it
  * is malformed or on the write because the entries cannot be represented in the configured format.
  * Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
- * @throws {TypeError} `actor` is neither `human` nor `agent`. Checked before anything is read.
+ * @throws {TypeError} `actor` is given and is neither `human` nor `agent`. Checked before anything is read.
  */
 export async function editEntry(
   input: EditEntryInput,
