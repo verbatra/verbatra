@@ -430,3 +430,17 @@ export const BRAND_MARK_IDS = Object.keys(BRAND_MARKS) as ReadonlyArray<BrandMar
 export function brandMarkSourceUrl(mark: BrandMark): string {
   return `${BRAND_MARK_SOURCES[mark.source].fileBase}${mark.file}`;
 }
+
+export const MARQUEE_MARK_SIZE = 22;
+
+export const MARQUEE_GLYPH_SIZE = 20;
+
+export const MARQUEE_OPTICAL_SIZE: Readonly<Partial<Record<BrandMarkId, number>>> = {
+  dotnet: 24,
+  simpleGnu: 24,
+  simpleGoogleTranslate: 24,
+};
+
+export function marqueeMarkSize(mark: BrandMarkId): number {
+  return MARQUEE_OPTICAL_SIZE[mark] ?? MARQUEE_MARK_SIZE;
+}

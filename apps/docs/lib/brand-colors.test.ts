@@ -45,7 +45,7 @@ describe("the per-theme contrast rule", () => {
     }
   });
 
-  it("colours a mark in a theme only when it reaches 3:1 on every surface of that theme", () => {
+  it("colours a mark in a theme unless it is close to invisible on a surface of that theme", () => {
     for (const id of BRAND_MARK_IDS) {
       const { hex } = BRAND_MARKS[id].color;
       const themes = brandColorThemes(id);
@@ -58,10 +58,35 @@ describe("the per-theme contrast rule", () => {
     }
   });
 
-  it("falls back to the neutral colour where a black or near-black mark meets the dark theme", () => {
-    for (const id of ["deviconNextjs", "fontawesomeApple", "openai", "simpleOpencode"] as const) {
-      expect(brandColorThemes(id)).toEqual(["light"]);
+  it("sits in the gap of the data: every kept mark reaches 1.4:1, every dropped one stays under 1.2:1", () => {
+    for (const theme of BRAND_THEMES) {
+      for (const id of BRAND_MARK_IDS) {
+        const { hex } = BRAND_MARKS[id].color;
+        const lowest = Math.min(
+          ...BRAND_SURFACES[theme].map((surface) => contrastOn(hex, surface)),
+        );
+        if (brandColorThemes(id).includes(theme))
+          expect(lowest, `${id} ${theme}`).toBeGreaterThan(1.4);
+        else expect(lowest, `${id} ${theme}`).toBeLessThan(1.2);
+      }
     }
+  });
+
+  it("lists the marks that fall back to the neutral text colour, per theme", () => {
+    const fallbacks = (theme: "dark" | "light") =>
+      BRAND_MARK_IDS.filter((id) => !brandColorThemes(id).includes(theme)).sort();
+    expect(fallbacks("dark")).toEqual(
+      [
+        "deviconNextjs",
+        "fontawesomeApple",
+        "openai",
+        "simpleAnthropic",
+        "simpleDeepl",
+        "simpleOpencode",
+        "angular",
+      ].sort(),
+    );
+    expect(fallbacks("light")).toEqual([]);
   });
 
   it("keeps every mark visible somewhere: a colour in a theme or the neutral text colour", () => {

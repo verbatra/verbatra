@@ -7,6 +7,7 @@ const KNOWN_EXTERNAL_VARS: ReadonlyArray<string> = [
   "--font-geist-mono",
   "--font-geist-sans",
   "--marquee-items",
+  "--vk-version-chars",
 ];
 
 describe("the shared token package wiring", () => {

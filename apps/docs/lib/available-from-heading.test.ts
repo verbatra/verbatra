@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { rehypeAvailableFromInHeading } from "./available-from-heading";
 import type { HastNode } from "./hast";
+import { docsStylesheetRules, rulesFor } from "./stylesheet-rules";
 
 const badge = (version: string): HastNode => ({
   type: "mdxJsxFlowElement",
@@ -62,5 +63,30 @@ describe("rehypeAvailableFromInHeading", () => {
     const tree = transform([heading("h1", "title"), badge("0.12.0"), heading("h3", "x"), callout]);
 
     expect(tree.children).toHaveLength(4);
+  });
+});
+
+describe("a heading that holds a version pill", () => {
+  const rules = docsStylesheetRules();
+  const anchor = "#nd-page .group\\/heading > a[data-card]:has(.vk-available-from)";
+
+  it("never wraps the heading itself, so a hidden pill adds no row", () => {
+    const onHeading = rules.filter(
+      (rule) =>
+        rule.selector.includes(":has(.vk-available-from)") &&
+        !rule.selector.includes("a[data-card]"),
+    );
+    expect(onHeading).toEqual([]);
+  });
+
+  it("wraps inside the heading anchor, so a revealed pill drops under the text and never crushes it", () => {
+    const [rule] = rulesFor(rules, anchor);
+    expect(rule?.declarations["flex-wrap"]).toBe("wrap");
+    expect(rule?.media).toContain("width < 768px");
+  });
+
+  it("never grows the pill past its line", () => {
+    const [pill] = rulesFor(rules, ".vk-available-from");
+    expect(pill?.declarations["max-width"]).toBe("100%");
   });
 });

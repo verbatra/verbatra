@@ -274,7 +274,7 @@
       "landing.playground.table.source": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"6e6cd95e2c73fb11"},
       "landing.statement.heading": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"bda52873e0e52926","reviewState":"approved","reviewedSourceHash":"9504d188ab82295e"},
       "landing.statement.label": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"5d08af834b36c279","reviewState":"approved","reviewedSourceHash":"42be2005e39131a1"},
-      "legal.licenses.brands": {"origin":"import","valueHash":"dc88c0b8ca8535b5"},
+      "legal.licenses.brands": {"origin":"import","valueHash":"22feca51db7fe222"},
       "legal.privacy.s4.body": {"origin":"human","valueHash":"85b3c6746b11fa3a"}
     },
     "es": {
@@ -550,7 +550,7 @@
       "landing.playground.table.source": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"6f39022809584092"},
       "landing.statement.heading": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"f37cfab35220a807"},
       "landing.statement.label": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"7ae208457f8e91ee"},
-      "legal.licenses.brands": {"origin":"import","valueHash":"c61eb17c9094b8d8"},
+      "legal.licenses.brands": {"origin":"import","valueHash":"9e050d1b92b5c450"},
       "legal.privacy.s4.body": {"origin":"human","valueHash":"51087e389096999d"}
     },
     "fr": {
@@ -826,7 +826,7 @@
       "landing.playground.table.source": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"dcbfd3b1d68d7abe"},
       "landing.statement.heading": {"origin":"import","valueHash":"a478c95cead4b0cf"},
       "landing.statement.label": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"f3e3fcb84a4a5fdf"},
-      "legal.licenses.brands": {"origin":"import","valueHash":"9a7294c86691dae3"},
+      "legal.licenses.brands": {"origin":"import","valueHash":"77bcb0b4611a05ae"},
       "legal.privacy.s4.body": {"origin":"human","valueHash":"e0cd0b6809849890"}
     }
   }

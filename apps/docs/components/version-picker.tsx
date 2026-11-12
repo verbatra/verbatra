@@ -1,35 +1,60 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { type FocusEvent, type KeyboardEvent, type ReactNode, useId, useRef } from "react";
-import { LATEST, RELEASE_LINES, setChoice, type VersionPackage } from "@/lib/docs-version";
+import {
+  type CSSProperties,
+  type FocusEvent,
+  type KeyboardEvent,
+  type ReactNode,
+  useId,
+  useRef,
+} from "react";
+import {
+  LATEST,
+  RELEASE_LINES,
+  setChoice,
+  type VersionChoice,
+  type VersionPackage,
+} from "@/lib/docs-version";
 import { useVersionChoice } from "@/lib/use-version-choice";
 
 export type VersionPickerLayout = "header" | "sidebar";
 
-function ChevronIcon(): ReactNode {
+function MoreIcon(): ReactNode {
   return (
     <svg
-      width="14"
-      height="14"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="currentColor"
       aria-hidden="true"
-      className="vk-version-chevron"
+      className="vk-version-more-icon"
     >
-      <path d="m6 9 6 6 6-6" />
+      <circle cx="5" cy="12" r="2" />
+      <circle cx="12" cy="12" r="2" />
+      <circle cx="19" cy="12" r="2" />
     </svg>
   );
+}
+
+export function pickedLines(
+  entries: readonly { readonly label: string; readonly choice: VersionChoice }[],
+): string {
+  return entries
+    .filter((entry) => entry.choice !== LATEST)
+    .map((entry) => `${entry.label} ${entry.choice}`)
+    .join(", ");
+}
+
+export function selectChars(latest: string, lines: readonly string[]): number {
+  return Math.max(latest.length, ...lines.map((line) => line.length));
 }
 
 function VersionSelect({ pkg, label }: { pkg: VersionPackage; label: string }): ReactNode {
   const t = useTranslations("docs.versionPicker");
   const id = useId();
   const choice = useVersionChoice(pkg);
+  const chars = selectChars(t("latest"), RELEASE_LINES[pkg].lines);
   return (
     <div className="vk-version-field">
       <label htmlFor={id} className="vk-version-label">
@@ -38,6 +63,7 @@ function VersionSelect({ pkg, label }: { pkg: VersionPackage; label: string }): 
       <select
         id={id}
         className="vk-version-select"
+        style={{ "--vk-version-chars": chars } as CSSProperties}
         value={choice}
         onChange={(event) => setChoice(pkg, event.target.value)}
       >
@@ -54,6 +80,12 @@ function VersionSelect({ pkg, label }: { pkg: VersionPackage; label: string }): 
 
 export function VersionPicker({ layout }: { layout: VersionPickerLayout }): ReactNode {
   const t = useTranslations("docs.versionPicker");
+  const studioChoice = useVersionChoice("studio");
+  const mcpChoice = useVersionChoice("mcp");
+  const picked = pickedLines([
+    { label: t("studio"), choice: studioChoice },
+    { label: t("mcp"), choice: mcpChoice },
+  ]);
   const more = useRef<HTMLDetailsElement>(null);
   const summary = useRef<HTMLElement>(null);
   const closeOnEscape = (event: KeyboardEvent<HTMLDetailsElement>) => {
@@ -76,9 +108,17 @@ export function VersionPicker({ layout }: { layout: VersionPickerLayout }): Reac
         onKeyDown={closeOnEscape}
         onBlur={closeOnLeave}
       >
-        <summary ref={summary} className="vk-version-more-toggle" title={t("more")}>
-          <ChevronIcon />
-          <span className="vk-version-more-text">{t("more")}</span>
+        <summary
+          ref={summary}
+          className="vk-version-more-toggle"
+          title={picked === "" ? t("more") : `${t("more")}: ${picked}`}
+          data-picked={picked === "" ? undefined : ""}
+        >
+          <MoreIcon />
+          <span className="vk-version-more-text">
+            {t("more")}
+            {picked === "" ? null : <span className="vk-version-picked">{`: ${picked}`}</span>}
+          </span>
         </summary>
         <div className="vk-version-panel">
           <VersionSelect pkg="studio" label={t("studio")} />

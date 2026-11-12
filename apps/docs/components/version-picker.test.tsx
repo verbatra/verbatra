@@ -5,7 +5,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RELEASE_LINES, VERSION_STORAGE_KEY } from "@/lib/docs-version";
+import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
+import de from "@/messages/de.json";
 import en from "@/messages/en.json";
+import es from "@/messages/es.json";
+import fr from "@/messages/fr.json";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: keyof typeof en.docs.versionPicker) => en.docs.versionPicker[key],
@@ -13,7 +17,7 @@ vi.mock("next-intl", () => ({
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const { VersionPicker } = await import("./version-picker");
+const { VersionPicker, pickedLines, selectChars } = await import("./version-picker");
 
 let mounted: Root | undefined;
 
@@ -122,5 +126,78 @@ describe("VersionPicker behaviour", () => {
     expect(mount("sidebar").querySelector(".vk-version-picker")?.getAttribute("data-layout")).toBe(
       "sidebar",
     );
+  });
+});
+
+describe("the disclosure of Studio and MCP", () => {
+  it("shows no state while both hold Latest", () => {
+    const summary = mount().querySelector("summary");
+    expect(summary?.hasAttribute("data-picked")).toBe(false);
+    expect(summary?.getAttribute("title")).toBe(en.docs.versionPicker.more);
+  });
+
+  it("names a non-latest choice in its accessible name, its title and a state mark", () => {
+    document.documentElement.setAttribute("data-vk-studio", "0.5");
+    document.documentElement.setAttribute("data-vk-mcp", "0.2");
+    const summary = mount().querySelector("summary");
+    expect(summary?.hasAttribute("data-picked")).toBe(true);
+    expect(summary?.textContent).toBe(`${en.docs.versionPicker.more}: Studio 0.5, MCP 0.2`);
+    expect(summary?.getAttribute("title")).toBe(
+      `${en.docs.versionPicker.more}: Studio 0.5, MCP 0.2`,
+    );
+  });
+
+  it("lists only the packages that are not on Latest", () => {
+    expect(
+      pickedLines([
+        { label: "Studio", choice: "latest" },
+        { label: "MCP", choice: "0.2" },
+      ]),
+    ).toBe("MCP 0.2");
+  });
+
+  it("draws a three-dot icon, never a second chevron beside the select arrow", () => {
+    const summary = mount().querySelector("summary");
+    expect(summary?.querySelector(".vk-version-chevron")).toBeNull();
+    expect(summary?.querySelectorAll("svg circle")).toHaveLength(3);
+  });
+});
+
+describe("the select width", () => {
+  it("is sized to the longest label of every locale, through a character count on the select", () => {
+    for (const messages of [en, de, es, fr]) {
+      const latest = messages.docs.versionPicker.latest;
+      for (const pkg of ["cli", "studio", "mcp"] as const) {
+        expect(selectChars(latest, RELEASE_LINES[pkg].lines)).toBeGreaterThanOrEqual(latest.length);
+      }
+    }
+    const container = mount();
+    expect(selects(container)[0]?.style.getPropertyValue("--vk-version-chars")).toBe(
+      String(selectChars(en.docs.versionPicker.latest, RELEASE_LINES.cli.lines)),
+    );
+  });
+
+  it("is a width computed from that count, not a fixed one", () => {
+    const [rule] = rulesFor(docsStylesheetRules(), ".vk-version-select");
+    expect(rule?.declarations.width).toContain("var(--vk-version-chars");
+  });
+});
+
+describe("the picker in the sidebar footer", () => {
+  const rules = docsStylesheetRules();
+
+  it("lets the footer row wrap in the desktop sidebar and in the phone drawer", () => {
+    const wrap = rules.find((rule) =>
+      rule.selector.includes(":has(> .vk-island > .vk-version-picker"),
+    );
+    expect(wrap?.selector).toContain("#nd-sidebar,");
+    expect(wrap?.selector).toContain("#nd-sidebar-mobile");
+    expect(wrap?.declarations["flex-wrap"]).toBe("wrap");
+    expect(wrap?.declarations.gap).toBeDefined();
+  });
+
+  it("gives the Studio and MCP panel no inset of its own, so its selects align with the first", () => {
+    const [panel] = rulesFor(rules, '.vk-version-picker[data-layout="sidebar"] .vk-version-panel');
+    expect(panel?.declarations.padding).toMatch(/^0\.25rem 0 0$/);
   });
 });

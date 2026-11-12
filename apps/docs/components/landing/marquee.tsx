@@ -5,7 +5,7 @@ import { BrandMark, BrandMarkSprite } from "@/components/brand-marks";
 import { NewPill } from "@/components/new-pill";
 import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
-import type { BrandMarkId } from "@/lib/brand-marks";
+import { type BrandMarkId, MARQUEE_GLYPH_SIZE, marqueeMarkSize } from "@/lib/brand-marks";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, type MachineProviderId, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { landingProviders } from "@/lib/landing-providers";
@@ -99,8 +99,8 @@ function ItemMark({ mark }: { mark: MarqueeMark }): ReactNode {
         aria-hidden="true"
         focusable="false"
         viewBox="0 0 24 24"
-        width={18}
-        height={18}
+        width={MARQUEE_GLYPH_SIZE}
+        height={MARQUEE_GLYPH_SIZE}
         className="vk-marquee-glyph"
       >
         <path d={MARQUEE_GLYPHS[mark.glyph]} />
@@ -112,7 +112,7 @@ function ItemMark({ mark }: { mark: MarqueeMark }): ReactNode {
       <StackIcon
         prefix={MARQUEE_FILE_PREFIX}
         icon={mark.icon}
-        size={18}
+        size={MARQUEE_GLYPH_SIZE}
         className="vk-marquee-glyph"
       />
     );
@@ -121,7 +121,7 @@ function ItemMark({ mark }: { mark: MarqueeMark }): ReactNode {
     <BrandMark
       prefix={MARQUEE_ICON_PREFIX}
       mark={mark.mark}
-      size={18}
+      size={marqueeMarkSize(mark.mark)}
       className="vk-marquee-mark"
     />
   );

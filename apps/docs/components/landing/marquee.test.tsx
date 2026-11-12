@@ -309,6 +309,21 @@ describe("Marquee", () => {
     for (const glyph of neutral) expect(glyph.getAttribute("class")).not.toContain("vk-brand-");
   });
 
+  it("draws brand marks at 22px and the three most detailed ones at 24px", async () => {
+    const doc = await render();
+    const sizes = new Map<string, string | null>();
+    for (const item of Array.from(doc.querySelectorAll(".vk-marquee-item"))) {
+      const mark = item.querySelector(":scope > svg.vk-marquee-mark");
+      if (mark !== null)
+        sizes.set(item.getAttribute("data-item") ?? "", mark.getAttribute("width"));
+    }
+    expect(new Set(sizes.values())).toEqual(new Set(["22", "24"]));
+    expect(sizes.get("resx")).toBe("24");
+    expect(sizes.get("gettext-po")).toBe("24");
+    expect(sizes.get("google-translate")).toBe("24");
+    expect(sizes.get("anthropic")).toBe("22");
+  });
+
   it("names each item in text, beside an aria-hidden brand mark or stroke glyph", async () => {
     const doc = await render();
     for (const item of Array.from(doc.querySelectorAll(".vk-marquee-item"))) {
@@ -322,11 +337,11 @@ describe("Marquee", () => {
     expect(doc.querySelector(".vk-marquee-chip")).toBeNull();
   });
 
-  it("draws every glyph as an unfilled 18px stroke in the current color", async () => {
+  it("draws every glyph as an unfilled 20px stroke in the current color", async () => {
     const doc = await render();
     const glyphs = Array.from(doc.querySelectorAll(".vk-marquee-glyph"));
     expect(glyphs.length).toBeGreaterThan(0);
-    for (const glyph of glyphs) expect(glyph.getAttribute("width")).toBe("18");
+    for (const glyph of glyphs) expect(glyph.getAttribute("width")).toBe("20");
     const rule = rulesFor(docsStylesheetRules(), ".vk-marquee-glyph").find(
       (entry) => entry.media === "",
     );

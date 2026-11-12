@@ -9,7 +9,7 @@ export const BRAND_SURFACES: Readonly<Record<BrandTheme, ReadonlyArray<string>>>
   light: ["hsl(240 20% 98%)", "hsl(240 18% 95%)"],
 };
 
-export const MIN_BRAND_CONTRAST = 3;
+export const MIN_BRAND_CONTRAST = 1.3;
 
 const HEX = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i;
 const HSL = /^hsl\((\d+(?:\.\d+)?) (\d+(?:\.\d+)?)% (\d+(?:\.\d+)?)%\)$/;

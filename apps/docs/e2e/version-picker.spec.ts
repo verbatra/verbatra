@@ -4,6 +4,7 @@ import {
   expectNoAxeViolations,
   expectNoHorizontalScroll,
   expectNothingPastRightEdge,
+  LOCALES,
   openInTheme,
   pageUrl,
   THEMES,
@@ -261,5 +262,208 @@ test.describe("markdown output", () => {
     expect(body).toContain('<AvailableFrom version="0.12.0" />');
     expect(body).not.toContain("data-vk-");
     expect(body).not.toContain("vk-version");
+  });
+});
+
+type Box = { x: number; y: number; width: number; height: number };
+
+function gap(a: Box, b: Box): number {
+  const dx = Math.max(a.x - (b.x + b.width), b.x - (a.x + a.width), 0);
+  const dy = Math.max(a.y - (b.y + b.height), b.y - (a.y + a.height), 0);
+  return Math.hypot(dx, dy);
+}
+
+test.describe("revealed pills in headings", () => {
+  const CASES: ReadonlyArray<{ width: number; url: string; choices: Record<string, string> }> = [
+    { width: 375, url: "/docs/cli/mcp", choices: { mcp: "0.2" } },
+    { width: 320, url: "/de/docs/cli/translate", choices: { cli: "0.5" } },
+  ];
+
+  for (const { width, url, choices } of CASES) {
+    test(`keep the heading text at its own wrap at ${width}px and drop under it`, async ({
+      page,
+    }) => {
+      await storeChoices(page, choices);
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(url);
+      const headings = page.locator(":is(h2, h3, h4):has(.vk-available-from)").filter({
+        has: page.locator(".vk-available-from:visible"),
+      });
+      const count = await headings.count();
+      expect(count).toBeGreaterThan(0);
+      for (let index = 0; index < count; index += 1) {
+        const heading = headings.nth(index);
+        const measured = await heading.evaluate((node) => {
+          const anchor = node.querySelector("a") as HTMLElement;
+          const pill = node.querySelector(".vk-available-from") as HTMLElement;
+          const lines = () => {
+            const range = document.createRange();
+            range.selectNodeContents(anchor.firstChild as Node);
+            return new Set(Array.from(range.getClientRects(), (rect) => Math.round(rect.top))).size;
+          };
+          const shown = lines();
+          const height = node.getBoundingClientRect().height;
+          const pillRect = pill.getBoundingClientRect();
+          const anchorRect = anchor.getBoundingClientRect();
+          pill.style.display = "none";
+          const hidden = lines();
+          pill.style.display = "";
+          return {
+            shown,
+            hidden,
+            height,
+            pillRight: pillRect.right,
+            anchorLeft: anchorRect.left,
+            pillLeft: pillRect.left,
+          };
+        });
+        expect(measured.shown, `heading ${index} rewrapped`).toBe(measured.hidden);
+        expect(measured.pillRight).toBeLessThanOrEqual(width);
+        expect(measured.pillLeft).toBeGreaterThanOrEqual(0);
+        expect(measured.height).toBeLessThan(44 * (measured.hidden + 2));
+      }
+      await expectNoHorizontalScroll(page);
+    });
+  }
+
+  test("add no row to a heading while no pill shows, at 320px", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto(pageUrl("de", "/docs/cli/translate"));
+    expect(await visiblePills(page)).toBe(0);
+    const heights = await page
+      .locator(":is(h2, h3, h4):has(.vk-available-from)")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const before = node.getBoundingClientRect().height;
+          for (const pill of Array.from(node.querySelectorAll(".vk-available-from"))) pill.remove();
+          return { before, after: node.getBoundingClientRect().height };
+        }),
+      );
+    expect(heights.length).toBeGreaterThan(0);
+    for (const [index, height] of heights.entries()) {
+      expect(height.before, `heading ${index}`).toBe(height.after);
+    }
+  });
+});
+
+test.describe("the version select label", () => {
+  for (const locale of LOCALES) {
+    test(`shows its full Latest label in ${locale} from 1024px`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(pageUrl(locale, PAGE));
+      const select = page.locator("#nd-subnav .vk-version-select").first();
+      await expect(select).toBeVisible();
+      const fits = await select.evaluate((node) => {
+        const style = getComputedStyle(node);
+        const canvas = document.createElement("canvas").getContext("2d");
+        if (!canvas) return null;
+        canvas.font = `${style.fontSize} ${style.fontFamily}`;
+        const labels = Array.from((node as HTMLSelectElement).options, (option) => option.text);
+        const widest = Math.max(...labels.map((label) => canvas.measureText(label).width));
+        const inner =
+          node.getBoundingClientRect().width -
+          Number.parseFloat(style.paddingLeft) -
+          Number.parseFloat(style.paddingRight) -
+          Number.parseFloat(style.borderLeftWidth) -
+          Number.parseFloat(style.borderRightWidth);
+        return { widest, inner };
+      });
+      expect(fits).not.toBeNull();
+      expect(fits?.inner ?? 0).toBeGreaterThanOrEqual((fits?.widest ?? 0) + 16);
+    });
+  }
+});
+
+test.describe("the Studio and MCP disclosure", () => {
+  test("shows that it holds a non-latest choice and names it", async ({ page }) => {
+    await storeChoices(page, { studio: "0.5" });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/docs/agent-tools-in-studio");
+    const toggle = page.locator("#nd-subnav .vk-version-more-toggle");
+    await expect(toggle).toHaveAttribute("data-picked", "");
+    await expect(toggle).toContainText("Studio 0.5");
+    await expect(toggle).toHaveAttribute("title", /Studio 0\.5/);
+    const mark = await toggle.evaluate((node) => getComputedStyle(node, "::after").content);
+    expect(mark).toBe('""');
+  });
+
+  test("shows no state mark while Studio and MCP hold Latest", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(PAGE);
+    const toggle = page.locator("#nd-subnav .vk-version-more-toggle");
+    await expect(toggle).not.toHaveAttribute("data-picked", "");
+    const mark = await toggle.evaluate((node) => getComputedStyle(node, "::after").content);
+    expect(mark).toBe("none");
+  });
+});
+
+test.describe("the page-top version notice", () => {
+  test("is as wide as the prose measure and as the locale callout above it", async ({ page }) => {
+    await storeChoices(page, { cli: OLDER_CLI });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(pageUrl("de", PAGE));
+    const notice = await page.locator(`${NOTICE} .vk-callout`).boundingBox();
+    const locale = await page.locator("#nd-page > .vk-callout").first().boundingBox();
+    const prose = await page.locator("#nd-page .prose > p").first().boundingBox();
+    expect(notice?.width).toBe(locale?.width);
+    expect(Math.round(notice?.width ?? 0)).toBe(Math.round(prose?.width ?? -1));
+  });
+
+  test("stays under four lines of its own height at 320px", async ({ page }) => {
+    await storeChoices(page, { cli: OLDER_CLI });
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto(pageUrl("en", PAGE));
+    const notice = await page.locator(`${NOTICE} .vk-callout`).boundingBox();
+    expect(notice?.height ?? 999).toBeLessThan(180);
+    await expectNoHorizontalScroll(page);
+  });
+});
+
+test.describe("the picker in the sidebar footer", () => {
+  async function expectAligned(page: Page, scope: string): Promise<void> {
+    const root = page.locator(scope);
+    await root.locator(".vk-version-more-toggle").click();
+    const selects = root.locator(".vk-version-select");
+    await expect(selects).toHaveCount(3);
+    const boxes = await selects.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const rect = node.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      }),
+    );
+    for (const box of boxes)
+      expect(Math.round(box.x + box.width)).toBe(
+        Math.round((boxes[0] as Box).x + (boxes[0] as Box).width),
+      );
+    const siblings = await root.locator(".vk-version-picker").evaluate((picker) => {
+      const footer = picker.closest(".vk-island")?.parentElement;
+      const own = picker.getBoundingClientRect();
+      return Array.from(footer?.querySelectorAll("a, button, select") ?? [])
+        .filter((node) => !picker.contains(node))
+        .map((node) => {
+          const rect = node.getBoundingClientRect();
+          return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        })
+        .map((rect) => ({
+          rect,
+          own: { x: own.x, y: own.y, width: own.width, height: own.height },
+        }));
+    });
+    for (const { rect, own } of siblings) expect(gap(rect, own)).toBeGreaterThanOrEqual(8);
+  }
+
+  test("aligns the three selects and spaces the footer controls at 900px", async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 900 });
+    await page.goto(PAGE);
+    await expectAligned(page, "#nd-sidebar");
+  });
+
+  test("aligns the three selects and spaces the footer controls in the phone drawer", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto(PAGE);
+    await page.locator('#nd-subnav button[aria-controls="nd-sidebar-mobile"]').click();
+    await expectAligned(page, "#nd-sidebar-mobile");
   });
 });

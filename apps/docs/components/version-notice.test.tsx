@@ -2,6 +2,7 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import en from "@/messages/en.json";
 
 vi.mock("next-intl/server", () => ({
@@ -30,5 +31,16 @@ describe("VersionNotice", () => {
     expect(notice?.textContent).toContain(en.docs.versionPicker.noticeTitle);
     expect(notice?.textContent).toContain(en.docs.versionPicker.noticeText);
     expect(notice?.textContent).not.toMatch(/\d+\.\d+/);
+  });
+
+  it("is capped at the prose measure and runs its title into its text", () => {
+    const rules = docsStylesheetRules();
+    const [callout] = rulesFor(rules, "#nd-page .vk-version-notice .vk-callout");
+    expect(callout?.declarations["max-width"]).toBe("var(--width-measure)");
+    expect(callout?.declarations.display).toBe("block");
+    const [column] = rulesFor(rules, "#nd-page .vk-version-notice .vk-callout > :last-child");
+    expect(column?.declarations.display).toBe("block");
+    const inline = rulesFor(rules, ".vk-version-notice .vk-callout-title");
+    expect(inline.some((rule) => rule.declarations.display === "inline")).toBe(true);
   });
 });

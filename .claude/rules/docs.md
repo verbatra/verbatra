@@ -220,9 +220,10 @@ The pill is hidden by default and the reader decides when it shows. The server-r
 no-JavaScript state is "Latest": no version pill is visible anywhere in the docs. The version picker
 in the docs header from 1024px (`components/version-picker.tsx`, native selects; in the sidebar footer, so the phone drawer, below that)
 lets a reader name the release line they run, separately for CLI/SDK (one line, they are
-version-locked), Studio and MCP; Studio and MCP sit behind a disclosure. Only a badge newer than
+version-locked), Studio and MCP; Studio and MCP sit behind a disclosure that shows a state mark and
+names the picked lines while either is not on Latest. Only a badge newer than
 the picked line then renders, on the heading or cell it already sits in, and a page-top notice
-(`components/version-notice.tsx`) appears on a page holding one. Nothing is dimmed, hidden or
+(`components/version-notice.tsx`, as wide as the prose measure, its title run into its text) appears on a page holding one. A revealed pill wraps inside the heading anchor, under the heading text when there is no room, and a hidden one adds no row. Nothing is dimmed, hidden or
 filtered. The MDX is unchanged: every `<AvailableFrom />` stays literal and is never removed.
 
 - The rule: the reader picks a minor line `X.Y`, taken as `X.Y.0` because the patch is unknown. A
