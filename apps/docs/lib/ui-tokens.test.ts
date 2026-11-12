@@ -5,7 +5,6 @@ const KNOWN_EXTERNAL_VARS: ReadonlyArray<string> = [
   "--callout-color",
   "--font-geist-mono",
   "--font-geist-sans",
-  "--grid-start",
   "--marquee-items",
 ];
 

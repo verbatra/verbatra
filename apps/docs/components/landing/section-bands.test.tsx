@@ -175,10 +175,9 @@ describe("the section head on the 12-column grid", () => {
     }
   });
 
-  it("lets a grid child start on a set column from 64rem, and only there", () => {
-    expect(css).toContain(
-      "grid-column: var(--grid-start, auto) / span var(--grid-span, var(--grid-columns));",
-    );
+  it("lets a grid child span a set number of columns from 64rem, and only there", () => {
+    expect(css).toContain("grid-column: span var(--grid-span, var(--grid-columns));");
+    expect(css).not.toContain("--grid-start");
   });
 
   it("varies the section heads instead of splitting every one", async () => {

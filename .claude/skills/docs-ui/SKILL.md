@@ -190,7 +190,7 @@ Scales are fixed and narrow, deliberately:
   of `.vk-section-aside` (the FAQ) and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
-  `--grid-span` columns (the full row when unset), starting on `--grid-start` when set. `SectionHead` takes `layout`: `split` (the default, a
+  `--grid-span` columns (the full row when unset). `SectionHead` takes `layout`: `split` (the default, a
   `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned by default; `align="start"`
   top-aligns them (`data-align`); the highlights and the features use the split head),
   `stacked` (the lead under the heading on the first column, for a section whose content runs the

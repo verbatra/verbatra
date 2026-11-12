@@ -327,7 +327,7 @@ html.light {
   }
 
   .vk-grid-12 > * {
-    grid-column: var(--grid-start, auto) / span var(--grid-span, var(--grid-columns));
+    grid-column: span var(--grid-span, var(--grid-columns));
   }
 }
 
