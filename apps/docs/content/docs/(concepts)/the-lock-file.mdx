@@ -169,6 +169,8 @@ their name. A decision applies to the exact value the reviewer saw, and is refus
   translation, so a rejection there is refused with
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
 
+Only machine-class values enter the review queue and the `--require-reviewed` gate. The `byReviewState` counts in `check` and `lock.state` cover every value by its recorded decision, whatever its origin, so a value a person wrote or imported with no decision counts as `unreviewed` there without being in the queue; read them with `byOrigin`.
+
 Decisions live in this committed file, so the review queue and
 [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) see the same
 state everywhere, and the `reviewer` name is public; verbatra never fills it in.

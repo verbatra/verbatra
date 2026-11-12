@@ -193,6 +193,8 @@ den Wert, den der Reviewer gesehen hat, und wird abgelehnt, wenn er sich geände
   Übersetzung weglassen, eine Ablehnung wird dort also mit
   [`REVIEW_REJECT_UNSUPPORTED`](/de/docs/error-codes#review_reject_unsupported) abgelehnt.
 
+Nur Werte der Maschinenklasse landen in der Review-Warteschlange und im `--require-reviewed`-Gate. Die `byReviewState`-Zähler in `check` und `lock.state` erfassen jeden Wert nach seiner aufgezeichneten Entscheidung, gleich welcher Herkunft: Ein von einer Person geschriebener oder importierter Wert ohne Entscheidung zählt dort als `unreviewed`, ohne in der Warteschlange zu stehen. Lies sie zusammen mit `byOrigin`.
+
 Die Entscheidungen stehen in dieser committeten Datei, also sehen die Review-Warteschlange und
 [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) auf
 jedem Rechner denselben Zustand, und der Name unter `reviewer` ist öffentlich; verbatra trägt ihn

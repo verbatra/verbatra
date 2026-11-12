@@ -189,6 +189,8 @@ si cambió.
   sola traducción, así que ahí un rechazo se deniega con
   [`REVIEW_REJECT_UNSUPPORTED`](/es/docs/error-codes#review_reject_unsupported).
 
+Solo los valores de clase máquina entran en la cola de revisión y en la puerta `--require-reviewed`. Los contadores `byReviewState` de `check` y `lock.state` cubren cada valor según su decisión registrada, sea cual sea su origen, así que un valor escrito o importado por una persona sin decisión cuenta como `unreviewed` ahí sin estar en la cola; léelos junto con `byOrigin`.
+
 Las decisiones viven en este archivo confirmado, así que la cola de revisión y
 [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas) ven el mismo
 estado en todas partes, y el nombre de `reviewer` es público; verbatra nunca lo rellena.
