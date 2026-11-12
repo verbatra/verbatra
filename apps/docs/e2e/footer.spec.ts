@@ -221,3 +221,59 @@ test.describe("footer grid", () => {
     });
   }
 });
+
+test.describe("footer for agents column", () => {
+  const groups = (page: import("playwright/test").Page) =>
+    page.locator(".vk-footer-secondary > .vk-footer-group").evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const box = node.getBoundingClientRect();
+        return { name: node.getAttribute("data-group"), left: box.left, top: box.top };
+      }),
+    );
+
+  test("sets the four secondary groups on one row at 1440px, agents first", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    const placed = await groups(page);
+    expect(placed.map((group) => group.name)).toEqual(["agents", "packages", "community", "legal"]);
+    expect(new Set(placed.map((group) => Math.round(group.top))).size).toBe(1);
+    expect(new Set(placed.map((group) => Math.round(group.left))).size).toBe(4);
+    await expectNoHorizontalScroll(page);
+  });
+
+  test("wraps the fourth group under the first on three columns at 768px", async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 900 });
+    await page.goto("/");
+    const placed = await groups(page);
+    expect(new Set(placed.map((group) => Math.round(group.left))).size).toBe(3);
+    expect(new Set(placed.map((group) => Math.round(group.top))).size).toBe(2);
+    expect(Math.round(placed[3]?.left ?? -1)).toBe(Math.round(placed[0]?.left ?? -2));
+  });
+
+  test("keeps two link columns per row at 391px", async ({ page }) => {
+    await page.setViewportSize({ width: 391, height: 900 });
+    await page.goto("/");
+    const placed = await groups(page);
+    expect(new Set(placed.map((group) => Math.round(group.left))).size).toBe(2);
+    expect(new Set(placed.map((group) => Math.round(group.top))).size).toBe(2);
+    await expectNoHorizontalScroll(page);
+  });
+
+  test("lists the MDX docs page and the three agent files, and no agent file under Product", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const hrefs = (group: string) =>
+      page
+        .locator(`${FOOTER} .vk-footer-group[data-group="${group}"] a`)
+        .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+    expect(await hrefs("agents")).toEqual([
+      "/docs/cli/mcp",
+      "/llms.txt",
+      "/llms-full.txt",
+      "/.well-known/ai.txt",
+    ]);
+    const product = await hrefs("product");
+    expect(product.filter((href) => /llms|ai\.txt|mcp/.test(href ?? ""))).toEqual([]);
+  });
+});

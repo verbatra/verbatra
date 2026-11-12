@@ -782,7 +782,7 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   }
 
   .vk-footer-secondary {
-    grid-template-columns: repeat(3, max-content);
+    grid-template-columns: repeat(4, max-content);
     justify-content: start;
     padding-inline-start: 4rem;
     border-inline-start: 1px solid var(--border-default);

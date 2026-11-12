@@ -31,7 +31,7 @@ type FooterLink = {
 };
 
 type FooterGroup = {
-  group: "product" | "packages" | "community" | "legal";
+  group: "product" | "agents" | "packages" | "community" | "legal";
   titleKey: string;
   links: ReadonlyArray<FooterLink>;
 };
@@ -44,7 +44,6 @@ const PRIMARY_GROUP: FooterGroup = {
     { labelKey: "cols.product.cliReference", href: "/docs/cli", localized: true },
     { labelKey: "cols.product.sdk", href: "/docs/sdk", localized: true },
     { labelKey: "cols.product.studio", href: "/docs/cli/studio", localized: true },
-    { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", localized: true },
     { labelKey: "cols.product.githubAction", href: "/docs/github-action", localized: true },
     { labelKey: "cols.product.howItWorks", href: "/docs/how-it-works", localized: true },
     { labelKey: "cols.product.providers", href: "/docs/providers", localized: true },
@@ -52,6 +51,14 @@ const PRIMARY_GROUP: FooterGroup = {
     { labelKey: "cols.product.lockFile", href: "/docs/the-lock-file", localized: true },
     { labelKey: "cols.product.configFile", href: "/docs/config-file", localized: true },
     { labelKey: "cols.product.compare", href: "/compare", localized: true },
+  ],
+};
+
+const AGENTS_GROUP: FooterGroup = {
+  group: "agents",
+  titleKey: "cols.agents.title",
+  links: [
+    { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", localized: true },
     { labelKey: "cols.product.llmsIndex", href: "/llms.txt" },
     { labelKey: "cols.product.llmsFull", href: "/llms-full.txt" },
     { labelKey: "cols.product.aiTxt", href: "/.well-known/ai.txt" },
@@ -59,6 +66,7 @@ const PRIMARY_GROUP: FooterGroup = {
 };
 
 const SECONDARY_GROUPS: ReadonlyArray<FooterGroup> = [
+  AGENTS_GROUP,
   {
     group: "packages",
     titleKey: "cols.packages.title",

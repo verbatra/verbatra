@@ -232,7 +232,7 @@ describe("FullFooter", () => {
     });
   });
 
-  it("leads with the product group and sets packages, community and legal beside it", async () => {
+  it("leads with the product group and sets agents, packages, community and legal beside it", async () => {
     const doc = await renderFooter();
     const groups = Array.from(doc.querySelectorAll<HTMLElement>(".vk-footer-groups nav"));
     expect(doc.querySelector<HTMLElement>(".vk-footer-groups > nav")?.dataset.group).toBe(
@@ -243,7 +243,7 @@ describe("FullFooter", () => {
         doc.querySelectorAll<HTMLElement>(".vk-footer-secondary > nav"),
         (nav) => nav.dataset.group,
       ),
-    ).toEqual(["packages", "community", "legal"]);
+    ).toEqual(["agents", "packages", "community", "legal"]);
     expect(
       groups.map((group) =>
         Array.from(group.querySelectorAll("a"), (link) => link.getAttribute("href")),
@@ -254,7 +254,6 @@ describe("FullFooter", () => {
         "/docs/cli",
         "/docs/sdk",
         "/docs/cli/studio",
-        "/docs/cli/mcp",
         "/docs/github-action",
         "/docs/how-it-works",
         "/docs/providers",
@@ -262,10 +261,8 @@ describe("FullFooter", () => {
         "/docs/the-lock-file",
         "/docs/config-file",
         "/compare",
-        "/llms.txt",
-        "/llms-full.txt",
-        "/.well-known/ai.txt",
       ],
+      ["/docs/cli/mcp", "/llms.txt", "/llms-full.txt", "/.well-known/ai.txt"],
       [
         "https://www.npmjs.com/package/@verbatra/cli",
         "https://www.npmjs.com/package/@verbatra/sdk",
@@ -288,6 +285,7 @@ describe("FullFooter", () => {
     ]);
     expect(groups.map((group) => group.dataset.group)).toEqual([
       "product",
+      "agents",
       "packages",
       "community",
       "legal",
@@ -296,6 +294,20 @@ describe("FullFooter", () => {
       FOOTER_GROUPS.map((group) => group.links.length),
     );
     expect(doc.querySelector(".vk-footer-top")?.textContent).toContain("tagline");
+  });
+
+  it("titles the agent files and the MCP docs as one For agents column, with the agent files out of Product", async () => {
+    const doc = await renderFooter();
+    const agents = doc.querySelector<HTMLElement>('nav[data-group="agents"]');
+    expect(agents?.getAttribute("aria-label")).toBe("cols.agents.title");
+    expect(agents?.querySelector("p")?.textContent).toBe("cols.agents.title");
+    expect(en.landing.footer.cols.agents.title).toBe("For agents");
+    const product = Array.from(doc.querySelectorAll('nav[data-group="product"] a'), (link) =>
+      link.getAttribute("href"),
+    );
+    for (const href of ["/llms.txt", "/llms-full.txt", "/.well-known/ai.txt", "/docs/cli/mcp"]) {
+      expect(product).not.toContain(href);
+    }
   });
 
   it("ends in a no-JS locale switch to the current page", async () => {

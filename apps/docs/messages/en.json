@@ -138,6 +138,9 @@
           "llmsFull": "llms-full.txt (full text)",
           "aiTxt": "ai.txt (usage policy)"
         },
+        "agents": {
+          "title": "For agents"
+        },
         "packages": {
           "title": "Packages",
           "releases": "Release notes"
