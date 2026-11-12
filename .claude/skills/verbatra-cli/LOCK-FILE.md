@@ -1,4 +1,7 @@
-# Lock file and protected keys
+# The lock file and protected keys
+
+Read this to know why a key counts as missing, stale or protected, and what a run will and will
+not overwrite.
 
 ## What the lock file means
 

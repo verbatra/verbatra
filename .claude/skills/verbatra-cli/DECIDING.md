@@ -1,13 +1,15 @@
 # Deciding what to run
 
+Read this when you need an answer before a run: which read-only command asks the question, every
+`check` and `diff` option, provider locale support, and the review reasons that are easy to misread.
+
 - [Read-only questions](#read-only-questions)
 - [Provider locale support](#provider-locale-support)
 - [Review reasons worth knowing](#review-reasons-worth-knowing)
 
 ## Read-only questions
 
-The single most useful habit: **ask what is pending before you translate.** A run
-bills per key sent, so the cheap read-only question comes first.
+None of these calls a provider, reads a key or writes a file.
 
 - `verbatra diff --json` names the exact keys per locale. Exit `1` means there is
   work. This is the question built for the decision. Add `--unused` to also list

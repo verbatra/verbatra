@@ -1,5 +1,7 @@
 # Spend boundary reference
 
+Read this when a spend tool is missing, or before you tell anyone how to make it appear.
+
 ## The spend boundary
 
 The server registers twenty-four tools but advertises only twenty-two by default. (`@verbatra/mcp` 0.3.0 registers

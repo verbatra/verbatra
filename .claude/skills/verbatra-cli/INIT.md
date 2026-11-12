@@ -1,5 +1,7 @@
 # Initialising a project
 
+Read this before running `verbatra init`, with or without `--agent`, and when it fails.
+
 - [Setting a project up](#setting-a-project-up)
   - [Unattended init](#unattended-init)
   - [Wiring coding agents](#wiring-coding-agents)

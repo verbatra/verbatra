@@ -1,5 +1,7 @@
 # Respelled locale codes
 
+Read this when a configured locale code changes spelling and its state has to follow.
+
 When a configured code is respelled, such as `pt_BR` to `pt-BR`, the lock file,
 translation memory and provenance file may still hold that locale's state under
 the old spelling. `translate` and `watch` move it to the configured code once,

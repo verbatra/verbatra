@@ -1,5 +1,7 @@
 # Running the server
 
+Read this when the server will not start, prints something unexpected, or runs without a config.
+
 `verbatra mcp` needs `@verbatra/mcp` beside the CLI; without it the command exits
 `2` and says so. `npx -y @verbatra/mcp` runs the server on its own, and takes the
 same `--cwd`, `--config`, `--allow-spend` and `--redact-values`. Both refuse an unknown flag, such as

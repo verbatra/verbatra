@@ -1,11 +1,12 @@
-# CLI commands reference
+# What each command costs and writes
+
+Read this before running anything unattended: what each command costs, what it writes, and the
+flags that change either.
 
 - [Commands](#commands)
 - [Flags that are easy to miss](#flags-that-are-easy-to-miss)
 
 ## Commands
-
-Read this table before running anything unattended.
 
 | Command | Provider spend | Writes files | Needs a key |
 | --- | --- | --- | --- |
@@ -44,6 +45,8 @@ A human-readable `import` or `translate` summary counts each locale's outcome
 under `integrity-withheld:` as `key: reason (details)`, the reason being
 `placeholder`, `markup`, `icu`, `degenerate` or `empty`. The same refusals are in
 `--json` as `result.locales[].integrityRefusals` (`key`, `reason`, `details`).
+A locale with `needs-review` keys also lists each key with its reasons under
+`needs-review:` in the text output; `--json` is unchanged.
 Parse the JSON, never these lines.
 
 `tmx` is the other free path. `verbatra tmx import <file>` lands a translation
@@ -56,7 +59,10 @@ direction calls a provider or reads a key. An import reports per locale how many
 units were `added`, `unchanged`, `kept`, `overwritten` and repeated, counts what
 the gate `rejected` by reason, and lists each refused unit as
 `unit N: reason (details)` (in `--json`, `result.locales[].refusals` with `unit`,
-`reason` and `details`), `N` being the unit's position in the file.
+`reason` and `details`), `N` being the unit's position in the file. An export
+reports entries left out because they are stored under an earlier provider, model,
+tone or glossary configuration, as one human-output line and an optional
+`otherConfiguration` count in the `--json` result.
 
 `verbatra report provenance --json` lists, per target locale, every key's origin
 (`machine`, `memory`, `fuzzy` and `agent` are machine-written; `human`, `import`,
@@ -118,7 +124,8 @@ that are pending right now translated.
   translating (default `300`, a whole number from `1` to `60000`; anything else exits `2`
   with `INVALID_DEBOUNCE`).
 - `export --include-unchanged` also writes already up-to-date strings into the
-  handoff; without it only what is missing or stale is exported.
+  handoff; without it only what is missing or stale is exported. An export with
+  nothing pending still writes the file and prints a `next:` hint naming it.
 - `studio --port <n>` overrides the default Studio port (1 to 65535; anything else
   exits `2` with `INVALID_PORT`).
 - `pseudo --locale <code>` names the pseudolocale to generate: `en-XA` by default,

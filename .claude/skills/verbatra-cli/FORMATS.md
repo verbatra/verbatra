@@ -1,5 +1,8 @@
 # Supported formats
 
+Read this to pick or confirm the `format` a project uses, and where `init` puts its files by
+default.
+
 ## Formats
 
 `format` in the config is one of these fourteen. The built-in set is closed; the

@@ -1,28 +1,37 @@
 # Gates and limits
 
+Read this when a tool you expected is missing, a call is refused or rate-limited, or the user
+asks you to record a review decision.
+
 ## Two gates, not one
 
 Studio decides twice what an agent may do, and the two decisions are independent.
 
-1. **Agent tools at all.** Nothing is registered unless the operator started
-   Studio with `--expose-agent-tools` (or `VERBATRA_STUDIO_AGENT_TOOLS` in its
-   environment, which `verbatra studio` also reads from the project's `.env.local` and `.env`). Without it the dashboard works normally and the page exposes no
-   tools whatsoever. If you see no `verbatra_` tools, this is why.
+1. **Agent tools at all.** Nothing is registered unless the operator started Studio with
+   `--expose-agent-tools` (or `VERBATRA_STUDIO_AGENT_TOOLS` in its environment, which
+   `verbatra studio` also reads from the project's `.env.local` and `.env`). Without it the
+   dashboard works normally and the page exposes no tools whatsoever. If you see no `verbatra_`
+   tools, this is why.
 2. **Spend.** With agent tools on, the tools that call a translation provider,
-   `verbatra_translation_retranslateEntry` and
-   `verbatra_translation_translatePending`, are still skipped during registration
-   unless Studio was also started with `--allow-spend` (or
-   `VERBATRA_STUDIO_ALLOW_SPEND`, read from the same `.env.local` and `.env`) and the config names a translation provider.
-   The other twenty register either way. Studio 0.6.0 registers twenty tools and advertises eighteen
-   without spend, so there the other eighteen do; `verbatra_history_keyRevisions` and `verbatra_usage_history` came in 0.7.0. `verbatra_project_snapshot` says which:
-   `capabilities.spend` is true only when both hold, and when it is false,
-   `capabilities.spendWithheld` is `flag` (spend was not granted) or `policy` (the
-   project is human-only, provider `none`, so no flag can grant it).
+   `verbatra_translation_retranslateEntry` and `verbatra_translation_translatePending`, are still
+   skipped during registration unless Studio was also started with `--allow-spend` (or
+   `VERBATRA_STUDIO_ALLOW_SPEND`, read from the same `.env.local` and `.env`) and the config names
+   a translation provider.
+   The other twenty register either way.
+   `verbatra_project_snapshot` says which applies: `capabilities.spend` is true only when both
+   hold, and when it is false, `capabilities.spendWithheld` is `flag` (spend was not granted) or
+   `policy` (the project is human-only, provider `none`, so no flag can grant it).
 
-Neither gate can be flipped from the browser. You may tell the human which flag
-would change what, but say plainly that granting spend means Studio will bill the
-configured provider. Naming the startup flag is fine; never relaunch Studio yourself or press the operator to, and a
-spend tool missing under `policy` is not fixable by any flag.
+Studio 0.6.0 registers twenty tools and advertises eighteen without spend:
+`verbatra_history_keyRevisions` and `verbatra_usage_history` came in 0.7.0. If the other tools
+are listed but those two are not, Studio may be older than 0.7.0, or the tab is a stale page:
+reload it, then ask the operator for the installed `@verbatra/studio` version before suggesting
+an upgrade.
+
+Neither gate can be flipped from the browser. You may tell the human which flag would change
+what, but say plainly that granting spend means Studio will bill the configured provider. Naming
+the startup flag is fine; never relaunch Studio yourself or press the operator to, and a spend
+tool missing under `policy` is not fixable by any flag.
 A spend method reached while spending is off answers `SPEND_DISABLED` (HTTP 403),
 and its message names the reason: Studio was started without `--allow-spend`, or
 the config's provider is `none`, which `--allow-spend` does not change.
