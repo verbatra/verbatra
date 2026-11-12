@@ -397,6 +397,23 @@ test("the static marquee reflows at 1024px without horizontal scroll", async ({ 
   await expectNoHorizontalScroll(page);
 });
 
+for (const width of [640, 768, 1023]) {
+  test(`the static marquee wraps its rows into several lines at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expectStatic(page);
+    const lineHeight = await page
+      .locator(`${FIRST_LIST} > li`)
+      .first()
+      .evaluate((item) => item.getBoundingClientRect().height);
+    const listHeight = await page
+      .locator(FIRST_LIST)
+      .evaluate((list) => list.getBoundingClientRect().height);
+    expect(listHeight).toBeGreaterThan(lineHeight * 1.5);
+    await expectNoHorizontalScroll(page);
+  });
+}
+
 test("the static marquee at 320px scrolls inside its rows, not the page", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/");
