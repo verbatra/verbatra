@@ -1,0 +1,51 @@
+"scope: cli":
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/cli/**
+
+"scope: sdk":
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/sdk/**
+          - packages/core/**
+          - packages/exchange/**
+          - packages/extract/**
+
+"scope: providers":
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/ai-providers/**
+
+"scope: formats":
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/format-adapters/**
+
+"scope: studio":
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/studio/**
+          - packages/ui/**
+
+"scope: mcp":
+  - changed-files:
+      - any-glob-to-any-file:
+          - packages/mcp/**
+
+"scope: docs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/docs/**
+          - packages/ui/**
+
+"scope: skills":
+  - changed-files:
+      - any-glob-to-any-file:
+          - .claude/skills/verbatra-*/**
+
+"scope: ci":
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+          - scripts/**
+          - e2e/**

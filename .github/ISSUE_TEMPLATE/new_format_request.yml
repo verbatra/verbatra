@@ -1,23 +1,18 @@
-name: New format adapter or provider
-description: Request support for a new i18n file format or a new translation provider.
-title: "[Adapter/Provider]: "
-labels: ["enhancement"]
+name: New format
+description: Request support for a new i18n file format.
+labels: ["type: feature", "scope: formats", "needs triage"]
+type: Feature
 body:
-  - type: dropdown
-    id: kind
+  - type: markdown
     attributes:
-      label: What are you requesting?
-      options:
-        - A new format adapter (file format to read/write)
-        - A new translation provider
-    validations:
-      required: true
+      value: |
+        A built-in format is an adapter in `@verbatra/format-adapters`. If you only need it for your own project, a custom adapter (`custom:...`) may already get you there: see the custom format adapters guide in the docs.
 
   - type: input
     id: name
     attributes:
-      label: Format or provider name
-      placeholder: e.g. Fluent FTL, TOML, Azure Translator
+      label: Format name
+      placeholder: e.g. Fluent FTL, TOML, Qt .ts
     validations:
       required: true
 
@@ -39,8 +34,8 @@ body:
   - type: textarea
     id: sample
     attributes:
-      label: Sample file or API shape
-      description: A small example file (for a format) or a link to the API reference (for a provider).
+      label: Sample file
+      description: A small example file, including plurals or placeholders if the format has them.
       render: text
     validations:
       required: false
