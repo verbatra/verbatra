@@ -71,22 +71,52 @@ describe("Features", () => {
     }
   });
 
-  it("gives every card one hidden canvas and no text in the visual", () => {
-    for (const card of cards()) {
-      const visual = card.querySelector(".vk-feature-visual");
-      const canvases = visual?.querySelectorAll("canvas") ?? [];
-      expect(canvases).toHaveLength(1);
-      expect(canvases[0]?.getAttribute("aria-hidden")).toBe("true");
+  it("gives the studio card one screenshot pair and every other card one hidden canvas, no text in either visual", () => {
+    const visuals = cards().map((card) => card.querySelector(".vk-feature-visual"));
+    expect(
+      visuals.map((visual) => (visual?.querySelector("canvas") ? "canvas" : "screenshot")),
+    ).toEqual(LANDING_FEATURES.map(({ id }) => (id === "studio" ? "screenshot" : "canvas")));
+    for (const visual of visuals) {
       expect(visual?.textContent).toBe("");
-      expect(visual?.querySelector("svg, img, text")).toBeNull();
+      expect(visual?.querySelector("svg, text, figure, button")).toBeNull();
     }
-    expect(root.querySelectorAll("canvas")).toHaveLength(LANDING_FEATURES.length);
+    expect(root.querySelectorAll("canvas")).toHaveLength(LANDING_FEATURES.length - 1);
+    expect(root.querySelectorAll("img")).toHaveLength(2);
+    for (const canvas of root.querySelectorAll("canvas")) {
+      expect(canvas.getAttribute("aria-hidden")).toBe("true");
+    }
   });
 
-  it("names each canvas after its feature, in order", () => {
+  it("shows the real studio overview in both themes, decorative, lazy and at its intrinsic size", () => {
+    const images = Array.from(root.querySelectorAll("li.vk-feature .vk-feature-visual img"));
+    expect(images).toHaveLength(2);
+    expect(images[0]?.closest("li")?.querySelector("h3")?.textContent).toBe(
+      en.landing.features.items.studio.title,
+    );
+    expect(images.map((image) => decodeURIComponent(image.getAttribute("src") ?? ""))).toEqual([
+      expect.stringContaining("/screenshots/studio-overview-dark.webp"),
+      expect.stringContaining("/screenshots/studio-overview-light.webp"),
+    ]);
+    for (const image of images) {
+      expect(image.getAttribute("alt")).toBe("");
+      expect(image.getAttribute("aria-hidden")).toBe("true");
+      expect(image.getAttribute("width")).toBe("2880");
+      expect(image.getAttribute("height")).toBe("1280");
+      expect(image.getAttribute("loading")).toBe("lazy");
+      expect(image.getAttribute("fetchpriority")).toBeNull();
+      expect(image.getAttribute("src")).not.toMatch(/^https?:/);
+    }
+    for (const theme of ["dark", "light"]) {
+      expect(
+        existsSync(join(process.cwd(), `public/screenshots/studio-overview-${theme}.webp`)),
+      ).toBe(true);
+    }
+  });
+
+  it("names each canvas after its feature, in order, leaving studio to the screenshot", () => {
     expect(
       Array.from(root.querySelectorAll("canvas"), (canvas) => canvas.getAttribute("data-feature")),
-    ).toEqual(LANDING_FEATURES.map(({ id }) => id));
+    ).toEqual(LANDING_FEATURES.filter(({ id }) => id !== "studio").map(({ id }) => id));
   });
 
   it("carries a title and a body for every feature in every locale", () => {

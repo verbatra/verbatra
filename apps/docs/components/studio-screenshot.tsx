@@ -4,19 +4,12 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { PanelCaption } from "@/components/ui/panel-caption";
+import { STUDIO_SHOTS, type StudioShot, studioShotSrc } from "@/lib/studio-shots";
 import { THEMES, type ThemeName } from "@/lib/theme";
 import { useSiteTheme } from "@/lib/use-site-theme";
 import { cn } from "@/lib/utils";
 
-const SHOTS = {
-  overview: { width: 2880, height: 1280 },
-  review: { width: 2880, height: 1384 },
-  translations: { width: 2880, height: 1812 },
-} as const;
-
 const THEME_BUTTON_CLASS = "vk-tap rounded-md px-2.5 py-1 text-xs transition-colors";
-
-type StudioShot = keyof typeof SHOTS;
 
 type StudioScreenshotProps = {
   shot: StudioShot;
@@ -32,6 +25,11 @@ const SIZES = "(max-width: 768px) 100vw, 900px";
 
 const ZOOMED_SIZES = "(max-width: 639px) 200vw, (max-width: 768px) 100vw, 900px";
 
+function useResolvedSiteTheme(): ThemeName {
+  const { resolvedTheme } = useSiteTheme();
+  return resolvedTheme === "light" ? "light" : "dark";
+}
+
 export function StudioScreenshot({
   shot,
   alt,
@@ -42,11 +40,10 @@ export function StudioScreenshot({
   className,
 }: StudioScreenshotProps): ReactNode {
   const t = useTranslations("docs.screenshot");
-  const { resolvedTheme } = useSiteTheme();
+  const siteTheme = useResolvedSiteTheme();
   const [chosen, setChosen] = useState<ThemeName | null>(null);
-  const siteTheme: ThemeName = resolvedTheme === "light" ? "light" : "dark";
   const theme = chosen ?? siteTheme;
-  const { width, height } = SHOTS[shot];
+  const { width, height } = STUDIO_SHOTS[shot];
 
   return (
     <figure className={cn("not-prose my-8", className)}>
@@ -84,7 +81,7 @@ export function StudioScreenshot({
         </PanelCaption>
         <div className={zoomOnPhone ? "vk-shot-zoom" : undefined}>
           <Image
-            src={`/screenshots/studio-${shot}-${theme}.webp`}
+            src={studioShotSrc(shot, theme)}
             alt={alt}
             width={width}
             height={height}

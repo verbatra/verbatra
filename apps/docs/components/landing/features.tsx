@@ -8,6 +8,7 @@ import { FeatureCanvas } from "./feature-canvas";
 import { PlainList } from "./plain-list";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
+import { StudioCardShot } from "./studio-card-shot";
 
 const FEATURES_HEADING_ID = "features-heading";
 
@@ -23,7 +24,11 @@ export async function Features(): Promise<ReactNode> {
           return (
             <li key={id} className="vk-feature">
               <div className="vk-feature-visual">
-                <FeatureCanvas id={id} phase={index * PHASE_STEP} />
+                {id === "studio" ? (
+                  <StudioCardShot />
+                ) : (
+                  <FeatureCanvas id={id} phase={index * PHASE_STEP} />
+                )}
               </div>
               <div className="vk-feature-text">
                 <h3 className="vk-feature-title">
