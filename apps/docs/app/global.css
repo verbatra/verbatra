@@ -3417,6 +3417,11 @@ html:has(.vk-home) {
   display: none;
 }
 
+.vk-marquee-viewport:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
 .vk-marquee-item {
   display: inline-flex;
   align-items: center;
@@ -3455,6 +3460,10 @@ html:has(.vk-home) {
   .vk-marquee-list {
     flex: none;
     flex-wrap: nowrap;
+  }
+
+  .vk-marquee-track {
+    width: max-content;
   }
 }
 

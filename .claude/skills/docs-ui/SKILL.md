@@ -568,11 +568,11 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   mounted and `prefers-reduced-motion: no-preference` matches, `MarqueeMotion` clones each list `MARQUEE_COPIES` (`lib/marquee-copies.ts`) times into its
   track (`aria-hidden`, `inert`, no `aria-labelledby`, holding no link or button, `display: none` until motion runs) and only then sets
   `data-marquee`, so the lists and their copies start the loop in the same frame and stay in step. Under reduced motion no copy
-  exists; a change of the preference at runtime adds or removes them and aligns their animation clock to the first list, and
+  exists; a change of the preference at runtime adds or removes them, and two frames after the animations start each copy takes the first list's `startTime`, so every list of a row shares one start time (the browser would otherwise start a copy one frame late), and
   new rows from a refresh clone the copies again (the effect depends on `children`), so none goes stale; unmount removes them; two copies keep a row
   edge to edge up to at least 2560px (`e2e/marquee.spec.ts` checks 1440, 1920 and 2560 at five points of the loop).
   Under reduced motion or without JavaScript (`scripting: none`) the pause button is `display: none`
-  and the list wraps from 40rem, which never changes; under 40rem the static list is one sideways-scrolling line instead
+  and the list wraps from 40rem, which never changes; under 40rem the static list is one sideways-scrolling line instead, with an inset 2px focus ring like the other scroll blocks and the same gutter at its end as at its start
   (`flex-wrap: nowrap` in the `width < 40rem` block, the gutter kept, nothing moving), so a phone shows two one-line rows, about
   300px, instead of a 1,000px wrapped block (`e2e/marquee.spec.ts` holds the section under half of an 844px screen, with
   every item reachable by keyboard and by scrolling, in reduced motion and without JavaScript). Where motion may start (`prefers-reduced-motion:

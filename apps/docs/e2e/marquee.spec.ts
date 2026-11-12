@@ -162,12 +162,20 @@ async function expectScrollingLines(page: Page): Promise<void> {
     await viewport.focus();
     await viewport.press("ArrowRight");
     await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+    await expect(viewport).toHaveCSS("outline-style", "solid");
+    await expect(viewport).toHaveCSS("outline-offset", "-2px");
     const lastVisible = await viewport.evaluate((element) => {
       element.scrollLeft = element.scrollWidth;
       const items = element.querySelectorAll(".vk-marquee-list:not(.vk-marquee-copy) > li");
       const last = items[items.length - 1]?.getBoundingClientRect();
       const box = element.getBoundingClientRect();
-      return last !== undefined && last.left >= box.left && last.right <= box.right + 1;
+      const gutter = Number.parseFloat(getComputedStyle(element).paddingLeft);
+      return (
+        gutter > 0 &&
+        last !== undefined &&
+        last.left >= box.left &&
+        last.right <= box.right - gutter + 1
+      );
     });
     expect(lastVisible, `${id} last item reachable`).toBe(true);
   }
@@ -199,15 +207,16 @@ test.describe("marquee when the motion preference changes at runtime", () => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(4);
     await expect.poll(() => playStates(page)).toContain("running");
+    await page.waitForTimeout(400);
     const spread = await page.evaluate(() =>
       Array.from(document.querySelectorAll("#marquee .vk-marquee-track"), (track) => {
-        const times = Array.from(track.children, (list) =>
-          Number((list as HTMLElement).getAnimations()[0]?.currentTime ?? Number.NaN),
+        const starts = Array.from(track.children, (list) =>
+          Number((list as HTMLElement).getAnimations()[0]?.startTime ?? Number.NaN),
         );
-        return Math.max(...times) - Math.min(...times);
+        return Math.max(...starts) - Math.min(...starts);
       }),
     );
-    for (const difference of spread) expect(difference).toBeLessThan(50);
+    for (const difference of spread) expect(difference).toBe(0);
     await page.emulateMedia({ reducedMotion: "reduce" });
     await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(0);
   });
