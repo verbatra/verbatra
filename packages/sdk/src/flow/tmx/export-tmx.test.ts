@@ -176,6 +176,48 @@ describe("exportTmx writes the memory as TMX", () => {
     expect((await exportTmx({ config, cwd: dir })).otherConfiguration).toBe(0);
   });
 
+  it("counts a hash left out of the export once, however many old configurations hold it", async () => {
+    const config = cfg();
+    const dir = await makeTempDir();
+    const shared = hashOf("Hello");
+    const onlyOld = hashOf("Save");
+    await writeJsonFile(join(dir, CACHE_FILE_NAME), {
+      version: 2,
+      entries: {
+        [computeFingerprint(config, "de")]: { de: { [shared]: "Hallo" } },
+        [computeFingerprint(cfg({ tone: "formal" }), "de")]: {
+          de: { [shared]: "Hallo alt", [onlyOld]: "Speichern" },
+        },
+        [computeFingerprint(cfg({ tone: "informal" }), "de")]: {
+          de: { [shared]: "Hallo aelter", [onlyOld]: "Sichern" },
+        },
+      },
+      sources: { [shared]: "Hello", [onlyOld]: "Save" },
+    });
+
+    const result = await exportTmx({ config, cwd: dir, locales: ["de"] });
+
+    expect(result.units).toBe(1);
+    expect(result.otherConfiguration).toBe(1);
+  });
+
+  it("counts no entry held under old configurations when the current one holds the same hash", async () => {
+    const config = cfg();
+    const dir = await makeTempDir();
+    const shared = hashOf("Hello");
+    await writeJsonFile(join(dir, CACHE_FILE_NAME), {
+      version: 2,
+      entries: {
+        [computeFingerprint(config, "de")]: { de: { [shared]: "Hallo" } },
+        [computeFingerprint(cfg({ tone: "formal" }), "de")]: { de: { [shared]: "Hallo alt" } },
+        [computeFingerprint(cfg({ tone: "informal" }), "de")]: { de: { [shared]: "Hallo aelter" } },
+      },
+      sources: { [shared]: "Hello" },
+    });
+
+    expect((await exportTmx({ config, cwd: dir, locales: ["de"] })).otherConfiguration).toBe(0);
+  });
+
   it("orders units by source hash, not by which locale contributed one first", async () => {
     const config = cfg();
     const dir = await withMemory(

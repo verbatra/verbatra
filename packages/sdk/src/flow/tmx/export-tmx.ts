@@ -67,8 +67,10 @@ export interface ExportTmxResult {
   /**
    * Memory entries for the exported locales left out because they are stored under another
    * configuration fingerprint: translations made under an earlier provider, model, tone or glossary
-   * setting, which a run would no longer reuse. Counted once per locale and hash. Always present on
-   * a result {@link exportTmx} returns.
+   * setting, which a run would no longer reuse. Counted once per locale and source hash, and not at
+   * all when the same hash is also held under the current fingerprint, since that translation is
+   * in the export. Optional so a result written by an older release still parses; {@link exportTmx}
+   * always sets it.
    */
   readonly otherConfiguration?: number | undefined;
   /**
@@ -185,9 +187,15 @@ function countOtherConfiguration(
   let count = 0;
   for (const locale of locales) {
     const current = fingerprintFor(locale);
+    const currentHashes = new Set(Object.keys(memory.entries[current]?.[locale] ?? {}));
+    const otherHashes = new Set<string>();
     for (const [fingerprint, byLocale] of Object.entries(memory.entries)) {
-      count += fingerprint === current ? 0 : Object.keys(byLocale[locale] ?? {}).length;
+      if (fingerprint === current) continue;
+      for (const hash of Object.keys(byLocale[locale] ?? {})) {
+        if (!currentHashes.has(hash)) otherHashes.add(hash);
+      }
     }
+    count += otherHashes.size;
   }
   return count;
 }
