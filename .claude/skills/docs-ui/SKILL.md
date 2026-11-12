@@ -354,7 +354,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, statement, highlights,
   playground, features, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
-  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button beside the install chip, a
+  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button, a ghost "Compare with other tools" link to the localized `/compare` (`COMPARE_PATH`, no count in the label) and the install chip, a
   `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`; on the right an `aria-hidden`
   `.vk-banner-files` stack of three locale-file cards from `lib/landing-hero-files.ts`: `fr` and
   `es` behind, tilted, each its `heroFileName` and the `heroFilePreview` line, and `de` in front
@@ -366,7 +366,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   large sentence on a starfield whose counts come from `lib/hero-terminal.ts`, the lit part in an
   `em`, the rest `--text-faint`, with the first locale line of the translate run under it),
   `highlights.tsx` (`#highlights`, a split head aligned to the start over `.vk-bento`, six columns
-  from 64rem: the translate run from `HERO_TRANSLATE_OUTPUT` in a wrapped `.vk-tile-code-wrap` group named by the tile title (it wraps at its spaces at every width, so it never scrolls, is no tab stop and no line is cut or faded on a phone; each output line is its own `.vk-tile-line` span with a hanging indent (`--vk-hang` in `ch`, its leading spaces and at least 2), so a wrapped row sits under the start of its text; the text stays the CLI's byte for byte), its total line in
+  from 64rem: three tile titles name the pain ("Retranslating everything costs more", "Missing keys reach production", "One broken placeholder breaks a screen") while each body and terminal output stays the fix, and the agents tile keeps its title; the translate run (under a `.vk-tile-body` that carries the run's sent and total counts) from `HERO_TRANSLATE_OUTPUT` in a wrapped `.vk-tile-code-wrap` group named by the tile title (it wraps at its spaces at every width, so it never scrolls, is no tab stop and no line is cut or faded on a phone; each output line is its own `.vk-tile-line` span with a hanging indent (`--vk-hang` in `ch`, its leading spaces and at least 2), so a wrapped row sits under the start of its text; the text stays the CLI's byte for byte), its total line in
   `--accent` (span 4), the check's exit code in `--text-danger` (span 2; its glow is a strip of
   `--tile-halo-height` at the tile's end, under padding that clears the text, so no text ever sits
   over a halo), the playground's default item in every playground language with each placeholder
@@ -400,7 +400,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   and an `h3` whose link to the command's docs page
   stretches over the whole card), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
-  (`#marquee`, see "Marquee" below), and the comparison, which lives only on `/compare` (the landing reaches it from the FAQ's docs
+  (`#marquee`, see "Marquee" below), and the comparison, which lives only on `/compare` (the landing reaches it from the hero link, the last FAQ answer, the FAQ's docs
   links and the footer). `lib/landing-compare.ts` holds its rows and tools and one numbered source
   list, `compareSource(n)`; `cellFootnote` derives each cell's number from its row and tool, and
   the manual column cites the note `M`. A cell is text only, never a check, a cross or a rating.
@@ -518,7 +518,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   landing, `/compare`, legal and docs pages, with JavaScript off, that the switch's links equal the
   page's `hreflang` alternates and answer 200 without a redirect. Section ids are unique; never render two sections that claim the same one.
   The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`, each item a bordered `--radius-card` `--surface-tile` panel: five
-  questions phrased the way people search (cost, providers, privacy and keys, CI, repeat runs), each
+  questions phrased the way people search (cost, providers, privacy and keys, CI, and last how Verbatra differs from other i18n tools, whose answer links `/compare` beside the aside's "Full comparison" link), each
   answer at most 30 words with a first sentence of at most 25, the heading and lead in the head column, the questions beside it, then a `nav` of docs links that
   follows the list in the DOM, so a phone reads the questions first, and that sits under the head
   from 64rem, each link a 44px target) is a server section: each item is a native
@@ -1127,7 +1127,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   text): `.vk-banner-grid` is one column (copy, then cards), and from
   64rem an asymmetric 6fr / 5fr split, vertically centered, the copy (`.vk-banner-copy`: the `h1` `.vk-banner-title` (at most eight words, one sentence),
   the `.vk-banner-lead` subline (at most 25 words in English, 30 in de, es and fr, tested in all four), `.vk-banner-ctas` with Get started
-  (`/docs/quickstart`) beside the `.vk-banner-install` chip, a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
+  (`/docs/quickstart`), a ghost-variant "Compare with other tools" link (`/compare`, never a second primary button) and the `.vk-banner-install` chip, a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
   of `HERO_INSTALL_COMMAND`) in the wider column beside the demo (`.vk-banner-demo`: the
   `.vk-banner-files` stack, three `.vk-banner-file` cards of `--radius-lg` on `--surface-tile`; the
   front `de` card takes `--border-accent`, `--surface-raised` and a `--halo-strong` shadow, the `fr`
