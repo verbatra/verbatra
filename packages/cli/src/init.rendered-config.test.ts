@@ -90,6 +90,35 @@ describe("the scaffolded verbatra.config.ts", () => {
     },
   );
 
+  it("offers a commented extract block for i18next-json that parses once uncommented", async () => {
+    await runInit(
+      { cwd: dir, yes: true, provider: "deepl", format: "i18next-json" },
+      captureStreams().streams,
+      nonInteractive,
+    );
+    const text = readFileSync(join(dir, "verbatra.config.ts"), "utf8");
+
+    const uncommented = text.replace(/^ {2}\/\/ (extract: .*)$/m, "  $1");
+    const parsed = verbatraConfigSchema.parse(evaluateRenderedConfig(uncommented));
+
+    expect(text).toContain('// extract: { framework: "i18next", roots: ["src"] },');
+    expect(evaluateRenderedConfig(text)).not.toHaveProperty("extract");
+    expect(parsed.extract).toEqual({ framework: "i18next", roots: ["src"] });
+  });
+
+  it.each(["properties", "xliff"] as const)(
+    "writes no extract example for %s, which no extractor reads",
+    async (format) => {
+      await runInit(
+        { cwd: dir, yes: true, provider: "deepl", format },
+        captureStreams().streams,
+        nonInteractive,
+      );
+
+      expect(readFileSync(join(dir, "verbatra.config.ts"), "utf8")).not.toContain("extract");
+    },
+  );
+
   it("parses back into a human-only config for provider none", async () => {
     const cap = captureStreams();
     const code = await runInit(

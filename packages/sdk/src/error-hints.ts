@@ -73,7 +73,7 @@ const SDK_ERROR_HINTS = {
   SOURCE_UNWRITABLE:
     "Make the source locale file writable; for xliff and apple-xcstrings, create the catalog first.",
   EXTRACT_NOT_CONFIGURED:
-    "Add an `extract` block to the config naming the framework and source roots.",
+    'Add an `extract` block to the config naming the framework and source roots, for example `extract: { framework: "i18next", roots: ["src"] }`.',
   EXTRACT_FS_UNSUPPORTED:
     "Pass a file system that implements `readDirectory`, or use the default one.",
   TYPES_OUTPUT_CONFLICT:

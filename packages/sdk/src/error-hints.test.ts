@@ -49,6 +49,14 @@ function expectSentence(hint: string | undefined): void {
   expect(hint).toMatch(/^[A-Z].*\.$/);
 }
 
+describe("sdkErrorHint: EXTRACT_NOT_CONFIGURED", () => {
+  it("shows the shape of the extract block", () => {
+    expect(sdkErrorHint("EXTRACT_NOT_CONFIGURED")).toContain(
+      'extract: { framework: "i18next", roots: ["src"] }',
+    );
+  });
+});
+
 describe("errorHint: every known code has a hint", () => {
   it("reads non-trivial code unions, so the loops below cannot pass vacuously", () => {
     expect(SDK_CODES.length).toBeGreaterThanOrEqual(40);
