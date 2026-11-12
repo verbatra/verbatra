@@ -289,7 +289,7 @@ describe("withGeminiRetry: a stated wait", () => {
       .mockResolvedValueOnce("ok");
     const retries: number[] = [];
     await expect(
-      withGeminiRetry(call, undefined, FAST, (event) => retries.push(event.delayMs)),
+      withGeminiRetry(call, undefined, FAST, (event) => retries.push(event.delayMs ?? 0)),
     ).resolves.toBe("ok");
     expect(retries).toEqual([1]);
   });
