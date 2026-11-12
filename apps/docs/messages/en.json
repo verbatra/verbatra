@@ -211,16 +211,17 @@
       "lead": "A CLI, an SDK, a local Studio and an MCP server, all reading the same lock file.",
       "translate": {
         "label": "Translate",
-        "title": "Pay for {sent} strings, not {total}"
+        "title": "Retranslating everything costs more",
+        "body": "Only {sent} of {total} strings changed, so only {sent} go to your provider."
       },
       "ci": {
         "label": "Check",
-        "title": "Drift fails the pull request",
+        "title": "Missing keys reach production",
         "body": "The check exits {code} while a locale is missing keys. It needs no API key, so it runs on every pull request."
       },
       "integrity": {
         "label": "Integrity",
-        "title": "Placeholders arrive intact"
+        "title": "One broken placeholder breaks a screen"
       },
       "agents": {
         "label": "Agents",
