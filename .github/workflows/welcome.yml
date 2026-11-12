@@ -1,0 +1,35 @@
+name: Welcome
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  welcome:
+    name: Greet first-time contributors
+    if: >-
+      github.event.sender.type != 'Bot' &&
+      !contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'),
+      github.event.issue.author_association || github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Post the welcome message
+        uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d # v3.1.0
+        with:
+          issue_message: >-
+            Thanks for opening your first issue in verbatra. A maintainer reads every new issue;
+            if it needs a reproduction or more information, a label and a comment will say so.
+          pr_message: >-
+            Thanks for your first pull request to verbatra. Please check that `pnpm verify`
+            passes locally and that a changeset is added if a published package changes in a
+            way users can see; CONTRIBUTING.md explains both. A maintainer approves the first
+            workflow run after reading the diff.
