@@ -85,6 +85,44 @@ async function sectionHeight(page: Page): Promise<number> {
   return page.locator(MARQUEE).evaluate((element) => element.getBoundingClientRect().height);
 }
 
+type LoopFrame = {
+  readonly row: string;
+  readonly at: number;
+  readonly startSpread: number;
+  readonly spans: ReadonlyArray<readonly [number, number]>;
+};
+
+async function loopFrames(page: Page): Promise<ReadonlyArray<LoopFrame>> {
+  return page.evaluate(async () => {
+    const rows = Array.from(document.querySelectorAll<HTMLElement>("#marquee .vk-marquee-row"));
+    const frames: Array<LoopFrame> = [];
+    for (const row of rows) {
+      const lists = Array.from(row.querySelectorAll<HTMLElement>(".vk-marquee-list"));
+      const animations = lists.flatMap((list) => list.getAnimations());
+      await Promise.all(animations.map((animation) => animation.ready));
+      const starts = animations.map((animation) => Number(animation.startTime));
+      const startSpread = Math.max(...starts) - Math.min(...starts);
+      const first = Number(animations[0]?.currentTime);
+      const offsets = animations.map((animation) => Number(animation.currentTime) - first);
+      const duration = Number(animations[0]?.effect?.getComputedTiming().duration ?? 0);
+      for (const at of [0, 0.25, 0.5, 0.75, 0.999]) {
+        animations.forEach((animation, index) => {
+          animation.pause();
+          animation.currentTime = duration + duration * at + (offsets[index] ?? 0);
+        });
+        const spans = lists.map((list) => {
+          const box = list.getBoundingClientRect();
+          return [box.left, box.right] as const;
+        });
+        frames.push({ row: row.dataset.row ?? "", at, startSpread, spans });
+      }
+    }
+    return frames;
+  });
+}
+
+const MARQUEE_GAP_PX = 14;
+
 async function expectStatic(page: Page): Promise<void> {
   const marquee = page.locator(MARQUEE);
   await expect(marquee.locator(".vk-marquee-toggle")).toBeHidden();
@@ -111,6 +149,96 @@ test.describe("marquee under reduced motion", () => {
     await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
     await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
     await expectStatic(page);
+  });
+});
+
+const PHONE = { width: 391, height: 844 } as const;
+
+async function expectScrollingLines(page: Page): Promise<void> {
+  expect(await sectionHeight(page)).toBeLessThanOrEqual(PHONE.height / 2);
+  for (const id of ["formats", "providers"]) {
+    const row = page.locator(`${MARQUEE} [data-row="${id}"]`);
+    const list = row.locator(".vk-marquee-list:not(.vk-marquee-copy)");
+    const viewport = row.locator(".vk-marquee-viewport");
+    await expect(list).toHaveCSS("flex-wrap", "nowrap");
+    const lineHeight = await list.evaluate((element) => element.getBoundingClientRect().height);
+    expect(lineHeight).toBeLessThan(56);
+    const sizes = await viewport.evaluate((element) => ({
+      client: element.clientWidth,
+      scroll: element.scrollWidth,
+    }));
+    expect(sizes.scroll).toBeGreaterThan(sizes.client);
+    await viewport.focus();
+    await viewport.press("ArrowRight");
+    await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+    await expect(viewport).toHaveCSS("outline-style", "solid");
+    await expect(viewport).toHaveCSS("outline-offset", "-2px");
+    const lastVisible = await viewport.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth;
+      const items = element.querySelectorAll(".vk-marquee-list:not(.vk-marquee-copy) > li");
+      const last = items[items.length - 1]?.getBoundingClientRect();
+      const box = element.getBoundingClientRect();
+      const gutter = Number.parseFloat(getComputedStyle(element).paddingLeft);
+      return (
+        gutter > 0 &&
+        last !== undefined &&
+        last.left >= box.left &&
+        last.right <= box.right - gutter + 1
+      );
+    });
+    expect(lastVisible, `${id} last item reachable`).toBe(true);
+  }
+  expect(await playStates(page)).toEqual([]);
+  await expectNoHorizontalScroll(page);
+}
+
+test.describe("marquee under reduced motion on a phone", () => {
+  test.use({ viewport: PHONE });
+
+  test("stays under half a screen as one scrolling line per row with every item reachable", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
+    await expect(page.locator(".vk-marquee-toggle")).toBeHidden();
+    await expectScrollingLines(page);
+    await expectNoAxeViolations(page, MARQUEE);
+  });
+});
+
+test.describe("marquee when the motion preference changes at runtime", () => {
+  test("adds no copy while motion is reduced, then starts every list of a row in step", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
+    await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(0);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(4);
+    await expect.poll(() => playStates(page)).toContain("running");
+    await page.waitForTimeout(400);
+    const spread = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("#marquee .vk-marquee-track"), (track) => {
+        const starts = Array.from(track.children, (list) =>
+          Number((list as HTMLElement).getAnimations()[0]?.startTime ?? Number.NaN),
+        );
+        return Math.max(...starts) - Math.min(...starts);
+      }),
+    );
+    for (const difference of spread) expect(difference).toBe(0);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(0);
+  });
+});
+
+test.describe("marquee without JavaScript on a phone", () => {
+  test.use({ javaScriptEnabled: false, reducedMotion: "no-preference", viewport: PHONE });
+
+  test("stays under half a screen as one scrolling line per row with every item reachable", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expectScrollingLines(page);
   });
 });
 
@@ -222,6 +350,35 @@ test.describe("marquee motion", () => {
     for (const [first, second] of running) expect(second).not.toBe(first);
   });
 
+  for (const width of [1440, 1920, 2560]) {
+    test(`keeps every row filled edge to edge across the whole loop at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
+      await expect(page.locator(`${MARQUEE} .vk-marquee-copy`).first()).toBeVisible();
+      const frames = await loopFrames(page);
+      expect(frames).toHaveLength(10);
+      for (const { row, at, startSpread, spans } of frames) {
+        const label = `${row} at ${at} of the loop`;
+        expect(startSpread, `${label}: start times`).toBe(0);
+        const ordered = [...spans].sort(([first], [second]) => first - second);
+        expect(ordered[0]?.[0] ?? 1, label).toBeLessThanOrEqual(0);
+        expect(Math.max(...ordered.map(([, end]) => end)), label).toBeGreaterThanOrEqual(width);
+        for (let index = 1; index < ordered.length; index += 1) {
+          const gap = (ordered[index]?.[0] ?? 0) - (ordered[index - 1]?.[1] ?? 0);
+          expect(gap, `${label}: between list ${index - 1} and ${index}`).toBeGreaterThanOrEqual(
+            MARQUEE_GAP_PX - 1,
+          );
+          expect(gap, `${label}: between list ${index - 1} and ${index}`).toBeLessThanOrEqual(
+            MARQUEE_GAP_PX + 1,
+          );
+        }
+      }
+    });
+  }
+
   test("draws each item as a bare mark and label with no border or fill", async ({ page }) => {
     await page.goto("/");
     const item = page.locator(`${MARQUEE} .vk-marquee-item`).first();
@@ -261,10 +418,36 @@ test.describe("marquee motion", () => {
   });
 });
 
-test("the static marquee reflows at 320px without horizontal scroll", async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 800 });
+test("the static marquee reflows at 1024px without horizontal scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 800 });
   await page.goto("/");
   await expectStatic(page);
+  await expectNoHorizontalScroll(page);
+});
+
+for (const width of [640, 768, 1023]) {
+  test(`the static marquee wraps its rows into several lines at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expectStatic(page);
+    const lineHeight = await page
+      .locator(`${FIRST_LIST} > li`)
+      .first()
+      .evaluate((item) => item.getBoundingClientRect().height);
+    const listHeight = await page
+      .locator(FIRST_LIST)
+      .evaluate((list) => list.getBoundingClientRect().height);
+    expect(listHeight).toBeGreaterThan(lineHeight * 1.5);
+    await expectNoHorizontalScroll(page);
+  });
+}
+
+test("the static marquee at 320px scrolls inside its rows, not the page", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/");
+  await expect(page.locator(".vk-marquee-toggle")).toBeHidden();
+  await expect(page.locator(FIRST_LIST)).toHaveCSS("flex-wrap", "nowrap");
+  expect(await playStates(page)).toEqual([]);
   await expectNoHorizontalScroll(page);
 });
 

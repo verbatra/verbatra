@@ -80,6 +80,8 @@ export function SectionHead({
   );
 }
 
+export type AsideTrailingPlacement = "side" | "after";
+
 export function SectionAside({
   title,
   lead,
@@ -88,15 +90,18 @@ export function SectionAside({
   className,
   children,
 }: SectionHeadProps & {
-  trailing?: ReactNode;
+  trailing?: (placement: AsideTrailingPlacement) => ReactNode;
   className?: string;
   children: ReactNode;
 }): ReactNode {
   return (
     <div className={cn("vk-section-aside vk-grid-12", className)}>
-      <HeadBlock title={title} lead={lead} id={id} shape="aside" />
+      <div className="vk-section-aside-side">
+        <HeadBlock title={title} lead={lead} id={id} shape="aside" />
+        {trailing?.("side")}
+      </div>
       <div className="vk-section-aside-content">{children}</div>
-      {trailing}
+      {trailing?.("after")}
     </div>
   );
 }

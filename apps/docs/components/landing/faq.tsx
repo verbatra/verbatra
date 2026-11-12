@@ -16,7 +16,7 @@ import { keepCompoundsWhole } from "@/lib/word-breaks";
 import { FaqKeys } from "./islands";
 import { LICENSE_URL } from "./links";
 import { Section } from "./section";
-import { SectionAside } from "./section-head";
+import { type AsideTrailingPlacement, SectionAside } from "./section-head";
 
 type FaqTranslator = Awaited<ReturnType<typeof getTranslations<"landing.faq">>>;
 
@@ -78,10 +78,24 @@ export async function faqContent(locale: Locale): Promise<ReadonlyArray<FaqConte
   });
 }
 
-function DocsLinks({ t, locale }: { t: FaqTranslator; locale: Locale }): ReactNode {
+const DOCS_LABEL_IDS: Readonly<Record<AsideTrailingPlacement, string>> = {
+  side: "faq-docs-label-side",
+  after: "faq-docs-label",
+};
+
+function DocsLinks({
+  t,
+  locale,
+  placement,
+}: {
+  t: FaqTranslator;
+  locale: Locale;
+  placement: AsideTrailingPlacement;
+}): ReactNode {
+  const labelId = DOCS_LABEL_IDS[placement];
   return (
-    <nav aria-labelledby="faq-docs-label" className="vk-faq-docs">
-      <p id="faq-docs-label" className="vk-faq-docs-label">
+    <nav aria-labelledby={labelId} className="vk-faq-docs" data-placement={placement}>
+      <p id={labelId} className="vk-faq-docs-label">
         {t("docs.label")}
       </p>
       <ul>
@@ -113,7 +127,7 @@ export async function Faq({
         title={t("heading")}
         lead={t("lead")}
         className="vk-faq-aside"
-        trailing={<DocsLinks t={t} locale={locale} />}
+        trailing={(placement) => <DocsLinks t={t} locale={locale} placement={placement} />}
       >
         <div id={FAQ_LIST_ID} className="vk-faq">
           {items.map((item) => (

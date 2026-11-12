@@ -78,7 +78,7 @@ describe("the landing page surface", () => {
     expect(light?.declarations["--v-void"]).toBe("hsl(0 0% 100%)");
   });
 
-  it.each([".vk-home", ".vk-footer", ".vk-faq-aside > .vk-section-head-aside"])(
+  it.each([".vk-home", ".vk-footer", ".vk-faq-aside > .vk-section-aside-side"])(
     "paints %s from the page surface so no band forms between the sections and the footer",
     (selector) => {
       const painted = rulesFor(rules, selector).filter(
@@ -148,8 +148,6 @@ describe("the 12-column landing grid", () => {
       "repeat(var(--grid-columns), minmax(0, 1fr))",
     );
     expect(child?.media).toBe("@media (min-width: 64rem)");
-    expect(child?.declarations["grid-column"]).toBe(
-      "var(--grid-start, auto) / span var(--grid-span, var(--grid-columns))",
-    );
+    expect(child?.declarations["grid-column"]).toBe("span var(--grid-span, var(--grid-columns))");
   });
 });

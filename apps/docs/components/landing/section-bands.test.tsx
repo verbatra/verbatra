@@ -149,13 +149,15 @@ describe("the section head on the 12-column grid", () => {
       </SectionAside>,
     ).querySelector(".vk-section-aside");
     expect(aside?.classList.contains("vk-grid-12")).toBe(true);
-    const [head, content] = Array.from(aside?.children ?? []);
+    const [side, content] = Array.from(aside?.children ?? []);
+    expect(side?.className).toBe("vk-section-aside-side");
+    const head = side?.firstElementChild;
     expect(head?.getAttribute("data-layout")).toBe("aside");
     expect(head?.querySelector("h2#h")?.textContent).toBe("Title");
     expect(head?.querySelector(".vk-section-head-lead")?.textContent).toBe("Lead");
     expect(content?.className).toBe("vk-section-aside-content");
     expect(content?.querySelector("#content")).not.toBeNull();
-    expect(css).toMatch(/\.vk-section-head-aside \{\s+--grid-span: 4;/);
+    expect(css).toMatch(/\.vk-section-aside-side \{\s+--grid-span: 4;/);
     expect(css).toMatch(/\.vk-section-aside-content \{\s+--grid-span: 8;/);
   });
 
@@ -173,10 +175,9 @@ describe("the section head on the 12-column grid", () => {
     }
   });
 
-  it("lets a grid child start on a set column from 64rem, and only there", () => {
-    expect(css).toContain(
-      "grid-column: var(--grid-start, auto) / span var(--grid-span, var(--grid-columns));",
-    );
+  it("lets a grid child span a set number of columns from 64rem, and only there", () => {
+    expect(css).toContain("grid-column: span var(--grid-span, var(--grid-columns));");
+    expect(css).not.toContain("--grid-start");
   });
 
   it("varies the section heads instead of splitting every one", async () => {

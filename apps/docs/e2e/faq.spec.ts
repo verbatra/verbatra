@@ -12,6 +12,8 @@ import {
 const FAQ = "section#faq";
 const ITEMS = `${FAQ} details[data-faq]`;
 const SUMMARIES = `${ITEMS} > summary`;
+const DOCS_NAV = `${FAQ} nav:visible`;
+const DOCS_LINKS = `${DOCS_NAV} a`;
 
 type FaqEntry = { readonly question: string; readonly answer: string };
 
@@ -88,7 +90,7 @@ for (const locale of LOCALES) {
     test("links the docs to pages that exist in the same locale", async ({ page }) => {
       await page.goto(homeUrl(locale));
       const hrefs = await page
-        .locator(`${FAQ} nav a`)
+        .locator(DOCS_LINKS)
         .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
       expect(hrefs.length).toBeGreaterThan(0);
       for (const href of hrefs) {
@@ -169,6 +171,62 @@ test.describe("faq keyboard", () => {
   });
 });
 
+type UnitSample = {
+  readonly y: number;
+  readonly gap: number;
+  readonly sliced: ReadonlyArray<string>;
+  readonly stuck: boolean;
+  readonly unitHeight: number;
+  readonly unitBottom: number;
+  readonly viewportHeight: number;
+  readonly linkHeights: ReadonlyArray<number>;
+};
+
+async function scanFaqUnit(page: Page): Promise<ReadonlyArray<UnitSample>> {
+  return page.evaluate(() => {
+    const section = document.querySelector("section#faq") as Element;
+    const unit = section.querySelector(".vk-faq-aside > .vk-section-aside-side") as Element;
+    const head = unit.querySelector(".vk-section-head-aside") as Element;
+    const top = window.scrollY + section.getBoundingClientRect().top;
+    const bottom = top + section.getBoundingClientRect().height;
+    const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+    const visible = (element: Element) => element.getClientRects().length > 0;
+    const results: Array<UnitSample> = [];
+    for (let y = top - 200; y < bottom; y += 37) {
+      window.scrollTo(0, y);
+      const label = Array.from(section.querySelectorAll(".vk-faq-docs-label")).find(visible);
+      if (label === undefined) continue;
+      const links = Array.from(section.querySelectorAll(".vk-faq-docs a")).filter(visible);
+      const sliced = [label, ...links].flatMap((target) => {
+        const box = target.getBoundingClientRect();
+        if (box.top < headerBottom || box.bottom > window.innerHeight) return [];
+        const points = [
+          [box.left + 2, box.top + 2],
+          [box.left + box.width / 2, box.top + box.height / 2],
+          [box.right - 2, box.bottom - 2],
+        ] as const;
+        const covered = points.some(([x, py]) => {
+          const hit = document.elementFromPoint(x, py);
+          return hit === null || !(target === hit || target.contains(hit));
+        });
+        return covered ? [target.textContent ?? ""] : [];
+      });
+      const unitBox = unit.getBoundingClientRect();
+      results.push({
+        y,
+        gap: label.getBoundingClientRect().top - head.getBoundingClientRect().bottom,
+        sliced,
+        stuck: Math.abs(unitBox.top - headerBottom) <= 1,
+        unitHeight: unitBox.height,
+        unitBottom: unitBox.bottom,
+        viewportHeight: window.innerHeight,
+        linkHeights: links.map((link) => link.getBoundingClientRect().height),
+      });
+    }
+    return results;
+  });
+}
+
 test.describe("faq layout", () => {
   test("keeps the aside head in view beside the open list and the docs links in its column", async ({
     page,
@@ -178,7 +236,7 @@ test.describe("faq layout", () => {
     await openAll(page);
     const head = page.locator(`${FAQ} .vk-section-head`);
     const list = page.locator(`${FAQ} #faq-list`);
-    const nav = await page.locator(`${FAQ} nav`).boundingBox();
+    const nav = await page.locator(DOCS_NAV).boundingBox();
     const listBox = await list.boundingBox();
     expect((nav?.x ?? 0) + (nav?.width ?? 0)).toBeLessThan(listBox?.x ?? 0);
     await page.locator(`${ITEMS}`).last().scrollIntoViewIfNeeded();
@@ -186,6 +244,43 @@ test.describe("faq layout", () => {
     expect(box?.y ?? -1).toBeGreaterThanOrEqual(0);
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(900);
   });
+
+  test("moves the aside head and the docs links as one unit, never slicing the label or a link", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await openAll(page);
+    const samples = await scanFaqUnit(page);
+    expect(samples.length).toBeGreaterThan(20);
+    expect(samples.filter(({ sliced }) => sliced.length > 0)).toEqual([]);
+    const gaps = samples.map(({ gap }) => gap);
+    expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(1);
+  });
+
+  for (const locale of LOCALES) {
+    for (const width of [1024, 1440]) {
+      test(`fits the sticky unit between the header and the viewport bottom at ${width}x672 in ${locale}`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 672 });
+        await page.goto(homeUrl(locale));
+        await openAll(page);
+        const samples = await scanFaqUnit(page);
+        const stuck = samples.filter((sample) => sample.stuck);
+        expect(stuck.length).toBeGreaterThan(5);
+        const unitHeight = Math.max(...samples.map((sample) => sample.unitHeight));
+        test.info().annotations.push({
+          type: "faq-unit-height",
+          description: `${locale} ${width}x672: unit ${unitHeight}px`,
+        });
+        for (const sample of stuck) expect(sample.unitBottom).toBeLessThanOrEqual(672);
+        expect(samples.filter(({ sliced }) => sliced.length > 0)).toEqual([]);
+        for (const { linkHeights } of samples)
+          for (const height of linkHeights) expect(height).toBeGreaterThanOrEqual(44);
+      });
+    }
+  }
 
   test("pins the aside head right under the site header, so nothing scrolls through a gap above it", async ({
     page,
@@ -195,7 +290,7 @@ test.describe("faq layout", () => {
     await openAll(page);
     await page.locator(ITEMS).last().scrollIntoViewIfNeeded();
     const header = await page.locator("header").first().boundingBox();
-    const head = page.locator(`${FAQ} .vk-section-aside > .vk-section-head-aside`);
+    const head = page.locator(`${FAQ} .vk-faq-aside > .vk-section-aside-side`);
     const box = await head.boundingBox();
     expect(
       Math.abs((box?.y ?? 0) - ((header?.y ?? 0) + (header?.height ?? 0))),
@@ -208,19 +303,16 @@ test.describe("faq layout", () => {
     expect(hit).toBe(true);
   });
 
-  test("never hides a docs link under the sticky head when the keyboard reaches it", async ({
+  test("never hides a docs link when the keyboard reaches it from the questions", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     await openAll(page);
-    await page.locator(SUMMARIES).last().focus();
-    const links = page.locator(`${FAQ} nav a`);
-    await expect(async () => {
-      await page.keyboard.press("Tab");
-      await expect(links.first()).toBeFocused({ timeout: 100 });
-    }).toPass();
-    for (let index = 0; index < (await links.count()); index += 1) {
+    await page.locator(SUMMARIES).first().focus();
+    await page.keyboard.press("Shift+Tab");
+    const links = page.locator(DOCS_LINKS);
+    for (let index = (await links.count()) - 1; index >= 0; index -= 1) {
       await expect(links.nth(index)).toBeFocused();
       const covered = await links.nth(index).evaluate((link) => {
         const box = link.getBoundingClientRect();
@@ -228,7 +320,7 @@ test.describe("faq layout", () => {
         return hit !== link && !link.contains(hit);
       });
       expect(covered, `link ${index}`).toBe(false);
-      await page.keyboard.press("Tab");
+      await page.keyboard.press("Shift+Tab");
     }
   });
 
@@ -237,20 +329,20 @@ test.describe("faq layout", () => {
       [1024, 800],
       [1440, 900],
     ] as const) {
-      test(`brings every docs link clear of the sticky head on Tab and Shift+Tab with every answer closed at ${width}px in ${locale}`, async ({
+      test(`brings every docs link clear of the sticky head from the questions on Shift+Tab and Tab with every answer closed at ${width}px in ${locale}`, async ({
         page,
       }) => {
         await page.setViewportSize({ width, height });
         await page.goto(homeUrl(locale));
         await waitForFaqKeys(page);
-        const links = page.locator(`${FAQ} nav a`);
+        const links = page.locator(DOCS_LINKS);
         const count = await links.count();
         expect(count).toBeGreaterThan(0);
         const expectClear = async (index: number, direction: string) => {
           await expect(links.nth(index)).toBeFocused();
           const gap = await links.nth(index).evaluate((link) => {
             const head = link
-              .closest(".vk-faq-aside")
+              .closest(".vk-section-aside-side")
               ?.querySelector(":scope > .vk-section-head-aside");
             return (
               link.getBoundingClientRect().top - 4 - (head?.getBoundingClientRect().bottom ?? 0)
@@ -258,15 +350,14 @@ test.describe("faq layout", () => {
           });
           expect(gap, `${direction} link ${index}`).toBeGreaterThanOrEqual(0);
         };
-        await page.locator(SUMMARIES).last().focus();
-        for (let index = 0; index < count; index += 1) {
-          await page.keyboard.press("Tab");
-          await expectClear(index, "forward");
-        }
-        await page.keyboard.press("Tab");
+        await page.locator(SUMMARIES).first().focus();
         for (let index = count - 1; index >= 0; index -= 1) {
           await page.keyboard.press("Shift+Tab");
           await expectClear(index, "backward");
+        }
+        for (let index = 1; index < count; index += 1) {
+          await page.keyboard.press("Tab");
+          await expectClear(index, "forward");
         }
       });
     }
@@ -279,7 +370,7 @@ test.describe("faq layout", () => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/");
       const heights = await page
-        .locator(`${FAQ} nav a`)
+        .locator(DOCS_LINKS)
         .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().height));
       for (const height of heights) expect(height).toBeGreaterThanOrEqual(44);
       await openAll(page);
@@ -308,7 +399,7 @@ test.describe("faq on a phone", () => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto("/");
     const list = await page.locator(`${FAQ} #faq-list`).boundingBox();
-    const nav = await page.locator(`${FAQ} nav`).boundingBox();
+    const nav = await page.locator(DOCS_NAV).boundingBox();
     expect(nav?.y ?? 0).toBeGreaterThan((list?.y ?? 0) + (list?.height ?? 0));
   });
 

@@ -2,14 +2,15 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, type ReactNode } from "react";
+import { act, type ReactNode, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BRAND_MARKS, type BrandMarkId } from "@/lib/brand-marks";
 import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
+import { MARQUEE_COPIES } from "@/lib/marquee-copies";
 import { providerIsNew, RELEASE_BADGE } from "@/lib/release-badge";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import german from "@/messages/de.json";
@@ -47,7 +48,7 @@ vi.mock("next-intl/server", async () => {
   };
 });
 
-const { Marquee, MARQUEE_COPIES, FORMAT_ICONS, PROVIDER_ICONS } = await import("./marquee");
+const { Marquee, FORMAT_ICONS, PROVIDER_ICONS } = await import("./marquee");
 const { MarqueeMotion } = await import("./marquee-motion");
 
 await preloadRegisteredIslands();
@@ -75,12 +76,68 @@ function visibleItems(rowElement: Element): ReadonlyArray<string> {
 
 const mounted: Array<{ root: Root; host: HTMLElement }> = [];
 
+const motion = { matches: true, listeners: new Set<() => void>() };
+
+beforeEach(() => {
+  motion.matches = true;
+  motion.listeners.clear();
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    media: query,
+    get matches() {
+      return motion.matches;
+    },
+    addEventListener: (_type: string, listener: () => void) => motion.listeners.add(listener),
+    removeEventListener: (_type: string, listener: () => void) => motion.listeners.delete(listener),
+  }));
+});
+
 afterEach(() => {
   for (const { root, host } of mounted.splice(0)) {
     act(() => root.unmount());
     host.remove();
   }
+  vi.unstubAllGlobals();
 });
+
+function setMotion(matches: boolean): void {
+  motion.matches = matches;
+  act(() => {
+    for (const listener of motion.listeners) listener();
+  });
+}
+
+function rowsOf(html: string): ReactNode {
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+function mountRows(html: string, strict = false): { host: HTMLElement; root: Root } {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  mounted.push({ root, host });
+  const tree = (
+    <MarqueeMotion pauseLabel={copy.pause} playLabel={copy.play}>
+      {rowsOf(html)}
+    </MarqueeMotion>
+  );
+  act(() => root.render(strict ? <StrictMode>{tree}</StrictMode> : tree));
+  return { host, root };
+}
+
+async function serverRowsHtml(): Promise<string> {
+  page.locale = "en";
+  const html = renderToStaticMarkup(await Marquee());
+  return (
+    new DOMParser().parseFromString(html, "text/html").querySelector(".vk-marquee")?.innerHTML ?? ""
+  );
+}
+
+function copiesPerRow(host: HTMLElement): ReadonlyArray<number> {
+  return Array.from(
+    host.querySelectorAll(".vk-marquee-track"),
+    (track) => track.querySelectorAll(":scope > .vk-marquee-copy").length,
+  );
+}
 
 function mountToggle(): HTMLElement {
   const host = document.createElement("div");
@@ -358,20 +415,73 @@ describe("Marquee", () => {
     }
   });
 
-  it("names each visible list by its row title and hides every copy from assistive technology and focus", async () => {
+  it("names each list by its row title and sends one list per row, no copy, from the server", async () => {
     const doc = await render();
+    expect(doc.querySelector(".vk-marquee-copy")).toBeNull();
     for (const id of ["providers", "formats"]) {
       const element = row(doc, id);
-      const [visible, ...copies] = Array.from(element.querySelectorAll(".vk-marquee-list"));
-      expect(visible?.getAttribute("aria-labelledby")).toBe(element.querySelector("h3")?.id);
+      const lists = Array.from(element.querySelectorAll(".vk-marquee-list"));
+      expect(lists).toHaveLength(1);
+      expect(lists[0]?.getAttribute("aria-labelledby")).toBe(element.querySelector("h3")?.id);
+      expect(lists[0]?.hasAttribute("aria-hidden")).toBe(false);
+    }
+    expect(doc.querySelectorAll(".vk-marquee-item")).toHaveLength(
+      SUPPORTED_FORMAT_IDS.length + MACHINE_PROVIDER_IDS.length,
+    );
+  });
+
+  it("adds the copies once the island has mounted, hidden from assistive technology and focus, and takes them away on unmount", async () => {
+    const { host, root } = mountRows(await serverRowsHtml());
+    for (const id of ["providers", "formats"]) {
+      const track = host.querySelector(`[data-row="${id}"] .vk-marquee-track`);
+      const [visible, ...copies] = Array.from(track?.children ?? []);
       expect(visible?.hasAttribute("aria-hidden")).toBe(false);
       expect(copies).toHaveLength(MARQUEE_COPIES);
       for (const hidden of copies) {
+        expect(hidden.className).toBe("vk-marquee-list vk-marquee-copy");
         expect(hidden.getAttribute("aria-hidden")).toBe("true");
         expect(hidden.hasAttribute("inert")).toBe(true);
+        expect(hidden.hasAttribute("aria-labelledby")).toBe(false);
         expect(hidden.querySelector("a, button")).toBeNull();
+        expect(hidden.innerHTML).toBe(visible?.innerHTML);
       }
     }
+    expect(host.querySelector(".vk-marquee")?.getAttribute("data-marquee")).toBe("running");
+    act(() => root.unmount());
+    expect(host.querySelector(".vk-marquee-copy")).toBeNull();
+  });
+
+  it("keeps exactly one set of copies per row under StrictMode's second effect run", async () => {
+    const { host } = mountRows(await serverRowsHtml(), true);
+    expect(copiesPerRow(host)).toEqual([MARQUEE_COPIES, MARQUEE_COPIES]);
+  });
+
+  it("makes no copy while motion will never run, and follows a change of the preference at runtime", async () => {
+    motion.matches = false;
+    const { host } = mountRows(await serverRowsHtml());
+    expect(copiesPerRow(host)).toEqual([0, 0]);
+    expect(host.querySelector(".vk-marquee")?.getAttribute("data-marquee")).toBe("running");
+    setMotion(true);
+    expect(copiesPerRow(host)).toEqual([MARQUEE_COPIES, MARQUEE_COPIES]);
+    setMotion(false);
+    expect(copiesPerRow(host)).toEqual([0, 0]);
+  });
+
+  it("rebuilds the copies from the new rows when a refresh sends different children", async () => {
+    const html = await serverRowsHtml();
+    const { host, root } = mountRows(html);
+    const changed = html.replaceAll("Anthropic", "Anthropic Claude");
+    act(() =>
+      root.render(
+        <MarqueeMotion pauseLabel={copy.pause} playLabel={copy.play}>
+          {rowsOf(changed)}
+        </MarqueeMotion>,
+      ),
+    );
+    expect(copiesPerRow(host)).toEqual([MARQUEE_COPIES, MARQUEE_COPIES]);
+    const track = host.querySelector('[data-row="providers"] .vk-marquee-track');
+    for (const hidden of track?.querySelectorAll(":scope > .vk-marquee-copy") ?? [])
+      expect(hidden.textContent).toContain("Anthropic Claude");
   });
 
   it("ends the section with a centred pair of docs links, outside every row and track", async () => {
@@ -474,6 +584,18 @@ describe("the marquee stylesheet", () => {
     const list = rules.find((rule) => rule.selector === ".vk-marquee-list" && !rule.media);
     expect(list?.declarations["flex-wrap"]).toBe("wrap");
     expect(list?.declarations.animation).toBeUndefined();
+  });
+
+  it("scrolls each row as one line on a phone in the static state, never wrapping it into a tall block", () => {
+    const phone = rules.filter(
+      (rule) => rule.media === "@media (width < 40rem)" && rule.selector.startsWith(".vk-marquee-"),
+    );
+    const list = phone.find((rule) => rule.selector === ".vk-marquee-list");
+    expect(list?.declarations).toEqual({ flex: "none", "flex-wrap": "nowrap" });
+    const base = rules.find((rule) => rule.selector === ".vk-marquee-list" && !rule.media);
+    expect(base?.declarations["flex-wrap"]).toBe("wrap");
+    const viewport = rules.find((rule) => rule.selector === ".vk-marquee-viewport" && !rule.media);
+    expect(viewport?.declarations["padding-inline"]).toBe("var(--gutter)");
   });
 
   it("holds the moving state's box before takeover where motion may start: a reserved toggle and one scrolling line", () => {

@@ -190,7 +190,7 @@ Scales are fixed and narrow, deliberately:
   of `.vk-section-aside` (the FAQ) and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
-  `--grid-span` columns (the full row when unset), starting on `--grid-start` when set. `SectionHead` takes `layout`: `split` (the default, a
+  `--grid-span` columns (the full row when unset). `SectionHead` takes `layout`: `split` (the default, a
   `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned by default; `align="start"`
   top-aligns them (`data-align`); the highlights and the features use the split head),
   `stacked` (the lead under the heading on the first column, for a section whose content runs the
@@ -201,8 +201,10 @@ Scales are fixed and narrow, deliberately:
   `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
   with the stacked heading and lead (`data-layout="aside"`) in span 4 at the start and its
   `children` in `.vk-section-aside-content`, span 8, top-aligned; one column, head first, under
-  64rem: the FAQ. Its optional `trailing` renders after the content as a direct grid child (the FAQ's docs link
-  list, placed in the head column's second row from 64rem by `.vk-faq-aside`). `section-bands.test.tsx` renders each section and pins the head shape it
+  64rem: the FAQ. The head sits in `.vk-section-aside-side` (span 4), the one unit that sticks. Its optional `trailing`
+  is a function of a placement and renders twice: `side` inside that unit right after the head
+  (shown from 64rem) and `after` as a direct grid child after the content (shown under 64rem), so
+  only one copy is ever displayed, focusable or announced (the FAQ's docs link list). `section-bands.test.tsx` renders each section and pins the head shape it
   draws, so the page never goes back to one head shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
@@ -364,7 +366,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   large sentence on a starfield whose counts come from `lib/hero-terminal.ts`, the lit part in an
   `em`, the rest `--text-faint`, with the first locale line of the translate run under it),
   `highlights.tsx` (`#highlights`, a split head aligned to the start over `.vk-bento`, six columns
-  from 64rem: the translate run from `HERO_TRANSLATE_OUTPUT` in a `ScrollBlock`, its total line in
+  from 64rem: the translate run from `HERO_TRANSLATE_OUTPUT` in a wrapped `.vk-tile-code-wrap` group named by the tile title (it wraps at its spaces at every width, so it never scrolls, is no tab stop and no line is cut or faded on a phone; each output line is its own `.vk-tile-line` span with a hanging indent (`--vk-hang` in `ch`, its leading spaces and at least 2), so a wrapped row sits under the start of its text; the text stays the CLI's byte for byte), its total line in
   `--accent` (span 4), the check's exit code in `--text-danger` (span 2; its glow is a strip of
   `--tile-halo-height` at the tile's end, under padding that clears the text, so no text ever sits
   over a halo), the playground's default item in every playground language with each placeholder
@@ -504,18 +506,19 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   from 64rem, each link a 44px target) is a server section: each item is a native
   `details`/`summary`, rendered closed on the server with its question in an `h3` inside the
   summary (`text-wrap: pretty`) and its answer in the HTML (at most 33rem wide), so it opens and
-  reads without JavaScript. From 64rem the head is `position: sticky` at
-  `--vk-landing-offset`, right under the site header, with `--head-gap` of its own `--v-void`
-  padding on top (pulled back by a negative margin, so it starts where it did), so it stays beside a
-  long open list and the docs links scroll under it, never through a gap above it. A focused docs
-  link still lands below the head: each link's `scroll-margin-top` is the head's height
-  (`--faq-head-size`, which `faq-keys.tsx` keeps current on `.vk-faq-aside` with a
-  ResizeObserver; 21rem without JavaScript) plus 0.5rem. The open state swaps the `.vk-faq-mark` plus (a
+  reads without JavaScript. From 64rem and 42rem of height the head and the docs links are ONE sticky unit
+  (`.vk-faq-aside > .vk-section-aside-side`, `position: sticky` at `--vk-landing-offset`, right under the site header, with `--head-gap` of its own
+  `--surface-page` padding on top, pulled back by a negative margin, so it starts where it did): the label and the links never scroll
+  under the head, so nothing is sliced, and a focused link is already in view. On a shorter window the unit is not sticky, so it can
+  never be taller than the screen. The two copies of the links carry their own label ids (`faq-docs-label-side`,
+  `faq-docs-label`) and `data-placement`; on a desktop the Tab order is head, links, questions, which is also the visual order, and
+  on a phone the questions come first. `e2e/faq.spec.ts` scrolls the section in steps and fails when a label or link is partly covered or
+  the gap between head and label changes. The open state swaps the `.vk-faq-mark` plus (a
   `--text-faint` boundary, `--accent` bars) for a filled minus (`--accent-fill`, its bar
   `--accent-fill-fg`) with no transition; under `forced-colors` the bars are `CanvasText` and the
   open mark `Highlight` with a `HighlightText` bar. `faq-keys.tsx` is a null-rendering client helper,
   loaded as the lazy `FaqKeys` island from `islands.tsx`, that adds arrow keys, Home and End between
-  the summaries, leaves a modified key to the browser and sets `--faq-head-size`. `faqContent` (same file) builds each item's
+  the summaries and leaves a modified key to the browser. `faqContent` (same file) builds each item's
   question, rich answer and plain answer from one translator call; the home page builds it once and
   passes the items to `Faq` and the plain ones to `faqPageLd`, so the FAQPage JSON-LD always equals
   the visible text. A hyphenated word in an answer (`OpenAI-compatible`) is kept whole. Ids, order and
@@ -559,12 +562,20 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   no version text, visible or hidden. It does not animate. The pause button is `variant="ghost"` with a
   `--radius-full` `--accent` 10 percent tint (18 percent on hover) and no border (a `ButtonText`
   outline under `forced-colors`). No count is typed. Each row is a muted `h3` that names its visible
-  list, the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button),
-  and an "All providers" or "All formats" link after the moving track, so nothing focusable moves.
+  list, the list, and an "All providers" or "All formats" link after the moving track, so nothing focusable moves.
   The list sits in `.vk-marquee-viewport`, a `.vk-edge-fade` `role="group"` keyboard stop named by
-  the row's `h3`. The server HTML is the static state, and the copies are `display: none` in it.
+  the row's `h3`. The server HTML is the static state with one list per row and no copy: once the island has
+  mounted and `prefers-reduced-motion: no-preference` matches, `MarqueeMotion` clones each list `MARQUEE_COPIES` (`lib/marquee-copies.ts`) times into its
+  track (`aria-hidden`, `inert`, no `aria-labelledby`, holding no link or button, `display: none` until motion runs) and only then sets
+  `data-marquee`, so the lists and their copies start the loop in the same frame and stay in step. Under reduced motion no copy
+  exists; a change of the preference at runtime adds or removes them, and two frames after the animations start each copy takes the first list's `startTime`, so every list of a row shares one start time (the browser would otherwise start a copy one frame late), and
+  new rows from a refresh clone the copies again (the effect depends on `children`), so none goes stale; unmount removes them; two copies keep a row
+  edge to edge up to at least 2560px (`e2e/marquee.spec.ts` checks 1440, 1920 and 2560 at five points of the loop).
   Under reduced motion or without JavaScript (`scripting: none`) the pause button is `display: none`
-  and the list wraps, which never changes. Where motion may start (`prefers-reduced-motion:
+  and the list wraps from 40rem, which never changes; under 40rem the static list is one sideways-scrolling line instead, with an inset 2px focus ring like the other scroll blocks and the same gutter at its end as at its start
+  (`flex-wrap: nowrap` in the `width < 40rem` block, the gutter kept, nothing moving), so a phone shows two one-line rows, about
+  300px, instead of a 1,000px wrapped block (`e2e/marquee.spec.ts` holds the section under half of an 844px screen, with
+  every item reachable by keyboard and by scrolling, in reduced motion and without JavaScript). Where motion may start (`prefers-reduced-motion:
   no-preference` and `scripting: enabled`) the static state already has the moving state's box: the
   pause button holds its row at `visibility: hidden` (so it is neither focusable nor announced) and
   each list is one line that scrolls sideways with no scrollbar, so every item stays reachable by
@@ -813,7 +824,7 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
   it runs only in the state described under "Marquee" above, pauses through its button, hover
   and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
-  start, wrapped rows under reduced motion or without JavaScript), so 2.2.2 holds without
+  start and on a phone, wrapped rows from 40rem under reduced motion or without JavaScript), so 2.2.2 holds without
   JavaScript.
 - **SDK playground.** `playground.tsx` (`#playground`, on the void, a `split` head (heading left,
   lead right) whose `h2` is

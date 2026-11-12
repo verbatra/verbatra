@@ -327,7 +327,7 @@ html.light {
   }
 
   .vk-grid-12 > * {
-    grid-column: var(--grid-start, auto) / span var(--grid-span, var(--grid-columns));
+    grid-column: span var(--grid-span, var(--grid-columns));
   }
 }
 
@@ -361,6 +361,16 @@ html.light {
 .vk-faq-docs {
   display: grid;
   gap: 0.25rem;
+  align-content: start;
+}
+
+.vk-faq-docs[data-placement="side"] {
+  display: none;
+}
+
+.vk-section-aside-side {
+  display: grid;
+  gap: var(--head-gap);
   align-content: start;
 }
 
@@ -546,7 +556,7 @@ html.light {
     align-items: start;
   }
 
-  .vk-section-head-aside {
+  .vk-section-aside-side {
     --grid-span: 4;
   }
 
@@ -554,33 +564,23 @@ html.light {
     --grid-span: 8;
   }
 
-  .vk-faq-aside {
-    grid-template-rows: auto 1fr;
+  .vk-faq-docs[data-placement="side"] {
+    display: grid;
   }
 
-  .vk-faq-aside > .vk-section-head-aside {
+  .vk-faq-docs[data-placement="after"] {
+    display: none;
+  }
+}
+
+@media (min-width: 64rem) and (min-height: 42rem) {
+  .vk-faq-aside > .vk-section-aside-side {
     position: sticky;
     top: var(--vk-landing-offset);
     z-index: 1;
     margin-block-start: calc(-1 * var(--head-gap));
     padding-block-start: var(--head-gap);
-    grid-row: 1;
-    align-self: start;
     background: var(--surface-page);
-  }
-
-  .vk-faq-aside > .vk-section-aside-content {
-    grid-row: 1 / span 2;
-  }
-
-  .vk-faq-aside > .vk-faq-docs {
-    --grid-start: 1;
-    --grid-span: 4;
-    grid-row: 2;
-  }
-
-  .vk-faq-aside > .vk-faq-docs a {
-    scroll-margin-top: calc(var(--faq-head-size, 21rem) + 0.5rem);
   }
 }
 
@@ -3417,6 +3417,11 @@ html:has(.vk-home) {
   display: none;
 }
 
+.vk-marquee-viewport:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
 .vk-marquee-item {
   display: inline-flex;
   align-items: center;
@@ -3450,6 +3455,15 @@ html:has(.vk-home) {
   .vk-marquee-item {
     min-height: 2.5rem;
     padding-inline: 0.5rem 0.75rem;
+  }
+
+  .vk-marquee-list {
+    flex: none;
+    flex-wrap: nowrap;
+  }
+
+  .vk-marquee-track {
+    width: max-content;
   }
 }
 
@@ -4322,6 +4336,12 @@ html:has(.vk-home) {
 .vk-tile-pre {
   margin: 0;
   padding: 1.125rem;
+}
+
+.vk-tile-line {
+  display: block;
+  padding-inline-start: var(--vk-hang);
+  text-indent: calc(-1 * var(--vk-hang));
 }
 
 .vk-tile-code-strong {

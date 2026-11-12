@@ -180,11 +180,26 @@ describe("the landing faq markup", () => {
   it("puts the docs links after the questions, so a phone reads the answers first", async () => {
     const container = await render("en");
     const list = container.querySelector("#faq-list");
-    const nav = container.querySelector("nav[aria-labelledby='faq-docs-label']");
+    const nav = container.querySelector("nav[data-placement='after']");
     expect(
       list && nav && list.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(nav?.parentElement?.className).toContain("vk-section-aside");
+  });
+
+  it("repeats the docs links inside the sticky side unit, right after the head, with their own label id", async () => {
+    const container = await render("en");
+    const side = container.querySelector(".vk-section-aside-side");
+    const nav = side?.querySelector("nav[data-placement='side']");
+    expect(side?.firstElementChild?.className).toContain("vk-section-head-aside");
+    expect(nav?.previousElementSibling).toBe(side?.firstElementChild);
+    const after = container.querySelector("nav[data-placement='after']");
+    const hrefs = (root: Element | null | undefined) =>
+      [...(root?.querySelectorAll("a") ?? [])].map((link) => link.getAttribute("href"));
+    expect(hrefs(nav)).toEqual(hrefs(after));
+    const ids = [...container.querySelectorAll("[id]")].map((element) => element.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(nav?.getAttribute("aria-labelledby")).not.toBe(after?.getAttribute("aria-labelledby"));
   });
 });
 
@@ -239,7 +254,7 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
 
   it("lists the docs links in the reader's locale, with no arrow", async () => {
     const container = await render(locale);
-    const nav = container.querySelector("nav[aria-labelledby='faq-docs-label']");
+    const nav = container.querySelector("nav[data-placement='after']");
     const links = [...(nav?.querySelectorAll<HTMLAnchorElement>("a") ?? [])];
     expect(links.map((link) => link.getAttribute("href"))).toEqual(
       FAQ_ASIDE_LINKS.map(({ link }) => faqHref(locale, link)),

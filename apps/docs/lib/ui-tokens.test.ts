@@ -3,10 +3,10 @@ import { docsGlobalCss, stylesheetRules, uiTokensCss } from "@/lib/stylesheet-ru
 
 const KNOWN_EXTERNAL_VARS: ReadonlyArray<string> = [
   "--callout-color",
-  "--faq-head-size",
   "--font-geist-mono",
   "--font-geist-sans",
   "--marquee-items",
+  "--vk-hang",
 ];
 
 describe("the shared token package wiring", () => {
