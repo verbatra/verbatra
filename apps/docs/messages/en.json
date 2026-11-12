@@ -484,8 +484,7 @@
       "newTab": "(opens in a new tab)",
       "contributorsHeading": "Contributors",
       "contributorAria": "{name} on GitHub",
-      "contributorSlot": "Your avatar here",
-      "contributorSlotHint": "find an issue to start with"
+      "contributingGuide": "Contributing guide"
     },
     "closing": {
       "heading": "Start with a dry run",

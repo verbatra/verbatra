@@ -515,20 +515,8 @@ html.light {
   border-radius: var(--radius-full);
 }
 
-.vk-contribute-slot {
+.vk-contribute-guide {
   color: var(--text-muted);
-}
-
-.vk-contribute-slot-mark {
-  flex: none;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-}
-
-.vk-contribute-slot:hover .vk-contribute-slot-mark {
-  background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 @media (min-width: 64rem) {
