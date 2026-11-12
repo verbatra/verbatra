@@ -313,8 +313,14 @@ if (!edit.accepted) {
   console.error(`rejected (${edit.reason} check failed), nothing written`);
 }
 
-// Or ask the provider for a fresh translation of just this key.
-const retry = await retranslateEntry({ config, locale: "de", key: "checkout.title" });
+// Or ask the provider for a fresh translation of just this key. The edit above
+// recorded a value a person wrote, which retranslateEntry protects unless told otherwise.
+const retry = await retranslateEntry({
+  config,
+  locale: "de",
+  key: "checkout.title",
+  includeHuman: true,
+});
 if (retry.accepted) {
   console.log(`wrote: ${retry.value}`);
   if (retry.reviewReasons.length > 0) {
@@ -329,8 +335,9 @@ if (retry.accepted) {
 
 <AvailableFrom version="0.12.0" />
 
-`retranslateEntry` rechaza un valor que escribió una persona salvo que pases `includeHuman: true`, y
-una clave fijada siempre; consulta [Proteger traducciones humanas](/es/docs/protecting-human-translations).
+`retranslateEntry` rechaza con `KEY_PROTECTED` un valor que escribió una persona, incluido el que
+`editEntry` acaba de guardar, salvo que pases `includeHuman: true` o la config fije
+`humanEdits: "overwrite"`. Por eso la receta lo pasa. Una clave fijada la rechaza siempre; consulta [Proteger traducciones humanas](/es/docs/protecting-human-translations).
 
 ## Recorre la cola de revisión
 

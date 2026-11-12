@@ -312,8 +312,14 @@ if (!edit.accepted) {
   console.error(`rejected (${edit.reason} check failed), nothing written`);
 }
 
-// Or ask the provider for a fresh translation of just this key.
-const retry = await retranslateEntry({ config, locale: "de", key: "checkout.title" });
+// Or ask the provider for a fresh translation of just this key. The edit above
+// recorded a value a person wrote, which retranslateEntry protects unless told otherwise.
+const retry = await retranslateEntry({
+  config,
+  locale: "de",
+  key: "checkout.title",
+  includeHuman: true,
+});
 if (retry.accepted) {
   console.log(`wrote: ${retry.value}`);
   if (retry.reviewReasons.length > 0) {
@@ -328,8 +334,10 @@ Was jede davon wirft, listet [`retranslateEntry`](/de/docs/sdk/review#retranslat
 
 <AvailableFrom version="0.12.0" />
 
-`retranslateEntry` lehnt einen Wert, den ein Mensch geschrieben hat, ab, außer du übergibst
-`includeHuman: true`, und einen gepinnten Key immer; siehe
+`retranslateEntry` lehnt einen Wert, den ein Mensch geschrieben hat, mit `KEY_PROTECTED` ab, auch
+den, den `editEntry` gerade gespeichert hat, außer du übergibst `includeHuman: true` oder die Config
+setzt `humanEdits: "overwrite"`. Deshalb übergibt das Rezept es. Einen gepinnten Key lehnt es immer
+ab; siehe
 [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).
 
 ## Die Review-Warteschlange abarbeiten

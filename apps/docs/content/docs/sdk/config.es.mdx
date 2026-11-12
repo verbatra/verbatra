@@ -168,15 +168,16 @@ elimina), `note`, `partOfSpeech` (cada uno `null` para eliminarlo), `caseSensiti
 `doNotTranslate` (`true` añade el término a los que no se traducen, `false` lo quita; no se puede
 combinar con los campos del término). Un archivo de la versión 1 sigue siendo versión 1 mientras la
 edición solo fije o elimine una traducción para todos los locales; cualquier otra edición lo
-reescribe como versión 2, y cada término existente conserva su traducción como `target`. `translation: null` sin `locale` ahora elimina solo la traducción compartida; el término en sí
+reescribe como versión 2, y cada término existente conserva su traducción como `target`. `translation: null` sin `locale` elimina solo la traducción compartida; el término en sí
 se elimina cuando ya no le queda ninguna traducción ni traducción prohibida, lo que en un término de
 la versión 1 ocurre de inmediato.
 
-Un glosario en línea se rechaza con `GLOSSARY_NOT_FILE_BACKED` en lugar de convertirse: vive dentro
-de un módulo de configuración ejecutable. Un campo vacío, una edición que no fija ningún campo o que mezcla
+Un término que solo difiere en mayúsculas y minúsculas de uno guardado, cuando ninguno de los dos es
+`caseSensitive`, actualiza ese término y conserva su grafía guardada. Un glosario en línea se
+rechaza con `GLOSSARY_NOT_FILE_BACKED` en lugar de convertirse. Un `term` ausente, un campo vacío, una edición que no fija ningún campo o que mezcla
 `doNotTranslate` con los campos del término, traducciones prohibidas sin locale, un locale no válido,
 una edición que dejaría un glosario no válido y una edición cuyo resultado superaría el límite de
-1 MiB del glosario se rechazan con `CONFIG_INVALID`; una escritura fallida, incluido un bloqueo de escritura del glosario que no se puede crear en un proyecto de solo lectura o liberar tras una edición guardada, es `GLOSSARY_UNWRITABLE`, con el error del sistema de archivos como `cause`.
+1 MiB del glosario se rechazan con `CONFIG_INVALID`; una escritura fallida, incluida la del bloqueo de escritura del glosario, es [`GLOSSARY_UNWRITABLE`](/es/docs/error-codes#glossary_unwritable), con el error del sistema de archivos como `cause`.
 Una edición que deja el glosario tal como ya está tiene éxito y no escribe nada.
 
 <AvailableFrom version="0.12.0" />
@@ -293,8 +294,7 @@ Pasa cada término de origen, traducción, traducción prohibida, nota, categor�
 de `doNotTranslate` de un `Glossary`
 normalizado por `redact` y devuelve `{ glossary, redactedTerms }`, donde `redactedTerms` nombra cada
 término al que se le sustituyó un valor, un término de origen redactado como `[REDACTED]`, para que
-la lista nunca repita un secreto. El servidor MCP y Studio lo usan antes de que un glosario salga del proceso; úsalo igual
-en tu propia herramienta.
+la lista nunca repita un secreto. El servidor MCP y Studio lo usan antes de que un glosario salga del proceso.
 
 ```ts title="Firma"
 function redactGlossary(glossary: Glossary): RedactedGlossary;

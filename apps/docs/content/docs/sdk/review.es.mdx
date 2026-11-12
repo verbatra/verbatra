@@ -192,7 +192,9 @@ function approveEntry(
 
 **Ejemplo:** [Recorre la cola de revisión](/es/docs/programmatic-api#recorre-la-cola-de-revisión)
 
-`expectedValue` es el texto que
+Pasa exactamente uno de `expectedValue` o `expectedValueHash`, este último con la dependencia
+`valueMarker`: los dos, ninguno, un `expectedValue` que no sea una cadena o un hash sin su marcador
+lanzan `REVIEW_VALUE_CHANGED` antes de leer nada. `expectedValue` es el texto que
 vio quien revisa, o pasa `expectedValueHash` con el `valueMarker` que lo generó: la llamada lanza `REVIEW_VALUE_CHANGED` cuando la clave no tiene valor o tiene
 otro, y `REVIEW_SOURCE_CHANGED` cuando el origen cambió desde que se escribió el valor. `reviewer` es
 texto libre opcional de 1 a 64 caracteres y sin caracteres de control (si no,

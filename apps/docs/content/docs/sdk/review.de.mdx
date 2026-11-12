@@ -193,7 +193,9 @@ function approveEntry(
 
 **Beispiel:** [Die Review-Warteschlange abarbeiten](/de/docs/programmatic-api#die-review-warteschlange-abarbeiten)
 
-`expectedValue` ist der Text,
+Übergib genau eines von `expectedValue` oder `expectedValueHash`, letzteres mit der Abhängigkeit
+`valueMarker`: beide, keines, ein `expectedValue`, das kein String ist, oder ein Hash ohne seinen
+Marker wirft `REVIEW_VALUE_CHANGED`, bevor etwas gelesen wird. `expectedValue` ist der Text,
 den die prüfende Person gesehen hat, oder du übergibst `expectedValueHash` mit dem `valueMarker`, der ihn erzeugt hat: Der Aufruf wirft `REVIEW_VALUE_CHANGED`, wenn der Key keinen
 oder einen anderen Wert hat, und `REVIEW_SOURCE_CHANGED`, wenn sich die Quelle geändert hat, seit
 der Wert geschrieben wurde. `reviewer` ist optionaler Freitext mit 1 bis 64 Zeichen ohne

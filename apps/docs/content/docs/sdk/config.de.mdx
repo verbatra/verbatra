@@ -172,14 +172,16 @@ entfernt sie), `note`, `partOfSpeech` (jeweils `null` zum Entfernen), `caseSensi
 es lässt sich nicht mit den Begriffsfeldern kombinieren). Eine Datei der Version 1 bleibt Version 1,
 solange eine Änderung nur eine Übersetzung für alle Locales setzt oder entfernt; jede andere
 Änderung schreibt sie als Version 2 neu, wobei jeder bestehende Begriff seine Übersetzung als
-`target` behält. `translation: null` ohne `locale` entfernt jetzt nur die gemeinsame Übersetzung; der Begriff selbst wird entfernt, sobald ihm keine Übersetzung und keine verbotene Wiedergabe mehr bleibt, bei einem Begriff der Version 1 also sofort.
+`target` behält. `translation: null` ohne `locale` entfernt nur die gemeinsame Übersetzung; der Begriff selbst wird entfernt, sobald ihm keine Übersetzung und keine verbotene Wiedergabe mehr bleibt, bei einem Begriff der Version 1 also sofort.
 
-Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt umgewandelt: Es liegt in
-einem ausführbaren Konfigurationsmodul. Ein leeres Feld, eine Änderung, die kein Feld setzt oder
+Ein Begriff, der sich von einem gespeicherten nur in der Groß- und Kleinschreibung unterscheidet,
+wenn keiner von beiden `caseSensitive` ist, aktualisiert diesen Begriff und behält dessen
+gespeicherte Schreibweise. Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt
+umgewandelt. Ein fehlender `term`, ein leeres Feld, eine Änderung, die kein Feld setzt oder
 `doNotTranslate` mit Begriffsfeldern mischt, verbotene Wiedergaben ohne Locale, eine ungültige
 Locale, eine Änderung, die ein ungültiges Glossar hinterließe, und eine Änderung, deren Ergebnis
 die Glossargrenze von 1 MiB überschreiten würde, werden mit `CONFIG_INVALID` abgelehnt; ein
-fehlgeschlagener Schreibvorgang, auch eine Glossar-Schreibsperre, die sich in einem schreibgeschützten Projekt nicht anlegen oder nach einer gespeicherten Änderung nicht freigeben lässt, ist `GLOSSARY_UNWRITABLE`, mit dem Dateisystem-Fehler als `cause`. Eine Änderung, die das Glossar so lässt,
+fehlgeschlagener Schreibvorgang, auch der Glossar-Schreibsperre, ist [`GLOSSARY_UNWRITABLE`](/de/docs/error-codes#glossary_unwritable), mit dem Dateisystem-Fehler als `cause`. Eine Änderung, die das Glossar so lässt,
 wie es schon ist, gelingt und schreibt nichts.
 
 <AvailableFrom version="0.12.0" />
@@ -296,8 +298,7 @@ Schickt jeden Quellbegriff, jede Übersetzung, verbotene Wiedergabe, Notiz, Wort
 aus `doNotTranslate` eines normalisierten `Glossary`
 durch `redact` und gibt `{ glossary, redactedTerms }` zurück, wobei `redactedTerms` jeden Begriff
 nennt, bei dem ein Wert ersetzt wurde, einen geschwärzten Quellbegriff selbst als `[REDACTED]`, damit
-die Liste nie ein Secret wiederholt. Der MCP-Server und Studio nutzen es, bevor ein Glossar den Prozess verlässt; nutze es in
-deinem eigenen Werkzeug genauso.
+die Liste nie ein Secret wiederholt. Der MCP-Server und Studio nutzen es, bevor ein Glossar den Prozess verlässt.
 
 ```ts title="Signatur"
 function redactGlossary(glossary: Glossary): RedactedGlossary;

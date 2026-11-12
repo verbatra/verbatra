@@ -296,8 +296,14 @@ if (!edit.accepted) {
   console.error(`rejected (${edit.reason} check failed), nothing written`);
 }
 
-// Or ask the provider for a fresh translation of just this key.
-const retry = await retranslateEntry({ config, locale: "de", key: "checkout.title" });
+// Or ask the provider for a fresh translation of just this key. The edit above
+// recorded a value a person wrote, which retranslateEntry protects unless told otherwise.
+const retry = await retranslateEntry({
+  config,
+  locale: "de",
+  key: "checkout.title",
+  includeHuman: true,
+});
 if (retry.accepted) {
   console.log(`wrote: ${retry.value}`);
   if (retry.reviewReasons.length > 0) {
@@ -312,8 +318,9 @@ if (retry.accepted) {
 
 <AvailableFrom version="0.12.0" />
 
-`retranslateEntry` refuse une valeur écrite par une personne sauf si tu passes `includeHuman: true`,
-et une clé épinglée toujours ; voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations).
+`retranslateEntry` refuse avec `KEY_PROTECTED` une valeur écrite par une personne, y compris celle
+que `editEntry` vient d'enregistrer, sauf si tu passes `includeHuman: true` ou si la config définit
+`humanEdits: "overwrite"`. C'est pourquoi la recette le passe. Une clé épinglée est toujours refusée ; voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations).
 
 ## Traiter la file de relecture
 

@@ -188,7 +188,9 @@ function approveEntry(
 
 **Example:** [Work through the review queue](/docs/programmatic-api#work-through-the-review-queue)
 
-`expectedValue` is the text the
+Pass exactly one of `expectedValue` or `expectedValueHash`, the latter with the `valueMarker`
+dependency: both, neither, an `expectedValue` that is not a string, or a hash without its marker
+throws `REVIEW_VALUE_CHANGED` before anything is read. `expectedValue` is the text the
 reviewer saw, or pass `expectedValueHash` with the `valueMarker` that produced it: the call throws `REVIEW_VALUE_CHANGED` when the key has no value or a different one,
 and `REVIEW_SOURCE_CHANGED` when the source changed since the value was written. `reviewer` is
 optional free text of 1 to 64 characters with no control characters (`REVIEWER_INVALID`
