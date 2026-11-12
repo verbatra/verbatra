@@ -149,13 +149,15 @@ describe("the section head on the 12-column grid", () => {
       </SectionAside>,
     ).querySelector(".vk-section-aside");
     expect(aside?.classList.contains("vk-grid-12")).toBe(true);
-    const [head, content] = Array.from(aside?.children ?? []);
+    const [side, content] = Array.from(aside?.children ?? []);
+    expect(side?.className).toBe("vk-section-aside-side");
+    const head = side?.firstElementChild;
     expect(head?.getAttribute("data-layout")).toBe("aside");
     expect(head?.querySelector("h2#h")?.textContent).toBe("Title");
     expect(head?.querySelector(".vk-section-head-lead")?.textContent).toBe("Lead");
     expect(content?.className).toBe("vk-section-aside-content");
     expect(content?.querySelector("#content")).not.toBeNull();
-    expect(css).toMatch(/\.vk-section-head-aside \{\s+--grid-span: 4;/);
+    expect(css).toMatch(/\.vk-section-aside-side \{\s+--grid-span: 4;/);
     expect(css).toMatch(/\.vk-section-aside-content \{\s+--grid-span: 8;/);
   });
 

@@ -201,8 +201,10 @@ Scales are fixed and narrow, deliberately:
   `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
   with the stacked heading and lead (`data-layout="aside"`) in span 4 at the start and its
   `children` in `.vk-section-aside-content`, span 8, top-aligned; one column, head first, under
-  64rem: the FAQ. Its optional `trailing` renders after the content as a direct grid child (the FAQ's docs link
-  list, placed in the head column's second row from 64rem by `.vk-faq-aside`). `section-bands.test.tsx` renders each section and pins the head shape it
+  64rem: the FAQ. The head sits in `.vk-section-aside-side` (span 4), the one unit that sticks. Its optional `trailing`
+  is a function of a placement and renders twice: `side` inside that unit right after the head
+  (shown from 64rem) and `after` as a direct grid child after the content (shown under 64rem), so
+  only one copy is ever displayed, focusable or announced (the FAQ's docs link list). `section-bands.test.tsx` renders each section and pins the head shape it
   draws, so the page never goes back to one head shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
@@ -504,18 +506,19 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   from 64rem, each link a 44px target) is a server section: each item is a native
   `details`/`summary`, rendered closed on the server with its question in an `h3` inside the
   summary (`text-wrap: pretty`) and its answer in the HTML (at most 33rem wide), so it opens and
-  reads without JavaScript. From 64rem the head is `position: sticky` at
-  `--vk-landing-offset`, right under the site header, with `--head-gap` of its own `--v-void`
-  padding on top (pulled back by a negative margin, so it starts where it did), so it stays beside a
-  long open list and the docs links scroll under it, never through a gap above it. A focused docs
-  link still lands below the head: each link's `scroll-margin-top` is the head's height
-  (`--faq-head-size`, which `faq-keys.tsx` keeps current on `.vk-faq-aside` with a
-  ResizeObserver; 21rem without JavaScript) plus 0.5rem. The open state swaps the `.vk-faq-mark` plus (a
+  reads without JavaScript. From 64rem and 42rem of height the head and the docs links are ONE sticky unit
+  (`.vk-faq-aside > .vk-section-aside-side`, `position: sticky` at `--vk-landing-offset`, right under the site header, with `--head-gap` of its own
+  `--surface-page` padding on top, pulled back by a negative margin, so it starts where it did): the label and the links never scroll
+  under the head, so nothing is sliced, and a focused link is already in view. On a shorter window the unit is not sticky, so it can
+  never be taller than the screen. The two copies of the links carry their own label ids (`faq-docs-label-side`,
+  `faq-docs-label`) and `data-placement`; on a desktop the Tab order is head, links, questions, which is also the visual order, and
+  on a phone the questions come first. `e2e/faq.spec.ts` scrolls the section in steps and fails when a label or link is partly covered or
+  the gap between head and label changes. The open state swaps the `.vk-faq-mark` plus (a
   `--text-faint` boundary, `--accent` bars) for a filled minus (`--accent-fill`, its bar
   `--accent-fill-fg`) with no transition; under `forced-colors` the bars are `CanvasText` and the
   open mark `Highlight` with a `HighlightText` bar. `faq-keys.tsx` is a null-rendering client helper,
   loaded as the lazy `FaqKeys` island from `islands.tsx`, that adds arrow keys, Home and End between
-  the summaries, leaves a modified key to the browser and sets `--faq-head-size`. `faqContent` (same file) builds each item's
+  the summaries and leaves a modified key to the browser. `faqContent` (same file) builds each item's
   question, rich answer and plain answer from one translator call; the home page builds it once and
   passes the items to `Faq` and the plain ones to `faqPageLd`, so the FAQPage JSON-LD always equals
   the visible text. A hyphenated word in an answer (`OpenAI-compatible`) is kept whole. Ids, order and
