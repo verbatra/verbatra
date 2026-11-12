@@ -555,7 +555,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   glyph are `aria-hidden`; an item (`.vk-marquee-item`) is a bare `--text-muted` mark and label in
   `--text-base`, with no box, border or fill, and hovering it lifts its label (and a neutral mark) to
   `--text-strong`, with no glow or scale; a coloured mark keeps its brand colour. The name (`.vk-marquee-name`) is the item's text. A provider that
-  `RELEASE_BADGE` dates carries the depth pill (`NewPill`, `landing.marquee.new`) and nothing else:
+  `RELEASE_BADGE` dates in the current release line carries the depth pill (`NewPill`, `landing.marquee.new`) and nothing else:
   no version text, visible or hidden. It does not animate. The pause button is `variant="ghost"` with a
   `--radius-full` `--accent` 10 percent tint (18 percent on hover) and no border (a `ButtonText`
   outline under `forced-colors`). No count is typed. Each row is a muted `h3` that names its visible
@@ -1200,27 +1200,22 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   (`components/new-badge.tsx`; the landing footer carries none, `footer.test.tsx` pins it) is the depth pill (see "Depth pill") and is hidden in the
   phone breadcrumb bar, which reads the sidebar's tree (the eyebrow and the prev/next footer take plain
   names and never show it); the
-  `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
-  inside a heading. Its markup is `AvailableFromPill` (`components/available-from.tsx`), which
-  carries `data-vk-pkg`, `data-vk-line`, `data-vk-since` (and `data-vk-patch` for a patch release)
-  and is `display: none` until the reader's picked release line makes it newer: the rules are
-  generated into `app/version-pills.generated.css` (`lib/release-lines.mjs`, written by
-  `scripts/sync-version.mjs`, imported by `global.css`) and reveal it, plus the page-top
-  `.vk-version-notice` through `#nd-page:has(...)`, from `html[data-vk-cli|studio|mcp]` set by
-  `VERSION_INIT_SCRIPT` before first paint. A pill without those attributes (the compare page's)
-  stays visible. The picker is `.vk-version-picker` (`components/version-picker.tsx`: native
-  `select`s with visible labels, `--text-faint` boundary, a width of `--vk-version-chars` characters
-  plus the arrow (`selectChars`, the longest label of the locale, so no translation clips and nothing
-  shifts), Studio and MCP in a `details` disclosure behind a three-dot icon that shows an accent
-  state mark and names the picked lines ("Studio 0.5") in its title and accessible name while either
-  is not on Latest; hidden under `scripting: none`), in the docs header from 1024px (left of the
-  nav links, so they keep the position they have on the landing) and in the sidebar footer through
-  the `sidebar.footer` slot (the phone drawer, and the desktop sidebar below 1024px); the full rules are in
-  `.claude/rules/docs.md`. The landing's marquee does not render the pill and shows no version.
+  `<AvailableFrom>` badge is the same depth pill, or nothing (`components/available-from.tsx`): the
+  docs always describe the latest release, so a badge in the current release line of its package
+  renders `NewPill` with `.vk-available-from` and the translated `docs.statusBadges.new` text (no
+  version in the visible text; the upgrade advice is its `title`), and any older badge renders
+  nothing, no element and no space. The rule is `isStillNew` in `lib/release-line.ts`, the same
+  one the sidebar NEW pill and the marquee use, and the decision is made on the server: no client
+  script, data attribute or stored choice, and no version picker. The pill sits after the heading
+  text when it is inside a heading (a 0.5rem start margin, none in the wrapped anchor), and the
+  heading anchor wraps it under the text under 768px; the full rules are in `.claude/rules/docs.md`.
+  `AvailableFromPill` is the compare page's outline pill, "Available from X.Y.Z", always shown.
+  The landing's marquee shows the New pill alone, and only for an item in the current line.
   `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's one list of
-  what is new in that release: `providers` (read through `providerReleaseBadge`) and `features`
-  (`provider-none`, read through `featureReleaseBadge`), so emptying it removes every landing badge
-  at once; the MDX badges stay literal (`<AvailableFrom version="0.12.0" />`), and
+  what was new in a release: `providers` (read through `providerReleaseBadge`, and `providerIsNew`
+  for the current-line test) and `features` (`provider-none`, read through `featureReleaseBadge`).
+  The data stays when its release leaves the current line, so the marquee then shows no pill, and a
+  future release marks items again by rewriting it; the MDX badges stay literal (`<AvailableFrom version="0.12.0" />`), and
   `lib/release-badge.test.ts` holds the two together: a machine provider carries a badge of that
   version directly under its `providers*.mdx` heading, in all four locales, exactly when
   `RELEASE_BADGE` lists it, and `provider-none` is dated exactly by the page badge of
@@ -1231,7 +1226,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
 - **Depth pill**: the one filled pill, and the one marker for everything "new", because the product
   owner asked for a badge that reads as new at a glance (modelled on the `app-new-badge` of
   docs.nestjs.com). `NewPill` (`components/new-pill.tsx`, `.vk-pill-new`, taking an optional
-  `className`) is a 5px-radius chip, 2px by 6px, on a 90deg gradient from `--pill-new-start`
+  `className` and `title`) is a 5px-radius chip, 2px by 6px, on a 90deg gradient from `--pill-new-start`
   (`--accent-fill`) to `--pill-new-end` (a darker violet, its own value in each theme; in the light
   theme `hsl(254 70% 26%)`, with a 1px `--pill-new-rim` outer hairline of the end stop at 45
   percent, so the light chip never reads flat; `components/new-pill.test.tsx` pins both), in
@@ -1246,9 +1241,9 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   shimmer is `display: none`; under `forced-colors` the layers drop and the chip gets a `CanvasText`
   border. `NewBadge` (`components/new-badge.tsx`) is the sidebar's NEW marker: the same pill with
   `ms-1.5`, hidden in `.vk-crumbs`. The hero carries no announcement or pill. The pill appears
-  in the marquee's upcoming-release provider badge (the word alone, no version)
-  and the sidebar NEW marker. A version, a dated feature or a quickstart tag stays the `.vk-pill` outline;
-  never put the pill in a table or a heading.
+  in the marquee's current-line provider badge (the word alone, no version), the sidebar NEW marker
+  and the in-page `<AvailableFrom>` marker. A quickstart tag and the compare page's version stay the `.vk-pill` outline. The pill is
+  also the in-page `<AvailableFrom>` marker, in a heading, a table cell or a paragraph.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
   `--width-measure` (about 72 characters of body text); tables and code blocks run the full
   column, and so does a `not-prose` element and everything inside it.
@@ -1430,7 +1425,9 @@ Tokens drift. Before quoting a value from this skill, confirm it:
 ```bash
 grep -n '\--surface-\|--text-\|--accent\|--radius-\|--shadow-\|--scrim\|--width-page\|--header-height\|--crumb-height' packages/ui/src/tokens.css apps/docs/app/global.css
 grep -n 'vk-page-\|vk-crumb\|vk-docs-footer\|vk-callout\|vk-header-search\|nd-toc\|nd-sidebar' apps/docs/app/global.css
-grep -n 'vk-version\|vk-available-from' apps/docs/app/global.css apps/docs/app/version-pills.generated.css | head
+grep -n 'vk-available-from' apps/docs/app/global.css | head
+grep -rn 'isStillNew\|RELEASED_VERSIONS' apps/docs/lib apps/docs/components | grep -v test | head
+grep -rln 'vk-version\|VERSION_INIT_SCRIPT\|version-pills\|release-lines' apps/docs --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=.turbo --exclude-dir=e2e | head
 grep -n 'MIN_BRAND_CONTRAST\|MARQUEE_MARK_SIZE\|MARQUEE_OPTICAL_SIZE\|MARQUEE_GLYPH_SIZE' apps/docs/lib/brand-colors.ts apps/docs/lib/brand-marks.ts
 grep -n 'FORMAT_ICONS\|PROVIDER_ICONS' apps/docs/components/landing/marquee.tsx
 ```

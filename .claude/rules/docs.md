@@ -207,63 +207,65 @@ English, and fails on an untitled TypeScript fragment there. The one exemption i
 
 ## The `<AvailableFrom />` badge
 
-Component: `apps/docs/components/available-from.tsx`. Renders a small inline pill ("Available
-from X.Y.Z", with the upgrade advice as its `title`) sourced from the `docs.availableFrom`
-translation namespace (`messages/*.json`), so its copy is translated like any other UI string, not
-hand-duplicated per locale MDX file. Written on its own line directly under a `##` to `####`
-heading, it is moved into that heading at build time (`lib/available-from-heading.ts`, after the
-TOC is taken, so the TOC and the heading's anchor stay clean, and with its props, so the data
-attributes below survive); in a table cell or inline it renders where it is written. Where a badge
-may sit at all is set by "Badge placement" under [Docs budget](#docs-budget) below.
+The docs and the landing page always describe the latest release. There is no version picker, no
+per-reader choice and nothing stored in the browser.
 
-The pill is hidden by default and the reader decides when it shows. The server-rendered and
-no-JavaScript state is "Latest": no version pill is visible anywhere in the docs. The version picker
-in the docs header from 1024px (`components/version-picker.tsx`, native selects; in the sidebar footer, so the phone drawer, below that)
-lets a reader name the release line they run, separately for CLI/SDK (one line, they are
-version-locked), Studio and MCP; Studio and MCP sit behind a disclosure that shows a state mark and
-names the picked lines while either is not on Latest. Only a badge newer than
-the picked line then renders, on the heading or cell it already sits in, and a page-top notice
-(`components/version-notice.tsx`, as wide as the prose measure, its title run into its text) appears on a page holding one. A revealed pill wraps inside the heading anchor, under the heading text when there is no room, and a hidden one adds no row. Nothing is dimmed, hidden or
-filtered. The MDX is unchanged: every `<AvailableFrom />` stays literal and is never removed.
+The badge stays in the MDX as data: `<AvailableFrom version="X.Y.Z" />` for a CLI/SDK feature, or
+`<AvailableFrom version="X.Y.Z" pkg="@verbatra/studio" />` (or `@verbatra/mcp`) when the feature
+belongs to that package (see the real usage in
+`apps/docs/content/docs/(agents)/agent-tools-in-studio.mdx`). It is never removed, whatever the
+release: a shipped version stays accurate forever, so do not strip a badge once its "from" version
+is old, and do not add or move one to change what readers see. What the component decides is what
+renders:
 
-- The rule: the reader picks a minor line `X.Y`, taken as `X.Y.0` because the patch is unknown. A
-  badge shows exactly when its version is above `X.Y.0`: `0.13.0` shows for a reader on `0.12`,
-  `0.12.0` does not, and a patch badge such as `0.5.1` shows for a reader on `0.5`
-  (`badgeNewerThanLine` in `lib/release-lines.mjs`).
-- The lines come from the stable `## X.Y.Z` headings of `packages/cli`, `studio` and `mcp`
-  `CHANGELOG.md`, written by `scripts/sync-version.mjs` (the same step as `version.generated.json`,
-  committed too) to `lib/release-lines.generated.json` and the stylesheet
-  `app/version-pills.generated.css`, one reveal rule per picked line, imported by `app/global.css`.
-  A badge may also name the next unreleased minor line. `@verbatra/sdk` badges use the CLI line.
-- A badge carries `data-vk-pkg`, `data-vk-line`, `data-vk-since` and, for a patch release,
-  `data-vk-patch`. A badge whose package or line the data cannot place fails the build
-  (`placeAvailableFrom`) and `lib/release-lines.test.ts`, so none stays hidden for good. A new
-  release needs no MDX change, only the sync.
-- The choice lives in `localStorage` under `docs-version`, never in the URL. `VERSION_INIT_SCRIPT`
-  (`lib/docs-version.ts`, an inline script after the theme script in `app/[lang]/layout.tsx`,
-  hashed into the CSP like every inline script) copies it onto `data-vk-cli`, `data-vk-studio` and
-  `data-vk-mcp` on `<html>` before first paint; the picker syncs after hydration through
-  `lib/docs-version.ts`. A blocked storage means Latest.
-- The `.md` output of every page keeps the literal `<AvailableFrom version="..." />`, whatever the
-  picker holds (`e2e/version-picker.spec.ts`). The sidebar NEW pill (`lib/introduced-in.ts`,
-  `lib/new-status.ts`) stays build-time and tied to the current release. The compare page's pill
-  has no attributes and stays visible.
+- **Current release line**: a badge whose version belongs to the current release line of its
+  package renders a small "New" pill (`NewPill`, the depth pill; the text is the translated
+  `docs.statusBadges.new`, the same string as the sidebar NEW marker) with no version in its
+  visible text. Its `title` keeps the translated upgrade advice ("Available from X.Y.Z, needs
+  verbatra X.Y.Z or newer", from the `docs.availableFrom` namespace), so the version stays
+  reachable on hover.
+- **Older release**: any other badge renders nothing at all: no element, no reserved space, no extra
+  wrap in a heading, no gap in a table cell. A heading whose badge renders nothing is exactly a
+  heading without a badge.
+- **Decided at build time on the server.** No client JavaScript, no data attribute and no storage
+  take part.
 
-- Usage: `<AvailableFrom version="X.Y.Z" />` for a CLI/SDK feature, or
-  `<AvailableFrom version="X.Y.Z" pkg="@verbatra/studio" />` when the feature belongs to a
-  specific package (see the real usage in
-  `apps/docs/content/docs/(agents)/agent-tools-in-studio.mdx`).
-- Use it on any documented feature that shipped after the package's initial release, so a reader on
-  an older version knows to upgrade instead of filing a "this doesn't work" report.
+"Current release line" means, in this project's 0.x versioning, the current minor line of the
+package: a badge is new from `X.Y.0` up to and including the next unreleased version (`X.Y.Z`,
+`X.(Y+1).0`), and stops being new when the package releases `X.(Y+1).0`. CLI and SDK follow the
+version of `packages/cli`, `@verbatra/studio` its own, `@verbatra/mcp` its own. The rule lives in
+one function, `isStillNew` in `apps/docs/lib/release-line.ts`, with its unit test table in
+`lib/release-line.test.ts`; widening it (for example to the current and the previous line) is a
+change to that one function. The released versions come from `lib/version.generated.json`, which
+`scripts/sync-version.mjs` writes from the three `package.json` files, read through
+`RELEASED_VERSIONS` in `lib/new-status.ts`. The same function decides the sidebar NEW pill
+(`lib/introduced-in.ts`, `lib/new-status.ts`: a page is NEW until the next minor) and the landing
+marquee's New pill (`providerIsNew` in `lib/release-badge.ts`), so the three cannot drift.
+
+Written on its own line directly under a `##` to `####` heading, a badge is moved into that heading
+at build time (`lib/available-from-heading.ts`, after the TOC is taken, so the TOC and the heading's
+anchor stay clean). It adds no separator text node, so a badge that renders nothing leaves the
+heading's children as they would be without it; the pill's own margin spaces it, and in the heading
+anchor it wraps under the text instead of crushing it. In a table cell or inline it renders where it
+is written. Where a badge may sit at all is set by "Badge placement" under
+[Docs budget](#docs-budget) below.
+
+- The `.md` output of every page keeps the literal `<AvailableFrom version="..." />`, so agents
+  still get every version (`e2e/available-from.spec.ts`).
+- The compare page's own pill (`AvailableFromPill`, "Available from X.Y.Z") is a separate outline
+  pill and always shows.
+- The landing marquee marks a provider with the New pill alone, and only while its
+  `RELEASE_BADGE` version is in the current line (`providerIsNew`); the data stays so a future
+  release can mark items again.
 - To get the correct version, do not guess or copy the current `package.json` version by hand:
   run `pnpm changeset status` (or check the changeset that introduces the feature) to see what
   version the pending or landed change actually bumps to. `@verbatra/cli` and `@verbatra/sdk` are
   version-locked (`fixed` in `.changeset/config.json`), so a CLI/SDK feature uses their shared
   version; `@verbatra/studio` versions independently and needs its own number, which is why
   `pkg="@verbatra/studio"` exists.
-- It never needs removing later. Once a version ships, the badge is historically accurate
-  forever; do not go back and strip it once the "from" version is old. The version picker already
-  hides every badge a reader's chosen line has.
+- Use it on any documented feature that shipped after the package's initial release.
+  `lib/available-from-version-bound.test.ts` holds every badge to at most the next release of its
+  package.
 
 ## Docs budget
 
@@ -344,8 +346,9 @@ and a link to the owner.
   has no badge.
 - Moving a badge never drops its information: the feature it dated stays dated to the same
   version.
-- No 1.0 baseline: the reader-chosen version above decides what shows, and a badge is still never
-  removed, at 1.0 or later.
+- A badge is never removed from the MDX, at 1.0 or later: the component renders nothing for one
+  outside the current release line (see "The `<AvailableFrom />` badge" above), so the page needs
+  no edit when a release ships.
 
 ## Register and tone
 
