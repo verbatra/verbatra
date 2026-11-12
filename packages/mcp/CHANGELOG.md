@@ -1,5 +1,12 @@
 # @verbatra/mcp
 
+## 0.4.6
+
+### Patch Changes
+
+- Updated dependencies [[`232c782`](https://github.com/verbatra/verbatra/commit/232c7820dfc04af3f661aaa777150a2a94123a11)]:
+  - @verbatra/sdk@0.13.6
+
 ## 0.4.5
 
 ### Patch Changes
