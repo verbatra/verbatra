@@ -1,4 +1,6 @@
 import type { MachineProviderId } from "./landing-facts";
+import { RELEASED_VERSIONS } from "./new-status";
+import { isStillNew, type ReleasedVersions } from "./release-line";
 
 type ReleaseFeature = "provider-none";
 
@@ -20,6 +22,14 @@ export function providerReleaseBadge(id: MachineProviderId): string | null {
 
 export function featureReleaseBadge(feature: ReleaseFeature): string | null {
   return RELEASE_BADGE.features.includes(feature) ? RELEASE_BADGE.version : null;
+}
+
+export function providerIsNew(
+  id: MachineProviderId,
+  released: ReleasedVersions = RELEASED_VERSIONS,
+): boolean {
+  const version = providerReleaseBadge(id);
+  return version !== null && isStillNew({ version }, released);
 }
 
 const SEMVER = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;

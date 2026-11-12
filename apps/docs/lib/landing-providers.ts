@@ -1,5 +1,6 @@
 import { MACHINE_PROVIDER_IDS, type MachineProviderId } from "./landing-facts";
-import { providerReleaseBadge } from "./release-badge";
+import { providerIsNew } from "./release-badge";
+import type { ReleasedVersions } from "./release-line";
 
 export const PROVIDER_KINDS = ["llm", "machine"] as const;
 
@@ -38,12 +39,12 @@ export function providerShortLabel(id: MachineProviderId): string {
   return display.shortLabel ?? display.label;
 }
 
-export function landingProviders(): ReadonlyArray<LandingProvider> {
+export function landingProviders(released?: ReleasedVersions): ReadonlyArray<LandingProvider> {
   return MACHINE_PROVIDER_IDS.map((id) => ({
     id,
     label: providerShortLabel(id),
     kind: PROVIDER_DISPLAY[id].kind,
-    isNew: providerReleaseBadge(id) !== null,
+    isNew: providerIsNew(id, released),
   }));
 }
 

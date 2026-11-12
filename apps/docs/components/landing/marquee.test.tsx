@@ -10,7 +10,7 @@ import { BRAND_MARKS, type BrandMarkId } from "@/lib/brand-marks";
 import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
-import { RELEASE_BADGE } from "@/lib/release-badge";
+import { providerIsNew, RELEASE_BADGE } from "@/lib/release-badge";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import german from "@/messages/de.json";
 import messages from "@/messages/en.json";
@@ -193,13 +193,13 @@ describe("Marquee", () => {
     expect(names).toEqual(SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label));
   });
 
-  it("marks exactly the providers the release badge names with the New pill alone, never a version", async () => {
+  it("marks only providers whose release is in the current line, with the New pill alone, never a version", async () => {
     const providers = row(await render(), "providers");
     const badged = Array.from(
       providers.querySelectorAll(".vk-marquee-list:not(.vk-marquee-copy) > li:has(.vk-pill-new)"),
       (item) => item.getAttribute("data-item"),
     );
-    expect(badged).toEqual([...RELEASE_BADGE.providers]);
+    expect(badged).toEqual(MACHINE_PROVIDER_IDS.filter((id) => providerIsNew(id)));
     for (const pill of Array.from(providers.querySelectorAll(".vk-pill-new"))) {
       expect(pill.textContent).toBe(copy.new);
       expect(pill.nextElementSibling).toBeNull();
