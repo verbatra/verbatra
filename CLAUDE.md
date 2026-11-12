@@ -173,3 +173,20 @@ files that own each token (`packages/ui/src/tokens.css` for both, `apps/docs/app
 `packages/studio/src/app/styles.css` for each surface's own mapping) and end with the grep to re-verify it: when the
 skill and the stylesheet disagree, the stylesheet wins and the skill is updated in the
 same change.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs are local markdown files under the gitignored `.scratch/<feature>/`, not
+GitHub Issues or Jira. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five triage roles are `Status:` strings in the issue files, reusing this repo's label
+names where one exists. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one root `GLOSSARY.md`, ADRs in the local-only `docs/decisions/`. See
+`docs/agents/domain.md`.
