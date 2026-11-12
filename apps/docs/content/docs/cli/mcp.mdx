@@ -60,7 +60,7 @@ The config search starts there, and the directory of the config it finds is the 
 
 `translation.retranslateEntry` and `translation.translatePending` are advertised only with `--allow-spend`, or, when the flag is absent, with `VERBATRA_MCP_ALLOW_SPEND` set to `1`, `true`, `yes` or `on` (any case, surrounding spaces ignored). The flag wins over the variable. `verbatra mcp` reads `.env.local` and `.env` first, so the variable can live there; `verbatra-mcp` takes it only from its own environment.
 
-Otherwise they are never listed, and calling one fails as an unknown tool. A config with `provider: { id: "none" }` never lists them, even with `--allow-spend`. Every other tool calls no provider and needs no key; hand the key to the server through the client's environment only when you enable spending.
+Otherwise they are never listed, and calling one fails as an unknown tool. A config with `provider: { id: "none" }` never lists them, even with `--allow-spend`. Every other tool calls no provider and needs no key; give the server the key only when you enable spending.
 
 ### Instructions for the agent
 
@@ -81,7 +81,7 @@ The server answers the handshake with fixed `instructions`, which most clients p
 | `glossary.get` | every glossary term with its translations, forbidden renderings and context, secret-redacted | yes | no |
 | `glossary.write` | change one glossary term: a translation, per-locale data, context, or whether it stays untranslated | no | no |
 | `lock.state` | the lock file's version and, per target locale, its key count plus missing, stale, and up-to-date counts | yes | no |
-| `history.list` | recent git commits touching a locale file, with author name, date, subject and paths | yes | no |
+| `history.list` | recent git commits touching a locale file, with author, date, subject and paths | yes | no |
 | `history.keyRevisions` | one key's revisions in a locale, with word diff <AvailableFrom version="0.4.0" pkg="@verbatra/mcp" /> | yes | no |
 | `key.integrity` | one key's placeholder, markup, ICU syntax and ICU arm drift against the lock baseline, per locale | yes | no |
 | `locale.integrity` | every translation that fails the placeholder, markup or ICU checks right now, per locale | yes | no |
@@ -111,7 +111,7 @@ The server answers the handshake with fixed `instructions`, which most clients p
 - `status.check`, `status.diff` and `key.integrity` take an optional `locales` array; `key.integrity` also takes the `key`.
 - `key.integrity` returns `{ locales: [{ locale, entries }] }`, each entry with `matches`, `missing`, `extra`, `icuValid`, `markupMatches` and their details.
 - `translation.editEntry` takes `locale`, `key` and a `value` of up to 20,000 characters. It returns `{ accepted, value, reason?, details? }`, and `translation.retranslateEntry` the same plus `reviewReasons?` and `usage?`, where `reason` is `placeholder`, `markup`, `icu`, `degenerate` or `empty`.
-- `glossary.write` needs a file-backed glossary, otherwise it fails with `GLOSSARY_NOT_FILE_BACKED`.
+- `glossary.write` needs a file-backed glossary, otherwise it fails with `GLOSSARY_NOT_FILE_BACKED`; [a term differing only in case](/docs/sdk/config#updateglossaryterm) updates the stored one.
 
 ### More inputs and results
 
@@ -147,7 +147,7 @@ When a `translation.translatePending` call carries a `progressToken`, verbatra s
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-The server starts without a usable config. `project.snapshot` then returns `configured: false` with the `configProblem` and a `nextStep`, `project.doctor` reports the fix, and every other tool refuses with the config error. stderr says why:
+The server still starts. `project.snapshot` then returns `configured: false` with the `configProblem` and a `nextStep`, `project.doctor` reports the fix, and every other tool refuses with the config error. stderr says why:
 
 ```text output
 Running without a usable project config: CONFIG_NOT_FOUND: No verbatra configuration found. ...

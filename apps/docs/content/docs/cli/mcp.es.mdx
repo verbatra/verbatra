@@ -111,7 +111,7 @@ El servidor responde al handshake con unas `instructions` fijas, que la mayoría
 - `status.check`, `status.diff` y `key.integrity` aceptan un array opcional `locales`; `key.integrity` también recibe la `key`.
 - `key.integrity` devuelve `{ locales: [{ locale, entries }] }`, cada entrada con `matches`, `missing`, `extra`, `icuValid`, `markupMatches` y sus detalles.
 - `translation.editEntry` recibe `locale`, `key` y un `value` de hasta 20.000 caracteres. Devuelve `{ accepted, value, reason?, details? }`, y `translation.retranslateEntry` lo mismo más `reviewReasons?` y `usage?`, donde `reason` es `placeholder`, `markup`, `icu`, `degenerate` o `empty`.
-- `glossary.write` necesita un glosario en archivo; si no, falla con `GLOSSARY_NOT_FILE_BACKED`.
+- `glossary.write` necesita un glosario en archivo; si no, falla con `GLOSSARY_NOT_FILE_BACKED`. [Un término que solo difiere en mayúsculas y minúsculas](/es/docs/sdk/config#updateglossaryterm) actualiza el guardado.
 
 ### Más entradas y resultados
 
