@@ -377,6 +377,32 @@ describe("TranslationsPanel all-clear state", () => {
     expect(cellText(view, "app.body", "de")).toBe("In sync, integrity problem");
   });
 
+  it("never claims everything is in sync while the review queue still holds keys", async () => {
+    stubSyncedPage({
+      "review.queue": {
+        ok: true,
+        result: {
+          available: true,
+          locales: [
+            {
+              locale: "de",
+              needsReview: [{ key: "app.title", reasons: ["EQUALS_SOURCE"], provenance: MACHINE }],
+            },
+          ],
+        },
+      },
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    const banner = view.get('[role="status"]').textContent ?? "";
+    expect(banner).toContain("Locale files are in sync");
+    expect(banner).toContain("Still waiting: 1 translation awaiting review");
+    expect(banner).not.toContain("Everything is in sync");
+    expect(view.text()).toContain("1 key needs attention");
+  });
+
   it("lists a protected key of an otherwise clean project", async () => {
     stubPage({
       "status.diff": diffResult([localeDiff("de", { protected: ["app.terms"] }), localeDiff("fr")]),

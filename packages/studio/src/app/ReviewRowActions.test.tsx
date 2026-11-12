@@ -34,6 +34,35 @@ describe("ReviewRowActions", () => {
     ]);
   });
 
+  it("names every action after its key and locale so rows are told apart, visible text unchanged", () => {
+    const view = render(
+      <ReviewRowActions
+        {...handlers()}
+        onRetranslate={vi.fn()}
+        target={{ key: "app.title", locale: "de" }}
+      />,
+    );
+
+    expect(view.all("button").map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Edit app.title (de)",
+      "Approve app.title (de)",
+      "Reject… app.title (de)",
+      "Retranslate app.title (de)",
+    ]);
+    expect(view.all("button").map((button) => button.textContent)).toEqual([
+      "Edit",
+      "Approve",
+      "Reject…",
+      "Retranslate",
+    ]);
+  });
+
+  it("gives no aria-label when no target is passed", () => {
+    const view = render(<ReviewRowActions {...handlers()} />);
+
+    expect(view.all("button").every((button) => !button.hasAttribute("aria-label"))).toBe(true);
+  });
+
   it("calls only the edit callback when Edit is pressed", () => {
     const spies = handlers();
     const view = render(<ReviewRowActions {...spies} />);

@@ -1,5 +1,6 @@
 import type { BudgetBehavior, BudgetStanding, RunBudget, UsageSummary } from "@verbatra/sdk";
 import type { RpcResultFor } from "../shared/rpc/contract.js";
+import type { IncompleteRun } from "../shared/rpc/usage-summary.js";
 import type { RpcCallResult } from "./rpc-client.js";
 import type { FetchOutcome } from "./state.js";
 
@@ -27,6 +28,7 @@ export type UsageTickerDisplayState =
       readonly generatedAt: string;
       readonly usage: UsageDisplay;
       readonly budget: BudgetDisplay;
+      readonly incomplete?: IncompleteRun;
     };
 
 function toUsageDisplay(usage: UsageSummary | undefined): UsageDisplay {
@@ -68,6 +70,7 @@ export function toUsageTickerDisplayState(data: UsageTickerData): UsageTickerDis
     generatedAt: data.generatedAt,
     usage: toUsageDisplay(data.usage),
     budget: toBudgetDisplay(data.budget),
+    ...(data.incomplete !== undefined ? { incomplete: data.incomplete } : {}),
   };
 }
 

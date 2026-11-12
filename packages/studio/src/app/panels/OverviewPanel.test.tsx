@@ -390,6 +390,38 @@ describe("OverviewPanel", () => {
     expect(hasMetricCard(view, "Output tokens")).toBe(false);
   });
 
+  it("says the last run failed, and stops claiming it called no provider, when a locale failed", async () => {
+    stubActivity({
+      available: true,
+      generatedAt: GENERATED_AT,
+      incomplete: { failed: 2, partial: 1 },
+    });
+
+    const view = await renderAsync(<OverviewPanel refreshToken={0} />);
+
+    expect(view.text()).toContain(
+      "The last run did not finish cleanly: 2 locales failed, 1 locale only partly translated.",
+    );
+    expect(metricHint(view, "Tokens")).toBe(
+      "No token usage was recorded for this run: it stopped on an error before the provider reported usage, or its provider does not report usage.",
+    );
+    expect(metricHint(view, "Tokens")).not.toContain("called no provider");
+  });
+
+  it("names a single failed locale in the singular and says nothing about a clean run", async () => {
+    stubActivity({
+      available: true,
+      generatedAt: GENERATED_AT,
+      incomplete: { failed: 1, partial: 0 },
+    });
+    const failed = await renderAsync(<OverviewPanel refreshToken={0} />);
+    expect(failed.text()).toContain("The last run did not finish cleanly: 1 locale failed.");
+
+    stubActivity(TRACKED_RUN);
+    const clean = await renderAsync(<OverviewPanel refreshToken={0} />);
+    expect(clean.text()).not.toContain("did not finish cleanly");
+  });
+
   it("renders a tracked budget as a meter plus a within-budget badge", async () => {
     stubActivity(TRACKED_RUN);
 

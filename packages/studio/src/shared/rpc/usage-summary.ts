@@ -7,6 +7,11 @@ export const usageSummaryParamsSchema = z.strictObject({});
 
 export type UsageSummaryParams = z.infer<typeof usageSummaryParamsSchema>;
 
+export interface IncompleteRun {
+  readonly failed: number;
+  readonly partial: number;
+}
+
 export type UsageSummaryResult =
   | { readonly available: false }
   | {
@@ -14,4 +19,5 @@ export type UsageSummaryResult =
       readonly generatedAt: string;
       readonly usage?: UsageSummary;
       readonly budget?: RunBudget;
+      readonly incomplete?: IncompleteRun;
     };
