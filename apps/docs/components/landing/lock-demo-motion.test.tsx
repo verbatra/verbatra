@@ -218,3 +218,31 @@ describe("LockDemoMotion without stage conditions", () => {
     expect(activeFrameIds(host)).toEqual(["frame-1"]);
   });
 });
+
+describe("LockDemoMotion after the no-island failsafe has retired the stage", () => {
+  function retireSide(): void {
+    const real = window.getComputedStyle.bind(window);
+    vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) =>
+      element.classList.contains("vk-lock-side")
+        ? ({ visibility: "hidden" } as CSSStyleDeclaration)
+        : real(element, pseudo),
+    );
+  }
+
+  it("stays stacked for the page view instead of snapping back to the stage", () => {
+    retireSide();
+    const host = mount();
+    expect(root(host).hasAttribute("data-mode")).toBe(false);
+    for (const frame of frames(host)) expect(frame.hasAttribute("inert")).toBe(false);
+  });
+
+  it("keeps ignoring the stage condition when it changes later", () => {
+    retireSide();
+    const host = mount();
+    act(() => {
+      for (const listener of stage.listeners) listener();
+    });
+    expect(root(host).hasAttribute("data-mode")).toBe(false);
+    expect(activeFrameIds(host)).toEqual([]);
+  });
+});

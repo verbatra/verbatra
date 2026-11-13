@@ -222,5 +222,157 @@ test.describe("lock-file demo motion in a real browser", () => {
     }
     await expect(page.locator(`${DEMO} .vk-lock-steps`)).toBeHidden();
     await expectNoHorizontalScroll(page);
+    for (const caption of await page.locator(CAPTIONS).all()) await expect(caption).toBeVisible();
+    await expect
+      .poll(async () => (await stackLayout(page)).cards.map((card) => card.shadow))
+      .toEqual(["transparent", "transparent", "transparent"]);
+    const failsafe = await stackLayout(page);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const stacked = await stackLayout(page);
+    expect(failsafe).toEqual(stacked);
+  });
+
+  test("stays stacked when the island arrives after the failsafe, without a layout shift", async ({
+    page,
+  }) => {
+    test.setTimeout(40_000);
+    await page.addInitScript(() => {
+      const shifts = { total: 0 };
+      (window as unknown as { shifts: typeof shifts }).shifts = shifts;
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const shift = entry as PerformanceEntry & { value: number; hadRecentInput: boolean };
+          if (!shift.hadRecentInput) shifts.total += shift.value;
+        }
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+    const release = await holdScripts(page);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(12_500);
+    const measure = () =>
+      page.evaluate(() => ({
+        height: document.querySelector("#lock-demo")?.getBoundingClientRect().height ?? -1,
+        next: document.querySelector("#highlights")?.getBoundingClientRect().top ?? -1,
+        shifts: (window as unknown as { shifts: { total: number } }).shifts.total,
+      }));
+    const before = await measure();
+    await release();
+    await expect(page.locator(`${DEMO} .vk-lock-pause`)).toBeHidden();
+    await page.waitForLoadState("load");
+    await page.waitForTimeout(1_500);
+    const after = await measure();
+    await expect(page.locator(STAGE)).not.toHaveAttribute("data-mode", "stage");
+    expect(Math.abs(after.height - before.height)).toBeLessThanOrEqual(1);
+    expect(Math.abs(after.next - before.next)).toBeLessThanOrEqual(1);
+    expect(after.shifts - before.shifts).toBeLessThan(0.01);
+  });
+
+  test("starts playing when the island hydrates after the progress bar would have ended", async ({
+    page,
+  }) => {
+    test.setTimeout(40_000);
+    const release = await holdScripts(page);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.locator(DEMO).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(7_000);
+    await release();
+    await expect(page.locator(STAGE)).toHaveAttribute("data-mode", "stage");
+    await expect(page.locator(ACTIVE)).toHaveAttribute("id", "lock-demo-edit");
+    await expect(page.locator(ACTIVE)).toHaveAttribute("id", "lock-demo-compare", {
+      timeout: 12_000,
+    });
+  });
+
+  test("marks the current step with a border in forced colors", async ({ page }) => {
+    await page.emulateMedia({ forcedColors: "active" });
+    await page.goto("/");
+    await page.locator(DEMO).scrollIntoViewIfNeeded();
+    await expect(page.locator(STAGE)).toHaveAttribute("data-mode", "stage");
+    const outline = (index: number) =>
+      page
+        .locator(STEPS)
+        .nth(index)
+        .evaluate((step) => {
+          const style = getComputedStyle(step);
+          return { style: style.outlineStyle, width: style.outlineWidth };
+        });
+    expect(await outline(0)).toEqual({ style: "solid", width: "2px" });
+    expect((await outline(1)).style).toBe("none");
+    expect((await outline(2)).style).toBe("none");
+  });
+});
+
+const CAPTIONS = `${DEMO} .vk-lock-caption`;
+
+async function stackLayout(page: Page) {
+  return page.evaluate(() => {
+    const demo = document.querySelector("#lock-demo") as HTMLElement;
+    const top = demo.getBoundingClientRect().top;
+    const canvas = document.createElement("canvas").getContext("2d", {
+      willReadFrequently: true,
+    }) as CanvasRenderingContext2D;
+    const paint = (color: string) => {
+      canvas.clearRect(0, 0, 1, 1);
+      canvas.fillStyle = color;
+      canvas.fillRect(0, 0, 1, 1);
+      return [...canvas.getImageData(0, 0, 1, 1).data].map((channel) => Math.round(channel / 4));
+    };
+    return {
+      height: Math.round(demo.getBoundingClientRect().height),
+      cards: [...demo.querySelectorAll<HTMLElement>(".vk-lock-card")].map((card) => {
+        const style = getComputedStyle(card);
+        const shadow = style.boxShadow;
+        const alpha = Number(/\/ ([\d.e-]+)\)/.exec(shadow)?.[1] ?? (shadow === "none" ? 0 : 1));
+        return {
+          top: Math.round(card.getBoundingClientRect().top - top),
+          border: paint(style.borderTopColor),
+          shadow: alpha < 0.01 ? "transparent" : shadow,
+        };
+      }),
+    };
+  });
+}
+
+test.describe("lock-file demo on a phone", () => {
+  test.use({ viewport: { width: 391, height: 844 } });
+
+  test("drops the neighbour rows and folds them into truthful gaps", async ({ page }) => {
+    await page.goto("/");
+    const lock = page.locator(`${FRAMES}:nth-child(2)`);
+    const gaps = await lock
+      .locator("[data-kind='gap']")
+      .evaluateAll((lines) =>
+        lines.map((line) => getComputedStyle(line, "::after").content.replaceAll('"', "")),
+      );
+    expect(gaps).toEqual(["… 5 more, unchanged", "… 7 more, unchanged"]);
+    for (const full of await lock.locator(".vk-lock-gap-full").all()) {
+      await expect(full).toBeHidden();
+    }
+    await expect(lock.locator("[data-fold='drop']")).toHaveCount(2);
+    for (const dropped of await lock.locator("[data-fold='drop']").all()) {
+      await expect(dropped).toBeHidden();
+    }
+    await expect(page.locator(`${FRAMES}:nth-child(3) .vk-lock-head`)).toBeHidden();
+    await expect(page.locator(`${FRAMES}:nth-child(3) .vk-lock-foot-lock`)).toBeHidden();
+  });
+
+  test("puts every tag on its own row under its value", async ({ page }) => {
+    await page.goto("/");
+    const rows = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("#lock-demo .vk-lock-line[data-mark]")].map(
+        (line) => {
+          const tag = line.querySelector(".vk-lock-tag") as HTMLElement;
+          const value = line.querySelector(".vk-lock-value") as HTMLElement;
+          const lineRect = line.getBoundingClientRect();
+          const start = lineRect.left + Number.parseFloat(getComputedStyle(line).paddingLeft);
+          return {
+            below: tag.getBoundingClientRect().top >= value.getBoundingClientRect().bottom - 1,
+            aligned: Math.abs(tag.getBoundingClientRect().left - start) <= 1,
+          };
+        },
+      ),
+    );
+    expect(rows).toHaveLength(6);
+    for (const row of rows) expect(row).toEqual({ below: true, aligned: true });
   });
 });

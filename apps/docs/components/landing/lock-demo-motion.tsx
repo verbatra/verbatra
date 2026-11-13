@@ -34,15 +34,21 @@ const GLYPH = {
   fill: "currentColor",
 } as const;
 
-function useStage(): boolean {
+function stageRetired(root: RefObject<HTMLElement | null>): boolean {
+  const side = root.current?.querySelector(".vk-lock-side");
+  return side !== null && side !== undefined && getComputedStyle(side).visibility === "hidden";
+}
+
+function useStage(root: RefObject<HTMLElement | null>): boolean {
   const [stage, setStage] = useState(false);
   useEffect(() => {
+    if (stageRetired(root)) return;
     const query = window.matchMedia(STAGE_QUERY);
     const sync = () => setStage(query.matches);
     sync();
     query.addEventListener("change", sync);
     return () => query.removeEventListener("change", sync);
-  }, []);
+  }, [root]);
   return stage;
 }
 
@@ -83,7 +89,7 @@ export function LockDemoMotion({
   children: ReactNode;
 }): ReactNode {
   const root = useRef<HTMLDivElement>(null);
-  const stage = useStage();
+  const stage = useStage(root);
   const inView = useInView(root);
   const [active, setActive] = useState(0);
   const [userPaused, setUserPaused] = useState(false);
