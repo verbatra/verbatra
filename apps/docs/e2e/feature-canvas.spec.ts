@@ -104,9 +104,9 @@ test.describe("feature canvases in motion", () => {
   });
 });
 
-test.describe("feature canvases on a narrow screen", () => {
-  test("fit 320px without horizontal overflow", async ({ page }) => {
-    await page.setViewportSize({ width: 320, height: 800 });
+test.describe("feature canvases on the narrowest screen that shows them", () => {
+  test("fit 640px without horizontal overflow", async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 800 });
     await openFeatures(page);
     await expectNoHorizontalScroll(page);
     const box = await page

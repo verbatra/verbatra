@@ -159,3 +159,38 @@ test.describe("landing search", () => {
     });
   }
 });
+
+test.describe("landing length on a phone", () => {
+  const PHONE = { width: 391, height: 844 };
+
+  for (const { motion, screens } of [
+    { motion: "no-preference", screens: 11 },
+    { motion: "reduce", screens: 11.5 },
+  ] as const) {
+    test(`stays under ${screens} screens with motion ${motion}`, async ({ page }) => {
+      await page.setViewportSize(PHONE);
+      await page.emulateMedia({ reducedMotion: motion });
+      await page.goto(homeUrl("en"), { waitUntil: "networkidle" });
+      await page.evaluate(() => document.fonts.ready);
+      await expect(page.locator(".vk-scroll-top-sentinel")).toBeAttached();
+      const height = await page.evaluate(() => document.documentElement.scrollHeight);
+      expect(height / PHONE.height).toBeLessThan(screens);
+    });
+  }
+
+  test("shows the studio screenshot and no feature canvas", async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await page.goto(homeUrl("en"));
+    await expect(page.locator("#features .vk-feature-shot").first()).toBeAttached();
+    await expect(page.locator("#features .vk-feature-visual:visible")).toHaveCount(1);
+    const canvases = page.locator("#features .vk-feature-canvas");
+    await expect(canvases).toHaveCount(5);
+    for (let index = 0; index < 5; index += 1) await expect(canvases.nth(index)).toBeHidden();
+  });
+
+  test("keeps every feature canvas from 640px", async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 900 });
+    await page.goto(homeUrl("en"));
+    await expect(page.locator("#features .vk-feature-visual:visible")).toHaveCount(6);
+  });
+});
