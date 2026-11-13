@@ -196,7 +196,7 @@
       "lead": "Verbatra hache chaque clé dans un fichier de verrouillage, n’envoie que les clés modifiées à ton fournisseur et fait échouer la CI en cas de dérive.",
       "ctaPrimary": "Démarrer",
       "ctaCompare": "Comparer avec d’autres outils",
-      "keysAdded": "+{count, plural, one {# clé} many {# clés} other {# clés}}"
+      "keysChanged": "~{count, plural, one {# clé} many {# clés} other {# clés}}"
     },
     "marquee": {
       "heading": "Fonctionne avec les fichiers de locale et les fournisseurs que tu utilises déjà",
@@ -208,9 +208,38 @@
       "allProviders": "Tous les fournisseurs",
       "allFormats": "Tous les formats"
     },
-    "statement": {
-      "label": "Une exécution, une locale",
-      "heading": "<em>{sent} clés</em> quittent ta machine, {kept} restent sur place"
+    "lockDemo": {
+      "label": "Le fichier de verrouillage",
+      "heading": "{count, plural, =2 {Deux clés modifiées, deux clés envoyées} one {# clé modifiée, # clé envoyée} many {# clés modifiées, # clés envoyées} other {# clés modifiées, # clés envoyées}}",
+      "steps": "Comment se déroule une exécution",
+      "pause": "Mettre l’animation en pause",
+      "play": "Lire l’animation",
+      "edit": {
+        "label": "Modifier",
+        "text": "Tu modifies {count, plural, one {# valeur} many {# valeurs} other {# valeurs}} dans ton fichier source."
+      },
+      "compare": {
+        "label": "Comparer",
+        "text": "Verbatra hache chaque clé et la compare au fichier de verrouillage. {count, plural, one {# hash enregistré ne correspond plus.} many {# hashes enregistrés ne correspondent plus.} other {# hashes enregistrés ne correspondent plus.}}"
+      },
+      "send": {
+        "label": "Envoyer",
+        "text": "Envoi au fournisseur de {count, plural, one {# seule clé} many {# clés seulement} other {# clés seulement}}. Les {rest} autres ne sont pas envoyées."
+      },
+      "badge": {
+        "changed": "{count} modifiées"
+      },
+      "tags": {
+        "changed": "modifiée",
+        "stale": "obsolète"
+      },
+      "gap": "… {count} de plus, inchangées",
+      "foot": {
+        "compare": "Obsolète signifie que le hash enregistré diffère du hash de la valeur actuelle de {file}. Les {count} autres correspondent.",
+        "generated": "généré {date}",
+        "lock": "{file} : {count, plural, one {# hash mis à jour} many {# hashes mis à jour} other {# hashes mis à jour}}."
+      },
+      "preGenerated": "pré-généré, pas en direct"
     },
     "highlights": {
       "heading": "Tout autour du diff",
@@ -233,62 +262,6 @@
         "label": "Agents",
         "title": "Ton agent de code corrige les traductions",
         "body": "Enregistre le serveur MCP pour le projet, et l’agent peut lire le statut et corriger les traductions. Les outils qui dépensent des jetons de fournisseur restent inactifs jusqu’à ce que tu les autorises."
-      }
-    },
-    "playground": {
-      "heading": "Traduis une chaîne avec le SDK",
-      "lead": "Choisis une chaîne et regarde l’appel SDK la traduire dans toutes les langues ci-dessous. Les espaces réservés restent exactement en place.",
-      "items": "Chaîne source",
-      "languages": "Langues cibles",
-      "source": "Source ({locale})",
-      "copy": "Copier le code",
-      "label": "Pré-généré avec le SDK Verbatra et Gemini, non en direct.",
-      "metadata": {
-        "label": "Comment ces résultats ont été générés",
-        "provider": "Fournisseur",
-        "model": "Modèle",
-        "generated": "Généré"
-      },
-      "languageNames": {
-        "de": "Allemand",
-        "es": "Espagnol",
-        "fr": "Français",
-        "ja": "Japonais"
-      },
-      "table": {
-        "caption": "Chaque résultat pré-généré, une ligne par chaîne source",
-        "source": "Source (Anglais)"
-      },
-      "links": {
-        "label": "En savoir plus",
-        "quickstart": "Démarrage rapide du SDK",
-        "reference": "Référence du SDK",
-        "providers": "Fournisseurs"
-      },
-      "animation": {
-        "pause": "Mettre l’animation en pause",
-        "play": "Lancer l’animation"
-      },
-      "status": {
-        "running": "Traduction de {strings, plural, one {# chaîne} many {# chaînes} other {# chaînes}} en {languages, plural, one {# langue} many {# langues} other {# langues}}",
-        "passed": "Contrôle d’intégrité réussi : {intact} sur {total} placeholders intacts",
-        "passedNone": "Contrôle d’intégrité réussi : aucun placeholder à protéger"
-      },
-      "counters": {
-        "sent": "envoyés",
-        "kept": "conservés",
-        "placeholders": "placeholders",
-        "checking": "vérification"
-      },
-      "clock": {
-        "typing": "saisie en cours",
-        "running": "en cours d’exécution",
-        "done": "terminé"
-      },
-      "run": {
-        "queued": "en file d’attente",
-        "awaiting": "en attente",
-        "resolved": "résolu"
       }
     },
     "features": {
