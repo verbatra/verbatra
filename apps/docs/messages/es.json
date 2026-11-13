@@ -382,8 +382,7 @@
           "phrase": {
             "value": "MIT (CLI, Action)",
             "note": "no se encontró fuente pública de la plataforma"
-          },
-          "manual": "No aplica, no hay producto"
+          }
         },
         "selfHosting": {
           "label": "Autoalojamiento",
@@ -558,8 +557,7 @@
           },
           "phrase": {
             "note": "Phrase Strings CLI"
-          },
-          "manual": "No aplica, no hay producto"
+          }
         },
         "ci": {
           "label": "CI y GitHub Action",
@@ -583,8 +581,7 @@
           },
           "phrase": {
             "note": "CLI en CI; Action setup-cli de Phrase"
-          },
-          "manual": "No aplica, no hay producto"
+          }
         },
         "mcp": {
           "label": "Servidor MCP",
@@ -602,10 +599,7 @@
           },
           "phrase": {
             "note": "alojado, se accede con una cuenta de Phrase"
-          },
-          "lingo": "Sí",
-          "tolgee": "Sí",
-          "manual": "No aplica, no hay producto"
+          }
         },
         "inContext": {
           "label": "Edición en contexto",
@@ -626,9 +620,7 @@
           },
           "phrase": {
             "note": "In-Context Editor, adaptadores oficiales de frameworks"
-          },
-          "verbatra": "No",
-          "manual": "No aplica, no hay producto"
+          }
         },
         "translatorUi": {
           "label": "Interfaz web para traductores",
@@ -700,10 +692,7 @@
       "sources": "Fuentes",
       "manualNote": "El flujo de trabajo manual no es un producto, por lo que no tiene fuente: la columna describe cómo copiar cadenas a un servicio de traducción y viceversa, a mano.",
       "lastChecked": "Última revisión",
-      "fairness": "Cada celda indica lo que decían las páginas del propio proveedor en esa fecha, y \"Nada encontrado\" significa que nuestra búsqueda no encontró nada, no que el producto carezca de ello.",
-      "sourceRef": "Fuente {number}, {tool}",
-      "noteRef": "Nota M, flujo de trabajo manual",
-      "scrollHint": "Desplaza la tabla de lado para ver todas las columnas."
+      "fairness": "Cada celda indica lo que decían las páginas del propio proveedor en esa fecha, y \"Nada encontrado\" significa que nuestra búsqueda no encontró nada, no que el producto carezca de ello."
     },
     "openSource": {
       "newTab": "(se abre en una pestaña nueva)",
@@ -748,9 +737,7 @@
     "quickstart": "Empieza con la guía rápida",
     "home": "Volver a la página de inicio de Verbatra",
     "breadcrumbHome": "Inicio",
-    "breadcrumbCompare": "Comparar",
-    "lead": "Verbatra junto a Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase y un flujo de trabajo manual. Cada celda del producto dice lo que las páginas del propio proveedor indicaron y enlaza su fuente; la columna manual cita la nota M.",
-    "concession": "Tolgee, Crowdin, Lokalise y Phrase ofrecen edición en contexto, lo que Verbatra no hace. Para la revisión, Verbatra tiene el panel de Studio local, no un editor alojado para traductores."
+    "breadcrumbCompare": "Comparar"
   },
   "legal": {
     "privacy": {

@@ -382,8 +382,7 @@
           "phrase": {
             "value": "MIT (CLI, Action)",
             "note": "keine öffentliche Plattform-Quelle gefunden"
-          },
-          "manual": "Nicht zutreffend, kein Produkt"
+          }
         },
         "selfHosting": {
           "label": "Selbst-Hosting",
@@ -558,8 +557,7 @@
           },
           "phrase": {
             "note": "Phrase Strings CLI"
-          },
-          "manual": "Nicht zutreffend, kein Produkt"
+          }
         },
         "ci": {
           "label": "CI und GitHub Action",
@@ -583,8 +581,7 @@
           },
           "phrase": {
             "note": "CLI in CI; setup-cli Action in Phrases Organisation"
-          },
-          "manual": "Nicht zutreffend, kein Produkt"
+          }
         },
         "mcp": {
           "label": "MCP-Server",
@@ -602,10 +599,7 @@
           },
           "phrase": {
             "note": "gehostet, Anmeldung mit Phrase-Konto"
-          },
-          "lingo": "Ja",
-          "tolgee": "Ja",
-          "manual": "Nicht zutreffend, kein Produkt"
+          }
         },
         "inContext": {
           "label": "In-Context-Bearbeitung",
@@ -626,9 +620,7 @@
           },
           "phrase": {
             "note": "In-Context Editor, offizielle Framework-Adapter"
-          },
-          "verbatra": "Nein",
-          "manual": "Nicht zutreffend, kein Produkt"
+          }
         },
         "translatorUi": {
           "label": "Weboberfläche für Übersetzer",
@@ -700,10 +692,7 @@
       "sources": "Quellen",
       "manualNote": "Der manuelle Workflow ist kein Produkt und hat daher keine Quelle: Die Spalte beschreibt das manuelle Kopieren von Strings in einen Übersetzungsdienst und zurück.",
       "lastChecked": "Zuletzt geprüft",
-      "fairness": "Jede Zelle nennt, was die Seiten des Anbieters an diesem Datum sagten, und „Nichts gefunden“ heißt: Unsere Suche hat nichts gefunden, nicht dass dem Produkt die Funktion fehlt.",
-      "sourceRef": "Quelle {number}, {tool}",
-      "noteRef": "Anmerkung M, manueller Workflow",
-      "scrollHint": "Scrolle die Tabelle seitwärts, um alle Spalten zu sehen."
+      "fairness": "Jede Zelle nennt, was die Seiten des Anbieters an diesem Datum sagten, und „Nichts gefunden“ heißt: Unsere Suche hat nichts gefunden, nicht dass dem Produkt die Funktion fehlt."
     },
     "openSource": {
       "newTab": "(öffnet in einem neuen Tab)",
@@ -748,9 +737,7 @@
     "quickstart": "Beginne mit dem Quickstart",
     "home": "Zurück zur Verbatra Startseite",
     "breadcrumbHome": "Startseite",
-    "breadcrumbCompare": "Vergleichen",
-    "lead": "Verbatra im Vergleich zu Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase und einem manuellen Workflow. Jede Produktzelle gibt an, was auf den Seiten des jeweiligen Anbieters stand und verlinkt die Quelle; die Spalte „manuell“ verweist auf Anmerkung M.",
-    "concession": "Tolgee, Crowdin, Lokalise und Phrase bieten In-Context-Bearbeitung an, Verbatra nicht. Für die Überprüfung bietet Verbatra das lokale Studio-Dashboard, aber keinen gehosteten Editor für Übersetzer an."
+    "breadcrumbCompare": "Vergleichen"
   },
   "legal": {
     "privacy": {
