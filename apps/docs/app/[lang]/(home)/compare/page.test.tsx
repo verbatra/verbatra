@@ -64,11 +64,17 @@ vi.mock("next/link", () => ({
 
 vi.mock("next-intl/server", () => ({
   setRequestLocale: () => undefined,
-  getTranslations: async ({ locale, namespace }: { locale: string; namespace: string }) =>
+  getTranslations: async ({
+    locale,
+    namespace,
+  }: {
+    locale: string;
+    namespace: "landing.compare" | "compare";
+  }) =>
     createTranslator({
       locale,
       messages: JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8")),
-      namespace: namespace as never,
+      namespace,
     }),
 }));
 

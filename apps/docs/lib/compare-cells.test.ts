@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createTranslator } from "next-intl";
 import { describe, expect, it } from "vitest";
-import { type CellTranslator, compareCellView } from "@/lib/compare-cells";
+import { type CellTranslator, type CompareCellView, compareCellView } from "@/lib/compare-cells";
 import { COMPARE_ROWS, COMPARE_TOOLS } from "@/lib/landing-compare";
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 
@@ -11,8 +11,8 @@ function translator(): CellTranslator {
   return createTranslator({
     locale: "en",
     messages: JSON.parse(readFileSync(path, "utf8")),
-    namespace: "landing.compare" as never,
-  }) as unknown as CellTranslator;
+    namespace: "landing.compare",
+  });
 }
 
 describe("compareCellView", () => {
@@ -35,9 +35,9 @@ describe("compareCellView", () => {
   });
 
   it("shows a value with no mark", () => {
+    expect(compareCellView(t, "license", "weblate")).not.toHaveProperty("mark");
     expect(compareCellView(t, "license", "weblate")).toMatchObject({
       kind: "value",
-      mark: null,
       word: "GPL-3.0-or-later",
       note: "`wlc` CLI too",
     });
@@ -56,7 +56,6 @@ describe("compareCellView", () => {
   it("shows a manual cell with no product as not applicable and no mark", () => {
     expect(compareCellView(t, "cli", "manual")).toMatchObject({
       kind: "notApplicable",
-      mark: null,
       word: "n/a",
       note: null,
     });
@@ -66,5 +65,17 @@ describe("compareCellView", () => {
     for (const row of COMPARE_ROWS)
       for (const tool of COMPARE_TOOLS)
         expect(compareCellView(t, row, tool).word, `${row}.${tool}`).not.toBe("");
+  });
+});
+
+describe("CompareCellView", () => {
+  it("carries a mark on a verdict only", () => {
+    const text = { word: "Yes", note: null, urls: [] };
+    const verdict: CompareCellView = { ...text, kind: "verdict", mark: "yes" };
+    // @ts-expect-error a value cell has no mark
+    const value: CompareCellView = { ...text, kind: "value", mark: "yes" };
+    // @ts-expect-error a verdict cell needs its mark
+    const bare: CompareCellView = { ...text, kind: "verdict" };
+    expect([verdict.kind, value.kind, bare.kind]).toEqual(["verdict", "value", "verdict"]);
   });
 });

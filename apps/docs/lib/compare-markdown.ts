@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { asCellTranslator, type CellTranslator, compareCellView } from "./compare-cells";
+import { type CellTranslator, compareCellView } from "./compare-cells";
 import { type Locale, localizedPath } from "./i18n";
 import {
   COMPARE_LAST_CHECKED,
@@ -47,7 +47,6 @@ function cellText(t: CellTranslator, row: CompareRowId, tool: CompareTool): stri
 export async function compareMarkdown(locale: Locale): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.compare" });
   const page = await getTranslations({ locale, namespace: "compare" });
-  const cells = asCellTranslator(t);
   const checked = formatLandingDate(COMPARE_LAST_CHECKED, locale);
   const columns = COMPARE_TOOLS.map((tool) =>
     tool === "manual" ? t("columns.manual") : COMPARE_TOOL_NAMES[tool],
@@ -56,7 +55,7 @@ export async function compareMarkdown(locale: Locale): Promise<string> {
   const divider = `| ${["", ...columns].map(() => "---").join(" | ")} |`;
   const rows = COMPARE_ROWS.map((row) => {
     const line = COMPARE_TOOLS.map(
-      (tool) => `${cellText(cells, row, tool)} ${refs([cellFootnote(row, tool)])}`,
+      (tool) => `${cellText(t, row, tool)} ${refs([cellFootnote(row, tool)])}`,
     );
     return `| ${[t(`rows.${row}.label`), ...line].map(tableCell).join(" | ")} |`;
   });

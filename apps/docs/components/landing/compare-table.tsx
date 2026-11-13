@@ -1,6 +1,6 @@
 import type { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { asCellTranslator, type CompareCellView, compareCellView } from "@/lib/compare-cells";
+import { type CompareCellView, compareCellView } from "@/lib/compare-cells";
 import type { Locale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import {
@@ -131,15 +131,15 @@ export function CompareCellBody({
   tool: CompareTool;
   locale: Locale;
 }): ReactNode {
-  const view = compareCellView(asCellTranslator(t), row, tool);
+  const view = compareCellView(t, row, tool);
   return (
     <span
       className="vk-compare-cell"
       data-cell={view.kind}
-      data-verdict-mark={view.mark ?? undefined}
+      data-verdict-mark={view.kind === "verdict" ? view.mark : undefined}
     >
       <span className="vk-compare-lead">
-        {view.mark === null ? null : <VerdictMark mark={view.mark} />}
+        {view.kind === "verdict" ? <VerdictMark mark={view.mark} /> : null}
         <span className="vk-compare-word" data-word="">
           {view.word}
         </span>

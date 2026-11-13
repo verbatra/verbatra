@@ -14,13 +14,15 @@ export type CellTranslator = {
   has(key: string): boolean;
 };
 
-export type CompareCellView = {
-  readonly kind: CompareCell["kind"];
-  readonly mark: CompareMark | null;
+type CompareCellText = {
   readonly word: string;
   readonly note: string | null;
   readonly urls: ReadonlyArray<CompareSourceLink>;
 };
+
+export type CompareCellView =
+  | (CompareCellText & { readonly kind: "verdict"; readonly mark: CompareMark })
+  | (CompareCellText & { readonly kind: "value" | "notApplicable" });
 
 function registryCount(row: CompareRowId, tool: CompareTool): Record<string, number> {
   if (tool !== "verbatra") return {};
@@ -47,15 +49,12 @@ export function compareCellView(
 ): CompareCellView {
   const cell = compareCell(row, tool);
   const noteKey = `rows.${row}.${tool}.note`;
-  return {
-    kind: cell.kind,
-    mark: cell.kind === "verdict" ? verdictMark(cell.verdict) : null,
+  const text: CompareCellText = {
     word: wordOf(t, cell, row, tool),
     note: t.has(noteKey) ? t(noteKey) : null,
     urls: cell.urls,
   };
-}
-
-export function asCellTranslator(t: unknown): CellTranslator {
-  return t as CellTranslator;
+  return cell.kind === "verdict"
+    ? { ...text, kind: "verdict", mark: verdictMark(cell.verdict) }
+    : { ...text, kind: cell.kind };
 }
