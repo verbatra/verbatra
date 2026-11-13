@@ -120,6 +120,10 @@ for (const locale of LOCALES) {
       await page.setViewportSize({ width: 320, height: 800 });
       for (const tool of PAIRS) {
         await page.goto(`${url}?${COMPARE_TOOL_PARAM}=${tool}`);
+        await expect(page.locator(`main [data-pair="${tool}"]`)).toHaveAttribute(
+          "data-selected",
+          "",
+        );
         const alone = await page.evaluate(arrowsAloneOnTheirLine, `main [data-pair="${tool}"] dd`);
         expect(alone.checked, tool).toBeGreaterThan(0);
         expect(alone.found, tool).toEqual([]);
@@ -235,7 +239,7 @@ test.describe("comparison layout", () => {
       await page.setViewportSize({ width: 391, height: 844 });
       await page.goto(`/compare?${COMPARE_TOOL_PARAM}=${tool}`);
       await expect(page.locator("main .vk-compare-picker select")).toHaveValue(tool);
-      await expect(page.locator(`main [data-pair="${tool}"]`)).toBeVisible();
+      await expect(page.locator(`main [data-pair="${tool}"]`)).toHaveAttribute("data-selected", "");
       await expectEveryCompareCellVisible(page, tool);
     });
   }
