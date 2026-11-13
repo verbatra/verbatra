@@ -3146,7 +3146,30 @@ html:has(.vk-home) {
   max-width: 100%;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.75rem;
+}
+
+.vk-banner-compare-row {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.vk-banner-compare {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-weight: 500;
+  color: var(--text-body);
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 4px;
+}
+
+.vk-banner-compare:hover {
+  color: var(--text-strong);
+  text-decoration-color: var(--accent);
 }
 
 .vk-banner-install {

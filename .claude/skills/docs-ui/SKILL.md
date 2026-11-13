@@ -354,8 +354,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, statement, highlights,
   playground, features, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
-  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button, a ghost "Compare with other tools" link to the localized `/compare` (`COMPARE_PATH`, no count in the label) and the install chip, a
-  `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`; on the right an `aria-hidden`
+  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button, the install chip (a `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`) and last a "Compare with other tools" text link (an `IntentPrefetchLink`, not a `Button`) to the localized `/compare` (`COMPARE_PATH`, no count in the label) in a non-interactive `.vk-banner-compare-row` that supplies the row break, so the anchor (`.vk-banner-compare`) is as wide as its label, flush-left, at least 44px tall, with a low-alpha resting underline and an accent underline on hover; on the right an `aria-hidden`
   `.vk-banner-files` stack of three locale-file cards from `lib/landing-hero-files.ts`: `fr` and
   `es` behind, tilted, each its `heroFileName` and the `heroFilePreview` line, and `de` in front
   with a `landing.banner.keysAdded` badge and `heroFileLines` where the added keys are marked
@@ -852,7 +851,9 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   `motion-root.test.tsx` fails on any animated `.vk-banner` rule. The locale-file cards are static, server-rendered and `aria-hidden`;
   the install chip's `CommandRow` is the hero's only island, with no timer and no GSAP (`hero.test.tsx` fails on a static GSAP import
   and on any `HeroTracks` or `landing-tracks` reference there). `e2e/hero.spec.ts` pins the cards,
-  the install chip and 320px and 375px without a sideways scroll.
+  the install chip, the action row order and alignment in all four locales (primary and chip centred, the compare
+  link content-width and flush-left with a 44px hit area, the empty row beside it inert, the Tab order primary,
+  copy button, compare link) and 320px and 375px without a sideways scroll.
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
   it runs only in the state described under "Marquee" above, pauses through its button, hover
   and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
@@ -1141,8 +1142,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   text): `.vk-banner-grid` is one column (copy, then cards), and from
   64rem an asymmetric 6fr / 5fr split, vertically centered, the copy (`.vk-banner-copy`: the `h1` `.vk-banner-title` (at most eight words, one sentence),
   the `.vk-banner-lead` subline (at most 25 words in English, 30 in de, es and fr, tested in all four), `.vk-banner-ctas` with Get started
-  (`/docs/quickstart`), a ghost-variant "Compare with other tools" link (`/compare`, never a second primary button) and the `.vk-banner-install` chip, a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
-  of `HERO_INSTALL_COMMAND`) in the wider column beside the demo (`.vk-banner-demo`: the
+  (`/docs/quickstart`), the `.vk-banner-install` chip and last a "Compare with other tools" text link (`/compare`, `.vk-banner-compare` inside `.vk-banner-compare-row`, content-width, label on the column's left edge, never a second primary button; `align-items: center` keeps Get started at 50px beside the taller chip), the chip a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
+  of `HERO_INSTALL_COMMAND`, in the wider column beside the demo (`.vk-banner-demo`: the
   `.vk-banner-files` stack, three `.vk-banner-file` cards of `--radius-lg` on `--surface-tile`; the
   front `de` card takes `--border-accent`, `--surface-raised` and a `--halo-strong` shadow, the `fr`
   and `es` cards behind it are tilted, opaque and `--text-faint` with no opacity (a faded card shows
@@ -1150,7 +1151,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   and show from 64rem only). There is no trust line, no Node.js line, no facts block and no
   prompt in the hero. `hero.test.tsx` pins the
   order, the install chip, the absent trust line and facts, the halo and the cards, and `e2e/hero.spec.ts` the
-  columns and the fold. The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
+  columns, the fold, the action row order, alignment and hit area, and the focus order. The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
   by `app/[lang]/(home)/home-og/route.tsx`) is a monochrome and violet card on `OG_PALETTE.void`:
   the wordmark and host, the localized `landing.banner.headline`, then a few real terminal lines
   (`HERO_OG_LINES` in `lib/hero-terminal.ts`, every line taken from the recorded transcript, the prompt

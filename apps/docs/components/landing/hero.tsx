@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { CommandRow } from "@/components/landing/islands";
 import Button from "@/components/ui/button";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
 import { COMPARE_PATH } from "@/lib/landing-compare";
@@ -81,15 +82,20 @@ export async function Hero(): Promise<ReactNode> {
             <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
               {t("ctaPrimary")}
             </Button>
-            <Button href={localizedPath(locale, COMPARE_PATH)} variant="ghost" size="lg">
-              {t("ctaCompare")}
-            </Button>
             <div className="vk-banner-install">
               <CommandRow
                 command={HERO_INSTALL_COMMAND}
                 label={tInstall("copyAria")}
                 wrap="narrow"
               />
+            </div>
+            <div className="vk-banner-compare-row">
+              <IntentPrefetchLink
+                href={localizedPath(locale, COMPARE_PATH)}
+                className="vk-banner-compare"
+              >
+                {t("ctaCompare")}
+              </IntentPrefetchLink>
             </div>
           </div>
         </div>
