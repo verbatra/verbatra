@@ -9,7 +9,8 @@ import { describe, expect, it, vi } from "vitest";
 import { HERO_TERMINAL_CHANGED_KEYS } from "@/lib/hero-terminal";
 import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
 import { HERO_FILE_CHANGED_COUNT } from "@/lib/landing-hero-files";
-import { PLAYGROUND_FILES_PATTERN, PLAYGROUND_TRANSLATIONS } from "@/lib/landing-playground";
+import { PLAYGROUND_TRANSLATIONS, playgroundFileName } from "@/lib/landing-playground";
+import { LOCK_DEMO_LOCALE, LOCK_DEMO_PLAYGROUND_IDS } from "@/lib/lock-demo";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
 import { stripAccentTags } from "@/test-support/accent-tags";
@@ -237,12 +238,13 @@ describe("Hero locale files", () => {
     for (const card of cards) {
       const locale = card.getAttribute("data-locale") ?? "";
       expect(card.querySelector(".vk-banner-file-name")?.textContent).toContain(
-        PLAYGROUND_FILES_PATTERN.replace("{locale}", locale),
+        playgroundFileName(locale),
       );
       for (const line of card.querySelectorAll(".vk-banner-file-line")) {
-        const [, id = "", value = ""] =
+        const [, key = "", value = ""] =
           /^(?:~ )?"([^"]+)": (".*"),?$/.exec(line.textContent ?? "") ?? [];
-        expect(JSON.parse(value), `${locale} ${id}`).toBe(PLAYGROUND_TRANSLATIONS[locale]?.[id]);
+        const id = LOCK_DEMO_PLAYGROUND_IDS[key] ?? key;
+        expect(JSON.parse(value), `${locale} ${key}`).toBe(PLAYGROUND_TRANSLATIONS[locale]?.[id]);
       }
     }
     expect(cards[0]?.querySelectorAll(".vk-banner-file-line")).toHaveLength(1);
@@ -268,6 +270,19 @@ describe("Hero locale files", () => {
       ),
     );
     expect(lines.at(-1)?.textContent?.endsWith(",")).toBe(false);
+  });
+
+  it("shows the changed lines under the fixture's own keys, in the file the lock demo shows", async () => {
+    const front = (await files()).querySelector("[data-front='true']");
+    const changed = Array.from(
+      front?.querySelectorAll(".vk-banner-file-line[data-changed='true']") ?? [],
+    );
+    expect(changed.map((line) => /^~ "([^"]+)"/.exec(line.textContent ?? "")?.[1])).toEqual([
+      ...HERO_TERMINAL_CHANGED_KEYS,
+    ]);
+    expect(front?.querySelector(".vk-banner-file-name span")?.textContent).toBe(
+      playgroundFileName(LOCK_DEMO_LOCALE),
+    );
   });
 
   it("carries each card's language on its lines", async () => {
