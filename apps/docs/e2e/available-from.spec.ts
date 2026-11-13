@@ -5,12 +5,13 @@ import { readIncludedSource } from "@/lib/docs-pages";
 import type { Locale } from "@/lib/i18n";
 import { isStillNew } from "@/lib/release-line";
 import {
-  brokenWordsIn,
+  brokenWords,
   expectNoAxeViolations,
   LOCALES,
   openInTheme,
   pageUrl,
   THEMES,
+  wordsFailing,
 } from "./support";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
@@ -234,8 +235,8 @@ test.describe("a heading whose badge renders nothing", () => {
       expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(320);
     }
     const split = await page.evaluate(
-      brokenWordsIn,
-      "#nd-page :is(h2, h3, h4):has(.vk-pill-new) > a[data-card]",
+      wordsFailing,
+      brokenWords("#nd-page :is(h2, h3, h4):has(.vk-pill-new) > a[data-card]"),
     );
     expect(split.found).toEqual([]);
   });

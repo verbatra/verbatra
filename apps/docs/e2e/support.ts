@@ -155,46 +155,67 @@ export async function waitForFaqKeys(page: Page): Promise<void> {
   await expect(page.locator("#faq-list")).toHaveAttribute(FAQ_KEYS_ATTACHED, "");
 }
 
-export function brokenWordsIn(selector: string): { found: string[]; checked: number } {
-  const lineCount = (node: Text, start: number, end: number): number => {
-    const range = document.createRange();
-    range.setStart(node, start);
-    range.setEnd(node, end);
-    return new Set(Array.from(range.getClientRects(), (rect) => Math.round(rect.top))).size;
-  };
-  const wordsBroken = (node: Text): string[] =>
-    Array.from(node.data.matchAll(/\S+/g))
-      .filter((match) => lineCount(node, match.index, match.index + match[0].length) > 1)
-      .map((match) => match[0]);
-  const textNodes = (root: Element): Text[] => {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    const nodes: Text[] = [];
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node as Text);
-    return nodes;
-  };
-  const anchors = Array.from(document.querySelectorAll(selector));
-  return { found: anchors.flatMap(textNodes).flatMap(wordsBroken), checked: anchors.length };
-}
+type WordScan = {
+  selector: string;
+  split: "space" | "piece";
+  check: "broken" | "overflow";
+};
 
-export function brokenWordPiecesIn(selector: string): { found: string[]; checked: number } {
-  const lineCount = (node: Text, start: number, end: number): number => {
-    const range = document.createRange();
-    range.setStart(node, start);
-    range.setEnd(node, end);
-    return new Set(Array.from(range.getClientRects(), (rect) => Math.round(rect.top))).size;
-  };
-  const wordsBroken = (node: Text): string[] =>
-    Array.from(node.data.matchAll(/[^\s\-/]+/g))
-      .filter((match) => lineCount(node, match.index, match.index + match[0].length) > 1)
-      .map((match) => match[0]);
+type WordFindings = { found: string[]; checked: number };
+
+export const brokenWords = (selector: string): WordScan => ({
+  selector,
+  split: "space",
+  check: "broken",
+});
+
+export const brokenWordPieces = (selector: string): WordScan => ({
+  selector,
+  split: "piece",
+  check: "broken",
+});
+
+export const overflowingWords = (selector: string): WordScan => ({
+  selector,
+  split: "piece",
+  check: "overflow",
+});
+
+export function wordsFailing({ selector, split, check }: WordScan): WordFindings {
+  const pattern = split === "space" ? /\S+/g : /[^\s\-/]+/g;
   const textNodes = (root: Element): Text[] => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     const nodes: Text[] = [];
     for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node as Text);
     return nodes;
   };
+  const rangeOf = (node: Text, match: RegExpMatchArray): Range => {
+    const range = document.createRange();
+    range.setStart(node, match.index ?? 0);
+    range.setEnd(node, (match.index ?? 0) + match[0].length);
+    return range;
+  };
+  const isBroken = (range: Range): boolean =>
+    new Set(Array.from(range.getClientRects(), (rect) => Math.round(rect.top))).size > 1;
+  const wordsFailingIn = (anchor: Element): string[] => {
+    const style = getComputedStyle(anchor);
+    const limit = anchor.getBoundingClientRect().right - Number.parseFloat(style.paddingRight);
+    const spoken = textNodes(anchor).filter(
+      (node) => check === "broken" || !node.parentElement?.closest(".sr-only"),
+    );
+    return spoken.flatMap((node) =>
+      Array.from(node.data.matchAll(pattern))
+        .filter((match) => {
+          const range = rangeOf(node, match);
+          return check === "broken"
+            ? isBroken(range)
+            : range.getBoundingClientRect().right > limit + 0.5;
+        })
+        .map((match) => match[0]),
+    );
+  };
   const anchors = Array.from(document.querySelectorAll(selector));
-  return { found: anchors.flatMap(textNodes).flatMap(wordsBroken), checked: anchors.length };
+  return { found: anchors.flatMap(wordsFailingIn), checked: anchors.length };
 }
 
 export async function expectEveryCompareCellVisible(page: Page, tool: string): Promise<void> {
@@ -215,22 +236,69 @@ export async function expectEveryCompareCellVisible(page: Page, tool: string): P
   expect(clipped).toEqual([]);
 }
 
-export function wordsOverflowingTheirCell(selector: string): { found: string[]; checked: number } {
-  const cells = Array.from(document.querySelectorAll(selector));
-  const found: string[] = [];
-  for (const cell of cells) {
-    const style = getComputedStyle(cell);
-    const limit = cell.getBoundingClientRect().right - Number.parseFloat(style.paddingRight);
+export function arrowsAloneOnTheirLine(selector: string): { found: string[]; checked: number } {
+  const lastTextLine = (cell: Element): DOMRect | undefined => {
     const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+    let line: DOMRect | undefined;
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      if (node.parentElement?.closest(".sr-only")) continue;
-      for (const match of (node.textContent ?? "").matchAll(/[^\s\-/]+/g)) {
-        const range = document.createRange();
-        range.setStart(node, match.index);
-        range.setEnd(node, match.index + match[0].length);
-        if (range.getBoundingClientRect().right > limit + 0.5) found.push(match[0]);
-      }
+      if (node.parentElement?.closest(".sr-only") || !node.textContent?.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      line = Array.from(range.getClientRects()).at(-1) ?? line;
     }
+    return line;
+  };
+  const isAlone = (cell: Element): boolean => {
+    const link = cell.querySelector("a[data-source]")?.getBoundingClientRect();
+    const line = lastTextLine(cell);
+    return link !== undefined && line !== undefined && link.top + link.height / 2 > line.bottom;
+  };
+  const cells = Array.from(document.querySelectorAll(selector)).filter(
+    (cell) => cell.checkVisibility() && cell.querySelectorAll("a[data-source]").length === 1,
+  );
+  return {
+    found: cells.filter(isAlone).map((cell) => cell.textContent?.trim() ?? ""),
+    checked: cells.length,
+  };
+}
+
+export async function expectBackwardWalkClearsStickyHead(page: Page, scope: string): Promise<void> {
+  const selector = `${scope} a[data-source]`;
+  const links = page.locator(selector);
+  const count = await links.count();
+  expect(count).toBeGreaterThan(0);
+  await links.nth(count - 1).focus();
+  const hidden: string[] = [];
+  let visited = 0;
+  for (let step = 0; step < count; step += 1) {
+    const state = await page.evaluate(async (query) => {
+      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+      let still = 0;
+      let last = window.scrollY;
+      while (still < 3) {
+        await frame();
+        still = window.scrollY === last ? still + 1 : 0;
+        last = window.scrollY;
+      }
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement) || !active.matches(query)) return null;
+      const box = active.getBoundingClientRect();
+      const heads = Array.from(
+        document.querySelectorAll("main thead th"),
+        (th) => th.getBoundingClientRect().bottom,
+      );
+      const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+      const covered = Math.max(header, ...heads);
+      return {
+        clear: box.top >= covered - 0.5 && box.bottom <= window.innerHeight + 0.5,
+        label: active.querySelector(".sr-only")?.textContent ?? "",
+      };
+    }, selector);
+    if (state === null) break;
+    visited += 1;
+    if (!state.clear) hidden.push(state.label);
+    await page.keyboard.press("Shift+Tab");
   }
-  return { found, checked: cells.length };
+  expect(visited).toBe(count);
+  expect(hidden).toEqual([]);
 }

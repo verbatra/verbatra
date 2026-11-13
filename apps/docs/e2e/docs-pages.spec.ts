@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NewPill } from "@/components/new-pill";
 import {
-  brokenWordsIn,
+  brokenWords,
   DOCS_PAGES,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
@@ -12,6 +12,7 @@ import {
   openInTheme,
   pageUrl,
   THEMES,
+  wordsFailing,
 } from "./support";
 
 const REFLOW_WIDTHS = [320, 375] as const;
@@ -184,7 +185,10 @@ test.describe("docs shell on a phone", () => {
 
   test("never breaks a word of a heading", async ({ page }) => {
     await openDocsPage(page, "/de/docs/cli/translate");
-    const split = await page.evaluate(brokenWordsIn, "#nd-page :is(h2, h3, h4) > a[data-card]");
+    const split = await page.evaluate(
+      wordsFailing,
+      brokenWords("#nd-page :is(h2, h3, h4) > a[data-card]"),
+    );
     expect(split.checked).toBeGreaterThan(0);
     expect(split.found).toEqual([]);
   });
