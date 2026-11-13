@@ -4086,7 +4086,7 @@ html.light .vk-feature-shot-dark {
   margin: 0;
   padding: 0.75rem 0;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   line-height: 1.65;
   color: var(--text-muted);
 }
@@ -4195,47 +4195,99 @@ html.light .vk-feature-shot-dark {
   }
 }
 
-.vk-lock-stage[data-mode="stage"] {
-  grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
-  column-gap: var(--grid-gap);
-  align-items: start;
-}
+@media (min-width: 64rem) and (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .vk-lock-stage {
+    grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+    column-gap: var(--grid-gap);
+    align-items: start;
+  }
 
-.vk-lock-stage[data-mode="stage"] .vk-lock-side {
-  grid-column: 1 / span 4;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
+  .vk-lock-stage .vk-lock-side {
+    grid-column: 1 / span 4;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
 
-.vk-lock-stage[data-mode="stage"] .vk-lock-frames {
-  grid-column: 5 / span 8;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0;
-}
+  .vk-lock-stage .vk-lock-frames,
+  .vk-lock-stage:not([data-mode]) .vk-lock-frames {
+    grid-column: 5 / span 8;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    max-width: none;
+  }
 
-.vk-lock-stage[data-mode="stage"] .vk-lock-frame {
-  grid-area: 1 / 1;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity var(--duration-base) var(--ease-standard),
-    visibility 0s linear var(--duration-base);
-}
+  .vk-lock-stage .vk-lock-frame {
+    grid-area: 1 / 1;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity var(--duration-base) var(--ease-standard),
+      visibility 0s linear var(--duration-base);
+  }
 
-.vk-lock-stage[data-mode="stage"] .vk-lock-frame[data-active] {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity var(--duration-base) var(--ease-standard);
-}
+  .vk-lock-stage .vk-lock-frame[data-active],
+  .vk-lock-stage:not([data-mode]) .vk-lock-frame:first-child {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity var(--duration-base) var(--ease-standard);
+  }
 
-.vk-lock-stage[data-mode="stage"] .vk-lock-caption {
-  display: none;
-}
+  .vk-lock-stage .vk-lock-caption {
+    display: none;
+  }
 
-.vk-lock-stage[data-mode="stage"] .vk-lock-card {
-  border-color: var(--border-accent);
-  box-shadow: 0 30px 80px -24px var(--halo-strong);
+  .vk-lock-stage .vk-lock-card {
+    border-color: var(--border-accent);
+    box-shadow: 0 30px 80px -24px var(--halo-strong);
+  }
+
+  .vk-lock-stage .vk-lock-controls {
+    display: flex;
+  }
+
+  .vk-lock-stage:not([data-mode]) {
+    animation: vk-lock-unstage-stage 1ms linear 10s forwards;
+  }
+
+  .vk-lock-stage:not([data-mode]) .vk-lock-side {
+    animation: vk-lock-unstage-side 1ms linear 10s forwards;
+  }
+
+  .vk-lock-stage:not([data-mode]) .vk-lock-frames {
+    animation: vk-lock-unstage-frames 1ms linear 10s forwards;
+  }
+
+  .vk-lock-stage:not([data-mode]) .vk-lock-frame {
+    animation: vk-lock-unstage-frame 1ms linear 10s forwards;
+  }
+
+  @keyframes vk-lock-unstage-stage {
+    to {
+      display: block;
+    }
+  }
+
+  @keyframes vk-lock-unstage-side {
+    to {
+      display: none;
+    }
+  }
+
+  @keyframes vk-lock-unstage-frames {
+    to {
+      gap: 2.5rem;
+      max-width: 46rem;
+    }
+  }
+
+  @keyframes vk-lock-unstage-frame {
+    to {
+      grid-area: auto;
+      opacity: 1;
+      visibility: visible;
+    }
+  }
 }
 
 .vk-lock-steps {
@@ -4312,10 +4364,6 @@ html.light .vk-feature-shot-dark {
 
 .vk-lock-controls {
   display: none;
-}
-
-.vk-lock-stage[data-mode="stage"] .vk-lock-controls {
-  display: flex;
 }
 
 .vk-lock-pause {
