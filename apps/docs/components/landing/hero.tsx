@@ -4,6 +4,7 @@ import { CommandRow } from "@/components/landing/islands";
 import Button from "@/components/ui/button";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
+import { COMPARE_PATH } from "@/lib/landing-compare";
 import {
   HERO_BACK_LOCALES,
   HERO_FILE_ADDED_COUNT,
@@ -79,6 +80,9 @@ export async function Hero(): Promise<ReactNode> {
           <div className="vk-banner-ctas">
             <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
               {t("ctaPrimary")}
+            </Button>
+            <Button href={localizedPath(locale, COMPARE_PATH)} variant="ghost" size="lg">
+              {t("ctaCompare")}
             </Button>
             <div className="vk-banner-install">
               <CommandRow

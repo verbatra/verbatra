@@ -4,6 +4,8 @@ export const NPM_INSTALL_COMMAND = `npm install --save-dev ${CLI_PACKAGE}`;
 
 export const HERO_INSTALL_COMMAND = `npm i -D ${CLI_PACKAGE}`;
 
+export const INIT_COMMAND = `npx ${CLI_PACKAGE} init`;
+
 export const DRY_RUN_COMMAND = `npx ${CLI_PACKAGE} translate --dry-run`;
 
 export const AGENT_INIT_COMMAND = `npx ${CLI_PACKAGE} init --agent`;

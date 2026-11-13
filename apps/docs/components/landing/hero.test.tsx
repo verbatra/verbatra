@@ -87,6 +87,21 @@ describe("Hero copy", () => {
     expect(headlinePlain.split(/[.!?]\s/)).toHaveLength(1);
   });
 
+  it.each([
+    ["en", 25],
+    ["de", 30],
+    ["es", 30],
+    ["fr", 30],
+  ])("keeps the %s lead to %i words", (locale, cap) => {
+    expect(words(catalogFor(locale).landing.banner.lead)).toBeLessThanOrEqual(cap);
+  });
+
+  it("names the lock file, the changed keys and CI drift in the English lead, and no MCP server", () => {
+    expect(banner.lead).toBe(
+      "Verbatra hashes every key in a lock file, sends only changed keys to your provider, and fails CI on drift.",
+    );
+  });
+
   it("sets the gradient on the second line of the headline only, the first staying solid", async () => {
     const h1 = (await render()).querySelector("h1");
     const lit = h1?.querySelectorAll(".vk-banner-title-lit");
@@ -115,8 +130,14 @@ describe("Hero copy", () => {
     const links = Array.from(ctas?.querySelectorAll("a") ?? []);
     expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       [banner.ctaPrimary, "/docs/quickstart"],
+      ["Compare with other tools", "/compare"],
     ]);
+    expect(banner.ctaCompare).toBe("Compare with other tools");
     expect(ctas?.firstElementChild).toBe(links[0]);
+    expect(links[0]?.className).toContain("vk-btn-primary");
+    expect(links[1]?.className).not.toContain("vk-btn-primary");
+    expect(links[1]?.className).toContain("vk-btn-ghost");
+    expect(links[1]?.textContent).not.toMatch(/\d/);
     expect(ctas?.lastElementChild?.className).toBe("vk-banner-install");
     expect(doc.querySelector(".vk-banner-trust, dl, .vk-facts")).toBeNull();
     expect(doc.querySelector(".vk-banner a[target='_blank']")).toBeNull();
@@ -129,6 +150,9 @@ describe("Hero copy", () => {
     );
     const de = catalogFor("de").landing.banner;
     expect(german.querySelector(".vk-banner-ctas a")?.textContent).toBe(de.ctaPrimary);
+    expect(german.querySelectorAll(".vk-banner-ctas a")[1]?.getAttribute("href")).toBe(
+      "/de/compare",
+    );
     expect(german.querySelector(".vk-banner-lead")?.textContent).toBe(de.lead);
   });
 });

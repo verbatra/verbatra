@@ -47,6 +47,7 @@ export function ThemeToggle({ className }: { className?: string | undefined }): 
   const { resolvedTheme, setTheme } = useSiteTheme();
   const light = resolvedTheme === "light";
   const label = t("light");
+  const action = t(light ? "switchToDark" : "switchToLight");
   return (
     <button
       type="button"
@@ -57,7 +58,7 @@ export function ThemeToggle({ className }: { className?: string | undefined }): 
       )}
       aria-label={label}
       aria-pressed={light}
-      title={label}
+      title={action}
       data-theme-toggle
       onClick={() => setTheme(nextTheme(resolvedTheme))}
     >

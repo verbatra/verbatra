@@ -2,10 +2,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { stripAccentTags } from "@/test-support/accent-tags";
+import { HERO_SENT_STRINGS, HERO_TOTAL_STRINGS } from "./hero-terminal";
 import { i18n } from "./i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ITEM_IDS } from "./landing-faq";
 import { landingProviders } from "./landing-providers";
+import { SITE_URL } from "./site";
 
 const MESSAGES_DIR = join(import.meta.dirname, "../messages");
 
@@ -84,5 +86,52 @@ describe.each(i18n.languages)("the %s landing markdown", (locale) => {
     for (const target of targets.filter((url) => url.includes("/docs"))) {
       expect(target).toMatch(/\.md(#.*)?$/);
     }
+  });
+});
+
+describe("the English landing markdown after the pain titles and the comparison link", () => {
+  it("lists the comparison link beside Get started in the hero", async () => {
+    const body = await landingMarkdown("en");
+    expect(body).toContain(
+      `- [Get started](${SITE_URL}/docs/quickstart.md)\n- [Compare with other tools](${SITE_URL}/compare)`,
+    );
+  });
+
+  it("titles the three pain tiles, with the run numbers in the cost body", async () => {
+    const body = await landingMarkdown("en");
+    expect(body).toContain("### Translate: Retranslating everything costs more");
+    expect(body).toContain(
+      `Only ${HERO_SENT_STRINGS} of ${HERO_TOTAL_STRINGS} translations are new or changed, so only ${HERO_SENT_STRINGS} go to your provider.`,
+    );
+    expect(body).toContain("### Check: Missing keys reach production");
+    expect(body).toContain("### Integrity: One broken placeholder breaks a screen");
+    expect(body).not.toContain("Pay for");
+  });
+
+  it("ends the faq with the comparison answer linked to the comparison page", async () => {
+    const body = await landingMarkdown("en");
+    expect(body).toContain("### How is Verbatra different from other i18n tools?");
+    expect(body).toContain(
+      `The [comparison page](${SITE_URL}/compare) checks it against other tools`,
+    );
+    expect(body).not.toContain("re-translate strings that did not change");
+  });
+});
+
+describe("the English landing markdown closing panel", () => {
+  it("lists the five proof links after the two commands, the docs page by its markdown form", async () => {
+    const body = await landingMarkdown("en");
+    expect(body).toContain(
+      [
+        "- [npm provenance](https://www.npmjs.com/package/@verbatra/cli)",
+        "- [MIT license](https://github.com/verbatra/verbatra/blob/main/LICENSE)",
+        `- [The CLI sends no telemetry](${SITE_URL}/docs/data-handling.md)`,
+        "- [90% coverage gate](https://codecov.io/gh/verbatra/verbatra)",
+        "- [CI workflow](https://github.com/verbatra/verbatra/actions/workflows/ci.yml)",
+      ].join("\n"),
+    );
+    expect(body.indexOf("npx @verbatra/cli translate --dry-run")).toBeLessThan(
+      body.indexOf("- [npm provenance]"),
+    );
   });
 });

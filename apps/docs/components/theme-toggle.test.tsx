@@ -66,6 +66,17 @@ describe("ThemeToggle", () => {
     expect(button.getAttribute("aria-pressed")).toBe("false");
   });
 
+  it("titles the tooltip with the switch the click makes, while the name stays the theme label", () => {
+    const dark = render("dark");
+    expect(dark.getAttribute("title")).toBe("Switch to light theme");
+    expect(dark.getAttribute("aria-label")).toBe("Light theme");
+    act(() => mounted?.root.unmount());
+    mounted?.container.remove();
+    const light = render("light");
+    expect(light.getAttribute("title")).toBe("Switch to dark theme");
+    expect(light.getAttribute("aria-label")).toBe("Light theme");
+  });
+
   it("reports the light theme as pressed and switches back to dark", () => {
     const button = render("light");
     expect(button.getAttribute("aria-pressed")).toBe("true");
@@ -83,6 +94,7 @@ describe("ThemeToggle", () => {
     theme.resolvedTheme = "light";
     const html = renderToString(<ThemeToggle />);
     expect(html).toContain('aria-pressed="false"');
+    expect(html).toContain('title="Switch to light theme"');
   });
 
   it("draws both icons and leaves the choice to the stylesheet, so nothing flashes", () => {

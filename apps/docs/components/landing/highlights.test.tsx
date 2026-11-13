@@ -71,11 +71,21 @@ describe("Highlights", () => {
     const locales = HERO_TERMINAL_LOCALES.length;
     const sent = HERO_TERMINAL_NEW_KEYS.length * locales;
     const total = (HERO_TERMINAL_NEW_KEYS.length + HERO_TERMINAL_SYNCED_KEYS.length) * locales;
-    expect(tiles()[0]?.querySelector("h3")?.textContent).toBe(
-      `Pay for ${sent} strings, not ${total}`,
+    expect(tiles()[0]?.querySelector(".vk-tile-body")?.textContent).toBe(
+      `Only ${sent} of ${total} translations are new or changed, so only ${sent} go to your provider.`,
     );
+    expect(tiles()[0]?.querySelector("h3")?.textContent).not.toMatch(/\d/);
     const run = tiles()[0]?.querySelector("pre")?.textContent ?? "";
     for (const line of HERO_TRANSLATE_OUTPUT.slice(1)) expect(run).toContain(line);
+  });
+
+  it("titles the cost, integrity and check tiles with the pain they remove and keeps the agents title", () => {
+    expect(tiles().map((tile) => tile.querySelector("h3")?.textContent)).toEqual([
+      "Retranslating everything costs more",
+      "Missing keys reach production",
+      "One broken placeholder breaks a screen",
+      "Your coding agent fixes translations",
+    ]);
   });
 
   it("names the run block by the tile title and wraps it instead of making it a tab stop", () => {

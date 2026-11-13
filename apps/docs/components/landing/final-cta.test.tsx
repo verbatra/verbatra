@@ -6,7 +6,8 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { DRY_RUN_COMMAND } from "@/lib/install-commands";
+import { DRY_RUN_COMMAND, INIT_COMMAND } from "@/lib/install-commands";
+import { COVERAGE_THRESHOLD } from "@/lib/site";
 import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
@@ -57,11 +58,75 @@ describe("FinalCta", () => {
     expect(lead.match(/[.!?](\s|$)/g)).toHaveLength(1);
   });
 
-  it("offers the dry-run command as its one action, with no button or link", () => {
-    expect(root.querySelector("code")?.textContent).toBe(DRY_RUN_COMMAND);
-    expect(root.querySelectorAll("code")).toHaveLength(1);
-    expect(root.querySelector("a")).toBeNull();
+  it("says the path is for a project that already has locale files and needs no API key", () => {
+    expect(copy.lead).toMatch(/already has locale files/);
+    expect(copy.lead).toMatch(/API key/);
+    expect(copy.lead.split(/\s+/).length).toBeLessThanOrEqual(30);
+  });
+
+  it("offers init, then the dry run, as its only commands, with no button of its own", () => {
+    const commands = [...root.querySelectorAll("code")].map((code) => code.textContent);
+    expect(commands).toEqual([INIT_COMMAND, DRY_RUN_COMMAND]);
+    expect(root.querySelectorAll(".vk-final-install")).toHaveLength(1);
+    expect(root.querySelectorAll("button:not(.vk-final-install button)")).toHaveLength(0);
     expect(root.querySelector(".vk-closer-actions")).toBeNull();
+  });
+
+  it("ends in one list of exactly five plain proof links under the commands, and no other link", () => {
+    const list = root.querySelector(".vk-closer > .vk-final-install + ul.vk-closer-proof");
+    expect(list?.getAttribute("aria-label")).toBe(copy.proof.label);
+    const links = [...(list?.querySelectorAll("li > a") ?? [])];
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "https://www.npmjs.com/package/@verbatra/cli",
+      "https://github.com/verbatra/verbatra/blob/main/LICENSE",
+      "/de/docs/data-handling",
+      "https://codecov.io/gh/verbatra/verbatra",
+      "https://github.com/verbatra/verbatra/actions/workflows/ci.yml",
+    ]);
+    expect(root.querySelectorAll("a")).toHaveLength(5);
+    expect(root.querySelectorAll("li")).toHaveLength(5);
+    expect(list?.querySelector("button, img, svg")).toBeNull();
+  });
+
+  it("words the five facts from messages, with the enforced coverage threshold as the number", () => {
+    const labels = [...root.querySelectorAll(".vk-closer-proof a")].map((link) =>
+      link.firstChild?.textContent?.trim(),
+    );
+    expect(labels).toEqual([
+      "npm provenance",
+      "MIT license",
+      "The CLI sends no telemetry",
+      `${COVERAGE_THRESHOLD}% coverage gate`,
+      "CI workflow",
+    ]);
+    expect(copy.proof.coverage).toBe("{threshold}% coverage gate");
+  });
+
+  it("opens other hosts in a new tab the way the footer does and keeps the docs page in the tab", () => {
+    const links = [...root.querySelectorAll<HTMLAnchorElement>(".vk-closer-proof a")];
+    expect(links).toHaveLength(5);
+    for (const link of links) {
+      const external = link.getAttribute("href")?.startsWith("https://") ?? false;
+      expect(link.getAttribute("target")).toBe(external ? "_blank" : null);
+      expect(link.getAttribute("rel")).toBe(external ? "noreferrer noopener" : null);
+      expect(link.querySelector(".sr-only")?.textContent ?? null).toBe(
+        external ? ` ${en.landing.openSource.newTab}` : null,
+      );
+    }
+  });
+
+  it("styles the row as a quiet list of footer links, with no raw color", () => {
+    const rule = css.slice(
+      css.indexOf(".vk-closer-proof {"),
+      css.indexOf("\n}", css.indexOf(".vk-closer-proof {")),
+    );
+    expect(rule).toContain("display: flex;");
+    expect(rule).toContain("flex-wrap: wrap;");
+    expect(rule).toContain("justify-content: center;");
+    for (const link of root.querySelectorAll(".vk-closer-proof a")) {
+      expect(link.className).toBe("vk-tap vk-footer-link");
+    }
+    expect(css).not.toMatch(/\.vk-closer-proof[^{]*\{[^}]*(#[0-9a-f]{3,8}\b|hsl\()/i);
   });
 
   it("sizes the heading from 36px to 72px", () => {

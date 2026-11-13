@@ -85,4 +85,10 @@ describe("the faq links", () => {
       expect(faqHref("fr", link).startsWith("/fr/docs/")).toBe(true);
     }
   });
+
+  it("sends the comparison answer to the localized comparison page", () => {
+    expect(FAQ_ITEM_IDS.at(-1)).toBe("compare");
+    expect(faqHref("en", FAQ_ANSWER_LINKS.compare)).toBe("/compare");
+    expect(faqHref("de", FAQ_ANSWER_LINKS.compare)).toBe("/de/compare");
+  });
 });

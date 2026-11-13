@@ -41,8 +41,7 @@ describe("FooterContributors", () => {
         "newTab",
         "contributorsHeading",
         "contributorAria",
-        "contributorSlot",
-        "contributorSlotHint",
+        "contributingGuide",
       ]);
     }
   });
@@ -64,20 +63,22 @@ describe("FooterContributors", () => {
     }
   });
 
-  it("ends the contributors with an open slot that links the issue list, drawn without an image", () => {
-    const slot = root.querySelector(
-      ".vk-contribute-avatars > li:last-child[data-contributor-slot]",
+  it("ends the contributors with a text link to the contributing guide, not an open avatar slot", () => {
+    const item = root.querySelector(
+      ".vk-contribute-avatars > li:last-child[data-contributing-guide]",
     );
-    const link = slot?.querySelector("a");
-    expect(link?.getAttribute("href")).toBe("https://github.com/verbatra/verbatra/issues");
+    const link = item?.querySelector("a");
+    expect(link?.getAttribute("href")).toBe(
+      "https://github.com/verbatra/verbatra/blob/main/CONTRIBUTING.md",
+    );
     expect(link?.getAttribute("target")).toBe("_blank");
-    expect(link?.textContent).toBe(
-      `${copy.contributorSlot}, ${copy.contributorSlotHint} ${copy.newTab}`,
-    );
-    expect(slot?.querySelector("img")).toBeNull();
-    expect(slot?.querySelector(".vk-contribute-slot-mark")?.getAttribute("aria-hidden")).toBe(
-      "true",
-    );
+    expect(link?.getAttribute("rel")).toBe("noreferrer noopener");
+    expect(link?.textContent).toBe(`Contributing guide ${copy.newTab}`);
+    expect(copy.contributingGuide).toBe("Contributing guide");
+    expect(item?.querySelector("img, .vk-contribute-slot-mark")).toBeNull();
+    expect(root.querySelector("[data-contributor-slot], .vk-contribute-slot")).toBeNull();
+    expect(root.querySelector("a[href='https://github.com/verbatra/verbatra/issues']")).toBeNull();
+    expect(root.textContent).not.toContain("avatar here");
   });
 
   it("names the contributors as a group titled like the other footer groups, not a landmark or heading", () => {

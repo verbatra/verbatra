@@ -98,10 +98,10 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   `slots.themeSwitch` in `lib/layout.shared.tsx`: `SiteHeaderFrame` renders it after the language
   select from 768px, the home drawer footer beside the language select, and Fumadocs renders the
   same slot in the docs sidebar footer and phone drawer. It is one native `button` with
-  `aria-pressed` (pressed while the light theme shows), named by `docs.theme.light`, and it draws
+  `aria-pressed` (pressed while the light theme shows), named by `docs.theme.light`, with a `title` that names the switch a click makes (`docs.theme.switchToLight` while dark, `docs.theme.switchToDark` while light), and it draws
   both a moon and a sun icon, leaving the choice to the stylesheet (`.vk-theme-icon-light` is
   hidden unless `html.light`), so nothing flashes before hydration; `aria-pressed` reads `false`
-  on the server and settles after hydration.
+  and the `title` reads the dark-mode wording on the server, and both settle after hydration.
 
 ## Token layers: always use the outermost one
 
@@ -354,7 +354,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, statement, highlights,
   playground, features, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
-  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead, the Get started button beside the install chip, a
+  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button, a ghost "Compare with other tools" link to the localized `/compare` (`COMPARE_PATH`, no count in the label) and the install chip, a
   `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`; on the right an `aria-hidden`
   `.vk-banner-files` stack of three locale-file cards from `lib/landing-hero-files.ts`: `fr` and
   `es` behind, tilted, each its `heroFileName` and the `heroFilePreview` line, and `de` in front
@@ -366,7 +366,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   large sentence on a starfield whose counts come from `lib/hero-terminal.ts`, the lit part in an
   `em`, the rest `--text-faint`, with the first locale line of the translate run under it),
   `highlights.tsx` (`#highlights`, a split head aligned to the start over `.vk-bento`, six columns
-  from 64rem: the translate run from `HERO_TRANSLATE_OUTPUT` in a wrapped `.vk-tile-code-wrap` group named by the tile title (it wraps at its spaces at every width, so it never scrolls, is no tab stop and no line is cut or faded on a phone; each output line is its own `.vk-tile-line` span with a hanging indent (`--vk-hang` in `ch`, its leading spaces and at least 2), so a wrapped row sits under the start of its text; the text stays the CLI's byte for byte), its total line in
+  from 64rem: three tile titles name the pain ("Retranslating everything costs more", "Missing keys reach production", "One broken placeholder breaks a screen") while each body and terminal output stays the fix, and the agents tile keeps its title; the translate run (under a `.vk-tile-body` that carries the run's sent and total counts) from `HERO_TRANSLATE_OUTPUT` in a wrapped `.vk-tile-code-wrap` group named by the tile title (it wraps at its spaces at every width, so it never scrolls, is no tab stop and no line is cut or faded on a phone; each output line is its own `.vk-tile-line` span with a hanging indent (`--vk-hang` in `ch`, its leading spaces and at least 2), so a wrapped row sits under the start of its text; the text stays the CLI's byte for byte), its total line in
   `--accent` (span 4), the check's exit code in `--text-danger` (span 2; its glow is a strip of
   `--tile-halo-height` at the tile's end, under padding that clears the text, so no text ever sits
   over a halo), the playground's default item in every playground language with each placeholder
@@ -400,7 +400,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   and an `h3` whose link to the command's docs page
   stretches over the whole card), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
-  (`#marquee`, see "Marquee" below), and the comparison, which lives only on `/compare` (the landing reaches it from the FAQ's docs
+  (`#marquee`, see "Marquee" below), and the comparison, which lives only on `/compare` (the landing reaches it from the hero link, the last FAQ answer, the FAQ's docs
   links and the footer). `lib/landing-compare.ts` holds its rows and tools and one numbered source
   list, `compareSource(n)`; `cellFootnote` derives each cell's number from its row and tool, and
   the manual column cites the note `M`. A cell is text only, never a check, a cross or a rating.
@@ -473,8 +473,21 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   height (axe cannot measure text over a gradient, so no text ever sits over the halo at any
   width, and the lead takes `--text-body`), its first child an `aria-hidden` `.vk-closer-grid`
   (the hero's faded grid); it centers a bracketed `landing.closing.label`, one `h2`
-  (`.vk-closer-title`, 36px to 72px), one lead sentence and one `CommandRow` of `DRY_RUN_COMMAND`
-  in `.vk-final-install` (36rem, its command start-aligned), with no button or link).
+  (`.vk-closer-title`, 36px to 72px), one lead sentence (a project that already has locale files, neither step needs an API key) and two
+  `CommandRow`s in one `.vk-final-install` (36rem, commands start-aligned, the second `divided`):
+  `INIT_COMMAND` (bare `npx @verbatra/cli init`), then `DRY_RUN_COMMAND`, in the quickstart's
+  order after the hero's `npm i -D`), then one `ul.vk-closer-proof` of exactly five plain text links,
+  in this order: npm provenance (`NPM_CLI`), MIT license (`LICENSE_URL`), "The CLI sends no
+  telemetry" (the localized `/docs/data-handling`, the one same-tab link), "{threshold}% coverage
+  gate" (`CODECOV_URL`, the number `COVERAGE_THRESHOLD`, which `scripts/sync-version.mjs` reads
+  from the thresholds in `packages/config/vitest.base.mjs` into `lib/version.generated.json`, the
+  lowest of the four, never typed) and the CI workflow (`CI_WORKFLOW_URL`). The ids, hrefs and
+  external flag live in `lib/landing-proof.ts`, shared with the Markdown twin. Each link is a
+  `vk-tap vk-footer-link` (muted, no fill, no border, the footer's hover underline) in a centered
+  wrapping flex row (`.vk-closer-proof`, `--text-sm`), and the other-host ones open in a new tab with
+  the footer's `rel` and `landing.openSource.newTab` announcement; nothing is fetched from those
+  hosts, so no badge image and no Scorecard, star or download figure. There is no button and no
+  other link in the panel.
   `.vk-eyebrow` is the one section label style: mono, uppercase, `--text-muted`, wrapped in braces
   drawn as CSS content with empty alt text, so a screen reader reads the label alone (the closing
   brace follows a no-break space, so it never starts a line); it is never
@@ -487,15 +500,18 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `lib/contributors.json` (`contributors.tsx`: a `div` with `role="group"` named by a
   `.vk-footer-group-title`, never a landmark or heading, each a self-hosted 32px avatar from
   `public/contributors/` with the login beside it, refreshed by hand with `pnpm contributors`,
-  then one open slot, a borderless `--accent` 14 percent tint circle linking the issue list; the avatars carry no ring); then `FOOTER_GROUPS`, four named `nav`s on
+  then a "Contributing guide" text link to `CONTRIBUTING.md` (`.vk-contribute-guide`, muted, there is
+  no open avatar slot); the avatars carry no ring); then `FOOTER_GROUPS`, five named `nav`s on
   `.vk-footer-groups`, deliberately not a row of equal columns: product (`PRIMARY_GROUP`: the docs
-  pages, the localized `/compare` and the files for AI agents) leads as the wide group, its links in
+  pages and the localized `/compare`) leads as the wide group, its links in
   `--text-strong` at 15px flowing down CSS columns (`columns: 2 9rem`, three from 48rem), and
-  packages (every package on npm and the release notes), community (contributor guide, code of
+  for agents (`AGENTS_GROUP`, titled `cols.agents.title`: the localized MCP docs page, `/llms.txt`,
+  `/llms-full.txt` and `/.well-known/ai.txt`), packages (every package on npm and the release notes), community (contributor guide, code of
   conduct, security policy) and legal (license, Impressum, privacy, contact, `/licenses`) sit in
-  `.vk-footer-secondary` as muted columns: beside product from 80rem, narrow and content-sized behind a
-  `--border-default` start rule; under it before that, on product's three column tracks from 48rem
-  (three equal columns at `--grid-gap`, so each group starts where a product column does); group titles and the locale label are
+  `.vk-footer-secondary` as muted columns: beside product from 80rem on one row of four, narrow and
+  content-sized behind a `--border-default` start rule; under it before that, on product's three
+  column tracks from 48rem (three equal columns at `--grid-gap`, so each group starts where a
+  product column does and the fourth wraps under the first), two columns under 48rem; group titles and the locale label are
   medium `--text-strong`, links keep a 0.5rem row gap and a 2px focus offset; then `.vk-footer-bottom` (no rule): the locale switch, and
   the version line (`landing.footer.versionParts` with the `lib/site.ts` versions), the license and
   the copyright as plain spans. Links are `.vk-footer-link` (24px tall, muted, an `--accent`
@@ -516,7 +532,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   landing, `/compare`, legal and docs pages, with JavaScript off, that the switch's links equal the
   page's `hreflang` alternates and answer 200 without a redirect. Section ids are unique; never render two sections that claim the same one.
   The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`, each item a bordered `--radius-card` `--surface-tile` panel: five
-  questions phrased the way people search (cost, providers, privacy and keys, CI, repeat runs), each
+  questions phrased the way people search (cost, providers, privacy and keys, CI, and last how Verbatra differs from other i18n tools, whose answer links `/compare` beside the aside's "Full comparison" link), each
   answer at most 30 words with a first sentence of at most 25, the heading and lead in the head column, the questions beside it, then a `nav` of docs links that
   follows the list in the DOM, so a phone reads the questions first, and that sits under the head
   from 64rem, each link a 44px target) is a server section: each item is a native
@@ -627,13 +643,13 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   social image and the statement and highlights counts draw from;
   `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer;
   `MCP_ADD_COMMAND` in `lib/install-commands.ts` is the `claude mcp add` line the highlights'
-  MCP tile and the markdown twin print, copied from the MCP client guide, and `DRY_RUN_COMMAND`
-  (same file) the one command of the closing panel;
+  MCP tile and the markdown twin print, copied from the MCP client guide, and `INIT_COMMAND` and
+  `DRY_RUN_COMMAND` (same file) the two commands of the closing panel;
   `lib/landing-hero-files.ts` builds the hero's locale-file cards from the playground data: its
   `HERO_FILE_IDS` list says which lines the front card shows and which are marked added (the badge
   counts those), and the preview line is `PLAYGROUND_DEFAULT_ITEM`,
   `CommandRow` (`components/command-row.tsx`: the closing
-  section's npm install wraps under 30rem through `wrap="narrow"`, `wrap="always"` wraps a command at every width; elsewhere a `CommandRow` scrolls
+  section's two commands wrap under 30rem through `wrap="narrow"`, `wrap="always"` wraps a command at every width; elsewhere a `CommandRow` scrolls
   sideways inside `.vk-edge-fade`: a mask, not a painted background, so it stays see-through on any
   surface, and the end fade shows only while the command overflows, driven by a scroll timeline),
   `AiSetupPrompt` (`components/ai-setup-prompt.tsx`: the whole prompt, wrapped, under a `.vk-label`
@@ -698,7 +714,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `grid-rows-subgrid`, so a wrapped title never shifts the body or the link out of line. A
   backticked span in a header or section lead renders in code type (`withInlineCode`,
   `lib/inline-code-text.tsx`; the landing sets a command or value in a step
-  and the closing install hint the same way; the docs home
+  the same way; the docs home
   `DocsHomeSteps` reads `landing.steps.items`, the check, translate and CI steps, with its own
   `DOCS_HOME_STEP_IDS`), and a path card title keeps a hyphenated compound on
   one line (`keepCompoundsWhole`, `lib/word-breaks.tsx`). `StackCards`
@@ -1124,8 +1140,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   64rem, all sized in rem so a tall narrow column never stretches them into a strip behind the
   text): `.vk-banner-grid` is one column (copy, then cards), and from
   64rem an asymmetric 6fr / 5fr split, vertically centered, the copy (`.vk-banner-copy`: the `h1` `.vk-banner-title` (at most eight words, one sentence),
-  the `.vk-banner-lead` subline (at most 25 words), `.vk-banner-ctas` with Get started
-  (`/docs/quickstart`) beside the `.vk-banner-install` chip, a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
+  the `.vk-banner-lead` subline (at most 25 words in English, 30 in de, es and fr, tested in all four), `.vk-banner-ctas` with Get started
+  (`/docs/quickstart`), a ghost-variant "Compare with other tools" link (`/compare`, never a second primary button) and the `.vk-banner-install` chip, a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
   of `HERO_INSTALL_COMMAND`) in the wider column beside the demo (`.vk-banner-demo`: the
   `.vk-banner-files` stack, three `.vk-banner-file` cards of `--radius-lg` on `--surface-tile`; the
   front `de` card takes `--border-accent`, `--surface-raised` and a `--halo-strong` shadow, the `fr`
@@ -1293,8 +1309,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   the page. A `` ```verbatra-run `` fence (`RUN_FENCE_LANG`) holds only the arguments (`<command>`)
   and becomes the same tabs with the binary each manager runs (`npx @verbatra/cli`, `pnpm verbatra`,
   `yarn verbatra`, `bun run verbatra`), sharing the remembered choice; `cli/index` uses it. The
-  landing's closing section takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` as plain
-  text (no link inside the command) and shows no package-manager tabs; the docs home has no install
+  landing's closing section shows `INIT_COMMAND` and `DRY_RUN_COMMAND` from `lib/install-commands.ts`
+  as two plain `CommandRow`s (no link inside a command) and no package-manager tabs; the docs home has no install
   box (its Quickstart tab and agent tip lead there).
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
   something to run. The flag, not a title, is the marker, so it reads the same in every locale:

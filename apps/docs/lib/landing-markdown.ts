@@ -12,7 +12,13 @@ import {
   HERO_TRANSLATE_OUTPUT,
 } from "./hero-terminal";
 import { type Locale, localizedPath } from "./i18n";
-import { DRY_RUN_COMMAND, HERO_INSTALL_COMMAND, MCP_ADD_COMMAND } from "./install-commands";
+import {
+  DRY_RUN_COMMAND,
+  HERO_INSTALL_COMMAND,
+  INIT_COMMAND,
+  MCP_ADD_COMMAND,
+} from "./install-commands";
+import { COMPARE_PATH } from "./landing-compare";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
 import { LANDING_FEATURES } from "./landing-features";
@@ -27,12 +33,14 @@ import {
   PLAYGROUND_TRANSLATIONS,
   playgroundGeneratedOn,
 } from "./landing-playground";
+import { PROOF_IDS, proofHref } from "./landing-proof";
 import { landingProviders, PROVIDER_DISPLAY } from "./landing-providers";
 import { LANDING_SECTIONS, type LandingSectionId } from "./landing-sections";
 import { fencedMarkdown, inlineCodeMarkdown, markupChunks } from "./llm-markdown";
 import { absoluteMarkdownHref } from "./markdown-links";
 import { pageFrontmatter } from "./page-frontmatter";
 import { RELEASE_BADGE } from "./release-badge";
+import { COVERAGE_THRESHOLD } from "./site";
 
 type Context = { readonly locale: Locale; readonly badge: string };
 
@@ -71,7 +79,10 @@ async function hero({ locale }: Context): Promise<string> {
   return blocks(
     `# ${t.markup("headline", { accent: (chunks: string) => markupChunks(chunks) })}`,
     t("lead"),
-    list([link(t("ctaPrimary"), quickstart)]),
+    list([
+      link(t("ctaPrimary"), quickstart),
+      link(t("ctaCompare"), localizedPath(locale, COMPARE_PATH)),
+    ]),
     fencedMarkdown("sh", null, HERO_INSTALL_COMMAND),
   );
 }
@@ -171,7 +182,8 @@ async function highlights({ locale }: Context): Promise<string> {
   return blocks(
     `## ${t("heading")}`,
     t("lead"),
-    `### ${t("translate.label")}: ${t("translate.title", { sent: HERO_SENT_STRINGS, total: HERO_TOTAL_STRINGS })}`,
+    `### ${t("translate.label")}: ${t("translate.title")}`,
+    t("translate.body", { sent: HERO_SENT_STRINGS, total: HERO_TOTAL_STRINGS }),
     fencedMarkdown(
       "text",
       null,
@@ -212,7 +224,12 @@ async function finalCta({ locale }: Context): Promise<string> {
     `## ${t("heading")}`,
     t("label"),
     t("lead"),
-    fencedMarkdown("sh", null, DRY_RUN_COMMAND),
+    fencedMarkdown("sh", null, `${INIT_COMMAND}\n${DRY_RUN_COMMAND}`),
+    list(
+      PROOF_IDS.map((id) =>
+        link(t(`proof.${id}`, { threshold: COVERAGE_THRESHOLD }), proofHref(id, locale)),
+      ),
+    ),
   );
 }
 

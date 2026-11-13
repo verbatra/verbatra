@@ -2,7 +2,7 @@ import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { CONTRIBUTORS, type Contributor } from "@/lib/contributors";
-import { ISSUES_URL } from "./links";
+import { CONTRIBUTING_URL } from "./links";
 import { PlainList } from "./plain-list";
 
 const AVATAR_SIZE = 32;
@@ -26,20 +26,18 @@ function OutboundLink({
   );
 }
 
-type ContributorSlot = { readonly label: string; readonly hint: string };
-
 function Contributors({
   contributors,
   title,
   ariaFor,
   newTab,
-  slot,
+  guideLabel,
 }: {
   contributors: ReadonlyArray<Contributor>;
   title: string;
   ariaFor: (login: string) => string;
   newTab: string;
-  slot: ContributorSlot;
+  guideLabel: string;
 }): ReactNode {
   return (
     // biome-ignore lint/a11y/useSemanticElements: a fieldset groups form controls; this names a list of profile links without adding a landmark
@@ -69,15 +67,13 @@ function Contributors({
             </OutboundLink>
           </li>
         ))}
-        <li data-contributor-slot="">
+        <li data-contributing-guide="">
           <OutboundLink
-            href={ISSUES_URL}
+            href={CONTRIBUTING_URL}
             newTab={newTab}
-            className="vk-contribute-person vk-contribute-slot"
+            className="vk-contribute-person vk-contribute-guide"
           >
-            <span aria-hidden="true" className="vk-contribute-slot-mark" />
-            <span className="text-sm">{slot.label}</span>
-            <span className="sr-only">, {slot.hint}</span>
+            <span className="text-sm">{guideLabel}</span>
           </OutboundLink>
         </li>
       </PlainList>
@@ -96,7 +92,7 @@ export async function FooterContributors(
       title={t("contributorsHeading")}
       ariaFor={(login) => t("contributorAria", { name: login })}
       newTab={t("newTab")}
-      slot={{ label: t("contributorSlot"), hint: t("contributorSlotHint") }}
+      guideLabel={t("contributingGuide")}
     />
   );
 }

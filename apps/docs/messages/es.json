@@ -16,6 +16,16 @@
     "codeBlock": {
       "output": "Salida"
     },
+    "callout": {
+      "note": "Nota",
+      "warning": "Advertencia"
+    },
+    "pagination": {
+      "label": "Navegación de la página"
+    },
+    "breadcrumb": {
+      "label": "Ruta de navegación"
+    },
     "availableFrom": {
       "title": "Disponible a partir de {version}",
       "text": "Esto requiere verbatra {version} o posterior. Las versiones anteriores no lo tienen: comprueba tu versión instalada con <code>verbatra --version</code> y actualiza si es más antigua.",
@@ -49,17 +59,9 @@
       "label": "Añadir a {client}"
     },
     "theme": {
-      "light": "Tema claro"
-    },
-    "callout": {
-      "note": "Nota",
-      "warning": "Advertencia"
-    },
-    "pagination": {
-      "label": "Navegación de la página"
-    },
-    "breadcrumb": {
-      "label": "Ruta de navegación"
+      "light": "Tema claro",
+      "switchToLight": "Cambiar al tema claro",
+      "switchToDark": "Cambiar al tema oscuro"
     }
   },
   "landing": {
@@ -111,9 +113,9 @@
           "question": "¿Puede Verbatra hacer que falle una pull request cuando faltan traducciones?",
           "answer": "Sí. <code>verbatra check</code> sale con código 1 si un locale tiene claves faltantes u obsoletas, sin clave de API; la <link>GitHub Action</link> lo ejecuta en las pull requests."
         },
-        "incremental": {
-          "question": "¿Verbatra vuelve a traducir cadenas que no cambiaron?",
-          "answer": "No. Solo las claves nuevas y modificadas van a tu proveedor; un <link>archivo de bloqueo</link> comprometido registra lo que ya está traducido."
+        "compare": {
+          "question": "¿En qué se diferencia Verbatra de otras herramientas de i18n?",
+          "answer": "Es una CLI que corre en tus archivos con commit, no una plataforma alojada. La <link>página de comparación</link> la contrasta con otras herramientas, con fuentes, incluso donde son más fuertes."
         }
       }
     },
@@ -137,6 +139,9 @@
           "llmsIndex": "llms.txt (índice)",
           "llmsFull": "llms-full.txt (texto completo)",
           "aiTxt": "ai.txt (política de uso)"
+        },
+        "agents": {
+          "title": "Para agentes"
         },
         "packages": {
           "title": "Paquetes",
@@ -188,8 +193,9 @@
     },
     "banner": {
       "headline": "Traduce solo <accent>lo que cambió</accent>",
-      "lead": "Verbatra rellena las claves que faltan en tus archivos de idioma, le da a tu agente de codificación un servidor MCP y falla la CI cuando las traducciones se desvían.",
+      "lead": "Verbatra aplica hash a cada clave en un archivo de bloqueo, envía solo las claves modificadas a tu proveedor y hace fallar la CI ante desviaciones.",
       "ctaPrimary": "Empezar",
+      "ctaCompare": "Comparar con otras herramientas",
       "keysAdded": "+{count, plural, one {# clave} many {# claves} other {# claves}}"
     },
     "marquee": {
@@ -211,16 +217,17 @@
       "lead": "Una CLI, un SDK, un Studio local y un servidor MCP, todos leyendo el mismo archivo de bloqueo.",
       "translate": {
         "label": "Traducir",
-        "title": "Paga por {sent} cadenas, no por {total}"
+        "title": "Volver a traducir todo cuesta más",
+        "body": "Solo {sent} de {total} traducciones son nuevas o han cambiado, así que solo {sent} van a tu proveedor."
       },
       "ci": {
         "label": "Comprobación",
-        "title": "La deriva hace fallar la pull request",
+        "title": "Las claves que faltan llegan a producción",
         "body": "La comprobación sale con {code} mientras a un locale le faltan claves. No necesita clave de API, así que se ejecuta en cada pull request."
       },
       "integrity": {
         "label": "Integridad",
-        "title": "Los marcadores de posición llegan intactos"
+        "title": "Un placeholder roto estropea una pantalla"
       },
       "agents": {
         "label": "Agentes",
@@ -482,13 +489,20 @@
       "newTab": "(se abre en una pestaña nueva)",
       "contributorsHeading": "Colaboradores",
       "contributorAria": "{name} en GitHub",
-      "contributorSlot": "Tu avatar aquí",
-      "contributorSlotHint": "encuentra un problema para empezar"
+      "contributingGuide": "Guía de contribución"
     },
     "closing": {
       "heading": "Empieza con una ejecución de prueba",
-      "lead": "Después de iniciar, una prueba en seco no necesita clave de API, no escribe nada y lista exactamente qué claves enviaría una ejecución real.",
-      "label": "Antes de que gastes un token"
+      "lead": "Este camino es para un proyecto que ya tiene archivos de locale, y ninguno de los pasos necesita una clave de API.",
+      "label": "Antes de que gastes un token",
+      "proof": {
+        "label": "Datos del proyecto",
+        "provenance": "Procedencia de npm",
+        "license": "Licencia MIT",
+        "telemetry": "La CLI no envía telemetría",
+        "coverage": "Umbral de cobertura del {threshold}%",
+        "ci": "Flujo de trabajo de CI"
+      }
     },
     "fab": {
       "label": "Volver arriba"

@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "@/lib/docs-pages";
 import {
+  DRY_RUN_COMMAND,
+  HERO_INSTALL_COMMAND,
+  INIT_COMMAND,
   isNpmInstall,
   MCP_ADD_COMMAND,
   NPM_FENCE_LANG,
@@ -22,6 +25,19 @@ function mdxPages(): string[] {
     file.endsWith(".mdx"),
   );
 }
+
+describe("the first-run commands", () => {
+  it("are the quickstart's own init and dry-run commands, in its order, after the hero install", () => {
+    expect(HERO_INSTALL_COMMAND).toBe("npm i -D @verbatra/cli");
+    expect(INIT_COMMAND).toBe("npx @verbatra/cli init");
+    expect(DRY_RUN_COMMAND).toBe("npx @verbatra/cli translate --dry-run");
+    const quickstart = docsFile("content/docs/(get-started)/quickstart/index.mdx");
+    const init = quickstart.indexOf("npx @verbatra/cli init");
+    const dryRun = quickstart.indexOf(DRY_RUN_COMMAND);
+    expect(init).toBeGreaterThan(-1);
+    expect(dryRun).toBeGreaterThan(init);
+  });
+});
 
 describe("the install command", () => {
   it("is the npm command the quickstart installs with, as a package-manager fence", () => {

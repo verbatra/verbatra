@@ -67,8 +67,11 @@ export async function Highlights(): Promise<ReactNode> {
         <article className="vk-tile" data-span="4">
           <TileLabel>{t("translate.label")}</TileLabel>
           <h3 id={TRANSLATE_TITLE_ID} className="vk-tile-title">
-            {t("translate.title", { sent: HERO_SENT_STRINGS, total: HERO_TOTAL_STRINGS })}
+            {t("translate.title")}
           </h3>
+          <p className="vk-tile-body">
+            {t("translate.body", { sent: HERO_SENT_STRINGS, total: HERO_TOTAL_STRINGS })}
+          </p>
           {/* biome-ignore lint/a11y/useSemanticElements: a fieldset groups form controls; this names a wrapped code block without adding a landmark */}
           <div
             role="group"

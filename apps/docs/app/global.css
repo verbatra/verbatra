@@ -515,20 +515,8 @@ html.light {
   border-radius: var(--radius-full);
 }
 
-.vk-contribute-slot {
+.vk-contribute-guide {
   color: var(--text-muted);
-}
-
-.vk-contribute-slot-mark {
-  flex: none;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-}
-
-.vk-contribute-slot:hover .vk-contribute-slot-mark {
-  background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 @media (min-width: 64rem) {
@@ -794,7 +782,7 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   }
 
   .vk-footer-secondary {
-    grid-template-columns: repeat(3, max-content);
+    grid-template-columns: repeat(4, max-content);
     justify-content: start;
     padding-inline-start: 4rem;
     border-inline-start: 1px solid var(--border-default);
@@ -886,6 +874,17 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--v-void);
+}
+
+.vk-closer-proof {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
 }
 
 .vk-rhythm-lg {

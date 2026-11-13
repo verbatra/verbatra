@@ -24,11 +24,24 @@ function readNodeRange(packageDir) {
   return range;
 }
 
+function readCoverageThreshold() {
+  const configPath = resolve(here, "../../../packages/config/vitest.base.mjs");
+  const block = /thresholds:\s*\{([^}]*)\}/.exec(readFileSync(configPath, "utf8"));
+  const values = [...(block?.[1] ?? "").matchAll(/:\s*(\d+(?:\.\d+)?)/g)].map((match) =>
+    Number(match[1]),
+  );
+  if (values.length === 0) {
+    throw new Error(`No coverage thresholds in ${configPath}`);
+  }
+  return Math.min(...values);
+}
+
 const versions = {
   version: readVersion("cli"),
   studioVersion: readVersion("studio"),
   mcpVersion: readVersion("mcp"),
   nodeRange: readNodeRange("cli"),
+  coverageThreshold: readCoverageThreshold(),
 };
 
 writeFileSync(outputPath, `${JSON.stringify(versions, null, 2)}\n`);
