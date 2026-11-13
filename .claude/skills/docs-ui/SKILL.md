@@ -354,7 +354,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, statement, highlights,
   playground, features, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
-  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button, a ghost "Compare with other tools" link to the localized `/compare` (`COMPARE_PATH`, no count in the label) and the install chip, a
+  `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button, the install chip and a ghost "Compare with other tools" link to the localized `/compare` (`COMPARE_PATH`, no count in the label), last in DOM and visual order, flush-left as a text link (`.vk-banner-compare`: no padding inline, no box, still 50px tall), a
   `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`; on the right an `aria-hidden`
   `.vk-banner-files` stack of three locale-file cards from `lib/landing-hero-files.ts`: `fr` and
   `es` behind, tilted, each its `heroFileName` and the `heroFilePreview` line, and `de` in front
@@ -1141,7 +1141,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   text): `.vk-banner-grid` is one column (copy, then cards), and from
   64rem an asymmetric 6fr / 5fr split, vertically centered, the copy (`.vk-banner-copy`: the `h1` `.vk-banner-title` (at most eight words, one sentence),
   the `.vk-banner-lead` subline (at most 25 words in English, 30 in de, es and fr, tested in all four), `.vk-banner-ctas` with Get started
-  (`/docs/quickstart`), a ghost-variant "Compare with other tools" link (`/compare`, never a second primary button) and the `.vk-banner-install` chip, a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
+  (`/docs/quickstart`), the `.vk-banner-install` chip and last a ghost-variant "Compare with other tools" text link (`/compare`, `.vk-banner-compare`, label on the column's left edge, never a second primary button; `align-items: flex-start` keeps Get started at 50px beside the 56px chip), a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
   of `HERO_INSTALL_COMMAND`) in the wider column beside the demo (`.vk-banner-demo`: the
   `.vk-banner-files` stack, three `.vk-banner-file` cards of `--radius-lg` on `--surface-tile`; the
   front `de` card takes `--border-accent`, `--surface-raised` and a `--halo-strong` shadow, the `fr`
