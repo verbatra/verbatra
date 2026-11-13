@@ -16,6 +16,7 @@ import {
   pageUrl,
   THEMES,
   wordsFailing,
+  wordsWithoutMargin,
 } from "./support";
 
 const PAIRS = ["lingo", "tolgee", "weblate", "crowdin", "lokalise", "phrase", "manual"] as const;
@@ -99,6 +100,8 @@ for (const locale of LOCALES) {
         expect(broken.checked).toBeGreaterThan(0);
         expect(broken.found).toEqual([]);
         expect(spilled.found).toEqual([]);
+        const tight = await page.evaluate(wordsFailing, wordsWithoutMargin(cells));
+        expect(tight.found).toEqual([]);
       });
     }
 

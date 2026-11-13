@@ -158,7 +158,7 @@ export async function waitForFaqKeys(page: Page): Promise<void> {
 type WordScan = {
   selector: string;
   split: "space" | "piece";
-  check: "broken" | "overflow";
+  check: "broken" | "overflow" | "snug";
 };
 
 type WordFindings = { found: string[]; checked: number };
@@ -181,6 +181,12 @@ export const overflowingWords = (selector: string): WordScan => ({
   check: "overflow",
 });
 
+export const wordsWithoutMargin = (selector: string): WordScan => ({
+  selector,
+  split: "piece",
+  check: "snug",
+});
+
 export function wordsFailing({ selector, split, check }: WordScan): WordFindings {
   const pattern = split === "space" ? /\S+/g : /[^\s\-/]+/g;
   const textNodes = (root: Element): Text[] => {
@@ -200,6 +206,10 @@ export function wordsFailing({ selector, split, check }: WordScan): WordFindings
   const wordsFailingIn = (anchor: Element): string[] => {
     const style = getComputedStyle(anchor);
     const limit = anchor.getBoundingClientRect().right - Number.parseFloat(style.paddingRight);
+    const room =
+      anchor.getBoundingClientRect().width -
+      Number.parseFloat(style.paddingLeft) -
+      Number.parseFloat(style.paddingRight);
     const spoken = textNodes(anchor).filter(
       (node) => check === "broken" || !node.parentElement?.closest(".sr-only"),
     );
@@ -207,9 +217,9 @@ export function wordsFailing({ selector, split, check }: WordScan): WordFindings
       Array.from(node.data.matchAll(pattern))
         .filter((match) => {
           const range = rangeOf(node, match);
-          return check === "broken"
-            ? isBroken(range)
-            : range.getBoundingClientRect().right > limit + 0.5;
+          if (check === "broken") return isBroken(range);
+          if (check === "snug") return range.getBoundingClientRect().width > room - 4;
+          return range.getBoundingClientRect().right > limit + 0.5;
         })
         .map((match) => match[0]),
     );
