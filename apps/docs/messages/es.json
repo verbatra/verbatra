@@ -69,7 +69,7 @@
       "description": "Verbatra, CLI y SDK de i18n de código abierto, halla las claves que faltan o cambiaron en tus archivos de locale y traduce solo esas con tu clave de proveedor.",
       "ogDescription": "Traduce solo las claves de i18n que cambiaron y haz fallar la CI mientras falte alguna.",
       "ogImageAlt": "Verbatra: Traduce solo lo que cambió, sobre una ejecución de check que encuentra dos claves faltantes por locale y una de translate que envía solo esas.",
-      "definition": "Verbatra es un CLI y SDK de código abierto para archivos de localización i18n. Envía solo claves nuevas y modificadas al proveedor de IA o traducción automática que elijas y hace que CI falle si falta una clave."
+      "definition": "Verbatra es una CLI y un SDK de código abierto para archivos de locale i18n. Envía solo claves nuevas y modificadas al proveedor de IA o traducción automática que elijas y hace fallar la CI mientras falte una clave."
     },
     "install": {
       "copy": "Copiar",
@@ -77,12 +77,12 @@
       "copyFailed": "Copia fallida",
       "copyAria": "Copiar el comando de instalación",
       "copyAgentAria": "Copiar el comando de configuración del agente",
-      "aiLabel": "Prompt para agentes IA",
+      "aiLabel": "Prompt para agentes de IA",
       "copyPromptAria": "Copiar el prompt de configuración para el agente de IA",
       "copyCommand": "Copiar {command}",
       "promptCta": "Empieza con un prompt",
       "promptCopied": "Prompt copiado",
-      "promptCopyFailed": "No se pudo copiar la instrucción. Selecciónala en la vista previa y cópiala a mano.",
+      "promptCopyFailed": "No se pudo copiar el prompt. Selecciónalo en la vista previa y cópialo a mano.",
       "promptPreviewLabel": "Copia este prompt para tu agente"
     },
     "faq": {
@@ -104,12 +104,12 @@
           "answer": "{providers}{pending, select, yes {, más {upcoming} de {next}} other {}}. Elige uno en el bloque <code>provider</code>, o <code>none</code> si solo traducen personas; detalles en <link>proveedores</link>."
         },
         "privacy": {
-          "question": "¿Verbatra envía mis cadenas o claves API a algún lugar?",
+          "question": "¿Verbatra envía mis cadenas o claves de API a algún lugar?",
           "answer": "Solo al proveedor que configures, cuando un comando traduce; no hay telemetría. Las claves permanecen en variables de entorno, y el <link>manejo de datos</link> enumera lo que recibe cada proveedor."
         },
         "ci": {
-          "question": "¿Puede Verbatra hacer que falle una solicitud de extracción cuando faltan traducciones?",
-          "answer": "Sí. <code>verbatra check</code> sale con código 1 si una configuración regional tiene claves faltantes o obsoletas, sin clave API; la <link>GitHub Action</link> lo ejecuta en las solicitudes de extracción."
+          "question": "¿Puede Verbatra hacer que falle una pull request cuando faltan traducciones?",
+          "answer": "Sí. <code>verbatra check</code> sale con código 1 si un locale tiene claves faltantes u obsoletas, sin clave de API; la <link>GitHub Action</link> lo ejecuta en las pull requests."
         },
         "incremental": {
           "question": "¿Verbatra vuelve a traducir cadenas que no cambiaron?",
@@ -193,7 +193,7 @@
       "keysAdded": "+{count, plural, one {# clave} many {# claves} other {# claves}}"
     },
     "marquee": {
-      "heading": "Funciona con los archivos de idioma y los proveedores que ya usas",
+      "heading": "Funciona con los archivos de locale y los proveedores que ya usas",
       "pause": "Pausar animación",
       "play": "Reproducir animación",
       "providers": "Proveedores",
@@ -207,7 +207,7 @@
       "heading": "<em>{sent} claves</em> salen de tu máquina, {kept} se quedan"
     },
     "highlights": {
-      "heading": "Todo alrededor del \"diff\"",
+      "heading": "Todo alrededor del diff",
       "lead": "Una CLI, un SDK, un Studio local y un servidor MCP, todos leyendo el mismo archivo de bloqueo.",
       "translate": {
         "label": "Traducir",
@@ -216,7 +216,7 @@
       "ci": {
         "label": "Comprobación",
         "title": "La deriva hace fallar la pull request",
-        "body": "La comprobación sale con {code} mientras a una configuración regional le faltan claves. No necesita clave de API, así que se ejecuta en cada pull request."
+        "body": "La comprobación sale con {code} mientras a un locale le faltan claves. No necesita clave de API, así que se ejecuta en cada pull request."
       },
       "integrity": {
         "label": "Integridad",
@@ -225,7 +225,7 @@
       "agents": {
         "label": "Agentes",
         "title": "Tu agente de codificación arregla las traducciones",
-        "body": "Registra el servidor MCP para el proyecto, y el agente puede leer el estado y arreglar las traducciones. Las herramientas que gastan tokens del proveedor permanecen apagadas hasta que las permitas."
+        "body": "Registra el servidor MCP para el proyecto, y el agente puede leer el estado y arreglar las traducciones. Las herramientas que gastan tokens del proveedor siguen desactivadas hasta que las permitas."
       }
     },
     "playground": {
@@ -291,19 +291,19 @@
       "items": {
         "studio": {
           "title": "Revisa en Studio",
-          "body": "Un panel de control local sobre tu proyecto: explora cada configuración regional, trabaja en la cola de revisión y edita valores en el mismo lugar."
+          "body": "Un panel de control local sobre tu proyecto: explora cada locale, trabaja en la cola de revisión y edita valores directamente."
         },
         "handoff": {
           "title": "Pasa el testigo a personas",
-          "body": "Exporta un libro de Excel, CSV, TSV o XLIFF para un traductor e impórtalo de nuevo. Los valores importados permanecen protegidos de futuras ejecuciones automáticas."
+          "body": "Exporta un libro de Excel, CSV, TSV o XLIFF para un traductor e impórtalo de nuevo. Los valores importados permanecen protegidos de futuras ejecuciones de traducción automática."
         },
         "extract": {
-          "title": "Extrae desde el origen",
-          "body": "Escanea tu código en busca de llamadas de traducción y añade las nuevas claves a la configuración regional de origen antes de que nadie las traduzca."
+          "title": "Extrae del código fuente",
+          "body": "Escanea tu código en busca de llamadas de traducción y añade las nuevas claves al locale de origen antes de que nadie las traduzca."
         },
         "watch": {
-          "title": "Observa mientras construyes",
-          "body": "Mantén un observador ejecutándose en desarrollo, y cada cambio en la configuración regional de origen se traduce a medida que guardas."
+          "title": "Vigila mientras desarrollas",
+          "body": "Mantén un vigilante ejecutándose en desarrollo, y cada cambio en el locale de origen se traduce a medida que guardas."
         },
         "types": {
           "title": "Claves tipadas",
@@ -319,15 +319,15 @@
       "items": {
         "check": {
           "title": "Comprueba",
-          "body": "`verbatra check` compara la fuente, los destinos y el archivo de bloqueo. No llama a ningún proveedor ni necesita clave."
+          "body": "`verbatra check` compara el origen, los destinos y el archivo de bloqueo. No llama a ningún proveedor ni necesita clave."
         },
         "translate": {
           "title": "Traduce",
-          "body": "`verbatra translate` envía solo las claves que faltan o cambiaron y rechaza cualquier resultado con placeholders que no coinciden, markup inline roto o sintaxis ICU no válida."
+          "body": "`verbatra translate` envía solo las claves que faltan o cambiaron y rechaza cualquier resultado con placeholders que no coinciden, marcado en línea roto o sintaxis ICU no válida."
         },
         "ci": {
-          "title": "Protege la CI",
-          "body": "La GitHub Action ejecuta `check` en cada pull request y lo hace fallar mientras un locale no esté sincronizado."
+          "title": "Bloquea en CI",
+          "body": "La GitHub Action ejecuta `check` en cada pull request y la hace fallar mientras un locale no esté sincronizado."
         }
       }
     },
@@ -342,7 +342,7 @@
           "verbatra": "Sí, MIT",
           "lingo": "Repositorio Apache-2.0; la CLI actual no tiene campo de licencia; la plataforma no se describe como de código abierto",
           "tolgee": "Núcleo Apache-2.0, partes empresariales bajo una licencia no comercial; CLI MIT",
-          "weblate": "Sí, GPL-3.0-o-posterior, también la CLI `wlc`",
+          "weblate": "Sí, GPL-3.0-or-later, también la CLI `wlc`",
           "crowdin": "CLI y GitHub Action MIT; no se encontró ninguna fuente de plataforma pública",
           "lokalise": "CLI BSD-3-Clause; no se encontró ninguna fuente de plataforma pública",
           "phrase": "CLI y Acción de setup-cli MIT; no se encontró ninguna fuente de plataforma pública",
@@ -396,11 +396,11 @@
           "label": "Traducción incremental",
           "verbatra": "Sí, un hash por clave en un archivo de bloqueo",
           "lingo": "Sí, un diff de archivo de bloqueo en la CLI",
-          "tolgee": "Traduce automáticamente los objetivos sin traducir (documentación 2.x)",
+          "tolgee": "Traduce automáticamente los destinos sin traducir (documentación 2.x)",
           "weblate": "Complemento de traducción automática para cadenas aún no traducidas",
-          "crowdin": "La pre-traducción se puede limitar a \"cadenas sin traducir\"",
-          "lokalise": "Automatizaciones y la pre-traducción llenan los valores vacíos",
-          "phrase": "La pre-traducción llena las traducciones vacías y omite las claves que ya tienen una",
+          "crowdin": "La pretraducción se puede limitar a \"cadenas sin traducir\"",
+          "lokalise": "Las automatizaciones y la pretraducción rellenan los valores vacíos",
+          "phrase": "La pretraducción rellena las traducciones vacías y omite las claves que ya tienen una",
           "manual": "A mano, no hay producto"
         },
         "cli": {
@@ -475,7 +475,7 @@
       "sources": "Fuentes",
       "manualNote": "El flujo de trabajo manual no es un producto, por lo que no tiene fuente: la columna describe cómo copiar cadenas a un servicio de traducción y viceversa, a mano.",
       "lastChecked": "Última revisión",
-      "fairness": "Verbatra es un CLI y SDK; las otras columnas son plataformas de traducción y un flujo de trabajo manual, comparadas como formas de mantener los archivos de idioma traducidos. Cada celda indica lo que las páginas del propio proveedor decían en esa fecha, y \"no se encontró oficial...\" significa que nuestra búsqueda no encontró ninguno, no que el producto carezca de él.",
+      "fairness": "Verbatra es una CLI y un SDK; las otras columnas son plataformas de traducción y un flujo de trabajo manual, comparadas como formas de mantener traducidos los archivos de locale. Cada celda indica lo que las páginas del propio proveedor decían en esa fecha, y \"no se encontró ningún ... oficial\" significa que nuestra búsqueda no encontró ninguno, no que el producto carezca de él.",
       "scrollHint": "Desplaza la tabla de lado para ver todas las columnas."
     },
     "openSource": {
