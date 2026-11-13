@@ -25,14 +25,11 @@ import {
 } from "@/lib/lock-demo";
 import { splitPlaceholders } from "@/lib/placeholder-segments";
 import { LockDemoMotion } from "./islands";
+import type { LockDemoStep } from "./lock-demo-motion";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
 export const LOCK_DEMO_HEADING_ID = "lock-demo-heading";
-
-export const LOCK_DEMO_DWELL_MS: ReadonlyArray<number> = [5000, 8000, 6000];
-
-const FRAME_IDS = ["lock-demo-edit", "lock-demo-compare", "lock-demo-send"] as const;
 
 type Translate = Awaited<ReturnType<typeof getTranslations<"landing.lockDemo">>>;
 
@@ -142,30 +139,25 @@ function Code({
 }
 
 function Frame({
-  index,
-  label,
-  text,
+  step,
   file,
   badge,
   badgeLang,
   children,
   foot,
 }: {
-  index: number;
-  label: string;
-  text: string;
+  step: LockDemoStep;
   file: string;
   badge: string;
   badgeLang?: string;
   children: ReactNode;
   foot: ReactNode;
 }): ReactNode {
-  const id = FRAME_IDS[index] ?? "";
   return (
-    <figure id={id} className="vk-lock-frame" aria-labelledby={`${id}-caption`}>
-      <figcaption id={`${id}-caption`} className="vk-lock-caption">
-        <b>{label}</b>
-        <span>{text}</span>
+    <figure id={step.id} className="vk-lock-frame" aria-labelledby={`${step.id}-caption`}>
+      <figcaption id={`${step.id}-caption`} className="vk-lock-caption">
+        <b>{step.label}</b>
+        <span>{step.text}</span>
       </figcaption>
       <div className="vk-lock-card">
         <p className="vk-lock-head">
@@ -188,40 +180,43 @@ export async function LockDemo(): Promise<ReactNode> {
   const { changed, unchanged } = LOCK_DEMO_COUNTS;
   const sourceFile = playgroundFileName(PLAYGROUND_SOURCE_LOCALE);
   const targetFile = playgroundFileName(LOCK_DEMO_LOCALE);
-  const stepText = [
-    t("edit.text", { count: changed }),
-    t("compare.text", { count: changed }),
-    t("send.text", { count: changed, rest: unchanged }),
-  ];
-  const stepLabel = [t("edit.label"), t("compare.label"), t("send.label")];
+  const edit: LockDemoStep = {
+    id: "lock-demo-edit",
+    label: t("edit.label"),
+    text: t("edit.text", { count: changed }),
+    dwellMs: 5000,
+  };
+  const compare: LockDemoStep = {
+    id: "lock-demo-compare",
+    label: t("compare.label"),
+    text: t("compare.text", { count: changed }),
+    dwellMs: 8000,
+  };
+  const send: LockDemoStep = {
+    id: "lock-demo-send",
+    label: t("send.label"),
+    text: t("send.text", { count: changed, rest: unchanged }),
+    dwellMs: 6000,
+  };
 
   return (
     <Section id="lock-demo" labelledBy={LOCK_DEMO_HEADING_ID} className="vk-lock">
       <p className="vk-eyebrow">{t("label")}</p>
       <SectionHead id={LOCK_DEMO_HEADING_ID} title={t("heading", { count: changed })} />
       <LockDemoMotion
-        steps={FRAME_IDS.map((id, index) => ({
-          id,
-          label: stepLabel[index] ?? "",
-          text: stepText[index] ?? "",
-        }))}
+        steps={[edit, compare, send]}
         labels={{ steps: t("steps"), pause: t("pause"), play: t("play") }}
-        dwellsMs={LOCK_DEMO_DWELL_MS}
       >
         <Frame
-          index={0}
-          label={stepLabel[0] ?? ""}
-          text={stepText[0] ?? ""}
+          step={edit}
           file={sourceFile}
           badge={t("badge.changed", { count: changed })}
           foot={null}
         >
-          <Code lines={lockDemoSourceLines()} t={t} />
+          <Code lines={lockDemoSourceLines()} t={t} valueLang={PLAYGROUND_SOURCE_LOCALE} />
         </Frame>
         <Frame
-          index={1}
-          label={stepLabel[1] ?? ""}
-          text={stepText[1] ?? ""}
+          step={compare}
           file={LOCK_FILE_NAME}
           badge={HERO_CHECK_BADGE}
           badgeLang="en"
@@ -234,9 +229,7 @@ export async function LockDemo(): Promise<ReactNode> {
           <Code lines={lockLines()} t={t} />
         </Frame>
         <Frame
-          index={2}
-          label={stepLabel[2] ?? ""}
-          text={stepText[2] ?? ""}
+          step={send}
           file={HERO_TRANSLATE_OUTPUT[0] ?? ""}
           badge={HERO_TRANSLATE_BADGE}
           badgeLang="en"

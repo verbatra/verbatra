@@ -1,12 +1,20 @@
 "use client";
 
-import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Button from "@/components/ui/button";
 
 export type LockDemoStep = {
   readonly id: string;
   readonly label: string;
   readonly text: string;
+  readonly dwellMs: number;
 };
 
 export type LockDemoLabels = {
@@ -38,7 +46,7 @@ function useStage(): boolean {
   return stage;
 }
 
-function useInView(target: React.RefObject<HTMLElement | null>): boolean {
+function useInView(target: RefObject<HTMLElement | null>): boolean {
   const [inView, setInView] = useState(true);
   useEffect(() => {
     const element = target.current;
@@ -68,12 +76,10 @@ function resetFrame(frame: HTMLElement): void {
 export function LockDemoMotion({
   steps,
   labels,
-  dwellsMs,
   children,
 }: {
   steps: ReadonlyArray<LockDemoStep>;
   labels: LockDemoLabels;
-  dwellsMs: ReadonlyArray<number>;
   children: ReactNode;
 }): ReactNode {
   const root = useRef<HTMLDivElement>(null);
@@ -87,8 +93,8 @@ export function LockDemoMotion({
   useEffect(() => {
     const element = root.current;
     if (element === null) return;
-    const advance = (event: Event) => {
-      if ((event as AnimationEvent).animationName === PROGRESS_ANIMATION) {
+    const advance = (event: AnimationEvent) => {
+      if (event.animationName === PROGRESS_ANIMATION) {
         setActive((current) => (current + 1) % count);
       }
     };
@@ -121,14 +127,14 @@ export function LockDemoMotion({
                 className="vk-lock-step"
                 aria-controls={step.id}
                 aria-current={index === active ? "step" : undefined}
-                style={{ "--lock-dwell": `${dwellsMs[index] ?? 0}ms` } as CSSProperties}
+                style={{ "--lock-dwell": `${step.dwellMs}ms` } as CSSProperties}
                 onClick={() => {
                   setActive(index);
                   setUserPaused(true);
                 }}
               >
                 {index === active ? (
-                  <i
+                  <span
                     className="vk-lock-prog"
                     aria-hidden="true"
                     style={{ animationPlayState: paused ? "paused" : "running" }}

@@ -8,9 +8,9 @@ import { LockDemoMotion } from "./lock-demo-motion";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const STEPS = [
-  { id: "frame-1", label: "Edit", text: "first" },
-  { id: "frame-2", label: "Compare", text: "second" },
-  { id: "frame-3", label: "Send", text: "third" },
+  { id: "frame-1", label: "Edit", text: "first", dwellMs: 5000 },
+  { id: "frame-2", label: "Compare", text: "second", dwellMs: 8000 },
+  { id: "frame-3", label: "Send", text: "third", dwellMs: 6000 },
 ];
 
 const LABELS = { steps: "Steps", pause: "Pause animation", play: "Play animation" };
@@ -60,7 +60,7 @@ function mount(): HTMLElement {
   mounted.push({ root, host });
   act(() =>
     root.render(
-      <LockDemoMotion steps={STEPS} labels={LABELS} dwellsMs={[5000, 8000, 6000]}>
+      <LockDemoMotion steps={STEPS} labels={LABELS}>
         {STEPS.map(({ id }) => (
           <figure key={id} id={id} className="vk-lock-frame">
             {id}

@@ -11,6 +11,7 @@ import {
 import { i18n } from "@/lib/i18n";
 import {
   PLAYGROUND_METADATA,
+  PLAYGROUND_SOURCE_LOCALE,
   PLAYGROUND_TRANSLATIONS,
   playgroundGeneratedOn,
 } from "@/lib/landing-playground";
@@ -77,6 +78,23 @@ describe("the lock demo heading and counts", () => {
     },
   );
 
+  it.each(["es", "fr"] as const)(
+    "%s puts the linking word after a million, and nothing at one",
+    async (locale) => {
+      const t = await translator(locale);
+      const million = { count: 1_000_000, rest: 5 };
+      const one = { count: 1, rest: 5 };
+      for (const path of ["heading", "edit.text", "compare.text", "send.text", "foot.lock"]) {
+        expect(t(path as never, { ...million, file: "f" } as never), `${locale} ${path}`).toMatch(
+          /1\D000\D000 de (claves|clés|valores|valeurs|hashes)/,
+        );
+        expect(t(path as never, { ...one, file: "f" } as never), `${locale} ${path}`).not.toMatch(
+          /\bde (claves|clés|valores|valeurs|hashes)/,
+        );
+      }
+    },
+  );
+
   it.each(i18n.languages)(
     "%s formats every message with the values the section passes",
     async (locale) => {
@@ -88,6 +106,13 @@ describe("the lock demo heading and counts", () => {
       }
     },
   );
+
+  it.each(i18n.languages)("%s opens the stale footnote with the word its tag uses", (locale) => {
+    const lockDemo = (CATALOGS[locale].landing as unknown as { lockDemo: Tree }).lockDemo;
+    const word = (lockDemo.tags as Tree).stale as string;
+    const note = (lockDemo.foot as Tree).compare as string;
+    expect(note.toLowerCase().startsWith(word.toLowerCase())).toBe(true);
+  });
 
   it("renders the English heading from the fixture count", () => {
     expect(doc.querySelector("h2")?.textContent).toBe("Two keys changed, two keys sent");
@@ -123,6 +148,14 @@ describe("the three frames", () => {
       "Compare",
       "Send",
     ]);
+  });
+
+  it("marks the English source values of the first frame with the source language", () => {
+    const values = Array.from(frames()[0]?.querySelectorAll(".vk-lock-value") ?? []);
+    expect(values.length).toBeGreaterThan(0);
+    expect(values.map((value) => value.getAttribute("lang"))).toEqual(
+      values.map(() => PLAYGROUND_SOURCE_LOCALE),
+    );
   });
 
   it("show the three file names as visible captions", () => {
@@ -184,6 +217,21 @@ describe("the three frames", () => {
     const tag = /\.vk-lock-tag \{[^}]*font-size: ([\d.]+)rem/.exec(css);
     expect(Number(tag?.[1]) * 16).toBeGreaterThanOrEqual(11);
     expect(css).not.toMatch(/\.vk-lock-tag \{[^}]*font-size: 0\.[0-5]/);
+  });
+
+  it("lays the stage out in CSS before hydration, only where scripting is available", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync(`${process.cwd()}/app/global.css`, "utf8");
+    const block =
+      /@media \(min-width: 64rem\) and \(prefers-reduced-motion: no-preference\) and \(scripting: enabled\) \{/.exec(
+        css,
+      );
+    expect(block).not.toBeNull();
+    const from = block?.index ?? 0;
+    const media = css.slice(from, css.indexOf("\n}\n", css.indexOf(".vk-lock-frames", from)) + 3);
+    expect(media).toContain(".vk-lock-stage .vk-lock-frames");
+    expect(media).toContain(".vk-lock-stage:not([data-mode]) .vk-lock-frame:first-child");
+    expect(media).toContain(".vk-lock-stage:not([data-mode]) .vk-lock-frames");
   });
 
   it("is the island's step list that controls these exact frames", () => {
