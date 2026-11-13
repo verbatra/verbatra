@@ -1,4 +1,4 @@
-import { expect, test } from "playwright/test";
+import { expect, type Page, type Route, test } from "playwright/test";
 import {
   expectNoAxeViolations,
   expectNoHorizontalScroll,
@@ -15,7 +15,9 @@ const FRAMES = `${DEMO} .vk-lock-frame`;
 for (const locale of LOCALES) {
   test.describe(`lock-file demo ${homeUrl(locale)}`, () => {
     for (const theme of THEMES) {
-      test(`has no axe violations in the ${theme} theme, stacked and staged`, async ({ page }) => {
+      test(`has no axe violations in the ${theme} theme with the frames stacked`, async ({
+        page,
+      }) => {
         await openInTheme(page, homeUrl(locale), theme);
         await page.locator(DEMO).scrollIntoViewIfNeeded();
         await expectNoAxeViolations(page, DEMO);
@@ -95,5 +97,125 @@ test.describe("lock-file demo under reduced motion", () => {
     await expect(page.locator(`${DEMO} .vk-lock-stage`)).not.toHaveAttribute("data-mode", "stage");
     for (const frame of await page.locator(FRAMES).all()) await expect(frame).toBeVisible();
     await expect(page.locator(`${DEMO} .vk-lock-pause`)).toBeHidden();
+  });
+});
+
+const STAGE = `${DEMO} .vk-lock-stage`;
+const STEPS = `${DEMO} .vk-lock-step`;
+const PAUSE = `${DEMO} .vk-lock-pause`;
+const ACTIVE = `${FRAMES}[data-active]`;
+
+async function holdScripts(page: Page): Promise<() => Promise<void>> {
+  const held: Route[] = [];
+  let holding = true;
+  await page.route("**/_next/static/**", (route) => {
+    if (holding && route.request().resourceType() === "script") held.push(route);
+    else void route.continue();
+  });
+  return async () => {
+    holding = false;
+    await Promise.all(held.splice(0).map((route) => route.continue()));
+  };
+}
+
+test.describe("lock-file demo without JavaScript on a wide screen", () => {
+  test.use({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: "no-preference",
+    javaScriptEnabled: false,
+  });
+
+  test("stacks every frame with its caption and shows no step list or pause button", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.locator(FRAMES)).toHaveCount(3);
+    for (const frame of await page.locator(FRAMES).all()) await expect(frame).toBeVisible();
+    for (const caption of await page.locator(`${DEMO} .vk-lock-caption`).all()) {
+      await expect(caption).toBeVisible();
+    }
+    await expect(page.locator(`${DEMO} .vk-lock-steps`)).toBeHidden();
+    await expect(page.locator(PAUSE)).toBeHidden();
+  });
+});
+
+test.describe("lock-file demo motion in a real browser", () => {
+  test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+
+  test("advances to the next frame on its own once the first step's dwell has passed", async ({
+    page,
+  }) => {
+    test.setTimeout(30_000);
+    await page.goto("/");
+    await page.locator(DEMO).scrollIntoViewIfNeeded();
+    await expect(page.locator(STAGE)).toHaveAttribute("data-mode", "stage");
+    await expect(page.locator(ACTIVE)).toHaveAttribute("id", "lock-demo-edit");
+    await expect(page.locator(ACTIVE)).toHaveAttribute("id", "lock-demo-compare", {
+      timeout: 12_000,
+    });
+    await expect(page.locator(STEPS).nth(1)).toHaveAttribute("aria-current", "step");
+  });
+
+  test("pauses while the section is offscreen and resumes when it is back", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(DEMO).scrollIntoViewIfNeeded();
+    await expect(page.locator(STAGE)).toHaveAttribute("data-mode", "stage");
+    await expect(page.locator(STAGE)).not.toHaveAttribute("data-paused", "");
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.locator(STAGE)).toHaveAttribute("data-paused", "");
+    await expect(page.locator(`${STEPS}[aria-current] .vk-lock-prog`)).toHaveCSS(
+      "animation-play-state",
+      "paused",
+    );
+    await page.locator(DEMO).scrollIntoViewIfNeeded();
+    await expect(page.locator(STAGE)).not.toHaveAttribute("data-paused", "");
+  });
+
+  test("steps and pauses from the keyboard", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(DEMO).scrollIntoViewIfNeeded();
+    await expect(page.locator(STAGE)).toHaveAttribute("data-mode", "stage");
+    await page.locator(STEPS).nth(1).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(ACTIVE)).toHaveAttribute("id", "lock-demo-compare");
+    await expect(page.locator(STAGE)).toHaveAttribute("data-userpaused", "");
+    await page.locator(PAUSE).focus();
+    await page.keyboard.press("Space");
+    await expect(page.locator(STAGE)).not.toHaveAttribute("data-userpaused", "");
+    await page.keyboard.press("Space");
+    await expect(page.locator(STAGE)).toHaveAttribute("data-userpaused", "");
+    await expect(page.locator(PAUSE)).toHaveText("Play animation");
+  });
+
+  test("keeps the section where it is while the page hydrates", async ({ page }) => {
+    const release = await holdScripts(page);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const offset = () =>
+      page.evaluate(() => ({
+        highlights: document.querySelector("#highlights")?.getBoundingClientRect().top ?? -1,
+        document: document.documentElement.scrollHeight,
+      }));
+    await expect(page.locator(STAGE)).not.toHaveAttribute("data-mode", "stage");
+    await expect(page.locator(`${FRAMES}:first-child`)).toBeVisible();
+    const before = await offset();
+    await release();
+    await expect(page.locator(STAGE)).toHaveAttribute("data-mode", "stage");
+    const after = await offset();
+    expect(Math.abs(after.highlights - before.highlights)).toBeLessThanOrEqual(1);
+    expect(Math.abs(after.document - before.document)).toBeLessThanOrEqual(1);
+  });
+
+  test("falls back to the stacked frames when the island never loads", async ({ page }) => {
+    test.setTimeout(40_000);
+    await page.route("**/_next/static/**", (route) =>
+      route.request().resourceType() === "script" ? route.abort() : route.continue(),
+    );
+    await page.goto("/");
+    await expect(page.locator(STAGE)).not.toHaveAttribute("data-mode", "stage");
+    for (const frame of await page.locator(FRAMES).all()) {
+      await expect(frame).toBeVisible({ timeout: 15_000 });
+    }
+    await expect(page.locator(`${DEMO} .vk-lock-steps`)).toBeHidden();
+    await expectNoHorizontalScroll(page);
   });
 });
