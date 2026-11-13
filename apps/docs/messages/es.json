@@ -196,7 +196,7 @@
       "lead": "Verbatra aplica hash a cada clave en un archivo de bloqueo, envía solo las claves modificadas a tu proveedor y hace fallar la CI ante desviaciones.",
       "ctaPrimary": "Empezar",
       "ctaCompare": "Comparar con otras herramientas",
-      "keysChanged": "~{count, plural, one {# clave} many {# claves} other {# claves}}"
+      "keysChanged": "{count, plural, one {# clave modificada} many {# de claves modificadas} other {# claves modificadas}}"
     },
     "marquee": {
       "heading": "Funciona con los archivos de locale y los proveedores que ya usas",
@@ -210,21 +210,21 @@
     },
     "lockDemo": {
       "label": "El archivo de bloqueo",
-      "heading": "{count, plural, =2 {Dos claves modificadas, dos claves enviadas} one {# clave modificada, # clave enviada} many {# claves modificadas, # claves enviadas} other {# claves modificadas, # claves enviadas}}",
+      "heading": "{count, plural, =2 {Dos claves modificadas, dos claves enviadas} one {# clave modificada, # clave enviada} many {# de claves modificadas, # de claves enviadas} other {# claves modificadas, # claves enviadas}}",
       "steps": "Cómo funciona una ejecución",
       "pause": "Pausar animación",
       "play": "Reproducir animación",
       "edit": {
         "label": "Editar",
-        "text": "Cambias {count, plural, one {# valor} many {# valores} other {# valores}} en tu archivo de origen."
+        "text": "Cambias {count, plural, one {# valor} many {# de valores} other {# valores}} en tu archivo de origen."
       },
       "compare": {
         "label": "Comparar",
-        "text": "Verbatra aplica hash a cada clave y la compara con el archivo de bloqueo. {count, plural, one {# hash registrado ya no coincide.} many {# hashes registrados ya no coinciden.} other {# hashes registrados ya no coinciden.}}"
+        "text": "Verbatra aplica hash a cada clave y la compara con el archivo de bloqueo. {count, plural, one {# hash registrado ya no coincide.} many {# de hashes registrados ya no coinciden.} other {# hashes registrados ya no coinciden.}}"
       },
       "send": {
         "label": "Enviar",
-        "text": "Solo {count, plural, one {# clave va} many {# claves van} other {# claves van}} al proveedor. Las otras {rest} no se envían."
+        "text": "Solo {count, plural, one {# clave va} many {# de claves van} other {# claves van}} al proveedor. Las otras {rest} no se envían."
       },
       "badge": {
         "changed": "{count} modificadas"
@@ -235,9 +235,9 @@
       },
       "gap": "… {count} más, sin cambios",
       "foot": {
-        "compare": "Obsoleto significa que el hash registrado difiere del hash del valor actual de {file}. Los otros {count} coinciden.",
+        "compare": "Obsoleta significa que el hash registrado difiere del hash del valor actual de {file}. Los otros {count} coinciden.",
         "generated": "generado {date}",
-        "lock": "{file}: {count, plural, one {# hash actualizado} many {# hashes actualizados} other {# hashes actualizados}}."
+        "lock": "{file}: {count, plural, one {# hash actualizado} many {# de hashes actualizados} other {# hashes actualizados}}."
       },
       "preGenerated": "pregenerado, no en vivo"
     },
@@ -252,7 +252,7 @@
       "ci": {
         "label": "Comprobación",
         "title": "Las claves que faltan llegan a producción",
-        "body": "La comprobación sale con {code} mientras a un locale le faltan claves. No necesita clave de API, así que se ejecuta en cada pull request."
+        "body": "La comprobación sale con {code} mientras un locale tenga claves faltantes u obsoletas. No necesita clave de API, así que se ejecuta en cada pull request."
       },
       "integrity": {
         "label": "Integridad",

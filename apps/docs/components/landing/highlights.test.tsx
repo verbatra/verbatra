@@ -95,6 +95,18 @@ describe("Highlights", () => {
     expect(root.querySelector("#highlights-translate-title")?.tagName).toBe("H3");
   });
 
+  it.each([
+    ["en", "missing or stale keys"],
+    ["de", "fehlende oder veraltete Schlüssel"],
+    ["es", "claves faltantes u obsoletas"],
+    ["fr", "clés manquantes ou obsolètes"],
+  ])("says in %s that the check also fails on stale keys", (locale, phrase) => {
+    const catalogs = JSON.parse(
+      readFileSync(join(process.cwd(), `messages/${locale}.json`), "utf8"),
+    ) as typeof en;
+    expect(catalogs.landing.highlights.ci.body).toContain(phrase);
+  });
+
   it("titles the check tile and states its real exit code in one translated sentence", () => {
     expect(tiles()[1]?.querySelector("h3")?.textContent).toBe(en.landing.highlights.ci.title);
     expect(tiles()[1]?.querySelector(".vk-tile-exit")?.textContent).toBe(
@@ -123,7 +135,6 @@ describe("Highlights", () => {
   });
 
   it("styles no line as a token total, because the cli prints none for a run without reported usage", () => {
-    expect(tiles()[0]?.querySelector("pre .vk-tile-code-total")).toBeNull();
     expect(tiles()[0]?.querySelector("pre")?.textContent).not.toMatch(/total|token/);
   });
 

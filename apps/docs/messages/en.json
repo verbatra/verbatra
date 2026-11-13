@@ -196,7 +196,7 @@
       "lead": "Verbatra hashes every key in a lock file, sends only changed keys to your provider, and fails CI on drift.",
       "ctaPrimary": "Get started",
       "ctaCompare": "Compare with other tools",
-      "keysChanged": "~{count, plural, one {# key} other {# keys}}"
+      "keysChanged": "{count, plural, one {# key changed} other {# keys changed}}"
     },
     "marquee": {
       "heading": "Works with the locale files and providers you already use",
@@ -252,7 +252,7 @@
       "ci": {
         "label": "Check",
         "title": "Missing keys reach production",
-        "body": "The check exits {code} while a locale is missing keys. It needs no API key, so it runs on every pull request."
+        "body": "The check exits {code} while a locale has missing or stale keys. It needs no API key, so it runs on every pull request."
       },
       "integrity": {
         "label": "Integrity",

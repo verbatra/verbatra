@@ -263,8 +263,8 @@ describe("Hero locale files", () => {
     ).toBe(false);
     expect(front?.querySelector(".vk-banner-file-badge")?.textContent).toBe(
       banner.keysChanged.replace(
-        /\{count, plural, one \{# key\} other \{# keys\}\}/,
-        `${HERO_FILE_CHANGED_COUNT} keys`,
+        /\{count, plural, one \{# key changed\} other \{# keys changed\}\}/,
+        `${HERO_FILE_CHANGED_COUNT} keys changed`,
       ),
     );
     expect(lines.at(-1)?.textContent?.endsWith(",")).toBe(false);
@@ -374,5 +374,18 @@ describe("Hero stylesheet", () => {
         /vk-banner-(stack|sheet|trust)|vk-tracks?\b|vk-track-/.test(selector),
       ),
     ).toEqual([]);
+  });
+});
+
+describe("the banner's changed-keys badge in every locale", () => {
+  it.each([
+    ["en", "2 keys changed"],
+    ["de", "2 Schlüssel geändert"],
+    ["es", "2 claves modificadas"],
+    ["fr", "2 clés modifiées"],
+  ])("%s renders %s on the front card, with no tilde", async (locale, expected) => {
+    const doc = await render(locale);
+    const badge = doc.querySelector("[data-front='true'] .vk-banner-file-badge");
+    expect(badge?.textContent).toBe(expected);
   });
 });

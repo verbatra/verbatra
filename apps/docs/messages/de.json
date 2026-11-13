@@ -196,7 +196,7 @@
       "lead": "Verbatra hasht jeden Schlüssel in einer Lock-Datei, sendet nur geänderte Schlüssel an deinen Anbieter und lässt die CI bei Abweichungen fehlschlagen.",
       "ctaPrimary": "Loslegen",
       "ctaCompare": "Mit anderen Tools vergleichen",
-      "keysChanged": "~{count, plural, one {# Schlüssel} other {# Schlüssel}}"
+      "keysChanged": "{count, plural, one {# Schlüssel geändert} other {# Schlüssel geändert}}"
     },
     "marquee": {
       "heading": "Funktioniert mit deinen Sprachdateien und Anbietern",
@@ -252,7 +252,7 @@
       "ci": {
         "label": "Prüfung",
         "title": "Fehlende Schlüssel erreichen die Produktion",
-        "body": "Der Check endet mit {code}, solange einer Locale Schlüssel fehlen. Er braucht keinen API-Schlüssel und läuft deshalb bei jedem Pull Request."
+        "body": "Der Check endet mit {code}, solange eine Locale fehlende oder veraltete Schlüssel hat. Er braucht keinen API-Schlüssel und läuft deshalb bei jedem Pull Request."
       },
       "integrity": {
         "label": "Integrität",

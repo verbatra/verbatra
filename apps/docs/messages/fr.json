@@ -196,7 +196,7 @@
       "lead": "Verbatra hache chaque clé dans un fichier de verrouillage, n’envoie que les clés modifiées à ton fournisseur et fait échouer la CI en cas de dérive.",
       "ctaPrimary": "Démarrer",
       "ctaCompare": "Comparer avec d’autres outils",
-      "keysChanged": "~{count, plural, one {# clé} many {# clés} other {# clés}}"
+      "keysChanged": "{count, plural, one {# clé modifiée} many {# de clés modifiées} other {# clés modifiées}}"
     },
     "marquee": {
       "heading": "Fonctionne avec les fichiers de locale et les fournisseurs que tu utilises déjà",
@@ -210,21 +210,21 @@
     },
     "lockDemo": {
       "label": "Le fichier de verrouillage",
-      "heading": "{count, plural, =2 {Deux clés modifiées, deux clés envoyées} one {# clé modifiée, # clé envoyée} many {# clés modifiées, # clés envoyées} other {# clés modifiées, # clés envoyées}}",
+      "heading": "{count, plural, =2 {Deux clés modifiées, deux clés envoyées} one {# clé modifiée, # clé envoyée} many {# de clés modifiées, # de clés envoyées} other {# clés modifiées, # clés envoyées}}",
       "steps": "Comment se déroule une exécution",
       "pause": "Mettre l’animation en pause",
       "play": "Lire l’animation",
       "edit": {
         "label": "Modifier",
-        "text": "Tu modifies {count, plural, one {# valeur} many {# valeurs} other {# valeurs}} dans ton fichier source."
+        "text": "Tu modifies {count, plural, one {# valeur} many {# de valeurs} other {# valeurs}} dans ton fichier source."
       },
       "compare": {
         "label": "Comparer",
-        "text": "Verbatra hache chaque clé et la compare au fichier de verrouillage. {count, plural, one {# hash enregistré ne correspond plus.} many {# hashes enregistrés ne correspondent plus.} other {# hashes enregistrés ne correspondent plus.}}"
+        "text": "Verbatra hache chaque clé et la compare au fichier de verrouillage. {count, plural, one {# hash enregistré ne correspond plus.} many {# de hashes enregistrés ne correspondent plus.} other {# hashes enregistrés ne correspondent plus.}}"
       },
       "send": {
         "label": "Envoyer",
-        "text": "Envoi au fournisseur de {count, plural, one {# seule clé} many {# clés seulement} other {# clés seulement}}. Les {rest} autres ne sont pas envoyées."
+        "text": "Envoi au fournisseur de {count, plural, one {# seule clé} many {# de clés seulement} other {# clés seulement}}. Les {rest} autres ne sont pas envoyées."
       },
       "badge": {
         "changed": "{count} modifiées"
@@ -237,7 +237,7 @@
       "foot": {
         "compare": "Obsolète signifie que le hash enregistré diffère du hash de la valeur actuelle de {file}. Les {count} autres correspondent.",
         "generated": "généré {date}",
-        "lock": "{file} : {count, plural, one {# hash mis à jour} many {# hashes mis à jour} other {# hashes mis à jour}}."
+        "lock": "{file} : {count, plural, one {# hash mis à jour} many {# de hashes mis à jour} other {# hashes mis à jour}}."
       },
       "preGenerated": "pré-généré, pas en direct"
     },
@@ -252,7 +252,7 @@
       "ci": {
         "label": "Vérification",
         "title": "Les clés manquantes arrivent en production",
-        "body": "La vérification se termine avec {code} tant qu’il manque des clés à une locale. Elle ne nécessite aucune clé API, elle s’exécute donc sur chaque pull request."
+        "body": "La vérification se termine avec {code} tant qu’une locale a des clés manquantes ou obsolètes. Elle ne nécessite aucune clé API, elle s’exécute donc sur chaque pull request."
       },
       "integrity": {
         "label": "Intégrité",
