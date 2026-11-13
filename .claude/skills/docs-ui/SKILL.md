@@ -620,10 +620,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   the scroll fades: every sideways-scrolling mono block fades its end edge while there is more to
   see, through a mask on the element's own inline scroll timeline (one `@supports` rule for every
   scroll fade, `.vk-edge-fade` included, dropped while the element shows a focus ring or holds a
-  focused child, so no ring is faded), and without scroll timelines a `--scroll-shade` (neutral,
-  never violet) over a `local` void cover; `.vk-scroll-fade` is that rule for `ScrollBlock` (no landing section uses one today; `components/landing/scroll-block.tsx`: a
-  `div` with `role="group"`, never a landmark, and `tabIndex={0}`, like the code frames' `pre`)
-  named by its caption through `aria-labelledby`. Both draw their focus ring inset
+  focused child, so no ring is faded). The focus ring is drawn inset
   (`outline-offset: -2px`) in one unlayered rule beside the global `:focus-visible`, outside every
   `@supports` block, because a frame clips with `overflow: hidden` and a layered utility loses to
   the global rule.
@@ -1333,7 +1330,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   `--border-default` hairline, and the first cell's inline code is mono `--accent` at weight 500
   (the flag, key or code the row is about). The generated `.vk-type-table` uses the same hairline treatment, with no frame or fill. `#nd-page .prose` is the
   `vk-article` size container, and every table rule keys on its width, never on the viewport. The wrapper scrolls sideways with
-  the end-edge fade `.vk-scroll-fade` uses, and the header is not sticky. Cells are compact (0.625rem
+  the end-edge fade `.vk-edge-fade` uses, and the header is not sticky. Cells are compact (0.625rem
   block, 0.75rem inline end, top-aligned). A table of three or more columns gets `.vk-table-stack` and a `data-label` per body
   cell from `lib/stacked-tables.ts` at build time, unless every body row holds at most
   `COMPACT_ROW_MAX_CHARACTERS` of text (the error code index), which stays a table at every width.

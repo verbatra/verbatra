@@ -2575,30 +2575,6 @@ html:has(.vk-home) {
   display: none;
 }
 
-.vk-scroll-fade {
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--text-faint) transparent;
-  background:
-    linear-gradient(to left, var(--v-void) 40%, transparent) right center / 48px 100% no-repeat
-    local,
-    linear-gradient(to left, var(--scroll-shade), transparent) right center / 24px 100% no-repeat
-    scroll,
-    var(--v-void);
-}
-
-.vk-scroll-fade:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -2px;
-}
-
-@supports (animation-timeline: scroll()) {
-  .vk-scroll-fade {
-    background: var(--v-void);
-  }
-}
-
 @property --vk-edge-fade {
   syntax: "<length>";
   inherits: false;
@@ -2632,7 +2608,6 @@ html:has(.vk-home) {
 }
 
 @supports (animation-timeline: scroll()) {
-  .vk-scroll-fade,
   .vk-edge-fade,
   .vk-docs-tabs > [role="tablist"] {
     -webkit-mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
@@ -2683,7 +2658,6 @@ html:has(.vk-home) {
     animation-timeline: scroll(self inline), scroll(self inline);
   }
 
-  .vk-scroll-fade:focus-visible,
   .vk-edge-fade:has(:focus-visible),
   .vk-docs-tabs > [role="tablist"]:has(:focus-visible) {
     -webkit-mask-image: none;
