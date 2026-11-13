@@ -220,7 +220,7 @@
       },
       "compare": {
         "label": "Compare",
-        "text": "verbatra hashes every key and compares it with the lock file. {count, plural, one {# recorded hash no longer matches.} other {# recorded hashes no longer match.}}"
+        "text": "Verbatra hashes every key and compares it with the lock file. {count, plural, one {# recorded hash no longer matches.} other {# recorded hashes no longer match.}}"
       },
       "send": {
         "label": "Send",
