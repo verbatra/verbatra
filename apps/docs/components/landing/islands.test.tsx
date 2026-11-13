@@ -19,7 +19,7 @@ const ISLAND_MODULES = [
   "./marquee-motion",
   "./playground-demo",
   "./faq-keys",
-  "./compare-focus",
+  "./compare-picker",
   "./scroll-top",
   "@/components/command-row",
   "@/components/ui/copy-button",

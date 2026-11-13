@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { badgedProviderNames, compareCellText } from "./compare-cells";
+import { asCellTranslator, type CellTranslator, compareCellView } from "./compare-cells";
 import { type Locale, localizedPath } from "./i18n";
 import {
   COMPARE_LAST_CHECKED,
@@ -8,12 +8,16 @@ import {
   COMPARE_TOOLS,
   CONCESSION_FOOTNOTES,
   type CompareFootnote,
+  type CompareRowId,
+  type CompareTool,
   cellFootnote,
   compareSource,
   compareSourceHref,
   fullTableFootnotes,
 } from "./landing-compare";
 import { formatLandingDate } from "./landing-date";
+import { MACHINE_PROVIDER_IDS } from "./landing-facts";
+import { providerShortLabel } from "./landing-providers";
 import { absoluteMarkdownHref } from "./markdown-links";
 import { pageFrontmatter } from "./page-frontmatter";
 import { homePath } from "./site";
@@ -30,19 +34,20 @@ function refs(footnotes: ReadonlyArray<CompareFootnote>): string {
   return footnotes.map((footnote) => `[${footnote}]`).join(" ");
 }
 
-async function providerText(locale: Locale): Promise<string> {
-  const names = await badgedProviderNames(locale);
-  return names
-    .map((provider) =>
-      provider.badge ? `${provider.label} (${provider.badge.label})` : provider.label,
-    )
-    .join(", ");
+function providerNames(): string {
+  return MACHINE_PROVIDER_IDS.map(providerShortLabel).join(", ");
+}
+
+function cellText(t: CellTranslator, row: CompareRowId, tool: CompareTool): string {
+  const { word, note } = compareCellView(t, row, tool);
+  const detail = row === "providers" && tool === "verbatra" ? providerNames() : note;
+  return detail === null ? word : `${word} - ${detail}`;
 }
 
 export async function compareMarkdown(locale: Locale): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.compare" });
   const page = await getTranslations({ locale, namespace: "compare" });
-  const providers = await providerText(locale);
+  const cells = asCellTranslator(t);
   const checked = formatLandingDate(COMPARE_LAST_CHECKED, locale);
   const columns = COMPARE_TOOLS.map((tool) =>
     tool === "manual" ? t("columns.manual") : COMPARE_TOOL_NAMES[tool],
@@ -50,11 +55,10 @@ export async function compareMarkdown(locale: Locale): Promise<string> {
   const header = `| ${[t("columns.criterion"), ...columns].map(tableCell).join(" | ")} |`;
   const divider = `| ${["", ...columns].map(() => "---").join(" | ")} |`;
   const rows = COMPARE_ROWS.map((row) => {
-    const cells = COMPARE_TOOLS.map(
-      (tool) =>
-        `${compareCellText(t, row, tool, { providers })} ${refs([cellFootnote(row, tool)])}`,
+    const line = COMPARE_TOOLS.map(
+      (tool) => `${cellText(cells, row, tool)} ${refs([cellFootnote(row, tool)])}`,
     );
-    return `| ${[t(`rows.${row}.label`), ...cells].map(tableCell).join(" | ")} |`;
+    return `| ${[t(`rows.${row}.label`), ...line].map(tableCell).join(" | ")} |`;
   });
   const sources = fullTableFootnotes().map((footnote) => {
     const source = compareSource(footnote);
@@ -65,14 +69,15 @@ export async function compareMarkdown(locale: Locale): Promise<string> {
   return [
     pageFrontmatter({ title: page("meta.title"), description: page("meta.description") }).trimEnd(),
     `# ${page("heading")}`,
-    page("lead"),
+    page("takeaway"),
+    page("scope"),
     page("caption"),
     [header, divider, ...rows].join("\n"),
     `${t("lastChecked")}: ${checked}`,
     t("fairness"),
     page("lingoNote"),
     page("formatsNote"),
-    `${page("concession")} ${refs(CONCESSION_FOOTNOTES)}`,
+    `${page("stronger")} ${refs(CONCESSION_FOOTNOTES)}`,
     `## ${page("nextHeading")}`,
     [
       `- [${page("quickstart")}](${absolute(localizedPath(locale, "/docs/quickstart"))})`,

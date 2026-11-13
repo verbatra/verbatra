@@ -1,32 +1,35 @@
 import { expect, test } from "playwright/test";
 import {
-  expectBackwardWalkClearsHeader,
-  expectClearOfPinnedColumn,
-  expectEdgeRefsReachable,
+  brokenWordPiecesIn,
+  expectEveryCompareCellVisible,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
   expectNothingPastRightEdge,
-  expectStickyLabelsFit,
   expectTargetsMeetMinimumSize,
   expectVaryAccept,
   LOCALES,
   openInTheme,
   pageUrl,
   THEMES,
-  waitForCompareFocus,
 } from "./support";
 
-const REGION = "main [data-compare-scroll]";
+const PAIRS = ["lingo", "tolgee", "weblate", "crowdin", "lokalise", "phrase", "manual"] as const;
+const MATRIX_WIDTHS = [1160, 1280, 1440, 1920, 2560];
+const ALL_WIDTHS = [320, 375, 391, 768, 1024, 1159, ...MATRIX_WIDTHS];
+const HEADER_HEIGHT = 56;
 
 for (const locale of LOCALES) {
   const url = pageUrl(locale, "/compare");
 
   test.describe(`comparison page ${url}`, () => {
     for (const theme of THEMES) {
-      test(`has no axe violations in the ${theme} theme`, async ({ page }) => {
-        await openInTheme(page, url, theme);
-        await expectNoAxeViolations(page);
-      });
+      for (const width of [391, 1440]) {
+        test(`has no axe violations in the ${theme} theme at ${width}px`, async ({ page }) => {
+          await page.setViewportSize({ width, height: 900 });
+          await openInTheme(page, url, theme);
+          await expectNoAxeViolations(page);
+        });
+      }
     }
 
     test("sets html lang, one h1 and a self-referencing canonical with every hreflang", async ({
@@ -61,7 +64,9 @@ for (const locale of LOCALES) {
       expect(explicit.status()).toBe(200);
       expect(explicit.headers()["content-type"]).toContain("text/markdown");
       expectVaryAccept(explicit);
-      expect(await explicit.text()).toContain("| --- |");
+      const body = await explicit.text();
+      expect(body).toContain("| --- |");
+      expect(body).toContain("1. Verbatra: ");
       const negotiated = await request.get(url, { headers: { accept: "text/markdown" } });
       expect(negotiated.headers()["content-type"]).toContain("text/markdown");
       expectVaryAccept(negotiated);
@@ -69,157 +74,227 @@ for (const locale of LOCALES) {
       expect(html.headers()["content-type"]).toContain("text/html");
     });
 
-    for (const width of [305, 375, 768]) {
-      test(`keeps every criterion word whole in its pinned column at ${width}px`, async ({
-        page,
-      }) => {
-        await page.setViewportSize({ width, height: 800 });
-        await page.goto(url);
-        await expectStickyLabelsFit(page, "main");
-      });
-    }
-
-    test("reflows at 320px with the table scrolling inside its region", async ({ page }) => {
-      await page.setViewportSize({ width: 320, height: 800 });
-      await page.goto(url);
-      await expectNoHorizontalScroll(page);
-      await expectStickyLabelsFit(page, "main");
-      const overflow = await page
-        .locator(REGION)
-        .evaluate((node) => node.scrollWidth - node.clientWidth);
-      expect(overflow).toBeGreaterThan(0);
-    });
-
     for (const width of [320, 375]) {
       test(`keeps every visible element inside the viewport at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 800 });
         await page.goto(url);
+        await expectNoHorizontalScroll(page);
         await expectNothingPastRightEdge(page);
+      });
+    }
+
+    for (const width of [1160, 1440]) {
+      test(`breaks no word of the matrix mid-word at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(url);
+        const { found, checked } = await page.evaluate(
+          brokenWordPiecesIn,
+          "main .vk-compare-table td",
+        );
+        expect(checked).toBeGreaterThan(0);
+        expect(found).toEqual([]);
       });
     }
   });
 }
 
-test.describe("full comparison table", () => {
-  test("scrolls inside its focused region on a phone while the first column stays put", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 375, height: 800 });
-    await page.goto("/compare");
-    const region = page.locator(REGION);
-    await region.focus();
-    await expect(region).toBeFocused();
-    const firstColumn = page.locator("main tbody tr:first-child th");
-    const before = await firstColumn.boundingBox();
-    for (let press = 0; press < 8; press += 1) await page.keyboard.press("ArrowRight");
-    await expect.poll(() => region.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
-    const after = await firstColumn.boundingBox();
-    expect(Math.abs((after?.x ?? 0) - (before?.x ?? 0))).toBeLessThan(1);
-    await expectNoHorizontalScroll(page);
-  });
-
-  for (const width of [375, 1024, 1440]) {
-    test(`never lets the pinned column cover a footnote focused backwards at ${width}px`, async ({
-      page,
-    }) => {
+test.describe("comparison layout", () => {
+  for (const width of ALL_WIDTHS) {
+    test(`never scrolls sideways at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/compare");
-      await waitForCompareFocus(page);
-      const rows = page.locator("main tbody tr[data-row]");
-      for (let row = 0; row < (await rows.count()); row += 1) {
-        const refs = rows.nth(row).locator("[data-footnotes] a");
-        await refs.last().focus();
-        for (let index = (await refs.count()) - 1; index >= 0; index -= 1) {
-          await expect(refs.nth(index)).toBeFocused();
-          await expectClearOfPinnedColumn(
-            rows.nth(row),
-            refs.nth(index),
-            `row ${row} ref ${index}`,
-          );
-          if (index > 0) await page.keyboard.press("Shift+Tab");
-        }
+      await expectNoHorizontalScroll(page);
+      await expectNothingPastRightEdge(page);
+    });
+  }
+
+  for (const width of MATRIX_WIDTHS) {
+    test(`shows the full eight column matrix and no pair view at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/compare");
+      await expect(page.locator("main .vk-compare-table")).toBeVisible();
+      await expect(page.locator("main thead th")).toHaveCount(9);
+      await expect(page.locator("main [data-compare-pairs]")).toBeHidden();
+      await expect(page.locator("main .vk-compare-picker")).toBeHidden();
+      const table = await page.locator("main .vk-compare-table").boundingBox();
+      expect(table?.width ?? 0).toBeLessThanOrEqual(width);
+    });
+  }
+
+  test("shows Verbatra beside one tool, not the matrix, below the matrix breakpoint", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.goto("/compare");
+    await expect(page.locator("main .vk-compare-table")).toBeHidden();
+    await expect(page.locator("main .vk-compare-picker select")).toBeVisible();
+    await expect(page.locator('main [data-pair="lingo"]')).toBeVisible();
+    await expect(page.locator('main [data-pair="tolgee"]')).toBeHidden();
+  });
+
+  test("keeps the header row stuck under the site header while the table scrolls", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/compare");
+    await page.locator('main tr[data-row="formats"]').scrollIntoViewIfNeeded();
+    await page.evaluate(() => window.scrollBy(0, 200));
+    const head = await page.locator("main thead th[data-column='verbatra']").boundingBox();
+    expect(Math.abs((head?.y ?? 0) - HEADER_HEIGHT)).toBeLessThanOrEqual(1);
+    for (const tool of ["verbatra", "lingo", "manual"])
+      await expect(page.locator(`main thead th[data-column='${tool}']`)).toBeInViewport();
+  });
+
+  for (const tool of PAIRS) {
+    test(`shows Verbatra and ${tool} fully at 391px`, async ({ page }) => {
+      await page.setViewportSize({ width: 391, height: 844 });
+      await page.goto(`/compare?tool=${tool}`);
+      await expect(page.locator("main .vk-compare-picker select")).toHaveValue(tool);
+      await expect(page.locator(`main [data-pair="${tool}"]`)).toBeVisible();
+      await expectEveryCompareCellVisible(page, tool);
+    });
+  }
+
+  test("starts on Lingo.dev and changes the URL when another tool is picked, which survives a reload", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 391, height: 844 });
+    await page.goto("/compare");
+    const select = page.locator("main .vk-compare-picker select");
+    await expect(select).toHaveValue("lingo");
+    await expect
+      .poll(() => page.locator("main [data-pair]").evaluateAll((nodes) => nodes.length))
+      .toBe(7);
+    await select.selectOption("crowdin");
+    await expect(page).toHaveURL(/\/compare\?tool=crowdin$/);
+    await expect(page.locator('main [data-pair="crowdin"]')).toBeVisible();
+    await expect(page.locator('main [data-pair="lingo"]')).toBeHidden();
+    await page.reload();
+    await expect(select).toHaveValue("crowdin");
+    await expect(page.locator('main [data-pair="crowdin"]')).toBeVisible();
+    await expect(page.locator('main [data-pair="lingo"]')).toBeHidden();
+  });
+
+  test("shows at least two comparison rows inside the first 391x844 screen", async ({ page }) => {
+    await page.setViewportSize({ width: 391, height: 844 });
+    await page.goto("/compare");
+    const inside = await page
+      .locator('main [data-pair="lingo"] [data-row]')
+      .evaluateAll((rows, height) => {
+        return rows.filter((row) => row.getBoundingClientRect().bottom <= height).length;
+      }, 844);
+    expect(inside).toBeGreaterThanOrEqual(2);
+  });
+
+  test("puts the first matrix row within 400px of the page top at 1440px", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/compare");
+    const row = await page.locator("main tbody tr").first().boundingBox();
+    expect(row?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(400);
+  });
+});
+
+test.describe("comparison without JavaScript", () => {
+  test.use({ javaScriptEnabled: false, viewport: { width: 391, height: 844 } });
+
+  test("holds all seven pairs as collapsed sections that open on a click", async ({ page }) => {
+    await page.goto("/compare");
+    const pairs = page.locator("main details[data-pair]");
+    await expect(pairs).toHaveCount(7);
+    await expect(page.locator("main .vk-compare-picker")).toBeHidden();
+    await expect(pairs.first()).toHaveJSProperty("open", true);
+    for (const tool of PAIRS.slice(1)) {
+      const pair = page.locator(`main details[data-pair="${tool}"]`);
+      await expect(pair).toHaveJSProperty("open", false);
+      await expect(pair.locator("summary")).toBeVisible();
+    }
+    await page.locator('main details[data-pair="tolgee"] summary').click();
+    await expect(page.locator('main details[data-pair="tolgee"]')).toHaveJSProperty("open", true);
+  });
+});
+
+test.describe("comparison without JavaScript on a desktop", () => {
+  test.use({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 } });
+
+  test("still shows the whole matrix", async ({ page }) => {
+    await page.goto("/compare");
+    await expect(page.locator("main .vk-compare-table")).toBeVisible();
+    await expect(page.locator("main tbody tr")).toHaveCount(12);
+  });
+});
+
+test.describe("comparison keyboard", () => {
+  for (const width of [391, 1440]) {
+    test(`passes the comparison in one Tab stop at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/compare");
+      const skip = page.locator("main a[data-skip]");
+      await skip.focus();
+      await expect(skip).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(/#compare-next$/);
+      await page.keyboard.press("Tab");
+      await expect(page.locator("main #compare-next a").first()).toBeFocused();
+    });
+  }
+});
+
+test.describe("comparison sources", () => {
+  for (const width of [391, 1440]) {
+    test(`gives every source link a 24px target at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/compare");
+      const links = page.locator("main a[data-source]");
+      const visible = await links.evaluateAll((nodes) =>
+        nodes
+          .filter((node) => node.checkVisibility())
+          .map((node) => {
+            const box = node.getBoundingClientRect();
+            return [Math.round(box.width), Math.round(box.height)];
+          }),
+      );
+      expect(visible.length).toBeGreaterThan(0);
+      for (const [boxWidth, boxHeight] of visible) {
+        expect(boxWidth).toBeGreaterThanOrEqual(24);
+        expect(boxHeight).toBeGreaterThanOrEqual(24);
       }
+      await expectTargetsMeetMinimumSize(page, "main a[data-source]");
     });
   }
 
-  for (const width of [375, 1440]) {
-    test(`tabs to the last footnote of every row fully into view at ${width}px`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await page.goto("/compare");
-      await expectEdgeRefsReachable(page, "main");
-    });
-  }
-
-  test("pins an 11rem criterion column and keeps every pill inside its cell at 1440px", async ({
+  test("names each source link by tool, criterion and source and links the cited page", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/compare");
-    const sticky = await page.locator("main tbody tr:first-child th").boundingBox();
-    expect(Math.abs((sticky?.width ?? 0) - 11 * 16)).toBeLessThan(1);
-    const outside = await page.locator("main td .vk-available-from").evaluateAll(
-      (pills) =>
-        pills.filter((pill) => {
-          const cell = pill.closest("td")?.getBoundingClientRect();
-          const box = pill.getBoundingClientRect();
-          return cell === undefined || box.right > cell.right + 0.5;
-        }).length,
+    const link = page.locator('main tr[data-row="translatorUi"] td[data-column="lingo"] a').first();
+    await expect(link).toHaveAttribute(
+      "href",
+      "https://lingo.dev/en/docs/api/pipeline/human-review",
     );
-    expect(outside).toBe(0);
+    await expect(
+      page.getByRole("link", { name: /^Lingo\.dev, .*, source$/ }).first(),
+    ).toBeVisible();
+    expect(await link.evaluate((node) => node.textContent)).toMatch(/Lingo\.dev/);
   });
 
-  test("tints a followed source with its number inside the tint", async ({ page }) => {
-    await page.goto("/compare#source-6");
-    await expect(page.locator("#source-6")).toHaveCSS("list-style-position", "inside");
-  });
-
-  test("tells a wide screen that the table scrolls sideways", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
+  test("has no source list, no footnote numbers and no source anchors", async ({ page }) => {
     await page.goto("/compare");
-    await expect(page.locator("main .vk-compare-hint")).toBeVisible();
-  });
-
-  test("lands on the cited source when a footnote link is followed by keyboard", async ({
-    page,
-  }) => {
-    await page.goto("/compare");
-    const ref = page.locator(
-      'main tr[data-row="selfHosting"] td[data-column="lokalise"] [data-footnotes] a',
-    );
-    await ref.focus();
-    await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/#source-62$/);
-    await expect(page.locator("#source-62")).toBeInViewport();
-    await expect(page.locator("#source-62")).toHaveCSS("box-shadow", /inset/);
-  });
-
-  for (const width of [375, 1440]) {
-    test(`gives every source link a 24px target or enough room around it at ${width}px`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await page.goto("/compare");
-      await expectTargetsMeetMinimumSize(page, "main ol[aria-labelledby] a");
-    });
-  }
-
-  test("sets the sources in two columns on a wide screen", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/compare");
-    await expect(page.locator("main ol[aria-labelledby]")).toHaveCSS("column-count", "2");
+    await expect(page.locator("main ol")).toHaveCount(0);
+    await expect(page.locator("main [data-footnotes]")).toHaveCount(0);
+    await expect(page.locator("main [id^='source-']")).toHaveCount(0);
   });
 });
 
 for (const path of ["/compare", "/fr/compare"]) {
-  for (const width of [375, 1024]) {
-    test(`keeps every footnote of ${path} clear of the header on a backwards walk at ${width}px`, async ({
+  for (const width of [320, 375]) {
+    test(`reflows ${path} at ${width}px with the pair view inside the viewport`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 800 });
       await page.goto(path);
-      await expectBackwardWalkClearsHeader(page, "main");
+      await expectNoHorizontalScroll(page);
+      await expectNothingPastRightEdge(page);
     });
   }
 }

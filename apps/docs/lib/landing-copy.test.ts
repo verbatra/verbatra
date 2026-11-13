@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
-import { COMPARE_ROWS, COMPARE_TOOLS } from "@/lib/landing-compare";
+import {
+  COMPARE_ROWS,
+  COMPARE_TOOLS,
+  type CompareRowId,
+  type CompareTool,
+  compareCell,
+} from "@/lib/landing-compare";
 
 const NAMESPACES = [
   "topNav",
@@ -77,11 +83,13 @@ describe("the redesigned landing copy", () => {
     }
   });
 
-  it("labels every comparison row and holds one cell per tool", () => {
+  it("labels every comparison row and holds copy only where a cell has some", () => {
     const rows = branch(landing("en"), "compare.rows");
     expect(Object.keys(rows)).toEqual([...COMPARE_ROWS]);
     for (const row of COMPARE_ROWS) {
-      expect(Object.keys(branch(rows, row))).toEqual(["label", ...COMPARE_TOOLS]);
+      const keys = Object.keys(branch(rows, row));
+      expect(keys[0]).toBe("label");
+      expect(COMPARE_TOOLS.filter((tool) => keys.includes(tool))).toEqual(keys.slice(1));
     }
     expect(Object.keys(branch(landing("en"), "compare.columns"))).toEqual(["criterion", "manual"]);
   });
@@ -111,40 +119,83 @@ describe("the redesigned landing copy", () => {
     expect("a\u202f: \u00ab\u202fx\u202f\u00bb").not.toMatch(FRENCH_SPACING);
   });
 
-  function ratingPattern(words: string): RegExp {
-    return new RegExp(`(?<!\\p{L})(${words})(?!\\p{L})`, "iu");
+  const VERDICT_WORDS = ["yes", "no", "partial", "unknown", "noneFound", "notApplicable"] as const;
+
+  const FLAGGED_LONG_NOTES: ReadonlyArray<readonly [CompareRowId, CompareTool]> = [
+    ["license", "lingo"],
+    ["pricing", "weblate"],
+    ["pricing", "crowdin"],
+    ["providers", "tolgee"],
+    ["providers", "crowdin"],
+    ["ownKeys", "crowdin"],
+    ["ci", "verbatra"],
+  ];
+
+  const ALL_CELLS = COMPARE_ROWS.flatMap((row) =>
+    COMPARE_TOOLS.map((tool) => [row, tool] as const),
+  );
+
+  const NOTE_CAP = 8;
+  const FLAGGED_NOTE_CAP = 10;
+  const VALUE_CAP = 4;
+
+  function words(text: string): number {
+    return text.split(/\s+/).filter((word) => word !== "").length;
   }
 
-  const RATINGS: Readonly<Record<string, RegExp>> = {
-    en: ratingPattern("better|worse|best|only tool|lacks"),
-    de: ratingPattern("besser|schlechter|beste[nrs]?|einzige[ns]? Tool|fehlt"),
-    es: ratingPattern("mejor|peor|única herramienta|carece"),
-    fr: ratingPattern("meilleur|pire|seul outil|manque"),
-  };
+  function cell(locale: string, row: CompareRowId, tool: CompareTool): MessageTree | undefined {
+    const node = branch(landing(locale), `compare.rows.${row}`)[tool];
+    return typeof node === "object" ? node : undefined;
+  }
 
-  const RATED: Readonly<Record<string, string>> = {
-    en: "the only tool here",
-    de: "das einzige Tool dafür",
-    es: "la única herramienta",
-    fr: "le seul outil",
-  };
-
-  it("catches a rating phrase in every locale, accented ones included", () => {
+  it("keeps one verdict vocabulary of single short words in every locale", () => {
     for (const locale of i18n.languages) {
-      expect(RATED[locale], locale).toMatch(RATINGS[locale] ?? /$^/);
+      const vocabulary = branch(landing(locale), "compare.verdicts");
+      expect(Object.keys(vocabulary), locale).toEqual([...VERDICT_WORDS]);
+      for (const [key, word] of leaves(vocabulary)) {
+        expect(word, `${locale} ${key}`).not.toBe("");
+        expect(words(word), `${locale} ${key}`).toBeLessThanOrEqual(2);
+      }
+      expect(new Set(leaves(vocabulary).map(([, word]) => word)).size, locale).toBe(
+        VERDICT_WORDS.length,
+      );
     }
-    expect("inmejorable").not.toMatch(RATINGS.es ?? /$^/);
+  });
+
+  it("gives a value to exactly the cells that show a value, and none to a verdict", () => {
+    for (const [row, tool] of ALL_CELLS) {
+      const node = cell("en", row, tool);
+      if (compareCell(row, tool).kind === "value")
+        expect(typeof node?.value, `${row}.${tool}`).toBe("string");
+      else expect(node?.value, `${row}.${tool}`).toBeUndefined();
+    }
   });
 
   for (const locale of i18n.languages) {
-    it(`never rates a competitor in a ${locale} comparison cell or note`, () => {
-      const rating = RATINGS[locale];
-      if (!rating) throw new Error(`no rating words for ${locale}`);
-      const rated = leaves(branch(landing(locale), "compare")).filter(([key]) =>
-        /^rows\./.test(key),
+    it(`caps a ${locale} qualifier at ${NOTE_CAP} words and the seven flagged ones at ${FLAGGED_NOTE_CAP}`, () => {
+      const flagged = FLAGGED_LONG_NOTES.map(([row, tool]) => `${row}.${tool}`);
+      const noted = ALL_CELLS.filter(
+        ([row, tool]) => typeof cell("en", row, tool)?.note === "string",
       );
-      expect(rated.length, locale).toBeGreaterThan(0);
-      for (const [key, text] of rated) expect(text, key).not.toMatch(rating);
+      for (const [row, tool] of noted) {
+        const note = cell(locale, row, tool)?.note;
+        expect(typeof note, `${locale} ${row}.${tool}`).toBe("string");
+        const cap = flagged.includes(`${row}.${tool}`) ? FLAGGED_NOTE_CAP : NOTE_CAP;
+        expect(words(String(note)), `${locale} ${row}.${tool}`).toBeLessThanOrEqual(cap);
+      }
+    });
+
+    it(`keeps a ${locale} value short and never opens a qualifier with a verdict word`, () => {
+      const vocabulary = leaves(branch(landing(locale), "compare.verdicts")).map(([, word]) =>
+        word.toLowerCase(),
+      );
+      for (const [row, tool] of ALL_CELLS) {
+        const node = cell(locale, row, tool);
+        const label = `${locale} ${row}.${tool}`;
+        expect(words(String(node?.value ?? "")), label).toBeLessThanOrEqual(VALUE_CAP);
+        const opening = /^[^\s,:;]+(?=[,:;]|$)/.exec(String(node?.note ?? ""))?.[0] ?? "";
+        expect(vocabulary, label).not.toContain(opening.toLowerCase());
+      }
     });
   }
 

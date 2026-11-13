@@ -52,7 +52,7 @@ describe("landing message parity", () => {
       "landing.marquee.pause",
       "landing.playground.label",
       "landing.playground.languageNames.ja",
-      "landing.compare.rows.license.verbatra",
+      "landing.compare.verdicts.yes",
       "landing.statement.heading",
       "landing.highlights.agents.body",
       "landing.features.items.doctor.title",
@@ -193,7 +193,7 @@ describe("landing message parity", () => {
 
   it("words an absence in the comparison as a search that found nothing, never as a missing feature", () => {
     for (const locale of i18n.languages) {
-      expect(landingText(locale, "compare.rows.ci.tolgee"), locale).toMatch(
+      expect(landingText(locale, "compare.verdicts.noneFound"), locale).toMatch(
         /found|gefunden|encontr|trouvée/,
       );
     }

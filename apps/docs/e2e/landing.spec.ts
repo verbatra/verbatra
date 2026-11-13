@@ -128,14 +128,27 @@ test.describe("forced colors", () => {
     expect(await primarySizes(page)).toEqual(normal);
   });
 
-  test("marks the Verbatra comparison column with a bar", async ({ page }) => {
+  test("keeps the comparison verdict marks and the Verbatra column bar visible", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/compare");
     await page.emulateMedia({ forcedColors: "active" });
-    const marks = page.locator(".vk-compare-mark");
+    const marks = page.locator("main .vk-compare-table .vk-compare-mark");
     expect(await marks.count()).toBeGreaterThan(1);
     for (let index = 0; index < (await marks.count()); index += 1) {
-      await expect(marks.nth(index)).toHaveCSS("border-left-width", "3px");
-      await expect(marks.nth(index)).toHaveCSS("border-left-style", "solid");
+      const paint = await marks.nth(index).evaluate((node) => {
+        const style = getComputedStyle(node);
+        return { stroke: style.stroke, color: style.color };
+      });
+      expect(paint.stroke).not.toBe("none");
+      expect(paint.stroke).toBe(paint.color);
+    }
+    const column = page.locator("main tbody td.vk-compare-self");
+    expect(await column.count()).toBeGreaterThan(1);
+    for (let index = 0; index < (await column.count()); index += 1) {
+      await expect(column.nth(index)).toHaveCSS("border-left-width", "3px");
+      await expect(column.nth(index)).toHaveCSS("border-left-style", "solid");
     }
   });
 });
