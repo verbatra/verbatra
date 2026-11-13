@@ -191,10 +191,14 @@ test.describe("lock-file demo motion in a real browser", () => {
     const release = await holdScripts(page);
     await page.goto("/", { waitUntil: "domcontentloaded" });
     const offset = () =>
-      page.evaluate(() => ({
-        highlights: document.querySelector("#highlights")?.getBoundingClientRect().top ?? -1,
-        document: document.documentElement.scrollHeight,
-      }));
+      page.evaluate(() => {
+        const demo = document.querySelector("#lock-demo")?.getBoundingClientRect();
+        return {
+          demoTop: demo?.top ?? -1,
+          demoHeight: demo?.height ?? -1,
+          highlights: document.querySelector("#highlights")?.getBoundingClientRect().top ?? -1,
+        };
+      });
     await expect(page.locator(STAGE)).not.toHaveAttribute("data-mode", "stage");
     await expect(page.locator(`${FRAMES}:first-child`)).toBeVisible();
     const before = await offset();
@@ -202,7 +206,8 @@ test.describe("lock-file demo motion in a real browser", () => {
     await expect(page.locator(STAGE)).toHaveAttribute("data-mode", "stage");
     const after = await offset();
     expect(Math.abs(after.highlights - before.highlights)).toBeLessThanOrEqual(1);
-    expect(Math.abs(after.document - before.document)).toBeLessThanOrEqual(1);
+    expect(Math.abs(after.demoTop - before.demoTop)).toBeLessThanOrEqual(1);
+    expect(Math.abs(after.demoHeight - before.demoHeight)).toBeLessThanOrEqual(1);
   });
 
   test("falls back to the stacked frames when the island never loads", async ({ page }) => {
