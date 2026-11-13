@@ -167,7 +167,10 @@ const SOURCES: ReadonlyArray<CompareSource> = [
   },
   {
     tool: "tolgee",
-    urls: ["https://github.com/tolgee", "https://docs.tolgee.io/tolgee-cli/push-pull-strings"],
+    urls: [
+      "https://github.com/tolgee",
+      "https://docs.tolgee.io/tolgee-cli/extraction/syncing-strings",
+    ],
   },
   { tool: "tolgee", urls: ["https://docs.tolgee.io/platform/integrations/mcp_server/about"] },
   {
@@ -424,7 +427,7 @@ export function cellFootnote(row: CompareRowId, tool: CompareTool): CompareFootn
   return tool === "manual" ? "M" : cellFootnoteNumber(row, tool);
 }
 
-export type CompareVerdict = "yes" | "no" | "partial" | "unknown" | "noneFound";
+type CompareVerdict = "yes" | "no" | "partial" | "unknown" | "noneFound";
 
 export type CompareMark = "yes" | "no" | "partial" | "unknown";
 
@@ -563,7 +566,7 @@ export function compareCell(row: CompareRowId, tool: CompareTool): CompareCell {
 
 const HOSTED_TMS_TOOLS: ReadonlyArray<SourcedTool> = ["crowdin", "lokalise", "phrase"];
 
-export const COMPARE_PATH = "/compare";
+export { COMPARE_PATH } from "./compare-url";
 
 export function fullTableFootnotes(): ReadonlyArray<number> {
   return Array.from({ length: COMPARE_SOURCE_COUNT }, (_, index) => index + 1);
