@@ -178,7 +178,8 @@ Scales are fixed and narrow, deliberately:
   lighter in the light theme, and neither tinted (`lib/theme.test.ts` fails on a hue in either
   shadow). Violet light comes only from the halo tokens above, in the places that name them: the
   hero halo and the shadow under its front locale-file card, the CI tile, the feature visuals, the closing
-  panel and the glow of the primary `Button`.
+  panel, the staged lock-demo card (`.vk-lock-stage .vk-lock-card`, only while the stage is set) and the
+  glow of the primary `Button`.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
@@ -875,10 +876,22 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   `(min-width: 64rem) and (prefers-reduced-motion: no-preference)`; when it matches the stage
   (`data-mode="stage"`) shows a step list (`aria-controls` per frame, `aria-current="step"`) in
   columns 1 to 4 and one frame at a time in columns 5 to 12, the others `inert` and `aria-hidden`.
-  Each step's `.vk-lock-prog` bar runs `vk-lock-progress` for its dwell (the lock frame longest), and
-  its `animationend` advances the frame; the bar is paused (inline `animation-play-state`) while the
+  Each step's `.vk-lock-prog` bar runs `vk-lock-progress` for its dwell (the lock frame longest) only
+  while `data-mode="stage"` is set, so a late hydration never misses its `animationend`, which advances
+  the frame; the bar is paused (inline `animation-play-state`) while the
   section is offscreen or the "Pause animation" button (2.2.2) was used, and choosing a step pauses.
   Frames keep their natural height; the stage is as tall as the tallest, so no card stretches.
+  Before the island mounts the CSS already draws the stage (first frame, no captions, the side list
+  hidden from the layout). If the island has not mounted after 10s (scripts blocked or failed), CSS
+  animations with `forwards` fill retire that layout: the frames, their captions and the plain card
+  border are exactly the stacked layout (same offsets, no accent border or halo), the step list and
+  the pause button leave the layout. That state is final for the page view: when the island arrives
+  later it reads the retired side list (`visibility: hidden`) and stays stacked instead of snapping
+  back to the stage. The keyframes never animate `display`.
+  Under 40rem the lock frame drops its unchanged neighbour rows (the gap rows carry the folded
+  count from the fixture), the send frame drops its head row and its lock-update line, indents are
+  1ch per level and every tag sits on its own row. In forced colors the current step takes a
+  2px `Highlight` outline.
   `lock-demo-motion.test.tsx` pins the island, `lock-demo.test.tsx` the markup and `e2e/lock-demo.spec.ts`
   the browser behaviour.
 - **Back to top.** `scroll-top.tsx` (`ScrollTop`, a plain block `island()` (`{ as: "div" }`) in `islands.tsx` that the
