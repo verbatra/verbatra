@@ -16,6 +16,16 @@
     "codeBlock": {
       "output": "Sortie"
     },
+    "callout": {
+      "note": "Remarque",
+      "warning": "Avertissement"
+    },
+    "pagination": {
+      "label": "Navigation de la page"
+    },
+    "breadcrumb": {
+      "label": "Fil d'Ariane"
+    },
     "availableFrom": {
       "title": "Disponible à partir de {version}",
       "text": "Il te faut verbatra {version} ou plus récent. Les versions antérieures ne l'ont pas : vérifie ta version installée avec <code>verbatra --version</code> et mets à jour si elle est plus ancienne.",
@@ -49,17 +59,9 @@
       "label": "Ajouter à {client}"
     },
     "theme": {
-      "light": "Thème clair"
-    },
-    "callout": {
-      "note": "Remarque",
-      "warning": "Avertissement"
-    },
-    "pagination": {
-      "label": "Navigation de la page"
-    },
-    "breadcrumb": {
-      "label": "Fil d'Ariane"
+      "light": "Thème clair",
+      "switchToLight": "Passer au thème clair",
+      "switchToDark": "Passer au thème sombre"
     }
   },
   "landing": {
@@ -111,9 +113,9 @@
           "question": "Verbatra peut-il faire échouer une pull request si des traductions sont manquantes ?",
           "answer": "Oui. <code>verbatra check</code> renvoie le code 1 tant qu’une locale a des clés manquantes ou obsolètes, sans clé API ; la <link>GitHub Action</link> l’exécute sur les pull requests."
         },
-        "incremental": {
-          "question": "Verbatra retraduit-il des chaînes qui n’ont pas changé ?",
-          "answer": "Non. Seules les clés nouvelles et modifiées sont envoyées à ton fournisseur ; un <link>fichier de verrouillage</link> enregistré garde une trace de ce qui est déjà traduit."
+        "compare": {
+          "question": "En quoi Verbatra diffère-t-il des autres outils i18n ?",
+          "answer": "C’est une CLI qui s’exécute sur tes fichiers versionnés, pas une plateforme hébergée. La <link>page de comparaison</link> la confronte aux autres outils, sources à l’appui, même quand ils sont meilleurs."
         }
       }
     },
@@ -137,6 +139,9 @@
           "llmsIndex": "llms.txt (index)",
           "llmsFull": "llms-full.txt (texte intégral)",
           "aiTxt": "ai.txt (politique d’utilisation)"
+        },
+        "agents": {
+          "title": "Pour les agents"
         },
         "packages": {
           "title": "Packages",
@@ -188,8 +193,9 @@
     },
     "banner": {
       "headline": "Ne traduis que <accent>ce qui a changé</accent>",
-      "lead": "Verbatra remplit les clés manquantes dans tes fichiers de localisation, donne à ton agent de codage un serveur MCP et fait échouer la CI lorsque les traductions dérivent.",
+      "lead": "Verbatra hache chaque clé dans un fichier de verrouillage, n’envoie que les clés modifiées à ton fournisseur et fait échouer la CI en cas de dérive.",
       "ctaPrimary": "Démarrer",
+      "ctaCompare": "Comparer avec d’autres outils",
       "keysAdded": "+{count, plural, one {# clé} many {# clés} other {# clés}}"
     },
     "marquee": {
@@ -211,16 +217,17 @@
       "lead": "Une CLI, un SDK, un Studio local et un serveur MCP, tous lisant le même fichier de verrouillage.",
       "translate": {
         "label": "Traduire",
-        "title": "Paie pour {sent} chaînes, pas {total}"
+        "title": "Tout retraduire coûte plus cher",
+        "body": "Seules {sent} traductions sur {total} sont nouvelles ou modifiées, donc seules {sent} partent chez ton fournisseur."
       },
       "ci": {
         "label": "Vérification",
-        "title": "La dérive fait échouer la pull request",
+        "title": "Les clés manquantes arrivent en production",
         "body": "La vérification se termine avec {code} tant qu’il manque des clés à une locale. Elle ne nécessite aucune clé API, elle s’exécute donc sur chaque pull request."
       },
       "integrity": {
         "label": "Intégrité",
-        "title": "Les placeholders arrivent intacts"
+        "title": "Un placeholder cassé casse un écran"
       },
       "agents": {
         "label": "Agents",
@@ -482,13 +489,20 @@
       "newTab": "(s’ouvre dans un nouvel onglet)",
       "contributorsHeading": "Contributeurs",
       "contributorAria": "{name} sur GitHub",
-      "contributorSlot": "Ton avatar ici",
-      "contributorSlotHint": "trouve une tâche pour commencer"
+      "contributingGuide": "Guide de contribution"
     },
     "closing": {
       "heading": "Commence par un test à blanc",
-      "lead": "Après l’init, une simulation n’a pas besoin de clé API, n’écrit rien et liste exactement les clés qu’une exécution réelle enverrait.",
-      "label": "Avant de dépenser un jeton"
+      "lead": "Ce parcours s’adresse à un projet qui a déjà des fichiers de locale, et aucune des deux étapes ne nécessite de clé API.",
+      "label": "Avant de dépenser un jeton",
+      "proof": {
+        "label": "Faits sur le projet",
+        "provenance": "Provenance npm",
+        "license": "Licence MIT",
+        "telemetry": "La CLI n’envoie aucune télémétrie",
+        "coverage": "Seuil de couverture de {threshold} %",
+        "ci": "Workflow CI"
+      }
     },
     "fab": {
       "label": "Retour en haut"

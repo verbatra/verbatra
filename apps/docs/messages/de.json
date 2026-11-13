@@ -16,6 +16,16 @@
     "codeBlock": {
       "output": "Ausgabe"
     },
+    "callout": {
+      "note": "Hinweis",
+      "warning": "Warnung"
+    },
+    "pagination": {
+      "label": "Seitennavigation"
+    },
+    "breadcrumb": {
+      "label": "Brotkrumen"
+    },
     "availableFrom": {
       "title": "Verfügbar ab {version}",
       "text": "Dafür brauchst du verbatra {version} oder neuer. Frühere Releases haben es nicht: Prüf deine installierte Version mit <code>verbatra --version</code> und aktualisiere, falls sie älter ist.",
@@ -49,17 +59,9 @@
       "label": "Zu {client} hinzufügen"
     },
     "theme": {
-      "light": "Helles Design"
-    },
-    "callout": {
-      "note": "Hinweis",
-      "warning": "Warnung"
-    },
-    "pagination": {
-      "label": "Seitennavigation"
-    },
-    "breadcrumb": {
-      "label": "Brotkrumen"
+      "light": "Helles Design",
+      "switchToLight": "Zum hellen Design wechseln",
+      "switchToDark": "Zum dunklen Design wechseln"
     }
   },
   "landing": {
@@ -111,9 +113,9 @@
           "question": "Kann Verbatra einen Pull Request fehlschlagen lassen, wenn Übersetzungen fehlen?",
           "answer": "Ja. <code>verbatra check</code> beendet sich mit Exit-Code 1, solange eine Sprachdatei fehlende oder veraltete Schlüssel enthält, und braucht keinen API-Schlüssel; die <link>GitHub Action</link> führt dies bei Pull Requests aus."
         },
-        "incremental": {
-          "question": "Übersetzt Verbatra Zeichenketten neu, die sich nicht geändert haben?",
-          "answer": "Nein. Nur neue und geänderte Schlüssel gehen an deinen Anbieter; eine festgeschriebene <link>Lock-Datei</link> erfasst, was bereits übersetzt wurde."
+        "compare": {
+          "question": "Wie unterscheidet sich Verbatra von anderen i18n-Tools?",
+          "answer": "Es ist eine CLI, die auf deinen eigenen committeten Dateien läuft, keine gehostete Plattform. Die <link>Vergleichsseite</link> prüft sie gegen andere Tools, mit Quellen, auch dort, wo diese stärker sind."
         }
       }
     },
@@ -137,6 +139,9 @@
           "llmsIndex": "llms.txt (Index)",
           "llmsFull": "llms-full.txt (vollständiger Text)",
           "aiTxt": "ai.txt (Nutzungsrichtlinie)"
+        },
+        "agents": {
+          "title": "Für Agenten"
         },
         "packages": {
           "title": "Pakete",
@@ -188,8 +193,9 @@
     },
     "banner": {
       "headline": "Übersetze nur, <accent>was sich geändert hat</accent>",
-      "lead": "Verbatra füllt die fehlenden Schlüssel in deinen Sprachdateien, gibt deinem Code-Agenten einen MCP-Server und lässt die CI fehlschlagen, wenn Übersetzungen abweichen.",
+      "lead": "Verbatra hasht jeden Schlüssel in einer Lock-Datei, sendet nur geänderte Schlüssel an deinen Anbieter und lässt die CI bei Abweichungen fehlschlagen.",
       "ctaPrimary": "Loslegen",
+      "ctaCompare": "Mit anderen Tools vergleichen",
       "keysAdded": "+{count, plural, one {# Schlüssel} other {# Schlüssel}}"
     },
     "marquee": {
@@ -211,16 +217,17 @@
       "lead": "Eine CLI, ein SDK, ein lokales Studio und ein MCP-Server, die alle dieselbe Lock-Datei lesen.",
       "translate": {
         "label": "Übersetzen",
-        "title": "Zahle für {sent} Strings, nicht für {total}"
+        "title": "Alles neu zu übersetzen kostet mehr",
+        "body": "Nur {sent} von {total} Übersetzungen sind neu oder geändert, also gehen nur {sent} an deinen Anbieter."
       },
       "ci": {
         "label": "Prüfung",
-        "title": "Drift lässt den Pull Request fehlschlagen",
+        "title": "Fehlende Schlüssel erreichen die Produktion",
         "body": "Der Check endet mit {code}, solange einer Locale Schlüssel fehlen. Er braucht keinen API-Schlüssel und läuft deshalb bei jedem Pull Request."
       },
       "integrity": {
         "label": "Integrität",
-        "title": "Platzhalter bleiben intakt"
+        "title": "Ein kaputter Platzhalter führt zu einem kaputten Bildschirm"
       },
       "agents": {
         "label": "Agenten",
@@ -482,13 +489,20 @@
       "newTab": "(öffnet in einem neuen Tab)",
       "contributorsHeading": "Mitwirkende",
       "contributorAria": "{name} auf GitHub",
-      "contributorSlot": "Dein Avatar hier",
-      "contributorSlotHint": "finde eine Aufgabe, mit der du beginnen kannst"
+      "contributingGuide": "Leitfaden zum Mitwirken"
     },
     "closing": {
       "heading": "Beginne mit einem Probelauf",
-      "lead": "Nach der Initialisierung benötigt ein Probelauf keinen API-Schlüssel, schreibt nichts und listet genau auf, welche Schlüssel ein echter Lauf senden würde.",
-      "label": "Bevor du einen Token ausgibst"
+      "lead": "Dieser Pfad ist für ein Projekt, das bereits Lokalisierungsdateien hat, und keiner der Schritte benötigt einen API-Schlüssel.",
+      "label": "Bevor du einen Token ausgibst",
+      "proof": {
+        "label": "Projektfakten",
+        "provenance": "npm-Provenienz",
+        "license": "MIT-Lizenz",
+        "telemetry": "Die CLI sendet keine Telemetriedaten",
+        "coverage": "{threshold}% Abdeckungsschwelle",
+        "ci": "CI-Workflow"
+      }
     },
     "fab": {
       "label": "Nach oben"
