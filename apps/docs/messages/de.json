@@ -210,7 +210,7 @@
     },
     "lockDemo": {
       "label": "Die Lock-Datei",
-      "heading": "{count, plural, =2 {Zwei Schlüssel geändert, zwei Schlüssel gesendet} one {# Schlüssel geändert, # Schlüssel gesendet} other {# Schlüssel geändert, # Schlüssel gesendet}}",
+      "heading": "{count, plural, =2 {Zwei Schlüssel geändert, zwei Schlüssel gesendet} one {# Schlüssel geändert, # Schlüssel gesendet} other {# Schlüssel geändert, # Schlüssel gesendet}}",
       "steps": "So läuft ein Durchlauf",
       "pause": "Animation pausieren",
       "play": "Animation abspielen",
@@ -235,7 +235,7 @@
       },
       "gap": "… {count} weitere, unverändert",
       "foot": {
-        "compare": "Veraltet bedeutet, der gespeicherte Hash weicht vom Hash des aktuellen {file}-Werts ab. Die anderen {count} stimmen überein.",
+        "compare": "Veraltet (stale) bedeutet, der gespeicherte Hash weicht vom Hash des aktuellen {file}-Werts ab. Die anderen {count} stimmen überein.",
         "generated": "erzeugt {date}",
         "lock": "{file}: {count, plural, one {# Hash} other {# Hashes}} aktualisiert."
       },

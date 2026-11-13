@@ -235,7 +235,7 @@
       },
       "gap": "… {count} más, sin cambios",
       "foot": {
-        "compare": "Obsoleta significa que el hash registrado difiere del hash del valor actual de {file}. Los otros {count} coinciden.",
+        "compare": "Obsoleta (stale) significa que el hash registrado de una entrada difiere del hash del valor actual de {file}. Las otras {count} coinciden.",
         "generated": "generado el {date}",
         "lock": "{file}: {count, plural, one {# hash actualizado} many {# de hashes actualizados} other {# hashes actualizados}}."
       },
