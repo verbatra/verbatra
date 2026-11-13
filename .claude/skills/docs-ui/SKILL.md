@@ -375,17 +375,18 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   columns with `--grid-gap`, like the lock-file demo's stage: rows on the first four, every pane in the same cell on the other eight, all but the pane of the checked radio `visibility: hidden`, so the
   section keeps the height of its tallest pane and nothing below it moves. The transparent radio stretches over its row, so the whole row is the native control and takes the base-layer pointer, the
   checked row takes the accent border and bar with no transition (a faded border flashes when the layout crosses 64rem), the
-  deck card carries no halo because the body and the link sit right under it, and a focused radio outlines its row; arrow keys move through the group because
+  deck card carries no halo because the body and the link sit right under it, a focused radio outlines its row, and the checked row carries a transparent outline that `forced-colors` paints; arrow keys move through the group because
   they are native radios. Never add autoplay here: the lock-file demo above already moves.
   The artifacts are data in `lib/feature-artifacts.ts`, built from the hero fixture (`HERO_TERMINAL_SOURCE`, the playground file
   pattern) so every count derives from it: `ArtifactLine` is a command, an output line (optionally marked `hit`), or a fold
   (`more` with a count, `moreChecks` without one), and a block is CLI output, a file excerpt, the handoff sheet or the Studio
   shot. `lib/feature-artifacts.run.test.ts` runs the real CLI (`packages/cli/src/run`) for `extract --dry-run`, `types`,
   `doctor`, `translate --dry-run`, `watch` and `export --format csv` on that fixture and fails when a shown line, the declared
-  types or a sheet cell differs from what verbatra prints or writes; doctor is verbatim up to its one fold, which may hide only checks that passed. CLI and file text
+  types or a sheet cell differs from what verbatra prints or writes (the watch pane is the output of the real watcher,
+  stopped at its waiting line, progress lines included); doctor is verbatim up to its one fold, which may hide only checks that passed. CLI and file text
   carries `lang="en"` on every locale; only the badges, the folds and the empty sheet cell are translated
   (`landing.features.badges`, `more`, `moreChecks`, `emptyCell`). `landing-markdown.ts` writes the same artifacts into `/index.md`.
-  The Studio pane shows the whole `studio-overview` screenshot (`StudioCardShot`, `components/landing/studio-card-shot.tsx`, a
+  The Studio pane shows the `studio-overview` screenshot (`StudioCardShot`, `components/landing/studio-card-shot.tsx`, a
   server component: no client directive, no theme hook, no frame, none of `StudioScreenshot`'s props, which stays the docs frame).
   It renders the dark and the light file as two `img.vk-deck-shot`, each decorative (`alt=""` and `aria-hidden`: the `h3` names the
   feature), lazy, `width` and `height` 2880 by 1280 set, inside a `.vk-deck-shot-frame` that clips the capture's empty side margins and its last line (the image is 128.2% wide and
