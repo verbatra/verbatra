@@ -3217,7 +3217,6 @@ html:has(.vk-home) {
 .vk-banner-file[data-locale="fr"] .vk-banner-file-line,
 .vk-banner-file[data-locale="es"] .vk-banner-file-line {
   padding-block: 0.25rem;
-  white-space: nowrap;
   color: var(--text-faint);
 }
 

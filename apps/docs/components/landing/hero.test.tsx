@@ -382,6 +382,17 @@ describe("Hero stylesheet", () => {
     ).toBe("inline-size");
   });
 
+  it("lets the back cards' preview line wrap like every other value line", () => {
+    const rules = docsStylesheetRules();
+    const backLines = rules.filter(
+      (rule) =>
+        rule.selector.includes('.vk-banner-file[data-locale="fr"] .vk-banner-file-line') ||
+        rule.selector.includes('.vk-banner-file[data-locale="es"] .vk-banner-file-line'),
+    );
+    expect(backLines.length).toBeGreaterThan(0);
+    expect(backLines.some((rule) => "white-space" in rule.declarations)).toBe(false);
+  });
+
   it("keeps the old stack, sheet and track rules out of the stylesheet", () => {
     const selectors = docsStylesheetRules().map((rule) => rule.selector);
     expect(
