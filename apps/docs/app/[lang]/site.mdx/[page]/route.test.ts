@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { i18n, type Locale } from "@/lib/i18n";
 import {
+  COMPARE_LAST_CHECKED,
   COMPARE_ROWS,
   COMPARE_SOURCE_COUNT,
   COMPARE_TOOLS,
@@ -11,6 +12,7 @@ import {
   compareSource,
   compareSourceHref,
 } from "@/lib/landing-compare";
+import { formatLandingDate } from "@/lib/landing-date";
 import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
 import { absoluteMarkdownHref } from "@/lib/markdown-links";
@@ -132,7 +134,8 @@ describe("GET /[lang]/site.mdx/[page]", () => {
       expectVerdictWords(rows, messages.landing.compare.verdicts);
       for (const key of ["takeaway", "scope", "stronger"] as const)
         expect(body).toContain(messages.compare[key].replaceAll("|", "\\|"));
-      expect(body).not.toContain(messages.compare.sourcesChecked.split("{date}")[0]);
+      const checkedLine = `${messages.landing.compare.lastChecked}: ${formatLandingDate(COMPARE_LAST_CHECKED, lang)}`;
+      expect(body.split(checkedLine)).toHaveLength(2);
       const { verdicts, rows: cells } = messages.landing.compare;
       const noneFound = `${verdicts.noneFound} ${cells.ci?.tolgee?.note}`;
       expect(body).toContain(noneFound.replaceAll("|", "\\|"));
