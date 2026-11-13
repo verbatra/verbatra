@@ -11,6 +11,7 @@ import {
 } from "@verbatra/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  HERO_CHECK_BADGE,
   HERO_CHECK_EXIT_CODE,
   HERO_CHECK_OUTPUT,
   HERO_TERMINAL_CHANGED_KEYS,
@@ -20,7 +21,7 @@ import {
   HERO_TRANSLATE_EXIT_CODE,
   HERO_TRANSLATE_OUTPUT,
 } from "@/lib/hero-terminal";
-import { LOCK_DEMO_HASHES } from "@/lib/lock-demo";
+import { LOCK_DEMO_HASHES, lockLines } from "@/lib/lock-demo";
 import { renderCheckHuman, renderHuman } from "../../../packages/cli/src/render";
 import { run } from "../../../packages/cli/src/run";
 
@@ -73,11 +74,14 @@ afterEach(async () => {
   cwd = undefined;
 });
 
-type LockFile = { locales: Record<string, Record<string, string>> };
+type LockFile = { version: number; locales: Record<string, Record<string, string>> };
+
+async function recordedLock(dir: string): Promise<LockFile> {
+  return JSON.parse(await readFile(join(dir, "verbatra.lock.json"), "utf8"));
+}
 
 async function recordedHashes(dir: string): Promise<Record<string, string>> {
-  const lock: LockFile = JSON.parse(await readFile(join(dir, "verbatra.lock.json"), "utf8"));
-  return lock.locales.de ?? {};
+  return (await recordedLock(dir)).locales.de ?? {};
 }
 
 function expectedHashes(which: "before" | "after"): Record<string, string> {
@@ -166,6 +170,24 @@ describe("the hero terminal prints what verbatra prints", () => {
     expect(seededHashes).toEqual(expectedHashes("before"));
     await translate({ config: CONFIG, cwd: dir }, { createProvider: provider() });
     expect(await recordedHashes(dir)).toEqual(expectedHashes("after"));
+  });
+
+  it("renders the lock file with the version and the key order the cli writes", async () => {
+    const dir = await projectWithEditedKeys();
+    const lock = await recordedLock(dir);
+    const rendered = lockLines();
+    const versionLine = rendered.find(
+      (line) => line.kind === "text" && line.text.startsWith('"version"'),
+    );
+    expect(versionLine).toMatchObject({ text: `"version": ${lock.version},` });
+    const shownKeys = rendered.flatMap((line) => (line.kind === "entry" ? [line.key] : []));
+    const written = Object.keys(lock.locales.de ?? {});
+    expect(shownKeys.length).toBeGreaterThan(0);
+    expect(written.filter((key) => shownKeys.includes(key))).toEqual(shownKeys);
+  });
+
+  it("builds the check badge from the badge the check output carries", () => {
+    expect(HERO_CHECK_OUTPUT[1]).toContain(HERO_CHECK_BADGE);
   });
 
   it("holds one locale and fourteen source values, two of them edited", () => {
