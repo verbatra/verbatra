@@ -6,7 +6,6 @@ import {
   HERO_TOTAL_STRINGS,
   HERO_TRANSLATE_COMMAND,
   HERO_TRANSLATE_OUTPUT,
-  HERO_TRANSLATE_TOTAL_LINE,
 } from "@/lib/hero-terminal";
 import { MCP_ADD_COMMAND } from "@/lib/install-commands";
 import {
@@ -35,9 +34,8 @@ function hangOf(line: string): number {
   return Math.max(MIN_HANG, line.length - line.trimStart().length);
 }
 
-function lineTone(line: string, index: number): string | undefined {
-  if (index === 0) return "vk-tile-code-strong";
-  return line.trim() === HERO_TRANSLATE_TOTAL_LINE ? "vk-tile-code-total" : undefined;
+function lineTone(index: number): string | undefined {
+  return index === 0 ? "vk-tile-code-strong" : undefined;
 }
 
 const PLACEHOLDER = /(\{[^{}]+\})/;
@@ -84,7 +82,7 @@ export async function Highlights(): Promise<ReactNode> {
                 {TRANSLATE_LINES.map((line, index) => (
                   <span
                     key={line}
-                    className={cn("vk-tile-line", lineTone(line, index))}
+                    className={cn("vk-tile-line", lineTone(index))}
                     style={{ "--vk-hang": `${hangOf(line)}ch` } as CSSProperties}
                   >
                     {index < TRANSLATE_LINES.length - 1 ? `${line}\n` : line}

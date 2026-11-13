@@ -17,7 +17,7 @@ describe("the check demo quotes the cli", () => {
     expect(render).toMatch(/missing, \$\{l\.stale\} stale/);
     expect(render).toContain('l.inSync ? "in sync" : "out of sync"');
     expect(checkLocaleLine("de", 2, 12)).toBe(
-      "  de: 2 missing, 0 stale, 12 up-to-date (out of sync)",
+      "  de: 0 missing, 2 stale, 12 up-to-date (out of sync)",
     );
   });
 });

@@ -8,8 +8,8 @@ export const MarqueeMotion = island(
   () => import("./marquee-motion").then((m) => m.MarqueeMotion),
   BLOCK,
 );
-export const PlaygroundDemo = island(
-  () => import("./playground-demo").then((m) => m.PlaygroundDemo),
+export const LockDemoMotion = island(
+  () => import("./lock-demo-motion").then((m) => m.LockDemoMotion),
   BLOCK,
 );
 export const CommandRow = intlIsland(
@@ -25,7 +25,7 @@ export const CopyButton = intlIsland(() =>
 
 await preloadIslands([
   MarqueeMotion,
-  PlaygroundDemo,
+  LockDemoMotion,
   CommandRow,
   FaqKeys,
   CompareFocus,

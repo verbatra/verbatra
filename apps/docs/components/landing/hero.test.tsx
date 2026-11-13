@@ -6,8 +6,9 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { HERO_TERMINAL_CHANGED_KEYS } from "@/lib/hero-terminal";
 import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
-import { HERO_FILE_ADDED_COUNT } from "@/lib/landing-hero-files";
+import { HERO_FILE_CHANGED_COUNT } from "@/lib/landing-hero-files";
 import { PLAYGROUND_FILES_PATTERN, PLAYGROUND_TRANSLATIONS } from "@/lib/landing-playground";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
@@ -222,7 +223,6 @@ describe("Hero locale files", () => {
       (chip) => chip.textContent,
     );
     expect(tinted).toContain("{name}");
-    expect(tinted).toContain("{count}");
     expect(tinted.every((text) => /^\{[^{}]+\}$/.test(text ?? ""))).toBe(true);
   });
 
@@ -241,29 +241,30 @@ describe("Hero locale files", () => {
       );
       for (const line of card.querySelectorAll(".vk-banner-file-line")) {
         const [, id = "", value = ""] =
-          /^(?:\+ )?"([^"]+)": (".*"),?$/.exec(line.textContent ?? "") ?? [];
+          /^(?:~ )?"([^"]+)": (".*"),?$/.exec(line.textContent ?? "") ?? [];
         expect(JSON.parse(value), `${locale} ${id}`).toBe(PLAYGROUND_TRANSLATIONS[locale]?.[id]);
       }
     }
     expect(cards[0]?.querySelectorAll(".vk-banner-file-line")).toHaveLength(1);
   });
 
-  it("gives the de card five lines whose last new ones are marked with a plus, counted by the badge from the added lines", async () => {
+  it("gives the de card five lines, the changed ones marked with a tilde and counted from the fixture", async () => {
     const front = (await files()).querySelector("[data-front='true']");
     const lines = Array.from(front?.querySelectorAll(".vk-banner-file-line") ?? []);
     expect(lines).toHaveLength(5);
-    const added = lines.filter((line) => line.getAttribute("data-added") === "true");
-    expect(added).toHaveLength(HERO_FILE_ADDED_COUNT);
-    expect(added.every((line) => line.textContent?.startsWith("+ "))).toBe(true);
+    const changed = lines.filter((line) => line.getAttribute("data-changed") === "true");
+    expect(changed).toHaveLength(HERO_FILE_CHANGED_COUNT);
+    expect(HERO_FILE_CHANGED_COUNT).toBe(HERO_TERMINAL_CHANGED_KEYS.length);
+    expect(changed.every((line) => line.textContent?.startsWith("~ "))).toBe(true);
     expect(
       lines
-        .filter((line) => !added.includes(line))
-        .some((line) => line.textContent?.startsWith("+")),
+        .filter((line) => !changed.includes(line))
+        .some((line) => line.textContent?.startsWith("~")),
     ).toBe(false);
     expect(front?.querySelector(".vk-banner-file-badge")?.textContent).toBe(
-      banner.keysAdded.replace(
+      banner.keysChanged.replace(
         /\{count, plural, one \{# key\} other \{# keys\}\}/,
-        `${HERO_FILE_ADDED_COUNT} keys`,
+        `${HERO_FILE_CHANGED_COUNT} keys`,
       ),
     );
     expect(lines.at(-1)?.textContent?.endsWith(",")).toBe(false);

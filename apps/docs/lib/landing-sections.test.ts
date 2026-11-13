@@ -8,13 +8,12 @@ function docsPath(relative: string): string {
 }
 
 describe("landing section order", () => {
-  it("opens on the hero and the marquee, then the statement, the highlights, the SDK playground, the features, the FAQ and the call to action", () => {
+  it("opens on the hero and the marquee, then the lock-file demo, the highlights, the features, the FAQ and the call to action", () => {
     expect(LANDING_SECTIONS).toEqual([
       "hero",
       "marquee",
-      "statement",
+      "lockDemo",
       "highlights",
-      "playground",
       "features",
       "faq",
       "finalCta",
@@ -57,6 +56,9 @@ describe("landing section order", () => {
     "try-it",
     "evidence",
     "code-frame",
+    "statement",
+    "playground",
+    "playground-demo",
   ])("no longer ships the %s component", (name) => {
     expect(existsSync(docsPath(`components/landing/${name}.tsx`))).toBe(false);
   });

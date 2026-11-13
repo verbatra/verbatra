@@ -91,23 +91,12 @@ describe("the landing page surface", () => {
   );
 });
 
-describe("the statement to highlights spacing", () => {
-  it("keeps the statement's own bottom padding small so both sections together stay near mockup F", () => {
-    const padding = rulesFor(rules, ".vk-statement").find((rule) => rule.media === "")
-      ?.declarations["padding-block"];
-    expect(padding).toBe("clamp(5rem, 12.5vw, 11.25rem) clamp(0rem, 3.6vw, 3.25rem)");
-  });
-});
-
-describe("the hero and statement titles", () => {
-  it("sizes the hero title like mockup F, capped by its column, and the statement never larger", () => {
+describe("the hero title", () => {
+  it("sizes the hero title like mockup F, capped by its column", () => {
     expect(rootToken("--banner-title")).toBe("min(clamp(2.875rem, 6.6vw, 5.75rem), 15.5cqi)");
-    expect(rootToken("--statement-title")).toBe("clamp(2.5rem, 6.4vw, 5.75rem)");
     const title = rulesFor(rules, ".vk-banner-title").find((rule) => rule.media === "");
     expect(title?.declarations["font-weight"]).toBe("600");
     expect(title?.declarations["letter-spacing"]).toBe("-0.05em");
-    const statement = rulesFor(rules, ".vk-statement-title").find((rule) => rule.media === "");
-    expect(statement?.declarations["font-size"]).toBe("var(--statement-title)");
   });
 });
 

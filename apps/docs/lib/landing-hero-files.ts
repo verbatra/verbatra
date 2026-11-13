@@ -3,26 +3,29 @@ import {
   PLAYGROUND_FILES_PATTERN,
   PLAYGROUND_TRANSLATIONS,
 } from "./landing-playground";
+import { LOCK_DEMO_PLAYGROUND_IDS } from "./lock-demo";
 
 export type HeroFileLine = {
   readonly id: string;
   readonly text: string;
-  readonly added: boolean;
+  readonly changed: boolean;
 };
 
 export const HERO_BACK_LOCALES = ["fr", "es"] as const;
 
 export const HERO_FRONT_LOCALE = "de";
 
-const HERO_FILE_IDS: ReadonlyArray<{ readonly id: string; readonly added: boolean }> = [
-  { id: PLAYGROUND_DEFAULT_ITEM, added: false },
-  { id: "settings", added: false },
-  { id: "messages", added: true },
-  { id: "cartEmpty", added: true },
-  { id: "deleteFile", added: false },
+const [FIRST_CHANGED_ID = "", SECOND_CHANGED_ID = ""] = Object.values(LOCK_DEMO_PLAYGROUND_IDS);
+
+const HERO_FILE_IDS: ReadonlyArray<{ readonly id: string; readonly changed: boolean }> = [
+  { id: PLAYGROUND_DEFAULT_ITEM, changed: false },
+  { id: "settings", changed: false },
+  { id: FIRST_CHANGED_ID, changed: true },
+  { id: SECOND_CHANGED_ID, changed: true },
+  { id: "deleteFile", changed: false },
 ];
 
-export const HERO_FILE_ADDED_COUNT = HERO_FILE_IDS.filter(({ added }) => added).length;
+export const HERO_FILE_CHANGED_COUNT = HERO_FILE_IDS.filter(({ changed }) => changed).length;
 
 export function heroFileName(locale: string): string {
   return PLAYGROUND_FILES_PATTERN.replace("{locale}", locale);
@@ -38,9 +41,9 @@ export function heroFilePreview(locale: string): string {
 }
 
 export function heroFileLines(locale: string): ReadonlyArray<HeroFileLine> {
-  return HERO_FILE_IDS.map(({ id, added }, index) => ({
+  return HERO_FILE_IDS.map(({ id, changed }, index) => ({
     id,
-    added,
+    changed,
     text: jsonPair(locale, id, index < HERO_FILE_IDS.length - 1),
   }));
 }

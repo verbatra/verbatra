@@ -6,12 +6,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
   HERO_CHECK_EXIT_CODE,
+  HERO_TERMINAL_CHANGED_KEYS,
   HERO_TERMINAL_LOCALES,
-  HERO_TERMINAL_NEW_KEYS,
   HERO_TERMINAL_SYNCED_KEYS,
   HERO_TRANSLATE_COMMAND,
   HERO_TRANSLATE_OUTPUT,
-  HERO_TRANSLATE_TOTAL_LINE,
 } from "@/lib/hero-terminal";
 import { MCP_ADD_COMMAND } from "@/lib/install-commands";
 import {
@@ -69,8 +68,8 @@ describe("Highlights", () => {
 
   it("derives the sent and total strings from the hero run instead of typing them", () => {
     const locales = HERO_TERMINAL_LOCALES.length;
-    const sent = HERO_TERMINAL_NEW_KEYS.length * locales;
-    const total = (HERO_TERMINAL_NEW_KEYS.length + HERO_TERMINAL_SYNCED_KEYS.length) * locales;
+    const sent = HERO_TERMINAL_CHANGED_KEYS.length * locales;
+    const total = (HERO_TERMINAL_CHANGED_KEYS.length + HERO_TERMINAL_SYNCED_KEYS.length) * locales;
     expect(tiles()[0]?.querySelector(".vk-tile-body")?.textContent).toBe(
       `Only ${sent} of ${total} translations are new or changed, so only ${sent} go to your provider.`,
     );
@@ -123,9 +122,9 @@ describe("Highlights", () => {
     });
   });
 
-  it("totals the run in the accent colour on its own line", () => {
-    const total = tiles()[0]?.querySelector("pre .vk-tile-code-total");
-    expect(total?.textContent?.trim()).toBe(HERO_TRANSLATE_TOTAL_LINE);
+  it("styles no line as a token total, because the cli prints none for a run without reported usage", () => {
+    expect(tiles()[0]?.querySelector("pre .vk-tile-code-total")).toBeNull();
+    expect(tiles()[0]?.querySelector("pre")?.textContent).not.toMatch(/total|token/);
   });
 
   it("keeps the block's text byte for byte what the CLI prints, one element per line", () => {

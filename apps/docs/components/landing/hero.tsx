@@ -8,13 +8,13 @@ import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
 import { COMPARE_PATH } from "@/lib/landing-compare";
 import {
   HERO_BACK_LOCALES,
-  HERO_FILE_ADDED_COUNT,
+  HERO_FILE_CHANGED_COUNT,
   HERO_FRONT_LOCALE,
   heroFileLines,
   heroFileName,
   heroFilePreview,
 } from "@/lib/landing-hero-files";
-import { splitPlaceholders } from "@/lib/playground-cycle";
+import { splitPlaceholders } from "@/lib/placeholder-segments";
 
 export const HERO_TITLE_ID = "hero-title";
 
@@ -30,7 +30,7 @@ function Placeheld({ text }: { text: string }): ReactNode {
   );
 }
 
-function LocaleFiles({ keysAdded }: { keysAdded: string }): ReactNode {
+function LocaleFiles({ keysChanged }: { keysChanged: string }): ReactNode {
   return (
     <div aria-hidden="true" className="vk-banner-files">
       {HERO_BACK_LOCALES.map((code) => (
@@ -44,16 +44,16 @@ function LocaleFiles({ keysAdded }: { keysAdded: string }): ReactNode {
       <div className="vk-banner-file" data-locale={HERO_FRONT_LOCALE} data-front="true">
         <p className="vk-banner-file-name">
           <span>{heroFileName(HERO_FRONT_LOCALE)}</span>
-          <span className="vk-banner-file-badge">{keysAdded}</span>
+          <span className="vk-banner-file-badge">{keysChanged}</span>
         </p>
         <div className="vk-banner-file-body" lang={HERO_FRONT_LOCALE}>
           {heroFileLines(HERO_FRONT_LOCALE).map((line) => (
             <p
               key={line.id}
               className="vk-banner-file-line"
-              data-added={line.added ? "true" : undefined}
+              data-changed={line.changed ? "true" : undefined}
             >
-              <Placeheld text={line.added ? `+ ${line.text}` : line.text} />
+              <Placeheld text={line.changed ? `~ ${line.text}` : line.text} />
             </p>
           ))}
         </div>
@@ -100,7 +100,7 @@ export async function Hero(): Promise<ReactNode> {
           </div>
         </div>
         <div className="vk-banner-demo">
-          <LocaleFiles keysAdded={t("keysAdded", { count: HERO_FILE_ADDED_COUNT })} />
+          <LocaleFiles keysChanged={t("keysChanged", { count: HERO_FILE_CHANGED_COUNT })} />
         </div>
       </div>
     </section>

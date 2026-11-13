@@ -26,9 +26,8 @@ const { faqContent } = await import("@/components/landing/faq");
 const SECTION_HEADINGS = [
   "banner.headline",
   "marquee.heading",
-  "statement.label",
+  "lockDemo.label",
   "highlights.heading",
-  "playground.heading",
   "features.heading",
   "faq.heading",
   "closing.heading",

@@ -42,9 +42,8 @@ for (const locale of LOCALES) {
       expect(sections.map((section) => section.id)).toEqual([
         "hero-title",
         "marquee",
-        "statement",
+        "lock-demo",
         "highlights",
-        "playground",
         "features",
         "faq",
         "closing-heading",
@@ -64,25 +63,6 @@ for (const locale of LOCALES) {
     }
   });
 }
-
-test.describe("code frames", () => {
-  test.use({ viewport: { width: 1440, height: 900 } });
-
-  test("draw the focus ring of every focusable code block inside its frame", async ({ page }) => {
-    await page.goto("/");
-    const blocks = page.locator('.vk-code-frame-body pre[tabindex="0"]');
-    const count = await blocks.count();
-    expect(count).toBeGreaterThan(0);
-    for (let index = 0; index < count; index += 1) {
-      const block = blocks.nth(index);
-      if (!(await block.isVisible())) continue;
-      await block.focus();
-      expect(await block.evaluate((node) => node.matches(":focus-visible"))).toBe(true);
-      await expect(block, `code block ${index}`).toHaveCSS("outline-offset", "-2px");
-      await expect(block).toHaveCSS("outline-style", "solid");
-    }
-  });
-});
 
 test.describe("forced colors", () => {
   test.use({ viewport: { width: 1440, height: 900 } });

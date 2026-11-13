@@ -196,7 +196,7 @@
       "lead": "Verbatra hashes every key in a lock file, sends only changed keys to your provider, and fails CI on drift.",
       "ctaPrimary": "Get started",
       "ctaCompare": "Compare with other tools",
-      "keysAdded": "+{count, plural, one {# key} other {# keys}}"
+      "keysChanged": "~{count, plural, one {# key} other {# keys}}"
     },
     "marquee": {
       "heading": "Works with the locale files and providers you already use",
@@ -208,9 +208,38 @@
       "allProviders": "All providers",
       "allFormats": "All formats"
     },
-    "statement": {
-      "label": "One run, one locale",
-      "heading": "<em>{sent} keys</em> leave your machine, {kept} stay put"
+    "lockDemo": {
+      "label": "The lock file",
+      "heading": "{count, plural, =2 {Two keys changed, two keys sent} one {# key changed, # key sent} other {# keys changed, # keys sent}}",
+      "steps": "How a run works",
+      "pause": "Pause animation",
+      "play": "Play animation",
+      "edit": {
+        "label": "Edit",
+        "text": "You change {count, plural, one {# value} other {# values}} in your source file."
+      },
+      "compare": {
+        "label": "Compare",
+        "text": "verbatra hashes every key and compares it with the lock file. {count, plural, one {# recorded hash no longer matches.} other {# recorded hashes no longer match.}}"
+      },
+      "send": {
+        "label": "Send",
+        "text": "Only those {count, plural, one {# key goes} other {# keys go}} to the provider. The other {rest} are not sent."
+      },
+      "badge": {
+        "changed": "{count} changed"
+      },
+      "tags": {
+        "changed": "changed",
+        "stale": "stale"
+      },
+      "gap": "… {count} more, unchanged",
+      "foot": {
+        "compare": "Stale means the recorded hash differs from the hash of the current {file} value. The other {count} match.",
+        "generated": "generated {date}",
+        "lock": "{file}: {count, plural, one {# hash} other {# hashes}} updated."
+      },
+      "preGenerated": "pre-generated, not live"
     },
     "highlights": {
       "heading": "Everything around the diff",
@@ -233,62 +262,6 @@
         "label": "Agents",
         "title": "Your coding agent fixes translations",
         "body": "Register the MCP server for the project, and the agent can read status and fix translations. Tools that spend provider tokens stay off until you allow them."
-      }
-    },
-    "playground": {
-      "heading": "Translate a string with the SDK",
-      "lead": "Pick a string and watch the SDK call translate it into every language below. Placeholders stay exactly in place.",
-      "items": "Source string",
-      "languages": "Target languages",
-      "source": "Source ({locale})",
-      "copy": "Copy code",
-      "label": "Pre-generated with the Verbatra SDK and Gemini, not live.",
-      "metadata": {
-        "label": "How these results were generated",
-        "provider": "Provider",
-        "model": "Model",
-        "generated": "Generated"
-      },
-      "languageNames": {
-        "de": "German",
-        "es": "Spanish",
-        "fr": "French",
-        "ja": "Japanese"
-      },
-      "table": {
-        "caption": "Every pre-generated result, one row per source string",
-        "source": "Source (English)"
-      },
-      "links": {
-        "label": "Read more",
-        "quickstart": "SDK quickstart",
-        "reference": "SDK reference",
-        "providers": "Providers"
-      },
-      "animation": {
-        "pause": "Pause animation",
-        "play": "Play animation"
-      },
-      "status": {
-        "running": "Translating {strings, plural, one {# string} other {# strings}} into {languages, plural, one {# language} other {# languages}}",
-        "passed": "Integrity check passed: {intact} of {total} placeholders intact",
-        "passedNone": "Integrity check passed: no placeholders to protect"
-      },
-      "counters": {
-        "sent": "sent",
-        "kept": "kept",
-        "placeholders": "placeholders",
-        "checking": "checking"
-      },
-      "clock": {
-        "typing": "typing",
-        "running": "running",
-        "done": "done"
-      },
-      "run": {
-        "queued": "queued",
-        "awaiting": "awaiting",
-        "resolved": "resolved"
       }
     },
     "features": {
