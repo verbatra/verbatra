@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { COMPARE_TOOL_PARAM } from "@/lib/compare-url";
 
-export const COMPARE_TOOL_PARAM = "tool";
+type PickerOption = { readonly id: string; readonly name: string };
 
-export type PickerOption = { readonly id: string; readonly name: string };
+export const PICKER_LIVE_ATTRIBUTE = "data-picker-live";
 
 function toolFromLocation(options: ReadonlyArray<PickerOption>): string | null {
   const wanted = new URLSearchParams(window.location.search).get(COMPARE_TOOL_PARAM);
@@ -42,6 +43,12 @@ export function ComparePicker({
   const first = options[0]?.id ?? "";
   const [tool, setTool] = useState(first);
   const [host, setHost] = useState<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const compare = host?.closest(".vk-compare");
+    compare?.setAttribute(PICKER_LIVE_ATTRIBUTE, "");
+    return () => compare?.removeAttribute(PICKER_LIVE_ATTRIBUTE);
+  }, [host]);
 
   useEffect(() => {
     const shared = toolFromLocation(options);

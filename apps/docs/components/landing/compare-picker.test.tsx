@@ -3,7 +3,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { ComparePicker } from "./compare-picker";
+import { ComparePicker, PICKER_LIVE_ATTRIBUTE } from "./compare-picker";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -39,6 +39,17 @@ function choose(select: HTMLSelectElement, value: string): void {
 }
 
 describe("ComparePicker", () => {
+  it("marks the comparison as having a live picker while it is mounted and unmarks it after", () => {
+    document.body.innerHTML = '<div class="vk-compare"><div id="host"></div></div>';
+    const compare = document.querySelector(".vk-compare") as HTMLElement;
+    expect(compare.hasAttribute(PICKER_LIVE_ATTRIBUTE)).toBe(false);
+    const root = createRoot(document.getElementById("host") as HTMLElement);
+    act(() => root.render(<ComparePicker label="Compare" options={OPTIONS} />));
+    expect(compare.hasAttribute(PICKER_LIVE_ATTRIBUTE)).toBe(true);
+    act(() => root.unmount());
+    expect(compare.hasAttribute(PICKER_LIVE_ATTRIBUTE)).toBe(false);
+  });
+
   it("names a native select by its label and starts on the first tool", () => {
     const { select } = mount();
     expect(document.querySelector("label")?.textContent).toBe("Compare Verbatra with");
