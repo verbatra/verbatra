@@ -365,7 +365,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   derives from the hero terminal data, never typed; the CLI text (run, exit code, command) carries
   `lang="en"` on every locale, like the lock-file demo's CLI lines), `features.tsx` (`#features`, a bracketed label, a split
   head aligned to the start and `.vk-feature-grid` of `LANDING_FEATURES` from `lib/landing-features.ts`: each card a
-  fixed-height `.vk-feature-visual` (halo and dot grid, `overflow: hidden`) holding either one `aria-hidden` `canvas.vk-feature-canvas`
+  fixed-height `.vk-feature-visual` (halo and dot grid, `overflow: hidden`) holding either one `aria-hidden` `canvas.vk-feature-canvas` (under 40rem the five canvas visuals are `display: none`, so a phone shows the Studio screenshot card and five text cards; the canvas loop never starts for a canvas that is not on screen)
   (five cards: `feature-canvas.tsx`, a client island: motifs are the pure frame functions of `lib/landing-canvas.ts`, one per
   `CANVAS_FEATURES` entry of `lib/landing-features.ts`,
   colors read from the `--accent`, `--art-dim`, `--text-muted`, `--border-default`, `--surface-card`,
@@ -911,6 +911,9 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   lock-file demo, the features and the closing panel set a `.vk-eyebrow` label above it (`{ LABEL }`,
   the braces drawn in CSS with empty alt text); no section carries an index or a counter, and
   `reveal-marks.test.tsx` fails on a CSS counter or a numbered section list.
+- **Phone length.** The English landing stays under 11 screens at 391 by 844 with motion and under 11.5 with
+  reduced motion (`e2e/landing.spec.ts`). Under 40rem the section steps are 88px, 64px and 48px, `--head-gap` is 2rem,
+  and the footer link rows sit at their 44px targets with no row gap. A new phone section pays for its height elsewhere.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
   scroll listener; at most one reveal chain per section, and only on a demo artifact (the hero
   the marquee loop is not a reveal); no entrance over 16px or 600ms.
