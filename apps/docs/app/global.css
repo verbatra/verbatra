@@ -2863,7 +2863,7 @@ html:has(.vk-home) {
 
 .vk-compare-table th,
 .vk-compare-table td {
-  padding: 0.5rem 0.5rem;
+  padding: 0.5rem 0.25rem;
   border-block-end: 1px solid var(--border-default);
   text-align: start;
   vertical-align: top;
@@ -2881,7 +2881,7 @@ html:has(.vk-home) {
 }
 
 .vk-compare-table .vk-compare-criterion {
-  width: 8rem;
+  width: 7.5rem;
   color: var(--text-strong);
   font-weight: 500;
 }
