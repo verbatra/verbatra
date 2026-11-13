@@ -293,6 +293,17 @@
           "title": "Sabe antes de gastar",
           "body": "Doctor comprueba la configuración sin una clave de API, y una estimación calcula el tamaño de una ejecución antes de que cueste nada."
         }
+      },
+      "more": "… {count} más",
+      "moreChecks": "… más comprobaciones, todas aprobadas",
+      "emptyCell": "el traductor lo rellena",
+      "badges": {
+        "extract": "{count, plural, one {# nueva clave} many {# nuevas claves} other {# nuevas claves}}",
+        "types": "{count, plural, one {# clave declarada} many {# claves declaradas} other {# claves declaradas}}",
+        "doctor": "no se necesita clave de API",
+        "watch": "con cada guardado",
+        "handoff": "{count, plural, one {# fila para traducir} many {# filas para traducir} other {# filas para traducir}}",
+        "studio": "captura de pantalla real"
       }
     },
     "steps": {

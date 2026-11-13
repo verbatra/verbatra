@@ -293,6 +293,17 @@
           "title": "Know before you spend",
           "body": "Doctor checks the setup without an API key, and an estimate sizes a run before it costs anything."
         }
+      },
+      "more": "… {count} more",
+      "moreChecks": "… more checks, all passed",
+      "emptyCell": "translator fills this in",
+      "badges": {
+        "extract": "{count, plural, one {# new key} other {# new keys}}",
+        "types": "{count, plural, one {# key declared} other {# keys declared}}",
+        "doctor": "no API key needed",
+        "watch": "on every save",
+        "handoff": "{count, plural, one {# row to translate} other {# rows to translate}}",
+        "studio": "real screenshot"
       }
     },
     "steps": {

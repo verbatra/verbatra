@@ -5,8 +5,10 @@ import { join } from "node:path";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { FEATURE_ARTIFACTS } from "@/lib/feature-artifacts";
 import { i18n } from "@/lib/i18n";
 import { LANDING_FEATURES } from "@/lib/landing-features";
+import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import de from "@/messages/de.json";
 import en from "@/messages/en.json";
 import es from "@/messages/es.json";
@@ -39,23 +41,42 @@ beforeAll(async () => {
   root.innerHTML = renderToStaticMarkup(await Features());
 });
 
-function cards(): Element[] {
-  return Array.from(root.querySelectorAll("ul.vk-feature-grid > li.vk-feature"));
+function items(): Element[] {
+  return Array.from(root.querySelectorAll("ol.vk-deck > li.vk-deck-item"));
 }
 
 describe("Features", () => {
-  it("lists one card per landing feature, in order, under a bracketed label", () => {
+  it("lists the features in workflow order, from the source code to the review", () => {
+    expect(LANDING_FEATURES.map(({ id }) => id)).toEqual([
+      "extract",
+      "types",
+      "doctor",
+      "watch",
+      "handoff",
+      "studio",
+    ]);
     expect(root.querySelector("p.vk-eyebrow")?.textContent).toBe(en.landing.features.label);
-    expect(cards().map((card) => card.querySelector("h3")?.textContent)).toEqual(
+    expect(items().map((item) => item.querySelector("h3")?.textContent)).toEqual(
       LANDING_FEATURES.map(({ id }) => en.landing.features.items[id].title),
     );
   });
 
-  it("links each title to its command page in the reader's locale", () => {
-    expect(cards().map((card) => card.querySelector("h3 a")?.getAttribute("href"))).toEqual(
+  it("shows the command of every feature beside its title", () => {
+    expect(items().map((item) => item.querySelector(".vk-deck-command")?.textContent)).toEqual(
+      LANDING_FEATURES.map(({ command }) => command),
+    );
+  });
+
+  it("links every feature to its command page in the reader's locale, outside any label", () => {
+    const links = items().map((item) => item.querySelector(".vk-deck-pane a"));
+    expect(links.map((link) => link?.getAttribute("href"))).toEqual(
       LANDING_FEATURES.map(({ docsPath }) => `/de${docsPath}`),
     );
+    expect(links.map((link) => link?.textContent)).toEqual(
+      LANDING_FEATURES.map(({ docsPath }) => docsPath.slice(1)),
+    );
     expect(root.querySelectorAll("a")).toHaveLength(LANDING_FEATURES.length);
+    expect(root.querySelector("label a, button")).toBeNull();
   });
 
   it("links only command pages that exist in every locale", () => {
@@ -71,61 +92,102 @@ describe("Features", () => {
     }
   });
 
-  it("gives the studio card one screenshot pair and every other card one hidden canvas, no text in either visual", () => {
-    const visuals = cards().map((card) => card.querySelector(".vk-feature-visual"));
-    expect(
-      visuals.map((visual) => (visual?.querySelector("canvas") ? "canvas" : "screenshot")),
-    ).toEqual(LANDING_FEATURES.map(({ id }) => (id === "studio" ? "screenshot" : "canvas")));
-    for (const visual of visuals) {
-      expect(visual?.textContent).toBe("");
-      expect(visual?.querySelector("svg, text, figure, button")).toBeNull();
+  it("switches panes through one radio group with the first feature chosen, no script", () => {
+    const radios = Array.from(root.querySelectorAll<HTMLInputElement>("input"));
+    expect(radios).toHaveLength(LANDING_FEATURES.length);
+    expect(new Set(radios.map((radio) => radio.name))).toEqual(new Set(["vk-deck"]));
+    expect(radios.map((radio) => radio.type)).toEqual(radios.map(() => "radio"));
+    expect(radios.map((radio) => radio.hasAttribute("checked"))).toEqual(
+      radios.map((_, index) => index === 0),
+    );
+    for (const item of items()) {
+      const radio = item.querySelector("input");
+      expect(item.querySelector("h3 label")?.getAttribute("for")).toBe(radio?.id);
+      expect(radio?.closest(".vk-deck-row")).not.toBeNull();
+      expect(item.querySelector(".vk-deck-pane")?.id).toBe(radio?.getAttribute("aria-controls"));
     }
-    expect(root.querySelectorAll("canvas")).toHaveLength(LANDING_FEATURES.length - 1);
-    expect(root.querySelectorAll("img")).toHaveLength(2);
-    for (const canvas of root.querySelectorAll("canvas")) {
-      expect(canvas.getAttribute("aria-hidden")).toBe("true");
-    }
+    expect(root.querySelector("script, [onclick]")).toBeNull();
   });
 
-  it("shows the real studio overview in both themes, decorative, lazy and at its intrinsic size", () => {
-    const images = Array.from(root.querySelectorAll("li.vk-feature .vk-feature-visual img"));
+  it("puts one artifact card in every pane: a head, a badge and the real output in English", () => {
+    expect(items()).toHaveLength(LANDING_FEATURES.length);
+    for (const [index, { id }] of LANDING_FEATURES.entries()) {
+      const item = items()[index];
+      const card = item?.querySelector(".vk-deck-pane .vk-deck-card");
+      expect(card?.querySelector(".vk-lock-head span")?.textContent, id).toBe(
+        FEATURE_ARTIFACTS[id].head,
+      );
+      expect(card?.querySelector(".vk-lock-badge")?.textContent?.length, id).toBeGreaterThan(0);
+      for (const line of card?.querySelectorAll(".vk-lock-line:not([data-kind='gap'])") ?? []) {
+        expect(line.getAttribute("lang"), id).toBe("en");
+      }
+    }
+    expect(root.querySelectorAll(".vk-lock-line[data-kind='command']")).toHaveLength(
+      LANDING_FEATURES.length,
+    );
+    expect(root.querySelectorAll(".vk-lock-line[data-mark]").length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("repeats the marked output line as the result of every feature that prints one", () => {
+    expect(items().map((item) => item.querySelector(".vk-deck-result")?.textContent)).toEqual(
+      LANDING_FEATURES.map(({ id }) => FEATURE_ARTIFACTS[id].result),
+    );
+    expect(FEATURE_ARTIFACTS.studio.result).toBeUndefined();
+  });
+
+  it("shows the handoff file as a table whose empty cells say who fills them", () => {
+    const table = root.querySelector("table.vk-deck-sheet");
+    expect(Array.from(table?.querySelectorAll("th") ?? [], (cell) => cell.textContent)).toEqual([
+      "Key",
+      "Source",
+      "Status",
+      "Translation",
+    ]);
+    const empty = Array.from(table?.querySelectorAll("td.vk-deck-empty") ?? []);
+    expect(empty).toHaveLength(2);
+    for (const cell of empty) expect(cell.textContent).toBe(en.landing.features.emptyCell);
+  });
+
+  it("shows the real studio overview in both themes, decorative and lazy, in the last pane", () => {
+    const images = Array.from(root.querySelectorAll("img"));
     expect(images).toHaveLength(2);
     expect(images[0]?.closest("li")?.querySelector("h3")?.textContent).toBe(
       en.landing.features.items.studio.title,
     );
-    expect(images.map((image) => decodeURIComponent(image.getAttribute("src") ?? ""))).toEqual([
-      expect.stringContaining("/screenshots/studio-overview-dark.webp"),
-      expect.stringContaining("/screenshots/studio-overview-light.webp"),
-    ]);
     for (const image of images) {
       expect(image.getAttribute("alt")).toBe("");
-      expect(image.getAttribute("aria-hidden")).toBe("true");
-      expect(image.getAttribute("width")).toBe("2880");
-      expect(image.getAttribute("height")).toBe("1280");
       expect(image.getAttribute("loading")).toBe("lazy");
-      expect(image.getAttribute("fetchpriority")).toBeNull();
-      expect(image.getAttribute("src")).not.toMatch(/^https?:/);
     }
-    for (const theme of ["dark", "light"]) {
-      expect(
-        existsSync(join(process.cwd(), `public/screenshots/studio-overview-${theme}.webp`)),
-      ).toBe(true);
+    expect(root.querySelector("canvas")).toBeNull();
+  });
+
+  it("stages the deck only where :has is supported and the viewport is wide", () => {
+    const rules = docsStylesheetRules();
+    const hidden = rules.find(
+      (entry) => entry.selector.includes(".vk-deck-radio") && entry.declarations.display === "none",
+    );
+    expect(hidden?.media).toBe("");
+    const staged = rules.filter(
+      (entry) =>
+        entry.selector.includes(":has(.vk-deck-radio:checked)") &&
+        !entry.media.includes("prefers-reduced-motion"),
+    );
+    expect(staged.length).toBeGreaterThan(0);
+    for (const entry of staged) {
+      expect(entry.media).toContain("@supports selector(:has(*))");
+      expect(entry.media).toContain("(min-width: 64rem)");
     }
   });
 
-  it("names each canvas after its feature, in order, leaving studio to the screenshot", () => {
-    expect(
-      Array.from(root.querySelectorAll("canvas"), (canvas) => canvas.getAttribute("data-feature")),
-    ).toEqual(LANDING_FEATURES.filter(({ id }) => id !== "studio").map(({ id }) => id));
-  });
-
-  it("carries a title and a body for every feature in every locale", () => {
+  it("carries a title, a body and every badge for every feature in every locale", () => {
     for (const catalog of [en, de, es, fr]) {
       for (const { id } of LANDING_FEATURES) {
         const item = catalog.landing.features.items[id];
         expect(item.title.length, id).toBeGreaterThan(0);
         expect(item.body.length, id).toBeGreaterThan(0);
+        expect(catalog.landing.features.badges[id].length, id).toBeGreaterThan(0);
       }
+      expect(catalog.landing.features.more).toContain("{count}");
     }
   });
 });

@@ -178,19 +178,23 @@ test.describe("landing length on a phone", () => {
     });
   }
 
-  test("shows the studio screenshot and no feature canvas", async ({ page }) => {
+  test("lists the features as text cards with a docs link and no artifact card", async ({
+    page,
+  }) => {
     await page.setViewportSize(PHONE);
     await page.goto(homeUrl("en"));
-    await expect(page.locator("#features .vk-feature-shot").first()).toBeAttached();
-    await expect(page.locator("#features .vk-feature-visual:visible")).toHaveCount(1);
-    const canvases = page.locator("#features .vk-feature-canvas");
-    await expect(canvases).toHaveCount(5);
-    for (let index = 0; index < 5; index += 1) await expect(canvases.nth(index)).toBeHidden();
+    await expect(page.locator("#features .vk-deck-item")).toHaveCount(6);
+    await expect(page.locator("#features .vk-deck-body:visible")).toHaveCount(6);
+    await expect(page.locator("#features .vk-deck-link:visible")).toHaveCount(6);
+    await expect(page.locator("#features .vk-deck-card:visible")).toHaveCount(0);
+    await expect(page.locator("#features .vk-deck-radio:visible")).toHaveCount(0);
+    await expect(page.locator("#features .vk-deck-result:visible")).toHaveCount(0);
   });
 
-  test("keeps every feature canvas from 640px", async ({ page }) => {
+  test("adds the result line of each command from 640px", async ({ page }) => {
     await page.setViewportSize({ width: 640, height: 900 });
     await page.goto(homeUrl("en"));
-    await expect(page.locator("#features .vk-feature-visual:visible")).toHaveCount(6);
+    await expect(page.locator("#features .vk-deck-result:visible")).toHaveCount(5);
+    await expect(page.locator("#features .vk-deck-card:visible")).toHaveCount(0);
   });
 });

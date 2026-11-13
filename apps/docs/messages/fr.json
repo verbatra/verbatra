@@ -293,6 +293,17 @@
           "title": "Sache avant de dépenser",
           "body": "Doctor vérifie la configuration sans clé API, et une estimation permet de dimensionner une exécution avant qu’elle ne coûte quoi que ce soit."
         }
+      },
+      "more": "… {count} de plus",
+      "moreChecks": "… autres vérifications, toutes réussies",
+      "emptyCell": "à remplir par le traducteur",
+      "badges": {
+        "extract": "{count, plural, one {# nouvelle clé} many {# nouvelles clés} other {# nouvelles clés}}",
+        "types": "{count, plural, one {# clé déclarée} many {# clés déclarées} other {# clés déclarées}}",
+        "doctor": "aucune clé API requise",
+        "watch": "à chaque enregistrement",
+        "handoff": "{count, plural, one {# ligne à traduire} many {# lignes à traduire} other {# lignes à traduire}}",
+        "studio": "capture d’écran réelle"
       }
     },
     "steps": {

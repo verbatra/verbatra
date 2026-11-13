@@ -293,6 +293,17 @@
           "title": "Wissen, bevor du zahlst",
           "body": "Doctor prüft dein Setup ohne API-Schlüssel, und eine Schätzung beziffert einen Durchlauf, bevor er dich etwas kostet."
         }
+      },
+      "more": "… {count} mehr",
+      "moreChecks": "… weitere Überprüfungen, alle bestanden",
+      "emptyCell": "Übersetzer füllt das aus",
+      "badges": {
+        "extract": "{count, plural, one {# neuer Schlüssel} other {# neue Schlüssel}}",
+        "types": "{count, plural, one {# Schlüssel deklariert} other {# Schlüssel deklariert}}",
+        "doctor": "kein API-Schlüssel nötig",
+        "watch": "bei jedem Speichern",
+        "handoff": "{count, plural, one {# Zeile zu übersetzen} other {# Zeilen zu übersetzen}}",
+        "studio": "echter Screenshot"
       }
     },
     "steps": {
