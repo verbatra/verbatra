@@ -6,9 +6,8 @@ import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections"
 const SECTION_FILES: Readonly<Record<LandingSectionId, string>> = {
   hero: "hero.tsx",
   marquee: "marquee.tsx",
-  statement: "statement.tsx",
+  lockDemo: "lock-demo.tsx",
   highlights: "highlights.tsx",
-  playground: "playground.tsx",
   features: "features.tsx",
   faq: "faq.tsx",
   finalCta: "final-cta.tsx",

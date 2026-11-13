@@ -42,9 +42,8 @@ for (const locale of LOCALES) {
       expect(sections.map((section) => section.id)).toEqual([
         "hero-title",
         "marquee",
-        "statement",
+        "lock-demo",
         "highlights",
-        "playground",
         "features",
         "faq",
         "closing-heading",
@@ -64,25 +63,6 @@ for (const locale of LOCALES) {
     }
   });
 }
-
-test.describe("code frames", () => {
-  test.use({ viewport: { width: 1440, height: 900 } });
-
-  test("draw the focus ring of every focusable code block inside its frame", async ({ page }) => {
-    await page.goto("/");
-    const blocks = page.locator('.vk-code-frame-body pre[tabindex="0"]');
-    const count = await blocks.count();
-    expect(count).toBeGreaterThan(0);
-    for (let index = 0; index < count; index += 1) {
-      const block = blocks.nth(index);
-      if (!(await block.isVisible())) continue;
-      await block.focus();
-      expect(await block.evaluate((node) => node.matches(":focus-visible"))).toBe(true);
-      await expect(block, `code block ${index}`).toHaveCSS("outline-offset", "-2px");
-      await expect(block).toHaveCSS("outline-style", "solid");
-    }
-  });
-});
 
 test.describe("forced colors", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
@@ -178,4 +158,39 @@ test.describe("landing search", () => {
       await expect(page.getByRole("dialog")).toBeVisible();
     });
   }
+});
+
+test.describe("landing length on a phone", () => {
+  const PHONE = { width: 391, height: 844 };
+
+  for (const { motion, screens } of [
+    { motion: "no-preference", screens: 11 },
+    { motion: "reduce", screens: 11.5 },
+  ] as const) {
+    test(`stays under ${screens} screens with motion ${motion}`, async ({ page }) => {
+      await page.setViewportSize(PHONE);
+      await page.emulateMedia({ reducedMotion: motion });
+      await page.goto(homeUrl("en"), { waitUntil: "networkidle" });
+      await page.evaluate(() => document.fonts.ready);
+      await expect(page.locator(".vk-scroll-top-sentinel")).toBeAttached();
+      const height = await page.evaluate(() => document.documentElement.scrollHeight);
+      expect(height / PHONE.height).toBeLessThan(screens);
+    });
+  }
+
+  test("shows the studio screenshot and no feature canvas", async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await page.goto(homeUrl("en"));
+    await expect(page.locator("#features .vk-feature-shot").first()).toBeAttached();
+    await expect(page.locator("#features .vk-feature-visual:visible")).toHaveCount(1);
+    const canvases = page.locator("#features .vk-feature-canvas");
+    await expect(canvases).toHaveCount(5);
+    for (let index = 0; index < 5; index += 1) await expect(canvases.nth(index)).toBeHidden();
+  });
+
+  test("keeps every feature canvas from 640px", async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 900 });
+    await page.goto(homeUrl("en"));
+    await expect(page.locator("#features .vk-feature-visual:visible")).toHaveCount(6);
+  });
 });

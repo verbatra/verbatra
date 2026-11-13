@@ -29,9 +29,8 @@ vi.mock("next-intl", async (importOriginal) => ({
 const { landingMarkdown } = await import("./landing-markdown");
 const { Hero } = await import("@/components/landing/hero");
 const { Marquee } = await import("@/components/landing/marquee");
-const { Statement } = await import("@/components/landing/statement");
+const { LockDemo } = await import("@/components/landing/lock-demo");
 const { Highlights } = await import("@/components/landing/highlights");
-const { Playground } = await import("@/components/landing/playground");
 const { Features } = await import("@/components/landing/features");
 const { Faq, faqContent } = await import("@/components/landing/faq");
 const { FinalCta } = await import("@/components/landing/final-cta");
@@ -40,9 +39,8 @@ const { LANDING_SECTIONS } = await import("./landing-sections");
 const SECTIONS = {
   hero: () => Hero(),
   marquee: () => Marquee(),
-  statement: () => Statement(),
+  lockDemo: () => LockDemo(),
   highlights: () => Highlights(),
-  playground: () => Playground(),
   features: () => Features(),
   faq: async () => Faq({ locale: state.locale, items: await faqContent(state.locale) }),
   finalCta: () => FinalCta(),
@@ -50,12 +48,9 @@ const SECTIONS = {
 
 const TEXT_BLOCKS = "h1, h2, h3, p, li, pre, caption, th, td";
 
-const SKIPPED = [
-  "[aria-hidden='true']",
-  ".sr-only:not(caption)",
-  "script",
-  "[data-playground-demo]",
-].join(", ");
+const SKIPPED = ["[aria-hidden='true']", ".sr-only:not(caption)", "script", ".vk-lock-side"].join(
+  ", ",
+);
 
 function normalized(text: string): string {
   return text
@@ -102,12 +97,12 @@ async function renderedBlocks(locale: Locale): Promise<Block[]> {
 await preloadRegisteredIslands();
 
 describe.each(i18n.languages)("the %s landing markdown against the rendered page", (locale) => {
-  it("carries every rendered heading, paragraph, list item, code block and table cell", async () => {
+  it("carries every rendered heading, paragraph, list item and code block", async () => {
     const markdown = markdownText(await landingMarkdown(locale));
     const blocks = await renderedBlocks(locale);
     expect(blocks.length).toBeGreaterThan(50);
     const tags = new Set(blocks.map(({ tag }) => tag));
-    for (const tag of ["caption", "th", "td"]) expect(tags, tag).toContain(tag);
+    for (const tag of ["h2", "h3", "p", "li", "pre"]) expect(tags, tag).toContain(tag);
     const missing = blocks.filter(({ text }) => !markdown.includes(text)).map(({ text }) => text);
     expect(missing).toEqual([]);
   });

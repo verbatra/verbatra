@@ -3,16 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   PLAYGROUND_DEFAULT_ITEM,
   PLAYGROUND_FILES_PATTERN,
-  PLAYGROUND_FORMAT,
   PLAYGROUND_ITEMS,
-  PLAYGROUND_KEPT_STRINGS,
-  PLAYGROUND_MAX_OUTPUT_TOKENS,
+  PLAYGROUND_LANGUAGES,
   PLAYGROUND_METADATA,
-  PLAYGROUND_PICK_IDS,
-  PLAYGROUND_PICKS,
-  PLAYGROUND_SENT_STRINGS,
-  PLAYGROUND_SNIPPET,
   PLAYGROUND_SOURCE_LOCALE,
+  PLAYGROUND_TRANSLATIONS,
+  playgroundFileName,
+  playgroundGeneratedOn,
 } from "./landing-playground";
 
 function generatorSource(file: string): string {
@@ -25,58 +22,36 @@ function constant(source: string, name: string): string {
   return match[2];
 }
 
-function configField(source: string, pattern: RegExp): string {
-  const match = pattern.exec(source);
-  if (match?.[1] === undefined) throw new Error(`run.ts has no ${pattern.source}`);
-  return match[1];
-}
-
-describe("the displayed playground snippet matches the generator", () => {
+describe("the playground data matches the generator", () => {
   const limits = generatorSource("limits.ts");
   const run = generatorSource("run.ts");
 
-  it("uses the generator's source locale, model and output token cap", () => {
+  it("uses the generator's source locale, model, file pattern and provider", () => {
     expect(PLAYGROUND_SOURCE_LOCALE).toBe(constant(limits, "SOURCE_LOCALE"));
     expect(PLAYGROUND_METADATA.model).toBe(constant(limits, "MODEL"));
-    expect(PLAYGROUND_MAX_OUTPUT_TOKENS).toBe(Number(constant(limits, "MAX_OUTPUT_TOKENS")));
-    expect(run).toContain("sourceLocale: SOURCE_LOCALE,");
-    expect(run).toContain("model: MODEL, maxOutputTokens: MAX_OUTPUT_TOKENS");
+    expect(run).toContain(`files: { pattern: "${PLAYGROUND_FILES_PATTERN}" }`);
+    expect(run).toContain(`id: "${PLAYGROUND_METADATA.provider}"`);
   });
 
-  it("uses the generator's format, file pattern and provider", () => {
-    expect(PLAYGROUND_FORMAT).toBe(configField(run, /format: "([^"]+)"/));
-    expect(PLAYGROUND_FILES_PATTERN).toBe(configField(run, /files: \{ pattern: "([^"]+)" \}/));
-    expect(PLAYGROUND_METADATA.provider).toBe(configField(run, /provider: \{ id: "([^"]+)"/));
-  });
-
-  it("prints exactly those values", () => {
-    for (const line of [
-      `sourceLocale: "${PLAYGROUND_SOURCE_LOCALE}",`,
-      `format: "${PLAYGROUND_FORMAT}",`,
-      `files: { pattern: "${PLAYGROUND_FILES_PATTERN}" },`,
-      `id: "${PLAYGROUND_METADATA.provider}",`,
-      `options: { model: "${PLAYGROUND_METADATA.model}", maxOutputTokens: ${PLAYGROUND_MAX_OUTPUT_TOKENS} },`,
-    ]) {
-      expect(PLAYGROUND_SNIPPET).toContain(line);
+  it("names a committed string as the default item, translated into every language", () => {
+    expect(PLAYGROUND_ITEMS.map((item) => item.id)).toContain(PLAYGROUND_DEFAULT_ITEM);
+    for (const code of PLAYGROUND_LANGUAGES) {
+      expect(PLAYGROUND_TRANSLATIONS[code]?.[PLAYGROUND_DEFAULT_ITEM], code).toBeTruthy();
     }
   });
 });
 
-describe("the animated picks", () => {
-  it("name only strings that exist, each once, and include the default", () => {
-    expect(PLAYGROUND_PICKS.map((pick) => pick.id)).toEqual([...PLAYGROUND_PICK_IDS]);
-    expect(new Set(PLAYGROUND_PICK_IDS).size).toBe(PLAYGROUND_PICK_IDS.length);
-    expect(PLAYGROUND_PICK_IDS).toContain(PLAYGROUND_DEFAULT_ITEM);
+describe("playgroundFileName", () => {
+  it("fills the locale into the committed file pattern and drops the folder", () => {
+    expect(playgroundFileName("de")).toBe("de.json");
   });
+});
 
-  it("include a string without a placeholder and one with each placeholder kind", () => {
-    const texts = PLAYGROUND_PICKS.map((pick) => pick.text);
-    expect(texts.some((text) => !text.includes("{"))).toBe(true);
-    expect(texts.some((text) => text.includes("{name}"))).toBe(true);
-    expect(texts.some((text) => text.includes("{count}"))).toBe(true);
-  });
-
-  it("derive the kept count from the committed strings", () => {
-    expect(PLAYGROUND_SENT_STRINGS + PLAYGROUND_KEPT_STRINGS).toBe(PLAYGROUND_ITEMS.length);
+describe("playgroundGeneratedOn", () => {
+  it("formats the generation date in the reader's locale and keeps the ISO day", () => {
+    const { iso, text } = playgroundGeneratedOn("en");
+    expect(iso).toBe(PLAYGROUND_METADATA.generatedAt.slice(0, 10));
+    expect(text).toMatch(/\d{4}/);
+    expect(playgroundGeneratedOn("de").text).not.toBe(text);
   });
 });

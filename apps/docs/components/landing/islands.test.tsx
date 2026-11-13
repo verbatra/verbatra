@@ -17,7 +17,7 @@ function imports(path: string): string[] {
 
 const ISLAND_MODULES = [
   "./marquee-motion",
-  "./playground-demo",
+  "./lock-demo-motion",
   "./faq-keys",
   "./compare-picker",
   "./scroll-top",

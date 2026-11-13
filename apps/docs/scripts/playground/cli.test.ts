@@ -6,6 +6,8 @@ import { dryRun, refuseProvider } from "./run.ts";
 import { PLAYGROUND_LANGUAGES, PLAYGROUND_SOURCE } from "./source.ts";
 import { cliHarness, createStubProvider } from "./test-support.ts";
 
+const PAIRS = PLAYGROUND_SOURCE.length * PLAYGROUND_LANGUAGES.length;
+
 vi.mock("@verbatra/sdk", async (importOriginal) => {
   const original = await importOriginal<typeof import("@verbatra/sdk")>();
   return { ...original, translate: vi.fn(original.translate) };
@@ -57,12 +59,12 @@ describe("main: dry run", () => {
     const harness = cliHarness();
     await main(harness.deps);
     const text = harness.stdout.join("\n");
-    expect(text).toContain('welcome: "Welcome back, {name}!"');
+    expect(text).toContain('welcomeBack: "Welcome back, {name}!"');
     expect(text).toContain("Languages: de, es, fr, ja");
     expect(text).toContain("gemini-2.5-flash");
-    expect(text).toContain("Planned pairs (40):");
+    expect(text).toContain(`Planned pairs (${PAIRS}):`);
     expect(text).toContain("Estimated requests (one per language batch): 4");
-    expect(text).toContain("SDK estimate: 4 requests for 40 keys");
+    expect(text).toContain(`SDK estimate: 4 requests for ${PAIRS} keys`);
   });
 
   it("does not copy the playground key in a dry run", async () => {

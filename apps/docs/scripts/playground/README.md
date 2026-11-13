@@ -1,7 +1,7 @@
 # Landing playground generator
 
 This script produces `apps/docs/lib/playground/translations.json`, the pre-generated
-translations the landing page playground animates. It runs the real Verbatra SDK
+translations the landing page lock-file demo and hero cards show. It runs the real Verbatra SDK
 (`translate` from `@verbatra/sdk`) with Gemini, once, on a maintainer's machine. Visitors never
 trigger a request: the site only reads the committed JSON.
 

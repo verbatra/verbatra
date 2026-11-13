@@ -1,33 +1,39 @@
 import { CHECK_CLI_COMMAND, CHECK_OVERALL_LINE, checkLocaleLine } from "@/lib/check-demo";
 
-type HeroTerminalUsage = { readonly inputTokens: number; readonly outputTokens: number };
+type HeroTerminalLocale = { readonly locale: string };
 
-type HeroTerminalLocale = {
-  readonly locale: string;
-  readonly usage: HeroTerminalUsage;
+export const HERO_TERMINAL_LOCALES: ReadonlyArray<HeroTerminalLocale> = [{ locale: "de" }];
+
+type HeroTerminalValue = {
+  readonly key: string;
+  readonly value: string;
+  readonly before?: string;
 };
 
-export const HERO_TERMINAL_LOCALES: ReadonlyArray<HeroTerminalLocale> = [
-  { locale: "de", usage: { inputTokens: 318, outputTokens: 41 } },
-  { locale: "fr", usage: { inputTokens: 322, outputTokens: 44 } },
+export const HERO_TERMINAL_SOURCE: ReadonlyArray<HeroTerminalValue> = [
+  { key: "nav.home", value: "Home" },
+  { key: "nav.pricing", value: "Pricing" },
+  { key: "nav.docs", value: "Docs" },
+  { key: "auth.signIn", value: "Sign in" },
+  { key: "auth.signOut", value: "Sign out" },
+  { key: "cart.empty", value: "Your cart is empty." },
+  { key: "cart.total", value: "Total" },
+  { key: "cart.remove", value: "Remove" },
+  { key: "profile.greeting", value: "Welcome back, {name}!" },
+  { key: "profile.save", value: "Save changes" },
+  { key: "errors.notFound", value: "Page not found" },
+  { key: "errors.offline", value: "You are offline" },
+  { key: "checkout.title", value: "Review and checkout", before: "Checkout" },
+  { key: "checkout.pay", value: "Pay and place order", before: "Pay now" },
 ];
 
-export const HERO_TERMINAL_SYNCED_KEYS: ReadonlyArray<string> = [
-  "nav.home",
-  "nav.pricing",
-  "nav.docs",
-  "auth.signIn",
-  "auth.signOut",
-  "cart.empty",
-  "cart.total",
-  "cart.remove",
-  "profile.greeting",
-  "profile.save",
-  "errors.notFound",
-  "errors.offline",
-];
+export const HERO_TERMINAL_SYNCED_KEYS: ReadonlyArray<string> = HERO_TERMINAL_SOURCE.filter(
+  ({ before }) => before === undefined,
+).map(({ key }) => key);
 
-export const HERO_TERMINAL_NEW_KEYS: ReadonlyArray<string> = ["checkout.title", "checkout.pay"];
+export const HERO_TERMINAL_CHANGED_KEYS: ReadonlyArray<string> = HERO_TERMINAL_SOURCE.filter(
+  ({ before }) => before !== undefined,
+).map(({ key }) => key);
 
 export const HERO_CHECK_COMMAND = "npx @verbatra/cli check";
 
@@ -37,39 +43,27 @@ export const HERO_CHECK_EXIT_CODE = 1;
 
 export const HERO_TRANSLATE_EXIT_CODE = 0;
 
-function tokens(usage: HeroTerminalUsage): string {
-  return `${usage.inputTokens + usage.outputTokens} tokens (${usage.inputTokens} in, ${usage.outputTokens} out)`;
-}
-
-function totalUsage(): HeroTerminalUsage {
-  return HERO_TERMINAL_LOCALES.reduce<HeroTerminalUsage>(
-    (sum, { usage }) => ({
-      inputTokens: sum.inputTokens + usage.inputTokens,
-      outputTokens: sum.outputTokens + usage.outputTokens,
-    }),
-    { inputTokens: 0, outputTokens: 0 },
-  );
-}
-
-const missing = HERO_TERMINAL_NEW_KEYS.length;
+const stale = HERO_TERMINAL_CHANGED_KEYS.length;
 const synced = HERO_TERMINAL_SYNCED_KEYS.length;
 const localeCount = HERO_TERMINAL_LOCALES.length;
 
 export const HERO_CHECK_OUTPUT: ReadonlyArray<string> = [
   CHECK_CLI_COMMAND,
-  ...HERO_TERMINAL_LOCALES.map(({ locale }) => checkLocaleLine(locale, missing, synced)),
+  ...HERO_TERMINAL_LOCALES.map(({ locale }) => checkLocaleLine(locale, stale, synced)),
   CHECK_OVERALL_LINE,
 ];
 
-export const HERO_SENT_STRINGS = missing * localeCount;
+export const HERO_SENT_STRINGS = stale * localeCount;
 
-export const HERO_TOTAL_STRINGS = (missing + synced) * localeCount;
+export const HERO_TOTAL_STRINGS = (stale + synced) * localeCount;
+
+export const HERO_CHECK_BADGE = `${stale} stale, ${synced} up-to-date`;
+
+export const HERO_TRANSLATE_BADGE = `${stale} translated, ${synced} unchanged`;
 
 export const HERO_TRANSLATE_LOCALE_LINES: ReadonlyArray<string> = HERO_TERMINAL_LOCALES.map(
-  ({ locale, usage }) => `${locale}: ${missing} translated, ${synced} unchanged, ${tokens(usage)}`,
+  ({ locale }) => `${locale}: ${HERO_TRANSLATE_BADGE}`,
 );
-
-export const HERO_TRANSLATE_TOTAL_LINE = `total: ${tokens(totalUsage())}`;
 
 function indented(line: string): string {
   return `  ${line}`;
@@ -78,7 +72,6 @@ function indented(line: string): string {
 export const HERO_TRANSLATE_OUTPUT: ReadonlyArray<string> = [
   "verbatra translate",
   ...HERO_TRANSLATE_LOCALE_LINES.map(indented),
-  indented(HERO_TRANSLATE_TOTAL_LINE),
   `${localeCount} succeeded, 0 partial, 0 failed`,
 ];
 

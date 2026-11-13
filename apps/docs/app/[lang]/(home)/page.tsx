@@ -8,10 +8,9 @@ import { FinalCta } from "@/components/landing/final-cta";
 import { Hero } from "@/components/landing/hero";
 import { Highlights } from "@/components/landing/highlights";
 import { ScrollTop } from "@/components/landing/islands";
+import { LockDemo } from "@/components/landing/lock-demo";
 import { Marquee } from "@/components/landing/marquee";
 import { MotionRoot } from "@/components/landing/motion-root";
-import { Playground } from "@/components/landing/playground";
-import { Statement } from "@/components/landing/statement";
 import { toLocale } from "@/lib/i18n";
 import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
 import { MAIN_CONTENT_ID } from "@/lib/locale-home-layout";
@@ -37,9 +36,8 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
     hero: <Hero />,
     marquee: <Marquee />,
-    statement: <Statement />,
+    lockDemo: <LockDemo />,
     highlights: <Highlights />,
-    playground: <Playground />,
     features: <Features />,
     faq: <Faq locale={locale} items={faqItems} />,
     finalCta: <FinalCta />,

@@ -196,7 +196,7 @@
       "lead": "Verbatra hasht jeden Schlüssel in einer Lock-Datei, sendet nur geänderte Schlüssel an deinen Anbieter und lässt die CI bei Abweichungen fehlschlagen.",
       "ctaPrimary": "Loslegen",
       "ctaCompare": "Mit anderen Tools vergleichen",
-      "keysAdded": "+{count, plural, one {# Schlüssel} other {# Schlüssel}}"
+      "keysChanged": "{count, plural, one {# Schlüssel geändert} other {# Schlüssel geändert}}"
     },
     "marquee": {
       "heading": "Funktioniert mit deinen Sprachdateien und Anbietern",
@@ -208,9 +208,38 @@
       "allProviders": "Alle Anbieter",
       "allFormats": "Alle Formate"
     },
-    "statement": {
-      "label": "Ein Durchlauf, ein Locale",
-      "heading": "<em>{sent} Schlüssel</em> verlassen deinen Computer, {kept} bleiben erhalten"
+    "lockDemo": {
+      "label": "Die Lock-Datei",
+      "heading": "{count, plural, =2 {Zwei Schlüssel geändert, zwei Schlüssel gesendet} one {# Schlüssel geändert, # Schlüssel gesendet} other {# Schlüssel geändert, # Schlüssel gesendet}}",
+      "steps": "So läuft ein Durchlauf",
+      "pause": "Animation pausieren",
+      "play": "Animation abspielen",
+      "edit": {
+        "label": "Ändern",
+        "text": "Du änderst {count, plural, one {# Wert} other {# Werte}} in deiner Quelldatei."
+      },
+      "compare": {
+        "label": "Vergleichen",
+        "text": "Verbatra hasht jeden Schlüssel und vergleicht ihn mit der Lock-Datei. {count, plural, one {# gespeicherter Hash passt nicht mehr.} other {# gespeicherte Hashes passen nicht mehr.}}"
+      },
+      "send": {
+        "label": "Senden",
+        "text": "Nur {count, plural, one {# Schlüssel geht} other {# Schlüssel gehen}} an den Anbieter. Die anderen {rest} werden nicht gesendet."
+      },
+      "badge": {
+        "changed": "{count} geändert"
+      },
+      "tags": {
+        "changed": "geändert",
+        "stale": "veraltet"
+      },
+      "gap": "… {count} weitere, unverändert",
+      "foot": {
+        "compare": "Veraltet (stale) bedeutet, der gespeicherte Hash weicht vom Hash des aktuellen {file}-Werts ab. Die anderen {count} stimmen überein.",
+        "generated": "erzeugt {date}",
+        "lock": "{file}: {count, plural, one {# Hash} other {# Hashes}} aktualisiert."
+      },
+      "preGenerated": "vorab erzeugt, nicht live"
     },
     "highlights": {
       "heading": "Alles rund um den Diff",
@@ -223,7 +252,7 @@
       "ci": {
         "label": "Prüfung",
         "title": "Fehlende Schlüssel erreichen die Produktion",
-        "body": "Der Check endet mit {code}, solange einer Locale Schlüssel fehlen. Er braucht keinen API-Schlüssel und läuft deshalb bei jedem Pull Request."
+        "body": "Der Check endet mit {code}, solange eine Locale fehlende oder veraltete Schlüssel hat. Er braucht keinen API-Schlüssel und läuft deshalb bei jedem Pull Request."
       },
       "integrity": {
         "label": "Integrität",
@@ -233,62 +262,6 @@
         "label": "Agenten",
         "title": "Dein Coding-Agent korrigiert Übersetzungen",
         "body": "Registriere den MCP-Server für das Projekt, und der Agent kann den Status lesen und Übersetzungen korrigieren. Tools, die Provider-Tokens verbrauchen, bleiben deaktiviert, bis du sie zulässt."
-      }
-    },
-    "playground": {
-      "heading": "Eine Zeichenkette mit dem SDK übersetzen",
-      "lead": "Wähle einen String aus und schau zu, wie der SDK-Aufruf ihn in jede Sprache unten übersetzt. Platzhalter bleiben genau an ihrem Platz.",
-      "items": "Quellzeichenkette",
-      "languages": "Zielsprachen",
-      "source": "Quelle ({locale})",
-      "copy": "Code kopieren",
-      "label": "Vorgeneriert mit dem Verbatra SDK und Gemini, nicht live.",
-      "metadata": {
-        "label": "Wie diese Ergebnisse generiert wurden",
-        "provider": "Anbieter",
-        "model": "Modell",
-        "generated": "Generiert"
-      },
-      "languageNames": {
-        "de": "Deutsch",
-        "es": "Spanisch",
-        "fr": "Französisch",
-        "ja": "Japanisch"
-      },
-      "table": {
-        "caption": "Jedes vorgenerierte Ergebnis, eine Zeile pro Quellzeichenkette",
-        "source": "Quelle (Englisch)"
-      },
-      "links": {
-        "label": "Mehr erfahren",
-        "quickstart": "SDK-Schnellstart",
-        "reference": "SDK-Referenz",
-        "providers": "Anbieter"
-      },
-      "animation": {
-        "pause": "Animation pausieren",
-        "play": "Animation abspielen"
-      },
-      "status": {
-        "running": "Übersetze {strings, plural, one {# Zeichenkette} other {# Zeichenketten}} in {languages, plural, one {# Sprache} other {# Sprachen}}",
-        "passed": "Integritätsprüfung bestanden: {intact} von {total} Platzhaltern intakt",
-        "passedNone": "Integritätsprüfung bestanden: keine Platzhalter zum Schutz"
-      },
-      "counters": {
-        "sent": "Gesendet",
-        "kept": "Behalten",
-        "placeholders": "Platzhalter",
-        "checking": "Prüft"
-      },
-      "clock": {
-        "typing": "Schreibt",
-        "running": "Läuft",
-        "done": "Fertig"
-      },
-      "run": {
-        "queued": "In der Warteschlange",
-        "awaiting": "Wartet",
-        "resolved": "Abgeschlossen"
       }
     },
     "features": {

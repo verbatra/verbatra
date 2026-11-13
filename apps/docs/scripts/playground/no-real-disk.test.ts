@@ -64,7 +64,7 @@ describe("translateForWrite: in-memory SDK run (D6)", () => {
       return;
     }
     expect(Object.keys(outcome.output.translations)).toEqual([...PLAYGROUND_LANGUAGES]);
-    expect(outcome.output.translations.de?.welcome).toBe("DE: Welcome back, {name}!");
+    expect(outcome.output.translations.de?.welcomeBack).toBe("DE: Welcome back, {name}!");
     expect(provider.sent).toHaveLength(PLAYGROUND_LANGUAGES.length);
   });
 

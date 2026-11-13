@@ -96,7 +96,6 @@
   --btn-rim: color-mix(in srgb, var(--pill-new-end) 80%, transparent);
   --focus-ring: var(--v-glow);
   --surface-band: color-mix(in srgb, var(--surface-card) 40%, var(--surface-bg));
-  --scroll-shade: color-mix(in srgb, var(--text-muted) 24%, transparent);
   --surface-chrome: color-mix(in srgb, var(--surface-bg) 94%, transparent);
   --surface-table-head: color-mix(in srgb, var(--surface-muted) 60%, var(--surface-tile));
   --surface-row-hover: color-mix(in srgb, var(--surface-hover) 40%, var(--surface-tile));

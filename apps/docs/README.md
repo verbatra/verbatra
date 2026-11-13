@@ -115,18 +115,18 @@ Register is informal throughout: German `du`, Spanish `tú`, French `tu`. No em 
 The home page (`app/[lang]/(home)/page.tsx`) renders its sections in the order of
 `LANDING_SECTIONS` in `lib/landing-sections.ts`; `lib/landing-sections.test.ts` pins that order.
 Each section is one component in `components/landing/` (`hero.tsx`, `marquee.tsx`,
-`statement.tsx`, `highlights.tsx`, `playground.tsx`, `features.tsx`, `faq.tsx`, `final-cta.tsx`).
+`lock-demo.tsx`, `highlights.tsx`, `features.tsx`, `faq.tsx`, `final-cta.tsx`).
 The footer is not a section: `app/[lang]/(home)/layout.tsx` passes it to the home layout, and it
 carries the contributors (`contributors.tsx`). Facts a section shows (the hero locale files,
 providers, formats, the features, the commands it prints) live in typed tables under `lib/`
 (`lib/landing-*.ts`, `lib/landing-hero-files.ts`, `lib/hero-terminal.ts`,
 `lib/install-commands.ts`), not in the copy; a component keeps only its own link targets and layout.
 
-- **Surfaces**: the marquee is a plain page section between two hairlines (only the SDK playground
-  is a band), landing tiles (bento, features, FAQ items, closer, marquee items, hero file
-  cards, playground panels) take the landing-scoped `--surface-tile` and `--border-tile` from
+- **Surfaces**: the marquee is a plain page section between two hairlines (no section is a
+  band), landing tiles (bento, features, FAQ items, closer, marquee items, hero file
+  cards, lock-demo cards) take the landing-scoped `--surface-tile` and `--border-tile` from
   `app/global.css`, and the page and footer sit on `--surface-page`.
-  The statement title uses `--statement-title` and the hero headline `--banner-title`, whose
+  The hero headline uses `--banner-title`, whose
   gradient sits only on the `.vk-banner-title-lit` span.
 - **Edit copy**: change the `landing.*` key in `messages/en.json`, then update `de.json`,
   `es.json` and `fr.json` in the same change, with `pnpm i18n`; a protected value goes through
@@ -134,7 +134,7 @@ providers, formats, the features, the commands it prints) live in typed tables u
   `npx @verbatra/cli check` from this directory: it must report every locale in sync.
 - **Add or reorder a section**: build it in `components/landing/` on `Section`, with `SectionHead`
   for a heading and lead (`SectionAside` for a head beside its content, as the FAQ uses; the
-  hero, the marquee, the statement and the closing section draw their own heads), add its id to
+  hero, the marquee and the closing section draw their own heads), add its id to
   `LANDING_SECTIONS` at the position it takes, map the id to the component in `page.tsx`, and
   update the order in `lib/landing-sections.test.ts`. Give it a section `id` that no other section
   uses.

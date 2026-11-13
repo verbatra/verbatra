@@ -65,13 +65,12 @@ describe("landing surface bands", () => {
     expect(section?.firstElementChild?.className).toContain("vk-gutter");
   });
 
-  it("bands only the playground, in page order", () => {
+  it("bands no section, in page order", () => {
     expect(LANDING_SECTIONS).toEqual([
       "hero",
       "marquee",
-      "statement",
+      "lockDemo",
       "highlights",
-      "playground",
       "features",
       "faq",
       "finalCta",
@@ -80,14 +79,13 @@ describe("landing surface bands", () => {
       [
         "hero.tsx",
         "marquee.tsx",
-        "statement.tsx",
+        "lock-demo.tsx",
         "highlights.tsx",
-        "playground.tsx",
         "features.tsx",
         "faq.tsx",
         "final-cta.tsx",
       ].map(banded),
-    ).toEqual([false, false, false, false, true, false, false, false]);
+    ).toEqual([false, false, false, false, false, false, false]);
   });
 
   it("names a section by its heading through aria-labelledby, banded or not", () => {
@@ -165,7 +163,7 @@ describe("the section head on the 12-column grid", () => {
     expect(css).toMatch(/:root \{[^}]*--head-gap: 2\.5rem;/);
     expect(css).toMatch(/@media \(min-width: 64rem\) \{\s+:root \{\s+--head-gap: 3\.5rem;/);
     expect(css).toMatch(/\.vk-section-aside \{\s+row-gap: var\(--head-gap\);/);
-    expect(css).toMatch(/\.vk-playground-layout \{[^}]*gap: var\(--head-gap\);/);
+    expect(css).toMatch(/\.vk-lock-stage \{[^}]*margin-top: var\(--head-gap\);/);
     for (const selector of [".vk-bento", ".vk-feature-grid"]) {
       expect(css).toMatch(new RegExp(`\\${selector} \\{[^}]*margin-top: var\\(--head-gap\\);`));
     }
@@ -186,11 +184,11 @@ describe("the section head on the 12-column grid", () => {
     const { Features } = await import("./features");
     const { Highlights } = await import("./highlights");
     const { Marquee } = await import("./marquee");
-    const { Playground } = await import("./playground");
+    const { LockDemo } = await import("./lock-demo");
     const sections: ReadonlyArray<readonly [string, () => Promise<ReactNode>]> = [
       ["marquee", Marquee],
+      ["lock-demo", LockDemo],
       ["highlights", Highlights],
-      ["playground", Playground],
       ["features", Features],
       ["faq", async () => Faq({ locale: "en", items: await faqContent("en") })],
     ];
@@ -210,8 +208,8 @@ describe("the section head on the 12-column grid", () => {
     }
     expect(layouts).toEqual({
       marquee: "heading",
+      "lock-demo": "heading",
       highlights: "split",
-      playground: "split",
       features: "split",
       faq: "aside",
     });

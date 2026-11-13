@@ -115,7 +115,7 @@
         },
         "compare": {
           "question": "¿En qué se diferencia Verbatra de otras herramientas de i18n?",
-          "answer": "Es una CLI que corre en tus archivos con commit, no una plataforma alojada. La <link>página de comparación</link> la contrasta con otras herramientas, con fuentes, incluso donde son más fuertes."
+          "answer": "Es una CLI que se ejecuta sobre tus archivos versionados, no una plataforma alojada. La <link>página de comparación</link> la contrasta con otras herramientas, con fuentes, incluso donde son más fuertes."
         }
       }
     },
@@ -193,10 +193,10 @@
     },
     "banner": {
       "headline": "Traduce solo <accent>lo que cambió</accent>",
-      "lead": "Verbatra aplica hash a cada clave en un archivo de bloqueo, envía solo las claves modificadas a tu proveedor y hace fallar la CI ante desviaciones.",
+      "lead": "Verbatra aplica hash a cada clave en un archivo de bloqueo, envía solo las claves modificadas a tu proveedor y hace fallar la CI si hay desfase.",
       "ctaPrimary": "Empezar",
       "ctaCompare": "Comparar con otras herramientas",
-      "keysAdded": "+{count, plural, one {# clave} many {# claves} other {# claves}}"
+      "keysChanged": "{count, plural, one {# clave modificada} many {# de claves modificadas} other {# claves modificadas}}"
     },
     "marquee": {
       "heading": "Funciona con los archivos de locale y los proveedores que ya usas",
@@ -208,9 +208,38 @@
       "allProviders": "Todos los proveedores",
       "allFormats": "Todos los formatos"
     },
-    "statement": {
-      "label": "Una ejecución, una configuración regional",
-      "heading": "<em>{sent} claves</em> salen de tu máquina, {kept} se quedan"
+    "lockDemo": {
+      "label": "El archivo de bloqueo",
+      "heading": "{count, plural, =2 {Dos claves modificadas, dos claves enviadas} one {# clave modificada, # clave enviada} many {# de claves modificadas, # de claves enviadas} other {# claves modificadas, # claves enviadas}}",
+      "steps": "Cómo funciona una ejecución",
+      "pause": "Pausar animación",
+      "play": "Reproducir animación",
+      "edit": {
+        "label": "Editar",
+        "text": "Cambias {count, plural, one {# valor} many {# de valores} other {# valores}} en tu archivo de origen."
+      },
+      "compare": {
+        "label": "Comparar",
+        "text": "Verbatra aplica hash a cada clave y la compara con el archivo de bloqueo. {count, plural, one {# hash registrado ya no coincide.} many {# de hashes registrados ya no coinciden.} other {# hashes registrados ya no coinciden.}}"
+      },
+      "send": {
+        "label": "Enviar",
+        "text": "Solo {count, plural, one {# clave va} many {# de claves van} other {# claves van}} al proveedor. Las otras {rest} no se envían."
+      },
+      "badge": {
+        "changed": "{count} modificadas"
+      },
+      "tags": {
+        "changed": "modificada",
+        "stale": "obsoleta"
+      },
+      "gap": "… {count} más, sin cambios",
+      "foot": {
+        "compare": "Obsoleta (stale) significa que el hash registrado de una entrada difiere del hash del valor actual de {file}. Las otras {count} coinciden.",
+        "generated": "generado el {date}",
+        "lock": "{file}: {count, plural, one {# hash actualizado} many {# de hashes actualizados} other {# hashes actualizados}}."
+      },
+      "preGenerated": "pregenerado, no en vivo"
     },
     "highlights": {
       "heading": "Todo alrededor del diff",
@@ -223,7 +252,7 @@
       "ci": {
         "label": "Comprobación",
         "title": "Las claves que faltan llegan a producción",
-        "body": "La comprobación sale con {code} mientras a un locale le faltan claves. No necesita clave de API, así que se ejecuta en cada pull request."
+        "body": "La comprobación termina con código {code} mientras un locale tenga claves faltantes u obsoletas. No necesita clave de API, así que se ejecuta en cada pull request."
       },
       "integrity": {
         "label": "Integridad",
@@ -233,62 +262,6 @@
         "label": "Agentes",
         "title": "Tu agente de codificación arregla las traducciones",
         "body": "Registra el servidor MCP para el proyecto, y el agente puede leer el estado y arreglar las traducciones. Las herramientas que gastan tokens del proveedor siguen desactivadas hasta que las permitas."
-      }
-    },
-    "playground": {
-      "heading": "Traduce una cadena con el SDK",
-      "lead": "Elige una cadena y mira cómo la llamada al SDK la traduce a todos los idiomas a continuación. Los marcadores de posición se quedan exactamente en su sitio.",
-      "items": "Cadena de origen",
-      "languages": "Idiomas de destino",
-      "source": "Origen ({locale})",
-      "copy": "Copiar código",
-      "label": "Pre-generado con el SDK de Verbatra y Gemini, no en vivo.",
-      "metadata": {
-        "label": "Cómo se generaron estos resultados",
-        "provider": "Proveedor",
-        "model": "Modelo",
-        "generated": "Generado"
-      },
-      "languageNames": {
-        "de": "Alemán",
-        "es": "Español",
-        "fr": "Francés",
-        "ja": "Japonés"
-      },
-      "table": {
-        "caption": "Cada resultado pre-generado, una fila por cadena de origen",
-        "source": "Origen (inglés)"
-      },
-      "links": {
-        "label": "Leer más",
-        "quickstart": "Inicio rápido del SDK",
-        "reference": "Referencia del SDK",
-        "providers": "Proveedores"
-      },
-      "animation": {
-        "pause": "Pausar animación",
-        "play": "Reproducir animación"
-      },
-      "status": {
-        "running": "Traduciendo {strings, plural, one {# cadena} many {# cadenas} other {# cadenas}} a {languages, plural, one {# idioma} many {# idiomas} other {# idiomas}}",
-        "passed": "Comprobación de integridad superada: {intact} de {total} marcadores de posición intactos",
-        "passedNone": "Comprobación de integridad superada: no hay marcadores de posición que proteger"
-      },
-      "counters": {
-        "sent": "enviados",
-        "kept": "conservados",
-        "placeholders": "marcadores de posición",
-        "checking": "comprobando"
-      },
-      "clock": {
-        "typing": "escribiendo",
-        "running": "corriendo",
-        "done": "listo"
-      },
-      "run": {
-        "queued": "en cola",
-        "awaiting": "esperando",
-        "resolved": "resuelto"
       }
     },
     "features": {
@@ -702,7 +675,7 @@
     },
     "closing": {
       "heading": "Empieza con una ejecución de prueba",
-      "lead": "Este camino es para un proyecto que ya tiene archivos de locale, y ninguno de los pasos necesita una clave de API.",
+      "lead": "Esta vía es para un proyecto que ya tiene archivos de locale, y ninguno de los dos pasos necesita una clave de API.",
       "label": "Antes de que gastes un token",
       "proof": {
         "label": "Datos del proyecto",

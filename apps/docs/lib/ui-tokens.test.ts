@@ -3,8 +3,10 @@ import { docsGlobalCss, stylesheetRules, uiTokensCss } from "@/lib/stylesheet-ru
 
 const KNOWN_EXTERNAL_VARS: ReadonlyArray<string> = [
   "--callout-color",
+  "--d",
   "--font-geist-mono",
   "--font-geist-sans",
+  "--lock-dwell",
   "--marquee-items",
   "--vk-hang",
 ];

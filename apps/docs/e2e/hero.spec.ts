@@ -113,7 +113,7 @@ test.describe("hero layout at 1440px", () => {
     const chip = await box(".vk-banner-install");
     expect(chip.y + chip.height).toBeLessThanOrEqual(compare.y + 1);
     await expect(page.locator(`${HERO} > .vk-banner-halo`)).toHaveAttribute("aria-hidden", "true");
-    await expect(page.locator(`${FILES} .vk-banner-file-line[data-added='true']`)).toHaveCount(2);
+    await expect(page.locator(`${FILES} .vk-banner-file-line[data-changed='true']`)).toHaveCount(2);
   });
 
   test("shows each back card's name and value line fully above the card in front", async ({
@@ -133,7 +133,7 @@ test.describe("hero layout at 1440px", () => {
     expect(covered).toEqual([false, false, false, false]);
   });
 
-  test("sets the headline at the mockup size with a gradient on its second line only, and the statement never larger", async ({
+  test("sets the headline at the mockup size with a gradient on its second line only", async ({
     page,
   }) => {
     await page.goto("/");
@@ -145,14 +145,6 @@ test.describe("hero layout at 1440px", () => {
       /linear-gradient/,
     );
     await expect(title).toHaveCSS("background-image", "none");
-    const statement = await page.locator(".vk-statement-title").evaluate((node) => {
-      return Number.parseFloat(getComputedStyle(node).fontSize);
-    });
-    expect(statement).toBeLessThanOrEqual(92);
-    const padding = await page
-      .locator("section#statement")
-      .evaluate((node) => Number.parseFloat(getComputedStyle(node).paddingTop));
-    expect(padding).toBeCloseTo(180, 0);
   });
 });
 
@@ -330,24 +322,5 @@ test.describe("hero install command at 320px in German", () => {
     await expect(page.locator(`${HERO} .vk-banner-install code`)).toHaveText(
       "npm i -D @verbatra/cli",
     );
-  });
-});
-
-test.describe("statement to highlights gap at 1440px", () => {
-  test.use({ viewport: { width: 1440, height: 900 } });
-
-  test("totals about 180px of padding like mockup F", async ({ page }) => {
-    await page.goto("/");
-    const gap = await page.evaluate(() => {
-      const below = Number.parseFloat(
-        getComputedStyle(document.querySelector("section#statement") as Element).paddingBottom,
-      );
-      const above = Number.parseFloat(
-        getComputedStyle(document.querySelector("section#highlights") as Element).paddingTop,
-      );
-      return below + above;
-    });
-    expect(gap).toBeGreaterThanOrEqual(170);
-    expect(gap).toBeLessThanOrEqual(190);
   });
 });

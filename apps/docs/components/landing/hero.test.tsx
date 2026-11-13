@@ -6,9 +6,11 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { HERO_TERMINAL_CHANGED_KEYS } from "@/lib/hero-terminal";
 import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
-import { HERO_FILE_ADDED_COUNT } from "@/lib/landing-hero-files";
-import { PLAYGROUND_FILES_PATTERN, PLAYGROUND_TRANSLATIONS } from "@/lib/landing-playground";
+import { HERO_FILE_CHANGED_COUNT } from "@/lib/landing-hero-files";
+import { PLAYGROUND_TRANSLATIONS, playgroundFileName } from "@/lib/landing-playground";
+import { LOCK_DEMO_LOCALE, LOCK_DEMO_PLAYGROUND_IDS } from "@/lib/lock-demo";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
 import { stripAccentTags } from "@/test-support/accent-tags";
@@ -222,7 +224,6 @@ describe("Hero locale files", () => {
       (chip) => chip.textContent,
     );
     expect(tinted).toContain("{name}");
-    expect(tinted).toContain("{count}");
     expect(tinted.every((text) => /^\{[^{}]+\}$/.test(text ?? ""))).toBe(true);
   });
 
@@ -237,36 +238,51 @@ describe("Hero locale files", () => {
     for (const card of cards) {
       const locale = card.getAttribute("data-locale") ?? "";
       expect(card.querySelector(".vk-banner-file-name")?.textContent).toContain(
-        PLAYGROUND_FILES_PATTERN.replace("{locale}", locale),
+        playgroundFileName(locale),
       );
       for (const line of card.querySelectorAll(".vk-banner-file-line")) {
-        const [, id = "", value = ""] =
-          /^(?:\+ )?"([^"]+)": (".*"),?$/.exec(line.textContent ?? "") ?? [];
-        expect(JSON.parse(value), `${locale} ${id}`).toBe(PLAYGROUND_TRANSLATIONS[locale]?.[id]);
+        const [, key = "", value = ""] =
+          /^(?:~ )?"([^"]+)": (".*"),?$/.exec(line.textContent ?? "") ?? [];
+        const id = LOCK_DEMO_PLAYGROUND_IDS[key] ?? key;
+        expect(JSON.parse(value), `${locale} ${key}`).toBe(PLAYGROUND_TRANSLATIONS[locale]?.[id]);
       }
     }
     expect(cards[0]?.querySelectorAll(".vk-banner-file-line")).toHaveLength(1);
   });
 
-  it("gives the de card five lines whose last new ones are marked with a plus, counted by the badge from the added lines", async () => {
+  it("gives the de card five lines, the changed ones marked with a tilde and counted from the fixture", async () => {
     const front = (await files()).querySelector("[data-front='true']");
     const lines = Array.from(front?.querySelectorAll(".vk-banner-file-line") ?? []);
     expect(lines).toHaveLength(5);
-    const added = lines.filter((line) => line.getAttribute("data-added") === "true");
-    expect(added).toHaveLength(HERO_FILE_ADDED_COUNT);
-    expect(added.every((line) => line.textContent?.startsWith("+ "))).toBe(true);
+    const changed = lines.filter((line) => line.getAttribute("data-changed") === "true");
+    expect(changed).toHaveLength(HERO_FILE_CHANGED_COUNT);
+    expect(HERO_FILE_CHANGED_COUNT).toBe(HERO_TERMINAL_CHANGED_KEYS.length);
+    expect(changed.every((line) => line.textContent?.startsWith("~ "))).toBe(true);
     expect(
       lines
-        .filter((line) => !added.includes(line))
-        .some((line) => line.textContent?.startsWith("+")),
+        .filter((line) => !changed.includes(line))
+        .some((line) => line.textContent?.startsWith("~")),
     ).toBe(false);
     expect(front?.querySelector(".vk-banner-file-badge")?.textContent).toBe(
-      banner.keysAdded.replace(
-        /\{count, plural, one \{# key\} other \{# keys\}\}/,
-        `${HERO_FILE_ADDED_COUNT} keys`,
+      banner.keysChanged.replace(
+        /\{count, plural, one \{# key changed\} other \{# keys changed\}\}/,
+        `${HERO_FILE_CHANGED_COUNT} keys changed`,
       ),
     );
     expect(lines.at(-1)?.textContent?.endsWith(",")).toBe(false);
+  });
+
+  it("shows the changed lines under the fixture's own keys, in the file the lock demo shows", async () => {
+    const front = (await files()).querySelector("[data-front='true']");
+    const changed = Array.from(
+      front?.querySelectorAll(".vk-banner-file-line[data-changed='true']") ?? [],
+    );
+    expect(changed.map((line) => /^~ "([^"]+)"/.exec(line.textContent ?? "")?.[1])).toEqual([
+      ...HERO_TERMINAL_CHANGED_KEYS,
+    ]);
+    expect(front?.querySelector(".vk-banner-file-name span")?.textContent).toBe(
+      playgroundFileName(LOCK_DEMO_LOCALE),
+    );
   });
 
   it("carries each card's language on its lines", async () => {
@@ -366,6 +382,17 @@ describe("Hero stylesheet", () => {
     ).toBe("inline-size");
   });
 
+  it("lets the back cards' preview line wrap like every other value line", () => {
+    const rules = docsStylesheetRules();
+    const backLines = rules.filter(
+      (rule) =>
+        rule.selector.includes('.vk-banner-file[data-locale="fr"] .vk-banner-file-line') ||
+        rule.selector.includes('.vk-banner-file[data-locale="es"] .vk-banner-file-line'),
+    );
+    expect(backLines.length).toBeGreaterThan(0);
+    expect(backLines.some((rule) => "white-space" in rule.declarations)).toBe(false);
+  });
+
   it("keeps the old stack, sheet and track rules out of the stylesheet", () => {
     const selectors = docsStylesheetRules().map((rule) => rule.selector);
     expect(
@@ -373,5 +400,18 @@ describe("Hero stylesheet", () => {
         /vk-banner-(stack|sheet|trust)|vk-tracks?\b|vk-track-/.test(selector),
       ),
     ).toEqual([]);
+  });
+});
+
+describe("the banner's changed-keys badge in every locale", () => {
+  it.each([
+    ["en", "2 keys changed"],
+    ["de", "2 Schlüssel geändert"],
+    ["es", "2 claves modificadas"],
+    ["fr", "2 clés modifiées"],
+  ])("%s renders %s on the front card, with no tilde", async (locale, expected) => {
+    const doc = await render(locale);
+    const badge = doc.querySelector("[data-front='true'] .vk-banner-file-badge");
+    expect(badge?.textContent).toBe(expected);
   });
 });

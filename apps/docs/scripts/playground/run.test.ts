@@ -98,7 +98,7 @@ describe("translateForWrite: truncation splits", () => {
   it("completes when the recursive splits fit under the cap", async () => {
     const { provider, runRequest } = request(
       { failBatch: truncateMultiKeyBatches },
-      { languages: ["de"], attemptCap: 19 },
+      { languages: ["de"], attemptCap: 2 * PLAYGROUND_SOURCE.length - 1 },
     );
     const outcome = await translateForWrite(runRequest);
     expect(outcome.kind).toBe("ready");

@@ -1,5 +1,5 @@
+import { clamp } from "@/lib/clamp";
 import type { CanvasFeatureId } from "@/lib/landing-features";
-import { clamp } from "@/lib/playground-cycle";
 
 export type Palette = {
   readonly accent: string;
