@@ -1,6 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { type APIResponse, expect, type Locator, type Page } from "playwright/test";
-import { COMPARE_FOCUS_ATTACHED } from "@/components/landing/compare-focus";
+import { type APIResponse, expect, type Page } from "playwright/test";
 import { FAQ_KEYS_ATTACHED } from "@/components/landing/faq-keys";
 import type { Locale } from "@/lib/i18n";
 import { THEME_STORAGE_KEY, THEMES, type ThemeName } from "@/lib/theme";
@@ -152,30 +151,137 @@ export async function expectTargetsMeetMinimumSize(page: Page, selector: string)
   expect(failing).toEqual([]);
 }
 
-export async function expectClearOfPinnedColumn(
-  row: Locator,
-  ref: Locator,
-  label: string,
-): Promise<void> {
-  const sticky = await row.locator("th").boundingBox();
-  const box = await ref.boundingBox();
-  if (!sticky || !box) throw new Error("a box is missing");
-  expect(box.x - 3, label).toBeGreaterThanOrEqual(sticky.x + sticky.width - 1);
+export async function waitForFaqKeys(page: Page): Promise<void> {
+  await expect(page.locator("#faq-list")).toHaveAttribute(FAQ_KEYS_ATTACHED, "");
 }
 
-export async function waitForCompareFocus(page: Page): Promise<void> {
-  await expect(page.locator("html")).toHaveAttribute(COMPARE_FOCUS_ATTACHED, "");
+type WordScan = {
+  selector: string;
+  split: "space" | "piece";
+  check: "broken" | "overflow" | "snug";
+};
+
+type WordFindings = { found: string[]; checked: number };
+
+export const brokenWords = (selector: string): WordScan => ({
+  selector,
+  split: "space",
+  check: "broken",
+});
+
+export const brokenWordPieces = (selector: string): WordScan => ({
+  selector,
+  split: "piece",
+  check: "broken",
+});
+
+export const overflowingWords = (selector: string): WordScan => ({
+  selector,
+  split: "piece",
+  check: "overflow",
+});
+
+export const wordsWithoutMargin = (selector: string): WordScan => ({
+  selector,
+  split: "piece",
+  check: "snug",
+});
+
+export function wordsFailing({ selector, split, check }: WordScan): WordFindings {
+  const pattern = split === "space" ? /\S+/g : /[^\s\-/]+/g;
+  const textNodes = (root: Element): Text[] => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes: Text[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node as Text);
+    return nodes;
+  };
+  const rangeOf = (node: Text, match: RegExpMatchArray): Range => {
+    const range = document.createRange();
+    range.setStart(node, match.index ?? 0);
+    range.setEnd(node, (match.index ?? 0) + match[0].length);
+    return range;
+  };
+  const isBroken = (range: Range): boolean =>
+    new Set(Array.from(range.getClientRects(), (rect) => Math.round(rect.top))).size > 1;
+  const wordsFailingIn = (anchor: Element): string[] => {
+    const style = getComputedStyle(anchor);
+    const limit = anchor.getBoundingClientRect().right - Number.parseFloat(style.paddingRight);
+    const room =
+      anchor.getBoundingClientRect().width -
+      Number.parseFloat(style.paddingLeft) -
+      Number.parseFloat(style.paddingRight);
+    const spoken = textNodes(anchor).filter(
+      (node) => check === "broken" || !node.parentElement?.closest(".sr-only"),
+    );
+    return spoken.flatMap((node) =>
+      Array.from(node.data.matchAll(pattern))
+        .filter((match) => {
+          const range = rangeOf(node, match);
+          if (check === "broken") return isBroken(range);
+          if (check === "snug") return range.getBoundingClientRect().width > room - 4;
+          return range.getBoundingClientRect().right > limit + 0.5;
+        })
+        .map((match) => match[0]),
+    );
+  };
+  const anchors = Array.from(document.querySelectorAll(selector));
+  return { found: anchors.flatMap(wordsFailingIn), checked: anchors.length };
 }
 
-export async function expectBackwardWalkClearsHeader(page: Page, scope: string): Promise<void> {
-  await waitForCompareFocus(page);
-  const refs = page.locator(`${scope} tbody [data-footnotes] a`);
-  const count = await refs.count();
+export async function expectEveryCompareCellVisible(page: Page, tool: string): Promise<void> {
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("no viewport");
+  const rows = page.locator(`main [data-pair="${tool}"] [data-row]`);
+  expect(await rows.count()).toBeGreaterThan(0);
+  const clipped = await page
+    .locator(`main [data-pair="${tool}"] dd`)
+    .evaluateAll((cells, width) => {
+      return cells
+        .filter((cell) => {
+          const box = cell.getBoundingClientRect();
+          return box.left < -0.5 || box.right > width + 0.5 || box.width === 0;
+        })
+        .map((cell) => cell.getAttribute("data-column") ?? "");
+    }, viewport.width);
+  expect(clipped).toEqual([]);
+}
+
+export function arrowsAloneOnTheirLine(selector: string): { found: string[]; checked: number } {
+  const lastTextLine = (cell: Element): DOMRect | undefined => {
+    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+    let line: DOMRect | undefined;
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.parentElement?.closest(".sr-only") || !node.textContent?.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      line = Array.from(range.getClientRects()).at(-1) ?? line;
+    }
+    return line;
+  };
+  const isAlone = (cell: Element): boolean => {
+    const link = cell.querySelector("a[data-source]")?.getBoundingClientRect();
+    const line = lastTextLine(cell);
+    return link !== undefined && line !== undefined && link.top + link.height / 2 > line.bottom;
+  };
+  const cells = Array.from(document.querySelectorAll(selector)).filter(
+    (cell) => cell.checkVisibility() && cell.querySelectorAll("a[data-source]").length === 1,
+  );
+  return {
+    found: cells.filter(isAlone).map((cell) => cell.textContent?.trim() ?? ""),
+    checked: cells.length,
+  };
+}
+
+export async function expectBackwardWalkClearsStickyHead(page: Page, scope: string): Promise<void> {
+  const selector = `${scope} a[data-source]`;
+  const links = page.locator(selector);
+  const count = await links.count();
   expect(count).toBeGreaterThan(0);
-  await refs.nth(count - 1).focus();
+  await links.nth(count - 1).focus();
+  const hidden: string[] = [];
   let visited = 0;
-  for (let step = 0; step < count * 3 && visited < count; step += 1) {
-    const state = await page.evaluate(async (selector) => {
+  for (let step = 0; step < count; step += 1) {
+    const state = await page.evaluate(async (query) => {
       const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
       let still = 0;
       let last = window.scrollY;
@@ -185,102 +291,24 @@ export async function expectBackwardWalkClearsHeader(page: Page, scope: string):
         last = window.scrollY;
       }
       const active = document.activeElement;
-      const header = document.querySelector("header");
-      if (!(active instanceof HTMLElement) || header === null) return null;
-      return {
-        isRef: active.matches(selector),
-        top: active.getBoundingClientRect().top,
-        headerBottom: header.getBoundingClientRect().bottom,
-        label: active.getAttribute("href") ?? "",
-      };
-    }, `${scope} tbody [data-footnotes] a`);
-    if (state === null) throw new Error("no focused element or header");
-    if (state.isRef) {
-      visited += 1;
-      expect(state.top, `${state.label} after ${visited} refs`).toBeGreaterThanOrEqual(
-        state.headerBottom - 0.5,
+      if (!(active instanceof HTMLElement) || !active.matches(query)) return null;
+      const box = active.getBoundingClientRect();
+      const heads = Array.from(
+        document.querySelectorAll("main thead th"),
+        (th) => th.getBoundingClientRect().bottom,
       );
-    }
+      const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+      const covered = Math.max(header, ...heads);
+      return {
+        clear: box.top >= covered - 0.5 && box.bottom <= window.innerHeight + 0.5,
+        label: active.querySelector(".sr-only")?.textContent ?? "",
+      };
+    }, selector);
+    if (state === null) break;
+    visited += 1;
+    if (!state.clear) hidden.push(state.label);
     await page.keyboard.press("Shift+Tab");
   }
   expect(visited).toBe(count);
-}
-
-export async function waitForFaqKeys(page: Page): Promise<void> {
-  await expect(page.locator("#faq-list")).toHaveAttribute(FAQ_KEYS_ATTACHED, "");
-}
-
-export async function expectEdgeRefsReachable(page: Page, scope: string): Promise<void> {
-  await waitForCompareFocus(page);
-  const region = page.locator(`${scope} [data-compare-scroll]`);
-  const rows = await page.locator(`${scope} tbody tr[data-row]`).count();
-  for (let row = 0; row < rows; row += 1) {
-    const refs = page
-      .locator(`${scope} tbody tr[data-row] >> nth=${row}`)
-      .locator("[data-footnotes] a");
-    const count = await refs.count();
-    if (count === 0) continue;
-    const last = refs.nth(count - 1);
-    if (count === 1) await last.focus();
-    else {
-      await refs.nth(count - 2).focus();
-      await page.keyboard.press("Tab");
-    }
-    await expect(last).toBeFocused();
-    await expect(page.locator(`${scope} .vk-compare-fade`)).toBeHidden();
-    const frame = await region.boundingBox();
-    const sticky = await page
-      .locator(`${scope} tbody tr[data-row] >> nth=${row}`)
-      .locator("th")
-      .boundingBox();
-    const box = await last.boundingBox();
-    if (!frame || !sticky || !box) throw new Error("a box is missing");
-    expect(box.x - 3, `row ${row}`).toBeGreaterThanOrEqual(sticky.x + sticky.width - 1);
-    expect(box.x + box.width + 3, `row ${row}`).toBeLessThanOrEqual(frame.x + frame.width + 0.5);
-  }
-}
-
-export async function expectStickyLabelsFit(page: Page, scope: string): Promise<void> {
-  const broken = await page.locator(`${scope} .vk-compare-sticky`).evaluateAll((cells) =>
-    cells.flatMap((cell) => {
-      const words: string[] = [];
-      const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
-      for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
-        for (const match of (node.textContent ?? "").matchAll(/[^\s-]+-?/g)) {
-          const range = document.createRange();
-          range.setStart(node, match.index);
-          range.setEnd(node, match.index + match[0].length);
-          const lines = new Set(
-            Array.from(range.getClientRects())
-              .filter((rect) => rect.width > 0)
-              .map((rect) => Math.round(rect.top)),
-          );
-          if (lines.size > 1) words.push(match[0]);
-        }
-      }
-      return words;
-    }),
-  );
-  expect(broken).toEqual([]);
-}
-
-export function brokenWordsIn(selector: string): { found: string[]; checked: number } {
-  const lineCount = (node: Text, start: number, end: number): number => {
-    const range = document.createRange();
-    range.setStart(node, start);
-    range.setEnd(node, end);
-    return new Set(Array.from(range.getClientRects(), (rect) => Math.round(rect.top))).size;
-  };
-  const wordsBroken = (node: Text): string[] =>
-    Array.from(node.data.matchAll(/\S+/g))
-      .filter((match) => lineCount(node, match.index, match.index + match[0].length) > 1)
-      .map((match) => match[0]);
-  const textNodes = (root: Element): Text[] => {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    const nodes: Text[] = [];
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node as Text);
-    return nodes;
-  };
-  const anchors = Array.from(document.querySelectorAll(selector));
-  return { found: anchors.flatMap(textNodes).flatMap(wordsBroken), checked: anchors.length };
+  expect(hidden).toEqual([]);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localeSwitchHref } from "./locale-switch";
+import { carriedSearch, localeSwitchHref } from "./locale-switch";
 
 describe("localeSwitchHref", () => {
   it.each([
@@ -19,5 +19,19 @@ describe("localeSwitchHref", () => {
 
   it("keeps a first segment that is not a locale", () => {
     expect(localeSwitchHref("/denmark", "fr")).toBe("/fr/denmark");
+  });
+});
+
+describe("carriedSearch", () => {
+  it.each([
+    ["/compare", "?tool=tolgee", "?tool=tolgee"],
+    ["/de/compare", "?x=1&tool=weblate&y=2", "?tool=weblate"],
+    ["/fr/compare/", "?tool=a%20b", "?tool=a+b"],
+    ["/compare", "?x=1", ""],
+    ["/compare", "", ""],
+    ["/docs/cli", "?tool=tolgee", ""],
+    ["/", "?tool=tolgee", ""],
+  ] as const)("keeps %s with %s as %j", (pathname, search, kept) => {
+    expect(carriedSearch(pathname, search)).toBe(kept);
   });
 });

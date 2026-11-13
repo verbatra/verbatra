@@ -400,68 +400,48 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   stretches over the whole card), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
   (`#marquee`, see "Marquee" below), and the comparison, which lives only on `/compare` (the landing reaches it from the hero link, the last FAQ answer, the FAQ's docs
-  links and the footer). `lib/landing-compare.ts` holds its rows and tools and one numbered source
-  list, `compareSource(n)`; `cellFootnote` derives each cell's number from its row and tool, and
-  the manual column cites the note `M`. A cell is text only, never a check, a cross or a rating.
-  Every cell is followed by its footnote links (`[data-footnotes]`, each at least 24px,
-  named "Source n, tool", set small (0.6875rem mono) and `--text-muted` with no underline until
-  hover, so the sources stay reachable without outweighing the cell text); `TextWithRefs` keeps the cell's last word and its links in one `whitespace-nowrap` run,
-  so a link never starts a line alone, and a checked cell keeps its glyph with its first word (up to
-  a hyphen, so `check-Gate` may break after it), so the glyph never stands on a line alone. The source list (`li` with `value={n}` and `id="source-n"`, the note `id="source-m"`) sits under
-  the table, so a followed footnote sets `:target`; under the table the framing sentence
-  (`landing.compare.fairness`), the concession with `CONCESSION_FOOTNOTES` and "Last checked" with
-  `COMPARE_LAST_CHECKED` as a `time`. The table is a
-  hairline table (`.vk-compare-table`, `table-layout: fixed`): a top and bottom rule, rows split by
-  `--border-default`, the header row on `--compare-head` (the band surface) over a `--text-faint`
-  rule, no filled header and no tinted column; the Verbatra column is marked by `.vk-compare-mark`,
-  an inset `--accent-fill` start bar (under `forced-colors`, where the shadow drops, a 3px
-  `CanvasText` start border), with medium-weight cells and its header in `--accent`; every
-  column header is medium weight too. Every
-  surface of the region (its background, the opaque sticky cells, the fade, the no-timeline
-  shades) reads `--compare-surface`, the page under `.vk-compare` and the band under
-  `.vk-band .vk-compare`. The table scrolls sideways inside a focusable `section` named by its
-  caption (`aria-labelledby`), with the row headers pinned at `--compare-sticky` (11rem, at most 7.5rem (46cqi) while the column is narrower than 56rem,
-  where the row headers drop to `--text-xs` with 0.5rem/0.375rem inline padding so every criterion
-  word, a trailing hyphen included, fits unbroken in all four locales down to a 320px window with a
-  classic scrollbar (305px), which `expectStickyLabelsFit` checks word by word), which is
-  also the region's `scroll-padding-inline-start`, so a focused link scrolls clear of the pinned
-  column; Chrome leaves a link that is only partly under it unscrolled, so the lazy `CompareFocus`
-  island (`compare-focus.tsx`, one `focusin` listener) scrolls a control focused inside the region,
-  only when it `:focus-visible` (a pointer press is never moved out from under the pointer),
-  with `scrollIntoView` at `nearest`, which honours that padding and the footnote link's 0.25rem
-  `scroll-margin-inline` (room for its focus ring), and `e2e/compare-page.spec.ts` checks the
-  geometry, not a hit test; the focused link (`.vk-compare-ref:focus-visible`) still sits above the
-  pinned column on the region surface; `scroll-padding-inline-end: 3rem` keeps a focused link at the end edge clear of the fade,
-  and the fade is dropped (`display: none`) while the region holds focus. A row header breaks a
-  long word (`overflow-wrap: anywhere`; never `hyphens: auto`, which `lib/theme.test.ts` bans), and a
-  pill in a cell wraps inside it. A thin scrollbar thumb, here and on every other sideways
-  scroller of the site (prose tables, code frames, tab rows), is `--text-faint`,
-  never `--border-default`. While the
-  column is narrower than the table (100rem) a `landing.compare.scrollHint` line before it says so
-  (not wired as a description, since it is `display: none` on a wide column) and
-  `.vk-compare-fade` fades the end edge on the region's scroll timeline; without scroll timelines
-  the fade is dropped and the region shades its end edge with a `local` cover over a `scroll`
-  shade, which clears at the scroll end. A followed source (`.vk-compare-source:target`) gets an
-  `--accent-fill` tint and start bar, its number inside the tint (`list-inside` with a hanging
-  indent), and `scroll-margin-top` clears the sticky header. `TextWithRefs` keeps a closing quote or
-  other punctuation-only tail with the word before it, and French copy puts U+202F inside `« »`. The
-  region, its caption and sticky headers, the footnote links and the source list (two CSS
-  columns from 64rem, each URL breaking after its slashes through `breakUrlAfterSlashes` and,
-  with `overflow-wrap: anywhere`, inside a long slug at 320px; each link and its `;` in one
-  `inline-block` with `py-1`, which spaces the links far enough apart for the 24px target rule) live in
-  `compare-table.tsx` (`CompareRegion`, `FootnoteRefs`, `TextWithRefs`, `SourceList`), shared
-  with `/compare`:
-  `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx`, one `h1`
-  (`compare.heading`, `.vk-h2` size), the full table of `COMPARE_ROWS` by `COMPARE_TOOLS` (every
-  cell is `landing.compare.rows.<row>.<tool>`; the Verbatra providers cell lists `badgedProviderNames(locale)` with the
-  `RELEASE_BADGE` pill and the formats cell counts `SUPPORTED_FORMAT_IDS`, both through
-  `lib/compare-cells.ts`), the dated notes, its own concession, links to the quickstart and home,
-  and all sources under an `h2`. The article's single grid track is `minmax(0,1fr)`, so no long
-  item widens the column past the gutter (`e2e/compare-page.spec.ts` checks every visible element
-  against the viewport edge at 320px and 375px). Its 100rem-wide table sits in `.vk-compare.vk-compare-full`, whose
-  container query at 100rem shows the hint and fade on a desktop column too. `/compare.md` (and
-  `Accept: text/markdown` on `/compare`) is `lib/compare-markdown.ts` served by
-  `app/[lang]/site.mdx/[page]/route.ts`; `MARKDOWN_PAGES` in `lib/markdown-route.ts` lists the
+  links and the footer). `lib/landing-compare.ts` holds its rows, tools and cells. A cell is typed
+  (`compareCell(row, tool)`): a verdict (`yes`, `no`, `partial`, `unknown` or `noneFound`, whose mark comes from `verdictMark`: none
+  found is the question mark, never a cross), a value (license, pricing, providers, formats and Verbatra's self-hosting: no mark) or not
+  applicable (the manual column). Marks are data, never translated text; the words come from one shared vocabulary,
+  `landing.compare.verdicts` (Yes, No, Partial, Unknown, None found, n/a), and each cell's copy is `landing.compare.rows.<row>.<tool>`
+  with an optional `value` and an optional `note` (the qualifier), cut by `lib/landing-copy.test.ts` at 8 words (10 for eleven listed
+  cells), a value at 4, in all four locales. There is no overall score, no rating per tool and no rating wording. Verbatra's providers
+  cell is a plain count derived from `MACHINE_PROVIDER_IDS` through `compareCellView` (`lib/compare-cells.ts`), no names. The numbered
+  source list (`compareSource(n)`, `cellFootnote`) is kept for `/compare.md` and `llms-full.txt` only; the page shows no footnote
+  number, no Sources section and no `#source-n` anchor, and each cell carries one arrow-only link per source URL
+  (`a[data-source]`: an inline arrow SVG with `aria-hidden`, an `sr-only` name of tool, criterion and "source", at least 24px, set small and
+  `--text-muted`, `scroll-margin-block-start: 6rem` so a backward Tab walk never leaves one under the sticky header row). The first
+  arrow of a cell sits in a no-wrap `.vk-compare-unit` with the last word (or hyphen segment) before it, and a verdict mark in one with
+  its first word, so an arrow never drops to a line of its own and a two-word verdict wraps after the mark and first word; further
+  arrows wrap freely. The qualifier is `--text-muted` and follows the verdict word after a plain space, with no dash. A mark is an inline SVG (`.vk-compare-mark`, `data-mark`): a check in `--accent`, a cross, a half circle and a
+  question mark in `--text-muted`, never red, always beside the word, each a different shape so colour is never the only cue, drawn in
+  `currentColor` so forced colors keep it. The page opens with the `h1`, one takeaway sentence, one scope sentence, one "where others are
+  stronger" line and the "Last checked" date (`COMPARE_LAST_CHECKED`, with one short clause saying what "None found" means, `compare.noneFound`), then a skip
+  link past the comparison, so the first comparison row sits within 400px at 1440 and at least two rows fit the first 391 by 844 screen
+  and one the first 320 by 640 screen, in all four locales (under 23rem the intro gaps tighten and its secondary lines drop to
+  `--text-xs`; `compare.takeaway` and `compare.stronger` stay one line in the 46rem intro). Under the comparison come the two
+  next-step links. The layout is one `.vk-compare` container (`container-type: inline-size`) with two views of the same data, chosen by
+  its width, never the viewport: from 67.5rem the full eight-column matrix (`table.vk-compare-table`, `table-layout: fixed`, fitted to the
+  content width with no sideways scroll at any width from 320 to 2560, a sticky header row under the site header, the Verbatra column marked by
+  `.vk-compare-self`: an inset `--accent-fill` start bar and a faint tint, a 3px `CanvasText` start border under `forced-colors`); below
+  it Verbatra beside one chosen tool (`.vk-compare-pairs`, one `details.vk-compare-pair` per tool, each row a `dl` entry with the
+  Verbatra line over the tool line, the canonical row order for every tool, the pair and the select capped at 44rem and 24rem; a
+  tool's detail line, "current CLI and platform" and "no product, no sources", is one `.vk-compare-pair-detail` paragraph at the top
+  of its pair, never on a row; under `forced-colors` both lines reserve the 3px start border so they align). Without a live picker
+  (no JavaScript, a failed chunk, or before hydration) the pairs are seven collapsed sections, Lingo.dev open, each summary with the
+  FAQ's `.vk-faq-mark` plus or minus. The `ComparePicker` island (`compare-picker.tsx`, a plain `island()`) sets
+  `data-picker-live` on `.vk-compare` while it is mounted, and only then (under 67.5rem) are the select (`.vk-compare-picker`) shown
+  and the unselected pairs and the selected summary hidden, so a picker that never arrives hides nothing. It starts on Lingo.dev, marks
+  one pair `data-selected`, opens it and keeps the choice in the URL as `?tool=<id>` (`COMPARE_TOOL_PARAM`, carried through the header
+  and footer language switch by `carriedSearch` in `lib/locale-switch.ts`)
+  through `history.replaceState`, so it is shareable and survives a reload; the server HTML starts on Lingo.dev. Words never break
+  mid-word (`hyphens: manual`, never `hyphens: auto`, `overflow-wrap: normal`), so a long German word in a cell is a wording
+  problem, which `e2e/compare-page.spec.ts` checks at 1160, 1200, 1240, 1280 and 1440 in all four locales. The matrix verdict word is 13px (`calc(var(--text-xs) + 1px)`), the qualifier 12px. The article's single grid track is
+  `minmax(0,1fr)`. `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx` (with `compare-table.tsx`:
+  `CompareMatrix`, `ComparePairs`, `CompareCellBody`). `/compare.md` (and `Accept: text/markdown` on `/compare`) is
+  `lib/compare-markdown.ts` served by `app/[lang]/site.mdx/[page]/route.ts`: it keeps the full table, now with the verdict words, the
+  providers named, and the full numbered source list; `MARKDOWN_PAGES` in `lib/markdown-route.ts` lists the
   non-docs pages with a Markdown variant beside the landing's `/index.md`, and `SITE_MARKDOWN` in
   `lib/site-markdown.ts` maps each to its generator; a direct `.mdx` url is redirected to its `.md`
   url once in `proxy.ts`), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
@@ -969,7 +949,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   server-renders the component inline (preloaded through top-level `await preloadIslands`) inside an
   `<Activity mode="visible">` and a box-less `.vk-island` wrapper (`display: contents`; a `span`, or
   a `div` with `{ as: "div" }` for an island whose root is a block, as every landing section island
-  but `FaqKeys`, `CompareFocus` and `CopyButton` is), never a Suspense boundary, since React outlines a completed Suspense
+  but `FaqKeys` and `CopyButton` is), never a Suspense boundary, since React outlines a completed Suspense
   boundary over 500 bytes to the end of a long stream (the fallback flash measured CLS 0.497).
   Activity boundaries are written inline (`<!--&-->`) yet hydrate on their own, so each island
   hydrates when its chunk lands and a slow one holds no other back. In the browser
@@ -1105,7 +1085,7 @@ content scrolling under it stays out of the way of its text), over one plain 1px
 `--border-default` hairline (`.vk-header::after`, absolutely placed so it adds no height), never a
 gradient. Every page with a `.vk-home`
 container sets `scroll-padding-block-start: var(--vk-landing-offset)` (3.5rem, the header height)
-on `html`, so an in-page jump and every focused control (a comparison footnote reached by
+on `html`, so an in-page jump and every focused control (a comparison source link reached by
 Shift+Tab, too) land below the sticky header (WCAG 2.4.11); add only the extra gap as a
 `scroll-margin-top`, never the header height again.
 
@@ -1253,7 +1233,6 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   script, data attribute or stored choice, and no version picker. The pill sits after the heading
   text when it is inside a heading (a 0.5rem start margin, none in the wrapped anchor), and the
   heading anchor wraps it under the text under 768px; the full rules are in `.claude/rules/docs.md`.
-  `AvailableFromPill` is the compare page's outline pill, "Available from X.Y.Z", always shown.
   The landing's marquee shows the New pill alone, and only for an item in the current line.
   `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's one list of
   what was new in a release: `providers` (read through `providerReleaseBadge`, and `providerIsNew`
@@ -1286,7 +1265,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   border. `NewBadge` (`components/new-badge.tsx`) is the sidebar's NEW marker: the same pill with
   `ms-1.5`, hidden in `.vk-crumbs`. The hero carries no announcement or pill. The pill appears
   in the marquee's current-line provider badge (the word alone, no version), the sidebar NEW marker
-  and the in-page `<AvailableFrom>` marker. A quickstart tag and the compare page's version stay the `.vk-pill` outline. The pill is
+  and the in-page `<AvailableFrom>` marker. A quickstart tag stays the `.vk-pill` outline. The pill is
   also the in-page `<AvailableFrom>` marker, in a heading, a table cell or a paragraph.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
   `--width-measure` (about 72 characters of body text); tables and code blocks run the full

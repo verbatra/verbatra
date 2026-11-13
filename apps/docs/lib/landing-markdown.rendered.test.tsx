@@ -55,8 +55,6 @@ const SKIPPED = [
   ".sr-only:not(caption)",
   "script",
   "[data-playground-demo]",
-  ".vk-compare-hint",
-  "[data-footnotes]",
 ].join(", ");
 
 function normalized(text: string): string {
