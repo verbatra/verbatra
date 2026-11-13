@@ -4264,18 +4264,27 @@ html.light .vk-feature-shot-dark {
 
   @keyframes vk-lock-unstage-stage {
     to {
-      display: block;
+      grid-template-columns: minmax(0, 1fr);
+      column-gap: 0;
     }
   }
 
   @keyframes vk-lock-unstage-side {
+    1%,
     to {
-      display: none;
+      visibility: hidden;
+    }
+
+    to {
+      grid-column: auto;
+      max-block-size: 0;
+      margin-block-end: calc(var(--head-gap) * -1);
     }
   }
 
   @keyframes vk-lock-unstage-frames {
     to {
+      grid-column: auto;
       gap: 2.5rem;
       max-width: 46rem;
     }

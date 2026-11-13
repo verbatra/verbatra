@@ -234,6 +234,21 @@ describe("the three frames", () => {
     expect(media).toContain(".vk-lock-stage:not([data-mode]) .vk-lock-frames");
   });
 
+  it("retires the unmounted controls with visibility and a collapsed block, never an animated display", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync(`${process.cwd()}/app/global.css`, "utf8");
+    const keyframes = [
+      ...css.matchAll(/@keyframes (vk-lock-unstage-[\w-]+) \{[\s\S]*?\n {2}\}\n/g),
+    ];
+    expect(keyframes.length).toBeGreaterThan(0);
+    for (const [body] of keyframes) {
+      expect(body).not.toMatch(/\bdisplay:/);
+    }
+    const side = /@keyframes vk-lock-unstage-side \{([\s\S]*?)\n {2}\}\n/.exec(css)?.[1] ?? "";
+    expect(side).toMatch(/1%,\s*to \{\s*visibility: hidden;/);
+    expect(side).toContain("max-block-size: 0");
+  });
+
   it("is the island's step list that controls these exact frames", () => {
     const controls = Array.from(doc.querySelectorAll("button.vk-lock-step")).map((button) =>
       button.getAttribute("aria-controls"),
