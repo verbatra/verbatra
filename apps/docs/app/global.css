@@ -236,6 +236,15 @@ html.light {
   }
 }
 
+@media (max-width: 39.99rem) {
+  :root {
+    --section-lg: 88px;
+    --section-md: 64px;
+    --section-sm: 48px;
+    --head-gap: 2rem;
+  }
+}
+
 @media (min-width: 768px) {
   :root {
     --section-lg: 168px;
@@ -763,6 +772,29 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
   gap: 2rem var(--grid-gap);
+}
+
+@media (max-width: 39.99rem) {
+  .vk-footer-groups {
+    row-gap: 1.75rem;
+    padding-block: 1.5rem;
+  }
+
+  .vk-footer-secondary {
+    row-gap: 1.5rem;
+  }
+
+  .vk-footer-group ul {
+    row-gap: 0;
+  }
+
+  .vk-footer-group[data-group="product"] li {
+    padding-block-end: 0;
+  }
+
+  .vk-footer-group-title {
+    margin-block-end: 0.25rem;
+  }
 }
 
 @media (min-width: 48rem) {
@@ -4077,6 +4109,12 @@ html.light .vk-feature-shot-dark {
 
   .vk-tile[data-span="4"] {
     grid-column: span 4;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .vk-feature-visual:not(:has(.vk-feature-shot)) {
+    display: none;
   }
 }
 
