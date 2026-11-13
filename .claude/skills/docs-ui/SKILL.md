@@ -98,10 +98,10 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   `slots.themeSwitch` in `lib/layout.shared.tsx`: `SiteHeaderFrame` renders it after the language
   select from 768px, the home drawer footer beside the language select, and Fumadocs renders the
   same slot in the docs sidebar footer and phone drawer. It is one native `button` with
-  `aria-pressed` (pressed while the light theme shows), named by `docs.theme.light`, and it draws
+  `aria-pressed` (pressed while the light theme shows), named by `docs.theme.light`, with a `title` that names the switch a click makes (`docs.theme.switchToLight` while dark, `docs.theme.switchToDark` while light), and it draws
   both a moon and a sun icon, leaving the choice to the stylesheet (`.vk-theme-icon-light` is
   hidden unless `html.light`), so nothing flashes before hydration; `aria-pressed` reads `false`
-  on the server and settles after hydration.
+  and the `title` reads the dark-mode wording on the server, and both settle after hydration.
 
 ## Token layers: always use the outermost one
 

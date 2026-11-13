@@ -59,7 +59,9 @@
       "label": "Add to {client}"
     },
     "theme": {
-      "light": "Light theme"
+      "light": "Light theme",
+      "switchToLight": "Switch to light theme",
+      "switchToDark": "Switch to dark theme"
     }
   },
   "landing": {
