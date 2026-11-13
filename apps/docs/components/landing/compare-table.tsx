@@ -1,340 +1,328 @@
 import type { getTranslations } from "next-intl/server";
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { type CompareCellView, compareCellView } from "@/lib/compare-cells";
 import type { Locale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import {
+  COMPARE_ROWS,
   COMPARE_TOOL_NAMES,
-  type CompareFootnote,
-  compareSource,
+  COMPARE_TOOLS,
+  type CompareMark,
+  type CompareRowId,
+  type CompareTool,
   compareSourceHref,
 } from "@/lib/landing-compare";
 import { cn } from "@/lib/utils";
-import { breakUrlAfterSlashes } from "@/lib/word-breaks";
-import { CompareFocus } from "./islands";
 
 export type CompareTranslator = Awaited<ReturnType<typeof getTranslations<"landing.compare">>>;
 
-const CAPTION_ID = "compare-caption";
-
-const SOURCES_ID = "compare-sources-heading";
-
-const REF_CLASS =
-  "vk-compare-ref inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm px-0.5 font-mono text-[0.6875rem] text-(--text-muted) no-underline hover:text-(--accent) hover:underline hover:decoration-(--accent) hover:underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--focus-ring)";
-
-const NO_BREAK_SPACE = "\u00a0";
-
-function footnoteId(footnote: CompareFootnote): string {
-  return `source-${footnote === "M" ? "m" : footnote}`;
+export function toolName(t: CompareTranslator, tool: CompareTool): string {
+  return tool === "manual" ? t("columns.manual") : COMPARE_TOOL_NAMES[tool];
 }
 
-export function FootnoteRefs({
-  footnotes,
-  t,
-  sourcesPage = "",
-}: {
-  footnotes: ReadonlyArray<CompareFootnote>;
-  t: CompareTranslator;
-  sourcesPage?: string;
-}): ReactNode {
-  return (
+function toolDetail(t: CompareTranslator, tool: CompareTool): string | null {
+  if (tool === "lingo") return t("columns.lingoDetail");
+  if (tool === "manual") return t("columns.manualDetail");
+  return null;
+}
+
+function Detail({ text }: { text: string | null }): ReactNode {
+  return text === null ? null : <small className="vk-compare-detail">{text}</small>;
+}
+
+function PairDetail({ text }: { text: string | null }): ReactNode {
+  return text === null ? null : <p className="vk-compare-pair-detail">{text}</p>;
+}
+
+const MARK_PATHS: Readonly<Record<CompareMark, ReactNode>> = {
+  yes: <path d="M3.5 8.5l3 3L12.5 5" />,
+  no: <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />,
+  partial: (
     <>
-      {NO_BREAK_SPACE}
-      <span className="inline-flex flex-nowrap gap-0.5 align-baseline" data-footnotes="">
-        {footnotes.map((footnote) => (
-          <a
-            key={footnote}
-            href={`${sourcesPage}#${footnoteId(footnote)}`}
-            aria-label={
-              footnote === "M"
-                ? t("noteRef")
-                : t("sourceRef", {
-                    number: footnote,
-                    tool: COMPARE_TOOL_NAMES[compareSource(footnote).tool],
-                  })
-            }
-            className={REF_CLASS}
-          >
-            {footnote}
-          </a>
-        ))}
-      </span>
+      <circle cx="8" cy="8" r="5.5" fill="none" />
+      <path d="M8 2.5a5.5 5.5 0 0 0 0 11z" fill="currentColor" stroke="none" />
     </>
+  ),
+  unknown: (
+    <>
+      <circle cx="8" cy="8" r="5.5" fill="none" />
+      <path d="M6.3 6.5a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3" fill="none" />
+      <circle cx="8" cy="11.2" r=".6" fill="currentColor" />
+    </>
+  ),
+};
+
+function VerdictMark({ mark }: { mark: CompareMark }): ReactNode {
+  return (
+    <svg
+      className="vk-compare-mark"
+      data-mark={mark}
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {MARK_PATHS[mark]}
+    </svg>
   );
 }
 
-export function SourceList({
+function sourceLinks({
+  view,
+  tool,
+  criterion,
   t,
   locale,
-  footnotes,
-  intro,
 }: {
+  view: CompareCellView;
+  tool: CompareTool;
+  criterion: string;
   t: CompareTranslator;
   locale: Locale;
-  footnotes: ReadonlyArray<number>;
-  intro?: ReactNode;
-}): ReactNode {
-  return (
-    <div className="grid gap-3">
-      <h2 id={SOURCES_ID} className="text-sm font-medium text-(--text-strong)">
-        {t("sources")}
-      </h2>
-      {intro}
-      <ol
-        aria-labelledby={SOURCES_ID}
-        className="list-inside list-decimal gap-x-10 text-xs leading-relaxed text-(--text-muted) lg:columns-2"
-      >
-        {footnotes.map((footnote) => {
-          const source = compareSource(footnote);
-          return (
-            <li
-              key={footnote}
-              id={footnoteId(footnote)}
-              value={footnote}
-              className="vk-compare-source mb-2 min-w-0 break-inside-avoid ps-8 -indent-8"
-            >
-              <span className="text-(--text-body)">{COMPARE_TOOL_NAMES[source.tool]}: </span>
-              {source.urls.map((link, index) => {
-                const href = compareSourceHref(link, locale);
-                const more = index < source.urls.length - 1;
-                return (
-                  <Fragment key={href}>
-                    <span className="inline-block max-w-full py-1 indent-0 [overflow-wrap:anywhere]">
-                      <a href={href} className="vk-prose-link">
-                        {breakUrlAfterSlashes(href)}
-                      </a>
-                      {more ? ";" : null}
-                    </span>
-                    {more ? " " : null}
-                  </Fragment>
-                );
-              })}
-            </li>
-          );
-        })}
-      </ol>
-      <p
-        id={footnoteId("M")}
-        className="vk-compare-source max-w-[72ch] text-xs leading-relaxed text-(--text-muted)"
-      >
-        <span className="font-mono text-(--text-body)">M </span>
-        {t("manualNote")}
-      </p>
-    </div>
-  );
-}
-
-type CompareColumn = { readonly id: string; readonly label: string; readonly detail?: string };
-
-type CompareCellContent = {
-  readonly column: string;
-  readonly text: string;
-  readonly content?: ReactNode;
-  readonly mark?: ReactNode;
-  readonly footnotes: ReadonlyArray<CompareFootnote>;
-};
-
-type CompareTableRow = {
-  readonly id: string;
-  readonly label: string;
-  readonly cells: ReadonlyArray<CompareCellContent>;
-};
-
-const WORD_CHARACTER = /[\p{L}\p{N}]/u;
-
-function splitLastWord(text: string): readonly [string, string] {
-  let index = text.lastIndexOf(" ");
-  while (index > 0 && !WORD_CHARACTER.test(text.slice(index + 1))) {
-    index = text.lastIndexOf(" ", index - 1);
-  }
-  const tail = text.slice(index + 1);
-  if (tail.split("`").length % 2 === 0) return [text, ""];
-  return [text.slice(0, index + 1), tail];
-}
-
-const FIRST_WORD = /^[^\s-]+-(?=[^\s-])|^\S+/;
-
-function splitFirstWord(text: string): readonly [string, string] {
-  const head = FIRST_WORD.exec(text)?.[0] ?? "";
-  if (head.split("`").length % 2 === 0) return ["", text];
-  return [head, text.slice(head.length)];
-}
-
-function MarkedText({
-  mark,
-  text,
-  refs,
-}: {
-  mark: ReactNode;
-  text: string;
-  refs: ReactNode;
-}): ReactNode {
-  const [first, rest] = splitFirstWord(text);
-  if (rest === "")
-    return (
-      <span className="whitespace-nowrap">
-        {mark}
-        {withInlineCode(first)}
-        {refs}
+}): ReadonlyArray<ReactNode> {
+  const name = toolName(t, tool);
+  return view.urls.map((link, index) => (
+    <a
+      key={compareSourceHref(link, locale)}
+      href={compareSourceHref(link, locale)}
+      data-source=""
+      className="vk-compare-source"
+    >
+      <span className="sr-only">
+        {view.urls.length === 1
+          ? t("sourceLink", { tool: name, criterion })
+          : t("sourceLinkNth", { tool: name, criterion, number: index + 1 })}
       </span>
+      <svg
+        viewBox="0 0 12 12"
+        width="12"
+        height="12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M3.5 8.5l5-5M4.5 3.5h4v4" />
+      </svg>
+    </a>
+  ));
+}
+
+function Unit({ children }: { children: ReactNode }): ReactNode {
+  return <span className="vk-compare-unit">{children}</span>;
+}
+
+const TAIL_SEGMENT = /[^\s\-/]*$/;
+
+function WordWithMark({
+  word,
+  mark,
+  arrow,
+}: {
+  word: string;
+  mark: ReactNode;
+  arrow: ReactNode;
+}): ReactNode {
+  const cut = word.search(TAIL_SEGMENT);
+  const head = word.slice(0, cut);
+  const tail = word.slice(cut);
+  if (mark === null)
+    return (
+      <>
+        {head}
+        <Unit>
+          {tail}
+          {arrow}
+        </Unit>
+      </>
+    );
+  const lead = /^\S+/.exec(head)?.[0] ?? "";
+  if (lead === "")
+    return (
+      <Unit>
+        {mark}
+        {tail}
+        {arrow}
+      </Unit>
     );
   return (
     <>
-      <span className="whitespace-nowrap">
+      <Unit>
         {mark}
-        {withInlineCode(first)}
-      </span>
-      <TextWithRefs text={rest} refs={refs} />
+        {lead}
+      </Unit>
+      {head.slice(lead.length)}
+      <Unit>
+        {tail}
+        {arrow}
+      </Unit>
     </>
   );
 }
 
-function CellText({ cell, refs }: { cell: CompareCellContent; refs: ReactNode }): ReactNode {
-  if (cell.content !== undefined)
+function NoteWithArrow({ note, arrow }: { note: string; arrow: ReactNode }): ReactNode {
+  const cut = note.search(TAIL_SEGMENT);
+  const tail = note.slice(cut);
+  if ((tail.match(/`/g)?.length ?? 0) % 2 === 1)
     return (
       <>
-        <span data-cell-text="">{cell.content}</span>
-        {refs}
+        {withInlineCode(note)}
+        <Unit>{arrow}</Unit>
       </>
     );
-  if (cell.text === "")
-    return (
-      <span data-cell-text="">
-        <span className="whitespace-nowrap">
-          {cell.mark}
-          {refs}
-        </span>
-      </span>
-    );
   return (
-    <span data-cell-text="">
-      {cell.mark === undefined ? (
-        <TextWithRefs text={cell.text} refs={refs} />
-      ) : (
-        <MarkedText mark={cell.mark} text={cell.text} refs={refs} />
+    <>
+      {withInlineCode(note.slice(0, cut))}
+      <Unit>
+        {withInlineCode(tail)}
+        {arrow}
+      </Unit>
+    </>
+  );
+}
+
+export function CompareCellBody({
+  t,
+  row,
+  tool,
+  locale,
+}: {
+  t: CompareTranslator;
+  row: CompareRowId;
+  tool: CompareTool;
+  locale: Locale;
+}): ReactNode {
+  const view = compareCellView(t, row, tool);
+  const [first, ...more] = sourceLinks({
+    view,
+    tool,
+    criterion: t(`rows.${row}.label`),
+    t,
+    locale,
+  });
+  const mark = view.kind === "verdict" ? <VerdictMark mark={view.mark} /> : null;
+  return (
+    <span
+      className="vk-compare-cell"
+      data-cell={view.kind}
+      data-verdict-mark={view.kind === "verdict" ? view.mark : undefined}
+    >
+      <span className="vk-compare-word" data-word="">
+        <WordWithMark word={view.word} mark={mark} arrow={view.note === null ? first : null} />
+      </span>
+      {view.note === null ? null : (
+        <>
+          {" "}
+          <span className="vk-compare-note" data-note="">
+            <NoteWithArrow note={view.note} arrow={first} />
+          </span>
+        </>
       )}
+      {more}
     </span>
   );
 }
 
-export function TextWithRefs({ text, refs }: { text: string; refs: ReactNode }): ReactNode {
-  const [head, tail] = splitLastWord(text);
-  return (
-    <>
-      {withInlineCode(head)}
-      <span className="whitespace-nowrap">
-        {withInlineCode(tail)}
-        {refs}
-      </span>
-    </>
-  );
-}
-
-function CompareCell({
-  cell,
+export function CompareMatrix({
   t,
-  sourcesPage,
-}: {
-  cell: CompareCellContent;
-  t: CompareTranslator;
-  sourcesPage: string;
-}): ReactNode {
-  const marked = cell.column === "verbatra";
-  return (
-    <td
-      data-column={cell.column}
-      className={cn(
-        "px-4 py-3.5 align-top text-sm leading-relaxed",
-        marked ? "vk-compare-mark font-medium text-(--text-strong)" : "text-(--text-body)",
-      )}
-    >
-      <CellText
-        cell={cell}
-        refs={<FootnoteRefs footnotes={cell.footnotes} t={t} sourcesPage={sourcesPage} />}
-      />
-    </td>
-  );
-}
-
-export function CompareRegion({
-  t,
+  locale,
   caption,
-  columns,
-  rows,
-  tableClassName,
-  sourcesPage = "",
 }: {
   t: CompareTranslator;
+  locale: Locale;
   caption: string;
-  columns: ReadonlyArray<CompareColumn>;
-  rows: ReadonlyArray<CompareTableRow>;
-  tableClassName: string;
-  sourcesPage?: string;
 }): ReactNode {
   return (
-    <>
-      <p className="vk-compare-hint text-sm text-(--text-muted)">{t("scrollHint")}</p>
-      <CompareFocus />
-      <div className="relative min-w-0">
-        <section
-          // biome-ignore lint/a11y/noNoninteractiveTabindex: the table scrolls sideways on a phone, so the keyboard needs a stop to scroll it
-          tabIndex={0}
-          aria-labelledby={CAPTION_ID}
-          data-compare-scroll=""
-          className="vk-compare-scroll relative overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)"
+    <table className="vk-compare-table" data-compare-matrix="">
+      <caption className="sr-only">{caption}</caption>
+      <thead>
+        <tr>
+          <th scope="col" className="vk-compare-head vk-compare-criterion">
+            {t("columns.criterion")}
+          </th>
+          {COMPARE_TOOLS.map((tool) => (
+            <th
+              key={tool}
+              scope="col"
+              data-column={tool}
+              className={cn("vk-compare-head", tool === "verbatra" && "vk-compare-self")}
+            >
+              {toolName(t, tool)}
+              <Detail text={toolDetail(t, tool)} />
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {COMPARE_ROWS.map((row) => (
+          <tr key={row} data-row={row}>
+            <th scope="row" className="vk-compare-criterion">
+              {t(`rows.${row}.label`)}
+              <Detail text={row === "formats" ? t("rows.formats.detail") : null} />
+            </th>
+            {COMPARE_TOOLS.map((tool) => (
+              <td
+                key={tool}
+                data-column={tool}
+                className={cn(tool === "verbatra" && "vk-compare-self")}
+              >
+                <CompareCellBody t={t} row={row} tool={tool} locale={locale} />
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+export function ComparePairs({ t, locale }: { t: CompareTranslator; locale: Locale }): ReactNode {
+  const pairTools = COMPARE_TOOLS.filter((tool) => tool !== "verbatra");
+  return (
+    <div className="vk-compare-pairs" data-compare-pairs="">
+      {pairTools.map((tool, index) => (
+        <details
+          key={tool}
+          className="vk-compare-pair"
+          data-pair={tool}
+          {...(index === 0 ? { "data-selected": "", open: true } : {})}
         >
-          <table
-            className={cn("vk-compare-table w-full border-collapse text-left", tableClassName)}
-          >
-            <caption id={CAPTION_ID} className="sr-only">
-              {caption}
-            </caption>
-            <thead>
-              <tr>
-                <th
-                  scope="col"
-                  className="vk-compare-sticky sticky left-0 z-10 px-4 py-3 align-bottom text-sm font-medium text-(--text-muted)"
-                >
-                  {t("columns.criterion")}
-                </th>
-                {columns.map((column) => (
-                  <th
-                    key={column.id}
-                    scope="col"
-                    data-column={column.id}
-                    className={cn(
-                      "px-4 py-3 align-bottom text-sm font-medium",
-                      column.id === "verbatra"
-                        ? "vk-compare-mark text-(--accent)"
-                        : "text-(--text-strong)",
-                    )}
+          <summary className="vk-compare-pair-summary">
+            {t("pairSummary", { tool: toolName(t, tool) })}
+            <span aria-hidden="true" className="vk-faq-mark" />
+          </summary>
+          <PairDetail text={toolDetail(t, tool)} />
+          <dl className="vk-compare-pair-rows">
+            {COMPARE_ROWS.map((row) => (
+              <div key={row} className="vk-compare-pair-row" data-row={row}>
+                <dt>
+                  {t(`rows.${row}.label`)}
+                  <Detail text={row === "formats" ? t("rows.formats.detail") : null} />
+                </dt>
+                {(["verbatra", tool] as const).map((side) => (
+                  <dd
+                    key={side}
+                    data-column={side}
+                    className={cn(side === "verbatra" && "vk-compare-self")}
                   >
-                    {column.label}
-                    {column.detail === undefined ? null : (
-                      <span className="sr-only"> ({column.detail})</span>
-                    )}
-                  </th>
+                    <span className="vk-compare-who">{toolName(t, side)}</span>
+                    <CompareCellBody t={t} row={row} tool={side} locale={locale} />
+                  </dd>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id} data-row={row.id}>
-                  <th
-                    scope="row"
-                    className="vk-compare-sticky sticky left-0 z-10 px-4 py-3.5 align-top text-sm font-medium text-(--text-strong)"
-                  >
-                    {row.label}
-                  </th>
-                  {row.cells.map((cell) => (
-                    <CompareCell key={cell.column} cell={cell} t={t} sourcesPage={sourcesPage} />
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-        <span aria-hidden="true" className="vk-compare-fade" />
-      </div>
-    </>
+              </div>
+            ))}
+          </dl>
+        </details>
+      ))}
+    </div>
   );
 }

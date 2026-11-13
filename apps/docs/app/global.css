@@ -463,16 +463,19 @@ html.light {
   transform: rotate(90deg);
 }
 
-.vk-faq-item[open] .vk-faq-mark {
+.vk-faq-item[open] .vk-faq-mark,
+.vk-compare-pair[open] .vk-faq-mark {
   border-color: var(--accent-fill);
   background: var(--accent-fill);
 }
 
-.vk-faq-item[open] .vk-faq-mark::before {
+.vk-faq-item[open] .vk-faq-mark::before,
+.vk-compare-pair[open] .vk-faq-mark::before {
   background: var(--accent-fill-fg);
 }
 
-.vk-faq-item[open] .vk-faq-mark::after {
+.vk-faq-item[open] .vk-faq-mark::after,
+.vk-compare-pair[open] .vk-faq-mark::after {
   display: none;
 }
 
@@ -2665,202 +2668,339 @@ html:has(.vk-home) {
   }
 }
 
-.vk-compare {
+.vk-compare-page {
   --compare-surface: var(--surface-bg);
   --compare-head: var(--surface-band);
-  --compare-sticky: 16%;
-  --compare-hosted: 28%;
-  container-type: inline-size;
-  timeline-scope: --vk-compare;
+  gap: 1.25rem;
+  padding-block-start: 1.25rem;
 }
 
-.vk-band .vk-compare {
-  --compare-surface: var(--surface-band);
+@media (min-width: 48rem) {
+  .vk-compare-page {
+    gap: 2rem;
+    padding-block-start: 2.5rem;
+  }
 }
 
-.vk-compare-scroll {
-  scroll-timeline: --vk-compare inline;
-  scroll-padding-inline-start: var(--compare-sticky);
-  scroll-padding-inline-end: 3rem;
-  scrollbar-width: thin;
-  scrollbar-color: var(--text-faint) transparent;
-  background: var(--compare-surface);
+.vk-compare-intro {
+  display: grid;
+  gap: 0.375rem;
+  max-width: 46rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
 }
 
-.vk-compare-full .vk-compare-scroll {
-  --compare-sticky: 11rem;
-}
-
-.vk-compare-table {
-  table-layout: fixed;
-  border-block: 1px solid var(--border-default);
-}
-
-.vk-compare-table thead tr {
-  border-block-end: 1px solid var(--text-faint);
-  background: var(--compare-head);
-}
-
-.vk-compare-table tbody tr + tr {
-  border-block-start: 1px solid var(--border-default);
-}
-
-.vk-compare-table th[data-column="hostedTms"] {
-  width: var(--compare-hosted);
-}
-
-.vk-compare-sticky {
-  width: var(--compare-sticky);
-  background: var(--compare-surface);
+.vk-compare-title {
+  color: var(--text-strong);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-heading);
   overflow-wrap: anywhere;
 }
 
-.vk-compare-table .vk-available-from {
-  max-width: 100%;
-  white-space: normal;
+.vk-compare-takeaway {
+  color: var(--text-strong);
+  font-size: var(--text-base);
 }
 
-.vk-compare-table thead .vk-compare-sticky {
+.vk-compare-checked {
+  font-size: var(--text-xs);
+}
+
+.vk-compare {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.vk-compare-matrix,
+.vk-compare-picker {
+  display: none;
+}
+
+.vk-compare-picker {
+  gap: 0.25rem;
+  margin-block-end: 0.75rem;
+}
+
+.vk-compare-picker-label {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.vk-compare-picker-select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding-inline: 0.75rem;
+  border: 1px solid var(--text-faint);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+
+.vk-compare-pairs {
+  border-block-end: 1px solid var(--border-default);
+}
+
+.vk-compare-pair {
+  border-block-start: 1px solid var(--border-default);
+}
+
+.vk-compare-pair-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2.75rem;
+  color: var(--text-strong);
+  font-weight: 600;
+  list-style: none;
+}
+
+.vk-compare-pair-summary::-webkit-details-marker {
+  display: none;
+}
+
+.vk-compare-pair-detail {
+  margin: 0 0 0.5rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+}
+
+.vk-compare-pair-rows {
+  margin: 0;
+}
+
+.vk-compare-pair-row {
+  display: grid;
+  gap: 0.125rem;
+  padding-block: 0.5rem;
+  border-block-start: 1px solid var(--border-default);
+}
+
+.vk-compare-pair-row dt {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.vk-compare-pair-row dd {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  column-gap: 0.5rem;
+  margin: 0;
+  padding-block: 0.125rem;
+  padding-inline-start: 0.5rem;
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.vk-compare-who {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+.vk-compare-pair-row dd.vk-compare-self {
+  box-shadow: inset 2px 0 0 var(--accent-fill);
+}
+
+.vk-compare-pair-row dd.vk-compare-self .vk-compare-who {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.vk-compare-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  overflow-wrap: normal;
+  hyphens: manual;
+}
+
+.vk-compare-table th,
+.vk-compare-table td {
+  padding: 0.5rem 0.25rem;
+  border-block-end: 1px solid var(--border-default);
+  text-align: start;
+  vertical-align: top;
+}
+
+.vk-compare-table .vk-compare-head {
+  position: sticky;
+  top: var(--vk-landing-offset);
+  z-index: 2;
+  border-block-end-color: var(--text-faint);
   background: var(--compare-head);
+  color: var(--text-strong);
+  font-weight: 500;
+  vertical-align: bottom;
 }
 
-.vk-compare-ref {
-  scroll-margin-inline: 0.25rem;
+.vk-compare-table .vk-compare-criterion {
+  width: 7.5rem;
+  color: var(--text-strong);
+  font-weight: 500;
 }
 
-.vk-compare-ref:focus-visible {
-  position: relative;
-  z-index: 20;
-  background: var(--compare-surface);
+.vk-compare-table td.vk-compare-self {
+  background: color-mix(in srgb, var(--accent-fill) 7%, var(--compare-surface));
+}
+
+.vk-compare-table .vk-compare-self {
+  box-shadow: inset 2px 0 0 var(--accent-fill);
+}
+
+.vk-compare-table .vk-compare-head.vk-compare-self {
+  background: color-mix(in srgb, var(--accent-fill) 10%, var(--compare-head));
+  color: var(--accent);
+}
+
+.vk-compare-detail {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  line-height: var(--leading-snug);
+}
+
+.vk-compare-cell {
+  display: block;
 }
 
 .vk-compare-mark {
-  box-shadow: inset 2px 0 0 var(--accent-fill);
+  display: inline-block;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-inline-end: 0.25rem;
+  vertical-align: -0.2em;
+  color: var(--text-muted);
+}
+
+.vk-compare-mark[data-mark="yes"] {
+  color: var(--accent);
+}
+
+.vk-compare-word {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.vk-compare-unit {
+  white-space: nowrap;
+}
+
+.vk-compare-table .vk-compare-word {
+  font-size: calc(var(--text-xs) + 1px);
+}
+
+.vk-compare-note {
+  color: var(--text-muted);
+}
+
+.vk-compare-skip {
+  width: fit-content;
+}
+
+.vk-compare-next {
+  display: grid;
+  gap: 0.75rem;
 }
 
 .vk-compare-source {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  margin-block: -0.3rem;
   border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  vertical-align: middle;
+  scroll-margin-block-start: 6rem;
 }
 
-.vk-home .vk-compare-source {
-  scroll-margin-top: 1rem;
+.vk-compare-source:hover {
+  color: var(--accent);
 }
 
-.vk-compare-source:target {
-  background: color-mix(in srgb, var(--accent-fill) 14%, transparent);
-  box-shadow: inset 2px 0 0 var(--accent-fill);
-}
-
-.vk-compare-hint,
-.vk-compare-fade {
-  display: none;
-}
-
-.vk-compare-fade {
-  position: absolute;
-  inset-block: 1px;
-  inset-inline-end: 0;
-  width: 3rem;
-  background: linear-gradient(to left, var(--compare-surface), transparent);
-  pointer-events: none;
-}
-
-.vk-compare-scroll:focus-within + .vk-compare-fade {
-  display: none;
-}
-
-@container (max-width: 56rem) {
-  .vk-compare-scroll {
-    --compare-sticky: min(7.5rem, 38cqi);
+@container (min-width: 67.5rem) {
+  .vk-compare-matrix {
+    display: block;
   }
 
-  .vk-compare-full .vk-compare-scroll {
-    --compare-sticky: min(7.5rem, 46cqi);
+  .vk-compare-pairs,
+  .vk-compare-picker {
+    display: none;
+  }
+}
+
+@container (max-width: 67.4375rem) {
+  .vk-compare-pairs,
+  .vk-compare-picker {
+    max-width: 44rem;
   }
 
-  .vk-compare-sticky {
-    padding-inline: 0.5rem 0.375rem;
+  .vk-compare-picker-select {
+    max-width: 24rem;
+  }
+
+  .vk-compare[data-picker-live] .vk-compare-picker {
+    display: grid;
+  }
+
+  .vk-compare[data-picker-live] .vk-compare-pair:not([data-selected]) {
+    display: none;
+  }
+
+  .vk-compare[data-picker-live] .vk-compare-pair[data-selected] {
+    border-block-start: 0;
+  }
+
+  .vk-compare[data-picker-live] .vk-compare-pair[data-selected] > .vk-compare-pair-summary {
+    display: none;
+  }
+
+  .vk-compare[data-picker-live] .vk-compare-pair[data-selected] .vk-compare-pair-row:first-child {
+    border-block-start: 0;
+  }
+}
+
+@media (max-width: 22.9375rem) {
+  .vk-compare-page {
+    gap: 0.5rem;
+    padding-block-start: 0.75rem;
+  }
+
+  .vk-compare-intro {
+    gap: 0.125rem;
+  }
+
+  .vk-compare-intro > p {
     font-size: var(--text-xs);
-    box-shadow: inset -1px 0 0 var(--border-default);
-  }
-}
-
-@container (max-width: 48rem) {
-  .vk-compare-hint {
-    display: block;
   }
 
-  .vk-compare-fade {
-    display: block;
-  }
-}
-
-@container (max-width: 100rem) {
-  .vk-compare-full .vk-compare-hint,
-  .vk-compare-full .vk-compare-fade {
-    display: block;
+  .vk-compare-intro > .vk-compare-takeaway {
+    font-size: var(--text-sm);
   }
 
-  .vk-compare-full .vk-compare-sticky {
-    box-shadow: inset -1px 0 0 var(--border-default);
-  }
-}
-
-@keyframes vk-compare-fade {
-  from {
-    opacity: 1;
+  .vk-compare-title {
+    font-size: var(--text-h4);
   }
 
-  to {
-    opacity: 0;
-  }
-}
-
-@supports (animation-timeline: scroll()) {
-  .vk-compare-fade {
-    animation: vk-compare-fade linear both;
-    animation-timeline: --vk-compare;
-    animation-range: 85% 100%;
-  }
-}
-
-@supports not (animation-timeline: scroll()) {
-  .vk-compare-fade {
-    display: none;
-  }
-
-  .vk-compare-full .vk-compare-fade {
-    display: none;
-  }
-
-  @container (max-width: 48rem) {
-    .vk-compare-scroll {
-      background:
-        linear-gradient(to left, var(--compare-surface) 50%, transparent) 100% 0 / 2rem 100%
-        no-repeat local,
-        linear-gradient(
-          to left,
-          color-mix(in srgb, var(--text-strong) 14%, transparent),
-          transparent
-        )
-        100% 0 / 1rem 100% no-repeat scroll,
-        var(--compare-surface);
-    }
-  }
-
-  @container (max-width: 100rem) {
-    .vk-compare-full .vk-compare-scroll {
-      background:
-        linear-gradient(to left, var(--compare-surface) 50%, transparent) 100% 0 / 2rem 100%
-        no-repeat local,
-        linear-gradient(
-          to left,
-          color-mix(in srgb, var(--text-strong) 14%, transparent),
-          transparent
-        )
-        100% 0 / 1rem 100% no-repeat scroll,
-        var(--compare-surface);
-    }
+  .vk-compare-picker {
+    margin-block-end: 0.5rem;
   }
 }
 
@@ -3544,8 +3684,19 @@ html:has(.vk-home) {
 }
 
 @media (forced-colors: active) {
-  .vk-compare-mark {
+  .vk-compare-pair-row dd {
+    border-inline-start: 3px solid transparent;
+  }
+
+  .vk-compare-table .vk-compare-self,
+  .vk-compare-pair-row dd.vk-compare-self {
+    box-shadow: none;
     border-inline-start: 3px solid CanvasText;
+  }
+
+  .vk-compare-mark {
+    color: CanvasText;
+    stroke: CanvasText;
   }
 
   .vk-faq-mark {
@@ -3559,12 +3710,14 @@ html:has(.vk-home) {
     background: CanvasText;
   }
 
-  .vk-faq-item[open] .vk-faq-mark {
+  .vk-faq-item[open] .vk-faq-mark,
+  .vk-compare-pair[open] .vk-faq-mark {
     border-color: Highlight;
     background: Highlight;
   }
 
-  .vk-faq-item[open] .vk-faq-mark::before {
+  .vk-faq-item[open] .vk-faq-mark::before,
+  .vk-compare-pair[open] .vk-faq-mark::before {
     background: HighlightText;
   }
 

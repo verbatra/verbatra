@@ -27,7 +27,7 @@ vi.mock("next-intl/server", () => ({
   },
 }));
 
-const { AvailableFrom, AvailableFromPill, AVAILABLE_FROM_CLASS } = await import("./available-from");
+const { AvailableFrom, AVAILABLE_FROM_CLASS } = await import("./available-from");
 
 function line(version: string): readonly [number, number] {
   const [major = 0, minor = 0] = version.split(".").map(Number);
@@ -107,17 +107,5 @@ describe("AvailableFrom for an older release", () => {
 
   it("renders nothing for a package it does not know", async () => {
     expect(await render(inLine(PACKAGE_VERSION, 0), "@verbatra/unknown")).toBe("");
-  });
-});
-
-describe("AvailableFromPill", () => {
-  it("is the compare page's outline pill with its version text and no version attributes", () => {
-    const markup = renderToStaticMarkup(
-      AvailableFromPill({ label: "Available from 0.12.0", detail: "d" }),
-    );
-    expect(markup).toContain("Available from 0.12.0");
-    expect(markup).toContain("vk-pill");
-    expect(markup).not.toContain("vk-pill-new");
-    expect(markup).not.toContain("data-vk-");
   });
 });

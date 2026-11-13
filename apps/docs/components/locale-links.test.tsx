@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
@@ -50,5 +52,30 @@ describe("LocaleLinks", () => {
     const nav = doc.querySelector("nav");
     const label = doc.getElementById(nav?.getAttribute("aria-labelledby") ?? "");
     expect(label?.textContent).toBe("Sprache");
+  });
+});
+
+describe("LocaleLinks on the comparison page", () => {
+  function activate(search: string, locale: string): string {
+    route.pathname = "/de/compare";
+    window.history.replaceState(null, "", `/de/compare${search}`);
+    document.body.innerHTML = '<div id="host"></div>';
+    const root = createRoot(document.getElementById("host") as HTMLElement);
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    act(() => root.render(<LocaleLinks label="Sprache" current="de" />));
+    const link = document.querySelector<HTMLAnchorElement>(`a[hreflang="${locale}"]`);
+    document.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    act(() => link?.click());
+    const target = new URL(link?.href ?? "", window.location.origin);
+    act(() => root.unmount());
+    return `${target.pathname}${target.search}`;
+  }
+
+  it("keeps the chosen tool when the reader switches language", () => {
+    expect(activate("?tool=weblate&x=1", "es")).toBe("/es/compare?tool=weblate");
+  });
+
+  it("adds nothing when no tool is chosen", () => {
+    expect(activate("?x=1", "fr")).toBe("/fr/compare");
   });
 });

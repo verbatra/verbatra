@@ -1,6 +1,5 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { PILL_CLASS } from "@/components/new-badge";
 import { NewPill } from "@/components/new-pill";
 import type { Locale } from "@/lib/i18n";
 import { RELEASED_VERSIONS } from "@/lib/new-status";
@@ -49,13 +48,5 @@ export async function AvailableFrom({
     <NewPill className={AVAILABLE_FROM_CLASS} title={detail}>
       {t("new")}
     </NewPill>
-  );
-}
-
-export function AvailableFromPill({ label, detail }: AvailableFromCopy): ReactNode {
-  return (
-    <span className={`${PILL_CLASS} ${AVAILABLE_FROM_CLASS}`} title={detail}>
-      {label}
-    </span>
   );
 }

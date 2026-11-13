@@ -2,8 +2,9 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
-import { i18n } from "@/lib/i18n";
+import { i18n, type Locale } from "@/lib/i18n";
 import {
+  COMPARE_LAST_CHECKED,
   COMPARE_ROWS,
   COMPARE_SOURCE_COUNT,
   COMPARE_TOOLS,
@@ -11,6 +12,7 @@ import {
   compareSource,
   compareSourceHref,
 } from "@/lib/landing-compare";
+import { formatLandingDate } from "@/lib/landing-date";
 import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
 import { absoluteMarkdownHref } from "@/lib/markdown-links";
@@ -33,6 +35,41 @@ async function markdown(lang: string, page = "compare"): Promise<Response> {
 
 function messagesOf(lang: string) {
   return JSON.parse(readFileSync(join(MESSAGES_DIR, `${lang}.json`), "utf8"));
+}
+
+function markdownCell(rows: ReadonlyArray<string>, row: string, tool: string): string {
+  const line = rows[COMPARE_ROWS.indexOf(row as never) + 2] ?? "";
+  const cells = line.split(/(?<!\\)\|/).slice(1, -1);
+  return cells[COMPARE_TOOLS.indexOf(tool as never) + 1]?.trim() ?? "";
+}
+
+function expectEveryCellFootnoted(rows: ReadonlyArray<string>): void {
+  for (const row of COMPARE_ROWS)
+    for (const tool of COMPARE_TOOLS) {
+      const cell = markdownCell(rows, row, tool);
+      const note = `[${cellFootnote(row, tool)}]`;
+      expect(cell.endsWith(note), `${row}.${tool}`).toBe(true);
+      expect(cell.length, `${row}.${tool}`).toBeGreaterThan(note.length);
+    }
+}
+
+function expectVerdictWords(rows: ReadonlyArray<string>, verdicts: Record<string, string>): void {
+  expect(markdownCell(rows, "ownKeys", "verbatra").startsWith(`${verdicts.yes}`)).toBe(true);
+  expect(markdownCell(rows, "ci", "tolgee").startsWith(`${verdicts.noneFound}`)).toBe(true);
+  expect(markdownCell(rows, "inContext", "verbatra").startsWith(`${verdicts.no}`)).toBe(true);
+  expect(markdownCell(rows, "cli", "manual").startsWith(`${verdicts.notApplicable}`)).toBe(true);
+  expect(markdownCell(rows, "providers", "verbatra")).toContain(`${MACHINE_PROVIDER_IDS.length}`);
+}
+
+function expectNumberedSources(body: string, lang: Locale): void {
+  for (let footnote = 1; footnote <= COMPARE_SOURCE_COUNT; footnote += 1) {
+    const line = body.split("\n").find((entry) => entry.startsWith(`${footnote}. `));
+    expect(line, `${footnote}`).toBeDefined();
+    for (const link of compareSource(footnote).urls) {
+      const href = compareSourceHref(link, lang);
+      expect(line).toContain(href.startsWith("/") ? absoluteMarkdownHref(href) : href);
+    }
+  }
 }
 
 describe("GET /[lang]/site.mdx/[page]", () => {
@@ -93,25 +130,18 @@ describe("GET /[lang]/site.mdx/[page]", () => {
       expect(body).toContain(`# ${messages.compare.heading}\n`);
       const rows = body.split("\n").filter((line) => line.startsWith("| "));
       expect(rows).toHaveLength(COMPARE_ROWS.length + 2);
-      COMPARE_ROWS.forEach((row, index) => {
-        const cells = (rows[index + 2] ?? "").split(/(?<!\\)\|/).slice(1, -1);
-        expect(cells).toHaveLength(COMPARE_TOOLS.length + 1);
-        COMPARE_TOOLS.forEach((tool, column) => {
-          const cell = cells[column + 1]?.trim() ?? "";
-          expect(cell.endsWith(`[${cellFootnote(row, tool)}]`), `${row}.${tool}`).toBe(true);
-          expect(cell.length, `${row}.${tool}`).toBeGreaterThan(
-            `[${cellFootnote(row, tool)}]`.length,
-          );
-        });
-      });
-      for (let footnote = 1; footnote <= COMPARE_SOURCE_COUNT; footnote += 1) {
-        const line = body.split("\n").find((entry) => entry.startsWith(`${footnote}. `));
-        expect(line, `${footnote}`).toBeDefined();
-        for (const link of compareSource(footnote).urls) {
-          const href = compareSourceHref(link, lang);
-          expect(line).toContain(href.startsWith("/") ? absoluteMarkdownHref(href) : href);
-        }
-      }
+      expectEveryCellFootnoted(rows);
+      expectVerdictWords(rows, messages.landing.compare.verdicts);
+      for (const key of ["takeaway", "scope", "stronger"] as const)
+        expect(body).toContain(messages.compare[key].replaceAll("|", "\\|"));
+      const checkedLine = `${messages.landing.compare.lastChecked}: ${formatLandingDate(COMPARE_LAST_CHECKED, lang)}`;
+      expect(body.split(checkedLine)).toHaveLength(2);
+      const { verdicts, rows: cells } = messages.landing.compare;
+      const noneFound = `${verdicts.noneFound} ${cells.ci?.tolgee?.note}`;
+      expect(body).toContain(noneFound.replaceAll("|", "\\|"));
+      expect(body).not.toContain(`${verdicts.noneFound} - `);
+      expect(body).toContain(`${verdicts.yes} - ${cells.ownKeys?.verbatra?.note}`);
+      expectNumberedSources(body, lang);
       expect(body).not.toMatch(/\]\(\//);
       expect(body).toContain(
         absoluteMarkdownHref(lang === "en" ? "/docs/quickstart" : `/${lang}/docs/quickstart`),

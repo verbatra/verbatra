@@ -252,8 +252,6 @@ is written. Where a badge may sit at all is set by "Badge placement" under
 
 - The `.md` output of every page keeps the literal `<AvailableFrom version="..." />`, so agents
   still get every version (`e2e/available-from.spec.ts`).
-- The compare page's own pill (`AvailableFromPill`, "Available from X.Y.Z") is a separate outline
-  pill and always shows.
 - The landing marquee marks a provider with the New pill alone, and only while its
   `RELEASE_BADGE` version is in the current line (`providerIsNew`); the data stays so a future
   release can mark items again.

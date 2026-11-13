@@ -1,7 +1,7 @@
 import { PROVIDER_KEYS_ANCHORS } from "./docs-anchors";
 import { type Locale, type LocalizedAnchors, localizedAnchorPath } from "./i18n";
 
-export const COMPARE_LAST_CHECKED = "2026-10-15";
+export const COMPARE_LAST_CHECKED = "2026-11-13";
 
 export const COMPARE_PUBLISHED = "2026-10-15";
 
@@ -116,7 +116,13 @@ const SOURCES: ReadonlyArray<CompareSource> = [
     tool: "lingo",
     urls: ["https://lingo.dev/en/docs/platform", "https://github.com/lingodotdev/lingo.dev"],
   },
-  { tool: "lingo", urls: ["https://lingo.dev/en/docs/platform", "https://lingo.dev/en/docs"] },
+  {
+    tool: "lingo",
+    urls: [
+      "https://lingo.dev/en/docs/api/pipeline/human-review",
+      "https://lingo.dev/en/docs/platform",
+    ],
+  },
   { tool: "lingo", urls: ["https://lingo.dev/en/docs/cli/formats"] },
   {
     tool: "tolgee",
@@ -149,17 +155,22 @@ const SOURCES: ReadonlyArray<CompareSource> = [
       "https://docs.tolgee.io/platform/translation_process/machine_translation",
     ],
   },
-  { tool: "tolgee", urls: ["https://docs.tolgee.io/platform/2.x.x/translation_tools"] },
   {
     tool: "tolgee",
     urls: [
-      "https://docs.tolgee.io/tolgee-cli/push-pull-strings",
-      "https://raw.githubusercontent.com/tolgee/tolgee-cli/main/package.json",
+      "https://docs.tolgee.io/platform/projects_and_organizations/machine-translation-settings",
     ],
   },
   {
     tool: "tolgee",
-    urls: ["https://github.com/tolgee", "https://docs.tolgee.io/tolgee-cli/push-pull-strings"],
+    urls: ["https://raw.githubusercontent.com/tolgee/tolgee-cli/main/package.json"],
+  },
+  {
+    tool: "tolgee",
+    urls: [
+      "https://github.com/tolgee",
+      "https://docs.tolgee.io/tolgee-cli/extraction/syncing-strings",
+    ],
   },
   { tool: "tolgee", urls: ["https://docs.tolgee.io/platform/integrations/mcp_server/about"] },
   {
@@ -205,6 +216,7 @@ const SOURCES: ReadonlyArray<CompareSource> = [
     urls: [
       "https://raw.githubusercontent.com/WeblateOrg/weblate/main/docs/admin/continuous.rst",
       "https://github.com/WeblateOrg",
+      "https://github.com/marketplace/actions/weblate-locale-linter",
     ],
   },
   {
@@ -336,8 +348,8 @@ const SOURCES: ReadonlyArray<CompareSource> = [
   {
     tool: "phrase",
     urls: [
-      "https://support.phrase.com/hc/en-us/articles/5822060164508-Continuous-Integration-Strings",
       "https://github.com/phrase/setup-cli",
+      "https://support.phrase.com/hc/en-us/articles/5822060164508-Continuous-Integration-Strings",
     ],
   },
   { tool: "phrase", urls: ["https://developers.phrase.com/en/mcp-server"] },
@@ -407,15 +419,154 @@ const SOURCE_BLOCK: Readonly<Record<SourcedTool, number>> = {
   phrase: 6,
 };
 
+function cellFootnoteNumber(row: CompareRowId, tool: SourcedTool): number {
+  return SOURCE_BLOCK[tool] * COMPARE_ROWS.length + COMPARE_ROWS.indexOf(row) + 1;
+}
+
 export function cellFootnote(row: CompareRowId, tool: CompareTool): CompareFootnote {
-  if (tool === "manual") return "M";
-  const index = COMPARE_ROWS.indexOf(row);
-  return SOURCE_BLOCK[tool] * COMPARE_ROWS.length + index + 1;
+  return tool === "manual" ? "M" : cellFootnoteNumber(row, tool);
+}
+
+type CompareVerdict = "yes" | "no" | "partial" | "unknown" | "noneFound";
+
+export type CompareMark = "yes" | "no" | "partial" | "unknown";
+
+export function verdictMark(verdict: CompareVerdict): CompareMark {
+  return verdict === "noneFound" ? "unknown" : verdict;
+}
+
+export type CompareCell =
+  | {
+      readonly kind: "verdict";
+      readonly verdict: CompareVerdict;
+      readonly urls: ReadonlyArray<CompareSourceLink>;
+    }
+  | { readonly kind: "value"; readonly urls: ReadonlyArray<CompareSourceLink> }
+  | { readonly kind: "notApplicable"; readonly urls: ReadonlyArray<CompareSourceLink> };
+
+type CellShape = CompareVerdict | "value";
+
+const CELL_SHAPES: Readonly<Record<SourcedTool, Readonly<Record<CompareRowId, CellShape>>>> = {
+  verbatra: {
+    license: "value",
+    selfHosting: "value",
+    pricing: "value",
+    providers: "value",
+    ownKeys: "yes",
+    incremental: "yes",
+    cli: "yes",
+    ci: "yes",
+    mcp: "yes",
+    inContext: "no",
+    translatorUi: "partial",
+    formats: "value",
+  },
+  lingo: {
+    license: "value",
+    selfHosting: "noneFound",
+    pricing: "value",
+    providers: "value",
+    ownKeys: "partial",
+    incremental: "yes",
+    cli: "yes",
+    ci: "partial",
+    mcp: "yes",
+    inContext: "unknown",
+    translatorUi: "partial",
+    formats: "value",
+  },
+  tolgee: {
+    license: "value",
+    selfHosting: "yes",
+    pricing: "value",
+    providers: "value",
+    ownKeys: "partial",
+    incremental: "partial",
+    cli: "yes",
+    ci: "noneFound",
+    mcp: "yes",
+    inContext: "yes",
+    translatorUi: "yes",
+    formats: "value",
+  },
+  weblate: {
+    license: "value",
+    selfHosting: "yes",
+    pricing: "value",
+    providers: "value",
+    ownKeys: "yes",
+    incremental: "partial",
+    cli: "yes",
+    ci: "partial",
+    mcp: "noneFound",
+    inContext: "noneFound",
+    translatorUi: "yes",
+    formats: "value",
+  },
+  crowdin: {
+    license: "value",
+    selfHosting: "unknown",
+    pricing: "value",
+    providers: "value",
+    ownKeys: "yes",
+    incremental: "partial",
+    cli: "yes",
+    ci: "yes",
+    mcp: "yes",
+    inContext: "yes",
+    translatorUi: "yes",
+    formats: "value",
+  },
+  lokalise: {
+    license: "value",
+    selfHosting: "no",
+    pricing: "value",
+    providers: "value",
+    ownKeys: "unknown",
+    incremental: "partial",
+    cli: "yes",
+    ci: "yes",
+    mcp: "yes",
+    inContext: "yes",
+    translatorUi: "unknown",
+    formats: "value",
+  },
+  phrase: {
+    license: "value",
+    selfHosting: "unknown",
+    pricing: "value",
+    providers: "value",
+    ownKeys: "partial",
+    incremental: "partial",
+    cli: "yes",
+    ci: "yes",
+    mcp: "yes",
+    inContext: "yes",
+    translatorUi: "yes",
+    formats: "value",
+  },
+};
+
+const MANUAL_NOT_APPLICABLE: ReadonlySet<CompareRowId> = new Set([
+  "license",
+  "selfHosting",
+  "cli",
+  "ci",
+  "mcp",
+  "inContext",
+]);
+
+export function compareCell(row: CompareRowId, tool: CompareTool): CompareCell {
+  if (tool === "manual")
+    return { kind: MANUAL_NOT_APPLICABLE.has(row) ? "notApplicable" : "value", urls: [] };
+  const shape = CELL_SHAPES[tool][row];
+  const urls = compareSource(cellFootnoteNumber(row, tool)).urls;
+  return shape === "value" ? { kind: "value", urls } : { kind: "verdict", verdict: shape, urls };
 }
 
 const HOSTED_TMS_TOOLS: ReadonlyArray<SourcedTool> = ["crowdin", "lokalise", "phrase"];
 
-export const COMPARE_PATH = "/compare";
+export { COMPARE_PATH } from "./compare-url";
 
 export function fullTableFootnotes(): ReadonlyArray<number> {
   return Array.from({ length: COMPARE_SOURCE_COUNT }, (_, index) => index + 1);

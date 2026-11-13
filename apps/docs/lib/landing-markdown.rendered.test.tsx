@@ -48,14 +48,9 @@ const SECTIONS = {
 
 const TEXT_BLOCKS = "h1, h2, h3, p, li, pre, caption, th, td";
 
-const SKIPPED = [
-  "[aria-hidden='true']",
-  ".sr-only:not(caption)",
-  "script",
-  ".vk-lock-side",
-  ".vk-compare-hint",
-  "[data-footnotes]",
-].join(", ");
+const SKIPPED = ["[aria-hidden='true']", ".sr-only:not(caption)", "script", ".vk-lock-side"].join(
+  ", ",
+);
 
 function normalized(text: string): string {
   return text

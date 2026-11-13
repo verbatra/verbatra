@@ -3,7 +3,13 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "./i18n";
-import { COMPARE_LAST_CHECKED } from "./landing-compare";
+import {
+  COMPARE_LAST_CHECKED,
+  COMPARE_ROWS,
+  COMPARE_TOOLS,
+  compareCell,
+  verdictMark,
+} from "./landing-compare";
 import { LANDING_LAST_UPDATED } from "./site";
 
 type CopyRevision = { readonly date: string; readonly hash: string };
@@ -18,29 +24,45 @@ const COPY_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-11-12", hash: "b183c7d52df0b91df4f38af443669f2c64a845ec7bd9eeeb1f3bb04e6a21bcfa" },
   { date: "2026-11-13", hash: "f527cf8053b7f68c0dbda4dfd91ff82f10d1393fa75258e2a29d3ab76c4f8c2c" },
   { date: "2026-11-13", hash: "f190ad2202ec41ae8d259b1c82282f59e903cb58b9af1264e9790ac015077415" },
-  { date: "2026-11-13", hash: "7be149ef5c700465053f20b6fe7a025c98aeef18d82fbdffa49793ee3604e9cf" },
-  { date: "2026-11-13", hash: "ab9feb39d9691f3d9b4b874ae8decddfaa01a4586cd97fd47ef4c8ac6aa14a63" },
-  { date: "2026-11-13", hash: "f41bfff3182613d07aa77955d8e268f094853f8aa3786bf98e191f5f699ade15" },
-  { date: "2026-11-13", hash: "4c19f0d9322e687faadedaf0f0f6e56b4655924eb51760b8edd75cd599c3044d" },
-  { date: "2026-11-13", hash: "b228cbc51e882928c1d35f5c6c7d9a388aa7b47d90d3afe65b0c1765d698138f" },
+  { date: "2026-11-13", hash: "04a1415b315d9441586872ea0790abb02aea232ef82e9396b57f0ac87f1c173d" },
+  { date: "2026-11-13", hash: "d7e413230f12d187a2d79db95483f9caa4b4aa06cbf97520bfcad74c10ebbcc6" },
 ];
 
 const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-10-15", hash: "902177bf643763a6041c4de579b581536e5f1f8706cf919c2985436b011403a5" },
   { date: "2026-10-15", hash: "bee5f991697639ddc4bd5ffefe029d3a89e4fae191018a4bfebab5d0643e4cf0" },
   { date: "2026-10-15", hash: "041550318b67e6bb3c515675eb0979859f0a3fd8c91c007470689d131425adf7" },
+  { date: "2026-11-13", hash: "7625b217ddcbdf4d318942b503f2683905f6406813c94523b4d357dc3000803a" },
 ];
+
+function compareCellModel(): string {
+  return JSON.stringify(
+    COMPARE_ROWS.flatMap((row) =>
+      COMPARE_TOOLS.map((tool) => {
+        const cell = compareCell(row, tool);
+        const urls = cell.urls.map((link) =>
+          typeof link === "string" ? link : [link.page, link.anchors ?? null],
+        );
+        return cell.kind === "verdict"
+          ? [row, tool, cell.kind, cell.verdict, verdictMark(cell.verdict), urls]
+          : [row, tool, cell.kind, urls];
+      }),
+    ),
+  );
+}
 
 function compareCellHash(): string {
   const hash = createHash("sha256");
+  hash.update(`${compareCellModel()}\n`);
   for (const locale of i18n.languages) {
     const path = fileURLToPath(new URL(`../messages/${locale}.json`, import.meta.url));
     const catalog = JSON.parse(readFileSync(path, "utf8")) as {
-      landing: { compare: { rows: unknown } };
+      landing: { compare: { rows: unknown; verdicts: unknown } };
       compare: unknown;
     };
+    const { rows, verdicts } = catalog.landing.compare;
     hash.update(
-      `${locale}\n${JSON.stringify(catalog.landing.compare.rows)}\n${JSON.stringify(catalog.compare)}\n`,
+      `${locale}\n${JSON.stringify(rows)}\n${JSON.stringify(verdicts)}\n${JSON.stringify(catalog.compare)}\n`,
     );
   }
   return hash.digest("hex");
