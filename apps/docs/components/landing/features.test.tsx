@@ -179,6 +179,13 @@ describe("Features", () => {
     }
   });
 
+  it("outlines the checked row transparently, which forced colors paint", () => {
+    const checked = docsStylesheetRules().find(
+      (entry) => entry.selector === ".vk-deck-item:has(.vk-deck-radio:checked) .vk-deck-row",
+    );
+    expect(checked?.declarations.outline).toBe("2px solid transparent");
+  });
+
   it("carries a title, a body and every badge for every feature in every locale", () => {
     for (const catalog of [en, de, es, fr]) {
       for (const { id } of LANDING_FEATURES) {

@@ -12,6 +12,7 @@ import {
   type PlaceholderIntegrityResult,
   translate,
   type VerbatraConfig,
+  watch,
 } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -35,6 +36,8 @@ import { HERO_TERMINAL_LOCALES, HERO_TERMINAL_SOURCE } from "@/lib/hero-terminal
 import { LANDING_FEATURES } from "@/lib/landing-features";
 import { PLAYGROUND_FILES_PATTERN, PLAYGROUND_SOURCE_LOCALE } from "@/lib/landing-playground";
 import { run } from "../../../packages/cli/src/run";
+import type { Session } from "../../../packages/cli/src/types";
+import { WAITING_FOR_CHANGES } from "../../../packages/cli/src/watch-session";
 
 const CONFIG: VerbatraConfig = {
   sourceLocale: PLAYGROUND_SOURCE_LOCALE,
@@ -112,19 +115,12 @@ async function runCli(
 ): Promise<{ code: number; out: string[]; all: string[] }> {
   const out: string[] = [];
   const all: string[] = [];
+  let session: Session | undefined;
   const code = await run(
     [...argv, "--cwd", dir],
     {
       translate: (input) => translate(input, { createProvider: provider() }),
-      watch: async (input) => {
-        input.onReady?.();
-        const summary = await translate(
-          { config: input.config, cwd: dir },
-          { createProvider: provider() },
-        );
-        input.onRun({ status: "succeeded", summary });
-        return { stop: async () => undefined, ended: Promise.resolve() };
-      },
+      watch: (input) => watch(input, { createProvider: provider() }),
       exportWorkbook,
       importWorkbook: unused,
       check,
@@ -146,7 +142,15 @@ async function runCli(
         out.push(text);
         all.push(text);
       },
-      err: (text) => all.push(text),
+      err: (text) => {
+        all.push(text);
+        if (text.includes(WAITING_FOR_CHANGES)) session?.requestStop();
+      },
+    },
+    {
+      onWatchSession: (started) => {
+        session = started;
+      },
     },
   );
   const lines = (chunks: string[]) =>
@@ -199,7 +203,7 @@ describe("the feature deck prints what verbatra prints", () => {
     expect(out).toEqual(texts(DRY_RUN_OUTPUT));
   });
 
-  it("prints the watch banner, the run summary and the waiting line in that order", async () => {
+  it("prints what a real watch session prints, from its banner to the waiting line", async () => {
     const dir = await projectWithEditedKeys();
     const { code, all } = await runCli(dir, ["watch"]);
     expect(code).toBe(0);

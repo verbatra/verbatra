@@ -76,8 +76,8 @@ describe("StudioCardShot", () => {
   it("asks for a one pixel candidate below the deck layout and the stage width above it", () => {
     expect(CARD_SHOT_SIZES.split(", ")).toEqual([
       "(max-width: 63.9375rem) 1px",
-      "(max-width: 80rem) 62vw",
-      "760px",
+      "(max-width: 80rem) 82vw",
+      "1020px",
     ]);
   });
 });

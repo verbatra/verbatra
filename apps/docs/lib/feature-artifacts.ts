@@ -187,6 +187,11 @@ export const WATCH_OUTPUT: ReadonlyArray<ArtifactLine> = [
   output(
     `verbatra: watching ${PLAYGROUND_SOURCE_LOCALE} (${PLAYGROUND_FILES_PATTERN}); running initial translation`,
   ),
+  output(`verbatra: translating ${TARGET_LOCALE}`),
+  output(`verbatra: ${TARGET_LOCALE} batch 1/1`),
+  output(`verbatra: ${TARGET_LOCALE}: writing`),
+  output(`verbatra: ${TARGET_LOCALE} done, ${changed} translated`),
+  output(`verbatra: run finished, ${plural(HERO_TERMINAL_LOCALES.length, "locale")} processed`),
   ...HERO_TRANSLATE_OUTPUT.map((text, index) => (index === 1 ? hit(text) : output(text))),
   output("verbatra: waiting for changes..."),
 ];
