@@ -223,6 +223,7 @@ export function wordsOverflowingTheirCell(selector: string): { found: string[]; 
     const limit = cell.getBoundingClientRect().right - Number.parseFloat(style.paddingRight);
     const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.parentElement?.closest(".sr-only")) continue;
       for (const match of (node.textContent ?? "").matchAll(/[^\s\-/]+/g)) {
         const range = document.createRange();
         range.setStart(node, match.index);
