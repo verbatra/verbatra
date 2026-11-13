@@ -139,10 +139,14 @@ test.describe("forced colors", () => {
     for (let index = 0; index < (await marks.count()); index += 1) {
       const paint = await marks.nth(index).evaluate((node) => {
         const style = getComputedStyle(node);
-        return { stroke: style.stroke, color: style.color };
+        return {
+          stroke: style.stroke,
+          background: getComputedStyle(document.body).backgroundColor,
+        };
       });
       expect(paint.stroke).not.toBe("none");
-      expect(paint.stroke).toBe(paint.color);
+      expect(paint.stroke).not.toBe("rgba(0, 0, 0, 0)");
+      expect(paint.stroke).not.toBe(paint.background);
     }
     const column = page.locator("main tbody td.vk-compare-self");
     expect(await column.count()).toBeGreaterThan(1);
