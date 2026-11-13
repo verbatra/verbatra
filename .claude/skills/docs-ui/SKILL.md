@@ -865,9 +865,12 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   hidden from the layout). If the island has not mounted after 10s (scripts blocked or failed), CSS
   animations with `forwards` fill retire that layout: the frames, their captions and the plain card
   border are exactly the stacked layout (same offsets, no accent border or halo), the step list and
-  the pause button leave the layout. That state is final for the page view: when the island arrives
-  later it reads the retired side list (`visibility: hidden`) and stays stacked instead of snapping
-  back to the stage. The keyframes never animate `display`.
+  the pause button leave the layout. When the island arrives later it reads the retired side list
+  (`visibility: hidden`) and stays stacked instead of snapping back to the stage; it still listens to
+  the stage condition, so a page that leaves the wide layout and returns gets the real stage rather
+  than the fallback's ten seconds again. The island's `STAGE_QUERY` is the stylesheet's media
+  condition word for word, `scripting: enabled` included, so a browser that does not know that
+  feature stacks in both. The keyframes never animate `display`.
   Under 40rem the lock frame drops its unchanged neighbour rows (the gap rows carry the folded
   count from the fixture), the send frame drops its head row and its lock-update line, indents are
   1ch per level and every tag sits on its own row. In forced colors the current step takes a
