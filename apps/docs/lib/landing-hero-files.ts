@@ -1,9 +1,10 @@
+import { HERO_TERMINAL_CHANGED_KEYS } from "./hero-terminal";
 import {
   PLAYGROUND_DEFAULT_ITEM,
   PLAYGROUND_FILES_PATTERN,
   PLAYGROUND_TRANSLATIONS,
 } from "./landing-playground";
-import { LOCK_DEMO_PLAYGROUND_IDS } from "./lock-demo";
+import { playgroundIdOf } from "./lock-demo";
 
 export type HeroFileLine = {
   readonly id: string;
@@ -15,13 +16,10 @@ export const HERO_BACK_LOCALES = ["fr", "es"] as const;
 
 export const HERO_FRONT_LOCALE = "de";
 
-const [FIRST_CHANGED_ID = "", SECOND_CHANGED_ID = ""] = Object.values(LOCK_DEMO_PLAYGROUND_IDS);
-
 const HERO_FILE_IDS: ReadonlyArray<{ readonly id: string; readonly changed: boolean }> = [
   { id: PLAYGROUND_DEFAULT_ITEM, changed: false },
   { id: "settings", changed: false },
-  { id: FIRST_CHANGED_ID, changed: true },
-  { id: SECOND_CHANGED_ID, changed: true },
+  ...HERO_TERMINAL_CHANGED_KEYS.map((key) => ({ id: playgroundIdOf(key), changed: true })),
   { id: "deleteFile", changed: false },
 ];
 

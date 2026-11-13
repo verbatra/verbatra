@@ -69,9 +69,10 @@ Alongside that chain, `ui` sits beside `config` as a leaf: `config <- ui <- docs
   `ThemeName` in `apps/docs/lib/theme.ts`.
   It never depends on `core`, `sdk`, or any surface, and no published package may reference it in
   its `.d.ts`.
-- `apps/docs` takes `@verbatra/core` as a `devDependency` for the build-time `contentHash` of the landing lock-file
-  demo (`apps/docs/lib/lock-demo.ts`, bundled by Next, so no runtime dependency) and the root-entry import
-  in `apps/docs/lib/translation-provenance.test.ts`.
+- `apps/docs` takes `@verbatra/core` as a `devDependency` for the `contentHash` of the landing lock-file
+  demo, imported from the zod-free `@verbatra/core/pure` entry in `apps/docs/lib/lock-demo.ts`
+  (bundled by Next and evaluated by the server markdown routes too, so no runtime dependency), and
+  for the root-entry import in `apps/docs/lib/translation-provenance.test.ts`.
 
 Never import against the arrow. Never create a cycle. `packages/sdk/src/config/provider-config.ts`
 and `packages/format-adapters/src/default-registry.ts` are the two files where the upward
@@ -211,8 +212,8 @@ source file under `packages/core/src` and fails if one imports anything other th
 relative module, so a test-only dependency cannot leak into core's runtime.
 
 `@verbatra/core/pure` (`packages/core/src/pure.ts`) is core's only second entry: it exposes the
-zod-free diff, hash and placeholder functions for a browser consumer (no app in this repository
-imports it today), and
+zod-free diff, hash and placeholder functions for a browser consumer (`apps/docs/lib/lock-demo.ts`
+imports `contentHash` from it), and
 the `@verbatra/core/pure never reaches zod` block in the same script test fails if its source graph
 or its built `dist/pure.js`/`dist/pure.cjs` reaches zod; the sdk still bundles only the `.` entry.
 

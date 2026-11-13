@@ -1,6 +1,7 @@
-import { contentHash } from "@verbatra/core";
+import { contentHash } from "@verbatra/core/pure";
 import { HERO_TERMINAL_CHANGED_KEYS, HERO_TERMINAL_SOURCE } from "@/lib/hero-terminal";
 import { PLAYGROUND_TRANSLATIONS } from "@/lib/landing-playground";
+import { splitPlaceholders } from "@/lib/placeholder-segments";
 
 export const LOCK_DEMO_LOCALE = "de";
 
@@ -17,14 +18,22 @@ export const LOCK_DEMO_PLAYGROUND_IDS: Readonly<Record<string, string>> = {
   "checkout.pay": "checkoutPay",
 };
 
-const PLACEHOLDER = /\{[A-Za-z][A-Za-z0-9_]*\}/g;
+export function playgroundIdOf(key: string): string {
+  const id = LOCK_DEMO_PLAYGROUND_IDS[key];
+  if (id === undefined) {
+    throw new Error(`LOCK_DEMO_PLAYGROUND_IDS has no generated string id for ${key}`);
+  }
+  return id;
+}
 
 function hashOf(value: string): string {
   return contentHash({
     key: "demo",
     namespace: "en",
     value,
-    placeholders: value.match(PLACEHOLDER) ?? [],
+    placeholders: splitPlaceholders(value)
+      .filter(({ placeholder }) => placeholder)
+      .map(({ text }) => text),
     isPlural: false,
   });
 }
@@ -213,7 +222,7 @@ export function lockLines(): ReadonlyArray<CodeLine> {
 
 export function lockDemoTranslatedValues(): ReadonlyArray<{ key: string; value: string }> {
   return HERO_TERMINAL_CHANGED_KEYS.map((key) => {
-    const id = LOCK_DEMO_PLAYGROUND_IDS[key] ?? "";
+    const id = playgroundIdOf(key);
     const value = PLAYGROUND_TRANSLATIONS[LOCK_DEMO_LOCALE]?.[id];
     if (value === undefined) {
       throw new Error(

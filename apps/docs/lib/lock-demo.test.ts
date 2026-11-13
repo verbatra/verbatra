@@ -11,6 +11,7 @@ import {
   lockDemoSourceLines,
   lockDemoTranslationLines,
   lockLines,
+  playgroundIdOf,
 } from "@/lib/lock-demo";
 
 function fromDisk(path: string): string {
@@ -182,5 +183,18 @@ describe("the changed German values", () => {
     );
     expect(gapTotal(lines)).toBe(LOCK_DEMO_COUNTS.unchanged);
     expect(nonGap(lines)).toContain('  "checkout": {');
+  });
+});
+
+describe("playgroundIdOf", () => {
+  it("maps each changed key to its generated string id", () => {
+    expect(HERO_TERMINAL_CHANGED_KEYS.map(playgroundIdOf)).toEqual([
+      "checkoutTitle",
+      "checkoutPay",
+    ]);
+  });
+
+  it("throws for a key the demo does not map, naming it", () => {
+    expect(() => playgroundIdOf("checkout.unknown")).toThrow(/checkout\.unknown/);
   });
 });
