@@ -9,12 +9,12 @@
       "text": "Sign in"
     },
     {
-      "id": "welcome",
+      "id": "welcomeBack",
       "text": "Welcome back, {name}!"
     },
     {
-      "id": "messages",
-      "text": "You have {count} new messages"
+      "id": "invited",
+      "text": "{name} invited you to {project}"
     },
     {
       "id": "cartEmpty",
@@ -40,63 +40,79 @@
       "id": "brand",
       "text": "Verbatra",
       "sameAllowed": true
+    },
+    {
+      "id": "checkoutTitle",
+      "text": "Review and checkout"
+    },
+    {
+      "id": "checkoutPay",
+      "text": "Pay and place order"
     }
   ],
   "translations": {
     "de": {
       "save": "Änderungen speichern",
       "signIn": "Anmelden",
-      "welcome": "Willkommen zurück, {name}!",
-      "messages": "Sie haben {count} neue Nachrichten",
+      "welcomeBack": "Willkommen zurück, {name}!",
+      "invited": "{name} hat Sie zu {project} eingeladen",
       "cartEmpty": "Ihr Warenkorb ist leer.",
       "deleteFile": "Diese Datei löschen?",
       "dontShow": "Nicht wieder anzeigen",
       "settings": "Einstellungen",
       "onlyChanged": "Es werden nur geänderte Schlüssel übersetzt.",
-      "brand": "Verbatra"
+      "brand": "Verbatra",
+      "checkoutTitle": "Überprüfen und zur Kasse gehen",
+      "checkoutPay": "Bezahlen und Bestellung aufgeben"
     },
     "es": {
       "save": "Guardar cambios",
       "signIn": "Iniciar sesión",
-      "welcome": "¡Bienvenido de nuevo, {name}!",
-      "messages": "Tienes {count} mensajes nuevos",
+      "welcomeBack": "¡Bienvenido de nuevo, {name}!",
+      "invited": "{name} te ha invitado a {project}",
       "cartEmpty": "Tu carrito está vacío.",
       "deleteFile": "¿Eliminar este archivo?",
       "dontShow": "No mostrar esto de nuevo",
       "settings": "Configuración",
       "onlyChanged": "Solo las claves modificadas se traducen.",
-      "brand": "Verbatra"
+      "brand": "Verbatra",
+      "checkoutTitle": "Revisar y finalizar compra",
+      "checkoutPay": "Pagar y realizar pedido"
     },
     "fr": {
       "save": "Enregistrer les modifications",
       "signIn": "Se connecter",
-      "welcome": "Bienvenue, {name} !",
-      "messages": "Vous avez {count} nouveaux messages",
+      "welcomeBack": "Bienvenue de nouveau, {name} !",
+      "invited": "{name} vous a invité à {project}",
       "cartEmpty": "Votre panier est vide.",
       "deleteFile": "Supprimer ce fichier ?",
       "dontShow": "Ne plus afficher ceci",
       "settings": "Paramètres",
       "onlyChanged": "Seules les clés modifiées sont traduites.",
-      "brand": "Verbatra"
+      "brand": "Verbatra",
+      "checkoutTitle": "Vérifier et commander",
+      "checkoutPay": "Payer et passer commande"
     },
     "ja": {
       "save": "変更を保存",
       "signIn": "サインイン",
-      "welcome": "おかえりなさい、{name}さん！",
-      "messages": "{count}件の新しいメッセージがあります",
+      "welcomeBack": "おかえりなさい、{name}さん！",
+      "invited": "{name}があなたを{project}に招待しました",
       "cartEmpty": "カートは空です。",
       "deleteFile": "このファイルを削除しますか？",
       "dontShow": "今後表示しない",
       "settings": "設定",
       "onlyChanged": "変更されたキーのみが翻訳されます。",
-      "brand": "Verbatra"
+      "brand": "Verbatra",
+      "checkoutTitle": "確認と精算",
+      "checkoutPay": "支払いと注文確定"
     }
   },
   "metadata": {
-    "sdkVersion": "0.11.1",
+    "sdkVersion": "0.13.6",
     "provider": "gemini",
     "model": "gemini-2.5-flash",
-    "generatedAt": "2026-10-16T03:48:14.305Z",
+    "generatedAt": "2026-11-13T08:11:42.761Z",
     "temperature": "provider default"
   }
 }
