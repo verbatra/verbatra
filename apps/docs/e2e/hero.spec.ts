@@ -5,15 +5,12 @@ import {
   homeUrl,
   LOCALES,
   openInTheme,
+  pageUrl,
   THEMES,
 } from "./support";
 
 const HERO = "section.vk-banner";
 const FILES = `${HERO} .vk-banner-files`;
-
-function localeHref(locale: string, path: string): string {
-  return locale === "en" ? path : `/${locale}${path}`;
-}
 
 for (const locale of LOCALES) {
   test.describe(`hero ${homeUrl(locale)}`, () => {
@@ -109,7 +106,7 @@ test.describe("hero layout at 1440px", () => {
     }
     const ctas = await box(".vk-banner-ctas");
     expect(ctas.y + ctas.height).toBeLessThanOrEqual(900);
-    const compare = await box(".vk-banner-ctas > a:last-child");
+    const compare = await box(".vk-banner-compare");
     expect(compare.y + compare.height).toBeLessThanOrEqual(900);
     expect(compare.x + compare.width).toBeLessThanOrEqual(copy.x + copy.width + 1);
     expect(compare.height).toBeGreaterThanOrEqual(44);
@@ -159,12 +156,14 @@ test.describe("hero layout at 1440px", () => {
   });
 });
 
-for (const locale of ["en", "de"] as const) {
+const COMPARE = `${HERO} .vk-banner-compare`;
+
+for (const locale of LOCALES) {
   for (const width of [391, 768, 1440]) {
     test.describe(`hero action row at ${width}px ${homeUrl(locale)}`, () => {
       test.use({ viewport: { width, height: 900 } });
 
-      test("runs Get started, the install chip, then a flush-left compare link", async ({
+      test("runs Get started, the install chip, then a content-width flush-left compare link", async ({
         page,
       }) => {
         await page.goto(homeUrl(locale));
@@ -177,41 +176,81 @@ for (const locale of ["en", "de"] as const) {
           .locator(`${HERO} .vk-banner-ctas > *`)
           .evaluateAll((nodes) =>
             nodes.map((node) =>
-              node.classList.contains("vk-banner-install") ? "chip" : node.getAttribute("href"),
+              node.classList.contains("vk-banner-install")
+                ? "chip"
+                : (node.getAttribute("href") ??
+                  node.querySelector("a")?.getAttribute("href") ??
+                  null),
             ),
           );
         expect(order).toEqual([
-          localeHref(locale, "/docs/quickstart"),
+          pageUrl(locale, "/docs/quickstart"),
           "chip",
-          localeHref(locale, "/compare"),
+          pageUrl(locale, "/compare"),
         ]);
         const primary = await box(".vk-banner-ctas > a:first-child");
         const chip = await box(".vk-banner-install");
-        const compare = await box(".vk-banner-ctas > a:last-child");
+        const compare = await box(".vk-banner-compare");
         const title = await box("h1");
         const lead = await box(".vk-banner-lead");
-        expect(chip.y > primary.y || (chip.y === primary.y && chip.x > primary.x)).toBe(true);
+        const primaryMiddle = primary.y + primary.height / 2;
+        const chipMiddle = chip.y + chip.height / 2;
+        const sideBySide = Math.abs(primaryMiddle - chipMiddle) <= 1;
+        expect(sideBySide ? chip.x > primary.x : chip.y >= primary.y + primary.height).toBe(true);
         expect(chip.y + chip.height).toBeLessThanOrEqual(compare.y + 1);
         for (const edge of [title.x, lead.x, primary.x]) {
           expect(Math.abs(compare.x - edge)).toBeLessThanOrEqual(0.5);
         }
-        const label = await page
-          .locator(`${HERO} .vk-banner-ctas > a:last-child`)
-          .evaluate((link) => {
-            const range = document.createRange();
-            range.selectNodeContents(link);
-            return range.getBoundingClientRect().left;
-          });
-        expect(Math.abs(label - title.x)).toBeLessThanOrEqual(0.5);
+        const labelWidth = await page.locator(COMPARE).evaluate((link) => {
+          const range = document.createRange();
+          range.selectNodeContents(link);
+          return range.getBoundingClientRect().width;
+        });
+        expect(Math.abs(compare.width - labelWidth)).toBeLessThanOrEqual(1);
         expect(compare.height).toBeGreaterThanOrEqual(44);
         expect(primary.height).toBeCloseTo(50, 0);
-        expect(chip.height).toBeGreaterThanOrEqual(56);
-        const link = page.locator(`${HERO} .vk-banner-ctas > a:last-child`);
-        await expect(link).toHaveCSS("border-top-width", "0px");
-        await expect(link).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-        await link.focus();
-        await expect(link).toHaveCSS("outline-style", "solid");
+        expect(primary.height).toBeLessThan(chip.height);
+        if (width >= 768) expect(sideBySide).toBe(true);
         await expectNoHorizontalScroll(page);
+      });
+
+      test("hugs the label: the empty row beside it does not navigate and hover underlines in the accent", async ({
+        page,
+      }) => {
+        await page.goto(homeUrl(locale));
+        const link = page.locator(COMPARE);
+        const compare = await link.boundingBox();
+        if (compare === null) throw new Error("the compare link has no box");
+        const copy = await page.locator(`${HERO} .vk-banner-copy`).boundingBox();
+        if (copy === null) throw new Error("the copy column has no box");
+        const labelEnd = compare.x + compare.width;
+        const emptyX = Math.min(labelEnd + 150, copy.x + copy.width - 2);
+        expect(emptyX).toBeGreaterThan(labelEnd + 8);
+        await page.mouse.click(emptyX, compare.y + compare.height / 2);
+        await page.waitForTimeout(300);
+        expect(new URL(page.url()).pathname).toBe(homeUrl(locale));
+        await expect(link).toHaveCSS("text-decoration-line", "underline");
+        const resting = await link.evaluate((node) => getComputedStyle(node).textDecorationColor);
+        await link.hover();
+        const accent = await page.evaluate(() => {
+          const probe = document.createElement("span");
+          probe.style.color = "var(--accent)";
+          document.body.append(probe);
+          const color = getComputedStyle(probe).color;
+          probe.remove();
+          return color;
+        });
+        await expect(link).toHaveCSS("text-decoration-color", accent);
+        expect(resting).not.toBe(accent);
+      });
+
+      test("tabs from Get started to the copy button, then the compare link", async ({ page }) => {
+        await page.goto(homeUrl(locale));
+        await page.locator(`${HERO} .vk-banner-ctas > a:first-child`).focus();
+        await page.keyboard.press("Tab");
+        await expect(page.locator(`${HERO} .vk-banner-install button`)).toBeFocused();
+        await page.keyboard.press("Tab");
+        await expect(page.locator(COMPARE)).toBeFocused();
       });
     });
   }

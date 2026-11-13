@@ -3146,23 +3146,30 @@ html:has(.vk-home) {
   max-width: 100%;
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
 }
 
-.vk-banner-ctas .vk-banner-compare {
+.vk-banner-compare-row {
   flex-basis: 100%;
+  display: flex;
   justify-content: flex-start;
-  padding-inline: 0;
-  background: transparent;
+}
+
+.vk-banner-compare {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-weight: 500;
+  color: var(--text-body);
   text-decoration-line: underline;
-  text-decoration-color: transparent;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
   text-underline-offset: 4px;
 }
 
-.vk-banner-ctas .vk-banner-compare:hover {
-  background: transparent;
-  text-decoration-color: currentColor;
+.vk-banner-compare:hover {
+  color: var(--text-strong);
+  text-decoration-color: var(--accent);
 }
 
 .vk-banner-install {

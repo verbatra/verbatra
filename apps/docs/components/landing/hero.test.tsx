@@ -135,15 +135,15 @@ describe("Hero copy", () => {
     expect(banner.ctaCompare).toBe("Compare with other tools");
     expect(ctas?.firstElementChild).toBe(links[0]);
     expect(links[0]?.className).toContain("vk-btn-primary");
-    expect(links[1]?.className).not.toContain("vk-btn-primary");
-    expect(links[1]?.className).toContain("vk-banner-compare");
+    expect(links[1]?.className).toBe("vk-banner-compare");
+    expect(links[1]?.className).not.toMatch(/vk-btn/);
+    expect(links[1]?.parentElement?.className).toBe("vk-banner-compare-row");
     expect(links[1]?.textContent).not.toMatch(/\d/);
     expect(Array.from(ctas?.children ?? [])).toEqual([
       links[0],
       ctas?.querySelector(".vk-banner-install"),
-      links[1],
+      links[1]?.parentElement,
     ]);
-    expect(ctas?.lastElementChild).toBe(links[1]);
     expect(doc.querySelector(".vk-banner-trust, dl, .vk-facts")).toBeNull();
     expect(doc.querySelector(".vk-banner a[target='_blank']")).toBeNull();
   });
@@ -159,6 +159,34 @@ describe("Hero copy", () => {
       "/de/compare",
     );
     expect(german.querySelector(".vk-banner-lead")?.textContent).toBe(de.lead);
+  });
+});
+
+describe("Hero compare link", () => {
+  const rules = () => docsStylesheetRules();
+
+  it("is a content-width text link in a non-interactive full-row wrapper", () => {
+    const wrapper = rulesFor(rules(), ".vk-banner-compare-row").find((rule) => rule.media === "");
+    expect(wrapper?.declarations["flex-basis"]).toBe("100%");
+    const link = rulesFor(rules(), ".vk-banner-compare").find((rule) => rule.media === "");
+    expect(link?.declarations["flex-basis"]).toBeUndefined();
+    expect(link?.declarations.display).toBe("inline-flex");
+    expect(link?.declarations["min-height"]).toBe("2.75rem");
+    expect(link?.declarations["text-underline-offset"]).toBe("4px");
+    expect(link?.declarations["text-decoration-line"]).toBe("underline");
+    expect(link?.declarations["text-decoration-color"]).toMatch(/^color-mix\(/);
+    expect(link?.declarations["font-weight"]).toMatch(/^(400|500)$/);
+  });
+
+  it("underlines in the accent on hover and never shifts on press", () => {
+    const hover = rulesFor(rules(), ".vk-banner-compare:hover").find((rule) => rule.media === "");
+    expect(hover?.declarations["text-decoration-color"]).toBe("var(--accent)");
+    expect(rules().some((rule) => /vk-banner-compare:active/.test(rule.selector))).toBe(false);
+  });
+
+  it("centres the primary button and the chip on the cross axis", () => {
+    const row = rulesFor(rules(), ".vk-banner-ctas").find((rule) => rule.media === "");
+    expect(row?.declarations["align-items"]).toBe("center");
   });
 });
 
