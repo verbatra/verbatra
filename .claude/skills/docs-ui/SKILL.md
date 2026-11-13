@@ -405,29 +405,39 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   found is the question mark, never a cross), a value (license, pricing, providers, formats and Verbatra's self-hosting: no mark) or not
   applicable (the manual column). Marks are data, never translated text; the words come from one shared vocabulary,
   `landing.compare.verdicts` (Yes, No, Partial, Unknown, None found, n/a), and each cell's copy is `landing.compare.rows.<row>.<tool>`
-  with an optional `value` and an optional `note` (the qualifier), cut by `lib/landing-copy.test.ts` at 8 words (10 for seven listed
+  with an optional `value` and an optional `note` (the qualifier), cut by `lib/landing-copy.test.ts` at 8 words (10 for eleven listed
   cells), a value at 4, in all four locales. There is no overall score, no rating per tool and no rating wording. Verbatra's providers
   cell is a plain count derived from `MACHINE_PROVIDER_IDS` through `compareCellView` (`lib/compare-cells.ts`), no names. The numbered
   source list (`compareSource(n)`, `cellFootnote`) is kept for `/compare.md` and `llms-full.txt` only; the page shows no footnote
   number, no Sources section and no `#source-n` anchor, and each cell carries one arrow-only link per source URL
   (`a[data-source]`: an inline arrow SVG with `aria-hidden`, an `sr-only` name of tool, criterion and "source", at least 24px, set small and
-  `--text-muted`). A mark is an inline SVG (`.vk-compare-mark`, `data-mark`): a check in `--accent`, a cross, a half circle and a
+  `--text-muted`, `scroll-margin-block-start: 6rem` so a backward Tab walk never leaves one under the sticky header row). The first
+  arrow of a cell sits in a no-wrap `.vk-compare-unit` with the last word (or hyphen segment) before it, and a verdict mark in one with
+  its first word, so an arrow never drops to a line of its own and a two-word verdict wraps after the mark and first word; further
+  arrows wrap freely. The qualifier is `--text-muted` and follows the verdict word after a plain space, with no dash. A mark is an inline SVG (`.vk-compare-mark`, `data-mark`): a check in `--accent`, a cross, a half circle and a
   question mark in `--text-muted`, never red, always beside the word, each a different shape so colour is never the only cue, drawn in
   `currentColor` so forced colors keep it. The page opens with the `h1`, one takeaway sentence, one scope sentence, one "where others are
-  stronger" line and the "Last checked" date (`COMPARE_LAST_CHECKED`), then a skip link past the comparison, so the first
-  comparison row sits within about 350px at 1440 and at least two rows fit the first 391 by 844 screen. Under the comparison come the two
+  stronger" line and the "Last checked" date (`COMPARE_LAST_CHECKED`, with one short clause saying what "None found" means, `compare.noneFound`), then a skip
+  link past the comparison, so the first comparison row sits within 400px at 1440 and at least two rows fit the first 391 by 844 screen
+  and one the first 320 by 640 screen, in all four locales (under 23rem the intro gaps tighten and its secondary lines drop to
+  `--text-xs`; `compare.takeaway` and `compare.stronger` stay one line in the 46rem intro). Under the comparison come the two
   next-step links. The layout is one `.vk-compare` container (`container-type: inline-size`) with two views of the same data, chosen by
   its width, never the viewport: from 67.5rem the full eight-column matrix (`table.vk-compare-table`, `table-layout: fixed`, fitted to the
   content width with no sideways scroll at any width from 320 to 2560, a sticky header row under the site header, the Verbatra column marked by
   `.vk-compare-self`: an inset `--accent-fill` start bar and a faint tint, a 3px `CanvasText` start border under `forced-colors`); below
   it Verbatra beside one chosen tool (`.vk-compare-pairs`, one `details.vk-compare-pair` per tool, each row a `dl` entry with the
-  Verbatra line over the tool line). Without JavaScript (`scripting: none`) the matrix needs none, and the pairs are seven
-  collapsed sections, Lingo.dev open. With JavaScript the `ComparePicker` island (`compare-picker.tsx`, a plain `island()`) shows
-  a native `select` (`.vk-compare-picker`, under 67.5rem and only where `scripting: enabled`), starting on Lingo.dev, which marks
-  one pair `data-selected` (the rest `display: none`, the summary hidden), opens it and keeps the choice in the URL as `?tool=<id>`
+  Verbatra line over the tool line, the canonical row order for every tool, the pair and the select capped at 44rem and 24rem; a
+  tool's detail line, "current CLI and platform" and "no product, no sources", is one `.vk-compare-pair-detail` paragraph at the top
+  of its pair, never on a row; under `forced-colors` both lines reserve the 3px start border so they align). Without a live picker
+  (no JavaScript, a failed chunk, or before hydration) the pairs are seven collapsed sections, Lingo.dev open, each summary with the
+  FAQ's `.vk-faq-mark` plus or minus. The `ComparePicker` island (`compare-picker.tsx`, a plain `island()`) sets
+  `data-picker-live` on `.vk-compare` while it is mounted, and only then (under 67.5rem) are the select (`.vk-compare-picker`) shown
+  and the unselected pairs and the selected summary hidden, so a picker that never arrives hides nothing. It starts on Lingo.dev, marks
+  one pair `data-selected`, opens it and keeps the choice in the URL as `?tool=<id>` (`COMPARE_TOOL_PARAM`, carried through the header
+  and footer language switch by `carriedSearch` in `lib/locale-switch.ts`)
   through `history.replaceState`, so it is shareable and survives a reload; the server HTML starts on Lingo.dev. Words never break
   mid-word (`hyphens: manual`, never `hyphens: auto`, `overflow-wrap: normal`), so a long German word in a cell is a wording
-  problem, which `e2e/compare-page.spec.ts` checks at 1160 and 1440 in all four locales. The article's single grid track is
+  problem, which `e2e/compare-page.spec.ts` checks at 1160, 1200, 1240, 1280 and 1440 in all four locales. The matrix verdict word is 13px (`calc(var(--text-xs) + 1px)`), the qualifier 12px. The article's single grid track is
   `minmax(0,1fr)`. `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx` (with `compare-table.tsx`:
   `CompareMatrix`, `ComparePairs`, `CompareCellBody`). `/compare.md` (and `Accept: text/markdown` on `/compare`) is
   `lib/compare-markdown.ts` served by `app/[lang]/site.mdx/[page]/route.ts`: it keeps the full table, now with the verdict words, the
