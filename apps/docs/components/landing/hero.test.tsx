@@ -136,9 +136,14 @@ describe("Hero copy", () => {
     expect(ctas?.firstElementChild).toBe(links[0]);
     expect(links[0]?.className).toContain("vk-btn-primary");
     expect(links[1]?.className).not.toContain("vk-btn-primary");
-    expect(links[1]?.className).toContain("vk-btn-ghost");
+    expect(links[1]?.className).toContain("vk-banner-compare");
     expect(links[1]?.textContent).not.toMatch(/\d/);
-    expect(ctas?.lastElementChild?.className).toBe("vk-banner-install");
+    expect(Array.from(ctas?.children ?? [])).toEqual([
+      links[0],
+      ctas?.querySelector(".vk-banner-install"),
+      links[1],
+    ]);
+    expect(ctas?.lastElementChild).toBe(links[1]);
     expect(doc.querySelector(".vk-banner-trust, dl, .vk-facts")).toBeNull();
     expect(doc.querySelector(".vk-banner a[target='_blank']")).toBeNull();
   });

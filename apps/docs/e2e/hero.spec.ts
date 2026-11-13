@@ -11,6 +11,10 @@ import {
 const HERO = "section.vk-banner";
 const FILES = `${HERO} .vk-banner-files`;
 
+function localeHref(locale: string, path: string): string {
+  return locale === "en" ? path : `/${locale}${path}`;
+}
+
 for (const locale of LOCALES) {
   test.describe(`hero ${homeUrl(locale)}`, () => {
     test("opens with the headline, one install chip with a copy button, and the locale files", async ({
@@ -105,10 +109,12 @@ test.describe("hero layout at 1440px", () => {
     }
     const ctas = await box(".vk-banner-ctas");
     expect(ctas.y + ctas.height).toBeLessThanOrEqual(900);
-    const compare = await box(".vk-banner-ctas a[href='/compare']");
+    const compare = await box(".vk-banner-ctas > a:last-child");
     expect(compare.y + compare.height).toBeLessThanOrEqual(900);
     expect(compare.x + compare.width).toBeLessThanOrEqual(copy.x + copy.width + 1);
     expect(compare.height).toBeGreaterThanOrEqual(44);
+    const chip = await box(".vk-banner-install");
+    expect(chip.y + chip.height).toBeLessThanOrEqual(compare.y + 1);
     await expect(page.locator(`${HERO} > .vk-banner-halo`)).toHaveAttribute("aria-hidden", "true");
     await expect(page.locator(`${FILES} .vk-banner-file-line[data-added='true']`)).toHaveCount(2);
   });
@@ -152,6 +158,64 @@ test.describe("hero layout at 1440px", () => {
     expect(padding).toBeCloseTo(180, 0);
   });
 });
+
+for (const locale of ["en", "de"] as const) {
+  for (const width of [391, 768, 1440]) {
+    test.describe(`hero action row at ${width}px ${homeUrl(locale)}`, () => {
+      test.use({ viewport: { width, height: 900 } });
+
+      test("runs Get started, the install chip, then a flush-left compare link", async ({
+        page,
+      }) => {
+        await page.goto(homeUrl(locale));
+        const box = async (selector: string) => {
+          const rect = await page.locator(`${HERO} ${selector}`).first().boundingBox();
+          if (rect === null) throw new Error(`${selector} has no box`);
+          return rect;
+        };
+        const order = await page
+          .locator(`${HERO} .vk-banner-ctas > *`)
+          .evaluateAll((nodes) =>
+            nodes.map((node) =>
+              node.classList.contains("vk-banner-install") ? "chip" : node.getAttribute("href"),
+            ),
+          );
+        expect(order).toEqual([
+          localeHref(locale, "/docs/quickstart"),
+          "chip",
+          localeHref(locale, "/compare"),
+        ]);
+        const primary = await box(".vk-banner-ctas > a:first-child");
+        const chip = await box(".vk-banner-install");
+        const compare = await box(".vk-banner-ctas > a:last-child");
+        const title = await box("h1");
+        const lead = await box(".vk-banner-lead");
+        expect(chip.y > primary.y || (chip.y === primary.y && chip.x > primary.x)).toBe(true);
+        expect(chip.y + chip.height).toBeLessThanOrEqual(compare.y + 1);
+        for (const edge of [title.x, lead.x, primary.x]) {
+          expect(Math.abs(compare.x - edge)).toBeLessThanOrEqual(0.5);
+        }
+        const label = await page
+          .locator(`${HERO} .vk-banner-ctas > a:last-child`)
+          .evaluate((link) => {
+            const range = document.createRange();
+            range.selectNodeContents(link);
+            return range.getBoundingClientRect().left;
+          });
+        expect(Math.abs(label - title.x)).toBeLessThanOrEqual(0.5);
+        expect(compare.height).toBeGreaterThanOrEqual(44);
+        expect(primary.height).toBeCloseTo(50, 0);
+        expect(chip.height).toBeGreaterThanOrEqual(56);
+        const link = page.locator(`${HERO} .vk-banner-ctas > a:last-child`);
+        await expect(link).toHaveCSS("border-top-width", "0px");
+        await expect(link).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+        await link.focus();
+        await expect(link).toHaveCSS("outline-style", "solid");
+        await expectNoHorizontalScroll(page);
+      });
+    });
+  }
+}
 
 for (const width of [320, 375]) {
   test.describe(`hero at ${width}px`, () => {

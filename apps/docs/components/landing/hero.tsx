@@ -81,9 +81,6 @@ export async function Hero(): Promise<ReactNode> {
             <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
               {t("ctaPrimary")}
             </Button>
-            <Button href={localizedPath(locale, COMPARE_PATH)} variant="ghost" size="lg">
-              {t("ctaCompare")}
-            </Button>
             <div className="vk-banner-install">
               <CommandRow
                 command={HERO_INSTALL_COMMAND}
@@ -91,6 +88,14 @@ export async function Hero(): Promise<ReactNode> {
                 wrap="narrow"
               />
             </div>
+            <Button
+              href={localizedPath(locale, COMPARE_PATH)}
+              variant="ghost"
+              size="lg"
+              className="vk-banner-compare"
+            >
+              {t("ctaCompare")}
+            </Button>
           </div>
         </div>
         <div className="vk-banner-demo">
