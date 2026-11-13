@@ -23,7 +23,8 @@ export type LockDemoLabels = {
   readonly play: string;
 };
 
-const STAGE_QUERY = "(min-width: 64rem) and (prefers-reduced-motion: no-preference)";
+const STAGE_QUERY =
+  "(min-width: 64rem) and (prefers-reduced-motion: no-preference) and (scripting: enabled)";
 
 const PROGRESS_ANIMATION = "vk-lock-progress";
 
@@ -42,10 +43,9 @@ function stageRetired(root: RefObject<HTMLElement | null>): boolean {
 function useStage(root: RefObject<HTMLElement | null>): boolean {
   const [stage, setStage] = useState(false);
   useEffect(() => {
-    if (stageRetired(root)) return;
     const query = window.matchMedia(STAGE_QUERY);
     const sync = () => setStage(query.matches);
-    sync();
+    if (!stageRetired(root)) sync();
     query.addEventListener("change", sync);
     return () => query.removeEventListener("change", sync);
   }, [root]);
