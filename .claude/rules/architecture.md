@@ -69,7 +69,8 @@ Alongside that chain, `ui` sits beside `config` as a leaf: `config <- ui <- docs
   `ThemeName` in `apps/docs/lib/theme.ts`.
   It never depends on `core`, `sdk`, or any surface, and no published package may reference it in
   its `.d.ts`.
-- `apps/docs` takes `@verbatra/core` as a `devDependency` only for the test-only root-entry import
+- `apps/docs` takes `@verbatra/core` as a `devDependency` for the build-time `contentHash` of the landing lock-file
+  demo (`apps/docs/lib/lock-demo.ts`, bundled by Next, so no runtime dependency) and the root-entry import
   in `apps/docs/lib/translation-provenance.test.ts`.
 
 Never import against the arrow. Never create a cycle. `packages/sdk/src/config/provider-config.ts`

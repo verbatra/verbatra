@@ -41,8 +41,8 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   `transform` only, and keep layout shift at 0.
   Server sections and the reveals stay CSS keyframes and transitions in `app/global.css`, each with
   a `prefers-reduced-motion` opt-out.
-  No animation library is a dependency: the playground's typing and decoding are timer-driven state
-  (`lib/playground-cycle.ts`).
+  No animation library is a dependency: the lock-file demo's autoplay is one CSS keyframe per step
+  (`vk-lock-progress`) whose `animationend` moves the frame (`lock-demo-motion.tsx`).
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
   CSS custom properties in `packages/ui/src/tokens.css` and `app/global.css`, not a JS config
   object.
@@ -131,8 +131,7 @@ Three layers exist. Write against the third.
    themes in `:root` and `html.light`: `--gradient-headline` (strong text into the accent, painted
    only on the hero `h1`), `--halo-strong` and `--halo-soft` (the accent fill and accent mixed into
    transparency, weaker in the light theme) for every glow, `--art-dim` (the resting strokes and
-   dot grid of the feature canvases, read at runtime by `lib/landing-canvas.ts`), `--grid-line` for the faded grid behind the hero and the closer, and
-   `--star` for the statement's starfield. Reach for one only in the role it already has.
+   dot grid of the feature canvases, read at runtime by `lib/landing-canvas.ts`), `--grid-line` for the faded grid behind the hero and the closer. Reach for one only in the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
    `--color-fd-muted-foreground`, `--color-fd-primary`, `--color-fd-primary-foreground`,
@@ -187,7 +186,7 @@ Scales are fixed and narrow, deliberately:
   between a section head and its content: the
   highlight tiles and the feature grid (`margin-top: var(--head-gap)` on `.vk-bento` and
   `.vk-feature-grid`), the row gap
-  of `.vk-section-aside` (the FAQ) and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
+  of `.vk-section-aside` (the FAQ) and the gap above the lock-file demo's stage (`.vk-lock-stage`); `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
   `--grid-span` columns (the full row when unset). `SectionHead` takes `layout`: `split` (the default, a
@@ -214,11 +213,10 @@ Scales are fixed and narrow, deliberately:
   opens with `--section-md` (its rhythm) and ends at its content, the band margin sets the space
   above the next hairline, the hero ends 3rem (7.5rem from 768px) under its locale files and CTAs, its halo masked to fade out before the marquee hairline, and the footer opens with
   `--section-sm` under its hairline. The one larger step is `--section-closer` above the
-  closing panel. Only the SDK playground is a band. Order: hero (page, under its halo), marquee
+  closing panel. No landing section is a band. Order: hero (page, under its halo), marquee
   (page, `.vk-marquee-section`: `--border-default` hairlines above and below, `2.75rem` above and
-  `3rem` below its content, `overflow-x: clip`, rows full-bleed across the viewport), statement
-  (page, starfield, `padding-block: clamp(5rem, 12.5vw, 11.25rem) clamp(0rem, 3.6vw, 3.25rem)`, so with the highlights' own `--section-md` it opens about 180px of gap at 1440), highlights (page), SDK
-  playground (band), features (page), FAQ (page), closing panel (page), then the footer on the
+  `3rem` below its content, `overflow-x: clip`, rows full-bleed across the viewport), lock-file demo
+  (page, `.vk-lock`), highlights (page), features (page), FAQ (page), closing panel (page), then the footer on the
   page surface under one hairline (`section-bands.test.tsx` pins the order and the surfaces).
   The page surface is `--surface-page` (dark `--v-void`, light `--color-fd-background`, the 98 percent
   page tone): it paints `.vk-home`, the footer and the sticky FAQ head, so white tiles read as raised in
@@ -227,12 +225,10 @@ Scales are fixed and narrow, deliberately:
   `--surface-tile` (dark `hsl(240 26% 8%)`, light white) and `--border-tile` (dark
   `hsl(240 22% 16%)`, light `--border-default`). They fill and border `.vk-tile`, `.vk-feature`,
   `.vk-faq-item`, `.vk-closer`, `.vk-banner-file`,
-  `.vk-playground-pane`. The playground's static table (`.vk-playground-table-scroll`,
-  the no-JavaScript fallback) stays on `--surface-card` with `--border-default`: it is a data
-  table sharing the docs table treatment (header row on `--surface-card`), not a tile. The hero draws one `aria-hidden` `.vk-banner-halo` as its
+  `.vk-lock-card`. The hero draws one `aria-hidden` `.vk-banner-halo` as its
   first child: two radial halos and a 64px `--grid-line` grid faded by a radial mask, behind the
   copy and the demo alike (`hero.test.tsx` pins it); there is no dot backdrop.
-- Placeholder chip: the SDK playground and the hero's locale-file cards draw one. `.vk-ph` sets a
+- Placeholder chip: the lock-file demo's en.json lines and the hero's locale-file cards draw one. `.vk-ph` sets a
   `{name}` or
   `{count}` in `--accent` on a 14 percent `--accent` tint (`color-mix`, radius 5px, 1px 4px padding,
   no border and no token of its own), in the source line and in every language, so the placeholder
@@ -282,10 +278,7 @@ Headlines are solid `--text-strong` on both surfaces, with one exception: the he
 `<accent>` part of `landing.banner.headline`, on its own line), which clips `--gradient-headline`
 to its text, and falls back to solid
 `CanvasText` under forced colors (`lib/landing-tokens.test.ts` fails if any other rule paints the
-gradient). The statement's `h2` is the one headline set in two tones: its lit part `--text-strong`
-in an `em` (underlined under forced colors), the rest `--text-faint`. Only the `{sent} keys` part is lit.
-Its size is `--statement-title` (`clamp(2.5rem, 6.4vw, 5.75rem)`, weight 500, never above the
-hero title's `--banner-title` cap). No landing headline ends with a period (`lib/landing-messages.test.ts`).
+gradient). No landing headline ends with a period (`lib/landing-messages.test.ts`).
 
 ## Reuse before you build
 
@@ -297,7 +290,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `--text-danger`, "Copy failed", and drops its `aria-label` while it does, so the visible status
   is its accessible name; `CommandLine` renders `CopyButton` rather than its own button.
   `CopyButton` is `CopyControl` (`copy-control.tsx`) fed the `landing.install` copy strings; a plain
-  `island()` that may not call `useTranslations` (the SDK playground) renders `CopyControl` with
+  `island()` that may not call `useTranslations` renders `CopyControl` with
   those strings passed in as props, never a copy of the button.
   `TabList` moves selection and focus with the arrow keys (wrapping), Home and End; its one
   underline look serves every tab row, and it wires no `id` or `aria-controls`, because no
@@ -351,27 +344,25 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   button, inside a shadcn composition or not, is the site button in `components/ui/button.tsx`; add a
   registry primitive only together with the code that uses it.
 - **Landing:** `components/landing/` holds one component per section. Their order on the page is
-  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, statement, highlights,
-  playground, features, faq, finalCta), which the home page maps
+  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, lockDemo, highlights,
+  features, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
   `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button, the install chip (a `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`) and last a "Compare with other tools" text link (an `IntentPrefetchLink`, not a `Button`) to the localized `/compare` (`COMPARE_PATH`, no count in the label) in a non-interactive `.vk-banner-compare-row` that supplies the row break, so the anchor (`.vk-banner-compare`) is as wide as its label, flush-left, at least 44px tall, with a low-alpha resting underline and an accent underline on hover; on the right an `aria-hidden`
   `.vk-banner-files` stack of three locale-file cards from `lib/landing-hero-files.ts`: `fr` and
   `es` behind, tilted, each its `heroFileName` and the `heroFilePreview` line, and `de` in front
-  with a `landing.banner.keysAdded` badge and `heroFileLines` where the added keys are marked
-  `data-added`; every value is the playground's default item from `PLAYGROUND_TRANSLATIONS`, the
+  with a `landing.banner.keysChanged` badge and `heroFileLines` where the changed keys (the lock-file demo's, `LOCK_DEMO_PLAYGROUND_IDS`) are marked
+  `data-changed` and start with `~ `; every value comes from `PLAYGROUND_TRANSLATIONS`, the
   back cards show only from 64rem and where the demo column is at least 28rem wide (a container
   query), so no value line is ever cut with an ellipsis, and every value line wraps at spaces; no trust line, no Node.js requirement line, no tabs and no
-  terminal), `statement.tsx` (`#statement`, a bracketed `.vk-eyebrow` label and one
-  large sentence on a starfield whose counts come from `lib/hero-terminal.ts`, the lit part in an
-  `em`, the rest `--text-faint`, with the first locale line of the translate run under it),
+  terminal), `lock-demo.tsx` (`#lock-demo`, see "Lock-file demo" below),
   `highlights.tsx` (`#highlights`, a split head aligned to the start over `.vk-bento`, six columns
   from 64rem: three tile titles name the pain ("Retranslating everything costs more", "Missing keys reach production", "One broken placeholder breaks a screen") while each body and terminal output stays the fix, and the agents tile keeps its title; the translate run (under a `.vk-tile-body` that carries the run's sent and total counts) from `HERO_TRANSLATE_OUTPUT` in a wrapped `.vk-tile-code-wrap` group named by the tile title (it wraps at its spaces at every width, so it never scrolls, is no tab stop and no line is cut or faded on a phone; each output line is its own `.vk-tile-line` span with a hanging indent (`--vk-hang` in `ch`, its leading spaces and at least 2), so a wrapped row sits under the start of its text; the text stays the CLI's byte for byte), its total line in
   `--accent` (span 4), the check's exit code in `--text-danger` (span 2; its glow is a strip of
   `--tile-halo-height` at the tile's end, under padding that clears the text, so no text ever sits
-  over a halo), the playground's default item in every playground language with each placeholder
+  over a halo), the default playground item (`welcomeBack`) in every playground language with each placeholder
   in a `mark` (span 3), and the MCP setup command wrapped, not scrolled, breaking only between whole flags and arguments through `keepPackageRunsWhole` (span 3); every count
   derives from the hero terminal data, never typed; the CLI text (run, exit code, command) carries
-  `lang="en"` on every locale, like the statement's proof line), `features.tsx` (`#features`, a bracketed label, a split
+  `lang="en"` on every locale, like the lock-file demo's CLI lines), `features.tsx` (`#features`, a bracketed label, a split
   head aligned to the start and `.vk-feature-grid` of `LANDING_FEATURES` from `lib/landing-features.ts`: each card a
   fixed-height `.vk-feature-visual` (halo and dot grid, `overflow: hidden`) holding either one `aria-hidden` `canvas.vk-feature-canvas`
   (five cards: `feature-canvas.tsx`, a client island: motifs are the pure frame functions of `lib/landing-canvas.ts`, one per
@@ -397,8 +388,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   between rows at 320, 391, 768 and 1440; recapturing the screenshots or changing Studio's Overview layout means
   re-measuring them),
   and an `h3` whose link to the command's docs page
-  stretches over the whole card), `playground.tsx` (`#playground`, the SDK playground, see
-  "SDK playground" below), `marquee.tsx`
+  stretches over the whole card), `marquee.tsx`
   (`#marquee`, see "Marquee" below), and the comparison, which lives only on `/compare` (the landing reaches it from the hero link, the last FAQ answer, the FAQ's docs
   links and the footer). `lib/landing-compare.ts` holds its rows and tools and one numbered source
   list, `compareSource(n)`; `cellFootnote` derives each cell's number from its row and tool, and
@@ -631,7 +621,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   see, through a mask on the element's own inline scroll timeline (one `@supports` rule for every
   scroll fade, `.vk-edge-fade` included, dropped while the element shows a focus ring or holds a
   focused child, so no ring is faded), and without scroll timelines a `--scroll-shade` (neutral,
-  never violet) over a `local` void cover; `.vk-scroll-fade` is that rule for the playground blocks, each a `ScrollBlock` (`components/landing/scroll-block.tsx`: a
+  never violet) over a `local` void cover; `.vk-scroll-fade` is that rule for `ScrollBlock` (no landing section uses one today; `components/landing/scroll-block.tsx`: a
   `div` with `role="group"`, never a landmark, and `tabIndex={0}`, like the code frames' `pre`)
   named by its caption through `aria-labelledby`. Both draw their focus ring inset
   (`outline-offset: -2px`) in one unlayered rule beside the global `:focus-visible`, outside every
@@ -639,14 +629,14 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   the global rule.
   `lib/hero-terminal.ts` keeps the recorded `verbatra check` and `verbatra translate` transcript
   (`HERO_TERMINAL_SCRIPT`, English on every locale, like all CLI output on the page) that the home
-  social image and the statement and highlights counts draw from;
-  `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer;
+  social image, the lock-file demo and the highlights counts draw from: one locale (`de`), fourteen source values (`HERO_TERMINAL_SOURCE`), two of them edited (`before` is the old value), so check prints `0 missing, 2 stale, 12 up-to-date` and translate `2 translated, 12 unchanged`, with no token figure because the CLI prints none for a run without reported usage;
+  `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer and the lock hashes of `lib/lock-demo.ts` to the lock file the CLI writes;
   `MCP_ADD_COMMAND` in `lib/install-commands.ts` is the `claude mcp add` line the highlights'
   MCP tile and the markdown twin print, copied from the MCP client guide, and `INIT_COMMAND` and
   `DRY_RUN_COMMAND` (same file) the two commands of the closing panel;
   `lib/landing-hero-files.ts` builds the hero's locale-file cards from the playground data: its
-  `HERO_FILE_IDS` list says which lines the front card shows and which are marked added (the badge
-  counts those), and the preview line is `PLAYGROUND_DEFAULT_ITEM`,
+  `HERO_FILE_IDS` list says which lines the front card shows and which are marked changed (the badge
+  counts those, equal to the fixture's changed keys), and the preview line is `PLAYGROUND_DEFAULT_ITEM`,
   `CommandRow` (`components/command-row.tsx`: the closing
   section's two commands wrap under 30rem through `wrap="narrow"`, `wrap="always"` wraps a command at every width; elsewhere a `CommandRow` scrolls
   sideways inside `.vk-edge-fade`: a mask, not a painted background, so it stays see-through on any
@@ -656,12 +646,10 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `/`, through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same
   file (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used only by the
   docs home agent tip). The footer draws no pattern and no watermark. The landing draws exactly
-  three, all decoration: the hero halo's faded grid, the closer's same grid and the statement's
-  starfield; add no other. A new section composes `Section` plus
+  two, both decoration: the hero halo's faded grid and the closer's same grid; add no other. A new section composes `Section` plus
   `SectionHead`; it does not re-derive page padding or heading rhythm. `Section` takes
   `labelledBy`, the id of its `h2`, and renders it as `aria-labelledby`, so every landing section
-  is a named region; the hero, the statement (a full-bleed starfield, which `Section`'s width cap
-  would cut off) and the closing section set it themselves (`e2e/landing.spec.ts`
+  is a named region; the hero and the closing section set it themselves (`e2e/landing.spec.ts`
   fails on a nameless section). Check
   `ls apps/docs/components/landing` before quoting a file name from this list. The CLI transcripts
   on the landing (`lib/hero-terminal.ts` with the check lines of `lib/check-demo.ts`) are real CLI
@@ -823,8 +811,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
 
 ## Landing motion
 
-The landing moves little, on purpose: the format and provider marquee rows loop until paused, the SDK playground types a source string and decodes its translations in a timer-driven loop
-(stopped by any interaction, offscreen, in a hidden tab and under reduced motion), and nothing else
+The landing moves little, on purpose: the format and provider marquee rows loop until paused, the lock-file demo steps through its three frames on a desktop screen with motion allowed (paused offscreen, by its pause button or by choosing a step; static and stacked on phones and under reduced motion), and nothing else
 on the page fades in.
 There is no scroll-driven motion, no pinning and no parallax and no scroll listener;
 `motion` is reserved for client islands (see "The stack").
@@ -841,8 +828,8 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
   `n * --reveal-stagger`, capped at `--reveal-delay-max`. No landing section carries a mark
   today: the system stays for a demo artifact that earns one. No section heading reveals
-  (`SectionHead` takes no reveal prop), and the hero, marquee, statement, highlights, SDK
-  playground, features, FAQ and closing panel never take a reveal; the marquee
+  (`SectionHead` takes no reveal prop), and the hero, marquee, lock-file demo, highlights,
+  features, FAQ and closing panel never take a reveal; the marquee
   loop below is its own motion, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
   `reveal-marks.test.tsx` pins that no section file carries a mark and `motion-root.test.tsx` the observer and
   the stylesheet guards.
@@ -859,60 +846,44 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
   start and on a phone, wrapped rows from 40rem under reduced motion or without JavaScript), so 2.2.2 holds without
   JavaScript.
-- **SDK playground.** `playground.tsx` (`#playground`, on the void, a `split` head (heading left,
-  lead right) whose `h2` is
-  `landing.playground.heading`, rendered on the server as the first child of
-  `.vk-playground-layout`, before the `PlaygroundDemo` island and never inside it, so it stays
-  visible without JavaScript and after a failed island chunk on a client navigation, which
-  `e2e/playground.spec.ts` drives by aborting that chunk) reads `lib/playground/translations.json`
-  once through `lib/landing-playground.ts`, which parses it with `lib/playground/schema.ts` on the
-  server, so zod never reaches the client. `PLAYGROUND_PICKS` (the ids in `PLAYGROUND_PICK_IDS`)
-  are the strings the demo shows and cycles; `sent` is `PLAYGROUND_SENT_STRINGS` (1) and `kept` is
-  the rest of the committed strings, never typed. `PLAYGROUND_SNIPPET` (`loadConfig({
-  configOverride: defineConfig(...) })` for `gemini` and `next-intl-json`, the model from the JSON
-  metadata, then `translate({ config })`, one `targetLocales` entry per line) comes from
-  `playgroundSnippet` in `lib/playground-snippet.ts`, a zod-free builder the island shares. The
-  server highlights it through `highlightPlaygroundSnippet` (`lib/playground-snippet-highlight.ts`),
-  whose Shiki transformer marks each locale line `data-snippet-locale` with `background-color:
-  var(--vk-snippet-hot-<code>, transparent)` and moves the line's newline inside it; those lines are
-  `display: block` in `.vk-playground-frame`, and every language is always shown. A span transformer
-  recolors tokens onto the design tokens (`recolorToken`: keywords `--accent`, strings
-  `--v-status-changed`, identifiers and constants `--text-strong`, comments untouched), and
-  `.vk-playground-frame` draws a CSS-counter line-number gutter in `--text-muted`.
-  The `PlaygroundDemo` island (`playground-demo.tsx`, a plain `island()` fed every string, already
-  formatted, as a prop, so it adds no client namespace) is two `.vk-playground-pane` panels
-  (`--surface-tile`, `--border-tile`, `--radius-card`, 1.05fr / 0.95fr from 64rem, stacked below).
-  The result pane: a head (`en -> de, es, fr, ja`, the phase word `typing`, `running` or `done`,
-  and `.vk-playground-pause`), the source line (`SOURCE (EN)`, 22px, a blinking caret drawn as the `::after` of `.vk-playground-live`, so it is no element that moves),
-  the picks as `aria-pressed` pill buttons, one `.vk-playground-row` button per language (code,
-  name, text, a check once its decode is done) and a status line: a pulse and
-  `landing.playground.status.running`, then a shield and the integrity sentence with the counters
-  `sent`, `kept` and `placeholders` (`intact/total`, counted from the data by
-  `intactPlaceholders`). The code pane is the `CodeFrameShell` (with `CopyControl`) over a
-  `translate()` bar with `queued`, `awaiting` and `resolved`. The server renders the default item
-  fully settled and `useReducer` starts from that constant, so the first client render equals the
-  server HTML. Only effects read `matchMedia`, `IntersectionObserver` and `visibilitychange`: once
-  the section is in view, motion is allowed and the tab is shown, `start` holds the settled item
-  for `HOLD_MS`, then each pick types (`TYPE_MS` per character), sends, and decodes the four languages
-  `STAGGER_MS` apart over `DECODE_MS`, a Latin target scrambled with lowercase letters and a CJK one
-  with its own characters (`scramblePool`), the placeholders never scrambled. The cycle advances
-  through `PLAYGROUND_PICKS` and wraps. Any pick, language row or the pause control stops it for
-  good (`touched`); a picked string plays once and settles; a row marks itself, tints its code
-  line (the island sets `--vk-snippet-hot-<code>: var(--vk-hot-fill)` on its root) and is announced.
-  The ticker is a 70ms interval that runs only while the scene is animating, in view and visible. Under
-  `prefers-reduced-motion: reduce` it never starts (final state, no caret, no pause control, hidden
-  with CSS), and a pick shows its translations at once. Every changing text sits in a
-  `.vk-playground-reserve` grid with an invisible `.vk-playground-ghost` of every possible value
-  (every pick, every translation, every status sentence, counters, phase and run words), so the
-  height and width never move. The animated text is `aria-hidden`; each row holds the real
-  translation in an `sr-only` span with its own `lang`, and one polite `sr-only` live region is empty
-  until a visitor picks a string (all four languages) or a row (that language). The label
-  `landing.playground.label` and the provider, model and generation date (`dl.vk-playground-meta`,
-  from the JSON metadata) follow the panes. Without JavaScript (`scripting: none`) the result pane
-  is `display: none` and `.vk-playground-static`, a captioned table of every string and language in
-  a `ScrollBlock`, shows instead. Links to `/docs/sdk-quickstart`, `/docs/sdk` and
-  `/docs/providers` close the section. `playground-cycle.test.ts` pins the state machine and
-  `e2e/playground.spec.ts` the browser behaviour.
+- **Lock-file demo.** `lock-demo.tsx` (`#lock-demo`, a page section with a bracketed `.vk-eyebrow`
+  label "The lock file" and a `stacked` `SectionHead` whose `h2` is `landing.lockDemo.heading`,
+  `{count, plural, =2 {Two keys changed, two keys sent} ...}`, formatted with the fixture's changed
+  count so it falls back to digits, and fails `lock-demo.test.tsx` in all four locales, when the
+  fixture changes) replaces the former statement and SDK playground. Every number, key, value and
+  hash comes from one fixture, `lib/hero-terminal.ts` (`HERO_TERMINAL_SOURCE`): `lib/lock-demo.ts`
+  turns it into three frames of `CodeLine`s, hashes with `contentHash` from `@verbatra/core` at build
+  time (`LOCK_DEMO_HASHES`, old and new, pinned to the lock file the real CLI writes by
+  `hero-terminal.run.test.ts`), and reads the German values of the two edited keys from
+  `lib/playground/translations.json` through `lib/landing-playground.ts`
+  (`LOCK_DEMO_PLAYGROUND_IDS` maps `checkout.title` to `checkoutTitle`; the generator's
+  `scripts/playground/source.ts` holds the same English text, pinned by `lock-demo.test.ts`), with
+  the model and date from its metadata block. The three frames are `figure.vk-lock-frame`s, each a
+  `figcaption` (step label and sentence) over a `.vk-lock-card` with a mono head (file name, badge):
+  1. `en.json` as the real nested file, the two changed lines marked (`~`, the `changed` tag),
+  unchanged keys folded into "... N more, unchanged" gap lines; 2. `verbatra.lock.json` with the real
+  shape (`version`, `locales`, the locale object, keys sorted), the two stale entries showing the
+  recorded old hash and the `stale` tag, badge `2 stale, 12 up-to-date` in the CLI's wording
+  (`HERO_CHECK_BADGE`, `lang="en"`); 3. the CLI line for German (`$ npx @verbatra/cli translate`
+  and `de: 2 translated, 12 unchanged`, `lang="en"`, only text the CLI prints), then `de.json` with
+  only those two values (each `lang="de"`) under the single label "pre-generated, not live", and a
+  foot with the model, the date and the lock update. No token figure and no baseline comparison
+  appear until a measured baseline exists. Code is `pre` with `white-space: pre-wrap` and hanging
+  indents, so nothing scrolls and no block is a tab stop or carries an `aria-label`; the tag
+  text is at least 11px. Marked lines use `--accent` on a 14 percent `--accent` tint like `.vk-ph`;
+  gap lines `--text-muted`.
+  Without JavaScript, and on phones and under reduced motion, the frames stack with their captions.
+  The island (`lock-demo-motion.tsx`, `LockDemoMotion`, a block `island()` fed the steps, labels and
+  per-step dwell times `LOCK_DEMO_DWELL_MS`, with the frames as children) reads one media query,
+  `(min-width: 64rem) and (prefers-reduced-motion: no-preference)`; when it matches the stage
+  (`data-mode="stage"`) shows a step list (`aria-controls` per frame, `aria-current="step"`) in
+  columns 1 to 4 and one frame at a time in columns 5 to 12, the others `inert` and `aria-hidden`.
+  Each step's `.vk-lock-prog` bar runs `vk-lock-progress` for its dwell (the lock frame longest), and
+  its `animationend` advances the frame; the bar is paused (inline `animation-play-state`) while the
+  section is offscreen or the "Pause animation" button (2.2.2) was used, and choosing a step pauses.
+  Frames keep their natural height; the stage is as tall as the tallest, so no card stretches.
+  `lock-demo-motion.test.tsx` pins the island, `lock-demo.test.tsx` the markup and `e2e/lock-demo.spec.ts`
+  the browser behaviour.
 - **Back to top.** `scroll-top.tsx` (`ScrollTop`, a plain block `island()` (`{ as: "div" }`) in `islands.tsx` that the
   home page mounts after `MotionRoot`, fed `landing.fab.label` and `MAIN_CONTENT_ID` as props)
   renders an `aria-hidden` `.vk-scroll-top-sentinel` (absolute, `100vh` tall from the top of the
@@ -947,7 +918,7 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   token that nothing reads), so there is no instant duration and no exit easing until something
   uses one.
 - **Bracketed labels, never numbered.** Most landing sections open with their `h2`. Only the
-  statement, the features and the closing panel set a `.vk-eyebrow` label above it (`{ LABEL }`,
+  lock-file demo, the features and the closing panel set a `.vk-eyebrow` label above it (`{ LABEL }`,
   the braces drawn in CSS with empty alt text); no section carries an index or a counter, and
   `reveal-marks.test.tsx` fails on a CSS counter or a numbered section list.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
