@@ -51,11 +51,10 @@ export function ComparePicker({
   }, [host]);
 
   useEffect(() => {
-    const shared = toolFromLocation(options);
-    if (shared === null) return;
-    setTool(shared);
-    showPair(host, shared);
-  }, [options, host]);
+    const initial = toolFromLocation(options) ?? first;
+    setTool(initial);
+    showPair(host, initial);
+  }, [options, host, first]);
 
   return (
     <div ref={setHost} className="vk-compare-picker">

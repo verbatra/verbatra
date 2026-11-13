@@ -18,11 +18,15 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-function mount(): { select: HTMLSelectElement; pair: (id: string) => HTMLDetailsElement } {
+function mount(closeFirst = false): {
+  select: HTMLSelectElement;
+  pair: (id: string) => HTMLDetailsElement;
+} {
   document.body.innerHTML = `<div class="vk-compare"><div id="host"></div><div data-compare-pairs>${OPTIONS.map(
     ({ id }, index) =>
       `<details data-pair="${id}"${index === 0 ? " data-selected open" : ""}><summary>${id}</summary></details>`,
   ).join("")}</div></div>`;
+  if (closeFirst) (document.querySelector("[data-pair]") as HTMLDetailsElement).open = false;
   const root = createRoot(document.getElementById("host") as HTMLElement);
   act(() => root.render(<ComparePicker label="Compare Verbatra with" options={OPTIONS} />));
   return {
@@ -88,5 +92,11 @@ describe("ComparePicker", () => {
     expect(pair("lingo").hasAttribute("data-selected")).toBe(true);
     choose(select, "tolgee");
     expect(window.location.search).toBe("?tool=tolgee&x=1");
+  });
+
+  it("opens the default pair when the reader closed it before the picker went live", () => {
+    const { pair } = mount(true);
+    expect(pair("lingo").open).toBe(true);
+    expect(pair("lingo").hasAttribute("data-selected")).toBe(true);
   });
 });
