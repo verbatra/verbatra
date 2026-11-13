@@ -45,6 +45,32 @@ function Placeheld({ text }: { text: string }): ReactNode {
   );
 }
 
+function GapLine({
+  line,
+  t,
+  style,
+  end,
+}: {
+  line: Extract<CodeLine, { kind: "gap" }>;
+  t: Translate;
+  style: CSSProperties;
+  end: string;
+}) {
+  const folded = line.fold !== undefined && line.fold > 0;
+  return (
+    <span
+      className="vk-lock-line"
+      style={style}
+      data-kind="gap"
+      data-empty={line.count === 0 ? "" : undefined}
+      data-fold={line.fold === 0 ? "drop" : undefined}
+      data-short={folded ? t("gap", { count: line.fold ?? 0 }) : undefined}
+    >
+      <span className="vk-lock-gap-full">{`${t("gap", { count: line.count })}${end}`}</span>
+    </span>
+  );
+}
+
 function Line({
   line,
   t,
@@ -57,13 +83,7 @@ function Line({
   end: string;
 }) {
   const style = { "--d": line.depth } as CSSProperties;
-  if (line.kind === "gap") {
-    return (
-      <span className="vk-lock-line" style={style} data-kind="gap">
-        {`${t("gap", { count: line.count })}${end}`}
-      </span>
-    );
-  }
+  if (line.kind === "gap") return <GapLine line={line} t={t} style={style} end={end} />;
   if (line.kind === "text") {
     return (
       <span className="vk-lock-line" style={style}>
@@ -87,7 +107,12 @@ function Line({
     );
   }
   return (
-    <span className="vk-lock-line" style={style} data-mark={line.mark}>
+    <span
+      className="vk-lock-line"
+      style={style}
+      data-mark={line.mark}
+      data-fold={line.neighbour === true ? "drop" : undefined}
+    >
       {line.mark === undefined ? null : (
         <span className="vk-lock-sign" aria-hidden="true">
           ~
@@ -143,6 +168,7 @@ function Frame({
   file,
   badge,
   badgeLang,
+  headFold,
   children,
   foot,
 }: {
@@ -150,6 +176,7 @@ function Frame({
   file: string;
   badge: string;
   badgeLang?: string;
+  headFold?: boolean;
   children: ReactNode;
   foot: ReactNode;
 }): ReactNode {
@@ -160,7 +187,7 @@ function Frame({
         <span>{step.text}</span>
       </figcaption>
       <div className="vk-lock-card">
-        <p className="vk-lock-head">
+        <p className="vk-lock-head" data-fold={headFold === true ? "drop" : undefined}>
           <span>{file}</span>{" "}
           <span className="vk-lock-badge" lang={badgeLang}>
             {badge}
@@ -233,13 +260,16 @@ export async function LockDemo(): Promise<ReactNode> {
           file={HERO_TRANSLATE_OUTPUT[0] ?? ""}
           badge={HERO_TRANSLATE_BADGE}
           badgeLang="en"
+          headFold
           foot={
             <p className="vk-lock-foot">
               <span lang="en">{PLAYGROUND_METADATA.model}</span>
               {", "}
               <time dateTime={generated.iso}>{t("foot.generated", { date: generated.text })}</time>
-              <br />
-              {t("foot.lock", { file: LOCK_FILE_NAME, count: changed })}
+              <span className="vk-lock-foot-lock">
+                <br />
+                {t("foot.lock", { file: LOCK_FILE_NAME, count: changed })}
+              </span>
             </p>
           }
         >

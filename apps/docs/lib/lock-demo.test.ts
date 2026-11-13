@@ -153,6 +153,29 @@ describe("the lock excerpt", () => {
   });
 });
 
+describe("the lock excerpt on a phone", () => {
+  const lines = lockLines();
+
+  it("folds the unchanged neighbours of the changed keys into the gaps and stays truthful", () => {
+    const entries = lines.flatMap((line) => (line.kind === "entry" ? [line] : []));
+    const neighbours = entries.filter((line) => line.neighbour === true);
+    expect(neighbours.map((line) => line.key)).toEqual(["cart.total", "errors.notFound"]);
+    expect(neighbours.every((line) => line.mark === undefined)).toBe(true);
+    const shown = entries.length - neighbours.length;
+    const folded = lines.reduce(
+      (sum, line) => sum + (line.kind === "gap" ? (line.fold ?? 0) : 0),
+      0,
+    );
+    expect(shown + folded).toBe(LOCK_DEMO_COUNTS.total);
+  });
+
+  it("opens every folded run with a gap, so a phone never shows an unexplained jump", () => {
+    const gaps = lines.filter((line) => line.kind === "gap");
+    expect(gaps.map((line) => line.fold)).toEqual([5, 7]);
+    expect(gaps.map((line) => line.count)).toEqual([4, 6]);
+  });
+});
+
 describe("the changed German values", () => {
   it("name the generator's items for the changed keys", () => {
     expect(Object.keys(LOCK_DEMO_PLAYGROUND_IDS)).toEqual([...HERO_TERMINAL_CHANGED_KEYS]);

@@ -60,8 +60,14 @@ export type CodeLine =
       readonly value: string;
       readonly comma: boolean;
       readonly mark?: LineMark;
+      readonly neighbour?: true;
     }
-  | { readonly kind: "gap"; readonly depth: number; readonly count: number };
+  | {
+      readonly kind: "gap";
+      readonly depth: number;
+      readonly count: number;
+      readonly fold?: number;
+    };
 
 const INDENT = "  ";
 
@@ -86,6 +92,7 @@ type Words = {
 
 export function codeLinesText(lines: ReadonlyArray<CodeLine>, words: Words): string {
   return lines
+    .filter((line) => line.kind !== "gap" || line.count > 0)
     .map((line) => {
       if (line.kind === "gap") return `${INDENT.repeat(line.depth)}${words.gap(line.count)}`;
       const text = codeLineText(line);
@@ -113,7 +120,49 @@ function visibleIndexes(rows: ReadonlyArray<Row>, neighbours: number): ReadonlyS
   return visible;
 }
 
-function flatLines(rows: ReadonlyArray<Row>, depth: number, neighbours: number): CodeLine[] {
+function foldRuns(lines: ReadonlyArray<CodeLine>, depth: number): CodeLine[] {
+  const folded: CodeLine[] = [];
+  let run: CodeLine[] = [];
+  const flush = () => {
+    const total = run.reduce(
+      (sum, line) => sum + (line.kind === "gap" ? line.count : line.kind === "entry" ? 1 : 0),
+      0,
+    );
+    if (total === 0) {
+      folded.push(...run);
+      run = [];
+      return;
+    }
+    const at = run.findIndex((line) => line.kind === "gap");
+    if (at < 0) {
+      folded.push({ kind: "gap", depth, count: 0, fold: total }, ...run);
+    } else {
+      folded.push(
+        ...run.map((line, index) =>
+          line.kind === "gap" ? { ...line, fold: index === at ? total : 0 } : line,
+        ),
+      );
+    }
+    run = [];
+  };
+  for (const line of lines) {
+    if (line.kind === "entry" && line.mark !== undefined) {
+      flush();
+      folded.push(line);
+    } else {
+      run.push(line.kind === "entry" ? { ...line, neighbour: true } : line);
+    }
+  }
+  flush();
+  return folded;
+}
+
+function flatLines(
+  rows: ReadonlyArray<Row>,
+  depth: number,
+  neighbours: number,
+  fold = false,
+): CodeLine[] {
   const visible = visibleIndexes(rows, neighbours);
   const lines: CodeLine[] = [];
   let hidden = 0;
@@ -134,7 +183,7 @@ function flatLines(rows: ReadonlyArray<Row>, depth: number, neighbours: number):
     });
   });
   lines.push(...gap(depth, hidden));
-  return lines;
+  return fold ? foldRuns(lines, depth) : lines;
 }
 
 type Group = {
@@ -213,7 +262,7 @@ export function lockLines(): ReadonlyArray<CodeLine> {
     { kind: "text", depth: 1, text: '"version": 1,' },
     { kind: "text", depth: 1, text: '"locales": {' },
     { kind: "text", depth: 2, text: `${JSON.stringify(LOCK_DEMO_LOCALE)}: {` },
-    ...flatLines(rows, 3, NEIGHBOURS),
+    ...flatLines(rows, 3, NEIGHBOURS, true),
     { kind: "text", depth: 2, text: "}" },
     { kind: "text", depth: 1, text: "}" },
     { kind: "text", depth: 0, text: "}" },
