@@ -853,7 +853,7 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   Without JavaScript, and on phones and under reduced motion, the frames stack with their captions.
   The island (`lock-demo-motion.tsx`, `LockDemoMotion`, a block `island()` fed the labels and the steps, each
   with its dwell time, with the frames as children) reads one media query,
-  `(min-width: 64rem) and (prefers-reduced-motion: no-preference)`; when it matches the stage
+  `(min-width: 64rem) and (prefers-reduced-motion: no-preference) and (scripting: enabled)`; when it matches the stage
   (`data-mode="stage"`) shows a step list (`aria-controls` per frame, `aria-current="step"`) in
   columns 1 to 4 and one frame at a time in columns 5 to 12, the others `inert` and `aria-hidden`.
   Each step's `.vk-lock-prog` bar runs `vk-lock-progress` for its dwell (the lock frame longest) only
