@@ -115,7 +115,7 @@
         },
         "compare": {
           "question": "¿En qué se diferencia Verbatra de otras herramientas de i18n?",
-          "answer": "Es una CLI que corre en tus archivos con commit, no una plataforma alojada. La <link>página de comparación</link> la contrasta con otras herramientas, con fuentes, incluso donde son más fuertes."
+          "answer": "Es una CLI que se ejecuta sobre tus archivos versionados, no una plataforma alojada. La <link>página de comparación</link> la contrasta con otras herramientas, con fuentes, incluso donde son más fuertes."
         }
       }
     },
@@ -193,7 +193,7 @@
     },
     "banner": {
       "headline": "Traduce solo <accent>lo que cambió</accent>",
-      "lead": "Verbatra aplica hash a cada clave en un archivo de bloqueo, envía solo las claves modificadas a tu proveedor y hace fallar la CI ante desviaciones.",
+      "lead": "Verbatra aplica hash a cada clave en un archivo de bloqueo, envía solo las claves modificadas a tu proveedor y hace fallar la CI si hay desfase.",
       "ctaPrimary": "Empezar",
       "ctaCompare": "Comparar con otras herramientas",
       "keysChanged": "{count, plural, one {# clave modificada} many {# de claves modificadas} other {# claves modificadas}}"
@@ -236,7 +236,7 @@
       "gap": "… {count} más, sin cambios",
       "foot": {
         "compare": "Obsoleta significa que el hash registrado difiere del hash del valor actual de {file}. Los otros {count} coinciden.",
-        "generated": "generado {date}",
+        "generated": "generado el {date}",
         "lock": "{file}: {count, plural, one {# hash actualizado} many {# de hashes actualizados} other {# hashes actualizados}}."
       },
       "preGenerated": "pregenerado, no en vivo"
@@ -252,7 +252,7 @@
       "ci": {
         "label": "Comprobación",
         "title": "Las claves que faltan llegan a producción",
-        "body": "La comprobación sale con {code} mientras un locale tenga claves faltantes u obsoletas. No necesita clave de API, así que se ejecuta en cada pull request."
+        "body": "La comprobación termina con código {code} mientras un locale tenga claves faltantes u obsoletas. No necesita clave de API, así que se ejecuta en cada pull request."
       },
       "integrity": {
         "label": "Integridad",
@@ -466,7 +466,7 @@
     },
     "closing": {
       "heading": "Empieza con una ejecución de prueba",
-      "lead": "Este camino es para un proyecto que ya tiene archivos de locale, y ninguno de los pasos necesita una clave de API.",
+      "lead": "Esta vía es para un proyecto que ya tiene archivos de locale, y ninguno de los dos pasos necesita una clave de API.",
       "label": "Antes de que gastes un token",
       "proof": {
         "label": "Datos del proyecto",

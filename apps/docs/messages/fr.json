@@ -115,7 +115,7 @@
         },
         "compare": {
           "question": "En quoi Verbatra diffère-t-il des autres outils i18n ?",
-          "answer": "C’est une CLI qui s’exécute sur tes fichiers versionnés, pas une plateforme hébergée. La <link>page de comparaison</link> la confronte aux autres outils, sources à l’appui, même quand ils sont meilleurs."
+          "answer": "C’est une CLI qui s’exécute sur tes fichiers versionnés, pas une plateforme hébergée. La <link>page de comparaison</link> la confronte aux autres outils, avec sources, même là où ils font mieux."
         }
       }
     },
@@ -193,7 +193,7 @@
     },
     "banner": {
       "headline": "Ne traduis que <accent>ce qui a changé</accent>",
-      "lead": "Verbatra hache chaque clé dans un fichier de verrouillage, n’envoie que les clés modifiées à ton fournisseur et fait échouer la CI en cas de dérive.",
+      "lead": "Verbatra calcule le hash de chaque clé dans un fichier de verrouillage, n’envoie que les clés modifiées à ton fournisseur et fait échouer la CI en cas de dérive.",
       "ctaPrimary": "Démarrer",
       "ctaCompare": "Comparer avec d’autres outils",
       "keysChanged": "{count, plural, one {# clé modifiée} many {# de clés modifiées} other {# clés modifiées}}"
@@ -220,11 +220,11 @@
       },
       "compare": {
         "label": "Comparer",
-        "text": "Verbatra hache chaque clé et la compare au fichier de verrouillage. {count, plural, one {# hash enregistré ne correspond plus.} many {# de hashes enregistrés ne correspondent plus.} other {# hashes enregistrés ne correspondent plus.}}"
+        "text": "Verbatra calcule le hash de chaque clé et le compare au fichier de verrouillage. {count, plural, one {# hash enregistré ne correspond plus.} many {# de hashes enregistrés ne correspondent plus.} other {# hashes enregistrés ne correspondent plus.}}"
       },
       "send": {
         "label": "Envoyer",
-        "text": "Envoi au fournisseur de {count, plural, one {# seule clé} many {# de clés seulement} other {# clés seulement}}. Les {rest} autres ne sont pas envoyées."
+        "text": "{count, plural, one {Seule # clé est envoyée} many {Seules # de clés sont envoyées} other {Seules # clés sont envoyées}} au fournisseur. Les {rest} autres ne sont pas envoyées."
       },
       "badge": {
         "changed": "{count} modifiées"
@@ -236,7 +236,7 @@
       "gap": "… {count} de plus, inchangées",
       "foot": {
         "compare": "Obsolète signifie que le hash enregistré diffère du hash de la valeur actuelle de {file}. Les {count} autres correspondent.",
-        "generated": "généré {date}",
+        "generated": "généré le {date}",
         "lock": "{file} : {count, plural, one {# hash mis à jour} many {# de hashes mis à jour} other {# hashes mis à jour}}."
       },
       "preGenerated": "pré-généré, pas en direct"
@@ -247,12 +247,12 @@
       "translate": {
         "label": "Traduire",
         "title": "Tout retraduire coûte plus cher",
-        "body": "Seules {sent} traductions sur {total} sont nouvelles ou modifiées, donc seules {sent} partent chez ton fournisseur."
+        "body": "Seules {sent} traductions sur {total} sont nouvelles ou modifiées, donc seules {sent} sont envoyées à ton fournisseur."
       },
       "ci": {
         "label": "Vérification",
         "title": "Les clés manquantes arrivent en production",
-        "body": "La vérification se termine avec {code} tant qu’une locale a des clés manquantes ou obsolètes. Elle ne nécessite aucune clé API, elle s’exécute donc sur chaque pull request."
+        "body": "La vérification renvoie le code {code} tant qu’une locale a des clés manquantes ou obsolètes. Elle n’a besoin d’aucune clé API et s’exécute donc sur chaque pull request."
       },
       "integrity": {
         "label": "Intégrité",
@@ -466,15 +466,15 @@
     },
     "closing": {
       "heading": "Commence par un test à blanc",
-      "lead": "Ce parcours s’adresse à un projet qui a déjà des fichiers de locale, et aucune des deux étapes ne nécessite de clé API.",
+      "lead": "Ce parcours convient à un projet qui a déjà des fichiers de locale, et aucune des deux étapes n’a besoin de clé API.",
       "label": "Avant de dépenser un jeton",
       "proof": {
-        "label": "Faits sur le projet",
+        "label": "Le projet en bref",
         "provenance": "Provenance npm",
         "license": "Licence MIT",
         "telemetry": "La CLI n’envoie aucune télémétrie",
         "coverage": "Seuil de couverture de {threshold} %",
-        "ci": "Workflow CI"
+        "ci": "Workflow de CI"
       }
     },
     "fab": {
