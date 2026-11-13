@@ -437,6 +437,7 @@ test.describe("comparison pair view on a tablet", () => {
     test(`caps the picker and the rows at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/compare");
+      await expect(page.locator("main .vk-compare")).toHaveAttribute("data-picker-live", "");
       const select = await page.locator("main .vk-compare-picker select").boundingBox();
       const rows = await page.locator('main [data-pair="lingo"] dl').boundingBox();
       expect(select?.width ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(384);
