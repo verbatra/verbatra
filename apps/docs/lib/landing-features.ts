@@ -10,3 +10,13 @@ export const LANDING_FEATURES: ReadonlyArray<LandingFeature> = [
   { id: "types", docsPath: "/docs/cli/types" },
   { id: "doctor", docsPath: "/docs/cli/doctor" },
 ];
+
+export type CanvasFeatureId = Exclude<LandingFeatureId, "studio">;
+
+export const CANVAS_FEATURES: ReadonlyArray<{
+  readonly id: CanvasFeatureId;
+  readonly docsPath: string;
+}> = LANDING_FEATURES.filter(
+  (feature): feature is { readonly id: CanvasFeatureId; readonly docsPath: string } =>
+    feature.id !== "studio",
+);

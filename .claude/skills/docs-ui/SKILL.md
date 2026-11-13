@@ -374,14 +374,30 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   derives from the hero terminal data, never typed; the CLI text (run, exit code, command) carries
   `lang="en"` on every locale, like the statement's proof line), `features.tsx` (`#features`, a bracketed label, a split
   head aligned to the start and `.vk-feature-grid` of `LANDING_FEATURES` from `lib/landing-features.ts`: each card a
-  fixed-height `.vk-feature-visual` (halo and dot grid) holding one `aria-hidden` `canvas.vk-feature-canvas`
-  (`feature-canvas.tsx`, a client island: motifs are the pure frame functions of `lib/landing-canvas.ts`,
+  fixed-height `.vk-feature-visual` (halo and dot grid, `overflow: hidden`) holding either one `aria-hidden` `canvas.vk-feature-canvas`
+  (five cards: `feature-canvas.tsx`, a client island: motifs are the pure frame functions of `lib/landing-canvas.ts`, one per
+  `CANVAS_FEATURES` entry of `lib/landing-features.ts`,
   colors read from the `--accent`, `--art-dim`, `--text-muted`, `--border-default`, `--surface-card`,
   `--text-strong`, `--v-status-changed` and `--v-danger` tokens and re-read when `html.light`
   toggles, drawn at devicePixelRatio, paused offscreen and while the tab is hidden, a bounded run that lasts until `runEndSeconds`
   (at least `RUN_SECONDS` and less than `RUN_SECONDS + LOOP_SECONDS`, ending on a frame congruent to
   `STILL_TIME`, never forever) and then holds its `STILL_TIME` frame, one static frame under
-  `prefers-reduced-motion`, no text ever drawn), and an `h3` whose link to the command's docs page
+  `prefers-reduced-motion`, no text ever drawn) or, on the Studio card only, the real
+  `studio-overview` screenshot (`StudioCardShot`, `components/landing/studio-card-shot.tsx`, a server
+  component: no client directive, no theme hook, no frame, caption or buttons, none of `StudioScreenshot`'s props, which
+  stays the docs frame). It renders the dark and the light file as two `img.vk-feature-shot`, each decorative (`alt=""` and
+  `aria-hidden`, like the canvases: the card's `h3` names the card), lazy, `width` and `height` 2880 by 1280 set and served
+  from this site through `/_next/image`. The stylesheet shows one: `.vk-feature-shot-light` is `display: none` and
+  `html.light` swaps the pair, from the class the pre-paint script sets, like `.vk-theme-icon-light`, so the hidden file is
+  never fetched and a page without JavaScript shows one image. The crop is the image's own `object-view-box`, so its box is the visual
+  and never overlaps the text (an oversized, translated image made axe report `color-contrast` as incomplete for the
+  card text); browsers without `object-view-box` get an oversized offset image from an `@supports not` rule. The crop is set by
+  `--feature-shot-scale` (2.9: the visual shows `1440 / 2.9` px of the 1440 px capture, `CARD_SHOT_SCALE`, which also
+  drives `sizes` in viewport units through `studioCardShotSizes`), `--feature-shot-x`, `--feature-shot-y` and `--feature-shot-height`
+  on `.vk-feature-visual:has(.vk-feature-shot)`, chosen so the right edge falls between the two stat cards and the bottom edge
+  between rows at 320, 391, 768 and 1440; recapturing the screenshots or changing Studio's Overview layout means
+  re-measuring them),
+  and an `h3` whose link to the command's docs page
   stretches over the whole card), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
   (`#marquee`, see "Marquee" below), and the comparison, which lives only on `/compare` (the landing reaches it from the FAQ's docs
@@ -1157,7 +1173,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   or on a stack card the chevron, is the affordance.
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label of the docs
   surface; the landing does not use it for headings or titles (the footer column titles and the
-  Studio screenshot frame title are sentence-case sans, `--text-sm` medium `--text-strong` and
+  framed Studio screenshot's title, which only docs pages show (the landing's Studio card is `StudioCardShot`, with no frame), are sentence-case sans, `--text-sm` medium `--text-strong` and
   `--text-xs` medium `--text-muted`). The sidebar's top-level folders and separators inside each tab
   (group triggers such as "CLI", the `For AI agents` separator), the TOC's "On this page" title,
   table headers, and the sidebar tabs all use this treatment. A top-level page ("Introduction",

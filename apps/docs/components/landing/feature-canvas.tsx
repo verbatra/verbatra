@@ -9,7 +9,7 @@ import {
   readPalette,
   STILL_TIME,
 } from "@/lib/landing-canvas";
-import type { LandingFeatureId } from "@/lib/landing-features";
+import type { CanvasFeatureId } from "@/lib/landing-features";
 import { prefersReducedMotion, subscribeReducedMotion } from "@/lib/reduced-motion";
 
 const FRAME_MS = 33;
@@ -33,7 +33,7 @@ function readCanvasPalette(canvas: HTMLCanvasElement): Palette {
 }
 
 function paint(
-  id: LandingFeatureId,
+  id: CanvasFeatureId,
   ctx: DrawContext & { clearRect: CanvasRenderingContext2D["clearRect"] },
   surface: Surface,
   time: number,
@@ -44,7 +44,7 @@ function paint(
   drawFeature(id, ctx, surface.width, surface.height, time, palette);
 }
 
-export function FeatureCanvas({ id, phase }: { id: LandingFeatureId; phase: number }): ReactNode {
+export function FeatureCanvas({ id, phase }: { id: CanvasFeatureId; phase: number }): ReactNode {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {

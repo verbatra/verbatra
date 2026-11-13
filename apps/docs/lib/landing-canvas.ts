@@ -1,4 +1,4 @@
-import type { LandingFeatureId } from "@/lib/landing-features";
+import type { CanvasFeatureId } from "@/lib/landing-features";
 import { clamp } from "@/lib/playground-cycle";
 
 export type Palette = {
@@ -291,8 +291,7 @@ function checkMark(
 
 export const PHASE_STEP = 1.3;
 
-export const LOOP_SECONDS: Readonly<Record<LandingFeatureId, number>> = {
-  studio: 21,
+export const LOOP_SECONDS: Readonly<Record<CanvasFeatureId, number>> = {
   handoff: 7.5,
   extract: 6,
   watch: 9,
@@ -381,217 +380,6 @@ function xMark(
   line(c, x - size, cy - size, x + size, cy + size);
   line(c, x - size, cy + size, x + size, cy - size);
 }
-
-const STUDIO_TAB_SECONDS = 7;
-const STUDIO_TABS = 3;
-const STUDIO_ROWS = 3;
-const STUDIO_ROW_HEIGHT = 20;
-const STUDIO_ROW_GAP = 16;
-const STUDIO_GROW = 16;
-const STUDIO_TAB_WIDTH = 28;
-const STUDIO_TAB_HEIGHT = 12;
-const STUDIO_TAB_GAP = 8;
-
-type EditBeat = { readonly grow: number; readonly typed: number; readonly flip: number };
-
-function editBeat(T: number, start: number): EditBeat {
-  return {
-    grow: easeOut(ramp(T, start, 0.4)) - easeOut(ramp(T, start + 1.8, 0.4)),
-    typed: easeOut(ramp(T, start + 0.4, 1.2)),
-    flip: ramp(T, start + 1.6, 0.25),
-  };
-}
-
-function studioView(w: number, h: number): Box {
-  const { avail, left } = span(w);
-  return { x: left, y: 14, w: avail, h: h - 28 };
-}
-
-function studioChrome(c: DrawContext, p: Palette, v: Box): void {
-  fillRound(c, v.x, v.y, v.w, v.h, 10, p.card, 0.85);
-  strokeRound(c, v.x, v.y, v.w, v.h, 10, p.dim, 1.2, 0.9);
-  c.globalAlpha = 0.6;
-  c.strokeStyle = p.border;
-  c.lineWidth = 1;
-  line(c, v.x, v.y + 30, v.x + v.w, v.y + 30);
-}
-
-function studioTabX(v: Box, index: number): number {
-  return v.x + 12 + index * (STUDIO_TAB_WIDTH + STUDIO_TAB_GAP);
-}
-
-function studioPrevious(lap: number, tab: number): number {
-  return lap === 0 ? tab : (tab + STUDIO_TABS - 1) % STUDIO_TABS;
-}
-
-function studioTabs(
-  c: DrawContext,
-  p: Palette,
-  v: Box,
-  tab: number,
-  previous: number,
-  T: number,
-): void {
-  const y = v.y + 12;
-  for (let i = 0; i < STUDIO_TABS; i += 1) {
-    const x = studioTabX(v, i);
-    strokeRound(c, x, y, STUDIO_TAB_WIDTH, STUDIO_TAB_HEIGHT, 6, p.dim, 1, 0.7);
-    localeMarker(c, p, x + STUDIO_TAB_WIDTH / 2, y + STUDIO_TAB_HEIGHT / 2, MARKER_R, i === 0, 0.9);
-  }
-  const x = lerp(studioTabX(v, previous), studioTabX(v, tab), easeInOut(ramp(T, 0, 0.6)));
-  fillRound(c, x, y, STUDIO_TAB_WIDTH, STUDIO_TAB_HEIGHT, 6, p.accent, 0.25);
-  strokeRound(c, x, y, STUDIO_TAB_WIDTH, STUDIO_TAB_HEIGHT, 6, p.accent, 1.2, 1);
-}
-
-type StudioRow = {
-  readonly index: number;
-  readonly tab: number;
-  readonly previous: number;
-  readonly y: number;
-  readonly height: number;
-  readonly edit: EditBeat | null;
-};
-
-function studioTargetAt(v: Box, tab: number, index: number): number {
-  const room = Math.max(v.w - 94, 0);
-  return (0.55 + hash(tab * STUDIO_ROWS + index, 5) * 0.45) * room;
-}
-
-function studioTarget(v: Box, row: StudioRow): number {
-  return studioTargetAt(v, row.tab, row.index);
-}
-
-function studioInput(
-  c: DrawContext,
-  p: Palette,
-  v: Box,
-  row: StudioRow,
-  alpha: number,
-  T: number,
-): void {
-  const edit = row.edit;
-  if (!edit || edit.grow <= 0) return;
-  const ix = v.x + 22;
-  const iy = row.y + 21;
-  const iw = Math.max(v.w - 44, 0);
-  const ih = Math.max(0, row.height - 25);
-  strokeRound(c, ix, iy, iw, ih, 4, p.accent, 1.2, alpha * edit.grow);
-  const barWidth = edit.typed * Math.min(studioTarget(v, row), Math.max(iw - 16, 0));
-  valueBar(c, ix + 6, iy + ih / 2, barWidth, p.dim, alpha * edit.grow);
-  if (edit.grow > 0.5 && Math.floor(T * 2) % 2 === 0) {
-    c.globalAlpha = alpha;
-    c.fillStyle = p.fg;
-    c.fillRect(ix + 8 + barWidth, iy + (ih - 7) / 2, 1.5, 7);
-  }
-}
-
-function studioRow(
-  c: DrawContext,
-  p: Palette,
-  v: Box,
-  row: StudioRow,
-  alpha: number,
-  T: number,
-): void {
-  const x = v.x + 12;
-  const rw = v.w - 24;
-  const edit = row.edit;
-  const cy = row.y + STUDIO_ROW_HEIGHT / 2;
-  strokeRound(c, x, row.y, rw, row.height, 5, p.dim, 1, alpha * 0.7);
-  keyPill(c, x + KEY_INSET, cy, p.muted, alpha * 0.9);
-  const target = studioTarget(v, row);
-  const settled = edit ? lerp(target * 0.55, target, edit.typed) : target;
-  const width = lerp(
-    studioTargetAt(v, row.previous, row.index),
-    settled,
-    easeInOut(ramp(T, 0, 0.6)),
-  );
-  valueBar(c, x + 44, cy, width, p.dim, alpha * 0.9 * (1 - (edit ? edit.grow : 0)));
-  const warn = edit ? 1 - edit.flip : 0;
-  const dots = alpha * ramp(T, 0, 0.5) * tailFade(T, STUDIO_TAB_SECONDS);
-  statusDot(c, x + rw - 12, cy, STATUS_DOT_R, p.warn, dots * warn);
-  statusDot(c, x + rw - 12, cy, STATUS_DOT_R, p.accent, dots * (1 - warn));
-  studioInput(c, p, v, row, alpha, T);
-}
-
-function studioEdits(tab: number, T: number): ReadonlyArray<EditBeat | null> {
-  const done = Math.min(STUDIO_ROWS - 1, Math.floor(hash(tab, 1) * STUDIO_ROWS));
-  const beats = [editBeat(T, 1.2), editBeat(T, 3.8)];
-  let next = 0;
-  return Array.from({ length: STUDIO_ROWS }, (_, index) => {
-    if (index === done) return null;
-    const beat = beats[next] ?? null;
-    next += 1;
-    return beat;
-  });
-}
-
-function studioRows(v: Box, tab: number, previous: number, T: number): StudioRow[] {
-  const edits = studioEdits(tab, T);
-  const rows: StudioRow[] = [];
-  let y = v.y + 38;
-  for (let index = 0; index < STUDIO_ROWS; index += 1) {
-    const edit = edits[index] ?? null;
-    const height = STUDIO_ROW_HEIGHT + (edit ? edit.grow * STUDIO_GROW : 0);
-    rows.push({ index, tab, previous, y, height, edit });
-    y += height + STUDIO_ROW_GAP;
-  }
-  return rows;
-}
-
-function studioQueue(
-  c: DrawContext,
-  p: Palette,
-  v: Box,
-  tabs: { readonly tab: number; readonly previous: number },
-  T: number,
-): void {
-  const alpha = 0.4 + 0.6 * ramp(T, 0, 0.6) * tailFade(T, STUDIO_TAB_SECONDS);
-  const rows = studioRows(v, tabs.tab, tabs.previous, T);
-  for (const row of rows) studioRow(c, p, v, row, alpha, T);
-  const focus = rows.filter((row) => row.edit !== null);
-  const first = focus[0];
-  const second = focus[1];
-  if (first && second) studioRing(c, p, v, first, second, T);
-}
-
-function studioRing(
-  c: DrawContext,
-  p: Palette,
-  v: Box,
-  first: StudioRow,
-  second: StudioRow,
-  T: number,
-): void {
-  const settle = easeOut(ramp(T, 0.8, 0.4));
-  const alpha = settle * loopFade(T, STUDIO_TAB_SECONDS - 0.6, 0.4);
-  if (alpha <= 0) return;
-  const move = easeInOut(ramp(T, 3.4, 0.4));
-  const outset = 3 + (1 - settle) * 4;
-  strokeRound(
-    c,
-    v.x + 12 - outset,
-    lerp(first.y, second.y, move) - outset,
-    v.w - 24 + outset * 2,
-    lerp(first.height, second.height, move) + outset * 2,
-    7,
-    p.fg,
-    1.6,
-    alpha,
-  );
-}
-
-const studio: FrameFunction = (c, w, h, t, p) => {
-  const lap = Math.floor(t / STUDIO_TAB_SECONDS);
-  const tab = lap % STUDIO_TABS;
-  const T = t % STUDIO_TAB_SECONDS;
-  const view = studioView(w, h);
-  studioChrome(c, p, view);
-  const previous = studioPrevious(lap, tab);
-  studioTabs(c, p, view, tab, previous, T);
-  studioQueue(c, p, view, { tab, previous }, T);
-  c.globalAlpha = 1;
-};
 
 const HANDOFF_ROWS = 3;
 const HANDOFF_SWEEP_START = 4.8;
@@ -1423,8 +1211,7 @@ const doctor: FrameFunction = (c, w, h, t, p) => {
   c.globalAlpha = 1;
 };
 
-const FRAME_FUNCTIONS: Readonly<Record<LandingFeatureId, FrameFunction>> = {
-  studio,
+const FRAME_FUNCTIONS: Readonly<Record<CanvasFeatureId, FrameFunction>> = {
   handoff,
   extract,
   watch,
@@ -1432,8 +1219,7 @@ const FRAME_FUNCTIONS: Readonly<Record<LandingFeatureId, FrameFunction>> = {
   doctor,
 };
 
-export const STILL_TIME: Readonly<Record<LandingFeatureId, number>> = {
-  studio: 2.1,
+export const STILL_TIME: Readonly<Record<CanvasFeatureId, number>> = {
   handoff: 5.85,
   extract: 4.4,
   watch: 3.5,
@@ -1441,8 +1227,7 @@ export const STILL_TIME: Readonly<Record<LandingFeatureId, number>> = {
   doctor: 5.8,
 };
 
-export const RUN_SECONDS: Readonly<Record<LandingFeatureId, number>> = {
-  studio: LOOP_SECONDS.studio,
+export const RUN_SECONDS: Readonly<Record<CanvasFeatureId, number>> = {
   handoff: 3 * LOOP_SECONDS.handoff,
   extract: 3 * LOOP_SECONDS.extract,
   watch: 3 * LOOP_SECONDS.watch,
@@ -1454,7 +1239,7 @@ function toMs(seconds: number): number {
   return Math.round(seconds * 1000);
 }
 
-export function runEndSeconds(id: LandingFeatureId, phase: number): number {
+export function runEndSeconds(id: CanvasFeatureId, phase: number): number {
   const loop = toMs(LOOP_SECONDS[id]);
   const still = toMs(STILL_TIME[id]);
   const offset = toMs(phase);
@@ -1463,7 +1248,7 @@ export function runEndSeconds(id: LandingFeatureId, phase: number): number {
 }
 
 export function canvasClock(
-  id: LandingFeatureId,
+  id: CanvasFeatureId,
   played: number,
   phase: number,
 ): { readonly time: number; readonly done: boolean } {
@@ -1472,7 +1257,7 @@ export function canvasClock(
 }
 
 export function drawFeature(
-  id: LandingFeatureId,
+  id: CanvasFeatureId,
   c: DrawContext,
   w: number,
   h: number,
