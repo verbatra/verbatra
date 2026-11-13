@@ -11,6 +11,7 @@ import {
   type CompareRowId,
   type CompareTool,
   cellFootnote,
+  compareCell,
   compareSource,
   compareSourceHref,
   fullTableFootnotes,
@@ -41,7 +42,10 @@ function providerNames(): string {
 function cellText(t: CellTranslator, row: CompareRowId, tool: CompareTool): string {
   const { word, note } = compareCellView(t, row, tool);
   const detail = row === "providers" && tool === "verbatra" ? providerNames() : note;
-  return detail === null ? word : `${word} - ${detail}`;
+  if (detail === null) return word;
+  const cell = compareCell(row, tool);
+  const separator = cell.kind === "verdict" && cell.verdict === "noneFound" ? " " : " - ";
+  return `${word}${separator}${detail}`;
 }
 
 export async function compareMarkdown(locale: Locale): Promise<string> {
@@ -83,7 +87,6 @@ export async function compareMarkdown(locale: Locale): Promise<string> {
       `- [${page("home")}](${absolute(homePath(locale))})`,
     ].join("\n"),
     `## ${t("sources")}`,
-    page("sourcesChecked", { date: checked }),
     sources.join("\n"),
     `M. ${t("manualNote")}`,
   ].join("\n\n");

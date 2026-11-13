@@ -132,7 +132,12 @@ describe("GET /[lang]/site.mdx/[page]", () => {
       expectVerdictWords(rows, messages.landing.compare.verdicts);
       for (const key of ["takeaway", "scope", "stronger"] as const)
         expect(body).toContain(messages.compare[key].replaceAll("|", "\\|"));
-      expect(body).toContain(messages.compare.sourcesChecked.split("{date}")[0]);
+      expect(body).not.toContain(messages.compare.sourcesChecked.split("{date}")[0]);
+      const { verdicts, rows: cells } = messages.landing.compare;
+      const noneFound = `${verdicts.noneFound} ${cells.ci?.tolgee?.note}`;
+      expect(body).toContain(noneFound.replaceAll("|", "\\|"));
+      expect(body).not.toContain(`${verdicts.noneFound} - `);
+      expect(body).toContain(`${verdicts.yes} - ${cells.ownKeys?.verbatra?.note}`);
       expectNumberedSources(body, lang);
       expect(body).not.toMatch(/\]\(\//);
       expect(body).toContain(
