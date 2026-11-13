@@ -373,15 +373,15 @@
           },
           "crowdin": {
             "value": "MIT (CLI, Action)",
-            "note": "no se encontró fuente pública de la plataforma"
+            "note": "código fuente público de la plataforma no hallado"
           },
           "lokalise": {
             "value": "BSD-3-Clause (CLI)",
-            "note": "no se encontró fuente pública de la plataforma"
+            "note": "código fuente público de la plataforma no hallado"
           },
           "phrase": {
             "value": "MIT (CLI, Action)",
-            "note": "no se encontró fuente pública de la plataforma"
+            "note": "código fuente público de la plataforma no hallado"
           }
         },
         "selfHosting": {
@@ -400,10 +400,10 @@
             "note": "o alojado por Weblate"
           },
           "crowdin": {
-            "note": "página de precios sin opción local; sin declaración"
+            "note": "página de precios sin opción on-premise; sin declaración"
           },
           "lokalise": {
-            "note": "local y nube privada no compatibles"
+            "note": "on-premise y nube privada no admitidos"
           },
           "phrase": {
             "note": "página de precios sin opción autoalojada; sin declaración"
@@ -443,7 +443,7 @@
             "note": "por puestos y palabras; prueba de 14 días"
           },
           "manual": {
-            "value": "Tiempo de desarrollo",
+            "value": "Tiempo del desarrollador",
             "note": "más el servicio que elijas"
           }
         },
@@ -458,7 +458,7 @@
           },
           "tolgee": {
             "value": "MT y LLM",
-            "note": "DeepL, Google, Amazon, Azure; OpenAI, Anthropic, Gemini; Baidu solo autoalojado"
+            "note": "incl. DeepL, Google, Amazon, OpenAI, Anthropic, Gemini; Baidu solo autoalojado"
           },
           "weblate": {
             "value": "29 servicios",
@@ -511,10 +511,10 @@
         "incremental": {
           "label": "Traducción incremental",
           "verbatra": {
-            "note": "hash por clave en un lockfile"
+            "note": "hash por clave en un archivo de bloqueo"
           },
           "lingo": {
-            "note": "diff del lockfile en la CLI"
+            "note": "diff del archivo de bloqueo en la CLI"
           },
           "tolgee": {
             "note": "solo claves nuevas o importadas; lockfile no hallado"
@@ -526,7 +526,7 @@
             "note": "solo cadenas sin traducir (opción de pretraducción)"
           },
           "lokalise": {
-            "note": "solo valores vacíos (automatismos, pretraducción)"
+            "note": "solo valores vacíos (automatizaciones, pretraducción)"
           },
           "phrase": {
             "note": "solo traducciones vacías (pretraducción)"
@@ -562,13 +562,13 @@
         "ci": {
           "label": "CI y GitHub Action",
           "verbatra": {
-            "note": "Action oficial; `check` sale con 1: claves ausentes u obsoletas"
+            "note": "Action oficial; `check` devuelve 1 con claves ausentes u obsoletas"
           },
           "lingo": {
             "note": "GitHub App; el repositorio incluye un action.yml"
           },
           "tolgee": {
-            "note": "de una Action oficial"
+            "note": "sobre una Action oficial"
           },
           "weblate": {
             "note": "PRs; Action sync oficial no hallada; linter beta"
@@ -580,7 +580,7 @@
             "note": "Actions oficiales de push y pull"
           },
           "phrase": {
-            "note": "CLI en CI; Action setup-cli de Phrase"
+            "note": "CLI en CI; Action setup-cli en la organización de Phrase"
           }
         },
         "mcp": {
@@ -589,7 +589,7 @@
             "note": "local, por stdio"
           },
           "weblate": {
-            "note": "de un servidor MCP oficial"
+            "note": "sobre un servidor MCP oficial"
           },
           "crowdin": {
             "note": "alojado"
@@ -604,13 +604,13 @@
         "inContext": {
           "label": "Edición en contexto",
           "lingo": {
-            "note": "no consta en documentación ni README del repositorio"
+            "note": "no consta en docs de plataforma ni README del repositorio"
           },
           "tolgee": {
             "note": "Alt/Option-clic en un elemento abre el editor"
           },
           "weblate": {
-            "note": "de un editor en contexto oficial"
+            "note": "sobre un editor en contexto oficial"
           },
           "crowdin": {
             "note": "Crowdin In-Context"
@@ -628,7 +628,7 @@
             "note": "panel local de Studio; sin interfaz alojada"
           },
           "lingo": {
-            "note": "cola de revisión Enterprise; sin editor general hallado"
+            "note": "solo cola de revisión Enterprise; sin editor general hallado"
           },
           "tolgee": {
             "note": "plataforma web, alojada o autoalojada"
@@ -654,11 +654,11 @@
           "detail": "listas de proveedores, sin normalizar",
           "verbatra": {
             "value": "{count} formatos",
-            "note": "listado en la documentación"
+            "note": "listados en la documentación"
           },
           "lingo": {
             "value": "18 formatos",
-            "note": "listado"
+            "note": "listados"
           },
           "tolgee": {
             "value": "17 formatos",
@@ -666,15 +666,15 @@
           },
           "weblate": {
             "value": "50 formatos",
-            "note": "listado"
+            "note": "listados"
           },
           "crowdin": {
             "value": "17 formatos",
-            "note": "listado para proyectos basados en cadenas"
+            "note": "listados para proyectos basados en cadenas"
           },
           "lokalise": {
             "value": "30 formatos",
-            "note": "listado"
+            "note": "listados"
           },
           "phrase": {
             "value": "47 entradas",
@@ -692,7 +692,7 @@
       "sources": "Fuentes",
       "manualNote": "El flujo de trabajo manual no es un producto, por lo que no tiene fuente: la columna describe cómo copiar cadenas a un servicio de traducción y viceversa, a mano.",
       "lastChecked": "Última revisión",
-      "fairness": "Cada celda indica lo que decían las páginas del propio proveedor en esa fecha, y \"Nada encontrado\" significa que nuestra búsqueda no encontró nada, no que el producto carezca de ello."
+      "fairness": "Cada celda indica lo que decían las páginas del propio proveedor en esa fecha, y “Nada encontrado” significa que nuestra búsqueda no encontró nada, no que el producto carezca de ello."
     },
     "openSource": {
       "newTab": "(se abre en una pestaña nueva)",
@@ -724,9 +724,9 @@
       "ogImageAlt": "Cómo se compara Verbatra, con el logotipo de Verbatra"
     },
     "heading": "¿Cómo se compara Verbatra?",
-    "takeaway": "Verbatra traduce solo las claves modificadas desde tu CI, con tus propias claves de API y bajo la licencia MIT.",
-    "scope": "Verbatra es una CLI y un SDK; las otras columnas son plataformas de traducción y un flujo de trabajo manual, comparados como formas de mantener traducidos los archivos de locale.",
-    "stronger": "Donde otros son más fuertes: la edición en contexto (Tolgee, Crowdin, Lokalise, Phrase) y un editor alojado para traductores.",
+    "takeaway": "Verbatra traduce solo las claves modificadas desde tu CI, con tus claves de API, bajo licencia MIT.",
+    "scope": "Verbatra es una CLI y un SDK; las otras columnas son plataformas o un flujo manual, comparados como formas de mantener traducidos los archivos de idioma.",
+    "stronger": "Otros son más fuertes en edición en contexto (Tolgee, Crowdin, Lokalise, Phrase) y editor alojado para traductores.",
     "skip": "Saltar la comparación",
     "pickerLabel": "Comparar Verbatra con",
     "caption": "Formas de mantener los archivos de idioma traducidos: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase y un flujo de trabajo manual",
@@ -737,7 +737,8 @@
     "quickstart": "Empieza con la guía rápida",
     "home": "Volver a la página de inicio de Verbatra",
     "breadcrumbHome": "Inicio",
-    "breadcrumbCompare": "Comparar"
+    "breadcrumbCompare": "Comparar",
+    "noneFound": "“Nada encontrado” significa que nuestra búsqueda no halló nada, no que falte."
   },
   "legal": {
     "privacy": {

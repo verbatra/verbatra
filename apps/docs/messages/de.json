@@ -341,7 +341,7 @@
     "compare": {
       "columns": {
         "criterion": "Kriterium",
-        "manual": "Manueller Ablauf",
+        "manual": "Manueller Workflow",
         "lingoDetail": "aktuelle CLI und Plattform",
         "manualDetail": "kein Produkt, keine Quellen"
       },
@@ -373,15 +373,15 @@
           },
           "crowdin": {
             "value": "MIT (CLI, Action)",
-            "note": "keine öffentliche Plattform-Quelle gefunden"
+            "note": "kein öffentlicher Quellcode der Plattform gefunden"
           },
           "lokalise": {
             "value": "BSD-3-Clause (CLI)",
-            "note": "keine öffentliche Plattform-Quelle gefunden"
+            "note": "kein öffentlicher Quellcode der Plattform gefunden"
           },
           "phrase": {
             "value": "MIT (CLI, Action)",
-            "note": "keine öffentliche Plattform-Quelle gefunden"
+            "note": "kein öffentlicher Quellcode der Plattform gefunden"
           }
         },
         "selfHosting": {
@@ -432,10 +432,10 @@
           },
           "crowdin": {
             "value": "Bezahlte Pläne",
-            "note": "vor allem nach gehosteten Wörtern; Testphasen; freie Open-Source-Lizenzen"
+            "note": "vor allem nach gehosteten Wörtern; Testphasen; kostenlose Open-Source-Lizenzen"
           },
           "lokalise": {
-            "value": "4 Stufen, bezahlt",
+            "value": "4 bezahlte Stufen",
             "note": "14-tägige Testphase"
           },
           "phrase": {
@@ -458,7 +458,7 @@
           },
           "tolgee": {
             "value": "MT und LLMs",
-            "note": "DeepL, Google, Amazon, Azure; OpenAI, Anthropic, Gemini; Baidu nur Self-Hosting"
+            "note": "inkl. DeepL, Google, Amazon, OpenAI, Anthropic, Gemini; Baidu nur Self-Hosting"
           },
           "weblate": {
             "value": "29 Dienste",
@@ -496,7 +496,7 @@
             "note": "Admins richten jeden Dienst mit eigenen Zugangsdaten ein"
           },
           "crowdin": {
-            "note": "Dritt-MT: deine Schlüssel; KI: deine oder von Crowdin"
+            "note": "MT von Dritten: deine Schlüssel; KI: deine oder von Crowdin"
           },
           "lokalise": {
             "note": "nicht erwähnt in MT- und KI-Doku"
@@ -562,7 +562,7 @@
         "ci": {
           "label": "CI und GitHub Action",
           "verbatra": {
-            "note": "offizielle Action; `check` Exit 1 bei fehlenden oder veralteten Schlüsseln"
+            "note": "offizielle Action; `check` Exit-Code 1 bei fehlenden oder veralteten Schlüsseln"
           },
           "lingo": {
             "note": "GitHub App; Repository enthält eine action.yml"
@@ -670,7 +670,7 @@
           },
           "crowdin": {
             "value": "17 Formate",
-            "note": "für String-Projekte gelistet"
+            "note": "für stringbasierte Projekte gelistet"
           },
           "lokalise": {
             "value": "30 Formate",
@@ -688,11 +688,11 @@
       },
       "sourceLink": "{tool}, {criterion}, Quelle",
       "sourceLinkNth": "{tool}, {criterion}, Quelle {number}",
-      "pairSummary": "Verbatra und {tool}",
+      "pairSummary": "Verbatra vs. {tool}",
       "sources": "Quellen",
       "manualNote": "Der manuelle Workflow ist kein Produkt und hat daher keine Quelle: Die Spalte beschreibt das manuelle Kopieren von Strings in einen Übersetzungsdienst und zurück.",
       "lastChecked": "Zuletzt geprüft",
-      "fairness": "Jede Zelle nennt, was die Seiten des Anbieters an diesem Datum sagten, und „Nichts gefunden“ heißt: Unsere Suche hat nichts gefunden, nicht dass dem Produkt die Funktion fehlt."
+      "fairness": "Jede Zelle nennt, was die Seiten des Anbieters an diesem Datum sagten, und „Nichts gefunden“ heißt: Unsere Suche hat nichts gefunden, nicht, dass dem Produkt die Funktion fehlt."
     },
     "openSource": {
       "newTab": "(öffnet in einem neuen Tab)",
@@ -723,10 +723,10 @@
       "description": "Verbatra vs Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise und Phrase: Lizenz, Anbieter, eigene API-Schlüssel, CI, MCP und Formate, jeweils mit datierter Quelle.",
       "ogImageAlt": "Wie Verbatra sich vergleicht, mit dem Verbatra-Wortmarke"
     },
-    "heading": "Wie Verbatra sich vergleicht",
-    "takeaway": "Verbatra übersetzt nur geänderte Schlüssel aus deiner CI, mit deinen eigenen API-Schlüsseln und unter der MIT-Lizenz.",
-    "scope": "Verbatra ist eine CLI und ein SDK; die anderen Spalten sind Übersetzungsplattformen und ein manueller Workflow, verglichen als Möglichkeiten, Übersetzungsdateien aktuell zu halten.",
-    "stronger": "Wo andere stärker sind: In-Context-Bearbeitung (Tolgee, Crowdin, Lokalise, Phrase) und ein gehosteter Editor für Übersetzer.",
+    "heading": "Verbatra im Vergleich",
+    "takeaway": "Verbatra übersetzt nur geänderte Schlüssel aus deiner CI, mit eigenen API-Schlüsseln (MIT-Lizenz).",
+    "scope": "Verbatra ist eine CLI und ein SDK; die anderen Spalten sind Plattformen oder ein manueller Workflow, verglichen als Wege, Sprachdateien übersetzt zu halten.",
+    "stronger": "Wo andere stärker sind: In-Context-Bearbeitung (Tolgee, Crowdin, Lokalise, Phrase), gehosteter Übersetzer-Editor.",
     "skip": "Vergleich überspringen",
     "pickerLabel": "Verbatra vergleichen mit",
     "caption": "Möglichkeiten, wie du Übersetzungsdateien auf dem neuesten Stand halten kannst: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase und ein manueller Workflow",
@@ -737,7 +737,8 @@
     "quickstart": "Beginne mit dem Quickstart",
     "home": "Zurück zur Verbatra Startseite",
     "breadcrumbHome": "Startseite",
-    "breadcrumbCompare": "Vergleichen"
+    "breadcrumbCompare": "Vergleichen",
+    "noneFound": "„Nichts gefunden“ heißt: Unsere Suche war ergebnislos, nicht dass die Funktion fehlt."
   },
   "legal": {
     "privacy": {

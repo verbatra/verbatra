@@ -103,6 +103,12 @@ function jsonLd(doc: Document): ReadonlyArray<Record<string, unknown>> {
   );
 }
 
+function textWithoutSources(node: Element | null | undefined): string {
+  const copy = node?.cloneNode(true) as Element | undefined;
+  for (const link of copy?.querySelectorAll("a[data-source]") ?? []) link.remove();
+  return copy?.textContent ?? "";
+}
+
 function expectCellBody(
   cell: Element | undefined,
   row: CompareRowId,
@@ -112,7 +118,7 @@ function expectCellBody(
   const model = compareCell(row, tool);
   const body = cell?.querySelector("[data-cell]");
   expect(body?.getAttribute("data-cell"), `${row}.${tool}`).toBe(model.kind);
-  const word = body?.querySelector("[data-word]")?.textContent ?? "";
+  const word = textWithoutSources(body?.querySelector("[data-word]"));
   expect(word, `${row}.${tool}`).not.toBe("");
   const marks = Array.from(body?.querySelectorAll(".vk-compare-mark") ?? []);
   if (model.kind !== "verdict") {
@@ -233,6 +239,9 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
     expect(header?.querySelector("[data-last-checked] time")?.getAttribute("datetime")).toBe(
       COMPARE_LAST_CHECKED,
     );
+    expect(header?.querySelector("[data-last-checked]")?.textContent).toContain(
+      copy.compare.noneFound as string,
+    );
     const comparison = doc.querySelector(".vk-compare");
     expect(header?.compareDocumentPosition(comparison as Node) ?? 0).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
@@ -257,6 +266,21 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
     for (const row of COMPARE_ROWS)
       for (const tool of COMPARE_TOOLS)
         expectSourceLinks(doc, row, tool, locale, copy.landing.compare);
+  });
+
+  it("keeps the first arrow of a cell in a no-wrap unit with the last word before it, and glues a mark to its first word", async () => {
+    const doc = await render(locale);
+    for (const cell of doc.querySelectorAll("tbody td")) {
+      const first = cell.querySelector("a[data-source]");
+      if (first === null) continue;
+      const unit = first.closest(".vk-compare-unit");
+      expect(textWithoutSources(unit), cell.textContent ?? "").not.toBe("");
+      expect(unit?.querySelectorAll("a[data-source]")).toHaveLength(1);
+    }
+    for (const mark of doc.querySelectorAll(".vk-compare-mark")) {
+      const unit = mark.closest(".vk-compare-unit");
+      expect(textWithoutSources(unit)).not.toBe("");
+    }
   });
 
   it("has no footnote numbers, no source list and no source anchors", async () => {
@@ -345,6 +369,36 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
     );
     expect(doc.querySelectorAll("thead th small")).toHaveLength(2);
     expect(doc.querySelectorAll("tbody th small")).toHaveLength(1);
+  });
+
+  it("shows each tool's detail line once at the top of its pair, never on a row", async () => {
+    const doc = await render(locale);
+    const { columns } = copy.landing.compare;
+    const details = Object.fromEntries(
+      Array.from(doc.querySelectorAll("details[data-pair]"), (pair) => [
+        pair.getAttribute("data-pair"),
+        Array.from(pair.querySelectorAll(".vk-compare-pair-detail"), (node) => node.textContent),
+      ]),
+    );
+    expect(details).toEqual({
+      lingo: [columns.lingoDetail],
+      tolgee: [],
+      weblate: [],
+      crowdin: [],
+      lokalise: [],
+      phrase: [],
+      manual: [columns.manualDetail],
+    });
+    expect(doc.querySelectorAll("details[data-pair] dd small")).toHaveLength(0);
+  });
+
+  it("marks every pair summary with the disclosure sign and starts without a live picker", async () => {
+    const doc = await render(locale);
+    const summaries = Array.from(doc.querySelectorAll("details[data-pair] > summary"));
+    expect(summaries).toHaveLength(7);
+    for (const summary of summaries)
+      expect(summary.querySelector('.vk-faq-mark[aria-hidden="true"]')).not.toBeNull();
+    expect(doc.querySelector("[data-picker-live]")).toBeNull();
   });
 
   it("names the table by its caption", async () => {

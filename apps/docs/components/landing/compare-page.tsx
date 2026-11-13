@@ -10,7 +10,7 @@ import { ComparePicker } from "./islands";
 
 const COMPARE_HEADING_ID = "compare-page-heading";
 
-export const COMPARE_NEXT_ID = "compare-next";
+const COMPARE_NEXT_ID = "compare-next";
 
 export async function ComparePage({ locale }: { locale: Locale }): Promise<ReactNode> {
   const t = await getTranslations({ locale, namespace: "landing.compare" });
@@ -38,6 +38,7 @@ export async function ComparePage({ locale }: { locale: Locale }): Promise<React
         <p data-last-checked="" className="vk-compare-checked">
           {`${t("lastChecked")} `}
           <time dateTime={COMPARE_LAST_CHECKED}>{checked}</time>
+          {`. ${page("noneFound")}`}
         </p>
         <a href={`#${COMPARE_NEXT_ID}`} className="vk-compare-skip vk-prose-link" data-skip="">
           {page("skip")}

@@ -458,7 +458,7 @@
           },
           "tolgee": {
             "value": "MT and LLMs",
-            "note": "DeepL, Google, Amazon, Azure; OpenAI, Anthropic, Gemini; Baidu self-hosted only"
+            "note": "incl. DeepL, Google, Amazon, OpenAI, Anthropic, Gemini; Baidu self-hosted only"
           },
           "weblate": {
             "value": "29 services",
@@ -737,7 +737,8 @@
     "quickstart": "Start with the quickstart",
     "home": "Back to the Verbatra home page",
     "breadcrumbHome": "Home",
-    "breadcrumbCompare": "Compare"
+    "breadcrumbCompare": "Compare",
+    "noneFound": "\"None found\" means our search found nothing, not that the product lacks it."
   },
   "legal": {
     "privacy": {

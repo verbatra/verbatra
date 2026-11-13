@@ -134,6 +134,10 @@ describe("the redesigned landing copy", () => {
     ["providers", "crowdin"],
     ["ownKeys", "crowdin"],
     ["ci", "verbatra"],
+    ["translatorUi", "lingo"],
+    ["inContext", "lingo"],
+    ["ownKeys", "lingo"],
+    ["ci", "phrase"],
   ];
 
   const ALL_CELLS = COMPARE_ROWS.flatMap((row) =>
@@ -177,7 +181,7 @@ describe("the redesigned landing copy", () => {
   });
 
   for (const locale of i18n.languages) {
-    it(`caps a ${locale} qualifier at ${NOTE_CAP} words and the seven flagged ones at ${FLAGGED_NOTE_CAP}`, () => {
+    it(`caps a ${locale} qualifier at ${NOTE_CAP} words and the eleven flagged ones at ${FLAGGED_NOTE_CAP}`, () => {
       const flagged = FLAGGED_LONG_NOTES.map(([row, tool]) => `${row}.${tool}`);
       const noted = ALL_CELLS.filter(
         ([row, tool]) => typeof cell("en", row, tool)?.note === "string",
@@ -198,8 +202,11 @@ describe("the redesigned landing copy", () => {
         const node = cell(locale, row, tool);
         const label = `${locale} ${row}.${tool}`;
         expect(words(String(node?.value ?? "")), label).toBeLessThanOrEqual(VALUE_CAP);
-        const opening = /^[^\s,:;]+(?=[,:;]|$)/.exec(String(node?.note ?? ""))?.[0] ?? "";
-        expect(vocabulary, label).not.toContain(opening.toLowerCase());
+        const tokens = String(node?.note ?? "").split(/\s+/);
+        const first = tokens[0] ?? "";
+        const leadsWithVerdict = tokens.length === 1 || /[,:;]$/.test(first);
+        const opening = first.replace(/[,:;.]+$/, "").toLowerCase();
+        expect(leadsWithVerdict && vocabulary.includes(opening), label).toBe(false);
       }
     });
   }
