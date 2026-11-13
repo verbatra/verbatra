@@ -34,8 +34,11 @@ type Catalog = {
   landing: {
     compare: {
       verdicts: Record<string, string>;
-      columns: { manual: string };
-      rows: Record<string, Record<string, { label?: string; value?: string; note?: string }>>;
+      columns: { manual: string; lingoDetail: string; manualDetail: string };
+      rows: Record<
+        string,
+        Record<string, { label?: string; detail?: string; value?: string; note?: string }>
+      >;
       sourceLink: string;
       sourceLinkNth: string;
     };
@@ -320,6 +323,22 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
     const doc = await render(locale);
     const hrefs = Array.from(doc.querySelectorAll("nav a"), (a) => a.getAttribute("href"));
     expect(hrefs).toEqual([`${PREFIX[locale]}/docs/quickstart`, PREFIX[locale] || "/"]);
+  });
+
+  it("keeps what the old notes said as small labels on the Lingo.dev and manual columns and the formats row", async () => {
+    const doc = await render(locale);
+    const { columns, rows } = copy.landing.compare;
+    expect(doc.querySelector("thead th[data-column='lingo'] small")?.textContent).toBe(
+      columns.lingoDetail,
+    );
+    expect(doc.querySelector("thead th[data-column='manual'] small")?.textContent).toBe(
+      columns.manualDetail,
+    );
+    expect(doc.querySelector("tbody tr[data-row='formats'] th small")?.textContent).toBe(
+      rows.formats?.detail,
+    );
+    expect(doc.querySelectorAll("thead th small")).toHaveLength(2);
+    expect(doc.querySelectorAll("tbody th small")).toHaveLength(1);
   });
 
   it("names the table by its caption", async () => {

@@ -214,3 +214,22 @@ export async function expectEveryCompareCellVisible(page: Page, tool: string): P
     }, viewport.width);
   expect(clipped).toEqual([]);
 }
+
+export function wordsOverflowingTheirCell(selector: string): { found: string[]; checked: number } {
+  const cells = Array.from(document.querySelectorAll(selector));
+  const found: string[] = [];
+  for (const cell of cells) {
+    const style = getComputedStyle(cell);
+    const limit = cell.getBoundingClientRect().right - Number.parseFloat(style.paddingRight);
+    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      for (const match of (node.textContent ?? "").matchAll(/[^\s\-/]+/g)) {
+        const range = document.createRange();
+        range.setStart(node, match.index);
+        range.setEnd(node, match.index + match[0].length);
+        if (range.getBoundingClientRect().right > limit + 0.5) found.push(match[0]);
+      }
+    }
+  }
+  return { found, checked: cells.length };
+}

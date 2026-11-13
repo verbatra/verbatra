@@ -87,11 +87,16 @@ describe("the redesigned landing copy", () => {
     const rows = branch(landing("en"), "compare.rows");
     expect(Object.keys(rows)).toEqual([...COMPARE_ROWS]);
     for (const row of COMPARE_ROWS) {
-      const keys = Object.keys(branch(rows, row));
+      const keys = Object.keys(branch(rows, row)).filter((key) => key !== "detail");
       expect(keys[0]).toBe("label");
       expect(COMPARE_TOOLS.filter((tool) => keys.includes(tool))).toEqual(keys.slice(1));
     }
-    expect(Object.keys(branch(landing("en"), "compare.columns"))).toEqual(["criterion", "manual"]);
+    expect(Object.keys(branch(landing("en"), "compare.columns"))).toEqual([
+      "criterion",
+      "manual",
+      "lingoDetail",
+      "manualDetail",
+    ]);
   });
 
   const FRENCH_SPACING = /[\u0020\u00a0][;:?!\u00bb]|\u00ab[\u0020\u00a0]/;

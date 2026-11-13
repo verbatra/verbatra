@@ -341,7 +341,9 @@
     "compare": {
       "columns": {
         "criterion": "Criterion",
-        "manual": "Manual workflow"
+        "manual": "Manual workflow",
+        "lingoDetail": "current CLI and platform",
+        "manualDetail": "no product, no sources"
       },
       "verdicts": {
         "yes": "Yes",
@@ -515,7 +517,7 @@
             "note": "lockfile diff in the CLI"
           },
           "tolgee": {
-            "note": "new and imported keys only; no lock file"
+            "note": "new/imported keys only; no lock file found"
           },
           "weblate": {
             "note": "untranslated strings only (automatic translation add-on)"
@@ -569,7 +571,7 @@
             "note": "for an official Action"
           },
           "weblate": {
-            "note": "pushes commits, opens PRs; no official sync Action"
+            "note": "PRs; no official sync Action found; beta linter"
           },
           "crowdin": {
             "note": "official GitHub Action"
@@ -626,7 +628,7 @@
             "note": "local Studio dashboard; no hosted interface"
           },
           "lingo": {
-            "note": "Enterprise review queue only; no general string editor"
+            "note": "Enterprise review queue only; no general editor found"
           },
           "tolgee": {
             "note": "web platform, hosted or self-hosted"
@@ -649,6 +651,7 @@
         },
         "formats": {
           "label": "File formats",
+          "detail": "vendor lists, not normalized",
           "verbatra": {
             "value": "{count} formats",
             "note": "listed in the docs"
@@ -689,7 +692,7 @@
       "sources": "Sources",
       "manualNote": "The manual workflow is not a product, so it has no source: the column describes copying strings into a translation service and back by hand.",
       "lastChecked": "Last checked",
-      "fairness": "Verbatra is a CLI and SDK; the other columns are translation platforms and a manual workflow, compared as ways to keep locale files translated. Each cell states what the vendor's own pages said on that date, and \"no official ... found\" means our search found none, not that the product lacks it."
+      "fairness": "Each cell states what the vendor's own pages said on that date, and \"None found\" means our search found nothing, not that the product lacks it."
     },
     "openSource": {
       "newTab": "(opens in a new tab)",

@@ -176,7 +176,10 @@ describe("the comparison cells", () => {
     expect(hrefs("cli", "tolgee")).toEqual([
       "https://raw.githubusercontent.com/tolgee/tolgee-cli/main/package.json",
     ]);
-    expect(hrefs("ci", "phrase")).toEqual(["https://github.com/phrase/setup-cli"]);
+    expect(hrefs("ci", "phrase")).toEqual([
+      "https://github.com/phrase/setup-cli",
+      "https://support.phrase.com/hc/en-us/articles/5822060164508-Continuous-Integration-Strings",
+    ]);
     expect(hrefs("translatorUi", "lingo")).toContain(
       "https://lingo.dev/en/docs/api/pipeline/human-review",
     );

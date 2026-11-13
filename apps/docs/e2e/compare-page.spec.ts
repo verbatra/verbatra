@@ -11,6 +11,7 @@ import {
   openInTheme,
   pageUrl,
   THEMES,
+  wordsOverflowingTheirCell,
 } from "./support";
 
 const PAIRS = ["lingo", "tolgee", "weblate", "crowdin", "lokalise", "phrase", "manual"] as const;
@@ -83,16 +84,34 @@ for (const locale of LOCALES) {
       });
     }
 
-    for (const width of [1160, 1440]) {
-      test(`breaks no word of the matrix mid-word at ${width}px`, async ({ page }) => {
+    for (const width of [1160, 1280, 1440]) {
+      test(`neither breaks nor overflows a word of the matrix at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto(url);
-        const { found, checked } = await page.evaluate(
-          brokenWordPiecesIn,
-          "main .vk-compare-table td",
-        );
-        expect(checked).toBeGreaterThan(0);
-        expect(found).toEqual([]);
+        const cells = "main .vk-compare-table :is(th, td)";
+        const broken = await page.evaluate(brokenWordPiecesIn, cells);
+        const spilled = await page.evaluate(wordsOverflowingTheirCell, cells);
+        expect(broken.checked).toBeGreaterThan(0);
+        expect(broken.found).toEqual([]);
+        expect(spilled.found).toEqual([]);
+      });
+    }
+
+    for (const width of [320, 391]) {
+      test(`neither breaks nor overflows a word of the pair view at ${width}px`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 800 });
+        for (const tool of PAIRS) {
+          await page.goto(`${url}?tool=${tool}`);
+          await expect(page.locator("main .vk-compare-picker select")).toHaveValue(tool);
+          const cells = `main [data-pair="${tool}"] :is(dt, dd)`;
+          const spilled = await page.evaluate(wordsOverflowingTheirCell, cells);
+          const broken = await page.evaluate(brokenWordPiecesIn, cells);
+          expect(spilled.checked, tool).toBeGreaterThan(0);
+          expect(spilled.found, tool).toEqual([]);
+          expect(broken.found, tool).toEqual([]);
+        }
       });
     }
   });

@@ -342,7 +342,13 @@ const SOURCES: ReadonlyArray<CompareSource> = [
     urls: ["https://support.phrase.com/hc/en-us/articles/5822187934364-Pre-translation-Strings"],
   },
   { tool: "phrase", urls: ["https://developers.phrase.com/en/developer-tools/strings-cli"] },
-  { tool: "phrase", urls: ["https://github.com/phrase/setup-cli"] },
+  {
+    tool: "phrase",
+    urls: [
+      "https://github.com/phrase/setup-cli",
+      "https://support.phrase.com/hc/en-us/articles/5822060164508-Continuous-Integration-Strings",
+    ],
+  },
   { tool: "phrase", urls: ["https://developers.phrase.com/en/mcp-server"] },
   { tool: "phrase", urls: ["https://github.com/phrase/react-intl-phraseapp"] },
   {

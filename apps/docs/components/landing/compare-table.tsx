@@ -22,6 +22,16 @@ export function toolName(t: CompareTranslator, tool: CompareTool): string {
   return tool === "manual" ? t("columns.manual") : COMPARE_TOOL_NAMES[tool];
 }
 
+function toolDetail(t: CompareTranslator, tool: CompareTool): string | null {
+  if (tool === "lingo") return t("columns.lingoDetail");
+  if (tool === "manual") return t("columns.manualDetail");
+  return null;
+}
+
+function Detail({ text }: { text: string | null }): ReactNode {
+  return text === null ? null : <small className="vk-compare-detail">{text}</small>;
+}
+
 const MARK_PATHS: Readonly<Record<CompareMark, ReactNode>> = {
   yes: <path d="M3.5 8.5l3 3L12.5 5" />,
   no: <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />,
@@ -180,6 +190,7 @@ export function CompareMatrix({
               className={cn("vk-compare-head", tool === "verbatra" && "vk-compare-self")}
             >
               {toolName(t, tool)}
+              <Detail text={toolDetail(t, tool)} />
             </th>
           ))}
         </tr>
@@ -189,6 +200,7 @@ export function CompareMatrix({
           <tr key={row} data-row={row}>
             <th scope="row" className="vk-compare-criterion">
               {t(`rows.${row}.label`)}
+              <Detail text={row === "formats" ? t("rows.formats.detail") : null} />
             </th>
             {COMPARE_TOOLS.map((tool) => (
               <td
@@ -223,14 +235,20 @@ export function ComparePairs({ t, locale }: { t: CompareTranslator; locale: Loca
           <dl className="vk-compare-pair-rows">
             {COMPARE_ROWS.map((row) => (
               <div key={row} className="vk-compare-pair-row" data-row={row}>
-                <dt>{t(`rows.${row}.label`)}</dt>
+                <dt>
+                  {t(`rows.${row}.label`)}
+                  <Detail text={row === "formats" ? t("rows.formats.detail") : null} />
+                </dt>
                 {(["verbatra", tool] as const).map((side) => (
                   <dd
                     key={side}
                     data-column={side}
                     className={cn(side === "verbatra" && "vk-compare-self")}
                   >
-                    <span className="vk-compare-who">{toolName(t, side)}</span>
+                    <span className="vk-compare-who">
+                      {toolName(t, side)}
+                      <Detail text={toolDetail(t, side)} />
+                    </span>
                     <CompareCellBody t={t} row={row} tool={side} locale={locale} />
                   </dd>
                 ))}
