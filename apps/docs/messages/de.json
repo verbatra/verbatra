@@ -732,7 +732,6 @@
     "caption": "Möglichkeiten, wie du Übersetzungsdateien auf dem neuesten Stand halten kannst: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase und ein manueller Workflow",
     "lingoNote": "Lingo.dev-Zellen beziehen sich auf das aktuelle `@lingo.dev/cli` und die gehostete Plattform, es sei denn, sie nennen die ältere Open-Source-CLI `lingo.dev`.",
     "formatsNote": "Die Formatanzahlen stammen aus der Liste des jeweiligen Anbieters und sind nicht miteinander normalisiert.",
-    "sourcesChecked": "Jede Quelle unten wurde am {date} geprüft.",
     "nextHeading": "Probiere es selbst aus",
     "quickstart": "Beginne mit dem Quickstart",
     "home": "Zurück zur Verbatra Startseite",

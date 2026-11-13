@@ -732,7 +732,6 @@
     "caption": "Façons de maintenir les fichiers de localisation traduits : Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et un workflow manuel",
     "lingoNote": "Les cellules Lingo.dev font référence au `@lingo.dev/cli` actuel et à la plateforme hébergée, à moins qu'elles ne désignent l'ancien CLI open source `lingo.dev`.",
     "formatsNote": "Le nombre de formats provient de la liste de chaque fournisseur et n'est pas normalisé entre eux.",
-    "sourcesChecked": "Chaque source ci-dessous a été vérifiée le {date}.",
     "nextHeading": "Essaie toi-même",
     "quickstart": "Commence avec le démarrage rapide",
     "home": "Retour à la page d'accueil de Verbatra",

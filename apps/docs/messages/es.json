@@ -732,7 +732,6 @@
     "caption": "Formas de mantener los archivos de idioma traducidos: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase y un flujo de trabajo manual",
     "lingoNote": "Las celdas de Lingo.dev se refieren al `@lingo.dev/cli` actual y a la plataforma alojada a menos que nombren el CLI de código abierto anterior `lingo.dev`.",
     "formatsNote": "Los recuentos de formatos provienen de la lista de cada proveedor y no están normalizados entre sí.",
-    "sourcesChecked": "Cada fuente a continuación fue revisada el {date}.",
     "nextHeading": "Pruébalo tú mismo",
     "quickstart": "Empieza con la guía rápida",
     "home": "Volver a la página de inicio de Verbatra",
