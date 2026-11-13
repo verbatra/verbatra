@@ -267,6 +267,26 @@ test.describe("lock-file demo motion in a real browser", () => {
     expect(after.shifts - before.shifts).toBeLessThan(0.01);
   });
 
+  test("hands the stage to the island when a retired page leaves the wide layout and returns", async ({
+    page,
+  }) => {
+    test.setTimeout(40_000);
+    const release = await holdScripts(page);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(12_500);
+    await release();
+    await page.waitForLoadState("load");
+    await expect(page.locator(`${DEMO} .vk-lock-pause`)).toBeHidden();
+    await page.setViewportSize({ width: 900, height: 900 });
+    await expect(page.locator(STAGE)).not.toHaveAttribute("data-mode", "stage");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(page.locator(STAGE)).toHaveAttribute("data-mode", "stage");
+    await page.locator(`${DEMO} .vk-lock-step`).nth(2).click();
+    await expect(page.locator(ACTIVE)).toHaveAttribute("id", "lock-demo-send");
+    await expect(page.locator(`${FRAMES}:visible`)).toHaveCount(1);
+    await expect(page.locator("#lock-demo-send")).toBeVisible();
+  });
+
   test("starts playing when the island hydrates after the progress bar would have ended", async ({
     page,
   }) => {

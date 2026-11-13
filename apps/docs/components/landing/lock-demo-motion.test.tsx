@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,22 +18,27 @@ const LABELS = { steps: "Steps", pause: "Pause animation", play: "Play animation
 
 const mounted: Array<{ root: Root; host: HTMLElement }> = [];
 
-const stage = { matches: true, listeners: new Set<() => void>() };
+const stage = { matches: true, listeners: new Set<() => void>(), queries: [] as string[] };
 
 const observers: Array<(entries: ReadonlyArray<Partial<IntersectionObserverEntry>>) => void> = [];
 
 beforeEach(() => {
   stage.matches = true;
   stage.listeners.clear();
+  stage.queries.length = 0;
   observers.length = 0;
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    media: query,
-    get matches() {
-      return stage.matches;
-    },
-    addEventListener: (_type: string, listener: () => void) => stage.listeners.add(listener),
-    removeEventListener: (_type: string, listener: () => void) => stage.listeners.delete(listener),
-  }));
+  vi.stubGlobal("matchMedia", (query: string) => {
+    stage.queries.push(query);
+    return {
+      media: query,
+      get matches() {
+        return stage.matches;
+      },
+      addEventListener: (_type: string, listener: () => void) => stage.listeners.add(listener),
+      removeEventListener: (_type: string, listener: () => void) =>
+        stage.listeners.delete(listener),
+    };
+  });
   vi.stubGlobal(
     "IntersectionObserver",
     class {
@@ -202,6 +208,15 @@ describe("LockDemoMotion without stage conditions", () => {
     }
   });
 
+  it("asks for the condition the stylesheet stages under, scripting included", () => {
+    mount();
+    expect(stage.queries).toEqual([
+      "(min-width: 64rem) and (prefers-reduced-motion: no-preference) and (scripting: enabled)",
+    ]);
+    const css = readFileSync(`${process.cwd()}/app/global.css`, "utf8");
+    expect(css).toContain(`@media ${stage.queries[0]} {`);
+  });
+
   it("switches modes live when the condition changes", () => {
     const host = mount();
     stage.matches = false;
@@ -236,13 +251,29 @@ describe("LockDemoMotion after the no-island failsafe has retired the stage", ()
     for (const frame of frames(host)) expect(frame.hasAttribute("inert")).toBe(false);
   });
 
-  it("keeps ignoring the stage condition when it changes later", () => {
+  it("stays stacked when the stage condition stops matching", () => {
     retireSide();
     const host = mount();
+    stage.matches = false;
     act(() => {
       for (const listener of stage.listeners) listener();
     });
     expect(root(host).hasAttribute("data-mode")).toBe(false);
     expect(activeFrameIds(host)).toEqual([]);
+  });
+
+  it("takes the stage over once the stage condition matches again", () => {
+    retireSide();
+    const host = mount();
+    stage.matches = false;
+    act(() => {
+      for (const listener of stage.listeners) listener();
+    });
+    stage.matches = true;
+    act(() => {
+      for (const listener of stage.listeners) listener();
+    });
+    expect(root(host).getAttribute("data-mode")).toBe("stage");
+    expect(activeFrameIds(host)).toEqual(["frame-1"]);
   });
 });
