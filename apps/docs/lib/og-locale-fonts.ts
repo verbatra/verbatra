@@ -1,7 +1,7 @@
 import type { ImageResponse } from "next/og";
 import type { Locale } from "./locales.ts";
 
-type SatoriFont = NonNullable<
+export type SatoriFont = NonNullable<
   NonNullable<ConstructorParameters<typeof ImageResponse>[1]>["fonts"]
 >[number];
 

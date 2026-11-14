@@ -1,9 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { ImageResponse } from "next/og";
 import type { Locale } from "./locales";
 import { OG_FONT } from "./og-image";
-import { OG_LOCALE_FONTS } from "./og-locale-fonts";
+import { OG_LOCALE_FONTS, type SatoriFont } from "./og-locale-fonts";
 
 export const OG_FONT_DIR = "assets/og-fonts";
 
@@ -13,37 +12,55 @@ export const OG_FONT_FILES = [
   { name: OG_FONT.mono, file: "GeistMono-Regular.ttf", weight: 400 },
 ] as const;
 
-type OgFontOption = NonNullable<
-  NonNullable<ConstructorParameters<typeof ImageResponse>[1]>["fonts"]
->[number];
-
-const loaded = new Map<Locale, Promise<OgFontOption[]>>();
+let latin: Promise<SatoriFont[]> | undefined;
+const extra = new Map<Locale, Promise<SatoriFont[]>>();
 
 export function ogFontFilesFor(locale: Locale): string[] {
   return [...OG_FONT_FILES, ...OG_LOCALE_FONTS[locale]].map((font) => font.file);
 }
 
-async function readFonts(locale: Locale): Promise<OgFontOption[]> {
-  const latin = OG_FONT_FILES.map(async (font) => ({
-    name: font.name,
-    data: await readFile(join(process.cwd(), OG_FONT_DIR, font.file)),
-    weight: font.weight,
-    style: "normal" as const,
-  }));
-  const extra = OG_LOCALE_FONTS[locale].map(async (font) => ({
-    name: font.name,
-    data: await readFile(join(process.cwd(), OG_FONT_DIR, font.file)),
-    weight: font.weight,
-    style: "normal" as const,
-    lang: font.lang,
-  }));
-  return Promise.all([...latin, ...extra]);
+function readFonts(
+  fonts: readonly {
+    name: string;
+    file: string;
+    weight: 500 | 700 | 400;
+    lang?: SatoriFont["lang"];
+  }[],
+): Promise<SatoriFont[]> {
+  return Promise.all(
+    fonts.map(async (font) => ({
+      name: font.name,
+      data: await readFile(join(process.cwd(), OG_FONT_DIR, font.file)),
+      weight: font.weight,
+      style: "normal" as const,
+      ...(font.lang === undefined ? {} : { lang: font.lang }),
+    })),
+  );
 }
 
-export function loadOgFonts(locale: Locale): Promise<OgFontOption[]> {
-  const cached = loaded.get(locale);
+function remember<Key>(
+  cache: Map<Key, Promise<SatoriFont[]>>,
+  key: Key,
+  read: () => Promise<SatoriFont[]>,
+): Promise<SatoriFont[]> {
+  const cached = cache.get(key);
   if (cached) return cached;
-  const fonts = readFonts(locale);
-  loaded.set(locale, fonts);
+  const fonts = read().catch((error: unknown) => {
+    cache.delete(key);
+    throw error;
+  });
+  cache.set(key, fonts);
   return fonts;
+}
+
+export async function loadOgFonts(locale: Locale): Promise<SatoriFont[]> {
+  latin ??= readFonts(OG_FONT_FILES).catch((error: unknown) => {
+    latin = undefined;
+    throw error;
+  });
+  const [base, specific] = await Promise.all([
+    latin,
+    remember(extra, locale, () => readFonts(OG_LOCALE_FONTS[locale])),
+  ]);
+  return [...base, ...specific];
 }
