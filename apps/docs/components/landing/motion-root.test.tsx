@@ -143,8 +143,10 @@ describe("the motion stylesheet", () => {
     expect(hiding.map((rule) => rule.selector)).toEqual([
       "html[data-motion-ready] [data-reveal]:not([data-revealed])",
     ]);
-    for (const rule of hiding)
+    for (const rule of hiding) {
       expect(rule.media).toContain("prefers-reduced-motion: no-preference");
+      expect(rule.media).toContain("@media screen and");
+    }
     for (const rule of reveal.filter((r) => !r.media)) {
       for (const property of ["opacity", "translate", "visibility", "display"]) {
         expect(rule.declarations[property]).toBeUndefined();

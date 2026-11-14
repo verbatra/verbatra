@@ -210,6 +210,33 @@ test.describe("lower third without JavaScript", () => {
   });
 });
 
+const TABBED = ".vk-deck-radio, .vk-deck-pane, .vk-lock-frame";
+
+test.describe("print", () => {
+  test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+
+  test("shows every element of the landing at full opacity with the reveals pending, the tab panes of the deck and the lock demo aside", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
+    await page.emulateMedia({ media: "print" });
+    const faded = await page.evaluate(
+      (tabbed) =>
+        [...document.querySelectorAll("body *")]
+          .filter((node) => !node.matches(tabbed))
+          .filter((node) => Number(getComputedStyle(node).opacity) < 1)
+          .map((node) => `${node.tagName.toLowerCase()}.${String(node.getAttribute("class"))}`),
+      TABBED,
+    );
+    expect(faded).toEqual([]);
+    const frames = await page
+      .locator("section#gate .vk-gate-frame")
+      .evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).opacity));
+    expect(frames).toEqual(["1", "1", "1"]);
+  });
+});
+
 for (const [width, height] of [
   [1440, 2000],
   [2560, 1440],

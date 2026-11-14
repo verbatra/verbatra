@@ -830,13 +830,13 @@ The policy, in one place:
 
 - **Reveals.** One system: an element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden
   (opacity 0, `translate: 0 var(--reveal-distance)`) only while two things hold:
-  `prefers-reduced-motion: no-preference` and `html[data-motion-ready]`. `MotionRoot`
+  `prefers-reduced-motion: no-preference` and `html[data-motion-ready]`, and only on `screen`, so a printed page never carries an unrevealed artifact (the pinned gate stage is `screen` only for the same reason; `e2e/reveals.spec.ts` counts the elements below full opacity under print emulation, bar the tab panes of the deck and the lock demo). `MotionRoot`
   (`components/landing/motion-root.tsx`, mounted once at the end of the home page, rendering
   nothing) sets that attribute after hydration, so without JavaScript, before hydration and under
   reduced motion everything is visible. Before it sets the attribute it marks every element already
   on screen `data-revealed`, so nothing in the first viewport blinks out, then hands the rest to one
-  shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`) that adds `data-revealed` and
-  unobserves, so each element reveals once. Only the reveal transitions; hiding is instant. Focus
+  shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`; an element the inset can never reach, because less than 10 percent of the viewport lies below it at the end of the page, goes to a second observer without the inset, so a tall viewport still reveals the closing proof row) that adds `data-revealed` and
+  unobserves, so each element reveals once. Under 40rem the FAQ items take no part in the reveal (every artifact would be the same fade-up). Only the reveal transitions; hiding is instant. Focus
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
   `n * --reveal-stagger`, capped at `--reveal-delay-max`. The consumers are artifacts only: the highlights panes (`n` is their row, not their index), the one moving element of each gate frame (`n` 0), the lock demo's three cards below 64rem
   (`n` 0 each; from 64rem the staged demo autoplays and `html[data-motion-ready] .vk-lock .vk-lock-card[data-reveal]` keeps them shown), the deck's row commands (0) and pane cards (1), the FAQ items as one chain (`n` their index, capped at 5) and the closing panel's two commands (0, 1) and its proof row (2). No section heading, lead or prose paragraph reveals
