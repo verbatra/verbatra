@@ -16,10 +16,11 @@ import {
   typeTableMarkdown,
 } from "@/lib/sdk-type-table";
 import { llmMarkdown } from "@/test-support/llm-markdown";
+import { localeSuffixes, translationFilePattern } from "./locales";
 
 const REPO_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 const SDK_PAGES = fileURLToPath(new URL("../content/docs/sdk", import.meta.url));
-const TRANSLATED_LOCALES = [".de", ".es", ".fr"];
+const TRANSLATED_LOCALES = localeSuffixes().filter(Boolean);
 const GENERATOR_TIMEOUT = 120_000;
 
 type Node = {
@@ -192,7 +193,7 @@ function tableNamesOf(page: string): string[] {
 }
 
 const englishPages = readdirSync(SDK_PAGES).filter(
-  (file) => file.endsWith(".mdx") && !/\.(de|es|fr)\.mdx$/.test(file),
+  (file) => file.endsWith(".mdx") && !translationFilePattern().test(file),
 );
 
 async function generatedRows(

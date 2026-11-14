@@ -22,6 +22,7 @@ import {
 } from "@/lib/highlights-surfaces";
 import { MCP_ADD_COMMAND, SDK_INSTALL_COMMAND } from "@/lib/install-commands";
 import type { Locale } from "@/lib/locales";
+import { LOCALES } from "@/lib/locales";
 import { LOCK_FILE_NAME } from "@/lib/lock-demo";
 import { MESSAGE_CATALOGS, type Messages } from "@/lib/message-catalogs";
 import en from "@/messages/en.json";
@@ -256,7 +257,7 @@ describe("Highlights", () => {
     expect(found).toBeGreaterThanOrEqual(3);
   });
 
-  it.each(["en", "de", "es", "fr"])(
+  it.each(LOCALES)(
     "names the %s copy button with its visible word, so the label matches the content",
     (locale) => {
       const catalog = JSON.parse(

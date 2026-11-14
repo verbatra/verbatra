@@ -24,3 +24,7 @@ export function translationFilePattern(
 ): RegExp {
   return new RegExp(`^(.*)\\.(${localeAlternation(translated)})\\.${extension}$`);
 }
+
+export function localePrefix(locale: Locale): string {
+  return locale === DEFAULT_LOCALE ? "" : `/${locale}`;
+}

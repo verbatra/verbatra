@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
+import type { Locale } from "@/lib/locales";
 
 const route = vi.hoisted(() => ({ pathname: "/de/compare" }));
 
@@ -12,7 +13,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => route.pathname }));
 
 const { LocaleLinks } = await import("./locale-links");
 
-function render(pathname: string, current: "en" | "de" | "es" | "fr"): Document {
+function render(pathname: string, current: Locale): Document {
   route.pathname = pathname;
   const markup = renderToStaticMarkup(<LocaleLinks label="Sprache" current={current} />);
   return new DOMParser().parseFromString(markup, "text/html");

@@ -1,18 +1,12 @@
 import AxeBuilder from "@axe-core/playwright";
 import { type APIResponse, expect, type Page } from "playwright/test";
 import { FAQ_KEYS_ATTACHED } from "@/components/landing/faq-keys";
-import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/lib/locales";
+import { LOCALES, type Locale, localePrefix } from "@/lib/locales";
 import { THEME_STORAGE_KEY, THEMES, type ThemeName } from "@/lib/theme";
 
 export const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] as const;
 
-export { LOCALES };
-
-function localePrefix(locale: Locale): string {
-  return locale === DEFAULT_LOCALE ? "" : `/${locale}`;
-}
-
-export { THEMES, type ThemeName };
+export { LOCALES, THEMES, type ThemeName };
 
 export const LEGAL_PAGES = ["/imprint", "/privacy", "/licenses", "/contact"] as const;
 

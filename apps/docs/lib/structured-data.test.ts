@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import en from "../messages/en.json";
+import { localeSuffixes } from "./locales";
 import { LANDING_LAST_UPDATED, NODE_RANGE } from "./site";
 import {
   breadcrumbListLd,
@@ -212,7 +213,7 @@ describe("softwareApplicationLd formats", () => {
 });
 
 describe("SUPPORTED_AGENT_CLIENTS", () => {
-  it.each(["", ".de", ".es", ".fr"])(
+  it.each(localeSuffixes())(
     "each client has its own setup section in connect-an-mcp-client%s.mdx",
     (suffix) => {
       const page = readFileSync(

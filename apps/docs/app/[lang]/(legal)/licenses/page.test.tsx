@@ -7,6 +7,7 @@ import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import manifest from "@/lib/licenses.generated.json";
+import { LOCALES, type Locale } from "@/lib/locales";
 import docsPackage from "@/package.json";
 
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../../messages");
@@ -28,13 +29,23 @@ async function render(lang: string): Promise<Document> {
   return new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html");
 }
 
+const LICENSES_TITLE: Readonly<Record<Locale, string>> = {
+  en: "Licenses",
+  de: "Lizenzen",
+  es: "Licencias",
+  fr: "Licences",
+};
+
+const JUMP_LABEL: Readonly<Record<Locale, string>> = {
+  en: "On this page",
+  de: "Auf dieser Seite",
+  es: "En esta página",
+  fr: "Sur cette page",
+};
+
 describe("licenses page", () => {
-  it.each([
-    ["en", "Licenses"],
-    ["de", "Lizenzen"],
-    ["es", "Licencias"],
-    ["fr", "Licences"],
-  ])("localizes only the heading and intro for %s readers", async (lang, title) => {
+  it.each(LOCALES)("localizes only the heading and intro for %s readers", async (lang) => {
+    const title = LICENSES_TITLE[lang];
     const doc = await render(lang);
     expect(doc.querySelector("h1")?.textContent).toBe(title);
     expect((await generateMetadata({ params: Promise.resolve({ lang }) })).title).toBe(title);
@@ -90,15 +101,14 @@ describe("licenses page", () => {
 });
 
 describe("licenses page jump navigation", () => {
-  it.each([
-    ["en", "On this page"],
-    ["de", "Auf dieser Seite"],
-    ["es", "En esta página"],
-    ["fr", "Sur cette page"],
-  ])("names the %s navigation with the docs table of contents label", async (lang, label) => {
-    const doc = await render(lang);
-    expect(doc.querySelector("nav.vk-legal-jump")?.getAttribute("aria-label")).toBe(label);
-  });
+  it.each(LOCALES)(
+    "names the %s navigation with the docs table of contents label",
+    async (lang) => {
+      const label = JUMP_LABEL[lang];
+      const doc = await render(lang);
+      expect(doc.querySelector("nav.vk-legal-jump")?.getAttribute("aria-label")).toBe(label);
+    },
+  );
 
   it("links the assets and every license group to a unique heading id", async () => {
     const doc = await render("en");

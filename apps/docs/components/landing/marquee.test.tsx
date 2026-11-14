@@ -10,6 +10,7 @@ import { BRAND_MARKS, type BrandMarkId } from "@/lib/brand-marks";
 import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
+import { LOCALES } from "@/lib/locales";
 import { MARQUEE_COPIES } from "@/lib/marquee-copies";
 import { providerIsNew, RELEASE_BADGE } from "@/lib/release-badge";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
@@ -276,7 +277,7 @@ describe("Marquee", () => {
     expect(sentence).toMatch(spelledCount(locale));
   });
 
-  it.each(["en", "de", "es", "fr"] as const)(
+  it.each(LOCALES)(
     "types no provider or format count, in digits or words, in %s",
     async (locale) => {
       const section = (await render(locale)).querySelector("section#marquee");

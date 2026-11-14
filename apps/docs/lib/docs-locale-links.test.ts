@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
+import { localeAlternation } from "@/lib/locales";
 import { mapProse } from "@/lib/markdown-links";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content");
@@ -9,7 +10,7 @@ const TRANSLATED_LOCALES = i18n.languages.filter((lang) => lang !== i18n.default
 const TRANSLATED = new RegExp(`\\.(${TRANSLATED_LOCALES})\\.(mdx|json)$`);
 const LINK_TARGET = /(?:\]\(\s*|\bhref="|^\s*\[[^\]]+\]:\s*)(\/[^\s)"'#?]*)/g;
 const PROP_TARGET = /\bhref: "(\/[^"#?]*)/g;
-const DOCS_PATH = /^(?:\/([a-z]{2}))?\/docs(?:\/|$)/;
+const DOCS_PATH = new RegExp(`^(?:\\/(${localeAlternation()}))?\\/docs(?:\\/|$)`);
 
 type TranslatedFile = { name: string; locale: string; source: string };
 

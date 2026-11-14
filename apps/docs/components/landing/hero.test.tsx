@@ -10,6 +10,7 @@ import { HERO_TERMINAL_CHANGED_KEYS } from "@/lib/hero-terminal";
 import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
 import { HERO_FILE_CHANGED_COUNT } from "@/lib/landing-hero-files";
 import { PLAYGROUND_TRANSLATIONS, playgroundFileName } from "@/lib/landing-playground";
+import { LOCALES, type Locale } from "@/lib/locales";
 import { LOCK_DEMO_LOCALE, LOCK_DEMO_PLAYGROUND_IDS } from "@/lib/lock-demo";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
@@ -72,6 +73,15 @@ function words(text: string): number {
   return text.trim().split(/\s+/).length;
 }
 
+const LEAD_WORD_CAP: Readonly<Record<Locale, number>> = { en: 25, de: 30, es: 30, fr: 30 };
+
+const CHANGED_KEYS_BADGE: Readonly<Record<Locale, string>> = {
+  en: "2 keys changed",
+  de: "2 Schlüssel geändert",
+  es: "2 claves modificadas",
+  fr: "2 clés modifiées",
+};
+
 describe("Hero copy", () => {
   it("names its section by the one h1, the headline, under the subline", async () => {
     const doc = await render();
@@ -89,12 +99,8 @@ describe("Hero copy", () => {
     expect(headlinePlain.split(/[.!?]\s/)).toHaveLength(1);
   });
 
-  it.each([
-    ["en", 25],
-    ["de", 30],
-    ["es", 30],
-    ["fr", 30],
-  ])("keeps the %s lead to %i words", (locale, cap) => {
+  it.each(LOCALES)("keeps the %s lead to its word cap", (locale) => {
+    const cap = LEAD_WORD_CAP[locale];
     expect(words(catalogFor(locale).landing.banner.lead)).toBeLessThanOrEqual(cap);
   });
 
@@ -121,7 +127,7 @@ describe("Hero copy", () => {
     expect(doc.querySelector(".vk-announce, .vk-pill-new")).toBeNull();
   });
 
-  it.each(["en", "de", "es", "fr"])("ships no announcement strings in %s", (locale) => {
+  it.each(LOCALES)("ships no announcement strings in %s", (locale) => {
     const catalog = JSON.parse(source(`messages/${locale}.json`)) as typeof messages;
     expect(catalog.landing.banner).not.toHaveProperty("announcement");
   });
@@ -404,14 +410,13 @@ describe("Hero stylesheet", () => {
 });
 
 describe("the banner's changed-keys badge in every locale", () => {
-  it.each([
-    ["en", "2 keys changed"],
-    ["de", "2 Schlüssel geändert"],
-    ["es", "2 claves modificadas"],
-    ["fr", "2 clés modifiées"],
-  ])("%s renders %s on the front card, with no tilde", async (locale, expected) => {
-    const doc = await render(locale);
-    const badge = doc.querySelector("[data-front='true'] .vk-banner-file-badge");
-    expect(badge?.textContent).toBe(expected);
-  });
+  it.each(LOCALES)(
+    "%s renders its changed-keys badge on the front card, with no tilde",
+    async (locale) => {
+      const expected = CHANGED_KEYS_BADGE[locale];
+      const doc = await render(locale);
+      const badge = doc.querySelector("[data-front='true'] .vk-banner-file-badge");
+      expect(badge?.textContent).toBe(expected);
+    },
+  );
 });

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { LOCALES, localePrefix } from "@/lib/locales";
 
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../../messages");
 
@@ -22,12 +23,8 @@ vi.mock("next-intl/server", () => ({
 const { default: ImprintPage } = await import("./page");
 
 describe("imprint page: contact form link", () => {
-  it.each([
-    ["en", "/contact"],
-    ["de", "/de/contact"],
-    ["es", "/es/contact"],
-    ["fr", "/fr/contact"],
-  ])("keeps the %s reader's locale", async (lang, href) => {
+  it.each(LOCALES)("keeps the %s reader's locale", async (lang) => {
+    const href = `${localePrefix(lang)}/contact`;
     const page = await ImprintPage({ params: Promise.resolve({ lang }) });
     const doc = new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html");
     const links = Array.from(doc.querySelectorAll("a"))
@@ -63,14 +60,10 @@ describe("imprint page: provider details", () => {
 });
 
 describe("imprint page: license", () => {
-  it.each([
-    ["en", "/licenses"],
-    ["de", "/de/licenses"],
-    ["es", "/es/licenses"],
-    ["fr", "/fr/licenses"],
-  ])(
+  it.each(LOCALES)(
     "puts code, docs and screenshots under MIT and links the third-party notices for %s readers",
-    async (lang, licensesHref) => {
+    async (lang) => {
+      const licensesHref = `${localePrefix(lang)}/licenses`;
       const page = await ImprintPage({ params: Promise.resolve({ lang }) });
       const doc = new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html");
       const text = doc.body.textContent?.replace(/\s+/g, " ") ?? "";
@@ -93,7 +86,7 @@ describe("imprint page: license", () => {
 });
 
 describe("imprint page: legal basis", () => {
-  it.each(["en", "de", "es", "fr"])(
+  it.each(LOCALES)(
     "cites section 18 paragraph 1 MStV once, right after the provider details, for %s readers",
     async (lang) => {
       const page = await ImprintPage({ params: Promise.resolve({ lang }) });

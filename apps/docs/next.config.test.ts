@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
+import { localeAlternation, TRANSLATED_LOCALES } from "@/lib/locales";
 import nextConfig, { DEFAULT_LOCALE_PREFIX_REDIRECTS, MOVED_DOCS_PAGES } from "./next.config.mjs";
 
 describe("next.config", () => {
@@ -83,7 +84,9 @@ const CONTENT_DIR = join(import.meta.dirname, "content/docs");
 
 function docsPageFiles(slug: string): string[] {
   return readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" }).filter((file) =>
-    new RegExp(`(^|/)${slug}(/index)?(\\.(de|es|fr))?\\.mdx$`).test(file),
+    new RegExp(`(^|/)${slug}(/index)?(\\.(${localeAlternation(TRANSLATED_LOCALES)}))?\\.mdx$`).test(
+      file,
+    ),
   );
 }
 
@@ -96,9 +99,15 @@ describe("moved docs pages", () => {
       const redirects = (await nextConfig.redirects?.()) ?? [];
       const expected = [
         { source: `/docs/${from}`, destination: `/docs/${to}` },
-        { source: `/:locale(de|es|fr)/docs/${from}`, destination: `/:locale/docs/${to}` },
+        {
+          source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}`,
+          destination: `/:locale/docs/${to}`,
+        },
         { source: `/docs/${from}.md`, destination: `/docs/${to}.md` },
-        { source: `/:locale(de|es|fr)/docs/${from}.md`, destination: `/:locale/docs/${to}.md` },
+        {
+          source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}.md`,
+          destination: `/:locale/docs/${to}.md`,
+        },
       ];
       for (const redirect of expected) {
         expect(redirects).toContainEqual({ ...redirect, permanent: true });

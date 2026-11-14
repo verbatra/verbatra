@@ -1,11 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { localeSuffixes } from "./locales";
 import { proseWords } from "./page-type";
 
 const GET_STARTED = join(import.meta.dirname, "../content/docs/(get-started)");
 const QUICKSTART = join(GET_STARTED, "quickstart/index.mdx");
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
+const LOCALE_SUFFIXES = localeSuffixes();
 const WORD_CEILING = 800;
 
 describe("the quickstart", () => {

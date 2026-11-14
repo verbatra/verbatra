@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
+import { LOCALES, localeSuffixes } from "@/lib/locales";
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 
@@ -90,7 +91,7 @@ describe("DocsHomeTabs", () => {
     expect(track).toContain("width: max-content;");
   });
 
-  it.each(["", ".de", ".es", ".fr"])("links only pages that exist, from index%s.mdx", (suffix) => {
+  it.each(localeSuffixes())("links only pages that exist, from index%s.mdx", (suffix) => {
     const source = readFileSync(join(process.cwd(), `content/docs/index${suffix}.mdx`), "utf8");
     const block = /<DocsHomeTabs\n[\s\S]*?\n\/>/.exec(source)?.[0] ?? "";
     const hrefs = [...block.matchAll(/href: "([^"]+)"/g)].map((match) => match[1] ?? "");
@@ -165,7 +166,7 @@ describe("DocsHomeAgentTip", () => {
     expect(link?.querySelector(".whitespace-nowrap")?.textContent).toBe("MCP server");
   });
 
-  it.each(["", ".de", ".es", ".fr"])(
+  it.each(localeSuffixes())(
     "links the setup guide and the MCP page from the tip in index%s.mdx, since no goal card does",
     (suffix) => {
       const source = readFileSync(join(process.cwd(), `content/docs/index${suffix}.mdx`), "utf8");
@@ -272,7 +273,7 @@ describe("DocsHomePaths", () => {
     expect(cards[0]?.getAttribute("style")).not.toContain("accent-fill");
   });
 
-  it.each(["", ".de", ".es", ".fr"])("marks no goal card primary in index%s.mdx", (suffix) => {
+  it.each(localeSuffixes())("marks no goal card primary in index%s.mdx", (suffix) => {
     const source = readFileSync(join(process.cwd(), `content/docs/index${suffix}.mdx`), "utf8");
     expect(source).not.toMatch(/\bprimary:/);
   });
@@ -308,7 +309,7 @@ describe("DocsHomeSteps", () => {
   });
 
   it("reads only step keys that exist in every locale, so the docs home never prints a key", () => {
-    for (const locale of ["en", "de", "es", "fr"]) {
+    for (const locale of LOCALES) {
       const messages = JSON.parse(
         readFileSync(join(process.cwd(), `messages/${locale}.json`), "utf8"),
       ) as { landing: { steps: { items: Record<string, { title: string; body: string }> } } };

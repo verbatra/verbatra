@@ -2,6 +2,7 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "./docs-pages";
+import { LOCALES, type Locale } from "./locales";
 import { FRONTMATTER, type PageType, pageType } from "./page-type";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
@@ -232,6 +233,16 @@ function page(type: PageType, body: string): string {
   return `---\ntitle: Fixture\ntype: ${type}\n---\nIntro.\n\n${body}\n`;
 }
 
+const RESTATING_SENTENCES: ReadonlyArray<readonly [Locale, string]> = [
+  ["en", "`X` first appears in 0.12.0."],
+  ["en", "From 0.12 it also writes the file."],
+  ["de", "`X` gibt es ab 0.12.0."],
+  ["es", "`X` aparece por primera vez en 0.12.0."],
+  ["fr", "`X` apparaît pour la première fois en 0.12.0."],
+  ["fr", "À partir de 0.12.0, il écrit le fichier."],
+  ["en", "From `0.12.0` it also writes the file."],
+];
+
 describe("AvailableFrom badge placement", () => {
   it.each(allPages())("places every badge by the rules in %s", (file) => {
     expect(badgeViolations(readIncludedSource(join(CONTENT_DIR, file)))).toEqual([]);
@@ -275,20 +286,19 @@ describe("AvailableFrom badge placement", () => {
     ]);
   });
 
-  it.each([
-    ["en", "`X` first appears in 0.12.0."],
-    ["en", "From 0.12 it also writes the file."],
-    ["de", "`X` gibt es ab 0.12.0."],
-    ["es", "`X` aparece por primera vez en 0.12.0."],
-    ["fr", "`X` apparaît pour la première fois en 0.12.0."],
-    ["fr", "À partir de 0.12.0, il écrit le fichier."],
-    ["en", "From `0.12.0` it also writes the file."],
-  ])("rejects %s prose that restates the badge version: %s", (_locale, sentence) => {
-    const body = `## A\n\n<AvailableFrom version="0.12.0" />\n\n${sentence}`;
-    expect(badgeViolations(page("reference", body))).toEqual([
-      "11: prose restates the 0.12.0 badge of line 9",
-    ]);
+  it("has a restating sentence to reject for every locale", () => {
+    expect(new Set(RESTATING_SENTENCES.map(([locale]) => locale))).toEqual(new Set(LOCALES));
   });
+
+  it.each(RESTATING_SENTENCES)(
+    "rejects %s prose that restates the badge version: %s",
+    (_locale, sentence) => {
+      const body = `## A\n\n<AvailableFrom version="0.12.0" />\n\n${sentence}`;
+      expect(badgeViolations(page("reference", body))).toEqual([
+        "11: prose restates the 0.12.0 badge of line 9",
+      ]);
+    },
+  );
 
   it("keeps a requirement, another version, and a version outside the badge's section", () => {
     const body = [
