@@ -51,7 +51,10 @@ export interface ResolveOptions {
 /**
  * Holds the registered adapters and resolves one for a file. Open for extension: adapters attach
  * through {@link AdapterRegistry.register} without changing resolution logic, and an unresolvable
- * file is a structured status rather than an exception.
+ * file is a structured status rather than an exception. The exceptions are a registered third-party
+ * adapter that throws from its own `canHandle` during detection, which surfaces as an `AdapterError`
+ * with code `ADAPTER_FAILED`, and `register`, which rejects a malformed or duplicate format
+ * identifier.
  *
  * @example
  * ```ts

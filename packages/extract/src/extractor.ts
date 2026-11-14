@@ -2,7 +2,10 @@ import type { SourceFramework } from "./framework.js";
 
 /** One application source file, already read, as it is handed to a {@link SourceExtractor}. */
 export interface SourceFile {
-  /** The file's absolute path, used only for reporting. */
+  /**
+   * The file's path, absolute when the scan supplies it. An extractor reads its extension to choose
+   * between markup and plain-script parsing.
+   */
   readonly path: string;
   /** The file's full text. It is untrusted input and is never echoed into a result. */
   readonly content: string;
