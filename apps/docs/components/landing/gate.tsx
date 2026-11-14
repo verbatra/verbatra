@@ -20,7 +20,10 @@ import {
   GATE_SOURCE_FILE,
   GATE_SOURCE_LOCALE,
   GATE_STATES,
+  GATE_TARGET_ELISION,
   GATE_TARGET_FILE,
+  GATE_TARGET_GROUP,
+  GATE_TARGET_LEAF,
   GATE_TRANSLATE_COMMAND,
   GATE_TRANSLATE_HEADER,
   type GateState,
@@ -158,7 +161,6 @@ function ValueRow({
 }
 
 function TargetFile({ label, fold }: { label: string; fold?: "drop" }): ReactNode {
-  const [group = "", leaf = ""] = GATE_KEY.split(".");
   return (
     <>
       <p className="vk-lock-sub" data-fold={fold}>
@@ -167,20 +169,20 @@ function TargetFile({ label, fold }: { label: string; fold?: "drop" }): ReactNod
       <pre className="vk-lock-code vk-gate-code" lang="en" data-fold={fold}>
         <code>
           <span className="vk-lock-line" style={{ "--d": 0 } as CSSProperties}>
-            {`"${group}": {\n`}
+            {`"${GATE_TARGET_GROUP}": {\n`}
           </span>
           <span className="vk-lock-line" style={{ "--d": 1 } as CSSProperties}>
-            <span className="vk-lock-key">{JSON.stringify(leaf)}</span>
+            <span className="vk-lock-key">{JSON.stringify(GATE_TARGET_LEAF)}</span>
             {": "}
             <span className="vk-lock-value" lang={GATE_LOCALE}>
               {'"'}
               <PlaceholderText text={GATE_DE_OLD} />
               {'"'}
             </span>
-            {"\n"}
+            {",\n"}
           </span>
-          <span className="vk-lock-line" style={{ "--d": 0 } as CSSProperties}>
-            {"}"}
+          <span className="vk-lock-line" style={{ "--d": 1 } as CSSProperties}>
+            {GATE_TARGET_ELISION}
           </span>
         </code>
       </pre>

@@ -27,8 +27,6 @@ export const GATE_SOURCE_FILE = `${GATE_SOURCE_LOCALE}.json`;
 
 export const GATE_TARGET_FILE = `${GATE_LOCALE}.json`;
 
-export const GATE_PROVIDER_ID = "anthropic";
-
 export const GATE_MODEL = "claude-sonnet-4-6";
 
 export const GATE_DOCS_PATH = "/docs/translation-safety";
@@ -42,6 +40,20 @@ export const GATE_TRANSLATE_HEADER = "verbatra translate";
 export const GATE_CHECK_HEADER = CHECK_CLI_COMMAND;
 
 export const GATE_CHECK_EXIT_CODE = 1;
+
+const [targetGroup = "", targetLeaf = ""] = GATE_KEY.split(".");
+
+export const GATE_TARGET_GROUP = targetGroup;
+
+export const GATE_TARGET_LEAF = targetLeaf;
+
+export const GATE_TARGET_ELISION = "...";
+
+export const GATE_TARGET_EXCERPT: ReadonlyArray<string> = [
+  `"${GATE_TARGET_GROUP}": {`,
+  `  ${JSON.stringify(GATE_TARGET_LEAF)}: "${GATE_DE_OLD}",`,
+  `  ${GATE_TARGET_ELISION}`,
+];
 
 export const GATE_REFUSED_BADGE = "1 integrity-withheld";
 

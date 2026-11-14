@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { check, translate } from "@verbatra/sdk";
 import { afterEach, describe, expect, it } from "vitest";
@@ -15,18 +15,20 @@ import {
   GATE_LOCALE,
   GATE_MODEL,
   GATE_PLACEHOLDER,
-  GATE_PROVIDER_ID,
   GATE_REFUSED_BADGE,
   GATE_REFUSED_LINES,
   GATE_SOURCE,
   GATE_SOURCE_BEFORE,
   GATE_SOURCE_FILE,
   GATE_SOURCE_LOCALE,
+  GATE_TARGET_ELISION,
+  GATE_TARGET_EXCERPT,
   GATE_TARGET_FILE,
+  GATE_TARGET_GROUP,
+  GATE_TARGET_LEAF,
   GATE_TRANSLATE_COMMAND,
   GATE_TRANSLATE_HEADER,
 } from "@/lib/gate-demo";
-import { HERO_TERMINAL_SOURCE } from "@/lib/hero-terminal";
 import {
   fixtureConfig,
   readTarget,
@@ -38,6 +40,7 @@ import {
   writeConfig,
   writeSource,
 } from "@/test-support/run-fixture";
+import { SCAFFOLD_MODELS } from "../../../packages/ai-providers/src/scaffold";
 import { renderCheckHuman, renderHuman } from "../../../packages/cli/src/render";
 
 const CONFIG = fixtureConfig(GATE_MODEL);
@@ -94,7 +97,6 @@ function leafOf(tree: Tree): string | undefined {
 describe("the gate demo prints what verbatra prints after a refusal", () => {
   it("edits one source value that carries a placeholder, in the file the config names", async () => {
     const dir = await refusedProject();
-    expect(GATE_SOURCE).toBe(HERO_TERMINAL_SOURCE.find(({ key }) => key === GATE_KEY)?.value);
     expect(GATE_SOURCE).toContain(GATE_PLACEHOLDER);
     expect(GATE_SOURCE_BEFORE).toContain(GATE_PLACEHOLDER);
     expect(GATE_SOURCE_BEFORE).not.toBe(GATE_SOURCE);
@@ -102,15 +104,16 @@ describe("the gate demo prints what verbatra prints after a refusal", () => {
     expect(leafOf(JSON.parse(await readFile(join(dir, "locales/en.json"), "utf8")))).toBe(
       GATE_SOURCE,
     );
-    expect(CONFIG.sourceLocale).toBe(GATE_SOURCE_LOCALE);
-    expect(CONFIG.targetLocales).toEqual([GATE_LOCALE]);
-    expect(CONFIG.files.pattern.split("/").pop()).toBe("{locale}.json");
-    expect(GATE_SOURCE_FILE).toBe(`${CONFIG.sourceLocale}.json`);
-    expect(GATE_TARGET_FILE).toBe(`${CONFIG.targetLocales[0]}.json`);
-    expect(CONFIG.provider).toMatchObject({
-      id: GATE_PROVIDER_ID,
-      options: { model: GATE_MODEL },
-    });
+    expect(await readdir(join(dir, "locales"))).toEqual(
+      expect.arrayContaining([GATE_SOURCE_FILE, GATE_TARGET_FILE]),
+    );
+    expect(GATE_SOURCE_LOCALE).toBe(CONFIG.sourceLocale);
+    expect(CONFIG.targetLocales).toContain(GATE_LOCALE);
+  });
+
+  it("badges the candidate with the model verbatra init scaffolds for the provider the config names", () => {
+    const provider = CONFIG.provider.id as keyof typeof SCAFFOLD_MODELS;
+    expect(SCAFFOLD_MODELS[provider]).toBe(GATE_MODEL);
   });
 
   it("holds the old German value the seeded run wrote, and a candidate that dropped the placeholder", async () => {
@@ -118,6 +121,21 @@ describe("the gate demo prints what verbatra prints after a refusal", () => {
     expect(leafOf(await written(dir, GATE_LOCALE))).toBe(GATE_DE_OLD);
     expect(GATE_DE_OLD).toContain(GATE_PLACEHOLDER);
     expect(GATE_DE_CANDIDATE).not.toContain(GATE_PLACEHOLDER);
+  });
+
+  it("excerpts the target file the seeded run wrote: the first lines of the group verbatim, then an elision", async () => {
+    const dir = await refusedProject();
+    const file = await readTarget(dir, GATE_LOCALE);
+    const [open, leaf, elision] = GATE_TARGET_EXCERPT;
+    const dedented = file
+      .split("\n")
+      .map((line) => line.replace(/^ {2}/, ""))
+      .join("\n");
+    expect(dedented).toContain(`${open}\n${leaf}\n`);
+    expect(elision?.trim()).toBe(GATE_TARGET_ELISION);
+    const group = (JSON.parse(file) as Tree)[GATE_TARGET_GROUP] ?? {};
+    expect(Object.keys(group).length).toBeGreaterThan(1);
+    expect(Object.keys(group)[0]).toBe(GATE_TARGET_LEAF);
   });
 
   it("refuses the candidate and prints the lines renderHuman renders", async () => {

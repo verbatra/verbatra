@@ -17,6 +17,7 @@ import {
   GATE_SOURCE,
   GATE_SOURCE_BEFORE,
   GATE_STATES,
+  GATE_TARGET_EXCERPT,
   GATE_TRANSLATE_COMMAND,
 } from "@/lib/gate-demo";
 import {
@@ -126,6 +127,14 @@ describe("Gate", () => {
     for (const frame of [refused, stale]) {
       expect(frame?.textContent).toContain(GATE_DE_OLD);
       expect(frame?.textContent).not.toContain(GATE_DE_CANDIDATE);
+    }
+  });
+
+  it("excerpts the German file once per frame that shows it, as the constant the markdown twin prints", () => {
+    const [, refused, stale] = frames();
+    for (const frame of [refused, stale]) {
+      const excerpt = frame?.querySelectorAll("pre[lang='en'] code")[1]?.textContent;
+      expect(excerpt).toBe(GATE_TARGET_EXCERPT.map((line) => line.trimStart()).join("\n"));
     }
   });
 

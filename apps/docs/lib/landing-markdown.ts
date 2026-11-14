@@ -13,7 +13,6 @@ import {
   GATE_CHECK_HEADER,
   GATE_CHECK_LINES,
   GATE_DE_CANDIDATE,
-  GATE_DE_OLD,
   GATE_DOCS_PATH,
   GATE_KEY,
   GATE_LOCALE,
@@ -24,6 +23,7 @@ import {
   GATE_SOURCE,
   GATE_SOURCE_BEFORE,
   GATE_SOURCE_FILE,
+  GATE_TARGET_EXCERPT,
   GATE_TARGET_FILE,
   GATE_TRANSLATE_COMMAND,
   GATE_TRANSLATE_HEADER,
@@ -205,10 +205,7 @@ async function lockDemo({ locale }: Context): Promise<string> {
 
 async function gate({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.gate" });
-  const [group = "", leaf = ""] = GATE_KEY.split(".");
-  const targetFile = [`"${group}": {`, `  ${JSON.stringify(leaf)}: "${GATE_DE_OLD}"`, "}"].join(
-    "\n",
-  );
+  const targetFile = GATE_TARGET_EXCERPT.join("\n");
   return blocks(
     `## ${t("heading")}`,
     `${t("lead")} ${link(GATE_DOCS_PATH.slice(1), localizedPath(locale, GATE_DOCS_PATH))}`,
