@@ -75,17 +75,20 @@ Alongside that chain, `ui` sits beside `config` as a leaf: `config <- ui <- docs
   for the root-entry import in `apps/docs/lib/translation-provenance.test.ts`.
   It takes `@verbatra/cli` and `@verbatra/studio` as `devDependencies` because its own scripts run them:
   `pnpm i18n` is `verbatra translate` and `pnpm studio` is `verbatra studio` (`apps/docs/package.json`
-  `scripts`), and `@verbatra/mcp` as a `devDependency` for the landing run tests below. The `mcp` package
-  was already in the install closure through `@verbatra/cli`, which carries it as a `devDependency`
-  (`packages/cli/package.json`). The landing run tests are `lib/hero-terminal.run.test.ts`,
-  `highlights-surfaces.run.test.ts`, `gate-demo.run.test.ts` and `feature-artifacts.run.test.ts`, which share
-  `apps/docs/test-support/run-fixture.ts`: they import those packages' source by relative path
+  `scripts`), and `@verbatra/mcp` and `@verbatra/ai-providers` as `devDependencies` for the landing run tests below.
+  The `mcp` package was already in the install closure through `@verbatra/cli`, which carries it as a
+  `devDependency` (`packages/cli/package.json`), and `ai-providers` through `@verbatra/sdk`
+  (`packages/sdk/package.json`). The landing run tests are `lib/hero-terminal.run.test.ts`,
+  `highlights-surfaces.run.test.ts`, `gate-demo.run.test.ts` and `feature-artifacts.run.test.ts`; the first three and
+  `lib/check-demo.test.ts` share `apps/docs/test-support/run-fixture.ts`, while `feature-artifacts.run.test.ts` keeps its
+  own `sourceFile` and `runCli` because it wires `watch`, `doctor`, `extract`, `export` and `types` and a different
+  config. They import those packages' source by relative path
   (`packages/cli/src/render.ts`, `run.ts`, `types.ts` and `watch-session.ts`, `packages/studio/src/client/coverage.ts`
   and `src/app/LocalesSection.tsx`, `packages/mcp/src/tools/status-check.ts` and `registry.ts`, plus
   `packages/mcp/src/test-support.ts`, which has no public equivalent because `startMcpServer` binds `process.stdin` and
   `process.stdout`, and `packages/ai-providers/src/scaffold.ts` for the scaffold model), and no non-test module under
   `lib/` or `components/` imports them. The edge exists so the `--filter @verbatra/docs...` install and build closure
-  carries each package's own dependencies; `knip.config.ts` lists `@verbatra/studio` and `@verbatra/mcp` under
+  carries each package's own dependencies; `knip.config.ts` lists `@verbatra/studio`, `@verbatra/mcp` and `@verbatra/ai-providers` under
   `ignoreDependencies` because nothing imports them by name, and `lib/third-party-licenses.ts`, which walks
   `dependencies` only, never sees them.
 

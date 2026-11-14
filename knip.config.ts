@@ -17,7 +17,7 @@ const config: KnipConfig = {
         config: ["playwright.config.ts"],
         entry: ["e2e/**/*.spec.ts"],
       },
-      ignoreDependencies: ["@verbatra/mcp", "@verbatra/studio"],
+      ignoreDependencies: ["@verbatra/ai-providers", "@verbatra/mcp", "@verbatra/studio"],
       ignoreFiles: [
         "lib/inline-script-hashes.d.mts",
         "lib/script-hashes-manifest.d.mts",

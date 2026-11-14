@@ -53,6 +53,7 @@
     "@types/nodemailer": "8.0.2",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@verbatra/ai-providers": "workspace:*",
     "@verbatra/cli": "workspace:*",
     "@verbatra/core": "workspace:*",
     "@verbatra/mcp": "workspace:*",
