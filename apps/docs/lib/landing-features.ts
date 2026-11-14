@@ -1,22 +1,16 @@
-export type LandingFeatureId = "studio" | "handoff" | "extract" | "watch" | "types" | "doctor";
+export type LandingFeatureId = "extract" | "types" | "doctor" | "watch" | "handoff" | "studio";
 
-type LandingFeature = { readonly id: LandingFeatureId; readonly docsPath: string };
+type LandingFeature = {
+  readonly id: LandingFeatureId;
+  readonly command: string;
+  readonly docsPath: string;
+};
 
 export const LANDING_FEATURES: ReadonlyArray<LandingFeature> = [
-  { id: "studio", docsPath: "/docs/cli/studio" },
-  { id: "handoff", docsPath: "/docs/cli/export" },
-  { id: "extract", docsPath: "/docs/cli/extract" },
-  { id: "watch", docsPath: "/docs/cli/watch" },
-  { id: "types", docsPath: "/docs/cli/types" },
-  { id: "doctor", docsPath: "/docs/cli/doctor" },
+  { id: "extract", command: "verbatra extract", docsPath: "/docs/cli/extract" },
+  { id: "types", command: "verbatra types", docsPath: "/docs/cli/types" },
+  { id: "doctor", command: "verbatra doctor", docsPath: "/docs/cli/doctor" },
+  { id: "watch", command: "verbatra watch", docsPath: "/docs/cli/watch" },
+  { id: "handoff", command: "verbatra export", docsPath: "/docs/cli/export" },
+  { id: "studio", command: "verbatra studio", docsPath: "/docs/cli/studio" },
 ];
-
-export type CanvasFeatureId = Exclude<LandingFeatureId, "studio">;
-
-export const CANVAS_FEATURES: ReadonlyArray<{
-  readonly id: CanvasFeatureId;
-  readonly docsPath: string;
-}> = LANDING_FEATURES.filter(
-  (feature): feature is { readonly id: CanvasFeatureId; readonly docsPath: string } =>
-    feature.id !== "studio",
-);

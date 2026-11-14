@@ -2,6 +2,12 @@ import { getTranslations } from "next-intl/server";
 import { availableFromCopy } from "@/components/available-from";
 import { LICENSE_URL } from "@/components/landing/links";
 import {
+  type ArtifactBlock,
+  type ArtifactWords,
+  artifactLineText,
+  FEATURE_ARTIFACTS,
+} from "./feature-artifacts";
+import {
   HERO_CHECK_BADGE,
   HERO_CHECK_EXIT_CODE,
   HERO_SENT_STRINGS,
@@ -197,17 +203,41 @@ async function highlights({ locale }: Context): Promise<string> {
   );
 }
 
+function artifactMarkdown(block: ArtifactBlock, words: ArtifactWords, empty: string): string {
+  if (block.kind === "shot") return "";
+  if (block.kind === "sheet") {
+    const row = (cells: ReadonlyArray<string>) =>
+      `| ${cells.map((cell) => (cell === "" ? empty : cell)).join(" | ")} |`;
+    return [row(block.columns), row(block.columns.map(() => "---")), ...block.rows.map(row)].join(
+      "\n",
+    );
+  }
+  return fencedMarkdown(
+    block.kind === "cli" ? "text" : "ts",
+    null,
+    block.lines.map((line) => artifactLineText(line, words)).join("\n"),
+  );
+}
+
 async function features({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.features" });
+  const words: ArtifactWords = {
+    more: (count) => t("more", { count }),
+    moreChecks: () => t("moreChecks"),
+  };
   return blocks(
     `## ${t("label")}: ${t("heading")}`,
     t("lead"),
-    list(
-      LANDING_FEATURES.map(
-        ({ id, docsPath }) =>
-          `${link(t(`items.${id}.title`), localizedPath(locale, docsPath))}: ${t(`items.${id}.body`)}`,
-      ),
-    ),
+    ...LANDING_FEATURES.flatMap(({ id, command, docsPath }) => {
+      const artifact = FEATURE_ARTIFACTS[id];
+      return [
+        `### ${t(`items.${id}.title`)}`,
+        t(`items.${id}.body`),
+        link(inlineCodeMarkdown(command), localizedPath(locale, docsPath)),
+        `**${artifact.head}** ${t(`badges.${id}`, { count: artifact.count ?? 0 })}`,
+        ...artifact.blocks.map((block) => artifactMarkdown(block, words, t("emptyCell"))),
+      ];
+    }),
   );
 }
 

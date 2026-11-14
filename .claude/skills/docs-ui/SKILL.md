@@ -71,7 +71,7 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   dark-default class contract on `<html>` (`:root` sets `color-scheme: dark`, `html.light` sets
   `color-scheme: light`), the `--color-fd-*` docs aliases, and the marketing tokens. `html.light`
   overrides only the docs-only tokens: `--color-fd-secondary` / `--color-fd-secondary-foreground`,
-  `--surface-tile`, `--border-tile`, `--halo-strong`, `--halo-soft` and `--art-dim`. Everything
+  `--surface-tile`, `--border-tile`, `--halo-strong` and `--halo-soft`. Everything
   else follows from the palette class. The theme is not a React context: Fumadocs' `RootProvider` runs with
   `theme: { enabled: false }` (`components/themed-root-provider.tsx`), so `next-themes` never
   mounts, because a context value that changes after hydration (`next-themes` re-memoizes on the
@@ -130,8 +130,7 @@ Three layers exist. Write against the third.
    or `--v-violet` comes back). The landing's light effects are tokens too, defined for both
    themes in `:root` and `html.light`: `--gradient-headline` (strong text into the accent, painted
    only on the hero `h1`), `--halo-strong` and `--halo-soft` (the accent fill and accent mixed into
-   transparency, weaker in the light theme) for every glow, `--art-dim` (the resting strokes and
-   dot grid of the feature canvases, read at runtime by `lib/landing-canvas.ts`), `--grid-line` for the faded grid behind the hero and the closer. Reach for one only in the role it already has.
+   transparency, weaker in the light theme) for every glow, `--grid-line` for the faded grid behind the hero and the closer. Reach for one only in the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
    `--color-fd-muted-foreground`, `--color-fd-primary`, `--color-fd-primary-foreground`,
@@ -171,13 +170,13 @@ Scales are fixed and narrow, deliberately:
 
 - Radii: `--radius-sm` 6px, `--radius-md` 10px, and `--radius-lg`, `--radius-xl`,
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Two landing
-  radii sit above it and nowhere else: `--radius-card` (20px) for the highlight tiles and feature
-  cards, and `--radius-panel` (28px) for the closing panel. The hero itself sits on the page, in no
+  radii sit above it and nowhere else: `--radius-card` (20px) for the highlight tiles and the feature
+  cards of the stacked deck, and `--radius-panel` (28px) for the closing panel. The hero itself sits on the page, in no
   card.
 - Shadows: `--shadow-panel` (a neutral lift) and `--shadow-sm`. Two, not a ramp, each
   lighter in the light theme, and neither tinted (`lib/theme.test.ts` fails on a hue in either
   shadow). Violet light comes only from the halo tokens above, in the places that name them: the
-  hero halo and the shadow under its front locale-file card, the CI tile, the feature visuals, the closing
+  hero halo and the shadow under its front locale-file card, the CI tile, the closing
   panel, the staged lock-demo card (`.vk-lock-stage .vk-lock-card`, only while the stage is set) and the
   glow of the primary `Button`.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
@@ -185,8 +184,8 @@ Scales are fixed and narrow, deliberately:
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
   between a section head and its content: the
-  highlight tiles and the feature grid (`margin-top: var(--head-gap)` on `.vk-bento` and
-  `.vk-feature-grid`), the row gap
+  highlight tiles and the feature deck (`margin-top: var(--head-gap)` on `.vk-bento` and
+  `.vk-deck`), the row gap
   of `.vk-section-aside` (the FAQ) and the gap above the lock-file demo's stage (`.vk-lock-stage`); `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
@@ -224,7 +223,7 @@ Scales are fixed and narrow, deliberately:
   the light theme and the footer forms no band in either; `--v-void` itself stays for code surfaces.
   Landing tiles use two landing-scoped tokens, outside the semantic layer above:
   `--surface-tile` (dark `hsl(240 26% 8%)`, light white) and `--border-tile` (dark
-  `hsl(240 22% 16%)`, light `--border-default`). They fill and border `.vk-tile`, `.vk-feature`,
+  `hsl(240 22% 16%)`, light `--border-default`). They fill and border `.vk-tile`, `.vk-deck-item`,
   `.vk-faq-item`, `.vk-closer`, `.vk-banner-file`,
   `.vk-lock-card`. The hero draws one `aria-hidden` `.vk-banner-halo` as its
   first child: two radial halos and a 64px `--grid-line` grid faded by a radial mask, behind the
@@ -364,32 +363,37 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   in a `mark` (span 3), and the MCP setup command wrapped, not scrolled, breaking only between whole flags and arguments through `keepPackageRunsWhole` (span 3); every count
   derives from the hero terminal data, never typed; the CLI text (run, exit code, command) carries
   `lang="en"` on every locale, like the lock-file demo's CLI lines), `features.tsx` (`#features`, a bracketed label, a split
-  head aligned to the start and `.vk-feature-grid` of `LANDING_FEATURES` from `lib/landing-features.ts`: each card a
-  fixed-height `.vk-feature-visual` (halo and dot grid, `overflow: hidden`) holding either one `aria-hidden` `canvas.vk-feature-canvas` (under 40rem the five canvas visuals are `display: none`, so a phone shows the Studio screenshot card and five text cards; the canvas loop never starts for a canvas that is not on screen)
-  (five cards: `feature-canvas.tsx`, a client island: motifs are the pure frame functions of `lib/landing-canvas.ts`, one per
-  `CANVAS_FEATURES` entry of `lib/landing-features.ts`,
-  colors read from the `--accent`, `--art-dim`, `--text-muted`, `--border-default`, `--surface-card`,
-  `--text-strong`, `--v-status-changed` and `--v-danger` tokens and re-read when `html.light`
-  toggles, drawn at devicePixelRatio, paused offscreen and while the tab is hidden, a bounded run that lasts until `runEndSeconds`
-  (at least `RUN_SECONDS` and less than `RUN_SECONDS + LOOP_SECONDS`, ending on a frame congruent to
-  `STILL_TIME`, never forever) and then holds its `STILL_TIME` frame, one static frame under
-  `prefers-reduced-motion`, no text ever drawn) or, on the Studio card only, the real
-  `studio-overview` screenshot (`StudioCardShot`, `components/landing/studio-card-shot.tsx`, a server
-  component: no client directive, no theme hook, no frame, caption or buttons, none of `StudioScreenshot`'s props, which
-  stays the docs frame). It renders the dark and the light file as two `img.vk-feature-shot`, each decorative (`alt=""` and
-  `aria-hidden`, like the canvases: the card's `h3` names the card), lazy, `width` and `height` 2880 by 1280 set and served
-  from this site through `/_next/image`. The stylesheet shows one: `.vk-feature-shot-light` is `display: none` and
-  `html.light` swaps the pair, from the class the pre-paint script sets, like `.vk-theme-icon-light`, so the hidden file is
-  never fetched and a page without JavaScript shows one image. The crop is the image's own `object-view-box`, so its box is the visual
-  and never overlaps the text (an oversized, translated image made axe report `color-contrast` as incomplete for the
-  card text); browsers without `object-view-box` get an oversized offset image from an `@supports not` rule. The crop is set by
-  `--feature-shot-scale` (2.9: the visual shows `1440 / 2.9` px of the 1440 px capture, `CARD_SHOT_SCALE`, which also
-  drives `sizes` in viewport units through `studioCardShotSizes`), `--feature-shot-x`, `--feature-shot-y` and `--feature-shot-height`
-  on `.vk-feature-visual:has(.vk-feature-shot)`, chosen so the right edge falls between the two stat cards and the bottom edge
-  between rows at 320, 391, 768 and 1440; recapturing the screenshots or changing Studio's Overview layout means
-  re-measuring them),
-  and an `h3` whose link to the command's docs page
-  stretches over the whole card), `marquee.tsx`
+  head aligned to the start and the command deck: `ol.vk-deck` of `LANDING_FEATURES` from `lib/landing-features.ts`, in
+  workflow order (extract, types, doctor, watch, handoff, studio), each with its `command` and `docsPath`. Every `li.vk-deck-item`
+  holds a `.vk-deck-row` (a radio, `input.vk-deck-radio`, one group, the first checked, `aria-controls` its pane; the `h3` whose
+  `label` names the radio; the command in a `code`) and a `.vk-deck-pane`: one artifact card (`.vk-lock-card.vk-deck-card`, the lock demo's card, head,
+  badge, code and line classes), a `.vk-deck-result` (the marked output line again), the body and a `.vk-deck-link` to the
+  command's docs page whose text is that page's path (`docs/cli/extract`), pinned to the bottom of a text card. The deck has no client code. Below 64rem, or without `:has()`, it is a grid of
+  text cards (one column, two from 40rem, three from 64rem): radios, commands and artifact cards are `display: none`; the result line shows only in
+  this card grid from 40rem (not on phones, which keeps the phone page inside its length budget, and not in the staged deck). Inside
+  `@supports selector(:has(*))` and `@media (min-width: 64rem)` the items become `display: contents` on the landing's twelve
+  columns with `--grid-gap`, like the lock-file demo's stage: rows on the first four, every pane in the same cell on the other eight, all but the pane of the checked radio `visibility: hidden`, so the
+  section keeps the height of its tallest pane and nothing below it moves. The transparent radio stretches over its row, so the whole row is the native control and takes the base-layer pointer, the
+  checked row takes the accent border and bar with no transition (a faded border flashes when the layout crosses 64rem), the
+  deck card carries no halo because the body and the link sit right under it, a focused radio outlines its row, and the checked row carries a transparent outline that `forced-colors` paints; arrow keys move through the group because
+  they are native radios. Never add autoplay here: the lock-file demo above already moves.
+  The artifacts are data in `lib/feature-artifacts.ts`, built from the hero fixture (`HERO_TERMINAL_SOURCE`, the playground file
+  pattern) so every count derives from it: `ArtifactLine` is a command, an output line (optionally marked `hit`), or a fold
+  (`more` with a count, `moreChecks` without one), and a block is CLI output, a file excerpt, the handoff sheet or the Studio
+  shot. `lib/feature-artifacts.run.test.ts` runs the real CLI (`packages/cli/src/run`) for `extract --dry-run`, `types`,
+  `doctor`, `translate --dry-run`, `watch` and `export --format csv` on that fixture and fails when a shown line, the declared
+  types or a sheet cell differs from what verbatra prints or writes (the watch pane is the output of the real watcher,
+  stopped at its waiting line, progress lines included); doctor is verbatim up to its one fold, which may hide only checks that passed. CLI and file text
+  carries `lang="en"` on every locale; only the badges, the folds and the empty sheet cell are translated
+  (`landing.features.badges`, `more`, `moreChecks`, `emptyCell`). `landing-markdown.ts` writes the same artifacts into `/index.md`.
+  The Studio pane shows the `studio-overview` screenshot (`StudioCardShot`, `components/landing/studio-card-shot.tsx`, a
+  server component: no client directive, no theme hook, no frame, none of `StudioScreenshot`'s props, which stays the docs frame).
+  It renders the dark and the light file as two `img.vk-deck-shot`, each decorative (`alt=""` and `aria-hidden`: the `h3` names the
+  feature), lazy, `width` and `height` 2880 by 1280 set, inside a `.vk-deck-shot-frame` that clips the capture's empty side margins and its last line (the image is 128.2% wide and
+  offset by 14.1%; recapturing the screenshot means re-measuring both and the frame's aspect ratio), and served from this site through
+  `/_next/image` with `CARD_SHOT_SIZES` (a one pixel candidate below 64rem, where the card is not shown). The stylesheet shows
+  one: `.vk-deck-shot-light` is `display: none` and `html.light` swaps the pair, from the class the pre-paint script sets, like
+  `.vk-theme-icon-light`, so the hidden file is never fetched and a page without JavaScript shows one image), `marquee.tsx`
   (`#marquee`, see "Marquee" below), and the comparison, which lives only on `/compare` (the landing reaches it from the hero link, the last FAQ answer, the FAQ's docs
   links and the footer). `lib/landing-compare.ts` holds its rows, tools and cells. A cell is typed
   (`compareCell(row, tool)`): a verdict (`yes`, `no`, `partial`, `unknown` or `noneFound`, whose mark comes from `verdictMark`: none
