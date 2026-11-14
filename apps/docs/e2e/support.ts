@@ -329,3 +329,222 @@ export async function installShiftCounter(page: Page): Promise<void> {
 export async function layoutShift(page: Page): Promise<number> {
   return page.evaluate(() => (window as unknown as { shifts: { total: number } }).shifts.total);
 }
+
+export type GateRest = {
+  frames: number;
+  full: number;
+  problems: string[];
+  minContrast: number;
+  pastEdge: number;
+  current: number;
+};
+
+export type GateHandoff = {
+  at: number;
+  frames: number[];
+  captions: number[];
+  cards: number[];
+};
+
+declare global {
+  interface Window {
+    gateProbe?: {
+      settle: () => Promise<boolean>;
+      rest: () => GateRest;
+      handoff: (step: number, length: number, move: () => void) => Promise<GateHandoff[]>;
+    };
+  }
+}
+
+export function installGateProbe(): void {
+  const frames = (): Element[] => [...document.querySelectorAll(".vk-gate-frame")];
+  const nextFrame = (): Promise<void> =>
+    new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  const runningTransitions = (): number =>
+    document
+      .getAnimations()
+      .filter(
+        (animation) =>
+          animation instanceof CSSTransition &&
+          animation.playState !== "finished" &&
+          animation.playState !== "idle",
+      ).length;
+  const settle = async (): Promise<boolean> => {
+    await nextFrame();
+    const started = performance.now();
+    while (runningTransitions() > 0) {
+      if (performance.now() - started > 3000) return false;
+      await nextFrame();
+    }
+    await nextFrame();
+    return true;
+  };
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
+  const colour = (value: string): [number, number, number, number] => {
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = "#000";
+    context.fillStyle = value;
+    context.fillRect(0, 0, 1, 1);
+    const [r = 0, g = 0, b = 0, a = 0] = context.getImageData(0, 0, 1, 1).data;
+    return [r, g, b, a / 255];
+  };
+  const over = (
+    top: [number, number, number, number],
+    bottom: [number, number, number, number],
+  ): [number, number, number, number] => {
+    const alpha = top[3] + bottom[3] * (1 - top[3]);
+    if (alpha === 0) return [0, 0, 0, 0];
+    const mix = (index: 0 | 1 | 2): number =>
+      (top[index] * top[3] + bottom[index] * bottom[3] * (1 - top[3])) / alpha;
+    return [mix(0), mix(1), mix(2), alpha];
+  };
+  const luminance = ([r, g, b]: [number, number, number, number]): number => {
+    const channel = (value: number): number => {
+      const unit = value / 255;
+      return unit <= 0.03928 ? unit / 12.92 : ((unit + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  };
+  const backdrop = (element: Element): [number, number, number, number] => {
+    const layers: Array<[number, number, number, number]> = [];
+    for (let node: Element | null = element; node; node = node.parentElement) {
+      const layer = colour(getComputedStyle(node).backgroundColor);
+      layers.push(layer);
+      if (layer[3] >= 1) break;
+    }
+    return layers.reduceRight((below, layer) => over(layer, below), [255, 255, 255, 1] as [
+      number,
+      number,
+      number,
+      number,
+    ]);
+  };
+  const contrast = (element: Element): number => {
+    const bottom = backdrop(element);
+    const text = over(colour(getComputedStyle(element).color), bottom);
+    const [lighter, darker] = [luminance(text), luminance(bottom)].sort((a, b) => b - a) as [
+      number,
+      number,
+    ];
+    return (lighter + 0.05) / (darker + 0.05);
+  };
+  const zero = (value: string): boolean =>
+    value === "none" || value.split(" ").every((part) => Number.parseFloat(part) === 0);
+  const unscaled = (value: string): boolean =>
+    value === "none" || value.split(" ").every((part) => Number.parseFloat(part) === 1);
+  const partProblems = (name: string, part: Element): string[] => {
+    const style = getComputedStyle(part);
+    return [
+      zero(style.translate) ? "" : `${name} offset ${style.translate}`,
+      unscaled(style.scale) ? "" : `${name} scale ${style.scale}`,
+      style.transform === "none" ? "" : `${name} transform`,
+      Number(style.opacity) === 1 ? "" : `${name} part opacity`,
+    ].filter((problem) => problem !== "");
+  };
+  const accentProblems = (name: string, accent: Element): string[] => {
+    const style = getComputedStyle(accent);
+    return [
+      Number(style.opacity) === 1 ? "" : `${name} accent ${style.opacity}`,
+      zero(style.translate) ? "" : `${name} accent ${style.translate}`,
+      unscaled(style.scale) ? "" : `${name} accent ${style.scale}`,
+    ].filter((problem) => problem !== "");
+  };
+  const lineProblems = (name: string, line: Element): string[] => {
+    const style = getComputedStyle(line);
+    return Number(style.opacity) === 1 && zero(style.translate)
+      ? []
+      : [`${name} line ${line.textContent?.slice(0, 20)}`];
+  };
+  const currentProblems = (node: Element, name: string): string[] => {
+    const parts = [
+      node.querySelector(":scope > figcaption"),
+      node.querySelector(":scope > .vk-gate-card"),
+    ] as Element[];
+    return [
+      getComputedStyle(node).pointerEvents === "none" ? `${name} has no pointer` : "",
+      ...parts.flatMap((part) => partProblems(name, part)),
+      ...[...node.querySelectorAll(".vk-gate-moves")].flatMap((a) => accentProblems(name, a)),
+      ...[...node.querySelectorAll(".vk-lock-line")].flatMap((line) => lineProblems(name, line)),
+    ].filter((problem) => problem !== "");
+  };
+  const hiddenProblems = (node: Element, name: string): string[] => {
+    const style = getComputedStyle(node);
+    return [
+      Number(style.opacity) === 0 ? "" : `${name} opacity ${style.opacity}`,
+      style.pointerEvents === "none" ? "" : `${name} pointer ${style.pointerEvents}`,
+    ].filter((problem) => problem !== "");
+  };
+  const lowestContrast = (active: Element): number => {
+    const walker = document.createTreeWalker(active, NodeFilter.SHOW_TEXT);
+    let lowest = Number.POSITIVE_INFINITY;
+    for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+      const owner = text.parentElement;
+      if (owner && (text.textContent ?? "").trim() !== "")
+        lowest = Math.min(lowest, contrast(owner));
+    }
+    return lowest;
+  };
+  const countPastEdge = (active: Element): number => {
+    const width = document.documentElement.clientWidth;
+    return [active, ...active.querySelectorAll("*")].filter((element) => {
+      const box = element.getBoundingClientRect();
+      return box.width > 0 && (box.left < -1 || box.right > width + 1);
+    }).length;
+  };
+  const rest = (): GateRest => {
+    const list = frames();
+    const opacities = list.map((node) => Number(getComputedStyle(node).opacity));
+    const current = opacities.indexOf(1);
+    const problems = list.flatMap((node, index) => {
+      const name = node.getAttribute("data-state") ?? String(index);
+      return index === current ? currentProblems(node, name) : hiddenProblems(node, name);
+    });
+    const active = list[current];
+    return {
+      frames: list.length,
+      full: opacities.filter((opacity) => opacity === 1).length,
+      problems,
+      minContrast: active ? lowestContrast(active) : Number.POSITIVE_INFINITY,
+      pastEdge: active ? countPastEdge(active) : 0,
+      current,
+    };
+  };
+  const handoff = async (
+    step: number,
+    length: number,
+    move: () => void,
+  ): Promise<GateHandoff[]> => {
+    const samples: GateHandoff[] = [];
+    const started = performance.now();
+    const read = (): void => {
+      const list = frames();
+      samples.push({
+        at: Math.round(performance.now() - started),
+        frames: list.map((node) => Number(getComputedStyle(node).opacity)),
+        captions: list.map(
+          (node) =>
+            Number.parseFloat(
+              getComputedStyle(node.querySelector(":scope > figcaption") as Element).translate,
+            ) || 0,
+        ),
+        cards: list.map(
+          (node) =>
+            Number.parseFloat(
+              getComputedStyle(node.querySelector(":scope > .vk-gate-card") as Element).translate,
+            ) || 0,
+        ),
+      });
+    };
+    move();
+    read();
+    while (performance.now() - started < length) {
+      await new Promise((resolve) => setTimeout(resolve, step));
+      read();
+    }
+    return samples;
+  };
+  window.gateProbe = { settle, rest, handoff };
+}
