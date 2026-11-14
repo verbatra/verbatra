@@ -526,7 +526,7 @@ for (const [width, height] of [
   });
 }
 
-type Paint = { frame: number; caption: number; card: number };
+type Paint = { frame: number; caption: number; card: number; lineGaps: number };
 
 async function paints(page: Page): Promise<Paint[]> {
   return page.evaluate(() =>
@@ -534,10 +534,15 @@ async function paints(page: Page): Promise<Paint[]> {
       const frameOpacity = Number(getComputedStyle(frame).opacity);
       const part = (selector: string) =>
         frameOpacity * Number(getComputedStyle(frame.querySelector(selector) as Element).opacity);
+      const lineGaps = [...frame.querySelectorAll(".vk-lock-line")].filter((line) => {
+        const style = getComputedStyle(line);
+        return style.opacity !== "1" || style.transform !== "none";
+      }).length;
       return {
         frame: frameOpacity,
         caption: part(":scope > figcaption"),
         card: part(":scope > .vk-gate-card"),
+        lineGaps,
       };
     }),
   );
@@ -549,6 +554,7 @@ function expectOneFrame(list: Paint[], label: string): void {
   const [only] = painted;
   expect(list[only ?? 0]?.frame, label).toBeGreaterThanOrEqual(GATE_CARD_MIN_PAINT);
   expect(list[only ?? 0]?.card, `${label}: card`).toBeGreaterThanOrEqual(GATE_CARD_MIN_PAINT);
+  expect(list[only ?? 0]?.lineGaps, `${label}: lines missing or lagging their card`).toBe(0);
   list.forEach((paint, index) => {
     if (index === only) return;
     expect(paint.card, `${label}: second card ${index}`).toBeLessThanOrEqual(GATE_FRAME_PAINTED);
@@ -580,10 +586,15 @@ async function sweepFrames(
             const part = (selector: string) =>
               frameOpacity *
               Number(getComputedStyle(frame.querySelector(selector) as Element).opacity);
+            const lineGaps = [...frame.querySelectorAll(".vk-lock-line")].filter((line) => {
+              const style = getComputedStyle(line);
+              return style.opacity !== "1" || style.transform !== "none";
+            }).length;
             return {
               frame: frameOpacity,
               caption: part(":scope > figcaption"),
               card: part(":scope > .vk-gate-card"),
+              lineGaps,
             };
           }),
         });
@@ -623,10 +634,12 @@ for (const locale of LOCALES) {
         await openStaged(page, locale);
         let two = 0;
         let lowest = 1;
+        let gaps = 0;
         await test.step("2px sweep", async () => {
           for (const { at, list } of await sweepFrames(page, 2)) {
             const painted = list.filter((paint) => paint.frame > GATE_FRAME_PAINTED);
             if (painted.length !== 1) two += 1;
+            if (painted.some((paint) => paint.lineGaps > 0)) gaps += 1;
             expectOneFrame(list, `sweep ${at}px`);
             lowest = Math.min(lowest, ...painted.map((paint) => paint.frame));
             const captionOwner = list.flatMap((paint, i) =>
@@ -639,9 +652,10 @@ for (const locale of LOCALES) {
           }
         });
         console.log(
-          `cut ${browserName} ${locale} ${width}x${height}: two frames ${two}, lowest frame ${lowest.toFixed(2)}`,
+          `cut ${browserName} ${locale} ${width}x${height}: two frames ${two}, positions with a missing line ${gaps}, lowest frame ${lowest.toFixed(2)}`,
         );
         expect(two).toBe(0);
+        expect(gaps).toBe(0);
         await page.evaluate(() => window.scrollTo(0, 0));
         await settle(page);
         const start = await pinStart(page);

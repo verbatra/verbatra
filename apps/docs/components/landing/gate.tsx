@@ -88,11 +88,6 @@ function Frame({
   );
 }
 
-function lineOrder(index: number, count: number, marked: number | undefined): number {
-  if (marked === undefined || marked < 0 || index < marked) return index + 1;
-  return index === marked ? count : index;
-}
-
 function Cli({
   command,
   lines,
@@ -105,7 +100,7 @@ function Cli({
   return (
     <pre className="vk-lock-code vk-gate-code vk-gate-cli" lang="en">
       <code>
-        <span className="vk-lock-line" data-kind="command" style={{ "--n": 0 } as CSSProperties}>
+        <span className="vk-lock-line" data-kind="command">
           {keepPackageRunsWhole(`$ ${command}`)}
           {"\n"}
         </span>
@@ -114,7 +109,6 @@ function Cli({
             key={`${index}-${line}`}
             className="vk-lock-line"
             data-mark={index === marked ? "refused" : undefined}
-            style={{ "--n": lineOrder(index, lines.length, marked) } as CSSProperties}
           >
             {keepCompoundsWhole(line)}
             {index < lines.length - 1 ? "\n" : ""}
