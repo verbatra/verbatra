@@ -386,6 +386,7 @@ describe("the landing faq copy", () => {
       for (const { id, answer } of await faqContent(locale)) {
         const sentences = answer.split(SENTENCE_END).filter((part) => part.trim() !== "");
         const caps = FAQ_WORD_CAPS[locale];
+        expect(sentences.length, id).toBeGreaterThan(0);
         expect(countWords(sentences[0] ?? "", locale), id).toBeLessThanOrEqual(caps.firstSentence);
         expect(sentences.length, id).toBeLessThanOrEqual(3);
         expect(countWords(answer, locale), id).toBeLessThanOrEqual(caps.answer);

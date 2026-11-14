@@ -275,10 +275,6 @@ describe("Marquee", () => {
     fr: "Sept fournisseurs et quatorze formats de fichier.",
   };
 
-  it("has a spelled-count sample for every locale", () => {
-    expect(Object.keys(SPELLED_SAMPLES).sort()).toEqual([...LOCALES].sort());
-  });
-
   it.each(LOCALES)("flags a spelled-out or numeric count in %s", (locale) => {
     expect(SPELLED_SAMPLES[locale]).toMatch(spelledCount(locale));
   });

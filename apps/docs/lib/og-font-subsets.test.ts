@@ -13,6 +13,38 @@ const FONT_ROOT = join(process.cwd(), OG_FONT_DIR);
 const BOLD = readFileSync(join(FONT_ROOT, "Geist-Bold.ttf"));
 const CJK_WORD = "翻译";
 
+function withTables(font: Buffer, extra: Readonly<Record<string, Buffer>>): Buffer {
+  const count = font.readUInt16BE(4);
+  const tables = Array.from({ length: count }, (_, index) => {
+    const record = 12 + index * 16;
+    const offset = font.readUInt32BE(record + 8);
+    return {
+      tag: font.toString("latin1", record, record + 4),
+      data: font.subarray(offset, offset + font.readUInt32BE(record + 12)),
+    };
+  });
+  for (const [tag, data] of Object.entries(extra)) tables.push({ tag, data });
+  tables.sort((a, b) => (a.tag < b.tag ? -1 : 1));
+  const directory = Buffer.alloc(12 + tables.length * 16);
+  font.copy(directory, 0, 0, 12);
+  directory.writeUInt16BE(tables.length, 4);
+  let offset = directory.length;
+  const bodies: Buffer[] = [];
+  tables.forEach((table, index) => {
+    const record = 12 + index * 16;
+    directory.write(table.tag, record, "latin1");
+    directory.writeUInt32BE(offset, record + 8);
+    directory.writeUInt32BE(table.data.length, record + 12);
+    const padding = Buffer.alloc((4 - (table.data.length % 4)) % 4);
+    bodies.push(table.data, padding);
+    offset += table.data.length + padding.length;
+  });
+  return Buffer.concat([directory, ...bodies]);
+}
+
+const EMPTY_LAYOUT_TABLE = Buffer.from([0, 1, 0, 0, 0, 10, 0, 12, 0, 14, 0, 0, 0, 0, 0, 0]);
+const LAYOUT_TAGS = ["GPOS", "GSUB", "kern"];
+
 function fixtureFont(file: string): OgLocaleFont {
   return { name: "Fixture", file, weight: 700, lang: undefined, sourceFile: "Geist-Bold.ttf" };
 }
@@ -38,7 +70,17 @@ describe("OG font subsets", () => {
     expect(covered.has("é".codePointAt(0) ?? 0)).toBe(true);
     expect(covered.has("ü".codePointAt(0) ?? 0)).toBe(false);
     expect(covered.has("A".codePointAt(0) ?? 0)).toBe(true);
-    for (const tag of ["GPOS", "GSUB", "kern"]) expect(fontTableTags(subset)).not.toContain(tag);
+  });
+
+  it("strips the layout tables a source font carries", async () => {
+    const source = withTables(BOLD, {
+      GPOS: EMPTY_LAYOUT_TABLE,
+      GSUB: EMPTY_LAYOUT_TABLE,
+      kern: Buffer.from([0, 0, 0, 0]),
+    });
+    for (const tag of LAYOUT_TAGS) expect(fontTableTags(source)).toContain(tag);
+    const subset = await subsetOgFont(source, "é", {});
+    for (const tag of LAYOUT_TAGS) expect(fontTableTags(subset)).not.toContain(tag);
   });
 
   describe("built into a project root", () => {

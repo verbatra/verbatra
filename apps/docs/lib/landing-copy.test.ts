@@ -9,7 +9,7 @@ import {
   type CompareTool,
   compareCell,
 } from "@/lib/landing-compare";
-import { countWords } from "@/lib/word-count";
+import { countWords, isSpaceless } from "@/lib/word-count";
 
 const NAMESPACES = [
   "topNav",
@@ -160,7 +160,21 @@ describe("the redesigned landing copy", () => {
     fr: SPACED_CAPS,
   };
 
-  const words = countWords;
+  const QUALIFIER_BREAK = /[,:;，：；、]/;
+
+  function opensWithVerdict(note: string, vocabulary: readonly string[], locale: string): boolean {
+    const text = note.toLowerCase();
+    if (isSpaceless(locale))
+      return vocabulary.some(
+        (word) =>
+          text.startsWith(word) &&
+          (text.length === word.length || QUALIFIER_BREAK.test(text.charAt(word.length))),
+      );
+    const tokens = text.split(/\s+/);
+    const first = tokens[0] ?? "";
+    const leads = tokens.length === 1 || QUALIFIER_BREAK.test(first.charAt(first.length - 1));
+    return leads && vocabulary.includes(first.replace(/[,:;.，：；、。]+$/, ""));
+  }
 
   function cell(locale: string, row: CompareRowId, tool: CompareTool): MessageTree | undefined {
     const node = branch(landing(locale), `compare.rows.${row}`)[tool];
@@ -173,7 +187,7 @@ describe("the redesigned landing copy", () => {
       expect(Object.keys(vocabulary), locale).toEqual([...VERDICT_WORDS]);
       for (const [key, word] of leaves(vocabulary)) {
         expect(word, `${locale} ${key}`).not.toBe("");
-        expect(words(word, locale), `${locale} ${key}`).toBeLessThanOrEqual(
+        expect(countWords(word, locale), `${locale} ${key}`).toBeLessThanOrEqual(
           COMPARE_CAPS[locale].verdict,
         );
       }
@@ -204,7 +218,9 @@ describe("the redesigned landing copy", () => {
         const cap = flagged.includes(`${row}.${tool}`)
           ? COMPARE_CAPS[locale].flaggedNote
           : COMPARE_CAPS[locale].note;
-        expect(words(String(note), locale), `${locale} ${row}.${tool}`).toBeLessThanOrEqual(cap);
+        expect(countWords(String(note), locale), `${locale} ${row}.${tool}`).toBeLessThanOrEqual(
+          cap,
+        );
       }
     });
 
@@ -215,17 +231,32 @@ describe("the redesigned landing copy", () => {
       for (const [row, tool] of ALL_CELLS) {
         const node = cell(locale, row, tool);
         const label = `${locale} ${row}.${tool}`;
-        expect(words(String(node?.value ?? ""), locale), label).toBeLessThanOrEqual(
+        expect(countWords(String(node?.value ?? ""), locale), label).toBeLessThanOrEqual(
           COMPARE_CAPS[locale].value,
         );
-        const tokens = String(node?.note ?? "").split(/\s+/);
-        const first = tokens[0] ?? "";
-        const leadsWithVerdict = tokens.length === 1 || /[,:;]$/.test(first);
-        const opening = first.replace(/[,:;.]+$/, "").toLowerCase();
-        expect(leadsWithVerdict && vocabulary.includes(opening), label).toBe(false);
+        expect(opensWithVerdict(String(node?.note ?? ""), vocabulary, locale), label).toBe(false);
       }
     });
   }
+
+  it("detects a verdict word that opens a qualifier, spaced or not", () => {
+    expect(opensWithVerdict("Yes, with a plugin", ["yes", "no"], "en")).toBe(true);
+    expect(opensWithVerdict("Yes with a plugin", ["yes", "no"], "en")).toBe(false);
+    expect(opensWithVerdict("支持，需要配置", ["支持", "不支持"], "zh-CN")).toBe(true);
+    expect(opensWithVerdict("不支持：需要配置", ["支持", "不支持"], "zh-CN")).toBe(true);
+    expect(opensWithVerdict("支持配置", ["支持", "不支持"], "zh-CN")).toBe(false);
+  });
+
+  it("detects a leading verdict word in every spaceless locale that joins the list", () => {
+    for (const locale of i18n.languages.filter(isSpaceless)) {
+      const vocabulary = leaves(branch(landing(locale), "compare.verdicts")).map(([, word]) =>
+        word.toLowerCase(),
+      );
+      expect(vocabulary.length, locale).toBeGreaterThan(0);
+      for (const word of vocabulary)
+        expect(opensWithVerdict(`${word}，x`, vocabulary, locale), `${locale} ${word}`).toBe(true);
+    }
+  });
 
   it("names no sync command, which verbatra does not have", () => {
     for (const [key, text] of source) expect(text, key).not.toMatch(/verbatra sync\b/);

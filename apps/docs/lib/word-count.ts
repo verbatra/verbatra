@@ -1,6 +1,6 @@
 const SPACELESS_LANGUAGES: ReadonlySet<string> = new Set(["zh", "ja", "th", "lo", "km", "my"]);
 
-function isSpaceless(locale: string): boolean {
+export function isSpaceless(locale: string): boolean {
   return SPACELESS_LANGUAGES.has(new Intl.Locale(locale).language);
 }
 

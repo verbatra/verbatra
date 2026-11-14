@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LOCALE,
@@ -32,6 +33,13 @@ describe("locale source of truth", () => {
 
   it("derives one file suffix per translated locale after the empty English one", () => {
     expect(localeSuffixes()).toEqual(["", ...TRANSLATED_LOCALES.map((locale) => `.${locale}`)]);
+  });
+});
+
+describe("locales.ts as loaded by the published CLI", () => {
+  it("has no import, static or dynamic, so verbatra.config.ts can load it without the app resolver", () => {
+    const source = readFileSync(new URL("./locales.ts", import.meta.url), "utf8");
+    expect(source).not.toMatch(/\bimport\b|\brequire\s*\(|\bfrom\s+["']/);
   });
 });
 
