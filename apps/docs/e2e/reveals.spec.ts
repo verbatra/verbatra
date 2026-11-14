@@ -4,10 +4,12 @@ const DECK = [".vk-deck-command", ".vk-deck-card"] as const;
 
 const ARTIFACTS = [...DECK, ".vk-faq-item", ".vk-final-install > div", ".vk-closer-proof"] as const;
 
+const PHONE_WIDTH = 640;
+
 function shown(width: number): ReadonlyArray<string> {
-  return width < 1024
-    ? ARTIFACTS.filter((selector) => !DECK.includes(selector as never))
-    : ARTIFACTS;
+  const wide =
+    width < 1024 ? ARTIFACTS.filter((selector) => !DECK.includes(selector as never)) : ARTIFACTS;
+  return width < PHONE_WIDTH ? wide.filter((selector) => selector !== ".vk-faq-item") : wide;
 }
 
 const LOCK_CARDS = ".vk-lock .vk-lock-card";
@@ -110,7 +112,11 @@ for (const [width, height] of [
     test("chain the faq items and the closing parts within the stagger cap", async ({ page }) => {
       await page.goto("/");
       await walk(page);
-      for (const selector of [".vk-faq-item", ".vk-final-install > div, .vk-closer-proof"]) {
+      const chains =
+        width < PHONE_WIDTH
+          ? [".vk-final-install > div, .vk-closer-proof"]
+          : [".vk-faq-item", ".vk-final-install > div, .vk-closer-proof"];
+      for (const selector of chains) {
         const delays = await page
           .locator(selector)
           .evaluateAll((nodes) =>
@@ -122,6 +128,14 @@ for (const [width, height] of [
         expect([...delays].sort((a, b) => a - b)).toEqual(delays);
         expect(Math.max(...delays)).toBeLessThanOrEqual(MAX_DELAY_S);
       }
+    });
+
+    test("keep the faq items in place on a phone and reveal them from 40rem", async ({ page }) => {
+      await page.goto("/");
+      await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
+      const first = (await states(page, ".vk-faq-item"))[0];
+      expect(first?.opacity).toBe(width < PHONE_WIDTH ? 1 : 0);
+      expect(first?.offset === 0).toBe(width < PHONE_WIDTH);
     });
 
     test("shift no layout over a full scroll", async ({ page }) => {

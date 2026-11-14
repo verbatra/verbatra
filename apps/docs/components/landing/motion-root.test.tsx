@@ -179,6 +179,17 @@ describe("the motion stylesheet", () => {
     expect(staged?.declarations).toEqual({ opacity: "1", translate: "none" });
   });
 
+  it("leaves the faq items out of the reveal below 40rem, where every reveal would be the same fade-up", () => {
+    const rule = all.find(
+      (candidate) =>
+        candidate.selector ===
+        "html[data-motion-ready] .vk-faq-item[data-reveal]:not([data-revealed])",
+    );
+    expect(rule?.media).toContain("(max-width: 39.99rem)");
+    expect(rule?.media).toContain("prefers-reduced-motion: no-preference");
+    expect(rule?.declarations).toEqual({ opacity: "1", translate: "none" });
+  });
+
   it("caps the stagger at the maximum delay and declares the motion tokens on :root", () => {
     for (const token of [
       "--duration-slow: 560ms",

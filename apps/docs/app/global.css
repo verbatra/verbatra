@@ -2470,6 +2470,13 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
+@media (max-width: 39.99rem) and (prefers-reduced-motion: no-preference) {
+  html[data-motion-ready] .vk-faq-item[data-reveal]:not([data-revealed]) {
+    opacity: 1;
+    translate: none;
+  }
+}
+
 @media (min-width: 64rem) and (prefers-reduced-motion: no-preference) {
   html[data-motion-ready] .vk-lock .vk-lock-card[data-reveal] {
     opacity: 1;
