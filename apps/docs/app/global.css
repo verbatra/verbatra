@@ -5305,15 +5305,15 @@ html.light .vk-deck-shot-light {
     }
 
     .vk-gate-progress i[data-state="candidate"]::after {
-      animation-range: contain 0.465% contain 38.14%;
+      animation-range: contain 0.465% contain 35.814%;
     }
 
     .vk-gate-progress i[data-state="refused"]::after {
-      animation-range: contain 38.14% contain 73.023%;
+      animation-range: contain 35.814% contain 68.372%;
     }
 
     .vk-gate-progress i[data-state="stale"]::after {
-      animation-range: contain 73.023% contain 99.535%;
+      animation-range: contain 68.372% contain 99.535%;
     }
 
     @media (forced-colors: active) {
@@ -5324,18 +5324,18 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-state {
       0%,
-      38.07% {
+      35.744% {
         --vk-gate-state: 0;
         animation-timing-function: step-end;
       }
 
-      38.14%,
-      72.953% {
+      35.814%,
+      68.302% {
         --vk-gate-state: 1;
         animation-timing-function: step-end;
       }
 
-      73.023%,
+      68.372%,
       100% {
         --vk-gate-state: 2;
       }
@@ -5343,12 +5343,12 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-hit-candidate {
       0%,
-      38.07% {
+      35.744% {
         pointer-events: auto;
         animation-timing-function: step-end;
       }
 
-      38.14%,
+      35.814%,
       100% {
         pointer-events: none;
       }
@@ -5356,18 +5356,18 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-hit-refused {
       0%,
-      38.07% {
+      35.744% {
         pointer-events: none;
         animation-timing-function: step-end;
       }
 
-      38.14%,
-      72.953% {
+      35.814%,
+      68.302% {
         pointer-events: auto;
         animation-timing-function: step-end;
       }
 
-      73.023%,
+      68.372%,
       100% {
         pointer-events: none;
       }
@@ -5375,12 +5375,12 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-hit-stale {
       0%,
-      72.953% {
+      68.302% {
         pointer-events: none;
         animation-timing-function: step-end;
       }
 
-      73.023%,
+      68.372%,
       100% {
         pointer-events: auto;
       }

@@ -2,7 +2,7 @@ export type SvhRange = readonly [number, number];
 
 export const GATE_PIN_SVH = 215;
 
-export const GATE_CUTS: readonly [number, number] = [82, 157];
+export const GATE_CUTS: readonly [number, number] = [77, 147];
 
 export const GATE_STATE_FLOOR_SVH = 40;
 
