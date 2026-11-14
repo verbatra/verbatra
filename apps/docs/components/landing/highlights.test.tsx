@@ -2,13 +2,14 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { NextIntlClientProvider } from "next-intl";
+import { createTranslator, NextIntlClientProvider } from "next-intl";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { HERO_CHECK_BADGE } from "@/lib/hero-terminal";
 import {
   CLI_LINES,
+  LOCK_STATE_STALE,
   MCP_CALL,
   MCP_RESPONSE_LINES,
   RAIL_ENTRIES,
@@ -19,10 +20,13 @@ import {
   SURFACE_COUNTS,
   surfaceText,
 } from "@/lib/highlights-surfaces";
-import { MCP_ADD_COMMAND } from "@/lib/install-commands";
+import { MCP_ADD_COMMAND, SDK_INSTALL_COMMAND } from "@/lib/install-commands";
 import { LOCK_FILE_NAME } from "@/lib/lock-demo";
 import de from "@/messages/de.json";
 import en from "@/messages/en.json";
+import es from "@/messages/es.json";
+import fr from "@/messages/fr.json";
+import { cssBlock, literalColours } from "@/test-support/css-block";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const rendering = vi.hoisted(() => ({ locale: "en" }));
@@ -86,10 +90,10 @@ describe("Highlights", () => {
     );
   });
 
-  it("states the dataset from the fixture in the lead, naming the four surfaces and the one lock file", () => {
+  it("states the dataset from the fixture in the lead, naming the one lock file and the language", () => {
     const lead = root.querySelector(".vk-section-head-lead")?.textContent ?? "";
     expect(lead).toBe(
-      `The CLI, the SDK, Studio and the MCP server all read one lock file, so ${SURFACE_COUNTS.locale} reads ${SURFACE_COUNTS.stale} stale and ${SURFACE_COUNTS.upToDate} up-to-date wherever you ask.`,
+      `Every surface reads one lock file, so German reads ${SURFACE_COUNTS.stale} stale and ${SURFACE_COUNTS.upToDate} up-to-date wherever you ask.`,
     );
     expect(SURFACE_COUNTS).toMatchObject({
       locale: "de",
@@ -99,6 +103,28 @@ describe("Highlights", () => {
       total: 14,
     });
   });
+
+  it.each([
+    ["en", en],
+    ["de", de],
+    ["es", es],
+    ["fr", fr],
+  ] as const)(
+    "names the language of the fixture in the %s lead and never its locale code",
+    (locale, catalog) => {
+      const lead = createTranslator({
+        locale,
+        messages: catalog,
+        namespace: "landing.highlights",
+      })("lead", { stale: SURFACE_COUNTS.stale, upToDate: SURFACE_COUNTS.upToDate });
+      const language = new Intl.DisplayNames([locale], { type: "language" }).of(
+        SURFACE_COUNTS.locale,
+      );
+      expect(language).toBeTruthy();
+      expect(lead).toContain(language as string);
+      expect(catalog.landing.highlights.lead).not.toContain("{locale}");
+    },
+  );
 
   it("shows a slim lock file rail with the two stale entries and the check badge", () => {
     const rail = root.querySelector(".vk-hl-rail");
@@ -110,7 +136,10 @@ describe("Highlights", () => {
     expect(lines.map((line) => line.querySelector(".vk-lock-key")?.textContent)).toEqual(
       RAIL_ENTRIES.map(({ key }) => JSON.stringify(key)),
     );
-    expect(rail?.querySelectorAll(".vk-lock-tag")[0]?.textContent).toBe("stale");
+    for (const tag of rail?.querySelectorAll(".vk-lock-tag") ?? []) {
+      expect(tag.textContent).toBe(LOCK_STATE_STALE);
+      expect(tag.getAttribute("lang")).toBe("en");
+    }
   });
 
   it("sets four panes in the order CLI, Studio, SDK, MCP server, each naming its surface in an h3", () => {
@@ -176,15 +205,51 @@ describe("Highlights", () => {
     );
   });
 
-  it("puts the MCP setup command in the pane with the real copy control", () => {
+  it("puts the setup command of the SDK and of the MCP server in their panes with the real copy control", () => {
     const mcp = panes()[3];
     expect(mcp?.querySelector(".vk-hl-command code")?.textContent).toBe(MCP_ADD_COMMAND);
     const button = mcp?.querySelector(".vk-hl-foot button");
     expect(button?.getAttribute("aria-label")).toBe(en.landing.highlights.mcp.copyAria);
     expect(button?.textContent).toBe(en.landing.install.copy);
     expect(mcp?.querySelector(".vk-lock-head")?.textContent).toContain("calls no provider");
-    expect(root.querySelectorAll("button")).toHaveLength(1);
+    const sdk = panes()[2];
+    expect(sdk?.querySelector(".vk-hl-command code")?.textContent).toBe(SDK_INSTALL_COMMAND);
+    expect(sdk?.querySelector(".vk-hl-foot button")?.getAttribute("aria-label")).toBe(
+      en.landing.highlights.sdk.copyAria,
+    );
+    expect(root.querySelectorAll("button")).toHaveLength(2);
   });
+
+  it("marks the English badges lang=en and leaves the translated MCP badge to the page", () => {
+    const badges = panes().map((pane) => pane.querySelector(".vk-lock-head .vk-lock-badge"));
+    expect(badges.map((badge) => badge?.getAttribute("lang"))).toEqual(["en", "en", "en", null]);
+  });
+
+  it("names the Studio table by a translated group and keeps its cells in English", async () => {
+    const figure = panes()[1]?.querySelector("figure");
+    expect(figure?.querySelector("figcaption")?.textContent).toBe("Locale coverage");
+    expect(figure?.hasAttribute("lang")).toBe(false);
+    expect(figure?.querySelector("table")?.getAttribute("lang")).toBe("en");
+    expect(figure?.querySelector("table")?.hasAttribute("aria-label")).toBe(false);
+    const german = await renderIn("de");
+    expect(german.querySelector("figure figcaption")?.textContent).toBe(
+      de.landing.highlights.studio.label,
+    );
+  });
+
+  it.each([
+    ["en", en],
+    ["de", de],
+    ["es", es],
+    ["fr", fr],
+  ] as const)(
+    "capitalises every %s surface name and uses one word for the provider",
+    (_locale, catalog) => {
+      for (const name of Object.values(catalog.landing.highlights.surfaces))
+        expect(name.charAt(0)).toBe(name.charAt(0).toUpperCase());
+      expect(catalog.landing.highlights.mcp.badge).not.toMatch(/Provider/);
+    },
+  );
 
   it("keeps up-to-date whole wherever the section prints it", () => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -258,6 +323,9 @@ describe("Highlights stylesheet", () => {
     expect(css).toContain(`${trigger} .vk-hl-stale {`);
     expect(css).toContain(`${trigger} .vk-lock-line[data-mark] {`);
     expect(css).toMatch(/\.vk-hl-stale \{[^}]*color: var\(--accent\);/);
+    expect(css).toMatch(
+      /\.vk-hl-rail \.vk-lock-value,\s+[^{]*\.vk-hl-rail \.vk-lock-sign \{\s+color: var\(--text-strong\);/,
+    );
   });
 
   it("fades the highlight over --duration-fast, only where motion is welcome, and animates no layout", () => {
@@ -269,16 +337,28 @@ describe("Highlights stylesheet", () => {
     expect(block).not.toMatch(/\b(width|height|margin|padding|top|left)\b/);
   });
 
+  it("sets the stale field on a radius token and keeps the bar at every container width", () => {
+    expect(rule(".vk-hl-stale")).toContain("border-radius: var(--radius-sm);");
+    const narrow = cssBlock(css, "@container (max-width: 24rem) {", "\n}\n");
+    expect(narrow).toContain(".vk-hl-keys {");
+    expect(narrow).not.toMatch(/\.vk-hl-bar[^{]*\{\s+display: none/);
+  });
+
   it("outlines the lit field under forced colors", () => {
     expect(css).toMatch(
-      /@media \(forced-colors: active\) \{\s+\.vk-hl:has\([^{]*\.vk-hl-stale \{\s+outline: 2px solid Highlight;/,
+      /@media \(forced-colors: active\) \{[^@]*\.vk-hl:has\([^{]*\.vk-hl-stale \{\s+outline: 2px solid Highlight;/,
     );
+    const forced = cssBlock(css, "@media (forced-colors: active) {\n  .vk-hl-bar {", "\n}\n");
+    expect(forced).toContain("border: 1px solid CanvasText;");
+    expect(forced).toContain("background: Highlight;");
   });
 
   it("draws the coverage bar with a transform scale and no literal colour", () => {
     expect(rule(".vk-hl-bar i")).toContain("transform: scaleX(var(--vk-hl-fill));");
-    const block = css.slice(css.indexOf(".vk-hl {"), css.indexOf(".vk-deck {"));
-    expect(block).not.toMatch(/#[0-9a-f]{3,8}\b|hsl\(|rgb\(/i);
+    const block = cssBlock(css, "\n.vk-hl {", "\n.vk-gate-track {");
+    expect(block.length).toBeGreaterThan(2000);
+    expect(block).toContain(".vk-hl-bar i {");
+    expect(literalColours(block)).toEqual([]);
     expect(block).not.toContain("--status-warning");
   });
 

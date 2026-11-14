@@ -1,207 +1,169 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  type CreateProvider,
-  check,
-  loadConfigWithMeta,
-  type PlaceholderIntegrityResult,
-  translate,
-  type VerbatraConfig,
-} from "@verbatra/sdk";
+import { check, translate } from "@verbatra/sdk";
 import { afterEach, describe, expect, it } from "vitest";
+import { englishDocsPages } from "@/lib/docs-pages";
 import {
-  GATE_CANDIDATE_LINES,
   GATE_CHECK_COMMAND,
   GATE_CHECK_EXIT_CODE,
   GATE_CHECK_HEADER,
   GATE_CHECK_LINES,
   GATE_DE_CANDIDATE,
   GATE_DE_OLD,
+  GATE_DOCS_PATH,
   GATE_KEY,
+  GATE_LOCALE,
+  GATE_MODEL,
   GATE_PLACEHOLDER,
+  GATE_PROVIDER_ID,
   GATE_REFUSED_BADGE,
   GATE_REFUSED_LINES,
   GATE_SOURCE,
   GATE_SOURCE_BEFORE,
+  GATE_SOURCE_FILE,
+  GATE_SOURCE_LOCALE,
+  GATE_TARGET_FILE,
   GATE_TRANSLATE_COMMAND,
-  GATE_TRANSLATE_EXIT_CODE,
   GATE_TRANSLATE_HEADER,
 } from "@/lib/gate-demo";
-import { HERO_TERMINAL_LOCALES, HERO_TERMINAL_SOURCE } from "@/lib/hero-terminal";
+import { HERO_TERMINAL_SOURCE } from "@/lib/hero-terminal";
+import {
+  fixtureConfig,
+  readTarget,
+  removeProject,
+  runCli,
+  sourceFile,
+  stubProvider,
+  tempProject,
+  writeConfig,
+  writeSource,
+} from "@/test-support/run-fixture";
 import { renderCheckHuman, renderHuman } from "../../../packages/cli/src/render";
-import { run } from "../../../packages/cli/src/run";
 
-const CONFIG: VerbatraConfig = {
-  sourceLocale: "en",
-  targetLocales: HERO_TERMINAL_LOCALES.map(({ locale }) => locale),
-  format: "next-intl-json",
-  files: { pattern: "locales/{locale}.json" },
-  provider: { id: "anthropic", options: { model: "stub", maxTokens: 256 } },
-};
+const CONFIG = fixtureConfig(GATE_MODEL);
 
-const PASS: PlaceholderIntegrityResult = {
-  matches: true,
-  missing: [],
-  extra: [],
-  reordered: false,
-};
+const TRANSLATE_ARGV = ["translate"] as const;
+
+const CHECK_ARGV = ["check"] as const;
 
 type Phase = "seed" | "edited";
 
-function provider(phase: () => Phase): CreateProvider {
-  return () => ({
-    id: "stub",
-    kind: "llm",
-    supportsGlossary: true,
-    translateBatch: async (request) => ({
-      values: new Map(
-        request.entries.map((entry) => [
-          entry.key,
-          entry.key === GATE_KEY
-            ? phase() === "seed"
-              ? GATE_DE_OLD
-              : GATE_DE_CANDIDATE
-            : `${entry.value} (t)`,
-        ]),
-      ),
-      integrity: new Map(request.entries.map((entry) => [entry.key, PASS])),
-    }),
-  });
-}
-
-function sourceFile(edited: boolean): string {
-  const tree: Record<string, Record<string, string>> = {};
-  for (const { key, value } of HERO_TERMINAL_SOURCE) {
-    const [group, leaf] = key.split(".") as [string, string];
-    tree[group] = {
-      ...tree[group],
-      [leaf]: key === GATE_KEY && !edited ? GATE_SOURCE_BEFORE : value,
-    };
-  }
-  return JSON.stringify(tree, null, 2);
-}
-
-const unused = async (): Promise<never> => {
-  throw new Error("the gate demo calls only check and translate");
-};
-
-let cwd: string | undefined;
 let phase: Phase = "seed";
 
+const provider = () =>
+  stubProvider((key, value) => {
+    if (key !== GATE_KEY) return `${value} (t)`;
+    return phase === "seed" ? GATE_DE_OLD : GATE_DE_CANDIDATE;
+  });
+
+const sourceBefore = () =>
+  sourceFile(({ key, value }) => (key === GATE_KEY ? GATE_SOURCE_BEFORE : value));
+
+const sourceAfter = () => sourceFile(({ value }) => value);
+
+let cwd: string | undefined;
+
 afterEach(async () => {
-  if (cwd) await rm(cwd, { recursive: true, force: true });
+  await removeProject(cwd);
   cwd = undefined;
 });
 
 async function refusedProject(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "verbatra-docs-gate-"));
+  const dir = await tempProject("verbatra-docs-gate-");
   cwd = dir;
   phase = "seed";
-  await mkdir(join(dir, "locales"));
-  await writeFile(join(dir, ".verbatrarc.json"), JSON.stringify(CONFIG));
-  await writeFile(join(dir, "locales/en.json"), sourceFile(false));
-  await translate({ config: CONFIG, cwd: dir }, { createProvider: provider(() => phase) });
-  await writeFile(join(dir, "locales/en.json"), sourceFile(true));
+  await writeConfig(dir, CONFIG);
+  await writeSource(dir, sourceBefore());
+  await translate({ config: CONFIG, cwd: dir }, { createProvider: provider() });
+  await writeSource(dir, sourceAfter());
   phase = "edited";
   return dir;
 }
 
-async function runCli(
-  argv: ReadonlyArray<string>,
-): Promise<{ code: number; out: string[]; err: string }> {
-  const out: string[] = [];
-  const err: string[] = [];
-  const code = await run(
-    [...argv],
-    {
-      translate: (input) => translate(input, { createProvider: provider(() => phase) }),
-      watch: unused,
-      exportWorkbook: unused,
-      importWorkbook: unused,
-      check,
-      checkFile: unused,
-      diff: unused,
-      doctor: unused,
-      loadConfigWithMeta,
-      pseudolocalize: unused,
-      importStudio: unused,
-      importMcp: unused,
-      extract: unused,
-      generateTypes: unused,
-      importTmx: unused,
-      exportTmx: unused,
-      provenanceReport: unused,
-    },
-    { out: (text) => out.push(text), err: (text) => err.push(text) },
-  );
-  return { code, out: out.join("").trimEnd().split("\n"), err: err.join("") };
+type Tree = Record<string, Record<string, string>>;
+
+async function written(dir: string, locale: string): Promise<Tree> {
+  return JSON.parse(await readTarget(dir, locale)) as Tree;
 }
 
-async function writtenGerman(dir: string): Promise<string | undefined> {
+function leafOf(tree: Tree): string | undefined {
   const [group, leaf] = GATE_KEY.split(".") as [string, string];
-  const file = JSON.parse(await readFile(join(dir, "locales/de.json"), "utf8")) as Record<
-    string,
-    Record<string, string>
-  >;
-  return file[group]?.[leaf];
+  return tree[group]?.[leaf];
 }
 
 describe("the gate demo prints what verbatra prints after a refusal", () => {
-  it("edits one source value that carries a placeholder, the key the hero fixture already holds", () => {
+  it("edits one source value that carries a placeholder, in the file the config names", async () => {
+    const dir = await refusedProject();
     expect(GATE_SOURCE).toBe(HERO_TERMINAL_SOURCE.find(({ key }) => key === GATE_KEY)?.value);
     expect(GATE_SOURCE).toContain(GATE_PLACEHOLDER);
     expect(GATE_SOURCE_BEFORE).toContain(GATE_PLACEHOLDER);
     expect(GATE_SOURCE_BEFORE).not.toBe(GATE_SOURCE);
+    expect(leafOf(JSON.parse(sourceBefore()))).toBe(GATE_SOURCE_BEFORE);
+    expect(leafOf(JSON.parse(await readFile(join(dir, "locales/en.json"), "utf8")))).toBe(
+      GATE_SOURCE,
+    );
+    expect(CONFIG.sourceLocale).toBe(GATE_SOURCE_LOCALE);
+    expect(CONFIG.targetLocales).toEqual([GATE_LOCALE]);
+    expect(CONFIG.files.pattern.split("/").pop()).toBe("{locale}.json");
+    expect(GATE_SOURCE_FILE).toBe(`${CONFIG.sourceLocale}.json`);
+    expect(GATE_TARGET_FILE).toBe(`${CONFIG.targetLocales[0]}.json`);
+    expect(CONFIG.provider).toMatchObject({
+      id: GATE_PROVIDER_ID,
+      options: { model: GATE_MODEL },
+    });
   });
 
-  it("holds a candidate that dropped the placeholder and an old value that kept it", () => {
+  it("holds the old German value the seeded run wrote, and a candidate that dropped the placeholder", async () => {
+    const dir = await refusedProject();
+    expect(leafOf(await written(dir, GATE_LOCALE))).toBe(GATE_DE_OLD);
     expect(GATE_DE_OLD).toContain(GATE_PLACEHOLDER);
     expect(GATE_DE_CANDIDATE).not.toContain(GATE_PLACEHOLDER);
   });
 
   it("refuses the candidate and prints the lines renderHuman renders", async () => {
     const dir = await refusedProject();
-    const summary = await translate(
-      { config: CONFIG, cwd: dir },
-      { createProvider: provider(() => phase) },
-    );
+    const summary = await translate({ config: CONFIG, cwd: dir }, { createProvider: provider() });
     const [locale] = summary.locales;
 
     expect(locale?.translated).toEqual([]);
     expect(locale?.integrityRefusals).toEqual([
       { key: GATE_KEY, reason: "placeholder", details: [`-${GATE_PLACEHOLDER}`] },
     ]);
-    expect(renderHuman(summary).split("\n")).toEqual([
-      GATE_TRANSLATE_HEADER,
-      ...GATE_REFUSED_LINES,
-    ]);
+    const lines = renderHuman(summary).split("\n");
+    const refusals = locale?.integrityRefusals ?? [];
+    expect(lines).toEqual([GATE_TRANSLATE_HEADER, ...GATE_REFUSED_LINES]);
+    expect(lines[1]?.endsWith(`, ${refusals.length} integrity-withheld`)).toBe(true);
+    expect(GATE_REFUSED_BADGE).toBe(`${refusals.length} integrity-withheld`);
   });
 
-  it("exits translate with the code the binary returns, printing the same lines", async () => {
+  it("exits translate with the code the binary returns, printing the same lines, after the command it names", async () => {
     const dir = await refusedProject();
-    const { code, out } = await runCli(["translate", "--cwd", dir]);
+    const { code, out } = await runCli([...TRANSLATE_ARGV, "--cwd", dir], provider());
 
-    expect(code).toBe(GATE_TRANSLATE_EXIT_CODE);
+    expect(code).toBe(1);
     expect(out).toEqual([GATE_TRANSLATE_HEADER, ...GATE_REFUSED_LINES]);
+    const cli = JSON.parse(
+      await readFile(join(import.meta.dirname, "../../../packages/cli/package.json"), "utf8"),
+    ) as { name: string };
+    expect(GATE_TRANSLATE_COMMAND).toBe(`npx ${cli.name} ${TRANSLATE_ARGV.join(" ")}`);
+    expect(GATE_CHECK_COMMAND).toBe(`npx ${cli.name} ${CHECK_ARGV.join(" ")}`);
   });
 
-  it("badges the refusal with the count the translate line carries", async () => {
-    expect(GATE_REFUSED_LINES[0]).toContain(GATE_REFUSED_BADGE);
-  });
-
-  it("does not write the refused candidate: the old value stays in the target file", async () => {
+  it("does not touch the target file or the lock: both are byte-identical after the refused run", async () => {
     const dir = await refusedProject();
-    expect(await writtenGerman(dir)).toBe(GATE_DE_OLD);
-    await runCli(["translate", "--cwd", dir]);
-    expect(await writtenGerman(dir)).toBe(GATE_DE_OLD);
+    const target = await readTarget(dir, GATE_LOCALE);
+    const lock = await readFile(join(dir, "verbatra.lock.json"), "utf8");
+    await runCli([...TRANSLATE_ARGV, "--cwd", dir], provider());
+    expect(await readTarget(dir, GATE_LOCALE)).toBe(target);
+    expect(await readFile(join(dir, "verbatra.lock.json"), "utf8")).toBe(lock);
+    expect(leafOf(await written(dir, GATE_LOCALE))).toBe(GATE_DE_OLD);
   });
 
   it("keeps the key stale: check prints the lines and the exit code the binary returns", async () => {
     const dir = await refusedProject();
-    await runCli(["translate", "--cwd", dir]);
+    await runCli([...TRANSLATE_ARGV, "--cwd", dir], provider());
     const summary = await check({ config: CONFIG, cwd: dir });
-    const { code, out } = await runCli(["check", "--cwd", dir]);
+    const { code, out } = await runCli([...CHECK_ARGV, "--cwd", dir], provider());
 
     expect(summary.inSync).toBe(false);
     expect(renderCheckHuman(summary).split("\n")).toEqual([GATE_CHECK_HEADER, ...GATE_CHECK_LINES]);
@@ -209,9 +171,16 @@ describe("the gate demo prints what verbatra prints after a refusal", () => {
     expect(out).toEqual([GATE_CHECK_HEADER, ...GATE_CHECK_LINES]);
   });
 
-  it("shows the candidate card with the command line it quotes", () => {
-    expect(GATE_CANDIDATE_LINES).toEqual([GATE_KEY, GATE_SOURCE, GATE_DE_CANDIDATE]);
-    expect(GATE_TRANSLATE_COMMAND).toBe("npx @verbatra/cli translate");
-    expect(GATE_CHECK_COMMAND).toBe("npx @verbatra/cli check");
+  it("links a docs page that exists", () => {
+    const slug = GATE_DOCS_PATH.replace("/docs/", "");
+    const pages = englishDocsPages(join(import.meta.dirname, "..", "content/docs"));
+    expect(
+      pages.map(({ file }) =>
+        file
+          .replace(/\.mdx$/, "")
+          .split("/")
+          .pop(),
+      ),
+    ).toContain(slug);
   });
 });

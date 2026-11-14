@@ -241,9 +241,32 @@
       },
       "preGenerated": "vorab erzeugt, nicht live"
     },
+    "gate": {
+      "heading": "Wenn der Anbieter sich irrt, wird nichts geschrieben",
+      "lead": "Jeder Kandidat durchläuft ein Integritäts-Gate, bevor er deine Datei erreicht.",
+      "candidate": {
+        "label": "Kandidat",
+        "text": "Du hast {key} in {file} geändert. Der Anbieter gibt eine Übersetzung zurück, und sie hat {placeholder} verloren.",
+        "foot": "Es wurde noch nichts geprüft oder geschrieben.",
+        "missing": "fehlend",
+        "edited": "geändert",
+        "answer": "Anbieterantwort"
+      },
+      "refused": {
+        "label": "Abgelehnt",
+        "text": "Das Gate vergleicht den Kandidaten mit der Quelle und lehnt ihn ab. Die Datei wird nicht angerührt.",
+        "stamp": "nicht geschrieben",
+        "unchanged": "unverändert"
+      },
+      "stale": {
+        "label": "Immer noch veraltet",
+        "text": "Der Schlüssel bleibt veraltet, daher schlägt die Überprüfung weiterhin fehl.",
+        "foot": "Der alte Wert bleibt in {file}. CI schlägt fehl, bis der Schlüssel einen Wert erhält, der {placeholder} beibehält."
+      }
+    },
     "highlights": {
       "heading": "Frage eine beliebige Oberfläche, erhalte dieselbe Antwort",
-      "lead": "Die CLI, das SDK, Studio und der MCP-Server lesen alle eine Lock-Datei, daher liest {locale} {stale} veraltet und {upToDate} aktuell, egal wo du fragst.",
+      "lead": "Jede Oberfläche liest dieselbe Lock-Datei, also zeigt Deutsch überall {stale} veraltet und {upToDate} aktuell.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",
@@ -251,8 +274,14 @@
         "mcp": "MCP-Server"
       },
       "mcp": {
-        "badge": "ruft keinen Provider auf",
+        "badge": "ruft keinen Anbieter auf",
         "copyAria": "MCP-Einrichtungsbefehl kopieren"
+      },
+      "studio": {
+        "label": "Abdeckung der Sprachen"
+      },
+      "sdk": {
+        "copyAria": "Kopiere den SDK-Installationsbefehl"
       }
     },
     "features": {
@@ -690,28 +719,6 @@
     },
     "fab": {
       "label": "Nach oben"
-    },
-    "gate": {
-      "heading": "Wenn der Anbieter sich irrt, wird nichts geschrieben",
-      "lead": "Jeder Kandidat durchläuft ein Integritäts-Gate, bevor er deine Datei erreicht.",
-      "candidate": {
-        "label": "Kandidat",
-        "text": "Du hast {key} in {file} geändert. Der Anbieter gibt eine Übersetzung zurück, und sie hat {placeholder} verloren.",
-        "badge": "Kandidat",
-        "foot": "Die Antwort des Anbieters, bevor etwas überprüft oder geschrieben wird.",
-        "missing": "fehlend"
-      },
-      "refused": {
-        "label": "Abgelehnt",
-        "text": "Das Gate vergleicht den Kandidaten mit der Quelle und lehnt ihn ab. Die Datei wird nicht angerührt.",
-        "stamp": "nicht geschrieben",
-        "unchanged": "unverändert"
-      },
-      "stale": {
-        "label": "Immer noch veraltet",
-        "text": "Der Schlüssel bleibt veraltet, daher schlägt die Überprüfung weiterhin fehl.",
-        "foot": "Der alte Wert bleibt in {file}. CI schlägt fehl, bis der Schlüssel einen Wert erhält, der {placeholder} beibehält."
-      }
     }
   },
   "compare": {

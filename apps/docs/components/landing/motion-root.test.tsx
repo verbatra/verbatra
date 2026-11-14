@@ -166,25 +166,47 @@ describe("the motion stylesheet", () => {
     );
   });
 
-  it("drives an animation from a view timeline only inside a supports test and the no-preference query", () => {
-    const scrubbed = all.filter((rule) =>
-      /--vk-|view\(/.test(rule.declarations["animation-timeline"] ?? ""),
-    );
-    expect(scrubbed.length).toBeGreaterThan(0);
-    for (const rule of scrubbed) {
+  const SCROLL_FADES: ReadonlyArray<string> = [
+    '.vk-edge-fade, .vk-docs-tabs > [role="tablist"]',
+    ".vk-edge-fade.vk-home-tabs-scroller",
+  ];
+
+  const timelineRules = all.filter((rule) => "animation-timeline" in rule.declarations);
+
+  it("declares an animation timeline only in the two scroll-fade rules or inside a view-timeline supports test and the no-preference query", () => {
+    expect(timelineRules.length).toBeGreaterThan(SCROLL_FADES.length);
+    const fades = timelineRules.filter((rule) => SCROLL_FADES.includes(rule.selector));
+    expect(fades.map((rule) => rule.selector).sort()).toEqual([...SCROLL_FADES].sort());
+    for (const rule of fades) {
+      expect(rule.media, rule.selector).toContain("@supports (animation-timeline: scroll())");
+      expect(rule.declarations["animation-timeline"], rule.selector).toMatch(
+        /^scroll\(self inline\)(, scroll\(self inline\))?$/,
+      );
+    }
+    for (const rule of timelineRules.filter((r) => !SCROLL_FADES.includes(r.selector))) {
       expect(rule.media, rule.selector).toMatch(/@supports \(animation-timeline: view\(\)\)/);
       expect(rule.media, rule.selector).toContain("prefers-reduced-motion: no-preference");
     }
   });
 
-  it("animates only opacity and transform in every scrubbed keyframe set, and a frame's discrete visibility", () => {
-    const sets = all.filter((rule) => /@keyframes vk-gate/.test(rule.media));
-    expect(sets.length).toBeGreaterThan(0);
-    for (const rule of sets) {
-      const allowed = /vk-gate-(candidate|refused|stale)$/.test(rule.media)
-        ? ["opacity", "visibility"]
-        : ["opacity", "transform"];
-      expect(Object.keys(rule.declarations).filter((name) => !allowed.includes(name))).toEqual([]);
+  it("animates only opacity and transform in every keyframe set a scrubbed rule names, and a frame's discrete pointer-events", () => {
+    const names = new Set(
+      all
+        .filter((rule) => rule.media.includes("@supports (animation-timeline: view())"))
+        .flatMap((rule) => (rule.declarations["animation-name"] ?? "").split(/,\s*/))
+        .filter((name) => name !== ""),
+    );
+    expect(names.size).toBeGreaterThan(3);
+    for (const name of names) {
+      const sets = all.filter((rule) => rule.media.endsWith(`@keyframes ${name}`));
+      expect(sets.length, name).toBeGreaterThan(0);
+      const frame = /^vk-gate-(candidate|refused|stale)$/.test(name);
+      const allowed = frame ? ["opacity", "pointer-events"] : ["opacity", "transform"];
+      for (const rule of sets)
+        expect(
+          Object.keys(rule.declarations).filter((property) => !allowed.includes(property)),
+          name,
+        ).toEqual([]);
     }
   });
 

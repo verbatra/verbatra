@@ -247,9 +247,10 @@
       "candidate": {
         "label": "Candidate",
         "text": "You changed {key} in {file}. The provider returns a translation, and it lost {placeholder}.",
-        "badge": "candidate",
-        "foot": "The provider's answer, before anything is checked or written.",
-        "missing": "missing"
+        "foot": "Nothing is checked or written yet.",
+        "missing": "missing",
+        "edited": "changed",
+        "answer": "provider answer"
       },
       "refused": {
         "label": "Refused",
@@ -265,7 +266,7 @@
     },
     "highlights": {
       "heading": "Ask any surface, get the same answer",
-      "lead": "The CLI, the SDK, Studio and the MCP server all read one lock file, so {locale} reads {stale} stale and {upToDate} up-to-date wherever you ask.",
+      "lead": "Every surface reads one lock file, so German reads {stale} stale and {upToDate} up-to-date wherever you ask.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",
@@ -275,6 +276,12 @@
       "mcp": {
         "badge": "calls no provider",
         "copyAria": "Copy the MCP setup command"
+      },
+      "studio": {
+        "label": "Locale coverage"
+      },
+      "sdk": {
+        "copyAria": "Copy the SDK install command"
       }
     },
     "features": {

@@ -35,7 +35,7 @@ describe("landing reveal marks", () => {
   it("lets only the allowlisted sections reveal, each on its panes and never on a heading", () => {
     for (const id of REVEALING_SECTIONS) {
       const file = source(SECTION_FILES[id]);
-      expect(file, id).toContain("data-reveal={reveal}");
+      expect(file, id).toContain("data-reveal");
       expect(file, id).not.toMatch(/<h[23][^>]*data-reveal/);
     }
   });

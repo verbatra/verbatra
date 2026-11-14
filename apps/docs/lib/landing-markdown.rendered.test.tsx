@@ -48,7 +48,7 @@ const SECTIONS = {
   finalCta: () => FinalCta(),
 } as const;
 
-const TEXT_BLOCKS = "h1, h2, h3, p, li, pre, caption, th, td";
+const TEXT_BLOCKS = "h1, h2, h3, p, li, pre, caption, th, td, figcaption b, figcaption > span";
 
 const SKIPPED = ["[aria-hidden='true']", ".sr-only:not(caption)", "script", ".vk-lock-side"].join(
   ", ",
@@ -72,7 +72,7 @@ function markdownText(markdown: string): string {
       .replaceAll("`", "")
       .replace(/\*\*([^*]+)\*\*/g, "$1")
       .replace(/^#+ (\d+\. )?/gm, "")
-      .replace(/^- /gm, "")
+      .replace(/^[-+] /gm, "")
       .replace(/\s*\|\s*/g, " "),
   );
 }

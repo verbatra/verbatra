@@ -19,13 +19,19 @@ export const GATE_DE_OLD = "Willkommen, {name}!";
 
 export const GATE_DE_CANDIDATE = "Willkommen zurück!";
 
+export const GATE_SOURCE_LOCALE = "en";
+
 export const GATE_LOCALE: string = HERO_TERMINAL_LOCALES[0]?.locale ?? "";
 
-export const GATE_CANDIDATE_LINES: ReadonlyArray<string> = [
-  GATE_KEY,
-  GATE_SOURCE,
-  GATE_DE_CANDIDATE,
-];
+export const GATE_SOURCE_FILE = `${GATE_SOURCE_LOCALE}.json`;
+
+export const GATE_TARGET_FILE = `${GATE_LOCALE}.json`;
+
+export const GATE_PROVIDER_ID = "anthropic";
+
+export const GATE_MODEL = "claude-sonnet-4-6";
+
+export const GATE_DOCS_PATH = "/docs/translation-safety";
 
 export const GATE_TRANSLATE_COMMAND = HERO_TRANSLATE_COMMAND;
 
@@ -34,8 +40,6 @@ export const GATE_CHECK_COMMAND = HERO_CHECK_COMMAND;
 export const GATE_TRANSLATE_HEADER = "verbatra translate";
 
 export const GATE_CHECK_HEADER = CHECK_CLI_COMMAND;
-
-export const GATE_TRANSLATE_EXIT_CODE = 1;
 
 export const GATE_CHECK_EXIT_CODE = 1;
 

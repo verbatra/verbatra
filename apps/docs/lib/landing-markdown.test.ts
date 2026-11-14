@@ -103,7 +103,7 @@ describe("the English landing markdown after the surfaces and the comparison lin
     expect(at).toBeGreaterThan(0);
     const section = body.slice(at, body.indexOf("\n## ", at + 3));
     expect(section).toContain(
-      `The CLI, the SDK, Studio and the MCP server all read one lock file, so de reads ${HERO_TERMINAL_CHANGED_KEYS.length} stale and ${HERO_TERMINAL_SYNCED_KEYS.length} up-to-date wherever you ask.`,
+      `Every surface reads one lock file, so German reads ${HERO_TERMINAL_CHANGED_KEYS.length} stale and ${HERO_TERMINAL_SYNCED_KEYS.length} up-to-date wherever you ask.`,
     );
     const names = ["### CLI", "### Studio", "### SDK", "### MCP server"].map((heading) =>
       section.indexOf(heading),
@@ -113,6 +113,22 @@ describe("the English landing markdown after the surfaces and the comparison lin
     expect(section).toContain(`[docs/sdk/inspect](${SITE_URL}/docs/sdk/inspect.md)`);
     expect(section).toContain("| de | 86% 12 / 14 keys | 0 | 2 | 12 |");
     expect(section).toContain("claude mcp add");
+    expect(section).toContain("npm install --save-dev @verbatra/sdk");
+  });
+
+  it("prints the not-written stamp of the gate outside every fenced block, so no CLI line is altered", async () => {
+    const body = await landingMarkdown("en");
+    const at = body.indexOf("## When the provider gets it wrong, nothing is written");
+    const section = body.slice(at, body.indexOf("\n## ", at + 3));
+    expect(section).toContain("**verbatra translate** not written 1 integrity-withheld");
+    const fenced = [...section.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map(
+      (match) => match[1] ?? "",
+    );
+    expect(fenced.length).toBeGreaterThan(4);
+    for (const block of fenced) expect(block).not.toMatch(/not written/i);
+    expect(fenced.some((block) => block.includes("profile.greeting: placeholder (-{name})"))).toBe(
+      true,
+    );
   });
 
   it("ends the faq with the comparison answer linked to the comparison page", async () => {

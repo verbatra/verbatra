@@ -1,14 +1,6 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  type CreateProvider,
-  check,
-  loadConfigWithMeta,
-  type PlaceholderIntegrityResult,
-  translate,
-  type VerbatraConfig,
-} from "@verbatra/sdk";
+import { check, translate } from "@verbatra/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   HERO_CHECK_BADGE,
@@ -22,55 +14,28 @@ import {
   HERO_TRANSLATE_OUTPUT,
 } from "@/lib/hero-terminal";
 import { LOCK_DEMO_HASHES, lockLines } from "@/lib/lock-demo";
+import {
+  fixtureConfig,
+  removeProject,
+  runCli,
+  sourceFile,
+  stubProvider,
+  tempProject,
+  writeConfig,
+  writeSource,
+} from "@/test-support/run-fixture";
 import { renderCheckHuman, renderHuman } from "../../../packages/cli/src/render";
-import { run } from "../../../packages/cli/src/run";
 
-const CONFIG: VerbatraConfig = {
-  sourceLocale: "en",
-  targetLocales: HERO_TERMINAL_LOCALES.map(({ locale }) => locale),
-  format: "next-intl-json",
-  files: { pattern: "locales/{locale}.json" },
-  provider: { id: "anthropic", options: { model: "stub", maxTokens: 256 } },
-};
+const CONFIG = fixtureConfig();
 
-const PASS: PlaceholderIntegrityResult = {
-  matches: true,
-  missing: [],
-  extra: [],
-  reordered: false,
-};
-
-function provider(): CreateProvider {
-  return () => ({
-    id: "stub",
-    kind: "llm",
-    supportsGlossary: true,
-    translateBatch: async (request) => ({
-      values: new Map(request.entries.map((entry) => [entry.key, `${entry.value} (t)`])),
-      integrity: new Map(request.entries.map((entry) => [entry.key, PASS])),
-    }),
-  });
-}
-
-function sourceFile(edited: boolean): string {
-  const tree: Record<string, Record<string, string>> = {};
-  for (const { key, value, before } of HERO_TERMINAL_SOURCE) {
-    const [group, leaf] = key.split(".") as [string, string];
-    tree[group] = { ...tree[group], [leaf]: edited ? value : (before ?? value) };
-  }
-  return JSON.stringify(tree, null, 2);
-}
-
-const unused = async (): Promise<never> => {
-  throw new Error("the hero terminal calls only check and translate");
-};
+const provider = stubProvider;
 
 let cwd: string | undefined;
 
 let seededHashes: Record<string, string> = {};
 
 afterEach(async () => {
-  if (cwd) await rm(cwd, { recursive: true, force: true });
+  await removeProject(cwd);
   cwd = undefined;
 });
 
@@ -91,43 +56,20 @@ function expectedHashes(which: "before" | "after"): Record<string, string> {
 }
 
 async function projectWithEditedKeys(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "verbatra-docs-hero-"));
+  const dir = await tempProject("verbatra-docs-hero-");
   cwd = dir;
-  await mkdir(join(dir, "locales"));
-  await writeFile(join(dir, ".verbatrarc.json"), JSON.stringify(CONFIG));
-  await writeFile(join(dir, "locales/en.json"), sourceFile(false));
+  await writeConfig(dir, CONFIG);
+  await writeSource(
+    dir,
+    sourceFile(({ value, before }) => before ?? value),
+  );
   await translate({ config: CONFIG, cwd: dir }, { createProvider: provider() });
   seededHashes = await recordedHashes(dir);
-  await writeFile(join(dir, "locales/en.json"), sourceFile(true));
-  return dir;
-}
-
-async function runCli(argv: ReadonlyArray<string>): Promise<{ code: number; out: string[] }> {
-  const out: string[] = [];
-  const code = await run(
-    [...argv],
-    {
-      translate: (input) => translate(input, { createProvider: provider() }),
-      watch: unused,
-      exportWorkbook: unused,
-      importWorkbook: unused,
-      check,
-      checkFile: unused,
-      diff: unused,
-      doctor: unused,
-      loadConfigWithMeta,
-      pseudolocalize: unused,
-      importStudio: unused,
-      importMcp: unused,
-      extract: unused,
-      generateTypes: unused,
-      importTmx: unused,
-      exportTmx: unused,
-      provenanceReport: unused,
-    },
-    { out: (text) => out.push(text), err: () => undefined },
+  await writeSource(
+    dir,
+    sourceFile(({ value }) => value),
   );
-  return { code, out: out.join("").trimEnd().split("\n") };
+  return dir;
 }
 
 describe("the hero terminal prints what verbatra prints", () => {
@@ -141,7 +83,7 @@ describe("the hero terminal prints what verbatra prints", () => {
 
   it("exits check with the code the verbatra binary returns, printing the same lines", async () => {
     const dir = await projectWithEditedKeys();
-    const { code, out } = await runCli(["check", "--cwd", dir]);
+    const { code, out } = await runCli(["check", "--cwd", dir], provider());
 
     expect(code).toBe(HERO_CHECK_EXIT_CODE);
     expect(out).toEqual(HERO_CHECK_OUTPUT);
@@ -159,7 +101,7 @@ describe("the hero terminal prints what verbatra prints", () => {
 
   it("exits translate with the code the verbatra binary returns, printing the same lines", async () => {
     const dir = await projectWithEditedKeys();
-    const { code, out } = await runCli(["translate", "--cwd", dir]);
+    const { code, out } = await runCli(["translate", "--cwd", dir], provider());
 
     expect(code).toBe(HERO_TRANSLATE_EXIT_CODE);
     expect(out).toEqual(HERO_TRANSLATE_OUTPUT);

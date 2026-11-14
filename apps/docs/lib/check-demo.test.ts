@@ -33,7 +33,12 @@ describe("the check demo stays out of the cli and the sdk at runtime", () => {
       fileURLToPath(new URL("./hero-terminal.run.test.ts", import.meta.url)),
       "utf8",
     );
+    const fixture = readFileSync(
+      fileURLToPath(new URL("../test-support/run-fixture.ts", import.meta.url)),
+      "utf8",
+    );
     expect(run).toContain('from "../../../packages/cli/src/render"');
-    expect(run).toContain('from "../../../packages/cli/src/run"');
+    expect(run).toContain('from "@/test-support/run-fixture"');
+    expect(fixture).toContain('from "../../../packages/cli/src/run"');
   });
 });

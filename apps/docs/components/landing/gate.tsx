@@ -8,18 +8,24 @@ import {
   GATE_CHECK_LINES,
   GATE_DE_CANDIDATE,
   GATE_DE_OLD,
+  GATE_DOCS_PATH,
   GATE_KEY,
   GATE_LOCALE,
+  GATE_MODEL,
   GATE_PLACEHOLDER,
   GATE_REFUSED_BADGE,
   GATE_REFUSED_LINES,
   GATE_SOURCE,
+  GATE_SOURCE_BEFORE,
+  GATE_SOURCE_FILE,
+  GATE_SOURCE_LOCALE,
+  GATE_STATES,
+  GATE_TARGET_FILE,
   GATE_TRANSLATE_COMMAND,
   GATE_TRANSLATE_HEADER,
   type GateState,
 } from "@/lib/gate-demo";
 import { localizedPath, toLocale } from "@/lib/i18n";
-import { PLAYGROUND_SOURCE_LOCALE, playgroundFileName } from "@/lib/landing-playground";
 import { splitPlaceholders } from "@/lib/placeholder-segments";
 import { keepCompoundsWhole, keepPackageRunsWhole } from "@/lib/word-breaks";
 import { Section } from "./section";
@@ -27,9 +33,7 @@ import { SectionHead } from "./section-head";
 
 export const GATE_HEADING_ID = "gate-heading";
 
-const GATE_DOCS_PATH = "/docs/translation-safety";
-
-function Placeheld({ text }: { text: string }): ReactNode {
+function PlaceholderText({ text }: { text: string }): ReactNode {
   return splitPlaceholders(text).map((segment, index) =>
     segment.placeholder ? (
       <span key={`${index}-${segment.text}`} className="vk-ph">
@@ -41,18 +45,20 @@ function Placeheld({ text }: { text: string }): ReactNode {
   );
 }
 
-function Moves({
-  reveal,
-  className,
-  children,
-}: {
-  reveal: number;
-  className: string;
-  children: ReactNode;
-}): ReactNode {
+function Entrance({ className, children }: { className: string; children: ReactNode }): ReactNode {
   return (
-    <span className={`vk-gate-moves ${className}`} data-reveal={reveal}>
+    <span className={`vk-gate-moves ${className}`} data-reveal={0}>
       {children}
+    </span>
+  );
+}
+
+function Position({ state }: { state: GateState }): ReactNode {
+  return (
+    <span className="vk-gate-marker" aria-hidden="true">
+      {GATE_STATES.map((segment) => (
+        <i key={segment} data-on={segment === state ? "" : undefined} />
+      ))}
     </span>
   );
 }
@@ -69,9 +75,12 @@ function Frame({
   children: ReactNode;
 }): ReactNode {
   return (
-    <figure className="vk-gate-frame" data-state={state} aria-labelledby={`gate-${state}-caption`}>
-      <figcaption id={`gate-${state}-caption`} className="vk-lock-caption">
-        <b>{label}</b>
+    <figure className="vk-gate-frame" data-state={state}>
+      <figcaption className="vk-lock-caption">
+        <b>
+          {label}
+          <Position state={state} />
+        </b>
         <span>{text}</span>
       </figcaption>
       <div className="vk-lock-card vk-gate-card">{children}</div>
@@ -83,12 +92,10 @@ function Cli({
   command,
   lines,
   marked,
-  stamp,
 }: {
   command: string;
   lines: ReadonlyArray<string>;
   marked?: number;
-  stamp?: string;
 }): ReactNode {
   return (
     <pre className="vk-lock-code vk-gate-code" lang="en">
@@ -104,14 +111,6 @@ function Cli({
             data-mark={index === marked ? "refused" : undefined}
           >
             {keepCompoundsWhole(line)}
-            {index === marked && stamp !== undefined ? (
-              <>
-                {" "}
-                <Moves reveal={0} className="vk-gate-stamp">
-                  {stamp}
-                </Moves>
-              </>
-            ) : null}
             {index < lines.length - 1 ? "\n" : ""}
           </span>
         ))}
@@ -120,124 +119,179 @@ function Cli({
   );
 }
 
+function ValueRow({
+  sign,
+  locale,
+  value,
+  diff,
+  fold,
+  children,
+}: {
+  sign?: string;
+  locale: string;
+  value: string;
+  diff?: "added" | "removed";
+  fold?: "drop";
+  children?: ReactNode;
+}): ReactNode {
+  return (
+    <span className="vk-lock-line vk-gate-row" data-diff={diff} data-fold={fold}>
+      {sign === undefined ? null : (
+        <span className="vk-lock-sign" aria-hidden="true">
+          {sign}
+        </span>
+      )}
+      <span lang={locale}>
+        {'"'}
+        <PlaceholderText text={value} />
+        {'"'}
+      </span>
+      {children}
+    </span>
+  );
+}
+
+function TargetFile({ label, fold }: { label: string; fold?: "drop" }): ReactNode {
+  const [group = "", leaf = ""] = GATE_KEY.split(".");
+  return (
+    <>
+      <p className="vk-lock-sub" data-fold={fold}>
+        <span lang="en">{GATE_TARGET_FILE}</span> <span className="vk-lock-label">{label}</span>
+      </p>
+      <pre className="vk-lock-code vk-gate-code" lang="en" data-fold={fold}>
+        <code>
+          <span className="vk-lock-line" style={{ "--d": 0 } as CSSProperties}>
+            {`"${group}": {\n`}
+          </span>
+          <span className="vk-lock-line" style={{ "--d": 1 } as CSSProperties}>
+            <span className="vk-lock-key">{JSON.stringify(leaf)}</span>
+            {": "}
+            <span className="vk-lock-value" lang={GATE_LOCALE}>
+              {'"'}
+              <PlaceholderText text={GATE_DE_OLD} />
+              {'"'}
+            </span>
+            {"\n"}
+          </span>
+          <span className="vk-lock-line" style={{ "--d": 0 } as CSSProperties}>
+            {"}"}
+          </span>
+        </code>
+      </pre>
+    </>
+  );
+}
+
 export async function Gate(): Promise<ReactNode> {
   const t = await getTranslations("landing.gate");
   const locale = toLocale(await getLocale());
-  const sourceFile = playgroundFileName(PLAYGROUND_SOURCE_LOCALE);
-  const targetFile = playgroundFileName(GATE_LOCALE);
   const refusedIndex = GATE_REFUSED_LINES.findIndex((line) => line.includes(`${GATE_KEY}:`));
-  const [profile = "", leaf = ""] = GATE_KEY.split(".");
+  const lead = (
+    <>
+      {t("lead")}{" "}
+      <IntentPrefetchLink
+        href={localizedPath(locale, GATE_DOCS_PATH)}
+        className="vk-deck-link vk-gate-docs"
+        lang="en"
+      >
+        {GATE_DOCS_PATH.slice(1)}
+      </IntentPrefetchLink>
+    </>
+  );
 
   return (
     <Section id="gate" labelledBy={GATE_HEADING_ID} className="vk-gate">
       <div className="vk-gate-track">
         <div className="vk-gate-pin">
-          <SectionHead id={GATE_HEADING_ID} title={t("heading")} lead={t("lead")} align="start" />
+          <SectionHead id={GATE_HEADING_ID} title={t("heading")} lead={lead} align="start" />
           <div className="vk-gate-stage">
             <Frame
               state="candidate"
               label={t("candidate.label")}
               text={t("candidate.text", {
                 key: GATE_KEY,
-                file: sourceFile,
+                file: GATE_SOURCE_FILE,
                 placeholder: GATE_PLACEHOLDER,
               })}
             >
               <p className="vk-lock-head">
                 <span lang="en">{GATE_KEY}</span>{" "}
-                <span className="vk-lock-badge">{t("candidate.badge")}</span>
+                <span className="vk-lock-badge" lang="en">
+                  {GATE_MODEL}
+                </span>
+              </p>
+              <p className="vk-lock-sub">
+                <span lang="en">{GATE_SOURCE_FILE}</span>{" "}
+                <span className="vk-lock-label">{t("candidate.edited")}</span>
               </p>
               <pre className="vk-lock-code vk-gate-code">
                 <code>
-                  <span className="vk-lock-line vk-gate-row">
-                    <span className="vk-gate-lang" lang="en">
-                      {PLAYGROUND_SOURCE_LOCALE}
-                    </span>{" "}
-                    <span lang={PLAYGROUND_SOURCE_LOCALE}>
-                      {'"'}
-                      <Placeheld text={GATE_SOURCE} />
-                      {'"'}
-                    </span>
+                  <ValueRow
+                    sign="-"
+                    diff="removed"
+                    fold="drop"
+                    locale={GATE_SOURCE_LOCALE}
+                    value={GATE_SOURCE_BEFORE}
+                  >
                     {"\n"}
-                  </span>
-                  <span className="vk-lock-line vk-gate-row">
-                    <span className="vk-gate-lang" lang="en">
-                      {GATE_LOCALE}
-                    </span>{" "}
-                    <span lang={GATE_LOCALE}>{`"${GATE_DE_CANDIDATE}"`}</span>{" "}
-                    <Moves reveal={0} className="vk-gate-slot">
+                  </ValueRow>
+                  <ValueRow sign="+" diff="added" locale={GATE_SOURCE_LOCALE} value={GATE_SOURCE} />
+                </code>
+              </pre>
+              <p className="vk-lock-sub">
+                <span lang="en">{GATE_LOCALE}</span>{" "}
+                <span className="vk-lock-label">{t("candidate.answer")}</span>
+              </p>
+              <pre className="vk-lock-code vk-gate-code">
+                <code>
+                  <ValueRow locale={GATE_LOCALE} value={GATE_DE_CANDIDATE}>
+                    {" "}
+                    <Entrance className="vk-gate-slot">
                       <span className="vk-gate-slot-chip" lang="en">
                         {GATE_PLACEHOLDER}
                       </span>{" "}
                       <span className="vk-lock-tag vk-gate-missing">{t("candidate.missing")}</span>
-                    </Moves>
-                  </span>
+                    </Entrance>
+                  </ValueRow>
                 </code>
               </pre>
-              <p className="vk-lock-foot">{t("candidate.foot")}</p>
+              <p className="vk-lock-foot" data-fold="drop">
+                {t("candidate.foot")}
+              </p>
             </Frame>
             <Frame state="refused" label={t("refused.label")} text={t("refused.text")}>
               <p className="vk-lock-head">
                 <span lang="en">{GATE_TRANSLATE_HEADER}</span>{" "}
-                <span className="vk-lock-badge vk-gate-fail" lang="en">
-                  {GATE_REFUSED_BADGE}
+                <span className="vk-gate-head-end">
+                  <Entrance className="vk-gate-stamp">{t("refused.stamp")}</Entrance>{" "}
+                  <span className="vk-lock-badge vk-gate-fail" lang="en">
+                    {GATE_REFUSED_BADGE}
+                  </span>
                 </span>
               </p>
               <Cli
                 command={GATE_TRANSLATE_COMMAND}
                 lines={GATE_REFUSED_LINES}
                 marked={refusedIndex}
-                stamp={t("refused.stamp")}
               />
-              <p className="vk-lock-sub">
-                <span lang="en">{targetFile}</span>{" "}
-                <span className="vk-lock-label">{t("refused.unchanged")}</span>
-              </p>
-              <pre className="vk-lock-code vk-gate-code" lang="en">
-                <code>
-                  <span className="vk-lock-line" style={{ "--d": 0 } as CSSProperties}>
-                    {`"${profile}": {\n`}
-                  </span>
-                  <span className="vk-lock-line" style={{ "--d": 1 } as CSSProperties}>
-                    <span className="vk-lock-key">{JSON.stringify(leaf)}</span>
-                    {": "}
-                    <span className="vk-lock-value" lang={GATE_LOCALE}>
-                      {'"'}
-                      <Placeheld text={GATE_DE_OLD} />
-                      {'"'}
-                    </span>
-                    {"\n"}
-                  </span>
-                  <span className="vk-lock-line" style={{ "--d": 0 } as CSSProperties}>
-                    {"}"}
-                  </span>
-                </code>
-              </pre>
+              <TargetFile label={t("refused.unchanged")} />
             </Frame>
             <Frame state="stale" label={t("stale.label")} text={t("stale.text")}>
               <p className="vk-lock-head">
                 <span lang="en">{GATE_CHECK_HEADER}</span>{" "}
-                <Moves reveal={0} className="vk-lock-badge vk-gate-fail vk-gate-exit">
+                <Entrance className="vk-lock-badge vk-gate-fail vk-gate-exit">
                   <span lang="en">{`exit ${GATE_CHECK_EXIT_CODE}`}</span>
-                </Moves>
+                </Entrance>
               </p>
               <Cli command={GATE_CHECK_COMMAND} lines={GATE_CHECK_LINES} />
+              <TargetFile label={t("refused.unchanged")} fold="drop" />
               <p className="vk-lock-foot">
-                {t("stale.foot", { file: targetFile, placeholder: GATE_PLACEHOLDER })}
+                {t("stale.foot", { file: GATE_TARGET_FILE, placeholder: GATE_PLACEHOLDER })}
               </p>
             </Frame>
           </div>
         </div>
       </div>
-      <p className="vk-gate-docs">
-        <IntentPrefetchLink
-          href={localizedPath(locale, GATE_DOCS_PATH)}
-          className="vk-deck-link"
-          lang="en"
-        >
-          {GATE_DOCS_PATH.slice(1)}
-        </IntentPrefetchLink>
-      </p>
     </Section>
   );
 }

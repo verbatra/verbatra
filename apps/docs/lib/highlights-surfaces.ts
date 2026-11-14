@@ -12,7 +12,7 @@ export type SurfaceLine = {
   readonly text: string;
   readonly hit?: string;
   readonly command?: true;
-  readonly collapse?: true;
+  readonly collapse?: "phone" | "narrow";
 };
 
 export const SURFACE_COUNTS = {
@@ -23,9 +23,9 @@ export const SURFACE_COUNTS = {
   total: HERO_TERMINAL_SOURCE.length,
 } as const;
 
-export const SURFACE_COVERAGE_PERCENT = Math.round(
-  (SURFACE_COUNTS.upToDate / SURFACE_COUNTS.total) * 100,
-);
+const SURFACE_COVERAGE_PERCENT = Math.round((SURFACE_COUNTS.upToDate / SURFACE_COUNTS.total) * 100);
+
+export const LOCK_STATE_STALE = "stale";
 
 const STALE_COUNT = String(SURFACE_COUNTS.stale);
 
@@ -36,14 +36,16 @@ export function surfaceText(lines: ReadonlyArray<SurfaceLine>): string {
 export const CLI_LINES: ReadonlyArray<SurfaceLine> = [
   { text: `$ ${HERO_CHECK_COMMAND}`, command: true },
   ...HERO_CHECK_OUTPUT.map((text): SurfaceLine => {
-    if (text.includes(`${STALE_COUNT} stale`)) return { text, hit: `${STALE_COUNT} stale` };
-    if (text === CHECK_CLI_COMMAND || text === CHECK_OVERALL_LINE) return { text, collapse: true };
+    if (text.includes(`${STALE_COUNT} ${LOCK_STATE_STALE}`))
+      return { text, hit: `${STALE_COUNT} ${LOCK_STATE_STALE}` };
+    if (text === CHECK_CLI_COMMAND || text === CHECK_OVERALL_LINE)
+      return { text, collapse: "narrow" };
     return { text };
   }),
 ];
 
 export const SDK_CALL_LINES: ReadonlyArray<SurfaceLine> = [
-  { text: 'import { check } from "@verbatra/sdk";', collapse: true },
+  { text: 'import { check } from "@verbatra/sdk";', collapse: "phone" },
   { text: "const summary = await check({ config });", command: true },
   { text: "summary.locales[0];", command: true },
 ];
@@ -59,7 +61,7 @@ export const SDK_RESULT_LINES: ReadonlyArray<SurfaceLine> = [
   { text: "//   inSync: false, ... }" },
 ];
 
-export const MCP_TOOL = "status.check";
+const MCP_TOOL = "status.check";
 
 export const MCP_CALL = `${MCP_TOOL}({})`;
 

@@ -14,12 +14,17 @@ import {
   GATE_CHECK_LINES,
   GATE_DE_CANDIDATE,
   GATE_DE_OLD,
+  GATE_DOCS_PATH,
   GATE_KEY,
   GATE_LOCALE,
+  GATE_MODEL,
   GATE_PLACEHOLDER,
   GATE_REFUSED_BADGE,
   GATE_REFUSED_LINES,
   GATE_SOURCE,
+  GATE_SOURCE_BEFORE,
+  GATE_SOURCE_FILE,
+  GATE_TARGET_FILE,
   GATE_TRANSLATE_COMMAND,
   GATE_TRANSLATE_HEADER,
 } from "./gate-demo";
@@ -31,6 +36,7 @@ import {
   HERO_TRANSLATE_OUTPUT,
 } from "./hero-terminal";
 import {
+  LOCK_STATE_STALE,
   RAIL_ENTRIES,
   STUDIO_COLUMNS,
   STUDIO_ROW,
@@ -46,6 +52,7 @@ import {
   HERO_INSTALL_COMMAND,
   INIT_COMMAND,
   MCP_ADD_COMMAND,
+  SDK_INSTALL_COMMAND,
 } from "./install-commands";
 import { COMPARE_PATH } from "./landing-compare";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
@@ -198,55 +205,42 @@ async function lockDemo({ locale }: Context): Promise<string> {
 
 async function gate({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.gate" });
-  const sourceFile = playgroundFileName(PLAYGROUND_SOURCE_LOCALE);
-  const targetFile = playgroundFileName(GATE_LOCALE);
   const [group = "", leaf = ""] = GATE_KEY.split(".");
-  const docsPath = "/docs/translation-safety";
+  const targetFile = [`"${group}": {`, `  ${JSON.stringify(leaf)}: "${GATE_DE_OLD}"`, "}"].join(
+    "\n",
+  );
   return blocks(
     `## ${t("heading")}`,
-    t("lead"),
+    `${t("lead")} ${link(GATE_DOCS_PATH.slice(1), localizedPath(locale, GATE_DOCS_PATH))}`,
     list([
-      `**${t("candidate.label")}**: ${t("candidate.text", { key: GATE_KEY, file: sourceFile, placeholder: GATE_PLACEHOLDER })}`,
+      `**${t("candidate.label")}**: ${t("candidate.text", { key: GATE_KEY, file: GATE_SOURCE_FILE, placeholder: GATE_PLACEHOLDER })}`,
       `**${t("refused.label")}**: ${t("refused.text")}`,
       `**${t("stale.label")}**: ${t("stale.text")}`,
     ]),
-    `**${GATE_KEY}** ${t("candidate.badge")}`,
+    `**${GATE_KEY}** ${GATE_MODEL}`,
+    `**${GATE_SOURCE_FILE}** ${t("candidate.edited")}`,
+    fencedMarkdown("text", null, [`- "${GATE_SOURCE_BEFORE}"`, `+ "${GATE_SOURCE}"`].join("\n")),
+    `**${GATE_LOCALE}** ${t("candidate.answer")}`,
     fencedMarkdown(
       "text",
       null,
-      [
-        `${PLAYGROUND_SOURCE_LOCALE} "${GATE_SOURCE}"`,
-        `${GATE_LOCALE} "${GATE_DE_CANDIDATE}" ${GATE_PLACEHOLDER} ${t("candidate.missing")}`,
-      ].join("\n"),
+      `"${GATE_DE_CANDIDATE}" ${GATE_PLACEHOLDER} ${t("candidate.missing")}`,
     ),
     t("candidate.foot"),
-    `**${GATE_TRANSLATE_HEADER}** ${GATE_REFUSED_BADGE}`,
-    fencedMarkdown(
-      "text",
-      null,
-      [
-        `$ ${GATE_TRANSLATE_COMMAND}`,
-        ...GATE_REFUSED_LINES.map((line) =>
-          line.includes(`${GATE_KEY}:`) ? `${line}  ${t("refused.stamp")}` : line,
-        ),
-      ].join("\n"),
-    ),
-    `**${targetFile}** ${t("refused.unchanged")}`,
-    fencedMarkdown(
-      "json",
-      null,
-      [`"${group}": {`, `  ${JSON.stringify(leaf)}: "${GATE_DE_OLD}"`, "}"].join("\n"),
-    ),
+    `**${GATE_TRANSLATE_HEADER}** ${t("refused.stamp")} ${GATE_REFUSED_BADGE}`,
+    fencedMarkdown("text", null, [`$ ${GATE_TRANSLATE_COMMAND}`, ...GATE_REFUSED_LINES].join("\n")),
+    `**${GATE_TARGET_FILE}** ${t("refused.unchanged")}`,
+    fencedMarkdown("json", null, targetFile),
     `**${GATE_CHECK_HEADER}** exit ${GATE_CHECK_EXIT_CODE}`,
     fencedMarkdown("text", null, [`$ ${GATE_CHECK_COMMAND}`, ...GATE_CHECK_LINES].join("\n")),
-    t("stale.foot", { file: targetFile, placeholder: GATE_PLACEHOLDER }),
-    link(docsPath.slice(1), localizedPath(locale, docsPath)),
+    `**${GATE_TARGET_FILE}** ${t("refused.unchanged")}`,
+    fencedMarkdown("json", null, targetFile),
+    t("stale.foot", { file: GATE_TARGET_FILE, placeholder: GATE_PLACEHOLDER }),
   );
 }
 
 async function highlights({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.highlights" });
-  const lockDemo = await getTranslations({ locale, namespace: "landing.lockDemo" });
   const surface = (id: Surface, ...body: ReadonlyArray<string>): ReadonlyArray<string> => [
     `### ${t(`surfaces.${id}`)}`,
     ...body,
@@ -254,18 +248,14 @@ async function highlights({ locale }: Context): Promise<string> {
   ];
   return blocks(
     `## ${t("heading")}`,
-    t("lead", {
-      locale: SURFACE_COUNTS.locale,
-      stale: SURFACE_COUNTS.stale,
-      upToDate: SURFACE_COUNTS.upToDate,
-    }),
+    t("lead", { stale: SURFACE_COUNTS.stale, upToDate: SURFACE_COUNTS.upToDate }),
     `**${LOCK_FILE_NAME}** ${HERO_CHECK_BADGE}`,
     fencedMarkdown(
-      "json",
+      "text",
       null,
       RAIL_ENTRIES.map(
         ({ key, hash, comma }) =>
-          `${JSON.stringify(key)}: ${JSON.stringify(hash)}${comma ? "," : ""} ${lockDemo("tags.stale")}`,
+          `${JSON.stringify(key)}: ${JSON.stringify(hash)}${comma ? "," : ""} ${LOCK_STATE_STALE}`,
       ).join("\n"),
     ),
     ...surface("cli", fencedMarkdown("text", null, surfaceText(SURFACE_CODE.cli))),
@@ -283,7 +273,11 @@ async function highlights({ locale }: Context): Promise<string> {
         ].join(" | ")} |`,
       ].join("\n"),
     ),
-    ...surface("sdk", fencedMarkdown("ts", null, surfaceText(SURFACE_CODE.sdk))),
+    ...surface(
+      "sdk",
+      fencedMarkdown("ts", null, surfaceText(SURFACE_CODE.sdk)),
+      fencedMarkdown("sh", null, SDK_INSTALL_COMMAND),
+    ),
     ...surface(
       "mcp",
       t("mcp.badge"),

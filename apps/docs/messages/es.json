@@ -241,18 +241,47 @@
       },
       "preGenerated": "pregenerado, no en vivo"
     },
+    "gate": {
+      "heading": "Cuando el proveedor se equivoca, no se escribe nada",
+      "lead": "Todo candidato pasa por una puerta de integridad antes de llegar a tu archivo.",
+      "candidate": {
+        "label": "Candidato",
+        "text": "Cambiaste {key} en {file}. El proveedor devuelve una traducción, y perdió {placeholder}.",
+        "foot": "Todavía no se ha revisado ni escrito nada.",
+        "missing": "faltante",
+        "edited": "cambiado",
+        "answer": "respuesta del proveedor"
+      },
+      "refused": {
+        "label": "Rechazado",
+        "text": "La puerta compara el candidato con el origen y lo rechaza. El archivo no se toca.",
+        "stamp": "no escrito",
+        "unchanged": "sin cambios"
+      },
+      "stale": {
+        "label": "Sigue obsoleto",
+        "text": "La clave sigue obsoleta, por lo que la comprobación sigue fallando.",
+        "foot": "El valor antiguo se queda en {file}. CI falla hasta que la clave obtiene un valor que mantiene {placeholder}."
+      }
+    },
     "highlights": {
       "heading": "Pregunta a cualquier superficie, obtén la misma respuesta",
-      "lead": "La CLI, el SDK, Studio y el servidor MCP leen un solo archivo de bloqueo, así que {locale} muestra {stale} obsoletas y {upToDate} al día, preguntes donde preguntes.",
+      "lead": "Cada superficie lee el mismo archivo de bloqueo, así que el alemán marca {stale} obsoletas y {upToDate} al día en todas.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",
         "sdk": "SDK",
-        "mcp": "servidor MCP"
+        "mcp": "Servidor MCP"
       },
       "mcp": {
         "badge": "no llama a ningún proveedor",
         "copyAria": "Copiar el comando de configuración de MCP"
+      },
+      "studio": {
+        "label": "Cobertura de locales"
+      },
+      "sdk": {
+        "copyAria": "Copiar el comando de instalación del SDK"
       }
     },
     "features": {
@@ -690,28 +719,6 @@
     },
     "fab": {
       "label": "Volver arriba"
-    },
-    "gate": {
-      "heading": "Cuando el proveedor se equivoca, no se escribe nada",
-      "lead": "Todo candidato pasa por una puerta de integridad antes de llegar a tu archivo.",
-      "candidate": {
-        "label": "Candidato",
-        "text": "Cambiaste {key} en {file}. El proveedor devuelve una traducción, y perdió {placeholder}.",
-        "badge": "candidato",
-        "foot": "La respuesta del proveedor, antes de que se verifique o escriba nada.",
-        "missing": "faltante"
-      },
-      "refused": {
-        "label": "Rechazado",
-        "text": "La puerta compara el candidato con el origen y lo rechaza. El archivo no se toca.",
-        "stamp": "no escrito",
-        "unchanged": "sin cambios"
-      },
-      "stale": {
-        "label": "Sigue obsoleto",
-        "text": "La clave sigue obsoleta, por lo que la comprobación sigue fallando.",
-        "foot": "El valor antiguo se queda en {file}. CI falla hasta que la clave obtiene un valor que mantiene {placeholder}."
-      }
     }
   },
   "compare": {

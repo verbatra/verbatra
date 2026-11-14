@@ -241,9 +241,32 @@
       },
       "preGenerated": "pré-généré, pas en direct"
     },
+    "gate": {
+      "heading": "Quand le fournisseur se trompe, rien n’est écrit",
+      "lead": "Chaque candidat passe une barrière d’intégrité avant d’atteindre ton fichier.",
+      "candidate": {
+        "label": "Candidat",
+        "text": "Tu as modifié {key} dans {file}. Le fournisseur renvoie une traduction, et celle-ci a perdu {placeholder}.",
+        "foot": "Rien n’est encore vérifié ni écrit.",
+        "missing": "manquant",
+        "edited": "modifié",
+        "answer": "réponse fournie"
+      },
+      "refused": {
+        "label": "Refusé",
+        "text": "La barrière compare le candidat avec la source et le refuse. Le fichier n’est pas modifié.",
+        "stamp": "non écrit",
+        "unchanged": "inchangé"
+      },
+      "stale": {
+        "label": "Toujours obsolète",
+        "text": "La clé reste obsolète, donc la vérification échoue toujours.",
+        "foot": "L’ancienne valeur reste dans {file}. La CI échoue tant que la clé n’obtient pas une valeur qui conserve {placeholder}."
+      }
+    },
     "highlights": {
-      "heading": "Interroge n’importe quelle surface, obtiens la même réponse",
-      "lead": "La CLI, le SDK, Studio et le serveur MCP lisent tous le même fichier de verrouillage, donc {locale} affiche {stale} obsolètes et {upToDate} à jour, où que tu demandes.",
+      "heading": "Une surface au choix, la même réponse",
+      "lead": "Chaque surface lit le même fichier de verrouillage, donc l’allemand affiche {stale} obsolètes et {upToDate} à jour, où que tu demandes.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",
@@ -253,6 +276,12 @@
       "mcp": {
         "badge": "n’appelle aucun fournisseur",
         "copyAria": "Copier la commande de configuration du serveur MCP"
+      },
+      "studio": {
+        "label": "Couverture des locales"
+      },
+      "sdk": {
+        "copyAria": "Copier la commande d’installation du SDK"
       }
     },
     "features": {
@@ -690,28 +719,6 @@
     },
     "fab": {
       "label": "Retour en haut"
-    },
-    "gate": {
-      "heading": "Quand le fournisseur se trompe, rien n’est écrit",
-      "lead": "Chaque candidat passe une barrière d’intégrité avant d’atteindre ton fichier.",
-      "candidate": {
-        "label": "Candidat",
-        "text": "Tu as modifié {key} dans {file}. Le fournisseur renvoie une traduction, et celle-ci a perdu {placeholder}.",
-        "badge": "candidat",
-        "foot": "La réponse du fournisseur, avant que quoi que ce soit ne soit vérifié ou écrit.",
-        "missing": "manquant"
-      },
-      "refused": {
-        "label": "Refusé",
-        "text": "La barrière compare le candidat avec la source et le refuse. Le fichier n’est pas modifié.",
-        "stamp": "non écrit",
-        "unchanged": "inchangé"
-      },
-      "stale": {
-        "label": "Toujours obsolète",
-        "text": "La clé reste obsolète, donc la vérification échoue toujours.",
-        "foot": "L’ancienne valeur reste dans {file}. La CI échoue tant que la clé n’obtient pas une valeur qui conserve {placeholder}."
-      }
     }
   },
   "compare": {

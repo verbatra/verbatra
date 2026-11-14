@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { HERO_CHECK_BADGE } from "@/lib/hero-terminal";
 import {
+  LOCK_STATE_STALE,
   RAIL_ENTRIES,
   STUDIO_COLUMNS,
   STUDIO_ROW,
@@ -13,8 +14,8 @@ import {
   type Surface,
   type SurfaceLine,
 } from "@/lib/highlights-surfaces";
-import { localizedPath, toLocale } from "@/lib/i18n";
-import { MCP_ADD_COMMAND } from "@/lib/install-commands";
+import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
+import { MCP_ADD_COMMAND, SDK_INSTALL_COMMAND } from "@/lib/install-commands";
 import { LOCK_FILE_NAME } from "@/lib/lock-demo";
 import { keepCompoundsWhole, keepPackageRunsWhole } from "@/lib/word-breaks";
 import { CopyButton } from "./islands";
@@ -22,8 +23,6 @@ import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
 const HIGHLIGHTS_HEADING_ID = "highlights-heading";
-
-type Translate = Awaited<ReturnType<typeof getTranslations<"landing.highlights">>>;
 
 function Marked({ line }: { line: SurfaceLine }): ReactNode {
   if (line.hit === undefined) return keepCompoundsWhole(line.text);
@@ -47,7 +46,7 @@ function Lines({ lines }: { lines: ReadonlyArray<SurfaceLine> }): ReactNode {
             className="vk-lock-line"
             data-kind={line.command === true ? "command" : undefined}
             data-mark={line.hit === undefined ? undefined : "hit"}
-            data-fold={line.collapse === true ? "drop" : undefined}
+            data-fold={line.collapse === "phone" ? "drop" : line.collapse}
           >
             <Marked line={line} />
             {index < lines.length - 1 ? "\n" : ""}
@@ -58,7 +57,7 @@ function Lines({ lines }: { lines: ReadonlyArray<SurfaceLine> }): ReactNode {
   );
 }
 
-function Rail({ staleTag }: { staleTag: string }): ReactNode {
+function Rail(): ReactNode {
   return (
     <div className="vk-lock-card vk-hl-rail">
       <p className="vk-lock-head">
@@ -70,12 +69,7 @@ function Rail({ staleTag }: { staleTag: string }): ReactNode {
       <pre className="vk-lock-code" lang="en">
         <code>
           {RAIL_ENTRIES.map(({ key, hash, comma }, index) => (
-            <span
-              key={key}
-              className="vk-lock-line"
-              data-mark="stale"
-              style={{ "--d": 0 } as CSSProperties}
-            >
+            <span key={key} className="vk-lock-line" data-mark="stale">
               <span className="vk-lock-sign" aria-hidden="true">
                 ~
               </span>
@@ -83,8 +77,8 @@ function Rail({ staleTag }: { staleTag: string }): ReactNode {
               {": "}
               <span className="vk-lock-value">{JSON.stringify(hash)}</span>
               {comma ? "," : ""}{" "}
-              <span className="vk-lock-tag" lang={undefined}>
-                {staleTag}
+              <span className="vk-lock-tag" lang="en">
+                {LOCK_STATE_STALE}
               </span>
               {index < RAIL_ENTRIES.length - 1 ? "\n" : ""}
             </span>
@@ -95,10 +89,11 @@ function Rail({ staleTag }: { staleTag: string }): ReactNode {
   );
 }
 
-function StudioRow(): ReactNode {
+function StudioRow({ label }: { label: string }): ReactNode {
   return (
-    <div className="vk-hl-studio" lang="en">
-      <table className="vk-hl-table" aria-label="Locale coverage">
+    <figure className="vk-hl-studio">
+      <figcaption className="sr-only">{label}</figcaption>
+      <table className="vk-hl-table" lang="en">
         <thead>
           <tr>
             {STUDIO_COLUMNS.map((column, index) => (
@@ -134,7 +129,7 @@ function StudioRow(): ReactNode {
           </tr>
         </tbody>
       </table>
-    </div>
+    </figure>
   );
 }
 
@@ -142,35 +137,44 @@ function Pane({
   surface,
   name,
   badge,
+  badgeLang,
   reveal,
   locale,
   children,
-  footTop,
-  extra,
+  command,
+  copy,
 }: {
   surface: Surface;
   name: string;
   badge: string;
+  badgeLang?: "en";
   reveal: number;
-  locale: ReturnType<typeof toLocale>;
+  locale: Locale;
   children: ReactNode;
-  footTop?: ReactNode;
-  extra?: ReactNode;
+  command?: ReactNode;
+  copy?: ReactNode;
 }): ReactNode {
   const titleId = `highlights-${surface}-title`;
   const docsPath = SURFACE_DOCS_PATHS[surface];
   return (
-    <article className="vk-hl-pane" data-reveal={reveal} aria-labelledby={titleId}>
+    <article
+      className="vk-hl-pane"
+      data-surface={surface}
+      data-reveal={reveal}
+      aria-labelledby={titleId}
+    >
       <div className="vk-lock-card">
         <div className="vk-lock-head">
           <h3 id={titleId} className="vk-hl-surface">
             {name}
           </h3>
-          <span className="vk-lock-badge">{badge}</span>
+          <span className="vk-lock-badge" lang={badgeLang}>
+            {badge}
+          </span>
         </div>
         {children}
         <div className="vk-lock-foot vk-hl-foot">
-          {footTop}
+          {command}
           <div className="vk-hl-actions">
             <IntentPrefetchLink
               href={localizedPath(locale, docsPath)}
@@ -179,7 +183,7 @@ function Pane({
             >
               {docsPath.slice(1)}
             </IntentPrefetchLink>
-            {extra}
+            {copy}
           </div>
         </div>
       </div>
@@ -187,13 +191,8 @@ function Pane({
   );
 }
 
-function McpSetup({ t }: { t: Translate }): ReactNode {
-  return <CopyButton text={MCP_ADD_COMMAND} label={t("mcp.copyAria")} size="sm" />;
-}
-
 export async function Highlights(): Promise<ReactNode> {
   const t = await getTranslations("landing.highlights");
-  const lockDemo = await getTranslations("landing.lockDemo");
   const locale = toLocale(await getLocale());
   return (
     <Section id="highlights" labelledBy={HIGHLIGHTS_HEADING_ID}>
@@ -201,21 +200,18 @@ export async function Highlights(): Promise<ReactNode> {
         id={HIGHLIGHTS_HEADING_ID}
         title={t("heading")}
         lead={keepCompoundsWhole(
-          t("lead", {
-            locale: SURFACE_COUNTS.locale,
-            stale: SURFACE_COUNTS.stale,
-            upToDate: SURFACE_COUNTS.upToDate,
-          }),
+          t("lead", { stale: SURFACE_COUNTS.stale, upToDate: SURFACE_COUNTS.upToDate }),
         )}
         align="start"
       />
       <div className="vk-hl">
-        <Rail staleTag={lockDemo("tags.stale")} />
+        <Rail />
         <div className="vk-hl-panes">
           <Pane
             surface="cli"
             name={t("surfaces.cli")}
             badge={SURFACE_BADGES.cli}
+            badgeLang="en"
             reveal={0}
             locale={locale}
           >
@@ -225,17 +221,25 @@ export async function Highlights(): Promise<ReactNode> {
             surface="studio"
             name={t("surfaces.studio")}
             badge={SURFACE_BADGES.studio}
+            badgeLang="en"
             reveal={0}
             locale={locale}
           >
-            <StudioRow />
+            <StudioRow label={t("studio.label")} />
           </Pane>
           <Pane
             surface="sdk"
             name={t("surfaces.sdk")}
             badge={SURFACE_BADGES.sdk}
+            badgeLang="en"
             reveal={1}
             locale={locale}
+            command={
+              <p className="vk-hl-command" lang="en">
+                <code>{keepPackageRunsWhole(SDK_INSTALL_COMMAND)}</code>
+              </p>
+            }
+            copy={<CopyButton text={SDK_INSTALL_COMMAND} label={t("sdk.copyAria")} size="sm" />}
           >
             <Lines lines={SURFACE_CODE.sdk} />
           </Pane>
@@ -245,12 +249,12 @@ export async function Highlights(): Promise<ReactNode> {
             badge={t("mcp.badge")}
             reveal={1}
             locale={locale}
-            footTop={
+            command={
               <p className="vk-hl-command" lang="en">
                 <code>{keepPackageRunsWhole(MCP_ADD_COMMAND)}</code>
               </p>
             }
-            extra={<McpSetup t={t} />}
+            copy={<CopyButton text={MCP_ADD_COMMAND} label={t("mcp.copyAria")} size="sm" />}
           >
             <Lines lines={SURFACE_CODE.mcp} />
           </Pane>

@@ -4698,6 +4698,14 @@ html.light .vk-deck-shot-light {
   border-color: var(--border-accent);
 }
 
+.vk-hl-pane .vk-lock-code {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: 0.625rem;
+}
+
 .vk-hl-surface {
   margin: 0;
   font: inherit;
@@ -4728,7 +4736,7 @@ html.light .vk-deck-shot-light {
   align-items: center;
   justify-content: space-between;
   gap: 0 0.75rem;
-  padding-inline: 0.875rem;
+  padding: 0.375rem 0.875rem;
 }
 
 .vk-hl-command {
@@ -4748,7 +4756,7 @@ html.light .vk-deck-shot-light {
 .vk-hl-stale {
   padding-inline: 2px;
   margin-inline: -2px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--accent);
   text-decoration: underline dotted var(--border-accent);
   text-underline-offset: 3px;
@@ -4756,6 +4764,11 @@ html.light .vk-deck-shot-light {
 }
 
 .vk-hl-studio {
+  margin: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
   container-type: inline-size;
   padding: 0.5rem 0.875rem 0.75rem;
 }
@@ -4836,13 +4849,12 @@ html.light .vk-deck-shot-light {
 }
 
 @container (max-width: 24rem) {
-  .vk-hl-keys,
-  .vk-hl-bar {
+  .vk-hl-keys {
     display: none;
   }
 
   .vk-hl-coverage {
-    min-width: 0;
+    min-width: 3rem;
   }
 
   .vk-hl-head,
@@ -4875,10 +4887,51 @@ html.light .vk-deck-shot-light {
   }
 }
 
+.vk-hl:has(.vk-hl-pane:hover, .vk-hl-pane:focus-within) .vk-hl-rail .vk-lock-value,
+.vk-hl:has(.vk-hl-pane:hover, .vk-hl-pane:focus-within) .vk-hl-rail .vk-lock-sign {
+  color: var(--text-strong);
+}
+
 @media (forced-colors: active) {
+  .vk-hl-bar {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+
+  .vk-hl-bar i {
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+
   .vk-hl:has(.vk-hl-pane:hover, .vk-hl-pane:focus-within) .vk-hl-stale {
     outline: 2px solid Highlight;
     text-decoration-style: solid;
+  }
+}
+
+@media (max-width: 63.99rem) {
+  .vk-hl .vk-lock-line[data-fold="narrow"] {
+    display: none;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .vk-hl,
+  .vk-hl-panes {
+    gap: 0.75rem;
+  }
+
+  .vk-hl-pane .vk-lock-code {
+    padding-block: 0.5rem;
+  }
+
+  .vk-hl-actions {
+    padding-block: 0.25rem;
+  }
+
+  .vk-hl-pane[data-surface="sdk"] .vk-hl-command,
+  .vk-hl-pane[data-surface="sdk"] .vk-hl-actions button {
+    display: none;
   }
 }
 
@@ -4919,10 +4972,6 @@ html.light .vk-deck-shot-light {
   margin: 0;
 }
 
-.vk-gate-card {
-  max-width: 52rem;
-}
-
 .vk-gate-code .vk-lock-line {
   padding-inline: calc(0.875rem + var(--d, 0) * 2ch + var(--hang)) 0.875rem;
 }
@@ -4931,11 +4980,17 @@ html.light .vk-deck-shot-light {
   color: var(--text-strong);
 }
 
-.vk-gate-lang {
-  display: inline-block;
-  min-width: 2ch;
+.vk-gate-code .vk-lock-line[data-diff="removed"] {
   color: var(--text-muted);
-  text-indent: 0;
+  text-decoration: line-through;
+}
+
+.vk-gate-code .vk-lock-line[data-diff="added"] {
+  color: var(--text-strong);
+}
+
+.vk-gate-code .vk-lock-line[data-diff] {
+  padding-inline-start: calc(1.625rem + var(--hang));
 }
 
 .vk-gate-moves {
@@ -4963,6 +5018,12 @@ html.light .vk-deck-shot-light {
   background: var(--text-danger);
 }
 
+.vk-gate-head-end {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
 .vk-gate-stamp {
   white-space: nowrap;
   font-size: 0.6875rem;
@@ -4978,8 +5039,40 @@ html.light .vk-deck-shot-light {
 
 .vk-gate-docs {
   display: flex;
-  justify-content: flex-end;
-  margin: 0.5rem 0 0;
+  width: fit-content;
+  margin-top: 0.25rem;
+}
+
+.vk-gate-marker {
+  display: inline-flex;
+  gap: 3px;
+  margin-inline-start: 0.75rem;
+  vertical-align: middle;
+}
+
+.vk-gate-marker i {
+  width: 1.25rem;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--text-muted) 40%, transparent);
+}
+
+.vk-gate-marker i[data-on] {
+  background: var(--accent-fill);
+}
+
+@media (max-width: 39.99rem) {
+  .vk-gate [data-fold="drop"] {
+    display: none;
+  }
+
+  .vk-gate-stage {
+    gap: 1.25rem;
+  }
+
+  .vk-gate-frame {
+    gap: 0.5rem;
+  }
 }
 
 @media (forced-colors: active) {
@@ -4988,9 +5081,38 @@ html.light .vk-deck-shot-light {
     outline-offset: 2px;
   }
 
-  .vk-gate-stamp,
-  .vk-gate-fail {
-    color: CanvasText;
+  .vk-lock-line[data-mark="refused"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  .vk-gate-marker i {
+    background: GrayText;
+    forced-color-adjust: none;
+  }
+
+  .vk-gate-marker i[data-on] {
+    background: Highlight;
+  }
+}
+
+@media (min-width: 64rem) {
+  .vk-gate-stage {
+    gap: var(--head-gap);
+  }
+
+  .vk-gate-frame {
+    grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+    column-gap: var(--grid-gap);
+    align-items: start;
+  }
+
+  .vk-gate-frame > .vk-lock-caption {
+    grid-column: 1 / span 4;
+  }
+
+  .vk-gate-frame > .vk-gate-card {
+    grid-column: 5 / span 8;
   }
 }
 
@@ -4999,8 +5121,9 @@ html.light .vk-deck-shot-light {
   ) {
   @supports (animation-timeline: view()) {
     .vk-gate-track {
+      --vk-gate-pin: 136svh;
       --vk-gate-stage: calc(100svh - var(--vk-landing-offset));
-      height: calc(120svh + var(--vk-gate-stage));
+      height: calc(var(--vk-gate-pin) + var(--vk-gate-stage));
       view-timeline: --vk-gate block;
       view-timeline-inset: var(--vk-landing-offset) 0;
     }
@@ -5020,16 +5143,25 @@ html.light .vk-deck-shot-light {
     }
 
     .vk-gate-stage {
-      display: grid;
+      grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+      column-gap: var(--grid-gap);
+      align-items: center;
     }
 
     .vk-gate-frame {
-      grid-area: 1 / 1;
-      align-self: start;
+      grid-row: 1;
+      grid-column: 1 / span 8;
+      grid-template-columns: minmax(0, 1fr);
+      align-self: center;
       animation-fill-mode: both;
       animation-timing-function: linear;
       animation-timeline: --vk-gate;
       animation-range: contain 0% contain 100%;
+    }
+
+    .vk-gate-frame > .vk-lock-caption,
+    .vk-gate-frame > .vk-gate-card {
+      grid-column: 1;
     }
 
     .vk-gate-frame[data-state="candidate"] {
@@ -5050,91 +5182,103 @@ html.light .vk-deck-shot-light {
       animation-timeline: --vk-gate;
     }
 
-    html[data-motion-ready] .vk-gate .vk-gate-moves {
+    html[data-motion-ready] .vk-gate .vk-gate-track .vk-gate-moves {
+      opacity: 1;
       translate: none;
       transition: none;
     }
 
     .vk-gate-slot {
-      animation-name: vk-gate-drop;
-      animation-range: contain 0% contain 6.667%;
+      animation-name: vk-gate-chip;
+      animation-range: contain 0% contain 5.882%;
     }
 
     .vk-gate-stamp {
       animation-name: vk-gate-stamp;
-      animation-range: contain 36.667% contain 40%;
+      animation-range: contain 36.765% contain 39.706%;
     }
 
     .vk-gate-exit {
       animation-name: vk-gate-drop;
-      animation-range: contain 70% contain 73.333%;
+      animation-range: contain 70.588% contain 73.529%;
     }
 
     @keyframes vk-gate-candidate {
       0%,
-      31.667% {
+      32.353% {
         opacity: 1;
-        visibility: visible;
+        pointer-events: auto;
       }
 
-      33.333% {
+      33.824% {
         opacity: 0;
-        visibility: visible;
+        pointer-events: auto;
       }
 
-      33.4%,
+      33.897%,
       100% {
         opacity: 0;
-        visibility: hidden;
+        pointer-events: none;
       }
     }
 
     @keyframes vk-gate-refused {
       0%,
-      34.1% {
+      34.118% {
         opacity: 0;
-        visibility: hidden;
+        pointer-events: none;
       }
 
-      34.167% {
+      34.191%,
+      34.559% {
         opacity: 0;
-        visibility: visible;
+        pointer-events: auto;
       }
 
-      35.833%,
-      65.833% {
+      36.029%,
+      66.176% {
         opacity: 1;
-        visibility: visible;
+        pointer-events: auto;
       }
 
-      67.5% {
+      67.647% {
         opacity: 0;
-        visibility: visible;
+        pointer-events: auto;
       }
 
-      67.6%,
+      67.721%,
       100% {
         opacity: 0;
-        visibility: hidden;
+        pointer-events: none;
       }
     }
 
     @keyframes vk-gate-stale {
       0%,
-      68.2% {
+      68.309% {
         opacity: 0;
-        visibility: hidden;
+        pointer-events: none;
       }
 
-      68.333% {
+      68.382% {
         opacity: 0;
-        visibility: visible;
+        pointer-events: auto;
       }
 
-      70%,
+      69.853%,
       100% {
         opacity: 1;
-        visibility: visible;
+        pointer-events: auto;
+      }
+    }
+
+    @keyframes vk-gate-chip {
+      from {
+        transform: translateY(-12px);
+      }
+
+      to {
+        transform: none;
       }
     }
 
