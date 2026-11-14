@@ -226,11 +226,11 @@ async function gate({ locale }: Context): Promise<string> {
     t("candidate.foot"),
     `**${GATE_TRANSLATE_HEADER}** ${t("refused.stamp")} ${GATE_REFUSED_BADGE}`,
     fencedMarkdown("text", null, [`$ ${GATE_TRANSLATE_COMMAND}`, ...GATE_REFUSED_LINES].join("\n")),
-    `**${GATE_TARGET_FILE}** ${t("refused.unchanged")}`,
+    `**${GATE_TARGET_FILE}** ${t("valueUnchanged")}`,
     fencedMarkdown("json", null, targetFile),
     `**${GATE_CHECK_HEADER}** exit ${GATE_CHECK_EXIT_CODE}`,
     fencedMarkdown("text", null, [`$ ${GATE_CHECK_COMMAND}`, ...GATE_CHECK_LINES].join("\n")),
-    `**${GATE_TARGET_FILE}** ${t("refused.unchanged")}`,
+    `**${GATE_TARGET_FILE}** ${t("valueUnchanged")}`,
     fencedMarkdown("json", null, targetFile),
     t("stale.foot", { file: GATE_TARGET_FILE, placeholder: GATE_PLACEHOLDER }),
   );

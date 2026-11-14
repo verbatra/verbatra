@@ -282,7 +282,7 @@ export async function Gate(): Promise<ReactNode> {
                 lines={GATE_REFUSED_LINES}
                 marked={refusedIndex}
               />
-              <TargetFile label={t("refused.unchanged")} />
+              <TargetFile label={t("valueUnchanged")} />
             </Frame>
             <Frame state="stale" label={t("stale.label")} text={t("stale.text")}>
               <p className="vk-lock-head">
@@ -292,7 +292,7 @@ export async function Gate(): Promise<ReactNode> {
                 </Entrance>
               </p>
               <Cli command={GATE_CHECK_COMMAND} lines={GATE_CHECK_LINES} />
-              <TargetFile label={t("refused.unchanged")} fold="drop" />
+              <TargetFile label={t("valueUnchanged")} fold="drop" />
               <p className="vk-lock-foot">
                 {t("stale.foot", { file: GATE_TARGET_FILE, placeholder: GATE_PLACEHOLDER })}
               </p>

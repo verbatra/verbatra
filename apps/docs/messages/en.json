@@ -255,14 +255,14 @@
       "refused": {
         "label": "Refused",
         "text": "The gate compares the candidate with the source and refuses it. The file is not touched.",
-        "stamp": "not written",
-        "unchanged": "unchanged"
+        "stamp": "not written"
       },
       "stale": {
         "label": "Still stale",
         "text": "The key stays stale, so the check still fails.",
         "foot": "The old value stays in {file}. CI fails until the key gets a value that keeps {placeholder}."
-      }
+      },
+      "valueUnchanged": "unchanged"
     },
     "highlights": {
       "heading": "Ask any surface, get the same answer",

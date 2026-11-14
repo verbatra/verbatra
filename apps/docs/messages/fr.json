@@ -250,19 +250,19 @@
         "foot": "Rien n’est encore vérifié ni écrit.",
         "missing": "manquant",
         "edited": "modifié",
-        "answer": "réponse fournie"
+        "answer": "réponse du fournisseur"
       },
       "refused": {
         "label": "Refusé",
         "text": "La barrière compare le candidat avec la source et le refuse. Le fichier n’est pas modifié.",
-        "stamp": "non écrit",
-        "unchanged": "inchangé"
+        "stamp": "non écrit"
       },
       "stale": {
         "label": "Toujours obsolète",
         "text": "La clé reste obsolète, donc la vérification échoue toujours.",
         "foot": "L’ancienne valeur reste dans {file}. La CI échoue tant que la clé n’obtient pas une valeur qui conserve {placeholder}."
-      }
+      },
+      "valueUnchanged": "inchangé"
     },
     "highlights": {
       "heading": "Une surface au choix, la même réponse",
