@@ -67,8 +67,8 @@ Commite tes fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.jso
 
 ## Comment je retraduis tout ?
 
-Supprime le fichier de locale et lance `verbatra translate` : chaque clé manque alors et est
-retraduite. Supprimer le fichier de verrouillage ne suffit pas, car sans référence les traductions
+Supprime le fichier de locale et lance `verbatra translate --no-cache` : chaque clé manque alors et est
+envoyée de nouveau au fournisseur. Sans `--no-cache`, les correspondances de la mémoire de traduction remplissent à nouveau ce qu'elles contiennent. Supprimer le fichier de verrouillage ne suffit pas, car sans référence les traductions
 existantes comptent comme à jour. Pour une seule clé, utilise l'action de retraduction de Studio ou
 `retranslateEntry`.
 
@@ -96,14 +96,13 @@ aucune télémétrie. Avec `provider: { id: "none" }`, rien ne quitte la machine
 L'installation en une seule passe, sans appel de traduction et sans lire la valeur d'une clé, sauf
 si tu passes `--live`, qui l'envoie pour récupérer la liste des langues du fournisseur : la config,
 le format, le fournisseur, la variable de la clé d'API, la politique réseau, le fichier source et la
-prise en charge des locales, plus des rapports informatifs sur les pluriels, les codes de locale et
-l'état de locale restant. [`verbatra doctor`](/fr/docs/cli/doctor) a le tableau complet des
+prise en charge des locales, plus des rapports informatifs sur les pluriels, les codes de locale, l'état de locale restant et `verbatra.limits.json`. [`verbatra doctor`](/fr/docs/cli/doctor) a le tableau complet des
 vérifications.
 
 ## Un agent IA peut-il configurer ou piloter verbatra à ma place ?
 
 Oui, par quatre surfaces : un prompt d'installation pour les agents de code
-([Installer avec un agent IA](/fr/docs/start-with-ai)), la sortie `--json` pour tes propres boucles
+([Configure verbatra avec un agent IA](/fr/docs/start-with-ai)), la sortie `--json` pour tes propres boucles
 ([Recettes pour agents et scripts](/fr/docs/agent-recipes)), des outils WebMCP dans un onglet Studio
 ouvert ([Piloter Studio avec un agent de navigateur](/fr/docs/agent-tools-in-studio)) et un serveur MCP
 en stdio ([`verbatra mcp`](/fr/docs/cli/mcp)). Studio et le serveur MCP ne dépensent chez un

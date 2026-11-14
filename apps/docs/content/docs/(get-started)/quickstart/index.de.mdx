@@ -1,10 +1,10 @@
 ---
 title: Schnellstart
 seoTitle: "Schnellstart: übersetze deine erste Locale-Datei"
-description: Installiere die CLI, erzeuge eine Konfiguration, sieh dir den Lauf ohne API-Schlüssel in der Vorschau an und übersetze deine erste Locale-Datei.
+description: Installiere die CLI, erzeuge eine Konfiguration, sieh dir den Lauf ohne API-Key in der Vorschau an und übersetze deine erste Locale-Datei.
 type: tutorial
 ---
-Am Ende dieser Seite hat eine englische Locale-Datei eine deutsche Schwester, geschrieben von einem Provider und von verbatra geprüft, dazu die Lock-Datei, mit der jeder spätere Lauf nur noch übersetzt, was sich geändert hat. Du brauchst Node.js `^22.22.0 || >=24` und etwa zehn Minuten. Die ersten vier Schritte brauchen weder ein Konto noch einen API-Schlüssel.
+Am Ende dieser Seite hat eine englische Locale-Datei eine deutsche Schwester, geschrieben von einem Provider und von verbatra geprüft, dazu die Lock-Datei, mit der jeder spätere Lauf nur noch übersetzt, was sich geändert hat. Du brauchst Node.js `^22.22.0 || >=24` und etwa zehn Minuten. Die ersten vier Schritte brauchen weder ein Konto noch einen API-Key.
 
 <Callout title="Du hast schon Locale-Dateien und einen Coding-Agenten?">
 Gib deinem Agenten den Prompt von [verbatra mit einem KI-Agenten einrichten](/de/docs/start-with-ai). Er richtet verbatra um die Locale-Dateien ein, die dein Projekt schon hat, und hält an, bevor er etwas ausgibt. Die Schritte unten fangen bei null an.
@@ -68,7 +68,7 @@ Die neue `verbatra.config.ts` übersetzt von `en` nach `de`. Für weitere Sprach
 </Step>
 <Step>
 
-### Sieh dir den Lauf ohne Schlüssel an
+### Sieh dir den Lauf ohne API-Key an
 
 ```bash
 npx @verbatra/cli translate --dry-run
@@ -84,7 +84,7 @@ verbatra translate (dry run)
 next: verbatra translate (run it for real)
 ```
 
-Das ist die Form im interaktiven Terminal; in einer Pipe oder in CI bekommt jeder Schritt zusätzlich eine eigene Zeile, siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe). Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts. [`verbatra doctor`](/de/docs/cli/doctor) prüft den Rest der Einrichtung auf dieselbe Weise.
+Das ist die Form im interaktiven Terminal; in einer Pipe oder in CI bekommt jeder Schritt zusätzlich eine eigene Zeile, siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe). Ein Dry Run baut keinen Provider, braucht also keinen API-Key, kostet nichts und schreibt nichts. [`verbatra doctor`](/de/docs/cli/doctor) prüft den Rest der Einrichtung auf dieselbe Weise.
 
 </Step>
 <Step>
@@ -95,7 +95,7 @@ Das ist die Form im interaktiven Terminal; in einer Pipe oder in CI bekommt jede
 cp .env.example .env
 ```
 
-Öffne `.env` und füge deinen Schlüssel hinter `GEMINI_API_KEY=` ein. Schlüssel kommen immer nur aus der Umgebung, und die CLI lädt [`.env.local` und `.env`](/de/docs/cli#umgebungsdateien) hinein. Noch kein Schlüssel? Gemini hat eine kostenlose Stufe: Erstelle einen im [Google AI Studio](https://aistudio.google.com/apikey). Alle anderen Provider und ihre Variablen stehen unter [Provider](/de/docs/providers).
+Öffne `.env` und füge deinen API-Key hinter `GEMINI_API_KEY=` ein. API-Keys kommen immer nur aus der Umgebung, und die CLI lädt [`.env.local` und `.env`](/de/docs/cli#umgebungsdateien) hinein. Noch kein API-Key? Gemini hat eine kostenlose Stufe: Erstelle einen im [Google AI Studio](https://aistudio.google.com/apikey). Alle anderen Provider und ihre Variablen stehen unter [Provider](/de/docs/providers).
 
 ```bash
 npx @verbatra/cli translate

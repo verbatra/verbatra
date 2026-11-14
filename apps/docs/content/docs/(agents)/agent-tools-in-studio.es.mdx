@@ -21,11 +21,11 @@ WebMCP es una capacidad nueva del navegador detrás de un flag, y su superficie 
 verbatra studio --expose-agent-tools
 ```
 
-`VERBATRA_STUDIO_AGENT_TOOLS=1` hace lo mismo; [Gasto y herramientas de agente](/es/docs/cli/studio#gasto-y-herramientas-de-agente) explica cómo se resuelven el flag y la variable. Abre la URL impresa en el navegador con WebMCP y el agente de esa pestaña encontrará las herramientas. En un navegador sin WebMCP, Studio no registra nada y el panel no cambia.
+`VERBATRA_STUDIO_AGENT_TOOLS=1` hace lo mismo; [Gasto y herramientas de agente](/es/docs/cli/studio#gasto-y-herramientas-de-agente) explica cómo se resuelven el flag y la variable. Abre la URL impresa en el navegador con WebMCP y el agente de esa pestaña encontrará las herramientas.
 
 Para que el agente pueda llamar a tu proveedor, arranca Studio también con `--allow-spend`.
 
-El agente lee cada valor sin ocultar, tal como lo muestra la página, porque un agente en la pestaña puede leer la página de todos modos. Las excepciones son las herramientas de glosario y `verbatra_history_keyRevisions`: sus valores pasan por una redacción de secretos, así que un valor con forma de clave de API vuelve como marcador. Para ocultar los valores a un agente, usa en su lugar el servidor MCP con [`--redact-values`](/es/docs/cli/mcp#redacted-values); para un proyecto bajo NDA, consulta [Studio y MCP](/es/docs/data-handling#studio-y-mcp).
+El agente lee cada valor sin ocultar, tal como lo muestra la página, porque un agente en la pestaña puede leer la página de todos modos. Las excepciones son las herramientas de glosario y `verbatra_history_keyRevisions`: sus valores pasan por una ocultación de secretos, así que un valor con forma de clave de API vuelve como marcador. Para ocultar los valores a un agente, usa en su lugar el servidor MCP con [`--redact-values`](/es/docs/cli/mcp#redacted-values); para un proyecto bajo NDA, consulta [Studio y MCP](/es/docs/data-handling#studio-y-mcp).
 
 ## Conoce lo que puede llamar el agente
 
@@ -41,15 +41,15 @@ Cada herramienta es una acción de Studio con el prefijo `verbatra_`. Las de lec
 | `verbatra_glossary_get` | el glosario resuelto, con los secretos ocultos |
 | `verbatra_lock_state` | el estado del archivo de bloqueo por locale |
 | `verbatra_history_list` | los commits recientes en los archivos de locale, con el nombre del autor ([nunca el correo](/es/docs/data-handling#studio-y-mcp)) |
-| `verbatra_history_keyRevisions` | los commits de una clave en un locale, con diferencias por palabra, claves ocultas <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
-| `verbatra_key_integrity` | las comprobaciones de placeholders, markup e ICU de una clave, en los locales donde cambió su origen |
+| `verbatra_history_keyRevisions` | los commits de una clave en un locale, con diferencias por palabra y las claves de API ocultas <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
+| `verbatra_key_integrity` | las comprobaciones de placeholders, marcado e ICU de una clave, en los locales donde cambió su origen |
 | `verbatra_review_queue` | cada valor escrito por una máquina que nadie ha aprobado, según los archivos del repositorio <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | el origen y el destino de una clave, con quién escribió el destino |
 | `verbatra_key_context` | la descripción, los términos del glosario y el `maxLength` de una clave, y la comprobación de un `draft` opcional <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_locale_values` | valores de clave por locale de destino, 200 por página por defecto, acotados con `locales`, `keys` o `query` |
 | `verbatra_locale_integrity` | cada traducción que no supera las comprobaciones de integridad <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_translation_estimate` | lo que enviaría y costaría una llamada translate-pending, sin llamar a ningún proveedor |
-| `verbatra_usage_summary` | el uso de tokens y el presupuesto de la última ejecución |
+| `verbatra_usage_summary` | el uso de tokens y el presupuesto de la última ejecución, más `incomplete` si algún locale falló o se detuvo a medias <AvailableFrom version="0.7.5" pkg="@verbatra/studio" /> |
 | `verbatra_usage_history` | las ejecuciones registradas, la más reciente primero, con tokens, coste y cobertura, solo como cifras <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
 
 ### Herramientas de escritura
@@ -59,7 +59,7 @@ Cada herramienta es una acción de Studio con el prefijo `verbatra_`. Las de lec
 | `verbatra_glossary_write` | cambia un término de un glosario en archivo <AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> |
 | `verbatra_review_approve` | registra la aprobación de un valor por una persona con nombre <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_review_reject` | registra el rechazo de una persona con nombre y elimina el valor |
-| `verbatra_translation_editEntry` | escribe un valor a través del control de integridad |
+| `verbatra_translation_editEntry` | escribe un valor a través de la puerta de integridad |
 
 ### Herramientas de gasto
 
@@ -72,7 +72,7 @@ Cada herramienta es una acción de Studio con el prefijo `verbatra_`. Las de lec
 
 ## Conoce las reglas de las herramientas
 
-Cada llamada pasa por el RPC de loopback autenticado del propio panel, con la misma validación de entrada y el mismo [control de integridad](/es/docs/translation-safety): un valor que falla una comprobación se rechaza, no se escribe.
+Cada llamada pasa por el RPC de loopback autenticado del propio panel, con la misma validación de entrada y la misma [puerta de integridad](/es/docs/translation-safety): un valor que falla una comprobación se rechaza, no se escribe.
 
 ### Reglas por llamada
 

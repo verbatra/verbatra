@@ -7,8 +7,8 @@ type: reference
 ## Das Fehlermodell
 
 Fehlschläge des gesamten Laufs werfen einen `SdkError`: eine Klasse, ein stabiler `code` und eine
-`message` ohne Secrets. Verzweige auf den Code, nicht auf die Message. Fehlschläge pro Locale,
-Provider-Notices und Integritätsbefunde kommen als Daten auf der `RunSummary` an, werden nie
+`message` ohne Secrets. Verzweige auf den Code, nicht auf die Meldung. Fehlschläge pro Locale,
+Provider-Hinweise und Integritätsbefunde kommen als Daten auf der `RunSummary` an, werden nie
 geworfen.
 
 Jeder Code, was er bedeutet, welche CLI-Befehle ihn erreichen und was der nächste Schritt ist, steht unter [SDK-Fehlercodes](/de/docs/error-codes#sdk-error-codes).
@@ -22,10 +22,10 @@ Meldung außerdem geschwärzt in die `SdkError`-Meldung übernommen wird), `EXPO
 `GLOSSARY_UNWRITABLE` und `SOURCE_UNWRITABLE` (der Dateisystemfehler), `REVIEW_RESTORE_FAILED` (der Fehler, der die
 Entscheidung unterbrochen hat) und `LOCK_CONTENDED`, wenn die Sperre übernommen wurde oder eine
 verwaiste Sperre nicht zurückgeholt oder beiseitegeschoben werden konnte (der Dateisystemfehler).
-`CONFIG_INVALID` trägt nur dann einen, wenn die Config-Datei mit einem Fehler mit Code nicht geladen
+`CONFIG_INVALID` trägt nur dann einen, wenn die Konfigurationsdatei mit einem Fehler mit Code nicht geladen
 werden konnte, etwa bei einem Import, der sich nicht auflösen lässt. Bei einem Parse- oder
-Schemafehler trägt es keinen, und `CONFIG_NOT_FOUND` nie, weil der Fehler eines Config-Parsers den
-Inhalt der Datei zitieren kann und ein in die Config geschriebener Key nicht mit dem Fehler
+Schemafehler trägt es keinen, und `CONFIG_NOT_FOUND` nie, weil der Fehler eines Konfigurations-Parsers den
+Inhalt der Datei zitieren kann und ein in die Konfiguration geschriebener Key nicht mit dem Fehler
 mitreisen darf. Geschwärzt wird bei `PROVIDER_CONSTRUCTION_FAILED` nur die Meldung: Der `cause` ist
 der ursprüngliche Fehler, unverändert. Die eingebauten Provider-Factories werfen Fehler ohne
 Geheimnis, und ein Fehler aus einem `createProvider`, das du selbst übergibst, kommt genau so zurück,
@@ -37,15 +37,15 @@ Die Ausnahmen von der Ein-Fehlerklasse-Regel:
 - `retranslateEntry` wirft den eigenen `ProviderError` des Providers weiter, wenn der einzelne
   Aufruf fehlschlägt.
 - `approveEntries`, `rejectEntries` und `retranslateEntries` werfen einen `BatchInterruptedError`
-  mit dem ursprünglichen Fehler als `cause`, wenn ein unerwarteter Fehler einen Stapel mittendrin
+  mit dem ursprünglichen Fehler als `cause`, wenn ein unerwarteter Fehler einen Batch mittendrin
   stoppt.
-- Eine Zielsprachdatei, die der Adapter nicht parsen kann, kommt als dessen `AdapterError` mit
+- Eine Ziel-Locale-Datei, die der Adapter nicht parsen kann, kommt als dessen `AdapterError` mit
   eigenem `code` aus `check`, `diff` und den anderen Flows, die sie lesen; `checkFile` meldet sie
   stattdessen als Syntaxbefund.
 - `watch` gibt weiter, was die Watcher-Factory oder dein `onReady`-Callback geworfen hat, unverpackt.
 - `runStatus` wirft überhaupt nie.
 
-Wie diese Codes auf CLI-Exit-Codes abbilden, steht in
+Wie diese Codes auf CLI-Exit-Codes abgebildet werden, steht in
 [SDK-Fehlercodes](/de/docs/error-codes#sdk-error-codes); Hilfe ausgehend vom Symptom findest du unter
 [Fehlerbehebung](/de/docs/troubleshooting).
 
@@ -121,9 +121,9 @@ class AdapterError extends Error {
 <AvailableFrom version="0.12.0" />
 
 `projectRelativeMessage(message, cwd)` schreibt jeden absoluten Pfad innerhalb des Projekts in einer
-Meldung in einen Pfad relativ zum Projektstamm um: Ein Pfad unter `cwd` verliert dieses Präfix,
+Meldung in einen Pfad relativ zur Projektwurzel um: Ein Pfad unter `cwd` verliert dieses Präfix,
 `cwd` selbst wird zu `.`, und ein Pfad außerhalb des Projekts bleibt, wie er ist. Jede
-`error.message` und jede Notice-Meldung pro Locale in einer `RunSummary` nennt Projektdateien
+`error.message` und jede Hinweismeldung pro Locale in einer `RunSummary` nennt Projektdateien
 bereits so, relativ zum `cwd` des Laufs; ruf es für die Meldung eines Fehlers auf, den ein Flow
 wirft, bevor du sie einem Menschen, einem Agenten oder einem Browser-Tab zeigst. `verbatra mcp`
 und Studio machen das für jeden Fehler, den sie zurückgeben.
@@ -153,7 +153,7 @@ setzen musst, gelesen aus dem `envVar`, das ein `ProviderError` mit `MISSING_API
 `causeCode` ist `MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` oder
 `ERR_UNSUPPORTED_DIR_IMPORT`), sagt stattdessen, dass du diesen Import installieren oder korrigieren
 sollst. Ein Hinweis ist fester Text plus höchstens ein Variablenname: Er enthält nie den Wert eines Keys und
-zitiert nie die Meldung. Der `--json`-Fehlerumschlag der CLI trägt ihn als `hint`, und
+zitiert nie die Meldung. Der Fehler-Envelope der CLI mit `--json` trägt ihn als `hint`, und
 `verbatra mcp` beendet den Text eines fehlgeschlagenen Aufrufs damit.
 
 ```ts title="Signatur"

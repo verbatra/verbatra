@@ -1,7 +1,7 @@
 ---
 title: "Ein Projekt inspizieren"
 seoTitle: "SDK: ein Projekt inspizieren, ohne zu schreiben"
-description: "Nur lesende SDK-Einstiegspunkte hinter doctor, check und diff, dazu Integritätsprüfungen sowie Lock- und Provenienzzustand; keiner schreibt eine Datei."
+description: "Nur lesende SDK-Einstiegspunkte hinter doctor, check und diff, dazu Integritätsprüfungen und der Zustand von Lock- und Herkunftsdatei; keiner schreibt Dateien."
 type: reference
 ---
 ## Zustand inspizieren, ohne zu schreiben
@@ -64,7 +64,7 @@ nennt es Variablen und Pfade, nie den Wert eines Keys.
 
 <AvailableFrom version="0.12.0" />
 
-Beschreibt für die geladene Config, wohin die Daten eines Projekts gehen, als versioniertes `DataFlowManifest`. [`verbatra doctor --data-flow`](/de/docs/cli/doctor#datenfluss) gibt es aus und listet seine Felder; `doctor({ dataFlow: true })` liefert es als `DoctorResult.dataFlow`. Es liest keinen API-Key und macht keinen Netzwerk-Request. Eine ungültige Netzwerk-Variable oder eine nicht lesbare Quelldatei steht im Manifest, statt geworfen zu werden.
+Beschreibt für die geladene Konfiguration, wohin die Daten eines Projekts gehen, als versioniertes `DataFlowManifest`. [`verbatra doctor --data-flow`](/de/docs/cli/doctor#datenfluss) gibt es aus und listet seine Felder; `doctor({ dataFlow: true })` liefert es als `DoctorResult.dataFlow`. Es liest keinen API-Key und macht keine Netzwerk-Anfrage. Eine ungültige Netzwerk-Variable oder eine nicht lesbare Quelldatei steht im Manifest, statt geworfen zu werden.
 
 ```ts title="Signatur"
 function dataFlow(
@@ -170,7 +170,7 @@ Mit `qa: true` lässt `check` zusätzlich die [Qualitätsprüfung](/de/docs/cli/
 trägt einen `qa`-Bericht und die Zusammenfassung die `qa`-Summen, in den Formen dieses Abschnitts.
 Fehlergründe stammen aus `INTEGRITY_GATE_REASONS`, Warngründe aus `REVIEW_REASON_CODES`,
 Schweregrade aus `QA_SEVERITIES`; `qaSeverity: "error"` lässt Warnungen weg. `inSync` ändert sich
-nie: Ein CI-Gate liest `qa.errors`, streng auch `qa.warnings`.
+nie: Ein CI-Gate liest `qa.errors`, im strengen Modus auch `qa.warnings`.
 
 <AvailableFrom version="0.12.0" />
 
@@ -197,7 +197,7 @@ gemeldetem Key, nie den gefundenen Text. Ein CI-Gate scheitert an beidem.
 
 <AvailableFrom version="0.12.0" />
 
-Prüft eine einzelne Locale-Datei nach einer Änderung durch eine Person oder einen Agenten.
+Prüft eine einzelne Locale-Datei nach einer Bearbeitung.
 Es liest diese Datei, die Limits-Datei (ein Hinweis, wenn unbrauchbar) und, für eine Ziel-Locale, die Quelldatei; es ruft keinen Provider auf,
 liest keinen API-Key und schreibt nichts.
 
@@ -218,7 +218,7 @@ function checkFile(
 `CheckFileSummary`. Eine Zieldatei wird wie bei `check` mit `qa: true` geprüft, die Quelldatei nur
 auf ihre Syntax. Eine Datei, die sich nicht parsen lässt, wird nicht geworfen: Ihre Locale trägt
 einen `QaSyntaxFinding`, bei JSON und YAML mit der Position, die `AdapterError.position` meldet. Ein
-Pfad, der zu keinem konfigurierten Locale gehört, oder eine fehlende Datei wirft `NOT_A_LOCALE_FILE`.
+Pfad, der zu keiner konfigurierten Locale gehört, oder eine fehlende Datei wirft `NOT_A_LOCALE_FILE`.
 
 ### diff
 
@@ -396,7 +396,7 @@ Keine Konfiguration nötig.
 <AvailableFrom version="0.5.0" />
 
 Liest den Schnappschuss aus Review-Flags und Token-Verbrauch, den der letzte `translate`- oder
-`watch`-Lauf ohne Dry-Run nach `.verbatra-local/run-status.json` persistiert hat. Wirft nie: eine
+`watch`-Lauf, der kein Dry Run war, nach `.verbatra-local/run-status.json` persistiert hat. Wirft nie: eine
 unbrauchbare Datei fällt auf `available: false` zurück. Die Datei ist Best-Effort-Telemetrie, keine
 Korrektheits-Baseline.
 
@@ -412,7 +412,7 @@ function runStatus(
 **Rückgabe:** `RunStatusResult`
 
 Keine Konfiguration nötig. Gibt `{ available: false, reason }` (siehe `RUN_STATUS_UNAVAILABLE_REASONS`)
-oder `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }` zurück; `incomplete: { failed, partial }` zählt die fehlgeschlagenen oder auf halbem Weg gestoppten Locales des aufgezeichneten Laufs und entfällt, wenn es keine gab.
+oder `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }` zurück; `incomplete: { failed, partial }` zählt die fehlgeschlagenen oder auf halbem Weg gestoppten Locales des aufgezeichneten Laufs und entfällt, wenn es keine gab. <AvailableFrom version="0.13.5" />
 
 Ein Schnappschuss von vor dem durchgesetzten Token-Budget wird weiter gelesen, ohne ein `budget` mit
 `supported: false` (sein `tokensUsed: 0` war keine Zählung). Neue Schnappschüsse ergänzen nur ein
@@ -511,7 +511,7 @@ Eine Locale trägt `entries` nur auf den Seiten, die einen ihrer Einträge entha
 
 <AvailableFrom version="0.13.0" />
 
-Rendert eine ICU-Nachricht so, wie sie sich für eine Locale liest: eine Zeile je Zweig, also je Plural-Kategorie, exaktem Zweig und Select-Option und je Stelle, an der einer steht; es variiert immer ein Argument, die übrigen bleiben auf Beispielwerten. Es zeigt nur die Formate, deren Nachrichten ICU-Syntax verwenden, `next-intl-json` und `arb`; jedes andere Format, auch ein `custom:`-Format, antwortet mit `supported: false`. Die Nachricht ist nicht vertrauenswürdiger Text, und der Aufruf wirft dafür nie: Eine Nachricht über 20.000 Zeichen, tiefer als 16 Klammern verschachtelt, mit mehr als 256 Zeichen `{` und `<` oder ohne gültiges ICU kommt als `valid: false` mit einem `reason` zurück, ebenso eine unbekannte Locale. Er liest und schreibt keine Datei und stellt keine Anfrage.
+Rendert eine ICU-Nachricht so, wie sie sich für eine Locale liest: eine Zeile je Zweig, also je Plural-Kategorie, exaktem Zweig und Select-Option und je Stelle, an der einer steht; es variiert immer ein Argument, die übrigen bleiben auf Beispielwerten. Es zeigt nur für die Formate eine Vorschau, deren Nachrichten ICU-Syntax verwenden, `next-intl-json` und `arb`; jedes andere Format, auch ein `custom:`-Format, antwortet mit `supported: false`. Die Nachricht ist nicht vertrauenswürdiger Text, und der Aufruf wirft dafür nie: Eine Nachricht über 20.000 Zeichen, tiefer als 16 Klammern verschachtelt, mit mehr als 256 Zeichen `{` und `<` oder ohne gültiges ICU kommt als `valid: false` mit einem `reason` zurück, ebenso eine unbekannte Locale. Er liest und schreibt keine Datei und stellt keine Anfrage.
 
 ```ts title="Signatur"
 function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult;

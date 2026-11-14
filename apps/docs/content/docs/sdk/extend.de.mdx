@@ -12,7 +12,7 @@ Alles, was du brauchst, um einen Format-Adapter für ein Format zu bauen, das ve
 
 ### createDefaultRegistry
 
-Baut eine `AdapterRegistry` mit allen Adaptern, die verbatra mitbringt, in Erkennungsreihenfolge. Fang hier an statt bei einer leeren Registry, damit dein eigenes Format zu den eingebauten dazukommt statt sie zu ersetzen, und übergib das Ergebnis als `deps.adapterRegistry` an einen beliebigen Flow. [`AdapterRegistry`](#adapterregistry) beschreibt `register` und `resolve`.
+Baut eine `AdapterRegistry` mit allen Adaptern, die verbatra mitbringt, in Erkennungsreihenfolge. Fang hier an statt bei einer leeren Registry, damit dein eigenes Format zu den eingebauten dazukommt, statt sie zu ersetzen, und übergib das Ergebnis als `deps.adapterRegistry` an einen beliebigen Flow. [`AdapterRegistry`](#adapterregistry) beschreibt `register` und `resolve`.
 
 ```ts title="Signatur"
 function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
@@ -84,13 +84,13 @@ function createFlatFileAdapter(
 
 **Beispiel:** [Den Adapter bauen](/de/docs/custom-format-adapters#den-adapter-bauen)
 
-Ein `FormatAdapter` liest eine Datei in eine `LocaleResource`, die neutrale Form, die jeder Adapter und jeder Ablauf teilt:
+Ein `FormatAdapter` liest eine Datei in eine `LocaleResource`, die neutrale Form, die jeder Adapter und jeder Flow teilt:
 
 <SdkTypeTable name="LocaleResource" />
 
 ### createTreeFileAdapter
 
-Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Sie nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist, sowie `extractPlaceholders` für einen einzelnen Wert, und übernimmt das Flachklopfen und Wiederaufbauen selbst. Wie die flache Factory nimmt sie `format`, `extensions` und ein optionales `sniff`. Sie trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (ab 0.12.0), `deriveDescriptions`, `buildWriteTree` und `keyMode`, und `fs` ersetzt den Dateisystem-Port, standardmäßig `nodeAdapterFs`.
+Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Sie nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist, sowie `extractPlaceholders` für einen einzelnen Wert, und übernimmt das Abflachen und Wiederaufbauen selbst. Wie die flache Factory nimmt sie `format`, `extensions` und ein optionales `sniff`. Sie trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (ab 0.12.0), `deriveDescriptions`, `buildWriteTree` und `keyMode`, und `fs` ersetzt den Dateisystem-Port, standardmäßig `nodeAdapterFs`.
 
 ```ts title="Signatur"
 function createTreeFileAdapter(
@@ -104,7 +104,7 @@ function createTreeFileAdapter(
 
 ### nodeAdapterFs
 
-Der Dateisystem-Port vom Typ `AdapterFs`, den jede Adapter-Factory verwendet, wenn keiner übergeben wird: ein größenbegrenztes Lesen, das eine fehlende oder zu große Datei als Zustand meldet statt zu werfen, und ein Schreiben über eine temporäre Datei und ein Umbenennen, sodass ein unterbrochener Schreibvorgang nie eine halbfertige Locale-Datei hinterlässt. Lies und schreib in einem eigenen Adapter über diesen Port, statt selbst zu `node:fs` zu greifen. Das ist eine Konvention und keine Grenze, und verbatra kann sie in Code, der ihm nicht gehört, nicht erzwingen.
+Der Dateisystem-Port vom Typ `AdapterFs`, den jede Adapter-Factory verwendet, wenn keiner übergeben wird: ein größenbegrenztes Lesen, das eine fehlende oder zu große Datei als Zustand meldet, statt zu werfen, und ein Schreiben über eine temporäre Datei und ein Umbenennen, sodass ein unterbrochener Schreibvorgang nie eine halbfertige Locale-Datei hinterlässt. Lies und schreib in einem eigenen Adapter über diesen Port, statt selbst zu `node:fs` zu greifen. Das ist eine Konvention und keine Grenze, und verbatra kann sie in Code, der ihm nicht gehört, nicht erzwingen.
 
 ```ts title="Signatur"
 const nodeAdapterFs: AdapterFs;
@@ -135,7 +135,7 @@ Aufrufer zurückgeben, den sie nicht selbst erzeugt haben, etwa einen Glossar-Be
 Dateipfad oder eine Fehlermeldung eines vorgelagerten Systems, sodass ein bereits in deiner Umgebung
 vorhandener oder in eine Projektdatei geschriebener Key niemals einen Browser-Tab, einen Agenten
 oder eine Log-Zeile erreichen kann. Die `verbatra`-CLI schickt alles, was sie auf stdout und stderr
-schreibt, den `--json`-Umschlag eingeschlossen, als letzten Schritt hindurch.
+schreibt, den `--json`-Envelope eingeschlossen, als letzten Schritt hindurch.
 
 ```ts title="Signatur"
 function redact(text: string): string;
@@ -144,7 +144,7 @@ function redact(text: string): string;
 **Rückgabe:** `string`
 
 Das gilt auch für die Variable, die ein `openai-compatible`-Provider über `apiKeyEnvVar` benennt.
-Sie wird deklariert, wenn `loadConfig` eine Config lädt, die sie nennt, oder wenn dieser Provider
+Sie wird deklariert, wenn `loadConfig` eine Konfiguration lädt, die sie nennt, oder wenn dieser Provider
 gebaut wird, und ab dann wird ihr Wert genauso geschwärzt wie der der eingebauten Variablen.
 Deklarationen werden nie entfernt. Ein Wert mit weniger als acht Zeichen wird nicht über seinen
 Wert geschwärzt, sodass eine kurze Variable niemals fremden Text löschen kann.
@@ -169,7 +169,7 @@ Ein langer slowakisch aussehender Key erreicht die Schwelle aber und wird geschw
 `sk-SK_settings_notifications_email_digest` enthält nach `sk-` 34 Buchstaben und Ziffern, genau wie
 ein langer camelCase-Key wie `sk-onboardingWelcomeScreenPrimaryButton`.
 
-Ein Gemini-Schlüssel wird allein an seiner Form erkannt: `AIza`, gefolgt von 35 Buchstaben, Ziffern, `_` oder `-`.
+Ein Gemini-API-Key wird allein an seiner Form erkannt: `AIza`, gefolgt von 35 Buchstaben, Ziffern, `_` oder `-`.
 
 ### declareProviderKeyEnvVar
 
@@ -178,8 +178,8 @@ Ein Gemini-Schlüssel wird allein an seiner Form erkannt: `AIza`, gefolgt von 35
 Deklariert die Variable, die ein `provider`-Block als Key-Quelle nennt, damit `redact` ihren Wert
 schwärzt. Derzeit nennt nur ein `openai-compatible`-Provider mit `apiKeyEnvVar` eine; bei jedem
 anderen Provider passiert nichts. `loadConfig` und das Bauen des Providers erledigen das bereits,
-und Studio sowie der MCP-Server tun es auch für die Config, die sie erhalten. Ruf es also nur auf,
-wenn eine Config auf anderem Weg in deinen eigenen Code gelangt. Die Deklaration gilt für den
+und Studio sowie der MCP-Server tun es auch für die Konfiguration, die sie erhalten. Ruf es also nur auf,
+wenn eine Konfiguration auf anderem Weg in deinen eigenen Code gelangt. Die Deklaration gilt für den
 ganzen Prozess und wird von jeder im Prozess geladenen Kopie des SDK geteilt.
 
 ```ts title="Signatur"
@@ -195,7 +195,7 @@ function declareProviderKeyEnvVar(
 <AvailableFrom version="0.12.0" />
 
 Einen Provider, den das SDK nicht mitbringt, hängst du über `deps.createProvider` an: eine
-`CreateProvider`-Fabrik, die einen `TranslationProvider` zurückgibt. Das SDK exportiert den ganzen
+`CreateProvider`-Factory, die einen `TranslationProvider` zurückgibt. Das SDK exportiert den ganzen
 Vertrag als Typen, also prüft TypeScript deinen Provider gegen dasselbe Interface, das die
 eingebauten Provider implementieren. Dazu gehören die Typen seiner Felder: `Tone`,
 `PluralCategories`, `PlaceholderExtractor` und `PlaceholderComparator` in der Anfrage, `Usage`,
@@ -246,8 +246,8 @@ const summary = await translate({ config }, { createProvider });
   außerdem `signal`, das einen laufenden Aufruf abbricht, `onRepair` und
   `foreignPlaceholders`: pro Key die Tokens einer anderen Platzhalter-Syntax, die wie Platzhalter
   zu schützen sind.
-- `TranslateResult` liefert `values` und `integrity` nach Schlüssel, dazu optional `usage`,
-  `notices` und `reviewFlags`. Ein Schlüssel, der in `values` fehlt, gilt als nicht übersetzt, also
+- `TranslateResult` liefert `values` und `integrity` nach Key, dazu optional `usage`,
+  `notices` und `reviewFlags`. Ein Key, der in `values` fehlt, gilt als nicht übersetzt, also
   kann ein Provider einen Wert weglassen, den er nicht sicher übersetzen kann. Das SDK lässt jeden
   zurückgegebenen Wert ohnehin durch sein eigenes Integritäts-Gate laufen.
 - `ProviderRetryListener` ist der Typ von `CreateProviderHooks.onRetry`. Er erhält pro
@@ -256,6 +256,6 @@ const summary = await translate({ config }, { createProvider });
 - `ProviderNetwork` steht in `CreateProviderContext.network`, wenn die Netzwerk-Policy einschränkt,
   wohin ein Provider sich verbinden darf: die wirksame `policy`, die Umgebung `env`, aus der der
   Endpunkt aufgelöst wurde, und optionale Test-`deps`. Ein eigener Provider darf das ignorieren,
-  dann gilt für seine Anfragen aber nur die Prüfung, die das SDK vor dem Aufruf der Fabrik macht.
+  dann gilt für seine Anfragen aber nur die Prüfung, die das SDK vor dem Aufruf der Factory macht.
 
-**Beispiel:** [Deine Integration ohne Schlüssel testen](/de/docs/programmatic-api#deine-integration-ohne-schlüssel-testen)
+**Beispiel:** [Deine Integration ohne API-Key testen](/de/docs/programmatic-api#deine-integration-ohne-api-key-testen)

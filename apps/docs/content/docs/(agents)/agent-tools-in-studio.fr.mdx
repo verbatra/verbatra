@@ -21,11 +21,11 @@ WebMCP est une nouvelle capacité du navigateur derrière un flag, et sa surface
 verbatra studio --expose-agent-tools
 ```
 
-`VERBATRA_STUDIO_AGENT_TOOLS=1` fait la même chose ; [Dépenses et outils d'agent](/fr/docs/cli/studio#dépenses-et-outils-dagent) explique comment le flag et la variable sont résolus. Ouvre l'URL affichée dans le navigateur WebMCP, et l'agent de cet onglet trouve les outils. Dans un navigateur sans WebMCP, Studio n'enregistre rien et le tableau de bord ne change pas.
+`VERBATRA_STUDIO_AGENT_TOOLS=1` fait la même chose ; [Dépenses et outils d'agent](/fr/docs/cli/studio#dépenses-et-outils-dagent) explique comment l'option et la variable sont résolues. Ouvre l'URL affichée dans le navigateur WebMCP, et l'agent de cet onglet trouve les outils.
 
 Pour que l'agent puisse appeler ton fournisseur, lance aussi Studio avec `--allow-spend`.
 
-L'agent lit chaque valeur sans masquage, comme la page l'affiche, car un agent dans l'onglet peut de toute façon lire la page. Les exceptions sont les outils de glossaire et `verbatra_history_keyRevisions` : leurs valeurs passent par un masquage des secrets, donc une valeur qui ressemble à une clé d'API revient sous forme de marqueur. Pour cacher les valeurs à un agent, utilise plutôt le serveur MCP avec [`--redact-values`](/fr/docs/cli/mcp#redacted-values) ; pour un projet sous NDA, voir [Studio et MCP](/fr/docs/data-handling#studio-et-mcp).
+L'agent lit chaque valeur sans masquage, comme la page l'affiche, car un agent dans l'onglet peut de toute façon lire la page. Les exceptions sont les outils de glossaire et `verbatra_history_keyRevisions` : leurs valeurs passent par l'expurgation des secrets, donc une valeur qui ressemble à une clé d'API revient sous forme de marqueur. Pour cacher les valeurs à un agent, utilise plutôt le serveur MCP avec [`--redact-values`](/fr/docs/cli/mcp#redacted-values) ; pour un projet sous NDA, voir [Studio et MCP](/fr/docs/data-handling#studio-et-mcp).
 
 ## Savoir ce que l'agent peut appeler
 
@@ -38,10 +38,10 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 | `verbatra_project_snapshot` | la config chargée, les capacités et, sous `capabilities.limits`, les limites de débit de `retranslate`, `reviewDecision` et des deux méthodes de remplacement de valeurs |
 | `verbatra_status_check` | la couverture par locale |
 | `verbatra_status_diff` | les clés manquantes, modifiées et orphelines par locale |
-| `verbatra_glossary_get` | le glossaire résolu, secrets masqués |
+| `verbatra_glossary_get` | le glossaire résolu, secrets expurgés |
 | `verbatra_lock_state` | l'état du fichier de verrouillage par locale |
 | `verbatra_history_list` | les commits récents sur les fichiers de locale, avec le nom de l'auteur ([jamais l'e-mail](/fr/docs/data-handling#studio-et-mcp)) |
-| `verbatra_history_keyRevisions` | les commits d'une clé dans une locale, avec différences par mot, clés masquées <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
+| `verbatra_history_keyRevisions` | les commits d'une clé dans une locale, avec différences par mot, clés expurgées <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_integrity` | les contrôles de placeholders, de balisage et d'ICU d'une clé, dans les locales où sa source a changé |
 | `verbatra_review_queue` | chaque valeur écrite par une machine que personne n'a approuvée, d'après les fichiers versionnés <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | la source et la cible d'une clé, avec qui a écrit la cible |
@@ -49,7 +49,7 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 | `verbatra_locale_values` | les valeurs des clés par locale cible, 200 par page par défaut, restreintes par `locales`, `keys` ou `query` |
 | `verbatra_locale_integrity` | chaque traduction qui échoue aux contrôles d'intégrité <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_translation_estimate` | ce qu'un appel translate-pending enverrait et coûterait, sans appeler de fournisseur |
-| `verbatra_usage_summary` | la consommation de tokens et le budget de la dernière exécution |
+| `verbatra_usage_summary` | la consommation de tokens et le budget de la dernière exécution et, si une locale a échoué ou s'est arrêtée en cours de route, `incomplete` <AvailableFrom version="0.7.5" pkg="@verbatra/studio" /> |
 | `verbatra_usage_history` | les exécutions enregistrées, la plus récente d'abord, avec tokens, coût et couverture, en chiffres seulement <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
 
 ### Outils d'écriture
@@ -59,7 +59,7 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 | `verbatra_glossary_write` | modifie un terme d'un glossaire stocké dans un fichier <AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> |
 | `verbatra_review_approve` | enregistre l'approbation d'une valeur par une personne nommée <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_review_reject` | enregistre le rejet d'une personne nommée et retire la valeur |
-| `verbatra_translation_editEntry` | écrit une valeur via le contrôle d'intégrité |
+| `verbatra_translation_editEntry` | écrit une valeur en passant par la barrière d'intégrité |
 
 ### Outils payants
 
@@ -72,7 +72,7 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 
 ## Connaître les règles des outils
 
-Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la même validation des entrées et le même [contrôle d'intégrité](/fr/docs/translation-safety) : une valeur qui échoue à un contrôle est rejetée, pas écrite.
+Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la même validation des entrées et la même [barrière d'intégrité](/fr/docs/translation-safety) : une valeur qui échoue à un contrôle est rejetée, pas écrite.
 
 ### Règles par appel
 
@@ -98,7 +98,7 @@ Chaque outil renvoie l'enveloppe du tableau de bord, donc un échec se lit `{ "o
 | `METHOD_RATE_LIMITED` | limite de débit dépassée ; `retryAfterSeconds` dit quand l'appel passera |
 | `BATCH_TOO_LARGE` | un lot dépasse toute une fenêtre de limite ; envoie moins d'entrées |
 | `ALREADY_IN_PROGRESS` | un second appel pour une entrée encore en cours (HTTP 409) |
-| `SESSION_EXPIRED` | Studio a redémarré avec un nouveau token ; ouvre l'URL qu'il a affichée |
+| `SESSION_EXPIRED` | Studio a redémarré avec un nouveau jeton ; ouvre l'URL qu'il a affichée |
 | `INTERNAL` | un handler a échoué avec une erreur inattendue (HTTP 500) ; le message est générique |
 
 ## Réparer les outils dégradés
@@ -117,7 +117,7 @@ Lis d'abord le nom de l'erreur, puis recharge l'onglet, ce qui relance l'enregis
 
 ## Mesurer le risque de dépense
 
-Les outils n'ajoutent aucune exposition réseau : Studio n'écoute toujours que sur `127.0.0.1`, chaque requête porte le token de session, et les outils qui renvoient du texte du projet le marquent comme non fiable, pour que l'agent le traite comme des données.
+Les outils n'ajoutent aucune exposition réseau : Studio n'écoute toujours que sur `127.0.0.1`, chaque requête porte le jeton de session, et les outils qui renvoient du texte du projet le marquent comme non fiable, pour que l'agent le traite comme des données.
 
 <Callout type="warn">
 Avec `--allow-spend` et `--expose-agent-tools` ensemble, un agent peut dépenser chez ton fournisseur sans confirmation par appel, jusqu'aux limites de débit. Studio ne distingue pas l'appel d'un agent de ton clic, il n'ajoute donc aucune boîte de validation. Pour lire et modifier seulement, laisse `--allow-spend` désactivé.
@@ -126,5 +126,5 @@ Avec `--allow-spend` et `--expose-agent-tools` ensemble, un agent peut dépenser
 ## Voir aussi
 
 - [Réviser dans Studio](/fr/docs/review-in-studio) : le même déroulé, à la main.
-- [`verbatra studio`](/fr/docs/cli/studio) : chaque flag et le contrat de démarrage.
+- [`verbatra studio`](/fr/docs/cli/studio) : chaque option et le contrat de démarrage.
 - [Connecter un client MCP](/fr/docs/connect-an-mcp-client#le-plugin-verbatra) : le plugin apporte la skill `verbatra-studio-agent-tools`, mais c'est toi qui lances Studio.

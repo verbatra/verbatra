@@ -60,7 +60,7 @@ class SdkError extends Error {
 
 <AvailableFrom version="0.12.0" />
 
-L'erreur structurée par laquelle un fournisseur de traduction échoue, à la place d'une erreur brute du SDK ou HTTP. Son `name` vaut `"ProviderError"`, son `code` est un `ProviderErrorCode`, et son message est fixe et caviardé. Sur un échec `MISSING_API_KEY`, `envVar` nomme la variable dans laquelle le fournisseur lit sa clé, jamais sa valeur. `retranslateEntry` la relance, et un fournisseur personnalisé la lève depuis `translateBatch` ; [Codes d'erreur des fournisseurs](/fr/docs/error-codes#provider-error-codes) liste chaque code. Teste-la avec `error instanceof ProviderError`. Sur une version plus ancienne, qui n'exporte pas la classe, vérifie `error.name === "ProviderError"` et lis `code`.
+L'erreur structurée par laquelle un fournisseur de traduction échoue, à la place d'une erreur brute du SDK ou HTTP. Son `name` vaut `"ProviderError"`, son `code` est un `ProviderErrorCode`, et son message est fixe et expurgé. Sur un échec `MISSING_API_KEY`, `envVar` nomme la variable dans laquelle le fournisseur lit sa clé, jamais sa valeur. `retranslateEntry` la relance, et un fournisseur personnalisé la lève depuis `translateBatch` ; [Codes d'erreur des fournisseurs](/fr/docs/error-codes#provider-error-codes) liste chaque code. Teste-la avec `error instanceof ProviderError`. Sur une version plus ancienne, qui n'exporte pas la classe, vérifie `error.name === "ProviderError"` et lis `code`.
 
 ```ts title="Signature"
 class ProviderError extends Error {
@@ -97,7 +97,7 @@ class AdapterError extends Error {
 `projectRelativeMessage(message, cwd)` réécrit chaque chemin absolu à l'intérieur du projet dans un
 message en chemin relatif à la racine du projet : un chemin sous `cwd` perd ce préfixe, `cwd`
 lui-même devient `.`, et un chemin hors du projet reste tel quel. Chaque `error.message` et chaque
-message de notice par locale d'un `RunSummary` nomme déjà ainsi les fichiers du projet, relatifs
+message d'avis par locale d'un `RunSummary` nomme déjà ainsi les fichiers du projet, relatifs
 au `cwd` de l'exécution ; appelle-la sur le message d'une erreur qu'un flux lève avant de le
 montrer à une personne, à un agent ou à un onglet du navigateur. `verbatra mcp` et Studio font de
 même pour chaque erreur qu'ils renvoient.
@@ -115,7 +115,7 @@ function projectRelativeMessage(
 
 <AvailableFrom version="0.12.0" />
 
-`errorHint(error)` renvoie la prochaine étape qui résout une erreur levée par verbatra : une
+`errorHint(error)` renvoie l'étape suivante qui résout une erreur levée par verbatra : une
 phrase courte à l'impératif, ou `undefined` quand il n'y en a pas. Chaque code de `SdkError`,
 chaque code de `ProviderError` et chaque code d'erreur d'un adaptateur de format en a une, donc un
 agent peut agir sur un échec sans analyser son message. Elle lit le `code` de l'erreur, donc un

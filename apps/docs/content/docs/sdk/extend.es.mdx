@@ -1,5 +1,5 @@
 ---
-title: "Adaptadores, proveedores, redacción"
+title: "Adaptadores, proveedores, ocultación"
 seoTitle: "Amplía el SDK con adaptadores y proveedores"
 description: "Crea un adaptador de formato o un proveedor de traducción que verbatra no incluye y oculta secretos en cualquier texto que pases al SDK."
 type: reference
@@ -155,15 +155,15 @@ o sin comillas, también dentro de JSON serializado en una cadena. Cualquier otr
 una ruta de archivo o un id de petición, sigue legible. Una clave Pro guardada en `DEEPL_API_KEY`
 se sigue eliminando por su valor dondequiera que aparezca.
 
-Un token `sk-` se redacta en cuanto le siguen al menos 32 letras y dígitos tras `sk-`, contados en
+Un token `sk-` se oculta en cuanto le siguen al menos 32 letras y dígitos tras `sk-`, contados en
 todos sus segmentos `-` y `_`, sea cual sea su prefijo. Esa única regla cubre todas las formas de
-clave de OpenAI y Anthropic; un prefijo conocido como `sk-proj-` o `sk-ant-` no redacta por sí solo
+clave de OpenAI y Anthropic; un prefijo conocido como `sk-proj-` o `sk-ant-` no oculta por sí solo
 un token más corto. El token solo cuenta cuando no le precede directamente una letra ni un dígito:
 un escape JSON como `\n` o `\u0007`, un carácter codificado en porcentaje como `%3D`, una secuencia
 ANSI CSI como `\x1b[31m`, `\x1b[2K` o `\x1b[?25h`, una selección de juego de caracteres ANSI como
 `\x1b(B`, o cualquiera de las dos formas ANSI escapada en JSON como `\u001b` también es un límite.
 Una ruta o clave de locale eslovaco como `locales/sk-SK.json` o `sk-banner_headline` sigue legible.
-Pero una clave larga con aspecto eslovaco alcanza el umbral y se redacta:
+Pero una clave larga con aspecto eslovaco alcanza el umbral y se oculta:
 `sk-SK_settings_notifications_email_digest` tiene 34 letras y dígitos tras `sk-`, igual que una
 clave camelCase larga como `sk-onboardingWelcomeScreenPrimaryButton`.
 
@@ -230,8 +230,8 @@ const summary = await translate({ config }, { createProvider });
 ```
 
 - `TranslationProvider` es el único contrato: `id`, `kind` (un `ProviderKind`), `supportsGlossary`
-  y `translateBatch(request)`. Trata cada valor de una solicitud como datos no confiables, lee
-  cualquier clave de API del entorno y no de la solicitud, y lanza un `ProviderError` sin secretos
+  y `translateBatch(request)`. Trata cada valor de una petición como datos no confiables, lee
+  cualquier clave de API del entorno y no de la petición, y lanza un `ProviderError` sin secretos
   cuando una llamada falla.
 - `ProviderKind` es `"llm"` o `"machine-translation"`. El `kind` de tu objeto proveedor es solo
   descriptivo: el SDK decide la generación de plurales y qué analiza el guardián de datos sensibles
@@ -253,7 +253,7 @@ const summary = await translate({ config }, { createProvider });
 - `ProviderNetwork` es lo que contiene `CreateProviderContext.network` cuando la política de red
   limita a dónde puede conectarse un proveedor: la `policy` efectiva, el `env` desde el que se
   resolvió el endpoint y `deps` opcionales para pruebas. Un proveedor propio puede ignorarlo, pero
-  entonces a sus solicitudes solo se aplica la comprobación que hace el SDK antes de llamar a la
+  entonces a sus peticiones solo se aplica la comprobación que hace el SDK antes de llamar a la
   fábrica.
 
 **Ejemplo:** [Prueba tu integración sin clave](/es/docs/programmatic-api#prueba-tu-integración-sin-clave)

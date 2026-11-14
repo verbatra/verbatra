@@ -84,7 +84,7 @@ correcte, lèvent `LOCALE_LAYOUT_INVALID`, et deux locales qui résolvent vers l
 
 <AvailableFrom version="0.13.0" />
 
-Nomme les fichiers dont un watcher a besoin : le fichier de chaque locale configurée avec les fichiers voisins qui portent une partie de ses données (le fichier `.stringsdict` d'`apple-strings`), et les fichiers que git réécrit lors d'un commit, d'un changement de branche, d'un reset ou d'une opération de staging. Lecture seule ; la partie git est demandée par l'`execFile` injectable, avec les garde-fous de [`localeGitStatus`](/fr/docs/sdk/review#localegitstatus).
+Nomme les fichiers dont un watcher a besoin : le fichier de chaque locale configurée avec les fichiers voisins qui portent une partie de ses données (le fichier `.stringsdict` d'`apple-strings`), et les fichiers que git réécrit lors d'un commit, d'un changement de branche, d'un reset ou d'une indexation. Lecture seule ; la partie git est demandée par l'`execFile` injectable, avec les garde-fous de [`localeGitStatus`](/fr/docs/sdk/review#localegitstatus).
 
 ```ts title="Signature"
 function localeWatchPaths(
@@ -95,7 +95,7 @@ function localeWatchPaths(
 
 <SdkTypeTable name="LocaleWatchPathsInput" />
 
-**Retourne :** `LocaleWatchPathsResult`
+**Renvoie :** `LocaleWatchPathsResult`
 
 **Lève :** [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
 
@@ -103,7 +103,7 @@ function localeWatchPaths(
 
 ## La paire classeur
 
-La remise pour les traducteurs humains, sous forme de classeur Excel ou de texte délimité ; voir [Traduction humaine](/fr/docs/manual-translation).
+La remise pour les traducteurs humains, sous forme de classeur Excel ou de texte délimité ; voir [Confier avec Excel ou CSV](/fr/docs/manual-translation).
 
 ### exportWorkbook
 
@@ -132,7 +132,7 @@ Avant toute lecture, `EXPORT_OUTPUT_CONFLICT` refuse un `out` qui tombe hors de 
 
 <AvailableFrom version="0.12.0" />
 
-`format: "xliff2"` et `format: "xliff12"` écrivent pour un outil de TAO un `<locale>.xlf` en XLIFF 2.0 ou 1.2 par locale dans le répertoire `out` : une unité par clé, les espaces réservés et le balisage comme codes en ligne `<ph>` protégés, la description et le sens de la clé comme notes, le hash de la source dans les métadonnées de l'unité et un état de segment tiré de l'état de verrouillage et de relecture (`initial` pour une clé manquante ou obsolète, `translated` quand elle est à jour, `reviewed` quand elle est approuvée). Les deux types sont exportés, `XliffFormat` nommant les deux membres XLIFF d'`ExchangeFormat`. Voir [Confier à une agence de traduction](/fr/docs/translation-agency).
+`format: "xliff2"` et `format: "xliff12"` écrivent pour un outil de TAO un `<locale>.xlf` en XLIFF 2.0 ou 1.2 par locale dans le répertoire `out` : une unité par clé, les placeholders et le balisage comme codes en ligne `<ph>` protégés, la description et le sens de la clé comme notes, le hash de la source dans les métadonnées de l'unité et un état de segment tiré de l'état de verrouillage et de relecture (`initial` pour une clé manquante ou obsolète, `translated` quand elle est à jour, `reviewed` quand elle est approuvée). Les deux types sont exportés, `XliffFormat` nommant les deux membres XLIFF d'`ExchangeFormat`. Voir [Confier à une agence de traduction](/fr/docs/translation-agency).
 
 Chaque unité qui a une cible porte aussi son origine : XLIFF 1.2 qualifie une cible de classe machine non approuvée avec `state-qualifier="mt-suggestion"`, et XLIFF 2.0 ajoute les entrées `origin` et `review-state` au groupe de métadonnées `verbatra` de l'unité. Le résultat porte alors aussi `provenanceMarkers` : `"written"`, ou `"unavailable"` quand le fichier de provenance n'a pas pu être lu et qu'aucun marqueur n'a été écrit. Voir [Preuves de traduction automatique](/fr/docs/provenance-evidence#marqueurs-dans-les-exports).
 
@@ -140,7 +140,7 @@ Chaque unité qui a une cible porte aussi son origine : XLIFF 1.2 qualifie une c
 
 <AvailableFrom version="0.2.0" />
 
-Relit un classeur rempli dans les fichiers de locale, en exécutant les mêmes contrôles de dérive de source et d'intégrité que `translate`. Seules les lignes acceptées font avancer leur ligne de base du verrou ; une ligne vide ou rejetée continue de se réexporter jusqu'à sa vraie résolution. Dans un fichier CSV, TSV ou xlsx, une ligne remplie égale à la valeur d'une clé à jour et qui passe la barrière d'intégrité est laissée telle quelle et signalée `unchanged`, non traduite <AvailableFrom version="0.13.0" /> ; voir [Traduction manuelle](/fr/docs/manual-translation#ce-que-limport-accepte).
+Relit un classeur rempli dans les fichiers de locale, en exécutant les mêmes contrôles de dérive de source et d'intégrité que `translate`. Seules les lignes acceptées font avancer leur ligne de base du verrou ; une ligne vide ou rejetée continue de se réexporter jusqu'à sa vraie résolution. Dans un fichier CSV, TSV ou xlsx, une ligne remplie égale à la valeur d'une clé à jour et qui passe la barrière d'intégrité est laissée telle quelle et signalée `unchanged`, non traduite <AvailableFrom version="0.13.0" /> ; voir [Confier avec Excel ou CSV](/fr/docs/manual-translation#ce-que-limport-accepte).
 
 ```ts title="Signature"
 function importWorkbook(
@@ -161,7 +161,7 @@ Avec `csv` ou `tsv`, `workbook` est soit un seul fichier d'échange, soit le ré
 
 <AvailableFrom version="0.12.0" />
 
-`onLockWait` et `lockAcquireTimeoutMs` se comportent exactement comme pour `translate`. `lockAcquireTimeoutMs` borne l'attente du verrou d'écriture d'une locale, pris avant l'écriture du fichier de cette locale, et une locale encore bloquée ensuite échoue avec `LOCK_CONTENDED` sur son propre résumé pendant que les autres locales s'importent. L'enregistrement d'un fichier écrit dans le fichier de verrouillage accorde toujours l'attente par défaut de dix minutes. Un dry run ne prend aucun verrou, donc aucune des deux options ne s'y applique.
+`onLockWait` et `lockAcquireTimeoutMs` se comportent exactement comme pour `translate`. `lockAcquireTimeoutMs` borne l'attente du verrou d'écriture d'une locale, pris avant l'écriture du fichier de cette locale, et une locale encore bloquée ensuite échoue avec `LOCK_CONTENDED` sur son propre résumé pendant que les autres locales s'importent. L'enregistrement d'un fichier écrit dans le fichier de verrouillage accorde toujours l'attente par défaut de dix minutes. Une exécution à blanc ne prend aucun verrou, donc aucune des deux options ne s'y applique.
 
 <AvailableFrom version="0.12.0" />
 
@@ -207,7 +207,7 @@ formé est refusé par une erreur structurée `SOURCE_INVALID` plutôt qu'analys
 un emplacement dans le fichier, le message indique la ligne, la colonne et, à l'intérieur d'une
 unité de traduction, son rang en comptant à partir de 1, et `tmxErrorLocation(error)` renvoie le
 même emplacement sous forme de `TmxErrorLocation`, ou `undefined` pour toute autre erreur, si bien
-que tu n'as jamais à caster l'erreur ni son `cause`. Une étiquette de langue est résolue vers une
+que tu n'as jamais à caster l'erreur ni sa `cause`. Une étiquette de langue est résolue vers une
 locale configurée par une règle explicite : écriture exacte après mise en minuscules et conversion
 des tirets bas en traits d'union ; à défaut, la plus longue locale configurée qui est un préfixe de
 sous-étiquettes de l'étiquette (recherche de la RFC 4647), ou sinon une locale configurée qui ne
@@ -251,7 +251,7 @@ langue cible.
 Lit, à partir de ce que `importTmx` a levé, où un fichier TMX refusé a échoué. Renvoie une
 `TmxErrorLocation` (`{ line, column, unit? }`, le tout en comptant à partir de 1) pour un refus
 `SOURCE_INVALID` qui a un emplacement dans le fichier, et `undefined` pour toute autre erreur, y
-compris un fichier absent ou surdimensionné, si bien que tu n'as jamais à caster l'erreur ni son
+compris un fichier absent ou surdimensionné, si bien que tu n'as jamais à caster l'erreur ni sa
 `cause`.
 
 ```ts title="Signature"
@@ -280,7 +280,7 @@ try {
 Écrit la mémoire en TMX 1.4b. `out` vaut par défaut `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exporté comme
 constante. Avant toute lecture de la mémoire, `TMX_OUTPUT_CONFLICT` refuse un `out` qui ne nomme
 aucun fichier (y compris un `out` terminé par un séparateur de chemin), qui tombe hors de `cwd` ou
-sur `cwd` lui-même, ou qui nomme un fichier de locale configuré, le fichier de verrouillage, le
+sur `cwd` lui-même, ou qui nomme un fichier de locale configuré, le fichier de verrouillage, le fichier de provenance, le
 cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier
 `configPath` ou le fichier `glossaryPath`, sans tenir compte de la casse et, quand `deps.fs`
 implémente `realpath` comme la valeur par défaut, de nouveau une fois les liens symboliques résolus.
@@ -306,7 +306,7 @@ function exportTmx(
 
 **Exemple :** [L'aller-retour TMX](/fr/docs/programmatic-api#laller-retour-tmx)
 
-Renvoie `{ path, units, locales, withoutSource, otherConfiguration, illegalCharactersRemoved, provenanceMarkers }` ; `withoutSource` compte les entrées laissées de côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source, `otherConfiguration` compte les entrées laissées de côté parce qu'elles sont stockées sous une autre empreinte de configuration (un fournisseur, un modèle, un ton ou un glossaire antérieur), une fois par locale et par hash, et `illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été retirés du texte des segments.
+Renvoie `{ path, units, locales, withoutSource, otherConfiguration?, illegalCharactersRemoved, provenanceMarkers }` ; `withoutSource` compte les entrées laissées de côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source, `otherConfiguration` compte les entrées laissées de côté parce qu'elles sont stockées sous une autre empreinte de configuration (un fournisseur, un modèle, un ton ou un glossaire antérieur), une fois par locale et par hash <AvailableFrom version="0.13.5" />, et `illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été retirés du texte des segments.
 
 <AvailableFrom version="0.12.0" />
 

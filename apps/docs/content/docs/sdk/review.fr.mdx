@@ -77,13 +77,13 @@ function localeHistory(
 
 **Lève :** [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
 
-Chaque commit porte `hash`, `author` (le nom après `.mailmap`, jamais l'e-mail), `authorDate`, `subject` et `touchedPaths`. `limit` vaut `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) par défaut, `LOCALE_HISTORY_LIMIT_CAP` (`200`) au plus, au moins 1. `author` et `subject` perdent les caractères de contrôle et bidirectionnels, les clés connues sont remplacées par `[REDACTED]` et les deux sont coupés à 200 et 500 caractères ; un commit aux métadonnées illisibles est omis. Comme pour `localeGitStatus`, un dépôt que git ne sait pas lire, ou un `git log` qui dépasse `LOCALE_HISTORY_TIMEOUT_MS` ou `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, donne `{ available: false, reason }`, une raison de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulte [Studio et MCP](/fr/docs/data-handling#studio-et-mcp).
+Chaque commit porte `hash`, `author` (le nom après `.mailmap`, jamais l'e-mail), `authorDate`, `subject` et `touchedPaths`. `limit` vaut `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) par défaut, `LOCALE_HISTORY_LIMIT_CAP` (`200`) au plus, au moins 1. `author` et `subject` perdent les caractères de contrôle et bidirectionnels, les clés connues sont remplacées par `[REDACTED]` et les deux sont coupés à 200 et 500 caractères ; un commit aux métadonnées illisibles est omis. Un dépôt que git ne sait pas lire, ou un `git log` qui dépasse `LOCALE_HISTORY_TIMEOUT_MS` ou `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, donne `{ available: false, reason }`, une raison de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulte [Studio et MCP](/fr/docs/data-handling#studio-et-mcp).
 
 ### localeGitStatus
 
 <AvailableFrom version="0.13.0" />
 
-Liste les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json` qui diffèrent du dernier commit, et la branche active. En lecture seule ; il lance `git` via l'`execFile` injectable et ne prend aucun chemin de l'appelant.
+Liste les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json` qui diffèrent du dernier commit, et la branche active. En lecture seule ; il ne prend aucun chemin de l'appelant.
 
 ```ts title="Signature"
 function localeGitStatus(
@@ -119,13 +119,13 @@ function localeGitDiff(
 
 **Lève :** [`UNKNOWN_LOCALE`](/fr/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
 
-`added` et `removed` listent `{ key, value }`, `changed` liste `{ key, before, after }`, et `state` est l'état du fichier ou `unchanged` ; un fichier `conflicted` ou `unchanged` ne liste aucune différence. Le fichier validé est lu avec `git cat-file blob`, seulement s'il s'agit d'un fichier régulier d'au plus `LOCALE_GIT_BLOB_MAX_BYTES`. Au plus `LOCALE_GIT_DIFF_MAX_ENTRIES` clés sont listées et chaque texte est coupé à `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` caractères ; l'un ou l'autre active `truncated`. Seul le diff répond `custom-adapter`, pour un format `custom:` ou un `adapterRegistry` ; un côté absent est vide, un côté qui n'est pas un fichier régulier ou ne s'analyse pas donne `revision-unreadable` ou `working-file-unreadable`. Les autres raisons sont celles de `localeGitStatus`.
+`added` et `removed` listent `{ key, value }`, `changed` liste `{ key, before, after }`, et `state` est l'état du fichier ou `unchanged` ; un fichier `conflicted` ou `unchanged` ne liste aucune différence. Le fichier commité est lu avec `git cat-file blob`, seulement s'il s'agit d'un fichier régulier d'au plus `LOCALE_GIT_BLOB_MAX_BYTES`. Au plus `LOCALE_GIT_DIFF_MAX_ENTRIES` clés sont listées et chaque texte est coupé à `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` caractères ; l'un ou l'autre active `truncated`. Seul le diff répond `custom-adapter`, pour un format `custom:` ou un `adapterRegistry` ; un côté absent est vide, un côté qui n'est pas un fichier régulier ou ne s'analyse pas donne `revision-unreadable` ou `working-file-unreadable`. Les autres raisons sont celles de `localeGitStatus`.
 
 ### retranslateEntry
 
 <AvailableFrom version="0.5.0" />
 
-Relance le fournisseur pour exactement une clé et une locale via le même chemin de fournisseur et la même barrière d'intégrité que `translate`, et à l'acceptation écrit le fichier de locale et l'entrée de verrou pour cette clé seulement.
+Relance le fournisseur pour exactement une clé et une locale via le même chemin de fournisseur et la même barrière d'intégrité que `translate`, et à l'acceptation écrit le fichier de locale et l'entrée de verrouillage pour cette clé seulement.
 
 ```ts title="Signature"
 function retranslateEntry(
@@ -198,7 +198,7 @@ function rejectEntry(
 
 **Exemple :** [Traiter la file de relecture](/fr/docs/programmatic-api#traiter-la-file-de-relecture)
 
-L'entrée est vérifiée comme pour `approveEntry`, sauf qu'une source périmée n'empêche pas un rejet. Renvoie `{ locale, key, provenance }`. Un format qui garde une clé qu'on ne lui a pas transmise, XLIFF, lève `REVIEW_REJECT_UNSUPPORTED` après avoir restauré le fichier.
+L'entrée est vérifiée comme pour `approveEntry`, sauf qu'une source obsolète n'empêche pas un rejet. Renvoie `{ locale, key, provenance }`. Un format qui garde une clé qu'on ne lui a pas transmise, XLIFF, lève `REVIEW_REJECT_UNSUPPORTED` après avoir restauré le fichier.
 
 Les deux appels prennent le verrou d'écriture de la locale avec `lockAcquireTimeoutMs` et `onLockWait` comme pour `editEntry` ; `LOCK_TIMEOUT_INVALID` signifie que la borne n'est pas un nombre entier de millisecondes d'au moins 0. Ce délai ne borne pas le verrou du fichier de verrouillage pris pour enregistrer la décision, qui accorde toujours les dix minutes par défaut.
 

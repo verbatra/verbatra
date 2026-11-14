@@ -63,7 +63,7 @@ function keyContext(
 
 **Lanza:** [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/es/docs/error-codes#unknown_key)
 
-Un glosario ilegible no lanza: `glossary` queda vacío y `glossaryNotice` lleva el código y el mensaje redactado del error. `draftCheck` indica, por término aplicable, si el borrador usa la traducción exigida y qué variantes prohibidas usa.
+Un glosario ilegible no lanza: `glossary` queda vacío y `glossaryNotice` lleva el código y el mensaje del error con los datos sensibles ocultos. `draftCheck` indica, por término aplicable, si el borrador usa la traducción exigida y qué variantes prohibidas usa.
 
 ### localeHistory
 
@@ -84,7 +84,7 @@ function localeHistory(
 
 **Lanza:** [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision)
 
-Cada commit lleva `hash`, `author` (el nombre tras `.mailmap`, nunca el correo), `authorDate`, `subject` y `touchedPaths`. `limit` vale `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) por defecto, como máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`), al menos 1. `author` y `subject` pierden los caracteres de control y bidireccionales, las claves conocidas se sustituyen por `[REDACTED]` y se cortan a 200 y 500 caracteres; un commit con metadatos ilegibles se omite. Como en `localeGitStatus`, un repositorio que git no puede leer, o un `git log` que supera `LOCALE_HISTORY_TIMEOUT_MS` o `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, da `{ available: false, reason }`, un motivo de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulta [Studio y MCP](/es/docs/data-handling#studio-y-mcp).
+Cada commit lleva `hash`, `author` (el nombre tras `.mailmap`, nunca el correo), `authorDate`, `subject` y `touchedPaths`. `limit` vale `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) por defecto, como máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`), al menos 1. `author` y `subject` pierden los caracteres de control y bidireccionales, las claves conocidas se sustituyen por `[REDACTED]` y se cortan a 200 y 500 caracteres; un commit con metadatos ilegibles se omite. Un repositorio que git no puede leer, o un `git log` que supera `LOCALE_HISTORY_TIMEOUT_MS` o `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, da `{ available: false, reason }`, un motivo de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulta [Studio y MCP](/es/docs/data-handling#studio-y-mcp).
 
 ### localeGitStatus
 
@@ -111,7 +111,7 @@ Cada archivo cambiado lleva `path`, `locales` y un `state` de `LOCALE_GIT_FILE_S
 
 <AvailableFrom version="0.13.0" />
 
-Compara el archivo de una locale en `HEAD` con el archivo en disco, clave por clave. Solo lectura; toma una locale, nunca una ruta, y no ejecuta `git diff`, ningún controlador de conversión de texto ni diff externo.
+Compara el archivo de un locale en `HEAD` con el archivo en disco, clave por clave. Solo lectura; toma un locale, nunca una ruta, y no ejecuta `git diff`, ningún controlador de conversión de texto ni diff externo.
 
 ```ts title="Firma"
 function localeGitDiff(
@@ -198,7 +198,7 @@ lanzan `REVIEW_VALUE_CHANGED` antes de leer nada. `expectedValue` es el texto qu
 vio quien revisa, o pasa `expectedValueHash` con el `valueMarker` que lo generó: la llamada lanza `REVIEW_VALUE_CHANGED` cuando la clave no tiene valor o tiene
 otro, y `REVIEW_SOURCE_CHANGED` cuando el origen cambió desde que se escribió el valor. `reviewer` es
 texto libre opcional de 1 a 64 caracteres y sin caracteres de control (si no,
-`REVIEWER_INVALID`), se guarda en el archivo con commit y verbatra nunca lo rellena. Devuelve
+`REVIEWER_INVALID`), se guarda en el archivo confirmado y verbatra nunca lo rellena. Devuelve
 `{ locale, key, provenance }`. Un valor sin registro previo, o uno cambiado fuera de verbatra, se
 registra con el origen `unknown`.
 
@@ -230,7 +230,7 @@ function rejectEntry(
 **Ejemplo:** [Recorre la cola de revisión](/es/docs/programmatic-api#recorre-la-cola-de-revisión)
 
 La entrada se comprueba como en
-`approveEntry`, salvo que un origen desactualizado no impide un rechazo. Devuelve
+`approveEntry`, con la diferencia de que un origen obsoleto no impide un rechazo. Devuelve
 `{ locale, key, provenance }`. Un formato que conserva una clave que no recibió, XLIFF, lanza
 `REVIEW_REJECT_UNSUPPORTED` después de restaurar el archivo.
 
@@ -247,7 +247,7 @@ nuevo, o uno que la decisión haría crecer por encima del tamaño que verbatra 
 
 <AvailableFrom version="0.12.0" />
 
-Crea la marca con la que una superficie muestra un valor sin su texto: `mark(value)` devuelve
+Crea el marcador con el que una superficie muestra un valor sin su texto: `mark(value)` devuelve
 `[redacted length=<n> hash=<h>]`, y `hash(value)` devuelve `h`, un HMAC hexadecimal de 16 dígitos
 con una sal aleatoria (o la `salt` indicada), así que un hash solo coincide con la misma marca.
 Pásala como `valueMarker` a `approveEntry` o `rejectEntry` para aceptar `expectedValueHash` en lugar
@@ -323,7 +323,7 @@ Un `cursor` tiene como mucho `PAGE_CURSOR_MAX_LENGTH` (512) caracteres. El servi
 Cada una de estas llamadas ejecuta la llamada de una sola clave correspondiente una vez por
 entrada, en orden, y devuelve `{ results }` con un resultado por entrada. Una entrada fallida no
 detiene el lote: su resultado es `{ locale, key, ok: false, code, message }`, con el código del
-`SdkError`, del error de adaptador o del `ProviderError` y un mensaje censurado. Cualquier otro
+`SdkError`, del error de adaptador o del `ProviderError` y un mensaje con los datos sensibles ocultos. Cualquier otro
 error detiene el lote con un `BatchInterruptedError`. Una lista `entries` vacía devuelve `results`
 vacío.
 

@@ -64,8 +64,8 @@ Commit your locale files, `verbatra.lock.json` and `verbatra.provenance.json`; n
 
 ## How do I re-translate everything?
 
-Delete the locale file and run `verbatra translate`: every key is then missing and translated
-fresh. Deleting the lock file does not do it, because without a baseline existing translations count
+Delete the locale file and run `verbatra translate --no-cache`: every key is then missing and sent
+to the provider again. Without `--no-cache`, translation-memory hits refill what they hold. Deleting the lock file does not do it, because without a baseline existing translations count
 as current. For one key, use Studio's retranslate action or `retranslateEntry`.
 
 ## Does using the CLI mean installing the SDK?
@@ -92,7 +92,7 @@ With `provider: { id: "none" }` nothing leaves the machine. See
 The setup, in one pass, without a translation call and without reading a key value unless you
 pass `--live`, which sends it to fetch the provider's language list: the config, the format, the
 provider, the API key variable, the network policy, the source file and locale support, plus
-informational reports on plurals, locale codes and leftover locale state. [`verbatra doctor`](/docs/cli/doctor) has the
+informational reports on plurals, locale codes, leftover locale state and `verbatra.limits.json`. [`verbatra doctor`](/docs/cli/doctor) has the
 full check table.
 
 ## Can an AI agent set up or operate verbatra for me?

@@ -58,20 +58,20 @@ Die Teile, die du kennen solltest:
   daraus, statt die Mitglieder abzutippen. Ein Review-Flag ist nur ein Hinweis und hält nie einen
   Key zurück; ein Key erscheint also nie in `needsReview` und `integrityMismatches` zugleich. Das
   Abarbeiten der Warteschlange steht in [Review in Studio](/de/docs/review-in-studio).
-- **notices** leben pro Locale, nie auf oberster Ebene. Dazu zählen Provider-Notices (etwa eine
+- **notices** leben pro Locale, nie auf oberster Ebene. Dazu zählen Provider-Hinweise (etwa eine
   DeepL-Degradation), aufgeführt unter [Provider-Hinweise](/de/docs/error-codes#provider-notice-codes),
-  und SDK-Notices, deren Codes die Union `SdkNoticeCode` bilden und unter
-  [Laufhinweise](/de/docs/error-codes#sdk-notice-codes) erklärt sind. Eine Notice für den gesamten
-  Lauf, etwa die Cache-Notice (eine Datei, die sich alle Locales teilen), wird an jede Locale des
+  und SDK-Hinweise, deren Codes die Union `SdkNoticeCode` bilden und unter
+  [Laufhinweise](/de/docs/error-codes#sdk-notice-codes) erklärt sind. Ein Hinweis für den gesamten
+  Lauf, etwa der Cache-Hinweis (eine Datei, die sich alle Locales teilen), wird an jede Locale des
   Laufs gehängt.
 - **usage** ist `undefined`, nie eine erfundene Null, wann immer nichts in diesem Bereich einen
-  Verbrauch gemeldet hat: ein Dry-Run ruft nie einen Provider auf, und DeepL meldet nie Tokens.
+  Verbrauch gemeldet hat: ein Dry Run ruft nie einen Provider auf, und DeepL meldet nie Tokens.
   `RunSummary.usage` ist die Summe über die Locales.
 - **budget** erscheint nur, wenn `maxTokens` konfiguriert oder dem Lauf übergeben ist: `{ maxTokens, behavior, supported,
   tokensUsed, exceeded }`. `supported` sagt, ob `tokensUsed` vollständig der vom Provider selbst
   gemeldete Verbrauch ist; es ist `false`, sobald eine Anfrage ohne brauchbare Zahl zurückkam, und
   die Summe ist dann teils verbatras Projektion, die genauso gezählt und durchgesetzt wird. Ein
-  Dry-Run, oder jeder Lauf ohne Anfrage, meldet `supported: true` mit `tokensUsed: 0`: Es wurde
+  Dry Run, oder jeder Lauf ohne Anfrage, meldet `supported: true` mit `tokensUsed: 0`: Es wurde
   nichts gesendet, also nichts projiziert. Unter `behavior: "stop"` wird
   die Obergrenze vor jeder Anfrage geprüft, die der Lauf sendet, auch vor jeder Hälfte einer neu
   aufgeteilten Anfrage. `tokensUsed` landet also auf oder unter `maxTokens`, bis auf einen Rest: Die
@@ -84,7 +84,7 @@ Die Teile, die du kennen solltest:
   danach wird nichts weiter zugelassen. Das Budget begrenzt einen `translate`-Aufruf: `watch`
   startet je Lauf ein frisches, und `retranslateEntry` fällt gar nicht darunter.
 - **error.code** auf einer fehlgeschlagenen Locale ist ein durchgereichter String (der Code des
-  zugrunde liegenden Providers oder Adapters, mit `LOCALE_FAILED` nur als Rückfall); behandle ihn
+  zugrunde liegenden Providers oder Adapters, mit `LOCALE_FAILED` nur als Fallback); behandle ihn
   also nicht als geschlossene Menge. Eine `failed`-Locale trägt nicht immer ein `error`: Eine, deren
   Keys alle zurückgehalten wurden und deshalb in `integrityMismatches`, `providerFailures` oder
   `budgetWithheld` stehen, scheitert, ohne dass etwas geworfen wurde. Der Grund steht in diesen
@@ -118,8 +118,8 @@ Die Teile, die du kennen solltest:
   exportiert wurde), eine Arbeitsmappen-Zeile, die der Reader nicht parsen konnte, und ein
   doppelter Key, dessen erstes Vorkommen gewonnen hat. Das optionale `line` bei den letzten beiden
   ist die Dateizeile, in der der Datensatz beginnt; es ist nur bei einem Import mit Trennzeichen
-  (`csv` oder `tsv`) vorhanden. Die einzige Ausnahme ist ein [rein menschliches](/de/docs/human-only-workflow) Projekt: Dort listen `translate` und `watch` in **unfilled** jeden Key, für den das Translation Memory keinen exakten Eintrag hatte, und **fuzzyHits** bleibt leer, weil dort nie unscharf wiederverwendet wird.
-- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, einer `suggestion` (die Antwort des Providers oder ein exakter Translation-Memory-Eintrag, nie ein Fuzzy-Treffer), die nicht geschrieben wurde, sowie einem `suggestionStatus`: `planned` bei einem Dry Run, `suggested` oder warum nicht (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Ein fehlgeschlagener Vorschlag ändert nie den Status einer Locale. Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).
+  (`csv` oder `tsv`) vorhanden. Die einzige Ausnahme ist ein [rein menschliches](/de/docs/human-only-workflow) Projekt: Dort listen `translate` und `watch` in **unfilled** jeden Key, für den der Übersetzungsspeicher keinen exakten Eintrag hatte, und **fuzzyHits** bleibt leer, weil dort nie unscharf wiederverwendet wird.
+- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, einer `suggestion` (die Antwort des Providers oder ein exakter Eintrag des Übersetzungsspeichers, nie ein Fuzzy-Treffer), die nicht geschrieben wurde, sowie einem `suggestionStatus`: `planned` bei einem Dry Run, `suggested` oder warum nicht (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Ein fehlgeschlagener Vorschlag ändert nie den Status einer Locale. Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).
 
 Zwei dieser Eintragstypen sind eigenständig exportiert: Jeder `protected`-Eintrag ist ein `ProtectedKey`, und jede SDK-Meldung in `notices` ist eine `SdkNotice`.
 

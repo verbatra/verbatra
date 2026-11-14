@@ -4,7 +4,7 @@ seoTitle: "verbatra: einen translate-Lauf rückgängig machen"
 description: "Wie du einen translate-Lauf rückgängig machst, warum Locale-, Lock- und Herkunftsdatei zusammen zurückgesetzt werden und was ein abgebrochener Lauf hinterlässt."
 type: how-to
 ---
-Nutze das, wenn ein Lauf Übersetzungen erzeugt hat, die du nicht willst: den falschen Ton, das falsche Modell, ein vergessenes Glossar. verbatra hat keinen Rückgängig-Befehl und legt keine Sicherungen an. Die Versionsverwaltung ist der Wiederherstellungsweg, und deshalb werden die Locale-Dateien, die Lock-Datei und die Herkunftsdatei committet: Zusammen sind sie der Stand, zu dem du zurückkehrst.
+Nutze das, wenn ein Lauf Übersetzungen erzeugt hat, die du nicht willst: den falschen Tonfall, das falsche Modell, ein vergessenes Glossar. verbatra hat keinen Rückgängig-Befehl und legt keine Sicherungen an. Die Versionsverwaltung ist der Wiederherstellungsweg, und deshalb werden die Locale-Dateien, die Lock-Datei und die Herkunftsdatei committet: Zusammen sind sie der Stand, zu dem du zurückkehrst.
 
 Du brauchst das Projekt in git, mit dem Stand vor dem Lauf committet.
 
@@ -17,7 +17,7 @@ Ein `translate`-, `watch`- oder `import`-Lauf schreibt die Dateien, um die sich 
 
 `verbatra.cache.json` und `.verbatra-local/` sind neu erzeugbarer, von git ignorierter Zustand; stell sie nie wieder her. Jede versionierte Datei wird atomar geschrieben, also gibt es nie eine halb geschriebene Datei zu reparieren.
 
-### Die Provenance-Datei
+### Die Herkunftsdatei
 
 <AvailableFrom version="0.12.0" />
 
@@ -60,9 +60,9 @@ Die Lock-Datei hält einen Hash des **Quell**werts hinter jeder Übersetzung fes
 
 ## Nach einem Rollback neu laufen lassen
 
-Zurückrollen und `verbatra translate` erneut ausführen ist eine Wiederholung, keine zweite Meinung. Mit gleichem Provider, Modell, Ton, den Glossarbegriffen, die verbatra senden würde, und Provider-`localeMap` bleibt der [Cache](/de/docs/the-cache#der-fingerprint)-Fingerprint gleich, also liefert der Lauf dieselben Übersetzungen aus `verbatra.cache.json`, ohne den Provider aufzurufen.
+Zurückrollen und `verbatra translate` erneut ausführen ist eine Wiederholung, keine zweite Meinung. Mit gleichem Provider, Modell, Tonfall, den Glossarbegriffen, die verbatra senden würde, und Provider-`localeMap` bleibt der [Cache](/de/docs/the-cache#der-fingerprint)-Fingerprint gleich, also liefert der Lauf dieselben Übersetzungen aus `verbatra.cache.json`, ohne den Provider aufzurufen.
 
-Für ein anderes Ergebnis änderst du, was das erste falsch gemacht hat: Ein neuer Ton, ein neues Glossar oder ein anderes Modell ändert den Fingerprint und übersetzt von selbst neu. Um dieselbe Konfiguration erneut an den Provider zu schicken, nimm `--no-cache` dazu:
+Für ein anderes Ergebnis änderst du, was das erste falsch gemacht hat: Ein neuer Tonfall, ein neues Glossar oder ein anderes Modell ändert den Fingerprint und übersetzt von selbst neu. Um dieselbe Konfiguration erneut an den Provider zu schicken, nimm `--no-cache` dazu:
 
 ```bash
 verbatra translate --no-cache

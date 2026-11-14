@@ -118,7 +118,7 @@ const runHistoryResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### localeSummarySchema
 
-Beschreibt eine `LocaleSummary`, einen Eintrag in `locales` einer Run-Summary.
+Beschreibt eine `LocaleSummary`, einen Eintrag in `locales` einer `RunSummary`.
 
 ```ts title="Signatur"
 const localeSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -152,7 +152,7 @@ const keyOriginSchema: z.ZodEnum<{ ... }>;
 
 ### progressEventSchema
 
-Beschreibt ein `ProgressEvent`, das, was `onProgress` erhält. Die CLI gibt einige dieser Ereignisse unter `--json` auf stderr aus. Veröffentlicht als `progress-event.json`.
+Beschreibt ein `ProgressEvent`, also das, was `onProgress` erhält. Die CLI gibt einige dieser Ereignisse unter `--json` auf stderr aus. Veröffentlicht als `progress-event.json`.
 
 ```ts title="Signatur"
 const progressEventSchema: z.ZodUnion<readonly [...]>;
@@ -160,7 +160,7 @@ const progressEventSchema: z.ZodUnion<readonly [...]>;
 
 ### lockWaitEventSchema
 
-Beschreibt ein `LockWaitEvent`, das, was `onLockWait` erhält, während ein Lauf auf die Schreibsperre einer Locale wartet. Die CLI gibt es mit zusätzlichem `type: "lock-wait"` auf stderr aus. Veröffentlicht als `lock-wait-event.json`.
+Beschreibt ein `LockWaitEvent`, also das, was `onLockWait` erhält, während ein Lauf auf die Schreibsperre einer Locale wartet. Die CLI gibt es mit zusätzlichem `type: "lock-wait"` auf stderr aus. Veröffentlicht als `lock-wait-event.json`.
 
 ```ts title="Signatur"
 const lockWaitEventSchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -172,7 +172,7 @@ const lockWaitEventSchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### renderJsonSchemas
 
-Erzeugt verbatras eigene JSON-Schema-Dokumente (Draft 2020-12) aus einer Liste von `JsonSchemaDocument`s, nach Namen geordnet. Jedes erhält die `$id`, die `jsonSchemaUrl` für seinen Namen liefert, eine URL dieser Seite. Nutze es also nur für verbatras Dokumente und `renderOutputJsonSchema` für ein eigenes Schema. Ein Ausgabedokument erlaubt jede Eigenschaft, die es nicht aufführt; ein Eingabedokument wie die Konfiguration behält seine geschlossenen Objekte. Ein Schema, das ein Dokument aus einer der beiden Listen einbettet, verweist per URL darauf.
+Erzeugt verbatras eigene JSON-Schema-Dokumente (Draft 2020-12) aus einer Liste von `JsonSchemaDocument`s, mit dem Namen als Schlüssel. Jedes erhält die `$id`, die `jsonSchemaUrl` für seinen Namen liefert, eine URL dieser Website. Nutze es also nur für verbatras Dokumente und `renderOutputJsonSchema` für ein eigenes Schema. Ein Ausgabedokument erlaubt jede Eigenschaft, die es nicht aufführt; ein Eingabedokument wie die Konfiguration behält seine geschlossenen Objekte. Ein Schema, das ein Dokument aus einer der beiden Listen einbettet, verweist per URL darauf.
 
 ```ts title="Signatur"
 function renderJsonSchemas(

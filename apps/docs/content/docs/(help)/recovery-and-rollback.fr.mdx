@@ -50,7 +50,7 @@ Dans les deux cas, restaure les fichiers de locale, `verbatra.lock.json` et `ver
 
 Le fichier de verrouillage enregistre un hash de la valeur **source** derrière chaque traduction, et rien sur la valeur traduite elle-même ; le fichier de provenance enregistre qui a écrit chaque valeur, lié à un hash de cette valeur. Si tu restaures un fichier sans les autres, ils décrivent des moments différents.
 
-**Seulement les fichiers de locale.** Le fichier de verrouillage dit toujours que chaque clé est à jour. À l'exécution suivante, une clé restaurée est présente et son hash correspond à la source, elle n'est donc jamais renvoyée : l'ancienne valeur reste en place pour de bon. Seules les clés que l'exécution a créées reviennent comme manquantes. `check` et `diff` comparent avec la même référence, ils signalent donc la locale comme propre, et rien ne te dit que ces traductions sont périmées.
+**Seulement les fichiers de locale.** Le fichier de verrouillage dit toujours que chaque clé est à jour. À l'exécution suivante, une clé restaurée est présente et son hash correspond à la source, elle n'est donc jamais renvoyée : l'ancienne valeur reste en place pour de bon. Seules les clés que l'exécution a créées reviennent comme manquantes. `check` et `diff` comparent avec la même référence, ils signalent donc la locale comme propre, et rien ne te dit que ces traductions sont obsolètes.
 
 **Seulement le fichier de verrouillage.** Les hashes restaurés sont plus anciens que la source actuelle, donc les clés concernées apparaissent comme modifiées. L'exécution suivante les retraduit et écrase les fichiers de locale, y compris les corrections faites à la main depuis. Tu paies deux fois et tu perds les modifications.
 

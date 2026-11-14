@@ -84,7 +84,7 @@ verbatra translate (dry run)
 next: verbatra translate (run it for real)
 ```
 
-Esta es la forma en un terminal interactivo; con una tubería o en CI, cada paso tiene además su propia línea, consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal). Una ejecución de prueba no construye ningún proveedor, así que no necesita clave, no gasta nada y no escribe nada. [`verbatra doctor`](/es/docs/cli/doctor) comprueba el resto de la configuración de la misma forma.
+Esta es la forma en un terminal interactivo; con la salida canalizada o en CI, cada paso tiene además su propia línea, consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal). Una ejecución de prueba no construye ningún proveedor, así que no necesita clave, no gasta nada y no escribe nada. [`verbatra doctor`](/es/docs/cli/doctor) comprueba el resto de la configuración de la misma forma.
 
 </Step>
 <Step>
@@ -135,7 +135,7 @@ all locales in sync
 
 ## Qué acaba de pasar
 
-- `locales/de.json` tiene las mismas claves en el mismo orden que tu origen, y `{{name}}` sobrevivió: un resultado que pierde un marcador de posición se retiene y nunca se escribe. Consulta [Seguridad de la traducción](/es/docs/translation-safety).
+- `locales/de.json` tiene las mismas claves en el mismo orden que tu origen, y `{{name}}` sobrevivió: un resultado que pierde un placeholder se retiene y nunca se escribe. Consulta [Seguridad de la traducción](/es/docs/translation-safety).
 - `verbatra.lock.json` guarda un hash del texto de origen detrás de cada traducción, para que la siguiente ejecución envíe solo claves nuevas y modificadas. Consulta [El archivo de bloqueo](/es/docs/the-lock-file).
 - `verbatra.provenance.json` registra qué proveedor y qué modelo escribió cada valor. Consulta [Procedencia](/es/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
 - `verbatra.cache.json` y `.verbatra-local/` contienen la caché de traducción regenerable y el estado local de la ejecución. `init` ya los añadió a `.gitignore`. Consulta [La caché](/es/docs/the-cache).

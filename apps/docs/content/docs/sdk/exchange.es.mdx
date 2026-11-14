@@ -88,7 +88,7 @@ correcta, lanzan `LOCALE_LAYOUT_INVALID`, y dos locales que resuelven a la misma
 
 <AvailableFrom version="0.13.0" />
 
-Nombra los archivos que necesita un watcher: el archivo de cada locale configurada con los archivos contiguos que guardan parte de sus datos (el archivo `.stringsdict` de `apple-strings`), y los archivos que git reescribe en un commit, un cambio de rama, un reset o una operación de staging. Solo lectura; la parte de git se pide mediante el `execFile` inyectable, con las salvaguardas de [`localeGitStatus`](/es/docs/sdk/review#localegitstatus).
+Nombra los archivos que necesita un watcher: el archivo de cada locale configurado con los archivos contiguos que guardan parte de sus datos (el archivo `.stringsdict` de `apple-strings`), y los archivos que git reescribe en un commit, un cambio de rama, un reset o una operación de staging. Solo lectura; la parte de git se pide mediante el `execFile` inyectable, con las salvaguardas de [`localeGitStatus`](/es/docs/sdk/review#localegitstatus).
 
 ```ts title="Firma"
 function localeWatchPaths(
@@ -103,7 +103,7 @@ function localeWatchPaths(
 
 **Lanza:** [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision)
 
-`locales` lista primero la locale de origen, cada una con sus `paths`. `git` es `{ available: true, paths }` con las rutas absolutas del índice, de `HEAD` y del reflog de `HEAD` de este work tree, o `{ available: false, reason }` fuera de un work tree legible; los archivos de locale se listan en ambos casos.
+`locales` lista primero el locale de origen, cada uno con sus `paths`. `git` es `{ available: true, paths }` con las rutas absolutas del índice, de `HEAD` y del reflog de `HEAD` de este work tree, o `{ available: false, reason }` fuera de un work tree legible; los archivos de locale se listan en ambos casos.
 
 ## El par del libro
 
@@ -153,7 +153,7 @@ mensaje, y el error del sistema de archivos como `cause`.
 
 <AvailableFrom version="0.12.0" />
 
-`format: "xliff2"` y `format: "xliff12"` escriben para una herramienta TAO un `<locale>.xlf` en XLIFF 2.0 o 1.2 por locale en el directorio `out`: una unidad por clave, los marcadores de posición y el marcado como códigos en línea `<ph>` protegidos, la descripción y el significado de la clave como notas, el hash de origen en los metadatos de la unidad y un estado de segmento según el estado de bloqueo y de revisión (`initial` para una clave ausente o desactualizada, `translated` si está al día, `reviewed` si está aprobada). Se exportan los dos tipos, y `XliffFormat` nombra los dos miembros XLIFF de `ExchangeFormat`. Consulta [Entregar a una agencia de traducción](/es/docs/translation-agency).
+`format: "xliff2"` y `format: "xliff12"` escriben para una herramienta TAO un `<locale>.xlf` en XLIFF 2.0 o 1.2 por locale en el directorio `out`: una unidad por clave, los placeholders y el marcado como códigos en línea `<ph>` protegidos, la descripción y el significado de la clave como notas, el hash de origen en los metadatos de la unidad y un estado de segmento según el estado de bloqueo y de revisión (`initial` para una clave ausente o desactualizada, `translated` si está al día, `reviewed` si está aprobada). Se exportan los dos tipos, y `XliffFormat` nombra los dos miembros XLIFF de `ExchangeFormat`. Consulta [Entregar a una agencia de traducción](/es/docs/translation-agency).
 
 Cada unidad con destino lleva además su origen: XLIFF 1.2 califica un destino de clase máquina sin aprobar con `state-qualifier="mt-suggestion"`, y XLIFF 2.0 añade las entradas `origin` y `review-state` al grupo de metadatos `verbatra` de la unidad. El resultado lleva entonces también `provenanceMarkers`: `"written"`, o `"unavailable"` cuando no se pudo leer el archivo de procedencia y no se escribió ninguna marca. Consulta [Evidencia de traducción automática](/es/docs/provenance-evidence#marcas-en-las-exportaciones).
 
@@ -164,7 +164,7 @@ Cada unidad con destino lleva además su origen: XLIFF 1.2 califica un destino d
 Lee un libro rellenado de vuelta a los archivos de locale, ejecutando las mismas comprobaciones de
 desfase del origen e integridad que `translate`. Solo las filas aceptadas avanzan su
 línea base del bloqueo; una fila en blanco o rechazada se sigue exportando hasta que se resuelve de
-verdad. En una entrega CSV, TSV o xlsx, una fila rellenada igual al valor de una clave al día que supera la barrera de integridad se deja intacta y se informa como `unchanged`, no como traducida <AvailableFrom version="0.13.0" />; consulta [Traducción manual](/es/docs/manual-translation#qué-acepta-la-importación).
+verdad. En una entrega CSV, TSV o xlsx, una fila rellenada igual al valor de una clave al día que supera la puerta de integridad se deja intacta y se informa como `unchanged`, no como traducida <AvailableFrom version="0.13.0" />; consulta [Traducción manual](/es/docs/manual-translation#qué-acepta-la-importación).
 
 ```ts title="Firma"
 function importWorkbook(
@@ -340,7 +340,7 @@ function exportTmx(
 
 **Ejemplo:** [El ciclo de ida y vuelta de TMX](/es/docs/programmatic-api#el-ciclo-de-ida-y-vuelta-de-tmx)
 
-Devuelve `{ path, units, locales, withoutSource, otherConfiguration, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` cuenta las entradas dejadas fuera porque la memoria no tiene texto de origen para ellas, lo que solo ocurre con entradas arrastradas de una caché escrita antes de que la memoria guardase el texto de origen, `otherConfiguration` cuenta las entradas dejadas fuera porque están guardadas bajo otra huella de configuración (un proveedor, modelo, tono o glosario anterior), una vez por locale y hash, e `illegalCharactersRemoved` cuenta los caracteres que XML 1.0 no puede representar y que se eliminaron del texto de los segmentos.
+Devuelve `{ path, units, locales, withoutSource, otherConfiguration?, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` cuenta las entradas dejadas fuera porque la memoria no tiene texto de origen para ellas, lo que solo ocurre con entradas arrastradas de una caché escrita antes de que la memoria guardase el texto de origen, `otherConfiguration` cuenta las entradas dejadas fuera porque están guardadas bajo otra huella de configuración (un proveedor, modelo, tono o glosario anterior), una vez por locale y hash <AvailableFrom version="0.13.5" />, e `illegalCharactersRemoved` cuenta los caracteres que XML 1.0 no puede representar y que se eliminaron del texto de los segmentos.
 
 <AvailableFrom version="0.12.0" />
 

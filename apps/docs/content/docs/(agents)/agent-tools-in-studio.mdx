@@ -21,7 +21,7 @@ WebMCP is a new browser capability behind a flag, and its surface may still chan
 verbatra studio --expose-agent-tools
 ```
 
-`VERBATRA_STUDIO_AGENT_TOOLS=1` does the same; [Spend and agent tools](/docs/cli/studio#spend-and-agent-tools) shows how the flag and the variable resolve. Open the printed URL in the WebMCP browser, and the agent on that tab finds the tools. In a browser without WebMCP, Studio registers nothing.
+`VERBATRA_STUDIO_AGENT_TOOLS=1` does the same; [Spend and agent tools](/docs/cli/studio#spend-and-agent-tools) shows how the flag and the variable resolve. Open the printed URL in the WebMCP browser, and the agent on that tab finds the tools.
 
 To let the agent call your provider, start Studio with `--allow-spend` as well.
 
@@ -49,7 +49,7 @@ Each tool is a Studio action with a `verbatra_` prefix. Read tools are marked re
 | `verbatra_locale_values` | key values per target locale, 200 per page by default, narrowed by `locales`, `keys` or `query` |
 | `verbatra_locale_integrity` | every translation that fails the integrity checks <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_translation_estimate` | what a translate-pending call would send and cost, without calling a provider |
-| `verbatra_usage_summary` | the last run's token usage and budget |
+| `verbatra_usage_summary` | the last run's token usage, budget and, if any locale failed or stopped partway, `incomplete` <AvailableFrom version="0.7.5" pkg="@verbatra/studio" /> |
 | `verbatra_usage_history` | recorded runs, newest first, with tokens, cost and coverage, as counts only <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
 
 ### Write tools

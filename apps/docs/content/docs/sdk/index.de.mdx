@@ -45,7 +45,7 @@ kein Binary.
 <Callout title="API-Keys und die Umgebung">
 Das SDK liest, hält oder akzeptiert nie einen API-Key. Der Provider liest seinen Key aus der
 Umgebung (zum Beispiel `ANTHROPIC_API_KEY`), wenn er konstruiert wird. Anders als die CLI lädt das
-SDK keine `.env`-Dateien: setze die Variable in deinem eigenen Skript selbst, zum Beispiel mit
+SDK keine `.env`-Dateien: Setze die Variable in deinem eigenen Skript selbst, zum Beispiel mit
 `node --env-file=.env script.js`.
 </Callout>
 
@@ -75,7 +75,7 @@ Zwei Vertragspunkte muss eine Implementierung einhalten. Lesevorgänge sind grö
 davon ab, den Speicher zu erschöpfen. Schreibvorgänge sollten atomar sein, damit ein Absturz
 mitten im Schreiben nie eine halb geschriebene Datei hinterlässt, und `createExclusive` muss atomar
 gegenüber anderen Prozessen sein, weil es das Primitiv hinter der Schreibsperre pro Locale ist. Das
-SDK ruft vor dem Schreiben einer Locale-Datei, der Laufstatus-Datei oder einer Ausgabedatei wie
+SDK ruft vor dem Schreiben einer Locale-Datei, der Run-Status-Datei oder einer Ausgabedatei wie
 einer Arbeitsmappe das optionale `mkdir` mit dem übergeordneten Verzeichnis auf, `writeFile` und
 `writeBytes` müssen es also nicht selbst anlegen; lass `mkdir` weg, wenn der Speicher keine
 Verzeichnisse kennt. `createExclusive` bekommt keinen solchen Aufruf und legt ein fehlendes
@@ -122,7 +122,7 @@ Prozesses gelöscht wird.
 Beiseitelegen und Zurücklegen sind zwei Schritte, daher können in seltenen Abläufen zwei Prozesse
 kurz beide glauben, dieselbe Sperre zu halten. Jede Sperre hält deshalb ein zufälliges Besitz-Token
 fest, und vor jedem Schreibvorgang, den die Sperre schützt (die Locale-Datei, die Lock-Datei, die
-Provenance-Datei, das Glossar), prüft der Halter, ob die Sperrdatei noch sein Token enthält. Ist das
+Herkunftsdatei, das Glossar), prüft der Halter, ob die Sperrdatei noch sein Token enthält. Ist das
 nicht so, bricht die Operation mit `LOCK_CONTENDED` ab und schreibt nichts. Eine Sperrdatei, die
 beim Freigeben fehlt oder ein anderes Token enthält, wird genauso gemeldet, wenn die Operation
 erfolgreich war, denn der andere Prozess kann dieselben Dateien seitdem geändert haben; eine
@@ -166,14 +166,14 @@ darin verdrahtet hat. Beides zu übergeben heißt, dass der Aufrufer diese Verdr
 
 Auch das Laden der Konfiguration liegt außerhalb der Nahtstelle. `loadConfig` und
 `loadConfigWithMeta` nehmen keine `deps`: sie lesen die Konfigurationsdatei selbst von der echten
-Platte und eine Glossardatei, die die Konfiguration nennt, über ihre eigene Option `fs`, das
+Platte und eine Glossardatei, die die Konfiguration nennt, über ihre eigene Option `fs`; das
 `deps.fs` eines späteren Flows erreicht also keinen der beiden Lesevorgänge. Um ein ganzes Projekt
 im Speicher zu halten, übergib dasselbe `SdkFs` als `loadConfig({ fs })` und reich die
 Konfiguration als `configOverride` statt als Datei herein. Die Flows lösen Pfade gegen ihr eigenes
 `cwd` auf, gib es also auch dort mit.
 
 Das Beispiel hält ein ganzes Projekt im Speicher und kommt mit den Pflichtmitgliedern aus. Mit dem
-Provider `none` braucht der Lauf keinen Schlüssel und lässt `greeting` für einen Menschen zum
+Provider `none` braucht der Lauf keinen API-Key und lässt `greeting` für einen Menschen zum
 Übersetzen übrig.
 
 ```ts title="Beispiel"

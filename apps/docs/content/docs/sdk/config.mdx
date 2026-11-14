@@ -106,7 +106,7 @@ Reads a file-backed glossary fresh from disk and returns it as a normalized `Glo
 [per-locale glossary](/docs/config-file#glossary), and every term carries `source`, an optional
 `target`, `targets`, `forbidden`, `caseSensitive`, and an optional `note` and `partOfSpeech`. Its
 `glossary` input is the `GlossaryProvenance` from `loadConfigWithMeta`, so the file it reads is always
-the one the config names; there is no path argument. Use it in a long-running tool that shows the
+the one the config names. Use it in a long-running tool that shows the
 glossary as it is now, not as it was at load.
 
 ```ts title="Signature"
@@ -162,8 +162,7 @@ A version 1 file stays version 1 while an edit only sets or removes a translatio
 locale; any other edit rewrites it as version 2, every existing term keeping its translation as
 `target`. `translation: null` without `locale` removes only the shared translation; the term itself is removed once it has no translation and no forbidden rendering left, which for a version 1 term is at once.
 
-A term that differs only in case from a stored term, when neither is `caseSensitive`, updates
-that term and keeps its stored spelling. An inline glossary is refused with
+With `sourceLocale`, a term differing only in case from a stored one (neither `caseSensitive`) updates it, keeping its stored spelling; without it only an exact match updates. <AvailableFrom version="0.13.5" /> An inline glossary is refused with
 `GLOSSARY_NOT_FILE_BACKED` rather than converted. A missing `term`, a blank field, an edit that sets no field or mixes `doNotTranslate`
 with the term fields, forbidden renderings without a locale, an invalid locale, an edit that would
 leave an invalid glossary, and an edit whose result would exceed the 1 MiB glossary limit are

@@ -18,7 +18,7 @@ Agent : suis ces étapes dans l'ordre et ne saute jamais l'arrêt de l'étape 6.
 
 ### 1. Examiner la configuration existante
 
-Avant de modifier quoi que ce soit, trouve la bibliothèque i18n dans `package.json` (comme `i18next`, `vue-i18n` ou `next-intl`) et les fichiers de locale. Note la locale source, chaque locale cible déjà présente et le motif de chemin avec un jeton `{locale}`, comme `locales/{locale}.json`. [Choisis ta stack](/fr/docs/pick-your-stack) associe à chaque stack son id de format et sa structure, [Formats](/fr/docs/formats) indique quels fichiers doivent déjà exister. Du JSON sans bibliothèque i18n : des marqueurs `{{name}}` signifient `i18next-json`, une accolade simple `{name}` signifie `vue-i18n-json`.
+Avant de modifier quoi que ce soit, trouve la bibliothèque i18n dans `package.json` (comme `i18next`, `vue-i18n` ou `next-intl`) et les fichiers de locale. Note la locale source, chaque locale cible déjà présente et le motif de chemin avec un jeton `{locale}`, comme `locales/{locale}.json`. [Choisis ta stack](/fr/docs/pick-your-stack) associe à chaque stack son id de format et sa structure ; [Formats](/fr/docs/formats) indique quels fichiers doivent déjà exister. Du JSON sans bibliothèque i18n : des marqueurs `{{name}}` signifient `i18next-json`, une accolade simple `{name}` signifie `vue-i18n-json`.
 
 ### 2. Installer la CLI
 
@@ -40,10 +40,10 @@ Demande à l'humain quel fournisseur utiliser, sauf si le projet le rend éviden
 | --- | --- |
 | `0` | Compare `result.config` avec l'étape 1, en commençant par chaque entrée de `result.sources` qui indique `default` ; `result.config.files.localeStyle` n'apparaît que si les fichiers n'écrivent pas les locales telles quelles. Si quelque chose ne va pas, relance-la avec le bon `--format`, `--path`, `--source` ou `--targets`, plus `--force`. |
 | `2`, `FORMAT_AMBIGUOUS` ou `LAYOUT_AMBIGUOUS` | Choisis parmi les `candidates` et relance-la avec `--format` ou `--path`. Des fichiers de namespace côte à côte : arrête-toi et demande à l'humain, car une config couvre un seul motif de fichier. |
-| `2`, `MISSING_OPTIONS` | Le message nomme chaque flag encore nécessaire. |
+| `2`, `MISSING_OPTIONS` | Le message nomme chaque option encore nécessaire. |
 | `2`, `CONFIG_EXISTS` | Dis à l'humain quel fournisseur la config existante utilise et attends sa confirmation. Lance ensuite `npx @verbatra/cli init --agent --json`, qui garde la config et n'ajoute que les fichiers de l'agent. Demande avant de passer `--force`. |
 
-[init](/fr/docs/cli/init#fournisseurs) documente chaque flag.
+[init](/fr/docs/cli/init#fournisseurs) documente chaque option.
 
 ### 4. Laisser la clé d'API à l'humain
 
@@ -72,11 +72,11 @@ npx @verbatra/cli translate --json
 
 Rapporte les listes `succeeded`, `partial` et `failed` du résumé. Une locale `partial` ou `failed` garde ce qui a réussi.
 
-### 8. Committer et connecter
+### 8. Commiter et connecter
 
-Committe `verbatra.config.ts`, `.env.example` s'il existe, le fichier d'instructions et les configs client de l'étape 3, `verbatra.lock.json`, `verbatra.provenance.json` une fois qu'une exécution l'a écrit, et les fichiers de locale traduits. Ne committe jamais `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json` ; vérifie que le `.gitignore` les couvre.
+Commite `verbatra.config.ts`, `.env.example` s'il existe, le fichier d'instructions et les configs client de l'étape 3, `verbatra.lock.json`, `verbatra.provenance.json` une fois qu'une exécution l'a écrit, et les fichiers de locale traduits. Ne commite jamais `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json` ; vérifie que le `.gitignore` les couvre.
 
-Dis ensuite à l'humain de redémarrer son client et d'approuver le serveur `verbatra` du projet. Dans Claude Code, il n'installe pas en plus le plugin verbatra, qui l'enregistre une deuxième fois ; `claude mcp list` montre la connexion. Un client que `init` n'a pas détecté prend son unique entrée dans [Connecter un client MCP](/fr/docs/connect-an-mcp-client).
+Dis ensuite à l'humain de redémarrer son client et d'approuver le serveur `verbatra` du projet. Dans Claude Code, n'installe pas en plus le plugin verbatra, qui l'enregistre une deuxième fois ; `claude mcp list` montre la connexion. Un client que `init` n'a pas détecté prend son unique entrée dans [Connecter un client MCP](/fr/docs/connect-an-mcp-client).
 
 ## Ensuite
 

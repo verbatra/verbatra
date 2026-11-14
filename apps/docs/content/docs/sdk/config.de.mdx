@@ -29,7 +29,7 @@ function loadConfig(
 
 **Beispiel:** [Eine Konfiguration ohne Datei](/de/docs/programmatic-api#eine-konfiguration-ohne-datei)
 
-Das Schema steht in [Konfigurationsdatei](/de/docs/config-file). `fs`
+Das Schema steht unter [Die Konfigurationsdatei](/de/docs/config-file). `fs`
 ist der Dateisystem-Port, über den eine Glossardatei gelesen wird, wie unter
 [Die Abhängigkeits-Nahtstelle](/de/docs/sdk#die-abhängigkeits-nahtstelle) beschrieben.
 
@@ -113,8 +113,7 @@ zurück: `{ version, terms, doNotTranslate }`, wobei `version` für eine flache 
 und für ein [Glossar pro Locale](/de/docs/config-file#glossary) `2` ist und jeder Begriff `source`, ein
 optionales `target`, `targets`, `forbidden`, `caseSensitive` sowie optional `note` und
 `partOfSpeech` trägt. Die Eingabe `glossary` ist die `GlossaryProvenance` aus `loadConfigWithMeta`,
-sodass die gelesene Datei immer die ist, die die Konfiguration nennt; ein Pfadargument gibt es
-nicht. Nutze es in einem lang laufenden Werkzeug, das das Glossar zeigt, wie es jetzt ist, nicht wie
+sodass die gelesene Datei immer die ist, die die Konfiguration nennt. Nutze es in einem lang laufenden Werkzeug, das das Glossar zeigt, wie es jetzt ist, nicht wie
 beim Laden.
 
 ```ts title="Signatur"
@@ -174,9 +173,9 @@ solange eine Änderung nur eine Übersetzung für alle Locales setzt oder entfer
 Änderung schreibt sie als Version 2 neu, wobei jeder bestehende Begriff seine Übersetzung als
 `target` behält. `translation: null` ohne `locale` entfernt nur die gemeinsame Übersetzung; der Begriff selbst wird entfernt, sobald ihm keine Übersetzung und keine verbotene Wiedergabe mehr bleibt, bei einem Begriff der Version 1 also sofort.
 
-Ein Begriff, der sich von einem gespeicherten nur in der Groß- und Kleinschreibung unterscheidet,
-wenn keiner von beiden `caseSensitive` ist, aktualisiert diesen Begriff und behält dessen
-gespeicherte Schreibweise. Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt
+Mit `sourceLocale` aktualisiert ein Begriff, der sich von einem gespeicherten nur in der Groß- und
+Kleinschreibung unterscheidet (keiner von beiden `caseSensitive`), diesen und behält dessen
+gespeicherte Schreibweise; ohne `sourceLocale` aktualisiert nur eine exakte Übereinstimmung. <AvailableFrom version="0.13.5" /> Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt
 umgewandelt. Ein fehlender `term`, ein leeres Feld, eine Änderung, die kein Feld setzt oder
 `doNotTranslate` mit Begriffsfeldern mischt, verbotene Wiedergaben ohne Locale, eine ungültige
 Locale, eine Änderung, die ein ungültiges Glossar hinterließe, und eine Änderung, deren Ergebnis
@@ -379,7 +378,7 @@ function setKeyLengthLimit(
 
 ### defineConfig
 
-Ein Identitätshelfer für eine typisierte `verbatra.config.ts`: er gibt sein Argument unverändert
+Ein Identitätshelfer für eine typisierte `verbatra.config.ts`: Er gibt sein Argument unverändert
 zurück, für Typinferenz und Editor-Autovervollständigung, einschließlich der bekannten Modell-IDs
 des gewählten Providers (nur beim Schreiben; zur Laufzeit besteht jeder nicht-leere String). Jeder
 Provider außer `opencode`, `openai-compatible`, `libretranslate` und `none` bekommt zusätzlich eine Überladung
@@ -429,7 +428,7 @@ Option-Key, unter dem jeder LLM-Provider sein Ausgabe-Token-Limit entgegennimmt)
 ([Provider](/de/docs/providers)); DeepL und Google Cloud Translation haben keinen Eintrag, weil sie kein
 Token-Limit entgegennehmen. Der Typ `ScaffoldableProviderId` ist
 `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`: jeder Provider, der nur
-seine Id braucht. `openai-compatible` und `libretranslate` brauchen je eine `baseUrl`, die nur du
+seine ID braucht. `openai-compatible` und `libretranslate` brauchen je eine `baseUrl`, die nur du
 kennst, und haben keine verpflichtende Umgebungsvariable, und `none` ruft gar keinen Provider auf.
 
 ```ts title="Signatur"
@@ -501,7 +500,7 @@ function isMachineTranslationEnabled(
 
 <AvailableFrom version="0.12.0" />
 
-Nimmt die Konfiguration und eine kurze Beschreibung der Aktion und wirft unter `provider: { id: "none" }` einen `SdkError` mit `MACHINE_TRANSLATION_DISABLED`. Ruf es auf, bevor du `translate` in eine ausdrückliche Aktion "alles Ausstehende übersetzen" verpackst, damit diese Aktion genauso fehlschlägt wie `retranslateEntry`, statt still nur aus dem Translation Memory zu füllen.
+Nimmt die Konfiguration und eine kurze Beschreibung der Aktion und wirft unter `provider: { id: "none" }` einen `SdkError` mit `MACHINE_TRANSLATION_DISABLED`. Ruf es auf, bevor du `translate` in eine ausdrückliche Aktion "alles Ausstehende übersetzen" verpackst, damit diese Aktion genauso fehlschlägt wie `retranslateEntry`, statt still nur aus dem Übersetzungsspeicher zu füllen.
 
 ```ts title="Signatur"
 function assertMachineTranslationEnabled(

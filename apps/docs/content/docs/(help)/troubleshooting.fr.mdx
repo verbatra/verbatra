@@ -96,7 +96,7 @@ avec un registre qui contient son adaptateur : voir
 <path> could not be read: ...`
 
 **Cause** : `files.pattern` avec la locale source insérée ne mène à aucun fichier, ou le fichier ne
-se parse pas. Le chemin est résolu depuis la racine du projet, le répertoire de la config trouvée
+s'analyse pas. Le chemin est résolu depuis la racine du projet, le répertoire de la config trouvée
 (ou le répertoire de travail avec `--config`), donc un `--cwd` ou un `--config` erroné est une cause fréquente, tout comme un joker : `files.pattern` est un chemin littéral, pas un glob (voir
 [Dispositions avec espaces de noms](/fr/docs/formats#dispositions-avec-espaces-de-noms)).
 
@@ -177,7 +177,7 @@ change combien de temps une exécution attend. Code :
 
 ## Des clés à points ou des clés YAML entrent en collision (INVALID_STRUCTURE)
 
-**Symptôme** : `A dotted key and a nested key path resolve to the same path.` ou, pour YAML,
+**Symptôme** : `A literal dotted leaf key and a nested key path resolve to the same path.` ou, pour YAML,
 `A mapping key is a map or sequence (expected scalar keys).`
 
 **Cause** : deux entrées d'un fichier mènent à la même clé, comme `"a.b"` à côté de
@@ -200,7 +200,7 @@ termine en `partial` ou `failed`.
 **Solution** : c'est le garde-fou qui fonctionne : ce qui est arrivé est écrit, et les clés retenues
 sont traduites à la prochaine exécution. Relève le budget ou passe à `"warn"` pour tout terminer en
 une exécution. Le calcul du budget est décrit dans
-[Sécurité des traductions](/fr/docs/translation-safety#le-budget-de-tokens). Code :
+[Sûreté de la traduction](/fr/docs/translation-safety#le-budget-de-tokens). Code :
 [`BUDGET_TOKENS_EXCEEDED`](/fr/docs/error-codes#budget_tokens_exceeded).
 
 ## Une traduction est retenue à cause du balisage en ligne (discordance d'intégrité)
@@ -245,12 +245,12 @@ npx télécharge la dernière CLI, qui peut ne pas correspondre à ton `@verbatr
 **Symptôme** : l'édition fonctionne, mais les actions de retraduction et de traduction des clés en
 attente n'apparaissent pas.
 
-**Cause** : la dépense chez le fournisseur s'accorde au démarrage, selon les règles de
+**Cause** : l'autorisation de dépenser chez le fournisseur se donne au démarrage, selon les règles de
 [Dépenses et outils d'agent](/fr/docs/cli/studio#dépenses-et-outils-dagent), et sans cette autorisation
 les actions de dépense ne sont pas enregistrées.
 
 **Solution** : redémarre avec `verbatra studio --allow-spend`, sauf si le projet est
-[uniquement humain](/fr/docs/human-only-workflow). Voir [Réviser dans Studio](/fr/docs/review-in-studio).
+[100 % humain](/fr/docs/human-only-workflow). Voir [Réviser dans Studio](/fr/docs/review-in-studio).
 
 ## MCP : @verbatra/mcp n'est pas installé
 
@@ -268,12 +268,12 @@ les actions de dépense ne sont pas enregistrées.
 **Symptôme** : les outils locaux fonctionnent, mais les deux outils de dépense manquent, et en
 appeler un par son nom échoue comme outil inconnu.
 
-**Cause** : la dépense s'accorde au démarrage, selon les règles des
+**Cause** : l'autorisation de dépenser se donne au démarrage, selon les règles des
 [Outils payants](/fr/docs/cli/mcp#outils-payants), et la liste d'outils ne doit pas changer selon la
 connexion, donc les outils de dépense sont entièrement laissés de côté.
 
 **Solution** : redémarre avec `verbatra mcp --allow-spend`, sauf si le projet est
-[uniquement humain](/fr/docs/human-only-workflow).
+[100 % humain](/fr/docs/human-only-workflow).
 
 ## Annuler une exécution (aucun code d'erreur)
 

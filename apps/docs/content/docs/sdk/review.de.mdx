@@ -84,7 +84,7 @@ function localeHistory(
 
 **Wirft:** [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision)
 
-Jeder Commit trägt `hash`, `author` (der Name nach `.mailmap`, nie die E-Mail), `authorDate`, `subject` und `touchedPaths`. `limit` ist standardmäßig `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`), höchstens `LOCALE_HISTORY_LIMIT_CAP` (`200`), mindestens 1. `author` und `subject` verlieren Steuer- und bidirektionale Zeichen, bekannte Schlüssel werden durch `[REDACTED]` ersetzt, und beide werden auf 200 und 500 Zeichen gekürzt; ein Commit mit unlesbaren Metadaten fehlt. Wie bei `localeGitStatus` ergibt ein Repository, das Git nicht lesen kann, oder ein `git log` über `LOCALE_HISTORY_TIMEOUT_MS` oder `LOCALE_HISTORY_MAX_OUTPUT_BYTES` `{ available: false, reason }`, einen Grund aus `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
+Jeder Commit trägt `hash`, `author` (der Name nach `.mailmap`, nie die E-Mail), `authorDate`, `subject` und `touchedPaths`. `limit` ist standardmäßig `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`), höchstens `LOCALE_HISTORY_LIMIT_CAP` (`200`), mindestens 1. `author` und `subject` verlieren Steuer- und bidirektionale Zeichen, bekannte API-Keys werden durch `[REDACTED]` ersetzt, und beide werden auf 200 und 500 Zeichen gekürzt; ein Commit mit unlesbaren Metadaten fehlt. Ein Repository, das Git nicht lesen kann, oder ein `git log` über `LOCALE_HISTORY_TIMEOUT_MS` oder `LOCALE_HISTORY_MAX_OUTPUT_BYTES` ergibt `{ available: false, reason }`, einen Grund aus `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
 
 ### localeGitStatus
 
@@ -111,7 +111,7 @@ Jede geänderte Datei trägt `path`, `locales` und einen `state` aus `LOCALE_GIT
 
 <AvailableFrom version="0.13.0" />
 
-Vergleicht die Datei einer Locale bei `HEAD` mit der Datei auf der Platte, Schlüssel für Schlüssel. Nur lesend; es nimmt eine Locale, nie einen Pfad, und führt weder `git diff` noch einen Textkonvertierungstreiber oder externen Diff aus.
+Vergleicht die Datei einer Locale bei `HEAD` mit der Datei auf der Platte, Key für Key. Nur lesend; es nimmt eine Locale, nie einen Pfad, und führt weder `git diff` noch einen Textkonvertierungstreiber oder externen Diff aus.
 
 ```ts title="Signatur"
 function localeGitDiff(
@@ -126,7 +126,7 @@ function localeGitDiff(
 
 **Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision)
 
-`added` und `removed` listen `{ key, value }`, `changed` listet `{ key, before, after }`, und `state` ist der Zustand der Datei oder `unchanged`; eine `conflicted` oder `unchanged` Datei listet keinen Unterschied. Die committete Datei wird mit `git cat-file blob` gelesen, nur wenn sie eine reguläre Datei von höchstens `LOCALE_GIT_BLOB_MAX_BYTES` ist. Höchstens `LOCALE_GIT_DIFF_MAX_ENTRIES` Schlüssel werden gelistet und jeder Text wird auf `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` Zeichen gekürzt; beides setzt `truncated`. Nur der Diff antwortet `custom-adapter`, bei einem `custom:`-Format oder einer `adapterRegistry`; eine fehlende Seite ist leer, eine Seite, die keine reguläre Datei ist oder sich nicht parsen lässt, liefert `revision-unreadable` oder `working-file-unreadable`. Die übrigen Gründe sind die von `localeGitStatus`.
+`added` und `removed` listen `{ key, value }`, `changed` listet `{ key, before, after }`, und `state` ist der Zustand der Datei oder `unchanged`; eine `conflicted` oder `unchanged` Datei listet keinen Unterschied. Die committete Datei wird mit `git cat-file blob` gelesen, nur wenn sie eine reguläre Datei von höchstens `LOCALE_GIT_BLOB_MAX_BYTES` ist. Höchstens `LOCALE_GIT_DIFF_MAX_ENTRIES` Keys werden gelistet und jeder Text wird auf `LOCALE_GIT_DIFF_MAX_VALUE_CHARS` Zeichen gekürzt; beides setzt `truncated`. Nur der Diff antwortet `custom-adapter`, bei einem `custom:`-Format oder einer `adapterRegistry`; eine fehlende Seite ist leer, eine Seite, die keine reguläre Datei ist oder sich nicht parsen lässt, liefert `revision-unreadable` oder `working-file-unreadable`. Die übrigen Gründe sind die von `localeGitStatus`.
 
 ### retranslateEntry
 
@@ -166,7 +166,7 @@ Provider aufgerufen wird.
 
 <AvailableFrom version="0.12.0" />
 
-Ein Key, dessen Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, wirft `KEY_PROTECTED` innerhalb der Schreibsperre, bevor der Provider aufgerufen wird, außer du übergibst `includeHuman: true` oder die Konfiguration setzt `humanEdits: "overwrite"`; bei einer Provenienz-Datei von einem neueren verbatra zählt jeder vorhandene Wert als geschützt. Ein Key, der auf `pinnedKeys` passt, wirft `KEY_PINNED`, bevor der Provider gebaut wird, auch mit `includeHuman`.
+Ein Key, dessen Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, wirft `KEY_PROTECTED` innerhalb der Schreibsperre, bevor der Provider aufgerufen wird, außer du übergibst `includeHuman: true` oder die Konfiguration setzt `humanEdits: "overwrite"`; bei einer Herkunftsdatei von einem neueren verbatra zählt jeder vorhandene Wert als geschützt. Ein Key, der auf `pinnedKeys` passt, wirft `KEY_PINNED`, bevor der Provider gebaut wird, auch mit `includeHuman`.
 
 ### approveEntry
 
@@ -211,9 +211,9 @@ Hält fest, dass eine Person den aktuellen Wert eines Keys in einer Locale gepr�
 ablehnt, und entfernt ihn aus der Locale-Datei und der Lock-Datei, sodass `check` und `diff` ihn als
 fehlend melden und der nächste `translate`-Lauf ihn wieder füllt (unter `provider: { id: "none" }`
 bleibt er fehlend, bis jemand einen schreibt). Der Herkunftseintrag bleibt als `rejected` mit einem
-Hash des entfernten Texts, und der passende Memory-Eintrag auf diesem Rechner wird gelöscht; ein
-späteres `translate` überspringt jeden exakten oder unscharfen Memory-Treffer für den Key, der zu
-diesem Hash passt, sodass kein Memory eines Rechners den Text zurückbringt. Ruft keinen Provider auf.
+Hash des entfernten Texts, und der passende Übersetzungsspeicher-Eintrag auf diesem Rechner wird gelöscht; ein
+späteres `translate` überspringt jeden exakten oder unscharfen Treffer im Übersetzungsspeicher für den Key, der zu
+diesem Hash passt, sodass kein Übersetzungsspeicher eines Rechners den Text zurückbringt. Ruft keinen Provider auf.
 
 ```ts title="Signatur"
 function rejectEntry(
@@ -286,7 +286,7 @@ function localeValues(
 
 **Beispiel:** [Alle Werte auf einmal lesen](/de/docs/programmatic-api#alle-werte-auf-einmal-lesen)
 
-Ein weggelassenes `locales` deckt jedes konfigurierte
+Ein weggelassenes `locales` deckt jede konfigurierte
 Ziel-Locale ab. Gibt ein `{ locale, keys, values }` pro Locale zurück: `keys` listet jeden Key in
 Quellreihenfolge, danach die nur im Ziel vorhandenen, und `values` bildet jeden Key auf
 `{ source?, target? }` ab. Ohne `target` ist er dort noch nicht übersetzt; ohne `source` ist er
@@ -325,9 +325,9 @@ Ein `cursor` ist höchstens `PAGE_CURSOR_MAX_LENGTH` (512) Zeichen lang. Der MCP
 
 Jeder dieser Aufrufe führt den passenden Einzel-Key-Aufruf einmal pro Eintrag in Reihenfolge aus
 und gibt `{ results }` mit einem Ergebnis pro Eintrag zurück. Ein gescheiterter Eintrag hält den
-Stapel nicht an: Sein Ergebnis ist `{ locale, key, ok: false, code, message }` mit dem Code des
+Batch nicht an: Sein Ergebnis ist `{ locale, key, ok: false, code, message }` mit dem Code des
 `SdkError`, Adapter-Fehlers oder `ProviderError` und einer geschwärzten Nachricht. Jeder andere
-Fehler stoppt den Stapel mit einem `BatchInterruptedError`. Eine leere `entries`-Liste ergibt leere
+Fehler stoppt den Batch mit einem `BatchInterruptedError`. Eine leere `entries`-Liste ergibt leere
 `results`.
 
 ### approveEntries
@@ -440,7 +440,7 @@ ist das jeder spätere Eintrag.
 <AvailableFrom version="0.12.0" />
 
 Wird von `approveEntries`, `rejectEntries` und `retranslateEntries` geworfen, wenn ein Fehler, der
-kein Ergebnis eines einzelnen Eintrags ist, etwa ein unerwarteter Dateisystemfehler, einen Stapel
+kein Ergebnis eines einzelnen Eintrags ist, etwa ein unerwarteter Dateisystemfehler, einen Batch
 mittendrin stoppt. `results` enthält die Ergebnisse der vorher abgeschlossenen Einträge in ihrer
 Reihenfolge, deren Schreibvorgänge auf der Platte bleiben; `entry` nennt das laufende
 `{ locale, key }`, und `cause` ist der ursprüngliche Fehler.
