@@ -15,6 +15,30 @@ function pane(page: Page, id: string) {
   return page.locator(`#features .vk-deck-item:has(#feature-${id}) .vk-deck-pane`);
 }
 
+test.describe("feature deck pane switch", () => {
+  test.use({ reducedMotion: "no-preference" });
+
+  test("lifts a pane 8px while it fades in, on a switch only", async ({ page }) => {
+    await openDeck(page);
+    await expect(pane(page, "extract")).toHaveCSS("translate", "none");
+    await expect(pane(page, "types")).toHaveCSS("translate", "0px 8px");
+    await expect(pane(page, "types")).toHaveCSS("opacity", "0");
+    await page
+      .locator("#features .vk-deck-item:has(#feature-types) .vk-deck-row")
+      .click({ position: { x: 200, y: 50 } });
+    await expect(pane(page, "types")).toHaveCSS("translate", "none");
+    await expect(pane(page, "types")).toHaveCSS("opacity", "1");
+    await expect(pane(page, "extract")).toHaveCSS("translate", "0px 8px");
+  });
+
+  test("keeps the pane still under reduced motion", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openDeck(page);
+    await expect(pane(page, "types")).toHaveCSS("translate", "none");
+    await expect(pane(page, "extract")).toHaveCSS("transition-duration", "0s");
+  });
+});
+
 test.describe("feature deck", () => {
   test("shows the first command's artifact and hides the other five panes", async ({ page }) => {
     await openDeck(page);

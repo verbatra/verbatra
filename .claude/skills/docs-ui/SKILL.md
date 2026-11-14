@@ -394,7 +394,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   section keeps the height of its tallest pane and nothing below it moves. The transparent radio stretches over its row, so the whole row is the native control and takes the base-layer pointer, the
   checked row takes the accent border and bar with no transition (a faded border flashes when the layout crosses 64rem), the
   deck card carries no halo because the body and the link sit right under it, a focused radio outlines its row, and the checked row carries a transparent outline that `forced-colors` paints; arrow keys move through the group because
-  they are native radios. Never add autoplay here: the lock-file demo above already moves.
+  they are native radios. A pane switch (a user action only, never on load) lifts the incoming pane by `--motion-distance-md` (8px, `translate`) beside its opacity fade over `--duration-base`; under reduced motion neither the translate nor the transition runs. Never add autoplay here: the lock-file demo above already moves.
   The artifacts are data in `lib/feature-artifacts.ts`, built from the hero fixture (`HERO_TERMINAL_SOURCE`, the playground file
   pattern) so every count derives from it: `ArtifactLine` is a command, an output line (optionally marked `hit`), or a fold
   (`more` with a count, `moreChecks` without one), and a block is CLI output, a file excerpt, the handoff sheet or the Studio
@@ -606,7 +606,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   keyboard, touch or trackpad, also after a failed island chunk, and the takeover shifts nothing
   (`e2e/marquee.spec.ts` measures the section's height before and after hydration at 375 and 1440
   and sums the layout shift). Only when `MotionRoot` has set `html[data-motion-ready]`, the island
-  has hydrated (`data-marquee="running"` or `"paused"` on `.vk-marquee`) and that media query
+  has hydrated (`data-marquee="running"` or `"paused"` on `.vk-marquee`, never set while motion is reduced) and that media query
   matches do the rows turn into one masked line that runs `vk-marquee` (a `transform` keyframe,
   `--marquee-items` times `--marquee-item-time` per loop, the providers row reversed through
   `--marquee-direction`, so the two rows run in opposite directions), and the pause button shows

@@ -179,6 +179,34 @@ describe("Features", () => {
     }
   });
 
+  it("moves a pane in with an 8px translate beside its opacity fade, on a switch only", () => {
+    const rules = docsStylesheetRules();
+    const hidden = rules.find((entry) => entry.selector === ".vk-deck-pane" && entry.media !== "");
+    expect(hidden?.declarations.translate).toBe("0 var(--motion-distance-md)");
+    expect(hidden?.declarations.transition).toBeUndefined();
+    const shown = rules.find(
+      (entry) =>
+        entry.selector === ".vk-deck-item:has(.vk-deck-radio:checked) .vk-deck-pane" &&
+        !entry.media.includes("prefers-reduced-motion"),
+    );
+    expect(shown?.declarations.translate).toBe("none");
+    expect(shown?.declarations.transition).toBe(
+      "opacity var(--duration-base) var(--ease-standard), translate var(--duration-base) var(--ease-standard)",
+    );
+  });
+
+  it("turns the pane translate and its transition off under reduced motion", () => {
+    const rules = docsStylesheetRules().filter((entry) =>
+      entry.media.includes("prefers-reduced-motion: reduce"),
+    );
+    const pane = rules.find((entry) => entry.selector === ".vk-deck-pane");
+    const checked = rules.find(
+      (entry) => entry.selector === ".vk-deck-item:has(.vk-deck-radio:checked) .vk-deck-pane",
+    );
+    expect(pane?.declarations.translate).toBe("none");
+    expect(checked?.declarations.transition).toBe("none");
+  });
+
   it("outlines the checked row transparently, which forced colors paint", () => {
     const checked = docsStylesheetRules().find(
       (entry) => entry.selector === ".vk-deck-item:has(.vk-deck-radio:checked) .vk-deck-row",

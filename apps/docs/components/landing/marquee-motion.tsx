@@ -66,7 +66,7 @@ export function MarqueeMotion({
   children: ReactNode;
 }): ReactNode {
   const root = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
+  const [moving, setMoving] = useState(false);
   const [paused, setPaused] = useState(false);
   const state: MarqueeState = paused ? "paused" : "running";
 
@@ -82,9 +82,9 @@ export function MarqueeMotion({
       for (const copy of copies) copy.remove();
       copies = query.matches ? addCopies(element) : [];
       cancelAlign = alignOnceStarted(element);
+      setMoving(query.matches);
     };
     sync();
-    setReady(true);
     query.addEventListener("change", sync);
     return () => {
       query.removeEventListener("change", sync);
@@ -94,7 +94,7 @@ export function MarqueeMotion({
   }, [children]);
 
   return (
-    <div ref={root} className="vk-marquee" data-marquee={ready ? state : undefined}>
+    <div ref={root} className="vk-marquee" data-marquee={moving ? state : undefined}>
       <Button
         variant="ghost"
         size="md"

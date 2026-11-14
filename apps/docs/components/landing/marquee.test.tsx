@@ -459,12 +459,15 @@ describe("Marquee", () => {
   it("makes no copy while motion will never run, and follows a change of the preference at runtime", async () => {
     motion.matches = false;
     const { host } = mountRows(await serverRowsHtml());
+    const marquee = host.querySelector(".vk-marquee");
     expect(copiesPerRow(host)).toEqual([0, 0]);
-    expect(host.querySelector(".vk-marquee")?.getAttribute("data-marquee")).toBe("running");
+    expect(marquee?.hasAttribute("data-marquee")).toBe(false);
     setMotion(true);
     expect(copiesPerRow(host)).toEqual([MARQUEE_COPIES, MARQUEE_COPIES]);
+    expect(marquee?.getAttribute("data-marquee")).toBe("running");
     setMotion(false);
     expect(copiesPerRow(host)).toEqual([0, 0]);
+    expect(marquee?.hasAttribute("data-marquee")).toBe(false);
   });
 
   it("rebuilds the copies from the new rows when a refresh sends different children", async () => {

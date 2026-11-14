@@ -4059,12 +4059,16 @@ html.light .vk-deck-shot-light {
       gap: 0;
       visibility: hidden;
       opacity: 0;
+      translate: 0 var(--motion-distance-md);
     }
 
     .vk-deck-item:has(.vk-deck-radio:checked) .vk-deck-pane {
       visibility: visible;
       opacity: 1;
-      transition: opacity var(--duration-base) var(--ease-standard);
+      translate: none;
+      transition:
+        opacity var(--duration-base) var(--ease-standard),
+        translate var(--duration-base) var(--ease-standard);
     }
 
     .vk-deck .vk-deck-card {
@@ -4108,6 +4112,10 @@ html.light .vk-deck-shot-light {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .vk-deck-pane {
+    translate: none;
+  }
+
   .vk-deck-item:has(.vk-deck-radio:checked) .vk-deck-pane {
     transition: none;
   }
