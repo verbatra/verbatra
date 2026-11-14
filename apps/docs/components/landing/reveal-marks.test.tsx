@@ -18,25 +18,42 @@ function source(file: string): string {
   return readFileSync(join(import.meta.dirname, file), "utf8");
 }
 
-const REVEALING_SECTIONS: ReadonlyArray<LandingSectionId> = ["gate", "highlights"];
+const STILL_SECTIONS: ReadonlyArray<LandingSectionId> = ["hero", "marquee"];
+
+const REVEALING_SECTIONS: ReadonlyArray<LandingSectionId> = LANDING_SECTIONS.filter(
+  (id) => !STILL_SECTIONS.includes(id),
+);
 
 describe("landing reveal marks", () => {
   it("maps every landing section to its file", () => {
     expect(Object.keys(SECTION_FILES)).toEqual([...LANDING_SECTIONS]);
   });
 
-  it.each(LANDING_SECTIONS.filter((id) => !REVEALING_SECTIONS.includes(id)))(
-    "%s never fades in, so the page does not rise section by section",
+  it.each(STILL_SECTIONS)(
+    "%s never fades in: the first screen and the loop stay as they are",
     (id) => {
       expect(source(SECTION_FILES[id])).not.toMatch(/data-reveal|\breveal\b/);
     },
   );
 
-  it("lets only the allowlisted sections reveal, each on its panes and never on a heading", () => {
+  it("lists exactly the sections that carry artifacts to reveal", () => {
+    expect(REVEALING_SECTIONS).toEqual([
+      "lockDemo",
+      "gate",
+      "highlights",
+      "features",
+      "faq",
+      "finalCta",
+    ]);
+    for (const id of REVEALING_SECTIONS)
+      expect(source(SECTION_FILES[id]), id).toContain("data-reveal");
+  });
+
+  it("never marks a heading, a lead or a prose paragraph in any section", () => {
     for (const id of REVEALING_SECTIONS) {
       const file = source(SECTION_FILES[id]);
-      expect(file, id).toContain("data-reveal");
-      expect(file, id).not.toMatch(/<h[23][^>]*data-reveal/);
+      expect(file, id).not.toMatch(/<(h[1-6]|p)\b[^>]*data-reveal/);
+      expect(file, id).not.toMatch(/<SectionHead[^>]*reveal/);
     }
   });
 

@@ -2470,6 +2470,13 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
+@media (min-width: 64rem) and (prefers-reduced-motion: no-preference) {
+  html[data-motion-ready] .vk-lock .vk-lock-card[data-reveal] {
+    opacity: 1;
+    translate: none;
+  }
+}
+
 html:has(.vk-home) {
   scroll-padding-block-start: var(--vk-landing-offset);
 }
@@ -3859,6 +3866,7 @@ html:has(.vk-home) {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--text-muted);
+  pointer-events: none;
 }
 
 .vk-deck-command::before {

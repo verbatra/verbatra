@@ -67,6 +67,19 @@ describe("Features", () => {
     );
   });
 
+  it("reveals the command of each row, then its artifact card, and never a heading or prose", () => {
+    const marked = Array.from(root.querySelectorAll("[data-reveal]"));
+    const commands = marked.filter((node) => node.matches("code.vk-deck-command"));
+    const cards = marked.filter((node) => node.matches(".vk-deck-card"));
+    expect(commands).toHaveLength(6);
+    expect(cards).toHaveLength(6);
+    expect(marked).toHaveLength(12);
+    for (const node of commands) expect(node.getAttribute("data-reveal")).toBe("0");
+    for (const node of cards) expect(node.getAttribute("data-reveal")).toBe("1");
+    expect(root.querySelector("h2[data-reveal], h3[data-reveal], p[data-reveal]")).toBeNull();
+    expect(root.querySelector(".vk-deck-pane[data-reveal], .vk-deck-item[data-reveal]")).toBeNull();
+  });
+
   it("links every feature to its command page in the reader's locale, outside any label", () => {
     const links = items().map((item) => item.querySelector(".vk-deck-pane a"));
     expect(links.map((link) => link?.getAttribute("href"))).toEqual(

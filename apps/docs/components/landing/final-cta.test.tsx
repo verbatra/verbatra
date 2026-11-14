@@ -49,6 +49,17 @@ beforeAll(async () => {
 const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
 
 describe("FinalCta", () => {
+  it("reveals the two commands, then the proof row, and never the heading or the lead", () => {
+    const marked = Array.from(root.querySelectorAll("[data-reveal]"));
+    expect(marked.map((node) => [node.localName, node.getAttribute("data-reveal")])).toEqual([
+      ["div", "0"],
+      ["div", "1"],
+      ["ul", "2"],
+    ]);
+    expect(marked[0]?.closest(".vk-final-install")).not.toBeNull();
+    expect(root.querySelector("h2[data-reveal], p[data-reveal]")).toBeNull();
+  });
+
   it("closes on a bracketed label, one heading and one sentence", () => {
     expect(root.querySelector("p.vk-eyebrow")?.textContent).toBe(copy.label);
     expect(root.querySelectorAll("h2")).toHaveLength(1);

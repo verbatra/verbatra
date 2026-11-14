@@ -186,7 +186,7 @@ function Frame({
         <b>{step.label}</b>
         <span>{step.text}</span>
       </figcaption>
-      <div className="vk-lock-card">
+      <div className="vk-lock-card" data-reveal={0}>
         <p className="vk-lock-head" data-fold={headFold === true ? "drop" : undefined}>
           <span>{file}</span>{" "}
           <span className="vk-lock-badge" lang={badgeLang}>

@@ -144,6 +144,15 @@ describe("the motion stylesheet", () => {
     expect(all.indexOf(focus as (typeof all)[number])).toBeGreaterThan(hide);
   });
 
+  it("keeps the staged lock demo from 64rem free of a hidden reveal, with no second hiding rule", () => {
+    const staged = all.find(
+      (rule) => rule.selector === "html[data-motion-ready] .vk-lock .vk-lock-card[data-reveal]",
+    );
+    expect(staged?.media).toContain("(min-width: 64rem)");
+    expect(staged?.media).toContain("prefers-reduced-motion: no-preference");
+    expect(staged?.declarations).toEqual({ opacity: "1", translate: "none" });
+  });
+
   it("caps the stagger at the maximum delay and declares the motion tokens on :root", () => {
     for (const token of [
       "--duration-slow: 560ms",
