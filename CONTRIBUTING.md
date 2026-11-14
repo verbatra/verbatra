@@ -331,6 +331,13 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    masks placeholders, add its wire to `MASKED_WIRES`
    (`packages/ai-providers/src/masked-wire.ts`) so the withheld count matches it.
 
+   Two more mapped types over `MachineProviderId` need an entry, and a missing
+   one is a compile error: `PROVIDER_KIND` in
+   `packages/sdk/src/config/provider-kind.ts` (`llm` or `machine-translation`)
+   and `PROVIDER_LANGUAGES` in `packages/sdk/src/config/provider-languages.ts`
+   (a function from the provider's options to its language support, which the
+   locale checks before a run read; an LLM provider returns `llmLanguageSupport`).
+
 9. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
    error here if you skipped step 3 or step 4 for a scaffoldable provider.
    `_envCoversAllProviders` requires an env entry for every
@@ -480,7 +487,7 @@ proposed again. `apple-xcstrings` remains the only adapter that implements
 **`.resx`** is flat XML: `<data name="Key"><value>text</value></data>` under a
 `<root>` that also carries an XSD schema preamble and several `<resheader>`
 elements. None of that is an obstacle, because `serializeEntries` receives
-`(entries, filePath, fs)` and can re-read the destination document and patch
+`(entries, filePath, fs, context, locale)` and can re-read the destination document and patch
 only the values it has entries for, leaving every other byte alone. That is the
 same write path `serializeXliffEntries` uses. It claims `.resx` only, never
 `.xml`, so the Android adapter's claim on `.xml` stays unambiguous. Placeholders
@@ -488,7 +495,7 @@ are .NET composite formatting (`{0}`, `{0,-10}`, `{1:C}`, with `{{` and `}}` as
 literals), which needs its own extractor: neither the single-brace extractor nor
 the MessageFormat one recognizes an alignment or format specifier as part of the
 token. The format has no plural construct, so no plural path is involved. One
-file per locale (`Resources.resx`, `Resources.de.resx`), which is what both
+file per locale (`Strings.en.resx`, `Strings.de.resx`), which is what both
 factories assume. No new dependency: `@xmldom/xmldom` is already here.
 
 **INI** is one section level, one line per key, every value a string, no typed

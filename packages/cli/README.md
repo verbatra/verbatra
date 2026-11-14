@@ -68,7 +68,7 @@ npx @verbatra/cli translate
 
 `check`, `diff`, `report`, and `doctor` are read-only: they call no provider, need no API key, and write no file, which is what makes them safe as CI gates and on fork pull requests. `doctor --live` is the exception for a machine-translation provider (DeepL, Google Cloud Translation, LibreTranslate): it fetches the provider's current language list, which uses no translation quota, sending the API key DeepL and Google need (without it, the request is skipped); for an LLM provider or `none` it sends nothing. `pseudo` and `types` call no provider either.
 
-These flags apply to every command: `-q, --quiet` prints only results (their notices included), warnings, and errors, with no progress lines, `next:` hints, or informational lines; `--no-color` turns color off (so do `NO_COLOR` and `VERBATRA_NO_COLOR`); `-V, --version` prints the version; `-h, --help` prints help.
+These flags apply to every command: `-q, --quiet` prints only results (their notices included), warnings, and errors, with no progress lines, `next:` hints, or informational lines; `--no-color` turns color off (so do `VERBATRA_NO_COLOR`, and `NO_COLOR` or `NODE_DISABLE_COLORS` unless `FORCE_COLOR` is set); `-V, --version` prints the version; `-h, --help` prints help.
 
 Every flag, every example, and the exit-code contract live in the [CLI reference](https://verbatra.kreitz-webdev.de/docs/cli). `verbatra <command> --help` prints the same reference at the terminal.
 
