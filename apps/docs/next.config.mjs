@@ -1,6 +1,7 @@
 import path from "node:path";
 import { createMDX } from "fumadocs-mdx/next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { localeAlternation, TRANSLATED_LOCALES } from "./lib/locales.ts";
 import { securityHeaders } from "./lib/security-headers.mjs";
 
 export const MOVED_DOCS_PAGES = {
@@ -12,7 +13,7 @@ function movedDocsPageRedirects(from, to) {
   return ["", ".md"].flatMap((suffix) => [
     { source: `/docs/${from}${suffix}`, destination: `/docs/${to}${suffix}`, permanent: true },
     {
-      source: `/:locale(de|es|fr)/docs/${from}${suffix}`,
+      source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}${suffix}`,
       destination: `/:locale/docs/${to}${suffix}`,
       permanent: true,
     },

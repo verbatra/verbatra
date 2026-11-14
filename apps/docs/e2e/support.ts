@@ -1,19 +1,16 @@
 import AxeBuilder from "@axe-core/playwright";
 import { type APIResponse, expect, type Page } from "playwright/test";
 import { FAQ_KEYS_ATTACHED } from "@/components/landing/faq-keys";
-import type { Locale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/lib/locales";
 import { THEME_STORAGE_KEY, THEMES, type ThemeName } from "@/lib/theme";
 
 export const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] as const;
 
-const LOCALE_PREFIXES: Readonly<Record<Locale, string>> = {
-  en: "",
-  de: "/de",
-  es: "/es",
-  fr: "/fr",
-};
+export { LOCALES };
 
-export const LOCALES = Object.keys(LOCALE_PREFIXES) as ReadonlyArray<Locale>;
+function localePrefix(locale: Locale): string {
+  return locale === DEFAULT_LOCALE ? "" : `/${locale}`;
+}
 
 export { THEMES, type ThemeName };
 
@@ -44,11 +41,11 @@ export function expectVaryAccept(response: APIResponse): void {
 }
 
 export function homeUrl(locale: Locale): string {
-  return LOCALE_PREFIXES[locale] || "/";
+  return localePrefix(locale) || "/";
 }
 
 export function pageUrl(locale: Locale, path: string): string {
-  return `${LOCALE_PREFIXES[locale]}${path}`;
+  return `${localePrefix(locale)}${path}`;
 }
 
 export async function applyTheme(page: Page, theme: ThemeName): Promise<void> {

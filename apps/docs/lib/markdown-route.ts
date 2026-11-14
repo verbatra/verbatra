@@ -1,16 +1,30 @@
 import { i18n, isLocale, type Locale, landingLocale, localizedPath } from "@/lib/i18n";
+import { LOCALES, localeAlternation } from "@/lib/locales";
 
 export const MARKDOWN_SUFFIX = ".md";
 const MARKDOWN_TYPE = "text/markdown";
-const DOCS_PATH = /^(?:\/([a-z]{2}))?\/docs((?:\/[^/]+)*)$/;
-const PAGE_PATH = /^(?:\/([a-z]{2}))?(\/[a-z-]+)$/;
-const HOME_MARKDOWN_PATH = /^(?:\/([a-z]{2}))?\/index$/;
+export function markdownPathPatterns(locales: readonly string[] = LOCALES) {
+  const locale = `(${localeAlternation(locales)})`;
+  return {
+    docs: new RegExp(`^(?:\\/${locale})?\\/docs((?:\\/[^/]+)*)$`),
+    page: new RegExp(`^(?:\\/${locale})?(\\/[a-z-]+)$`),
+    homeMarkdown: new RegExp(`^(?:\\/${locale})?\\/index$`),
+    internalDocs: new RegExp(`^(?:\\/${locale})?\\/docs\\.mdx((?:\\/[^/]+)*)$`),
+    internalSite: new RegExp(`^(?:\\/${locale})?\\/site\\.mdx\\/([a-z-]+)$`),
+    publicMdx: new RegExp(`^(?:\\/${locale}(?=\\/))?(\\/[^/].*)\\.mdx$`),
+  };
+}
+
+const PATTERNS = markdownPathPatterns();
+const DOCS_PATH = PATTERNS.docs;
+const PAGE_PATH = PATTERNS.page;
+const HOME_MARKDOWN_PATH = PATTERNS.homeMarkdown;
+const INTERNAL_DOCS_PATH = PATTERNS.internalDocs;
+const INTERNAL_SITE_PATH = PATTERNS.internalSite;
+const PUBLIC_MDX_PATH = PATTERNS.publicMdx;
 const HOME_SLUG = "index";
 const SITE_MARKDOWN_SEGMENT = "site.mdx";
-const INTERNAL_DOCS_PATH = /^(?:\/([a-z]{2}))?\/docs\.mdx((?:\/[^/]+)*)$/;
-const INTERNAL_SITE_PATH = /^(?:\/([a-z]{2}))?\/site\.mdx\/([a-z-]+)$/;
 const MDX_PATH = /\.mdx(?:\/|$)/;
-const PUBLIC_MDX_PATH = /^(?:\/([a-z]{2})(?=\/))?(\/[^/].*)\.mdx$/;
 
 export const HOME_PATH = "/";
 

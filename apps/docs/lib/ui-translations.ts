@@ -1,10 +1,8 @@
 import type { Translations } from "fumadocs-ui/i18n";
-import type { Locale } from "@/lib/i18n";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
+import type { TranslatedLocale } from "@/lib/locales";
 
 type UiTranslation = Record<keyof Translations, string> & { displayName: string };
-
-export type TranslatedLocale = Exclude<Locale, "en">;
 
 const de: UiTranslation = {
   displayName: LOCALE_DISPLAY_NAMES.de,

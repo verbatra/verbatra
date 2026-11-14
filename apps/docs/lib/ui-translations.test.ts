@@ -1,15 +1,13 @@
 import { uiTranslations } from "fumadocs-ui/i18n";
 import { describe, expect, it } from "vitest";
-import { i18n } from "@/lib/i18n";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
+import { TRANSLATED_LOCALES, type TranslatedLocale } from "@/lib/locales";
 import { translations } from "@/lib/root-provider-options";
-import { type TranslatedLocale, UI_TRANSLATIONS } from "@/lib/ui-translations";
+import { UI_TRANSLATIONS } from "@/lib/ui-translations";
 
 const UI_KEYS = uiTranslations().keys;
 const EM_DASH = String.fromCharCode(0x2014);
-const TRANSLATED = i18n.languages.filter(
-  (locale): locale is TranslatedLocale => locale !== i18n.defaultLanguage,
-);
+const TRANSLATED = TRANSLATED_LOCALES;
 const SAME_AS_ENGLISH: Readonly<Record<TranslatedLocale, ReadonlySet<string>>> = {
   de: new Set(["System(theme switcher)(aria-label)"]),
   es: new Set(),

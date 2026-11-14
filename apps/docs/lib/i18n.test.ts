@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { i18n, isLocale, landingLocale, localizedAnchorPath, localizeHref, toLocale } from "./i18n";
+import {
+  i18n,
+  isLocale,
+  type LocalizedAnchors,
+  landingLocale,
+  localizedAnchorPath,
+  localizeHref,
+  toLocale,
+} from "./i18n";
+import { LOCALES } from "./locales";
 
 describe("i18n configuration", () => {
-  it("declares exactly the four supported locales, in order", () => {
-    expect(i18n.languages).toEqual(["en", "de", "es", "fr"]);
+  it("declares exactly the supported locales, in order", () => {
+    expect(i18n.languages).toEqual([...LOCALES]);
   });
 
   it("uses English as both the default and the fallback language", () => {
@@ -46,7 +55,12 @@ describe("localizeHref", () => {
 });
 
 describe("localizedAnchorPath", () => {
-  const anchors = { en: "plurals", de: "plurale", es: "plurales", fr: "pluriels" };
+  const anchors: LocalizedAnchors = {
+    en: "plurals",
+    de: "plurale",
+    es: "plurales",
+    fr: "pluriels",
+  };
 
   it("prefixes the locale and appends that locale's anchor", () => {
     expect(localizedAnchorPath("en", "/docs/language-support", anchors)).toBe(
