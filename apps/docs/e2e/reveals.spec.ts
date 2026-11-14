@@ -195,3 +195,20 @@ test.describe("lower third without JavaScript", () => {
     await context.close();
   });
 });
+
+for (const [width, height] of [
+  [1440, 2000],
+  [2560, 1440],
+] as const) {
+  test.describe(`reveals on a tall viewport ${width}x${height}`, () => {
+    test.use({ viewport: { width, height }, reducedMotion: "no-preference" });
+
+    test("reveals the proof row once the end of the document is reached", async ({ page }) => {
+      await page.goto("/");
+      await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await expect(page.locator(".vk-closer-proof")).toHaveAttribute("data-revealed", "");
+      await expect(page.locator(".vk-closer-proof")).toHaveCSS("opacity", "1");
+    });
+  });
+}

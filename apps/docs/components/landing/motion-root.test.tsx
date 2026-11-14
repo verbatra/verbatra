@@ -55,12 +55,17 @@ beforeEach(() => {
   FakeObserver.all = [];
   vi.stubGlobal("IntersectionObserver", FakeObserver);
   Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+  Object.defineProperty(document.documentElement, "scrollHeight", {
+    configurable: true,
+    value: 10000,
+  });
 });
 
 afterEach(() => {
   stop?.();
   stop = undefined;
   vi.unstubAllGlobals();
+  Reflect.deleteProperty(document.documentElement, "scrollHeight");
   document.body.innerHTML = "";
 });
 
@@ -79,7 +84,7 @@ describe("startMotion", () => {
   it("runs one shared observer for every reveal and reveals each element once", () => {
     const { below } = mount();
     stop = startMotion();
-    expect(FakeObserver.all).toHaveLength(1);
+    expect(FakeObserver.all).toHaveLength(2);
     const [reveal] = FakeObserver.all;
     reveal?.fire(below, false);
     expect(below.hasAttribute("data-revealed")).toBe(false);
@@ -89,6 +94,27 @@ describe("startMotion", () => {
     reveal?.fire(below, false);
     expect(below.hasAttribute("data-revealed")).toBe(true);
     expect(reveal?.options?.rootMargin).toBe("0px 0px -10% 0px");
+  });
+
+  it("observes without the bottom inset an element the inset could never reach at the end of the page", () => {
+    const { below } = mount();
+    const late = document.createElement("div");
+    late.setAttribute("data-reveal", "2");
+    document.body.append(late);
+    place(late, 1950);
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      value: 2000,
+    });
+    place(below, 900);
+    stop = startMotion();
+    const [reveal, atEnd] = FakeObserver.all;
+    expect(reveal?.observed.has(below)).toBe(true);
+    expect(reveal?.observed.has(late)).toBe(false);
+    expect(atEnd?.observed.has(late)).toBe(true);
+    expect(atEnd?.options?.rootMargin).toBeUndefined();
+    atEnd?.fire(late, true);
+    expect(late.hasAttribute("data-revealed")).toBe(true);
   });
 
   it("leaves no motion state behind when the page unmounts", () => {
