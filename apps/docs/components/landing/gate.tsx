@@ -56,13 +56,13 @@ function Entrance({ className, children }: { className: string; children: ReactN
   );
 }
 
-function Position({ state }: { state: GateState }): ReactNode {
+function Progress(): ReactNode {
   return (
-    <span className="vk-gate-marker" aria-hidden="true">
-      {GATE_STATES.map((segment) => (
-        <i key={segment} data-on={segment === state ? "" : undefined} />
+    <div className="vk-gate-progress" aria-hidden="true">
+      {GATE_STATES.map((state) => (
+        <i key={state} data-state={state} />
       ))}
-    </span>
+    </div>
   );
 }
 
@@ -80,10 +80,7 @@ function Frame({
   return (
     <figure className="vk-gate-frame" data-state={state}>
       <figcaption className="vk-lock-caption">
-        <b>
-          {label}
-          <Position state={state} />
-        </b>
+        <b>{label}</b>
         <span>{text}</span>
       </figcaption>
       <div className="vk-lock-card vk-gate-card">{children}</div>
@@ -298,6 +295,7 @@ export async function Gate(): Promise<ReactNode> {
               </p>
             </Frame>
           </div>
+          <Progress />
         </div>
       </div>
     </Section>

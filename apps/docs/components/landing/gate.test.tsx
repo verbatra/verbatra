@@ -23,16 +23,24 @@ import {
 import {
   GATE_CLEAR_SVH,
   GATE_DROP_PX,
+  GATE_ENTER_OPAQUE,
+  GATE_EXIT_OPAQUE,
+  GATE_FRAME_RISE_SVH,
   GATE_HOLD_FLOOR_SVH,
   GATE_LINE_SHIFT_PX,
+  GATE_MARKER_MIN_PX,
   GATE_PHASES,
   GATE_PIN_SVH,
   GATE_SLIDE_PX,
   GATE_SLIDE_SCALE,
+  GATE_SLIDE_WIDE_PX,
+  GATE_SLIDE_WIDE_REM,
   GATE_STAMP_SCALE,
+  GATE_SWAP_CEILING_SVH,
   gateFrameFade,
   gateHoldMiddle,
   gatePercent,
+  gateSwapWindow,
 } from "@/lib/gate-timeline";
 import { docsGlobalCss, docsStylesheetRules, uiTokensCss } from "@/lib/stylesheet-rules";
 import de from "@/messages/de.json";
@@ -165,12 +173,7 @@ describe("Gate", () => {
       es: /(otra vez|de nuevo|reintent|volver a|pr\u00f3xima ejecuci\u00f3n|siguiente ejecuci\u00f3n)/i,
       fr: /(r\u00e9essay|de nouveau|\u00e0 nouveau|relanc|prochaine ex\u00e9cution|r\u00e9ex\u00e9cut)/i,
     } as const;
-    const { badge: _badge, ...candidate } = catalog.landing.gate.candidate as Record<
-      string,
-      string
-    >;
-    const text = JSON.stringify({ ...catalog.landing.gate, candidate });
-    expect(text).not.toMatch(PATTERNS[locale]);
+    expect(JSON.stringify(catalog.landing.gate)).not.toMatch(PATTERNS[locale]);
   });
 
   it("gives each frame one moving element, marked for the shared reveal, outside every CLI block", () => {
@@ -184,22 +187,25 @@ describe("Gate", () => {
     expect(stamp?.closest("pre")).toBeNull();
   });
 
-  it("marks the position with a three-segment marker, aria-hidden, no digits, the current one lit", () => {
-    const markers = Array.from(root.querySelectorAll("figcaption .vk-gate-marker"));
-    expect(markers).toHaveLength(3);
-    markers.forEach((marker, index) => {
-      expect(marker.getAttribute("aria-hidden")).toBe("true");
-      expect(marker.textContent).toBe("");
-      const lit = Array.from(marker.querySelectorAll("i")).map((segment) =>
-        segment.hasAttribute("data-on"),
-      );
-      expect(lit).toEqual([0, 1, 2].map((segment) => segment === index));
-    });
+  it("draws one progress marker in the pin, outside every frame: aria-hidden, no digits, one segment per state", () => {
+    const markers = Array.from(root.querySelectorAll(".vk-gate-progress"));
+    expect(markers).toHaveLength(1);
+    const [marker] = markers;
+    expect(marker?.getAttribute("aria-hidden")).toBe("true");
+    expect(marker?.parentElement?.classList.contains("vk-gate-pin")).toBe(true);
+    expect(marker?.closest("figure")).toBeNull();
+    expect(marker?.textContent).toBe("");
+    expect(
+      Array.from(marker?.querySelectorAll("i") ?? []).map((segment) =>
+        segment.getAttribute("data-state"),
+      ),
+    ).toEqual([...GATE_STATES]);
+    expect(root.querySelectorAll("figcaption .vk-gate-marker, .vk-gate-marker")).toHaveLength(0);
     const hidden = Array.from(root.querySelectorAll("[aria-hidden]"));
     expect(
       hidden.every(
         (node) =>
-          node.classList.contains("vk-gate-marker") || node.classList.contains("vk-lock-sign"),
+          node.classList.contains("vk-gate-progress") || node.classList.contains("vk-lock-sign"),
       ),
     ).toBe(true);
   });
@@ -268,43 +274,84 @@ describe("the gate stylesheet", () => {
       });
   const caption = (state: string) => `.vk-gate-frame[data-state="${state}"] > .vk-lock-caption`;
   const cardOf = (state: string) => `.vk-gate-frame[data-state="${state}"] > .vk-gate-card`;
-  const markerOf = (state: string) =>
-    `.vk-gate-frame[data-state="${state}"] .vk-gate-marker i[data-on]::after`;
+  const progressOf = (state: string) => `.vk-gate-progress i[data-state="${state}"]::after`;
 
-  it("pins one sticky stage as long as the schedule says, clipping the stage, with room for the slide and the halo", () => {
+  it("scopes the pinned stage to the screen, so print shows every frame", () => {
+    for (const rule of timelineRules)
+      expect(rule.media, rule.selector).toContain("@media screen and");
+  });
+
+  it("pins one sticky stage as long as the schedule says and clips nothing on the way: the full-bleed page does, the stage and the pin do not", () => {
     const track = rules.find((rule) => rule.selector === ".vk-gate-track" && rule.media !== "");
     expect(GATE_PIN_SVH).toBe(150);
     expect(track?.declarations["--vk-gate-pin"]).toBe(`${GATE_PIN_SVH}svh`);
     expect(track?.declarations.height).toBe("calc(var(--vk-gate-pin) + var(--vk-gate-stage))");
     const pin = rules.find((rule) => rule.selector === ".vk-gate-pin" && rule.media !== "");
     expect(pin?.declarations.position).toBe("sticky");
-    expect(declared(".vk-gate-stage", "overflow")).toBe("clip");
-    expect(declared(".vk-gate-stage", "overflow-clip-margin")).toBe("6rem");
+    for (const selector of [".vk-gate-stage", ".vk-gate-pin", ".vk-gate-track", ".vk-gate-frame"])
+      for (const rule of rules.filter((candidate) => candidate.selector === selector))
+        for (const property of ["overflow", "overflow-x", "overflow-clip-margin", "clip-path"])
+          expect(rule.declarations[property], `${selector} ${property}`).toBeUndefined();
     expect(
-      Number.parseFloat(declared(".vk-gate-stage", "overflow-clip-margin") ?? "0") * 16,
-    ).toBeGreaterThanOrEqual(GATE_SLIDE_PX + 16);
-    expect(declared(".vk-gate-pin", "overflow")).toBeUndefined();
-    expect(declared(".vk-gate-track", "overflow")).toBeUndefined();
+      rules.some(
+        (rule) =>
+          rule.selector === ".vk-home" &&
+          rule.media === "" &&
+          rule.declarations["overflow-x"] === "clip",
+      ),
+    ).toBe(true);
+    expect(docsGlobalCss()).not.toContain("overflow-clip-margin");
+  });
+
+  it("slides by the schedule's distance, 64px below 80rem and 96px from it, never past the space left of the content", () => {
+    const track = rules.filter(
+      (rule) => rule.selector === ".vk-gate-track" && rule.media.includes("@supports"),
+    );
+    const slide = (media: string) =>
+      track
+        .find((rule) => rule.media.includes(media))
+        ?.declarations["--vk-gate-slide"]?.replace(/\s+/g, " ")
+        .replace(/\( /g, "(")
+        .replace(/ \)/g, ")");
+    const room = "max(var(--gutter), calc((100vw - var(--width-wide)) / 2 + var(--gutter) - 8px))";
+    expect(slide("min-width: 64rem")).toBe(`min(${GATE_SLIDE_PX}px, ${room})`);
+    expect(slide(`min-width: ${GATE_SLIDE_WIDE_REM}rem`)).toBe(
+      `min(${GATE_SLIDE_WIDE_PX}px, ${room})`,
+    );
   });
 
   it("holds every state for at least the floor with nothing moving, and the last until the pin ends", () => {
     for (const [index, phases] of GATE_PHASES.entries()) {
       const [from, to] = phases.hold;
       expect(to - from, `hold ${index}`).toBeGreaterThanOrEqual(GATE_HOLD_FLOOR_SVH);
-      expect(GATE_HOLD_FLOOR_SVH * 6.72).toBeGreaterThanOrEqual(220);
     }
+    expect(GATE_HOLD_FLOOR_SVH * 6.72).toBeGreaterThanOrEqual(150);
+    expect(GATE_HOLD_FLOOR_SVH * 9).toBeGreaterThanOrEqual(200);
     expect(GATE_PHASES.at(-1)?.hold[1]).toBe(GATE_PIN_SVH);
     for (const [index, state] of STATES.entries()) {
       const [from, to] = GATE_PHASES[index]?.hold ?? [0, 0];
       const moving = [
         ...rangesOf(declared(caption(state), "animation-range")),
         ...rangesOf(declared(cardOf(state), "animation-range")),
-        ...rangesOf(declared(markerOf(state), "animation-range")),
       ];
       for (const [start, end] of moving) {
         expect(end <= from + 0.01 || start >= to - 0.01, `${state} ${start}-${end}`).toBe(true);
       }
     }
+  });
+
+  it("keeps the swap from one state to the next, from the first exit to the last entering card, inside the ceiling the skill states", () => {
+    for (const index of [1, 2]) {
+      const [from, to] = gateSwapWindow(index);
+      expect(to - from, `swap into ${index}`).toBeLessThanOrEqual(GATE_SWAP_CEILING_SVH);
+      expect(from, `swap into ${index}`).toBe(GATE_PHASES[index - 1]?.hold[1]);
+      expect(to, `swap into ${index}`).toBe(GATE_PHASES[index]?.enterCard?.[1]);
+    }
+    const skill = readFileSync(
+      join(import.meta.dirname, "../../../../.claude/skills/docs-ui/SKILL.md"),
+      "utf8",
+    );
+    expect(skill).toContain(`about ${GATE_SWAP_CEILING_SVH}svh of scroll each`);
   });
 
   type Window = readonly [number, number] | null;
@@ -325,7 +372,7 @@ describe("the gate stylesheet", () => {
     );
     expect(declared(selector, "animation-timeline"), selector).toBe("--vk-gate");
   };
-  const keyframe = (name: string, stop: "from" | "to") =>
+  const keyframe = (name: string, stop: string) =>
     keyframes.find((rule) => rule.media.endsWith(`@keyframes ${name}`) && rule.selector === stop)
       ?.declarations;
 
@@ -342,33 +389,49 @@ describe("the gate stylesheet", () => {
     }
   });
 
-  it("starts the card after the caption and ends it after, the same distance in both", () => {
+  it("starts the card after the caption and ends it after, the same distance in both, opaque for most of the path", () => {
     for (const phases of GATE_PHASES.slice(1)) {
       expect(phases.enterCard?.[0] ?? 0).toBeGreaterThan(phases.enterCaption?.[0] ?? 0);
       expect(phases.enterCard?.[1] ?? 0).toBeGreaterThan(phases.enterCaption?.[1] ?? 0);
     }
     expect(GATE_PHASES[0]?.exitCard?.[0]).toBeGreaterThan(GATE_PHASES[0]?.exitCaption?.[0] ?? 0);
+    const away = "calc(-1 * var(--vk-gate-slide))";
+    const near = "var(--vk-gate-slide)";
     expect(keyframe("vk-gate-caption-in", "from")).toEqual({
       opacity: "0",
-      transform: `translateX(${GATE_SLIDE_PX}px)`,
+      transform: `translateX(${near})`,
     });
     expect(keyframe("vk-gate-caption-out", "to")).toEqual({
       opacity: "0",
-      transform: `translateX(-${GATE_SLIDE_PX}px)`,
+      transform: `translateX(${away})`,
     });
     expect(keyframe("vk-gate-card-in", "from")).toEqual({
       opacity: "0",
-      transform: `translateX(${GATE_SLIDE_PX}px) scale(${GATE_SLIDE_SCALE})`,
+      transform: `translateX(${near}) scale(${GATE_SLIDE_SCALE})`,
     });
     expect(keyframe("vk-gate-card-out", "to")).toEqual({
       opacity: "0",
-      transform: `translateX(-${GATE_SLIDE_PX}px) scale(${GATE_SLIDE_SCALE})`,
+      transform: `translateX(${away}) scale(${GATE_SLIDE_SCALE})`,
     });
     expect(keyframe("vk-gate-caption-in", "to")).toEqual({ opacity: "1", transform: "none" });
     expect(keyframe("vk-gate-card-out", "from")).toEqual({ opacity: "1", transform: "none" });
+    for (const name of ["caption", "card"]) {
+      expect(
+        keyframe(`vk-gate-${name}-in`, `${Number((GATE_ENTER_OPAQUE * 100).toFixed(3))}%`),
+      ).toEqual({
+        opacity: "1",
+      });
+      expect(
+        keyframe(`vk-gate-${name}-out`, `${Number((GATE_EXIT_OPAQUE * 100).toFixed(3))}%`),
+      ).toEqual({
+        opacity: "1",
+      });
+    }
+    expect(GATE_ENTER_OPAQUE).toBeLessThanOrEqual(0.3);
+    expect(GATE_EXIT_OPAQUE).toBeGreaterThanOrEqual(0.5);
   });
 
-  it("staggers the CLI lines of the last two frames, a line 1svh after the one before, the refused one last", () => {
+  it("staggers the CLI lines of the last two frames, a line after the one before, the refused one last, the first with its card", () => {
     const lineRule = rules.find(
       (rule) => rule.selector === ".vk-gate-cli .vk-lock-line" && rule.media.includes("@supports"),
     );
@@ -410,7 +473,9 @@ describe("the gate stylesheet", () => {
       if (marked !== null)
         expect(Number(marked.style.getPropertyValue("--n"))).toBe(rows.length - 1);
       const last = lines.from + (rows.length - 1) * lines.step + lines.span;
-      expect(last).toBe(GATE_PHASES[index]?.element?.[0] ?? last);
+      expect(last).toBeLessThanOrEqual(GATE_PHASES[index]?.element?.[0] ?? last);
+      expect(lines.from - (GATE_PHASES[index]?.enterCard?.[0] ?? 0)).toBeLessThanOrEqual(1);
+      expect(lines.from).toBeGreaterThanOrEqual(GATE_PHASES[index]?.enterCard?.[0] ?? 0);
     }
     expect(GATE_LINE_SHIFT_PX).toBe(24);
     expect(
@@ -426,14 +491,13 @@ describe("the gate stylesheet", () => {
     expect(range(".vk-gate-stamp")).toBe(contain(GATE_PHASES[1]?.element ?? null));
     expect(range(".vk-gate-exit")).toBe(contain(GATE_PHASES[2]?.element ?? null));
     for (const [index, state] of STATES.entries())
-      expect(range(markerOf(state)), state).toBe(contain(GATE_PHASES[index]?.marker ?? null));
+      expect(range(progressOf(state)), state).toBe(contain(GATE_PHASES[index]?.marker ?? null));
     const fill = rules.find(
-      (rule) =>
-        rule.selector === markerOf("candidate") ||
-        rule.selector === ".vk-gate-marker i[data-on]::after",
+      (rule) => rule.selector === ".vk-gate-progress i::after" && rule.media.includes("@supports"),
     );
     expect(fill?.declarations["transform-origin"]).toBe("left");
     expect(fill?.declarations["animation-name"]).toBe("vk-gate-fill");
+    expect(fill?.declarations["animation-fill-mode"]).toBe("both");
     expect(
       keyframes.find(
         (rule) => rule.media.endsWith("@keyframes vk-gate-fill") && rule.selector === "from",
@@ -444,11 +508,35 @@ describe("the gate stylesheet", () => {
         (rule) => rule.media.endsWith("@keyframes vk-gate-stamp") && rule.selector === "from",
       )?.declarations.transform,
     ).toBe(`scale(${GATE_STAMP_SCALE})`);
+    expect(GATE_STAMP_SCALE).toBeGreaterThanOrEqual(1.6);
+    expect(declared(".vk-gate-stamp", "transform-origin")).toBe("right center");
+    const shape = rules.find((rule) => rule.selector === ".vk-gate-stamp" && rule.media === "");
+    expect(shape?.declarations.border).toBe("1px solid var(--text-danger)");
+    expect(shape?.declarations["border-radius"]).toBe("var(--radius-sm)");
     expect(
       keyframes.find(
         (rule) => rule.media.endsWith("@keyframes vk-gate-drop") && rule.selector === "from",
       )?.declarations.transform,
     ).toBe(`translateY(-${GATE_DROP_PX}px)`);
+  });
+
+  it("runs the progress marker as three segments of at least the minimum width that fill across their whole state, back to back", () => {
+    const base = rules.find((rule) => rule.selector === ".vk-gate-progress i" && rule.media === "");
+    expect(base?.declarations.width).toBe(`${GATE_MARKER_MIN_PX / 16}rem`);
+    expect(GATE_MARKER_MIN_PX).toBeGreaterThanOrEqual(48);
+    const shown = rules.find(
+      (rule) => rule.selector === ".vk-gate-progress" && rule.media.includes("@supports"),
+    );
+    expect(shown?.declarations.display).toBe("flex");
+    expect(
+      rules.find((rule) => rule.selector === ".vk-gate-progress" && rule.media === "")?.declarations
+        .display,
+    ).toBe("none");
+    for (const [index, phases] of GATE_PHASES.entries()) {
+      expect(phases.marker[0], `${index}`).toBe(GATE_PHASES[index - 1]?.marker[1] ?? 1);
+      expect(phases.marker[0], `${index}`).toBeLessThanOrEqual(phases.hold[0]);
+      expect(phases.marker[1], `${index}`).toBeGreaterThanOrEqual(phases.exitCard?.[1] ?? 0);
+    }
   });
 
   it("keeps every element's range off the exact ends of the timeline", () => {
@@ -492,10 +580,20 @@ describe("the gate stylesheet", () => {
       .at(-1)?.[1];
   const percentOf = (svh: number): number => (svh / GATE_PIN_SVH) * 100;
 
-  it("keeps two frames from ever showing at once and hands the pointer to the current frame only", () => {
+  it("never leaves the stage without a frame, shows one frame outside the overlap of the hand-over and hands the pointer to the current frame only", () => {
+    const handovers = [0, 1].map(
+      (index) =>
+        [
+          percentOf((GATE_PHASES[index + 1]?.enterCaption?.[0] ?? 0) - GATE_FRAME_RISE_SVH),
+          percentOf((GATE_PHASES[index]?.exitCard?.[1] ?? 0) + GATE_FRAME_RISE_SVH),
+        ] as const,
+    );
     for (let at = 0; at <= 100; at += 0.02) {
+      const opacities = FRAME_SETS.map((name) => opacityAt(name, at));
+      expect(Math.max(...opacities), `${at}%`).toBeGreaterThanOrEqual(0.5);
+      const crossing = handovers.some(([from, to]) => at >= from - 0.001 && at <= to + 0.001);
       const visible = FRAME_SETS.filter((name) => opacityAt(name, at) > 0.1);
-      expect(visible.length, `${at}%`).toBeLessThanOrEqual(1);
+      if (!crossing) expect(visible.length, `${at}%`).toBe(1);
       for (const name of visible) expect(eventsAt(name, at), `${name} at ${at}`).toBe("auto");
     }
     for (const [index, name] of FRAME_SETS.entries()) {
@@ -506,16 +604,18 @@ describe("the gate stylesheet", () => {
     }
   });
 
-  it("has the outgoing frame at opacity 0 at least 1svh before the incoming one starts", () => {
+  it("starts the incoming caption GATE_CLEAR_SVH before the outgoing card ends, so the stage is never bare, and leaves the outgoing elements at opacity 0 by the end", () => {
+    expect(GATE_CLEAR_SVH).toBeLessThan(0);
+    expect(GATE_CLEAR_SVH).toBeGreaterThanOrEqual(-1);
     for (const index of [0, 1]) {
-      const name = FRAME_SETS[index] ?? "";
-      let lastVisible = 0;
-      for (let at = 0; at <= 100; at += 0.01) if (opacityAt(name, at) > 0) lastVisible = at;
-      const outgoingZero = ((lastVisible + 0.01) / 100) * GATE_PIN_SVH;
-      const incomingStart = GATE_PHASES[index + 1]?.enterCaption?.[0] ?? 0;
-      expect(incomingStart - outgoingZero, `frame ${index}`).toBeGreaterThanOrEqual(
-        GATE_CLEAR_SVH - 0.05,
+      const outgoing = GATE_PHASES[index];
+      const incoming = GATE_PHASES[index + 1];
+      expect(incoming?.enterCaption?.[0], `frame ${index}`).toBe(
+        (outgoing?.exitCard?.[1] ?? 0) + GATE_CLEAR_SVH,
       );
+      expect(outgoing?.exitCaption?.[1] ?? 0).toBeLessThanOrEqual(outgoing?.exitCard?.[1] ?? 0);
+      expect(keyframe("vk-gate-card-out", "to")?.opacity).toBe("0");
+      expect(keyframe("vk-gate-caption-out", "to")?.opacity).toBe("0");
     }
   });
 
@@ -608,14 +708,27 @@ describe("the gate stylesheet", () => {
   });
 
   it("lets the reveal offset yield to the scrub with a higher specificity than the hiding rule", () => {
+    const specificity = (selector: string): [number, number, number] => {
+      const flat = selector.replace(/:not\(([^)]*)\)/g, " $1 ");
+      return [
+        (flat.match(/#[\w-]+/g) ?? []).length,
+        (flat.match(/\.[\w-]+|\[[^\]]*\]|(?<!:):(?!:)[\w-]+/g) ?? []).length,
+        (flat.match(/(?:^|[\s>+~])[a-z][\w-]*/gi) ?? []).length,
+      ];
+    };
     const yielding = rules.find(
       (rule) => rule.selector === "html[data-motion-ready] .vk-gate .vk-gate-track .vk-gate-moves",
     );
+    const hiding = "html[data-motion-ready] [data-reveal]:not([data-revealed])";
     expect(yielding?.declarations).toMatchObject({
       opacity: "1",
       translate: "none",
       transition: "none",
     });
+    const [ids, classes] = specificity(yielding?.selector ?? "");
+    const [hidingIds, hidingClasses] = specificity(hiding);
+    expect(ids).toBe(hidingIds);
+    expect(classes).toBeGreaterThan(hidingClasses);
   });
 
   it("never listens to scroll", () => {

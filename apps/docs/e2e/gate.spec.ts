@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "playwright/test";
 import {
   GATE_HOLD_FLOOR_SVH,
+  GATE_MARKER_MIN_PX,
   GATE_PHASES,
   GATE_PIN_SVH,
   gateHoldMiddle,
@@ -21,7 +22,9 @@ const MOVES = `${FRAMES} .vk-gate-moves`;
 const HEADER = 56;
 const STATES = ["candidate", "refused", "stale"] as const;
 const SCAN_STEP = 4;
-const HOLD_FLOOR_PX = 220;
+const HOLD_FLOOR_PX: Readonly<Record<number, number>> = { 672: 150, 900: 200 };
+const SEGMENTS = ["candidate", "refused", "stale"] as const;
+const EMPTY_PAINT = 0.3;
 const FREE_SPACE_TOLERANCE = 24;
 const CARD_SPREAD_LIMIT = 60;
 
@@ -34,6 +37,8 @@ type Sample = {
   cardX: number[];
   cardScale: number[];
   fill: number[];
+  paint: number[];
+  overprint: number;
   overflow: number;
   scrollX: number;
   headingTop: number;
@@ -99,8 +104,8 @@ async function scan(page: Page): Promise<Sample[]> {
         moving: [
           ...frame.querySelectorAll(".vk-gate-moves, .vk-gate-cli .vk-lock-line"),
         ] as Element[],
-        fill: frame.querySelector(".vk-gate-marker i[data-on]") as Element,
       }));
+      const segments = [...document.querySelectorAll(".vk-gate-progress i")];
       const matrix = (transform: string): number[] =>
         transform === "none"
           ? [1, 0, 0, 1, 0, 0]
@@ -108,6 +113,23 @@ async function scan(page: Page): Promise<Sample[]> {
               .replace(/^matrix\(|\)$/g, "")
               .split(",")
               .map(Number);
+      const painted = (frame: Element, element: Element): number =>
+        Number(getComputedStyle(frame).opacity) * Number(getComputedStyle(element).opacity);
+      const meets = (a: DOMRect, b: DOMRect): boolean =>
+        Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 &&
+        Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
+      const overprint = (list: Element[], items: typeof parts): number => {
+        const shown = items.flatMap((part, index) =>
+          [part.caption, part.card].map((element) => ({
+            index,
+            alpha: painted(list[index] as Element, element),
+            box: element.getBoundingClientRect(),
+          })),
+        );
+        const visible = shown.filter((entry) => entry.alpha >= 0.1);
+        return visible.filter((a) => visible.some((b) => a.index < b.index && meets(a.box, b.box)))
+          .length;
+      };
       const settled = (element: Element): boolean => {
         const style = getComputedStyle(element);
         return (
@@ -125,18 +147,23 @@ async function scan(page: Page): Promise<Sample[]> {
           opacity: frames.map((frame) => Number(getComputedStyle(frame).opacity)),
           events: frames.map((frame) => getComputedStyle(frame).pointerEvents),
           done: parts.map(
-            (part) =>
-              settled(part.caption) &&
-              settled(part.card) &&
-              part.moving.every(settled) &&
-              matrix(getComputedStyle(part.fill, "::after").transform)[0] === 1,
+            (part) => settled(part.caption) && settled(part.card) && part.moving.every(settled),
           ),
           captionX: parts.map((part) => matrix(getComputedStyle(part.caption).transform)[4] ?? 0),
           cardX: parts.map((part) => matrix(getComputedStyle(part.card).transform)[4] ?? 0),
           cardScale: parts.map((part) => matrix(getComputedStyle(part.card).transform)[0] ?? 1),
-          fill: parts.map(
-            (part) => matrix(getComputedStyle(part.fill, "::after").transform)[0] ?? 1,
+          fill: segments.map(
+            (segment) => matrix(getComputedStyle(segment, "::after").transform)[0] ?? 1,
           ),
+          paint: frames.map(
+            (frame, index) =>
+              Number(getComputedStyle(frame).opacity) *
+              Math.max(
+                Number(getComputedStyle(parts[index]?.caption as Element).opacity),
+                Number(getComputedStyle(parts[index]?.card as Element).opacity),
+              ),
+          ),
+          overprint: overprint(frames, parts),
           overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           scrollX: window.scrollX,
           headingTop: box.top,
@@ -156,6 +183,67 @@ function completeDistance(samples: Sample[], state: number): number {
         sample.opacity[state] === 1 && sample.events[state] === "auto" && sample.done[state],
     ).length * SCAN_STEP
   );
+}
+
+type Mover = { name: string; shown: boolean; left: number; right: number; clippers: string[] };
+
+async function moversNow(page: Page): Promise<{ width: number; movers: Mover[] }> {
+  return page.evaluate(() => {
+    const describe = (node: Element): string =>
+      `${node.tagName.toLowerCase()}.${[...node.classList].join(".")}`;
+    const clipping = (element: Element): string[] => {
+      const found: string[] = [];
+      let node = element.parentElement;
+      while (node && node !== document.documentElement) {
+        const style = getComputedStyle(node);
+        const clips =
+          style.overflowX !== "visible" ||
+          style.overflowY !== "visible" ||
+          style.clipPath !== "none";
+        if (clips) found.push(describe(node));
+        node = node.parentElement;
+      }
+      return found;
+    };
+    const movers = [...document.querySelectorAll(".vk-gate-frame")].flatMap((frame) =>
+      [":scope > figcaption", ":scope > .vk-gate-card"].map((selector) => {
+        const element = frame.querySelector(selector) as Element;
+        const box = element.getBoundingClientRect();
+        return {
+          name: describe(element),
+          shown:
+            Number(getComputedStyle(frame).opacity) * Number(getComputedStyle(element).opacity) >=
+            0.02,
+          left: box.left,
+          right: box.right,
+          clippers: clipping(element),
+        };
+      }),
+    );
+    return { width: document.documentElement.clientWidth, movers };
+  });
+}
+
+async function edgeReport(
+  page: Page,
+  height: number,
+): Promise<{ clippers: string[]; outside: string[] }> {
+  const start = (await pinStart(page)) - 8;
+  const clippers = new Set<string>();
+  const outside: string[] = [];
+  for (let y = start; y <= start + (GATE_PIN_SVH / 100) * height + 16; y += 12) {
+    await page.evaluate(async (target) => {
+      window.scrollTo(0, target);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }, y);
+    const now = await moversNow(page);
+    for (const mover of now.movers.filter((candidate) => candidate.shown)) {
+      for (const name of mover.clippers) clippers.add(name);
+      if (mover.left < -0.5 || mover.right > now.width + 0.5)
+        outside.push(`${mover.name} ${mover.left.toFixed(1)}..${mover.right.toFixed(1)}`);
+    }
+  }
+  return { clippers: [...clippers], outside };
 }
 
 type Free = { state: string; above: number; below: number; card: number };
@@ -204,36 +292,90 @@ for (const [width, height] of [
       await openStaged(page);
       await expect(page.locator(`${SECTION} .vk-gate-pin`)).toHaveCSS("position", "sticky");
       const samples = await scan(page);
-      const required = Math.min(HOLD_FLOOR_PX, (GATE_HOLD_FLOOR_SVH / 100) * height) - SCAN_STEP;
+      const required = (GATE_HOLD_FLOOR_SVH / 100) * height - SCAN_STEP;
       for (const [index, state] of STATES.entries()) {
         const held = completeDistance(samples, index);
         console.log(`hold ${width}x${height} ${state}: ${held}px`);
         expect(held, state).toBeGreaterThanOrEqual(required);
       }
-      if (height === 672) {
+      const floor = HOLD_FLOOR_PX[height];
+      if (floor !== undefined) {
         for (const index of STATES.keys())
-          expect(completeDistance(samples, index)).toBeGreaterThanOrEqual(HOLD_FLOOR_PX);
+          expect(
+            completeDistance(samples, index) + SCAN_STEP,
+            `${STATES[index]}`,
+          ).toBeGreaterThanOrEqual(floor);
       }
     });
 
-    test("never shows two frames at once and lets only the current frame take the pointer", async ({
+    test("overprints no text, never rests on an empty stage and lets only the current frame take the pointer", async ({
       page,
     }) => {
       await openStaged(page);
       const samples = await scan(page);
+      let lowest = 1;
       for (const sample of samples) {
-        const sorted = [...sample.opacity].sort((a, b) => b - a);
-        expect(sorted[1] ?? 0, `at ${sample.at}`).toBeLessThanOrEqual(0.1);
+        expect(sample.overprint, `overprint at ${sample.at}`).toBe(0);
+        expect(Math.max(...sample.opacity), `frame at ${sample.at}`).toBeGreaterThanOrEqual(0.5);
+        lowest = Math.min(lowest, Math.max(...sample.paint));
         sample.opacity.forEach((opacity, index) => {
           if (opacity > 0.1) expect(sample.events[index]).toBe("auto");
         });
       }
+      console.log(`lowest painted ${width}x${height}: ${lowest.toFixed(2)}`);
+      expect(lowest).toBeGreaterThanOrEqual(EMPTY_PAINT);
       for (const [index, state] of STATES.entries()) {
         const hold = samples.find((s) => s.opacity[index] === 1 && s.done[index]);
         expect(hold, state).toBeDefined();
         hold?.events.forEach((events, other) => {
           if (other !== index) expect(events).toBe("none");
         });
+      }
+    });
+
+    test("lands on a visible frame at every PageDown from the top of the page", async ({
+      page,
+    }) => {
+      await openStaged(page);
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const start = await pinStart(page);
+      for (let press = 0; press < 40; press += 1) {
+        await page.keyboard.press("PageDown");
+        let last = -1;
+        await expect
+          .poll(async () => {
+            const y = await page.evaluate(() => window.scrollY);
+            const settled = y === last;
+            last = y;
+            return settled;
+          })
+          .toBe(true);
+        const state = await page.evaluate(() => {
+          const frames = [...document.querySelectorAll(".vk-gate-frame")];
+          return {
+            y: window.scrollY,
+            paint: frames.map(
+              (frame) =>
+                Number(getComputedStyle(frame).opacity) *
+                Math.max(
+                  Number(
+                    getComputedStyle(frame.querySelector(":scope > figcaption") as Element).opacity,
+                  ),
+                  Number(
+                    getComputedStyle(frame.querySelector(":scope > .vk-gate-card") as Element)
+                      .opacity,
+                  ),
+                ),
+            ),
+          };
+        });
+        const svh = ((state.y - start) / height) * 100;
+        if (svh > 0.5 && svh < GATE_PIN_SVH - 0.5)
+          expect(
+            Math.max(...state.paint),
+            `PageDown ${press} at ${svh.toFixed(1)}svh`,
+          ).toBeGreaterThan(0.3);
+        if (svh > GATE_PIN_SVH) break;
       }
     });
 
@@ -313,8 +455,8 @@ for (const [width, height] of [
           expect(monotone(xs, -1), `${key} ${index} only moves left`).toBe(true);
         }
       }
-      const captionDone = within([51.2, 51.8]).map((sample) => sample.captionX[1]);
-      const cardBusy = within([51.2, 51.8]).map((sample) => sample.cardX[1]);
+      const captionDone = within([53.6, 54.2]).map((sample) => sample.captionX[1]);
+      const cardBusy = within([53.6, 54.2]).map((sample) => sample.cardX[1]);
       expect(Math.max(...captionDone.map(Math.abs))).toBeLessThan(0.5);
       expect(Math.max(...cardBusy)).toBeGreaterThan(0.2);
     });
@@ -335,25 +477,34 @@ for (const [width, height] of [
       console.log(`second frame peak ${width}x${height}: ${peak}`);
     });
 
-    test("fills the marker segment of the current frame with the scrub and leaves every end state untransformed", async ({
+    test("fills each progress segment across its whole state, back to back, and leaves every end state untransformed", async ({
       page,
     }) => {
       await openStaged(page);
       const samples = await scan(page);
       const px = (svh: number) => (svh / 100) * height;
-      for (const index of STATES.keys()) {
-        const mid = samples.find((sample) => sample.at >= px(gateHoldMiddle(index)));
-        expect(mid?.fill[index], `fill ${index}`).toBe(1);
-        const [from, to] = GATE_PHASES[index]?.marker ?? [0, 0];
+      for (const [index, phases] of GATE_PHASES.entries()) {
+        const [from, to] = phases.marker;
         const during = samples.filter(
           (sample) => sample.at > px(from + 0.5) && sample.at < px(to - 0.5),
         );
         const values = during.map((sample) => sample.fill[index] ?? 1);
-        expect(Math.min(...values), `fill ${index} starts empty`).toBeLessThan(0.6);
+        expect(Math.min(...values), `fill ${index} starts empty`).toBeLessThan(0.2);
+        expect(Math.max(...values), `fill ${index} ends full`).toBeGreaterThan(0.8);
         expect(
           values.every((value, at) => at === 0 || value >= (values[at - 1] ?? 0) - 0.001),
         ).toBe(true);
+        const mid = samples.find((sample) => sample.at >= px(gateHoldMiddle(index)));
+        mid?.fill.forEach((fill, segment) => {
+          if (segment < index) expect(fill, `segment ${segment} before ${index}`).toBe(1);
+          if (segment > index) expect(fill, `segment ${segment} after ${index}`).toBe(0);
+        });
       }
+      const widths = await page
+        .locator(`${SECTION} .vk-gate-progress i`)
+        .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().width));
+      expect(widths).toHaveLength(SEGMENTS.length);
+      for (const width of widths) expect(width).toBeGreaterThanOrEqual(GATE_MARKER_MIN_PX);
       await scrollToSvh(page, GATE_PIN_SVH + 12);
       const end = await page.evaluate(() =>
         [
@@ -366,6 +517,14 @@ for (const [width, height] of [
         expect(transform).toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
         expect(opacity).toBe("1");
       }
+    });
+
+    test("cuts no mover at an edge and clips only at the page", async ({ page }) => {
+      await openStaged(page);
+      const report = await edgeReport(page, height);
+      console.log(`clippers ${width}x${height}: ${report.clippers.join(" | ")}`);
+      expect(report.outside).toEqual([]);
+      expect(report.clippers).toEqual(["div.vk-home.w-full"]);
     });
 
     test("shows the chip of the first frame before the pin and drops it first", async ({
@@ -423,6 +582,21 @@ for (const [width, height] of [
     });
   });
 }
+
+test.describe("gate edges at 1920x1080", () => {
+  test.use({ viewport: { width: 1920, height: 1080 }, reducedMotion: "no-preference" });
+
+  test("cuts no mover at an edge and never scrolls the document sideways", async ({ page }) => {
+    await openStaged(page);
+    const report = await edgeReport(page, 1080);
+    expect(report.outside).toEqual([]);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+  });
+});
 
 test.describe("gate card heights", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
@@ -530,7 +704,7 @@ test.describe("gate below 64rem", () => {
 test.describe("gate with reduced motion", () => {
   test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
 
-  test("shows the three end states stacked, one state per value, as a caption and card row each", async ({
+  test("shows the three end states stacked, each value once but the old German value in the two frames that show the file, as a caption and card row each", async ({
     page,
     browser,
   }) => {
@@ -619,18 +793,13 @@ test.describe("gate with reduced motion", () => {
     expect(colour).toBe(danger);
   });
 
-  test("marks the position of each frame with one lit segment and no number", async ({ page }) => {
+  test("shows no progress marker, which only the pinned stage draws", async ({ page }) => {
     await page.goto("/");
-    for (const [index, frame] of (await page.locator(FRAMES).all()).entries()) {
-      const marker = frame.locator(".vk-gate-marker");
-      await expect(marker).toHaveAttribute("aria-hidden", "true");
-      expect(await marker.locator("i[data-on]").count()).toBe(1);
-      const lit = await marker
-        .locator("i")
-        .evaluateAll((nodes) => nodes.map((node) => node.hasAttribute("data-on")));
-      expect(lit.indexOf(true)).toBe(index);
-      expect(((await marker.textContent()) ?? "").trim()).toBe("");
-    }
+    await expect(page.locator(`${SECTION} .vk-gate-progress`)).toBeHidden();
+    await expect(page.locator(`${SECTION} .vk-gate-progress`)).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
   });
 });
 
@@ -684,6 +853,7 @@ test.describe("gate on a phone", () => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await installShiftCounter(page);
     await openStaged(page);
+    await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
     const moves = page.locator(MOVES);
     expect(await moves.count()).toBe(3);
     const hidden = await moves.evaluateAll((nodes) =>
