@@ -235,7 +235,7 @@
       },
       "gap": "… {count} más, sin cambios",
       "foot": {
-        "compare": "Obsoleta (stale) significa que el hash registrado de una entrada difiere del hash del valor actual de {file}. Las otras {count} coinciden.",
+        "compare": "Obsoleta (stale) significa que el hash registrado difiere del hash del valor actual de {file}. Las otras {count} coinciden.",
         "generated": "generado el {date}",
         "lock": "{file}: {count, plural, one {# hash actualizado} many {# de hashes actualizados} other {# hashes actualizados}}."
       },
@@ -303,14 +303,14 @@
         },
         "watch": {
           "title": "Vigila mientras desarrollas",
-          "body": "Mantén un vigilante ejecutándose en desarrollo, y cada cambio en el locale de origen se traduce a medida que guardas."
+          "body": "Mantén un watcher ejecutándose en desarrollo, y cada cambio en el locale de origen se traduce a medida que guardas."
         },
         "types": {
           "title": "Claves tipadas",
           "body": "Genera declaraciones de TypeScript para tus claves y argumentos de mensaje, de modo que un error tipográfico en una clave falle la compilación."
         },
         "doctor": {
-          "title": "Sabe antes de gastar",
+          "title": "Infórmate antes de gastar",
           "body": "Doctor comprueba la configuración sin una clave de API, y una estimación calcula el tamaño de una ejecución antes de que cueste nada."
         }
       },
@@ -318,11 +318,11 @@
       "moreChecks": "… más comprobaciones, todas aprobadas",
       "emptyCell": "el traductor lo rellena",
       "badges": {
-        "extract": "{count, plural, one {# nueva clave} many {# nuevas claves} other {# nuevas claves}}",
-        "types": "{count, plural, one {# clave declarada} many {# claves declaradas} other {# claves declaradas}}",
+        "extract": "{count, plural, one {# nueva clave} many {# de nuevas claves} other {# nuevas claves}}",
+        "types": "{count, plural, one {# clave declarada} many {# de claves declaradas} other {# claves declaradas}}",
         "doctor": "no se necesita clave de API",
         "watch": "con cada guardado",
-        "handoff": "{count, plural, one {# fila para traducir} many {# filas para traducir} other {# filas para traducir}}",
+        "handoff": "{count, plural, one {# fila para traducir} many {# de filas para traducir} other {# filas para traducir}}",
         "studio": "captura de pantalla real"
       }
     },
@@ -486,12 +486,12 @@
           }
         },
         "ownKeys": {
-          "label": "Usa tus propias claves API",
+          "label": "Usa tus propias claves de API",
           "verbatra": {
             "note": "solo variables de entorno"
           },
           "lingo": {
-            "note": "función Enterprise; CLI antigua open source: claves propias"
+            "note": "función Enterprise; CLI antigua de código abierto: claves propias"
           },
           "tolgee": {
             "note": "claves LLM sí; claves MT indicadas para autoalojado"
@@ -713,7 +713,7 @@
         "provenance": "Procedencia de npm",
         "license": "Licencia MIT",
         "telemetry": "La CLI no envía telemetría",
-        "coverage": "Umbral de cobertura del {threshold}%",
+        "coverage": "Umbral de cobertura del {threshold} %",
         "ci": "Flujo de trabajo de CI"
       }
     },
@@ -729,15 +729,15 @@
     },
     "heading": "¿Cómo se compara Verbatra?",
     "takeaway": "Verbatra traduce solo las claves modificadas desde tu CI, con tus claves de API, bajo licencia MIT.",
-    "scope": "Verbatra es una CLI y un SDK; las otras columnas son plataformas o un flujo manual, comparados como formas de mantener traducidos los archivos de idioma.",
+    "scope": "Verbatra es una CLI y un SDK; las otras columnas son plataformas o un flujo manual, comparados como formas de mantener traducidos los archivos de locale.",
     "stronger": "Otros son más fuertes en edición en contexto (Tolgee, Crowdin, Lokalise, Phrase) y editor alojado para traductores.",
     "skip": "Saltar la comparación",
     "pickerLabel": "Comparar Verbatra con",
-    "caption": "Formas de mantener los archivos de idioma traducidos: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase y un flujo de trabajo manual",
-    "lingoNote": "Las celdas de Lingo.dev se refieren al `@lingo.dev/cli` actual y a la plataforma alojada a menos que nombren el CLI de código abierto anterior `lingo.dev`.",
+    "caption": "Formas de mantener los archivos de locale traducidos: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase y un flujo de trabajo manual",
+    "lingoNote": "Las celdas de Lingo.dev se refieren al `@lingo.dev/cli` actual y a la plataforma alojada a menos que nombren la CLI de código abierto anterior `lingo.dev`.",
     "formatsNote": "Los recuentos de formatos provienen de la lista de cada proveedor y no están normalizados entre sí.",
     "nextHeading": "Pruébalo tú mismo",
-    "quickstart": "Empieza con la guía rápida",
+    "quickstart": "Empieza con el inicio rápido",
     "home": "Volver a la página de inicio de Verbatra",
     "breadcrumbHome": "Inicio",
     "breadcrumbCompare": "Comparar",

@@ -39,7 +39,7 @@
     },
     "screenshot": {
       "label": "Verbatra Studio",
-      "tablistLabel": "Screenshot-Theme",
+      "tablistLabel": "Design der Screenshots",
       "dark": "Dunkel",
       "light": "Hell"
     },
@@ -71,7 +71,7 @@
       "description": "Verbatra, eine Open-Source-CLI mit SDK für i18n, findet fehlende und geänderte Keys in deinen Sprachdateien und übersetzt nur diese mit deinem Anbieter-Key.",
       "ogDescription": "Übersetze nur die i18n-Keys, die sich geändert haben, und lass die CI scheitern, solange einer fehlt.",
       "ogImageAlt": "Verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
-      "definition": "Verbatra ist ein Open-Source-CLI und SDK für i18n-Lokalisierungsdateien. Es sendet nur neue und geänderte Schlüssel an den von dir gewählten KI- oder maschinellen Übersetzungsanbieter und lässt CI fehlschlagen, wenn ein Schlüssel fehlt."
+      "definition": "Verbatra ist eine Open-Source-CLI und SDK für i18n-Sprachdateien. Es sendet nur neue und geänderte Schlüssel an den von dir gewählten KI- oder maschinellen Übersetzungsanbieter und lässt CI fehlschlagen, wenn ein Schlüssel fehlt."
     },
     "install": {
       "copy": "Kopieren",
@@ -103,7 +103,7 @@
         },
         "providers": {
           "question": "Welche Übersetzungs-Anbieter unterstützt Verbatra?",
-          "answer": "{providers}{pending, select, yes {, plus {upcoming} from {next}} other {}}. Setze einen im <code>provider</code>-Block, oder <code>none</code>, wenn nur Menschen übersetzen; die <link>Anbieterseite</link> deckt jeden ab."
+          "answer": "{providers}{pending, select, yes {, dazu {upcoming} ab {next}} other {}}. Setze einen im <code>provider</code>-Block, oder <code>none</code>, wenn nur Menschen übersetzen; die <link>Anbieterseite</link> deckt jeden ab."
         },
         "privacy": {
           "question": "Sendet Verbatra meine Strings oder API-Schlüssel irgendwohin?",
@@ -291,7 +291,7 @@
       "items": {
         "studio": {
           "title": "Im Studio überprüfen",
-          "body": "Ein lokales Dashboard für dein Projekt: durchsuche jedes Locale, arbeite die Überprüfungswarteschlange ab und bearbeite Werte direkt."
+          "body": "Ein lokales Dashboard für dein Projekt: durchsuche jede Locale, arbeite die Überprüfungswarteschlange ab und bearbeite Werte direkt."
         },
         "handoff": {
           "title": "An Leute übergeben",
@@ -299,11 +299,11 @@
         },
         "extract": {
           "title": "Aus der Quelle extrahieren",
-          "body": "Scanne deinen Code nach Übersetzungsaufrufen und füge die neuen Schlüssel zum Quell-Locale hinzu, bevor sie jemand übersetzt."
+          "body": "Scanne deinen Code nach Übersetzungsaufrufen und füge die neuen Schlüssel zur Quell-Locale hinzu, bevor sie jemand übersetzt."
         },
         "watch": {
           "title": "Beobachten, während du baust",
-          "body": "Lass einen Watcher während der Entwicklung laufen, und jede Änderung am Quell-Locale wird übersetzt, sobald du speicherst."
+          "body": "Lass einen Watcher während der Entwicklung laufen, und jede Änderung an der Quell-Locale wird übersetzt, sobald du speicherst."
         },
         "types": {
           "title": "Typisierte Schlüssel",
@@ -705,15 +705,15 @@
       "contributingGuide": "Leitfaden zum Mitwirken"
     },
     "closing": {
-      "heading": "Beginne mit einem Probelauf",
-      "lead": "Dieser Pfad ist für ein Projekt, das bereits Lokalisierungsdateien hat, und keiner der Schritte benötigt einen API-Schlüssel.",
+      "heading": "Beginne mit einem Dry Run",
+      "lead": "Dieser Pfad ist für ein Projekt, das bereits Sprachdateien hat, und keiner der Schritte benötigt einen API-Schlüssel.",
       "label": "Bevor du einen Token ausgibst",
       "proof": {
         "label": "Projektfakten",
         "provenance": "npm-Provenienz",
         "license": "MIT-Lizenz",
         "telemetry": "Die CLI sendet keine Telemetriedaten",
-        "coverage": "{threshold}% Abdeckungsschwelle",
+        "coverage": "{threshold} % Abdeckungsschwelle",
         "ci": "CI-Workflow"
       }
     },
@@ -725,7 +725,7 @@
     "meta": {
       "title": "Vergleiche Verbatra mit Lingo.dev, Tolgee, Crowdin und mehr",
       "description": "Verbatra vs Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise und Phrase: Lizenz, Anbieter, eigene API-Schlüssel, CI, MCP und Formate, jeweils mit datierter Quelle.",
-      "ogImageAlt": "Wie Verbatra sich vergleicht, mit dem Verbatra-Wortmarke"
+      "ogImageAlt": "Wie Verbatra sich vergleicht, mit der Verbatra-Wortmarke"
     },
     "heading": "Verbatra im Vergleich",
     "takeaway": "Verbatra übersetzt nur geänderte Schlüssel aus deiner CI, mit eigenen API-Schlüsseln (MIT-Lizenz).",
@@ -733,15 +733,15 @@
     "stronger": "Wo andere stärker sind: In-Context-Bearbeitung (Tolgee, Crowdin, Lokalise, Phrase), gehosteter Übersetzer-Editor.",
     "skip": "Vergleich überspringen",
     "pickerLabel": "Verbatra vergleichen mit",
-    "caption": "Möglichkeiten, wie du Übersetzungsdateien auf dem neuesten Stand halten kannst: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase und ein manueller Workflow",
+    "caption": "Möglichkeiten, Sprachdateien übersetzt zu halten: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase und ein manueller Workflow",
     "lingoNote": "Lingo.dev-Zellen beziehen sich auf das aktuelle `@lingo.dev/cli` und die gehostete Plattform, es sei denn, sie nennen die ältere Open-Source-CLI `lingo.dev`.",
     "formatsNote": "Die Formatanzahlen stammen aus der Liste des jeweiligen Anbieters und sind nicht miteinander normalisiert.",
     "nextHeading": "Probiere es selbst aus",
-    "quickstart": "Beginne mit dem Quickstart",
-    "home": "Zurück zur Verbatra Startseite",
+    "quickstart": "Beginne mit dem Schnellstart",
+    "home": "Zurück zur Verbatra-Startseite",
     "breadcrumbHome": "Startseite",
     "breadcrumbCompare": "Vergleichen",
-    "noneFound": "„Nichts gefunden“ heißt: Unsere Suche war ergebnislos, nicht dass die Funktion fehlt."
+    "noneFound": "„Nichts gefunden“ heißt: Unsere Suche war ergebnislos, nicht, dass die Funktion fehlt."
   },
   "legal": {
     "privacy": {

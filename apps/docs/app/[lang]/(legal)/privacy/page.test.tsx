@@ -62,7 +62,7 @@ const NO_DPO_PHRASE: Record<Locale, RegExp> = {
   en: /No data protection officer has been appointed/,
   de: /Ein Datenschutzbeauftragter ist nicht benannt/,
   es: /No se ha designado un delegado de protección de datos/,
-  fr: /Aucun délégué à la protection des données n'a été désigné/,
+  fr: /Aucun délégué à la protection des données n’a été désigné/,
 };
 
 const OBJECTION_CROSS_REFERENCE: Record<Locale, RegExp> = {
@@ -90,7 +90,7 @@ const ARCJET_SAFEGUARD: Record<Locale, RegExp> = {
   en: /not certified under the EU-U\.S\. Data Privacy Framework.*EU Standard Contractual Clauses \(Art\. 46\(2\)\(c\) GDPR\)/,
   de: /nicht unter dem EU-US-Datenschutzrahmen zertifiziert.*EU-Standardvertragsklauseln \(Art\. 46 Abs\. 2 lit\. c DSGVO\)/,
   es: /no está certificada en el marco del EU-U\.S\. Data Privacy Framework.*cláusulas contractuales tipo de la UE \(art\. 46\.2\.c\) del RGPD\)/,
-  fr: /n'est pas certifiée au titre de l'EU-U\.S\. Data Privacy Framework.*clauses contractuelles types de l'UE \(art\. 46, § 2, point c\) du RGPD\)/,
+  fr: /n’est pas certifiée au titre de l’EU-U\.S\. Data Privacy Framework.*clauses contractuelles types de l’UE \(art\. 46, paragraphe 2, point c\) du RGPD\)/,
 };
 
 const UMAMI_NOT_STORED: Record<Locale, RegExp> = {
@@ -118,42 +118,42 @@ const UMAMI_SERVER_FORWARD: Record<Locale, RegExp> = {
   en: /No analytics script runs in your browser, and nothing is written to your device for counting page views\..*our web server forwards .*: your IP address, your browser's user-agent string, the first language tag of your browser's Accept-Language header .*, the referring page \(without its query string\) and the path of the page you loaded/,
   de: /In deinem Browser läuft kein Analyseskript, und zum Zählen der Seitenaufrufe wird nichts auf deinem Gerät gespeichert\..*leitet unser Webserver.*deine IP-Adresse, die User-Agent-Zeichenkette deines Browsers, das erste Sprachkürzel aus dem Accept-Language-Header deines Browsers .*, die verweisende Seite \(ohne ihre Query-Parameter\) und den Pfad der geladenen Seite/,
   es: /En tu navegador no se ejecuta ningún script de analítica, y para contar las visitas no se escribe nada en tu dispositivo\..*nuestro servidor web reenvía .*: tu dirección IP, la cadena de user-agent de tu navegador, la primera etiqueta de idioma de la cabecera Accept-Language de tu navegador .*, la página de referencia \(sin sus parámetros de consulta\) y la ruta de la página que cargaste/,
-  fr: /Aucun script de statistiques ne s'exécute dans ton navigateur, et rien n'est écrit sur ton appareil pour compter les pages vues\..*notre serveur web transmet .*: ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l'en-tête Accept-Language de ton navigateur .*, la page référente \(sans ses paramètres de requête\) et le chemin de la page chargée/,
+  fr: /Aucun script de statistiques ne s’exécute dans ton navigateur, et rien n’est écrit sur ton appareil pour compter les pages vues\..*notre serveur web transmet .*: ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l’en-tête Accept-Language de ton navigateur .*, la page référente \(sans ses paramètres de requête\) et le chemin de la page chargée/,
 };
 
 const UMAMI_SESSION_HASH: Record<Locale, RegExp> = {
   en: /hashing the website ID, your IP address, your user-agent string, a value that changes every month and a secret key of the server/,
   de: /indem er die Website-ID, deine IP-Adresse, deine User-Agent-Zeichenkette, einen monatlich wechselnden Wert und einen geheimen Schlüssel des Servers hasht/,
   es: /aplicando un hash al ID del sitio web, tu dirección IP, tu cadena de user-agent, un valor que cambia cada mes y una clave secreta del servidor/,
-  fr: /en hachant l'identifiant du site, ton adresse IP, ta chaîne user-agent, une valeur qui change chaque mois et une clé secrète du serveur/,
+  fr: /en hachant l’identifiant du site, ton adresse IP, ta chaîne user-agent, une valeur qui change chaque mois et une clé secrète du serveur/,
 };
 
 const UMAMI_GEOLITE: Record<Locale, RegExp> = {
   en: /country, region and city, which it looks up from your IP address in a GeoLite2 database on the same server/,
   de: /Land, Region und Stadt, die er aus deiner IP-Adresse in einer GeoLite2-Datenbank auf demselben Server ermittelt/,
   es: /país, región y ciudad, que obtiene a partir de tu dirección IP en una base de datos GeoLite2 del mismo servidor/,
-  fr: /ton pays, ta région et ta ville, qu'il détermine à partir de ton adresse IP dans une base de données GeoLite2 sur le même serveur/,
+  fr: /ton pays, ta région et ta ville, qu’il détermine à partir de ton adresse IP dans une base de données GeoLite2 sur le même serveur/,
 };
 
 const UMAMI_LEGAL_BASIS: Record<Locale, RegExp> = {
   en: /no consent under § 25 TDDDG .* is required for it\. The legal basis for the processing is Art\. 6\(1\)\(f\) GDPR/,
   de: /keine Einwilligung nach § 25 TDDDG .* erforderlich\. Rechtsgrundlage der Verarbeitung ist Art\. 6 Abs\. 1 lit\. f DSGVO/,
   es: /no se necesita para ello ningún consentimiento según el § 25 de la TDDDG .* La base jurídica del tratamiento es el art\. 6\.1\.f\) del RGPD/,
-  fr: /aucun consentement au titre du § 25 TDDDG .* n'est nécessaire pour cela\. La base légale du traitement est l'art\. 6, § 1, point f\) du RGPD/,
+  fr: /aucun consentement au titre du § 25 TDDDG .* n’est nécessaire pour cela\. La base légale du traitement est l’art\. 6, paragraphe 1, point f\) du RGPD/,
 };
 
 const UMAMI_LANGUAGE_TAG_PER_PAGEVIEW: Record<Locale, RegExp> = {
   en: /first language tag of your browser's Accept-Language header \(for example en-US\), which is forwarded with each page view/,
   de: /erste Sprachkürzel aus dem Accept-Language-Header deines Browsers \(zum Beispiel de-DE\), das bei jedem Seitenaufruf weitergeleitet wird/,
   es: /primera etiqueta de idioma de la cabecera Accept-Language de tu navegador \(por ejemplo, es-ES\), que se reenvía con cada visita a una página/,
-  fr: /première balise de langue de l'en-tête Accept-Language de ton navigateur \(par exemple fr-FR\), transmise à chaque page vue/,
+  fr: /première balise de langue de l’en-tête Accept-Language de ton navigateur \(par exemple fr-FR\), transmise à chaque page vue/,
 };
 
 const UMAMI_UTM_ONLY: Record<Locale, RegExp> = {
   en: /together with the five UTM parameters of the page address \(utm_source, utm_medium, utm_campaign, utm_term and utm_content, each shortened to 255 characters\); all other query parameters, such as advertising click identifiers, and the fragment are discarded and not forwarded\./,
   de: /zusammen mit den fünf UTM-Parametern der Seitenadresse \(utm_source, utm_medium, utm_campaign, utm_term und utm_content, jeweils auf 255 Zeichen gekürzt\); alle anderen Query-Parameter, etwa Klick-Kennungen von Werbenetzwerken, und das Fragment werden verworfen und nicht weitergeleitet\./,
   es: /junto con los cinco parámetros UTM de la dirección de la página \(utm_source, utm_medium, utm_campaign, utm_term y utm_content, cada uno acortado a 255 caracteres\); todos los demás parámetros de consulta, como los identificadores de clic publicitarios, y el fragmento se descartan y no se reenvían\./,
-  fr: /avec les cinq paramètres UTM de l'adresse de la page \(utm_source, utm_medium, utm_campaign, utm_term et utm_content, chacun raccourci à 255 caractères\) ; tous les autres paramètres de requête, comme les identifiants de clic publicitaires, ainsi que le fragment sont écartés et ne sont pas transmis\./,
+  fr: /avec les cinq paramètres UTM de l’adresse de la page \(utm_source, utm_medium, utm_campaign, utm_term et utm_content, chacun raccourci à 255 caractères\) ; tous les autres paramètres de requête, comme les identifiants de clic publicitaires, ainsi que le fragment sont écartés et ne sont pas transmis\./,
 };
 
 const UMAMI_NO_INTERACTIONS: Record<Locale, RegExp> = {
@@ -167,21 +167,21 @@ const UMAMI_OLD_OPT_OUT_IGNORED: Record<Locale, RegExp> = {
   en: /opt-out saved in your browser's local storage under this site's earlier analytics setup is no longer read/,
   de: /Widerspruch, der unter der früheren Analyse-Einrichtung dieser Seite im lokalen Speicher deines Browsers abgelegt wurde, wird nicht mehr ausgelesen/,
   es: /exclusión guardada en el almacenamiento local de tu navegador con la configuración de analítica anterior de este sitio ya no se lee/,
-  fr: /opposition enregistrée dans le stockage local de ton navigateur avec l'ancienne configuration statistique de ce site n'est plus lue/,
+  fr: /opposition enregistrée dans le stockage local de ton navigateur avec l’ancienne configuration statistique de ce site n’est plus lue/,
 };
 
 const OPT_OUT_COOKIE_BASIS: Record<Locale, RegExp> = {
   en: /verbatra_analytics_optout with the value 1, valid for one year.*needs no consent \(§ 25\(2\) no\. 2 TDDDG\)\. Allowing analytics again deletes it\. No other cookies are set\./,
   de: /verbatra_analytics_optout mit dem Wert 1, gültig für ein Jahr.*keine Einwilligung braucht \(§ 25 Abs\. 2 Nr\. 2 TDDDG\)\. Wenn du die Analyse wieder erlaubst, wird es gelöscht\. Andere Cookies werden nicht gesetzt\./,
   es: /verbatra_analytics_optout con el valor 1, válida durante un año.*no requiere consentimiento \(§ 25, apdo\. 2, n\.º 2 de la TDDDG\)\. Si vuelves a permitir la analítica, se elimina\. No se establece ninguna otra cookie\./,
-  fr: /verbatra_analytics_optout avec la valeur 1, valable un an.*ne requiert donc aucun consentement \(§ 25, al\. 2, n° 2 TDDDG\)\. Autoriser à nouveau les statistiques le supprime\. Aucun autre cookie n'est déposé\./,
+  fr: /verbatra_analytics_optout avec la valeur 1, valable un an.*ne requiert donc aucun consentement \(§ 25, al\. 2, n° 2 TDDDG\)\. Autoriser à nouveau les statistiques le supprime\. Aucun autre cookie n’est déposé\./,
 };
 
 const OPT_OUT_COOKIE_READ_ONLY_TO_HONOUR: Record<Locale, RegExp> = {
   en: /The only thing read from your device in connection with analytics is the opt-out cookie described in section 5, and only to honour your objection\..*Because nothing is stored on your device for counting page views and the opt-out cookie is read only to honour your objection, no consent/,
   de: /Im Zusammenhang mit der Analyse wird von deinem Gerät nur das in Abschnitt 5 beschriebene Widerspruchs-Cookie ausgelesen, und zwar ausschließlich, um deinen Widerspruch zu beachten\..*Weil zum Zählen der Seitenaufrufe nichts auf deinem Gerät gespeichert wird und das Widerspruchs-Cookie nur ausgelesen wird, um deinen Widerspruch zu beachten, ist dafür keine Einwilligung/,
   es: /Lo único que se lee de tu dispositivo en relación con la analítica es la cookie de oposición descrita en la sección 5, y solo para respetar tu oposición\..*Como para contar las visitas no se almacena nada en tu dispositivo y la cookie de oposición solo se lee para respetar tu oposición, no se necesita para ello ningún consentimiento/,
-  fr: /La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d'opposition décrit à la section 5, et uniquement pour respecter ton opposition\..*Comme rien n'est stocké sur ton appareil pour compter les pages vues et que le cookie d'opposition n'est lu que pour respecter ton opposition, aucun consentement/,
+  fr: /La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d’opposition décrit à la section 5, et uniquement pour respecter ton opposition\..*Comme rien n’est stocké sur ton appareil pour compter les pages vues et que le cookie d’opposition n’est lu que pour respecter ton opposition, aucun consentement/,
 };
 
 const THEME_STORAGE: Record<Locale, RegExp> = {
@@ -195,14 +195,14 @@ const PACKAGE_MANAGER_STORAGE: Record<Locale, RegExp> = {
   en: /package manager \(npm, pnpm, yarn or bun\) on the tabs above an install command, your choice is saved under the key package-manager in both local storage and session storage/,
   de: /Paketmanager \(npm, pnpm, yarn oder bun\) auswählst, wird deine Wahl unter dem Schlüssel package-manager sowohl im lokalen Speicher als auch im Sitzungsspeicher \(Session Storage\) abgelegt/,
   es: /gestor de paquetes \(npm, pnpm, yarn o bun\) en las pestañas encima de un comando de instalación, tu elección se guarda con la clave package-manager tanto en el almacenamiento local como en el almacenamiento de sesión/,
-  fr: /gestionnaire de paquets \(npm, pnpm, yarn ou bun\) dans les onglets au-dessus d'une commande d'installation, ton choix est enregistré sous la clé package-manager, à la fois dans le stockage local et dans le stockage de session/,
+  fr: /gestionnaire de paquets \(npm, pnpm, yarn ou bun\) dans les onglets au-dessus d’une commande d’installation, ton choix est enregistré sous la clé package-manager, à la fois dans le stockage local et dans le stockage de session/,
 };
 
 const STORAGE_NEVER_SENT: Record<Locale, RegExp> = {
   en: /Neither entry is written before you make that choice; both stay in your browser, are never sent to our server or anyone else/,
   de: /Keiner der beiden Einträge wird geschrieben, bevor du diese Wahl triffst; beide bleiben in deinem Browser, werden nie an unseren Server oder an andere gesendet/,
   es: /Ninguna de las dos entradas se escribe antes de que hagas esa elección; ambas se quedan en tu navegador, nunca se envían a nuestro servidor ni a nadie más/,
-  fr: /Aucune de ces deux entrées n'est écrite avant que tu fasses ce choix ; toutes deux restent dans ton navigateur, ne sont jamais envoyées à notre serveur ni à qui que ce soit/,
+  fr: /Aucune de ces deux entrées n’est écrite avant que tu fasses ce choix ; toutes deux restent dans ton navigateur, ne sont jamais envoyées à notre serveur ni à qui que ce soit/,
 };
 
 const HOSTING_PROCESSOR: Record<Locale, RegExp> = {
@@ -216,21 +216,21 @@ const CONTAINER_LOG_ROTATION: Record<Locale, RegExp> = {
   en: /container log is rotated automatically and limited to \d+ files of \d+ MB each/,
   de: /Container-Log wird automatisch rotiert und ist auf \d+ Dateien mit je \d+ MB begrenzt/,
   es: /registro del contenedor se rota automáticamente y está limitado a \d+ archivos de \d+ MB cada uno/,
-  fr: /journal du conteneur fait l'objet d'une rotation automatique et est limité à \d+ fichiers de \d+ Mo chacun/,
+  fr: /journal du conteneur fait l’objet d’une rotation automatique et est limité à \d+ fichiers de \d+ Mo chacun/,
 };
 
 const ARCJET_ONLY_OTHER_PROCESSOR: Record<Locale, RegExp> = {
   en: /Besides the hosting provider \(see section 3\), the only processor involved under Art\. 28 GDPR is Arcjet/,
   de: /Neben dem Hosting-Anbieter \(siehe Abschnitt 3\) ist der einzige beteiligte Auftragsverarbeiter nach Art\. 28 DSGVO Arcjet/,
   es: /Aparte del proveedor de alojamiento \(ver la sección 3\), el único encargado del tratamiento en el sentido del art\. 28 del RGPD es Arcjet/,
-  fr: /Outre l'hébergeur \(voir la section 3\), le seul sous-traitant au sens de l'art\. 28 du RGPD est Arcjet/,
+  fr: /Outre l’hébergeur \(voir la section 3\), le seul sous-traitant au sens de l’art\. 28 du RGPD est Arcjet/,
 };
 
 const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
   en: /access logs are deleted as soon as they are no longer needed/,
   de: /Zugriffs-Logs des Webservers werden gelöscht, sobald sie für diese Zwecke nicht mehr benötigt werden/,
   es: /registros de acceso del servidor web se eliminan en cuanto dejan de ser necesarios/,
-  fr: /journaux d'accès du serveur web sont supprimés dès qu'ils ne sont plus nécessaires/,
+  fr: /journaux d’accès du serveur web sont supprimés dès qu’ils ne sont plus nécessaires/,
 };
 
 const AI_TRANSLATION_PIPELINE: Record<Locale, RegExp> = {
@@ -340,7 +340,7 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     expect(objection).toMatch(/3, 4,? (and|und|y|et) 12/);
     for (const n of [3, 4, 12]) {
       expect(byNumber(n)?.textContent).toMatch(
-        /6(\(1\)\(f\)| Abs\. 1 lit\. f|\.1\.f\)|, § 1, point f\))/,
+        /6(\(1\)\(f\)| Abs\. 1 lit\. f|\.1\.f\)|, paragraphe 1, point f\))/,
       );
     }
     expect(

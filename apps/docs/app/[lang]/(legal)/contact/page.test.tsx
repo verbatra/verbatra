@@ -102,7 +102,7 @@ const NO_SCRIPT_FALLBACK: Record<Locale, RegExp> = {
   en: /The form needs JavaScript to send your message\. Without it, write to the email address in the legal notice \(Impressum\) instead\./,
   de: /Das Formular braucht JavaScript, um deine Nachricht zu senden\. Ohne JavaScript schreib stattdessen an die E-Mail-Adresse im Impressum\./,
   es: /El formulario necesita JavaScript para enviar tu mensaje\. Sin él, escribe a la dirección de correo electrónico que figura en el aviso legal \(Impressum\)\./,
-  fr: /Le formulaire a besoin de JavaScript pour envoyer ton message\. Sans JavaScript, écris plutôt à l'adresse e-mail indiquée dans les mentions légales \(Impressum\)\./,
+  fr: /Le formulaire a besoin de JavaScript pour envoyer ton message\. Sans JavaScript, écris plutôt à l’adresse e-mail indiquée dans les mentions légales \(Impressum\)\./,
 };
 
 function imprintPath(locale: Locale): string {

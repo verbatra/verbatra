@@ -65,7 +65,7 @@ const de: UiTranslation = {
   "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.(404 page)":
     "Die Seite, die du suchst, wurde vielleicht entfernt, umbenannt oder ist gerade nicht erreichbar.",
   "Toggle Menu(mobile menu)(aria-label)": "Menü ein- oder ausblenden",
-  "Toggle Theme(theme switcher)(aria-label)": "Farbschema wechseln",
+  "Toggle Theme(theme switcher)(aria-label)": "Design wechseln",
   "Type(type table)": "Typ",
   "View as Markdown(page actions)": "Als Markdown ansehen",
 };

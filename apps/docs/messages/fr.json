@@ -3,15 +3,15 @@
     "machineTranslated": {
       "title": "Page traduite automatiquement",
       "text": "Cette page a été traduite automatiquement, elle peut donc contenir des erreurs ou se lire un peu bizarrement. La version anglaise fait foi.",
-      "viewOriginal": "Lire l'original en anglais"
+      "viewOriginal": "Lire l’original en anglais"
     },
     "outdatedTranslation": {
-      "title": "La traduction n'est peut-être plus à jour",
+      "title": "La traduction n’est peut-être plus à jour",
       "text": "La page anglaise a changé après cette traduction."
     },
     "notTranslated": {
       "title": "Non disponible dans ta langue",
-      "text": "Cette page n'est pas encore traduite, elle s'affiche donc en anglais."
+      "text": "Cette page n’est pas encore traduite, elle s’affiche donc en anglais."
     },
     "codeBlock": {
       "output": "Sortie"
@@ -24,13 +24,13 @@
       "label": "Navigation de la page"
     },
     "breadcrumb": {
-      "label": "Fil d'Ariane"
+      "label": "Fil d’Ariane"
     },
     "availableFrom": {
       "title": "Disponible à partir de {version}",
-      "text": "Il te faut verbatra {version} ou plus récent. Les versions antérieures ne l'ont pas : vérifie ta version installée avec <code>verbatra --version</code> et mets à jour si elle est plus ancienne.",
+      "text": "Il te faut verbatra {version} ou plus récent. Les versions antérieures ne l’ont pas : vérifie ta version installée avec <code>verbatra --version</code> et mets à jour si elle est plus ancienne.",
       "packageTitle": "Disponible à partir de {version}",
-      "packageText": "Il te faut {version} ou plus récent. Les versions antérieures ne l'ont pas : mets à jour ce paquet si le tien est plus ancien."
+      "packageText": "Il te faut {version} ou plus récent. Les versions antérieures ne l’ont pas : mets à jour ce paquet si le tien est plus ancien."
     },
     "llms": {
       "heading": "Pour les agents IA",
@@ -107,7 +107,7 @@
         },
         "privacy": {
           "question": "Verbatra envoie-t-il mes chaînes ou mes clés API quelque part ?",
-          "answer": "Uniquement au fournisseur que tu configures, quand une commande traduit ; aucune télémétrie. Les clés restent dans l’environnement, et la <link>gestion des données</link> liste ce que reçoit chaque fournisseur."
+          "answer": "Uniquement au fournisseur que tu configures, quand une commande traduit ; aucune télémétrie. Les clés restent dans des variables d’environnement. La <link>gestion des données</link> liste ce que reçoit chaque fournisseur."
         },
         "ci": {
           "question": "Verbatra peut-il faire échouer une pull request si des traductions sont manquantes ?",
@@ -213,7 +213,7 @@
       "heading": "{count, plural, =2 {Deux clés modifiées, deux clés envoyées} one {# clé modifiée, # clé envoyée} many {# de clés modifiées, # de clés envoyées} other {# clés modifiées, # clés envoyées}}",
       "steps": "Comment se déroule une exécution",
       "pause": "Mettre l’animation en pause",
-      "play": "Lire l’animation",
+      "play": "Lancer l’animation",
       "edit": {
         "label": "Modifier",
         "text": "Tu modifies {count, plural, one {# valeur} many {# de valeurs} other {# valeurs}} dans ton fichier source."
@@ -318,11 +318,11 @@
       "moreChecks": "… autres vérifications, toutes réussies",
       "emptyCell": "à remplir par le traducteur",
       "badges": {
-        "extract": "{count, plural, one {# nouvelle clé} many {# nouvelles clés} other {# nouvelles clés}}",
-        "types": "{count, plural, one {# clé déclarée} many {# clés déclarées} other {# clés déclarées}}",
+        "extract": "{count, plural, one {# nouvelle clé} many {# de nouvelles clés} other {# nouvelles clés}}",
+        "types": "{count, plural, one {# clé déclarée} many {# de clés déclarées} other {# clés déclarées}}",
         "doctor": "aucune clé API requise",
         "watch": "à chaque enregistrement",
-        "handoff": "{count, plural, one {# ligne à traduire} many {# lignes à traduire} other {# lignes à traduire}}",
+        "handoff": "{count, plural, one {# ligne à traduire} many {# de lignes à traduire} other {# lignes à traduire}}",
         "studio": "capture d’écran réelle"
       }
     },
@@ -705,7 +705,7 @@
       "contributingGuide": "Guide de contribution"
     },
     "closing": {
-      "heading": "Commence par un test à blanc",
+      "heading": "Commence par une exécution à blanc",
       "lead": "Ce parcours convient à un projet qui a déjà des fichiers de locale, et aucune des deux étapes n’a besoin de clé API.",
       "label": "Avant de dépenser un jeton",
       "proof": {
@@ -723,22 +723,22 @@
   },
   "compare": {
     "meta": {
-      "title": "Compare Verbatra avec Lingo.dev, Tolgee, Crowdin et d'autres",
+      "title": "Compare Verbatra avec Lingo.dev, Tolgee, Crowdin et d’autres",
       "description": "Verbatra vs Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise et Phrase : licence, fournisseurs, clés API propres, CI, MCP et formats, chacun avec une source datée.",
       "ogImageAlt": "Comment Verbatra se compare, avec le logo Verbatra"
     },
     "heading": "Verbatra face aux autres outils",
-    "takeaway": "Verbatra ne traduit que les clés modifiées depuis ta CI, avec tes propres clés d’API, sous licence MIT.",
+    "takeaway": "Verbatra ne traduit que les clés modifiées depuis ta CI, avec tes propres clés API, sous licence MIT.",
     "scope": "Verbatra est une CLI et un SDK ; les autres colonnes sont des plateformes ou un workflow manuel, comparés comme moyens de garder les fichiers de locale traduits.",
-    "stronger": "Là où d’autres sont plus forts : l’édition in-context (Tolgee, Crowdin, Lokalise, Phrase), un éditeur hébergé.",
+    "stronger": "Là où d’autres sont plus forts : l’édition in-context (Tolgee, Crowdin, Lokalise, Phrase), un éditeur hébergé pour les traducteurs.",
     "skip": "Passer la comparaison",
     "pickerLabel": "Comparer Verbatra avec",
-    "caption": "Façons de maintenir les fichiers de localisation traduits : Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et un workflow manuel",
-    "lingoNote": "Les cellules Lingo.dev font référence au `@lingo.dev/cli` actuel et à la plateforme hébergée, à moins qu'elles ne désignent l'ancien CLI open source `lingo.dev`.",
-    "formatsNote": "Le nombre de formats provient de la liste de chaque fournisseur et n'est pas normalisé entre eux.",
+    "caption": "Façons de maintenir les fichiers de locale traduits : Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et un workflow manuel",
+    "lingoNote": "Les cellules Lingo.dev font référence au `@lingo.dev/cli` actuel et à la plateforme hébergée, à moins qu’elles ne désignent l’ancienne CLI open source `lingo.dev`.",
+    "formatsNote": "Le nombre de formats provient de la liste de chaque fournisseur et n’est pas normalisé entre eux.",
     "nextHeading": "Essaie toi-même",
     "quickstart": "Commence avec le démarrage rapide",
-    "home": "Retour à la page d'accueil de Verbatra",
+    "home": "Retour à la page d’accueil de Verbatra",
     "breadcrumbHome": "Accueil",
     "breadcrumbCompare": "Comparer",
     "noneFound": "« Rien trouvé » signifie que notre recherche n’a rien trouvé, pas que la fonction manque."
@@ -754,46 +754,46 @@
       "languageVersions": "Cette politique de confidentialité est disponible en anglais, en allemand, en espagnol et en français. Les quatre versions linguistiques ont le même contenu et font également foi.",
       "s1": {
         "heading": "1. Responsable du traitement",
-        "body": "Le responsable du traitement des données sur ce site est Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Allemagne (les mêmes coordonnées que dans les <imprint>mentions légales (Impressum)</imprint>). Tu peux nous contacter par e-mail à <email>info@kreitz-webdev.de</email>. Aucun délégué à la protection des données n'a été désigné, car ni l'art. 37 du RGPD ni le § 38 de la BDSG (loi fédérale allemande sur la protection des données) n'en exigent un pour ce site."
+        "body": "Le responsable du traitement des données sur ce site est Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Allemagne (les mêmes coordonnées que dans les <imprint>mentions légales (Impressum)</imprint>). Tu peux nous contacter par e-mail à <email>info@kreitz-webdev.de</email>. Aucun délégué à la protection des données n’a été désigné, car ni l’art. 37 du RGPD ni le § 38 de la BDSG (loi fédérale allemande sur la protection des données) n’en exigent un pour ce site."
       },
       "s2": {
         "heading": "2. Aperçu",
-        "body": "Ce site est conçu pour respecter ta vie privée. Il ne charge aucun script tiers ni script de statistiques dans ton navigateur, ne pratique aucun suivi intersites, ne dépose un cookie que si tu t'opposes aux statistiques (section 5), et ne collecte que les données minimales nécessaires pour faire fonctionner le site et comprendre l'usage global. Les sections ci-dessous expliquent précisément ce qui est traité et pourquoi."
+        "body": "Ce site est conçu pour respecter ta vie privée. Il ne charge aucun script tiers ni script de statistiques dans ton navigateur, ne pratique aucun suivi intersites, ne dépose un cookie que si tu t’opposes aux statistiques (section 5), et ne collecte que les données minimales nécessaires pour faire fonctionner le site et comprendre l’usage global. Les sections ci-dessous expliquent précisément ce qui est traité et pourquoi."
       },
       "s3": {
         "heading": "3. Journaux serveur et hébergement",
-        "body": "Le site est auto-hébergé sur un serveur virtuel loué chez <contabo>Contabo</contabo> (Contabo GmbH, Welfenstraße 22, 81541 Munich, Allemagne), géré avec Plesk. Contabo fournit l'infrastructure du serveur et traite à ce titre, pour notre compte et en tant que sous-traitant (art. 28 du RGPD), les données décrites dans cette section et dans la section 4. Lors de ta visite, le serveur web traite des journaux d'accès standard qui peuvent inclure ton adresse IP, la date et l'heure de la requête, l'URL demandée, la page référente et la chaîne user-agent de ton navigateur. L'application qui sert le site écrit également des messages de fonctionnement et d'erreur dans son propre journal de conteneur, par exemple lorsqu'une notification du formulaire de contact ne peut pas être envoyée. Ces données servent à faire fonctionner et à sécuriser le site, par exemple pour livrer les pages, diagnostiquer les erreurs et se défendre contre les abus. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à disposer d'un service sûr et fonctionnel). Les journaux d'accès du serveur web sont supprimés dès qu'ils ne sont plus nécessaires à ces fins. Le journal du conteneur fait l'objet d'une rotation automatique et est limité à 3 fichiers de 10 Mo chacun ; une fois cette limite atteinte, le fichier le plus ancien est supprimé."
+        "body": "Le site est auto-hébergé sur un serveur virtuel loué chez <contabo>Contabo</contabo> (Contabo GmbH, Welfenstraße 22, 81541 Munich, Allemagne), géré avec Plesk. Contabo fournit l’infrastructure du serveur et traite à ce titre, pour notre compte et en tant que sous-traitant (art. 28 du RGPD), les données décrites dans cette section et dans la section 4. Lors de ta visite, le serveur web traite des journaux d’accès standard qui peuvent inclure ton adresse IP, la date et l’heure de la requête, l’URL demandée, la page référente et la chaîne user-agent de ton navigateur. L’application qui sert le site écrit également des messages de fonctionnement et d’erreur dans son propre journal de conteneur, par exemple lorsqu’une notification du formulaire de contact ne peut pas être envoyée. Ces données servent à faire fonctionner et à sécuriser le site, par exemple pour livrer les pages, diagnostiquer les erreurs et se défendre contre les abus. La base légale est l’art. 6, paragraphe 1, point f) du RGPD (notre intérêt légitime à disposer d’un service sûr et fonctionnel). Les journaux d’accès du serveur web sont supprimés dès qu’ils ne sont plus nécessaires à ces fins. Le journal du conteneur fait l’objet d’une rotation automatique et est limité à 3 fichiers de 10 Mo chacun ; une fois cette limite atteinte, le fichier le plus ancien est supprimé."
       },
       "s4": {
         "heading": "4. Statistiques",
-        "body": "Nous comptons les pages vues avec Umami, un outil de statistiques open source que nous hébergeons nous-mêmes sur le même serveur que ce site (voir la section 3), de sorte qu'aucune donnée statistique n'est transmise à un tiers. Aucun script de statistiques ne s'exécute dans ton navigateur, et rien n'est écrit sur ton appareil pour compter les pages vues. La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d'opposition décrit à la section 5, et uniquement pour respecter ton opposition. À la place, lorsque ton navigateur charge directement une page de ce site (et non lorsqu'il la précharge en arrière-plan), notre serveur web transmet à notre serveur Umami les informations suivantes de cette requête : ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l'en-tête Accept-Language de ton navigateur (par exemple fr-FR), transmise à chaque page vue, la page référente (sans ses paramètres de requête) et le chemin de la page chargée avec les cinq paramètres UTM de l'adresse de la page (utm_source, utm_medium, utm_campaign, utm_term et utm_content, chacun raccourci à 255 caractères) ; tous les autres paramètres de requête, comme les identifiants de clic publicitaires, ainsi que le fragment sont écartés et ne sont pas transmis. Les clics, les textes copiés et les autres interactions ne sont pas enregistrés. <strong>Ton adresse IP et ta chaîne user-agent elles-mêmes ne sont pas conservées.</strong> Le serveur Umami calcule un identifiant de session pseudonyme en hachant l'identifiant du site, ton adresse IP, ta chaîne user-agent, une valeur qui change chaque mois et une clé secrète du serveur. Pour chaque page vue, il enregistre cet identifiant, l'heure, le chemin de la page avec les éventuels paramètres UTM et la page référente, et pour la session cette balise de langue, ton navigateur, ton système d'exploitation et ton type d'appareil (déduits de la chaîne user-agent), ainsi que ton pays, ta région et ta ville, qu'il détermine à partir de ton adresse IP dans une base de données GeoLite2 sur le même serveur sans interroger aucun autre service. Comme l'identifiant de session est dérivé de ton adresse IP, il s'agit d'un traitement pseudonyme, et non anonyme, de données personnelles. Nous ne consultons les résultats que sous forme agrégée et ne cherchons pas à identifier des visiteurs individuels. Comme rien n'est stocké sur ton appareil pour compter les pages vues et que le cookie d'opposition n'est lu que pour respecter ton opposition, aucun consentement au titre du § 25 TDDDG (loi allemande sur la protection des données dans les télécommunications et les services numériques) n'est nécessaire pour cela. La base légale du traitement est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à comprendre comment le site est utilisé). Les données statistiques sont stockées dans la base de données Umami de ce serveur. Si ton navigateur envoie un signal Global Privacy Control (GPC) ou Do Not Track, rien n'est transmis. Tu peux aussi t'y opposer avec le bouton ci-dessous : il dépose le cookie décrit à la section 5 et, tant que ton navigateur envoie ce cookie, rien n'est transmis non plus. Une opposition enregistrée dans le stockage local de ton navigateur avec l'ancienne configuration statistique de ce site n'est plus lue ; si tu t'es opposé de cette manière, oppose-toi à nouveau ici. Tu peux en savoir plus sur Umami dans sa <umami>documentation</umami>.",
+        "body": "Nous comptons les pages vues avec Umami, un outil de statistiques open source que nous hébergeons nous-mêmes sur le même serveur que ce site (voir la section 3), de sorte qu’aucune donnée statistique n’est transmise à un tiers. Aucun script de statistiques ne s’exécute dans ton navigateur, et rien n’est écrit sur ton appareil pour compter les pages vues. La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d’opposition décrit à la section 5, et uniquement pour respecter ton opposition. À la place, lorsque ton navigateur charge directement une page de ce site (et non lorsqu’il la précharge en arrière-plan), notre serveur web transmet à notre serveur Umami les informations suivantes de cette requête : ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l’en-tête Accept-Language de ton navigateur (par exemple fr-FR), transmise à chaque page vue, la page référente (sans ses paramètres de requête) et le chemin de la page chargée avec les cinq paramètres UTM de l’adresse de la page (utm_source, utm_medium, utm_campaign, utm_term et utm_content, chacun raccourci à 255 caractères) ; tous les autres paramètres de requête, comme les identifiants de clic publicitaires, ainsi que le fragment sont écartés et ne sont pas transmis. Les clics, les textes copiés et les autres interactions ne sont pas enregistrés. <strong>Ton adresse IP et ta chaîne user-agent elles-mêmes ne sont pas conservées.</strong> Le serveur Umami calcule un identifiant de session pseudonyme en hachant l’identifiant du site, ton adresse IP, ta chaîne user-agent, une valeur qui change chaque mois et une clé secrète du serveur. Pour chaque page vue, il enregistre cet identifiant, l’heure, le chemin de la page avec les éventuels paramètres UTM et la page référente, et pour la session cette balise de langue, ton navigateur, ton système d’exploitation et ton type d’appareil (déduits de la chaîne user-agent), ainsi que ton pays, ta région et ta ville, qu’il détermine à partir de ton adresse IP dans une base de données GeoLite2 sur le même serveur sans interroger aucun autre service. Comme l’identifiant de session est dérivé de ton adresse IP, il s’agit d’un traitement pseudonyme, et non anonyme, de données personnelles. Nous ne consultons les résultats que sous forme agrégée et ne cherchons pas à identifier des visiteurs individuels. Comme rien n’est stocké sur ton appareil pour compter les pages vues et que le cookie d’opposition n’est lu que pour respecter ton opposition, aucun consentement au titre du § 25 TDDDG (loi allemande sur la protection des données dans les télécommunications et les services numériques) n’est nécessaire pour cela. La base légale du traitement est l’art. 6, paragraphe 1, point f) du RGPD (notre intérêt légitime à comprendre comment le site est utilisé). Les données statistiques sont stockées dans la base de données Umami de ce serveur. Si ton navigateur envoie un signal Global Privacy Control (GPC) ou Do Not Track, rien n’est transmis. Tu peux aussi t’y opposer avec le bouton ci-dessous : il dépose le cookie décrit à la section 5 et, tant que ton navigateur envoie ce cookie, rien n’est transmis non plus. Une opposition enregistrée dans le stockage local de ton navigateur avec l’ancienne configuration statistique de ce site n’est plus lue ; si tu t’es opposé de cette manière, oppose-toi à nouveau ici. Tu peux en savoir plus sur Umami dans sa <umami>documentation</umami>.",
         "optOut": {
           "optOut": "Refuser les statistiques",
           "optIn": "Autoriser à nouveau les statistiques",
-          "statusOptedOut": "Enregistré : tu t'es opposé. Tes pages vues ne sont pas comptées tant que ce navigateur conserve le cookie.",
+          "statusOptedOut": "Enregistré : tu t’es opposé. Tes pages vues ne sont pas comptées tant que ce navigateur conserve le cookie.",
           "statusOptedIn": "Enregistré : les statistiques sont à nouveau autorisées. Tes pages vues sont comptées sauf si ton navigateur envoie un signal GPC ou Do Not Track.",
           "signals": "Si ton navigateur envoie un signal Global Privacy Control (GPC) ou Do Not Track, tes pages vues ne sont pas comptées, quel que soit le bouton choisi. Les boutons fonctionnent sans JavaScript."
         }
       },
       "s5": {
         "heading": "5. Cookies",
-        "body": "Ce site ne dépose un cookie que lorsque tu t'opposes aux statistiques avec le bouton de la section 4 : le cookie verbatra_analytics_optout avec la valeur 1, valable un an, qui enregistre uniquement ton opposition afin que notre serveur cesse de transmettre tes pages vues. Il n'est déposé qu'à ta demande et est strictement nécessaire à cette fin, il ne requiert donc aucun consentement (§ 25, al. 2, n° 2 TDDDG). Autoriser à nouveau les statistiques le supprime. Aucun autre cookie n'est déposé. Deux choix que tu fais sont enregistrés dans le stockage de ton navigateur. Lorsque tu passes du thème clair au thème sombre ou inversement, ton choix est enregistré dans le stockage local sous la clé theme. Lorsque tu choisis un gestionnaire de paquets (npm, pnpm, yarn ou bun) dans les onglets au-dessus d'une commande d'installation, ton choix est enregistré sous la clé package-manager, à la fois dans le stockage local et dans le stockage de session, afin que les autres commandes d'installation affichent le même gestionnaire de paquets. Aucune de ces deux entrées n'est écrite avant que tu fasses ce choix ; toutes deux restent dans ton navigateur, ne sont jamais envoyées à notre serveur ni à qui que ce soit, et tu peux les supprimer à tout moment en effaçant les données de ce site dans ton navigateur. Comme rien nécessitant un consentement n'est stocké sur ton appareil, aucune bannière de consentement aux cookies n'est requise."
+        "body": "Ce site ne dépose un cookie que lorsque tu t’opposes aux statistiques avec le bouton de la section 4 : le cookie verbatra_analytics_optout avec la valeur 1, valable un an, qui enregistre uniquement ton opposition afin que notre serveur cesse de transmettre tes pages vues. Il n’est déposé qu’à ta demande et est strictement nécessaire à cette fin, il ne requiert donc aucun consentement (§ 25, al. 2, n° 2 TDDDG). Autoriser à nouveau les statistiques le supprime. Aucun autre cookie n’est déposé. Deux choix que tu fais sont enregistrés dans le stockage de ton navigateur. Lorsque tu passes du thème clair au thème sombre ou inversement, ton choix est enregistré dans le stockage local sous la clé theme. Lorsque tu choisis un gestionnaire de paquets (npm, pnpm, yarn ou bun) dans les onglets au-dessus d’une commande d’installation, ton choix est enregistré sous la clé package-manager, à la fois dans le stockage local et dans le stockage de session, afin que les autres commandes d’installation affichent le même gestionnaire de paquets. Aucune de ces deux entrées n’est écrite avant que tu fasses ce choix ; toutes deux restent dans ton navigateur, ne sont jamais envoyées à notre serveur ni à qui que ce soit, et tu peux les supprimer à tout moment en effaçant les données de ce site dans ton navigateur. Comme rien nécessitant un consentement n’est stocké sur ton appareil, aucune bannière de consentement aux cookies n’est requise."
       },
       "s6": {
         "heading": "6. Polices et ressources",
-        "body": "Les polices et les images, y compris les avatars des contributeurs sur la page d'accueil, sont auto-hébergées : elles sont servies par le propre serveur de ce site, donc le chargement d'une page n'envoie aucune requête à Google Fonts, GitHub ou à toute autre tierce partie. Le site n'intègre aucun badge de statut. Aucun script, image ou élément intégré de tiers ne se charge à l'exécution, et aucun script de statistiques ne s'exécute dans ton navigateur. Les sites externes comme GitHub ou npm ne sont contactés que lorsque tu suis un lien vers eux."
+        "body": "Les polices et les images, y compris les avatars des contributeurs sur la page d’accueil, sont auto-hébergées : elles sont servies par le propre serveur de ce site, donc le chargement d’une page n’envoie aucune requête à Google Fonts, GitHub ou à toute autre tierce partie. Le site n’intègre aucun badge de statut. Aucun script, image ou élément intégré de tiers ne se charge à l’exécution, et aucun script de statistiques ne s’exécute dans ton navigateur. Les sites externes comme GitHub ou npm ne sont contactés que lorsque tu suis un lien vers eux."
       },
       "s7": {
         "heading": "7. GitHub et npm",
-        "body": "Le code source, les issues et les discussions du projet sont hébergés sur <repo>GitHub</repo>, et ses paquets publiés sont hébergés sur <npm>npm</npm>. Si tu choisis d'interagir sur l'un ou l'autre site (par exemple en ouvrant une issue, en participant à une discussion ou en consultant un paquet), ce fournisseur traite tes données en tant que responsable indépendant : la <ghprivacy>déclaration de confidentialité</ghprivacy> de GitHub ou la <npmprivacy>politique de confidentialité</npmprivacy> de npm s'applique."
+        "body": "Le code source, les issues et les discussions du projet sont hébergés sur <repo>GitHub</repo>, et ses paquets publiés sont hébergés sur <npm>npm</npm>. Si tu choisis d’interagir sur l’un ou l’autre site (par exemple en ouvrant une issue, en participant à une discussion ou en consultant un paquet), ce fournisseur traite tes données en tant que responsable indépendant : la <ghprivacy>déclaration de confidentialité</ghprivacy> de GitHub ou la <npmprivacy>politique de confidentialité</npmprivacy> de npm s’applique."
       },
       "s8": {
         "heading": "8. Tes droits",
-        "body": "En vertu du RGPD, tu disposes des droits d'accès, de rectification, d'effacement, de limitation du traitement, d'opposition et de portabilité des données (art. 15 à 21 du RGPD) ; le droit d'opposition est présenté séparément à la section 9. Tu as également le droit d'introduire une réclamation auprès d'une autorité de contrôle (art. 77 du RGPD). L'autorité de contrôle compétente à notre égard est « Der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg » (commissaire à la protection des données et à la liberté d'information du Bade-Wurtemberg), Heilbronner Straße 35, 70191 Stuttgart, Allemagne, <lfdi>www.baden-wuerttemberg.datenschutz.de</lfdi>. Pour exercer l'un de ces droits, contacte-nous en utilisant les coordonnées ci-dessous."
+        "body": "En vertu du RGPD, tu disposes des droits d’accès, de rectification, d’effacement, de limitation du traitement, d’opposition et de portabilité des données (art. 15 à 21 du RGPD) ; le droit d’opposition est présenté séparément à la section 9. Tu as également le droit d’introduire une réclamation auprès d’une autorité de contrôle (art. 77 du RGPD). L’autorité de contrôle compétente à notre égard est « Der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg » (commissaire à la protection des données et à la liberté d’information du Bade-Wurtemberg), Heilbronner Straße 35, 70191 Stuttgart, Allemagne, <lfdi>www.baden-wuerttemberg.datenschutz.de</lfdi>. Pour exercer l’un de ces droits, contacte-nous en utilisant les coordonnées ci-dessous."
       },
       "objection": {
-        "heading": "9. Droit d'opposition (art. 21 du RGPD)",
-        "body": "Lorsque nous traitons tes données personnelles sur la base de l'art. 6, § 1, point f) du RGPD (intérêts légitimes), comme décrit aux sections 3, 4 et 12, <strong>tu as le droit de t'opposer à tout moment à ce traitement</strong>, pour des raisons tenant à ta situation particulière. Si tu t'y opposes, nous ne traiterons plus les données personnelles concernées, à moins que nous ne démontrions des motifs légitimes et impérieux pour le traitement qui prévalent sur tes intérêts, droits et libertés, ou que le traitement serve à la constatation, à l'exercice ou à la défense de droits en justice. Pour t'opposer, un simple message informel à <email>info@kreitz-webdev.de</email> suffit."
+        "heading": "9. Droit d’opposition (art. 21 du RGPD)",
+        "body": "Lorsque nous traitons tes données personnelles sur la base de l’art. 6, paragraphe 1, point f) du RGPD (intérêts légitimes), comme décrit aux sections 3, 4 et 12, <strong>tu as le droit de t’opposer à tout moment à ce traitement</strong>, pour des raisons tenant à ta situation particulière. Si tu t’y opposes, nous ne traiterons plus les données personnelles concernées, à moins que nous ne démontrions des motifs légitimes et impérieux pour le traitement qui prévalent sur tes intérêts, droits et libertés, ou que le traitement serve à la constatation, à l’exercice ou à la défense de droits en justice. Pour t’opposer, un simple message informel à <email>info@kreitz-webdev.de</email> suffit."
       },
       "s9": {
         "heading": "10. Contact",
@@ -805,11 +805,11 @@
       },
       "s11": {
         "heading": "12. Formulaire de contact",
-        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse e-mail et le message que tu soumets afin de répondre à ta demande. L'e-mail de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur d'e-mail tiers n'intervient dans son acheminement, et celui-ci n'implique aucun transfert de données en dehors de l'UE. Outre l'hébergeur (voir la section 3), le seul sous-traitant au sens de l'art. 28 du RGPD est Arcjet (Arcjet Labs, Inc., San Francisco, États-Unis), qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les robots et les abus. Selon la <arcjetprivacy>documentation d'Arcjet sur la confidentialité</arcjetprivacy>, Arcjet conserve ces données de requête pendant 30 jours et conserve plus longtemps les données agrégées qui en sont issues. Arcjet est établie aux États-Unis et ne garantit pas que les requêtes soient traitées dans l'UE ; ces données peuvent donc être transférées vers les États-Unis, un pays tiers (art. 44 et suivants du RGPD). Arcjet n'est pas certifiée au titre de l'EU-U.S. Data Privacy Framework, de sorte que la décision d'adéquation de la Commission européenne relative à ce cadre ne couvre pas ce transfert ; celui-ci repose à la place sur les clauses contractuelles types de l'UE (art. 46, § 2, point c) du RGPD). Tu peux demander une copie de ces garanties en écrivant à <email>info@kreitz-webdev.de</email>. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'e-mail de notification qui en résulte ne sont stockés nulle part au-delà de la boîte de réception de l'opérateur. Ils sont supprimés dès que ta demande a été entièrement traitée."
+        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l’adresse e-mail et le message que tu soumets afin de répondre à ta demande. L’e-mail de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur d’e-mail tiers n’intervient dans son acheminement, et celui-ci n’implique aucun transfert de données en dehors de l’UE. Outre l’hébergeur (voir la section 3), le seul sous-traitant au sens de l’art. 28 du RGPD est Arcjet (Arcjet Labs, Inc., San Francisco, États-Unis), qui traite l’adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les robots et les abus. Selon la <arcjetprivacy>documentation d’Arcjet sur la confidentialité</arcjetprivacy>, Arcjet conserve ces données de requête pendant 30 jours et conserve plus longtemps les données agrégées qui en sont issues. Arcjet est établie aux États-Unis et ne garantit pas que les requêtes soient traitées dans l’UE ; ces données peuvent donc être transférées vers les États-Unis, un pays tiers (art. 44 et suivants du RGPD). Arcjet n’est pas certifiée au titre de l’EU-U.S. Data Privacy Framework, de sorte que la décision d’adéquation de la Commission européenne relative à ce cadre ne couvre pas ce transfert ; celui-ci repose à la place sur les clauses contractuelles types de l’UE (art. 46, paragraphe 2, point c) du RGPD). Tu peux demander une copie de ces garanties en écrivant à <email>info@kreitz-webdev.de</email>. La base légale est l’art. 6, paragraphe 1, point f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l’e-mail de notification qui en résulte ne sont stockés nulle part au-delà de la boîte de réception de l’opérateur. Ils sont supprimés dès que ta demande a été entièrement traitée."
       },
       "s12": {
         "heading": "13. Traduction assistée par IA",
-        "body": "Ce projet, verbatra, est un outil de traduction assistée par IA, et ce site de documentation l'utilise aussi sur lui-même. La langue source est l'anglais. Les textes de l'interface (navigation, boutons et textes similaires) sont traduits automatiquement en allemand, en espagnol et en français par verbatra avec le modèle de langage Gemini de Google. Les pages de documentation sont elles aussi traduites par IA, mais dans une étape séparée, en dehors de ce pipeline automatisé. Certains textes, dont des parties de ces pages juridiques, ont été rédigés ou corrigés directement au lieu d'être produits par ce pipeline. Les traductions sont vérifiées dans la mesure du possible : tous les textes traduits ne sont pas relus par une personne avant leur publication, une traduction peut donc contenir des erreurs. Si tu en remarques une, signale-la-nous via le <contact>formulaire de contact</contact>. Nous fournissons cette information volontairement, par souci de transparence."
+        "body": "Ce projet, verbatra, est un outil de traduction assistée par IA, et ce site de documentation l’utilise aussi sur lui-même. La langue source est l’anglais. Les textes de l’interface (navigation, boutons et textes similaires) sont traduits automatiquement en allemand, en espagnol et en français par verbatra avec le modèle de langage Gemini de Google. Les pages de documentation sont elles aussi traduites par IA, mais dans une étape séparée, en dehors de ce pipeline automatisé. Certains textes, dont des parties de ces pages juridiques, ont été rédigés ou corrigés directement au lieu d’être produits par ce pipeline. Les traductions sont vérifiées dans la mesure du possible : tous les textes traduits ne sont pas relus par une personne avant leur publication, une traduction peut donc contenir des erreurs. Si tu en remarques une, signale-la-nous via le <contact>formulaire de contact</contact>. Nous fournissons cette information volontairement, par souci de transparence."
       }
     },
     "imprint": {
@@ -824,10 +824,10 @@
     "contact": {
       "meta": {
         "title": "Contact",
-        "description": "Contacte l'opérateur du site de documentation de verbatra."
+        "description": "Contacte l’opérateur du site de documentation de verbatra."
       },
       "title": "Contact",
-      "intro": "Utilise ce formulaire pour contacter directement l'opérateur du site. C'est un second canal de contact électronique direct, en plus de l'adresse e-mail indiquée dans les <imprint>mentions légales (Impressum)</imprint>.",
+      "intro": "Utilise ce formulaire pour contacter directement l’opérateur du site. C’est un second canal de contact électronique direct, en plus de l’adresse e-mail indiquée dans les <imprint>mentions légales (Impressum)</imprint>.",
       "privacyNotice": "Nous utilisons ton nom, ton adresse e-mail et ton message uniquement pour répondre à ta demande, et nous les supprimons une fois celle-ci traitée. Tous les détails figurent dans la <privacy>politique de confidentialité</privacy>.",
       "form": {
         "nameLabel": "Nom",
@@ -840,11 +840,11 @@
         "submitting": "Envoi en cours...",
         "successTitle": "Message envoyé",
         "successBody": "Merci de nous avoir contactés. Nous reviendrons vers toi dès que possible.",
-        "errorTitle": "Quelque chose s'est mal passé",
-        "errorBody": "Nous n'avons pas pu envoyer ton message. Réessaie dans un instant.",
+        "errorTitle": "Quelque chose s’est mal passé",
+        "errorBody": "Nous n’avons pas pu envoyer ton message. Réessaie dans un instant.",
         "rateLimitedBody": "Tu as envoyé trop de messages récemment. Réessaie plus tard.",
         "validationErrorBody": "Corrige les champs en surbrillance et réessaie.",
-        "noScript": "Le formulaire a besoin de JavaScript pour envoyer ton message. Sans JavaScript, écris plutôt à l'adresse e-mail indiquée dans les <imprint>mentions légales (Impressum)</imprint>.",
+        "noScript": "Le formulaire a besoin de JavaScript pour envoyer ton message. Sans JavaScript, écris plutôt à l’adresse e-mail indiquée dans les <imprint>mentions légales (Impressum)</imprint>.",
         "errors": {
           "required": "Ce champ est obligatoire.",
           "invalid_email": "Saisis une adresse e-mail valide.",
@@ -860,7 +860,7 @@
       },
       "title": "Licences",
       "intro": "verbatra est sous licence MIT. Ce site embarque aussi des paquets, des polices et des ressources de tiers, chacun sous sa propre licence. La liste et les textes de licence ci-dessous sont en anglais, tels que leurs auteurs les ont rédigés.",
-      "brands": "Tous les noms de produits, logos et marques sont la propriété de leurs détenteurs respectifs. verbatra n'est ni affilié à eux ni approuvé par eux. Ils n'apparaissent que pour identifier les formats et les fournisseurs avec lesquels verbatra fonctionne."
+      "brands": "Tous les noms de produits, logos et marques sont la propriété de leurs détenteurs respectifs. verbatra n’est ni affilié à eux ni approuvé par eux. Ils n’apparaissent que pour identifier les formats et les fournisseurs avec lesquels verbatra fonctionne."
     }
   },
   "notFound": {

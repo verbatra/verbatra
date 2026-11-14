@@ -32,6 +32,7 @@ const COPY_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-11-14", hash: "84fd558af3975d0c923183c6b13f9974dc38470f02d6ab5ccaaa59c88b274ba8" },
   { date: "2026-11-14", hash: "2615469acb19f18fe5a3108645e647c46a5e9fedbe4022e42499d6345c0d8cb8" },
   { date: "2026-11-14", hash: "f402a8ba481322e5362b5fd7e2d886b7c0506170362e6bac7c74ecbcf2cdeda8" },
+  { date: "2026-11-14", hash: "3fb857fa98e61e89fe24402162e2ce7949e9a47025b19441514ad0e5ec1b8acc" },
 ];
 
 const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
@@ -39,6 +40,7 @@ const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-10-15", hash: "bee5f991697639ddc4bd5ffefe029d3a89e4fae191018a4bfebab5d0643e4cf0" },
   { date: "2026-10-15", hash: "041550318b67e6bb3c515675eb0979859f0a3fd8c91c007470689d131425adf7" },
   { date: "2026-11-13", hash: "7625b217ddcbdf4d318942b503f2683905f6406813c94523b4d357dc3000803a" },
+  { date: "2026-11-13", hash: "87aa29e8c91870b6b9258c1c5ef24fe144df8c5b00323fd904634ba92f69d020" },
 ];
 
 function compareCellModel(): string {
