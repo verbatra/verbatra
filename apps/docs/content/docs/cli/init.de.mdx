@@ -4,7 +4,7 @@ seoTitle: "verbatra init: eine Konfiguration anlegen"
 description: Lege eine verbatra-Konfiguration und ein .env-Beispiel für dieses Projekt an, erkannt aus deinen Locale-Dateien, interaktiv oder vollständig unbeaufsichtigt.
 type: reference
 ---
-Setze ein Projekt auf: `init` schreibt eine `verbatra.config.ts`, eine `.env.example`, die die API-Key-Variable deines Providers nennt (nie einen Key-Wert), und die `.gitignore`-Einträge für `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json`. Es liest zuerst die Locale-Dateien im Projekt, meist musst du ihm also nur den Provider sagen.
+Setze ein Projekt auf: `init` schreibt eine `verbatra.config.ts`, eine `.env.example`, die die API-Key-Variable deines Providers nennt (nie einen Key-Wert), und die `.gitignore`-Einträge für `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json`. Für `i18next-json` bekommt die Konfiguration außerdem einen auskommentierten `extract`-Block zum Einkommentieren. Es liest zuerst die Locale-Dateien im Projekt, meist musst du ihm also nur den Provider sagen.
 
 ## Synopsis
 
@@ -56,7 +56,7 @@ verbatra init --agent --client cursor,vscode --dry-run
 | `--force` | keins | aus | eine bestehende `verbatra.config.ts` mit abweichendem Inhalt überschreiben |
 | `--agent` | keins | aus | zusätzlich den Abschnitt für Coding-Agenten in `AGENTS.md` oder `CLAUDE.md` und den verbatra-MCP-Server in die Projektkonfiguration jedes erkannten Clients schreiben ([Coding-Agenten einrichten](#coding-agenten-einrichten)) |
 | `--client` | `<ids>` | erkannt | kommagetrennte Clients, die `--agent` statt der erkannten einrichtet: `claude`, `cursor`, `vscode`, `codex`, `gemini` oder `all`; braucht `--agent` |
-| `--dry-run` | keins | aus | jede Datei melden, die `init` schreiben oder ändern würde, und nichts schreiben ([Probelauf](#probelauf)) |
+| `--dry-run` | keins | aus | jede Datei melden, die `init` schreiben oder ändern würde, und nichts schreiben ([Dry Run](#dry-run)) |
 
 Nimmt außerdem die [globalen Flags](/de/docs/cli#globale-flags) `--cwd` und `--json`, aber nicht `--config`. Hier ist `--cwd` das Verzeichnis, das durchsucht und beschrieben wird, und es muss schon existieren. `--json` fragt nie nach.
 
@@ -171,13 +171,13 @@ Ein Fehler-Envelope für `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVID
 
 Ein erneutes `init` mit denselben Antworten ändert nichts und ist erfolgreich. Eine `verbatra.config.ts` mit anderem Inhalt wird mit `CONFIG_EXISTS` abgelehnt, außer du übergibst `--force`, und diese Ablehnung kommt vor jeder Frage und jedem anderen Fehler. Eine andere verbatra-Konfiguration im Verzeichnis (eine `.verbatrarc.json` oder eine `verbatra`-Property in `package.json`) wird auch unter `--force` abgelehnt, weil sie zuerst gelesen würde. Wenn `init` ablehnt, wird nichts geschrieben. Deckt eine Konfiguration in einem übergeordneten Verzeichnis dieses mit ab, warnt `init` auf stderr (auch im Dry Run): Die neue `verbatra.config.ts` ersetzt sie hier.
 
-Ein Verzeichnis, in das `init` nicht schreiben kann, wird mit `INIT_UNWRITABLE` abgelehnt, samt der Datei und jeder schon geschriebenen Datei. Eine `verbatra.config.ts`, `.env.example` oder `.gitignore`, die ein symbolischer Link aus dem Projekt hinaus oder ins Leere ist, wird mit `INIT_UNWRITABLE` abgelehnt, bevor irgendetwas geschrieben wird. Eine bestehende `.env.example` bleibt; nennt sie die Key-Variable noch nicht, wird genau diese Zeile angehängt, und unter `--force` wird eine Kopfzeile, die `init` selbst geschrieben hat, für den neuen Provider neu geschrieben. `.gitignore` bekommt nur die Einträge, die ihr fehlen.
+Ein Verzeichnis, in das `init` nicht schreiben kann, wird mit `INIT_UNWRITABLE` abgelehnt; der Fehler nennt die Datei und jede schon geschriebene Datei. Eine `verbatra.config.ts`, `.env.example` oder `.gitignore`, die ein symbolischer Link aus dem Projekt hinaus oder ins Leere ist, wird mit `INIT_UNWRITABLE` abgelehnt, bevor irgendetwas geschrieben wird. Eine bestehende `.env.example` bleibt; nennt sie die Key-Variable noch nicht, wird genau diese Zeile angehängt, und unter `--force` wird eine Kopfzeile, die `init` selbst geschrieben hat, für den neuen Provider neu geschrieben. `.gitignore` bekommt nur die Einträge, die ihr fehlen.
 
-### Probelauf
+### Dry Run
 
 <AvailableFrom version="0.12.0" />
 
-`--dry-run` durchläuft jede Prüfung und Ablehnung eines echten Laufs außer einem fehlgeschlagenen Schreibvorgang, etwa in einem schreibgeschützten Verzeichnis, gibt für jede Datei `would create`, `would update`, `would overwrite` oder `unchanged` aus und schreibt nichts. Das JSON-Ergebnis listet die geplanten Aktionen und setzt `dryRun` auf `true`.
+`--dry-run` durchläuft jede Prüfung und Ablehnung eines echten Laufs außer einem fehlgeschlagenen Schreibvorgang, etwa in einem schreibgeschützten Verzeichnis, gibt für jede Datei `would create`, `would update`, `would overwrite` oder `unchanged` aus und schreibt nichts.
 
 ### Coding-Agenten einrichten
 

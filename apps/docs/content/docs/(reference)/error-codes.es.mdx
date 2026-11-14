@@ -151,7 +151,7 @@ Un fallo no traía código propio (el código de reserva).
 
 ### FORMAT_AMBIGUOUS
 
-`init` encontró varios formatos que leen los archivos de locale; `candidates` los lista.
+`init` encontró varios formatos que leen los archivos de locale; `candidates` los lista. Solo se lanza cuando init no puede preguntar (sin terminal, `--yes` o `--json`) y no se pasó `--format`; en un terminal init pregunta en su lugar.
 
 - **Lo lanza**: `init`
 - **Siguiente paso**: Pass --format with one of the candidates.
@@ -221,7 +221,7 @@ Se dio `--locales` pero no lista ningún locale, o los locales de destino respon
 
 ### INVALID_OPTION
 
-Un flag de `init` no encaja con el proveedor o está mal formado: `--base-url` sin `openai-compatible` ni `libretranslate`, que no es una URL o que incluye credenciales, una query string o un fragmento; `--api-key-env-var` con un proveedor distinto de `openai-compatible`, o que no es un nombre de variable; `--model` para un proveedor sin modelo (`deepl`, `google-translate`, `libretranslate`, `none`); cualquier flag con un valor vacío; `--targets` sin ningún locale; `--path` sin `{locale}`; `--client` sin `--agent`, sin ningún cliente o con uno que init no puede configurar. O bien `--cwd` no nombra un directorio existente (en cualquier comando, antes de ejecutarse), `doctor --data-flow` llega con `--literals`, `--locales` o `--live`, `doctor --literals` llega con `--locales` o `--live`, `check --file` no nombra ningún archivo o llega con `--locales`, `--consistency`, `--require-reviewed` o `--sensitive`, o `pseudo --mode` nombra un modo distinto de `accented` o `bidi`.
+Un flag de `init` no encaja con el proveedor o está mal formado: `--base-url` sin `openai-compatible` ni `libretranslate`, o que incluye credenciales, una query string o un fragmento (una respuesta de prompt que no es una URL, o una respuesta de `--path` sin `{locale}`, falla con este código; el mismo valor pasado como flag no se comprueba aquí y falla más tarde como [`CONFIG_INVALID`](#cli-config_invalid)); `--api-key-env-var` con un proveedor distinto de `openai-compatible`, o que no es un nombre de variable; `--model` para un proveedor sin modelo (`deepl`, `google-translate`, `libretranslate`, `none`); cualquier flag con un valor vacío; `--targets` sin ningún locale; `--client` sin `--agent`, sin ningún cliente o con uno que init no puede configurar. O bien `--cwd` no nombra un directorio existente (en cualquier comando, antes de ejecutarse), `doctor --data-flow` llega con `--literals`, `--locales` o `--live`, `doctor --literals` llega con `--locales` o `--live`, `check --file` no nombra ningún archivo o llega con `--locales`, `--consistency`, `--require-reviewed` o `--sensitive`, o `pseudo --mode` nombra un modo distinto de `accented` o `bidi`.
 
 - **Lo lanza**: todo comando que acepta `--cwd`, además de `init`, `doctor`, `check`, `pseudo`
 - **Siguiente paso**: Correct or remove the flag the message names.
@@ -263,14 +263,14 @@ Se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta.
 
 ### LAYOUT_AMBIGUOUS
 
-`init` encontró varios patrones de archivo que encajan igual de bien; `candidates` los lista.
+`init` encontró varios patrones de archivo que encajan igual de bien; `candidates` los lista. Solo se lanza cuando init no puede preguntar (sin terminal, `--yes` o `--json`) y no se pasó `--path`; en un terminal init pregunta en su lugar.
 
 - **Lo lanza**: `init`
 - **Siguiente paso**: Pass --path with one of the candidates.
 
 ### MISSING_OPTIONS
 
-`init` no pudo preguntar (sin terminal, o con `--json`) y un valor no se pasó, no se detectó ni se tomó por defecto con `--yes`; el mensaje nombra cada flag que falta.
+`init` no tiene respuesta para un valor: no pudo preguntar (sin terminal, `--yes` o `--json`) y el valor no se pasó, no se detectó ni se tomó por defecto, o preguntó por un valor que no tiene valor por defecto, o la entrada terminó antes de que se respondiera una pregunta; el mensaje nombra cada flag que falta.
 
 - **Lo lanza**: `init`
 - **Siguiente paso**: Pass the flags the message names, or --yes where the message offers it.
@@ -284,7 +284,7 @@ Se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta.
 
 ### USAGE_ERROR
 
-El analizador de argumentos rechazó la línea de comandos (una opción desconocida, un argumento ausente), o `mcp` recibió opciones que no puede aceptar; su `hint` nombra el `--help` del comando.
+El analizador de argumentos rechazó la línea de comandos (una opción desconocida, un argumento ausente), o `mcp` recibió opciones que no puede aceptar, incluido `--json`; su `hint` nombra el `--help` del comando.
 
 - **Lo lanza**: cualquier comando
 - **Siguiente paso**: Run the command with --help to see the options and arguments it accepts.
@@ -302,7 +302,7 @@ La búsqueda no encontró ninguna configuración, o un `configPath` explícito n
 
 ### CONFIG_INVALID
 
-Se encontró una configuración pero no se puede parsear o falla la validación, o su archivo de glosario no se pudo resolver; `translate` (también en dry run, salvo con el proveedor `none`) y `retranslateEntry` también lo lanzan cuando `VERBATRA_NETWORK_POLICY` o `VERBATRA_NETWORK_ALLOWED_HOSTS` tiene un valor no válido, antes de construir ningún proveedor.
+Se encontró una configuración pero no se puede analizar o falla la validación, o su archivo de glosario no se pudo resolver; `translate` (también en una ejecución de prueba, salvo con el proveedor `none`) y `retranslateEntry` también lo lanzan cuando `VERBATRA_NETWORK_POLICY` o `VERBATRA_NETWORK_ALLOWED_HOSTS` tiene un valor no válido, antes de construir ningún proveedor. `importWorkbook` no lo lanza para una hoja o un archivo de intercambio cuyo locale no es un destino configurado: ese locale falla con él en su propio `error`. `exportTmx` e `importTmx` sí lo lanzan para un locale de destino que es el locale de origen una vez normalizados mayúsculas y separadores, y `updateGlossaryTerm` para una edición de término no válida o un archivo de glosario que superaría su tope de tamaño.
 
 - **Lo lanza**: todo comando que carga la config
 - **Siguiente paso**: Fix the config field the message names, then run `verbatra doctor` to confirm the setup.
@@ -323,7 +323,7 @@ Un locale solicitado no está entre los locales de destino configurados.
 
 ### UNKNOWN_KEY
 
-Una clave solicitada no está en el recurso de origen (`keyValue`, `keyIntegrity`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`).
+Una clave solicitada no está en el recurso de origen (`keyValue`, `keyIntegrity`, `keyContext`, `setKeyLengthLimit`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`); `keyHistory` lo lanza solo para una clave vacía o demasiado larga.
 
 - **Lo lanza**: Studio y el servidor MCP
 - **Siguiente paso**: Use a key that exists in the source locale file, or add it there first.
@@ -374,7 +374,7 @@ El archivo del locale de origen no existe o, con `import` y `tmx import`, no exi
 
 ### SOURCE_INVALID
 
-El archivo del locale de origen no se pudo leer o parsear; envuelve el error de lectura del adaptador. Con `import` y `tmx import`, el archivo que se importa es demasiado grande o no es un documento de entrega o TMX legible.
+El archivo del locale de origen no se pudo leer o analizar; envuelve el error de lectura del adaptador. Con `import` y `tmx import`, el archivo que se importa es demasiado grande o no es un documento de entrega o TMX legible.
 
 - **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
 - **Siguiente paso**: Fix the file the message names so it parses under the configured format.
@@ -404,14 +404,14 @@ Una decisión de revisión no se pudo guardar porque el archivo de procedencia e
 
 ### REVIEW_VALUE_CHANGED
 
-La clave no tiene valor, o su valor no es el `expectedValue` que vio quien revisa, o `expectedValue` no es un string (`approveEntry`, `rejectEntry`).
+La clave no tiene valor, o su valor no es el `expectedValue` que vio quien revisa, o `expectedValue` no es un string (`approveEntry`, `rejectEntry`). También se lanza cuando `expectedValueHash` no es un string o llega sin el marcador de valor que lo produjo, cuando no es el hash del valor actual, o cuando se pasan `expectedValue` y `expectedValueHash` a la vez.
 
 - **Lo lanza**: Studio y el servidor MCP
 - **Siguiente paso**: Reload the current value, review it again, and resend the decision.
 
 ### REVIEW_SOURCE_CHANGED
 
-El origen cambió desde que se escribió el valor, así que no se puede aprobar tal cual (`approveEntry`).
+El origen cambió desde que se escribió el valor, o el archivo de bloqueo no tiene entrada para la clave en ese locale, así que verbatra no puede saber para qué texto de origen se escribió, y no se puede aprobar tal cual (`approveEntry`).
 
 - **Lo lanza**: Studio y el servidor MCP
 - **Siguiente paso**: Edit or retranslate the key first, then review its new value.
@@ -502,7 +502,7 @@ Se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de 
 
 ### CONCURRENCY_BUDGET_CONFLICT
 
-Una ejecución real fijó `concurrency` por encima de 1 mientras rige un presupuesto de tokens, configurado o de la ejecución; se lanza antes de cualquier llamada al proveedor (un dry run queda exento).
+Una ejecución real fijó `concurrency` por encima de 1 mientras rige un presupuesto de tokens, configurado o de la ejecución; se lanza antes de cualquier llamada al proveedor (una ejecución de prueba queda exenta).
 
 - **Lo lanza**: `translate`, `watch`
 - **Siguiente paso**: Run with a concurrency of 1 while a token budget applies, or remove the budget.
@@ -516,7 +516,7 @@ El `maxTokens` por ejecución de `translate` se fijó pero no es un número ente
 
 ### LOCK_TIMEOUT_INVALID
 
-`lockAcquireTimeoutMs` se fijó pero no es un número entero de milisegundos de al menos 0 (`translate`, `watch` al arrancar, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`); se lanza antes de leer o bloquear nada.
+`lockAcquireTimeoutMs` se fijó pero no es un número entero de milisegundos de al menos 0 (`translate`, `watch` al arrancar, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `editEntry`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`, `approveLocale`, `applyValueReplace`, `updateGlossaryTerm`, `setKeyLengthLimit`); se lanza antes de leer o bloquear nada.
 
 - **Lo lanza**: solo el SDK
 - **Siguiente paso**: Pass a lock timeout that is a whole number of at least 0.
@@ -551,7 +551,7 @@ Un archivo de locale de destino no se pudo escribir (su directorio no es escribi
 
 ### PSEUDO_OUTPUT_CONFLICT
 
-Se pidió a `pseudolocalize` un pseudolocale que nombra un locale configurado, o una ruta de salida que escribiría sobre un archivo de locale configurado o fuera de `cwd`, también tras resolver los enlaces simbólicos; se rechaza antes de leer o escribir nada.
+Se pidió a `pseudolocalize` un pseudolocale que nombra un locale configurado, o una ruta de salida que escribiría sobre un archivo de locale configurado, en un directorio que contiene uno, o fuera de `cwd` (un directorio absoluto, o el propio `cwd`, cuenta), también tras resolver los enlaces simbólicos; se rechaza antes de leer o escribir nada.
 
 - **Lo lanza**: `pseudo`
 - **Siguiente paso**: Choose a pseudolocale and an output path inside the project that name no configured locale.
@@ -565,14 +565,14 @@ El archivo del locale de origen no se pudo escribir (solo `extract`); `xliff` y 
 
 ### EXTRACT_NOT_CONFIGURED
 
-Se llamó a `extract` con una configuración que no lleva bloque `extract`.
+Se llamó a `extract` con una configuración que no lleva bloque `extract`. `diff --unused` y `doctor --literals` lo informan sin lanzarlo, como el motivo por el que una comprobación no se ejecutó.
 
 - **Lo lanza**: `extract`
 - **Siguiente paso**: Add an `extract` block to the config naming the framework and source roots, for example `extract: { framework: "i18next", roots: ["src"] }`.
 
 ### EXTRACT_FS_UNSUPPORTED
 
-Se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código.
+Se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código. `diff --unused` lo informa sin lanzarlo, como el motivo por el que una comprobación no se ejecutó.
 
 - **Lo lanza**: solo el SDK
 - **Siguiente paso**: Pass a file system that implements `readDirectory`, or use the default one.
@@ -607,7 +607,7 @@ El archivo TMX que produce `exportTmx` no se pudo escribir (su directorio no es 
 
 ### MEMORY_UNWRITABLE
 
-`importTmx` no pudo escribir el caché de memoria de traducción `verbatra.cache.json` (su directorio no es escribible, ya hay un directorio en esa ruta o el disco está lleno); el mensaje nombra el archivo y el código del sistema de archivos.
+`importTmx` no pudo escribir la caché de memoria de traducción `verbatra.cache.json` (su directorio no es escribible, ya hay un directorio en esa ruta o el disco está lleno); el mensaje nombra el archivo y el código del sistema de archivos.
 
 - **Lo lanza**: `tmx import`
 - **Siguiente paso**: Make verbatra.cache.json and its directory writable, then try again.
@@ -628,14 +628,14 @@ El archivo de entrega que produce `exportWorkbook` no se pudo escribir (su direc
 
 ### LOCALE_STATE_NOT_CARRIED_OVER
 
-Lo lanzan `editEntry`, `retranslateEntry`, `approveEntry` y `rejectEntry`, que entonces no escriben nada; si no, se registra en el `error` de un locale que `translate`, `watch` o `importWorkbook` no ejecutó porque su estado bajo un código reescrito como `pt_BR` no se pudo trasladar a él en el archivo de bloqueo o en el de procedencia; la siguiente ejecución lo vuelve a intentar ([Un código de locale reescrito](/es/docs/the-lock-file#un-código-de-locale-reescrito)).
+Lo lanzan `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry` y `approveLocale`, que entonces no escriben nada; si no, se registra en el `error` de un locale que `translate`, `watch` o `importWorkbook` no ejecutó, o como el `code` de un fallo de locale de `applyValueReplace`, porque su estado bajo un código reescrito como `pt_BR` no se pudo trasladar a él en el archivo de bloqueo o en el de procedencia; la siguiente ejecución lo vuelve a intentar ([Un código de locale reescrito](/es/docs/the-lock-file#un-código-de-locale-reescrito)).
 
 - **Lo lanza**: `translate`, `watch`, `import`; Studio y el servidor MCP
 - **Siguiente paso**: Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.
 
 ### LOCALE_UNSUPPORTED_BY_PROVIDER
 
-El proveedor DeepL o Google Cloud Translation configurado no incluye el locale de origen o un locale de destino seleccionado en la tabla de idiomas que incluye verbatra; lo lanzan `translate` (también en una ejecución en seco y una estimación), `watch` al arrancar y `retranslateEntry`, antes de construir ningún proveedor, leer ninguna clave o empezar ningún locale; un locale asignado explícitamente en `localeMap` se considera fiable en su lugar ([Soporte de idiomas](/es/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución)).
+El proveedor DeepL o Google Cloud Translation configurado no incluye el locale de origen o un locale de destino seleccionado en la tabla de idiomas que incluye verbatra; lo lanzan `translate` (también en una ejecución de prueba y una estimación), `watch` al arrancar y `retranslateEntry`, antes de construir ningún proveedor, leer ninguna clave o empezar ningún locale; un locale asignado explícitamente en `localeMap` se considera fiable en su lugar ([Soporte de idiomas](/es/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución)).
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP
 - **Siguiente paso**: Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.
@@ -680,7 +680,7 @@ La variable de entorno requerida no está definida o está vacía. El mensaje no
 
 ### INVALID_REQUEST
 
-La petición falló la validación antes de cualquier llamada de red: un campo malformado, un código que DeepL no acepta (una entrada de `localeMap` con un código de origen regional, o un destino que acaba siendo un `en` o `pt` escueto), o un código que no es BCP-47 bien formado para Google Cloud Translation. En LibreTranslate cubre además un idioma para el que tu servidor no tiene modelo y una petición que supera su `--char-limit` o su `--batch-limit`. Reintentar no ayudará.
+La petición se rechazó por no válida: antes de cualquier llamada de red por un campo malformado, un código que DeepL no acepta (una entrada de `localeMap` con un código de origen regional, o un destino que acaba siendo un `en` o `pt` escueto), o un código que no es BCP-47 bien formado para Google Cloud Translation; o por la respuesta HTTP 400 de un servidor de Google Cloud Translation o LibreTranslate. En LibreTranslate eso cubre un idioma para el que tu servidor no tiene modelo y una petición que supera su `--char-limit` o su `--batch-limit`. Reintentar no ayudará.
 
 - **Siguiente paso**: Check the provider options in the config, such as the model name.
 
@@ -698,7 +698,7 @@ El modelo alcanzó su límite de tokens de salida; consulta [Límites de tokens 
 
 ### PROVIDER_REFUSED
 
-El modelo se negó a responder.
+Una respuesta de OpenAI, `openai-compatible` u OpenCode llevó una negativa en lugar de una traducción.
 
 - **Siguiente paso**: Review the source text the provider refused, or translate it by hand.
 
@@ -734,19 +734,19 @@ HTTP 5xx: el proveedor falló en su propio lado, y la petición en sí nunca tuv
 
 ### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
 
-La [política de red](/es/docs/network-policy) rechazó la petición justo antes de enviarla: el nombre de host resolvió a una dirección que la política no permite, o una respuesta redirigió a un host rechazado. El mensaje nombra solo el host. Reintentar no ayuda.
+La [política de red](/es/docs/network-policy) rechazó la petición justo antes de enviarla: el host no está permitido, el nombre de host se resolvió en una dirección que la política no permite, o una respuesta redirigió a otro origen o a una URL no válida. El mensaje nombra el host y la regla que lo rechazó, nunca una clave ni una ruta. Reintentar no ayuda.
 
 - **Siguiente paso**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
 
 ### PROVIDER_ERROR
 
-Cualquier cosa inclasificable. Con los proveedores LLM, un fallo HTTP nombra su estado, como `HTTP 404`, y el tipo de error del servidor cuando es un token corto de letras, dígitos y guiones bajos, como `MissingSessionID`; el mensaje propio del servidor, el cuerpo de la respuesta y la ruta de la URL nunca aparecen. Con una `baseUrl` de `openai-compatible`, un 404 o 405 añade comprobar que `baseUrl` sea la raíz de la API, y un 400 o 422 comprobar el nombre del modelo y el soporte de Chat Completions con salida de JSON schema estricto; reintentar no ayudará con un estado 4xx. Un problema de transporte reconocible (conexión rechazada, nombre de host no resuelto, conexión cerrada, host inalcanzable, certificado TLS no verificado) se nombra junto con qué comprobar; todo lo demás recibe un mensaje estático y sin secretos. Si no se pudo cargar un paquete de proveedor, el mensaje nombra el paquete y te pide reinstalar `@verbatra/sdk`.
+Cualquier cosa inclasificable. Con los proveedores LLM, un fallo HTTP nombra su estado, como `HTTP 404`, y el tipo de error del servidor cuando es un token corto de letras, dígitos y guiones bajos, como `MissingSessionID`; el mensaje propio del servidor, el cuerpo de la respuesta y la ruta de la URL nunca aparecen. Con una `baseUrl` de `openai-compatible`, un 404 o 405 añade comprobar que `baseUrl` sea la raíz de la API, y un 400 o 422 comprobar el nombre del modelo y el soporte de Chat Completions con salida de JSON schema estricto; con `opencode`, un 400, 404 o 422 añade que el modelo debe ser uno que OpenCode Zen sirva por el endpoint de Chat Completions. Reintentar no ayudará con un estado 4xx. Un problema de transporte reconocible (conexión rechazada, nombre de host no resuelto, conexión cerrada, host inalcanzable, certificado TLS no verificado) se nombra junto con qué comprobar; todo lo demás recibe un mensaje estático y sin secretos. Si no se pudo cargar un paquete de proveedor, el mensaje nombra el paquete y te pide reinstalar `@verbatra/sdk`.
 
 - **Siguiente paso**: Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
 
 ## Códigos de error de los adaptadores de formato [#adapter-error-codes]
 
-Un adaptador de formato que no puede tratar un archivo lanza un `AdapterError` con uno de estos códigos. En el archivo de locale fuente llega envuelto en `SOURCE_INVALID`, con el código del adaptador como `causeCode`; en un archivo de destino se convierte en el `error.code` de ese locale. Cualquier comando que lee archivos de locale, Studio y el servidor MCP pueden lanzarlo; la CLI sale con `2` cuando el archivo fuente tiene la culpa y con `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`. `check --file` informa en su lugar de un archivo que no se puede parsear como un hallazgo `syntax`. El conjunto es cerrado: un [adaptador propio](/es/docs/custom-format-adapters) lanza uno de estos códigos en lugar de uno suyo.
+Un adaptador de formato que no puede tratar un archivo lanza un `AdapterError` con uno de estos códigos. En el archivo de locale de origen llega envuelto en `SOURCE_INVALID`, con el código del adaptador como `causeCode`; en un archivo de destino se convierte en el `error.code` de ese locale. Cualquier comando que lee archivos de locale, Studio y el servidor MCP pueden lanzarlo; la CLI sale con `2` cuando el archivo de origen tiene la culpa y con `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`. `check --file` informa en su lugar de un archivo que no se puede analizar como un hallazgo `syntax`. El conjunto es cerrado: un [adaptador propio](/es/docs/custom-format-adapters) lanza uno de estos códigos en lugar de uno suyo.
 
 ### INVALID_JSON
 
@@ -768,7 +768,7 @@ Un archivo de locale basado en XML, como XLIFF o `strings.xml` de Android, no es
 
 ### INVALID_STRUCTURE
 
-El archivo se puede parsear, pero no tiene la forma que espera el formato configurado, por ejemplo una clave con puntos y una ruta de claves anidada que llevan a la misma clave, o una clave de mapeo YAML que es un mapa o una secuencia.
+El archivo se puede analizar, pero no tiene la forma que espera el formato configurado, por ejemplo una clave con puntos y una ruta de claves anidada que llevan a la misma clave, o una clave de mapeo YAML que es un mapa o una secuencia.
 
 - **Siguiente paso**: Reshape the file the message names to match the configured format.
 
@@ -786,13 +786,13 @@ El archivo es más grande de lo que lee verbatra.
 
 ### MIXED_STRUCTURE
 
-El archivo mezcla claves planas y anidadas donde el formato lo prohíbe.
+Un archivo `ngx-translate-json` mezcla claves planas con puntos y objetos anidados, o tiene una clave anidada que a su vez contiene un punto. Ningún otro formato lo lanza.
 
 - **Siguiente paso**: Use either flat or nested keys throughout the file the message names.
 
 ### ADAPTER_FAILED
 
-Un adaptador `custom:` lanzó un error inesperado. El error nombra el formato del adaptador, y el error original del adaptador es su `cause`.
+Un adaptador `custom:` lanzó un error inesperado. El error nombra el formato del adaptador, y el error original del adaptador es su `cause`. También se lanza cuando el `parseEntries()` de un adaptador plano devuelve algo distinto de un `Map` o de un objeto con un `Map` `entries` de entradas válidas. Un `AdapterError` que lanza el propio adaptador, o un error del sistema de archivos, pasa sin cambios.
 
 - **Lo lanza**: el SDK, con un adaptador `custom:` (la CLI no carga ningún plugin)
 - **Siguiente paso**: Report the failure to the maintainer of the custom adapter the message names.
@@ -866,18 +866,18 @@ Las etiquetas se comparan como un multiconjunto de nombres de etiqueta más nomb
   HTML (`<br>`, `<img>`, `<hr>` y el resto) no necesitan cierre se escriban como se escriban, así
   que `<BR>` se reconoce como elemento vacío igual que `<br>`.
 
-Un origen sin ningún marcado también está protegido frente al marcado que se le invente. La
-candidata se rechaza por cualquier par de etiquetas, elemento vacío o etiqueta autocerrada que
+Un origen sin ningún marcado también está protegido frente al marcado que se le invente. El
+candidato se rechaza por cualquier par de etiquetas, elemento vacío o etiqueta autocerrada que
 añada, por una etiqueta de cierre sin apertura (`Hallo</div>`) y por una etiqueta de apertura sin
 cerrar que lleve algo más que su nombre, como `<Enter onfocus=...>` o `<x-key onmouseover=...>`.
 
 Un `<Word>` sin cerrar que no lleva más que su nombre, y cuyo nombre solo tiene letras, dígitos,
 guiones y guiones bajos, es una palabra entre corchetes angulares, como `<Enter>` en
 `Druecke <Enter>`. Estas palabras se apartan en ambos lados antes de juzgar el origen, así que un
-origen que lleve una se sigue comparando: una candidata que pierda un par `<b>` junto a `<Enter>`, o
+origen que lleve una se sigue comparando: un candidato que pierda un par `<b>` junto a `<Enter>`, o
 que invente un par `<script>` junto a ella, se rechaza. En cuanto el origen lleva etiquetas, las
 palabras entre corchetes angulares se cuentan como etiquetas. Si no lleva ninguna, una palabra entre
-corchetes angulares que añada la candidata se lee como texto y se acepta, salvo que su nombre, se
+corchetes angulares que añada el candidato se lee como texto y se acepta, salvo que su nombre, se
 escriba como se escriba, sea un elemento estándar de HTML (`Hallo <script>`), sea `image`, que un
 analizador convierte en un `<img>`, o contenga un guion, lo que lo convierte en un elemento
 personalizado (`Hallo <my-widget>`).
@@ -895,7 +895,7 @@ resto del valor. `<![CDATA[`, `<!DOCTYPE html>`, cualquier otro `<!...`, `<?...`
 de algo que no sea una letra, como `</1 x>`, terminan todos en el primer `>`, mientras que un `</>`
 vacío se descarta, igual que lo descarta un analizador, y una etiqueta de cierre numérica como
 `</0>` se compara como etiqueta. Cada una de estas construcciones se compara como un multiconjunto
-de su texto, con las secuencias de espacios reducidas a uno, así que una que la candidata añada,
+de su texto, con las secuencias de espacios reducidas a uno, así que una que el candidato añada,
 pierda o reescriba se rechaza, incluido un comentario cuyo texto se tradujo. Las etiquetas que
 siguen al final de una construcción se comparan como siempre, así que
 `Hallo <![CDATA[><img src=x onerror=...>]]>` se rechaza tanto por la construcción como por el
@@ -908,18 +908,18 @@ todo lo que sigue a `<plaintext>` es texto hasta el final del valor. Una etiquet
 un elemento así no se compara, y un valor de atributo entre comillas no puede extenderse más allá de
 la etiqueta de cierre para ocultar lo que sigue:
 `Füge ein <script><b x="</script><img src=x onerror=...>` se rechaza por el `<img>`. Cuando un
-analizador puede leer ese contenido de dos maneras, la candidata se rechaza salvo que sea el origen
+analizador puede leer ese contenido de dos maneras, el candidato se rechaza salvo que sea el origen
 sin cambios, con un detalle como `+<noscript>...</noscript>`: un `script` cuyo contenido abre
 `<!--`, un `noscript` cuyo contenido lleva un `<`, porque entonces cómo se lee depende de si los
 scripts están activados, y cualquier elemento de texto sin formato cuyo contenido lleva un `<`
 después de una etiqueta `svg`, `math` o `select`, donde puede que ni siquiera sea texto sin formato.
-Por la misma razón, una sección CDATA o una etiqueta `image` en un valor donde el origen o la
-candidata abre `svg`, `math` o `select` se rechaza salvo que la candidata sea el origen sin cambios.
+Por la misma razón, una sección CDATA o una etiqueta `image` en un valor donde el origen o el
+candidato abre `svg`, `math` o `select` se rechaza salvo que el candidato sea el origen sin cambios.
 
 El contenido de un elemento `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` o
 `plaintext` se ejecuta o da estilo a la página en lugar de mostrarse, así que nunca se traduce: cada
-elemento así en la candidata tiene que llevar exactamente el contenido del elemento en la misma
-posición entre los de su nombre en el origen, o la candidata se rechaza con un detalle como
+elemento así en el candidato tiene que llevar exactamente el contenido del elemento en la misma
+posición entre los de su nombre en el origen, o el candidato se rechaza con un detalle como
 `+<script> content`. El contenido de `title` y `textarea` se muestra como texto y se puede traducir.
 Esto hace que un texto corriente que contenga literalmente una de esas etiquetas no se pueda
 traducir, porque en `Add a <script> tag` todo lo que sigue a `<script>` es su contenido:
@@ -931,7 +931,7 @@ HTML. Una etiqueta empieza en `<` o `</` seguido de una letra o, en una etiqueta
 enriquecido como `<0>`, de dígitos. Su nombre llega hasta un espacio, `/` o `>`, y un valor de
 atributo entre comillas puede contener `>`. Así que `5 < 10`, `x <= y` y un `&lt;b&gt;` escapado
 siguen siendo texto corriente, mientras que `<support@example.com>` y `<abbr title="a > b">` son
-etiquetas, y un `<` que nunca llega a su `>` no representa nada y no es una etiqueta. Una candidata
+etiquetas, y un `<` que nunca llega a su `>` no representa nada y no es una etiqueta. Un candidato
 que deja así una etiqueta sin terminar se rechaza de todos modos cuando su origen termina todas sus
 etiquetas, con un detalle que nombra el comienzo sin terminar, como `+<a`. Un origen cuyas propias
 etiquetas están mal formadas se compara igualmente. Tras apartar las etiquetas que el formato
@@ -944,7 +944,7 @@ así solo se omite la comprobación del anidamiento: sus etiquetas se comparan c
 igual que cualquier otro, así que una traducción que conserva `a<b and c>d` tal cual se acepta, una
 que añade un `<img>` a su lado se rechaza, y también una que traduce las palabras dentro de la
 secuencia (`a<b und c>d`), porque un analizador lee `und` como un atributo nuevo. Tampoco hay origen
-demasiado grande para compararlo. Una candidata solo se rechaza cuando lleva más del doble de
+demasiado grande para compararlo. Un candidato solo se rechaza cuando lleva más del doble de
 etiquetas y construcciones que su origen, o más de 256 para un origen más pequeño, con el detalle
 `+more than N inline tags` que nombra ese límite.
 
@@ -988,7 +988,7 @@ ambos casos la traducción anterior se conserva.
 La comprobación también se retira etiqueta por etiqueta. Una etiqueta que el formato ya declara como
 placeholder (un elemento en línea de XLIFF, una etiqueta de texto enriquecido ICU de next-intl o
 ARB) queda para la comprobación de placeholders, junto con tantas etiquetas de cierre como aperturas
-tenga, y nunca se informa dos veces. Una etiqueta de apertura de ese tipo que la candidata deja sin
+tenga, y nunca se informa dos veces. Una etiqueta de apertura de ese tipo que el candidato deja sin
 cerrar se rechaza igualmente, nombrada por la etiqueta de cierre que le falta, como `-</g>`. Lo
 mismo vale para una cuyo anidamiento con las demás etiquetas ya no coincide con el origen, como un
 `<b>` que vuelve cruzando el `<g>` dentro del que estaba, y para una que el origen solo lleva como
@@ -1022,7 +1022,7 @@ Una señal de revisión marca una traducción aceptada como digna de una segunda
 
 La traducción es mucho más corta o más larga que su fuente.
 
-Salta por debajo de 0.35 veces o por encima de 3.0 veces la longitud recortada de la fuente; las fuentes muy cortas se omiten. La longitud se cuenta en clústeres de grafemas, y cada carácter se pondera según su escritura: un carácter chino cuenta 3.5, un kana japonés 1.5 y una sílaba coreana 2.
+Se activa por debajo de 0,35 veces o por encima de 3,0 veces la longitud recortada del origen; los orígenes muy cortos se omiten. La longitud se cuenta en clústeres de grafemas, y cada carácter se pondera según su escritura: un carácter chino cuenta 3,5, un kana japonés 1,5 y una sílaba coreana 2.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
@@ -1040,9 +1040,9 @@ La longitud se cuenta en clústeres de grafemas sobre el valor tal como está es
 
 ### EQUALS_SOURCE
 
-La traducción es idéntica a su fuente aunque el locale de destino sea otro.
+La traducción es idéntica a su origen una vez recortados ambos, aunque el locale de destino sea otro.
 
-Solo salta cuando la fuente tiene texto traducible: una fuente hecha solo de términos `doNotTranslate`, o de términos cuya traducción es el propio término, no se marca.
+Solo se activa cuando el origen tiene una letra fuera de sus términos fijos: un origen hecho solo de términos `doNotTranslate`, o de términos cuya traducción es el propio término, no se marca.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
@@ -1070,7 +1070,7 @@ Se compara como palabra completa, y por inclusión en escrituras sin separadores
 
 ### INTEGRITY_REORDERED
 
-Los marcadores coinciden exactamente, pero aparecen en otro orden que en la fuente.
+Los placeholders coinciden exactamente, pero aparecen en otro orden que en el origen.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
@@ -1080,7 +1080,7 @@ Los marcadores coinciden exactamente, pero aparecen en otro orden que en la fuen
 
 El proveedor degradó el lote del que viene esta clave, por ejemplo con una formalidad rebajada o un glosario ignorado.
 
-Salta cuando el lote llevaba un aviso `FORMALITY_DOWNGRADED` o `GLOSSARY_IGNORED`, que emiten DeepL, Google Cloud Translation y LibreTranslate. `PLACEHOLDER_UNSUPPORTED` no lo activa, porque esas entradas se retienen en lugar de degradarse.
+Se activa cuando el lote llevaba un aviso `FORMALITY_DOWNGRADED` o `GLOSSARY_IGNORED`, que emiten DeepL, Google Cloud Translation y LibreTranslate. `PLACEHOLDER_UNSUPPORTED` no lo activa, porque esas entradas se retienen en lugar de degradarse.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`)
 - **Código de salida**: ninguno
@@ -1120,7 +1120,7 @@ Un aviso son datos en los `notices` de un locale, nunca se lanza. Informa de una
 
 ### PLURAL_CATEGORIES_INCOMPLETE
 
-A un plural de un locale de destino le falta una categoría de plural CLDR que usa su idioma, como un plural polaco con solo `one` y `other`, y verbatra no pudo generar el resto.
+A un plural de un locale de destino le falta una categoría de plural CLDR que usa su idioma, como un plural polaco con solo `one` y `other`. En `translate` y `watch` se emite solo para el formato `i18next-json`, cuando verbatra no pudo generar el resto; `check` y `doctor` lo informan para todo formato que guarde las formas de plural por categoría.
 
 - **Lo lanza**: `translate`, `watch`; `check` lo lista con los plurales, y `doctor` en Plural completeness
 - **Código de salida**: ninguno por sí solo; `1` desde `check --qa --strict`
@@ -1186,7 +1186,7 @@ Registrar este locale habría hecho crecer `verbatra.provenance.json` por encima
 
 `verbatra.limits.json` no se pudo usar (ilegible, no es un archivo normal, demasiado grande, ni UTF-8 ni JSON válido, otra forma, una versión más nueva o demasiadas entradas), así que la llamada sujetó los valores solo a los presupuestos `maxLength` de la config y no marcó ninguno frente a un límite que fije ese archivo. Es un aviso en cada locale de una ejecución y el `limitsNotice` de un resultado. El archivo se queda como está.
 
-- **Lo lanza**: `translate`, `watch`; lo devuelven como `qa.limitsNotice` `check --qa` y `check --file`, y como `limitsNotice` `export`, `retranslateEntry`, `keyContext` y las herramientas MCP `key.context` y `translation.retranslateEntry`; `doctor` informa del archivo en Length limits
+- **Lo lanza**: `translate`, `watch`; se devuelve como `qa.limitsNotice` en `check --qa` y `check --file`, y como `limitsNotice` en `export`, `retranslateEntry`, `keyContext` y las herramientas MCP `key.context` y `translation.retranslateEntry`; `doctor` informa del archivo en Length limits
 - **Código de salida**: ninguno
 - **Siguiente paso**: Arregla o borra `verbatra.limits.json`; `verbatra doctor` indica qué le pasa al archivo.
 
@@ -1208,7 +1208,7 @@ Ese traslado quedó para la siguiente ejecución, porque el bloqueo del archivo 
 
 ### LOCALE_UNVERIFIED_BY_PROVIDER
 
-El código enviado no está en la tabla de idiomas del proveedor: solo lo está su idioma base, o viene de `localeMap`.
+El código enviado no está en la tabla de idiomas del proveedor: solo lo está su idioma base, o viene de `localeMap`. Con un servidor LibreTranslate autoalojado, cuyos modelos instalados no se pueden conocer antes de una ejecución, todo locale de destino se informa así en cada ejecución; `verbatra doctor --locales --live` los comprueba contra el servidor.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`; `doctor --locales` lo informa
 - **Código de salida**: ninguno
@@ -1224,7 +1224,7 @@ Un proveedor LLM traduce a un idioma fuera de la lista de idiomas bien probados.
 
 ### GLOSSARY_UNSUPPORTED_BY_PROVIDER
 
-El proveedor no puede aplicar un glosario para este locale.
+Hay un glosario configurado para este locale y el proveedor no puede aplicarlo; solo se comprueba después de traducir.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`; `doctor --locales` lo informa
 - **Código de salida**: ninguno
@@ -1232,7 +1232,7 @@ El proveedor no puede aplicar un glosario para este locale.
 
 ### FORMALITY_UNSUPPORTED_BY_PROVIDER
 
-El proveedor no puede aplicar el tono configurado para este locale.
+El tono es `formal` o `informal` y el proveedor no tiene control de formalidad para este locale.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`; `doctor --locales` lo informa
 - **Código de salida**: ninguno
@@ -1242,7 +1242,7 @@ El proveedor no puede aplicar el tono configurado para este locale.
 
 Valores de origen que este locale va a traducir contienen un token con forma de placeholder que el formato del proyecto no interpola. El mensaje da el número de esos valores y nombra las primeras claves.
 
-DeepL, Google Cloud Translation y LibreTranslate reciben ese token enmascarado como un placeholder y retienen un valor que no pueden enmascarar ni restaurar ([`PLACEHOLDER_UNSUPPORTED`](#placeholder_unsupported)). Un proveedor LLM o una persona debe mantenerlo sin cambios; una traducción que lo pierde o lo cambia se marca con [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). El aviso se emite por locale, solo cuando ese locale tiene una clave así que traducir, y nunca para formatos de adaptadores de terceros.
+DeepL, Google Cloud Translation y LibreTranslate reciben ese token enmascarado como un placeholder y retienen un valor que no pueden enmascarar ni restaurar ([`PLACEHOLDER_UNSUPPORTED`](#placeholder_unsupported)). Un proveedor LLM o una persona debe mantenerlo sin cambios; una traducción que lo pierde o lo cambia se marca con [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). El aviso se emite por locale, solo cuando ese locale tiene una clave de este tipo que traducir, y nunca para formatos de adaptadores de terceros.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: ninguno
@@ -1250,7 +1250,7 @@ DeepL, Google Cloud Translation y LibreTranslate reciben ese token enmascarado c
 
 ### SOURCE_VALUE_EMPTY
 
-Claves de origen cuyo valor está vacío o solo tiene espacios, como una clave que [`extract`](/es/docs/cli/extract) añadió sin valor por defecto, nunca faltan, están desactualizadas ni al día, tenga lo que tenga el destino o el archivo de bloqueo; en un catálogo de origen `gettext-po` es un `msgstr` vacío. No se envía, escribe ni cuenta nada para ellas, y el destino conserva el valor que tenga. El mensaje da el número de claves y nombra las primeras.
+Claves de origen cuyo valor está vacío o solo tiene espacios, como una clave que [`extract`](/es/docs/cli/extract) añadió sin valor por defecto, nunca faltan ni están obsoletas ni al día, tenga lo que tenga el destino o el archivo de bloqueo; en un catálogo de origen `gettext-po` es un `msgstr` vacío. No se envía, escribe ni cuenta nada para ellas, y el destino conserva el valor que tenga. El mensaje da el número de claves y nombra las primeras.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: ninguno
@@ -1274,7 +1274,7 @@ Con `"redact"`, las coincidencias en los valores de estas claves se sustituyeron
 
 ### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
 
-Con `"block"` o `"redact"`, unas claves no se enviaron por una coincidencia y aparecen en `sensitiveWithheld`, o unos términos del glosario con coincidencia quedaron fuera de la petición. Con `"redact"` se retiene una clave cuando la coincidencia está en su nombre o se solapa con un marcador, o cuando un token no volvió exactamente una vez. El mensaje nombra las primeras claves completas, así que una coincidencia dentro del nombre de una clave aparece en él.
+Con `"block"` o `"redact"`, unas claves no se enviaron por una coincidencia y aparecen en `sensitiveWithheld`, o unos términos del glosario con coincidencia quedaron fuera de la petición. Con `"redact"` se retiene una clave cuando la coincidencia está en su nombre o se solapa con un placeholder, o cuando un token no volvió exactamente una vez. El mensaje nombra las primeras claves completas, así que una coincidencia dentro del nombre de una clave aparece en él.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: `1`, ya que una clave retenida deja el locale `partial` o `failed`; `0` cuando solo quedaron fuera términos del glosario, ya que el locale tiene éxito igualmente
@@ -1284,7 +1284,7 @@ Con `"block"` o `"redact"`, unas claves no se enviaron por una coincidencia y ap
 
 Se abortó el `signal` de la ejecución mientras este locale estaba en curso. Las claves aún sin traducir no se enviaron, o se abandonó su petición: quedan pendientes para la siguiente ejecución, y el locale queda `partial`, o `failed` si se retuvieron otras claves y ninguna llegó. Las traducciones que llegaron antes del aborto se escribieron y se registraron. El mensaje indica el número de claves pendientes.
 
-- **Lo lanza**: solo el SDK
+- **Lo lanza**: el SDK, cuando quien llama pasa un `signal`; la herramienta MCP `translation.translatePending` pasa la señal de cancelación del cliente
 - **Código de salida**: ninguno: ningún comando de la CLI lo lanza
 - **Siguiente paso**: Vuelve a ejecutar `translate` para enviar las claves pendientes.
 
@@ -1294,7 +1294,7 @@ Un aviso del proveedor informa de una degradación controlada en una petición c
 
 ### FORMALITY_DOWNGRADED
 
-No se aplicó un tono `formal` o `informal` solicitado, como en el plan gratuito de DeepL o con Google Cloud Translation Basic.
+No se aplicó un tono `formal` o `informal` solicitado: el nivel gratuito de DeepL o un idioma de destino de DeepL sin control de formalidad, Google Cloud Translation Basic y LibreTranslate, que no tiene ninguno.
 
 - **Lo lanza**: `translate`, `watch`
 - **Código de salida**: ninguno
@@ -1302,7 +1302,7 @@ No se aplicó un tono `formal` o `informal` solicitado, como en el plan gratuito
 
 ### GLOSSARY_IGNORED
 
-No se aplicó un glosario con traducciones obligatorias o términos que conservar: DeepL solo aplica un id de glosario nativo, y Google Cloud Translation Basic no admite glosarios.
+No se aplicó un glosario con traducciones obligatorias o términos que conservar: DeepL solo aplica un id de glosario nativo, y Google Cloud Translation Basic y LibreTranslate no admiten glosarios.
 
 - **Lo lanza**: `translate`, `watch`
 - **Código de salida**: ninguno
@@ -1310,7 +1310,7 @@ No se aplicó un glosario con traducciones obligatorias o términos que conserva
 
 ### PLACEHOLDER_UNSUPPORTED
 
-Al menos un valor quedó sin traducir con DeepL, Google Cloud Translation o LibreTranslate. Un valor se retiene cuando un placeholder no aparece literal en él, o cuando su texto fuera de los placeholders contiene `<`, `>`, `{` o `}`: argumentos ICU como plural, select o number, marcado junto a un placeholder o un signo de comparación (LibreTranslate conserva el marcado, así que allí solo cuentan las llaves). Google retiene además un valor con un salto de línea, un tabulador o un doble espacio. Un resultado se descarta cuando un marcador vuelve perdido, duplicado, reescrito o sin etiqueta, o con una entidad desconocida o una etiqueta ajena. Un valor con marcado y sin placeholders se envía sin enmascarar. Un token de otra sintaxis de placeholder distinta de la del formato cuenta aquí como placeholder.
+Al menos un valor quedó sin traducir con DeepL, Google Cloud Translation o LibreTranslate. Un valor se retiene cuando un placeholder no aparece literal en él, o cuando su texto fuera de los placeholders contiene `<`, `>`, `{` o `}`: argumentos ICU como plural, select o number, marcado junto a un placeholder o un signo de comparación (LibreTranslate deja pasar las etiquetas de marcado tal cual, así que allí solo cuentan las llaves). Google retiene además un valor con un salto de línea, un tabulador o un doble espacio. Un resultado se descarta cuando un marcador vuelve perdido, duplicado, reescrito o sin etiqueta, o con una entidad desconocida o una etiqueta ajena. Un valor con marcado y sin placeholders se envía sin enmascarar. Un token de otra sintaxis de placeholder distinta de la del formato cuenta aquí como placeholder.
 
 - **Lo lanza**: `translate`, `watch`
 - **Código de salida**: `1`: las claves aparecen en `providerFailures`, y el locale termina `partial` o `failed`

@@ -6,7 +6,7 @@ type: reference
 ---
 <AvailableFrom version="0.9.0" />
 
-Prüfe, ob ein Projekt korrekt eingerichtet ist, und bekomm jedes Problem in einem einzigen Bericht. `doctor` konstruiert keinen Provider, schreibt keine Datei und liest den Wert eines API-Keys nur für `--live`, das ihn in einer Anfrage nach der Sprachliste des Providers mitsendet (LibreTranslate bekommt keinen). Nimm es nach [`verbatra init`](/de/docs/cli/init) oder wenn ein anderer Befehl scheitert.
+Prüfe, ob ein Projekt korrekt eingerichtet ist, und bekomm jedes Problem in einem einzigen Bericht. `doctor` konstruiert keinen Provider, schreibt keine Datei und liest den Wert eines API-Keys nur für `--live`, das ihn in einer Anfrage nach der Sprachliste des Providers mitsendet (LibreTranslate bekommt keinen). Führe es nach [`verbatra init`](/de/docs/cli/init) aus oder wenn ein anderer Befehl scheitert.
 
 ## Synopsis
 
@@ -67,13 +67,13 @@ Ein Einrichtungslauf meldet diese Prüfungen in dieser Reihenfolge. Plural rules
 | Network policy | die wirksame [Netzwerkrichtlinie](/de/docs/network-policy) den Host des Providers oder einen Proxy abweist, den er nutzen würde |
 | Source locale file | die Quell-Locale-Datei unter ihrem aufgelösten Pfad fehlt, keine reguläre Datei ist oder sich im konfigurierten Format nicht parsen lässt |
 | Plural rules | nie; nennt die genutzten ICU- und CLDR-Versionen und warnt, wenn eine Ziel-Locale keine ICU-Pluralregeln hat |
-| Plural completeness | nie; warnt und nennt jeden Ziel-Plural, dem eine CLDR-Kategorie seiner Sprache fehlt, und beurteilt einen Plural ohne Formen im Ziel danach, was ein Lauf dort schreiben würde (eine leere Quellform zählt als fehlend, Plural-Generierung nur, wo sie wirklich läuft), bewusst strenger als der i18next-Hinweis von `translate` (höchstens zehn; [`verbatra check`](/de/docs/cli/check#pluralkategorien) listet die Lücken in Plurals, die ein Ziel schon hat); übersprungen bei einem Format, das Pluralformen nicht nach CLDR-Kategorie speichert |
+| Plural completeness | nie; warnt und nennt jeden Ziel-Plural, dem eine CLDR-Kategorie seiner Sprache fehlt, und beurteilt einen Plural ohne Formen im Ziel danach, was ein Lauf dort schreiben würde (eine leere Quellform zählt als fehlend, Plural-Generierung nur, wo sie wirklich läuft), bewusst strenger als der i18next-Hinweis von `translate` (höchstens zehn; [`verbatra check`](/de/docs/cli/check#pluralkategorien) listet die Lücken in Plurals, die ein Ziel schon hat) |
 | Locale codes | nie; warnt und nennt jeden gültigen, aber nicht kanonischen Code wie `en-us` oder `iw` mit der kanonischen Form (siehe [Locale-Codes](/de/docs/config-file#locale-codes)) |
-| Locale state | nie; warnt und nennt jede Locale, für die Lock-Datei, Cache oder Provenance-Datei Zustand halten, die die Konfiguration aber nicht aufführt, und ob `translate` sie [übernimmt](/de/docs/the-lock-file#ein-umgeschriebener-locale-code) |
-| Length limits | nie; warnt, wenn `verbatra.limits.json` sich nicht verwenden lässt (ein Lauf ignoriert sie, und ein Limit lässt sich erst nach der Reparatur setzen), nennt ein Limit für einen Schlüssel, den die Quelle nicht mehr hat, oder eines, das das `maxLength` der Konfiguration überschreibt, und sagt es, wenn sich die Quelle zum Prüfen der Schlüssel nicht lesen ließ; besteht, wenn die Datei fehlt ([Längenlimits](/de/docs/config-file#maxlength)) <AvailableFrom version="0.13.0" /> |
+| Locale state | nie; warnt und nennt jede Locale, für die Lock-Datei, Cache oder Herkunftsdatei Zustand halten, die die Konfiguration aber nicht aufführt, und ob `translate` sie [übernimmt](/de/docs/the-lock-file#ein-umgeschriebener-locale-code) |
+| Length limits | nie; warnt, wenn `verbatra.limits.json` sich nicht verwenden lässt (ein Lauf ignoriert sie, und ein Limit lässt sich erst nach der Reparatur setzen), nennt ein Limit für einen Key, den die Quelle nicht mehr hat, oder eines, das das `maxLength` der Konfiguration überschreibt, und sagt es, wenn sich die Quelle zum Prüfen der Keys nicht lesen ließ; besteht, wenn die Datei fehlt ([Längenlimits](/de/docs/config-file#maxlength)) <AvailableFrom version="0.13.0" /> |
 | Locale support | der Provider die Quell-Locale oder eine Ziel-Locale nicht unterstützt; warnt, wenn eine Locale eine Warnung trägt (siehe [Locale-Unterstützung](#locale-unterstützung)) |
 
-Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist. Die eine Ausnahme ist die Konfiguration: Kann sie nicht geladen werden, erscheinen die Prüfungen, die sie brauchen, als `[skip]` (`"status": "skipped"` in JSON), ebenso Plural completeness bei einem Format ohne CLDR-Pluralformen. Eine Prüfung, die etwas Beachtenswertes findet, ohne fehlzuschlagen, erscheint als `[warn]` (`"status": "warn"` in JSON) und ändert nie den Exit-Code. Eine fehlgeschlagene Prüfung trägt außerdem ein `fix`, einen nächsten Schritt im Imperativ, ausgegeben als `fix:`-Zeile und in JSON als `"fix"` mitgeliefert, damit ein Agent handeln kann, ohne `detail` zu parsen.
+Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist. Die eine Ausnahme ist die Konfiguration: Kann sie nicht geladen werden, erscheinen die Prüfungen, die sie brauchen, als `[skip]` (`"status": "skipped"` in JSON), ebenso Plural completeness bei einem Format ohne CLDR-Pluralformen. Eine Prüfung, die etwas Beachtenswertes findet, ohne fehlzuschlagen, erscheint als `[warn]` (`"status": "warn"` in JSON) und ändert nie den Exit-Code. Eine fehlgeschlagene Prüfung trägt außerdem ein `fix`, einen nächsten Schritt im Imperativ, ausgegeben als `fix:` und in JSON als `"fix"` mitgeliefert, damit ein Agent `detail` nicht parsen muss.
 
 Ein Lauf mit zwei Problemen:
 
@@ -92,6 +92,8 @@ verbatra doctor
   [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
 2 problems found (run verbatra doctor again after fixing them)
 ```
+
+Ein sauberer Lauf endet mit `no problems found`, plus `, N warnings`, wenn eine Prüfung gewarnt hat.
 
 ### Keys und Dateien
 
@@ -147,13 +149,13 @@ Nie gemeldet werden:
 
 Um ein Literal zurückzuhalten, setz `// verbatra-ignore-next-line` darüber (in JSX `{/* verbatra-ignore-next-line */}`) oder `// verbatra-ignore-line` ans Ende seiner Zeile. Eine Next-Line-Direktive zielt auf die nächste Zeile mit Code und bei einem öffnenden JSX-Tag auf alle seine Attribute. Einen String, der überall passt, trägst du mit aufgelösten Referenzen (`Tom & Jerry`) unter `extract.literals.ignore` ein. Unterdrückte Literale werden trotzdem mit Grund aufgeführt.
 
-Die Prüfung scheitert an einem Fund und an einer Datei, die sie nicht öffnen, nicht bis zum Ende lesen oder als zu groß einstuft (der Scan läuft weiter). Ein Projekt ohne `extract`-Block lässt sie scheitern.
+Die Prüfung scheitert an einem Fund und an einer Datei, die sie nicht öffnen oder nicht bis zum Ende lesen konnte oder als zu groß eingestuft hat (der Scan läuft weiter). Ein Projekt ohne `extract`-Block lässt sie scheitern.
 
 ### Datenfluss
 
 <AvailableFrom version="0.12.0" />
 
-`--data-flow` beschreibt statt der Einrichtung, wohin die Daten dieses Projekts gehen, als Nachweis für ein AVV- oder NDA-Review; [Datenverarbeitung](/de/docs/data-handling) erklärt jede Kategorie. Es liest keinen API-Key und macht keinen Netzwerk-Request. Nur zwei Prüfungen laufen: Configuration und Data flow. Data flow schlägt nie fehl: Es zeigt `[warn]`, wenn die [Network Policy](/de/docs/network-policy) einen Host ablehnt oder einen ungültigen Wert hat, oder wenn die Quelldatei für die Zählungen nicht lesbar ist.
+`--data-flow` beschreibt statt der Einrichtung, wohin die Daten dieses Projekts gehen, als Nachweis für ein AVV- oder NDA-Review; [Datenverarbeitung](/de/docs/data-handling) erklärt jede Kategorie. Es liest keinen API-Key und macht keine Netzwerk-Anfrage. Nur zwei Prüfungen laufen: Configuration und Data flow. Data flow schlägt nie fehl: Es zeigt `[warn]`, wenn die [Netzwerkrichtlinie](/de/docs/network-policy) einen Host ablehnt oder einen ungültigen Wert hat, oder wenn die Quelldatei für die Zählungen nicht lesbar ist.
 
 ```text output
   [ok  ] Data flow: Provider "deepl" sends source-text, placeholder-markers, language-codes to api.deepl.com (permitted), api-free.deepl.com (permitted).
@@ -170,6 +172,7 @@ Die Prüfung scheitert an einem Fund und an einer Datei, die sie nicht öffnen, 
     locale       de  sent as DE  glossary terms: 0
     local        lock  verbatra.lock.json  (no source text, translations or personal data)
     local        provenance  verbatra.provenance.json  (reviewer names)
+    local        limits  verbatra.limits.json  (no source text, translations or personal data)
     local        cache  verbatra.cache.json  (source text, translations, gitignored by init)
     local        local-state  .verbatra-local  (source text, host name and process ID of a run holding a write lock, gitignored by init)
     request      language-list  verbatra doctor --live  sends the API key
@@ -178,7 +181,7 @@ Die Prüfung scheitert an einem Fund und an einer Datei, die sie nicht öffnen, 
     agent        studio-agent-tools  verbatra studio --expose-agent-tools
 ```
 
-Das Manifest nennt den Provider; jeden Ziel-Host, woher er kommt (eingebaut, `provider.options.baseUrl` oder eine `*_BASE_URL`-Variable) und das Urteil der Policy (`permitted`, `deferred`, `refused` oder `invalid-policy`); die Arten gesendeter Daten, mit der Zahl der Quell-Keys, der Keys mit Beschreibung oder Bedeutung und der Keys, deren Platzhalter der Provider nicht maskieren kann (eine Schätzung über die Quell-Keys: Ein Lauf sendet nur fehlende oder geänderte Keys und kann unter `sensitiveData: redact` mehr zurückhalten); Code und Zahl der Glossarbegriffe je Ziel-Locale; die lokalen Dateien mit ihren projektrelativen Pfaden und ob sie Quelltext, Übersetzungen oder personenbezogene Daten enthalten; und die übrigen Requests und Agent-Schnittstellen. DeepL steht mit beiden Hosts drin, weil der Key, der einen davon wählt, nie gelesen wird. Ein wirksamer Proxy steht mit Variable und Host drin, nie mit seinen Zugangsdaten, und die Felder nennen nur, was diese Config senden kann. Mit `provider: { id: "none" }` sagt es, dass nichts gesendet wird. Es nennt Hosts, Datenkategorien und Bedingungen, nie einen Key-Wert oder Dateiinhalte.
+Das Manifest nennt den Provider; jeden Ziel-Host, woher er kommt (eingebaut, `provider.options.baseUrl` oder eine `*_BASE_URL`-Variable) und das Urteil der Richtlinie (`permitted`, `deferred`, `refused` oder `invalid-policy`); die Arten gesendeter Daten, mit der Zahl der Quell-Keys, der Keys mit Beschreibung oder Bedeutung und der Keys, deren Platzhalter der Provider nicht maskieren kann (eine Schätzung über die Quell-Keys: Ein Lauf sendet nur fehlende oder geänderte Keys und kann unter `sensitiveData: redact` mehr zurückhalten); Code und Zahl der Glossarbegriffe je Ziel-Locale; die lokalen Dateien mit ihren projektrelativen Pfaden und ob sie Quelltext, Übersetzungen oder personenbezogene Daten enthalten; und die übrigen Anfragen und Agent-Schnittstellen. DeepL steht mit beiden Hosts drin, weil der Key, der einen davon wählt, nie gelesen wird. Ein wirksamer Proxy steht mit Variable und Host drin, nie mit seinen Zugangsdaten, und die Felder nennen nur, was diese Konfiguration senden kann. Mit `provider: { id: "none" }` sagt es, dass nichts gesendet wird. Es nennt Hosts, Datenkategorien und Bedingungen, nie einen Key-Wert oder Dateiinhalte.
 
 Mit `--json` steht das Manifest unter `result.dataFlow`. Sein Feld `version` ändert sich nur, wenn ein Feld umbenannt oder entfernt wird; neue Felder können ohne Erhöhung dazukommen, ignoriere also die, die du nicht kennst. [`dataFlowManifestSchema`](/de/docs/sdk/inspect#dataflowmanifestschema) aus dem SDK validiert es.
 

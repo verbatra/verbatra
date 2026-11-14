@@ -40,7 +40,7 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 
 ### Configuration
 
-`extract` is driven by the [`extract` block](/docs/config-file#extract) in your config. A run without one fails with `EXTRACT_NOT_CONFIGURED` and exit `2`. For `i18next-json`, `verbatra init` writes the block as a comment in the generated config; uncomment it and adjust `roots`.
+`extract` is driven by the [`extract` block](/docs/config-file#extract) in your config. A run without one fails with `EXTRACT_NOT_CONFIGURED` and exit `2`. For `i18next-json`, `verbatra init` writes the block as a comment in the generated config; uncomment it and adjust `roots`. <AvailableFrom version="0.13.5" />
 
 ```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/cli";
@@ -143,6 +143,8 @@ verbatra extract
     src/routes/product.tsx:88
 next: verbatra translate (translate the new keys)
 ```
+
+Each list shows ten rows, then `and N more`. The summary can also list `written with an empty value`, `conflicting defaults` and `skipped` files; a dry run says `would add` and ends with `dry run, nothing written`.
 
 See [Terminal output](/docs/cli/output#terminal-output) for color, the spinner and the variables that control them.
 

@@ -45,7 +45,7 @@ Jeder Lauf übersetzt die `--locales`-Teilmenge oder jedes Ziel, mit einem frisc
 
 Eine `--concurrency` über `1` zusammen mit einem konfigurierten `maxTokens`-Budget wird beim Start mit Exit `2` abgelehnt, noch vor dem ersten Lauf, weil sonst die Reihenfolge der Locales entscheiden würde, welche ihre restliche Arbeit verliert.
 
-Ein Provider, der sich nicht erzeugen lässt, meist weil seine API-Key-Variable fehlt, wird ebenfalls beim Start abgelehnt: `watch` endet mit Exit `2` und `PROVIDER_CONSTRUCTION_FAILED` sowie einer `next:`-Zeile, die die Variable nennt, genau wie `translate`, statt auf Änderungen zu warten, die kein Lauf übersetzen könnte. Vor 0.12.0 wartete es weiter.
+Ein Provider, der sich nicht erzeugen lässt, meist weil seine API-Key-Variable fehlt, wird ebenfalls beim Start abgelehnt: `watch` endet mit Exit `2` und `PROVIDER_CONSTRUCTION_FAILED` sowie einer `next:`-Zeile, die die Variable nennt, genau wie `translate`, statt auf Änderungen zu warten, die kein Lauf übersetzen könnte. Vor 0.12.0 wartete es weiter. `watch` lehnt beim Start außerdem mit Exit `2` eine Locale ab, die der Provider nicht unterstützt (`LOCALE_UNSUPPORTED_BY_PROVIDER`), einen Host, den die Netzwerkrichtlinie ablehnt (`NETWORK_POLICY_VIOLATION`), und eine fehlende Quelldatei (`SOURCE_UNREADABLE`).
 
 ### Stoppen
 
@@ -66,6 +66,10 @@ Mit `--json` ist stdout NDJSON: ein [Envelope](/de/docs/cli/output#json-ausgabe)
 Ohne `--json` nennt `watch` die Quelldatei, sobald sich eine Änderung daran gesetzt hat, und meldet den Lauf dann wie `translate`, mit demselben Spinner in einem interaktiven Terminal:
 
 ```text output
+verbatra: watching en (locales/{locale}.json); running initial translation
+verbatra: press Ctrl-C to stop
+...
+verbatra: waiting for changes...
 verbatra: change detected: locales/en.json
 verbatra: translating de
 verbatra: de batch 1/1

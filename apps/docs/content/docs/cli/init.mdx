@@ -4,7 +4,7 @@ seoTitle: "verbatra init: scaffold a config for your project"
 description: Create a verbatra config and .env example for this project, detected from your locale files, interactively or fully unattended.
 type: reference
 ---
-Scaffold a project: `init` writes a `verbatra.config.ts`, a `.env.example` naming your provider's API key variable (never a key value), and the `.gitignore` entries for `.env`, `.env.local`, `.verbatra-local/` and `verbatra.cache.json`. It reads the locale files already in the project first, so usually the provider is all you have to tell it.
+Scaffold a project: `init` writes a `verbatra.config.ts`, a `.env.example` naming your provider's API key variable (never a key value), and the `.gitignore` entries for `.env`, `.env.local`, `.verbatra-local/` and `verbatra.cache.json`. For `i18next-json` the config also gets a commented `extract` block to uncomment. It reads the locale files already in the project first, so usually the provider is all you have to tell it.
 
 ## Synopsis
 
@@ -177,7 +177,7 @@ A directory `init` cannot write to is refused with `INIT_UNWRITABLE`, naming the
 
 <AvailableFrom version="0.12.0" />
 
-`--dry-run` runs every check and refusal of a real run except a failed write, such as a read-only directory, prints `would create`, `would update`, `would overwrite` or `unchanged` for each file, and writes nothing. The JSON result lists the planned actions and sets `dryRun` to `true`.
+`--dry-run` runs every check and refusal of a real run except a failed write, such as a read-only directory, prints `would create`, `would update`, `would overwrite` or `unchanged` for each file, and writes nothing.
 
 ### Set up coding agents
 

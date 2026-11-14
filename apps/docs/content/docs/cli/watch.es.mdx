@@ -4,7 +4,7 @@ seoTitle: "verbatra watch: retraduce con cada cambio"
 description: "Retraduce en cada cambio del origen hasta que lo interrumpas, para que los locales sigan al día; cada ejecución solo envía claves nuevas o cambiadas."
 type: reference
 ---
-Vigila el archivo del locale de origen y vuelve a traducir tras cada cambio, con anti-rebote, hasta que lo interrumpas. `watch` ejecuta una traducción inicial al arrancar y luego mantiene al día tus locales de destino mientras guardas. Cada ejecución funciona como [`verbatra translate`](/es/docs/cli/translate), salvo que `watch` no tiene `--dry-run`, `--prune`, `--include-human`, `--estimate` ni `--max-tokens` y nunca sale con `3`. Al arrancar también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/es/docs/cli#entradas-de-gitignore).
+Vigila el archivo del locale de origen y vuelve a traducir tras cada cambio, con antirrebote, hasta que lo interrumpas. `watch` ejecuta una traducción inicial al arrancar y luego mantiene al día tus locales de destino mientras guardas. Cada ejecución funciona como [`verbatra translate`](/es/docs/cli/translate), salvo que `watch` no tiene `--dry-run`, `--prune`, `--include-human`, `--estimate` ni `--max-tokens` y nunca sale con `3`. Al arrancar también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/es/docs/cli#entradas-de-gitignore).
 
 ## Sinopsis
 
@@ -45,7 +45,7 @@ Cada ejecución traduce el subconjunto de `--locales`, o todos los destinos, con
 
 Un `--concurrency` mayor que `1` junto con un presupuesto `maxTokens` configurado se rechaza al arrancar con salida `2`, antes de la primera ejecución, porque el orden en que se intercalan los locales decidiría cuál pierde el trabajo restante.
 
-Un proveedor que no se puede construir, casi siempre porque falta su variable de API key, también se rechaza al arrancar: `watch` sale con `2` y `PROVIDER_CONSTRUCTION_FAILED` y una línea `next:` que nombra la variable, igual que `translate`, en lugar de esperar cambios que ninguna ejecución podría traducir. Antes de 0.12.0 seguía esperando.
+Un proveedor que no se puede construir, casi siempre porque falta su variable de clave de API, también se rechaza al arrancar: `watch` sale con `2` y `PROVIDER_CONSTRUCTION_FAILED` y una línea `next:` que nombra la variable, igual que `translate`, en lugar de esperar cambios que ninguna ejecución podría traducir. Antes de 0.12.0 seguía esperando. `watch` también rechaza al arrancar, con salida `2`, un locale que el proveedor no admite (`LOCALE_UNSUPPORTED_BY_PROVIDER`), un host que rechaza la política de red (`NETWORK_POLICY_VIOLATION`) y un archivo de origen ausente (`SOURCE_UNREADABLE`).
 
 ### Detención
 
@@ -66,6 +66,10 @@ Con `--json`, stdout es NDJSON: un [envoltorio](/es/docs/cli/output#salida-json)
 Sin `--json`, `watch` nombra el archivo de origen cuando un cambio se ha asentado y luego informa de la ejecución como `translate`, con el mismo spinner en un terminal interactivo:
 
 ```text output
+verbatra: watching en (locales/{locale}.json); running initial translation
+verbatra: press Ctrl-C to stop
+...
+verbatra: waiting for changes...
 verbatra: change detected: locales/en.json
 verbatra: translating de
 verbatra: de batch 1/1

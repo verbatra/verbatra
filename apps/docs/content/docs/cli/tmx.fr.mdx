@@ -89,21 +89,21 @@ La mémoire du projet l'emporte : une traduction importée qui diffère d'une tr
 `--overwrite` remplace des traductions que la mémoire possède déjà, et les exécutions suivantes réutilisent ces remplacements. Lance-le d'abord avec `--dry-run` pour voir le compte `overwritten`.
 </Callout>
 
-Les unités importées sont stockées sous l'empreinte de configuration actuelle du projet : elles sont réutilisées exactement tant que le fournisseur, le modèle, le ton, les termes du glossaire que verbatra enverrait et `localeMap` ne changent pas. Réimporte le fichier après un tel changement. Un fichier de mémoire écrit par un verbatra plus récent reste intact ; les comptes sont tout de même rapportés, comme lors d'un dry run.
+Les unités importées sont stockées sous l'empreinte de configuration actuelle du projet : elles sont réutilisées exactement tant que le fournisseur, le modèle, le ton, les termes du glossaire que verbatra enverrait et `localeMap` ne changent pas. Réimporte le fichier après un tel changement. Un fichier de mémoire écrit par un verbatra plus récent reste intact ; les comptes sont tout de même rapportés, comme lors d'une exécution à blanc.
 
 ### Les unités importées et la réutilisation floue
 
-Le texte source d'une unité acceptée rejoint l'index contre lequel la [réutilisation floue](/fr/docs/the-cache) évalue les chaînes modifiées, donc une source importée qui diffère d'une de tes chaînes peut servir pour celle-ci. Une telle réutilisation passe quand même le contrôle d'intégrité face à ta vraie entrée et porte le marqueur de relecture `FUZZY_CACHE_REUSE`. Une source importée identique à une de tes chaînes mais au hash différent (ton entrée a une description ou un sens que TMX ne peut pas porter) n'est jamais réutilisée. Une forme plurielle est retrouvée par son texte : l'import reprend le marqueur de pluriel de ton fichier source, donc `cart.items_one` et `cart.items_other` se remplissent depuis la mémoire comme toute autre clé. Retire `fuzzyCache` de ta config pour n'autoriser que les correspondances exactes.
+Le texte source d'une unité acceptée rejoint l'index contre lequel la [réutilisation floue](/fr/docs/the-cache) évalue les chaînes modifiées, donc une source importée qui diffère d'une de tes chaînes peut servir pour celle-ci. Une telle réutilisation passe quand même le contrôle d'intégrité face à ta vraie entrée et porte le signalement de relecture `FUZZY_CACHE_REUSE`. Une source importée identique à une de tes chaînes mais au hash différent (ton entrée a une description ou un sens que TMX ne peut pas porter) n'est jamais réutilisée. Une forme plurielle est retrouvée par son texte : l'import reprend le marqueur de pluriel de ton fichier source, donc `cart.items_one` et `cart.items_other` se remplissent depuis la mémoire comme toute autre clé. Retire `fuzzyCache` de ta config pour n'autoriser que les correspondances exactes.
 
 ### Ce qu'écrit l'export
 
-Un `tu` par chaîne source distincte, avec le segment source et un segment cible par locale exportée, sous un en-tête TMX 1.4b (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Seules les entrées sous l'empreinte de configuration actuelle sont écrites ; celles stockées sous une configuration antérieure de fournisseur, de modèle, de ton ou de glossaire sont écartées et comptées dans `otherConfiguration`, avec leur propre ligne dans le résumé. Les étiquettes de langue sont écrites en forme BCP 47 (`en_US` devient `en-US`), les caractères que XML 1.0 ne peut pas représenter sont retirés et comptés, et une mémoire vide produit un fichier valide et vide. Les entrées sans texte source stocké, héritées d'un ancien cache, sont écartées et comptées. Le résumé compte des éléments `tu` dans son total et des segments cibles par locale, donc les nombres par locale dépassent le total dès qu'une chaîne est traduite dans plusieurs locales.
+Un `tu` par chaîne source distincte, avec le segment source et un segment cible par locale exportée, sous un en-tête TMX 1.4b (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Seules les entrées sous l'empreinte de configuration actuelle sont écrites ; celles stockées sous une configuration antérieure de fournisseur, de modèle, de ton ou de glossaire sont écartées et comptées dans `otherConfiguration`, avec leur propre ligne dans le résumé. <AvailableFrom version="0.13.5" /> Les étiquettes de langue sont écrites en forme BCP 47 (`en_US` devient `en-US`), les caractères que XML 1.0 ne peut pas représenter sont retirés et comptés, et une mémoire vide produit un fichier valide et vide. Les entrées sans texte source stocké, héritées d'un ancien cache, sont écartées et comptées. Le résumé compte des éléments `tu` dans son total et des segments cibles par locale, donc les nombres par locale dépassent le total dès qu'une chaîne est traduite dans plusieurs locales.
 
 <AvailableFrom version="0.12.0" />
 
-Chaque segment cible porte `<prop type="x-origin">` (`machine`, `human`, `import` ou `unknown`) tiré de `verbatra.provenance.json`, et un segment `machine` porte aussi `<prop type="x-review">` (`approved`, `unreviewed` ou `rejected`). Si le fichier de provenance ou le fichier de lock est illisible, aucune propriété n'est écrite et le résultat indique `provenanceMarkers: "unavailable"`. Voir [Preuves de traduction automatique](/fr/docs/provenance-evidence#tmx).
+Chaque segment cible porte `<prop type="x-origin">` (`machine`, `human`, `import` ou `unknown`) tiré de `verbatra.provenance.json`, et un segment `machine` porte aussi `<prop type="x-review">` (`approved`, `unreviewed` ou `rejected`). Si le fichier de provenance ou le fichier de verrouillage est illisible, aucune propriété n'est écrite et le résultat indique `provenanceMarkers: "unavailable"`. Voir [Preuves de traduction automatique](/fr/docs/provenance-evidence#tmx).
 
-Le fichier n'est écrit que dans la racine du projet. Un chemin qui ne nomme aucun fichier, sort de la racine du projet ou vise un fichier dont dépend le projet (un fichier de locale, le fichier de lock, de provenance ou de cache, un fichier de config, le fichier de glossaire) est refusé avec `TMX_OUTPUT_CONFLICT` avant la lecture de la mémoire, y compris après résolution des liens symboliques. Si l'écriture échoue sur le disque, l'exécution s'arrête avec `TMX_UNWRITABLE`, en nommant le fichier et le code du système de fichiers.
+Le fichier n'est écrit que dans la racine du projet. Un chemin qui ne nomme aucun fichier, sort de la racine du projet ou vise un fichier dont dépend le projet (un fichier de locale, le fichier de verrouillage, de provenance ou de cache, un fichier de config, le fichier de glossaire) est refusé avec `TMX_OUTPUT_CONFLICT` avant la lecture de la mémoire, y compris après résolution des liens symboliques. Si l'écriture échoue sur le disque, l'exécution s'arrête avec `TMX_UNWRITABLE`, en nommant le fichier et le code du système de fichiers.
 
 ### Sortie JSON
 
@@ -129,7 +129,7 @@ Chaque locale de l'import rapporte les comptes `added`, `unchanged`, `overwritte
 
 <AvailableFrom version="0.12.0" />
 
-Les deux directions affichent une ligne de progression sur stderr. `tmx import` suggère ensuite `verbatra translate`, ou le vrai import après un dry run ; cette suggestion garde le fichier, `--overwrite`, `--locales`, `--cwd` et `--config`. `tmx export` ne suggère rien :
+Les deux directions affichent une ligne de progression sur stderr. `tmx import` suggère ensuite `verbatra translate`, ou le vrai import après une exécution à blanc ; cette suggestion garde le fichier, `--overwrite`, `--locales`, `--cwd` et `--config`. `tmx export` ne suggère rien :
 
 ```text output
 verbatra: importing legacy.tmx into the memory... done (0.2s)
@@ -151,5 +151,5 @@ Pour un fichier invalide, le message nomme la ligne, la colonne et l'unité où 
 
 - [Le cache](/fr/docs/the-cache) explique la mémoire de traduction et sa clé.
 - [Traduction manuelle](/fr/docs/manual-translation) couvre la remise des chaînes en attente à une personne en xlsx, CSV et TSV.
-- [Sécurité des traductions](/fr/docs/translation-safety) explique les vérifications que passe une unité importée.
+- [Sûreté de la traduction](/fr/docs/translation-safety) explique les vérifications que passe une unité importée.
 - [`tmxErrorLocation`](/fr/docs/sdk/exchange#tmxerrorlocation) lit depuis le SDK l'emplacement d'une erreur TMX.

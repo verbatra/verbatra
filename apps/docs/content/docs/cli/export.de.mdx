@@ -47,7 +47,7 @@ Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--c
 
 Eine Datei mit Trennzeichen lässt sich diffen und überall öffnen, hat aber keinen Zellschutz: Jede Spalte ist bearbeitbar, und die Spalte `Source hash` ist sichtbar. Einem geänderten Hash wird nie vertraut: Der Import vergleicht ihn mit der aktuellen Quelle und hält die Zeile zurück.
 
-Jeder Export mit Trennzeichen schreibt zusätzlich ein verstecktes Manifest, `.verbatra-export-csv.json` oder `.verbatra-export-tsv.json`, das die geschriebenen Locales benennt. Ein späterer Export mit engerem `--locales` legt die weggefallenen Locales still: ihre Dateien bleiben liegen, und [`verbatra import`](/de/docs/cli/import) weist sie als Überbleibsel zurück. Der Export löscht nie etwas aus dem Ausgabeverzeichnis.
+Jeder Export mit Trennzeichen schreibt zusätzlich ein verstecktes Manifest, `.verbatra-export-csv.json` oder `.verbatra-export-tsv.json`, das die geschriebenen Locales benennt. Ein späterer Export mit engerem `--locales` legt die weggefallenen Locales still: Ihre Dateien bleiben liegen, und [`verbatra import`](/de/docs/cli/import) weist sie als Überbleibsel zurück. Der Export löscht nie etwas aus dem Ausgabeverzeichnis.
 
 ### XLIFF
 
@@ -61,7 +61,7 @@ Jedes Ziel sagt außerdem, woher es stammt. In XLIFF 1.2 trägt ein Ziel, das ei
 
 Die Übergabe landet nur innerhalb der Projektwurzel. Bevor irgendetwas gelesen wird, lehnt `export` mit `EXPORT_OUTPUT_CONFLICT` ein `--out` ab, das aus der Projektwurzel hinausführt oder (selbst oder über eine Datei, die es schreiben würde) eine Datei benennt, von der das Projekt abhängt: eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Konfigurationsdatei, nach der verbatra sucht, die Konfiguration des Laufs oder die konfigurierte `glossary`-Datei. Bei `xlsx` wird auch ein Pfad abgelehnt, der keine Datei benennt (etwa `out/`) oder die Projektwurzel selbst ist. Namen werden ohne Beachtung der Groß- und Kleinschreibung verglichen, und die Prüfungen laufen nach dem Auflösen symbolischer Links noch einmal.
 
-Ein Pfad, der besteht, kann beim Schreiben trotzdem scheitern (nicht schreibbar, etwas im Weg, Platte voll): Der Lauf bricht dann mit `EXPORT_UNWRITABLE` ab und nennt die Datei und den Dateisystem-Code.
+Ein Pfad, der die Prüfungen besteht, kann beim Schreiben trotzdem scheitern (nicht schreibbar, etwas im Weg, Platte voll): Der Lauf bricht dann mit `EXPORT_UNWRITABLE` ab und nennt die Datei und den Dateisystem-Code.
 
 Eine Ziel-Locale, die ihr Blatt oder ihre Datei nicht benennen kann, stoppt den Export mit `WORKBOOK_INVALID`. Ein xlsx-Blattname muss 1 bis 31 Zeichen lang sein, darf keines der Zeichen `: \ / ? * [ ]` enthalten und darf, ohne Beachtung der Groß- und Kleinschreibung, weder `Instructions` noch dem Blattnamen einer anderen Ziel-Locale entsprechen. Ein `csv`-, `tsv`- oder `xlf`-Dateiname darf nicht leer, `.` oder `..` sein und kein Pfadtrennzeichen, kein Steuerzeichen und keines der Zeichen `: * ? " < > |` enthalten. Derselbe Code gilt für eine Arbeitsmappe, die sich nicht serialisieren ließ.
 
@@ -76,9 +76,11 @@ verbatra: exporting to xlsx... done (0.3s)
 next: verbatra import verbatra-translations.xlsx (once your translators have filled it in)
 ```
 
-Ist nichts offen und wurde `--include-unchanged` nicht übergeben, hat die Datei keine Zeilen, und die `next:`-Zeile schlägt stattdessen denselben Export mit `--include-unchanged` vor, mit `--format`, `--out`, `--locales`, `--cwd` und `--config`.
+Ist nichts offen und wurde `--include-unchanged` nicht übergeben, hat die Datei keine Zeilen, und die `next:`-Zeile schlägt stattdessen denselben Export mit `--include-unchanged` vor und übernimmt dabei `--format`, `--out`, `--locales`, `--cwd` und `--config`. <AvailableFrom version="0.13.5" />
 
 Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
+
+Eine `verbatra.limits.json`, die sich nicht verwenden lässt, wird mit einer Warnung auf stderr ignoriert (`LIMITS_FILE_IGNORED` bei `--json`).
 
 ### JSON-Ausgabe
 
@@ -91,6 +93,7 @@ Mit `--json` trägt der [Envelope](/de/docs/cli/output#json-ausgabe), wohin die 
   path: string;                // absolute path: the workbook for xlsx, the output directory otherwise
   locales: { locale: string; rows: number }[];
   provenanceMarkers?: "written" | "unavailable"; // XLIFF formats only
+  limitsNotice?: { code: "LIMITS_FILE_IGNORED"; message: string };
 }
 ```
 
@@ -105,6 +108,6 @@ Mit `--json` trägt der [Envelope](/de/docs/cli/output#json-ausgabe), wohin die 
 
 ## Siehe auch
 
-- [Menschliche Übersetzung](/de/docs/manual-translation) behandelt den Aufbau der Arbeitsmappe, die Review-Spalten und den vollständigen Roundtrip.
+- [Manuelle Übersetzung](/de/docs/manual-translation) behandelt den Aufbau der Arbeitsmappe, die Review-Spalten und den vollständigen Roundtrip.
 - [An eine Übersetzungsagentur übergeben](/de/docs/translation-agency) behandelt die XLIFF-Übergabe für ein CAT-Tool.
 - [`verbatra import`](/de/docs/cli/import) liest die ausgefüllte Übergabe zurück.

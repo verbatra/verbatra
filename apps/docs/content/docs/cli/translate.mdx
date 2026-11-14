@@ -4,7 +4,7 @@ seoTitle: "verbatra translate: translate changed keys once"
 description: "Translate every target locale once, sending only new and changed keys to your provider, then write the results and exit."
 type: reference
 ---
-Run one translation pass over every target locale, then exit. `translate` diffs the source against [the lock file](/docs/the-lock-file), sends only new or changed strings to the provider, runs the [integrity checks](/docs/translation-safety), writes the locale files, and updates the lock. An unchanged string is never sent twice. A real run also adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).
+Run one translation pass over every target locale, then exit. `translate` diffs the source against [the lock file](/docs/the-lock-file), sends only new or changed strings to the provider, runs the [integrity checks](/docs/translation-safety), writes the locale files, and updates the lock. An unchanged string is never sent twice. A real run also records provenance, new cache entries and, under `.verbatra-local/`, the run status and history, and adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).
 
 ## Synopsis
 
@@ -72,7 +72,7 @@ By default a run deletes nothing: orphaned keys are reported and left in place. 
 
 <AvailableFrom version="0.11.0" />
 
-`--estimate` adds a pre-run estimate to the dry run: how many keys would be sent, how many provider requests they would take, and the quantity the provider bills for (tokens for an LLM or an `openai-compatible` endpoint, source characters for DeepL, Google Cloud Translation or LibreTranslate; a self-hosted endpoint or server is not billed, so the estimate reports no API cost). A currency figure appears only when the config has a `rates` block covering the provider and model; otherwise the missing rate key is named instead of inventing `0.00`. See [Estimating cost](/docs/estimating-cost).
+`--estimate` adds a pre-run estimate to the dry run: how many keys would be sent, how many provider requests they would take, and the quantity the provider bills for (tokens for an LLM or an `openai-compatible` endpoint, source characters for DeepL, Google Cloud Translation or LibreTranslate; a self-hosted endpoint or server is not billed, so the estimate reports no API cost). A currency figure appears only when the config has a `rates` block covering the provider and model; otherwise the missing rate key is named instead of inventing `0.00`. The output ends with an `estimate excludes:` line naming what the figure leaves out, and a rate stored in another unit than the provider bills is reported as a mismatch, not priced. See [Estimating cost](/docs/estimating-cost).
 
 ### A subset of locales
 
@@ -100,6 +100,8 @@ A locale waits up to `--lock-timeout` for a contended [write lock](/docs/the-loc
 
 A stale key whose value a person wrote, imported, or changed outside verbatra is kept by default: it is listed as `protected`, not sent to the provider, and stays stale for `verbatra check`. A stderr warning says how many were kept (pinned keys are not counted) and points to `--include-human`, which retranslates them for one run (`humanEdits: "overwrite"`) and so prints no warning. Protected keys do not change the exit code, except in a human-only project. See [Protecting human translations](/docs/protecting-human-translations).
 
+[`verbatra.limits.json`](/docs/config-file#maxlength) also applies; one that cannot be used is ignored and every locale carries a `LIMITS_FILE_IGNORED` notice.
+
 ### Human-only projects
 
 <AvailableFrom version="0.12.0" />
@@ -110,7 +112,7 @@ In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`
 
 <AvailableFrom version="0.9.0" />
 
-One locale failing is not fatal: the run finishes and exits `1`. A **partial** locale exits `1` too: its file was written but keys are still missing, typically because a provider sub-batch failed or the integrity gate refused a translation. The human output lists every refused key under `integrity-withheld` with its reason (`placeholder`, `markup`, `icu`, `degenerate`, or `empty`); with `--json`, each locale carries them in `integrityRefusals`. Keys the run flagged for review follow the locale's `N needs-review` count under a `needs-review:` line, each with its [review reasons](/docs/translation-safety#review-flags); with `--json` they are in `needsReview`.
+One locale failing is not fatal: the run finishes and exits `1`. A **partial** locale exits `1` too: its file was written but keys are still missing, typically because a provider sub-batch failed or the integrity gate refused a translation. The human output lists every refused key under `integrity-withheld` with its reason (`placeholder`, `markup`, `icu`, `degenerate`, or `empty`); with `--json`, each locale carries them in `integrityRefusals`. Keys the run flagged for review follow the locale's `N needs-review` count under a `needs-review:` line, each with its [review reasons](/docs/translation-safety#review-flags); with `--json` they are in `needsReview`. <AvailableFrom version="0.13.5" />
 
 ### Unsupported locales
 
@@ -122,7 +124,7 @@ A locale the configured DeepL or Google Cloud Translation provider does not supp
 
 Schema: [`translate-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/translate-envelope.json) validates the whole envelope; [Schemas](/docs/cli/output#schemas) lists the others.
 
-With `--json`, stdout carries one [envelope](/docs/cli/output#json-output) whose `result` is a `RunSummary`; [RunSummary](/docs/sdk/run-summary) lists every field, for the run and for each locale.
+With `--json`, stdout carries one [envelope](/docs/cli/output#json-output) whose `result` is a `RunSummary`; [RunSummary](/docs/sdk/run-summary) lists every field, for the run and for each locale. With `--json`, stderr also carries one JSON line per `locale-started`, `sub-batch`, `locale-finished` and `run-finished` event, plus `lock-wait` and `interrupted` records; [`stderr-record.json`](/docs/cli/output#schemas) validates them.
 
 ### Terminal feedback
 
@@ -144,6 +146,8 @@ verbatra: run finished, 2 locales processed
 [ok] done in 4.2s, 1830 tokens
 next: verbatra check (confirm every locale is in sync)
 ```
+
+A real run that exits non-zero closes with `[warn] finished in 4.2s, 1830 tokens, see the summary above` instead of `[ok] done in`, followed by the provider's next step when the error has one.
 
 A dry run opens with `dry run over 2 locales, no provider call`, an estimate with `estimating 2 locales, no provider call`, and a human-only project with `filling 2 locales from the translation memory (provider none)`. A dry run or an estimate ends each locale with `would translate` instead. A locale that kept only some keys ends with `partly done`, one that failed with `failed`, and the closing line adds how many failed. A dry run closes with `dry run done in 4.2s, nothing written`. An estimate closes with `estimate done in 4.2s, nothing written` <AvailableFrom version="0.13.0" />. These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
 

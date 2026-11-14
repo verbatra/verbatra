@@ -40,7 +40,7 @@ Accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--
 
 ### Configuration
 
-`extract` est piloté par le [bloc `extract`](/fr/docs/config-file#extract) de ta configuration. Une exécution sans lui échoue avec `EXTRACT_NOT_CONFIGURED` et la sortie `2`. Pour `i18next-json`, `verbatra init` écrit le bloc en commentaire dans la configuration générée ; décommente-le et ajuste `roots`.
+`extract` est piloté par le [bloc `extract`](/fr/docs/config-file#extract) de ta configuration. Une exécution sans lui échoue avec `EXTRACT_NOT_CONFIGURED` et la sortie `2`. Pour `i18next-json`, `verbatra init` écrit le bloc en commentaire dans la configuration générée ; décommente-le et ajuste `roots`. <AvailableFrom version="0.13.5" />
 
 ```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/cli";
@@ -144,6 +144,8 @@ verbatra extract
 next: verbatra translate (translate the new keys)
 ```
 
+Chaque liste affiche dix lignes, puis `and N more`. Le résumé peut aussi lister `written with an empty value`, `conflicting defaults` et des fichiers `skipped` ; une exécution à blanc affiche `would add` et se termine par `dry run, nothing written`.
+
 Consulte [Sortie dans le terminal](/fr/docs/cli/output#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
 
 ## Codes de sortie
@@ -151,7 +153,7 @@ Consulte [Sortie dans le terminal](/fr/docs/cli/output#sortie-dans-le-terminal) 
 | Code | Signification |
 | --- | --- |
 | `0` | l'analyse s'est exécutée, quoi qu'elle ait trouvé |
-| `2` | exécution impossible : une erreur d'utilisation, aucun bloc `extract`, un format qui ne résout pas, un catalogue source illisible ou un catalogue source qui n'a pas pu être écrit |
+| `2` | exécution impossible : une erreur d'utilisation, aucun bloc `extract`, un format impossible à résoudre, un catalogue source impossible à analyser ou un catalogue source qui n'a pas pu être écrit |
 
 Il n'y a pas de sortie `1` : les appels dynamiques et les valeurs par défaut en conflit sont des constats, pas des échecs. Consulte [Codes de sortie](/fr/docs/cli/output#codes-de-sortie) pour le contrat que suit chaque commande.
 

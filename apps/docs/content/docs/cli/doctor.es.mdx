@@ -43,7 +43,7 @@ verbatra doctor --data-flow --json
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--literals` | ninguno | desactivado | en lugar de revisar la configuración, busca strings visibles para el usuario escritos a mano en las raíces de código del [bloque `extract`](/es/docs/config-file#extract) (ver [Literales sin traducir](#literales-sin-traducir)) |
+| `--literals` | ninguno | desactivado | en lugar de revisar la configuración, busca cadenas visibles para el usuario escritas a mano en las raíces de código del [bloque `extract`](/es/docs/config-file#extract) (ver [Literales sin traducir](#literales-sin-traducir)) |
 | `--locales` | ninguno | desactivado | tras las comprobaciones, lista por locale de destino el código enviado, el soporte del proveedor, el glosario y la formalidad (ver [Soporte de locales](#soporte-de-locales)) |
 | `--live` | ninguno | desactivado | primero descarga la lista de idiomas actual del proveedor, sin gastar cuota de traducción; implica `--locales` |
 | `--data-flow` | ninguno | desactivado | en lugar de revisar la configuración, describe qué se envía a qué host y qué se escribe en local (ver [Flujo de datos](#flujo-de-datos)) |
@@ -67,13 +67,13 @@ Una ejecución de configuración informa de estas comprobaciones, en este orden.
 | Network policy | la [política de red](/es/docs/network-policy) efectiva rechaza el host del proveedor o un proxy que usaría |
 | Source locale file | el archivo de locale de origen falta en su ruta resuelta, no es un archivo normal o no se analiza con el formato configurado |
 | Plural rules | nunca; nombra las versiones de ICU y CLDR en uso y avisa cuando un locale de destino no tiene reglas de plural en ICU |
-| Plural completeness | nunca; avisa y nombra cada plural de destino al que le falta una categoría CLDR que usa su idioma, y juzga un plural sin formas en el destino por lo que una ejecución escribiría allí (una forma de origen vacía cuenta como ausente, y la generación de plurales solo donde de verdad se ejecuta), a propósito más estricto que el aviso de `translate`, solo para i18next (diez como máximo; [`verbatra check`](/es/docs/cli/check#categorías-de-plural) lista los huecos de los plurales que un destino ya tiene); se omite para un formato que no guarda las formas de plural por categoría CLDR |
+| Plural completeness | nunca; avisa y nombra cada plural de destino al que le falta una categoría CLDR que usa su idioma, y juzga un plural sin formas en el destino por lo que una ejecución escribiría allí (una forma de origen vacía cuenta como ausente, y la generación de plurales solo donde de verdad se ejecuta), a propósito más estricto que el aviso de `translate`, solo para i18next (diez como máximo; [`verbatra check`](/es/docs/cli/check#categorías-de-plural) lista los huecos de los plurales que un destino ya tiene) |
 | Locale codes | nunca; avisa y nombra cada código válido pero no canónico, como `en-us` o `iw`, con su forma canónica (ver [Códigos de locale](/es/docs/config-file#códigos-de-locale)) |
 | Locale state | nunca; avisa y nombra cada locale con estado en el archivo de bloqueo, la caché o el archivo de procedencia que la configuración no lista, y si `translate` lo [traslada](/es/docs/the-lock-file#un-código-de-locale-reescrito) |
-| Length limits | nunca; avisa cuando `verbatra.limits.json` no se puede usar (una ejecución lo ignora y no se puede fijar un límite hasta arreglarlo), nombra un límite de una clave que la fuente ya no tiene o uno que el `maxLength` de la configuración sobrescribe, y lo dice si no se pudo leer la fuente para comprobar las claves; pasa cuando el archivo no existe ([límites de longitud](/es/docs/config-file#maxlength)) <AvailableFrom version="0.13.0" /> |
+| Length limits | nunca; avisa cuando `verbatra.limits.json` no se puede usar (una ejecución lo ignora y no se puede fijar un límite hasta arreglarlo), nombra un límite de una clave que el origen ya no tiene o uno que el `maxLength` de la configuración sobrescribe, y lo dice si no se pudo leer el origen para comprobar las claves; pasa cuando el archivo no existe ([límites de longitud](/es/docs/config-file#maxlength)) <AvailableFrom version="0.13.0" /> |
 | Locale support | el proveedor no admite el locale de origen o un locale de destino; avisa cuando un locale lleva un aviso (ver [Soporte de locales](#soporte-de-locales)) |
 
-Cada comprobación se ejecuta aunque una anterior haya fallado. La única excepción es la configuración: si no se puede cargar, las comprobaciones que la necesitan aparecen como `[skip]` (`"status": "skipped"` en JSON), igual que Plural completeness para un formato sin formas de plural CLDR. Una comprobación que encuentra algo que merece atención sin fallar aparece como `[warn]` (`"status": "warn"` en JSON) y nunca cambia el código de salida. Una comprobación fallida lleva además un `fix`, un siguiente paso en imperativo que se imprime como línea `fix:` y viaja como `"fix"` en JSON, para que un agente actúe sin analizar `detail`.
+Cada comprobación se ejecuta aunque una anterior haya fallado. La única excepción es la configuración: si no se puede cargar, las comprobaciones que la necesitan aparecen como `[skip]` (`"status": "skipped"` en JSON), igual que Plural completeness para un formato sin formas de plural CLDR. Una comprobación que encuentra algo que merece atención sin fallar aparece como `[warn]` (`"status": "warn"` en JSON) y nunca cambia el código de salida. Una comprobación fallida lleva además un `fix`, un siguiente paso en imperativo que se imprime como `fix:` y viaja como `"fix"` en JSON, para que un agente no tenga que analizar `detail`.
 
 Una ejecución con dos problemas:
 
@@ -92,6 +92,8 @@ verbatra doctor
   [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
 2 problems found (run verbatra doctor again after fixing them)
 ```
+
+Una ejecución limpia termina con `no problems found`, más `, N warnings` cuando una comprobación avisó.
 
 ### Claves y archivos
 
@@ -126,7 +128,7 @@ Cada línea nombra el locale, el código que recibe el proveedor (tras [`localeM
 
 <AvailableFrom version="0.11.0" />
 
-`--literals` encuentra strings visibles para el usuario que nunca llegaron a un catálogo. Recorre las raíces de código de tu [bloque `extract`](/es/docs/config-file#extract), lee tu código sin escribirlo nunca, no construye proveedor, no lee ninguna clave y no carga ningún `.env`. Solo se ejecutan dos comprobaciones: Configuration y Untranslated literals. Cada hallazgo nombra archivo, línea y columna, con los espacios colapsados, las referencias de caracteres de JSX decodificadas y 80 caracteres como máximo:
+`--literals` encuentra cadenas visibles para el usuario que nunca llegaron a un catálogo. Recorre las raíces de código de tu [bloque `extract`](/es/docs/config-file#extract), lee tu código sin escribirlo nunca, no construye proveedor, no lee ninguna clave y no carga ningún `.env`. Solo se ejecutan dos comprobaciones: Configuration y Untranslated literals. Cada hallazgo nombra archivo, línea y columna, con los espacios colapsados, las referencias de caracteres de JSX decodificadas y 80 caracteres como máximo:
 
 ```text output
   [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
@@ -135,17 +137,17 @@ Cada línea nombra el locale, el código que recibe el proveedor (tras [`localeM
     suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
 ```
 
-Se informa de: texto JSX en archivos `.tsx`, `.jsx` y `.js`, atributos JSX visibles para el usuario (`alt`, `title`, `placeholder`, `label`, `aria-label` y los demás `aria-*` con texto) y cualquier otro string de dos o más palabras.
+Se informa de: texto JSX en archivos `.tsx`, `.jsx` y `.js`, atributos JSX visibles para el usuario (`alt`, `title`, `placeholder`, `label`, `aria-label` y los demás `aria-*` con texto) y cualquier otra cadena de dos o más palabras.
 
 Nunca se informa de:
 
-- un string pasado a `t(...)`, `$t(...)`, `i18n.t(...)` o a un `t` renombrado de `useTranslation`, o renderizado dentro de `<Trans>` o `<Translation>`;
-- claves de objeto, especificadores de import, nombres de clase, valores CSS, ids de test, `data-*` y atributos de id o palabra clave (`aria-describedby`, `aria-labelledby`, `aria-controls`, `rel`, `sandbox`, `allow`, `autoComplete`, `referrerPolicy`, `crossOrigin`), URLs y strings sin letras;
+- una cadena pasada a `t(...)`, `$t(...)`, `i18n.t(...)` o a un `t` renombrado de `useTranslation`, o renderizada dentro de `<Trans>` o `<Translation>`;
+- claves de objeto, especificadores de import, nombres de clase, valores CSS, ids de test, `data-*` y atributos de id o palabra clave (`aria-describedby`, `aria-labelledby`, `aria-controls`, `rel`, `sandbox`, `allow`, `autoComplete`, `referrerPolicy`, `crossOrigin`), URLs y cadenas sin letras;
 - literales en posición de tipo (el valor antes de `as` o `satisfies` sí se comprueba), mensajes de log, mensajes de error (`new ValidationError(...)`, `throw Error(...)`), operandos de comparación y template literals con una expresión;
 - argumentos directos de `describe` (zod), `query`, `execute`, `prepare`, `format`, `parse`, `z.enum`, `setItem`, `getItem` y `removeItem`, y el primer argumento de `on`, `off`, `once`, `emit`, `addEventListener` y de un `get` o `set` sobre un objeto; el texto más anidado y los mensajes pasados a funciones como `setError` sí se informan;
 - todo lo que esté en archivos de test, story, declaración o configuración.
 
-Para retener un literal, pon `// verbatra-ignore-next-line` encima (en JSX, `{/* verbatra-ignore-next-line */}`) o `// verbatra-ignore-line` al final de su línea. Una directiva de siguiente línea apunta a la siguiente línea con código y, en una etiqueta JSX de apertura, a todos sus atributos. Un string que vale en todas partes lo añades a `extract.literals.ignore` con las referencias decodificadas (`Tom & Jerry`). Los literales suprimidos se siguen listando con su motivo.
+Para retener un literal, pon `// verbatra-ignore-next-line` encima (en JSX, `{/* verbatra-ignore-next-line */}`) o `// verbatra-ignore-line` al final de su línea. Una directiva de siguiente línea apunta a la siguiente línea con código y, en una etiqueta JSX de apertura, a todos sus atributos. Una cadena que vale en todas partes la añades a `extract.literals.ignore` con las referencias decodificadas (`Tom & Jerry`). Los literales suprimidos se siguen listando con su motivo.
 
 La comprobación falla con un hallazgo y con un archivo que no pudo abrir, leer hasta el final o que consideró demasiado grande (el escaneo continúa). Un proyecto sin bloque `extract` la hace fallar.
 
@@ -170,6 +172,7 @@ La comprobación falla con un hallazgo y con un archivo que no pudo abrir, leer 
     locale       de  sent as DE  glossary terms: 0
     local        lock  verbatra.lock.json  (no source text, translations or personal data)
     local        provenance  verbatra.provenance.json  (reviewer names)
+    local        limits  verbatra.limits.json  (no source text, translations or personal data)
     local        cache  verbatra.cache.json  (source text, translations, gitignored by init)
     local        local-state  .verbatra-local  (source text, host name and process ID of a run holding a write lock, gitignored by init)
     request      language-list  verbatra doctor --live  sends the API key
@@ -178,7 +181,7 @@ La comprobación falla con un hallazgo y con un archivo que no pudo abrir, leer 
     agent        studio-agent-tools  verbatra studio --expose-agent-tools
 ```
 
-El manifiesto nombra el proveedor; cada host de destino, de dónde sale (integrado, `provider.options.baseUrl` o una variable `*_BASE_URL`) y el veredicto de la política (`permitted`, `deferred`, `refused` o `invalid-policy`); los tipos de datos enviados, con el número de claves de origen, de claves con descripción o significado y de claves cuyos placeholders el proveedor no puede enmascarar (una estimación sobre las claves de origen: una ejecución solo envía claves que faltan o cambiaron y puede retener más con `sensitiveData: redact`); el código y el número de términos del glosario por locale de destino; los archivos locales con sus rutas relativas al proyecto y si contienen texto de origen, traducciones o datos personales; y las demás peticiones y superficies de agentes. DeepL aparece con sus dos hosts, porque la clave que elige uno nunca se lee. Un proxy en uso aparece con su variable y su host, nunca con sus credenciales, y los campos solo nombran lo que esta config puede enviar. Con `provider: { id: "none" }` indica que no se envía nada. Nombra hosts, categorías de datos y condiciones, nunca el valor de una clave ni el contenido de un archivo.
+El manifiesto nombra el proveedor; cada host de destino, de dónde sale (integrado, `provider.options.baseUrl` o una variable `*_BASE_URL`) y el veredicto de la política (`permitted`, `deferred`, `refused` o `invalid-policy`); los tipos de datos enviados, con el número de claves de origen, de claves con descripción o significado y de claves cuyos placeholders el proveedor no puede enmascarar (una estimación sobre las claves de origen: una ejecución solo envía claves que faltan o cambiaron y puede retener más con `sensitiveData: redact`); el código y el número de términos del glosario por locale de destino; los archivos locales con sus rutas relativas al proyecto y si contienen texto de origen, traducciones o datos personales; y las demás peticiones y superficies de agentes. DeepL aparece con sus dos hosts, porque la clave que elige uno nunca se lee. Un proxy en uso aparece con su variable y su host, nunca con sus credenciales, y los campos solo nombran lo que esta configuración puede enviar. Con `provider: { id: "none" }` indica que no se envía nada. Nombra hosts, categorías de datos y condiciones, nunca el valor de una clave ni el contenido de un archivo.
 
 Con `--json` el manifiesto está en `result.dataFlow`. Su campo `version` solo cambia cuando se renombra o elimina un campo; pueden aparecer campos nuevos sin cambiarla, así que ignora los que no conozcas. [`dataFlowManifestSchema`](/es/docs/sdk/inspect#dataflowmanifestschema) del SDK lo valida.
 

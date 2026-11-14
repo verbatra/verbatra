@@ -31,7 +31,7 @@ verbatra watch --locales de
 | --- | --- | --- | --- |
 | `--locales` | `<list>` | chaque locale cible configurée | ne surveille que ce sous-ensemble séparé par des virgules ; vérifié une fois au démarrage, où une locale non configurée échoue avec `UNKNOWN_LOCALE` |
 | `--debounce` | `<ms>` | `300` | attend ce nombre de millisecondes après le dernier changement avant de traduire ; un entier de `1` à `60000` |
-| `--lock-timeout` | `<seconds>` | `600` | à chaque exécution, attend ce délai un verrou d'écriture occupé d'une locale ; un entier de `1` à `3600` |
+| `--lock-timeout` | `<seconds>` | `600` | à chaque exécution, attend ce délai qu'un verrou d'écriture de locale occupé se libère ; un entier de `1` à `3600` |
 | `--concurrency` | `<n>` | `1` | traduit jusqu'à `n` locales cibles à la fois par exécution ; un entier de `1` à `100`, refusé avec un budget `maxTokens` |
 | `--no-cache` | aucun | désactivé (cache actif) | contourne le [cache de mémoire de traduction](/fr/docs/the-cache) (`verbatra.cache.json`) à chaque exécution |
 
@@ -45,7 +45,7 @@ Chaque exécution traduit le sous-ensemble `--locales`, ou toutes les cibles, av
 
 Un `--concurrency` supérieur à `1` avec un budget `maxTokens` configuré est refusé au démarrage avec la sortie `2`, avant la première exécution, car l'ordre dans lequel les locales s'entrelacent déciderait laquelle perd son travail restant.
 
-Un fournisseur impossible à construire, le plus souvent parce que sa variable de clé d'API manque, est lui aussi refusé au démarrage : `watch` sort avec `2` et `PROVIDER_CONSTRUCTION_FAILED` et une ligne `next:` qui nomme la variable, exactement comme `translate`, au lieu d'attendre des changements qu'aucune exécution ne pourrait traduire. Avant 0.12.0, il continuait d'attendre.
+Un fournisseur impossible à construire, le plus souvent parce que sa variable de clé d'API manque, est lui aussi refusé au démarrage : `watch` sort avec `2` et `PROVIDER_CONSTRUCTION_FAILED` et une ligne `next:` qui nomme la variable, exactement comme `translate`, au lieu d'attendre des changements qu'aucune exécution ne pourrait traduire. Avant 0.12.0, il continuait d'attendre. `watch` refuse aussi au démarrage, avec la sortie `2`, une locale que le fournisseur ne prend pas en charge (`LOCALE_UNSUPPORTED_BY_PROVIDER`), un hôte que refuse la politique réseau (`NETWORK_POLICY_VIOLATION`) et un fichier source manquant (`SOURCE_UNREADABLE`).
 
 ### Arrêt
 
@@ -66,6 +66,10 @@ Avec `--json`, stdout est du NDJSON : une [enveloppe](/fr/docs/cli/output#sortie
 Sans `--json`, `watch` nomme le fichier source une fois qu'un changement s'est stabilisé, puis rend compte de l'exécution comme `translate`, avec le même spinner dans un terminal interactif :
 
 ```text output
+verbatra: watching en (locales/{locale}.json); running initial translation
+verbatra: press Ctrl-C to stop
+...
+verbatra: waiting for changes...
 verbatra: change detected: locales/en.json
 verbatra: translating de
 verbatra: de batch 1/1
@@ -92,5 +96,5 @@ Une exécution en échec pendant la session ne change jamais le code de sortie. 
 - [`verbatra translate`](/fr/docs/cli/translate) est l'exécution unique que `watch` répète.
 - [Le cache](/fr/docs/the-cache) explique ce que `--no-cache` contourne à chaque exécution.
 - [Comment ça marche](/fr/docs/how-it-works) explique ce que fait chaque exécution.
-- [Protéger les traductions humaines](/fr/docs/protecting-human-translations) explique pourquoi une exécution conserve une valeur obsolète écrite par une personne.
+- [Garder les traductions humaines](/fr/docs/protecting-human-translations) explique pourquoi une exécution conserve une valeur obsolète écrite par une personne.
 - [La référence du SDK](/fr/docs/sdk) documente les formes `WatchRunResult` et `RunSummary`.

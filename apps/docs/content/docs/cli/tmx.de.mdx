@@ -7,7 +7,7 @@ type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Bring einen Übersetzungsspeicher im TMX-Format herein oder hinaus, dem Austauschformat der gängigen Übersetzungsplattformen. `tmx import` übernimmt den Speicher eines anderen Tools in [den Übersetzungsspeicher dieses Projekts](/de/docs/the-cache), damit spätere Läufe diese Strings wiederverwenden, statt sie erneut zu bezahlen; `tmx export` schreibt den Speicher wieder hinaus. Keine der beiden Richtungen ruft einen Provider auf, liest einen API-Key oder geht ins Netz. Ein echter Import ergänzt außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/de/docs/cli#gitignore-einträge).
+Übertrage einen Übersetzungsspeicher im TMX-Format, dem Austauschformat der gängigen Übersetzungsplattformen, in ein Projekt oder aus ihm heraus. `tmx import` übernimmt den Speicher eines anderen Tools in [den Übersetzungsspeicher dieses Projekts](/de/docs/the-cache), damit spätere Läufe diese Strings wiederverwenden, statt sie erneut zu bezahlen; `tmx export` schreibt den Speicher wieder heraus. Keine der beiden Richtungen ruft einen Provider auf, liest einen API-Key oder geht ins Netz. Ein echter Import ergänzt außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/de/docs/cli#gitignore-einträge).
 
 ## Synopsis
 
@@ -45,18 +45,18 @@ verbatra tmx export out/memory.tmx --locales de
 | `--dry-run` | keins | aus | nur beim Import: prüfen und berichten, ohne den Speicher zu ändern; ein Export lehnt es mit `INVALID_DIRECTION` ab |
 | `--overwrite` | keins | aus | nur beim Import: eine importierte Einheit darf eine Übersetzung ersetzen, die der Speicher schon hat; ein Export lehnt es mit `INVALID_DIRECTION` ab |
 
-Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. Die Config-Suche und ein relatives `[file]`, das du angibst, gehen hier von `--cwd` aus, der Speicher und das Standard-`verbatra-memory.tmx` dagegen von der [Projektwurzel](/de/docs/config-file#das-arbeitsverzeichnis-und-env).
+Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. Die Konfigurationssuche und ein relatives `[file]`, das du angibst, gehen hier von `--cwd` aus, der Speicher und das Standard-`verbatra-memory.tmx` dagegen von der [Projektwurzel](/de/docs/config-file#das-arbeitsverzeichnis-und-env).
 
 ## Verhalten
 
 ### Was eine importierte Einheit erfüllen muss
 
-Eine Datei aus einem anderen Tool ist nicht vertrauenswürdig, und eine Einheit im Speicher kann wiederverwendet werden, ohne dass noch einmal jemand gefragt wird. Deshalb durchläuft jede Kandidat-Übersetzung dasselbe [Integritäts-Gate](/de/docs/translation-safety) wie die Ausgabe eines Providers, geprüft beim Eintritt in den Speicher:
+Eine Datei aus einem anderen Tool ist nicht vertrauenswürdig, und eine Einheit im Speicher kann wiederverwendet werden, ohne dass noch einmal jemand gefragt wird. Deshalb durchläuft jede Kandidaten-Übersetzung dasselbe [Integritäts-Gate](/de/docs/translation-safety) wie die Ausgabe eines Providers, geprüft beim Eintritt in den Speicher:
 
 - ihre Platzhalter passen zu denen ihres eigenen Quellsegments,
 - ihre Inline-HTML- oder XML-Tags passen zu denen des Quellsegments, ein eingeschleustes Tag wie `<img onerror>` wird also abgelehnt,
 - sie ist eine gültige ICU-Nachricht für den Adapter des konfigurierten Formats,
-- sie ist nicht zu ausuferndem Unsinn entartet,
+- sie ist nicht zu einer ausufernden Ausgabe entartet,
 - sie ist nicht leer, wo die Quelle Text hat.
 
 Eine Einheit mit leerem Quellsegment bezeichnet keinen String und wird ebenfalls abgelehnt. Inline-Markup (`bpt`, `ept`, `ph`, `it`) wird zu seinem Text abgeflacht, sodass die Platzhalterprüfung Markup erkennt, das etwas Wichtiges trug; der Text eines `sub`-Elements ist ein eigener Textfluss (ein Tooltip, ein Alternativtext) und wird weggelassen. Eigenschaften eines Segments, auch die `x-origin` und `x-review`, die ein verbatra-Export schreibt, werden ignoriert: Der Speicher hält keine Herkunft fest.
@@ -77,7 +77,7 @@ Eine TMX-Datei schreibt Sprachen so, wie das Tool ihres Autors es tat. Die Zuord
 4. Tags mit abweichender Schrift oder Region passen nie: `zh-CN` wird nie als `zh-TW` gespeichert und `de-AT` nie als `de-CH`.
 5. Mehrdeutig ist ein Tag nur, wenn die erreichbaren Locales nicht auf einer Präfixkette liegen, etwa `pt` bei konfiguriertem `pt-BR` und `pt-AO`.
 
-Jedes Segment wird in einem Durchgang gegen die Quell-Locale und alle konfigurierten Ziele aufgelöst, auch mit `--locales`, sodass ein Ziel `pt-BR` in einem Projekt mit Quelle `pt` nie als Quelle gelesen wird. Quellsegmente werden wie Zielsegmente gewichtet: Ein exaktes Tag schlägt einen Präfixtreffer, gleiche Werte stimmen überein, und gleichrangige Segmente mit verschiedenen Werten (`en-US` "Color" und `en-GB` "Colour") führen zur Ablehnung der Einheit. Eine Config, deren Quelle und ein Ziel zum selben Tag normalisiert werden, wird ganz abgelehnt.
+Jedes Segment wird in einem Durchgang gegen die Quell-Locale und alle konfigurierten Ziele aufgelöst, auch mit `--locales`, sodass ein Ziel `pt-BR` in einem Projekt mit Quelle `pt` nie als Quelle gelesen wird. Quellsegmente werden wie Zielsegmente gewichtet: Ein exaktes Tag schlägt einen Präfixtreffer, gleiche Werte stimmen überein, und gleichrangige Segmente mit verschiedenen Werten (`en-US` "Color" und `en-GB` "Colour") führen zur Ablehnung der Einheit. Eine Konfiguration, deren Quelle und ein Ziel zum selben Tag normalisiert werden, wird ganz abgelehnt.
 
 Zwei Zielsegmente, die dieselbe Locale erreichen, lassen nie einfach das letzte gewinnen: Ein exaktes Tag schlägt einen Präfixtreffer, und zwei gleichrangige Segmente mit verschiedenen Werten speichern für diese Locale nichts und zählen die Einheit als widersprüchlich. Tags ohne Treffer werden pro Tag gezählt, `tu`-Elemente außerhalb des ersten `body` ebenso, und ein `srclang` im Header, der nicht deine Quell-Locale ist, wird gemeldet.
 
@@ -89,21 +89,21 @@ Der Speicher des Projekts gewinnt: Eine importierte Übersetzung, die von einer 
 `--overwrite` ersetzt Übersetzungen, die der Speicher schon hat, und spätere Läufe verwenden die Ersetzungen wieder. Führe es zuerst mit `--dry-run` aus, um die Zahl `overwritten` zu sehen.
 </Callout>
 
-Importierte Einheiten werden unter dem aktuellen Konfigurations-Fingerprint des Projekts gespeichert, also genau so lange wiederverwendet, wie Provider, Modell, Tonalität, die Glossarbegriffe, die verbatra senden würde, und `localeMap` gleich bleiben. Importiere die Datei nach einer solchen Änderung erneut. Eine Speicherdatei, die ein neueres verbatra geschrieben hat, bleibt unberührt; die Zahlen werden trotzdem gemeldet, wie bei einem Dry Run.
+Importierte Einheiten werden unter dem aktuellen Konfigurations-Fingerprint des Projekts gespeichert, also genau so lange wiederverwendet, wie Provider, Modell, Tonfall, die Glossarbegriffe, die verbatra senden würde, und `localeMap` gleich bleiben. Importiere die Datei nach einer solchen Änderung erneut. Eine Speicherdatei, die ein neueres verbatra geschrieben hat, bleibt unberührt; die Zahlen werden trotzdem gemeldet, wie bei einem Dry Run.
 
 ### Importierte Einheiten und unscharfe Wiederverwendung
 
-Der Quelltext einer angenommenen Einheit landet im Index, gegen den die [unscharfe Wiederverwendung](/de/docs/the-cache) geänderte Strings bewertet, sodass eine importierte Quelle, die von einem deiner Strings abweicht, für ihn verwendet werden kann. Eine solche Wiederverwendung besteht trotzdem das Integritäts-Gate gegen deinen echten Eintrag und trägt das Review-Flag `FUZZY_CACHE_REUSE`. Eine importierte Quelle, die einem deiner Strings gleicht, aber anders gehasht wird (dein Eintrag hat eine Beschreibung oder Bedeutung, die TMX nicht tragen kann), wird nie wiederverwendet. Eine Pluralform wird über ihren Text gefunden: Der Import übernimmt das Plural-Flag aus deiner Quelldatei, sodass sich `cart.items_one` und `cart.items_other` wie jeder andere Key aus dem Speicher füllen. Lass `fuzzyCache` aus deiner Config weg, um nur exakte Treffer zuzulassen.
+Der Quelltext einer angenommenen Einheit landet im Index, gegen den die [unscharfe Wiederverwendung](/de/docs/the-cache) geänderte Strings bewertet, sodass eine importierte Quelle, die von einem deiner Strings abweicht, für ihn verwendet werden kann. Eine solche Wiederverwendung besteht trotzdem das Integritäts-Gate gegen deinen echten Eintrag und trägt das Review-Flag `FUZZY_CACHE_REUSE`. Eine importierte Quelle, die einem deiner Strings gleicht, aber anders gehasht wird (dein Eintrag hat eine Beschreibung oder Bedeutung, die TMX nicht tragen kann), wird nie wiederverwendet. Eine Pluralform wird über ihren Text gefunden: Der Import übernimmt das Plural-Flag aus deiner Quelldatei, sodass sich `cart.items_one` und `cart.items_other` wie jeder andere Key aus dem Speicher füllen. Lass `fuzzyCache` aus deiner Konfiguration weg, um nur exakte Treffer zuzulassen.
 
 ### Was der Export schreibt
 
-Ein `tu` pro eindeutigem Quellstring, mit dem Quellsegment und einem Zielsegment pro exportierter Locale, unter einem TMX-1.4b-Header (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Geschrieben werden nur Einträge unter dem aktuellen Konfigurations-Fingerprint; Einträge, die unter einer früheren Provider-, Modell-, Ton- oder Glossar-Konfiguration gespeichert sind, werden ausgelassen und als `otherConfiguration` gezählt, mit einer eigenen Zeile in der Zusammenfassung. Sprach-Tags erscheinen in BCP-47-Form (`en_US` wird `en-US`), Zeichen, die XML 1.0 nicht darstellen kann, werden entfernt und gezählt, und ein leerer Speicher ergibt eine gültige, leere Datei. Einträge ohne gespeicherten Quelltext, übernommen aus einem älteren Cache, werden ausgelassen und gezählt. Die Zusammenfassung zählt in der Summe `tu`-Elemente und pro Locale Zielsegmente, daher ergeben die Zahlen pro Locale zusammen mehr als die Summe, sobald ein String in mehrere Locales übersetzt ist.
+Ein `tu` pro eindeutigem Quellstring, mit dem Quellsegment und einem Zielsegment pro exportierter Locale, unter einem TMX-1.4b-Header (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Geschrieben werden nur Einträge unter dem aktuellen Konfigurations-Fingerprint; Einträge, die unter einer früheren Provider-, Modell-, Tonfall- oder Glossar-Konfiguration gespeichert sind, werden ausgelassen und als `otherConfiguration` gezählt, mit einer eigenen Zeile in der Zusammenfassung. <AvailableFrom version="0.13.5" /> Sprach-Tags erscheinen in BCP-47-Form (`en_US` wird `en-US`), Zeichen, die XML 1.0 nicht darstellen kann, werden entfernt und gezählt, und ein leerer Speicher ergibt eine gültige, leere Datei. Einträge ohne gespeicherten Quelltext, übernommen aus einem älteren Cache, werden ausgelassen und gezählt. Die Zusammenfassung zählt in der Summe `tu`-Elemente und pro Locale Zielsegmente, daher ergeben die Zahlen pro Locale zusammen mehr als die Summe, sobald ein String in mehrere Locales übersetzt ist.
 
 <AvailableFrom version="0.12.0" />
 
-Jedes Zielsegment trägt `<prop type="x-origin">` (`machine`, `human`, `import` oder `unknown`) aus `verbatra.provenance.json`, ein `machine`-Segment außerdem `<prop type="x-review">` (`approved`, `unreviewed` oder `rejected`). Lässt sich die Provenance- oder Lock-Datei nicht lesen, wird keine Eigenschaft geschrieben, und das Ergebnis meldet `provenanceMarkers: "unavailable"`. Siehe [Nachweise zur maschinellen Übersetzung](/de/docs/provenance-evidence#tmx).
+Jedes Zielsegment trägt `<prop type="x-origin">` (`machine`, `human`, `import` oder `unknown`) aus `verbatra.provenance.json`, ein `machine`-Segment außerdem `<prop type="x-review">` (`approved`, `unreviewed` oder `rejected`). Lässt sich die Herkunfts- oder Lock-Datei nicht lesen, wird keine Eigenschaft geschrieben, und das Ergebnis meldet `provenanceMarkers: "unavailable"`. Siehe [Nachweise zur maschinellen Übersetzung](/de/docs/provenance-evidence#tmx).
 
-Die Datei wird nur innerhalb der Projektwurzel geschrieben. Ein Pfad, der keine Datei benennt, aus der Projektwurzel herausführt oder eine Datei trifft, von der das Projekt abhängt (eine Locale-Datei, die Lock-, Provenance- oder Cache-Datei, eine Config-Datei, die Glossardatei), wird mit `TMX_OUTPUT_CONFLICT` abgelehnt, bevor der Speicher gelesen wird, auch nach dem Auflösen symbolischer Links. Scheitert das Schreiben auf der Platte, stoppt der Lauf mit `TMX_UNWRITABLE` und nennt die Datei und den Dateisystem-Code.
+Die Datei wird nur innerhalb der Projektwurzel geschrieben. Ein Pfad, der keine Datei benennt, aus der Projektwurzel herausführt oder eine Datei trifft, von der das Projekt abhängt (eine Locale-Datei, die Lock-, Herkunfts- oder Cache-Datei, eine Konfigurationsdatei, die Glossardatei), wird mit `TMX_OUTPUT_CONFLICT` abgelehnt, bevor der Speicher gelesen wird, auch nach dem Auflösen symbolischer Links. Scheitert das Schreiben auf der Platte, stoppt der Lauf mit `TMX_UNWRITABLE` und nennt die Datei und den Dateisystem-Code.
 
 ### JSON-Ausgabe
 
@@ -143,7 +143,7 @@ next: verbatra translate (reuses the imported memory before calling a provider)
 | Code | Bedeutung |
 | --- | --- |
 | `0` | die Datei wurde gelesen oder geschrieben; übersprungene oder abgelehnte Einheiten werden gemeldet, sind aber kein Fehler |
-| `2` | konnte nicht laufen: ein Config-Fehler, eine fehlende oder unlesbare TMX-Datei (`SOURCE_UNREADABLE`), eine zu große oder nicht parsbare oder eine Quell-Locale-Datei, die sich nicht parsen lässt (`SOURCE_INVALID`), ein abgelehnter Exportpfad (`TMX_OUTPUT_CONFLICT`), ein gescheiterter Schreibvorgang (`TMX_UNWRITABLE`, `MEMORY_UNWRITABLE`) oder ein Bedienfehler |
+| `2` | konnte nicht laufen: ein Konfigurationsfehler, eine fehlende oder unlesbare TMX-Datei (`SOURCE_UNREADABLE`), eine zu große oder nicht parsbare oder eine Quell-Locale-Datei, die sich nicht parsen lässt (`SOURCE_INVALID`), ein abgelehnter Exportpfad (`TMX_OUTPUT_CONFLICT`), ein gescheiterter Schreibvorgang (`TMX_UNWRITABLE`, `MEMORY_UNWRITABLE`) oder ein Verwendungsfehler |
 
 Bei einer ungültigen Datei nennt die Meldung Zeile, Spalte und Einheit, an der sie scheiterte; Entity-Deklarationen und interne DTD-Subsets werden sofort abgelehnt, ein externer Doctype wird verworfen und nie abgerufen. Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 

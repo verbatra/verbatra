@@ -151,7 +151,7 @@ A failure carried no code of its own (the fallback).
 
 ### FORMAT_AMBIGUOUS
 
-`init` found several formats that read the locale files; `candidates` lists them.
+`init` found several formats that read the locale files; `candidates` lists them. It is raised only when init cannot prompt (no terminal, `--yes` or `--json`) and `--format` was not passed; at a terminal init asks instead.
 
 - **Raised by**: `init`
 - **Next step**: Pass --format with one of the candidates.
@@ -221,7 +221,7 @@ A failure carried no code of its own (the fallback).
 
 ### INVALID_OPTION
 
-An `init` flag does not fit the provider or is malformed: `--base-url` without `openai-compatible` or `libretranslate`, not a URL, or carrying credentials, a query string, or a fragment; `--api-key-env-var` with a provider other than `openai-compatible`, or not a variable name; `--model` for a provider that takes no model (`deepl`, `google-translate`, `libretranslate`, `none`); any flag given an empty value; `--targets` naming no locale; `--path` without `{locale}`; `--client` without `--agent`, naming no client, or naming one init cannot wire. Or `--cwd` names no existing directory (any command, before it runs), `doctor --data-flow` comes with `--literals`, `--locales` or `--live`, `doctor --literals` comes with `--locales` or `--live`, `check --file` names no file or comes with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`, or `pseudo --mode` names a mode other than `accented` or `bidi`.
+An `init` flag does not fit the provider or is malformed: `--base-url` without `openai-compatible` or `libretranslate`, or carrying credentials, a query string, or a fragment (a prompt answer that is not a URL, or a `--path` answer without `{locale}`, fails with this code; the same value given as a flag is not checked here and fails later as [`CONFIG_INVALID`](#cli-config_invalid)); `--api-key-env-var` with a provider other than `openai-compatible`, or not a variable name; `--model` for a provider that takes no model (`deepl`, `google-translate`, `libretranslate`, `none`); any flag given an empty value; `--targets` naming no locale; `--client` without `--agent`, naming no client, or naming one init cannot wire. Or `--cwd` names no existing directory (any command, before it runs), `doctor --data-flow` comes with `--literals`, `--locales` or `--live`, `doctor --literals` comes with `--locales` or `--live`, `check --file` names no file or comes with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`, or `pseudo --mode` names a mode other than `accented` or `bidi`.
 
 - **Raised by**: every command that takes `--cwd`, plus `init`, `doctor`, `check`, `pseudo`
 - **Next step**: Correct or remove the flag the message names.
@@ -263,14 +263,14 @@ An `init` flag does not fit the provider or is malformed: `--base-url` without `
 
 ### LAYOUT_AMBIGUOUS
 
-`init` found several file patterns that fit equally well; `candidates` lists them.
+`init` found several file patterns that fit equally well; `candidates` lists them. It is raised only when init cannot prompt (no terminal, `--yes` or `--json`) and `--path` was not passed; at a terminal init asks instead.
 
 - **Raised by**: `init`
 - **Next step**: Pass --path with one of the candidates.
 
 ### MISSING_OPTIONS
 
-`init` could not prompt (no terminal, or `--json`) and a value was neither passed, detected, nor defaulted by `--yes`; the message names every missing flag.
+`init` has no answer for a value: it could not prompt (no terminal, `--yes`, or `--json`) and the value was neither passed, detected, nor defaulted, or it prompted for a value that has no default, or input ended before a prompt was answered; the message names every missing flag.
 
 - **Raised by**: `init`
 - **Next step**: Pass the flags the message names, or --yes where the message offers it.
@@ -284,7 +284,7 @@ An `init` flag does not fit the provider or is malformed: `--base-url` without `
 
 ### USAGE_ERROR
 
-The argument parser rejected the command line (an unknown option, a missing argument), or `mcp` received options it cannot accept; its `hint` names the command's `--help`.
+The argument parser rejected the command line (an unknown option, a missing argument), or `mcp` received options it cannot accept, including `--json`; its `hint` names the command's `--help`.
 
 - **Raised by**: any command
 - **Next step**: Run the command with --help to see the options and arguments it accepts.
@@ -302,7 +302,7 @@ No config was found by search, or an explicit `configPath` does not exist (throw
 
 ### CONFIG_INVALID
 
-A config was found but is unparseable or fails validation, or its glossary file could not be resolved; `translate` (a dry run too, unless the provider is `none`) and `retranslateEntry` also throw it when `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` holds an invalid value, before any provider is built.
+A config was found but is unparseable or fails validation, or its glossary file could not be resolved; `translate` (a dry run too, unless the provider is `none`) and `retranslateEntry` also throw it when `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` holds an invalid value, before any provider is built. `importWorkbook` does not throw it for a sheet or interchange file whose locale is not a configured target: that locale fails with it on its own `error`, `exportTmx` and `importTmx` for a target locale that is the source locale once case and separators are normalized, and `updateGlossaryTerm` for an invalid term edit or a glossary file that would exceed its size cap.
 
 - **Raised by**: every command that loads the config
 - **Next step**: Fix the config field the message names, then run `verbatra doctor` to confirm the setup.
@@ -323,7 +323,7 @@ A requested locale is not among the configured target locales.
 
 ### UNKNOWN_KEY
 
-A requested key is not in the source resource (`keyValue`, `keyIntegrity`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`).
+A requested key is not in the source resource (`keyValue`, `keyIntegrity`, `keyContext`, `setKeyLengthLimit`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`); `keyHistory` throws it only for an empty or over-long key.
 
 - **Raised by**: Studio and the MCP server
 - **Next step**: Use a key that exists in the source locale file, or add it there first.
@@ -404,14 +404,14 @@ A review decision could not be saved because the provenance file is from a newer
 
 ### REVIEW_VALUE_CHANGED
 
-The key has no value, or its value is not the `expectedValue` the reviewer saw, or `expectedValue` is not a string (`approveEntry`, `rejectEntry`).
+The key has no value, or its value is not the `expectedValue` the reviewer saw, or `expectedValue` is not a string (`approveEntry`, `rejectEntry`). It is also thrown when `expectedValueHash` is not a string or comes without the value marker that produced it, when it does not hash to the current value, or when both `expectedValue` and `expectedValueHash` are passed.
 
 - **Raised by**: Studio and the MCP server
 - **Next step**: Reload the current value, review it again, and resend the decision.
 
 ### REVIEW_SOURCE_CHANGED
 
-The source changed since the value was written, so it cannot be approved as it stands (`approveEntry`).
+The source changed since the value was written, or the lock file has no entry for the key in that locale, so verbatra cannot tell which source text it was written for, and it cannot be approved as it stands (`approveEntry`).
 
 - **Raised by**: Studio and the MCP server
 - **Next step**: Edit or retranslate the key first, then review its new value.
@@ -516,7 +516,7 @@ A live run set `concurrency` above 1 while a token budget applies, configured or
 
 ### LOCK_TIMEOUT_INVALID
 
-`lockAcquireTimeoutMs` was set but is not a whole number of milliseconds of at least 0 (`translate`, `watch` at startup, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`); raised before anything is read or locked.
+`lockAcquireTimeoutMs` was set but is not a whole number of milliseconds of at least 0 (`translate`, `watch` at startup, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `editEntry`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`, `approveLocale`, `applyValueReplace`, `updateGlossaryTerm`, `setKeyLengthLimit`); raised before anything is read or locked.
 
 - **Raised by**: the SDK only
 - **Next step**: Pass a lock timeout that is a whole number of at least 0.
@@ -551,7 +551,7 @@ A target locale file could not be written (its directory is not writable, does n
 
 ### PSEUDO_OUTPUT_CONFLICT
 
-`pseudolocalize` was asked for a pseudolocale that names a configured locale, or for an output path that would write onto a configured locale file or outside `cwd`, also after symbolic links are resolved; refused before anything is read or written.
+`pseudolocalize` was asked for a pseudolocale that names a configured locale, or for an output path that would write onto a configured locale file, into a directory that holds one, or outside `cwd` (an absolute directory, or `cwd` itself, counts), also after symbolic links are resolved; refused before anything is read or written.
 
 - **Raised by**: `pseudo`
 - **Next step**: Choose a pseudolocale and an output path inside the project that name no configured locale.
@@ -565,14 +565,14 @@ The source locale file could not be written (`extract` only); `xliff` and `apple
 
 ### EXTRACT_NOT_CONFIGURED
 
-`extract` was called with a config that carries no `extract` block.
+`extract` was called with a config that carries no `extract` block. `diff --unused` and `doctor --literals` report it without throwing, as the reason a check did not run.
 
 - **Raised by**: `extract`
 - **Next step**: Add an `extract` block to the config naming the framework and source roots, for example `extract: { framework: "i18next", roots: ["src"] }`.
 
 ### EXTRACT_FS_UNSUPPORTED
 
-`extract` was given a `deps.fs` that implements no `readDirectory`, so no source file can be discovered.
+`extract` was given a `deps.fs` that implements no `readDirectory`, so no source file can be discovered. `diff --unused` reports it without throwing, as the reason a check did not run.
 
 - **Raised by**: the SDK only
 - **Next step**: Pass a file system that implements `readDirectory`, or use the default one.
@@ -628,7 +628,7 @@ The handoff `exportWorkbook` produces could not be written (its directory is not
 
 ### LOCALE_STATE_NOT_CARRIED_OVER
 
-Thrown by `editEntry`, `retranslateEntry`, `approveEntry`, and `rejectEntry`, which write nothing then, and otherwise recorded on the `error` of a locale `translate`, `watch`, or `importWorkbook` did not run because its state under a respelled code such as `pt_BR` could not be moved to it in the lock file or the provenance file; the next run tries again ([A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)).
+Thrown by `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`, and `approveLocale`, which write nothing then, and otherwise recorded on the `error` of a locale `translate`, `watch`, or `importWorkbook` did not run, or as the `code` of a locale failure of `applyValueReplace` because its state under a respelled code such as `pt_BR` could not be moved to it in the lock file or the provenance file; the next run tries again ([A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)).
 
 - **Raised by**: `translate`, `watch`, `import`; Studio and the MCP server
 - **Next step**: Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.
@@ -680,7 +680,7 @@ The required environment variable is unset or empty. The message names the varia
 
 ### INVALID_REQUEST
 
-The request failed validation before any network call: a malformed field, a code DeepL does not accept (a `localeMap` entry giving a regional source code, or a target that resolves to a bare `en` or `pt`), or a code that is not well-formed BCP-47 for Google Cloud Translation. For LibreTranslate it also covers a language your server has no model for and a request over its `--char-limit` or `--batch-limit`. Retrying will not help.
+The request was rejected as invalid: before any network call for a malformed field, a code DeepL does not accept (a `localeMap` entry giving a regional source code, or a target that resolves to a bare `en` or `pt`), or a code that is not well-formed BCP-47 for Google Cloud Translation; or by the HTTP 400 reply of a Google Cloud Translation or LibreTranslate server. For LibreTranslate that covers a language your server has no model for and a request over its `--char-limit` or `--batch-limit`. Retrying will not help.
 
 - **Next step**: Check the provider options in the config, such as the model name.
 
@@ -698,7 +698,7 @@ The model hit its output-token limit; see [Output-token limits](/docs/providers#
 
 ### PROVIDER_REFUSED
 
-The model declined to answer.
+An OpenAI, `openai-compatible` or OpenCode response carried a refusal instead of a translation.
 
 - **Next step**: Review the source text the provider refused, or translate it by hand.
 
@@ -734,13 +734,13 @@ HTTP 5xx: the provider failed on its own side, and the request itself was never 
 
 ### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
 
-The [network policy](/docs/network-policy) refused the request right before it was sent: the host name resolved to an address the policy does not permit, or a response redirected to a refused host. The message names only the host. Retrying will not help.
+The [network policy](/docs/network-policy) refused the request right before it was sent: the host is not permitted, the host name resolved to an address the policy does not permit, or a response redirected to another origin or to an invalid URL. The message names the host and the rule that refused it, never a key or path. Retrying will not help.
 
 - **Next step**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
 
 ### PROVIDER_ERROR
 
-Anything unclassifiable. From the LLM providers, an HTTP failure names its status, such as `HTTP 404`, and the server's error type when it is a short token of letters, digits and underscores, such as `MissingSessionID`; the server's own message, the response body and the URL path never appear. For an `openai-compatible` `baseUrl`, a 404 or 405 adds a check that `baseUrl` is the API root, and a 400 or 422 a check of the model name and of Chat Completions support with strict JSON schema output; retrying will not help a 4xx status. A recognizable transport problem (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) is named with what to check; anything else gets a static, secret-free message. When a provider package could not be loaded, the message names the package and says to reinstall `@verbatra/sdk`.
+Anything unclassifiable. From the LLM providers, an HTTP failure names its status, such as `HTTP 404`, and the server's error type when it is a short token of letters, digits and underscores, such as `MissingSessionID`; the server's own message, the response body and the URL path never appear. For an `openai-compatible` `baseUrl`, a 404 or 405 adds a check that `baseUrl` is the API root, and a 400 or 422 a check of the model name and of Chat Completions support with strict JSON schema output; for `opencode`, a 400, 404 or 422 adds that the model must be one OpenCode Zen serves over the Chat Completions endpoint. Retrying will not help a 4xx status. A recognizable transport problem (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) is named with what to check; anything else gets a static, secret-free message. When a provider package could not be loaded, the message names the package and says to reinstall `@verbatra/sdk`.
 
 - **Next step**: Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
 
@@ -786,13 +786,13 @@ The file is larger than verbatra reads.
 
 ### MIXED_STRUCTURE
 
-The file mixes flat and nested keys where the format forbids it.
+An `ngx-translate-json` file mixes flat dotted keys with nested objects, or has a nested key that itself contains a dot. No other format raises it.
 
 - **Next step**: Use either flat or nested keys throughout the file the message names.
 
 ### ADAPTER_FAILED
 
-A `custom:` adapter threw an unexpected error. The error names the adapter's format, and the adapter's own error is its `cause`.
+A `custom:` adapter threw an unexpected error. The error names the adapter's format, and the adapter's own error is its `cause`. It is also raised when a flat adapter's `parseEntries()` returns something other than a `Map` or an object with an `entries` Map of valid entries. An `AdapterError` the adapter throws itself, or a file-system error, passes through unchanged.
 
 - **Raised by**: the SDK, with a `custom:` adapter (the CLI loads no plugin)
 - **Next step**: Report the failure to the maintainer of the custom adapter the message names.
@@ -1025,9 +1025,9 @@ Length is counted in grapheme clusters on the value exactly as written. The budg
 
 ### EQUALS_SOURCE
 
-The translation equals its source verbatim although the target locale differs.
+The translation equals its source once both are trimmed, although the target locale differs.
 
-It fires only when the source has translatable text: a source made only of `doNotTranslate` terms, or of terms whose translation is the term itself, is not flagged.
+It fires only when the source has a letter outside its fixed terms: a source made only of `doNotTranslate` terms, or of terms whose translation is the term itself, is not flagged.
 
 - **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
@@ -1105,7 +1105,7 @@ A notice is data on a locale's `notices`, never thrown. It reports a condition t
 
 ### PLURAL_CATEGORIES_INCOMPLETE
 
-A plural in a target locale lacks a CLDR plural category its language uses, such as a Polish plural with only `one` and `other`, and verbatra could not generate the rest.
+A plural in a target locale lacks a CLDR plural category its language uses, such as a Polish plural with only `one` and `other`. In `translate` and `watch` it is raised for the `i18next-json` format only, when verbatra could not generate the rest; `check` and `doctor` report it for every format that stores plural forms by category.
 
 - **Raised by**: `translate`, `watch`; `check` lists it with the plurals, and `doctor` under Plural completeness
 - **Exit code**: none on its own; `1` from `check --qa --strict`
@@ -1193,7 +1193,7 @@ That move was left for the next run, because the lock-file guard stayed contende
 
 ### LOCALE_UNVERIFIED_BY_PROVIDER
 
-The code sent is not on the provider's language table: only its base language is, or it comes from `localeMap`.
+The code sent is not on the provider's language table: only its base language is, or it comes from `localeMap`. For a self-hosted LibreTranslate server, whose installed models cannot be known before a run, every target locale is reported this way on every run; `verbatra doctor --locales --live` checks them against the server.
 
 - **Raised by**: `translate` (a dry run too), `watch`; `doctor --locales` reports it
 - **Exit code**: none
@@ -1209,7 +1209,7 @@ An LLM provider translates into a language outside the list of well-tested langu
 
 ### GLOSSARY_UNSUPPORTED_BY_PROVIDER
 
-The provider cannot apply a glossary for this locale.
+A glossary is configured for this locale, and the provider cannot apply one; it is only checked after translation.
 
 - **Raised by**: `translate` (a dry run too), `watch`; `doctor --locales` reports it
 - **Exit code**: none
@@ -1217,7 +1217,7 @@ The provider cannot apply a glossary for this locale.
 
 ### FORMALITY_UNSUPPORTED_BY_PROVIDER
 
-The provider cannot apply the configured tone for this locale.
+The tone is `formal` or `informal`, and the provider has no formality control for this locale.
 
 - **Raised by**: `translate` (a dry run too), `watch`; `doctor --locales` reports it
 - **Exit code**: none
@@ -1269,7 +1269,7 @@ Under `"block"` or `"redact"`, keys were not sent because of a match and are lis
 
 The run's `signal` aborted while this locale was running. Keys not yet translated were not sent, or their request was abandoned: they stay pending for the next run, and the locale is `partial`, or `failed` when other keys were withheld and none landed. Translations that arrived before the abort were written and recorded. The message gives the number of pending keys.
 
-- **Raised by**: the SDK only
+- **Raised by**: the SDK, when the caller passes a `signal`; the MCP tool `translation.translatePending` passes the client's cancellation signal
 - **Exit code**: none: no CLI command raises it
 - **Next step**: Run `translate` again to send the pending keys.
 
@@ -1279,7 +1279,7 @@ A provider notice reports a graceful degradation on a successful request, as dat
 
 ### FORMALITY_DOWNGRADED
 
-A requested `formal` or `informal` tone was not applied, as on DeepL's free tier or with Google Cloud Translation Basic.
+A requested `formal` or `informal` tone was not applied: DeepL's free tier or a DeepL target language without formality control, Google Cloud Translation Basic, and LibreTranslate, which has none.
 
 - **Raised by**: `translate`, `watch`
 - **Exit code**: none
@@ -1287,7 +1287,7 @@ A requested `formal` or `informal` tone was not applied, as on DeepL's free tier
 
 ### GLOSSARY_IGNORED
 
-A glossary with required translations or terms to keep was not applied: DeepL applies only a native glossary id, and Google Cloud Translation Basic supports no glossary.
+A glossary with required translations or terms to keep was not applied: DeepL applies only a native glossary id, and Google Cloud Translation Basic and LibreTranslate support no glossary.
 
 - **Raised by**: `translate`, `watch`
 - **Exit code**: none
@@ -1295,7 +1295,7 @@ A glossary with required translations or terms to keep was not applied: DeepL ap
 
 ### PLACEHOLDER_UNSUPPORTED
 
-At least one value was left untranslated by DeepL, Google Cloud Translation or LibreTranslate. A value is withheld when a placeholder is not literal in it, or when its text outside the placeholders holds `<`, `>`, `{` or `}`: ICU arguments such as plural, select or number, markup beside a placeholder, or a comparison sign (LibreTranslate keeps markup, so only braces count there). Google also withholds a value with a line break, tab or double space. A result is dropped when a marker comes back lost, duplicated, rewritten or bare, or with an unknown entity or a stray tag. A value with markup and no placeholders is sent unmasked. A token of another placeholder syntax than the format's counts as a placeholder here.
+At least one value was left untranslated by DeepL, Google Cloud Translation or LibreTranslate. A value is withheld when a placeholder is not literal in it, or when its text outside the placeholders holds `<`, `>`, `{` or `}`: ICU arguments such as plural, select or number, markup beside a placeholder, or a comparison sign (LibreTranslate sends markup tags through as they are, so only braces count there). Google also withholds a value with a line break, tab or double space. A result is dropped when a marker comes back lost, duplicated, rewritten or bare, or with an unknown entity or a stray tag. A value with markup and no placeholders is sent unmasked. A token of another placeholder syntax than the format's counts as a placeholder here.
 
 - **Raised by**: `translate`, `watch`
 - **Exit code**: `1`: the keys are listed under `providerFailures`, and the locale ends `partial` or `failed`

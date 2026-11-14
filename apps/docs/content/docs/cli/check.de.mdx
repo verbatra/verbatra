@@ -56,11 +56,20 @@ Ein Key fehlt, wenn die Quelle ihn hat und das Ziel nicht, und er ist veraltet, 
 
 ## Verhalten
 
+Ausgabe im Klartext:
+
+```text output
+verbatra check
+  de: 3 missing, 1 stale (1 protected), 38 up-to-date (out of sync)
+  fr: 0 missing, 0 stale, 42 up-to-date (in sync)
+out of sync (run verbatra translate to update)
+```
+
 ### Konsistenzbericht
 
 <AvailableFrom version="0.11.0" />
 
-`--consistency` listet pro Ziel-Locale jeden Quelltext, den zwei oder mehr Keys unterschiedlich übersetzen: die Quelle, jede Übersetzung und die Keys, die sie tragen. Er ändert nie den Exit-Code, einen Wert oder die Review-Warteschlange. Die Vergleichsregeln:
+`--consistency` listet pro Ziel-Locale jeden Quelltext, den zwei oder mehr Keys unterschiedlich übersetzen: die Quelle, jede Übersetzung und die Keys, die sie tragen. Es ändert nie den Exit-Code, einen Wert oder die Review-Warteschlange. Die Vergleichsregeln:
 
 - Werte werden nach Unicode-NFC-Normalisierung verglichen, `\r\n` wird zu `\n`, äußere Leerzeichen fallen weg. Leerzeichen im Inneren und Groß- und Kleinschreibung zählen.
 - Nur aktuelle Keys werden verglichen, und eine Übersetzung gleich ihrer Quelle bleibt `EQUALS_SOURCE` überlassen.
@@ -129,7 +138,7 @@ qa: 1 error, 1 warning
 Verwaiste und fehlende Keys werden übersprungen, und Quell-Keys, die kein gültiges ICU sind, stehen einmal unter `invalidSourceKeys`. Geschützte, gepinnte und abgelehnte Werte werden wie alle anderen geprüft. Mit `--json` hält `result.qa` die Summen und jede Locale ihr eigenes `qa`:
 
 ```ts
-interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: string[] }
+interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: string[]; limitsNotice?: { code: "LIMITS_FILE_IGNORED"; message: string } }
 interface LocaleQaReport { checked: number; errors: number; warnings: number; findings: QaFinding[] }
 type QaFinding =
   | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
@@ -145,21 +154,23 @@ type QaFinding =
 ```text output
 review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
   de: 2 unreviewed: checkout.title, checkout.total
+  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json
 ```
 
-Mit `--json` ist `result.review` gleich `{ reviewed, unreviewed, code? }`, wobei `code` `REVIEW_REQUIRED` ist oder `REVIEW_STATE_UNREADABLE`, wenn die Provenance-Datei beschädigt ist oder von einem neueren verbatra stammt (das Gate schlägt dann fehl). Jede Locale trägt `review.unreviewed`, die Keys in Quellreihenfolge.
+Mit `--json` ist `result.review` gleich `{ reviewed, unreviewed, code? }`, wobei `code` `REVIEW_REQUIRED` ist oder `REVIEW_STATE_UNREADABLE`, wenn die Herkunftsdatei beschädigt ist oder von einem neueren verbatra stammt (das Gate schlägt dann fehl). Jede Locale trägt `review.unreviewed`, die Keys in Quellreihenfolge.
 
 ### Sensible Inhalte
 
 <AvailableFrom version="0.12.0" />
 
-`--sensitive` führt die Prüfung des [Schutzes für sensible Inhalte](/de/docs/data-handling#schutz-für-sensible-inhalte) über jeden Quell-Key (Key-Name, Wert, Beschreibung und Bedeutung) und das Glossar jeder geprüften Locale aus, mit den Detektoren, Mustern und der Allow-Liste aus `sensitiveData` (ohne Block den Standard-Detektoren), bei jedem `mode` und Provider, auch `none`: Werte verlassen den Rechner trotzdem über Export-, XLIFF- und TMX-Übergaben. Es meldet Keys und Detektoren, nie gefundenen Text außerhalb eines Key-Namens, und endet bei jedem Fund mit Exit `1`.
+`--sensitive` führt die Prüfung des [Schutzes für sensible Inhalte](/de/docs/data-handling#schutz-für-sensible-inhalte) über jeden Quell-Key (Key-Name, Wert, Beschreibung und Bedeutung) und das Glossar jeder geprüften Locale aus, mit den Detektoren, Mustern und der Allow-Liste aus `sensitiveData` (ohne Block gelten die Standard-Detektoren), bei jedem `mode` und Provider, auch `none`: Werte verlassen den Rechner trotzdem über Export-, XLIFF- und TMX-Übergaben. Es meldet Keys und Detektoren, nie gefundenen Text außerhalb eines Key-Namens, und endet bei jedem Fund mit Exit `1`.
 
 Der Detektor `email` überspringt [reservierte Beispiel-Domains](/de/docs/data-handling#schutz-für-sensible-inhalte), teste also mit einer realistisch wirkenden Adresse.
 
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
   support.contact: email in value
+  remove it, list it in sensitiveData.allow, or turn the detector off in sensitiveData.detectors
 ```
 
 Mit `--json` ist `result.sensitive` gleich `{ findings, glossaryTerms }`, jeder Fund `{ key, fields, detectors }`; `detectors` kann `pattern-timeout-<n>` enthalten.
@@ -199,7 +210,7 @@ Fehlende und veraltete Keys gehören nicht zur Dateiprüfung.
 
 Schema: [`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-`--json` gibt einen [Umschlag](/de/docs/cli/output#json-ausgabe) aus, dessen `result` das Statusdokument ist. Ohne `--qa`, `--require-reviewed` und `--sensitive` ist `inSync` genau dann wahr, wenn der Befehl mit `0` endet:
+`--json` gibt einen [Envelope](/de/docs/cli/output#json-ausgabe) aus, dessen `result` das Statusdokument ist. Ohne `--qa`, `--require-reviewed` und `--sensitive` ist `inSync` genau dann wahr, wenn der Befehl mit `0` endet:
 
 ```ts
 interface CheckSummary {
@@ -226,7 +237,7 @@ interface LocaleCheckSummary {
 }
 ```
 
-Ein Quell-Key, dessen Wert leer ist oder nur aus Leerraum besteht, etwa einer, den `extract` ohne Standardwert ergänzt hat, hat noch nichts zu übersetzen: Er wird in `emptySource` statt in `missing` oder `stale` gezählt, bringt eine Locale nie aus dem Takt, und die Terminalausgabe nennt die Zahl.
+Ein Quell-Key, dessen Wert leer ist oder nur aus Leerraum besteht, etwa einer, den `extract` ohne Standardwert ergänzt hat, hat noch nichts zu übersetzen: Er wird in `emptySource` statt in `missing` oder `stale` gezählt, lässt eine Locale nie als nicht synchron gelten, und die Terminalausgabe nennt die Zahl.
 
 ### Rückmeldung im Terminal
 
@@ -240,9 +251,9 @@ Ein Quell-Key, dessen Wert leer ist oder nur aus Leerraum besteht, etwa einer, d
 | --- | --- |
 | `0` | synchron, und kein Befund, den die übergebenen Flags zum Fehlschlag machen |
 | `1` | eine Locale hat einen fehlenden oder veralteten Key, `--qa` oder `--file` hat einen Fehler gefunden (oder unter `--strict` eine Warnung oder einen unvollständigen Plural), `--require-reviewed` hat eine nicht freigegebene Übersetzung gefunden, oder `--sensitive` hat sensible Inhalte gefunden |
-| `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf wie `SOURCE_UNREADABLE` oder `NOT_A_LOCALE_FILE`, oder ein Nutzungsfehler wie `INVALID_QA_OPTION`, `INVALID_SEVERITY` oder `INVALID_OPTION` für ein leeres `--file` oder eines zusammen mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` |
+| `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf wie `SOURCE_UNREADABLE` oder `NOT_A_LOCALE_FILE`, oder ein Verwendungsfehler wie `INVALID_QA_OPTION`, `INVALID_SEVERITY` oder `INVALID_OPTION` für ein leeres `--file` oder eines zusammen mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` |
 
-Exit `1` heißt, dass das Ergebnis nicht sauber ist, nicht dass der Lauf gescheitert ist; der Bericht wird trotzdem ausgegeben. Bei einem Projekt, dessen Quelldatei noch fehlt, meldet [`verbatra doctor`](/de/docs/cli/doctor) weiterhin. Den Vertrag findest du unter [Exit-Codes](/de/docs/cli/output#exit-codes).
+Exit `1` heißt, dass das Ergebnis nicht sauber ist, nicht, dass der Lauf gescheitert ist; der Bericht wird trotzdem ausgegeben. Bei einem Projekt, dessen Quelldatei noch fehlt, liefert [`verbatra doctor`](/de/docs/cli/doctor) trotzdem einen Bericht. Den Vertrag findest du unter [Exit-Codes](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 

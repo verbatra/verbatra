@@ -56,6 +56,15 @@ Una clave falta cuando el origen la tiene y el destino no, y está obsoleta cuan
 
 ## Comportamiento
 
+Salida en texto plano:
+
+```text output
+verbatra check
+  de: 3 missing, 1 stale (1 protected), 38 up-to-date (out of sync)
+  fr: 0 missing, 0 stale, 42 up-to-date (in sync)
+out of sync (run verbatra translate to update)
+```
+
 ### Informe de consistencia
 
 <AvailableFrom version="0.11.0" />
@@ -64,7 +73,7 @@ Una clave falta cuando el origen la tiene y el destino no, y está obsoleta cuan
 
 - Los valores se comparan tras la normalización Unicode NFC, con `\r\n` convertido en `\n` y sin espacios al principio ni al final. Los espacios internos y las mayúsculas cuentan.
 - Solo se comparan claves al día, y una traducción igual a su origen queda para `EQUALS_SOURCE`.
-- Nunca se agrupan claves cuya descripción, significado, marca de plural o `msgctxt` de gettext difieran.
+- Nunca se agrupan claves cuya descripción, significado, indicador de plural o `msgctxt` de gettext difieran.
 - Las formas de plural se comparan por forma: las formas `one` y `other` de una clave nunca se agrupan entre sí.
 
 Falsos positivos conocidos: variantes de contexto de i18next (`invite_male`, `invite_female`), entradas de gettext marcadas con `#, fuzzy`, claves con aspecto de plural en un formato sin plurales (`yaml`, `ngx-translate-json`, `xliff`, `properties`, `ini`, `resx`) y las formas de plural de un formato `custom:`. Dales una descripción o un significado distintos, o ignora el hallazgo. Con `--json`, cada locale lleva `inconsistencies: { source, context?, description?, meaning?, isPlural, pluralForm?, translations: [{ value, keys }] }[]`.
@@ -73,7 +82,7 @@ Falsos positivos conocidos: variantes de contexto de i18next (`invite_male`, `in
 
 <AvailableFrom version="0.12.0" />
 
-Una clave obsoleta que una persona escribió, importó o cambió fuera de verbatra, o una clave que coincide con `pinnedKeys`, es una que `translate` deja para una persona (mira [Proteger las traducciones humanas](/es/docs/protecting-human-translations)). `check` la sigue contando y muestra la parte protegida, por ejemplo `2 stale (1 protected)`. `--json` la da como `protected` por locale; si `verbatra.provenance.json` no se puede leer, solo cuentan las claves fijadas.
+Una clave obsoleta que una persona escribió, importó o cambió fuera de verbatra, o una clave que coincide con `pinnedKeys`, es una que `translate` deja para una persona (mira [Conserva las traducciones humanas](/es/docs/protecting-human-translations)). `check` la sigue contando y muestra la parte protegida, por ejemplo `2 stale (1 protected)`. `--json` la da como `protected` por locale; si `verbatra.provenance.json` no se puede leer, solo cuentan las claves fijadas.
 
 ### Categorías de plural
 
@@ -129,7 +138,7 @@ qa: 1 error, 1 warning
 Las claves huérfanas y las que faltan se omiten, y las claves de origen que no son ICU válido aparecen una vez en `invalidSourceKeys`. Los valores protegidos, fijados y rechazados se comprueban como cualquier otro. Con `--json`, `result.qa` guarda los totales y cada locale su propio `qa`:
 
 ```ts
-interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: string[] }
+interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: string[]; limitsNotice?: { code: "LIMITS_FILE_IGNORED"; message: string } }
 interface LocaleQaReport { checked: number; errors: number; warnings: number; findings: QaFinding[] }
 type QaFinding =
   | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
@@ -145,9 +154,10 @@ type QaFinding =
 ```text output
 review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
   de: 2 unreviewed: checkout.title, checkout.total
+  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json
 ```
 
-Con `--json`, `result.review` es `{ reviewed, unreviewed, code? }`, donde `code` es `REVIEW_REQUIRED`, o `REVIEW_STATE_UNREADABLE` cuando el archivo de procedencia está dañado o viene de un verbatra más nuevo (entonces la puerta falla). Cada locale lleva `review.unreviewed`, las claves en el orden del origen.
+Con `--json`, `result.review` es `{ reviewed, unreviewed, code? }`, donde `code` es `REVIEW_REQUIRED`, o `REVIEW_STATE_UNREADABLE` cuando el archivo de procedencia está corrupto o viene de un verbatra más nuevo (entonces la puerta falla). Cada locale lleva `review.unreviewed`, las claves en el orden del origen.
 
 ### Contenido sensible
 
@@ -160,6 +170,7 @@ El detector `email` omite los [dominios de ejemplo reservados](/es/docs/data-han
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
   support.contact: email in value
+  remove it, list it in sensitiveData.allow, or turn the detector off in sensitiveData.detectors
 ```
 
 Con `--json`, `result.sensitive` es `{ findings, glossaryTerms }`, y cada hallazgo `{ key, fields, detectors }`; `detectors` puede incluir `pattern-timeout-<n>`.
@@ -216,7 +227,7 @@ interface LocaleCheckSummary {
   stale: number;                // el origen cambió desde la última traducción
   upToDate: number;
   inSync: boolean;              // missing === 0 && stale === 0
-  emptySource?: number;         // valor de origen vacío: nunca falta ni está desactualizado
+  emptySource?: number;         // valor de origen vacío: nunca falta ni está obsoleto
   provenance?: ProvenanceSummary; // recuentos por origen y estado de revisión
   protected?: number;
   incompletePlurals?: IncompletePlural[];
@@ -232,7 +243,7 @@ Una clave de origen cuyo valor está vacío o solo tiene espacios, como una que 
 
 <AvailableFrom version="0.12.0" />
 
-`check` muestra `verbatra: checking the locales... done (0.1s)` en stderr, o `verbatra: checking locales/de.json...` con `--file`. `--quiet` la omite. Mira [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
+`check` muestra `verbatra: checking the locales... done (0.1s)` en stderr, o `verbatra: checking locales/de.json...` con `--file`. `--quiet` omite esa línea. Mira [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
 
 ## Códigos de salida
 

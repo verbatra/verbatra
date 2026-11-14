@@ -1,7 +1,7 @@
 ---
 title: Códigos de salida y salida JSON
 seoTitle: "Códigos de salida y salida JSON de verbatra"
-description: "El contrato de códigos de salida, el envoltorio JSON de cada comando con --json, los códigos propios de la CLI y cómo escribe verbatra en stderr."
+description: "El contrato de códigos de salida, el envoltorio JSON de cada comando con --json, los códigos propios de la CLI y cómo escribe verbatra en stderr y el terminal."
 type: reference
 ---
 Todo aquello en lo que un script o un paso de CI puede confiar en todos los comandos. Cada [página de comando](/es/docs/cli) añade solo lo específico de ese comando.
@@ -35,14 +35,14 @@ El código `0` significa, por comando:
 - `watch`, `studio` o `mcp`: se detuvo limpiamente
 - `--help` o `--version`: imprimió la ayuda o la versión
 
-Con `130` y `143`, stderr termina con `verbatra: interrupted (SIGINT), released locks` (o `SIGTERM`), o, con `--json`, con el registro `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Si liberar los bloqueos falla o no termina en 5 segundos, la línea lo dice en su lugar (`could not release locks: <reason>` o `lock release did not finish within 5s`), y el registro JSON lleva `"locksReleased":false` con `"reason":"failed"` (más `message`) o `"reason":"timed-out"` (más `deadlineMs`).
+Con `130` y `143`, stderr termina con `verbatra: interrupted (SIGINT), released locks` (o `SIGTERM`), o, con `--json`, con el registro `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Si liberar los bloqueos falla o no termina en 5 segundos, la línea lo dice en su lugar (`could not release locks: <reason>` o `lock release did not finish within 5s`, cada una seguida de cómo encontrar y borrar un bloqueo que quedó), y el registro JSON lleva `"locksReleased":false` con `"reason":"failed"` (más `message`) o `"reason":"timed-out"` (más `deadlineMs`).
 
 Algunos casos límite que conviene conocer:
 
 <AvailableFrom version="0.9.0" />
 
 - Un locale **parcial** cuenta como fallo. Significa que el archivo se escribió pero todavía faltan algunas claves, normalmente porque un sublote del proveedor falló o la puerta de integridad rechazó una traducción. Sale con `1` exactamente igual que un locale fallido. Lee `partial` en el resumen para distinguir los dos casos. Un locale es fallido y no parcial cuando no se escribió ninguno de sus valores, así que repetir el mismo `import` tras uno parcial se lee como fallido: lo que escribió antes ahora está sin cambios y solo quedan las filas rechazadas. Un sublote fallido deja en el locale un aviso `SUB_BATCH_FAILED` que nombra el código de error del proveedor, o `PROVIDER_CALL_FAILED` cuando el fallo no fue un error estructurado del proveedor.
-- Un **locale que el proveedor no admite** también es un error de toda la ejecución, nunca un único locale fallido. `translate` (incluidos un dry run y `--estimate`), `watch` al arrancar y la retraducción de una sola clave lo rechazan con `LOCALE_UNSUPPORTED_BY_PROVIDER` y salen con `2` antes de construir ningún proveedor o gastar nada, así que ningún locale de la ejecución ha empezado y no se ha escrito nada. Se evalúa contra la tabla de idiomas que verbatra incluye para DeepL y Google Cloud Translation; un proveedor LLM acepta cualquier locale. Deja fuera ese locale con `--locales` para traducir los demás, y ejecuta [`verbatra doctor --locales`](/es/docs/cli/doctor#soporte-de-locales) para ver por qué. Consulta [Soporte de idiomas](/es/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución).
+- Un **locale que el proveedor no admite** también es un error de toda la ejecución, nunca un único locale fallido. `translate` (incluidos una ejecución de prueba y `--estimate`), `watch` al arrancar y la retraducción de una sola clave lo rechazan con `LOCALE_UNSUPPORTED_BY_PROVIDER` y salen con `2` antes de construir ningún proveedor o gastar nada. Se evalúa contra la tabla de idiomas que verbatra incluye para DeepL y Google Cloud Translation; un proveedor LLM acepta cualquier locale. Deja fuera ese locale con `--locales` para traducir los demás, y ejecuta [`verbatra doctor --locales`](/es/docs/cli/doctor#soporte-de-locales) para ver por qué. Consulta [Soporte de idiomas](/es/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución).
 - Un **archivo de bloqueo corrupto** es un error de toda la ejecución tanto en `translate` como en `import`, nunca un único locale fallido. Es un solo archivo compartido, así que un archivo de bloqueo que se corrompe con la ejecución en marcha la detiene con `2` en vez de seguir con los locales restantes. Lo que se escribió antes del corte permanece en disco: repara el archivo de bloqueo y vuelve a ejecutar el comando.
 - Una sola interrupción es una parada limpia, y los tres comandos de larga duración (`watch`, `studio` y `mcp`) salen con `0` ante ella. Más allá de eso no des por hecho que se comportan igual: si la propia parada falla, `watch` sale con `2` mientras que `studio` y `mcp` salen con `1`.
 - Una ejecución fallida durante `watch` aparece como un registro en el flujo de salida, nunca como un código de salida distinto de cero.

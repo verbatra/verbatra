@@ -69,6 +69,8 @@ Un archivo XLIFF se lee con la versión que declara, y un archivo suelto cuyo no
 
 Una celda `Translation` vacía nunca hace fallar un locale: la fila se omite, se conserva su línea base del bloqueo y la clave se informa como `unfilled` mientras siga necesitando traducción. Importar una entrega que nadie ha rellenado todavía tiene por tanto éxito y lista cada clave pendiente.
 
+Una fila rellenada cuyo texto de origen cambió desde la exportación se retiene: su clave aparece en `integrity-withheld` sin motivo, el locale queda parcial y la clave se exporta de nuevo.
+
 Una sola fila ilegible se informa como fila mal formada, y el resto del locale se importa igualmente. Una entrega demasiado grande o que no se puede analizar en absoluto (por ejemplo, que no es un contenedor xlsx legible) es un error `SOURCE_INVALID` de toda la ejecución cuyo mensaje dice qué le pasaba.
 
 En una entrega CSV, TSV o xlsx, una fila rellenada igual al valor de una clave al día se deja intacta y se informa como sin cambios, no como traducida, una vez que pasa la puerta de integridad <AvailableFrom version="0.13.0" />. Consulta [Traducción manual](/es/docs/manual-translation#qué-acepta-la-importación).
@@ -108,7 +110,7 @@ El contrato coincide con el de [`verbatra translate`](/es/docs/cli/translate), a
 
 ## Relacionado
 
-- [Traducción humana](/es/docs/manual-translation) cubre el ciclo completo de exportar, rellenar e importar y qué puede editar un traductor.
+- [Traducción manual](/es/docs/manual-translation) cubre el ciclo completo de exportar, rellenar e importar y qué puede editar un traductor.
 - [Seguridad de la traducción](/es/docs/translation-safety) explica las comprobaciones que pueden retener un valor.
 - [Entregar a una agencia de traducción](/es/docs/translation-agency) cubre el ciclo XLIFF a través de una herramienta TAO.
 - [`verbatra export`](/es/docs/cli/export) produce la entrega que este comando lee.

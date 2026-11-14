@@ -152,11 +152,11 @@ Solo `next-intl-json` y `arb` validan la sintaxis de mensaje. En cualquier otro 
 
 ### Claves con plural
 
-No se agrupa nada. i18next lleva el plural como sufijo de clave, así que `cart.item_one` y `cart.item_other` se declaran tal como están escritas y, junto a ellas, la clave base `cart.item` que busca `t("cart.item", { count })`, que exige `count` y todos los argumentos que toma alguna de las formas. Los tipos propios de i18next también aceptan ambas formas de escribirla. Un grupo ordinal como `place_ordinal_one` declara `place`, y una clave base que el catálogo ya contiene conserva su propia declaración. `VerbatraPluralMessageKey` lista las claves que el adaptador marcó como portadoras de formas plurales, las que llevan sufijo, para que puedas acotarte a ellas.
+No se agrupa nada. i18next lleva el plural como sufijo de clave, así que `cart.item_one` y `cart.item_other` se declaran tal como están escritas y, junto a ellas, la clave base `cart.item` que busca `t("cart.item", { count })`, que exige `count` y todos los argumentos que toma alguna de las formas. Los tipos propios de i18next también aceptan ambas formas de escribirla. Un grupo ordinal como `place_ordinal_one` declara `place`, y una clave base que el catálogo ya contiene conserva su propia declaración. `VerbatraPluralMessageKey` lista las claves que el adaptador marcó como portadoras de formas plurales, las que llevan sufijo, para que puedas acotar el tipo a ellas.
 
 ### Dónde va la declaración
 
-Por defecto acaba en `verbatra-types.d.ts` en la raíz de tu proyecto. **Haz commit de ella**: un compañero o un job de CI comprueba los tipos contra ella sin ejecutar verbatra, y `--check` necesita un archivo confirmado con el que comparar. Nada la añade a `.gitignore`.
+Por defecto acaba en `verbatra-types.d.ts` en la raíz de tu proyecto. **Confírmala**: un compañero o un job de CI comprueba los tipos contra ella sin ejecutar verbatra, y `--check` necesita un archivo confirmado con el que comparar. Nada la añade a `.gitignore`.
 
 Una ruta de salida se rechaza con `TYPES_OUTPUT_CONFLICT` cuando:
 
@@ -209,7 +209,7 @@ interface GenerateTypesResult {
 
 <AvailableFrom version="0.12.0" />
 
-El resumen va a stdout; una línea de spinner y, tras escribir, una sugerencia para hacer commit del archivo van a stderr (`--check` no sugiere nada, y `--quiet` omite ambas). Una ejecución que genera, una repetición sin cambios y un `--check` obsoleto:
+El resumen va a stdout; una línea de spinner y, tras escribir, una sugerencia para confirmar el archivo van a stderr (`--check` no sugiere nada, y `--quiet` omite ambas). Una ejecución que genera, una repetición sin cambios y un `--check` obsoleto:
 
 ```text output
 verbatra: generating the declarations... done (0.2s)

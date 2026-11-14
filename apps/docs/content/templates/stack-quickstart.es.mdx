@@ -26,7 +26,7 @@ Tu gestor de paquetes crea uno en la primera instalación. Añade `node_modules/
 
 ### Añade un archivo de locale de origen
 
-Si <StackText field="sourceFile" /> ya existe, sáltate este paso. Si no, créalo con dos textos, uno de ellos con un marcador de posición:
+Si <StackText field="sourceFile" /> ya existe, sáltate este paso. Si no, créalo con dos textos, uno de ellos con un placeholder:
 
 <StackBlock name="source-file" />
 
@@ -75,7 +75,7 @@ Abre `.env` y pega tu clave después de `GEMINI_API_KEY=`. ¿Aún no tienes clav
 npx @verbatra/cli translate
 ```
 
-verbatra envía los dos textos a Gemini, comprueba que cada marcador de posición sobrevive y escribe <StackText field="targetFile" />. El texto depende del modelo, por ejemplo:
+verbatra envía los dos textos a Gemini, comprueba que cada placeholder sobrevive y escribe <StackText field="targetFile" />. El texto depende del modelo, por ejemplo:
 
 <StackBlock name="translated-file" />
 
@@ -118,7 +118,7 @@ Arranca tu app: el saludo dice `Hallo, Ada!`.
 ## Qué acaba de pasar
 
 - `verbatra.lock.json` guarda un hash de cada texto de origen, para que la siguiente ejecución envíe solo textos nuevos y modificados. Consulta [El archivo de bloqueo](/es/docs/the-lock-file).
-- Un resultado que pierde un marcador de posición se retiene y nunca se escribe. Consulta [Seguridad de la traducción](/es/docs/translation-safety).
+- Un resultado que pierde un placeholder se retiene y nunca se escribe. Consulta [Seguridad de la traducción](/es/docs/translation-safety).
 
 Haz commit de los archivos de locale, `verbatra.lock.json` y `verbatra.provenance.json` juntos.
 
@@ -140,6 +140,6 @@ O, sin la CLI, añade solo el servidor MCP a tu perfil de usuario de VS Code; us
 
 <Cards>
   <Card title="Añadir un idioma" href="/es/docs/add-a-language" description="Añade un locale de destino y deja que una ejecución lo complete." />
-  <Card title="Ejecutar verbatra en CI" href="/es/docs/ci-and-exit-codes" description="Haz fallar un pull request cuando un locale se desvía." />
+  <Card title="Ejecuta verbatra en CI" href="/es/docs/ci-and-exit-codes" description="Haz fallar un pull request cuando un locale se desvía." />
   <Card title="Elige tu stack" href="/es/docs/pick-your-stack" description="El id de formato y la estructura de archivos de cualquier otro framework." />
 </Cards>
