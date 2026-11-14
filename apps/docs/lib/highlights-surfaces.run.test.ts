@@ -188,14 +188,17 @@ describe("the four surfaces print what verbatra returns", () => {
       join(import.meta.dirname, "../../../packages/cli/src/run.ts"),
       "utf8",
     );
+    const program = /\.name\("([^"]+)"\)/.exec(cli)?.[1];
+    expect(program).toBeDefined();
     expect(cli).toContain('.command("check")');
-    expect(SURFACE_BADGES.cli).toBe("verbatra check");
-    expect(SURFACE_BADGES.studio).toBe("Locales");
+    expect(SURFACE_BADGES.cli).toBe(`${program} check`);
     const studio = await readFile(
       join(import.meta.dirname, "../../../packages/studio/src/app/LocalesSection.tsx"),
       "utf8",
     );
-    expect(studio).toContain("Locales");
+    const section = /export function LocalesSection[\s\S]*?title="([^"]+)"/.exec(studio)?.[1];
+    expect(section).toBeDefined();
+    expect(SURFACE_BADGES.studio).toBe(section);
     expect(SURFACE_BADGES.sdk).toBe(`${check.name}()`);
   });
 
