@@ -6,6 +6,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { LOCALES } from "@/lib/locales";
 import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import {
   AWAY_FRAMES,
@@ -289,7 +290,7 @@ describe("the back-to-top control", () => {
       expect(catalog.landing.fab.label.length).toBeGreaterThan(3);
     expect(
       new Set(Object.values(MESSAGE_CATALOGS).map((catalog) => catalog.landing.fab.label)).size,
-    ).toBe(4);
+    ).toBe(LOCALES.length);
   });
 
   it("is a 44px fixed target inside the safe area, with a control boundary that holds 3:1", () => {

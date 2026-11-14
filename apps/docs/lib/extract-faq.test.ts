@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { MESSAGE_CATALOGS } from "../lib/message-catalogs";
 import { extractFaqItems, withoutQuestions } from "./extract-faq";
 import { i18n } from "./i18n";
+import { MESSAGE_CATALOGS } from "./message-catalogs";
 
 describe("extractFaqItems", () => {
   it("returns an empty array for empty content", () => {

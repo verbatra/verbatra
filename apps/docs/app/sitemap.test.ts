@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { LOCALES } from "@/lib/locales";
 
 interface FakePage {
   readonly slugs: readonly string[];
@@ -99,7 +100,7 @@ describe("sitemap", () => {
     const home = sitemap().filter((entry) =>
       Object.values(HOME_LANGUAGES).includes(entry.url ?? ""),
     );
-    expect(home).toHaveLength(4);
+    expect(home).toHaveLength(LOCALES.length);
     for (const entry of home) expect(entry.lastModified).toBe(LANDING_LAST_UPDATED);
   });
 

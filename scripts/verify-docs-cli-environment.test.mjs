@@ -245,18 +245,24 @@ describe("the environment files section names exactly the commands that load .en
 });
 
 const SPEND_SECTION_HEADING = {
-  studio: {
-    "": "### Spend and agent tools",
-    ".de": "### Ausgaben und Agent-Tools",
-    ".es": "### Gasto y herramientas de agente",
-    ".fr": "### Dépenses et outils d'agent",
-  },
-  mcp: {
-    "": "### Spend tools",
-    ".de": "### Kostenpflichtige Tools",
-    ".es": "### Herramientas de gasto",
-    ".fr": "### Outils payants",
-  },
+  studio: assertLocaleTable(
+    {
+      "": "### Spend and agent tools",
+      ".de": "### Ausgaben und Agent-Tools",
+      ".es": "### Gasto y herramientas de agente",
+      ".fr": "### Dépenses et outils d'agent",
+    },
+    "SPEND_SECTION_HEADING.studio",
+  ),
+  mcp: assertLocaleTable(
+    {
+      "": "### Spend tools",
+      ".de": "### Kostenpflichtige Tools",
+      ".es": "### Herramientas de gasto",
+      ".fr": "### Outils payants",
+    },
+    "SPEND_SECTION_HEADING.mcp",
+  ),
 };
 
 const REDACT_SECTION_HEADING = assertLocaleTable(

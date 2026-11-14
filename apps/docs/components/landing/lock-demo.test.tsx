@@ -15,6 +15,7 @@ import {
   PLAYGROUND_TRANSLATIONS,
   playgroundGeneratedOn,
 } from "@/lib/landing-playground";
+import { TRANSLATED_LOCALES } from "@/lib/locales";
 import { LOCK_DEMO_COUNTS, LOCK_DEMO_PLAYGROUND_IDS } from "@/lib/lock-demo";
 import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import { preloadRegisteredIslands } from "@/test-support/islands";
@@ -104,7 +105,7 @@ describe("the lock demo heading and counts", () => {
     },
   );
 
-  it.each(["de", "es", "fr"] as const)(
+  it.each(TRANSLATED_LOCALES)(
     "%s names the CLI's own word once in the stale footnote",
     (locale) => {
       const lockDemo = (CATALOGS[locale].landing as unknown as { lockDemo: Tree }).lockDemo;

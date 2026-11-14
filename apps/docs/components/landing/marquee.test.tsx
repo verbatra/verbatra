@@ -268,13 +268,19 @@ describe("Marquee", () => {
     ).toBeNull();
   });
 
-  it.each([
-    ["en", "verbatra speaks seven providers and reads 14 file formats."],
-    ["de", "Sieben Provider und vierzehn Dateiformate."],
-    ["es", "Siete proveedores y catorce formatos de archivo."],
-    ["fr", "Sept fournisseurs et quatorze formats de fichier."],
-  ] as const)("flags a spelled-out or numeric count in %s", (locale, sentence) => {
-    expect(sentence).toMatch(spelledCount(locale));
+  const SPELLED_SAMPLES: Readonly<Record<Locale, string>> = {
+    en: "verbatra speaks seven providers and reads 14 file formats.",
+    de: "Sieben Provider und vierzehn Dateiformate.",
+    es: "Siete proveedores y catorce formatos de archivo.",
+    fr: "Sept fournisseurs et quatorze formats de fichier.",
+  };
+
+  it("has a spelled-count sample for every locale", () => {
+    expect(Object.keys(SPELLED_SAMPLES).sort()).toEqual([...LOCALES].sort());
+  });
+
+  it.each(LOCALES)("flags a spelled-out or numeric count in %s", (locale) => {
+    expect(SPELLED_SAMPLES[locale]).toMatch(spelledCount(locale));
   });
 
   it.each(LOCALES)(

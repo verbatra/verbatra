@@ -21,6 +21,7 @@ import {
   verdictMark,
 } from "@/lib/landing-compare";
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { localePrefix } from "@/lib/locales";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 import { resolveServer } from "@/test-support/resolve-server";
 
@@ -83,8 +84,6 @@ const { default: CompareRoute, generateMetadata } = await import("./page");
 await preloadRegisteredIslands();
 
 const ORIGIN = "https://verbatra.kreitz-webdev.de";
-
-const PREFIX: Readonly<Record<Locale, string>> = { en: "", de: "/de", es: "/es", fr: "/fr" };
 
 async function render(locale: Locale): Promise<Document> {
   const page = await resolveServer(
@@ -155,7 +154,7 @@ function expectSourceLinks(
 
 describe.each(i18n.languages)("the %s comparison page", (locale) => {
   const copy = catalog(locale);
-  const path = `${PREFIX[locale]}/compare`;
+  const path = `${localePrefix(locale)}/compare`;
 
   it("has its own title and description of a search-result length", async () => {
     const meta = await metadata(locale);
@@ -189,7 +188,7 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
       url: `${ORIGIN}${path}`,
       title: copy.compare.meta.title,
       type: "article",
-      images: [{ url: `${PREFIX[locale]}/compare-og`, alt: copy.compare.meta.ogImageAlt }],
+      images: [{ url: `${localePrefix(locale)}/compare-og`, alt: copy.compare.meta.ogImageAlt }],
     });
   });
 
@@ -198,7 +197,7 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
     expect(breadcrumb).toMatchObject({
       "@type": "BreadcrumbList",
       itemListElement: [
-        { position: 1, item: `${ORIGIN}${PREFIX[locale] || "/"}` },
+        { position: 1, item: `${ORIGIN}${localePrefix(locale) || "/"}` },
         { position: 2, name: copy.compare.breadcrumbCompare, item: `${ORIGIN}${path}` },
       ],
     });
@@ -352,7 +351,7 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
   it("links the quickstart and the home page in the reader's locale", async () => {
     const doc = await render(locale);
     const hrefs = Array.from(doc.querySelectorAll("nav a"), (a) => a.getAttribute("href"));
-    expect(hrefs).toEqual([`${PREFIX[locale]}/docs/quickstart`, PREFIX[locale] || "/"]);
+    expect(hrefs).toEqual([`${localePrefix(locale)}/docs/quickstart`, localePrefix(locale) || "/"]);
   });
 
   it("keeps what the old notes said as small labels on the Lingo.dev and manual columns and the formats row", async () => {

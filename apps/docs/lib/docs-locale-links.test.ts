@@ -2,15 +2,14 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
-import { localeAlternation } from "@/lib/locales";
+import { localeAlternation, TRANSLATED_LOCALES } from "@/lib/locales";
 import { mapProse } from "@/lib/markdown-links";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content");
-const TRANSLATED_LOCALES = i18n.languages.filter((lang) => lang !== i18n.defaultLanguage).join("|");
-const TRANSLATED = new RegExp(`\\.(${TRANSLATED_LOCALES})\\.(mdx|json)$`);
+const TRANSLATED = new RegExp(`\\.(${localeAlternation(TRANSLATED_LOCALES)})\\.(mdx|json)$`);
 const LINK_TARGET = /(?:\]\(\s*|\bhref="|^\s*\[[^\]]+\]:\s*)(\/[^\s)"'#?]*)/g;
 const PROP_TARGET = /\bhref: "(\/[^"#?]*)/g;
-const DOCS_PATH = new RegExp(`^(?:\\/(${localeAlternation()}))?\\/docs(?:\\/|$)`);
+const DOCS_PATH = /^(?:\/([A-Za-z]{2}(?:-[A-Za-z]{2})?))?\/docs(?:\/|$)/;
 
 type TranslatedFile = { name: string; locale: string; source: string };
 
@@ -42,7 +41,7 @@ const FILES = translatedFiles();
 
 describe("translated docs links", () => {
   it("finds translated pages and meta files in every non-default locale", () => {
-    for (const locale of i18n.languages.filter((lang) => lang !== i18n.defaultLanguage)) {
+    for (const locale of TRANSLATED_LOCALES) {
       expect(FILES.some((file) => file.locale === locale && file.name.endsWith(".mdx"))).toBe(true);
       expect(FILES.some((file) => file.locale === locale && file.name.endsWith(".json"))).toBe(
         true,
