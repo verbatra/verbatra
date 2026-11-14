@@ -5194,25 +5194,23 @@ html.light .vk-deck-shot-light {
 
     .vk-gate-frame[data-state="candidate"] > .vk-lock-caption {
       animation-name: vk-gate-caption-out;
-      animation-range: contain 20% contain 26.667%;
+      animation-range: contain 22% contain 30%;
       animation-fill-mode: forwards;
       animation-timing-function: var(--ease-exit);
       animation-timeline: --vk-gate;
     }
 
     .vk-gate-frame[data-state="candidate"] > .vk-gate-card {
-      animation-name: vk-gate-card-out, vk-gate-fade-out;
-      animation-range:
-        contain 22.667% contain 30.667%,
-        contain 28.667% contain 30.667%;
-      animation-fill-mode: forwards, forwards;
-      animation-timing-function: var(--ease-exit), linear;
+      animation-name: vk-gate-card-out;
+      animation-range: contain 23.333% contain 30%;
+      animation-fill-mode: forwards;
+      animation-timing-function: var(--ease-exit);
       animation-timeline: --vk-gate;
     }
 
     .vk-gate-frame[data-state="refused"] {
       animation-name: vk-gate-refused;
-      --vk-lines-from: 29.333%;
+      --vk-lines-from: 30.667%;
       --vk-lines-step: 1%;
       --vk-lines-span: 4%;
     }
@@ -5220,47 +5218,43 @@ html.light .vk-deck-shot-light {
     .vk-gate-frame[data-state="refused"] > .vk-lock-caption {
       animation-name: vk-gate-caption-in, vk-gate-caption-out;
       animation-range:
-        contain 28.667% contain 35.333%,
-        contain 62.667% contain 69.333%;
+        contain 30% contain 36.667%,
+        contain 64.667% contain 72.667%;
       animation-fill-mode: backwards, forwards;
       animation-timing-function: var(--ease-standard), var(--ease-exit);
       animation-timeline: --vk-gate;
     }
 
     .vk-gate-frame[data-state="refused"] > .vk-gate-card {
-      animation-name: vk-gate-card-in, vk-gate-card-out, vk-gate-fade-in, vk-gate-fade-out;
+      animation-name: vk-gate-card-in, vk-gate-card-out;
       animation-range:
-        contain 29.333% contain 37.333%,
-        contain 65.333% contain 73.333%,
-        contain 29.333% contain 31.333%,
-        contain 71.333% contain 73.333%;
-      animation-fill-mode: backwards, forwards, backwards, forwards;
-      animation-timing-function: var(--ease-standard), var(--ease-exit), linear, linear;
+        contain 30.667% contain 38.667%,
+        contain 66% contain 72.667%;
+      animation-fill-mode: backwards, forwards;
+      animation-timing-function: var(--ease-standard), var(--ease-exit);
       animation-timeline: --vk-gate;
     }
 
     .vk-gate-frame[data-state="stale"] {
       animation-name: vk-gate-stale;
-      --vk-lines-from: 72%;
+      --vk-lines-from: 73.333%;
       --vk-lines-step: 1%;
       --vk-lines-span: 4%;
     }
 
     .vk-gate-frame[data-state="stale"] > .vk-lock-caption {
       animation-name: vk-gate-caption-in;
-      animation-range: contain 71.333% contain 78%;
+      animation-range: contain 72.667% contain 79.333%;
       animation-fill-mode: backwards;
       animation-timing-function: var(--ease-standard);
       animation-timeline: --vk-gate;
     }
 
     .vk-gate-frame[data-state="stale"] > .vk-gate-card {
-      animation-name: vk-gate-card-in, vk-gate-fade-in;
-      animation-range:
-        contain 72% contain 80%,
-        contain 72% contain 74%;
-      animation-fill-mode: backwards, backwards;
-      animation-timing-function: var(--ease-standard), linear;
+      animation-name: vk-gate-card-in;
+      animation-range: contain 73.333% contain 81.333%;
+      animation-fill-mode: backwards;
+      animation-timing-function: var(--ease-standard);
       animation-timeline: --vk-gate;
     }
 
@@ -5327,15 +5321,15 @@ html.light .vk-deck-shot-light {
     }
 
     .vk-gate-progress i[data-state="candidate"]::after {
-      animation-range: contain 0.667% contain 30.667%;
+      animation-range: contain 0.667% contain 30%;
     }
 
     .vk-gate-progress i[data-state="refused"]::after {
-      animation-range: contain 30.667% contain 73.333%;
+      animation-range: contain 30% contain 72.667%;
     }
 
     .vk-gate-progress i[data-state="stale"]::after {
-      animation-range: contain 73.333% contain 99.333%;
+      animation-range: contain 72.667% contain 99.333%;
     }
 
     @media (forced-colors: active) {
@@ -5346,17 +5340,18 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-candidate {
       0%,
-      30.567% {
+      28% {
         opacity: 1;
         pointer-events: auto;
       }
 
-      30.667% {
-        opacity: 0;
+      29.9% {
+        opacity: 0.35;
         pointer-events: auto;
+        animation-timing-function: step-end;
       }
 
-      30.701%,
+      30%,
       100% {
         opacity: 0;
         pointer-events: none;
@@ -5365,28 +5360,30 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-refused {
       0%,
-      28.533% {
+      29.9% {
         opacity: 0;
         pointer-events: none;
+        animation-timing-function: step-end;
       }
 
-      28.567% {
-        opacity: 0;
+      30% {
+        opacity: 0.35;
         pointer-events: auto;
       }
 
-      28.667%,
-      73.233% {
+      32%,
+      70.667% {
         opacity: 1;
         pointer-events: auto;
       }
 
-      73.333% {
-        opacity: 0;
+      72.567% {
+        opacity: 0.35;
         pointer-events: auto;
+        animation-timing-function: step-end;
       }
 
-      73.367%,
+      72.667%,
       100% {
         opacity: 0;
         pointer-events: none;
@@ -5395,17 +5392,18 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-stale {
       0%,
-      71.2% {
+      72.567% {
         opacity: 0;
         pointer-events: none;
+        animation-timing-function: step-end;
       }
 
-      71.233% {
-        opacity: 0;
+      72.667% {
+        opacity: 0.35;
         pointer-events: auto;
       }
 
-      71.333%,
+      74.667%,
       100% {
         opacity: 1;
         pointer-events: auto;
@@ -5414,32 +5412,20 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-caption-in {
       from {
-        opacity: 0;
         transform: translateX(var(--vk-gate-slide));
       }
 
-      20% {
-        opacity: 1;
-      }
-
       to {
-        opacity: 1;
         transform: none;
       }
     }
 
     @keyframes vk-gate-caption-out {
       from {
-        opacity: 1;
         transform: none;
       }
 
-      70% {
-        opacity: 1;
-      }
-
       to {
-        opacity: 0;
         transform: translateX(calc(-1 * var(--vk-gate-slide)));
       }
     }
@@ -5461,26 +5447,6 @@ html.light .vk-deck-shot-light {
 
       to {
         transform: translateX(calc(-1 * var(--vk-gate-slide))) scale(0.94);
-      }
-    }
-
-    @keyframes vk-gate-fade-in {
-      from {
-        opacity: 0;
-      }
-
-      to {
-        opacity: 1;
-      }
-    }
-
-    @keyframes vk-gate-fade-out {
-      from {
-        opacity: 1;
-      }
-
-      to {
-        opacity: 0;
       }
     }
 

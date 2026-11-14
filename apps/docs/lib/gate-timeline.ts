@@ -33,21 +33,17 @@ export const GATE_SLIDE_SCALE = 0.94;
 
 export const GATE_STAMP_SCALE = 1.6;
 
-export const GATE_ENTER_OPAQUE = 0.2;
+export const GATE_CUTS: ReadonlyArray<number> = [45, 109];
 
-export const GATE_EXIT_OPAQUE = 0.7;
+export const GATE_DIM_SVH = 3;
 
-export const GATE_FRAME_RISE_SVH = 0.15;
+export const GATE_DIM_FLOOR = 0.35;
 
-export const GATE_CARD_FADE_SVH = 3;
+export const GATE_CUT_LEAD_SVH = 0.15;
 
 export const GATE_CARD_MIN_PAINT = 0.3;
 
-export const GATE_CARD_JOINT_CEILING = 0.6;
-
-export const GATE_CARD_JOINT_SVH = 2;
-
-export const GATE_CARD_VISIBLE = 0.1;
+export const GATE_FRAME_PAINTED = 0.01;
 
 export const GATE_HOLD_FLOOR_SVH = 24;
 
@@ -61,27 +57,27 @@ export const GATE_PHASES: ReadonlyArray<GateFramePhases> = [
     enterCard: null,
     lines: null,
     element: [2, 6],
-    marker: [1, 46],
+    marker: [1, 45],
     hold: [6, 30],
-    exitCaption: [30, 40],
-    exitCard: [34, 46],
+    exitCaption: [33, 45],
+    exitCard: [35, 45],
   },
   {
-    enterCaption: [43, 53],
-    enterCard: [44, 56],
-    lines: { from: 44, step: 1.5, span: 6 },
+    enterCaption: [45, 55],
+    enterCard: [46, 58],
+    lines: { from: 46, step: 1.5, span: 6 },
     element: [64, 70],
-    marker: [46, 110],
+    marker: [45, 109],
     hold: [70, 94],
-    exitCaption: [94, 104],
-    exitCard: [98, 110],
+    exitCaption: [97, 109],
+    exitCard: [99, 109],
   },
   {
-    enterCaption: [107, 117],
-    enterCard: [108, 120],
-    lines: { from: 108, step: 1.5, span: 6 },
+    enterCaption: [109, 119],
+    enterCard: [110, 122],
+    lines: { from: 110, step: 1.5, span: 6 },
     element: [122, 126],
-    marker: [110, 149],
+    marker: [109, 149],
     hold: [126, 150],
     exitCaption: null,
     exitCard: null,
@@ -89,23 +85,31 @@ export const GATE_PHASES: ReadonlyArray<GateFramePhases> = [
 ];
 
 export function gateFrameFade(index: number): { rise: SvhRange | null; fall: SvhRange | null } {
-  const phases = GATE_PHASES[index];
-  const start = phases?.enterCaption?.[0];
-  const end = phases?.exitCard?.[1];
+  const cutIn = GATE_CUTS[index - 1];
+  const cutOut = GATE_CUTS[index];
   return {
-    rise: start === undefined ? null : [Number((start - GATE_FRAME_RISE_SVH).toFixed(3)), start],
-    fall: end === undefined ? null : [Number((end - GATE_FRAME_RISE_SVH).toFixed(3)), end],
+    rise: cutIn === undefined ? null : [cutIn, Number((cutIn + GATE_DIM_SVH).toFixed(3))],
+    fall:
+      cutOut === undefined
+        ? null
+        : [
+            Number((cutOut - GATE_DIM_SVH).toFixed(3)),
+            Number((cutOut - GATE_CUT_LEAD_SVH).toFixed(3)),
+          ],
   };
 }
 
-export function gateCardFade(index: number): { rise: SvhRange | null; fall: SvhRange | null } {
-  const phases = GATE_PHASES[index];
-  const start = phases?.enterCard?.[0];
-  const end = phases?.exitCard?.[1];
-  return {
-    rise: start === undefined ? null : [start, start + GATE_CARD_FADE_SVH],
-    fall: end === undefined ? null : [end - GATE_CARD_FADE_SVH, end],
-  };
+export function gateFrameOpacity(index: number, svh: number): number {
+  const { rise, fall } = gateFrameFade(index);
+  const cutIn = GATE_CUTS[index - 1];
+  const cutOut = GATE_CUTS[index];
+  if (cutIn !== undefined && svh < cutIn) return 0;
+  if (cutOut !== undefined && svh >= cutOut) return 0;
+  const along = (range: SvhRange): number => (svh - range[0]) / (range[1] - range[0]);
+  if (rise !== null && svh <= rise[1]) return GATE_DIM_FLOOR + (1 - GATE_DIM_FLOOR) * along(rise);
+  if (fall !== null && svh >= fall[0])
+    return svh >= fall[1] ? GATE_DIM_FLOOR : 1 - (1 - GATE_DIM_FLOOR) * along(fall);
+  return 1;
 }
 
 export function gatePercent(svh: number): string {

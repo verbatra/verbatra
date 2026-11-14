@@ -21,15 +21,13 @@ import {
   GATE_TRANSLATE_COMMAND,
 } from "@/lib/gate-demo";
 import {
-  GATE_CARD_FADE_SVH,
-  GATE_CARD_JOINT_CEILING,
-  GATE_CARD_JOINT_SVH,
   GATE_CARD_MIN_PAINT,
-  GATE_CARD_VISIBLE,
+  GATE_CUT_LEAD_SVH,
+  GATE_CUTS,
+  GATE_DIM_FLOOR,
+  GATE_DIM_SVH,
   GATE_DROP_PX,
-  GATE_ENTER_OPAQUE,
-  GATE_EXIT_OPAQUE,
-  GATE_FRAME_RISE_SVH,
+  GATE_FRAME_PAINTED,
   GATE_HOLD_FLOOR_SVH,
   GATE_LINE_SHIFT_PX,
   GATE_MARKER_MIN_PX,
@@ -41,9 +39,8 @@ import {
   GATE_SLIDE_WIDE_REM,
   GATE_STAMP_SCALE,
   GATE_SWAP_CEILING_SVH,
-  gateCardFade,
   gateFrameFade,
-  gateHoldMiddle,
+  gateFrameOpacity,
   gatePercent,
   gateSwapWindow,
 } from "@/lib/gate-timeline";
@@ -390,12 +387,9 @@ describe("the gate stylesheet", () => {
   const expectCardMotion = (index: number): void => {
     const phases = GATE_PHASES[index];
     const selector = cardOf(STATES[index] ?? "candidate");
-    const fade = gateCardFade(index);
     const motions = [
       [phases?.enterCard, "vk-gate-card-in", "backwards", "var(--ease-standard)"],
       [phases?.exitCard, "vk-gate-card-out", "forwards", "var(--ease-exit)"],
-      [fade.rise, "vk-gate-fade-in", "backwards", "linear"],
-      [fade.fall, "vk-gate-fade-out", "forwards", "linear"],
     ] as const;
     const present = motions.filter(([range]) => range !== null && range !== undefined);
     const column = (position: 1 | 2 | 3) => present.map((motion) => motion[position]).join(", ");
@@ -424,7 +418,7 @@ describe("the gate stylesheet", () => {
     }
   });
 
-  it("starts the card after the caption and ends it after, the same distance in both, the caption opaque for most of the path and the card faded on its own linear ranges", () => {
+  it("starts the card after the caption and ends it after, the same distance in both, and moves caption and card by transform only, so the frame alone carries the opacity", () => {
     for (const phases of GATE_PHASES.slice(1)) {
       expect(phases.enterCard?.[0] ?? 0).toBeGreaterThan(phases.enterCaption?.[0] ?? 0);
       expect(phases.enterCard?.[1] ?? 0).toBeGreaterThan(phases.enterCaption?.[1] ?? 0);
@@ -432,56 +426,25 @@ describe("the gate stylesheet", () => {
     expect(GATE_PHASES[0]?.exitCard?.[0]).toBeGreaterThan(GATE_PHASES[0]?.exitCaption?.[0] ?? 0);
     const away = "calc(-1 * var(--vk-gate-slide))";
     const near = "var(--vk-gate-slide)";
-    expect(keyframe("vk-gate-caption-in", "from")).toEqual({
-      opacity: "0",
-      transform: `translateX(${near})`,
-    });
-    expect(keyframe("vk-gate-caption-out", "to")).toEqual({
-      opacity: "0",
-      transform: `translateX(${away})`,
-    });
+    expect(keyframe("vk-gate-caption-in", "from")).toEqual({ transform: `translateX(${near})` });
+    expect(keyframe("vk-gate-caption-in", "to")).toEqual({ transform: "none" });
+    expect(keyframe("vk-gate-caption-out", "from")).toEqual({ transform: "none" });
+    expect(keyframe("vk-gate-caption-out", "to")).toEqual({ transform: `translateX(${away})` });
     expect(keyframe("vk-gate-card-in", "from")).toEqual({
       transform: `translateX(${near}) scale(${GATE_SLIDE_SCALE})`,
     });
     expect(keyframe("vk-gate-card-out", "to")).toEqual({
       transform: `translateX(${away}) scale(${GATE_SLIDE_SCALE})`,
     });
-    expect(keyframe("vk-gate-caption-in", "to")).toEqual({ opacity: "1", transform: "none" });
     expect(keyframe("vk-gate-card-in", "to")).toEqual({ transform: "none" });
     expect(keyframe("vk-gate-card-out", "from")).toEqual({ transform: "none" });
-    expect(keyframe("vk-gate-caption-out", "from")).toEqual({ opacity: "1", transform: "none" });
-    expect(keyframe("vk-gate-fade-in", "from")).toEqual({ opacity: "0" });
-    expect(keyframe("vk-gate-fade-in", "to")).toEqual({ opacity: "1" });
-    expect(keyframe("vk-gate-fade-out", "from")).toEqual({ opacity: "1" });
-    expect(keyframe("vk-gate-fade-out", "to")).toEqual({ opacity: "0" });
-    expect(
-      keyframe("vk-gate-caption-in", `${Number((GATE_ENTER_OPAQUE * 100).toFixed(3))}%`),
-    ).toEqual({ opacity: "1" });
-    expect(
-      keyframe("vk-gate-caption-out", `${Number((GATE_EXIT_OPAQUE * 100).toFixed(3))}%`),
-    ).toEqual({ opacity: "1" });
-    expect(GATE_ENTER_OPAQUE).toBeLessThanOrEqual(0.3);
-    expect(GATE_EXIT_OPAQUE).toBeGreaterThanOrEqual(0.5);
-  });
-
-  it("fades each card over its own linear tail of the minimum card fade, in the first quarter and the last quarter of its slide at most", () => {
-    for (const [index, phases] of GATE_PHASES.entries()) {
-      const fade = gateCardFade(index);
-      if (phases.enterCard && fade.rise) {
-        expect(fade.rise[0]).toBe(phases.enterCard[0]);
-        expect(fade.rise[1] - fade.rise[0]).toBe(GATE_CARD_FADE_SVH);
-        expect(
-          GATE_CARD_FADE_SVH / (phases.enterCard[1] - phases.enterCard[0]),
-        ).toBeLessThanOrEqual(0.3);
-      }
-      if (phases.exitCard && fade.fall) {
-        expect(fade.fall[1]).toBe(phases.exitCard[1]);
-        expect(fade.fall[1] - fade.fall[0]).toBe(GATE_CARD_FADE_SVH);
-        expect(GATE_CARD_FADE_SVH / (phases.exitCard[1] - phases.exitCard[0])).toBeLessThanOrEqual(
-          0.3,
-        );
-      }
-    }
+    for (const name of ["vk-gate-fade-in", "vk-gate-fade-out"])
+      expect(
+        keyframes.filter((rule) => rule.media.endsWith(`@keyframes ${name}`)),
+        name,
+      ).toHaveLength(0);
+    const css = docsGlobalCss();
+    for (const gone of ["vk-gate-fade-in", "vk-gate-fade-out"]) expect(css).not.toContain(gone);
   });
 
   it("staggers the CLI lines of the last two frames, a line after the one before, the refused one last, the first with its card", () => {
@@ -619,15 +582,23 @@ describe("the gate stylesheet", () => {
       .flatMap((rule) =>
         rule.selector
           .split(/,\s*/)
-          .map((offset) => [Number.parseFloat(offset), rule.declarations[property]] as const),
+          .map(
+            (offset) =>
+              [
+                Number.parseFloat(offset),
+                rule.declarations[property],
+                rule.declarations["animation-timing-function"],
+              ] as const,
+          ),
       )
       .sort((a, b) => a[0] - b[0]);
   const opacityAt = (name: string, at: number): number => {
-    const stops = stopsOf(name, "opacity").map(([x, y]) => [x, Number(y)] as const);
+    const stops = stopsOf(name, "opacity").map(([x, y, hold]) => [x, Number(y), hold] as const);
     const after = stops.findIndex(([offset]) => offset >= at);
     if (after <= 0) return stops[Math.max(after, 0)]?.[1] ?? 0;
-    const [x0, y0] = stops[after - 1] ?? [0, 0];
+    const [x0, y0, hold] = stops[after - 1] ?? [0, 0, undefined];
     const [x1, y1] = stops[after] ?? [0, 0];
+    if (hold === "step-end") return at < x1 ? y0 : y1;
     return x1 === x0 ? y1 : y0 + ((y1 - y0) * (at - x0)) / (x1 - x0);
   };
   const eventsAt = (name: string, at: number): string | undefined =>
@@ -636,109 +607,100 @@ describe("the gate stylesheet", () => {
       .at(-1)?.[1];
   const percentOf = (svh: number): number => (svh / GATE_PIN_SVH) * 100;
 
-  it("never leaves the stage without a frame, shows one frame outside the overlap of the hand-over and hands the pointer to the current frame only", () => {
-    const handovers = [0, 1].map(
-      (index) =>
-        [
-          percentOf((GATE_PHASES[index + 1]?.enterCaption?.[0] ?? 0) - GATE_FRAME_RISE_SVH),
-          percentOf((GATE_PHASES[index]?.exitCard?.[1] ?? 0) + GATE_FRAME_RISE_SVH),
-        ] as const,
-    );
-    for (let at = 0; at <= 100; at += 0.02) {
-      const opacities = FRAME_SETS.map((name) => opacityAt(name, at));
-      expect(Math.max(...opacities), `${at}%`).toBeGreaterThanOrEqual(0.5);
-      const crossing = handovers.some(([from, to]) => at >= from - 0.001 && at <= to + 0.001);
-      const visible = FRAME_SETS.filter((name) => opacityAt(name, at) > 0.1);
-      if (!crossing) expect(visible.length, `${at}%`).toBe(1);
-      for (const name of visible) expect(eventsAt(name, at), `${name} at ${at}`).toBe("auto");
+  it("paints exactly one frame at every position of the pin, never under the dim floor, and hands the pointer to the painted frame only", () => {
+    expect(GATE_DIM_FLOOR).toBe(0.35);
+    let lowest = 1;
+    for (let svh = 0; svh <= GATE_PIN_SVH; svh += 0.05) {
+      const at = percentOf(svh);
+      const painted = FRAME_SETS.map((name, index) => ({
+        index,
+        css: opacityAt(name, at),
+        schedule: gateFrameOpacity(index, svh),
+      })).filter((frame) => frame.css > 0);
+      expect(painted.length, `${svh.toFixed(2)}svh`).toBe(1);
+      const [only] = painted;
+      lowest = Math.min(lowest, only?.css ?? 0);
+      expect(only?.css, `${svh.toFixed(2)}svh`).toBeGreaterThanOrEqual(GATE_DIM_FLOOR - 0.001);
+      expect(GATE_DIM_FLOOR).toBeGreaterThanOrEqual(GATE_CARD_MIN_PAINT);
+      const scheduled = FRAME_SETS.map((_, index) => gateFrameOpacity(index, svh)).filter(
+        (opacity) => opacity > 0,
+      );
+      expect(scheduled.length, `schedule ${svh.toFixed(2)}svh`).toBe(1);
+      expect(scheduled[0] ?? 0, `schedule ${svh.toFixed(2)}svh`).toBeGreaterThanOrEqual(
+        GATE_DIM_FLOOR,
+      );
+      expect(only?.css ?? 0, `css against schedule ${svh.toFixed(2)}svh`).toBeCloseTo(
+        scheduled[0] ?? 0,
+        2,
+      );
+      for (const name of FRAME_SETS)
+        expect(eventsAt(name, at), `${name} at ${svh.toFixed(2)}svh`).toBe(
+          opacityAt(name, at) > 0 ? "auto" : "none",
+        );
     }
-    for (const [index, name] of FRAME_SETS.entries()) {
-      const mid = percentOf(gateHoldMiddle(index));
-      expect(opacityAt(name, mid), name).toBe(1);
-      for (const other of FRAME_SETS.filter((candidate) => candidate !== name))
-        expect(eventsAt(other, mid), `${other} at the hold of ${name}`).toBe("none");
+    expect(lowest).toBeGreaterThanOrEqual(GATE_DIM_FLOOR - 0.001);
+  });
+
+  it("dims the outgoing frame linearly over the last stretch before the cut, then swaps it for the incoming one in a discrete step at the cut", () => {
+    expect(GATE_CUTS).toEqual([45, 109]);
+    for (const [index, cut] of GATE_CUTS.entries()) {
+      const outgoing = FRAME_SETS[index] ?? "";
+      const incoming = FRAME_SETS[index + 1] ?? "";
+      const dim = Number.parseFloat(gatePercent(cut - GATE_DIM_SVH));
+      const last = Number.parseFloat(gatePercent(cut - GATE_CUT_LEAD_SVH));
+      const edge = Number.parseFloat(gatePercent(cut));
+      expect(opacityAt(outgoing, dim - 0.01)).toBe(1);
+      expect(opacityAt(outgoing, dim)).toBeCloseTo(1, 6);
+      expect(opacityAt(outgoing, (dim + last) / 2)).toBeCloseTo((1 + GATE_DIM_FLOOR) / 2, 2);
+      expect(opacityAt(outgoing, last)).toBeCloseTo(GATE_DIM_FLOOR, 3);
+      expect(opacityAt(outgoing, (last + edge) / 2)).toBeCloseTo(GATE_DIM_FLOOR, 5);
+      expect(opacityAt(outgoing, edge)).toBe(0);
+      expect(opacityAt(incoming, (last + edge) / 2)).toBe(0);
+      expect(opacityAt(incoming, edge - 0.0001)).toBe(0);
+      expect(opacityAt(incoming, edge)).toBeCloseTo(GATE_DIM_FLOOR, 5);
+      expect(opacityAt(incoming, percentOf(cut + GATE_DIM_SVH))).toBeCloseTo(1, 3);
+      const fade = gateFrameFade(index);
+      expect(fade.fall?.[0]).toBe(cut - GATE_DIM_SVH);
+      expect(gateFrameFade(index + 1).rise).toEqual([cut, cut + GATE_DIM_SVH]);
     }
   });
 
-  it("starts the incoming caption after the outgoing one is gone and before the outgoing card is, and leaves the outgoing elements at opacity 0 by the end", () => {
-    for (const index of [0, 1]) {
+  it("ends every exit and starts every entrance at the cut, so each frame's caption and card travel only while their own frame is painted", () => {
+    for (const [index, cut] of GATE_CUTS.entries()) {
       const outgoing = GATE_PHASES[index];
       const incoming = GATE_PHASES[index + 1];
-      expect(incoming?.enterCaption?.[0] ?? 0, `frame ${index}`).toBeGreaterThanOrEqual(
-        outgoing?.exitCaption?.[1] ?? 0,
-      );
-      expect(incoming?.enterCaption?.[0] ?? 0, `frame ${index}`).toBeLessThan(
-        outgoing?.exitCard?.[1] ?? 0,
-      );
-      expect(outgoing?.exitCaption?.[1] ?? 0).toBeLessThanOrEqual(outgoing?.exitCard?.[1] ?? 0);
-      expect(keyframe("vk-gate-fade-out", "to")?.opacity).toBe("0");
-      expect(keyframe("vk-gate-caption-out", "to")?.opacity).toBe("0");
+      expect(outgoing?.exitCaption?.[1]).toBe(cut);
+      expect(outgoing?.exitCard?.[1]).toBe(cut);
+      expect(incoming?.enterCaption?.[0]).toBe(cut);
+      expect(incoming?.enterCard?.[0]).toBeGreaterThanOrEqual(cut);
+      expect(incoming?.enterCard?.[0]).toBeLessThan(cut + 2);
     }
-  });
-
-  const cardPaint = (index: number, svh: number): number => {
-    const selector = cardOf(STATES[index] ?? "candidate");
-    const names = (declared(selector, "animation-name") ?? "").split(/,\s*/);
-    const ranges = rangesOf(declared(selector, "animation-range"));
-    const rise = ranges[names.indexOf("vk-gate-fade-in")];
-    const fall = ranges[names.indexOf("vk-gate-fade-out")];
-    const along = (range: readonly [number, number]) =>
-      Math.min(1, Math.max(0, (svh - range[0]) / (range[1] - range[0])));
-    const fadeIn = rise ? along(rise) : 1;
-    const fadeOut = fall ? 1 - along(fall) : 1;
-    const frame = opacityAt(FRAME_SETS[index] ?? "", percentOf(svh));
-    return frame * Math.min(fadeIn, fadeOut);
-  };
-
-  it("never rests without a card painted at the minimum, and shows two cards together only while both are under the ceiling, for no longer than the bound", () => {
-    expect(GATE_CARD_MIN_PAINT).toBe(0.3);
-    expect(GATE_CARD_JOINT_CEILING).toBe(0.6);
-    expect(GATE_CARD_JOINT_SVH).toBe(2);
-    let lowest = 1;
-    let together = 0;
-    let longest = 0;
-    const step = 0.01;
-    for (let at = 0.5; at <= GATE_PIN_SVH - 0.5; at += step) {
-      const paints = STATES.map((_, index) => cardPaint(index, at));
-      lowest = Math.min(lowest, Math.max(...paints));
-      const shown = paints.filter((paint) => paint >= GATE_CARD_VISIBLE);
-      expect(shown.length, `${at}svh`).toBeLessThanOrEqual(2);
-      if (shown.length === 2) {
-        together += step;
-        longest = Math.max(longest, together);
-        for (const paint of shown) expect(paint, `${at}svh`).toBeLessThan(GATE_CARD_JOINT_CEILING);
-      } else together = 0;
-    }
-    expect(lowest).toBeGreaterThanOrEqual(GATE_CARD_MIN_PAINT);
-    expect(longest).toBeLessThanOrEqual(GATE_CARD_JOINT_SVH);
-    expect(longest).toBeGreaterThan(0);
-    for (const index of [0, 1]) {
-      const outgoing = GATE_PHASES[index]?.exitCard ?? [0, 0];
-      const incoming = GATE_PHASES[index + 1]?.enterCard ?? [0, 0];
-      expect(outgoing[1] - incoming[0]).toBeLessThanOrEqual(GATE_CARD_JOINT_SVH);
-      expect(incoming[0]).toBeLessThan(outgoing[1]);
-    }
-  });
-
-  it("fades each frame in just before its first slide and out just after its last", () => {
-    for (const [index, set] of FRAME_SETS.entries()) {
-      const fade = gateFrameFade(index);
-      if (fade.rise) {
-        expect(opacityAt(set, percentOf(fade.rise[0]) - 0.01)).toBe(0);
-        expect(opacityAt(set, percentOf(fade.rise[1]) + 0.01)).toBe(1);
+    for (const [index, name] of FRAME_SETS.entries()) {
+      const phases = GATE_PHASES[index];
+      const first = phases?.enterCaption?.[0] ?? phases?.hold[0] ?? 0;
+      const lastEnd = phases?.exitCard?.[1] ?? GATE_PIN_SVH;
+      for (const [from, to] of [
+        phases?.enterCaption,
+        phases?.enterCard,
+        phases?.exitCaption,
+        phases?.exitCard,
+      ]
+        .filter((range) => range !== null && range !== undefined)
+        .map((range) => range as readonly [number, number])) {
+        expect(from, name).toBeGreaterThanOrEqual(first);
+        expect(to, name).toBeLessThanOrEqual(lastEnd);
       }
-      if (fade.fall) {
-        expect(opacityAt(set, percentOf(fade.fall[0]) - 0.01)).toBe(1);
-        expect(opacityAt(set, percentOf(fade.fall[1]) + 0.01)).toBe(0);
-      }
+      expect(GATE_FRAME_PAINTED).toBe(0.01);
     }
   });
 
-  it("animates opacity and transform only, plus the discrete pointer-events of a frame, never visibility", () => {
+  it("animates transform on the elements, and only opacity and the discrete pointer-events (with its step timing) on a frame, never visibility", () => {
     expect(keyframes.length).toBeGreaterThan(0);
     for (const rule of keyframes) {
       const frame = FRAME_SETS.some((name) => rule.media.endsWith(name));
-      const allowed = frame ? ["opacity", "pointer-events"] : ["opacity", "transform"];
+      const allowed = frame
+        ? ["opacity", "pointer-events", "animation-timing-function"]
+        : ["opacity", "transform"];
       expect(Object.keys(rule.declarations).filter((name) => !allowed.includes(name))).toEqual([]);
     }
     const gate = rules.filter((rule) => rule.selector.includes("vk-gate"));

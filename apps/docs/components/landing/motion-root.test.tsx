@@ -268,7 +268,9 @@ describe("the motion stylesheet", () => {
       const sets = all.filter((rule) => rule.media.endsWith(`@keyframes ${name}`));
       expect(sets.length, name).toBeGreaterThan(0);
       const frame = /^vk-gate-(candidate|refused|stale)$/.test(name);
-      const allowed = frame ? ["opacity", "pointer-events"] : ["opacity", "transform"];
+      const allowed = frame
+        ? ["opacity", "pointer-events", "animation-timing-function"]
+        : ["opacity", "transform"];
       for (const rule of sets)
         expect(
           Object.keys(rule.declarations).filter((property) => !allowed.includes(property)),
