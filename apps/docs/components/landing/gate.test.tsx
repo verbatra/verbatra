@@ -516,6 +516,25 @@ describe("the gate stylesheet", () => {
     expect(skill).not.toMatch(/--vk-lines|--n` per line|slide in 24px/);
   });
 
+  it("lands an in-page jump to #gate on the start of the pin by cancelling the section's own top padding, only while the stage is pinned", () => {
+    const rule = rules.find((candidate) => candidate.selector === ".vk-home section.vk-gate[id]");
+    expect(rule?.declarations["scroll-margin-top"]).toBe("calc(-1 * var(--section-rhythm))");
+    expect(rule?.media).toContain("@supports (animation-timeline: view())");
+    expect(rule?.media).toContain("min-width: 64rem");
+    const padding = rules.find(
+      (candidate) =>
+        candidate.selector ===
+        ".vk-home section[id]:is(.vk-rhythm-lg, .vk-rhythm-md, .vk-rhythm-sm)",
+    );
+    expect(padding?.declarations["padding-block-start"]).toBe("var(--section-rhythm)");
+    expect(root.querySelector("section#gate")?.className).toContain("vk-rhythm-md");
+    const skill = readFileSync(
+      join(import.meta.dirname, "../../../../.claude/skills/docs-ui/SKILL.md"),
+      "utf8",
+    );
+    expect(skill).toContain("An in-page jump to `#gate` lands on the start of the pin");
+  });
+
   it("times the chip drop, the stamp, the exit badge and the marker fill from the schedule", () => {
     const range = (selector: string) => declared(selector, "animation-range");
     expect(range(".vk-gate-slot")).toBe(contain(GATE_PHASES[0]?.element ?? null));

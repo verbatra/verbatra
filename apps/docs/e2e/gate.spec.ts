@@ -491,6 +491,31 @@ for (const [width, height] of [
       expect(report.clippers).toEqual(["div.vk-home.w-full"]);
     });
 
+    test("lands /#gate on the start of the pin, with the heading and the card in view", async ({
+      page,
+    }) => {
+      await page.goto(`${homeUrl("en")}#gate`, { waitUntil: "networkidle" });
+      await page.evaluate(() => document.fonts.ready);
+      await page.waitForTimeout(500);
+      const start = await pinStart(page);
+      const scrolled = await page.evaluate(() => window.scrollY);
+      expect(Math.abs(scrolled - start)).toBeLessThanOrEqual(2);
+      const view = await page.evaluate(() => {
+        const heading = document.querySelector("#gate-heading")?.getBoundingClientRect();
+        const card = document
+          .querySelector(".vk-gate-frame .vk-gate-card")
+          ?.getBoundingClientRect();
+        return {
+          headingTop: heading?.top ?? 0,
+          cardBottom: card?.bottom ?? 0,
+          above: (heading?.top ?? 0) - 56,
+        };
+      });
+      expect(view.headingTop).toBeGreaterThanOrEqual(56);
+      expect(view.cardBottom).toBeLessThanOrEqual(height);
+      expect(view.above).toBeLessThanOrEqual(height / 3);
+    });
+
     test("shows the chip of the first frame before the pin and drops it first", async ({
       page,
     }) => {

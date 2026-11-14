@@ -5152,6 +5152,10 @@ html.light .vk-deck-shot-light {
       }
     }
 
+    .vk-home section.vk-gate[id] {
+      scroll-margin-top: calc(-1 * var(--section-rhythm));
+    }
+
     .vk-gate-card {
       border-color: var(--border-accent);
       box-shadow: 0 30px 80px -24px var(--halo-strong);
