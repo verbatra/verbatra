@@ -5224,9 +5224,9 @@ html.light .vk-deck-shot-light {
       align-self: center;
       opacity: calc(1 - min(1, var(--vk-gate-away) * 2.5));
       transition:
-        --vk-gate-in 380ms var(--ease-standard) 220ms,
+        --vk-gate-in 380ms var(--ease-standard) 160ms,
         --vk-gate-out 280ms var(--ease-exit),
-        --vk-gate-arrive 300ms var(--ease-standard) 240ms;
+        --vk-gate-arrive 300ms var(--ease-standard) 200ms;
       animation-fill-mode: both;
       animation-timing-function: linear;
       animation-timeline: --vk-gate;

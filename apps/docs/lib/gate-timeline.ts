@@ -24,11 +24,11 @@ export const GATE_FADE_SPAN = 0.4;
 
 export const GATE_EXIT_MS = 280;
 
-export const GATE_ENTER_DELAY_MS = 220;
+export const GATE_ENTER_DELAY_MS = 160;
 
 export const GATE_ENTER_MS = 380;
 
-export const GATE_ACCENT_DELAY_MS = 240;
+export const GATE_ACCENT_DELAY_MS = 200;
 
 export const GATE_ACCENT_MS = 300;
 
