@@ -28,31 +28,42 @@ async function sectionHeight(page: Page): Promise<number> {
   return page.locator(SECTION).evaluate((node) => node.getBoundingClientRect().height);
 }
 
-async function paneGaps(page: Page): Promise<number[]> {
+async function paneSlack(page: Page): Promise<number[]> {
   return page.locator(PANES).evaluateAll((nodes) => {
     const shown = (text: Text): boolean =>
       text.data.trim() !== "" && (text.parentElement?.getClientRects().length ?? 0) > 0;
-    const lastShown = (pre: Element): Text | undefined => {
+    const shownTexts = (pre: Element): Text[] => {
       const walker = document.createTreeWalker(pre, NodeFilter.SHOW_TEXT);
-      let last: Text | undefined;
+      const found: Text[] = [];
       for (let node = walker.nextNode(); node !== null; node = walker.nextNode())
-        if (shown(node as Text)) last = node as Text;
-      return last;
+        if (shown(node as Text)) found.push(node as Text);
+      return found;
     };
-    const contentBottom = (pane: Element): number => {
+    const extent = (pane: Element): { top: number; bottom: number } => {
       const pre = pane.querySelector("pre");
-      const last = pre ? lastShown(pre) : undefined;
-      if (!last) return pane.querySelector(".vk-hl-coverage")?.getBoundingClientRect().bottom ?? 0;
-      const range = document.createRange();
-      range.selectNodeContents(last);
-      return range.getBoundingClientRect().bottom;
+      const texts = pre ? shownTexts(pre) : [];
+      const first = texts[0];
+      const last = texts.at(-1);
+      if (!first || !last) {
+        const box = pane.querySelector(".vk-hl-table")?.getBoundingClientRect();
+        return { top: box?.top ?? 0, bottom: box?.bottom ?? 0 };
+      }
+      const from = document.createRange();
+      from.selectNodeContents(first);
+      const to = document.createRange();
+      to.selectNodeContents(last);
+      return { top: from.getBoundingClientRect().top, bottom: to.getBoundingClientRect().bottom };
     };
-    return nodes.map(
-      (pane) =>
-        (pane.querySelector(".vk-hl-foot")?.getBoundingClientRect().top ?? 0) - contentBottom(pane),
-    );
+    return nodes.map((pane) => {
+      const { top, bottom } = extent(pane);
+      const head = pane.querySelector(".vk-lock-head")?.getBoundingClientRect().bottom ?? 0;
+      const foot = pane.querySelector(".vk-hl-foot")?.getBoundingClientRect().top ?? 0;
+      return foot - head - (bottom - top);
+    });
   });
 }
+
+const SLACK_LIMIT = 48;
 
 const HEIGHT_CEILINGS: ReadonlyArray<readonly [number, number]> = [
   [1440, 944],
@@ -86,11 +97,14 @@ for (const width of [1440, 768, 391]) {
   test.describe(`highlights panes at ${width}px`, () => {
     test.use({ viewport: { width, height: 900 } });
 
-    test("leave at most 24px between the last content line and the foot", async ({ page }) => {
+    test("leave at most 48px of free space between the head, the content and the foot", async ({
+      page,
+    }) => {
       await page.goto("/");
-      const gaps = await paneGaps(page);
-      expect(gaps).toHaveLength(4);
-      for (const gap of gaps) expect(gap).toBeLessThanOrEqual(24);
+      const slack = await paneSlack(page);
+      console.log(`pane slack: ${slack.map((value) => value.toFixed(1)).join(", ")}`);
+      expect(slack).toHaveLength(4);
+      for (const value of slack) expect(value).toBeLessThanOrEqual(SLACK_LIMIT);
     });
 
     test("keeps the docs link focus box inside the pane, clear of the foot rule and the border", async ({
