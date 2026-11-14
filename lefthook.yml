@@ -32,8 +32,8 @@ pre-commit:
     no-em-dash:
       run: pnpm check:no-em-dash
       fail_text: |
-        The em dash character (U+2014) is banned everywhere in the repo.
-        Replace each flagged occurrence with a spaced hyphen, a colon, or
+        The em dash (U+2014) and the horizontal bar (U+2015) are banned
+        everywhere in the repo. Replace each flagged occurrence with a spaced hyphen, a colon, or
         parentheses, then re-stage.
 
 commit-msg:
