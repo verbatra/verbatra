@@ -4,7 +4,7 @@ seoTitle: "Formats de fichiers i18n gérés par verbatra"
 description: "Tous les formats de fichier i18n pris en charge par verbatra, comment chacun lit et écrit ses fichiers et ce qu'une écriture préserve pour des diffs propres."
 type: reference
 ---
-Un adaptateur de format lit un fichier de locale vers une forme neutre et le réécrit dans la forme propre au fichier. Règle le champ `format` de ta [configuration](/fr/docs/config-file) sur l'un de ces identifiants :
+Un adaptateur de format lit un fichier de locale vers une forme neutre et le réécrit dans sa propre forme. Règle le champ `format` de ta [configuration](/fr/docs/config-file) sur l'un de ces identifiants :
 
 | `format` | Fichiers | Placeholders | Pluriels | Fichier cible manquant | [Syntaxe de placeholder native](/fr/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
 | --- | --- | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ Un adaptateur de format lit un fichier de locale vers une forme neutre et le ré
 | `ini` | INI (`.ini`) | `{name}`, `{0}` | aucun | créé | `{name}`, `%{name}`, `${name}` |
 | `resx` | ressources .NET (`.resx`) | composite `{0}`, `{1:C}`, nommé `{name}` | aucun | créé | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 
-Fais correspondre le format à ta bibliothèque i18n : il décide quels placeholders compare le [contrôle d'intégrité](/fr/docs/translation-safety).
+Le format décide quels placeholders compare le [contrôle d'intégrité](/fr/docs/translation-safety).
 
 ## Les quatre formats JSON
 
@@ -35,7 +35,7 @@ Interpolation `{{double-brace}}` ; pluriel d'après le suffixe CLDR sur la clé 
 
 ### vue-i18n-json
 
-Jetons à accolade simple `{name}` et `{0}`, noms dans n'importe quelle écriture (`{número}`). Pluriel d'après un pipe dans la valeur.
+Jetons à accolade simple `{name}` et `{0}`, noms dans n'importe quelle écriture (`{número}`).
 
 ### next-intl-json
 
@@ -43,7 +43,7 @@ Les valeurs sont de l'ICU MessageFormat : les noms d'arguments et de balises de 
 
 ### ngx-translate-json
 
-Interpolation `{{double-brace}}`, sans références d'imbrication, pluriels ni ICU. Un fichier peut être plat (clés à points) ou imbriqué, et chacun garde son style à l'écriture ; une nouvelle cible est écrite imbriquée. Un fichier qui mélange les deux échoue avec `MIXED_STRUCTURE`.
+Interpolation `{{double-brace}}`, sans références d'imbrication, pluriels ni ICU. Un fichier peut être plat (clés à points) ou imbriqué, et chacun garde son style à l'écriture ; une nouvelle cible est écrite imbriquée.
 
 ### La barrière anti-fabrication à accolade simple
 
@@ -106,7 +106,7 @@ Le `.arb` de Flutter : un objet plat de messages avec des métadonnées `@key` e
 Les `.properties` de Java et Spring : des lignes clé/valeur plates, clés conservées telles quelles.
 
 - **La syntaxe** suit `java.util.Properties` (séparateurs, commentaires, lignes de continuation, échappements). Les fichiers sont lus en UTF-8 et le non-ASCII est écrit en `\uXXXX`.
-- **Les écritures conservent** l'ordre des clés, les commentaires et les lignes vides, en réécrivant chaque ligne existante en place et en ajoutant les nouvelles clés dans l'ordre de la source. Une clé en double garde sa première position et sa dernière valeur.
+- **Les écritures conservent** l'ordre des clés, les commentaires et les lignes vides, en régénérant chaque entrée existante sous la forme `key=value` (séparateur, espacement et continuations ne sont pas conservés) et en ajoutant les nouvelles clés dans l'ordre de la source. Une clé en double garde sa première position et sa dernière valeur.
 - **Les fins de ligne suivent le fichier** : le moindre CRLF signifie tout en CRLF, uniquement CR reste en CR, sinon LF.
 - **Les placeholders sont du `java.text.MessageFormat`** : `{0}`, `{0,number}`, `{count}` (noms dans n'importe quelle écriture), et les arguments `plural`, `select`, `selectordinal` et `choice`. Les guillemets simples ne sont pas interprétés, donc `'{0}'` compte toujours comme un placeholder.
 
@@ -117,10 +117,10 @@ Les `.properties` de Java et Spring : des lignes clé/valeur plates, clés conse
 Des instructions `"key" = "value";`, avec les pluriels dans le `.stringsdict` voisin (même répertoire, même nom de base), lus et écrits ensemble.
 
 - **UTF-8 uniquement.** Un fichier UTF-16 échoue avec `INVALID_STRUCTURE` ; réenregistre-le en UTF-8.
-- **Commentaires.** Un commentaire `/* ... */` placé avant une entrée est du contexte en lecture seule ; les commentaires `//` sont conservés. Les échappements `\"`, `\\`, `\n`, `\t` et `\U` sont décodés ; à l'écriture, seuls le guillemet, la barre oblique inversée, le saut de ligne et la tabulation sont échappés.
+- **Commentaires.** Un commentaire `/* ... */` placé avant une entrée est du contexte en lecture seule ; les commentaires `//` sont conservés. Les échappements `\"`, `\\`, `\n`, `\t` et `\U` sont décodés et tout autre échappement échoue avec `INVALID_STRUCTURE` ; à l'écriture, seuls le guillemet, la barre oblique inversée, le saut de ligne et la tabulation sont échappés.
 - **Les écritures conservent** l'ordre, les commentaires et les lignes vides ; une clé retirée part avec son propre commentaire. Une cible manquante est créée, répertoire `.lproj` et `.stringsdict` compris.
 - **Les placeholders sont de style printf** : `%@`, `%d`, `%1$@`, `%%`, avec les indicateurs, la largeur et la longueur comme décoration ; une réorganisation positionnelle est acceptée. Un `%` isolé (`"50% off"`) n'en est pas un.
-- **Pluriels.** Chaque catégorie du `.stringsdict` devient `<key>_<category>` (`photo_count_one`), en faisant l'aller-retour uniquement avec les catégories qu'a une locale. Les erreurs nomment le fichier et la clé ; la clé de format, le nom de variable et le type de valeur survivent à une réécriture.
+- **Pluriels.** Chaque catégorie du `.stringsdict` devient `<key>_<category>` (`photo_count_one`), en faisant l'aller-retour uniquement avec les catégories qu'a une locale. Les erreurs nomment le fichier et la clé. La clé de format, le nom de variable et le type de valeur d'une clé existante survivent à une réécriture ; une nouvelle clé reçoit `%#@<key>@`, la clé comme nom de variable et le type `d`.
 - **Disposition.** `{locale}.lproj/Localizable.strings` n'a besoin d'aucun style de locale particulier.
 
 ## Xcode String Catalogs (.xcstrings)
@@ -134,8 +134,8 @@ Un seul catalogue JSON contenant toutes les locales, le remplaçant de `.strings
 - **Les pluriels** sous `variations.plural` deviennent `<key>_<category>`, uniquement pour les catégories présentes.
 - **Les placeholders sont de style printf**, comme dans `.strings` ; `%lld` équivaut à `%d`.
 - **Les clés `shouldTranslate: false`** ne sont jamais envoyées ni modifiées.
-- **Les écritures retouchent le document.** Seules les localizations touchées changent, une nouvelle valeur reçoit `state: "translated"`, et le reste reste identique sur le plan sémantique, même si le fichier est re-sérialisé en JSON indenté de 2 espaces. Crée d'abord le catalogue dans Xcode.
-- **Les erreurs** nomment le fichier et, à l'intérieur d'une entrée, la clé et la locale.
+- **Les écritures retouchent le document.** Une localization qui reçoit une nouvelle valeur est réécrite en entier avec `state: "translated"`, ce qui supprime les autres champs qu'elle contient (variations par appareil, substitutions) ; le reste reste identique sur le plan sémantique, même si le fichier est re-sérialisé en JSON indenté de 2 espaces. Le catalogue doit déjà exister ; crée-le d'abord dans Xcode.
+- **Les erreurs** nomment le fichier, la clé et la locale.
 
 ## Android strings.xml
 
@@ -155,13 +155,13 @@ Un seul catalogue JSON contenant toutes les locales, le remplaçant de `.strings
 
 <AvailableFrom version="0.10.0" />
 
-Des entrées `msgid`/`msgstr` indexées par `msgid`.
+Des entrées `msgid`/`msgstr`.
 
 - **`msgctxt`** se combine avec son `msgid` en une seule clé avec U+E000 ; une source contenant ce caractère est rejetée.
 - **Les pluriels** sont indexés par position, `key[n]`, pas par catégorie CLDR. `Plural-Forms` est conservé mot pour mot et seul son `nplurals` borne les index ; les entrées plurielles sans lui sont rejetées, comme le fait `msgfmt --check`.
-- **Marqueurs et commentaires.** Une valeur `#, fuzzy` est lue comme actuelle et le marqueur conservé. Les commentaires `#.` sont du contexte en lecture seule ; `#:` et les autres marqueurs sont conservés, les blocs `#~` restent inertes, et l'en-tête n'est jamais touché. Un `.pot` aux `msgstr` vides se lit sans accroc, mais dans un catalogue source chaque `msgstr` est le texte à traduire, donc un `msgstr` vide est ignoré avec [`SOURCE_VALUE_EMPTY`](/fr/docs/error-codes#source_value_empty).
-- **Une cible manquante** est créée avec un en-tête minimal et, pour les pluriels, un `Plural-Forms` dimensionné à l'index le plus élevé (amorce depuis un vrai modèle pour la grammaire exacte).
-- **Les placeholders sont de style printf**, `%(name)s` compris.
+- **Indicateurs et commentaires.** Une valeur `#, fuzzy` est lue comme actuelle et l'indicateur conservé. Les commentaires `#.` sont du contexte en lecture seule ; `#:` et les autres indicateurs sont conservés, les blocs `#~` restent inertes, et l'en-tête n'est jamais touché. Un `.pot` aux `msgstr` vides se lit sans accroc, mais dans un catalogue source chaque `msgstr` est le texte à traduire, donc un `msgstr` vide est ignoré avec [`SOURCE_VALUE_EMPTY`](/fr/docs/error-codes#source_value_empty).
+- **Une cible manquante** est créée avec un en-tête minimal et, pour les pluriels, un `Plural-Forms` dimensionné à l'index le plus élevé (pars d'un vrai modèle pour une grammaire exacte).
+- **Les placeholders sont de style printf**, `%(name)s` compris ; les modificateurs de longueur (`%ld`) ne sont pas reconnus.
 - **Les erreurs** nomment le `msgid` et la ligne. `--prune` ne tient pas compte des index pluriels, donc il peut supprimer des formes présentes uniquement dans la cible.
 
 ## INI
@@ -180,22 +180,22 @@ Un niveau d'en-têtes `[section]` au-dessus de lignes `key=value`.
 
 <AvailableFrom version="0.11.0" />
 
-Des éléments `<data name><value>` sous `<root>`, revendiqués uniquement pour `.resx`.
+Des éléments `<data name><value>` sous `<root>`, reconnus uniquement dans les fichiers `.resx`.
 
-- **Les écritures ne retouchent que les valeurs** : tout le reste revient inchangé, avec le terminateur de ligne du fichier ; une marque d'ordre des octets est retirée, et un nouvel élément `<data>`, ou un dont la valeur a des espaces en bordure, reçoit `xml:space="preserve"`.
+- **Les écritures ne retouchent que les valeurs** : tout le reste revient inchangé ; une marque d'ordre des octets est retirée, et un nouvel élément `<data>`, ou un dont la valeur a des espaces en bordure, reçoit `xml:space="preserve"`.
 - **Non traduit.** Un `<data>` avec `type` ou `mimetype`, et les noms commençant par `>>` ou `$`, sont conservés tels quels. Un `<comment>` est du contexte en lecture seule.
 - **Les placeholders** sont les éléments de format composite et les trous nommés pris en entier (`{0}`, `{1,-10}`, `{2:C}`, `{when:d}`), donc un trou renommé est refusé ; `{{`, `}}` et les accolades isolées sont aussi protégés. Pas de contrôle ICU ni de pluriels.
 - **Une cible manquante** est créée avec les en-têtes standard.
-- **Clés refusées.** Une valeur que la cible contient comme entrée typée, du concepteur ou avec du balisage, ou une clé qui ne pourrait pas être relue, fait échouer l'écriture avec une `AdapterError` qui la nomme.
+- **Clés refusées.** Une valeur que la cible contient comme entrée typée, du concepteur ou avec du balisage, ou une clé qui n'a pas pu être relue, fait échouer l'écriture avec une `AdapterError` qui la nomme.
 - **Erreurs.** Un XML invalide, une racine autre que `<root>`, et une DTD ou une entité sont rejetés.
 
 ## Ordre des clés du document
 
-Les formats JSON, YAML et ARB conservent l'ordre du document : les clés de type entier comme `"404"` ne sont pas remontées, les nouvelles clés s'ajoutent dans l'ordre de la source, et les métadonnées ARB gardent leur position. XLIFF met à jour les cibles en place, donc son ordre ne change jamais.
+Les formats JSON, YAML et ARB conservent l'ordre du document : les clés de type entier comme `"404"` ne sont pas remontées, les nouvelles clés s'ajoutent dans l'ordre de la source, et les métadonnées ARB gardent leur position. L'ordre de XLIFF ne change jamais.
 
 ## Clés à points et collisions
 
-Dans `i18next-json`, `vue-i18n-json` et `next-intl-json`, une feuille littérale à points comme `"foo.bar"` fait l'aller-retour telle qu'elle est écrite ; `ngx-translate-json` la lit comme un chemin imbriqué. Dans les autres formats, un même chemin écrit des deux façons (`"foo.bar"` à côté de `"foo": { "bar": ... }`) échoue avec `INVALID_STRUCTURE` ; `ngx-translate-json` refuse les clés plates à points à côté d'objets imbriqués et les clés à points dans des objets imbriqués avec `MIXED_STRUCTURE`.
+`ngx-translate-json` lit une clé à points comme un chemin imbriqué ; tous les autres formats en arbre (les formats JSON, YAML, ARB) conservent telle quelle une feuille littérale à points comme `"foo.bar"`. Un même chemin écrit des deux façons (`"foo.bar"` à côté de `"foo": { "bar": ... }`) échoue avec `INVALID_STRUCTURE` (`ngx-translate-json` échoue avec `MIXED_STRUCTURE` pour toute clé plate à points à côté d'un objet imbriqué, et pour une clé à points dans un objet imbriqué).
 
 ## Comment les fichiers sont lus et écrits
 

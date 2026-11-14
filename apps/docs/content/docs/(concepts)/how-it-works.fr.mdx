@@ -31,7 +31,8 @@ La comparaison est ce qui rend une exécution incrémentale. verbatra lit le fic
 | --- | --- | --- |
 | manquante | la cible n'a pas encore la clé | la traduit |
 | modifiée | la source ne correspond plus au hash enregistré | la traduit |
-| inchangée | la source correspond toujours au hash enregistré | n'y touche pas |
+| inchangée | la source correspond toujours au hash enregistré, ou aucun n'est enregistré | n'y touche pas |
+| source vide | la valeur source est vide | l'ignore et la compte à part |
 | orpheline | la clé est dans la cible mais plus dans la source | la signale ; ne la supprime qu'avec `--prune` ou `prune: true` |
 
 ### Clés retenues
@@ -88,7 +89,7 @@ Après l'écriture d'une locale, ses entrées de verrouillage sont rafraîchies 
 actuels. Une clé retenue pendant cette exécution garde son hash précédent, donc l'exécution suivante
 la voit toujours comme à traiter. Chaque locale est écrite sous un
 [verrou d'écriture](/fr/docs/the-lock-file#le-verrou-décriture) inter-processus, donc deux exécutions
-qui se chevauchent ne comparent jamais avec une référence périmée et ne paient jamais deux fois le
+qui se chevauchent ne comparent jamais avec une référence obsolète et ne paient jamais deux fois le
 même appel.
 
 ## Une locale à la fois, les échecs comme des données

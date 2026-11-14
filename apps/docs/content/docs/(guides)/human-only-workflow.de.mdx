@@ -6,7 +6,7 @@ type: how-to
 ---
 <AvailableFrom version="0.12.0" />
 
-Das brauchst du, wenn eine Geheimhaltungsvereinbarung, ein Kundenvertrag oder eine Firmenregel verbietet, Strings an einen KI- oder Übersetzungsdienst zu schicken. Steht der Provider auf `none`, arbeitet jeder Befehl, der etwas ausgeben oder senden könnte, nur mit lokalen Daten oder verweigert den Dienst. Alles, was keinen Provider braucht (Diffing, die Lock-Datei, der Übersetzungsspeicher, Export und Import, Prüfungen, Typen, Pseudolokalisierung, Extraktion), funktioniert wie gewohnt.
+Das brauchst du, wenn eine Geheimhaltungsvereinbarung, ein Kundenvertrag oder eine Firmenregel verbietet, Strings an einen KI- oder Übersetzungsdienst zu schicken. Steht der Provider auf `none`, arbeitet jeder Befehl, der etwas ausgeben oder senden könnte, nur mit lokalen Daten oder lehnt ab. Alles, was keinen Provider braucht (Diffing, die Lock-Datei, der Übersetzungsspeicher, Export und Import, Prüfungen, Typen, Pseudolokalisierung, Extraktion), funktioniert wie gewohnt.
 
 Du brauchst ein verbatra-Projekt oder einen Ordner, in dem du gleich `verbatra init` ausführst.
 
@@ -16,7 +16,7 @@ Du brauchst ein verbatra-Projekt oder einen Ordner, in dem du gleich `verbatra i
 verbatra init --provider none
 ```
 
-Das schreibt eine Config, deren Provider-Block nur so aussieht, und keine `.env.example`, weil nie ein API-Key gelesen wird:
+Das schreibt eine Konfiguration, deren Provider-Block nur so aussieht, und keine `.env.example`, weil nie ein API-Key gelesen wird:
 
 ```ts title="verbatra.config.ts"
 provider: { id: "none" }

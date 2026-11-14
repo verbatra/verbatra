@@ -29,7 +29,8 @@ record of what was translated before:
 | --- | --- | --- |
 | missing | the target does not have the key | translates it |
 | changed | the source no longer matches the recorded hash | translates it |
-| unchanged | the source still matches the recorded hash | leaves it alone |
+| unchanged | the source still matches the recorded hash, or none is recorded | leaves it alone |
+| empty source | the source value is blank | skips it and counts it apart |
 | orphaned | the key is in the target but not in the source | reports it; removes it only with `--prune` or `prune: true` |
 
 ### Held-back keys

@@ -1,10 +1,10 @@
 ---
 title: Exécuter verbatra en CI
 seoTitle: "verbatra en CI contre la dérive des traductions"
-description: "Fais échouer une pull request en cas de dérive des traductions ou de sortie machine non relue, et traduis à chaque push, avec la CLI dans tout système de CI."
+description: "Fais échouer une pull request en cas de dérive, de valeurs cassées ou de sortie machine non relue, et traduis à chaque push avec la CLI, quel que soit le CI."
 type: how-to
 ---
-Utilise ce guide quand une pipeline doit repérer les fichiers de locale qui ont dérivé de la source, ou les traduire pour toi lors d'un push. Chaque étape exécute la même CLI qu'en local, donc cela fonctionne dans n'importe quel système de CI ; les exemples utilisent GitHub Actions.
+Utilise ce guide quand un pipeline doit repérer les fichiers de locale qui ont dérivé de la source, ou les traduire pour toi lors d'un push. Chaque étape exécute la même CLI qu'en local, donc cela fonctionne dans n'importe quel système de CI ; les exemples utilisent GitHub Actions.
 
 Avant de commencer, il te faut :
 
@@ -85,7 +85,7 @@ Lance [`verbatra translate`](/fr/docs/cli/translate) et fais passer la clé du f
 
 ## Vérifier d'abord avec doctor
 
-Place [`verbatra doctor`](/fr/docs/cli/doctor) avant l'un ou l'autre job pour échouer tôt sur une installation cassée. Il vérifie la configuration, le format, le fournisseur, la variable de clé, la politique réseau, le fichier source et la prise en charge des locales, sans jamais appeler de fournisseur ni lire la valeur d'une clé. Il signale toutefois une variable de clé non définie comme un contrôle en échec, donc fais passer la clé dans tout job où ce contrôle doit réussir.
+Place [`verbatra doctor`](/fr/docs/cli/doctor) avant l'un ou l'autre job pour échouer tôt sur une installation cassée. Il vérifie la configuration, le format, le fournisseur, la variable de clé, la politique réseau, le fichier source et la prise en charge des locales, sans appeler de fournisseur ni lire la valeur d'une clé, sauf si tu passes `--live`. Il signale toutefois une variable de clé non définie comme un contrôle en échec, donc fais passer la clé dans tout job où ce contrôle doit réussir.
 
 ## Codes de sortie
 

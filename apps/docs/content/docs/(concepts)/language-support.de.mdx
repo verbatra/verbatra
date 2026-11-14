@@ -7,7 +7,7 @@ type: concept
 <AvailableFrom version="0.12.0" />
 
 verbatra hat keine eigene Sprachliste: Es akzeptiert jeden gültigen BCP-47-Locale-Code, du kannst
-also die Sprachen nutzen, die dein Provider unterstützt, und in einem reinen Handarbeits-Projekt
+also die Sprachen nutzen, die dein Provider unterstützt, und in einem Projekt ohne maschinelle Übersetzung
 alle. verbatra schreibt jeden Code so, wie der Provider ihn erwartet, misst jede Übersetzung an den
 Pluralregeln ihrer Sprache und warnt dich vor einem Lauf, wenn ein Provider eine Locale nicht
 bedienen kann.
@@ -21,14 +21,14 @@ Jede Locale in deiner Konfiguration muss ein gültiger BCP-47-Tag sein, etwa `fr
 
 Der Code aus deiner Konfiguration ist der, den verbatra überall speichert: Dateipfade,
 [die Lock-Datei](/de/docs/the-lock-file) und [der Cache](/de/docs/the-cache). Eine Provider-eigene
-Schreibweise gibt es nur innerhalb eines Requests. Schreibst du einen Code um, den du schon
+Schreibweise gibt es nur innerhalb einer Anfrage. Schreibst du einen Code um, den du schon
 übersetzt, etwa `pt_BR` zu `pt-BR`, bleibt seine Geschichte erhalten; siehe
 [Ein umgeschriebener Locale-Code](/de/docs/the-lock-file#ein-umgeschriebener-locale-code).
 
 ## Abdeckung je Provider
 
 Wie gut eine Sprache übersetzt wird, ist Sache des Providers; jede Zeile verlinkt die eigene Liste
-des Anbieters.
+des Providers.
 
 | Provider | Sprachen | Gesendeter Code | Glossar | Tonfall |
 | --- | --- | --- | --- | --- |
@@ -57,7 +57,7 @@ Was das in der Praxis heißt:
 ### Wie jeder Provider den Code bekommt
 
 DeepL und Google Cloud Translation bekommen manche Codes in ihrer eigenen Schreibweise, und DeepL
-lehnt ein reines `en`- oder `pt`-Ziel vor jedem Request ab. LLM-Provider bekommen den Code plus die
+lehnt ein reines `en`- oder `pt`-Ziel vor jeder Anfrage ab. LLM-Provider bekommen den Code plus die
 [englischen Namen](/de/docs/translation-safety#namen-von-sprache-schrift-und-region) von Sprache,
 Schrift und Region. `localeMap` in den `options` des Providers überschreibt den Code pro Locale; die
 vollständige Zuordnung steht unter
@@ -79,7 +79,7 @@ Bevor etwas ausgegeben wird, beurteilt verbatra jede konfigurierte Locale anhand
 
 Lass die Locale mit `--locales` weg, oder, wenn der Provider die Sprache später hinzugefügt hat,
 ordne sie in `localeMap` zu: Einem expliziten Eintrag wird vertraut. Die mitgelieferten Tabellen sind
-Kopien der Listen der Anbieter (DeepL mit 125 Codes und Google mit 198, beide vom 2026-09-28);
+Kopien der Listen der Provider (DeepL mit 125 Codes und Google mit 198, beide vom 2026-09-28);
 `verbatra doctor --live` prüft die aktuelle Liste.
 
 Für einen LLM-Provider wird nichts abgelehnt. Ein Ziel außerhalb der Sprachen, die LLMs
@@ -168,7 +168,7 @@ Für eine Sprache, die dein gehosteter Provider schlecht abdeckt:
   [Ein lokales Modell wählen](/de/docs/providers#ein-lokales-modell-wählen).
 - **Ein spezialisiertes Übersetzungsmodell außerhalb von verbatra nutzen** und das Ergebnis über den
   [Roundtrip mit der Arbeitsmappe](/de/docs/manual-translation) zurückholen, der dieselben
-  Integritätsprüfungen ausführt. Keines davon passt an `openai-compatible`, denn es sind keine
+  Integritätsprüfungen ausführt. Keines davon lässt sich an `openai-compatible` anschließen, denn es sind keine
   Chat-Modelle:
   [MADLAD-400](https://huggingface.co/google/madlad400-3b-mt) (Apache-2.0, über 400 Sprachen),
   [TranslateGemma](https://huggingface.co/google/translategemma-4b-it) (55 Sprachen,

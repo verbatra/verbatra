@@ -61,7 +61,7 @@ Was das Gate garantiert: Ein abgelehnter Wert wird nie geschrieben. Er erscheint
 Lauf-Zusammenfassung als Integritätsabweichung, behält seinen bisherigen Hash in
 [der Lock-Datei](/de/docs/the-lock-file) und wird im nächsten Lauf erneut versucht. Ein Key, für den
 gar keine Übersetzung kam (der Provider-Aufruf scheiterte, oder der Key fehlte auch nach einer
-Nachfrage noch), wird stattdessen als Provider-Fehlschlag gemeldet und genauso erneut versucht. Auf
+Reparaturanfrage noch), wird stattdessen als Provider-Fehlschlag gemeldet und genauso erneut versucht. Auf
 der Quellseite wird ein Key, dessen eigener Wert ungültiges ICU ist, vor der Übersetzung
 beiseitegelegt.
 
@@ -123,7 +123,7 @@ einen Key zurück: Der Wert wird geschrieben, gelockt und in die Review-Wartesch
 | --- | --- |
 | [`LENGTH_RATIO_OUTLIER`](/de/docs/error-codes#length_ratio_outlier) | viel kürzer oder länger als ihre Quelle ist, gewichtet nach Schrift |
 | [`MAX_LENGTH_EXCEEDED`](/de/docs/error-codes#max_length_exceeded) | länger als das [`maxLength`](/de/docs/config-file#maxlength)-Budget des Keys ist <AvailableFrom version="0.11.0" /> |
-| [`EQUALS_SOURCE`](/de/docs/error-codes#equals_source) | mit ihrem Quelltext identisch ist |
+| [`EQUALS_SOURCE`](/de/docs/error-codes#equals_source) | mit ihrem Quelltext identisch ist, abgesehen von umgebendem Leerraum |
 | [`GLOSSARY_TERM_MISSED`](/de/docs/error-codes#glossary_term_missed) | die Übersetzung eines Glossarbegriffs auslässt oder einen nicht zu übersetzenden Begriff verändert |
 | [`GLOSSARY_FORBIDDEN_TERM`](/de/docs/error-codes#glossary_forbidden_term) | eine Wiedergabe verwendet, die das Glossar verbietet <AvailableFrom version="0.12.0" /> |
 | [`INTEGRITY_REORDERED`](/de/docs/error-codes#integrity_reordered) | jeden Platzhalter behält, aber in anderer Reihenfolge |
@@ -147,7 +147,7 @@ hält den Rest des Laufs zurück, sobald die Obergrenze überschritten würde, f
 ([Regeln](/de/docs/config-file#maxtokens-und-budgetbehavior)).
 
 Was das Budget garantiert: Arbeit, die vor der Obergrenze erledigt wurde, bleibt geschrieben und
-gelockt, und nichts bleibt halb geschrieben zurück. Was es nicht garantiert: Ein Request unterwegs
+gelockt, und nichts bleibt halb geschrieben zurück. Was es nicht garantiert: Eine Anfrage unterwegs
 kann mehr kosten als geschätzt, die Obergrenze begrenzt einen Lauf (keine `watch`-Sitzung), und
 Retranslates aus Studio oder von Agenten sind nicht abgedeckt.
 

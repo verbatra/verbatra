@@ -1,7 +1,7 @@
 ---
 title: Idiomas y locales
 seoTitle: "Idiomas y locales compatibles con verbatra"
-description: "Qué idiomas puede traducir verbatra, cómo llegan los códigos de locale a cada proveedor y cómo se tratan los plurales y el texto de derecha a izquierda."
+description: "Qué idiomas traduce verbatra, cómo llegan los códigos de locale a cada proveedor y cómo se tratan plurales, escrituras, variantes regionales y texto RTL."
 type: concept
 ---
 <AvailableFrom version="0.12.0" />
@@ -146,14 +146,14 @@ añadir, quitar ni reordenar marcas de dirección. Lo que significa para ti:
   [comprobación del marcado en línea](/es/docs/translation-safety#paridad-del-marcado-en-línea) rechaza
   una traducción que añade un atributo `dir` que el origen no tiene.
 - **Las marcas de dirección son texto corriente** y pueden perderse; revisa las traducciones que
-  dependen de una. Incrustaciones, anulaciones o aislamientos sin cerrar (si la fuente cierra los
+  dependen de una. Incrustaciones, anulaciones o aislamientos sin cerrar (si el origen cierra los
   suyos) o anulaciones añadidas activan [`BIDI_CONTROLS_CHANGED`](/es/docs/error-codes#bidi_controls_changed).
 - **Un orden de placeholders distinto** solo activa `INTEGRITY_REORDERED`, porque en otro idioma
   otro orden suele ser correcto.
 - **Studio muestra los valores de derecha a izquierda** para cada locale cuya escritura va en ese
   sentido, según la dirección del navegador o la escritura probable del locale (`ku-Arab` de derecha
   a izquierda, `ku` de izquierda a derecha). Solo cambia la visualización.
-- **[`verbatra pseudo --mode bidi`](/es/docs/cli/pseudo) muestra tu fuente de derecha a izquierda**
+- **[`verbatra pseudo --mode bidi`](/es/docs/cli/pseudo) muestra tu texto de origen de derecha a izquierda**
   en un pseudolocale `ar-XB` y destapa los supuestos de diseño de izquierda a derecha antes de que
   exista ninguna traducción. Las imágenes e iconos espejados los revisas tú.
 
@@ -165,7 +165,7 @@ Para un idioma que tu proveedor alojado cubre mal:
   instrucciones que devuelva un único objeto JSON; consulta
   [Elegir un modelo local](/es/docs/providers#elegir-un-modelo-local).
 - **Usa un modelo de traducción dedicado fuera de verbatra** y trae el resultado de vuelta con el
-  [ida y vuelta del libro de trabajo](/es/docs/manual-translation), que aplica las mismas comprobaciones
+  [ciclo de ida y vuelta del libro](/es/docs/manual-translation), que aplica las mismas comprobaciones
   de integridad. Ninguno se conecta a `openai-compatible`, porque no son modelos de chat: [MADLAD-400](https://huggingface.co/google/madlad400-3b-mt) (Apache-2.0, más
   de 400 idiomas), [TranslateGemma](https://huggingface.co/google/translategemma-4b-it) (55 idiomas,
   condiciones de uso de Gemma) y

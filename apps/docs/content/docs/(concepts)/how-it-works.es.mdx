@@ -31,7 +31,8 @@ existente (un archivo ausente cuenta como vacío, aunque los escritores de `xlif
 | --- | --- | --- |
 | missing | el destino aún no tiene la clave | la traduce |
 | changed | el origen ya no coincide con el hash registrado | la traduce |
-| unchanged | el origen sigue coincidiendo con el hash registrado | la deja como está |
+| unchanged | el origen sigue coincidiendo con el hash registrado, o no hay ninguno registrado | la deja como está |
+| empty source | el valor de origen está en blanco | la omite y la cuenta aparte |
 | orphaned | la clave está en el destino pero no en el origen | la informa; la elimina solo con `--prune` o `prune: true` |
 
 ### Claves retenidas

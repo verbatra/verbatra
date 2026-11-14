@@ -12,19 +12,19 @@ Jeder Provider funktioniert mit jedem Format und jedem Befehl, und ein späterer
 
 | Wenn du willst | Nimm |
 | --- | --- |
-| Kostenlos, für ein kleines Projekt mit nicht vertraulichen Strings | **Gemini**: ein kostenloses API-Kontingent, dessen Anfragen Google außerhalb von EWR, Schweiz und Vereinigtem Königreich von Menschen prüfen lassen darf ([Bedingungen](/de/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-anbieter)). |
+| Kostenlos, für ein kleines Projekt mit nicht vertraulichen Strings | **Gemini**: ein kostenloses API-Kontingent, dessen Anfragen Google außerhalb von EWR, Schweiz und Vereinigtem Königreich von Menschen prüfen lassen darf ([Bedingungen](/de/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-provider)). |
 | Die beste Qualität für eine Produktions-App | **Anthropic** oder **OpenAI**, beide bezahlt. |
 | Hohes Volumen, ein natives Glossar, kein LLM | **DeepL**, kostenloses oder bezahltes Kontingent. |
-| Die breiteste Abdeckung mit einem API-Schlüssel auf Google Cloud | **Google Cloud Translation** (Basic, v2). |
+| Die breiteste Abdeckung mit einem API-Key auf Google Cloud | **Google Cloud Translation** (Basic, v2). |
 | Offline, kostenfrei, nichts verlässt dein Netzwerk | **openai-compatible** mit LM Studio, Ollama oder vLLM. |
 | Kein Sprachmodell, aber selbst gehostet | **LibreTranslate** auf deinem eigenen Server. |
-| Gar keine maschinelle Übersetzung | **none**: nur Translation Memory und Menschen. |
+| Gar keine maschinelle Übersetzung | **none**: nur Übersetzungsspeicher und Menschen. |
 
 ## Keys kommen aus der Umgebung
 
 verbatra liest nie einen Key aus der Konfiguration. Jeder gehostete Provider liest eine Variable:
 
-| Provider-Id | Umgebungsvariable |
+| Provider-ID | Umgebungsvariable |
 | --- | --- |
 | `anthropic` | `ANTHROPIC_API_KEY` |
 | `openai` | `OPENAI_API_KEY` |
@@ -47,9 +47,9 @@ provider: {
 }
 ```
 
-| Option | Typ | Default | Wirkung |
+| Option | Typ | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `model` | String | erforderlich | Die Modell-Id. |
+| `model` | String | erforderlich | Die Modell-ID. |
 | `maxTokens` | positive Ganzzahl | erforderlich | Begrenzt die Ausgabe-Tokens einer Antwort ([Limits](#ausgabe-token-limits)); hat nichts mit dem Top-Level-Budget zu tun. |
 | `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt jeden Anfrageversuch ([Anfrage-Timeout](#anfrage-timeout)). |
 | `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale ([Locale-Codes](#an-den-provider-gesendete-locale-codes)). |
@@ -68,9 +68,9 @@ provider: {
 }
 ```
 
-| Option | Typ | Default | Wirkung |
+| Option | Typ | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `model` | String | erforderlich | Die Modell-Id. |
+| `model` | String | erforderlich | Die Modell-ID. |
 | `maxOutputTokens` | positive Ganzzahl | erforderlich | Begrenzt die Ausgabe-Tokens einer Antwort. |
 | `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt jeden Anfrageversuch. |
 | `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
@@ -89,9 +89,9 @@ provider: {
 }
 ```
 
-| Option | Typ | Default | Wirkung |
+| Option | Typ | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `model` | String | erforderlich | Die Modell-Id. |
+| `model` | String | erforderlich | Die Modell-ID. |
 | `maxOutputTokens` | positive Ganzzahl | erforderlich | Begrenzt die Ausgabe-Tokens einer Antwort. |
 | `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt jeden Anfrageversuch. |
 | `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
@@ -113,7 +113,7 @@ provider: {
 }
 ```
 
-| Option | Typ | Default | Wirkung |
+| Option | Typ | Standard | Wirkung |
 | --- | --- | --- | --- |
 | `glossaryId` | String | keine | Ein Glossar, das du in DeepL angelegt hast, nativ angewendet. |
 | `requestTimeoutMs` | positive Ganzzahl | `120000` | Die Mindestwartezeit pro Versuch, bis zu sechs Versuche. |
@@ -122,7 +122,7 @@ provider: {
 Liest `DEEPL_API_KEY`; `options` darf `{}` sein. DeepL hat kein Modell und kein Ausgabe-Token-Limit und stuft mit einem Hinweis herab, statt fehlzuschlagen:
 
 - **Platzhalter** reisen als nummerierte Markierungen in einem ignorierten Tag (`Hello {{name}}` als `Hello <x>{0}</x>`) und werden wieder eingesetzt. `PLACEHOLDER_UNSUPPORTED` hält einen Wert mit nicht wörtlichem Platzhalter oder mit `<`, `>`, `{` oder `}` im übrigen Text zurück, und ein Ergebnis mit verlorener, wiederholter, geänderter oder bloßer Markierung, unbekannter Entity oder fremdem Tag. Reines Markup geht als Klartext hinaus. <AvailableFrom version="0.12.0" />
-- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent sendet gar keine Formalität und meldet `FORMALITY_DOWNGRADED`. Ein bezahlter Key fragt mit `prefer_more` oder `prefer_less` an, sodass eine Sprache ohne Formalität wie Schwedisch mit demselben Hinweis zurückfällt statt zu scheitern. Das [Glossar](#tonfall-und-glossar-über-die-provider-hinweg) wird nicht angewendet.
+- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent sendet gar keine Formalität und meldet `FORMALITY_DOWNGRADED`. Ein bezahlter Key fragt mit `prefer_more` oder `prefer_less` an, sodass eine Sprache ohne Formalität wie Schwedisch mit demselben Hinweis zurückfällt, statt zu scheitern. Das [Glossar](#tonfall-und-glossar-über-die-provider-hinweg) wird nicht angewendet.
 
 <AvailableFrom version="0.12.0" />
 
@@ -139,12 +139,12 @@ provider: {
 }
 ```
 
-| Option | Typ | Default | Wirkung |
+| Option | Typ | Standard | Wirkung |
 | --- | --- | --- | --- |
 | `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt den ganzen Aufruf (keine Wiederholungen). |
 | `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
 
-Liest `GOOGLE_TRANSLATE_API_KEY`, einen API-Schlüssel für ein Google-Cloud-Projekt mit aktivierter Cloud Translation API. Nur Basic (v2) funktioniert: Advanced (v3) braucht einen Service-Account.
+Liest `GOOGLE_TRANSLATE_API_KEY`, einen API-Key für ein Google-Cloud-Projekt mit aktivierter Cloud Translation API. Nur Basic (v2) funktioniert: Advanced (v3) braucht einen Service-Account.
 
 - **Platzhalter** werden wie bei DeepL maskiert, in `<span translate="no">`; Zeilenumbrüche, Tabs und doppelte Leerzeichen werden ebenfalls zurückgehalten. <AvailableFrom version="0.12.0" />
 - **Codes.** Jeder gesendete Code wird vor jedem Aufruf als wohlgeformtes BCP 47 geprüft (`en_US` scheitert mit `INVALID_REQUEST`). Regionale Codes sind erlaubt; ein Paar, das Google ablehnt, scheitert mit `INVALID_REQUEST` von der API.
@@ -169,12 +169,12 @@ provider: {
 }
 ```
 
-| Option | Typ | Default | Wirkung |
+| Option | Typ | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `model` | String | erforderlich | Die Modell-Id. |
+| `model` | String | erforderlich | Die Modell-ID. |
 | `maxOutputTokens` | positive Ganzzahl | erforderlich | Begrenzt die Ausgabe-Tokens einer Antwort. |
 | `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt jeden Anfrageversuch. |
-| `localeMap` | Map von Locale zu Code | keiner | Überschreibt den je Locale gesendeten Code. |
+| `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
 
 Fester Endpunkt, kein `baseUrl`. Liest `OPENCODE_API_KEY`.
 
@@ -195,7 +195,7 @@ provider: {
 }
 ```
 
-| Option | Typ | Default | Wirkung |
+| Option | Typ | Standard | Wirkung |
 | --- | --- | --- | --- |
 | `baseUrl` | `http`- oder `https`-URL | erforderlich | Die API-Wurzel, meist mit `/v1` am Ende. Eine URL, die auf `/chat/completions` oder `/completions` endet, wird abgelehnt; eine ohne `/v1` besteht die Validierung und scheitert erst bei der Anfrage. |
 | `model` | String | erforderlich | Das Modell, das dein Server anbietet. |
@@ -253,7 +253,7 @@ provider: {
 }
 ```
 
-| Option | Typ | Default | Wirkung |
+| Option | Typ | Standard | Wirkung |
 | --- | --- | --- | --- |
 | `baseUrl` | `http`- oder `https`-URL | erforderlich | Die API-Wurzel, ohne `/translate`. |
 | `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt den ganzen Aufruf (keine Wiederholungen). |
@@ -306,7 +306,7 @@ Rate-Limits und Serverfehler werden mit Backoff wiederholt, bei OpenAI, OpenCode
 
 ### Anfrage-Timeout
 
-`requestTimeoutMs` (Default `120000` ms) verhindert, dass ein Server, der nie antwortet, einen Lauf blockiert und die Schreibsperre einer Locale hält. Erhöhe ihn für ein langsames lokales Modell oder eine große `maxBatchSize`.
+`requestTimeoutMs` (Standard `120000` ms) verhindert, dass ein Server, der nie antwortet, einen Lauf blockiert und die Schreibsperre einer Locale hält. Erhöhe ihn für ein langsames lokales Modell oder eine große `maxBatchSize`.
 
 ```ts title="verbatra.config.ts"
 provider: {
@@ -328,7 +328,7 @@ provider: {
 
 <AvailableFrom version="0.12.0" />
 
-Dateien, Lock-Datei und Translation Memory verwenden immer die Codes deiner Konfiguration. Nur die Anfrage wird in das übersetzt, was der Provider erwartet:
+Dateien, Lock-Datei und Übersetzungsspeicher verwenden immer die Codes deiner Konfiguration. Nur die Anfrage wird in das übersetzt, was der Provider erwartet:
 
 | Provider | Quell-Locale | Ziel-Locale |
 | --- | --- | --- |
@@ -355,7 +355,7 @@ provider: {
 
 - **Keys** müssen `sourceLocale` oder eine Ziel-Locale wie konfiguriert sein, sonst scheitert die Konfiguration mit `CONFIG_INVALID`. Die Zuordnung gehört unter `options`, bei jedem Provider außer `none`.
 - **Werte** sind nicht leere Strings mit höchstens 64 Zeichen und werden unverändert gesendet: an einen Maschinenübersetzungs-Provider als Sprachcode, an ein LLM anstelle des Codes (`"pt-BR (Brazilian Portuguese)"` funktioniert), dessen Sprachnamen trotzdem aus dem Key kommen. Ein bloßes `EN` oder `PT` für DeepL scheitert mit `INVALID_REQUEST`; ein Wert, den der Provider ablehnt, lässt seinen Sub-Batch scheitern.
-- **Wirkung auf das Translation Memory.** Nur neue und geänderte Strings gehen mit einem neuen Code hinaus. Ein nicht leeres `localeMap` ist Teil des Fingerprints im [Translation Memory](/de/docs/the-cache), eine Änderung beginnt also einen eigenen Bereich.
+- **Wirkung auf den Übersetzungsspeicher.** Nur neue und geänderte Strings gehen mit einem neuen Code hinaus. Ein nicht leeres `localeMap` ist Teil des Fingerprints im [Übersetzungsspeicher](/de/docs/the-cache), eine Änderung beginnt also einen eigenen Bereich.
 
 ### Die Sprachunterstützung eines Providers prüfen
 

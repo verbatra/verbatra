@@ -69,7 +69,7 @@ Las claves desconocidas se rechazan en todos los niveles salvo `$schema` y los m
 | `pinnedKeys` | array de strings | ninguno | 0.12.0 | Patrones de claves (`*` como comodín) que ninguna escritura automática toca. |
 | `network.policy` | `"any"`, `"local-only"`, `"allowlist"` | `"any"` | 0.12.0 | A qué hosts puede [conectarse](/es/docs/network-policy) un proveedor. |
 | `network.allowedHosts` | array de strings | ninguno; obligatoria con `"allowlist"` | 0.12.0 | Hosts permitidos adicionales: nombres, comodines `*.suffix`, IPs o rangos CIDR. |
-| `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | obligatorio en el bloque; `"off"` sin el bloque | 0.12.0 | Qué hace una ejecución con el [contenido sensible](/es/docs/data-handling#protección-de-contenido-sensible) antes de enviarlo. |
+| `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | obligatoria en el bloque; `"off"` sin el bloque | 0.12.0 | Qué hace una ejecución con el [contenido sensible](/es/docs/data-handling#protección-de-contenido-sensible) antes de enviarlo. |
 | `sensitiveData.detectors` | array de IDs de detector | `secret`, `email`, `iban`, `credit-card` | 0.12.0 | Detectores activos; `phone`, `ip`, `private-host` son opcionales. |
 | `sensitiveData.patterns` | array de strings | ninguno | 0.12.0 | Expresiones regulares para tus propios términos, como nombres en clave. |
 | `sensitiveData.allow` | array de strings | ninguno | 0.12.0 | Coincidencias que nunca se informan; `*` es un comodín y no distingue mayúsculas. |
@@ -214,9 +214,9 @@ maxLength: {
 }
 ```
 
-- **Aquí o en `verbatra.limits.json`.** <AvailableFrom version="0.13.0" /> Las claves se comparan literalmente, nunca como globs; una clave que no fija ninguno de los dos nunca se mide. `setKeyLengthLimit` solo admite claves del origen, así que Studio no puede fijar un límite a una forma plural generada; una entrada escrita a mano para su propia clave sí se aplica. El archivo versionado junto al archivo de bloqueo admite `{ "version": 1, "maxLength": { ... } }`, la configuración gana por clave y [`setKeyLengthLimit`](/es/docs/sdk/config#setkeylengthlimit) lo escribe.
+- **Aquí o en `verbatra.limits.json`.** <AvailableFrom version="0.13.0" /> Las claves se comparan literalmente, nunca como globs; una clave que no fija ninguno de los dos nunca se mide. `setKeyLengthLimit` solo admite claves del origen, así que Studio no puede fijar un límite a una forma plural generada; una entrada escrita a mano para su propia clave sí se aplica. El archivo junto al archivo de bloqueo admite `{ "version": 1, "maxLength": { ... } }`, la configuración gana por clave y [`setKeyLengthLimit`](/es/docs/sdk/config#setkeylengthlimit) lo escribe.
 - **Clústeres de grafemas.** La longitud cuenta caracteres percibidos, espacios incluidos: un emoji, una letra acentuada o un carácter CJK cuentan como uno. El límite es inclusivo.
-- **Cuándo.** Cada valor que `translate` produce para la clave, reutilizaciones de caché incluidas; una clave al día solo se mide cuando cambia su origen, o con [`export --include-unchanged`](/es/docs/cli/export).
+- **Cuándo.** Cada valor que `translate` produce para la clave, reutilizaciones de caché incluidas; una clave al día solo cuando la lee `check --qa`, `check --file` o [`export --include-unchanged`](/es/docs/cli/export).
 - **Informativo.** Un exceso se sigue escribiendo y bloqueando, y se marca para revisión como [`MAX_LENGTH_EXCEEDED`](/es/docs/error-codes#max_length_exceeded).
 
 ### maxTokens y budgetBehavior
@@ -243,7 +243,7 @@ El `maxTokens` de nivel superior es este presupuesto de toda la ejecución; el `
 
 ### rates
 
-Solo lo lee [`translate --estimate`](/es/docs/estimating-cost), que convierte las tarifas en dinero; una ejecución real lo ignora.
+Lo leen [`translate --estimate`](/es/docs/estimating-cost) y, para cada ejecución registrada, el cálculo del coste de su historial.
 
 ```ts title="verbatra.config.ts"
 rates: {
@@ -363,6 +363,6 @@ El directorio de trabajo (donde ejecutas verbatra, o `--cwd`) inicia la búsqued
 ## Cuando la carga falla
 
 - [`CONFIG_NOT_FOUND`](/es/docs/error-codes#config_not_found): no hay configuración en ningún sitio buscado, o la ruta de `--config` no existe.
-- [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid): se encontró una configuración pero no se puede usar. El mensaje lista cada problema con la ruta de su clave; una clave desconocida añade la pista de que las claves de API vienen del entorno. Un fallo de parseo nombra el archivo (con línea y columna en YAML) pero nunca cita su contenido, y cada mensaje pasa por la redacción de claves.
+- [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid): se encontró una configuración pero no se puede usar. El mensaje lista cada problema con la ruta de su clave; una clave desconocida añade la pista de que las claves de API vienen del entorno. Un fallo de parseo nombra el archivo (con línea y columna en YAML) pero nunca cita su contenido, y cada mensaje pasa por la ocultación de claves.
 
 La CLI sale con `2` en ambos casos.

@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@<commit-sha>
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
-          version: 0.12.0 # an exact @verbatra/cli release, 0.9.3 or newer
+          version: 0.13.6 # an exact @verbatra/cli release, 0.9.3 or newer
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -51,7 +51,7 @@ Mets `command: check` pour faire échouer une pull request dont les fichiers de 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
-          version: 0.12.0
+          version: 0.13.6
           command: check
 ```
 
@@ -64,7 +64,7 @@ Ajoute `qa: "true"` à `command: check` pour lancer [`verbatra check --qa`](/fr/
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
-          version: 0.12.0
+          version: 0.13.6
           command: check
           qa: "true"
 ```
@@ -81,7 +81,7 @@ Ajoute `require-reviewed: "true"` à `command: check` pour lancer [`verbatra che
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
-          version: 0.12.0
+          version: 0.13.6
           command: check
           require-reviewed: "true"
 ```
@@ -96,7 +96,7 @@ Mets dans `locales` une liste séparée par des virgules, comme `de,fr`, pour li
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
-          version: 0.12.0
+          version: 0.13.6
           command: check
           locales: "de,fr"
 ```
@@ -107,17 +107,17 @@ Mets dans `locales` une liste séparée par des virgules, comme `de,fr`, pour li
 
 Ajoute `sensitive: "true"` à `command: check` pour exécuter `verbatra check --sensitive`. L'étape échoue quand le fichier source ou le glossaire contient du contenu que reconnaît un détecteur ou un motif de `sensitiveData`, comme des e-mails, des clés ou des numéros de carte, et annote chaque clé source concernée sans afficher la correspondance. Une `version` plus ancienne, ou une préversion `0.12.0-next.*`, fait échouer l'étape avant toute installation.
 
-## Mode humain uniquement
+## Mode 100 % humain
 
 <AvailableFrom version="0.12.0" />
 
-Avec `provider: { id: "none" }` (consulte [Flux 100 % humain](/fr/docs/human-only-workflow)), `translate` sort avec `3` quand il laisse des clés à une personne. L'action le traite comme du travail à transmettre, pas comme un échec : l'étape réussit, chaque locale concernée reçoit un avertissement `NEEDS_HUMAN`, le résumé de job liste les clés et la sortie `needs-human` vaut `"true"`. Branche-toi dessus :
+Avec `provider: { id: "none" }` (consulte [Travailler sans traduction automatique](/fr/docs/human-only-workflow)), `translate` sort avec `3` quand il laisse des clés à une personne. L'action le traite comme du travail à transmettre, pas comme un échec : l'étape réussit, chaque locale concernée reçoit un avertissement `NEEDS_HUMAN`, le résumé de job liste les clés et la sortie `needs-human` vaut `"true"`. Branche-toi dessus :
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         id: verbatra
         with:
-          version: 0.12.0
+          version: 0.13.6
       - if: steps.verbatra.outputs.needs-human == 'true'
         run: echo "Some keys need a human translation; see the job summary."
 ```
@@ -130,7 +130,7 @@ Quand `config-path` est vide, l'action exige un fichier de configuration reconnu
 
 ```yaml
       with:
-        version: 0.12.0
+        version: 0.13.6
         working-directory: apps/docs
 ```
 
@@ -144,7 +144,7 @@ Si aucune configuration n'est trouvée, l'étape échoue avant d'installer la CL
 
 | Entrée | Défaut | Effet |
 | --- | --- | --- |
-| `version` | obligatoire | version exacte de `@verbatra/cli`, `0.9.3` ou plus récente ; un dist-tag, une plage ou un préfixe `^`/`~` fait échouer l'étape |
+| `version` | requis | version exacte de `@verbatra/cli`, `0.9.3` ou plus récente ; un dist-tag, une plage ou un préfixe `^`/`~` fait échouer l'étape |
 | `command` | `translate` | `translate`, `check` ou `diff` ; toute autre valeur fait échouer l'étape |
 | `config-path` | `""` | fichier de configuration à charger (`--config`) ; relatif à `working-directory` |
 | `working-directory` | `""` | répertoire où la CLI s'exécute (`--cwd`) ; vide, c'est la racine du dépôt |
@@ -152,7 +152,7 @@ Si aucune configuration n'est trouvée, l'étape échoue avant d'installer la CL
 | `qa` | `"false"` | `"true"` ajoute le contrôle qualité (`--qa`) ; `check` uniquement |
 | `qa-severity` | `""` | gravité minimale signalée, `error` ou `warning` (`--severity`) ; exige `qa` |
 | `qa-strict` | `"false"` | `"true"` échoue aussi sur les avertissements (`--strict`) ; exige `qa` |
-| `require-reviewed` | `"false"` | `"true"` échoue aussi sur les traductions machine non approuvées (`--require-reviewed`) ; uniquement `check` |
+| `require-reviewed` | `"false"` | `"true"` échoue aussi sur les traductions automatiques non approuvées (`--require-reviewed`) ; uniquement `check` |
 | `sensitive` | `"false"` | `"true"` ajoute l'analyse du contenu sensible (`--sensitive`) ; uniquement `check` |
 | `locales` | `""` | locales cibles séparées par des virgules auxquelles limiter l'exécution (`--locales`) |
 | `node-version` | `"24"` | version de Node.js que l'action installe. CLI 0.13.0+ : `22.22.0`+ sur la 22, 24+ (action v1.4.0 : versions majeures paires uniquement) ; CLI 0.12.x : `^22.18.0 || >=24` ; plus ancienne : `>=22.14.0` |
@@ -167,7 +167,7 @@ Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Un booléen inva
 
 ## Ce qu'une exécution te montre
 
-- **Annotations.** Avec `translate` et la sortie `1`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. Toutes se rattachent au fichier de leur locale quand l'action le trouve. L'annotation `LOCALE_PARTIAL` d'une locale partielle nomme les clés retenues, regroupées par cause. Chaque `check` ajoute un avertissement `PLURAL_CATEGORIES_INCOMPLETE` par locale dont les pluriels n'ont pas une catégorie CLDR que la langue utilise. Avec `sensitive`, chaque clé signalée reçoit une annotation d'erreur `SENSITIVE_CONTENT` et une ligne dans le résumé. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec le code d'erreur, sa cause sous la forme `(cause: X)` et une piste `Next step:` quand la CLI les fournit. GitHub affiche au plus 10 annotations par gravité, donc l'action les ordonne par dérive, relecture, erreurs de qualité puis avertissements, et ajoute une notice qui compte le reste.
+- **Annotations.** Avec `translate` et la sortie `1`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. Toutes se rattachent au fichier de leur locale quand l'action le trouve. L'annotation `LOCALE_PARTIAL` d'une locale partielle nomme les clés retenues, regroupées par cause. Chaque `check` ajoute un avertissement `PLURAL_CATEGORIES_INCOMPLETE` par locale dont les pluriels n'ont pas une catégorie CLDR que la langue utilise. Avec `sensitive`, chaque clé signalée reçoit une annotation d'erreur `SENSITIVE_CONTENT` et une ligne dans le résumé. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec le code d'erreur, sa cause sous la forme `(cause: X)` et une piste `Next step:` quand la CLI les fournit. GitHub affiche au plus 10 annotations par gravité, donc l'action les ordonne par dérive, relecture, erreurs de qualité puis avertissements, et ajoute un avis qui compte le reste.
 - **Résumé de job.** Une ligne par locale avec les compteurs de la commande exécutée, une ligne agrégée et les locales partielles et en échec. Avec `qa`, il ajoute un tableau de constats jusqu'à 1000 constats ; les pluriels incomplets ont leur propre section.
 - **Statut de sortie.** L'action émet d'abord les annotations et le résumé, puis sort avec le [code de sortie](/fr/docs/cli/output#codes-de-sortie) de la CLI elle-même, sauf qu'un `3` de `translate` passe et qu'un échec avant le lancement de la CLI (pas de répertoire de travail, pas de config, une installation échouée) sort avec `1` ; une entrée refusée reçoit un seul `::error::`, sans résumé.
 

@@ -12,7 +12,7 @@ que el mismo texto nunca se paga dos veces. [El archivo de bloqueo](/es/docs/the
 ## Qué reutiliza
 
 Antes de que una clave vaya al proveedor, verbatra busca el hash de su entrada de origen actual: el
-texto junto con su descripción, su significado, su indicador de plural y sus marcadores. Un acierto es
+texto junto con su descripción, su significado, su indicador de plural y sus placeholders. Un acierto es
 gratis. Como la búsqueda es por contenido, la reutilización sobrevive a lo que el archivo de bloqueo
 no ve:
 
@@ -59,7 +59,7 @@ así que `1` es idéntico.
 
 La distancia en caracteres no es significado. Quitar un "no", convertir "no puede" en "puede" o
 cambiar una marca por otra son ediciones pequeñas que puntúan por encima de `0.9` e invierten lo que
-dice la frase. El umbral decide cuánto gasto en el proveedor te ahorras, no lo segura que es una
+dice la frase. El umbral decide cuánto gasto en el proveedor te ahorras, no lo seguro que es una
 reutilización. La seguridad viene de reglas que no dependen del número:
 
 - **Está desactivada salvo que la actives.**

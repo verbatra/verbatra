@@ -61,7 +61,7 @@ verbatra extract
 next: verbatra translate (translate the new keys)
 ```
 
-Ein Standardwert aus der Aufrufstelle wird zum Quelltext des Keys. Ein Key, der schon im Katalog steht, behält seinen Wert, sodass ein erneutes `extract` deine Änderungen nie überschreibt, und ein Lauf, der nichts Neues findet, lässt die Datei byteidentisch.
+Ein Standardwert aus der Aufrufstelle wird zum Quelltext des Keys. Ein Key, der schon im Katalog steht, behält seinen Wert, sodass ein erneutes `extract` deine Änderungen nie überschreibt und ein Lauf, der nichts Neues findet, die Datei byteidentisch lässt.
 
 Ein Key, dessen Aufrufstelle keinen Standardwert hatte, wird mit leerem Wert hinzugefügt und im `--json`-Ergebnis unter `withoutDefault` aufgeführt. Schreib seinen Quelltext in die Quell-Locale-Datei, bevor du übersetzt.
 
@@ -73,7 +73,7 @@ Wenn dein Format `xliff` oder `apple-xcstrings` ist, leg den Quellkatalog zuerst
 verbatra translate
 ```
 
-Die neuen Keys fehlen in jeder Ziel-Locale, also übersetzt der Lauf genau sie und sonst nichts. Wenn der Stapel groß ist, schau dir die Kosten vorher mit [`--estimate`](/de/docs/estimating-cost) an.
+Die neuen Keys fehlen in jeder Ziel-Locale, also übersetzt der Lauf genau sie und sonst nichts. Wenn der Batch groß ist, schau dir die Kosten vorher mit [`--estimate`](/de/docs/estimating-cost) an.
 
 Wenn du TypeScript nutzt, erzeug deine Key-Deklarationen mit [`verbatra types`](/de/docs/cli/types) neu, damit ein Tippfehler in einem neuen Key die Kompilierung scheitern lässt.
 

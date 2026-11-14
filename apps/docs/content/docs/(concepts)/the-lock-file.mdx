@@ -18,9 +18,9 @@ endings changes nothing.
 
 ## How drift is detected
 
-A source key the target lacks is missing. For a key it has, the current source hash is compared
+A non-blank source key the target lacks is missing. For a key it has, the current source hash is compared
 with the recorded one: a difference means the source changed and the key is retranslated; a match
-means it is never sent, so a second run with no source edits costs nothing. The whole pipeline is
+means it is never sent, so a second run with no source edits costs nothing. The pipeline is
 on [How a run works](/docs/how-it-works).
 
 ### Protected keys
@@ -169,7 +169,7 @@ their name. A decision applies to the exact value the reviewer saw, and is refus
   translation, so a rejection there is refused with
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
 
-Only machine-class values enter the review queue and the `--require-reviewed` gate. The `byReviewState` counts in `check` and `lock.state` cover every value by its recorded decision, whatever its origin, so a value a person wrote or imported with no decision counts as `unreviewed` there without being in the queue; read them with `byOrigin`.
+Only `machine`, `memory`, `fuzzy` and `agent` values enter the review queue and the `--require-reviewed` gate. The `byReviewState` counts in `check` and `lock.state` cover every value by its recorded decision, so a value a person wrote or imported with no decision counts as `unreviewed` there, though not queued; read them with `byOrigin`.
 
 Decisions live in this committed file, so the review queue and
 [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) see the same

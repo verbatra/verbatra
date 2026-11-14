@@ -10,7 +10,7 @@ type: how-to
 
 ## Abre la pestaña History
 
-Arranca Studio ([Review in Studio](/es/docs/review-in-studio#arranca-studio)), abre una clave en Translations y elige **History** junto a **Locales**. Elige el locale si el proyecto tiene varios. Studio lee el historial de esta clave en git solo cuando abres la pestaña.
+Arranca Studio ([Revisar en Studio](/es/docs/review-in-studio#arranca-studio)), abre una clave en Translations y elige **History** junto a **Locales**. Elige el locale si el proyecto tiene varios. Studio lee el historial de esta clave en git solo cuando abres la pestaña.
 
 La lista empieza con **Working tree (uncommitted)** cuando el archivo en disco difiere del último commit. Debajo, de más reciente a más antiguo, va cada commit que cambió el valor de la clave en ese locale, veinte filas cada vez y con **Show N more** para el resto. Cada fila muestra:
 
@@ -21,12 +21,12 @@ La lista empieza con **Working tree (uncommitted)** cuando el archivo en disco d
 | Valor | el texto en ese commit, en el idioma y la dirección del locale, nunca recortado |
 | Changes from the previous value | palabras añadidas o quitadas, marcadas con subrayado y tachado además del color, y leídas como «added» y «removed» |
 
-Todo es texto plano, nunca marcado. Una clave que aparezca en un valor, un asunto o un nombre de autor se sustituye por `[REDACTED]`.
+Todo es texto plano, nunca marcado. Una clave de API que aparezca en un valor, un asunto o un nombre de autor se sustituye por `[REDACTED]`.
 
 ## Restaura un valor anterior
 
 1. Pulsa **Restore** en una fila. El editor se abre en **Locales** con ese valor como borrador. Todavía no se escribe nada.
-2. Lee el borrador y pulsa **Save**. Se ejecutan las comprobaciones habituales, incluidos marcadores e ICU, y un rechazo se muestra tal cual con el archivo intacto. Un valor guardado se registra con el origen `human`.
+2. Lee el borrador y pulsa **Save**. Se ejecutan las comprobaciones habituales, incluidos placeholders e ICU, y un rechazo se muestra tal cual con el archivo intacto. Un valor guardado se registra con el origen `human`.
 
 Si tienes cambios sin guardar, Studio pregunta antes. **Save draft, then restore** conserva tu borrador y luego carga el valor antiguo, **Discard draft and restore** lo descarta y **Keep editing** lo deja todo como estaba. En el editor de Review la pregunta queda arriba del diálogo y **Discard draft and restore** es la única forma de sustituir el borrador.
 
@@ -36,7 +36,7 @@ Una clave de `pinnedKeys` está reservada a una persona, así que una restauraci
 
 ### Cuando el origen ha cambiado
 
-Si el texto de origen ha cambiado desde ese commit, **Restore** pide antes una confirmación, y si Studio no puede saberlo (el lock file de ese commit no se pudo leer o no tiene entrada para la clave) lo dice. Al guardar, la clave cuenta como al día respecto al origen actual y el valor entra en la memoria de traducción, así que una redacción antigua puede reutilizarse en claves parecidas. **Cancel** o Escape lo deja todo como estaba.
+Si el texto de origen ha cambiado desde ese commit, **Restore** pide antes una confirmación, y si Studio no puede saberlo (el archivo de bloqueo de ese commit no se pudo leer o no tiene entrada para la clave) lo dice. Al guardar, la clave cuenta como al día respecto al origen actual y el valor entra en la memoria de traducción, así que una redacción antigua puede reutilizarse en claves parecidas. **Cancel** o Escape lo deja todo como estaba.
 
 ## Sabe qué deja fuera la lista
 
@@ -52,7 +52,7 @@ Cuando falta git, la carpeta no es un repositorio o git la rechaza, Studio lo di
 
 ## Sabe qué tan reciente es
 
-La pestaña lee de nuevo cuando cambia un archivo de locale, de lock o de procedencia, cuando cambia el índice de git o `HEAD` y cuando vuelves a la pestaña de Studio. Las lecturas se espacian, así que una serie de commits no inunda Studio. Una lectura en segundo plano nunca mueve tu foco.
+La pestaña lee de nuevo cuando cambia un archivo de locale, de bloqueo o de procedencia, cuando cambia el índice de git o `HEAD` y cuando vuelves a la pestaña de Studio. Las lecturas se espacian, así que una serie de commits no inunda Studio. Una lectura en segundo plano nunca mueve tu foco.
 
 En el editor de Review, **Show history** abre la misma lista para esa entrada, lee de nuevo del mismo modo y **Restore** rellena su campo.
 

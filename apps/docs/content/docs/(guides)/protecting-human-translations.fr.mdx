@@ -47,7 +47,7 @@ verbatra translate (dry run)
 Une clé protégée cesse d'être obsolète dès qu'une personne décide de ce qu'elle doit dire :
 
 - Modifie-la dans Studio, ou enregistre-la telle quelle pour garder le texte. Dans les deux cas, la valeur est enregistrée comme `human` pour le nouveau texte source.
-- Exporte-la, laisse le traducteur la mettre à jour et importe l'envoi. Voir [Traduction humaine](/fr/docs/manual-translation).
+- Exporte-la, laisse le traducteur la mettre à jour et importe l'envoi. Voir [Confier avec Excel ou CSV](/fr/docs/manual-translation).
 - Retraduis-la volontairement, pour une exécution, avec `verbatra translate --include-human`.
 
 ## Des suggestions plutôt que des écrasements
@@ -80,18 +80,18 @@ Une clé épinglée n'est jamais traduite, suggérée ni retraduite, même quand
 
 ## Agents
 
-Un agent d'IA ne peut pas remplacer le travail d'une personne. L'outil MCP `translation.retranslateEntry` refuse une valeur protégée avec [`KEY_PROTECTED`](/fr/docs/error-codes#key_protected) et une clé épinglée avec [`KEY_PINNED`](/fr/docs/error-codes#key_pinned), sans possibilité de forcer. `translation.translatePending` laisse les clés protégées tranquilles et les liste. Un agent peut encore écrire une valeur avec `translation.editEntry` tant que la clé n'est pas épinglée ; cette valeur est enregistrée comme `agent`, elle ne passe donc jamais pour le travail d'une personne.
+Un agent IA ne peut pas remplacer le travail d'une personne. L'outil MCP `translation.retranslateEntry` refuse une valeur protégée avec [`KEY_PROTECTED`](/fr/docs/error-codes#key_protected) et une clé épinglée avec [`KEY_PINNED`](/fr/docs/error-codes#key_pinned), sans possibilité de forcer par appel ; pour une valeur protégée, seul le réglage `humanEdits` du projet change cela (`overwrite` retraduit la clé, et sous `suggest` `translation.translatePending` ne fait que signaler une suggestion) ; une clé épinglée est toujours refusée. `translation.translatePending` laisse les clés protégées tranquilles et les liste. Un agent peut encore écrire une valeur avec `translation.editEntry` tant que la clé n'est pas épinglée ; cette valeur est enregistrée comme `agent`, elle ne passe donc jamais pour le travail d'une personne.
 
 ## Dans Studio
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-La page Translations marque une clé protégée comme **Protected** et la range dans son propre groupe, avec l'origine de sa valeur actuelle. Ouvre la clé pour la modifier, ou enregistre-la telle quelle pour garder le texte. Retraduire une clé protégée dans l'éditeur de la clé demande d'abord confirmation et propose **Replace anyway**. Voir [Réviser les traductions dans Studio](/fr/docs/review-in-studio).
+La page Translations marque une clé protégée comme **Protected**, peut filtrer sur les clés protégées et affiche l'origine de sa valeur actuelle. Ouvre la clé pour la modifier, ou enregistre-la telle quelle pour garder le texte. Dans l'éditeur de la clé, une retraduction d'une clé protégée est refusée, puis l'éditeur propose **Replace anyway**, qui la retraduit volontairement. Voir [Réviser dans Studio](/fr/docs/review-in-studio).
 
 ## Cas particuliers
 
 - **Un fichier de provenance d'un verbatra plus récent.** Aucune origine ne peut être lue, donc `translate` protège chaque clé obsolète qui a une valeur jusqu'à ta mise à jour, tandis que `check` et `diff` ne listent comme protégées que les clés épinglées.
-- **Un fichier de provenance corrompu.** `translate`, y compris en dry run, échoue avec [`PROVENANCE_FILE_INVALID`](/fr/docs/error-codes#provenance_file_invalid). `check` et `diff` continuent de fonctionner et ne listent comme protégées que les clés épinglées.
+- **Un fichier de provenance corrompu.** `translate`, y compris en exécution à blanc, échoue avec [`PROVENANCE_FILE_INVALID`](/fr/docs/error-codes#provenance_file_invalid). `check` et `diff` continuent de fonctionner et ne listent comme protégées que les clés épinglées.
 - **Projets 100 % humains.** Les clés protégées comptent pour le code de sortie `3`, comme les clés que la mémoire de traduction n'a pas pu remplir : les deux demandent une personne.
 
 ## Voir aussi
@@ -99,4 +99,4 @@ La page Translations marque une clé protégée comme **Protected** et la range 
 - [Le fichier de configuration](/fr/docs/config-file#humanedits-et-pinnedkeys) : `humanEdits` et `pinnedKeys`.
 - [`verbatra translate`](/fr/docs/cli/translate#clés-écrites-par-une-personne) : `--include-human`.
 - [Le fichier de verrouillage](/fr/docs/the-lock-file#la-provenance-de-chaque-valeur) : comment `verbatra.provenance.json` enregistre chaque origine.
-- [Flux 100 % humain](/fr/docs/human-only-workflow) : les projets où chaque valeur vient d'une personne.
+- [Travailler sans traduction automatique](/fr/docs/human-only-workflow) : les projets où chaque valeur vient d'une personne.

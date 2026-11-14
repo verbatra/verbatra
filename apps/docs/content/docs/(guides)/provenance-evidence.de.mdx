@@ -10,7 +10,7 @@ type: how-to
 Das brauchst du, wenn jemand fragt, welchen deiner veröffentlichten Texte ein Provider oder ein KI-Agent übersetzt hat und ob eine Person ihn geprüft hat. verbatra hält das pro Key in `verbatra.provenance.json` fest; du holst es als Bericht zum Archivieren heraus oder als Markierungen in den XLIFF- und TMX-Dateien, die du an andere Tools weitergibst.
 
 <Callout type="warn" title="Unterstützender Nachweis, keine Rechtsberatung">
-Nach [Artikel 50 der EU-KI-Verordnung](/de/docs/data-handling#ki-erzeugte-übersetzungen-und-provenance) wird Text, den eine Person unter
+Nach [Artikel 50 der EU-KI-Verordnung](/de/docs/data-handling#ki-erzeugte-übersetzungen-und-herkunft) wird Text, den eine Person unter
 redaktioneller Verantwortung geprüft hat, anders behandelt als Text, bei dem das nicht geschehen
 ist. Der Bericht und die Markierungen sind ein unterstützender Nachweis für die Person, die
 entscheidet, wie das für dein Produkt gilt. Sie sind keine
@@ -85,7 +85,7 @@ Der Bericht ist das `result` der üblichen [JSON-Hülle](/de/docs/cli/output#jso
 | `entries[].reviewState` | string | `unreviewed`, `approved` oder `rejected` |
 | `entries[].provider` | string, optional | die `id` des Providers, der geantwortet hat, bei einem `machine`-Wert |
 | `entries[].model` | string, optional | das konfigurierte Modell, wenn der Eintrag eines nennt |
-| `entries[].reviewer` | string, optional | die mit der Entscheidung genannte prüfende Person, wenn eine angegeben wurde |
+| `entries[].reviewer` | string, optional | die mit der Entscheidung genannte prüfende Person, wenn eine angegeben wurde und die Entscheidung noch gilt |
 
 Lässt sich die Herkunftsdatei nicht lesen, ist das Ergebnis `{ "available": false, "reason": "provenance-unreadable" }`. Später können neue optionale Felder hinzukommen; vorhandene behalten ihre Bedeutung.
 
@@ -123,7 +123,7 @@ XLIFF 2.0 hat keinen Status-Qualifier, deshalb bekommt die `verbatra`-Metadateng
 <tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
 ```
 
-`x-origin` ist `machine`, `human`, `import` oder `unknown`; `x-review` ist `approved`, `unreviewed` oder `rejected`. Ein Speichereintrag ist ein Textpaar, kein Key, deshalb ist ein Segment `machine`, wenn irgendein Key mit genau diesem Text zur maschinellen Klasse gehört, und `approved` nur, wenn das für jeden solchen Key gilt. Ein Text, den kein Eintrag beschreibt, ist `unknown`.
+`x-origin` ist `machine`, `human`, `import` oder `unknown`; `x-review` ist `approved`, `unreviewed` oder `rejected`. Ein Speichereintrag ist ein Textpaar, kein Key, deshalb ist ein Segment `machine`, wenn irgendein Key mit genau diesem Text zur maschinellen Klasse gehört, `rejected`, wenn irgendein solcher Key abgelehnt ist, und sonst `approved` nur, wenn das für jeden solchen Key gilt. Ein Text, den kein Eintrag beschreibt, ist `unknown`.
 
 ### Markierte Dateien importieren
 

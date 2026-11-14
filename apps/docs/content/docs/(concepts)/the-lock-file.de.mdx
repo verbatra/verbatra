@@ -19,10 +19,10 @@ auf LF, ein erneutes Speichern einer Quelldatei mit CRLF-Zeilenenden ändert als
 
 ## Wie Drift erkannt wird
 
-Ein Quell-Key, der im Ziel fehlt, ist missing. Bei einem vorhandenen Key wird der aktuelle
+Ein nicht leerer Quell-Key, der im Ziel fehlt, ist missing. Bei einem vorhandenen Key wird der aktuelle
 Quell-Hash mit dem festgehaltenen verglichen: Ein Unterschied heißt, die Quelle hat sich geändert
 und der Key wird neu übersetzt; eine Übereinstimmung heißt, er wird nie gesendet, ein zweiter Lauf
-ohne Änderungen an der Quelle kostet also nichts. Die ganze Pipeline steht unter
+ohne Änderungen an der Quelle kostet also nichts. Die Pipeline steht unter
 [Wie ein Lauf funktioniert](/de/docs/how-it-works).
 
 ### Geschützte Keys
@@ -144,7 +144,7 @@ gepinnte, ignoriert sie.
 | Herkunft | Geschrieben von |
 | --- | --- |
 | `machine` | einer Provider-Antwort in `translate`, `watch` oder einem Retranslate eines einzelnen Keys, mit der `id` des Providers und, wenn bekannt, dem Modell |
-| `memory` | einem exakten Cache-Treffer, einschließlich jedes Werts, den ein reiner Handarbeits-Lauf (Provider `none`) füllt |
+| `memory` | einem exakten Cache-Treffer, einschließlich jedes Werts, den ein Lauf ohne maschinelle Übersetzung (Provider `none`) füllt |
 | `fuzzy` | einem Treffer der [unscharfen Wiederverwendung](/de/docs/the-cache#unscharfe-wiederverwendung) |
 | `human` | der Bearbeitung eines Menschen über `editEntry` aus dem SDK, wie sie der Bearbeitungsdialog in Studio macht |
 | `agent` | der Bearbeitung eines KI-Agenten über `editEntry` mit `actor: "agent"` |
@@ -193,7 +193,7 @@ den Wert, den der Reviewer gesehen hat, und wird abgelehnt, wenn er sich geände
   Übersetzung weglassen, eine Ablehnung wird dort also mit
   [`REVIEW_REJECT_UNSUPPORTED`](/de/docs/error-codes#review_reject_unsupported) abgelehnt.
 
-Nur Werte der Maschinenklasse landen in der Review-Warteschlange und im `--require-reviewed`-Gate. Die `byReviewState`-Zähler in `check` und `lock.state` erfassen jeden Wert nach seiner aufgezeichneten Entscheidung, gleich welcher Herkunft: Ein von einer Person geschriebener oder importierter Wert ohne Entscheidung zählt dort als `unreviewed`, ohne in der Warteschlange zu stehen. Lies sie zusammen mit `byOrigin`.
+Nur `machine`-, `memory`-, `fuzzy`- und `agent`-Werte landen in der Review-Warteschlange und im `--require-reviewed`-Gate. Die `byReviewState`-Zähler in `check` und `lock.state` erfassen jeden Wert nach seiner aufgezeichneten Entscheidung, sodass ein von einer Person geschriebener oder importierter Wert ohne Entscheidung dort als `unreviewed` zählt, auch wenn er nicht in der Warteschlange steht. Lies sie zusammen mit `byOrigin`.
 
 Die Entscheidungen stehen in dieser committeten Datei, also sehen die Review-Warteschlange und
 [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) auf
@@ -203,4 +203,4 @@ nie ein.
 ## Committe sie
 
 Committe `verbatra.lock.json` und `verbatra.provenance.json` mit deinen Locale-Dateien und
-bearbeite sie nie von Hand: sie sind die Baseline, gegen die dein Team und deine CI vergleichen, und das, was ein [Rollback](/de/docs/recovery-and-rollback) wiederherstellt.
+bearbeite sie nie von Hand: Sie sind die Baseline, gegen die dein Team und deine CI vergleichen, und das, was ein [Rollback](/de/docs/recovery-and-rollback) wiederherstellt.

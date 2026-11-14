@@ -4,7 +4,7 @@ seoTitle: "Übersetzungen in Verbatra Studio prüfen"
 description: Starte Verbatra Studio, arbeite die Review-Warteschlange ab, korrigiere Einträge direkt und übersetze markierte Keys im lokalen Dashboard neu.
 type: how-to
 ---
-Damit prüfst du maschinelle Übersetzungen, bevor sie ausgeliefert werden: Du findest, was offen ist, korrigierst Werte von Hand und gibst frei oder lehnst ab, was ein Provider geschrieben hat, in Verbatra Studio, einem lokalen Dashboard über deinem Projekt.
+In Verbatra Studio findest du offene maschinelle Übersetzungen, korrigierst Werte und gibst frei oder lehnst ab, was ein Provider geschrieben hat.
 
 Zwei Regeln gelten durchgehend. **Lokales Bearbeiten ist immer an**. **Kostenpflichtige Provider-Aufrufe sind immer aus**, außer du startest Studio mit `--allow-spend`.
 
@@ -50,6 +50,7 @@ Die Chips neben der Suche grenzen die Tabelle nach Zustand ein, darunter **Revie
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 Der Editor zeigt dir die Beschreibung des Keys, welche Glossarbegriffe dein Entwurf trifft oder auslässt und wie lang er im Vergleich zur Quelle und zu `maxLength` ist. Strg oder Cmd mit Enter speichert.
+
 #### Ein Längenlimit setzen
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
@@ -72,7 +73,7 @@ Ab 1280px Breite sitzt der Editor neben der Tabelle; darunter öffnet er sich al
 
 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
 
-**Search and replace** ersetzt wörtlichen Text in übersetzten Werten: Wähle Text, Ersatz, Groß-/Kleinschreibung und Locales, prüfe jeden Treffer (bis zu 1.000) und wende dann an. Angepinnte Keys und geschützte Werte bleiben draußen, solange du ihr Kästchen nicht ankreuzt. Geschützt heißt: Eine Person hat den Wert geschrieben, importiert oder außerhalb von verbatra geändert, oder es ist jeder Wert, wenn sich `verbatra.provenance.json` nicht lesen lässt.
+**Search and replace** ersetzt wörtlichen Text in übersetzten Werten: Wähle Text, Ersatz, Groß-/Kleinschreibung und Locales, prüfe jeden Treffer (bis zu 1.000) und wende dann an. Gepinnte Keys und geschützte Werte bleiben draußen, solange du ihr Kästchen nicht ankreuzt. Geschützt heißt: Eine Person hat den Wert geschrieben, importiert oder außerhalb von verbatra geändert, oder es ist jeder Wert, wenn sich `verbatra.provenance.json` nicht lesen lässt.
 
 ## Arbeite die Review-Warteschlange ab
 
@@ -104,7 +105,7 @@ Filtere nach Locale oder Text, dann arbeite jede Zeile ab:
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter [Review-Entscheidungen](/de/docs/the-lock-file#review-entscheidungen) gespeichert. Eine Freigabe verlangt außerdem, dass der Wert zu seiner Quelle passt. Committe Locale-Datei, Lock-Datei und Herkunftsdatei zusammen; in einem XLIFF-Projekt bearbeitest du, statt abzulehnen.
+Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter [Review-Entscheidungen](/de/docs/the-lock-file#review-entscheidungen) gespeichert. Eine Freigabe verlangt außerdem, dass der Wert gegenüber seiner Quelle aktuell ist. Committe Locale-Datei, Lock-Datei und Herkunftsdatei zusammen; in einem XLIFF-Projekt bearbeitest du, statt abzulehnen.
 
 ### Eine Warteschlange für das ganze Team
 
@@ -131,13 +132,13 @@ Drück `j` oder Pfeil nach unten, um zu starten, dann:
 | `x` | ihn für eine Sammelaktion auswählen oder abwählen |
 | `?` | die Tastenkürzel ein- oder ausblenden |
 
-Tastenkürzel pausieren, während du tippst, der Fokus in der Filterleiste liegt oder ein Dialog offen ist.
+Tastenkürzel pausieren, während du tippst, ob in der Filterleiste oder in einem Dialog.
 
 ### Bearbeite mehrere Einträge auf einmal
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Hak Zeilen an (oder das Kästchen im Tabellenkopf für alles, was der Filter zeigt), dann wähl **Approve selected**, **Reject selected** oder, mit `--allow-spend`, **Retranslate selected**. Fehlschläge werden nach Ursache gelistet und bleiben ausgewählt. Ein Stapel umfasst höchstens 100 Einträge zum Freigeben oder Ablehnen oder 20 zum Neuübersetzen.
+Hak Zeilen an (oder das Kästchen im Tabellenkopf für alles, was der Filter zeigt), dann wähl **Approve selected**, **Reject selected** oder, mit `--allow-spend`, **Retranslate selected**. Fehlschläge werden nach Ursache gelistet und bleiben ausgewählt. Ein Batch umfasst höchstens 100 Einträge zum Freigeben oder Ablehnen oder 20 zum Neuübersetzen.
 
 ## Übersetze einen markierten Key neu
 
@@ -179,7 +180,7 @@ Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits g
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-**Show translations for** wechselt in die [Glossar](/de/docs/config-file#glossary)-Ansicht einer Locale, mit ihrer Übersetzung, verbotenen Varianten und Notiz.
+**Show translations for** wechselt in die [Glossar](/de/docs/config-file#glossary)-Ansicht einer Locale, mit ihrer Übersetzung, verbotenen Wiedergaben und Notiz.
 
 ## Siehe auch
 

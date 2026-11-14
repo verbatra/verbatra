@@ -11,9 +11,9 @@ CI. Ce site relève de sa [politique de confidentialité](/privacy).
 
 - **Aucune télémétrie**, aucune vérification de mise à jour et aucun serveur verbatra à contacter.
 - **Une seule destination sortante : ton fournisseur**, seulement quand une commande traduit ;
-  aucune avec `provider: { id: "none" }`. Tout le reste reste local, Studio et le serveur MCP compris.
+  aucune avec `provider: { id: "none" }`. Tout le reste reste local.
 - **Seul ce qui doit être traduit est envoyé** : ni clés inchangées, ni succès du cache, ni clés
-  protégées (sauf les modifications humaines obsolètes avec `humanEdits: "suggest"`).
+  protégées, ni clés épinglées (sauf les modifications humaines obsolètes avec `humanEdits: "suggest"`).
 - **Les clés d'API viennent uniquement de variables d'environnement** et n'apparaissent jamais dans
   un message.
 
@@ -46,8 +46,7 @@ comprises, est local, sauf [`verbatra doctor --live`](/fr/docs/cli/doctor), qui 
 
 Une exécution de `translate` n'envoie que les clés manquantes ou modifiées par rapport au
 [fichier de verrouillage](/fr/docs/the-lock-file), moins les succès du [cache](/fr/docs/the-cache), et un
-texte partagé une seule fois ; une clé [épinglée](/fr/docs/protecting-human-translations) n'est jamais
-envoyée. Ton résolveur DNS voit le nom d'hôte du fournisseur.
+texte partagé une seule fois. Ton résolveur DNS voit le nom d'hôte du fournisseur.
 
 ## Ce que reçoit chaque fournisseur
 
@@ -60,27 +59,27 @@ envoyée. Ton résolveur DNS voit le nom d'hôte du fournisseur.
 | `libretranslate` | Le texte source de chaque clé, placeholders [masqués](/fr/docs/providers#libretranslate) (une valeur avec de la syntaxe ICU n'est pas envoyée), les codes de langue, et `LIBRETRANSLATE_API_KEY` quand elle est définie. | La `baseUrl` que tu as configurée. |
 | `none` | Rien. | Nulle part. |
 
-Les SDK envoient aussi des en-têtes avec la bibliothèque, ton OS et Node.js. Ta clé d'API ne va
+Les SDK des fournisseurs envoient aussi des en-têtes qui nomment la bibliothèque, le système d'exploitation et la version de Node.js. Ta clé d'API ne va
 qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaîne de requête `?key=`).
 
 ## Protection des contenus sensibles
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` analyse, avant chaque requête, ce que le tableau ci-dessus envoie. Les détecteurs, `patterns` et `allow` sont sous [Chaque clé](/fr/docs/config-file#chaque-clé). Le détecteur `email` ignore `example.com`, `example.org`, `example.net` et les domaines sous `.example`, `.test`, `.invalid` ou `.localhost`. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement est une trouvaille (`pattern-timeout-<n>`).
+`sensitiveData` analyse, avant chaque requête, ce que le tableau ci-dessus envoie. Les détecteurs, `patterns` et `allow` sont sous [Chaque clé](/fr/docs/config-file#chaque-clé). Le détecteur `email` ignore `example.com`, `example.org`, `example.net` (et leurs sous-domaines) et les domaines sous `.example`, `.test`, `.invalid` ou `.localhost`. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement de délai est un constat (`pattern-timeout-<n>`).
 
 | `mode` | Effet |
 | --- | --- |
 | `warn` | Envoie comme d'habitude ; un avis nomme les clés. |
-| `block` | Retient la clé, donc la locale se termine `partial`. |
-| `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. Sur DeepL, Google et LibreTranslate, un jeton compte comme un placeholder, donc une valeur qu'ils ne peuvent pas protéger est retenue comme `PLACEHOLDER_UNSUPPORTED`. |
+| `block` | Retient la clé, donc la locale se termine en `partial`. |
+| `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, une analyse qui a dépassé son délai, ou un jeton qui ne revient pas exactement une fois, retient la clé. Sur DeepL, Google et LibreTranslate, un jeton compte comme un placeholder, donc une valeur qu'ils ne peuvent pas protéger est retenue comme `PLACEHOLDER_UNSUPPORTED`. |
 
 `block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. `verbatra init` écrit `warn` pour un fournisseur automatique. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. [`verbatra check --sensitive`](/fr/docs/cli/check#contenu-sensible) analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
 
 ## Conservation et traitement des données chez le fournisseur
 
-La conservation dépend du fournisseur et de ton contrat. Citations dans leur anglais d'origine, en
-septembre 2026.
+La conservation dépend du fournisseur et de ton contrat. Citations dans leur anglais d'origine,
+état en septembre 2026.
 
 | Fournisseur | Ce que dit le fournisseur | Traitement des données |
 | --- | --- | --- |
@@ -163,4 +162,4 @@ chaque valeur traduite automatiquement.
 6. Commite `verbatra.provenance.json`, et archive `verbatra report provenance --json` à chaque
    version.
 7. Joins le manifeste de [`verbatra doctor --data-flow --json`](/fr/docs/cli/doctor#flux-de-données)
-   avec chaque hôte.
+   de chaque hôte.

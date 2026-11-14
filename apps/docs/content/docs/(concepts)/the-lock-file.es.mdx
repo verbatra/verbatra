@@ -1,7 +1,7 @@
 ---
 title: El archivo de bloqueo y la procedencia
 seoTitle: "El lock y el archivo de procedencia de verbatra"
-description: "Qué registran verbatra.lock.json y verbatra.provenance.json, cómo se detecta el desfase y por qué debes confirmar ambos archivos."
+description: "Qué registran verbatra.lock.json y verbatra.provenance.json, cómo se detecta el desfase, cómo se serializan ejecuciones concurrentes y por qué confirmas ambos."
 type: concept
 ---
 `verbatra.lock.json` es la línea base con la que compara cada ejecución, así que una ejecución puede
@@ -13,16 +13,16 @@ cada valor.
 
 Para cada locale de destino, un hash por clave traducida de la entrada de origen detrás de la
 traducción actual, más un campo `version`: ni traducciones ni secretos. El hash cubre el valor de
-origen junto con su descripción, su significado, su indicador de plural y sus marcadores, así que una
+origen junto con su descripción, su significado, su indicador de plural y sus placeholders, así que una
 descripción cambiada también deja la clave desfasada. Normaliza Unicode a NFC y los finales de línea
 a LF, así que volver a guardar un archivo de origen con finales CRLF no cambia nada.
 
 ## Cómo se detecta el desfase
 
-Una clave de origen que el destino no tiene está ausente (missing). Para una que sí tiene, el hash
+Una clave de origen no vacía que el destino no tiene está ausente (missing). Para una que sí tiene, el hash
 de origen actual se compara con el registrado: una diferencia significa que el origen cambió y la
 clave se vuelve a traducir; una coincidencia significa que nunca se envía, así que una segunda
-ejecución sin cambios en el origen no cuesta nada. La canalización completa está en
+ejecución sin cambios en el origen no cuesta nada. La canalización está en
 [Cómo funciona una ejecución](/es/docs/how-it-works).
 
 ### Claves protegidas
@@ -189,7 +189,7 @@ si cambió.
   sola traducción, así que ahí un rechazo se deniega con
   [`REVIEW_REJECT_UNSUPPORTED`](/es/docs/error-codes#review_reject_unsupported).
 
-Solo los valores de clase máquina entran en la cola de revisión y en la puerta `--require-reviewed`. Los contadores `byReviewState` de `check` y `lock.state` cubren cada valor según su decisión registrada, sea cual sea su origen, así que un valor escrito o importado por una persona sin decisión cuenta como `unreviewed` ahí sin estar en la cola; léelos junto con `byOrigin`.
+Solo los valores `machine`, `memory`, `fuzzy` y `agent` entran en la cola de revisión y en la puerta `--require-reviewed`. Los contadores `byReviewState` de `check` y `lock.state` cubren cada valor según su decisión registrada, así que un valor escrito o importado por una persona sin decisión cuenta como `unreviewed` ahí, aunque no esté en la cola; léelos junto con `byOrigin`.
 
 Las decisiones viven en este archivo confirmado, así que la cola de revisión y
 [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas) ven el mismo
