@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { stripAccentTags } from "@/test-support/accent-tags";
 import { HERO_TERMINAL_CHANGED_KEYS, HERO_TERMINAL_SYNCED_KEYS } from "./hero-terminal";
 import { i18n } from "./i18n";
+import { SDK_INSTALL_COMMAND } from "./install-commands";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ITEM_IDS } from "./landing-faq";
 import { landingProviders } from "./landing-providers";
@@ -113,7 +114,7 @@ describe("the English landing markdown after the surfaces and the comparison lin
     expect(section).toContain(`[docs/sdk/inspect](${SITE_URL}/docs/sdk/inspect.md)`);
     expect(section).toContain("| de | 86% 12 / 14 keys | 0 | 2 | 12 |");
     expect(section).toContain("claude mcp add");
-    expect(section).toContain("npm install --save-dev @verbatra/sdk");
+    expect(section).toContain(SDK_INSTALL_COMMAND);
   });
 
   it("prints the not-written stamp of the gate outside every fenced block, so no CLI line is altered", async () => {
