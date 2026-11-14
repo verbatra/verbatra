@@ -8,6 +8,7 @@ const KNOWN_EXTERNAL_VARS: ReadonlyArray<string> = [
   "--font-geist-sans",
   "--lock-dwell",
   "--marquee-items",
+  "--n",
   "--vk-hl-fill",
 ];
 
