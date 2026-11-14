@@ -181,7 +181,7 @@ Scales are fixed and narrow, deliberately:
   shadow). Violet light comes only from the halo tokens above, in the places that name them: the
   hero halo and the shadow under its front locale-file card, the CI tile, the closing
   panel, the staged lock-demo card (`.vk-lock-stage .vk-lock-card`, only while the stage is set), the pinned gate card
-  (`.vk-gate-card`, only while the gate stage is pinned, where one card is visible at a time, so never two haloed cards) and the
+  (`.vk-gate-card`, only while the gate stage is pinned, where one gate card is visible at a time) and the
   glow of the primary `Button`.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
@@ -220,7 +220,7 @@ Scales are fixed and narrow, deliberately:
   closing panel. No landing section is a band. Order: hero (page, under its halo), marquee
   (page, `.vk-marquee-section`: `--border-default` hairlines above and below, `2.75rem` above and
   `3rem` below its content, `overflow-x: clip`, rows full-bleed across the viewport), lock-file demo
-  (page, `.vk-lock`), highlights (page), features (page), FAQ (page), closing panel (page), then the footer on the
+  (page, `.vk-lock`), gate (page, `.vk-gate`, no band), highlights (page), features (page), FAQ (page), closing panel (page), then the footer on the
   page surface under one hairline (`section-bands.test.tsx` pins the order and the surfaces).
   The page surface is `--surface-page` (dark `--v-void`, light `--color-fd-background`, the 98 percent
   page tone): it paints `.vk-home`, the footer and the sticky FAQ head, so white tiles read as raised in
@@ -246,7 +246,7 @@ Scales are fixed and narrow, deliberately:
   `--motion-distance-md`, 8px, under 40rem), `--reveal-stagger` (70ms) and
   `--reveal-delay-max` (350ms, the stagger cap), and `--marquee-item-time` (5s: one marquee loop
   lasts that times the row's item count). Only `opacity` and `transform` / `translate`
-  ever animate.
+  animate, with two paint-only exceptions: the highlights cross-highlight and the discrete `visibility` of the gate frames.
 
 ## Typography
 
@@ -821,7 +821,7 @@ The policy, in one place:
 - **Still forbidden.** A scroll listener, an animation library, `motion` outside client islands (see "The stack"), heading, lead and prose fade-ups, parallax, a second autoplay, an animation of a layout
   property, motion in the first viewport, counters and typing effects, text below 4.5:1 contrast at any point of a motion.
 - **The single sticky stage.** The page has one: the gate's, from 64rem wide and 42rem tall (`.vk-gate-pin`). The lock demo's stage is not sticky and the FAQ's sticky head is a different thing (a head, not a stage).
-- **Halos.** The hero halo and the shadow under its front card, the CI tile, the closing panel, the staged lock-demo card, the pinned gate card and the primary `Button` glow, and never two haloed cards in view.
+- **Halos.** The hero halo and the shadow under its front card, the CI tile, the closing panel, the staged lock-demo card, the pinned gate card and the primary `Button` glow, and at most one haloed card per section.
 - **Reduced motion, no JavaScript and `scripting: none`.** Stacked end states, exactly one state per value in the DOM, nothing hidden, no sticky stage.
 
 - **Reveals.** One system: an element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden
