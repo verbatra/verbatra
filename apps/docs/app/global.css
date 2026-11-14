@@ -4968,6 +4968,12 @@ html.light .vk-deck-shot-light {
   }
 }
 
+@property --vk-gate-slide {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 64px;
+}
+
 .vk-gate-track {
   min-width: 0;
 }
@@ -5131,10 +5137,7 @@ html.light .vk-deck-shot-light {
     .vk-gate-track {
       --vk-gate-pin: 150svh;
       --vk-gate-stage: calc(100svh - var(--vk-landing-offset));
-      --vk-gate-slide: min(
-        64px,
-        max(var(--gutter), calc((100vw - var(--width-wide)) / 2 + var(--gutter) - 8px))
-      );
+      --vk-gate-slide: 64px;
       height: calc(var(--vk-gate-pin) + var(--vk-gate-stage));
       view-timeline: --vk-gate block;
       view-timeline-inset: var(--vk-landing-offset) 0;
@@ -5144,7 +5147,7 @@ html.light .vk-deck-shot-light {
       .vk-gate-track {
         --vk-gate-slide: min(
           96px,
-          max(var(--gutter), calc((100vw - var(--width-wide)) / 2 + var(--gutter) - 8px))
+          max(64px, max(var(--gutter), calc((100vw - var(--width-wide)) / 2 + var(--gutter) - 8px)))
         );
       }
     }
@@ -5198,17 +5201,19 @@ html.light .vk-deck-shot-light {
     }
 
     .vk-gate-frame[data-state="candidate"] > .vk-gate-card {
-      animation-name: vk-gate-card-out;
-      animation-range: contain 21.333% contain 29.333%;
-      animation-fill-mode: forwards;
-      animation-timing-function: var(--ease-exit);
+      animation-name: vk-gate-card-out, vk-gate-fade-out;
+      animation-range:
+        contain 22.667% contain 30.667%,
+        contain 28.667% contain 30.667%;
+      animation-fill-mode: forwards, forwards;
+      animation-timing-function: var(--ease-exit), linear;
       animation-timeline: --vk-gate;
     }
 
     .vk-gate-frame[data-state="refused"] {
       animation-name: vk-gate-refused;
-      --vk-lines-from: 30.667%;
-      --vk-lines-step: 1.333%;
+      --vk-lines-from: 29.333%;
+      --vk-lines-step: 1%;
       --vk-lines-span: 4%;
     }
 
@@ -5223,19 +5228,21 @@ html.light .vk-deck-shot-light {
     }
 
     .vk-gate-frame[data-state="refused"] > .vk-gate-card {
-      animation-name: vk-gate-card-in, vk-gate-card-out;
+      animation-name: vk-gate-card-in, vk-gate-card-out, vk-gate-fade-in, vk-gate-fade-out;
       animation-range:
-        contain 30.667% contain 38.667%,
-        contain 64% contain 72%;
-      animation-fill-mode: backwards, forwards;
-      animation-timing-function: var(--ease-standard), var(--ease-exit);
+        contain 29.333% contain 37.333%,
+        contain 65.333% contain 73.333%,
+        contain 29.333% contain 31.333%,
+        contain 71.333% contain 73.333%;
+      animation-fill-mode: backwards, forwards, backwards, forwards;
+      animation-timing-function: var(--ease-standard), var(--ease-exit), linear, linear;
       animation-timeline: --vk-gate;
     }
 
     .vk-gate-frame[data-state="stale"] {
       animation-name: vk-gate-stale;
-      --vk-lines-from: 73.333%;
-      --vk-lines-step: 1.333%;
+      --vk-lines-from: 72%;
+      --vk-lines-step: 1%;
       --vk-lines-span: 4%;
     }
 
@@ -5248,10 +5255,12 @@ html.light .vk-deck-shot-light {
     }
 
     .vk-gate-frame[data-state="stale"] > .vk-gate-card {
-      animation-name: vk-gate-card-in;
-      animation-range: contain 73.333% contain 81.333%;
-      animation-fill-mode: backwards;
-      animation-timing-function: var(--ease-standard);
+      animation-name: vk-gate-card-in, vk-gate-fade-in;
+      animation-range:
+        contain 72% contain 80%,
+        contain 72% contain 74%;
+      animation-fill-mode: backwards, backwards;
+      animation-timing-function: var(--ease-standard), linear;
       animation-timeline: --vk-gate;
     }
 
@@ -5318,15 +5327,15 @@ html.light .vk-deck-shot-light {
     }
 
     .vk-gate-progress i[data-state="candidate"]::after {
-      animation-range: contain 0.667% contain 30%;
+      animation-range: contain 0.667% contain 30.667%;
     }
 
     .vk-gate-progress i[data-state="refused"]::after {
-      animation-range: contain 30% contain 72.667%;
+      animation-range: contain 30.667% contain 73.333%;
     }
 
     .vk-gate-progress i[data-state="stale"]::after {
-      animation-range: contain 72.667% contain 99.333%;
+      animation-range: contain 73.333% contain 99.333%;
     }
 
     @media (forced-colors: active) {
@@ -5337,17 +5346,17 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-candidate {
       0%,
-      29.233% {
+      30.567% {
         opacity: 1;
         pointer-events: auto;
       }
 
-      29.333% {
+      30.667% {
         opacity: 0;
         pointer-events: auto;
       }
 
-      29.367%,
+      30.701%,
       100% {
         opacity: 0;
         pointer-events: none;
@@ -5367,17 +5376,17 @@ html.light .vk-deck-shot-light {
       }
 
       28.667%,
-      71.9% {
+      73.233% {
         opacity: 1;
         pointer-events: auto;
       }
 
-      72% {
+      73.333% {
         opacity: 0;
         pointer-events: auto;
       }
 
-      72.033%,
+      73.367%,
       100% {
         opacity: 0;
         pointer-events: none;
@@ -5437,33 +5446,41 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-card-in {
       from {
-        opacity: 0;
         transform: translateX(var(--vk-gate-slide)) scale(0.94);
       }
 
-      20% {
-        opacity: 1;
-      }
-
       to {
-        opacity: 1;
         transform: none;
       }
     }
 
     @keyframes vk-gate-card-out {
       from {
-        opacity: 1;
         transform: none;
       }
 
-      70% {
+      to {
+        transform: translateX(calc(-1 * var(--vk-gate-slide))) scale(0.94);
+      }
+    }
+
+    @keyframes vk-gate-fade-in {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes vk-gate-fade-out {
+      from {
         opacity: 1;
       }
 
       to {
         opacity: 0;
-        transform: translateX(calc(-1 * var(--vk-gate-slide))) scale(0.94);
       }
     }
 

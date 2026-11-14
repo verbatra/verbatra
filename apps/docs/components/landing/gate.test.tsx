@@ -21,7 +21,11 @@ import {
   GATE_TRANSLATE_COMMAND,
 } from "@/lib/gate-demo";
 import {
-  GATE_CLEAR_SVH,
+  GATE_CARD_FADE_SVH,
+  GATE_CARD_JOINT_CEILING,
+  GATE_CARD_JOINT_SVH,
+  GATE_CARD_MIN_PAINT,
+  GATE_CARD_VISIBLE,
   GATE_DROP_PX,
   GATE_ENTER_OPAQUE,
   GATE_EXIT_OPAQUE,
@@ -37,6 +41,7 @@ import {
   GATE_SLIDE_WIDE_REM,
   GATE_STAMP_SCALE,
   GATE_SWAP_CEILING_SVH,
+  gateCardFade,
   gateFrameFade,
   gateHoldMiddle,
   gatePercent,
@@ -303,7 +308,7 @@ describe("the gate stylesheet", () => {
     expect(docsGlobalCss()).not.toContain("overflow-clip-margin");
   });
 
-  it("slides by the schedule's distance, 64px below 80rem and 96px from it, never past the space left of the content", () => {
+  it("slides by the schedule's distance: a plain 64px below 80rem, from 80rem the room left of the content held between 64px and 96px", () => {
     const track = rules.filter(
       (rule) => rule.selector === ".vk-gate-track" && rule.media.includes("@supports"),
     );
@@ -314,10 +319,18 @@ describe("the gate stylesheet", () => {
         .replace(/\( /g, "(")
         .replace(/ \)/g, ")");
     const room = "max(var(--gutter), calc((100vw - var(--width-wide)) / 2 + var(--gutter) - 8px))";
-    expect(slide("min-width: 64rem")).toBe(`min(${GATE_SLIDE_PX}px, ${room})`);
+    expect(slide("min-width: 64rem")).toBe(`${GATE_SLIDE_PX}px`);
     expect(slide(`min-width: ${GATE_SLIDE_WIDE_REM}rem`)).toBe(
-      `min(${GATE_SLIDE_WIDE_PX}px, ${room})`,
+      `min(${GATE_SLIDE_WIDE_PX}px, max(${GATE_SLIDE_PX}px, ${room}))`,
     );
+  });
+
+  it("registers the slide as a length, so a resize repaints the compositor keyframes that read it", () => {
+    const css = docsGlobalCss();
+    const block = /@property --vk-gate-slide \{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(block).toContain('syntax: "<length>";');
+    expect(block).toContain("inherits: true;");
+    expect(block).toContain(`initial-value: ${GATE_SLIDE_PX}px;`);
   });
 
   it("holds every state for at least the floor with nothing moving, and the last until the pin ends", () => {
@@ -352,6 +365,8 @@ describe("the gate stylesheet", () => {
       "utf8",
     );
     expect(skill).toContain(`about ${GATE_SWAP_CEILING_SVH}svh of scroll each`);
+    const [first, second] = [gateSwapWindow(1), gateSwapWindow(2)];
+    expect(skill).toContain(`${first[0]} to ${first[1]} and ${second[0]} to ${second[1]}`);
   });
 
   type Window = readonly [number, number] | null;
@@ -372,6 +387,26 @@ describe("the gate stylesheet", () => {
     );
     expect(declared(selector, "animation-timeline"), selector).toBe("--vk-gate");
   };
+  const expectCardMotion = (index: number): void => {
+    const phases = GATE_PHASES[index];
+    const selector = cardOf(STATES[index] ?? "candidate");
+    const fade = gateCardFade(index);
+    const motions = [
+      [phases?.enterCard, "vk-gate-card-in", "backwards", "var(--ease-standard)"],
+      [phases?.exitCard, "vk-gate-card-out", "forwards", "var(--ease-exit)"],
+      [fade.rise, "vk-gate-fade-in", "backwards", "linear"],
+      [fade.fall, "vk-gate-fade-out", "forwards", "linear"],
+    ] as const;
+    const present = motions.filter(([range]) => range !== null && range !== undefined);
+    const column = (position: 1 | 2 | 3) => present.map((motion) => motion[position]).join(", ");
+    expect(declared(selector, "animation-name"), selector).toBe(column(1));
+    expect(declared(selector, "animation-fill-mode"), selector).toBe(column(2));
+    expect(declared(selector, "animation-timing-function"), selector).toBe(column(3));
+    expect(declared(selector, "animation-range"), selector).toBe(
+      present.map(([range]) => contain(range ?? null)).join(", "),
+    );
+    expect(declared(selector, "animation-timeline"), selector).toBe("--vk-gate");
+  };
   const keyframe = (name: string, stop: string) =>
     keyframes.find((rule) => rule.media.endsWith(`@keyframes ${name}`) && rule.selector === stop)
       ?.declarations;
@@ -385,11 +420,11 @@ describe("the gate stylesheet", () => {
         phases?.enterCaption ?? null,
         phases?.exitCaption ?? null,
       );
-      expectSlide(cardOf(state), "card", phases?.enterCard ?? null, phases?.exitCard ?? null);
+      expectCardMotion(index);
     }
   });
 
-  it("starts the card after the caption and ends it after, the same distance in both, opaque for most of the path", () => {
+  it("starts the card after the caption and ends it after, the same distance in both, the caption opaque for most of the path and the card faded on its own linear ranges", () => {
     for (const phases of GATE_PHASES.slice(1)) {
       expect(phases.enterCard?.[0] ?? 0).toBeGreaterThan(phases.enterCaption?.[0] ?? 0);
       expect(phases.enterCard?.[1] ?? 0).toBeGreaterThan(phases.enterCaption?.[1] ?? 0);
@@ -406,29 +441,47 @@ describe("the gate stylesheet", () => {
       transform: `translateX(${away})`,
     });
     expect(keyframe("vk-gate-card-in", "from")).toEqual({
-      opacity: "0",
       transform: `translateX(${near}) scale(${GATE_SLIDE_SCALE})`,
     });
     expect(keyframe("vk-gate-card-out", "to")).toEqual({
-      opacity: "0",
       transform: `translateX(${away}) scale(${GATE_SLIDE_SCALE})`,
     });
     expect(keyframe("vk-gate-caption-in", "to")).toEqual({ opacity: "1", transform: "none" });
-    expect(keyframe("vk-gate-card-out", "from")).toEqual({ opacity: "1", transform: "none" });
-    for (const name of ["caption", "card"]) {
-      expect(
-        keyframe(`vk-gate-${name}-in`, `${Number((GATE_ENTER_OPAQUE * 100).toFixed(3))}%`),
-      ).toEqual({
-        opacity: "1",
-      });
-      expect(
-        keyframe(`vk-gate-${name}-out`, `${Number((GATE_EXIT_OPAQUE * 100).toFixed(3))}%`),
-      ).toEqual({
-        opacity: "1",
-      });
-    }
+    expect(keyframe("vk-gate-card-in", "to")).toEqual({ transform: "none" });
+    expect(keyframe("vk-gate-card-out", "from")).toEqual({ transform: "none" });
+    expect(keyframe("vk-gate-caption-out", "from")).toEqual({ opacity: "1", transform: "none" });
+    expect(keyframe("vk-gate-fade-in", "from")).toEqual({ opacity: "0" });
+    expect(keyframe("vk-gate-fade-in", "to")).toEqual({ opacity: "1" });
+    expect(keyframe("vk-gate-fade-out", "from")).toEqual({ opacity: "1" });
+    expect(keyframe("vk-gate-fade-out", "to")).toEqual({ opacity: "0" });
+    expect(
+      keyframe("vk-gate-caption-in", `${Number((GATE_ENTER_OPAQUE * 100).toFixed(3))}%`),
+    ).toEqual({ opacity: "1" });
+    expect(
+      keyframe("vk-gate-caption-out", `${Number((GATE_EXIT_OPAQUE * 100).toFixed(3))}%`),
+    ).toEqual({ opacity: "1" });
     expect(GATE_ENTER_OPAQUE).toBeLessThanOrEqual(0.3);
     expect(GATE_EXIT_OPAQUE).toBeGreaterThanOrEqual(0.5);
+  });
+
+  it("fades each card over its own linear tail of the minimum card fade, in the first quarter and the last quarter of its slide at most", () => {
+    for (const [index, phases] of GATE_PHASES.entries()) {
+      const fade = gateCardFade(index);
+      if (phases.enterCard && fade.rise) {
+        expect(fade.rise[0]).toBe(phases.enterCard[0]);
+        expect(fade.rise[1] - fade.rise[0]).toBe(GATE_CARD_FADE_SVH);
+        expect(
+          GATE_CARD_FADE_SVH / (phases.enterCard[1] - phases.enterCard[0]),
+        ).toBeLessThanOrEqual(0.3);
+      }
+      if (phases.exitCard && fade.fall) {
+        expect(fade.fall[1]).toBe(phases.exitCard[1]);
+        expect(fade.fall[1] - fade.fall[0]).toBe(GATE_CARD_FADE_SVH);
+        expect(GATE_CARD_FADE_SVH / (phases.exitCard[1] - phases.exitCard[0])).toBeLessThanOrEqual(
+          0.3,
+        );
+      }
+    }
   });
 
   it("staggers the CLI lines of the last two frames, a line after the one before, the refused one last, the first with its card", () => {
@@ -474,6 +527,9 @@ describe("the gate stylesheet", () => {
         expect(Number(marked.style.getPropertyValue("--n"))).toBe(rows.length - 1);
       const last = lines.from + (rows.length - 1) * lines.step + lines.span;
       expect(last).toBeLessThanOrEqual(GATE_PHASES[index]?.element?.[0] ?? last);
+      expect(last, `${state} last line lands with its card`).toBeLessThanOrEqual(
+        GATE_PHASES[index]?.enterCard?.[1] ?? 0,
+      );
       expect(lines.from - (GATE_PHASES[index]?.enterCard?.[0] ?? 0)).toBeLessThanOrEqual(1);
       expect(lines.from).toBeGreaterThanOrEqual(GATE_PHASES[index]?.enterCard?.[0] ?? 0);
     }
@@ -604,18 +660,63 @@ describe("the gate stylesheet", () => {
     }
   });
 
-  it("starts the incoming caption GATE_CLEAR_SVH before the outgoing card ends, so the stage is never bare, and leaves the outgoing elements at opacity 0 by the end", () => {
-    expect(GATE_CLEAR_SVH).toBeLessThan(0);
-    expect(GATE_CLEAR_SVH).toBeGreaterThanOrEqual(-1);
+  it("starts the incoming caption after the outgoing one is gone and before the outgoing card is, and leaves the outgoing elements at opacity 0 by the end", () => {
     for (const index of [0, 1]) {
       const outgoing = GATE_PHASES[index];
       const incoming = GATE_PHASES[index + 1];
-      expect(incoming?.enterCaption?.[0], `frame ${index}`).toBe(
-        (outgoing?.exitCard?.[1] ?? 0) + GATE_CLEAR_SVH,
+      expect(incoming?.enterCaption?.[0] ?? 0, `frame ${index}`).toBeGreaterThanOrEqual(
+        outgoing?.exitCaption?.[1] ?? 0,
+      );
+      expect(incoming?.enterCaption?.[0] ?? 0, `frame ${index}`).toBeLessThan(
+        outgoing?.exitCard?.[1] ?? 0,
       );
       expect(outgoing?.exitCaption?.[1] ?? 0).toBeLessThanOrEqual(outgoing?.exitCard?.[1] ?? 0);
-      expect(keyframe("vk-gate-card-out", "to")?.opacity).toBe("0");
+      expect(keyframe("vk-gate-fade-out", "to")?.opacity).toBe("0");
       expect(keyframe("vk-gate-caption-out", "to")?.opacity).toBe("0");
+    }
+  });
+
+  const cardPaint = (index: number, svh: number): number => {
+    const selector = cardOf(STATES[index] ?? "candidate");
+    const names = (declared(selector, "animation-name") ?? "").split(/,\s*/);
+    const ranges = rangesOf(declared(selector, "animation-range"));
+    const rise = ranges[names.indexOf("vk-gate-fade-in")];
+    const fall = ranges[names.indexOf("vk-gate-fade-out")];
+    const along = (range: readonly [number, number]) =>
+      Math.min(1, Math.max(0, (svh - range[0]) / (range[1] - range[0])));
+    const fadeIn = rise ? along(rise) : 1;
+    const fadeOut = fall ? 1 - along(fall) : 1;
+    const frame = opacityAt(FRAME_SETS[index] ?? "", percentOf(svh));
+    return frame * Math.min(fadeIn, fadeOut);
+  };
+
+  it("never rests without a card painted at the minimum, and shows two cards together only while both are under the ceiling, for no longer than the bound", () => {
+    expect(GATE_CARD_MIN_PAINT).toBe(0.3);
+    expect(GATE_CARD_JOINT_CEILING).toBe(0.6);
+    expect(GATE_CARD_JOINT_SVH).toBe(2);
+    let lowest = 1;
+    let together = 0;
+    let longest = 0;
+    const step = 0.01;
+    for (let at = 0.5; at <= GATE_PIN_SVH - 0.5; at += step) {
+      const paints = STATES.map((_, index) => cardPaint(index, at));
+      lowest = Math.min(lowest, Math.max(...paints));
+      const shown = paints.filter((paint) => paint >= GATE_CARD_VISIBLE);
+      expect(shown.length, `${at}svh`).toBeLessThanOrEqual(2);
+      if (shown.length === 2) {
+        together += step;
+        longest = Math.max(longest, together);
+        for (const paint of shown) expect(paint, `${at}svh`).toBeLessThan(GATE_CARD_JOINT_CEILING);
+      } else together = 0;
+    }
+    expect(lowest).toBeGreaterThanOrEqual(GATE_CARD_MIN_PAINT);
+    expect(longest).toBeLessThanOrEqual(GATE_CARD_JOINT_SVH);
+    expect(longest).toBeGreaterThan(0);
+    for (const index of [0, 1]) {
+      const outgoing = GATE_PHASES[index]?.exitCard ?? [0, 0];
+      const incoming = GATE_PHASES[index + 1]?.enterCard ?? [0, 0];
+      expect(outgoing[1] - incoming[0]).toBeLessThanOrEqual(GATE_CARD_JOINT_SVH);
+      expect(incoming[0]).toBeLessThan(outgoing[1]);
     }
   });
 
