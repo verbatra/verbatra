@@ -55,6 +55,7 @@
     "@types/react-dom": "catalog:",
     "@verbatra/cli": "workspace:*",
     "@verbatra/core": "workspace:*",
+    "@verbatra/mcp": "workspace:*",
     "@verbatra/sdk": "workspace:*",
     "@verbatra/studio": "workspace:*",
     "@verbatra/ui": "workspace:*",

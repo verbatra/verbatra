@@ -73,6 +73,15 @@ Alongside that chain, `ui` sits beside `config` as a leaf: `config <- ui <- docs
   demo, imported from the zod-free `@verbatra/core/pure` entry in `apps/docs/lib/lock-demo.ts`
   (bundled by Next and evaluated by the server markdown routes too, so no runtime dependency), and
   for the root-entry import in `apps/docs/lib/translation-provenance.test.ts`.
+  It also takes `@verbatra/cli`, `@verbatra/studio` and `@verbatra/mcp` as `devDependencies` for the landing
+  run tests (`lib/hero-terminal.run.test.ts`, `highlights-surfaces.run.test.ts`, `gate-demo.run.test.ts`, which share
+  `apps/docs/test-support/run-fixture.ts`): they import those packages' source by relative path
+  (`packages/cli/src/render.ts` and `run.ts`, `packages/studio/src/client/coverage.ts`, `packages/mcp/src/tools/status-check.ts`
+  and `registry.ts`, plus `packages/mcp/src/test-support.ts`, which has no public equivalent because `startMcpServer`
+  binds `process.stdin` and `process.stdout`), never from `lib/` or `components/`. The edge exists so the `--filter @verbatra/docs...`
+  install and build closure carries each package's own dependencies; `knip.config.ts` lists `@verbatra/studio` and `@verbatra/mcp`
+  under `ignoreDependencies` because nothing imports them by name, and `lib/third-party-licenses.ts`, which walks
+  `dependencies` only, never sees them.
 
 Never import against the arrow. Never create a cycle. `packages/sdk/src/config/provider-config.ts`
 and `packages/format-adapters/src/default-registry.ts` are the two files where the upward
