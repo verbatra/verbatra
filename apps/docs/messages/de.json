@@ -281,7 +281,7 @@
         "label": "Abdeckung der Sprachen"
       },
       "sdk": {
-        "copyAria": "Kopiere den SDK-Installationsbefehl"
+        "copyAria": "SDK-Installationsbefehl kopieren"
       }
     },
     "features": {

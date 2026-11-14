@@ -269,7 +269,7 @@
       "landing.highlights.lead": {"origin":"import","valueHash":"5abdabd6b4ff6d59"},
       "landing.highlights.mcp.badge": {"origin":"import","valueHash":"4e2c0fe5060bc94e"},
       "landing.highlights.mcp.copyAria": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"643045fe2e2b5ec2"},
-      "landing.highlights.sdk.copyAria": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"edcb61265c2bdce9"},
+      "landing.highlights.sdk.copyAria": {"origin":"import","valueHash":"9047ec17d77da7fc"},
       "landing.highlights.studio.label": {"origin":"import","valueHash":"8d24141c8d9aa70c"},
       "landing.highlights.surfaces.cli": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"0ba44e19aa603c29"},
       "landing.highlights.surfaces.mcp": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"c64065cc47beb17d"},

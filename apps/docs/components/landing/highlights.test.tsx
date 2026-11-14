@@ -271,9 +271,11 @@ describe("Highlights", () => {
       const catalog = JSON.parse(
         readFileSync(join(process.cwd(), `messages/${locale}.json`), "utf8"),
       ) as typeof en;
-      expect(catalog.landing.highlights.mcp.copyAria.toLowerCase()).toContain(
-        catalog.landing.install.copy.toLowerCase(),
-      );
+      for (const aria of [
+        catalog.landing.highlights.mcp.copyAria,
+        catalog.landing.highlights.sdk.copyAria,
+      ])
+        expect(aria.toLowerCase()).toContain(catalog.landing.install.copy.toLowerCase());
     },
   );
 
