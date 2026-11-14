@@ -74,6 +74,7 @@ describe("llms-full.txt", () => {
       en.landing.gate.heading,
       en.landing.faq.heading,
     ]) {
+      expect(body).toContain(heading);
       expect(body.indexOf(heading)).toBeLessThan(compare);
     }
   });
