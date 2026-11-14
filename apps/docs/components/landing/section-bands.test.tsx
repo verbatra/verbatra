@@ -70,6 +70,7 @@ describe("landing surface bands", () => {
       "hero",
       "marquee",
       "lockDemo",
+      "gate",
       "highlights",
       "features",
       "faq",
@@ -80,12 +81,13 @@ describe("landing surface bands", () => {
         "hero.tsx",
         "marquee.tsx",
         "lock-demo.tsx",
+        "gate.tsx",
         "highlights.tsx",
         "features.tsx",
         "faq.tsx",
         "final-cta.tsx",
       ].map(banded),
-    ).toEqual([false, false, false, false, false, false, false]);
+    ).toEqual([false, false, false, false, false, false, false, false]);
   });
 
   it("names a section by its heading through aria-labelledby, banded or not", () => {
@@ -164,7 +166,7 @@ describe("the section head on the 12-column grid", () => {
     expect(css).toMatch(/@media \(min-width: 64rem\) \{\s+:root \{\s+--head-gap: 3\.5rem;/);
     expect(css).toMatch(/\.vk-section-aside \{\s+row-gap: var\(--head-gap\);/);
     expect(css).toMatch(/\.vk-lock-stage \{[^}]*margin-top: var\(--head-gap\);/);
-    for (const selector of [".vk-bento", ".vk-deck"]) {
+    for (const selector of [".vk-hl", ".vk-deck"]) {
       expect(css).toMatch(new RegExp(`\\${selector} \\{[^}]*margin-top: var\\(--head-gap\\);`));
     }
     for (const file of ["highlights.tsx", "features.tsx"]) {
@@ -185,9 +187,11 @@ describe("the section head on the 12-column grid", () => {
     const { Highlights } = await import("./highlights");
     const { Marquee } = await import("./marquee");
     const { LockDemo } = await import("./lock-demo");
+    const { Gate } = await import("./gate");
     const sections: ReadonlyArray<readonly [string, () => Promise<ReactNode>]> = [
       ["marquee", Marquee],
       ["lock-demo", LockDemo],
+      ["gate", Gate],
       ["highlights", Highlights],
       ["features", Features],
       ["faq", async () => Faq({ locale: "en", items: await faqContent("en") })],
@@ -209,6 +213,7 @@ describe("the section head on the 12-column grid", () => {
     expect(layouts).toEqual({
       marquee: "heading",
       "lock-demo": "heading",
+      gate: "split",
       highlights: "split",
       features: "split",
       faq: "aside",

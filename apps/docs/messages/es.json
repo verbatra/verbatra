@@ -241,27 +241,47 @@
       },
       "preGenerated": "pregenerado, no en vivo"
     },
+    "gate": {
+      "heading": "Cuando el proveedor se equivoca, no se escribe nada",
+      "lead": "Todo candidato pasa por una puerta de integridad antes de llegar a tu archivo.",
+      "candidate": {
+        "label": "Candidato",
+        "text": "Cambiaste {key} en {file}. El proveedor devuelve una traducción, y perdió {placeholder}.",
+        "foot": "Todavía no se ha revisado ni escrito nada.",
+        "missing": "faltante",
+        "edited": "cambiado",
+        "answer": "respuesta del proveedor"
+      },
+      "refused": {
+        "label": "Rechazado",
+        "text": "La puerta compara el candidato con el origen y lo rechaza. El archivo no se toca.",
+        "stamp": "no escrito"
+      },
+      "stale": {
+        "label": "Sigue obsoleto",
+        "text": "La clave sigue obsoleta, por lo que la comprobación sigue fallando.",
+        "foot": "El valor antiguo se queda en {file}. CI falla hasta que la clave obtiene un valor que mantiene {placeholder}."
+      },
+      "valueUnchanged": "sin cambios"
+    },
     "highlights": {
-      "heading": "Todo alrededor del diff",
-      "lead": "Una CLI, un SDK, un Studio local y un servidor MCP, todos leyendo el mismo archivo de bloqueo.",
-      "translate": {
-        "label": "Traducir",
-        "title": "Volver a traducir todo cuesta más",
-        "body": "Solo {sent} de {total} traducciones son nuevas o han cambiado, así que solo {sent} van a tu proveedor."
+      "heading": "Pregunta a cualquier superficie, obtén la misma respuesta",
+      "lead": "Cada superficie lee el mismo archivo de bloqueo, así que el alemán marca {stale} obsoletas y {upToDate} al día en todas.",
+      "surfaces": {
+        "cli": "CLI",
+        "studio": "Studio",
+        "sdk": "SDK",
+        "mcp": "Servidor MCP"
       },
-      "ci": {
-        "label": "Comprobación",
-        "title": "Las claves que faltan llegan a producción",
-        "body": "La comprobación termina con código {code} mientras un locale tenga claves faltantes u obsoletas. No necesita clave de API, así que se ejecuta en cada pull request."
+      "mcp": {
+        "badge": "no llama a ningún proveedor",
+        "copyAria": "Copiar el comando de configuración de MCP"
       },
-      "integrity": {
-        "label": "Integridad",
-        "title": "Un placeholder roto estropea una pantalla"
+      "studio": {
+        "label": "Cobertura de locales"
       },
-      "agents": {
-        "label": "Agentes",
-        "title": "Tu agente de codificación arregla las traducciones",
-        "body": "Registra el servidor MCP para el proyecto, y el agente puede leer el estado y arreglar las traducciones. Las herramientas que gastan tokens del proveedor siguen desactivadas hasta que las permitas."
+      "sdk": {
+        "copyAria": "Copiar el comando de instalación del SDK"
       }
     },
     "features": {

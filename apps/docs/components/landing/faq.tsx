@@ -22,6 +22,8 @@ type FaqTranslator = Awaited<ReturnType<typeof getTranslations<"landing.faq">>>;
 
 type FaqContent = FaqItem & { readonly id: FaqItemId; readonly content: ReactNode };
 
+const MAX_REVEAL_INDEX = 5;
+
 const FAQ_LIST_ID = "faq-list";
 
 function answerTags(locale: Locale, id: FaqItemId, newTab: string) {
@@ -130,8 +132,13 @@ export async function Faq({
         trailing={(placement) => <DocsLinks t={t} locale={locale} placement={placement} />}
       >
         <div id={FAQ_LIST_ID} className="vk-faq">
-          {items.map((item) => (
-            <details key={item.id} data-faq={item.id} className="vk-faq-item">
+          {items.map((item, index) => (
+            <details
+              key={item.id}
+              data-faq={item.id}
+              data-reveal={Math.min(index, MAX_REVEAL_INDEX)}
+              className="vk-faq-item"
+            >
               <summary className="vk-faq-summary">
                 <h3 className="vk-faq-question">{item.question}</h3>
                 <span aria-hidden="true" className="vk-faq-mark" />

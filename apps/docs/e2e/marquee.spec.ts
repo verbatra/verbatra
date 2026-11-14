@@ -121,6 +121,13 @@ async function loopFrames(page: Page): Promise<ReadonlyArray<LoopFrame>> {
   });
 }
 
+async function expectIslandHydrated(page: Page): Promise<void> {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", /running|paused/);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator(".vk-marquee")).not.toHaveAttribute("data-marquee", /.*/);
+}
+
 const MARQUEE_GAP_PX = 14;
 
 async function expectStatic(page: Page): Promise<void> {
@@ -146,8 +153,7 @@ for (const locale of LOCALES) {
 test.describe("marquee under reduced motion", () => {
   test("shows one static, wrapped copy of each row and no pause button", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
-    await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
+    await expectIslandHydrated(page);
     await expectStatic(page);
   });
 });
@@ -199,7 +205,7 @@ test.describe("marquee under reduced motion on a phone", () => {
     page,
   }) => {
     await page.goto("/");
-    await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
+    await expectIslandHydrated(page);
     await expect(page.locator(".vk-marquee-toggle")).toBeHidden();
     await expectScrollingLines(page);
     await expectNoAxeViolations(page, MARQUEE);
@@ -211,10 +217,12 @@ test.describe("marquee when the motion preference changes at runtime", () => {
     page,
   }) => {
     await page.goto("/");
-    await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
+    await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
+    await expect(page.locator(".vk-marquee")).not.toHaveAttribute("data-marquee", /.*/);
     await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(0);
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(4);
+    await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
     await expect.poll(() => playStates(page)).toContain("running");
     await page.waitForTimeout(400);
     const spread = await page.evaluate(() =>
@@ -228,6 +236,7 @@ test.describe("marquee when the motion preference changes at runtime", () => {
     for (const difference of spread) expect(difference).toBe(0);
     await page.emulateMedia({ reducedMotion: "reduce" });
     await expect(page.locator(`${MARQUEE} .vk-marquee-copy`)).toHaveCount(0);
+    await expect(page.locator(".vk-marquee")).not.toHaveAttribute("data-marquee", /.*/);
   });
 });
 

@@ -241,27 +241,47 @@
       },
       "preGenerated": "pré-généré, pas en direct"
     },
+    "gate": {
+      "heading": "Quand le fournisseur se trompe, rien n’est écrit",
+      "lead": "Chaque candidat passe une barrière d’intégrité avant d’atteindre ton fichier.",
+      "candidate": {
+        "label": "Candidat",
+        "text": "Tu as modifié {key} dans {file}. Le fournisseur renvoie une traduction, et celle-ci a perdu {placeholder}.",
+        "foot": "Rien n’est encore vérifié ni écrit.",
+        "missing": "manquant",
+        "edited": "modifié",
+        "answer": "réponse du fournisseur"
+      },
+      "refused": {
+        "label": "Refusé",
+        "text": "La barrière compare le candidat avec la source et le refuse. Le fichier n’est pas modifié.",
+        "stamp": "non écrit"
+      },
+      "stale": {
+        "label": "Toujours obsolète",
+        "text": "La clé reste obsolète, donc la vérification échoue toujours.",
+        "foot": "L’ancienne valeur reste dans {file}. La CI échoue tant que la clé n’obtient pas une valeur qui conserve {placeholder}."
+      },
+      "valueUnchanged": "inchangé"
+    },
     "highlights": {
-      "heading": "Tout autour du diff",
-      "lead": "Une CLI, un SDK, un Studio local et un serveur MCP, tous lisant le même fichier de verrouillage.",
-      "translate": {
-        "label": "Traduire",
-        "title": "Tout retraduire coûte plus cher",
-        "body": "Seules {sent} traductions sur {total} sont nouvelles ou modifiées, donc seules {sent} sont envoyées à ton fournisseur."
+      "heading": "Une surface au choix, la même réponse",
+      "lead": "Chaque surface lit le même fichier de verrouillage, donc l’allemand affiche {stale} obsolètes et {upToDate} à jour, où que tu demandes.",
+      "surfaces": {
+        "cli": "CLI",
+        "studio": "Studio",
+        "sdk": "SDK",
+        "mcp": "Serveur MCP"
       },
-      "ci": {
-        "label": "Vérification",
-        "title": "Les clés manquantes arrivent en production",
-        "body": "La vérification renvoie le code {code} tant qu’une locale a des clés manquantes ou obsolètes. Elle n’a besoin d’aucune clé API et s’exécute donc sur chaque pull request."
+      "mcp": {
+        "badge": "n’appelle aucun fournisseur",
+        "copyAria": "Copier la commande de configuration du serveur MCP"
       },
-      "integrity": {
-        "label": "Intégrité",
-        "title": "Un placeholder cassé casse un écran"
+      "studio": {
+        "label": "Couverture des locales"
       },
-      "agents": {
-        "label": "Agents",
-        "title": "Ton agent de code corrige les traductions",
-        "body": "Enregistre le serveur MCP pour le projet, et l’agent peut lire le statut et corriger les traductions. Les outils qui dépensent des jetons de fournisseur restent inactifs jusqu’à ce que tu les autorises."
+      "sdk": {
+        "copyAria": "Copier la commande d’installation du SDK"
       }
     },
     "features": {

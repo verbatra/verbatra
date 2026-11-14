@@ -35,10 +35,14 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 
 ## The stack, and why it constrains you
 
-- `fumadocs-ui` and `fumadocs-core` 16.17.1, `next` 16.4.0, `tailwindcss` 4.3.3, `next-intl` 4.14.9.
+- `fumadocs-ui` and `fumadocs-core` 16.18.4, `next` 16.4.6, `tailwindcss` 4.3.5, `next-intl` 4.14.10.
   `motion` is no direct dependency (Fumadocs still brings its own): no landing code imports it,
   and nothing animates through a React motion provider or an `m.*` element. Animate `opacity` and
-  `transform` only, and keep layout shift at 0.
+  `transform` only (one paint-only exception, the cross-highlight of the highlights section, below), and keep layout shift at 0.
+  Scroll-driven motion beyond the two edge-fade rules (`scroll(self inline)` masks on `.vk-edge-fade` and `.vk-home-tabs-scroller`, behind
+  `@supports (animation-timeline: scroll())`, the only timelines outside `no-preference`) is allowed in exactly one place, the gate section's
+  pinned stage, as a native CSS scroll timeline (`animation-timeline: view()`) behind `@supports`, `prefers-reduced-motion: no-preference` and the
+  stage media query; `motion-root.test.tsx` lists every `animation-timeline` declaration against that allowlist. There is still no scroll listener and no library.
   Server sections and the reveals stay CSS keyframes and transitions in `app/global.css`, each with
   a `prefers-reduced-motion` opt-out.
   No animation library is a dependency: the lock-file demo's autoplay is one CSS keyframe per step
@@ -170,21 +174,22 @@ Scales are fixed and narrow, deliberately:
 
 - Radii: `--radius-sm` 6px, `--radius-md` 10px, and `--radius-lg`, `--radius-xl`,
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Two landing
-  radii sit above it and nowhere else: `--radius-card` (20px) for the highlight tiles and the feature
-  cards of the stacked deck, and `--radius-panel` (28px) for the closing panel. The hero itself sits on the page, in no
+  radii sit above it and nowhere else: `--radius-card` (20px) for the feature
+  cards of the stacked deck and the FAQ items, and `--radius-panel` (28px) for the closing panel. The hero itself sits on the page, in no
   card.
 - Shadows: `--shadow-panel` (a neutral lift) and `--shadow-sm`. Two, not a ramp, each
   lighter in the light theme, and neither tinted (`lib/theme.test.ts` fails on a hue in either
   shadow). Violet light comes only from the halo tokens above, in the places that name them: the
   hero halo and the shadow under its front locale-file card, the CI tile, the closing
-  panel, the staged lock-demo card (`.vk-lock-stage .vk-lock-card`, only while the stage is set) and the
+  panel, the staged lock-demo card (`.vk-lock-stage .vk-lock-card`, only while the stage is set), the pinned gate card
+  (`.vk-gate-card`, only while the gate stage is pinned, where one gate card is visible at a time) and the
   glow of the primary `Button`.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
   between a section head and its content: the
-  highlight tiles and the feature deck (`margin-top: var(--head-gap)` on `.vk-bento` and
+  highlights panes and the feature deck (`margin-top: var(--head-gap)` on `.vk-hl` and
   `.vk-deck`), the row gap
   of `.vk-section-aside` (the FAQ) and the gap above the lock-file demo's stage (`.vk-lock-stage`); `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
@@ -216,14 +221,14 @@ Scales are fixed and narrow, deliberately:
   closing panel. No landing section is a band. Order: hero (page, under its halo), marquee
   (page, `.vk-marquee-section`: `--border-default` hairlines above and below, `2.75rem` above and
   `3rem` below its content, `overflow-x: clip`, rows full-bleed across the viewport), lock-file demo
-  (page, `.vk-lock`), highlights (page), features (page), FAQ (page), closing panel (page), then the footer on the
+  (page, `.vk-lock`), gate (page, `.vk-gate`, no band), highlights (page), features (page), FAQ (page), closing panel (page), then the footer on the
   page surface under one hairline (`section-bands.test.tsx` pins the order and the surfaces).
   The page surface is `--surface-page` (dark `--v-void`, light `--color-fd-background`, the 98 percent
   page tone): it paints `.vk-home`, the footer and the sticky FAQ head, so white tiles read as raised in
   the light theme and the footer forms no band in either; `--v-void` itself stays for code surfaces.
   Landing tiles use two landing-scoped tokens, outside the semantic layer above:
   `--surface-tile` (dark `hsl(240 26% 8%)`, light white) and `--border-tile` (dark
-  `hsl(240 22% 16%)`, light `--border-default`). They fill and border `.vk-tile`, `.vk-deck-item`,
+  `hsl(240 22% 16%)`, light `--border-default`). They fill and border `.vk-deck-item`,
   `.vk-faq-item`, `.vk-closer`, `.vk-banner-file`,
   `.vk-lock-card`. The hero draws one `aria-hidden` `.vk-banner-halo` as its
   first child: two radial halos and a 64px `--grid-line` grid faded by a radial mask, behind the
@@ -233,16 +238,15 @@ Scales are fixed and narrow, deliberately:
   `{count}` in `--accent` on a 14 percent `--accent` tint (`color-mix`, radius 5px, 1px 4px padding,
   no border and no token of its own), in the source line and in every language, so the placeholder
   is visibly the same in each. Under `forced-colors` it is `CanvasText` on `Canvas` with a
-  `Highlight` outline. The integrity tile still colors each placeholder `--accent` inside a plain
-  `mark` (`.vk-highlight-placeholder`, no fill, no border), and `lib/landing-tokens.test.ts`
-  fails if a `--placeholder-*` token comes back.
+  `Highlight` outline. The gate section draws the same chip in its source values, and
+  `lib/landing-tokens.test.ts` fails if a `--placeholder-*` token comes back.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-standard` (entrances,
   hovers and state changes), `--duration-fast` (140ms, hover and press),
-  `--duration-base` (240ms, state change), `--duration-slow` (560ms, every entrance), `--reveal-distance` (`--motion-distance-lg`, 16px;
+  `--duration-base` (240ms, state change), `--duration-slow` (560ms, every entrance), `--ease-exit` (the gate's slide-outs), `--reveal-distance` (`--motion-distance-lg`, 16px;
   `--motion-distance-md`, 8px, under 40rem), `--reveal-stagger` (70ms) and
   `--reveal-delay-max` (350ms, the stagger cap), and `--marquee-item-time` (5s: one marquee loop
   lasts that times the row's item count). Only `opacity` and `transform` / `translate`
-  ever animate.
+  animate, with two exceptions: the paint-only cross-highlight of the highlights section and the discrete `pointer-events` of a gate frame (in its keyframes beside `opacity`, never `visibility`).
 
 ## Typography
 
@@ -344,7 +348,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   button, inside a shadcn composition or not, is the site button in `components/ui/button.tsx`; add a
   registry primitive only together with the code that uses it.
 - **Landing:** `components/landing/` holds one component per section. Their order on the page is
-  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, lockDemo, highlights,
+  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, lockDemo, gate, highlights,
   features, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
   `page.tsx`. The files: `hero.tsx` (the `h1` with a gradient second line, the lead (one product, one sentence: the lock file, only changed keys sent, CI failing on drift; the MCP server is not in it), the Get started button, the install chip (a `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`) and last a "Compare with other tools" text link (an `IntentPrefetchLink`, not a `Button`) to the localized `/compare` (`COMPARE_PATH`, no count in the label) in a non-interactive `.vk-banner-compare-row` that supplies the row break, so the anchor (`.vk-banner-compare`) is as wide as its label, flush-left, at least 44px tall, with a low-alpha resting underline and an accent underline on hover; on the right an `aria-hidden`
@@ -355,14 +359,32 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   back cards show only from 64rem and where the demo column is at least 28rem wide (a container
   query), so no value line is ever cut with an ellipsis, and every value line wraps at spaces; no trust line, no Node.js requirement line, no tabs and no
   terminal), `lock-demo.tsx` (`#lock-demo`, see "Lock-file demo" below),
-  `highlights.tsx` (`#highlights`, a split head aligned to the start over `.vk-bento`, six columns
-  from 64rem: three tile titles name the pain ("Retranslating everything costs more", "Missing keys reach production", "One broken placeholder breaks a screen") while each body and terminal output stays the fix, and the agents tile keeps its title; the translate run (under a `.vk-tile-body` that carries the run's sent and total counts) from `HERO_TRANSLATE_OUTPUT` in a wrapped `.vk-tile-code-wrap` group named by the tile title (it wraps at its spaces at every width, so it never scrolls, is no tab stop and no line is cut or faded on a phone; each output line is its own `.vk-tile-line` span with a hanging indent (`--vk-hang` in `ch`, its leading spaces and at least 2), so a wrapped row sits under the start of its text; the text stays the CLI's byte for byte), its total line in
-  `--accent` (span 4), the check's exit code in `--text-danger` (span 2; its glow is a strip of
-  `--tile-halo-height` at the tile's end, under padding that clears the text, so no text ever sits
-  over a halo), the default playground item (`welcomeBack`) in every playground language with each placeholder
-  in a `mark` (span 3), and the MCP setup command wrapped, not scrolled, breaking only between whole flags and arguments through `keepPackageRunsWhole` (span 3); every count
-  derives from the hero terminal data, never typed; the CLI text (run, exit code, command) carries
-  `lang="en"` on every locale, like the lock-file demo's CLI lines), `features.tsx` (`#features`, a bracketed label, a split
+  `gate.tsx` (`#gate`, "When the provider gets it wrong, nothing is written", see "Gate" below),
+  `highlights.tsx` (`#highlights`, "four surfaces, one answer": a split head aligned to the start whose heading
+  is "Ask any surface, get the same answer" (at most three lines at 1440 and at 391 in every locale) and whose lead says every surface reads one lock file and names the language of the dataset
+  in words (German, Deutsch, alemán, allemand: no locale code inside prose), with the counts as ICU values (`{stale}`, `{upToDate}`, from `SURFACE_COUNTS`), then `.vk-hl`: a slim `verbatra.lock.json` rail (`.vk-hl-rail`, a lock-demo
+  card, at most 110px at 1440, as wide as the pane columns: the head with the check badge and the two stale entries from `lockLines()`, side by side from 40rem, each tagged with the lock state word
+  `stale`, `LOCK_STATE_STALE`, in English with `lang="en"` in every locale, the word the CLI prints) over `.vk-hl-panes`, four
+  `article.vk-hl-pane` in the order CLI, Studio, SDK, MCP server (one column, two from 40rem, `--grid-gap` from 64rem, a stretched
+  row). Each pane is one `.vk-lock-card` (the lock demo's card) whose `.vk-lock-head` holds an `h3.vk-hl-surface` naming the surface (capitalised in every locale) and a mono badge
+  (`verbatra check`, `Locales`, `check()`, each `lang="en"`, and for MCP the translated "calls no provider", the lowercase word `provider` written the way the lock demo writes it in that locale), the artifact, and a `.vk-lock-foot.vk-hl-foot` with one `.vk-deck-link` to the
+  surface's docs page (`SURFACE_DOCS_PATHS`: `docs/cli/check`, `docs/cli/studio`, `docs/sdk/inspect`, `docs/cli/mcp`); the SDK and MCP feet also carry their setup command
+  (`SDK_INSTALL_COMMAND`, `MCP_ADD_COMMAND`, `keepPackageRunsWhole`) with the real `CopyButton` island (the SDK one drops below 40rem). Every artifact is data in
+  `lib/highlights-surfaces.ts`, built from the hero fixture: the CLI lines are `HERO_CHECK_OUTPUT` under the command, the SDK pane the `check()` call and
+  the first fields of `summary.locales[0]`, the MCP pane `status.check({})` and its response, each with a `...` that stands for the fields it leaves out, and the Studio
+  pane a markup rendering of the Locales row in a `figure` whose translated `figcaption` is `sr-only` and whose table is `lang="en"` (coverage 86 percent by the rule of `packages/studio/src/client/coverage.ts`, `12 / 14 keys`, a bar scaled with
+  `--vk-hl-fill`, kept at every width: under a 24rem container only the `12 / 14 keys` text drops; no lock or open column). `lib/highlights-surfaces.run.test.ts` runs the real sdk `check()` and executes the displayed SDK call against it,
+  compares the CLI lines with `renderCheckHuman`, the MCP response with the real `status.check` tool (and checks the tool is outside the spending set of the tool registry), the
+  Studio column labels with `LocalesSection.tsx` in order and `coveragePercent` with the coverage rule; it reads the Studio and CLI sources for those labels and the `check` command, it does not
+  run Studio or the MCP transport. Code is `pre` in `lang="en"`; lines marked `collapse` leave under 40rem (`data-fold="drop"`, the SDK import) or under 64rem (`data-fold="narrow"`, the two CLI lines
+  around the result), so the SDK and MCP panes are at most 6 lines on a phone and 8 at 1440 and the panes of a row stay within 8px of each other; the artifact is centred in the room a stretched row leaves, so at most 24px separate the last
+  content line from the foot at 1440, 768 and 391; `up-to-date` and every hyphenated compound stay whole
+  (`keepCompoundsWhole`). Interaction is pane level and CSS only: while any pane is hovered or holds focus (`:hover`, `:focus-within`, matched through
+  `.vk-hl:has(...)`, no `tabindex`), every `.vk-hl-stale` field and every marked line lights (a 28 percent `--accent` tint, text `--text-strong`, at least 4.5:1 in both themes; the rail's values and signs at least 6:1 because they turn `--text-strong` too),
+  and the stale field is already marked at rest (`--accent` text, dotted underline, radius `--radius-sm`). The tint fades over `--duration-fast` only under `prefers-reduced-motion: no-preference`;
+  it is a paint-only change, the one transition on the landing that is neither opacity nor transform, and under `forced-colors` the lit field takes a `Highlight` outline and the coverage bar a `CanvasText` frame with a `Highlight` fill.
+  The panes are consumers of `[data-reveal]`: `data-reveal` is the row (0 for CLI and Studio, 1 for SDK and MCP), so the second row starts 70ms later whatever the column count.
+  `highlights.test.tsx` pins the markup and the stylesheet, `e2e/highlights.spec.ts` the heights in all four locales, the reflow, the rail on the column grid, the gaps, the cross-highlight, the contrast and the reveal), `features.tsx` (`#features`, a bracketed label, a split
   head aligned to the start and the command deck: `ol.vk-deck` of `LANDING_FEATURES` from `lib/landing-features.ts`, in
   workflow order (extract, types, doctor, watch, handoff, studio), each with its `command` and `docsPath`. Every `li.vk-deck-item`
   holds a `.vk-deck-row` (a radio, `input.vk-deck-radio`, one group, the first checked, `aria-controls` its pane; the `h3` whose
@@ -376,7 +398,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   section keeps the height of its tallest pane and nothing below it moves. The transparent radio stretches over its row, so the whole row is the native control and takes the base-layer pointer, the
   checked row takes the accent border and bar with no transition (a faded border flashes when the layout crosses 64rem), the
   deck card carries no halo because the body and the link sit right under it, a focused radio outlines its row, and the checked row carries a transparent outline that `forced-colors` paints; arrow keys move through the group because
-  they are native radios. Never add autoplay here: the lock-file demo above already moves.
+  they are native radios. The command of every row (`data-reveal` 0, `pointer-events: none` so the row stays one click target) and the artifact card inside every pane (`data-reveal` 1) reveal once as the deck enters, row then card; the pane itself never takes a mark, because it already transitions on a switch. A pane switch (a user action only, never on load) lifts the incoming pane by `--motion-distance-md` (8px, `translate`) beside its opacity fade over `--duration-base`; under reduced motion neither the translate nor the transition runs. Never add autoplay here: the lock-file demo above already moves.
   The artifacts are data in `lib/feature-artifacts.ts`, built from the hero fixture (`HERO_TERMINAL_SOURCE`, the playground file
   pattern) so every count derives from it: `ArtifactLine` is a command, an output line (optionally marked `hit`), or a fold
   (`more` with a count, `moreChecks` without one), and a block is CLI output, a file excerpt, the handoff sheet or the Studio
@@ -588,7 +610,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   keyboard, touch or trackpad, also after a failed island chunk, and the takeover shifts nothing
   (`e2e/marquee.spec.ts` measures the section's height before and after hydration at 375 and 1440
   and sums the layout shift). Only when `MotionRoot` has set `html[data-motion-ready]`, the island
-  has hydrated (`data-marquee="running"` or `"paused"` on `.vk-marquee`) and that media query
+  has hydrated (`data-marquee="running"` or `"paused"` on `.vk-marquee`, never set while motion is reduced) and that media query
   matches do the rows turn into one masked line that runs `vk-marquee` (a `transform` keyframe,
   `--marquee-items` times `--marquee-item-time` per loop, the providers row reversed through
   `--marquee-direction`, so the two rows run in opposite directions), and the pause button shows
@@ -611,10 +633,10 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   the global rule.
   `lib/hero-terminal.ts` keeps the recorded `verbatra check` and `verbatra translate` transcript
   (`HERO_TERMINAL_SCRIPT`, English on every locale, like all CLI output on the page) that the home
-  social image, the lock-file demo and the highlights counts draw from: one locale (`de`), fourteen source values (`HERO_TERMINAL_SOURCE`), two of them edited (`before` is the old value), so check prints `0 missing, 2 stale, 12 up-to-date` and translate `2 translated, 12 unchanged`, with no token figure because the CLI prints none for a run without reported usage;
+  social image, the lock-file demo and the highlights panes draw from: one locale (`de`), fourteen source values (`HERO_TERMINAL_SOURCE`), two of them edited (`before` is the old value), so check prints `0 missing, 2 stale, 12 up-to-date` and translate `2 translated, 12 unchanged`, with no token figure because the CLI prints none for a run without reported usage;
   `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer and the lock hashes of `lib/lock-demo.ts` to the lock file the CLI writes;
   `MCP_ADD_COMMAND` in `lib/install-commands.ts` is the `claude mcp add` line the highlights'
-  MCP tile and the markdown twin print, copied from the MCP client guide, and `INIT_COMMAND` and
+  MCP pane foot and the markdown twin print, copied from the MCP client guide, and `INIT_COMMAND` and
   `DRY_RUN_COMMAND` (same file) the two commands of the closing panel;
   `lib/landing-hero-files.ts` builds the hero's locale-file cards from the playground data: its
   `HERO_FILE_IDS` list says which lines the front card shows and which are marked changed (the badge
@@ -793,27 +815,34 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
 
 ## Landing motion
 
-The landing moves little, on purpose: the format and provider marquee rows loop until paused, the lock-file demo steps through its three frames on a desktop screen with motion allowed (paused offscreen, by its pause button or by choosing a step; static and stacked on phones and under reduced motion), and nothing else
+The landing moves little, on purpose: the format and provider marquee rows loop until paused, the lock-file demo steps through its three frames on a desktop screen with motion allowed (paused offscreen, by its pause button or by choosing a step; static and stacked on phones and under reduced motion), the gate section scrubs its three frames with the scroll while its stage is pinned, and the artifacts of the lower third (the highlights panes, the gate's three moving elements, the deck's commands and cards, the FAQ items, the closing commands and proof row, and the lock demo's cards where it does not autoplay) fade in once as they enter (see Reveals); nothing else
 on the page fades in.
-There is no scroll-driven motion, no pinning and no parallax and no scroll listener;
-`motion` is reserved for client islands (see "The stack").
+
+The policy, in one place:
+
+- **Allowed.** `opacity` and `transform` / `translate` (and, in the gate frame keyframes only, the discrete `pointer-events` that keeps a frame that is not current from taking the pointer; never `visibility`), a scroll timeline that is native CSS
+  (`animation-timeline: view()`) inside `@supports` and `prefers-reduced-motion: no-preference`, more than one reveal chain in a section, a sticky stage in exactly one section.
+- **Still forbidden.** A scroll listener, an animation library, `motion` outside client islands (see "The stack"), heading, lead and prose fade-ups, parallax, a second autoplay, an animation of a layout
+  property, motion in the first viewport, counters and typing effects, and text below 4.5:1 contrast in any state a reader holds: every hold and every static state meets it, and only the slide between two gate states (about 28svh of scroll each) passes through frames in mid-slide.
+- **The single sticky stage.** The page has one: the gate's, from 64rem wide and 42rem tall (`.vk-gate-pin`). The lock demo's stage is not sticky and the FAQ's sticky head is a different thing (a head, not a stage).
+- **Halos.** The hero halo and the shadow under its front card, the CI tile, the closing panel, the staged lock-demo card, the pinned gate card and the primary `Button` glow, and at most one haloed card per section.
+- **Reduced motion, no JavaScript and `scripting: none`.** Stacked end states, each value once in the DOM except the old German value that the two frames showing the file both carry, nothing hidden, no sticky stage, no progress marker.
 
 - **Reveals.** One system: an element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden
   (opacity 0, `translate: 0 var(--reveal-distance)`) only while two things hold:
-  `prefers-reduced-motion: no-preference` and `html[data-motion-ready]`. `MotionRoot`
+  `prefers-reduced-motion: no-preference` and `html[data-motion-ready]`, and only on `screen`, so a printed page never carries an unrevealed artifact (the pinned gate stage is `screen` only for the same reason; `e2e/reveals.spec.ts` counts the elements below full opacity under print emulation, bar the tab panes of the deck and the lock demo). `MotionRoot`
   (`components/landing/motion-root.tsx`, mounted once at the end of the home page, rendering
   nothing) sets that attribute after hydration, so without JavaScript, before hydration and under
   reduced motion everything is visible. Before it sets the attribute it marks every element already
   on screen `data-revealed`, so nothing in the first viewport blinks out, then hands the rest to one
-  shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`) that adds `data-revealed` and
-  unobserves, so each element reveals once. Only the reveal transitions; hiding is instant. Focus
+  shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`; an element the inset can never reach, because less than 10 percent of the viewport lies below it at the end of the page, goes to a second observer without the inset, so a tall viewport still reveals the closing proof row) that adds `data-revealed` and
+  unobserves, so each element reveals once. Under 40rem the FAQ items take no part in the reveal (every artifact would be the same fade-up). Only the reveal transitions; hiding is instant. Focus
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
-  `n * --reveal-stagger`, capped at `--reveal-delay-max`. No landing section carries a mark
-  today: the system stays for a demo artifact that earns one. No section heading reveals
-  (`SectionHead` takes no reveal prop), and the hero, marquee, lock-file demo, highlights,
-  features, FAQ and closing panel never take a reveal; the marquee
+  `n * --reveal-stagger`, capped at `--reveal-delay-max`. The consumers are artifacts only: the highlights panes (`n` is their row, not their index), the one moving element of each gate frame (`n` 0), the lock demo's three cards below 64rem
+  (`n` 0 each; from 64rem the staged demo autoplays and `html[data-motion-ready] .vk-lock .vk-lock-card[data-reveal]` keeps them shown), the deck's row commands (0) and pane cards (1), the FAQ items as one chain (`n` their index, capped at 5) and the closing panel's two commands (0, 1) and its proof row (2). No section heading, lead or prose paragraph reveals
+  (`SectionHead` takes no reveal prop), and the hero and the marquee never take a reveal and the footer none; the marquee
   loop below is its own motion, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
-  `reveal-marks.test.tsx` pins that no section file carries a mark and `motion-root.test.tsx` the observer and
+  `reveal-marks.test.tsx` pins which sections may carry a mark and that no heading or paragraph does, each component test the marks of its section, `e2e/reveals.spec.ts` the hidden start within 16px, the 560ms entrance, the stagger cap, layout shift 0, the staged demo and the reduced-motion and no-JavaScript states, and `motion-root.test.tsx` the observer and
   the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
   layout animation runs in it on load;
@@ -854,7 +883,7 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   indents, so nothing scrolls and no block is a tab stop or carries an `aria-label`; the tag
   text is at least 11px. Marked lines use `--accent` on a 14 percent `--accent` tint like `.vk-ph`;
   gap lines `--text-muted`.
-  Without JavaScript, and on phones and under reduced motion, the frames stack with their captions.
+  Without JavaScript, and on phones and under reduced motion, the frames stack with their captions. Below 64rem with motion allowed each stacked card reveals once (see Reveals).
   The island (`lock-demo-motion.tsx`, `LockDemoMotion`, a block `island()` fed the labels and the steps, each
   with its dwell time, with the frames as children) reads one media query,
   `(min-width: 64rem) and (prefers-reduced-motion: no-preference) and (scripting: enabled)`; when it matches the stage
@@ -912,18 +941,35 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   (4px for the prompt preview's lift, 8px for the button and the phone reveal, 16px for the
   reveal) sit beside them, one name per value; every one of them has a consumer
   (`motion-root.test.tsx` fails on a declared `--duration-*`, `--ease-*` or `--motion-distance-*`
-  token that nothing reads), so there is no instant duration and no exit easing until something
-  uses one.
+  token that nothing reads), so there is no instant duration until something
+  uses one; `--ease-exit` is read by the gate's slide-outs.
 - **Bracketed labels, never numbered.** Most landing sections open with their `h2`. Only the
   lock-file demo, the features and the closing panel set a `.vk-eyebrow` label above it (`{ LABEL }`,
   the braces drawn in CSS with empty alt text); no section carries an index or a counter, and
   `reveal-marks.test.tsx` fails on a CSS counter or a numbered section list.
-- **Phone length.** The English landing stays under 11 screens at 391 by 844 with motion and under 11.5 with
-  reduced motion (`e2e/landing.spec.ts`). Under 40rem the section steps are 88px, 64px and 48px, `--head-gap` is 2rem,
-  and the footer link rows sit at their 44px targets with no row gap. A new phone section pays for its height elsewhere.
+- **Gate.** `gate.tsx` (`#gate`, a server component, no island) is `Section` plus `SectionHead` (split, aligned to the start, no eyebrow, no trailing period; its lead ends in the one `docs/translation-safety` link, `GATE_DOCS_PATH`, so no focusable element sits inside a frame) over `.vk-gate-track` >
+  `.vk-gate-pin` > `.vk-gate-stage`: three `figure.vk-gate-frame` (`data-state` `candidate`, `refused`, `stale`) on ONE key, `profile.greeting`, each a caption (`.vk-lock-caption`, a label and a sentence) over a card
+  (`.vk-lock-card.vk-gate-card`) that spans the eight columns that follow the caption's four from 64rem (stacked and static) or the first eight (pinned). The three cards are within 60px of each other in height. 1. Candidate: head with the key and the fixture's model id (`GATE_MODEL`, shared with the run test's config), the English
+  source edit before and after (`GATE_SOURCE_BEFORE`, `GATE_SOURCE`, as a `-` and `+` row), the provider's German candidate, which dropped `{name}`, with a dashed `{name}` chip marked "missing" (the frame's moving element, `.vk-gate-slot`, a drop that is
+  already raised before the pin and is the first thing the scrub does). 2. Refused: the real `verbatra translate` lines (`de: failed, 0 translated, 13 unchanged, 1 integrity-withheld`, `integrity-withheld:`, `profile.greeting: placeholder (-{name})`, the totals), the
+  refused line tinted `--text-danger`, a "not written" stamp in the card head in the page language (`.vk-gate-stamp`, the moving element, a 1px `--text-danger` outline in `--radius-sm` so it reads as a stamp, announced, never inside a `pre`), and a `de.json` sub-row "unchanged" holding the old value. 3. Still stale: `verbatra check` with `exit 1` in
+  `--text-danger` (`.vk-gate-exit`, the moving element), the real check lines, the same `de.json` sub-row and the foot "The old value stays in de.json. CI fails until the key gets a value that keeps {name}." Under 40rem the rows marked `data-fold="drop"` leave (the removed source row, the candidate foot, frame 3's file row). No frame promises that a re-run succeeds, and the
+  section shows no review state (review stays with the deck). Every CLI line, the file names, the docs path and both German values are data in `lib/gate-demo.ts`, pinned by `lib/gate-demo.run.test.ts`, which runs the real sdk `translate` with a stub provider that drops `{name}`,
+  the CLI's real renderers and the real `check`, and asserts the target file and the lock are byte-identical after the refused run; the component types no CLI line. `.vk-gate-code` keeps flags and compounds whole (`keepCompoundsWhole`, `keepPackageRunsWhole`).
+  From 64rem wide and 42rem tall, with `scripting: enabled`, `prefers-reduced-motion: no-preference` and `@supports (animation-timeline: view())`, the stage is pinned: `.vk-gate-track` is `--vk-gate-pin` (150svh, `GATE_PIN_SVH`) plus one stage tall and declares the named
+  view timeline `--vk-gate` (inset by `--vk-landing-offset`), `.vk-gate-pin` is `position: sticky` and vertically centres the head and the stage, so the heading never scrolls away and the free space above the heading and below the current card differ by at most 24px
+  at 1440 by 900, 1920 by 1080 and 2560 by 1440, and the three frames share one grid cell, each centred in it and animated by
+  `animation-timeline: --vk-gate`. `lib/gate-timeline.ts` (`GATE_PHASES`, in svh of the 150svh range) is the one schedule: the candidate holds 6 to 30, the refused frame 70 to 94, the stale frame 126 to 150, so every state is complete and untransformed for at least `GATE_HOLD_FLOOR_SVH` (24svh: 161px at 672 tall and 216px at 900, never under 150px and 200px). A swap runs from the last hold to the entering card's arrival, `GATE_SWAP_CEILING_SVH` (28svh of scroll each, 30 to 58 and 94 to 122). Each caption and card slides in from the right and out to the left, the same distance in and out (`--vk-gate-slide`: a plain 64px below 80rem, from 80rem the room left of the content held between 64px and 96px, registered with `@property` as a `<length>` so a resize repaints it; the card moves from `scale(0.94)`). The page wrapper `.vk-home` clips sideways at the viewport edge and the document never scrolls sideways, so the slide may cross the edge, but only its fading tail does: every element painted at 0.9 opacity or more stays inside the viewport (4px of tolerance, `e2e/gate.spec.ts`). The card is a little behind the caption in time (exit caption 33 to 45, card 35 to 45; refused enters caption 45 to 55, card 46 to 58, exits 97 to 109 and 99 to 109; stale enters 109 to 119 and 110 to 122). Opacity belongs to the frame alone: the caption and the card animate `transform` only, and each frame's opacity animation (`gateFrameFade`, `gateFrameOpacity`) hands the stage from one frame to the next as a hard cut, so exactly one frame is painted at every scroll position of the pin and a caption is never seen over another frame's card. The outgoing frame stays at 1 until 3svh before the cut (`GATE_DIM_SVH`), dims linearly to `GATE_DIM_FLOOR` (0.35) and goes to 0 in one discrete step at the cut (`GATE_CUTS`: 45 and 109, where every exit ends and every entrance starts); at the same position the incoming frame steps from 0 to 0.35 and rises linearly to 1 over the next 3svh, while its caption and card slide in. The step is a pair of adjacent keyframe stops `GATE_CUT_LEAD_SVH` (0.15svh) apart with `animation-timing-function: step-end` on the first, in the frame keyframes beside the discrete `pointer-events`, so no position paints two frames or none and the lowest painted frame opacity of the whole pin is 0.35 (the card at least `GATE_CARD_MIN_PAINT`, 0.3). The CLI lines of the last two frames slide in 24px from the right, one 1.5svh after the other from the start of their card (46 and 110, span 6), so the last line lands with its card with the refused line last (`--n` per line, `--vk-lines-*` per frame), so the card never arrives hollow; the stamp lands from `scale(1.6)` (64 to 70, from its right edge so it never covers the badge beside it), the exit badge (122 to 126) and the chip (2 to 6) drop 12px. One progress marker, `.vk-gate-progress`, sits in `.vk-gate-pin` outside the frames (`aria-hidden`, three segments of 3rem, drawn only when pinned): each segment fills with `scaleX` across its whole state (1 to 45, 45 to 109, 109 to 149), back to back. Entrances ease with `--ease-standard`, exits with `--ease-exit`, the marker fill is linear. Nothing in the pin clips: the stage and the pin set no `overflow` (the page's `.vk-home` clips sideways at the viewport edge and the card clips its own lines), because `overflow-clip-margin` is unsupported in WebKit and a stage clip cut the slide and the halo there; the stylesheet's percentages, `gate.test.tsx` and `e2e/gate.spec.ts` all derive from the schedule. A frame that is not current has `pointer-events: none` (the frame keyframes animate `opacity` and the discrete `pointer-events`, never `visibility`,
+  so every frame stays in the accessibility tree and in find-in-page); the current card is what `elementFromPoint` returns at its middle. The pinned layout is a caption line over one wide card, never the lock demo's rail plus card. Below that, or without the timeline, the frames are stacked and static (from 64rem a caption cell and a card cell per frame, under 64rem the caption over the card) with the one moving element of each revealed once
+  through the shared observer (`html[data-motion-ready] .vk-gate .vk-gate-track .vk-gate-moves` lifts the reveal's offset while pinned); reduced motion, no JavaScript and `scripting: none` show the stacked end states, whose card heights equal the pinned ones. In forced colors every card and the refused line take a 2px
+  `Highlight` outline. The gate adds no eyebrow: `.vk-eyebrow` stays on the lock demo, the features and the closing panel. `gate.test.tsx` pins the markup and the stylesheet (supports test and `screen` query, the schedule, no overprint, allowed properties, no literal colour), `e2e/gate.spec.ts` the measured holds (stopping at the pin end), the overprint, the single painted frame at every 2px of the pin and at every PageDown and 100px wheel-notch landing in all four locales, the PageDown path, the edges, the pointer,
+  the free space, the card heights, the heading, layout shift 0, the axe scans, the path with the timeline out of reach, reflow and the phone height (1300px in English, 1375px in the other locales).
+- **Phone length.** The English landing stays under 12.25 screens at 391 by 844 with motion and with
+  reduced motion (`e2e/landing.spec.ts`, measured from the built page and rounded up to the next quarter screen; the gate section is at most 1300px tall on a phone in English and 1375px in the other locales, the highlights section at most 1350px). Under 40rem the section steps are 88px, 64px and 48px, `--head-gap` is 2rem,
+  and the footer link rows sit at their 44px targets with no row gap. A new section's height is measured and the ceiling raised to it, not paid for by cuts.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
-  scroll listener; at most one reveal chain per section, and only on a demo artifact (the hero
-  the marquee loop is not a reveal); no entrance over 16px or 600ms.
+  scroll listener; a reveal chain only on an artifact (the elements listed under Reveals; the hero, the footer
+  and the marquee loop are not reveals) with a total stagger of at most `--reveal-delay-max`; no entrance over 16px or 600ms.
 
 ## Keep the client payload small
 

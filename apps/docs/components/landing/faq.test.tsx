@@ -102,6 +102,16 @@ describe("the landing faq markup", () => {
     expect(container.querySelector("button, [aria-expanded]")).toBeNull();
   });
 
+  it("reveals the items as one chain, in order, capped at the last stagger index", async () => {
+    const container = await render("en");
+    const marks = items(container).map((item) => Number(item.getAttribute("data-reveal")));
+    expect(marks).toEqual(items(container).map((_, index) => Math.min(index, 5)));
+    expect(
+      container.querySelector("h2[data-reveal], h3[data-reveal], summary[data-reveal]"),
+    ).toBeNull();
+    expect(container.querySelector(".vk-faq-aside [data-reveal]:not(details)")).toBeNull();
+  });
+
   it("starts with every item closed and opens one through its summary without a script", async () => {
     const container = await render("en");
     expect(items(container).every((item) => !item.open)).toBe(true);

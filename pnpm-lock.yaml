@@ -401,6 +401,9 @@ importers:
       '@verbatra/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@verbatra/mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       '@verbatra/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk

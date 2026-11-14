@@ -113,7 +113,7 @@ function Card({
   t: Translate;
 }): ReactNode {
   return (
-    <div className="vk-lock-card vk-deck-card">
+    <div className="vk-lock-card vk-deck-card" data-reveal={1}>
       <p className="vk-lock-head">
         <span lang="en">{artifact.head}</span>{" "}
         <span className="vk-lock-badge">{t(`badges.${id}`, { count: artifact.count ?? 0 })}</span>
@@ -150,7 +150,7 @@ export async function Features(): Promise<ReactNode> {
                 <h3 className="vk-deck-title">
                   <label htmlFor={radio}>{t(`items.${id}.title`)}</label>
                 </h3>
-                <code className="vk-deck-command" lang="en">
+                <code className="vk-deck-command" lang="en" data-reveal={0}>
                   {command}
                 </code>
               </div>

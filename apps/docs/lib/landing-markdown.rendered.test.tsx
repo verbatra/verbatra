@@ -30,6 +30,7 @@ const { landingMarkdown } = await import("./landing-markdown");
 const { Hero } = await import("@/components/landing/hero");
 const { Marquee } = await import("@/components/landing/marquee");
 const { LockDemo } = await import("@/components/landing/lock-demo");
+const { Gate } = await import("@/components/landing/gate");
 const { Highlights } = await import("@/components/landing/highlights");
 const { Features } = await import("@/components/landing/features");
 const { Faq, faqContent } = await import("@/components/landing/faq");
@@ -40,13 +41,14 @@ const SECTIONS = {
   hero: () => Hero(),
   marquee: () => Marquee(),
   lockDemo: () => LockDemo(),
+  gate: () => Gate(),
   highlights: () => Highlights(),
   features: () => Features(),
   faq: async () => Faq({ locale: state.locale, items: await faqContent(state.locale) }),
   finalCta: () => FinalCta(),
 } as const;
 
-const TEXT_BLOCKS = "h1, h2, h3, p, li, pre, caption, th, td";
+const TEXT_BLOCKS = "h1, h2, h3, p, li, pre, caption, th, td, figcaption b, figcaption > span";
 
 const SKIPPED = ["[aria-hidden='true']", ".sr-only:not(caption)", "script", ".vk-lock-side"].join(
   ", ",
@@ -70,7 +72,7 @@ function markdownText(markdown: string): string {
       .replaceAll("`", "")
       .replace(/\*\*([^*]+)\*\*/g, "$1")
       .replace(/^#+ (\d+\. )?/gm, "")
-      .replace(/^- /gm, "")
+      .replace(/^[-+] /gm, "")
       .replace(/\s*\|\s*/g, " "),
   );
 }

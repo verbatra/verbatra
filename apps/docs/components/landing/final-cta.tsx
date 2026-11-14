@@ -26,15 +26,19 @@ export async function FinalCta(): Promise<ReactNode> {
         </h2>
         <p className="vk-lead max-w-[46ch]">{t("lead")}</p>
         <div className="vk-final-install @container">
-          <CommandRow command={INIT_COMMAND} label={tInstall("copyAria")} wrap="narrow" />
-          <CommandRow
-            command={DRY_RUN_COMMAND}
-            label={tInstall("copyAria")}
-            wrap="narrow"
-            divided
-          />
+          <div data-reveal={0}>
+            <CommandRow command={INIT_COMMAND} label={tInstall("copyAria")} wrap="narrow" />
+          </div>
+          <div data-reveal={1}>
+            <CommandRow
+              command={DRY_RUN_COMMAND}
+              label={tInstall("copyAria")}
+              wrap="narrow"
+              divided
+            />
+          </div>
         </div>
-        <ul aria-label={t("proof.label")} className="vk-closer-proof">
+        <ul aria-label={t("proof.label")} className="vk-closer-proof" data-reveal={2}>
           {PROOF_IDS.map((id) => (
             <li key={id}>
               <a

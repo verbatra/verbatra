@@ -8,32 +8,59 @@ import {
   FEATURE_ARTIFACTS,
 } from "./feature-artifacts";
 import {
+  GATE_CHECK_COMMAND,
+  GATE_CHECK_EXIT_CODE,
+  GATE_CHECK_HEADER,
+  GATE_CHECK_LINES,
+  GATE_DE_CANDIDATE,
+  GATE_DOCS_PATH,
+  GATE_KEY,
+  GATE_LOCALE,
+  GATE_MODEL,
+  GATE_PLACEHOLDER,
+  GATE_REFUSED_BADGE,
+  GATE_REFUSED_LINES,
+  GATE_SOURCE,
+  GATE_SOURCE_BEFORE,
+  GATE_SOURCE_FILE,
+  GATE_TARGET_EXCERPT,
+  GATE_TARGET_FILE,
+  GATE_TRANSLATE_COMMAND,
+  GATE_TRANSLATE_HEADER,
+} from "./gate-demo";
+import {
   HERO_CHECK_BADGE,
-  HERO_CHECK_EXIT_CODE,
-  HERO_SENT_STRINGS,
-  HERO_TOTAL_STRINGS,
   HERO_TRANSLATE_BADGE,
   HERO_TRANSLATE_COMMAND,
   HERO_TRANSLATE_LOCALE_LINES,
   HERO_TRANSLATE_OUTPUT,
 } from "./hero-terminal";
+import {
+  LOCK_STATE_STALE,
+  RAIL_ENTRIES,
+  STUDIO_COLUMNS,
+  STUDIO_ROW,
+  SURFACE_CODE,
+  SURFACE_COUNTS,
+  SURFACE_DOCS_PATHS,
+  type Surface,
+  surfaceText,
+} from "./highlights-surfaces";
 import { type Locale, localizedPath } from "./i18n";
 import {
   DRY_RUN_COMMAND,
   HERO_INSTALL_COMMAND,
   INIT_COMMAND,
   MCP_ADD_COMMAND,
+  SDK_INSTALL_COMMAND,
 } from "./install-commands";
 import { COMPARE_PATH } from "./landing-compare";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
 import { LANDING_FEATURES } from "./landing-features";
 import {
-  PLAYGROUND_DEFAULT_ITEM,
-  PLAYGROUND_LANGUAGES,
   PLAYGROUND_METADATA,
   PLAYGROUND_SOURCE_LOCALE,
-  PLAYGROUND_TRANSLATIONS,
   playgroundFileName,
   playgroundGeneratedOn,
 } from "./landing-playground";
@@ -176,30 +203,84 @@ async function lockDemo({ locale }: Context): Promise<string> {
   );
 }
 
-async function highlights({ locale }: Context): Promise<string> {
-  const t = await getTranslations({ locale, namespace: "landing.highlights" });
+async function gate({ locale }: Context): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "landing.gate" });
+  const targetFile = GATE_TARGET_EXCERPT.join("\n");
   return blocks(
     `## ${t("heading")}`,
-    t("lead"),
-    `### ${t("translate.label")}: ${t("translate.title")}`,
-    t("translate.body", { sent: HERO_SENT_STRINGS, total: HERO_TOTAL_STRINGS }),
+    `${t("lead")} ${link(GATE_DOCS_PATH.slice(1), localizedPath(locale, GATE_DOCS_PATH))}`,
+    list([
+      `**${t("candidate.label")}**: ${t("candidate.text", { key: GATE_KEY, file: GATE_SOURCE_FILE, placeholder: GATE_PLACEHOLDER })}`,
+      `**${t("refused.label")}**: ${t("refused.text")}`,
+      `**${t("stale.label")}**: ${t("stale.text")}`,
+    ]),
+    `**${GATE_KEY}** ${GATE_MODEL}`,
+    `**${GATE_SOURCE_FILE}** ${t("candidate.edited")}`,
+    fencedMarkdown("text", null, [`- "${GATE_SOURCE_BEFORE}"`, `+ "${GATE_SOURCE}"`].join("\n")),
+    `**${GATE_LOCALE}** ${t("candidate.answer")}`,
     fencedMarkdown(
       "text",
       null,
-      [`$ ${HERO_TRANSLATE_COMMAND}`, ...HERO_TRANSLATE_OUTPUT.slice(1)].join("\n"),
+      `"${GATE_DE_CANDIDATE}" ${GATE_PLACEHOLDER} ${t("candidate.missing")}`,
     ),
-    `### ${t("ci.label")}: ${t("ci.title")}`,
-    inlineCodeMarkdown(`exit ${HERO_CHECK_EXIT_CODE}`),
-    t("ci.body", { code: HERO_CHECK_EXIT_CODE }),
-    `### ${t("integrity.label")}: ${t("integrity.title")}`,
-    list(
-      PLAYGROUND_LANGUAGES.map(
-        (code) => `${code}: ${PLAYGROUND_TRANSLATIONS[code]?.[PLAYGROUND_DEFAULT_ITEM] ?? ""}`,
-      ),
+    t("candidate.foot"),
+    `**${GATE_TRANSLATE_HEADER}** ${t("refused.stamp")} ${GATE_REFUSED_BADGE}`,
+    fencedMarkdown("text", null, [`$ ${GATE_TRANSLATE_COMMAND}`, ...GATE_REFUSED_LINES].join("\n")),
+    `**${GATE_TARGET_FILE}** ${t("valueUnchanged")}`,
+    fencedMarkdown("json", null, targetFile),
+    `**${GATE_CHECK_HEADER}** exit ${GATE_CHECK_EXIT_CODE}`,
+    fencedMarkdown("text", null, [`$ ${GATE_CHECK_COMMAND}`, ...GATE_CHECK_LINES].join("\n")),
+    `**${GATE_TARGET_FILE}** ${t("valueUnchanged")}`,
+    fencedMarkdown("json", null, targetFile),
+    t("stale.foot", { file: GATE_TARGET_FILE, placeholder: GATE_PLACEHOLDER }),
+  );
+}
+
+async function highlights({ locale }: Context): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "landing.highlights" });
+  const surface = (id: Surface, ...body: ReadonlyArray<string>): ReadonlyArray<string> => [
+    `### ${t(`surfaces.${id}`)}`,
+    ...body,
+    link(SURFACE_DOCS_PATHS[id].slice(1), localizedPath(locale, SURFACE_DOCS_PATHS[id])),
+  ];
+  return blocks(
+    `## ${t("heading")}`,
+    t("lead", { stale: SURFACE_COUNTS.stale, upToDate: SURFACE_COUNTS.upToDate }),
+    `**${LOCK_FILE_NAME}** ${HERO_CHECK_BADGE}`,
+    fencedMarkdown(
+      "text",
+      null,
+      RAIL_ENTRIES.map(
+        ({ key, hash, comma }) =>
+          `${JSON.stringify(key)}: ${JSON.stringify(hash)}${comma ? "," : ""} ${LOCK_STATE_STALE}`,
+      ).join("\n"),
     ),
-    `### ${t("agents.label")}: ${t("agents.title")}`,
-    t("agents.body"),
-    fencedMarkdown("sh", null, MCP_ADD_COMMAND),
+    ...surface("cli", fencedMarkdown("text", null, surfaceText(SURFACE_CODE.cli))),
+    ...surface(
+      "studio",
+      [
+        `| ${STUDIO_COLUMNS.join(" | ")} |`,
+        `| ${STUDIO_COLUMNS.map(() => "---").join(" | ")} |`,
+        `| ${[
+          STUDIO_ROW.locale,
+          `${STUDIO_ROW.percent}% ${STUDIO_ROW.keys}`,
+          STUDIO_ROW.missing,
+          STUDIO_ROW.stale,
+          STUDIO_ROW.upToDate,
+        ].join(" | ")} |`,
+      ].join("\n"),
+    ),
+    ...surface(
+      "sdk",
+      fencedMarkdown("ts", null, surfaceText(SURFACE_CODE.sdk)),
+      fencedMarkdown("sh", null, SDK_INSTALL_COMMAND),
+    ),
+    ...surface(
+      "mcp",
+      t("mcp.badge"),
+      fencedMarkdown("text", null, surfaceText(SURFACE_CODE.mcp)),
+      fencedMarkdown("sh", null, MCP_ADD_COMMAND),
+    ),
   );
 }
 
@@ -261,6 +342,7 @@ const SECTION_MARKDOWN: Readonly<Record<LandingSectionId, (context: Context) => 
     hero,
     marquee,
     lockDemo,
+    gate,
     highlights,
     features,
     faq,

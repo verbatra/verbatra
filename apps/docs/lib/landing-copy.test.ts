@@ -15,6 +15,7 @@ const NAMESPACES = [
   "banner",
   "marquee",
   "lockDemo",
+  "gate",
   "highlights",
   "features",
   "compare",

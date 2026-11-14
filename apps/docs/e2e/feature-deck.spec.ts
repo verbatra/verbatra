@@ -15,6 +15,30 @@ function pane(page: Page, id: string) {
   return page.locator(`#features .vk-deck-item:has(#feature-${id}) .vk-deck-pane`);
 }
 
+test.describe("feature deck pane switch", () => {
+  test.use({ reducedMotion: "no-preference" });
+
+  test("lifts a pane 8px while it fades in, on a switch only", async ({ page }) => {
+    await openDeck(page);
+    await expect(pane(page, "extract")).toHaveCSS("translate", "none");
+    await expect(pane(page, "types")).toHaveCSS("translate", "0px 8px");
+    await expect(pane(page, "types")).toHaveCSS("opacity", "0");
+    await page
+      .locator("#features .vk-deck-item:has(#feature-types) .vk-deck-row")
+      .click({ position: { x: 200, y: 50 } });
+    await expect(pane(page, "types")).toHaveCSS("translate", "none");
+    await expect(pane(page, "types")).toHaveCSS("opacity", "1");
+    await expect(pane(page, "extract")).toHaveCSS("translate", "0px 8px");
+  });
+
+  test("keeps the pane still under reduced motion", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openDeck(page);
+    await expect(pane(page, "types")).toHaveCSS("translate", "none");
+    await expect(pane(page, "extract")).toHaveCSS("transition-duration", "0s");
+  });
+});
+
 test.describe("feature deck", () => {
   test("shows the first command's artifact and hides the other five panes", async ({ page }) => {
     await openDeck(page);
@@ -35,6 +59,24 @@ test.describe("feature deck", () => {
       await expect(page.locator("#features .vk-deck-card:visible")).toHaveCount(1);
     }
     await expect(pane(page, "studio").locator("img:visible")).toHaveCount(1);
+  });
+
+  test("switches the pane on a click at the coordinates of the row's own command text", async ({
+    page,
+  }) => {
+    await openDeck(page);
+    for (const id of FEATURES) {
+      const command = page.locator(`#features .vk-deck-item:has(#feature-${id}) .vk-deck-command`);
+      await command.scrollIntoViewIfNeeded();
+      const box = await command.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThan(40);
+      await page.mouse.click(
+        (box?.x ?? 0) + (box?.width ?? 0) / 2,
+        (box?.y ?? 0) + (box?.height ?? 0) / 2,
+      );
+      await expect(page.locator(`#feature-${id}`)).toBeChecked();
+      await expect(page.locator("#features .vk-deck-card:visible")).toHaveCount(1);
+    }
   });
 
   test("moves through the commands with the arrow keys and reaches the docs link by Tab", async ({

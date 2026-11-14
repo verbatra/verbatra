@@ -159,6 +159,17 @@ describe("the three frames", () => {
     ]);
   });
 
+  it("marks each of the three cards for the shared reveal once and nothing else in the section", () => {
+    const marked = Array.from(doc.querySelectorAll("[data-reveal]"));
+    expect(marked).toHaveLength(3);
+    for (const [index, node] of marked.entries()) {
+      expect(node.classList.contains("vk-lock-card")).toBe(true);
+      expect(node.getAttribute("data-reveal")).toBe("0");
+      expect(node.closest("figure")).toBe(frames()[index]);
+    }
+    expect(doc.querySelector("h2[data-reveal], h3[data-reveal], p[data-reveal]")).toBeNull();
+  });
+
   it("marks the English source values of the first frame with the source language", () => {
     const values = Array.from(frames()[0]?.querySelectorAll(".vk-lock-value") ?? []);
     expect(values.length).toBeGreaterThan(0);

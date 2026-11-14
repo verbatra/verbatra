@@ -11,6 +11,7 @@ import {
   MCP_ADD_COMMAND,
   NPM_FENCE_LANG,
   NPM_INSTALL_COMMAND,
+  SDK_INSTALL_COMMAND,
 } from "@/lib/install-commands";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
@@ -70,6 +71,13 @@ function fenceAfter(markdown: string, heading: string, lang: string): string {
   const start = markdown.indexOf("\n", open) + 1;
   return markdown.slice(start, markdown.indexOf("```", start));
 }
+
+describe("the SDK install command", () => {
+  it("is the npm command the SDK reference installs with", () => {
+    const page = docsFile("content/docs/sdk/index.mdx");
+    expect(`${SDK_INSTALL_COMMAND}\n`).toBe(fenceAfter(page, "## Install", NPM_FENCE_LANG));
+  });
+});
 
 describe("the MCP add command", () => {
   it("copies the claude mcp add line from the MCP client guide", () => {

@@ -6,6 +6,10 @@ import { MARQUEE_COPIES } from "@/lib/marquee-copies";
 
 export type MarqueeState = "running" | "paused";
 
+function marqueeState(paused: boolean): MarqueeState {
+  return paused ? "paused" : "running";
+}
+
 const GLYPH = {
   width: 14,
   height: 14,
@@ -66,9 +70,8 @@ export function MarqueeMotion({
   children: ReactNode;
 }): ReactNode {
   const root = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
+  const [moving, setMoving] = useState(false);
   const [paused, setPaused] = useState(false);
-  const state: MarqueeState = paused ? "paused" : "running";
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: a refresh sends new rows, so the copies are cloned again from them
   useEffect(() => {
@@ -82,9 +85,9 @@ export function MarqueeMotion({
       for (const copy of copies) copy.remove();
       copies = query.matches ? addCopies(element) : [];
       cancelAlign = alignOnceStarted(element);
+      setMoving(query.matches);
     };
     sync();
-    setReady(true);
     query.addEventListener("change", sync);
     return () => {
       query.removeEventListener("change", sync);
@@ -94,7 +97,7 @@ export function MarqueeMotion({
   }, [children]);
 
   return (
-    <div ref={root} className="vk-marquee" data-marquee={ready ? state : undefined}>
+    <div ref={root} className="vk-marquee" data-marquee={moving ? marqueeState(paused) : undefined}>
       <Button
         variant="ghost"
         size="md"

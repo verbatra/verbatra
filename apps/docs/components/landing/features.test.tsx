@@ -67,6 +67,19 @@ describe("Features", () => {
     );
   });
 
+  it("reveals the command of each row, then its artifact card, and never a heading or prose", () => {
+    const marked = Array.from(root.querySelectorAll("[data-reveal]"));
+    const commands = marked.filter((node) => node.matches("code.vk-deck-command"));
+    const cards = marked.filter((node) => node.matches(".vk-deck-card"));
+    expect(commands).toHaveLength(6);
+    expect(cards).toHaveLength(6);
+    expect(marked).toHaveLength(12);
+    for (const node of commands) expect(node.getAttribute("data-reveal")).toBe("0");
+    for (const node of cards) expect(node.getAttribute("data-reveal")).toBe("1");
+    expect(root.querySelector("h2[data-reveal], h3[data-reveal], p[data-reveal]")).toBeNull();
+    expect(root.querySelector(".vk-deck-pane[data-reveal], .vk-deck-item[data-reveal]")).toBeNull();
+  });
+
   it("links every feature to its command page in the reader's locale, outside any label", () => {
     const links = items().map((item) => item.querySelector(".vk-deck-pane a"));
     expect(links.map((link) => link?.getAttribute("href"))).toEqual(
@@ -177,6 +190,34 @@ describe("Features", () => {
       expect(entry.media).toContain("@supports selector(:has(*))");
       expect(entry.media).toContain("(min-width: 64rem)");
     }
+  });
+
+  it("moves a pane in with an 8px translate beside its opacity fade, on a switch only", () => {
+    const rules = docsStylesheetRules();
+    const hidden = rules.find((entry) => entry.selector === ".vk-deck-pane" && entry.media !== "");
+    expect(hidden?.declarations.translate).toBe("0 var(--motion-distance-md)");
+    expect(hidden?.declarations.transition).toBeUndefined();
+    const shown = rules.find(
+      (entry) =>
+        entry.selector === ".vk-deck-item:has(.vk-deck-radio:checked) .vk-deck-pane" &&
+        !entry.media.includes("prefers-reduced-motion"),
+    );
+    expect(shown?.declarations.translate).toBe("none");
+    expect(shown?.declarations.transition).toBe(
+      "opacity var(--duration-base) var(--ease-standard), translate var(--duration-base) var(--ease-standard)",
+    );
+  });
+
+  it("turns the pane translate and its transition off under reduced motion", () => {
+    const rules = docsStylesheetRules().filter((entry) =>
+      entry.media.includes("prefers-reduced-motion: reduce"),
+    );
+    const pane = rules.find((entry) => entry.selector === ".vk-deck-pane");
+    const checked = rules.find(
+      (entry) => entry.selector === ".vk-deck-item:has(.vk-deck-radio:checked) .vk-deck-pane",
+    );
+    expect(pane?.declarations.translate).toBe("none");
+    expect(checked?.declarations.transition).toBe("none");
   });
 
   it("outlines the checked row transparently, which forced colors paint", () => {

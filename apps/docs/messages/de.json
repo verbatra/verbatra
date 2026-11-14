@@ -68,7 +68,7 @@
     "meta": {
       "title": "Verbatra: i18n-CLI, die nur geänderte Schlüssel übersetzt",
       "ogTitle": "Verbatra: nur Geändertes übersetzen",
-      "description": "Verbatra, eine Open-Source-CLI mit SDK für i18n, findet fehlende und geänderte Keys in deinen Sprachdateien und übersetzt nur diese mit deinem Provider-Key.",
+      "description": "Verbatra, eine Open-Source-CLI mit SDK für i18n, findet fehlende und geänderte Keys in deinen Sprachdateien und übersetzt nur diese mit deinem Anbieter-Key.",
       "ogDescription": "Übersetze nur die i18n-Keys, die sich geändert haben, und lass die CI scheitern, solange einer fehlt.",
       "ogImageAlt": "Verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
       "definition": "Verbatra ist ein Open-Source-CLI und SDK für i18n-Lokalisierungsdateien. Es sendet nur neue und geänderte Schlüssel an den von dir gewählten KI- oder maschinellen Übersetzungsanbieter und lässt CI fehlschlagen, wenn ein Schlüssel fehlt."
@@ -120,7 +120,7 @@
       }
     },
     "footer": {
-      "tagline": "Eine Open-Source-CLI und ein SDK, die deine i18n-Sprachdateien über den Provider deiner Wahl synchron halten.",
+      "tagline": "Eine Open-Source-CLI und ein SDK, die deine i18n-Sprachdateien über den Anbieter deiner Wahl synchron halten.",
       "cols": {
         "product": {
           "title": "Produkt",
@@ -241,27 +241,47 @@
       },
       "preGenerated": "vorab erzeugt, nicht live"
     },
+    "gate": {
+      "heading": "Wenn der Anbieter sich irrt, wird nichts geschrieben",
+      "lead": "Jeder Kandidat durchläuft ein Integritäts-Gate, bevor er deine Datei erreicht.",
+      "candidate": {
+        "label": "Kandidat",
+        "text": "Du hast {key} in {file} geändert. Der Anbieter gibt eine Übersetzung zurück, und sie hat {placeholder} verloren.",
+        "foot": "Es wurde noch nichts geprüft oder geschrieben.",
+        "missing": "fehlend",
+        "edited": "geändert",
+        "answer": "Anbieterantwort"
+      },
+      "refused": {
+        "label": "Abgelehnt",
+        "text": "Das Gate vergleicht den Kandidaten mit der Quelle und lehnt ihn ab. Die Datei wird nicht angerührt.",
+        "stamp": "nicht geschrieben"
+      },
+      "stale": {
+        "label": "Immer noch veraltet",
+        "text": "Der Schlüssel bleibt veraltet, daher schlägt die Überprüfung weiterhin fehl.",
+        "foot": "Der alte Wert bleibt in {file}. CI schlägt fehl, bis der Schlüssel einen Wert erhält, der {placeholder} beibehält."
+      },
+      "valueUnchanged": "unverändert"
+    },
     "highlights": {
-      "heading": "Alles rund um den Diff",
-      "lead": "Eine CLI, ein SDK, ein lokales Studio und ein MCP-Server, die alle dieselbe Lock-Datei lesen.",
-      "translate": {
-        "label": "Übersetzen",
-        "title": "Alles neu zu übersetzen kostet mehr",
-        "body": "Nur {sent} von {total} Übersetzungen sind neu oder geändert, also gehen nur {sent} an deinen Anbieter."
+      "heading": "Frage eine beliebige Oberfläche, erhalte dieselbe Antwort",
+      "lead": "Jede Oberfläche liest dieselbe Lock-Datei, also zeigt Deutsch überall {stale} veraltet und {upToDate} aktuell.",
+      "surfaces": {
+        "cli": "CLI",
+        "studio": "Studio",
+        "sdk": "SDK",
+        "mcp": "MCP-Server"
       },
-      "ci": {
-        "label": "Prüfung",
-        "title": "Fehlende Schlüssel erreichen die Produktion",
-        "body": "Der Check endet mit {code}, solange eine Locale fehlende oder veraltete Schlüssel hat. Er braucht keinen API-Schlüssel und läuft deshalb bei jedem Pull Request."
+      "mcp": {
+        "badge": "ruft keinen Anbieter auf",
+        "copyAria": "MCP-Einrichtungsbefehl kopieren"
       },
-      "integrity": {
-        "label": "Integrität",
-        "title": "Ein kaputter Platzhalter führt zu einem kaputten Bildschirm"
+      "studio": {
+        "label": "Abdeckung der Sprachen"
       },
-      "agents": {
-        "label": "Agenten",
-        "title": "Dein Coding-Agent korrigiert Übersetzungen",
-        "body": "Registriere den MCP-Server für das Projekt, und der Agent kann den Status lesen und Übersetzungen korrigieren. Tools, die Provider-Tokens verbrauchen, bleiben deaktiviert, bis du sie zulässt."
+      "sdk": {
+        "copyAria": "SDK-Installationsbefehl kopieren"
       }
     },
     "features": {
@@ -310,7 +330,7 @@
       "items": {
         "check": {
           "title": "Prüfen",
-          "body": "`verbatra check` vergleicht Quelle, Ziele und Lock-Datei. Es ruft keinen Provider auf und braucht keinen Key."
+          "body": "`verbatra check` vergleicht Quelle, Ziele und Lock-Datei. Es ruft keinen Anbieter auf und braucht keinen Key."
         },
         "translate": {
           "title": "Übersetzen",

@@ -53,10 +53,6 @@ export const HERO_CHECK_OUTPUT: ReadonlyArray<string> = [
   CHECK_OVERALL_LINE,
 ];
 
-export const HERO_SENT_STRINGS = stale * localeCount;
-
-export const HERO_TOTAL_STRINGS = (stale + synced) * localeCount;
-
 export const HERO_CHECK_BADGE = `${stale} stale, ${synced} up-to-date`;
 
 export const HERO_TRANSLATE_BADGE = `${stale} translated, ${synced} unchanged`;

@@ -241,27 +241,47 @@
       },
       "preGenerated": "pre-generated, not live"
     },
+    "gate": {
+      "heading": "When the provider gets it wrong, nothing is written",
+      "lead": "Every candidate passes an integrity gate before it reaches your file.",
+      "candidate": {
+        "label": "Candidate",
+        "text": "You changed {key} in {file}. The provider returns a translation, and it lost {placeholder}.",
+        "foot": "Nothing is checked or written yet.",
+        "missing": "missing",
+        "edited": "changed",
+        "answer": "provider answer"
+      },
+      "refused": {
+        "label": "Refused",
+        "text": "The gate compares the candidate with the source and refuses it. The file is not touched.",
+        "stamp": "not written"
+      },
+      "stale": {
+        "label": "Still stale",
+        "text": "The key stays stale, so the check still fails.",
+        "foot": "The old value stays in {file}. CI fails until the key gets a value that keeps {placeholder}."
+      },
+      "valueUnchanged": "unchanged"
+    },
     "highlights": {
-      "heading": "Everything around the diff",
-      "lead": "A CLI, an SDK, a local Studio and an MCP server, all reading the same lock file.",
-      "translate": {
-        "label": "Translate",
-        "title": "Retranslating everything costs more",
-        "body": "Only {sent} of {total} translations are new or changed, so only {sent} go to your provider."
+      "heading": "Ask any surface, get the same answer",
+      "lead": "Every surface reads one lock file, so German reads {stale} stale and {upToDate} up-to-date wherever you ask.",
+      "surfaces": {
+        "cli": "CLI",
+        "studio": "Studio",
+        "sdk": "SDK",
+        "mcp": "MCP server"
       },
-      "ci": {
-        "label": "Check",
-        "title": "Missing keys reach production",
-        "body": "The check exits {code} while a locale has missing or stale keys. It needs no API key, so it runs on every pull request."
+      "mcp": {
+        "badge": "calls no provider",
+        "copyAria": "Copy the MCP setup command"
       },
-      "integrity": {
-        "label": "Integrity",
-        "title": "One broken placeholder breaks a screen"
+      "studio": {
+        "label": "Locale coverage"
       },
-      "agents": {
-        "label": "Agents",
-        "title": "Your coding agent fixes translations",
-        "body": "Register the MCP server for the project, and the agent can read status and fix translations. Tools that spend provider tokens stay off until you allow them."
+      "sdk": {
+        "copyAria": "Copy the SDK install command"
       }
     },
     "features": {
