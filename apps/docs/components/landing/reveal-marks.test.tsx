@@ -17,17 +17,27 @@ function source(file: string): string {
   return readFileSync(join(import.meta.dirname, file), "utf8");
 }
 
+const REVEALING_SECTIONS: ReadonlyArray<LandingSectionId> = ["highlights"];
+
 describe("landing reveal marks", () => {
   it("maps every landing section to its file", () => {
     expect(Object.keys(SECTION_FILES)).toEqual([...LANDING_SECTIONS]);
   });
 
-  it.each(LANDING_SECTIONS)(
+  it.each(LANDING_SECTIONS.filter((id) => !REVEALING_SECTIONS.includes(id)))(
     "%s never fades in, so the page does not rise section by section",
     (id) => {
       expect(source(SECTION_FILES[id])).not.toMatch(/data-reveal|\breveal\b/);
     },
   );
+
+  it("lets only the allowlisted sections reveal, each on its panes and never on a heading", () => {
+    for (const id of REVEALING_SECTIONS) {
+      const file = source(SECTION_FILES[id]);
+      expect(file, id).toContain("data-reveal={reveal}");
+      expect(file, id).not.toMatch(/<h[23][^>]*data-reveal/);
+    }
+  });
 
   it("never reveals a section heading", () => {
     expect(source("section-head.tsx")).not.toContain("data-reveal");

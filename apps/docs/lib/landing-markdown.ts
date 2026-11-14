@@ -9,14 +9,21 @@ import {
 } from "./feature-artifacts";
 import {
   HERO_CHECK_BADGE,
-  HERO_CHECK_EXIT_CODE,
-  HERO_SENT_STRINGS,
-  HERO_TOTAL_STRINGS,
   HERO_TRANSLATE_BADGE,
   HERO_TRANSLATE_COMMAND,
   HERO_TRANSLATE_LOCALE_LINES,
   HERO_TRANSLATE_OUTPUT,
 } from "./hero-terminal";
+import {
+  RAIL_ENTRIES,
+  STUDIO_COLUMNS,
+  STUDIO_ROW,
+  SURFACE_CODE,
+  SURFACE_COUNTS,
+  SURFACE_DOCS_PATHS,
+  type Surface,
+  surfaceText,
+} from "./highlights-surfaces";
 import { type Locale, localizedPath } from "./i18n";
 import {
   DRY_RUN_COMMAND,
@@ -29,11 +36,8 @@ import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
 import { LANDING_FEATURES } from "./landing-features";
 import {
-  PLAYGROUND_DEFAULT_ITEM,
-  PLAYGROUND_LANGUAGES,
   PLAYGROUND_METADATA,
   PLAYGROUND_SOURCE_LOCALE,
-  PLAYGROUND_TRANSLATIONS,
   playgroundFileName,
   playgroundGeneratedOn,
 } from "./landing-playground";
@@ -178,28 +182,50 @@ async function lockDemo({ locale }: Context): Promise<string> {
 
 async function highlights({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.highlights" });
+  const lockDemo = await getTranslations({ locale, namespace: "landing.lockDemo" });
+  const surface = (id: Surface, ...body: ReadonlyArray<string>): ReadonlyArray<string> => [
+    `### ${t(`surfaces.${id}`)}`,
+    ...body,
+    link(SURFACE_DOCS_PATHS[id].slice(1), localizedPath(locale, SURFACE_DOCS_PATHS[id])),
+  ];
   return blocks(
     `## ${t("heading")}`,
-    t("lead"),
-    `### ${t("translate.label")}: ${t("translate.title")}`,
-    t("translate.body", { sent: HERO_SENT_STRINGS, total: HERO_TOTAL_STRINGS }),
+    t("lead", {
+      locale: SURFACE_COUNTS.locale,
+      stale: SURFACE_COUNTS.stale,
+      upToDate: SURFACE_COUNTS.upToDate,
+    }),
+    `**${LOCK_FILE_NAME}** ${HERO_CHECK_BADGE}`,
     fencedMarkdown(
-      "text",
+      "json",
       null,
-      [`$ ${HERO_TRANSLATE_COMMAND}`, ...HERO_TRANSLATE_OUTPUT.slice(1)].join("\n"),
+      RAIL_ENTRIES.map(
+        ({ key, hash, comma }) =>
+          `${JSON.stringify(key)}: ${JSON.stringify(hash)}${comma ? "," : ""} ${lockDemo("tags.stale")}`,
+      ).join("\n"),
     ),
-    `### ${t("ci.label")}: ${t("ci.title")}`,
-    inlineCodeMarkdown(`exit ${HERO_CHECK_EXIT_CODE}`),
-    t("ci.body", { code: HERO_CHECK_EXIT_CODE }),
-    `### ${t("integrity.label")}: ${t("integrity.title")}`,
-    list(
-      PLAYGROUND_LANGUAGES.map(
-        (code) => `${code}: ${PLAYGROUND_TRANSLATIONS[code]?.[PLAYGROUND_DEFAULT_ITEM] ?? ""}`,
-      ),
+    ...surface("cli", fencedMarkdown("text", null, surfaceText(SURFACE_CODE.cli))),
+    ...surface(
+      "studio",
+      [
+        `| ${STUDIO_COLUMNS.join(" | ")} |`,
+        `| ${STUDIO_COLUMNS.map(() => "---").join(" | ")} |`,
+        `| ${[
+          STUDIO_ROW.locale,
+          `${STUDIO_ROW.percent}% ${STUDIO_ROW.keys}`,
+          STUDIO_ROW.missing,
+          STUDIO_ROW.stale,
+          STUDIO_ROW.upToDate,
+        ].join(" | ")} |`,
+      ].join("\n"),
     ),
-    `### ${t("agents.label")}: ${t("agents.title")}`,
-    t("agents.body"),
-    fencedMarkdown("sh", null, MCP_ADD_COMMAND),
+    ...surface("sdk", fencedMarkdown("ts", null, surfaceText(SURFACE_CODE.sdk))),
+    ...surface(
+      "mcp",
+      t("mcp.badge"),
+      fencedMarkdown("text", null, surfaceText(SURFACE_CODE.mcp)),
+      fencedMarkdown("sh", null, MCP_ADD_COMMAND),
+    ),
   );
 }
 

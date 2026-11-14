@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { stripAccentTags } from "@/test-support/accent-tags";
-import { HERO_SENT_STRINGS, HERO_TOTAL_STRINGS } from "./hero-terminal";
+import { HERO_TERMINAL_CHANGED_KEYS, HERO_TERMINAL_SYNCED_KEYS } from "./hero-terminal";
 import { i18n } from "./i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ITEM_IDS } from "./landing-faq";
@@ -88,7 +88,7 @@ describe.each(i18n.languages)("the %s landing markdown", (locale) => {
   });
 });
 
-describe("the English landing markdown after the pain titles and the comparison link", () => {
+describe("the English landing markdown after the surfaces and the comparison link", () => {
   it("lists the comparison link beside Get started in the hero", async () => {
     const body = await landingMarkdown("en");
     expect(body).toContain(
@@ -96,15 +96,22 @@ describe("the English landing markdown after the pain titles and the comparison 
     );
   });
 
-  it("titles the three pain tiles, with the run numbers in the cost body", async () => {
+  it("opens the highlights on the four surfaces and the one lock file, in the order of the panes", async () => {
     const body = await landingMarkdown("en");
-    expect(body).toContain("### Translate: Retranslating everything costs more");
-    expect(body).toContain(
-      `Only ${HERO_SENT_STRINGS} of ${HERO_TOTAL_STRINGS} translations are new or changed, so only ${HERO_SENT_STRINGS} go to your provider.`,
+    const at = body.indexOf("## Ask any surface, get the same answer");
+    expect(at).toBeGreaterThan(0);
+    const section = body.slice(at, body.indexOf("\n## ", at + 3));
+    expect(section).toContain(
+      `The CLI, the SDK, Studio and the MCP server all read one lock file, so de reads ${HERO_TERMINAL_CHANGED_KEYS.length} stale and ${HERO_TERMINAL_SYNCED_KEYS.length} up-to-date wherever you ask.`,
     );
-    expect(body).toContain("### Check: Missing keys reach production");
-    expect(body).toContain("### Integrity: One broken placeholder breaks a screen");
-    expect(body).not.toContain("Pay for");
+    const names = ["### CLI", "### Studio", "### SDK", "### MCP server"].map((heading) =>
+      section.indexOf(heading),
+    );
+    expect(names.every((position) => position > 0)).toBe(true);
+    expect([...names].sort((a, b) => a - b)).toEqual(names);
+    expect(section).toContain(`[docs/sdk/inspect](${SITE_URL}/docs/sdk/inspect.md)`);
+    expect(section).toContain("| de | 86% 12 / 14 keys | 0 | 2 | 12 |");
+    expect(section).toContain("claude mcp add");
   });
 
   it("ends the faq with the comparison answer linked to the comparison page", async () => {

@@ -54,7 +54,7 @@ describe("landing message parity", () => {
       "landing.lockDemo.badge.changed",
       "landing.compare.verdicts.yes",
       "landing.lockDemo.heading",
-      "landing.highlights.agents.body",
+      "landing.highlights.surfaces.mcp",
       "landing.features.items.doctor.title",
       "landing.openSource.contributorsHeading",
       "landing.closing.heading",

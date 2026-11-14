@@ -242,26 +242,17 @@
       "preGenerated": "pre-generated, not live"
     },
     "highlights": {
-      "heading": "Everything around the diff",
-      "lead": "A CLI, an SDK, a local Studio and an MCP server, all reading the same lock file.",
-      "translate": {
-        "label": "Translate",
-        "title": "Retranslating everything costs more",
-        "body": "Only {sent} of {total} translations are new or changed, so only {sent} go to your provider."
+      "heading": "Ask any surface, get the same answer",
+      "lead": "The CLI, the SDK, Studio and the MCP server all read one lock file, so {locale} reads {stale} stale and {upToDate} up-to-date wherever you ask.",
+      "surfaces": {
+        "cli": "CLI",
+        "studio": "Studio",
+        "sdk": "SDK",
+        "mcp": "MCP server"
       },
-      "ci": {
-        "label": "Check",
-        "title": "Missing keys reach production",
-        "body": "The check exits {code} while a locale has missing or stale keys. It needs no API key, so it runs on every pull request."
-      },
-      "integrity": {
-        "label": "Integrity",
-        "title": "One broken placeholder breaks a screen"
-      },
-      "agents": {
-        "label": "Agents",
-        "title": "Your coding agent fixes translations",
-        "body": "Register the MCP server for the project, and the agent can read status and fix translations. Tools that spend provider tokens stay off until you allow them."
+      "mcp": {
+        "badge": "calls no provider",
+        "copyAria": "Copy the MCP setup command"
       }
     },
     "features": {

@@ -242,26 +242,17 @@
       "preGenerated": "vorab erzeugt, nicht live"
     },
     "highlights": {
-      "heading": "Alles rund um den Diff",
-      "lead": "Eine CLI, ein SDK, ein lokales Studio und ein MCP-Server, die alle dieselbe Lock-Datei lesen.",
-      "translate": {
-        "label": "Übersetzen",
-        "title": "Alles neu zu übersetzen kostet mehr",
-        "body": "Nur {sent} von {total} Übersetzungen sind neu oder geändert, also gehen nur {sent} an deinen Anbieter."
+      "heading": "Frage eine beliebige Oberfläche, erhalte dieselbe Antwort",
+      "lead": "Die CLI, das SDK, Studio und der MCP-Server lesen alle eine Lock-Datei, daher liest {locale} {stale} veraltet und {upToDate} aktuell, egal wo du fragst.",
+      "surfaces": {
+        "cli": "CLI",
+        "studio": "Studio",
+        "sdk": "SDK",
+        "mcp": "MCP-Server"
       },
-      "ci": {
-        "label": "Prüfung",
-        "title": "Fehlende Schlüssel erreichen die Produktion",
-        "body": "Der Check endet mit {code}, solange eine Locale fehlende oder veraltete Schlüssel hat. Er braucht keinen API-Schlüssel und läuft deshalb bei jedem Pull Request."
-      },
-      "integrity": {
-        "label": "Integrität",
-        "title": "Ein kaputter Platzhalter führt zu einem kaputten Bildschirm"
-      },
-      "agents": {
-        "label": "Agenten",
-        "title": "Dein Coding-Agent korrigiert Übersetzungen",
-        "body": "Registriere den MCP-Server für das Projekt, und der Agent kann den Status lesen und Übersetzungen korrigieren. Tools, die Provider-Tokens verbrauchen, bleiben deaktiviert, bis du sie zulässt."
+      "mcp": {
+        "badge": "ruft keinen Provider auf",
+        "copyAria": "MCP-Einrichtungsbefehl kopieren"
       }
     },
     "features": {

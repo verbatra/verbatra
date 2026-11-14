@@ -242,26 +242,17 @@
       "preGenerated": "pregenerado, no en vivo"
     },
     "highlights": {
-      "heading": "Todo alrededor del diff",
-      "lead": "Una CLI, un SDK, un Studio local y un servidor MCP, todos leyendo el mismo archivo de bloqueo.",
-      "translate": {
-        "label": "Traducir",
-        "title": "Volver a traducir todo cuesta más",
-        "body": "Solo {sent} de {total} traducciones son nuevas o han cambiado, así que solo {sent} van a tu proveedor."
+      "heading": "Pregunta a cualquier superficie, obtén la misma respuesta",
+      "lead": "La CLI, el SDK, Studio y el servidor MCP leen un solo archivo de bloqueo, así que {locale} muestra {stale} obsoletas y {upToDate} al día, preguntes donde preguntes.",
+      "surfaces": {
+        "cli": "CLI",
+        "studio": "Studio",
+        "sdk": "SDK",
+        "mcp": "servidor MCP"
       },
-      "ci": {
-        "label": "Comprobación",
-        "title": "Las claves que faltan llegan a producción",
-        "body": "La comprobación termina con código {code} mientras un locale tenga claves faltantes u obsoletas. No necesita clave de API, así que se ejecuta en cada pull request."
-      },
-      "integrity": {
-        "label": "Integridad",
-        "title": "Un placeholder roto estropea una pantalla"
-      },
-      "agents": {
-        "label": "Agentes",
-        "title": "Tu agente de codificación arregla las traducciones",
-        "body": "Registra el servidor MCP para el proyecto, y el agente puede leer el estado y arreglar las traducciones. Las herramientas que gastan tokens del proveedor siguen desactivadas hasta que las permitas."
+      "mcp": {
+        "badge": "no llama a ningún proveedor",
+        "copyAria": "Copiar el comando de configuración de MCP"
       }
     },
     "features": {

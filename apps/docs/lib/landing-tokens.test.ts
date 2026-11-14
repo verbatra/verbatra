@@ -58,7 +58,7 @@ describe("the landing tile surface", () => {
     ).toBe(false);
   });
 
-  it.each([".vk-tile", ".vk-deck-item", ".vk-faq-item", ".vk-banner-file", ".vk-closer"])(
+  it.each([".vk-deck-item", ".vk-faq-item", ".vk-banner-file", ".vk-closer"])(
     "paints %s from the tile tokens",
     (selector) => {
       const rule = rulesFor(rules, selector).find((entry) => entry.media === "");

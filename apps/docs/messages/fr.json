@@ -242,26 +242,17 @@
       "preGenerated": "pré-généré, pas en direct"
     },
     "highlights": {
-      "heading": "Tout autour du diff",
-      "lead": "Une CLI, un SDK, un Studio local et un serveur MCP, tous lisant le même fichier de verrouillage.",
-      "translate": {
-        "label": "Traduire",
-        "title": "Tout retraduire coûte plus cher",
-        "body": "Seules {sent} traductions sur {total} sont nouvelles ou modifiées, donc seules {sent} sont envoyées à ton fournisseur."
+      "heading": "Interroge n’importe quelle surface, obtiens la même réponse",
+      "lead": "La CLI, le SDK, Studio et le serveur MCP lisent tous le même fichier de verrouillage, donc {locale} affiche {stale} obsolètes et {upToDate} à jour, où que tu demandes.",
+      "surfaces": {
+        "cli": "CLI",
+        "studio": "Studio",
+        "sdk": "SDK",
+        "mcp": "Serveur MCP"
       },
-      "ci": {
-        "label": "Vérification",
-        "title": "Les clés manquantes arrivent en production",
-        "body": "La vérification renvoie le code {code} tant qu’une locale a des clés manquantes ou obsolètes. Elle n’a besoin d’aucune clé API et s’exécute donc sur chaque pull request."
-      },
-      "integrity": {
-        "label": "Intégrité",
-        "title": "Un placeholder cassé casse un écran"
-      },
-      "agents": {
-        "label": "Agents",
-        "title": "Ton agent de code corrige les traductions",
-        "body": "Enregistre le serveur MCP pour le projet, et l’agent peut lire le statut et corriger les traductions. Les outils qui dépensent des jetons de fournisseur restent inactifs jusqu’à ce que tu les autorises."
+      "mcp": {
+        "badge": "n’appelle aucun fournisseur",
+        "copyAria": "Copier la commande de configuration du serveur MCP"
       }
     },
     "features": {
