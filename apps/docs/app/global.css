@@ -219,6 +219,18 @@ samp {
   --grid-line: color-mix(in srgb, var(--border-default) 70%, transparent);
 }
 
+:root:lang(zh-CN) {
+  --font-sans:
+    var(--font-geist-sans, ui-sans-serif, system-ui), "PingFang SC", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root:lang(ja) {
+  --font-sans:
+    var(--font-geist-sans, ui-sans-serif, system-ui), "Hiragino Sans", "Yu Gothic UI", Meiryo,
+    "Noto Sans CJK JP", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
+}
+
 html.light {
   color-scheme: light;
 

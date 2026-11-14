@@ -261,6 +261,14 @@ Two families, loaded in `app/[lang]/layout.tsx` through `next/font/google` (lati
 differ by weight, size and tracking, not by family. You do not set a heading font per component.
 Adding a third family needs a reason that survives review.
 
+Chinese and Japanese pages ship no webfont (the CSP is untouched). `app/global.css` re-maps
+`--font-sans` under `:root:lang(zh-CN)` and `:root:lang(ja)`: Geist stays first, then the system faces for
+that script (PingFang SC, Microsoft YaHei, Noto Sans CJK SC and Noto Sans SC; Hiragino Sans, Yu Gothic UI,
+Meiryo, Noto Sans CJK JP and Noto Sans JP), then the generic fallbacks, so the Han glyph variants follow the
+page language. `--font-display` follows because it aliases `--font-sans` on the same element;
+`--font-mono` is never re-mapped. `lib/cjk-font-stacks.test.ts` pins both stacks. No `word-break` or
+`line-break` rule exists for CJK: the browser breaks those lines between characters on its own.
+
 The type scale is a major third (1.25) held in `packages/ui/src/tokens.css`: `--text-display`, `--text-h2`
 (capped at 3rem, read only by `.vk-h2`; the marquee's centered `h2`, `.vk-marquee-heading`, is a small
 mono uppercase label instead), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*`
