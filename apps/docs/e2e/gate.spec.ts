@@ -13,7 +13,9 @@ import {
   expectNoHorizontalScroll,
   expectNothingPastRightEdge,
   homeUrl,
+  installShiftCounter,
   LOCALES,
+  layoutShift,
   openInTheme,
   THEMES,
 } from "./support";
@@ -47,23 +49,6 @@ type Sample = {
   headingTop: number;
   headingBottom: number;
 };
-
-async function installShiftCounter(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const shifts = { total: 0 };
-    (window as unknown as { shifts: typeof shifts }).shifts = shifts;
-    new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) {
-        const shift = entry as PerformanceEntry & { value: number; hadRecentInput: boolean };
-        if (!shift.hadRecentInput) shifts.total += shift.value;
-      }
-    }).observe({ type: "layout-shift", buffered: true });
-  });
-}
-
-async function layoutShift(page: Page): Promise<number> {
-  return page.evaluate(() => (window as unknown as { shifts: { total: number } }).shifts.total);
-}
 
 async function openStaged(page: Page, locale: (typeof LOCALES)[number] = "en"): Promise<void> {
   await page.goto(homeUrl(locale), { waitUntil: "networkidle" });
@@ -702,6 +687,7 @@ for (const locale of LOCALES) {
         await page.evaluate(() => window.scrollTo(0, 0));
         await settle(page);
         await page.mouse.move(width / 2, height / 2);
+        const rested = new Set<number>();
         await test.step("wheel notches", async () => {
           for (let notch = 1; notch <= 80; notch += 1) {
             await page.mouse.wheel(0, 100);
@@ -713,10 +699,15 @@ for (const locale of LOCALES) {
                 `wheel ${browserName} ${locale} ${width}x${height} notch ${notch} y${y} ${svh.toFixed(1)}svh frames ${list.map((p) => p.frame.toFixed(2))} cards ${list.map((p) => p.card.toFixed(2))}`,
               );
               expectOneFrame(list, `wheel ${notch} at ${y}`);
+              rested.add(list.findIndex((paint) => paint.frame === 1));
             }
             if (svh >= GATE_PIN_SVH) break;
           }
         });
+        if (locale === "en" && width === 1440 && height === 900)
+          expect([...rested].sort(), "wheel notches rest on every state at full opacity").toEqual([
+            0, 1, 2,
+          ]);
       });
     });
   }

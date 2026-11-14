@@ -312,3 +312,20 @@ export async function expectBackwardWalkClearsStickyHead(page: Page, scope: stri
   expect(visited).toBe(count);
   expect(hidden).toEqual([]);
 }
+
+export async function installShiftCounter(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const shifts = { total: 0 };
+    (window as unknown as { shifts: typeof shifts }).shifts = shifts;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const shift = entry as PerformanceEntry & { value: number; hadRecentInput: boolean };
+        if (!shift.hadRecentInput) shifts.total += shift.value;
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+}
+
+export async function layoutShift(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as { shifts: { total: number } }).shifts.total);
+}
