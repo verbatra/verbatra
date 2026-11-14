@@ -29,16 +29,18 @@ import {
   GATE_DROP_PX,
   GATE_FRAME_PAINTED,
   GATE_HOLD_FLOOR_SVH,
-  GATE_LINE_SHIFT_PX,
   GATE_MARKER_MIN_PX,
   GATE_PHASES,
   GATE_PIN_SVH,
+  GATE_RISE_OPAQUE,
+  GATE_RISE_SVH,
   GATE_SLIDE_PX,
   GATE_SLIDE_SCALE,
   GATE_SLIDE_WIDE_PX,
   GATE_SLIDE_WIDE_REM,
   GATE_STAMP_SCALE,
   GATE_SWAP_CEILING_SVH,
+  gateDimWindowSvh,
   gateFrameFade,
   gateFrameOpacity,
   gatePercent,
@@ -447,61 +449,90 @@ describe("the gate stylesheet", () => {
     for (const gone of ["vk-gate-fade-in", "vk-gate-fade-out"]) expect(css).not.toContain(gone);
   });
 
-  it("staggers the CLI lines of the last two frames, a line after the one before, the refused one last, the first with its card", () => {
-    const lineRule = rules.find(
-      (rule) => rule.selector === ".vk-gate-cli .vk-lock-line" && rule.media.includes("@supports"),
-    );
-    expect(lineRule?.declarations["animation-name"]).toBe("vk-gate-line");
-    expect(lineRule?.declarations["animation-fill-mode"]).toBe("backwards");
-    expect(lineRule?.declarations["animation-timeline"]).toBe("--vk-gate");
-    expect(lineRule?.declarations["animation-timing-function"]).toBe("var(--ease-standard)");
-    expect(lineRule?.declarations["animation-range"]).toBe(
-      "contain var(--vk-line-start) contain calc(var(--vk-line-start) + var(--vk-lines-span))",
-    );
-    expect(lineRule?.declarations["--vk-line-start"]).toBe(
-      "calc(var(--vk-lines-from) + var(--n, 0) * var(--vk-lines-step))",
-    );
-    for (const [index, state] of STATES.entries()) {
-      const lines = GATE_PHASES[index]?.lines;
-      const frame = rules.find(
-        (rule) =>
-          rule.selector === `.vk-gate-frame[data-state="${state}"]` &&
-          rule.media.includes("@supports") &&
-          "--vk-lines-from" in rule.declarations,
-      );
-      if (lines === null || lines === undefined) {
-        expect(frame, state).toBeUndefined();
-        continue;
-      }
-      expect(frame?.declarations["--vk-lines-from"]).toBe(gatePercent(lines.from));
-      expect(frame?.declarations["--vk-lines-step"]).toBe(gatePercent(lines.step));
-      expect(frame?.declarations["--vk-lines-span"]).toBe(gatePercent(lines.span));
-      const rows = Array.from(
-        root.querySelectorAll(`figure[data-state='${state}'] .vk-gate-cli .vk-lock-line`),
-      ).map((line) => Number((line as HTMLElement).style.getPropertyValue("--n")));
-      expect(rows.length).toBeGreaterThan(2);
-      expect(new Set(rows).size).toBe(rows.length);
-      expect(Math.min(...rows)).toBe(0);
-      expect(Math.max(...rows)).toBe(rows.length - 1);
-      const marked = root.querySelector(
-        `figure[data-state='${state}'] .vk-gate-cli .vk-lock-line[data-mark='refused']`,
-      ) as HTMLElement | null;
-      if (marked !== null)
-        expect(Number(marked.style.getPropertyValue("--n"))).toBe(rows.length - 1);
-      const last = lines.from + (rows.length - 1) * lines.step + lines.span;
-      expect(last).toBeLessThanOrEqual(GATE_PHASES[index]?.element?.[0] ?? last);
-      expect(last, `${state} last line lands with its card`).toBeLessThanOrEqual(
-        GATE_PHASES[index]?.enterCard?.[1] ?? 0,
-      );
-      expect(lines.from - (GATE_PHASES[index]?.enterCard?.[0] ?? 0)).toBeLessThanOrEqual(1);
-      expect(lines.from).toBeGreaterThanOrEqual(GATE_PHASES[index]?.enterCard?.[0] ?? 0);
-    }
-    expect(GATE_LINE_SHIFT_PX).toBe(24);
+  it("moves the CLI lines with their card and animates no line of the pinned block", () => {
+    const supported = rules.filter((rule) => rule.media.includes("@supports"));
     expect(
-      keyframes.find(
-        (rule) => rule.media.endsWith("@keyframes vk-gate-line") && rule.selector === "from",
-      )?.declarations,
-    ).toEqual({ opacity: "0", transform: `translateX(${GATE_LINE_SHIFT_PX}px)` });
+      supported.filter((rule) => rule.selector.includes(".vk-lock-line")),
+      "no rule in the pinned block selects a line",
+    ).toEqual([]);
+    expect(
+      supported.filter((rule) =>
+        Object.keys(rule.declarations).some((name) => name.startsWith("--vk-line")),
+      ),
+    ).toEqual([]);
+    expect(keyframes.filter((rule) => rule.media.endsWith("@keyframes vk-gate-line"))).toEqual([]);
+    expect(docsGlobalCss()).not.toMatch(/vk-gate-line|--vk-lines?-/);
+    for (const phases of GATE_PHASES) expect(phases).not.toHaveProperty("lines");
+    expect(root.innerHTML).not.toContain("--n:");
+    for (const state of ["refused", "stale"]) {
+      const lines = root.querySelectorAll(
+        `figure[data-state='${state}'] .vk-gate-cli .vk-lock-line`,
+      );
+      expect(lines.length, state).toBeGreaterThan(2);
+      for (const line of lines) expect((line as HTMLElement).getAttribute("style")).toBeNull();
+    }
+  });
+
+  it("raises the incoming frame to 0.9 or more within 2svh after each cut, in the schedule and in the keyframes", () => {
+    expect(GATE_RISE_SVH).toBe(2);
+    expect(GATE_RISE_OPAQUE).toBe(0.9);
+    for (const [index, cut] of GATE_CUTS.entries()) {
+      const incoming = FRAME_SETS[index + 1] ?? "";
+      expect(gateFrameOpacity(index + 1, cut)).toBeCloseTo(GATE_DIM_FLOOR, 5);
+      expect(gateFrameOpacity(index + 1, cut + GATE_RISE_SVH)).toBe(1);
+      expect(gateFrameOpacity(index + 1, cut + GATE_RISE_SVH)).toBeGreaterThanOrEqual(
+        GATE_RISE_OPAQUE,
+      );
+      expect(opacityAt(incoming, percentOf(cut + 2))).toBeGreaterThanOrEqual(GATE_RISE_OPAQUE);
+      let reached = Number.NaN;
+      for (let step = 0; step <= 400 && Number.isNaN(reached); step += 1) {
+        const along = step / 100;
+        if (opacityAt(incoming, percentOf(cut + along)) >= GATE_RISE_OPAQUE) reached = along;
+      }
+      expect(reached).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("states the dim window around each cut as the dim before it plus the rise after it, and the skill says the same", () => {
+    expect(gateDimWindowSvh()).toBe(GATE_DIM_SVH + GATE_RISE_SVH);
+    const cut = GATE_CUTS[0] ?? 0;
+    let below = 0;
+    for (let step = -500; step <= 500; step += 1) {
+      const svh = cut + step / 100;
+      const outgoing = gateFrameOpacity(0, svh);
+      const incoming = gateFrameOpacity(1, svh);
+      const painted = outgoing > 0 ? outgoing : incoming;
+      if (painted < GATE_RISE_OPAQUE) below += 0.01;
+    }
+    const skill = readFileSync(
+      join(import.meta.dirname, "../../../../.claude/skills/docs-ui/SKILL.md"),
+      "utf8",
+    );
+    expect(skill).toContain(
+      `a dim window of ${gateDimWindowSvh()}svh around each cut: ${GATE_DIM_SVH}svh of dim before it and ${GATE_RISE_SVH}svh of rise after it, the frame between ${GATE_DIM_FLOOR} and 1 and below ${GATE_RISE_OPAQUE} for about ${below.toFixed(1)}svh`,
+    );
+    expect(skill).toContain(`over the next ${GATE_RISE_SVH}svh (\`GATE_RISE_SVH\``);
+    expect(skill).not.toContain("every hold and every static state meets it, and only");
+    expect(skill).not.toMatch(/--vk-lines|--n` per line|slide in 24px/);
+  });
+
+  it("lands an in-page jump to #gate on the start of the pin by cancelling the section's own top padding, only while the stage is pinned", () => {
+    const rule = rules.find((candidate) => candidate.selector === ".vk-home section.vk-gate[id]");
+    expect(rule?.declarations["scroll-margin-top"]).toBe("calc(-1 * var(--section-rhythm))");
+    expect(rule?.media).toContain("@supports (animation-timeline: view())");
+    expect(rule?.media).toContain("min-width: 64rem");
+    const padding = rules.find(
+      (candidate) =>
+        candidate.selector ===
+        ".vk-home section[id]:is(.vk-rhythm-lg, .vk-rhythm-md, .vk-rhythm-sm)",
+    );
+    expect(padding?.declarations["padding-block-start"]).toBe("var(--section-rhythm)");
+    expect(root.querySelector("section#gate")?.className).toContain("vk-rhythm-md");
+    const skill = readFileSync(
+      join(import.meta.dirname, "../../../../.claude/skills/docs-ui/SKILL.md"),
+      "utf8",
+    );
+    expect(skill).toContain("An in-page jump to `#gate` lands on the start of the pin");
   });
 
   it("times the chip drop, the stamp, the exit badge and the marker fill from the schedule", () => {
@@ -658,10 +689,10 @@ describe("the gate stylesheet", () => {
       expect(opacityAt(incoming, (last + edge) / 2)).toBe(0);
       expect(opacityAt(incoming, edge - 0.0001)).toBe(0);
       expect(opacityAt(incoming, edge)).toBeCloseTo(GATE_DIM_FLOOR, 5);
-      expect(opacityAt(incoming, percentOf(cut + GATE_DIM_SVH))).toBeCloseTo(1, 3);
+      expect(opacityAt(incoming, percentOf(cut + GATE_RISE_SVH))).toBeCloseTo(1, 3);
       const fade = gateFrameFade(index);
       expect(fade.fall?.[0]).toBe(cut - GATE_DIM_SVH);
-      expect(gateFrameFade(index + 1).rise).toEqual([cut, cut + GATE_DIM_SVH]);
+      expect(gateFrameFade(index + 1).rise).toEqual([cut, cut + GATE_RISE_SVH]);
     }
   });
 

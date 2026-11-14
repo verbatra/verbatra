@@ -5152,6 +5152,10 @@ html.light .vk-deck-shot-light {
       }
     }
 
+    .vk-home section.vk-gate[id] {
+      scroll-margin-top: calc(-1 * var(--section-rhythm));
+    }
+
     .vk-gate-card {
       border-color: var(--border-accent);
       box-shadow: 0 30px 80px -24px var(--halo-strong);
@@ -5210,9 +5214,6 @@ html.light .vk-deck-shot-light {
 
     .vk-gate-frame[data-state="refused"] {
       animation-name: vk-gate-refused;
-      --vk-lines-from: 30.667%;
-      --vk-lines-step: 1%;
-      --vk-lines-span: 4%;
     }
 
     .vk-gate-frame[data-state="refused"] > .vk-lock-caption {
@@ -5237,9 +5238,6 @@ html.light .vk-deck-shot-light {
 
     .vk-gate-frame[data-state="stale"] {
       animation-name: vk-gate-stale;
-      --vk-lines-from: 73.333%;
-      --vk-lines-step: 1%;
-      --vk-lines-span: 4%;
     }
 
     .vk-gate-frame[data-state="stale"] > .vk-lock-caption {
@@ -5253,16 +5251,6 @@ html.light .vk-deck-shot-light {
     .vk-gate-frame[data-state="stale"] > .vk-gate-card {
       animation-name: vk-gate-card-in;
       animation-range: contain 73.333% contain 81.333%;
-      animation-fill-mode: backwards;
-      animation-timing-function: var(--ease-standard);
-      animation-timeline: --vk-gate;
-    }
-
-    .vk-gate-cli .vk-lock-line {
-      --vk-line-start: calc(var(--vk-lines-from) + var(--n, 0) * var(--vk-lines-step));
-      animation-name: vk-gate-line;
-      animation-range: contain var(--vk-line-start) contain
-        calc(var(--vk-line-start) + var(--vk-lines-span));
       animation-fill-mode: backwards;
       animation-timing-function: var(--ease-standard);
       animation-timeline: --vk-gate;
@@ -5371,7 +5359,7 @@ html.light .vk-deck-shot-light {
         pointer-events: auto;
       }
 
-      32%,
+      31.333%,
       70.667% {
         opacity: 1;
         pointer-events: auto;
@@ -5403,7 +5391,7 @@ html.light .vk-deck-shot-light {
         pointer-events: auto;
       }
 
-      74.667%,
+      74%,
       100% {
         opacity: 1;
         pointer-events: auto;
@@ -5447,18 +5435,6 @@ html.light .vk-deck-shot-light {
 
       to {
         transform: translateX(calc(-1 * var(--vk-gate-slide))) scale(0.94);
-      }
-    }
-
-    @keyframes vk-gate-line {
-      from {
-        opacity: 0;
-        transform: translateX(24px);
-      }
-
-      to {
-        opacity: 1;
-        transform: none;
       }
     }
 

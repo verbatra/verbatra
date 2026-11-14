@@ -395,6 +395,9 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
+      '@verbatra/ai-providers':
+        specifier: workspace:*
+        version: link:../../packages/ai-providers
       '@verbatra/cli':
         specifier: workspace:*
         version: link:../../packages/cli

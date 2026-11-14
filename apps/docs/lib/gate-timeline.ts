@@ -1,15 +1,8 @@
 export type SvhRange = readonly [number, number];
 
-export type GateLines = {
-  readonly from: number;
-  readonly step: number;
-  readonly span: number;
-};
-
 export type GateFramePhases = {
   readonly enterCaption: SvhRange | null;
   readonly enterCard: SvhRange | null;
-  readonly lines: GateLines | null;
   readonly element: SvhRange | null;
   readonly marker: SvhRange;
   readonly hold: SvhRange;
@@ -25,8 +18,6 @@ export const GATE_SLIDE_WIDE_PX = 96;
 
 export const GATE_SLIDE_WIDE_REM = 80;
 
-export const GATE_LINE_SHIFT_PX = 24;
-
 export const GATE_DROP_PX = 12;
 
 export const GATE_SLIDE_SCALE = 0.94;
@@ -36,6 +27,10 @@ export const GATE_STAMP_SCALE = 1.6;
 export const GATE_CUTS: ReadonlyArray<number> = [45, 109];
 
 export const GATE_DIM_SVH = 3;
+
+export const GATE_RISE_SVH = 2;
+
+export const GATE_RISE_OPAQUE = 0.9;
 
 export const GATE_DIM_FLOOR = 0.35;
 
@@ -55,7 +50,6 @@ export const GATE_PHASES: ReadonlyArray<GateFramePhases> = [
   {
     enterCaption: null,
     enterCard: null,
-    lines: null,
     element: [2, 6],
     marker: [1, 45],
     hold: [6, 30],
@@ -65,7 +59,6 @@ export const GATE_PHASES: ReadonlyArray<GateFramePhases> = [
   {
     enterCaption: [45, 55],
     enterCard: [46, 58],
-    lines: { from: 46, step: 1.5, span: 6 },
     element: [64, 70],
     marker: [45, 109],
     hold: [70, 94],
@@ -75,7 +68,6 @@ export const GATE_PHASES: ReadonlyArray<GateFramePhases> = [
   {
     enterCaption: [109, 119],
     enterCard: [110, 122],
-    lines: { from: 110, step: 1.5, span: 6 },
     element: [122, 126],
     marker: [109, 149],
     hold: [126, 150],
@@ -88,7 +80,7 @@ export function gateFrameFade(index: number): { rise: SvhRange | null; fall: Svh
   const cutIn = GATE_CUTS[index - 1];
   const cutOut = GATE_CUTS[index];
   return {
-    rise: cutIn === undefined ? null : [cutIn, Number((cutIn + GATE_DIM_SVH).toFixed(3))],
+    rise: cutIn === undefined ? null : [cutIn, Number((cutIn + GATE_RISE_SVH).toFixed(3))],
     fall:
       cutOut === undefined
         ? null
@@ -125,4 +117,8 @@ export function gateSwapWindow(index: number): SvhRange {
   const previous = GATE_PHASES[index - 1];
   const phases = GATE_PHASES[index];
   return [previous?.hold[1] ?? 0, phases?.enterCard?.[1] ?? 0];
+}
+
+export function gateDimWindowSvh(): number {
+  return GATE_DIM_SVH + GATE_RISE_SVH;
 }

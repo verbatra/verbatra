@@ -13,7 +13,9 @@ import {
   expectNoHorizontalScroll,
   expectNothingPastRightEdge,
   homeUrl,
+  installShiftCounter,
   LOCALES,
+  layoutShift,
   openInTheme,
   THEMES,
 } from "./support";
@@ -47,23 +49,6 @@ type Sample = {
   headingTop: number;
   headingBottom: number;
 };
-
-async function installShiftCounter(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const shifts = { total: 0 };
-    (window as unknown as { shifts: typeof shifts }).shifts = shifts;
-    new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) {
-        const shift = entry as PerformanceEntry & { value: number; hadRecentInput: boolean };
-        if (!shift.hadRecentInput) shifts.total += shift.value;
-      }
-    }).observe({ type: "layout-shift", buffered: true });
-  });
-}
-
-async function layoutShift(page: Page): Promise<number> {
-  return page.evaluate(() => (window as unknown as { shifts: { total: number } }).shifts.total);
-}
 
 async function openStaged(page: Page, locale: (typeof LOCALES)[number] = "en"): Promise<void> {
   await page.goto(homeUrl(locale), { waitUntil: "networkidle" });
@@ -491,6 +476,31 @@ for (const [width, height] of [
       expect(report.clippers).toEqual(["div.vk-home.w-full"]);
     });
 
+    test("lands /#gate on the start of the pin, with the heading and the card in view", async ({
+      page,
+    }) => {
+      await page.goto(`${homeUrl("en")}#gate`, { waitUntil: "networkidle" });
+      await page.evaluate(() => document.fonts.ready);
+      await page.waitForTimeout(500);
+      const start = await pinStart(page);
+      const scrolled = await page.evaluate(() => window.scrollY);
+      expect(Math.abs(scrolled - start)).toBeLessThanOrEqual(2);
+      const view = await page.evaluate(() => {
+        const heading = document.querySelector("#gate-heading")?.getBoundingClientRect();
+        const card = document
+          .querySelector(".vk-gate-frame .vk-gate-card")
+          ?.getBoundingClientRect();
+        return {
+          headingTop: heading?.top ?? 0,
+          cardBottom: card?.bottom ?? 0,
+          above: (heading?.top ?? 0) - 56,
+        };
+      });
+      expect(view.headingTop).toBeGreaterThanOrEqual(56);
+      expect(view.cardBottom).toBeLessThanOrEqual(height);
+      expect(view.above).toBeLessThanOrEqual(height / 3);
+    });
+
     test("shows the chip of the first frame before the pin and drops it first", async ({
       page,
     }) => {
@@ -526,7 +536,7 @@ for (const [width, height] of [
   });
 }
 
-type Paint = { frame: number; caption: number; card: number };
+type Paint = { frame: number; caption: number; card: number; lineGaps: number };
 
 async function paints(page: Page): Promise<Paint[]> {
   return page.evaluate(() =>
@@ -534,10 +544,15 @@ async function paints(page: Page): Promise<Paint[]> {
       const frameOpacity = Number(getComputedStyle(frame).opacity);
       const part = (selector: string) =>
         frameOpacity * Number(getComputedStyle(frame.querySelector(selector) as Element).opacity);
+      const lineGaps = [...frame.querySelectorAll(".vk-lock-line")].filter((line) => {
+        const style = getComputedStyle(line);
+        return style.opacity !== "1" || style.transform !== "none";
+      }).length;
       return {
         frame: frameOpacity,
         caption: part(":scope > figcaption"),
         card: part(":scope > .vk-gate-card"),
+        lineGaps,
       };
     }),
   );
@@ -549,6 +564,7 @@ function expectOneFrame(list: Paint[], label: string): void {
   const [only] = painted;
   expect(list[only ?? 0]?.frame, label).toBeGreaterThanOrEqual(GATE_CARD_MIN_PAINT);
   expect(list[only ?? 0]?.card, `${label}: card`).toBeGreaterThanOrEqual(GATE_CARD_MIN_PAINT);
+  expect(list[only ?? 0]?.lineGaps, `${label}: lines missing or lagging their card`).toBe(0);
   list.forEach((paint, index) => {
     if (index === only) return;
     expect(paint.card, `${label}: second card ${index}`).toBeLessThanOrEqual(GATE_FRAME_PAINTED);
@@ -556,6 +572,11 @@ function expectOneFrame(list: Paint[], label: string): void {
       GATE_FRAME_PAINTED,
     );
   });
+}
+
+function recordFullFrame(rested: Set<number>, list: Paint[]): void {
+  const full = list.findIndex((paint) => paint.frame === 1);
+  if (full >= 0) rested.add(full);
 }
 
 async function sweepFrames(
@@ -580,10 +601,15 @@ async function sweepFrames(
             const part = (selector: string) =>
               frameOpacity *
               Number(getComputedStyle(frame.querySelector(selector) as Element).opacity);
+            const lineGaps = [...frame.querySelectorAll(".vk-lock-line")].filter((line) => {
+              const style = getComputedStyle(line);
+              return style.opacity !== "1" || style.transform !== "none";
+            }).length;
             return {
               frame: frameOpacity,
               caption: part(":scope > figcaption"),
               card: part(":scope > .vk-gate-card"),
+              lineGaps,
             };
           }),
         });
@@ -623,10 +649,12 @@ for (const locale of LOCALES) {
         await openStaged(page, locale);
         let two = 0;
         let lowest = 1;
+        let gaps = 0;
         await test.step("2px sweep", async () => {
           for (const { at, list } of await sweepFrames(page, 2)) {
             const painted = list.filter((paint) => paint.frame > GATE_FRAME_PAINTED);
             if (painted.length !== 1) two += 1;
+            if (painted.some((paint) => paint.lineGaps > 0)) gaps += 1;
             expectOneFrame(list, `sweep ${at}px`);
             lowest = Math.min(lowest, ...painted.map((paint) => paint.frame));
             const captionOwner = list.flatMap((paint, i) =>
@@ -639,9 +667,10 @@ for (const locale of LOCALES) {
           }
         });
         console.log(
-          `cut ${browserName} ${locale} ${width}x${height}: two frames ${two}, lowest frame ${lowest.toFixed(2)}`,
+          `cut ${browserName} ${locale} ${width}x${height}: two frames ${two}, positions with a missing line ${gaps}, lowest frame ${lowest.toFixed(2)}`,
         );
         expect(two).toBe(0);
+        expect(gaps).toBe(0);
         await page.evaluate(() => window.scrollTo(0, 0));
         await settle(page);
         const start = await pinStart(page);
@@ -663,6 +692,7 @@ for (const locale of LOCALES) {
         await page.evaluate(() => window.scrollTo(0, 0));
         await settle(page);
         await page.mouse.move(width / 2, height / 2);
+        const rested = new Set<number>();
         await test.step("wheel notches", async () => {
           for (let notch = 1; notch <= 80; notch += 1) {
             await page.mouse.wheel(0, 100);
@@ -674,10 +704,15 @@ for (const locale of LOCALES) {
                 `wheel ${browserName} ${locale} ${width}x${height} notch ${notch} y${y} ${svh.toFixed(1)}svh frames ${list.map((p) => p.frame.toFixed(2))} cards ${list.map((p) => p.card.toFixed(2))}`,
               );
               expectOneFrame(list, `wheel ${notch} at ${y}`);
+              recordFullFrame(rested, list);
             }
             if (svh >= GATE_PIN_SVH) break;
           }
         });
+        if (locale === "en" && width === 1440 && height === 900)
+          expect([...rested].sort(), "wheel notches rest on every state at full opacity").toEqual([
+            0, 1, 2,
+          ]);
       });
     });
   }

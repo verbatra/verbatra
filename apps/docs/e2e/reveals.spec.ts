@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "playwright/test";
+import { installShiftCounter, layoutShift } from "./support";
 
 const DECK = [".vk-deck-command", ".vk-deck-card"] as const;
 
@@ -18,20 +19,6 @@ const MAX_DISTANCE_PX = 16;
 const MAX_DURATION_S = 0.56;
 const MAX_DELAY_S = 0.35;
 
-async function installShiftCounter(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const holder = window as unknown as { shifts: number };
-    holder.shifts = 0;
-    new PerformanceObserver((list) => {
-      for (const entry of list.getEntries() as unknown as Array<{
-        value: number;
-        hadRecentInput: boolean;
-      }>)
-        if (!entry.hadRecentInput) holder.shifts += entry.value;
-    }).observe({ type: "layout-shift", buffered: true });
-  });
-}
-
 async function walk(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const step = Math.round(innerHeight * 0.5);
@@ -40,10 +27,6 @@ async function walk(page: Page): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, 120));
     }
   });
-}
-
-async function shifts(page: Page): Promise<number> {
-  return page.evaluate(() => (window as unknown as { shifts: number }).shifts);
 }
 
 type State = { revealed: boolean; opacity: number; offset: number };
@@ -142,7 +125,7 @@ for (const [width, height] of [
       await installShiftCounter(page);
       await page.goto("/");
       await walk(page);
-      expect(await shifts(page)).toBe(0);
+      expect(await layoutShift(page)).toBe(0);
     });
   });
 }
