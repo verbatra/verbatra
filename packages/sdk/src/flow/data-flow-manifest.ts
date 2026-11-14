@@ -128,8 +128,9 @@ export interface DataFlowSent {
    */
   readonly fields: readonly DataFlowField[];
   /**
-   * Whether requests carry the API key read from the environment: `required`, `optional` (sent only
-   * when its variable is set), or `none`.
+   * Whether requests carry the API key read from the environment: `required`, `optional` (a
+   * self-hosted provider: LibreTranslate sends the key only when its variable is set, and
+   * openai-compatible sends a fixed placeholder when it is not), or `none`.
    */
   readonly apiKey: DataFlowApiKey | "none";
   /**

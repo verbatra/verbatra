@@ -20,8 +20,8 @@ export interface LockLocaleState {
   /** Number of source keys with a non-blank value and no translation in this locale yet. */
   readonly missing: number;
   /**
-   * Number of keys with a non-blank source value whose source text changed since the recorded
-   * baseline.
+   * Number of keys with a non-blank source value and a translation in this locale whose recorded
+   * baseline no longer matches the source (its text, description, meaning or plural flag changed).
    */
   readonly stale: number;
   /**

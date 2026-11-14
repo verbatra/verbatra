@@ -179,8 +179,9 @@
  *   milliseconds of at least 0. Thrown by {@link translate}, {@link importWorkbook},
  *   {@link retranslateEntry}, {@link retranslateEntries}, {@link editEntry}, {@link approveEntry},
  *   {@link rejectEntry}, {@link approveEntries}, {@link rejectEntries}, {@link approveLocale},
- *   {@link updateGlossaryTerm}, and {@link setKeyLengthLimit} before anything is read or locked, and
- *   by {@link watch} once at startup, before any watching begins.
+ *   {@link applyValueReplace}, {@link updateGlossaryTerm}, {@link editConfiguredGlossaryTerm}, and
+ *   {@link setKeyLengthLimit} before anything is read or locked, and by {@link watch} once at
+ *   startup, before any watching begins.
  * - `PAGE_CURSOR_INVALID`: the `cursor` passed to {@link localeValuesPage} or
  *   {@link provenanceReportPage} is malformed, longer than {@link PAGE_CURSOR_MAX_LENGTH}, was made
  *   under other filters, or points at a key that is no longer where it was, because the files

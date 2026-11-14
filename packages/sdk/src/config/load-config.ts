@@ -85,8 +85,8 @@ export type ConfigSource =
   | {
       /**
        * `search` means cosmiconfig found the file by walking up from the working directory, up to
-       * the nearest `.git` directory or, failing that, the home directory or the working directory
-       * itself (see {@link loadConfigWithMeta}); `explicit` means the caller named it through
+       * the nearest directory holding a `.git` entry or, failing that, the home directory or the
+       * working directory itself (see {@link loadConfigWithMeta}); `explicit` means the caller named it through
        * `configPath`.
        */
       readonly kind: "search" | "explicit";
@@ -321,9 +321,10 @@ async function loadExplicitWithMeta(
  *
  * Resolution order is: an explicit `configOverride`, then an explicit `configPath`, then a
  * cosmiconfig search upward from `cwd` across `verbatra.config.ts`, `.js` and `.cjs`, the
- * `.verbatrarc` family, and a `verbatra` property in `package.json`. The upward search stops at the nearest ancestor directory
- * containing a `.git` entry; if none is found, it stops at the user's home directory when that is an
- * ancestor of `cwd`, and otherwise it does not search above `cwd` at all, so a nested workspace
+ * `.verbatrarc` family, and a `verbatra` property in `package.json`. The upward search stops at the
+ * nearest directory, `cwd` itself included, containing a `.git` entry (a directory or, in a
+ * worktree or submodule, a file); if none is found, it stops at the user's home directory when that
+ * is an ancestor of `cwd`, and otherwise it does not search above `cwd` at all, so a nested workspace
  * package finds a config at its monorepo root without wandering above it, and a project outside the
  * home directory tree (a CI checkout, for instance) never triggers an unbounded walk to the
  * filesystem root. A config file outside that directory chain, including cosmiconfig's own OS-level
@@ -339,7 +340,7 @@ async function loadExplicitWithMeta(
  * function, so the import resolves to the running version even when a different, conflicting version
  * of either package also happens to be reachable from the config file's own location. A package is
  * only aliased when its own entry point can be resolved from the running code; otherwise the import
- * falls back to jiti's ordinary bare-specifier resolution, unchanged from before this behavior existed.
+ * falls back to jiti's ordinary bare-specifier resolution.
  *
  * @param options - Where and how to look for the config.
  * @returns The validated config with its config-source and glossary provenance.
@@ -405,8 +406,9 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
  * pass the result to {@link translate}, {@link check}, {@link diff}, or any other entry point.
  *
  * Resolution order is an explicit `configOverride`, then an explicit `configPath`, then a
- * cosmiconfig search upward from `cwd`, stopping at the nearest ancestor `.git` directory, or
- * failing that, the user's home directory when it is an ancestor of `cwd`, or failing that, `cwd`
+ * cosmiconfig search upward from `cwd`, stopping at the nearest directory containing a `.git`
+ * entry (a directory or, in a worktree or submodule, a file), `cwd` itself included, or failing
+ * that, the user's home directory when it is an ancestor of `cwd`, or failing that, `cwd`
  * itself. A glossary declared as a file path is read and validated here, so the returned
  * {@link VerbatraConfig} always carries a glossary already held in memory (a version 1 term map or
  * a version 2 definition).

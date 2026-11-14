@@ -160,8 +160,10 @@ export interface RetranslateEntriesResult {
 /**
  * Thrown by {@link approveEntries}, {@link rejectEntries}, and {@link retranslateEntries} when an
  * error that is not the outcome of one entry stops a batch part way, such as an unexpected
- * file-system failure. The entries before it were carried out and their writes are on disk; the
- * entry it names and every entry after it were not. The original error is the `cause`.
+ * file-system failure. The entries before it were carried out and their writes are on disk. The
+ * entry it names stopped part way, so some of its writes may already be on disk (and, for a
+ * retranslation, its provider call spent); every entry after it was not attempted. The original
+ * error is the `cause`.
  */
 export class BatchInterruptedError<R = ReviewBatchOutcome | RetranslateBatchOutcome> extends Error {
   /** The outcomes of the entries completed before the batch stopped, in the order given. */
@@ -354,7 +356,9 @@ async function decideEntries(
 
 /**
  * Approves several reviewed translations in one call, one {@link approveEntry} per entry, in the
- * order given. It writes only the provenance file and calls no provider.
+ * order given. It writes only the provenance file, apart from first moving the state that a
+ * respelled spelling of the locale (such as `pt_BR` for `pt-BR`) holds in the lock-file,
+ * translation memory and provenance file to the configured code, and calls no provider.
  *
  * Every entry is decided on its own, with the rules of {@link approveEntry}: it is refused unless
  * the key's current translation is its `expectedValue` and is up to date with its source. A

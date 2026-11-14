@@ -450,10 +450,13 @@ function overallConfidence(
  * or `app_en.arb`, a directory such as `locales/de/`, `de.lproj/`, or Android's `values-de/`), and
  * keeps the file pattern that covers the most locales. A tie between patterns is reported as a
  * `layout` ambiguity rather than guessed. The format is the one whose adapter `canHandle` claims
- * every matched file given its content; when several do, as every JSON adapter does for `.json`,
- * a single matching i18n library in `package.json` decides, and otherwise it is reported as a
- * `format` ambiguity listing the candidates. With no locale file at all, the `package.json`
- * dependencies alone decide the format, at `low` confidence.
+ * every one of the first 20 matched files (sorted by path), given a leading sample of each; when
+ * several do, as every JSON adapter does for `.json`, a single matching i18n library in
+ * `package.json` decides, and otherwise it is reported as a `format` ambiguity listing the
+ * candidates. With no locale file at all, a single matching `package.json` dependency alone
+ * decides the format at `low` confidence (`medium` when the layout is ambiguous or no adapter
+ * claims all the sampled files); several matching dependencies are reported as a `format`
+ * ambiguity.
  *
  * A single-file layout is only accepted when its path looks like a locale directory (such as
  * `locales/`, `i18n/`, `lang/`, or `res/`) or its extension is translation-only (such as `.po` or

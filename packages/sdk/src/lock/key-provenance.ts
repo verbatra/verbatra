@@ -63,7 +63,10 @@ export interface KeyProvenance {
   readonly model?: string;
   /** Whether the current value was reviewed. Always `unreviewed` for `unrecorded` and `external`. */
   readonly reviewState: KeyReviewState;
-  /** The reviewer named when the review decision was recorded, if one was. */
+  /**
+   * The reviewer named when the review decision was recorded, if one was. Absent when the value
+   * reads as `unreviewed`, including an approval the source text has since outdated.
+   */
   readonly reviewer?: string;
 }
 

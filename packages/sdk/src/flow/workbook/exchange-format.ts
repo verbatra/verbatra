@@ -44,7 +44,10 @@ const exchangeFormatMembers: { [K in ExchangeFormat]: K } = {
  */
 export const EXCHANGE_FORMATS: readonly ExchangeFormat[] = Object.values(exchangeFormatMembers);
 
-/** The {@link ExchangeFormat} {@link exportWorkbook} and {@link importWorkbook} use when the caller names none. */
+/**
+ * The {@link ExchangeFormat} {@link exportWorkbook} uses when the caller names none, and
+ * {@link importWorkbook} when none is named and none can be inferred from the path or the directory.
+ */
 export const DEFAULT_EXCHANGE_FORMAT = "xlsx" satisfies ExchangeFormat;
 
 export type DirectoryFormat = DelimitedFormat | XliffFormat;

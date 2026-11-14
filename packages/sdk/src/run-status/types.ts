@@ -40,7 +40,8 @@ export interface RunStatusFile {
   /** Token usage summed across every locale. Absent when the provider does not report usage. */
   readonly usage?: UsageSummary;
   /**
-   * The token budget in force during the run, present only when one was configured. A snapshot
+   * The token budget in force during the run, present only when the run had a ceiling, from the
+   * config or the run's own `maxTokens`. A snapshot
    * written before the budget was enforced, when `supported: false` meant nothing was counted at
    * all, has such a budget left out rather than read as a count of zero.
    */

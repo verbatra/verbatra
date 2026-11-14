@@ -87,7 +87,8 @@ export interface PseudolocalizeInput {
    * derives its layout direction from the locale flips without further setup. In `bidi` mode an
    * `i18next-json` plural keyed by suffix also gets every CLDR category the pseudolocale's
    * language needs and the source lacks (for `ar-XB`, `_zero`, `_two`, `_few` and `_many`), filled
-   * from the source's `other` form, so no count falls back to another language. It must not be the
+   * from the source's `other` form, or its `one` or first non-blank form when `other` is missing
+   * or blank, so no count falls back to another language. It must not be the
    * source locale or any configured target locale, compared case-insensitively, so a pseudolocale
    * can never stand in for a real translation.
    */

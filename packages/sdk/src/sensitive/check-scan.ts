@@ -20,7 +20,10 @@ export interface SensitiveKeyFinding {
   readonly key: string;
   /** Where in the key the match was found. */
   readonly fields: readonly SensitiveField[];
-  /** The detectors that matched, and `pattern` for a configured pattern. */
+  /**
+   * The detectors that matched, `pattern` for a configured pattern, and `pattern-timeout-<n>` (its
+   * index) for a configured pattern that ran out of time.
+   */
   readonly detectors: readonly SensitiveFindingSource[];
 }
 
@@ -30,7 +33,7 @@ export interface CheckSensitiveSummary {
   readonly findings: readonly SensitiveKeyFinding[];
   /**
    * How many glossary terms, across every reported target locale, hold a match in their source,
-   * translation, forbidden renderings or notes, or as a do-not-translate term.
+   * translation, forbidden renderings, note or part of speech, or as a do-not-translate term.
    */
   readonly glossaryTerms: number;
 }

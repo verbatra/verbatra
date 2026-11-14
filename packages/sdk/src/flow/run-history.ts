@@ -20,7 +20,8 @@ export interface RunHistoryInput {
   readonly cwd?: string;
   /**
    * How many of the newest records to return. A value below 1 returns one record, a value above
-   * 200 returns 200, and a value that is not a number returns the default of 50.
+   * 200 returns 200, and a value that is not a finite number, including `Infinity`, returns the
+   * default of 50.
    */
   readonly limit?: number;
 }

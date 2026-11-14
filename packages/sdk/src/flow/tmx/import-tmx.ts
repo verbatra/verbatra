@@ -137,7 +137,7 @@ export interface ImportTmxLocaleResult {
 export interface TmxLanguageReport {
   /** The tag exactly as the file spelled it. */
   readonly language: string;
-  /** How many units carried a segment in it. */
+  /** How many segments carried that tag. A unit that repeats a tag counts once per repeat. */
   readonly units: number;
 }
 
@@ -186,7 +186,7 @@ export interface ImportTmxResult {
    * of the segment rather than flattened into it.
    */
   readonly subflowDroppedUnits: number;
-  /** Language tags that resolved to no configured locale, with how many units carried each. */
+  /** Language tags that resolved to no configured locale, with how many segments carried each. */
   readonly unmatchedLanguages: readonly TmxLanguageReport[];
   /** Language tags that two or more configured locales could claim, so none was chosen. */
   readonly ambiguousLanguages: readonly TmxLanguageReport[];

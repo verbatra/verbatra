@@ -13,8 +13,8 @@ import type { RunStatusFile, RunStatusLocale } from "./types.js";
  *   in this directory yet.
  * - `unreadable`: something exists at the path but could not be read: the process may not open it,
  *   it is not a regular file, it exceeds the size limit, or the read itself failed.
- * - `invalid`: the file is not JSON, or its JSON at the current version does not have the
- *   run-status shape.
+ * - `invalid`: the file is not JSON, has no numeric `version`, or its JSON at the current version
+ *   does not have the run-status shape.
  * - `unsupported-version`: the file names a format version this verbatra does not read, whatever
  *   the rest of its shape.
  */

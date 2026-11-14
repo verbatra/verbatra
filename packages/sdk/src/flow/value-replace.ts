@@ -331,8 +331,9 @@ function previewEntry(
 
 /**
  * Lists the values that a literal find-and-replace would change, and says for each whether it
- * would apply. It reads target locale values only, never the source locale, writes nothing, and
- * calls no provider.
+ * would apply. It matches target locale values only, never the source locale's values; it reads the
+ * source locale file only to hold each candidate to the integrity gate, also reads the lock-file
+ * and provenance file, writes nothing, and calls no provider.
  *
  * Matching is literal and compares UTF-16 text as it is stored: no pattern syntax, no Unicode
  * normalization, and no line-ending translation, so an NFD `find` does not match an NFC value and
@@ -696,7 +697,9 @@ function markDuplicates(
  * changes a pinned key. A value that is protected as {@link previewValueReplace} describes it is
  * `skipped` unless `includeProtected` is set, and this holds whatever `humanEdits` the config
  * sets, so a key that is both pinned and protected needs both options. A value the integrity gate
- * refuses is `refused`, with its reason. Everything else is written.
+ * (or the structure check) refuses is `refused`, with its reason, and a replaced value longer than
+ * 20,000 characters is `too-long` and not written. Every remaining candidate is written and
+ * reported `applied`.
  *
  * Locales are processed one after another, each under its own write lock, with one write of the
  * locale file, one update of the lock-file and provenance file, and one translation-memory update
@@ -733,14 +736,20 @@ function markDuplicates(
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: an entry names a locale that is not a configured target
  * locale. Thrown before anything is written.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
- * cannot be combined, or a locale has no valid path spelling under that style.
+ * cannot be combined, or a locale has no valid path spelling under that style. Not checked for an
+ * empty `entries` list.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
+ * Not checked for an empty `entries` list.
  * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
  * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
- * unsupported version. Checked before anything is written.
+ * unsupported version when the call starts. Checked before anything is written, and not at all for
+ * an empty `entries` list. A problem that appears later while a locale is being applied is
+ * reported in `localeFailures` instead.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
- * structurally wrong. Checked before anything is written.
+ * structurally wrong when the call starts. Checked before anything is written, and not at all for
+ * an empty `entries` list. A problem that appears later while a locale is being applied is
+ * reported in `localeFailures` instead.
  * @throws {TypeError} `actor` is neither `human` nor `agent`. Checked before anything is read.
  *
  * @example

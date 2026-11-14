@@ -134,9 +134,11 @@ export interface SdkFs {
   mkdir?(path: string): Promise<void>;
   /**
    * Lists one directory's immediate entries, without recursing and without following symbolic
-   * links. Optional, so an implementation written before source extraction existed keeps working;
-   * {@link extract} is the only entry point that needs it and reports its absence as
-   * `EXTRACT_FS_UNSUPPORTED`.
+   * links. Optional, so an implementation written before source extraction existed keeps working.
+   * The source scans ({@link extract}, `unused` in {@link diff}, `literals` in {@link doctor}) need
+   * it: {@link extract} throws `EXTRACT_FS_UNSUPPORTED` without it, and {@link diff} and
+   * {@link doctor} report the same problem in their result. Project detection, handoff directory
+   * detection and stale-lock cleanup treat its absence as finding nothing.
    *
    * @param path - The directory to list.
    * @returns Every immediate entry with its kind. Rejects when the path is not a readable directory.

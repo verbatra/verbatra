@@ -567,9 +567,9 @@ async function importSheet(run: SheetImport, sheet: WorkbookSheet): Promise<Loca
  * {@link RunSummary.partial} rather than relying on a thrown error. A locale whose write lock stays
  * contended past `lockAcquireTimeoutMs` is one of these per-locale failures: it is recorded with
  * code `LOCK_CONTENDED` on that locale's summary, before its file is written, rather than thrown.
- * A corrupt lock-file is the one exception, because it is a single
- * shared file rather than a per-locale one: it aborts the whole run even when it is discovered
- * after a locale has been applied, so the locales still to come are not written at all.
+ * A corrupt lock-file or provenance file is the exception, because each is a single shared file
+ * rather than a per-locale one: either aborts the whole run even when it is discovered after a
+ * locale has been applied, so the locales still to come are not written at all.
  *
  * @param input - The config and the handoff path, format, and dry-run flag.
  * @param deps - Optional adapter registry and file-system overrides.

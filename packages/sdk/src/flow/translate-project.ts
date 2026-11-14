@@ -702,8 +702,10 @@ function estimateFields(
  * each locale against the lock-file baseline, translate what is missing or stale, verify placeholder
  * and ICU integrity, write the locale files, and update the lock-file, the provenance file, and
  * the translation memory. A
- * live run also records its summary in the run-status file that {@link runStatus} reads; a failure
- * to write that file or the translation memory is swallowed rather than failing the run.
+ * live run also records its summary in the run-status file that {@link runStatus} reads and, unless
+ * it left no trace, appends a record to the run-history file that {@link runHistory} reads; a
+ * failure to write the run-status file, the run-history file or the translation memory is
+ * swallowed rather than failing the run.
  *
  * Failure handling is the contract worth understanding. Whole-run problems, such as an unreadable
  * source file or a provider that cannot be constructed, throw an {@link SdkError} before any locale

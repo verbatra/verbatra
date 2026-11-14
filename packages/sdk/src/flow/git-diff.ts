@@ -25,7 +25,7 @@ export type LocaleGitDiffState = LocaleGitFileState | "unchanged";
 
 /** A key present on only one side of a {@link localeGitDiff}, with its text. */
 export interface LocaleGitDiffEntry {
-  /** The key. */
+  /** The key, cut to {@link LOCALE_GIT_DIFF_MAX_VALUE_CHARS} characters. */
   readonly key: string;
   /** The key's text, cut to {@link LOCALE_GIT_DIFF_MAX_VALUE_CHARS} characters. */
   readonly value: string;
@@ -33,7 +33,7 @@ export interface LocaleGitDiffEntry {
 
 /** A key present on both sides of a {@link localeGitDiff} whose text differs. */
 export interface LocaleGitDiffChange {
-  /** The key. */
+  /** The key, cut to {@link LOCALE_GIT_DIFF_MAX_VALUE_CHARS} characters. */
   readonly key: string;
   /** The text at `HEAD`, cut to {@link LOCALE_GIT_DIFF_MAX_VALUE_CHARS} characters. */
   readonly before: string;

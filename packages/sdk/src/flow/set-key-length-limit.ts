@@ -30,7 +30,10 @@ export interface SetKeyLengthLimitInput {
   readonly config: VerbatraConfig;
   /** Directory the `files.pattern` and `verbatra.limits.json` are resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory. */
   readonly cwd?: string;
-  /** The key to limit. Must exist in the source resource, and the config's `maxLength` must not set it. */
+  /**
+   * The key to limit, 1 to 1,024 characters. To set a limit it must exist in the source resource and
+   * the config's `maxLength` must not set it; removing it with `null` needs neither.
+   */
   readonly key: string;
   /** The most characters a value of the key may have, a whole number of at least 1, or `null` to remove the key's entry from the limits file. */
   readonly maxLength: number | null;
@@ -196,15 +199,17 @@ async function applyLimit(
  * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
- * cannot be combined, or the locale has no valid path spelling under that style.
+ * cannot be combined, or a configured locale has no valid path spelling under that style. Not
+ * thrown when `maxLength` is `null` and the file holds an entry for the key to remove.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource and the
  * file holds no entry of that name to remove.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the project's limits write lock could not be acquired
- * before the timeout elapsed, could not be reclaimed from an abandoned holder, or was taken over by
- * another process before the file was written.
+ * before the timeout elapsed, could not be reclaimed from an abandoned holder, is too large to
+ * read, or was taken over by another process before the file was written (the change is not saved)
+ * or before the lock was released (the change is already saved).
  * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
  * went to take the write lock, so that lock was refused.
  * @throws {@link SdkError} `LIMITS_FILE_UNUSABLE`: the limits file cannot be used (not a

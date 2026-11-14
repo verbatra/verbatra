@@ -420,8 +420,10 @@ function localeTerm(term: GlossaryTerm, key: string): LocaleGlossaryTerm | undef
  * exactly what a translation request into that locale carries.
  *
  * A term's translation comes from its entry for the locale, then from its entry for the locale's
- * base language, then from its `target`; locale codes are compared in canonical form, ignoring
- * case. A term with neither a translation nor a forbidden rendering for the locale is left out.
+ * base language, then from its `target`. Its forbidden renderings are the union of the entries for
+ * the locale and for its base language, the locale's own first. Locale codes are compared in
+ * canonical form, ignoring case. A term with neither a translation nor a forbidden rendering for
+ * the locale is left out.
  *
  * @param glossary - The config's glossary, in either supported shape or already normalized, or
  * `undefined` for none.

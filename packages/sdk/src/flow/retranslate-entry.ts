@@ -354,7 +354,9 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * baseline and feeds the translation memory, so a later {@link translate} run sees the key as up
  * to date. The provenance file records the value as `machine`, naming the `id` of the provider that
  * answered and, when that is the configured provider, its model, and any earlier review decision
- * on the key is cleared.
+ * on the key is cleared. Every attempt that reached the provider also appends a record to the
+ * run-history file (`.verbatra/run-history.jsonl`), whatever its outcome; a failure to write that
+ * record is swallowed.
  *
  * Note that the target locale file surfaces the adapter's own error and code rather than a wrapped
  * {@link SdkError}, on the write as well as on the read, because only the source read is wrapped.
@@ -407,8 +409,10 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
  * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
- * `lockAcquireTimeoutMs` elapsed, or the lock-file guard taken to record the value could not be
- * acquired within its ten-minute default.
+ * `lockAcquireTimeoutMs` elapsed, the lock-file guard could not be acquired within its ten-minute
+ * default, a lock could not be reclaimed from an abandoned holder, or a lock was taken over by
+ * another process before a write (nothing was written) or before it was released (the writes were
+ * made and are on disk).
  * @throws {@link SdkError} `RUN_CANCELLED`: `signal` aborted before the provider answered, whether
  * before the write lock was taken, while waiting for it, or during the provider request. Nothing
  * was written. It is also thrown when {@link releaseHeldLocks} was running when the call went to
@@ -421,15 +425,17 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
  * written.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
- * unsupported version.
+ * unsupported version. It is read only after the target locale file has been written, so the new
+ * value is already saved when this is thrown and its baseline is not recorded.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
  * structurally wrong. Checked before the provider is called or anything is written. A file from a
  * newer verbatra is left untouched and the value is written without a record, and so is a value
  * whose record would grow the file past the size verbatra reads back.
  * @throws {@link SdkError} `SENSITIVE_CONTENT_WITHHELD`: `sensitiveData.mode` is `block` or
  * `redact` and the key holds content a detector or pattern matched that cannot be sent: under
- * `block` any match, under `redact` a match in the key name, one that overlaps a placeholder, or
- * a redacted match that did not come back exactly once. Thrown before anything is written; under
+ * `block` any match, under `redact` a match in the key name, a pattern that ran out of time, a
+ * value that already contains `__VBR`, one that overlaps a placeholder, or a redacted match that
+ * did not come back exactly once. Thrown before anything is written; under
  * `block`, also before the write lock is taken and the provider is called.
  * @throws `AdapterError`: the adapter itself refused the target locale file, on the read because it
  * is malformed or on the write because the entries cannot be represented in the configured format.

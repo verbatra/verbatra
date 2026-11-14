@@ -22,8 +22,9 @@ export interface GlossaryHitsInput {
 
 /**
  * Finds the glossary entries that apply to one source text in one target locale: every term whose
- * source occurs in the text, with the translation and forbidden renderings that locale is held to,
- * and every term to keep untranslated that occurs in it. A term matches as a whole term only, so
+ * source occurs in the text and that has a translation or a forbidden rendering for that locale,
+ * with that translation and those forbidden renderings, and every term to keep untranslated that
+ * occurs in it. A term matches as a whole term only, so
  * `cart` does not match inside `carts`, and with or without case as the term says. It reads and
  * writes nothing.
  *

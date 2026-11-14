@@ -337,8 +337,9 @@ export async function readGlossaryFile(
  * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
  * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the project's glossary write lock could not be acquired
- * before the timeout elapsed, could not be reclaimed from an abandoned holder, or was taken over by
- * another process before the file was written.
+ * before the timeout elapsed, could not be reclaimed from an abandoned holder, is too large to
+ * read, or was taken over by another process before the file was written (the edit is not saved)
+ * or before the lock was released (the edit is already saved).
  * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
  * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `GLOSSARY_UNWRITABLE`: the glossary file could not be written, or the
