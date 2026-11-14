@@ -11,7 +11,7 @@ export const TRANSLATED_LOCALES: readonly TranslatedLocale[] = LOCALES.filter(
 );
 
 export function localeAlternation(locales: readonly string[] = LOCALES): string {
-  return locales.map((locale) => locale.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")).join("|");
+  return locales.map((locale) => locale.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
 }
 
 export function localeSuffixes(translated: readonly string[] = TRANSLATED_LOCALES): string[] {

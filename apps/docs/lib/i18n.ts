@@ -8,7 +8,7 @@ export const i18n = defineI18n({
   defaultLanguage: DEFAULT_LOCALE,
   languages: [...LOCALES],
   hideLocale: "default-locale",
-  fallbackLanguage: "en",
+  fallbackLanguage: DEFAULT_LOCALE,
 });
 
 export function isLocale(value: string): value is Locale {

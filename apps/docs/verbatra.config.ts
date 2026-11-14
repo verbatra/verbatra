@@ -1,8 +1,9 @@
 import { defineConfig } from "@verbatra/cli";
+import { TRANSLATED_LOCALES } from "./lib/locales.ts";
 
 export default defineConfig({
   sourceLocale: "en",
-  targetLocales: ["de", "es", "fr"],
+  targetLocales: [...TRANSLATED_LOCALES],
   format: "next-intl-json",
   files: {
     pattern: "messages/{locale}.json",

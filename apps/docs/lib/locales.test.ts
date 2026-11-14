@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { i18n } from "./i18n";
 import {
   DEFAULT_LOCALE,
   LOCALES,
   localeAlternation,
+  localePrefix,
   localeSuffixes,
   TRANSLATED_LOCALES,
   translationFilePattern,
@@ -13,13 +13,19 @@ import { markdownPathPatterns } from "./markdown-route";
 const REGIONAL = ["en", "zh-CN", "pt-BR"];
 
 describe("locale source of truth", () => {
-  it("is the list the i18n engine is configured with", () => {
-    expect(i18n.languages).toEqual([...LOCALES]);
-    expect(i18n.defaultLanguage).toBe(DEFAULT_LOCALE);
+  it("pins the supported locales and the default", () => {
+    expect([...LOCALES]).toEqual(["en", "de", "es", "fr"]);
+    expect(DEFAULT_LOCALE).toBe("en");
   });
 
   it("lists every locale once, default first, and no region-less duplicate", () => {
     expect(new Set(LOCALES).size).toBe(LOCALES.length);
+    const regionless = LOCALES.filter((locale) => locale.includes("-")).map(
+      (locale) => locale.split("-")[0],
+    );
+    expect(regionless.filter((language) => LOCALES.some((locale) => locale === language))).toEqual(
+      [],
+    );
     expect(LOCALES[0]).toBe(DEFAULT_LOCALE);
     expect(TRANSLATED_LOCALES).toEqual(LOCALES.slice(1));
   });
@@ -29,9 +35,15 @@ describe("locale source of truth", () => {
   });
 });
 
+describe("localePrefix", () => {
+  it("leaves the default locale unprefixed and prefixes every other with a slash", () => {
+    expect(LOCALES.map((locale) => localePrefix(locale))).toEqual(["", "/de", "/es", "/fr"]);
+  });
+});
+
 describe("region-qualified locale codes", () => {
   it("builds an alternation that keeps the hyphen literal", () => {
-    expect(localeAlternation(REGIONAL)).toBe("en|zh\\-CN|pt\\-BR");
+    expect(localeAlternation(REGIONAL)).toBe("en|zh-CN|pt-BR");
   });
 
   it("recognises a translated file carrying a region-qualified code", () => {

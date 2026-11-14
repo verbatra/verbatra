@@ -95,18 +95,34 @@ describe("moved docs pages", () => {
   const moves = Object.entries(MOVED_DOCS_PAGES);
 
   it.each(moves)(
+    "matches /de/docs/%s but not /en/docs/%s through Next's own matcher",
+    async (from) => {
+      const redirects = (await nextConfig.redirects?.()) ?? [];
+      const localized = redirects.find(
+        (redirect) => redirect.source === `/:locale(de|es|fr)/docs/${from}`,
+      );
+      const match = getPathMatch(localized?.source ?? "", {
+        removeUnnamedParams: true,
+        strict: true,
+      });
+      expect(match(`/de/docs/${from}`)).toEqual({ locale: "de" });
+      expect(match(`/en/docs/${from}`)).toBe(false);
+    },
+  );
+
+  it.each(moves)(
     "redirects /docs/%s permanently, in every locale and as Markdown",
     async (from, to) => {
       const redirects = (await nextConfig.redirects?.()) ?? [];
       const expected = [
         { source: `/docs/${from}`, destination: `/docs/${to}` },
         {
-          source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}`,
+          source: `/:locale(de|es|fr)/docs/${from}`,
           destination: `/:locale/docs/${to}`,
         },
         { source: `/docs/${from}.md`, destination: `/docs/${to}.md` },
         {
-          source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}.md`,
+          source: `/:locale(de|es|fr)/docs/${from}.md`,
           destination: `/:locale/docs/${to}.md`,
         },
       ];
@@ -126,9 +142,16 @@ describe("a locale code with a hyphen in a redirect source", () => {
   const source = `/:locale(${localeAlternation(["de", "zh-CN", "ja"])})/docs/old`;
   const nextOptions = { removeUnnamedParams: true, strict: true };
 
-  it("escapes the hyphen so the group stays a valid path-to-regexp pattern", () => {
-    expect(localeAlternation(["zh-CN"])).toBe("zh\\-CN");
+  it("leaves the hyphen unescaped, and Next's path-to-regexp still reads the group", () => {
+    expect(localeAlternation(["zh-CN"])).toBe("zh-CN");
     expect(() => getPathMatch(source, nextOptions)).not.toThrow();
+  });
+
+  it("matches the same paths as the escaped spelling", () => {
+    const escaped = getPathMatch(source.replace("zh-CN", "zh\\-CN"), nextOptions);
+    const plain = getPathMatch(source, nextOptions);
+    for (const path of ["/zh-CN/docs/old", "/zh/docs/old", "/zh-CNx/docs/old", "/ja/docs/old"])
+      expect(plain(path), path).toEqual(escaped(path));
   });
 
   it("matches the exact code Next routes with, and captures it whole", () => {

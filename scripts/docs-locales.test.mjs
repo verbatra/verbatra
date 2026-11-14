@@ -30,7 +30,7 @@ describe("docs locale helper", () => {
   });
 
   it("matches a synthetic region-qualified code", () => {
-    expect(localeAlternation(["zh-CN", "pt-BR"])).toBe("zh\\-CN|pt\\-BR");
+    expect(localeAlternation(["zh-CN", "pt-BR"])).toBe("zh-CN|pt-BR");
     expect(translationFilePattern(["zh-CN"]).exec("cli/x.zh-CN.mdx")?.slice(1)).toEqual([
       "cli/x",
       "zh-CN",
