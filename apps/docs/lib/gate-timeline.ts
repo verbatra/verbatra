@@ -34,8 +34,6 @@ export const GATE_ACCENT_MS = 300;
 
 export const GATE_HANDOFF_CEILING_MS = 600;
 
-export const GATE_SETTLE_MS = 600;
-
 export const GATE_OVERLAP_CEILING = 0.3;
 
 export const GATE_MARKER_MIN_PX = 48;
