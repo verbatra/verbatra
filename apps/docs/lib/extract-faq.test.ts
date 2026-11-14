@@ -1,9 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import de from "../messages/de.json";
-import en from "../messages/en.json";
-import es from "../messages/es.json";
-import fr from "../messages/fr.json";
+import { MESSAGE_CATALOGS } from "../lib/message-catalogs";
 import { extractFaqItems, withoutQuestions } from "./extract-faq";
 import { i18n } from "./i18n";
 
@@ -79,7 +76,7 @@ describe("withoutQuestions", () => {
 });
 
 describe("the docs FAQ markup next to the home FAQ", () => {
-  const catalogs = { en, de, es, fr } as const;
+  const catalogs = MESSAGE_CATALOGS;
 
   it.each(i18n.languages)("repeats no home question once the overlap is dropped (%s)", (locale) => {
     const suffix = locale === i18n.defaultLanguage ? "" : `.${locale}`;

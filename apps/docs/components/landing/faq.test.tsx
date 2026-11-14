@@ -16,16 +16,14 @@ import {
   publishedProviders,
 } from "@/lib/landing-faq";
 import { providerShortLabel } from "@/lib/landing-providers";
+import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import { RELEASE_BADGE } from "@/lib/release-badge";
 import { faqPageLd } from "@/lib/structured-data";
-import de from "@/messages/de.json";
 import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 import { LICENSE_URL } from "./links";
 
-const CATALOGS = { en, de, es, fr } as const;
+const CATALOGS = MESSAGE_CATALOGS;
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");

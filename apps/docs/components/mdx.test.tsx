@@ -5,12 +5,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { OUTPUT_ATTRIBUTE } from "@/lib/code-block-meta";
 import { i18n, type Locale } from "@/lib/i18n";
-import de from "@/messages/de.json";
-import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
+import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 
-const MESSAGES = { en, de, es, fr } as const;
+const MESSAGES = MESSAGE_CATALOGS;
 
 vi.mock("next-intl/server", () => ({
   getTranslations:

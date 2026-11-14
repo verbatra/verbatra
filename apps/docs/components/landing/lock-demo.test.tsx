@@ -16,10 +16,7 @@ import {
   playgroundGeneratedOn,
 } from "@/lib/landing-playground";
 import { LOCK_DEMO_COUNTS, LOCK_DEMO_PLAYGROUND_IDS } from "@/lib/lock-demo";
-import de from "@/messages/de.json";
-import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
+import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
 vi.mock("next-intl/server", async () => {
@@ -34,7 +31,7 @@ vi.mock("next-intl/server", async () => {
 
 const { LockDemo } = await import("./lock-demo");
 
-const CATALOGS = { en, de, es, fr } as const;
+const CATALOGS = MESSAGE_CATALOGS;
 
 type Tree = { [key: string]: string | Tree };
 

@@ -2,11 +2,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import { stripAccentTags } from "@/test-support/accent-tags";
-import de from "../messages/de.json";
 import en from "../messages/en.json";
-import es from "../messages/es.json";
-import fr from "../messages/fr.json";
 import {
   HERO_CHECK_COMMAND,
   HERO_OG_LINES,
@@ -225,7 +223,7 @@ describe("OG font coverage", () => {
     }
   }
 
-  const catalogs = { en, de, es, fr } as const;
+  const catalogs = MESSAGE_CATALOGS;
   const docsFrontmatter = readdirSync(join(process.cwd(), "content/docs"), {
     recursive: true,
     encoding: "utf8",

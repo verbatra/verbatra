@@ -6,10 +6,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import de from "@/messages/de.json";
-import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
+import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import {
   AWAY_FRAMES,
   MAX_SCROLL_RETRIES,
@@ -288,9 +285,11 @@ describe("ScrollTop on unmount", () => {
 
 describe("the back-to-top control", () => {
   it("is named in every locale", () => {
-    for (const catalog of [en, de, es, fr])
+    for (const catalog of Object.values(MESSAGE_CATALOGS))
       expect(catalog.landing.fab.label.length).toBeGreaterThan(3);
-    expect(new Set([en, de, es, fr].map((catalog) => catalog.landing.fab.label)).size).toBe(4);
+    expect(
+      new Set(Object.values(MESSAGE_CATALOGS).map((catalog) => catalog.landing.fab.label)).size,
+    ).toBe(4);
   });
 
   it("is a 44px fixed target inside the safe area, with a control boundary that holds 3:1", () => {

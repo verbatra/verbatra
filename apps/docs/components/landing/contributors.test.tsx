@@ -3,10 +3,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { CONTRIBUTORS } from "@/lib/contributors";
-import de from "@/messages/de.json";
+import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
@@ -30,13 +28,13 @@ beforeAll(async () => {
 
 describe("FooterContributors", () => {
   it("says a link opens a new tab in every locale", () => {
-    for (const catalog of [en, de, es, fr]) {
+    for (const catalog of Object.values(MESSAGE_CATALOGS)) {
       expect(catalog.landing.openSource.newTab).toMatch(/^\(.+\)$/);
     }
   });
 
   it("keeps only the contributor copy in the open source namespace", () => {
-    for (const catalog of [en, de, es, fr]) {
+    for (const catalog of Object.values(MESSAGE_CATALOGS)) {
       expect(Object.keys(catalog.landing.openSource)).toEqual([
         "newTab",
         "contributorsHeading",

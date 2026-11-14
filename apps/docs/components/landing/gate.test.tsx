@@ -46,11 +46,10 @@ import {
   gatePercent,
   gateSwapWindow,
 } from "@/lib/gate-timeline";
+import type { Locale } from "@/lib/locales";
+import { MESSAGE_CATALOGS, type Messages } from "@/lib/message-catalogs";
 import { docsGlobalCss, docsStylesheetRules, uiTokensCss } from "@/lib/stylesheet-rules";
-import de from "@/messages/de.json";
 import en from "@/messages/en.json";
-import es from "@/messages/es.json";
-import fr from "@/messages/fr.json";
 import { cssBlock, literalColours } from "@/test-support/css-block";
 
 const rendering = vi.hoisted(() => ({ locale: "en" }));
@@ -87,7 +86,7 @@ async function renderIn(locale: string): Promise<HTMLElement> {
   rendering.locale = locale;
   const element = document.createElement("div");
   element.innerHTML = renderToStaticMarkup(
-    <NextIntlClientProvider locale={locale} messages={locale === "de" ? de : en}>
+    <NextIntlClientProvider locale={locale} messages={locale === "de" ? MESSAGE_CATALOGS.de : en}>
       {await Gate()}
     </NextIntlClientProvider>,
   );
@@ -102,6 +101,15 @@ beforeAll(async () => {
 function frames(): Element[] {
   return Array.from(root.querySelectorAll("figure.vk-gate-frame"));
 }
+
+const RERUN_PROMISES: Readonly<Record<Locale, RegExp>> = {
+  en: /\b(re-?run|retr(y|ied)|next run|try again)\b/i,
+  de: /(erneut|nochmal|noch einmal|wiederhol|n\u00e4chsten? (lauf|durchlauf))/i,
+  es: /(otra vez|de nuevo|reintent|volver a|pr\u00f3xima ejecuci\u00f3n|siguiente ejecuci\u00f3n)/i,
+  fr: /(r\u00e9essay|de nouveau|\u00e0 nouveau|relanc|prochaine ex\u00e9cution|r\u00e9ex\u00e9cut)/i,
+};
+
+const CATALOG_ENTRIES = Object.entries(MESSAGE_CATALOGS) as [Locale, Messages][];
 
 describe("Gate", () => {
   it("is the named region #gate with one h2 and the integrity lead, and no eyebrow", () => {
@@ -165,20 +173,12 @@ describe("Gate", () => {
     expect(stale?.textContent).toContain("exit 1");
   });
 
-  it.each([
-    ["en", en],
-    ["de", de],
-    ["es", es],
-    ["fr", fr],
-  ] as const)("promises no re-run in any %s caption, foot or lead", (locale, catalog) => {
-    const PATTERNS = {
-      en: /\b(re-?run|retr(y|ied)|next run|try again)\b/i,
-      de: /(erneut|nochmal|noch einmal|wiederhol|n\u00e4chsten? (lauf|durchlauf))/i,
-      es: /(otra vez|de nuevo|reintent|volver a|pr\u00f3xima ejecuci\u00f3n|siguiente ejecuci\u00f3n)/i,
-      fr: /(r\u00e9essay|de nouveau|\u00e0 nouveau|relanc|prochaine ex\u00e9cution|r\u00e9ex\u00e9cut)/i,
-    } as const;
-    expect(JSON.stringify(catalog.landing.gate)).not.toMatch(PATTERNS[locale]);
-  });
+  it.each(CATALOG_ENTRIES)(
+    "promises no re-run in any %s caption, foot or lead",
+    (locale, catalog) => {
+      expect(JSON.stringify(catalog.landing.gate)).not.toMatch(RERUN_PROMISES[locale]);
+    },
+  );
 
   it("gives each frame one moving element, marked for the shared reveal, outside every CLI block", () => {
     for (const frame of frames()) {
@@ -230,7 +230,7 @@ describe("Gate", () => {
     }
     expect(german.querySelector("h2")?.textContent).not.toBe(root.querySelector("h2")?.textContent);
     const stamp = german.querySelector(".vk-gate-stamp");
-    expect(stamp?.textContent).toBe(de.landing.gate.refused.stamp);
+    expect(stamp?.textContent).toBe(MESSAGE_CATALOGS.de.landing.gate.refused.stamp);
     expect(stamp?.closest("[lang]")).toBeNull();
   });
 
