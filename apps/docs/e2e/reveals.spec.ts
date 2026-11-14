@@ -253,3 +253,36 @@ for (const [width, height] of [
     });
   });
 }
+
+test.describe("reveals when under a tenth of the viewport lies below the proof row", () => {
+  test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+
+  async function geometry(page: Page) {
+    return page.evaluate(() => {
+      const root = document.documentElement;
+      const row = document.querySelector(".vk-closer-proof") as HTMLElement;
+      const top = row.getBoundingClientRect().top + window.scrollY;
+      const last = Math.max(0, root.scrollHeight - innerHeight);
+      return { fold: innerHeight, top, atEnd: top - last, below: root.scrollHeight - top };
+    });
+  }
+
+  test("reveals the proof row through the observer without the bottom inset", async ({ page }) => {
+    await page.goto("/");
+    const measured = await geometry(page);
+    const height = Math.ceil(measured.below / 0.1) + 200;
+    await page.setViewportSize({ width: 1440, height });
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
+    const tall = await geometry(page);
+    expect(tall.top, "the row starts below the first screen").toBeGreaterThanOrEqual(tall.fold);
+    expect(
+      tall.atEnd,
+      "under a tenth of the screen lies below the row at the end",
+    ).toBeGreaterThanOrEqual(tall.fold * 0.9);
+    await expect(page.locator(".vk-closer-proof")).not.toHaveAttribute("data-revealed", "");
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(page.locator(".vk-closer-proof")).toHaveAttribute("data-revealed", "");
+    await expect(page.locator(".vk-closer-proof")).toHaveCSS("opacity", "1");
+  });
+});
