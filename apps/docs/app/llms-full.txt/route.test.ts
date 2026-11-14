@@ -69,7 +69,11 @@ describe("llms-full.txt", () => {
     expect(landing).toBeGreaterThan(0);
     expect(compare).toBeGreaterThan(landing);
     expect(docs).toBeGreaterThan(compare);
-    for (const heading of [en.landing.lockDemo.label, en.landing.faq.heading]) {
+    for (const heading of [
+      en.landing.lockDemo.label,
+      en.landing.gate.heading,
+      en.landing.faq.heading,
+    ]) {
       expect(body.indexOf(heading)).toBeLessThan(compare);
     }
   });

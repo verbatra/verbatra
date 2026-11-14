@@ -241,6 +241,28 @@
       },
       "preGenerated": "pre-generated, not live"
     },
+    "gate": {
+      "heading": "When the provider gets it wrong, nothing is written",
+      "lead": "Every candidate passes an integrity gate before it reaches your file.",
+      "candidate": {
+        "label": "Candidate",
+        "text": "You changed {key} in {file}. The provider returns a translation, and it lost {placeholder}.",
+        "badge": "candidate",
+        "foot": "The provider's answer, before anything is checked or written.",
+        "missing": "missing"
+      },
+      "refused": {
+        "label": "Refused",
+        "text": "The gate compares the candidate with the source and refuses it. The file is not touched.",
+        "stamp": "not written",
+        "unchanged": "unchanged"
+      },
+      "stale": {
+        "label": "Still stale",
+        "text": "The key stays stale, so the check still fails.",
+        "foot": "The old value stays in {file}. CI fails until the key gets a value that keeps {placeholder}."
+      }
+    },
     "highlights": {
       "heading": "Ask any surface, get the same answer",
       "lead": "The CLI, the SDK, Studio and the MCP server all read one lock file, so {locale} reads {stale} stale and {upToDate} up-to-date wherever you ask.",

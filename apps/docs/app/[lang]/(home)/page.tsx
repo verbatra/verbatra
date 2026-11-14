@@ -5,6 +5,7 @@ import { JsonLd } from "@/components/json-ld";
 import { Faq, faqContent } from "@/components/landing/faq";
 import { Features } from "@/components/landing/features";
 import { FinalCta } from "@/components/landing/final-cta";
+import { Gate } from "@/components/landing/gate";
 import { Hero } from "@/components/landing/hero";
 import { Highlights } from "@/components/landing/highlights";
 import { ScrollTop } from "@/components/landing/islands";
@@ -37,6 +38,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     hero: <Hero />,
     marquee: <Marquee />,
     lockDemo: <LockDemo />,
+    gate: <Gate />,
     highlights: <Highlights />,
     features: <Features />,
     faq: <Faq locale={locale} items={faqItems} />,

@@ -196,6 +196,8 @@ test.describe("lock-file demo motion in a real browser", () => {
         return {
           demoTop: demo?.top ?? -1,
           demoHeight: demo?.height ?? -1,
+          gate: document.querySelector("#gate")?.getBoundingClientRect().top ?? -1,
+          gateHeight: document.querySelector("#gate")?.getBoundingClientRect().height ?? -1,
           highlights: document.querySelector("#highlights")?.getBoundingClientRect().top ?? -1,
         };
       });
@@ -205,6 +207,8 @@ test.describe("lock-file demo motion in a real browser", () => {
     await release();
     await expect(page.locator(STAGE)).toHaveAttribute("data-mode", "stage");
     const after = await offset();
+    expect(Math.abs(after.gate - before.gate)).toBeLessThanOrEqual(1);
+    expect(Math.abs(after.gateHeight - before.gateHeight)).toBeLessThanOrEqual(1);
     expect(Math.abs(after.highlights - before.highlights)).toBeLessThanOrEqual(1);
     expect(Math.abs(after.demoTop - before.demoTop)).toBeLessThanOrEqual(1);
     expect(Math.abs(after.demoHeight - before.demoHeight)).toBeLessThanOrEqual(1);
@@ -252,7 +256,7 @@ test.describe("lock-file demo motion in a real browser", () => {
     const measure = () =>
       page.evaluate(() => ({
         height: document.querySelector("#lock-demo")?.getBoundingClientRect().height ?? -1,
-        next: document.querySelector("#highlights")?.getBoundingClientRect().top ?? -1,
+        next: document.querySelector("#gate")?.getBoundingClientRect().top ?? -1,
         shifts: (window as unknown as { shifts: { total: number } }).shifts.total,
       }));
     const before = await measure();

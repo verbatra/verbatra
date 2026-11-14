@@ -27,6 +27,7 @@ const SECTION_HEADINGS = [
   "banner.headline",
   "marquee.heading",
   "lockDemo.label",
+  "gate.heading",
   "highlights.heading",
   "features.heading",
   "faq.heading",

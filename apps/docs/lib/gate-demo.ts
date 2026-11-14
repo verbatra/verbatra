@@ -1,0 +1,60 @@
+import { CHECK_CLI_COMMAND, CHECK_OVERALL_LINE, checkLocaleLine } from "@/lib/check-demo";
+import {
+  HERO_CHECK_COMMAND,
+  HERO_TERMINAL_LOCALES,
+  HERO_TERMINAL_SOURCE,
+  HERO_TRANSLATE_COMMAND,
+} from "@/lib/hero-terminal";
+
+export const GATE_KEY = "profile.greeting";
+
+export const GATE_PLACEHOLDER = "{name}";
+
+export const GATE_SOURCE: string =
+  HERO_TERMINAL_SOURCE.find(({ key }) => key === GATE_KEY)?.value ?? "";
+
+export const GATE_SOURCE_BEFORE = "Welcome, {name}!";
+
+export const GATE_DE_OLD = "Willkommen, {name}!";
+
+export const GATE_DE_CANDIDATE = "Willkommen zurück!";
+
+export const GATE_LOCALE: string = HERO_TERMINAL_LOCALES[0]?.locale ?? "";
+
+export const GATE_CANDIDATE_LINES: ReadonlyArray<string> = [
+  GATE_KEY,
+  GATE_SOURCE,
+  GATE_DE_CANDIDATE,
+];
+
+export const GATE_TRANSLATE_COMMAND = HERO_TRANSLATE_COMMAND;
+
+export const GATE_CHECK_COMMAND = HERO_CHECK_COMMAND;
+
+export const GATE_TRANSLATE_HEADER = "verbatra translate";
+
+export const GATE_CHECK_HEADER = CHECK_CLI_COMMAND;
+
+export const GATE_TRANSLATE_EXIT_CODE = 1;
+
+export const GATE_CHECK_EXIT_CODE = 1;
+
+export const GATE_REFUSED_BADGE = "1 integrity-withheld";
+
+const unchanged = HERO_TERMINAL_SOURCE.length - 1;
+
+export const GATE_REFUSED_LINES: ReadonlyArray<string> = [
+  `  ${GATE_LOCALE}: failed, 0 translated, ${unchanged} unchanged, ${GATE_REFUSED_BADGE}`,
+  "    integrity-withheld:",
+  `      ${GATE_KEY}: placeholder (-${GATE_PLACEHOLDER})`,
+  "0 succeeded, 0 partial, 1 failed",
+];
+
+export const GATE_CHECK_LINES: ReadonlyArray<string> = [
+  checkLocaleLine(GATE_LOCALE, 1, unchanged),
+  CHECK_OVERALL_LINE,
+];
+
+export const GATE_STATES = ["candidate", "refused", "stale"] as const;
+
+export type GateState = (typeof GATE_STATES)[number];

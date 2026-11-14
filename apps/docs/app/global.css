@@ -4891,3 +4891,267 @@ html.light .vk-deck-shot-light {
     gap: var(--grid-gap);
   }
 }
+
+.vk-gate-track {
+  min-width: 0;
+}
+
+.vk-gate-stage {
+  display: grid;
+  gap: 2rem;
+  margin-top: var(--head-gap);
+  min-width: 0;
+}
+
+.vk-gate-frame {
+  display: grid;
+  gap: 0.875rem;
+  align-content: start;
+  min-width: 0;
+  margin: 0;
+}
+
+.vk-gate-card {
+  max-width: 52rem;
+}
+
+.vk-gate-code .vk-lock-line {
+  padding-inline: calc(0.875rem + var(--d, 0) * 2ch + var(--hang)) 0.875rem;
+}
+
+.vk-gate-code .vk-lock-line[data-kind="command"] {
+  color: var(--text-strong);
+}
+
+.vk-gate-lang {
+  display: inline-block;
+  min-width: 2ch;
+  color: var(--text-muted);
+  text-indent: 0;
+}
+
+.vk-gate-moves {
+  display: inline-block;
+}
+
+.vk-gate-slot-chip {
+  margin-inline-start: 0.5ch;
+  padding: 1px 4px;
+  border: 1px dashed var(--text-muted);
+  border-radius: 5px;
+  color: var(--text-muted);
+}
+
+.vk-gate-missing {
+  color: var(--text-danger);
+}
+
+.vk-lock-line[data-mark="refused"] {
+  background: color-mix(in srgb, var(--text-danger) 14%, transparent);
+  color: var(--text-strong);
+}
+
+.vk-lock-line[data-mark="refused"]::before {
+  background: var(--text-danger);
+}
+
+.vk-gate-stamp {
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-indent: 0;
+  text-transform: uppercase;
+  color: var(--text-danger);
+}
+
+.vk-gate-fail {
+  color: var(--text-danger);
+}
+
+.vk-gate-docs {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0.5rem 0 0;
+}
+
+@media (forced-colors: active) {
+  .vk-gate-card {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .vk-gate-stamp,
+  .vk-gate-fail {
+    color: CanvasText;
+  }
+}
+
+@media (min-width: 64rem) and (min-height: 42rem) and (prefers-reduced-motion: no-preference) and (
+    scripting: enabled
+  ) {
+  @supports (animation-timeline: view()) {
+    .vk-gate-track {
+      --vk-gate-stage: calc(100svh - var(--vk-landing-offset));
+      height: calc(120svh + var(--vk-gate-stage));
+      view-timeline: --vk-gate block;
+      view-timeline-inset: var(--vk-landing-offset) 0;
+    }
+
+    .vk-gate-card {
+      border-color: var(--border-accent);
+      box-shadow: 0 30px 80px -24px var(--halo-strong);
+    }
+
+    .vk-gate-pin {
+      position: sticky;
+      top: var(--vk-landing-offset);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: var(--vk-gate-stage);
+    }
+
+    .vk-gate-stage {
+      display: grid;
+    }
+
+    .vk-gate-frame {
+      grid-area: 1 / 1;
+      align-self: start;
+      animation-fill-mode: both;
+      animation-timing-function: linear;
+      animation-timeline: --vk-gate;
+      animation-range: contain 0% contain 100%;
+    }
+
+    .vk-gate-frame[data-state="candidate"] {
+      animation-name: vk-gate-candidate;
+    }
+
+    .vk-gate-frame[data-state="refused"] {
+      animation-name: vk-gate-refused;
+    }
+
+    .vk-gate-frame[data-state="stale"] {
+      animation-name: vk-gate-stale;
+    }
+
+    .vk-gate-moves {
+      animation-fill-mode: both;
+      animation-timing-function: linear;
+      animation-timeline: --vk-gate;
+    }
+
+    html[data-motion-ready] .vk-gate .vk-gate-moves {
+      translate: none;
+      transition: none;
+    }
+
+    .vk-gate-slot {
+      animation-name: vk-gate-drop;
+      animation-range: contain 0% contain 6.667%;
+    }
+
+    .vk-gate-stamp {
+      animation-name: vk-gate-stamp;
+      animation-range: contain 36.667% contain 40%;
+    }
+
+    .vk-gate-exit {
+      animation-name: vk-gate-drop;
+      animation-range: contain 70% contain 73.333%;
+    }
+
+    @keyframes vk-gate-candidate {
+      0%,
+      31.667% {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      33.333% {
+        opacity: 0;
+        visibility: visible;
+      }
+
+      33.4%,
+      100% {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+
+    @keyframes vk-gate-refused {
+      0%,
+      34.1% {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      34.167% {
+        opacity: 0;
+        visibility: visible;
+      }
+
+      35.833%,
+      65.833% {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      67.5% {
+        opacity: 0;
+        visibility: visible;
+      }
+
+      67.6%,
+      100% {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+
+    @keyframes vk-gate-stale {
+      0%,
+      68.2% {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      68.333% {
+        opacity: 0;
+        visibility: visible;
+      }
+
+      70%,
+      100% {
+        opacity: 1;
+        visibility: visible;
+      }
+    }
+
+    @keyframes vk-gate-drop {
+      from {
+        opacity: 0;
+        transform: translateY(-12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @keyframes vk-gate-stamp {
+      from {
+        opacity: 0;
+        transform: scale(1.25);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+  }
+}

@@ -7,6 +7,7 @@ const SECTION_FILES: Readonly<Record<LandingSectionId, string>> = {
   hero: "hero.tsx",
   marquee: "marquee.tsx",
   lockDemo: "lock-demo.tsx",
+  gate: "gate.tsx",
   highlights: "highlights.tsx",
   features: "features.tsx",
   faq: "faq.tsx",
@@ -17,7 +18,7 @@ function source(file: string): string {
   return readFileSync(join(import.meta.dirname, file), "utf8");
 }
 
-const REVEALING_SECTIONS: ReadonlyArray<LandingSectionId> = ["highlights"];
+const REVEALING_SECTIONS: ReadonlyArray<LandingSectionId> = ["gate", "highlights"];
 
 describe("landing reveal marks", () => {
   it("maps every landing section to its file", () => {

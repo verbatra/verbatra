@@ -8,6 +8,22 @@ import {
   FEATURE_ARTIFACTS,
 } from "./feature-artifacts";
 import {
+  GATE_CHECK_COMMAND,
+  GATE_CHECK_EXIT_CODE,
+  GATE_CHECK_HEADER,
+  GATE_CHECK_LINES,
+  GATE_DE_CANDIDATE,
+  GATE_DE_OLD,
+  GATE_KEY,
+  GATE_LOCALE,
+  GATE_PLACEHOLDER,
+  GATE_REFUSED_BADGE,
+  GATE_REFUSED_LINES,
+  GATE_SOURCE,
+  GATE_TRANSLATE_COMMAND,
+  GATE_TRANSLATE_HEADER,
+} from "./gate-demo";
+import {
   HERO_CHECK_BADGE,
   HERO_TRANSLATE_BADGE,
   HERO_TRANSLATE_COMMAND,
@@ -180,6 +196,54 @@ async function lockDemo({ locale }: Context): Promise<string> {
   );
 }
 
+async function gate({ locale }: Context): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "landing.gate" });
+  const sourceFile = playgroundFileName(PLAYGROUND_SOURCE_LOCALE);
+  const targetFile = playgroundFileName(GATE_LOCALE);
+  const [group = "", leaf = ""] = GATE_KEY.split(".");
+  const docsPath = "/docs/translation-safety";
+  return blocks(
+    `## ${t("heading")}`,
+    t("lead"),
+    list([
+      `**${t("candidate.label")}**: ${t("candidate.text", { key: GATE_KEY, file: sourceFile, placeholder: GATE_PLACEHOLDER })}`,
+      `**${t("refused.label")}**: ${t("refused.text")}`,
+      `**${t("stale.label")}**: ${t("stale.text")}`,
+    ]),
+    `**${GATE_KEY}** ${t("candidate.badge")}`,
+    fencedMarkdown(
+      "text",
+      null,
+      [
+        `${PLAYGROUND_SOURCE_LOCALE} "${GATE_SOURCE}"`,
+        `${GATE_LOCALE} "${GATE_DE_CANDIDATE}" ${GATE_PLACEHOLDER} ${t("candidate.missing")}`,
+      ].join("\n"),
+    ),
+    t("candidate.foot"),
+    `**${GATE_TRANSLATE_HEADER}** ${GATE_REFUSED_BADGE}`,
+    fencedMarkdown(
+      "text",
+      null,
+      [
+        `$ ${GATE_TRANSLATE_COMMAND}`,
+        ...GATE_REFUSED_LINES.map((line) =>
+          line.includes(`${GATE_KEY}:`) ? `${line}  ${t("refused.stamp")}` : line,
+        ),
+      ].join("\n"),
+    ),
+    `**${targetFile}** ${t("refused.unchanged")}`,
+    fencedMarkdown(
+      "json",
+      null,
+      [`"${group}": {`, `  ${JSON.stringify(leaf)}: "${GATE_DE_OLD}"`, "}"].join("\n"),
+    ),
+    `**${GATE_CHECK_HEADER}** exit ${GATE_CHECK_EXIT_CODE}`,
+    fencedMarkdown("text", null, [`$ ${GATE_CHECK_COMMAND}`, ...GATE_CHECK_LINES].join("\n")),
+    t("stale.foot", { file: targetFile, placeholder: GATE_PLACEHOLDER }),
+    link(docsPath.slice(1), localizedPath(locale, docsPath)),
+  );
+}
+
 async function highlights({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.highlights" });
   const lockDemo = await getTranslations({ locale, namespace: "landing.lockDemo" });
@@ -287,6 +351,7 @@ const SECTION_MARKDOWN: Readonly<Record<LandingSectionId, (context: Context) => 
     hero,
     marquee,
     lockDemo,
+    gate,
     highlights,
     features,
     faq,

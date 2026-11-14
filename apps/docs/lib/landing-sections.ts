@@ -2,6 +2,7 @@ export const LANDING_SECTIONS = [
   "hero",
   "marquee",
   "lockDemo",
+  "gate",
   "highlights",
   "features",
   "faq",

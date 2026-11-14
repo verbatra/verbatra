@@ -690,6 +690,28 @@
     },
     "fab": {
       "label": "Retour en haut"
+    },
+    "gate": {
+      "heading": "Quand le fournisseur se trompe, rien n’est écrit",
+      "lead": "Chaque candidat passe une barrière d’intégrité avant d’atteindre ton fichier.",
+      "candidate": {
+        "label": "Candidat",
+        "text": "Tu as modifié {key} dans {file}. Le fournisseur renvoie une traduction, et celle-ci a perdu {placeholder}.",
+        "badge": "candidat",
+        "foot": "La réponse du fournisseur, avant que quoi que ce soit ne soit vérifié ou écrit.",
+        "missing": "manquant"
+      },
+      "refused": {
+        "label": "Refusé",
+        "text": "La barrière compare le candidat avec la source et le refuse. Le fichier n’est pas modifié.",
+        "stamp": "non écrit",
+        "unchanged": "inchangé"
+      },
+      "stale": {
+        "label": "Toujours obsolète",
+        "text": "La clé reste obsolète, donc la vérification échoue toujours.",
+        "foot": "L’ancienne valeur reste dans {file}. La CI échoue tant que la clé n’obtient pas une valeur qui conserve {placeholder}."
+      }
     }
   },
   "compare": {

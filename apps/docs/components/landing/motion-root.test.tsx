@@ -166,6 +166,28 @@ describe("the motion stylesheet", () => {
     );
   });
 
+  it("drives an animation from a view timeline only inside a supports test and the no-preference query", () => {
+    const scrubbed = all.filter((rule) =>
+      /--vk-|view\(/.test(rule.declarations["animation-timeline"] ?? ""),
+    );
+    expect(scrubbed.length).toBeGreaterThan(0);
+    for (const rule of scrubbed) {
+      expect(rule.media, rule.selector).toMatch(/@supports \(animation-timeline: view\(\)\)/);
+      expect(rule.media, rule.selector).toContain("prefers-reduced-motion: no-preference");
+    }
+  });
+
+  it("animates only opacity and transform in every scrubbed keyframe set, and a frame's discrete visibility", () => {
+    const sets = all.filter((rule) => /@keyframes vk-gate/.test(rule.media));
+    expect(sets.length).toBeGreaterThan(0);
+    for (const rule of sets) {
+      const allowed = /vk-gate-(candidate|refused|stale)$/.test(rule.media)
+        ? ["opacity", "visibility"]
+        : ["opacity", "transform"];
+      expect(Object.keys(rule.declarations).filter((name) => !allowed.includes(name))).toEqual([]);
+    }
+  });
+
   it("never animates the hero on load, whose h1 is the largest paint", () => {
     const moving = all
       .filter((rule) => "animation" in rule.declarations && rule.declarations.animation !== "none")
