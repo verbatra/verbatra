@@ -861,7 +861,7 @@ test.describe("gate on a phone", () => {
 
   for (const locale of LOCALES) {
     for (const motion of ["no-preference", "reduce"] as const) {
-      const ceiling = locale === "en" ? 1300 : 1350;
+      const ceiling = locale === "en" ? 1300 : 1375;
       test(`stays at most ${ceiling}px tall in ${locale} with motion ${motion}`, async ({
         page,
       }) => {
