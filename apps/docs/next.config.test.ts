@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { getPathMatch } from "next/dist/shared/lib/router/utils/path-match.js";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
 import { localeAlternation, TRANSLATED_LOCALES } from "@/lib/locales";
@@ -118,5 +119,42 @@ describe("moved docs pages", () => {
   it.each(moves)("leaves no page at /docs/%s and one page per locale at its target", (from, to) => {
     expect(docsPageFiles(from)).toEqual([]);
     expect(docsPageFiles(to)).toHaveLength(i18n.languages.length);
+  });
+});
+
+describe("a locale code with a hyphen in a redirect source", () => {
+  const source = `/:locale(${localeAlternation(["de", "zh-CN", "ja"])})/docs/old`;
+  const nextOptions = { removeUnnamedParams: true, strict: true };
+
+  it("escapes the hyphen so the group stays a valid path-to-regexp pattern", () => {
+    expect(localeAlternation(["zh-CN"])).toBe("zh\\-CN");
+    expect(() => getPathMatch(source, nextOptions)).not.toThrow();
+  });
+
+  it("matches the exact code Next routes with, and captures it whole", () => {
+    const match = getPathMatch(source, nextOptions);
+    expect(match("/zh-CN/docs/old")).toEqual({ locale: "zh-CN" });
+    expect(match("/ja/docs/old")).toEqual({ locale: "ja" });
+    expect(match("/de/docs/old")).toEqual({ locale: "de" });
+  });
+
+  it("does not match a bare language, a longer code or another page", () => {
+    const match = getPathMatch(source, nextOptions);
+    expect(match("/zh/docs/old")).toBe(false);
+    expect(match("/zh-CNx/docs/old")).toBe(false);
+    expect(match("/zhXCN/docs/old")).toBe(false);
+    expect(match("/zh-CN/docs/other")).toBe(false);
+  });
+
+  it("rejects the wrong case when Next matches case-sensitively", () => {
+    const match = getPathMatch(source, { ...nextOptions, sensitive: true });
+    expect(match("/zh-CN/docs/old")).toEqual({ locale: "zh-CN" });
+    expect(match("/zh-cn/docs/old")).toBe(false);
+  });
+
+  it("leaves case-sensitive routing off, so the [lang] guard is what rejects a wrong-case code", () => {
+    expect((nextConfig.experimental as { caseSensitiveRoutes?: boolean }).caseSensitiveRoutes).toBe(
+      undefined,
+    );
   });
 });
