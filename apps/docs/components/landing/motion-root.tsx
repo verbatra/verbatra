@@ -26,14 +26,18 @@ export function startMotion(doc: Document = document): () => void {
   const lastScroll = Math.max(0, root.scrollHeight - fold);
   const reveal = revealer({ rootMargin: REVEAL_MARGIN });
   const revealAtEnd = revealer({});
+  const offscreen: HTMLElement[] = [];
   for (const element of pending) {
+    if (element.getBoundingClientRect().top < fold) element.setAttribute("data-revealed", "");
+    else offscreen.push(element);
+  }
+  root.setAttribute("data-motion-ready", "");
+  for (const element of offscreen) {
     const top = element.getBoundingClientRect().top;
-    if (top < fold) element.setAttribute("data-revealed", "");
-    else if (top + (view?.scrollY ?? 0) - lastScroll >= fold * (1 - REVEAL_INSET))
+    if (top + (view?.scrollY ?? 0) - lastScroll >= fold * (1 - REVEAL_INSET))
       revealAtEnd.observe(element);
     else reveal.observe(element);
   }
-  root.setAttribute("data-motion-ready", "");
 
   return () => {
     reveal.disconnect();

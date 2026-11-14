@@ -117,6 +117,25 @@ describe("startMotion", () => {
     expect(late.hasAttribute("data-revealed")).toBe(true);
   });
 
+  it("routes an element by where its hidden translation puts it once the root is ready", () => {
+    mount();
+    const late = document.createElement("div");
+    late.setAttribute("data-reveal", "2");
+    document.body.append(late);
+    late.getBoundingClientRect = () =>
+      ({
+        top: document.documentElement.hasAttribute("data-motion-ready") ? 1931 : 1915,
+      }) as DOMRect;
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      value: 2000,
+    });
+    stop = startMotion();
+    const [reveal, atEnd] = FakeObserver.all;
+    expect(reveal?.observed.has(late)).toBe(false);
+    expect(atEnd?.observed.has(late)).toBe(true);
+  });
+
   it("leaves no motion state behind when the page unmounts", () => {
     mount();
     stop = startMotion();
