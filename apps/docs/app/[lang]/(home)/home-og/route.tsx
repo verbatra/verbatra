@@ -17,6 +17,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
       lines={HERO_OG_LINES}
       footer={new URL(SITE_URL).host}
     />,
-    { ...OG_IMAGE_SIZE, fonts: await loadOgFonts() },
+    { ...OG_IMAGE_SIZE, fonts: await loadOgFonts(locale) },
   );
 }

@@ -1190,7 +1190,11 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   (`OFL-Geist.txt`), each subset with fontTools:
   `pyftsubset <upstream>.ttf --unicodes="U+0020-007E,U+00A0-017F,U+2018-201E,U+2026"
   --layout-features="" --no-hinting --drop-tables+=GPOS,GSUB,kern,DSIG --output-file=<name>.ttf`.
-  A new character outside those ranges in a headline needs the subset rerun. `PromptCopyButton` is
+  A new character outside those ranges in a headline needs the subset rerun. A locale whose script Geist cannot draw gets its own face in `OG_LOCALE_FONTS` (`lib/og-locale-fonts.ts`, one
+entry per `Locale`, empty for en, de, es and fr): `loadOgFonts(locale)` loads it after Geist, and satori falls back to it
+per glyph. `pnpm --filter @verbatra/docs og:fonts --source-dir <dir>` (`scripts/build-og-font-subsets.mjs`)
+subsets each configured face to the characters of that locale's OG text (`lib/og-texts.ts`), and
+`lib/og-font-subsets.test.ts` fails when a committed subset lacks one. `PromptCopyButton` is
   `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding
   the exact prompt in `.vk-prompt-text`, sans `--text-xs` with a hanging indent per numbered line,
   its URL broken only after a path `/` and each flag, and the value after it

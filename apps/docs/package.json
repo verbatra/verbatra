@@ -24,6 +24,7 @@
     "test:e2e": "playwright test",
     "contributors": "node scripts/refresh-contributors.mjs",
     "licenses:sync": "node scripts/sync-licenses.mjs",
+    "og:fonts": "node scripts/build-og-font-subsets.mjs",
     "playground:generate": "node --env-file-if-exists=scripts/playground/.env.local scripts/playground/generate.ts"
   },
   "dependencies": {
@@ -64,6 +65,7 @@
     "parse5": "catalog:",
     "playwright": "catalog:",
     "sharp": "0.35.5",
+    "subset-font": "2.9.0",
     "tailwindcss": "4.3.5",
     "typescript": "catalog:",
     "vitest": "catalog:"
