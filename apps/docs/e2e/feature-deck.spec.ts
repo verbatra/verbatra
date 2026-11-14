@@ -61,6 +61,24 @@ test.describe("feature deck", () => {
     await expect(pane(page, "studio").locator("img:visible")).toHaveCount(1);
   });
 
+  test("switches the pane on a click at the coordinates of the row's own command text", async ({
+    page,
+  }) => {
+    await openDeck(page);
+    for (const id of FEATURES) {
+      const command = page.locator(`#features .vk-deck-item:has(#feature-${id}) .vk-deck-command`);
+      await command.scrollIntoViewIfNeeded();
+      const box = await command.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThan(40);
+      await page.mouse.click(
+        (box?.x ?? 0) + (box?.width ?? 0) / 2,
+        (box?.y ?? 0) + (box?.height ?? 0) / 2,
+      );
+      await expect(page.locator(`#feature-${id}`)).toBeChecked();
+      await expect(page.locator("#features .vk-deck-card:visible")).toHaveCount(1);
+    }
+  });
+
   test("moves through the commands with the arrow keys and reaches the docs link by Tab", async ({
     page,
   }) => {
