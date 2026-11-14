@@ -574,6 +574,11 @@ function expectOneFrame(list: Paint[], label: string): void {
   });
 }
 
+function recordFullFrame(rested: Set<number>, list: Paint[]): void {
+  const full = list.findIndex((paint) => paint.frame === 1);
+  if (full >= 0) rested.add(full);
+}
+
 async function sweepFrames(
   page: Page,
   step: number,
@@ -699,7 +704,7 @@ for (const locale of LOCALES) {
                 `wheel ${browserName} ${locale} ${width}x${height} notch ${notch} y${y} ${svh.toFixed(1)}svh frames ${list.map((p) => p.frame.toFixed(2))} cards ${list.map((p) => p.card.toFixed(2))}`,
               );
               expectOneFrame(list, `wheel ${notch} at ${y}`);
-              rested.add(list.findIndex((paint) => paint.frame === 1));
+              recordFullFrame(rested, list);
             }
             if (svh >= GATE_PIN_SVH) break;
           }
