@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { assertLocaleTable, LOCALE_SUFFIXES } from "./docs-locales.mjs";
 import { sdkReferencePages } from "./sdk-reference-pages.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -24,8 +25,10 @@ const QUICKSTART = "(sdk)/sdk-quickstart";
 const RECIPES = "(sdk)/programmatic-api";
 const EXAMPLE_PAGES = [QUICKSTART, RECIPES];
 const REFERENCE_PAGES = sdkReferencePages().map((page) => `sdk/${page}`);
-const EXAMPLE_TITLES = { "": "Example", ".de": "Beispiel", ".es": "Ejemplo", ".fr": "Exemple" };
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
+const EXAMPLE_TITLES = assertLocaleTable(
+  { "": "Example", ".de": "Beispiel", ".es": "Ejemplo", ".fr": "Exemple" },
+  "EXAMPLE_TITLES",
+);
 const SLOW = 180_000;
 
 function readPage(page, suffix = "") {

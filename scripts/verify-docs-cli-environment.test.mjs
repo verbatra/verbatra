@@ -3,19 +3,21 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "../apps/docs/lib/docs-pages.ts";
+import { assertLocaleTable, LOCALE_SUFFIXES } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
-
 const CLI_SOURCES = ["run.ts", "studio-command.ts", "mcp-command.ts"];
 
-const ENVIRONMENT_FILES_HEADING = {
-  "": "## Environment files",
-  ".de": "## Umgebungsdateien",
-  ".es": "## Archivos de entorno",
-  ".fr": "## Fichiers d'environnement",
-};
+const ENVIRONMENT_FILES_HEADING = assertLocaleTable(
+  {
+    "": "## Environment files",
+    ".de": "## Umgebungsdateien",
+    ".es": "## Archivos de entorno",
+    ".fr": "## Fichiers d'environnement",
+  },
+  "ENVIRONMENT_FILES_HEADING",
+);
 
 function readRepoFile(relativePath) {
   return readFileSync(resolve(REPO_ROOT, relativePath), "utf8");
@@ -257,12 +259,15 @@ const SPEND_SECTION_HEADING = {
   },
 };
 
-const REDACT_SECTION_HEADING = {
-  "": "### Redacted values",
-  ".de": "### Geschwärzte Werte [#redacted-values]",
-  ".es": "### Valores ocultos [#redacted-values]",
-  ".fr": "### Valeurs masquées [#redacted-values]",
-};
+const REDACT_SECTION_HEADING = assertLocaleTable(
+  {
+    "": "### Redacted values",
+    ".de": "### Geschwärzte Werte [#redacted-values]",
+    ".es": "### Valores ocultos [#redacted-values]",
+    ".fr": "### Valeurs masquées [#redacted-values]",
+  },
+  "REDACT_SECTION_HEADING",
+);
 
 const SESSION_VARIABLE = /\bVERBATRA_(?:STUDIO|MCP)_[A-Z_]+\b/g;
 

@@ -2,10 +2,9 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { LOCALE_SUFFIXES } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 
 function readRepoFile(relativePath) {
   return readFileSync(resolve(REPO_ROOT, relativePath), "utf8");

@@ -3,12 +3,12 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "../apps/docs/lib/docs-pages.ts";
+import { LOCALE_SUFFIXES, withoutLocaleSuffix } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONTENT_DIR = resolve(REPO_ROOT, "apps/docs/content/docs");
 const SDK_DECLARATIONS = resolve(REPO_ROOT, "packages/sdk/dist/index.d.ts");
 const OWNER = "sdk/run-summary";
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 const INTERFACES = ["RunSummary", "LocaleSummary"];
 
 function interfaceBody(source, name) {
@@ -44,7 +44,7 @@ function pagesPrintingRunSummary() {
   return readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".mdx"))
     .filter((file) => PRINTED_INTERFACE.test(readIncludedSource(resolve(CONTENT_DIR, file))))
-    .map((file) => file.replace(/\.(de|es|fr)\.mdx$/, "").replace(/\.mdx$/, ""))
+    .map((file) => withoutLocaleSuffix(file).replace(/\.mdx$/, ""))
     .filter((page, index, pages) => pages.indexOf(page) === index)
     .sort();
 }

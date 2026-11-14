@@ -5,10 +5,9 @@ import { describe, expect, it } from "vitest";
 import { AGENT_CLIENT_CONFIGS, AGENT_CLIENT_IDS } from "../packages/cli/src/agent-clients.ts";
 import { AGENT_INSTRUCTIONS } from "../packages/cli/src/agent-instructions.ts";
 import { tomlServerBlock } from "../packages/cli/src/agent-scaffold.ts";
+import { LOCALE_SUFFIXES } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 
 function readAgentsPage(name, suffix) {
   return readFileSync(

@@ -3,11 +3,16 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "../apps/docs/lib/docs-pages.ts";
+import {
+  assertLocaleTable,
+  isTranslationFile,
+  LOCALE_SUFFIXES,
+  localeAlternation,
+  TRANSLATED_LOCALES,
+} from "./docs-locales.mjs";
 import { sdkReferencePages } from "./sdk-reference-pages.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 
 const ENTRY_POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 
@@ -131,19 +136,25 @@ const RESULT_CODE_FAMILIES = [
   },
 ];
 
-const NEXT_STEP_LABEL = {
-  "": "Next step",
-  ".de": "Nächster Schritt",
-  ".es": "Siguiente paso",
-  ".fr": "Étape suivante",
-};
+const NEXT_STEP_LABEL = assertLocaleTable(
+  {
+    "": "Next step",
+    ".de": "Nächster Schritt",
+    ".es": "Siguiente paso",
+    ".fr": "Étape suivante",
+  },
+  "NEXT_STEP_LABEL",
+);
 
-const INPUT_FILE_HINT_LABELS = {
-  "": { handoff: "Next step for `import`", tmx: "Next step for `tmx import`" },
-  ".de": { handoff: "Nächster Schritt bei `import`", tmx: "Nächster Schritt bei `tmx import`" },
-  ".es": { handoff: "Siguiente paso con `import`", tmx: "Siguiente paso con `tmx import`" },
-  ".fr": { handoff: "Étape suivante pour `import`", tmx: "Étape suivante pour `tmx import`" },
-};
+const INPUT_FILE_HINT_LABELS = assertLocaleTable(
+  {
+    "": { handoff: "Next step for `import`", tmx: "Next step for `tmx import`" },
+    ".de": { handoff: "Nächster Schritt bei `import`", tmx: "Nächster Schritt bei `tmx import`" },
+    ".es": { handoff: "Siguiente paso con `import`", tmx: "Siguiente paso con `tmx import`" },
+    ".fr": { handoff: "Étape suivante pour `import`", tmx: "Étape suivante pour `tmx import`" },
+  },
+  "INPUT_FILE_HINT_LABELS",
+);
 
 const INPUT_FILE_HINTS = {
   handoff: hintTable(SDK_HINTS_FILE, "HANDOFF_FILE_HINTS"),
@@ -677,11 +688,8 @@ describe("the types page lists exactly the output paths generateTypes refuses", 
   });
 });
 
-const TRANSLATED_LOCALES = LOCALE_SUFFIXES.filter(Boolean)
-  .map((suffix) => suffix.slice(1))
-  .join("|");
 const REVIEW_FLAG_ROW = new RegExp(
-  `^\\| \\[\`([A-Z_]+)\`\\]\\((?:\\/(?:${TRANSLATED_LOCALES}))?\\/docs\\/error-codes#[a-z_]+\\) \\|`,
+  `^\\| \\[\`([A-Z_]+)\`\\]\\((?:\\/(?:${localeAlternation(TRANSLATED_LOCALES)}))?\\/docs\\/error-codes#[a-z_]+\\) \\|`,
 );
 
 function reviewFlagTable(page) {
@@ -699,10 +707,7 @@ function reviewFlagTable(page) {
 function docPagesCarryingEveryCode(codes, suffix) {
   const contentDir = resolve(REPO_ROOT, "apps/docs/content/docs");
   return readdirSync(contentDir, { recursive: true, encoding: "utf8" })
-    .filter(
-      (file) =>
-        file.endsWith(`${suffix}.mdx`) && (suffix !== "" || !/\.(de|es|fr)\.mdx$/.test(file)),
-    )
+    .filter((file) => file.endsWith(`${suffix}.mdx`) && (suffix !== "" || !isTranslationFile(file)))
     .filter((file) => {
       const page = readIncludedSource(resolve(contentDir, file));
       return codes.every((code) => new RegExp(`\\b${code}\\b`).test(page));

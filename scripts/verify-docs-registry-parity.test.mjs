@@ -8,10 +8,9 @@ import {
   proseWords,
 } from "../apps/docs/lib/page-type.ts";
 import { STACK_IDS, STACKS } from "../apps/docs/lib/stacks.ts";
+import { assertLocaleTable, LOCALE_SUFFIXES } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 
 function docsRoot(suffix) {
   return suffix === "" ? "/docs" : `/${suffix.slice(1)}/docs`;
@@ -480,19 +479,25 @@ describe("the doctor page lists every check doctor runs", () => {
 
 const SHARED_COMMAND_FLAGS = ["--config", "--cwd", "--json"];
 
-const GLOBAL_FLAGS_ANCHOR = {
-  "": "global-flags",
-  ".de": "globale-flags",
-  ".es": "flags-globales",
-  ".fr": "options-globales",
-};
+const GLOBAL_FLAGS_ANCHOR = assertLocaleTable(
+  {
+    "": "global-flags",
+    ".de": "globale-flags",
+    ".es": "flags-globales",
+    ".fr": "options-globales",
+  },
+  "GLOBAL_FLAGS_ANCHOR",
+);
 
-const COMMAND_PAGE_SECTIONS = {
-  "": ["Synopsis", "Examples", "Flags", "Behavior", "Exit codes", "Related"],
-  ".de": ["Synopsis", "Beispiele", "Flags", "Verhalten", "Exit-Codes", "Siehe auch"],
-  ".es": ["Sinopsis", "Ejemplos", "Flags", "Comportamiento", "Códigos de salida", "Relacionado"],
-  ".fr": ["Synopsis", "Exemples", "Options", "Comportement", "Codes de sortie", "Voir aussi"],
-};
+const COMMAND_PAGE_SECTIONS = assertLocaleTable(
+  {
+    "": ["Synopsis", "Examples", "Flags", "Behavior", "Exit codes", "Related"],
+    ".de": ["Synopsis", "Beispiele", "Flags", "Verhalten", "Exit-Codes", "Siehe auch"],
+    ".es": ["Sinopsis", "Ejemplos", "Flags", "Comportamiento", "Códigos de salida", "Relacionado"],
+    ".fr": ["Synopsis", "Exemples", "Options", "Comportement", "Codes de sortie", "Voir aussi"],
+  },
+  "COMMAND_PAGE_SECTIONS",
+);
 
 const OPTIONAL_SECTION_INDEX = 3;
 

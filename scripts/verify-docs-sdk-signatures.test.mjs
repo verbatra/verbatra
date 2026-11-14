@@ -2,13 +2,19 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { assertLocaleTable, LOCALE_SUFFIXES } from "./docs-locales.mjs";
 import { sdkReferencePages } from "./sdk-reference-pages.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
-
-const SIGNATURE_BLOCK = /^```ts title="(?:Signature|Signatur|Firma)"\n([\s\S]*?)^```/gm;
+const SIGNATURE_TITLES = assertLocaleTable(
+  { "": "Signature", ".de": "Signatur", ".es": "Firma", ".fr": "Signature" },
+  "SIGNATURE_TITLES",
+);
+const SIGNATURE_BLOCK = new RegExp(
+  `^\`\`\`ts title="(?:${[...new Set(Object.values(SIGNATURE_TITLES))].join("|")})"\\n([\\s\\S]*?)^\`\`\``,
+  "gm",
+);
 
 const DECLARATIONS = "packages/sdk/dist/index.d.ts";
 

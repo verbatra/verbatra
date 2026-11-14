@@ -3,33 +3,38 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "../apps/docs/lib/docs-pages.ts";
+import { assertLocaleTable, LOCALES, localeAlternation, localeOfFile } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONTENT_DIR = resolve(REPO_ROOT, "apps/docs/content/docs");
 const MESSAGES_DIR = resolve(REPO_ROOT, "apps/docs/messages");
 
-const SPELLED_COUNTS = {
-  en: {
-    numbers:
-      "five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty",
-    nouns: "formats|providers|commands|subcommands",
+const SPELLED_COUNTS = assertLocaleTable(
+  {
+    en: {
+      numbers:
+        "five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty",
+      nouns: "formats|providers|commands|subcommands",
+    },
+    de: {
+      numbers:
+        "fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|dreizehn|vierzehn|fünfzehn|sechzehn|siebzehn|achtzehn|neunzehn|zwanzig",
+      nouns: "formaten?|providern?|anbietern?|befehlen?|unterbefehlen?|kommandos",
+    },
+    es: {
+      numbers:
+        "cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciséis|diecisiete|dieciocho|diecinueve|veinte",
+      nouns: "formatos|proveedores|comandos|subcomandos",
+    },
+    fr: {
+      numbers:
+        "cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt",
+      nouns: "formats|fournisseurs|commandes|sous-commandes",
+    },
   },
-  de: {
-    numbers:
-      "fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|dreizehn|vierzehn|fünfzehn|sechzehn|siebzehn|achtzehn|neunzehn|zwanzig",
-    nouns: "formaten?|providern?|anbietern?|befehlen?|unterbefehlen?|kommandos",
-  },
-  es: {
-    numbers:
-      "cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciséis|diecisiete|dieciocho|diecinueve|veinte",
-    nouns: "formatos|proveedores|comandos|subcomandos",
-  },
-  fr: {
-    numbers:
-      "cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt",
-    nouns: "formats|fournisseurs|commandes|sous-commandes",
-  },
-};
+  "SPELLED_COUNTS",
+  LOCALES,
+);
 
 function countPattern(locale) {
   const { numbers, nouns } = SPELLED_COUNTS[locale];
@@ -40,7 +45,7 @@ function countPattern(locale) {
 }
 
 function localeOf(file) {
-  return /\.(de|es|fr)\.mdx$/.exec(file)?.[1] ?? "en";
+  return localeOfFile(file);
 }
 
 function proseLines(source) {
@@ -66,7 +71,7 @@ const PAGES = readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" })
   .sort();
 
 const MESSAGE_FILES = readdirSync(MESSAGES_DIR)
-  .filter((file) => /^(en|de|es|fr)\.json$/.test(file))
+  .filter((file) => new RegExp(`^(${localeAlternation()})\\.json$`).test(file))
   .sort();
 
 function messageStrings(value) {

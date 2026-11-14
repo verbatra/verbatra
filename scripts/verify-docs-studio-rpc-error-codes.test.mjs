@@ -2,12 +2,12 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { LOCALE_SUFFIXES } from "./docs-locales.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const RPC_GATE = resolve(REPO_ROOT, "packages/studio/src/server/rpc-gate.ts");
 const CLIENT_API = resolve(REPO_ROOT, "packages/studio/src/app/api.ts");
 const PAGE = "apps/docs/content/docs/(agents)/agent-tools-in-studio";
-const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 const TABLE_ROWS = /^\| --- \| --- \|\n((?:\| `[A-Z][A-Z0-9_]*` \|[^\n]*\n)+)/gm;
 const CLIENT_SYNTHESIZED = ["SESSION_EXPIRED"];
 
