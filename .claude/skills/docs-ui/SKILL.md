@@ -35,10 +35,10 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 
 ## The stack, and why it constrains you
 
-- `fumadocs-ui` and `fumadocs-core` 16.17.1, `next` 16.4.0, `tailwindcss` 4.3.3, `next-intl` 4.14.9.
+- `fumadocs-ui` and `fumadocs-core` 16.18.4, `next` 16.4.6, `tailwindcss` 4.3.5, `next-intl` 4.14.10.
   `motion` is no direct dependency (Fumadocs still brings its own): no landing code imports it,
   and nothing animates through a React motion provider or an `m.*` element. Animate `opacity` and
-  `transform` only, and keep layout shift at 0.
+  `transform` only (one paint-only exception, the cross-highlight of the highlights section, below), and keep layout shift at 0.
   Server sections and the reveals stay CSS keyframes and transitions in `app/global.css`, each with
   a `prefers-reduced-motion` opt-out.
   No animation library is a dependency: the lock-file demo's autoplay is one CSS keyframe per step
@@ -170,7 +170,7 @@ Scales are fixed and narrow, deliberately:
 
 - Radii: `--radius-sm` 6px, `--radius-md` 10px, and `--radius-lg`, `--radius-xl`,
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Two landing
-  radii sit above it and nowhere else: `--radius-card` (20px) for the highlight tiles and the feature
+  radii sit above it and nowhere else: `--radius-card` (20px) for the feature
   cards of the stacked deck, and `--radius-panel` (28px) for the closing panel. The hero itself sits on the page, in no
   card.
 - Shadows: `--shadow-panel` (a neutral lift) and `--shadow-sm`. Two, not a ramp, each
@@ -184,7 +184,7 @@ Scales are fixed and narrow, deliberately:
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
   between a section head and its content: the
-  highlight tiles and the feature deck (`margin-top: var(--head-gap)` on `.vk-bento` and
+  highlights panes and the feature deck (`margin-top: var(--head-gap)` on `.vk-hl` and
   `.vk-deck`), the row gap
   of `.vk-section-aside` (the FAQ) and the gap above the lock-file demo's stage (`.vk-lock-stage`); `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
@@ -223,7 +223,7 @@ Scales are fixed and narrow, deliberately:
   the light theme and the footer forms no band in either; `--v-void` itself stays for code surfaces.
   Landing tiles use two landing-scoped tokens, outside the semantic layer above:
   `--surface-tile` (dark `hsl(240 26% 8%)`, light white) and `--border-tile` (dark
-  `hsl(240 22% 16%)`, light `--border-default`). They fill and border `.vk-tile`, `.vk-deck-item`,
+  `hsl(240 22% 16%)`, light `--border-default`). They fill and border `.vk-deck-item`,
   `.vk-faq-item`, `.vk-closer`, `.vk-banner-file`,
   `.vk-lock-card`. The hero draws one `aria-hidden` `.vk-banner-halo` as its
   first child: two radial halos and a 64px `--grid-line` grid faded by a radial mask, behind the
@@ -355,14 +355,27 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   back cards show only from 64rem and where the demo column is at least 28rem wide (a container
   query), so no value line is ever cut with an ellipsis, and every value line wraps at spaces; no trust line, no Node.js requirement line, no tabs and no
   terminal), `lock-demo.tsx` (`#lock-demo`, see "Lock-file demo" below),
-  `highlights.tsx` (`#highlights`, a split head aligned to the start over `.vk-bento`, six columns
-  from 64rem: three tile titles name the pain ("Retranslating everything costs more", "Missing keys reach production", "One broken placeholder breaks a screen") while each body and terminal output stays the fix, and the agents tile keeps its title; the translate run (under a `.vk-tile-body` that carries the run's sent and total counts) from `HERO_TRANSLATE_OUTPUT` in a wrapped `.vk-tile-code-wrap` group named by the tile title (it wraps at its spaces at every width, so it never scrolls, is no tab stop and no line is cut or faded on a phone; each output line is its own `.vk-tile-line` span with a hanging indent (`--vk-hang` in `ch`, its leading spaces and at least 2), so a wrapped row sits under the start of its text; the text stays the CLI's byte for byte), its total line in
-  `--accent` (span 4), the check's exit code in `--text-danger` (span 2; its glow is a strip of
-  `--tile-halo-height` at the tile's end, under padding that clears the text, so no text ever sits
-  over a halo), the default playground item (`welcomeBack`) in every playground language with each placeholder
-  in a `mark` (span 3), and the MCP setup command wrapped, not scrolled, breaking only between whole flags and arguments through `keepPackageRunsWhole` (span 3); every count
-  derives from the hero terminal data, never typed; the CLI text (run, exit code, command) carries
-  `lang="en"` on every locale, like the lock-file demo's CLI lines), `features.tsx` (`#features`, a bracketed label, a split
+  `highlights.tsx` (`#highlights`, "four surfaces, one answer": a split head aligned to the start whose heading
+  is "Ask any surface, get the same answer" and whose lead names the CLI, the SDK, Studio, the MCP server and the one lock file, with the dataset as ICU values
+  (`{locale}`, `{stale}`, `{upToDate}`, from `SURFACE_COUNTS`), then `.vk-hl`: a slim `verbatra.lock.json` rail (`.vk-hl-rail`, a lock-demo
+  card, at most 110px at 1440: the head with the check badge and the two stale entries from `lockLines()`, side by side from 40rem) over `.vk-hl-panes`, four
+  `article.vk-hl-pane` in the order CLI, Studio, SDK, MCP server (one column, two from 40rem, `--grid-gap` from 64rem, a stretched
+  row). Each pane is one `.vk-lock-card` (the lock demo's card) whose `.vk-lock-head` holds an `h3.vk-hl-surface` naming the surface and a mono badge
+  (`verbatra check`, `Locales`, `check()`, and for MCP the translated "calls no provider"), the artifact, and a `.vk-lock-foot.vk-hl-foot` with one `.vk-deck-link` to the
+  surface's docs page (`SURFACE_DOCS_PATHS`: `docs/cli/check`, `docs/cli/studio`, `docs/sdk/inspect`, `docs/cli/mcp`); the MCP foot also carries the
+  `claude mcp add` command (`MCP_ADD_COMMAND`, `keepPackageRunsWhole`) and the real `CopyButton` island. Every artifact is data in
+  `lib/highlights-surfaces.ts`, built from the hero fixture: the CLI lines are `HERO_CHECK_OUTPUT` under the command, the SDK pane the `check()` call and
+  the first fields of `summary.locales[0]`, the MCP pane `status.check({})` and its response, each with a `...` that stands for the fields it leaves out, and the Studio
+  pane a markup rendering of the Locales row (coverage 86 percent by the rule of `packages/studio/src/client/coverage.ts`, `12 / 14 keys`, a bar scaled with
+  `--vk-hl-fill`, no lock or open column). `lib/highlights-surfaces.run.test.ts` runs the real sdk `check()`, the CLI's `renderCheckHuman`, the MCP `status.check` tool
+  and Studio's `coveragePercent` against that fixture and fails when a displayed line or object differs. Code is `pre` in `lang="en"`; under 40rem the
+  lines marked `collapse` (`data-fold="drop"`) leave, so the SDK and MCP panes are at most 6 lines on a phone and 8 at 1440; `up-to-date` and every hyphenated compound stay whole
+  (`keepCompoundsWhole`). Interaction is pane level and CSS only: while any pane is hovered or holds focus (`:hover`, `:focus-within`, matched through
+  `.vk-hl:has(...)`, no `tabindex`), every `.vk-hl-stale` field and every marked line lights (a 28 percent `--accent` tint, text `--text-strong`, at least 4.5:1 in both themes),
+  and the stale field is already marked at rest (`--accent` text, dotted underline). The tint fades over `--duration-fast` only under `prefers-reduced-motion: no-preference`;
+  it is a paint-only change, the one transition on the landing that is neither opacity nor transform, and under `forced-colors` the lit field takes a `Highlight` outline.
+  The panes are the first consumers of `[data-reveal]`: `data-reveal` is the row (0 for CLI and Studio, 1 for SDK and MCP), so the second row starts 70ms later whatever the column count.
+  `highlights.test.tsx` pins the markup and the stylesheet, `e2e/highlights.spec.ts` the heights, the reflow, the cross-highlight, the contrast and the reveal), `features.tsx` (`#features`, a bracketed label, a split
   head aligned to the start and the command deck: `ol.vk-deck` of `LANDING_FEATURES` from `lib/landing-features.ts`, in
   workflow order (extract, types, doctor, watch, handoff, studio), each with its `command` and `docsPath`. Every `li.vk-deck-item`
   holds a `.vk-deck-row` (a radio, `input.vk-deck-radio`, one group, the first checked, `aria-controls` its pane; the `h3` whose
@@ -611,10 +624,10 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
   the global rule.
   `lib/hero-terminal.ts` keeps the recorded `verbatra check` and `verbatra translate` transcript
   (`HERO_TERMINAL_SCRIPT`, English on every locale, like all CLI output on the page) that the home
-  social image, the lock-file demo and the highlights counts draw from: one locale (`de`), fourteen source values (`HERO_TERMINAL_SOURCE`), two of them edited (`before` is the old value), so check prints `0 missing, 2 stale, 12 up-to-date` and translate `2 translated, 12 unchanged`, with no token figure because the CLI prints none for a run without reported usage;
+  social image, the lock-file demo and the highlights panes draw from: one locale (`de`), fourteen source values (`HERO_TERMINAL_SOURCE`), two of them edited (`before` is the old value), so check prints `0 missing, 2 stale, 12 up-to-date` and translate `2 translated, 12 unchanged`, with no token figure because the CLI prints none for a run without reported usage;
   `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer and the lock hashes of `lib/lock-demo.ts` to the lock file the CLI writes;
   `MCP_ADD_COMMAND` in `lib/install-commands.ts` is the `claude mcp add` line the highlights'
-  MCP tile and the markdown twin print, copied from the MCP client guide, and `INIT_COMMAND` and
+  MCP pane foot and the markdown twin print, copied from the MCP client guide, and `INIT_COMMAND` and
   `DRY_RUN_COMMAND` (same file) the two commands of the closing panel;
   `lib/landing-hero-files.ts` builds the hero's locale-file cards from the playground data: its
   `HERO_FILE_IDS` list says which lines the front card shows and which are marked changed (the badge
@@ -793,7 +806,7 @@ gradient). No landing headline ends with a period (`lib/landing-messages.test.ts
 
 ## Landing motion
 
-The landing moves little, on purpose: the format and provider marquee rows loop until paused, the lock-file demo steps through its three frames on a desktop screen with motion allowed (paused offscreen, by its pause button or by choosing a step; static and stacked on phones and under reduced motion), and nothing else
+The landing moves little, on purpose: the format and provider marquee rows loop until paused, the lock-file demo steps through its three frames on a desktop screen with motion allowed (paused offscreen, by its pause button or by choosing a step; static and stacked on phones and under reduced motion), and the highlights panes fade in once as they enter (see Reveals); nothing else
 on the page fades in.
 There is no scroll-driven motion, no pinning and no parallax and no scroll listener;
 `motion` is reserved for client islands (see "The stack").
@@ -808,12 +821,11 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`) that adds `data-revealed` and
   unobserves, so each element reveals once. Only the reveal transitions; hiding is instant. Focus
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
-  `n * --reveal-stagger`, capped at `--reveal-delay-max`. No landing section carries a mark
-  today: the system stays for a demo artifact that earns one. No section heading reveals
-  (`SectionHead` takes no reveal prop), and the hero, marquee, lock-file demo, highlights,
+  `n * --reveal-stagger`, capped at `--reveal-delay-max`. The highlights panes are the one consumer today, and `n` is their row, not their index. No section heading reveals
+  (`SectionHead` takes no reveal prop), and the hero, marquee, lock-file demo,
   features, FAQ and closing panel never take a reveal; the marquee
   loop below is its own motion, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
-  `reveal-marks.test.tsx` pins that no section file carries a mark and `motion-root.test.tsx` the observer and
+  `reveal-marks.test.tsx` pins that only the allowlisted sections (highlights) carry a mark and `motion-root.test.tsx` the observer and
   the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
   layout animation runs in it on load;
@@ -922,7 +934,7 @@ There is no scroll-driven motion, no pinning and no parallax and no scroll liste
   reduced motion (`e2e/landing.spec.ts`). Under 40rem the section steps are 88px, 64px and 48px, `--head-gap` is 2rem,
   and the footer link rows sit at their 44px targets with no row gap. A new phone section pays for its height elsewhere.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
-  scroll listener; at most one reveal chain per section, and only on a demo artifact (the hero
+  scroll listener; at most one reveal chain per section, and only on a demo artifact (the highlights panes; the hero
   the marquee loop is not a reveal); no entrance over 16px or 600ms.
 
 ## Keep the client payload small
