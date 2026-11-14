@@ -13,6 +13,7 @@ import { PLAYGROUND_TRANSLATIONS, playgroundFileName } from "@/lib/landing-playg
 import { LOCALES, type Locale } from "@/lib/locales";
 import { LOCK_DEMO_LOCALE, LOCK_DEMO_PLAYGROUND_IDS } from "@/lib/lock-demo";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
+import { countWords } from "@/lib/word-count";
 import messages from "@/messages/en.json";
 import { stripAccentTags } from "@/test-support/accent-tags";
 import { preloadRegisteredIslands } from "@/test-support/islands";
@@ -69,10 +70,6 @@ function source(path: string): string {
   return readFileSync(join(process.cwd(), path), "utf8");
 }
 
-function words(text: string): number {
-  return text.trim().split(/\s+/).length;
-}
-
 const LEAD_WORD_CAP: Readonly<Record<Locale, number>> = { en: 25, de: 30, es: 30, fr: 30 };
 
 const CHANGED_KEYS_BADGE: Readonly<Record<Locale, string>> = {
@@ -94,14 +91,14 @@ describe("Hero copy", () => {
   });
 
   it("keeps the headline to eight words and the subline to twenty-five, with no two-beat slogan", () => {
-    expect(words(headlinePlain)).toBeLessThanOrEqual(8);
-    expect(words(banner.lead)).toBeLessThanOrEqual(25);
+    expect(countWords(headlinePlain, "en")).toBeLessThanOrEqual(8);
+    expect(countWords(banner.lead, "en")).toBeLessThanOrEqual(LEAD_WORD_CAP.en);
     expect(headlinePlain.split(/[.!?]\s/)).toHaveLength(1);
   });
 
   it.each(LOCALES)("keeps the %s lead to its word cap", (locale) => {
     const cap = LEAD_WORD_CAP[locale];
-    expect(words(catalogFor(locale).landing.banner.lead)).toBeLessThanOrEqual(cap);
+    expect(countWords(catalogFor(locale).landing.banner.lead, locale)).toBeLessThanOrEqual(cap);
   });
 
   it("names the lock file, the changed keys and CI drift in the English lead, and no MCP server", () => {

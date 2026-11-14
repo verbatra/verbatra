@@ -19,6 +19,7 @@ import { providerShortLabel } from "@/lib/landing-providers";
 import { MESSAGE_CATALOGS } from "@/lib/message-catalogs";
 import { RELEASE_BADGE } from "@/lib/release-badge";
 import { faqPageLd } from "@/lib/structured-data";
+import { countWords } from "@/lib/word-count";
 import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 import { LICENSE_URL } from "./links";
@@ -303,7 +304,20 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
 const YES: Readonly<Record<Locale, string>> = { en: "Yes.", de: "Ja.", es: "Sí.", fr: "Oui." };
 const NO: Readonly<Record<Locale, string>> = { en: "No.", de: "Nein.", es: "No.", fr: "Non." };
 
-const SENTENCE_END = /[.!?](?:\s|$)/;
+const SENTENCE_END = /[.!?](?:\s|$)|[。！？]/;
+
+interface FaqWordCaps {
+  readonly firstSentence: number;
+  readonly answer: number;
+}
+
+const SPACED_FAQ_CAPS: FaqWordCaps = { firstSentence: 25, answer: 30 };
+const FAQ_WORD_CAPS: Readonly<Record<Locale, FaqWordCaps>> = {
+  en: SPACED_FAQ_CAPS,
+  de: SPACED_FAQ_CAPS,
+  es: SPACED_FAQ_CAPS,
+  fr: SPACED_FAQ_CAPS,
+};
 
 describe("the landing faq copy", () => {
   it.each(i18n.languages)("keeps the items in the rendered order in %s", (locale) => {
@@ -371,9 +385,10 @@ describe("the landing faq copy", () => {
     async (locale) => {
       for (const { id, answer } of await faqContent(locale)) {
         const sentences = answer.split(SENTENCE_END).filter((part) => part.trim() !== "");
-        expect(sentences[0]?.trim().split(/\s+/).length, id).toBeLessThanOrEqual(25);
+        const caps = FAQ_WORD_CAPS[locale];
+        expect(countWords(sentences[0] ?? "", locale), id).toBeLessThanOrEqual(caps.firstSentence);
         expect(sentences.length, id).toBeLessThanOrEqual(3);
-        expect(answer.trim().split(/\s+/).length, id).toBeLessThanOrEqual(30);
+        expect(countWords(answer, locale), id).toBeLessThanOrEqual(caps.answer);
       }
     },
   );

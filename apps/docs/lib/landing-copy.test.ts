@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { i18n } from "@/lib/i18n";
+import { i18n, type Locale } from "@/lib/i18n";
 import {
   COMPARE_ROWS,
   COMPARE_TOOLS,
@@ -9,6 +9,7 @@ import {
   type CompareTool,
   compareCell,
 } from "@/lib/landing-compare";
+import { countWords } from "@/lib/word-count";
 
 const NAMESPACES = [
   "topNav",
@@ -144,13 +145,22 @@ describe("the redesigned landing copy", () => {
     COMPARE_TOOLS.map((tool) => [row, tool] as const),
   );
 
-  const NOTE_CAP = 8;
-  const FLAGGED_NOTE_CAP = 10;
-  const VALUE_CAP = 4;
-
-  function words(text: string): number {
-    return text.split(/\s+/).filter((word) => word !== "").length;
+  interface CompareWordCaps {
+    readonly verdict: number;
+    readonly note: number;
+    readonly flaggedNote: number;
+    readonly value: number;
   }
+
+  const SPACED_CAPS: CompareWordCaps = { verdict: 2, note: 8, flaggedNote: 10, value: 4 };
+  const COMPARE_CAPS: Readonly<Record<Locale, CompareWordCaps>> = {
+    en: SPACED_CAPS,
+    de: SPACED_CAPS,
+    es: SPACED_CAPS,
+    fr: SPACED_CAPS,
+  };
+
+  const words = countWords;
 
   function cell(locale: string, row: CompareRowId, tool: CompareTool): MessageTree | undefined {
     const node = branch(landing(locale), `compare.rows.${row}`)[tool];
@@ -163,7 +173,9 @@ describe("the redesigned landing copy", () => {
       expect(Object.keys(vocabulary), locale).toEqual([...VERDICT_WORDS]);
       for (const [key, word] of leaves(vocabulary)) {
         expect(word, `${locale} ${key}`).not.toBe("");
-        expect(words(word), `${locale} ${key}`).toBeLessThanOrEqual(2);
+        expect(words(word, locale), `${locale} ${key}`).toBeLessThanOrEqual(
+          COMPARE_CAPS[locale].verdict,
+        );
       }
       expect(new Set(leaves(vocabulary).map(([, word]) => word)).size, locale).toBe(
         VERDICT_WORDS.length,
@@ -181,7 +193,7 @@ describe("the redesigned landing copy", () => {
   });
 
   for (const locale of i18n.languages) {
-    it(`caps a ${locale} qualifier at ${NOTE_CAP} words and the eleven flagged ones at ${FLAGGED_NOTE_CAP}`, () => {
+    it(`caps a ${locale} qualifier at ${COMPARE_CAPS[locale].note} words and the eleven flagged ones at ${COMPARE_CAPS[locale].flaggedNote}`, () => {
       const flagged = FLAGGED_LONG_NOTES.map(([row, tool]) => `${row}.${tool}`);
       const noted = ALL_CELLS.filter(
         ([row, tool]) => typeof cell("en", row, tool)?.note === "string",
@@ -189,8 +201,10 @@ describe("the redesigned landing copy", () => {
       for (const [row, tool] of noted) {
         const note = cell(locale, row, tool)?.note;
         expect(typeof note, `${locale} ${row}.${tool}`).toBe("string");
-        const cap = flagged.includes(`${row}.${tool}`) ? FLAGGED_NOTE_CAP : NOTE_CAP;
-        expect(words(String(note)), `${locale} ${row}.${tool}`).toBeLessThanOrEqual(cap);
+        const cap = flagged.includes(`${row}.${tool}`)
+          ? COMPARE_CAPS[locale].flaggedNote
+          : COMPARE_CAPS[locale].note;
+        expect(words(String(note), locale), `${locale} ${row}.${tool}`).toBeLessThanOrEqual(cap);
       }
     });
 
@@ -201,7 +215,9 @@ describe("the redesigned landing copy", () => {
       for (const [row, tool] of ALL_CELLS) {
         const node = cell(locale, row, tool);
         const label = `${locale} ${row}.${tool}`;
-        expect(words(String(node?.value ?? "")), label).toBeLessThanOrEqual(VALUE_CAP);
+        expect(words(String(node?.value ?? ""), locale), label).toBeLessThanOrEqual(
+          COMPARE_CAPS[locale].value,
+        );
         const tokens = String(node?.note ?? "").split(/\s+/);
         const first = tokens[0] ?? "";
         const leadsWithVerdict = tokens.length === 1 || /[,:;]$/.test(first);

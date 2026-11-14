@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { i18n } from "@/lib/i18n";
+import { i18n, type Locale } from "@/lib/i18n";
 
 type MessageTree = { [key: string]: string | MessageTree };
 
@@ -36,6 +36,35 @@ function landingText(locale: string, path: string): string {
 }
 
 const EM_DASH = String.fromCharCode(0x2014);
+
+interface LengthWindow {
+  readonly min: number;
+  readonly max: number;
+}
+
+const SEARCH_TITLE_WINDOW: LengthWindow = { min: 50, max: 60 };
+const SEARCH_DESCRIPTION_WINDOW: LengthWindow = { min: 150, max: 160 };
+
+const TITLE_WINDOWS: Readonly<Record<Locale, LengthWindow>> = {
+  en: SEARCH_TITLE_WINDOW,
+  de: SEARCH_TITLE_WINDOW,
+  es: SEARCH_TITLE_WINDOW,
+  fr: SEARCH_TITLE_WINDOW,
+};
+
+const DESCRIPTION_WINDOWS: Readonly<Record<Locale, LengthWindow>> = {
+  en: SEARCH_DESCRIPTION_WINDOW,
+  de: SEARCH_DESCRIPTION_WINDOW,
+  es: SEARCH_DESCRIPTION_WINDOW,
+  fr: SEARCH_DESCRIPTION_WINDOW,
+};
+
+const ABSENCE_FOUND_WORD: Readonly<Record<Locale, RegExp>> = {
+  en: /found/,
+  de: /gefunden/,
+  es: /encontr/,
+  fr: /trouv/,
+};
 
 describe("landing message parity", () => {
   const source = landingKeys(i18n.defaultLanguage);
@@ -132,11 +161,11 @@ describe("landing message parity", () => {
     expect(lead).not.toMatch(/After init/);
   });
 
-  it("keeps the home title between 50 and 60 characters in every locale", () => {
+  it("keeps the home title inside its length window in every locale", () => {
     for (const locale of i18n.languages) {
       const length = landingText(locale, "meta.title").length;
-      expect(length, locale).toBeGreaterThanOrEqual(50);
-      expect(length, locale).toBeLessThanOrEqual(60);
+      expect(length, locale).toBeGreaterThanOrEqual(TITLE_WINDOWS[locale].min);
+      expect(length, locale).toBeLessThanOrEqual(TITLE_WINDOWS[locale].max);
     }
   });
 
@@ -147,11 +176,11 @@ describe("landing message parity", () => {
     }
   });
 
-  it("keeps the home meta description between 150 and 160 characters in every locale", () => {
+  it("keeps the home meta description inside its length window in every locale", () => {
     for (const locale of i18n.languages) {
       const length = landingText(locale, "meta.description").length;
-      expect(length, locale).toBeGreaterThanOrEqual(150);
-      expect(length, locale).toBeLessThanOrEqual(160);
+      expect(length, locale).toBeGreaterThanOrEqual(DESCRIPTION_WINDOWS[locale].min);
+      expect(length, locale).toBeLessThanOrEqual(DESCRIPTION_WINDOWS[locale].max);
     }
   });
 
@@ -194,7 +223,7 @@ describe("landing message parity", () => {
   it("words an absence in the comparison as a search that found nothing, never as a missing feature", () => {
     for (const locale of i18n.languages) {
       expect(landingText(locale, "compare.verdicts.noneFound"), locale).toMatch(
-        /found|gefunden|encontr|trouv/,
+        ABSENCE_FOUND_WORD[locale],
       );
     }
   });
