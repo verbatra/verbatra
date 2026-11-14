@@ -5129,7 +5129,7 @@ html.light .vk-deck-shot-light {
   ) {
   @supports (animation-timeline: view()) {
     .vk-gate-track {
-      --vk-gate-pin: 136svh;
+      --vk-gate-pin: 150svh;
       --vk-gate-stage: calc(100svh - var(--vk-landing-offset));
       height: calc(var(--vk-gate-pin) + var(--vk-gate-stage));
       view-timeline: --vk-gate block;
@@ -5154,6 +5154,8 @@ html.light .vk-deck-shot-light {
       grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
       column-gap: var(--grid-gap);
       align-items: center;
+      overflow: clip;
+      overflow-clip-margin: 6rem;
     }
 
     .vk-gate-frame {
@@ -5176,17 +5178,85 @@ html.light .vk-deck-shot-light {
       animation-name: vk-gate-candidate;
     }
 
+    .vk-gate-frame[data-state="candidate"] > .vk-lock-caption {
+      animation-name: vk-gate-caption-out;
+      animation-range: contain 26.667% contain 29.333%;
+      animation-fill-mode: forwards;
+      animation-timing-function: var(--ease-exit);
+      animation-timeline: --vk-gate;
+    }
+
+    .vk-gate-frame[data-state="candidate"] > .vk-gate-card {
+      animation-name: vk-gate-card-out;
+      animation-range: contain 27.333% contain 30.667%;
+      animation-fill-mode: forwards;
+      animation-timing-function: var(--ease-exit);
+      animation-timeline: --vk-gate;
+    }
+
     .vk-gate-frame[data-state="refused"] {
       animation-name: vk-gate-refused;
+      --vk-lines-from: 33.333%;
+      --vk-lines-step: 0.667%;
+      --vk-lines-span: 1.333%;
+    }
+
+    .vk-gate-frame[data-state="refused"] > .vk-lock-caption {
+      animation-name: vk-gate-caption-in, vk-gate-caption-out;
+      animation-range:
+        contain 31.333% contain 34%,
+        contain 62.667% contain 65.333%;
+      animation-fill-mode: backwards, forwards;
+      animation-timing-function: var(--ease-standard), var(--ease-exit);
+      animation-timeline: --vk-gate;
+    }
+
+    .vk-gate-frame[data-state="refused"] > .vk-gate-card {
+      animation-name: vk-gate-card-in, vk-gate-card-out;
+      animation-range:
+        contain 32% contain 36%,
+        contain 63.333% contain 66.667%;
+      animation-fill-mode: backwards, forwards;
+      animation-timing-function: var(--ease-standard), var(--ease-exit);
+      animation-timeline: --vk-gate;
     }
 
     .vk-gate-frame[data-state="stale"] {
       animation-name: vk-gate-stale;
+      --vk-lines-from: 69.333%;
+      --vk-lines-step: 0.667%;
+      --vk-lines-span: 2.667%;
+    }
+
+    .vk-gate-frame[data-state="stale"] > .vk-lock-caption {
+      animation-name: vk-gate-caption-in;
+      animation-range: contain 67.333% contain 70%;
+      animation-fill-mode: backwards;
+      animation-timing-function: var(--ease-standard);
+      animation-timeline: --vk-gate;
+    }
+
+    .vk-gate-frame[data-state="stale"] > .vk-gate-card {
+      animation-name: vk-gate-card-in;
+      animation-range: contain 68% contain 72%;
+      animation-fill-mode: backwards;
+      animation-timing-function: var(--ease-standard);
+      animation-timeline: --vk-gate;
+    }
+
+    .vk-gate-cli .vk-lock-line {
+      --vk-line-start: calc(var(--vk-lines-from) + var(--n, 0) * var(--vk-lines-step));
+      animation-name: vk-gate-line;
+      animation-range: contain var(--vk-line-start) contain
+        calc(var(--vk-line-start) + var(--vk-lines-span));
+      animation-fill-mode: backwards;
+      animation-timing-function: var(--ease-standard);
+      animation-timeline: --vk-gate;
     }
 
     .vk-gate-moves {
       animation-fill-mode: both;
-      animation-timing-function: linear;
+      animation-timing-function: var(--ease-standard);
       animation-timeline: --vk-gate;
     }
 
@@ -5198,32 +5268,75 @@ html.light .vk-deck-shot-light {
 
     .vk-gate-slot {
       animation-name: vk-gate-chip;
-      animation-range: contain 0% contain 5.882%;
+      animation-range: contain 1.333% contain 4%;
     }
 
     .vk-gate-stamp {
       animation-name: vk-gate-stamp;
-      animation-range: contain 36.765% contain 39.706%;
+      animation-range: contain 37.333% contain 40%;
     }
 
     .vk-gate-exit {
       animation-name: vk-gate-drop;
-      animation-range: contain 70.588% contain 73.529%;
+      animation-range: contain 73.333% contain 76%;
+    }
+
+    .vk-gate-marker i {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .vk-gate-marker i[data-on] {
+      background: color-mix(in srgb, var(--text-muted) 40%, transparent);
+    }
+
+    .vk-gate-marker i[data-on]::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--accent-fill);
+      transform-origin: left;
+      animation-name: vk-gate-fill;
+      animation-fill-mode: backwards;
+      animation-timing-function: linear;
+      animation-timeline: --vk-gate;
+    }
+
+    .vk-gate-frame[data-state="candidate"] .vk-gate-marker i[data-on]::after {
+      animation-range: contain 0.667% contain 4%;
+    }
+
+    .vk-gate-frame[data-state="refused"] .vk-gate-marker i[data-on]::after {
+      animation-range: contain 31.333% contain 36%;
+    }
+
+    .vk-gate-frame[data-state="stale"] .vk-gate-marker i[data-on]::after {
+      animation-range: contain 67.333% contain 72%;
+    }
+
+    @media (forced-colors: active) {
+      .vk-gate-marker i[data-on] {
+        background: GrayText;
+      }
+
+      .vk-gate-marker i[data-on]::after {
+        background: Highlight;
+      }
     }
 
     @keyframes vk-gate-candidate {
       0%,
-      32.353% {
+      30.4% {
         opacity: 1;
         pointer-events: auto;
       }
 
-      33.824% {
+      30.667% {
         opacity: 0;
         pointer-events: auto;
       }
 
-      33.897%,
+      30.7%,
       100% {
         opacity: 0;
         pointer-events: none;
@@ -5232,29 +5345,29 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-refused {
       0%,
-      34.118% {
+      30.733% {
         opacity: 0;
         pointer-events: none;
       }
 
-      34.191%,
-      34.559% {
+      30.767%,
+      31.067% {
         opacity: 0;
         pointer-events: auto;
       }
 
-      36.029%,
-      66.176% {
+      31.333%,
+      66.4% {
         opacity: 1;
         pointer-events: auto;
       }
 
-      67.647% {
+      66.667% {
         opacity: 0;
         pointer-events: auto;
       }
 
-      67.721%,
+      66.7%,
       100% {
         opacity: 0;
         pointer-events: none;
@@ -5263,20 +5376,91 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-stale {
       0%,
-      68.309% {
+      66.733% {
         opacity: 0;
         pointer-events: none;
       }
 
-      68.382% {
+      66.767%,
+      67.067% {
         opacity: 0;
         pointer-events: auto;
       }
 
-      69.853%,
+      67.333%,
       100% {
         opacity: 1;
         pointer-events: auto;
+      }
+    }
+
+    @keyframes vk-gate-caption-in {
+      from {
+        opacity: 0;
+        transform: translateX(64px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @keyframes vk-gate-caption-out {
+      from {
+        opacity: 1;
+        transform: none;
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(-64px);
+      }
+    }
+
+    @keyframes vk-gate-card-in {
+      from {
+        opacity: 0;
+        transform: translateX(64px) scale(0.96);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @keyframes vk-gate-card-out {
+      from {
+        opacity: 1;
+        transform: none;
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(-64px) scale(0.96);
+      }
+    }
+
+    @keyframes vk-gate-line {
+      from {
+        opacity: 0;
+        transform: translateX(24px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @keyframes vk-gate-fill {
+      from {
+        transform: scaleX(0);
+      }
+
+      to {
+        transform: scaleX(1);
       }
     }
 

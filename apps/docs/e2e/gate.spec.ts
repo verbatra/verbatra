@@ -1,5 +1,10 @@
 import { expect, type Page, test } from "playwright/test";
-import { GATE_FADE_SVH, GATE_HOLD_SVH, GATE_PIN_SVH, GATE_SCHEDULE } from "@/lib/gate-timeline";
+import {
+  GATE_HOLD_FLOOR_SVH,
+  GATE_PHASES,
+  GATE_PIN_SVH,
+  gateHoldMiddle,
+} from "@/lib/gate-timeline";
 import {
   expectNoAxeViolations,
   expectNoHorizontalScroll,
@@ -25,6 +30,12 @@ type Sample = {
   opacity: number[];
   events: string[];
   done: boolean[];
+  captionX: number[];
+  cardX: number[];
+  cardScale: number[];
+  fill: number[];
+  overflow: number;
+  scrollX: number;
   headingTop: number;
   headingBottom: number;
 };
@@ -82,7 +93,28 @@ async function scan(page: Page): Promise<Sample[]> {
       const start = track.getBoundingClientRect().top + window.scrollY - header;
       const range = (pin / 100) * innerHeight;
       const frames = [...document.querySelectorAll(".vk-gate-frame")];
-      const moves = frames.map((frame) => frame.querySelector(".vk-gate-moves"));
+      const parts = frames.map((frame) => ({
+        caption: frame.querySelector(":scope > figcaption") as Element,
+        card: frame.querySelector(":scope > .vk-gate-card") as Element,
+        moving: [
+          ...frame.querySelectorAll(".vk-gate-moves, .vk-gate-cli .vk-lock-line"),
+        ] as Element[],
+        fill: frame.querySelector(".vk-gate-marker i[data-on]") as Element,
+      }));
+      const matrix = (transform: string): number[] =>
+        transform === "none"
+          ? [1, 0, 0, 1, 0, 0]
+          : transform
+              .replace(/^matrix\(|\)$/g, "")
+              .split(",")
+              .map(Number);
+      const settled = (element: Element): boolean => {
+        const style = getComputedStyle(element);
+        return (
+          Number(style.opacity) === 1 &&
+          (style.transform === "none" || style.transform === "matrix(1, 0, 0, 1, 0, 0)")
+        );
+      };
       const samples: Sample[] = [];
       for (let y = start; y <= start + range; y += step) {
         window.scrollTo(0, y);
@@ -92,13 +124,21 @@ async function scan(page: Page): Promise<Sample[]> {
           at: y - start,
           opacity: frames.map((frame) => Number(getComputedStyle(frame).opacity)),
           events: frames.map((frame) => getComputedStyle(frame).pointerEvents),
-          done: frames.map((_, index) => {
-            const style = getComputedStyle(moves[index] as Element);
-            return (
-              Number(style.opacity) === 1 &&
-              (style.transform === "none" || style.transform === "matrix(1, 0, 0, 1, 0, 0)")
-            );
-          }),
+          done: parts.map(
+            (part) =>
+              settled(part.caption) &&
+              settled(part.card) &&
+              part.moving.every(settled) &&
+              matrix(getComputedStyle(part.fill, "::after").transform)[0] === 1,
+          ),
+          captionX: parts.map((part) => matrix(getComputedStyle(part.caption).transform)[4] ?? 0),
+          cardX: parts.map((part) => matrix(getComputedStyle(part.card).transform)[4] ?? 0),
+          cardScale: parts.map((part) => matrix(getComputedStyle(part.card).transform)[0] ?? 1),
+          fill: parts.map(
+            (part) => matrix(getComputedStyle(part.fill, "::after").transform)[0] ?? 1,
+          ),
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          scrollX: window.scrollX,
           headingTop: box.top,
           headingBottom: box.bottom,
         });
@@ -123,8 +163,7 @@ type Free = { state: string; above: number; below: number; card: number };
 async function freeSpace(page: Page): Promise<Free[]> {
   const frees: Free[] = [];
   for (const [index, state] of STATES.entries()) {
-    const frame = GATE_SCHEDULE.frames[index];
-    const svh = (frame?.build[1] ?? 0) + GATE_HOLD_SVH / 2;
+    const svh = gateHoldMiddle(index);
     await scrollToSvh(page, svh);
     frees.push(
       await page.evaluate(
@@ -165,9 +204,11 @@ for (const [width, height] of [
       await openStaged(page);
       await expect(page.locator(`${SECTION} .vk-gate-pin`)).toHaveCSS("position", "sticky");
       const samples = await scan(page);
-      const required = Math.min(HOLD_FLOOR_PX, (GATE_HOLD_SVH / 100) * height) - SCAN_STEP;
+      const required = Math.min(HOLD_FLOOR_PX, (GATE_HOLD_FLOOR_SVH / 100) * height) - SCAN_STEP;
       for (const [index, state] of STATES.entries()) {
-        expect(completeDistance(samples, index), state).toBeGreaterThanOrEqual(required);
+        const held = completeDistance(samples, index);
+        console.log(`hold ${width}x${height} ${state}: ${held}px`);
+        expect(held, state).toBeGreaterThanOrEqual(required);
       }
       if (height === 672) {
         for (const index of STATES.keys())
@@ -201,8 +242,7 @@ for (const [width, height] of [
     }) => {
       await openStaged(page);
       for (const [index, state] of STATES.entries()) {
-        const frame = GATE_SCHEDULE.frames[index];
-        await scrollToSvh(page, (frame?.build[1] ?? 0) + GATE_HOLD_SVH / 2);
+        await scrollToSvh(page, gateHoldMiddle(index));
         const hit = await page.evaluate((name) => {
           const card = document
             .querySelector(`.vk-gate-frame[data-state='${name}'] .vk-gate-card`)
@@ -230,6 +270,104 @@ for (const [width, height] of [
       expect(await layoutShift(page)).toBe(0);
     });
 
+    test("slides the incoming frame in from the right and the outgoing one out to the left", async ({
+      page,
+    }) => {
+      await openStaged(page);
+      const samples = await scan(page);
+      const px = (svh: number) => (svh / 100) * height;
+      const within = (range: readonly [number, number]) =>
+        samples.filter((sample) => sample.at >= px(range[0]) && sample.at <= px(range[1]));
+      const monotone = (values: number[], direction: 1 | -1) =>
+        values.every(
+          (value, index) => index === 0 || (value - (values[index - 1] ?? 0)) * direction >= -0.5,
+        );
+      for (const index of [1, 2]) {
+        const phases = GATE_PHASES[index];
+        for (const [range, key] of [
+          [phases?.enterCaption, "captionX"],
+          [phases?.enterCard, "cardX"],
+        ] as const) {
+          const xs = within(range ?? [0, 0]).map((sample) => sample[key][index] ?? 0);
+          expect(Math.max(...xs), `${key} ${index} starts right`).toBeGreaterThan(20);
+          expect(Math.min(...xs), `${key} ${index} never left of rest`).toBeGreaterThanOrEqual(
+            -0.5,
+          );
+          expect(monotone(xs, -1), `${key} ${index} only moves left`).toBe(true);
+        }
+        const scales = within(phases?.enterCard ?? [0, 0]).map(
+          (sample) => sample.cardScale[index] ?? 1,
+        );
+        expect(Math.min(...scales)).toBeLessThan(0.99);
+        expect(Math.max(...scales)).toBeLessThanOrEqual(1.0001);
+      }
+      for (const index of [0, 1]) {
+        const phases = GATE_PHASES[index];
+        for (const [range, key] of [
+          [phases?.exitCaption, "captionX"],
+          [phases?.exitCard, "cardX"],
+        ] as const) {
+          const xs = within(range ?? [0, 0]).map((sample) => sample[key][index] ?? 0);
+          expect(Math.min(...xs), `${key} ${index} leaves left`).toBeLessThan(-20);
+          expect(Math.max(...xs), `${key} ${index} never right of rest`).toBeLessThanOrEqual(0.5);
+          expect(monotone(xs, -1), `${key} ${index} only moves left`).toBe(true);
+        }
+      }
+      const captionDone = within([51.2, 51.8]).map((sample) => sample.captionX[1]);
+      const cardBusy = within([51.2, 51.8]).map((sample) => sample.cardX[1]);
+      expect(Math.max(...captionDone.map(Math.abs))).toBeLessThan(0.5);
+      expect(Math.max(...cardBusy)).toBeGreaterThan(0.2);
+    });
+
+    test("never overflows the document sideways at any scroll position", async ({ page }) => {
+      await openStaged(page);
+      const samples = await scan(page);
+      const worst = Math.max(...samples.map((sample) => sample.overflow));
+      console.log(`overflow ${width}x${height}: ${worst}`);
+      for (const sample of samples) {
+        expect(sample.overflow, `at ${sample.at}`).toBeLessThanOrEqual(0);
+        expect(sample.scrollX, `at ${sample.at}`).toBe(0);
+      }
+      const peak = samples.reduce(
+        (best, sample) => Math.max(best, [...sample.opacity].sort((a, b) => b - a)[1] ?? 0),
+        0,
+      );
+      console.log(`second frame peak ${width}x${height}: ${peak}`);
+    });
+
+    test("fills the marker segment of the current frame with the scrub and leaves every end state untransformed", async ({
+      page,
+    }) => {
+      await openStaged(page);
+      const samples = await scan(page);
+      const px = (svh: number) => (svh / 100) * height;
+      for (const index of STATES.keys()) {
+        const mid = samples.find((sample) => sample.at >= px(gateHoldMiddle(index)));
+        expect(mid?.fill[index], `fill ${index}`).toBe(1);
+        const [from, to] = GATE_PHASES[index]?.marker ?? [0, 0];
+        const during = samples.filter(
+          (sample) => sample.at > px(from + 0.5) && sample.at < px(to - 0.5),
+        );
+        const values = during.map((sample) => sample.fill[index] ?? 1);
+        expect(Math.min(...values), `fill ${index} starts empty`).toBeLessThan(0.6);
+        expect(
+          values.every((value, at) => at === 0 || value >= (values[at - 1] ?? 0) - 0.001),
+        ).toBe(true);
+      }
+      await scrollToSvh(page, GATE_PIN_SVH + 12);
+      const end = await page.evaluate(() =>
+        [
+          ...document.querySelectorAll(
+            ".vk-gate-frame[data-state='stale'], .vk-gate-frame[data-state='stale'] > *, .vk-gate-frame[data-state='stale'] .vk-gate-moves, .vk-gate-frame[data-state='stale'] .vk-gate-cli .vk-lock-line",
+          ),
+        ].map((node) => [getComputedStyle(node).transform, getComputedStyle(node).opacity]),
+      );
+      for (const [transform, opacity] of end) {
+        expect(transform).toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
+        expect(opacity).toBe("1");
+      }
+    });
+
     test("shows the chip of the first frame before the pin and drops it first", async ({
       page,
     }) => {
@@ -244,7 +382,7 @@ for (const [width, height] of [
         }));
       expect(before.opacity).toBe(1);
       expect(before.transform).not.toBe("none");
-      await scrollToSvh(page, GATE_FADE_SVH + 8);
+      await scrollToSvh(page, 8);
       await expect(page.locator(`${FRAMES}[data-state='candidate'] .vk-gate-slot`)).toHaveCSS(
         "transform",
         /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/,
@@ -255,8 +393,8 @@ for (const [width, height] of [
       test(`has no axe violations in the ${theme} theme on every state`, async ({ page }) => {
         await openInTheme(page, homeUrl("en"), theme);
         await page.evaluate(() => document.fonts.ready);
-        for (const [index, frame] of GATE_SCHEDULE.frames.entries()) {
-          await scrollToSvh(page, (frame.build[1] ?? 0) + GATE_HOLD_SVH / 2);
+        for (const index of STATES.keys()) {
+          await scrollToSvh(page, gateHoldMiddle(index));
           await expect(page.locator(FRAMES).nth(index)).toHaveCSS("opacity", "1");
           await expectNoAxeViolations(page, SECTION);
         }
@@ -322,8 +460,8 @@ for (const locale of LOCALES) {
         page,
       }) => {
         await openStaged(page, locale);
-        for (const [index, frame] of GATE_SCHEDULE.frames.entries()) {
-          await scrollToSvh(page, (frame.build[1] ?? 0) + GATE_HOLD_SVH / 2);
+        for (const index of STATES.keys()) {
+          await scrollToSvh(page, gateHoldMiddle(index));
           const fit = await page.evaluate(
             ([position, header]) => {
               const current = document.querySelectorAll(".vk-gate-frame")[position as number];
