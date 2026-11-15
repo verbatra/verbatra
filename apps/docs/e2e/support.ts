@@ -329,3 +329,337 @@ export async function installShiftCounter(page: Page): Promise<void> {
 export async function layoutShift(page: Page): Promise<number> {
   return page.evaluate(() => (window as unknown as { shifts: { total: number } }).shifts.total);
 }
+
+export type GateRest = {
+  frames: number;
+  full: number;
+  problems: string[];
+  minContrast: number;
+  pastEdge: number;
+  current: number;
+};
+
+export type GateHandoff = {
+  at: number;
+  frames: number[];
+  captions: number[];
+  cards: number[];
+  scales: number[];
+};
+
+export type GateFlip = { wait: number; to: number };
+
+export type GateReversal = { from: number; to: number; delay: number; home: number };
+
+export type GateReversalResult = {
+  delay: number;
+  joint: number;
+  settle: number;
+  final: number[];
+};
+
+declare global {
+  interface Window {
+    gateProbe?: {
+      settle: () => Promise<boolean>;
+      rest: () => GateRest;
+      handoff: (length: number, flips: GateFlip[]) => Promise<GateHandoff[]>;
+      reversals: (trials: GateReversal[], tail: number) => Promise<GateReversalResult[]>;
+      armScrollEnd: () => void;
+      scrollEnded: () => Promise<void>;
+    };
+  }
+}
+
+export function installGateProbe(): void {
+  const frames = (): Element[] => [...document.querySelectorAll(".vk-gate-frame")];
+  const nextFrame = (): Promise<void> =>
+    new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  const runningTransitions = (): number =>
+    document
+      .getAnimations()
+      .filter(
+        (animation) =>
+          animation instanceof CSSTransition &&
+          animation.playState !== "finished" &&
+          animation.playState !== "idle",
+      ).length;
+  const settle = async (): Promise<boolean> => {
+    await nextFrame();
+    const started = performance.now();
+    while (runningTransitions() > 0) {
+      if (performance.now() - started > 3000) return false;
+      await nextFrame();
+    }
+    await nextFrame();
+    return true;
+  };
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
+  const parsed = new Map<string, [number, number, number, number]>();
+  const colour = (value: string): [number, number, number, number] => {
+    const known = parsed.get(value);
+    if (known) return known;
+    context.fillStyle = "#123456";
+    context.fillStyle = value;
+    if (context.fillStyle === "#123456" && value.replace(/\s/g, "") !== "#123456")
+      throw new Error(`unparseable colour ${value}`);
+    context.clearRect(0, 0, 1, 1);
+    context.fillRect(0, 0, 1, 1);
+    const [r = 0, g = 0, b = 0, a = 0] = context.getImageData(0, 0, 1, 1).data;
+    const result: [number, number, number, number] = [r, g, b, a / 255];
+    parsed.set(value, result);
+    return result;
+  };
+  const over = (
+    top: [number, number, number, number],
+    bottom: [number, number, number, number],
+  ): [number, number, number, number] => {
+    const alpha = top[3] + bottom[3] * (1 - top[3]);
+    if (alpha === 0) return [0, 0, 0, 0];
+    const mix = (index: 0 | 1 | 2): number =>
+      (top[index] * top[3] + bottom[index] * bottom[3] * (1 - top[3])) / alpha;
+    return [mix(0), mix(1), mix(2), alpha];
+  };
+  const luminance = ([r, g, b]: [number, number, number, number]): number => {
+    const channel = (value: number): number => {
+      const unit = value / 255;
+      return unit <= 0.03928 ? unit / 12.92 : ((unit + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  };
+  const withOpacity = (
+    layer: [number, number, number, number],
+    opacity: number,
+  ): [number, number, number, number] => [layer[0], layer[1], layer[2], layer[3] * opacity];
+  const chains = new Map<Element, number>();
+  const layers = new Map<Element, [number, number, number, number]>();
+  const chainOpacity = (element: Element): number => {
+    const known = chains.get(element);
+    if (known !== undefined) return known;
+    const parent = element.parentElement;
+    const value = Number(getComputedStyle(element).opacity) * (parent ? chainOpacity(parent) : 1);
+    chains.set(element, value);
+    return value;
+  };
+  const layerOf = (element: Element): [number, number, number, number] => {
+    const known = layers.get(element);
+    if (known) return known;
+    const value = withOpacity(
+      colour(getComputedStyle(element).backgroundColor),
+      chainOpacity(element),
+    );
+    layers.set(element, value);
+    return value;
+  };
+  const backdrop = (element: Element): [number, number, number, number] => {
+    const stack: Array<[number, number, number, number]> = [];
+    for (let node: Element | null = element; node; node = node.parentElement)
+      stack.push(layerOf(node));
+    return stack.reduceRight((below, layer) => over(layer, below), [255, 255, 255, 1] as [
+      number,
+      number,
+      number,
+      number,
+    ]);
+  };
+  const contrast = (element: Element): number => {
+    const bottom = backdrop(element);
+    const text = over(
+      withOpacity(colour(getComputedStyle(element).color), chainOpacity(element)),
+      bottom,
+    );
+    const [lighter, darker] = [luminance(text), luminance(bottom)].sort((a, b) => b - a) as [
+      number,
+      number,
+    ];
+    return (lighter + 0.05) / (darker + 0.05);
+  };
+  const zero = (value: string): boolean =>
+    value === "none" || value.split(" ").every((part) => Number.parseFloat(part) === 0);
+  const unscaled = (value: string): boolean =>
+    value === "none" || value.split(" ").every((part) => Number.parseFloat(part) === 1);
+  const partProblems = (name: string, part: Element): string[] => {
+    const style = getComputedStyle(part);
+    return [
+      zero(style.translate) ? "" : `${name} offset ${style.translate}`,
+      unscaled(style.scale) ? "" : `${name} scale ${style.scale}`,
+      style.transform === "none" ? "" : `${name} transform`,
+      Number(style.opacity) === 1 ? "" : `${name} part opacity`,
+    ].filter((problem) => problem !== "");
+  };
+  const accentProblems = (name: string, accent: Element): string[] => {
+    const style = getComputedStyle(accent);
+    return [
+      Number(style.opacity) === 1 ? "" : `${name} accent ${style.opacity}`,
+      zero(style.translate) ? "" : `${name} accent ${style.translate}`,
+      unscaled(style.scale) ? "" : `${name} accent ${style.scale}`,
+    ].filter((problem) => problem !== "");
+  };
+  const lineProblems = (name: string, line: Element): string[] => {
+    const style = getComputedStyle(line);
+    return Number(style.opacity) === 1 && zero(style.translate)
+      ? []
+      : [`${name} line ${line.textContent?.slice(0, 20)}`];
+  };
+  const currentProblems = (node: Element, name: string): string[] => {
+    const parts = [
+      node.querySelector(":scope > figcaption"),
+      node.querySelector(":scope > .vk-gate-card"),
+    ] as Element[];
+    return [
+      getComputedStyle(node).pointerEvents === "none" ? `${name} has no pointer` : "",
+      ...parts.flatMap((part) => partProblems(name, part)),
+      ...[...node.querySelectorAll(".vk-gate-moves")].flatMap((a) => accentProblems(name, a)),
+      ...[...node.querySelectorAll(".vk-lock-line")].flatMap((line) => lineProblems(name, line)),
+    ].filter((problem) => problem !== "");
+  };
+  const hiddenProblems = (node: Element, name: string): string[] => {
+    const style = getComputedStyle(node);
+    return [
+      Number(style.opacity) === 0 ? "" : `${name} opacity ${style.opacity}`,
+      style.pointerEvents === "none" ? "" : `${name} pointer ${style.pointerEvents}`,
+    ].filter((problem) => problem !== "");
+  };
+  const lowestContrast = (active: Element): number => {
+    const walker = document.createTreeWalker(active, NodeFilter.SHOW_TEXT);
+    let lowest = Number.POSITIVE_INFINITY;
+    for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+      const owner = text.parentElement;
+      if (owner && (text.textContent ?? "").trim() !== "")
+        lowest = Math.min(lowest, contrast(owner));
+    }
+    return lowest;
+  };
+  const countPastEdge = (active: Element): number => {
+    const { clientWidth, clientHeight } = document.documentElement;
+    return [active, ...active.querySelectorAll("*")].filter((element) => {
+      const box = element.getBoundingClientRect();
+      return (
+        box.width > 0 &&
+        (box.left < -1 ||
+          box.right > clientWidth + 1 ||
+          box.top < -1 ||
+          box.bottom > clientHeight + 1)
+      );
+    }).length;
+  };
+  const rest = (): GateRest => {
+    chains.clear();
+    layers.clear();
+    const list = frames();
+    const opacities = list.map((node) => Number(getComputedStyle(node).opacity));
+    const current = opacities.indexOf(1);
+    const problems = list.flatMap((node, index) => {
+      const name = node.getAttribute("data-state") ?? String(index);
+      return index === current ? currentProblems(node, name) : hiddenProblems(node, name);
+    });
+    const active = list[current];
+    return {
+      frames: list.length,
+      full: opacities.filter((opacity) => opacity === 1).length,
+      problems,
+      minContrast: active ? lowestContrast(active) : Number.POSITIVE_INFINITY,
+      pastEdge: active ? countPastEdge(active) : 0,
+      current,
+    };
+  };
+  const translateX = (element: Element): number =>
+    Number.parseFloat(getComputedStyle(element).translate) || 0;
+  const scaleOf = (element: Element): number => {
+    const scale = getComputedStyle(element).scale;
+    return scale === "none" ? 1 : Number.parseFloat(scale);
+  };
+  const reading = (started: number): GateHandoff => {
+    const list = frames();
+    const parts = (selector: string): Element[] =>
+      list.map((node) => node.querySelector(selector) as Element);
+    return {
+      at: performance.now() - started,
+      frames: list.map((node) => Number(getComputedStyle(node).opacity)),
+      captions: parts(":scope > figcaption").map(translateX),
+      cards: parts(":scope > .vk-gate-card").map(translateX),
+      scales: parts(":scope > .vk-gate-card").map(scaleOf),
+    };
+  };
+  const handoff = (length: number, flips: GateFlip[]): Promise<GateHandoff[]> =>
+    new Promise((resolve) => {
+      const samples: GateHandoff[] = [];
+      const started = performance.now();
+      const schedule = flips.map((flip, index) => ({
+        at: flips.slice(0, index + 1).reduce((sum, item) => sum + item.wait, 0),
+        to: flip.to,
+      }));
+      let next = 0;
+      const tick = (): void => {
+        const elapsed = performance.now() - started;
+        const due = schedule[next];
+        if (due && elapsed >= due.at) {
+          window.scrollTo(0, due.to);
+          next += 1;
+        }
+        samples.push(reading(started));
+        if (elapsed < length) requestAnimationFrame(tick);
+        else resolve(samples);
+      };
+      requestAnimationFrame(tick);
+    });
+  let scrollEnd: Promise<void> = Promise.resolve();
+  const armScrollEnd = (): void => {
+    scrollEnd = new Promise((resolve) => {
+      const fallback = window.setTimeout(resolve, 800);
+      window.addEventListener(
+        "scrollend",
+        () => {
+          window.clearTimeout(fallback);
+          resolve();
+        },
+        { once: true },
+      );
+    });
+  };
+  const scrollEnded = async (): Promise<void> => {
+    await scrollEnd;
+    const started = performance.now();
+    let still = 0;
+    let last = window.scrollY;
+    while (still < 4 && performance.now() - started < 2000) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      still = window.scrollY === last ? still + 1 : 0;
+      last = window.scrollY;
+    }
+  };
+  const jointOf = (samples: GateHandoff[]): number =>
+    Math.max(
+      ...samples.map((sample) => {
+        const [first = 0, second = 0] = [...sample.frames].sort((a, b) => b - a);
+        return Math.min(first, second);
+      }),
+    );
+  const reversal = async (trial: GateReversal, tail: number): Promise<GateReversalResult> => {
+    window.scrollTo(0, trial.from);
+    await settle();
+    const samples = await handoff(trial.delay + tail, [
+      { wait: 0, to: trial.to },
+      { wait: trial.delay, to: trial.from },
+    ]);
+    const exact = (sample: GateHandoff): boolean =>
+      sample.frames.every((opacity, index) => opacity === (index === trial.home ? 1 : 0));
+    const lastBad = samples.findLastIndex((sample) => !exact(sample));
+    const final = samples.at(-1)?.frames ?? [];
+    return {
+      delay: trial.delay,
+      joint: jointOf(samples),
+      settle: (samples[lastBad + 1]?.at ?? Number.POSITIVE_INFINITY) - trial.delay,
+      final,
+    };
+  };
+  const reversals = async (trials: GateReversal[], tail: number): Promise<GateReversalResult[]> => {
+    const results: GateReversalResult[] = [];
+    for (const trial of trials) results.push(await reversal(trial, tail));
+    return results;
+  };
+  window.gateProbe = { settle, rest, handoff, reversals, armScrollEnd, scrollEnded };
+}
