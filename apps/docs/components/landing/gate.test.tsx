@@ -21,7 +21,6 @@ import {
   GATE_TRANSLATE_COMMAND,
 } from "@/lib/gate-demo";
 import {
-  GATE_ACCENT_DELAY_MS,
   GATE_ACCENT_MS,
   GATE_CUT_LEAD_SVH,
   GATE_CUTS,
@@ -29,16 +28,19 @@ import {
   GATE_ENTER_DELAY_MS,
   GATE_ENTER_MS,
   GATE_EXIT_MS,
-  GATE_FADE_SPAN,
+  GATE_FADE_EXPONENT,
   GATE_HANDOFF_CEILING_MS,
+  GATE_LANDING_OFFSET_PX,
   GATE_MARKER_MIN_PX,
+  GATE_PAGE_STEP_MARGIN_SVH,
+  GATE_PAGE_STEP_MAX_SVH,
   GATE_PIN_SVH,
   GATE_SLIDE_PX,
   GATE_SLIDE_SCALE,
   GATE_SLIDE_WIDE_PX,
   GATE_SLIDE_WIDE_REM,
   GATE_STAMP_SCALE,
-  GATE_STATE_FLOOR_SVH,
+  GATE_STEP_MS,
   gateMarkerRange,
   gatePercent,
   gateStateAt,
@@ -333,7 +335,14 @@ describe("the gate stylesheet", () => {
     expect(block("--vk-gate-slide")).toContain('syntax: "<length>";');
     expect(block("--vk-gate-slide")).toContain(`initial-value: ${GATE_SLIDE_PX}px;`);
     expect(block("--vk-gate-state")).toContain('syntax: "<integer>";');
-    for (const name of ["--vk-gate-state", "--vk-gate-in", "--vk-gate-out", "--vk-gate-arrive"]) {
+    expect(block("--vk-gate-shown")).toContain('syntax: "<integer>";');
+    for (const name of [
+      "--vk-gate-state",
+      "--vk-gate-shown",
+      "--vk-gate-in",
+      "--vk-gate-out",
+      "--vk-gate-arrive",
+    ]) {
       expect(block(name), name).toContain("inherits: true;");
       expect(block(name), name).toContain("initial-value: 0;");
     }
@@ -341,17 +350,19 @@ describe("the gate stylesheet", () => {
       expect(block(name), name).toContain('syntax: "<number>";');
   });
 
-  it("gives every state at least the floor of scroll, the cuts splitting the pin", () => {
-    expect(GATE_STATE_FLOOR_SVH).toBe(40);
-    expect(GATE_CUTS[0]).toBeLessThan(GATE_CUTS[1]);
-    let total = 0;
+  it("makes every state wider than the largest page step measured, with margin, so one page key never skips a state", () => {
     for (const index of [0, 1, 2]) {
       const [from, to] = gateStateRange(index);
-      expect(to - from, `state ${index}`).toBeGreaterThanOrEqual(GATE_STATE_FLOOR_SVH);
-      total += to - from;
+      expect(to - from, `state ${index}`).toBeGreaterThanOrEqual(
+        GATE_PAGE_STEP_MAX_SVH + GATE_PAGE_STEP_MARGIN_SVH,
+      );
     }
-    expect(total).toBe(GATE_PIN_SVH);
-    expect(GATE_STATE_FLOOR_SVH * 6.72).toBeGreaterThanOrEqual(268);
+    expect(GATE_CUTS[0]).toBe(gateStateRange(0)[1]);
+    expect(GATE_CUTS[1]).toBe(gateStateRange(2)[0]);
+  });
+
+  it("ties the landing offset the e2e specs subtract to the header height token", () => {
+    expect(docsGlobalCss()).toContain(`--header-height: ${GATE_LANDING_OFFSET_PX / 16}rem;`);
   });
 
   it("lets the scroll timeline step one integer on the pin: the state is 0, 1 or 2 by position, held by step-end between adjacent stops", () => {
@@ -361,7 +372,6 @@ describe("the gate stylesheet", () => {
     expect(pin?.declarations["animation-range"]).toBe("contain 0% contain 100%");
     expect(pin?.declarations["animation-timing-function"]).toBe("linear");
     expect(pin?.declarations["animation-fill-mode"]).toBe("both");
-    expect(GATE_CUT_LEAD_SVH).toBe(0.15);
     for (const [index, cut] of GATE_CUTS.entries()) {
       const before = stopsOf("vk-gate-state").find(
         (stop) => stop.offset === Number.parseFloat(gatePercent(cut - GATE_CUT_LEAD_SVH)),
@@ -431,16 +441,22 @@ describe("the gate stylesheet", () => {
 
   it("derives each frame's opacity and offset from the state with calc, max, min and clamp only, from one position per frame", () => {
     const frame = pinned(".vk-gate-frame")?.declarations ?? {};
-    expect(squash(frame["--vk-gate-here"])).toBe(
+    expect(squash(frame["--vk-gate-there"])).toBe(
+      "clamp(-1, calc(var(--vk-gate-index) - var(--vk-gate-shown)), 1)",
+    );
+    expect(frame["--vk-gate-in"]).toBe("var(--vk-gate-there)");
+    expect(squash(frame["--vk-gate-out"])).toBe(
       "clamp(-1, calc(var(--vk-gate-index) - var(--vk-gate-state)), 1)",
     );
-    expect(frame["--vk-gate-in"]).toBe("var(--vk-gate-here)");
-    expect(frame["--vk-gate-out"]).toBe("var(--vk-gate-here)");
+    expect(squash(frame["--vk-gate-arrive"])).toBe(
+      "calc(1 - min(1, max(var(--vk-gate-there), var(--vk-gate-there) * -1)))",
+    );
     expect(squash(frame["--vk-gate-away"])).toBe(
       "max(var(--vk-gate-in), var(--vk-gate-in) * -1, var(--vk-gate-out), var(--vk-gate-out) * -1)",
     );
-    expect(GATE_FADE_SPAN * 2.5).toBe(1);
-    expect(squash(frame.opacity)).toBe("calc(1 - min(1, var(--vk-gate-away) * 2.5))");
+    expect(squash(frame.opacity)).toBe(
+      `calc(1 - ${Array.from({ length: GATE_FADE_EXPONENT }, () => "var(--vk-gate-away)").join(" * ")})`,
+    );
     for (const [index, state] of STATES.entries())
       expect(declared(`.vk-gate-frame[data-state="${state}"]`, "--vk-gate-index")).toBe(
         String(index),
@@ -455,16 +471,18 @@ describe("the gate stylesheet", () => {
     const transition = squash(pinned(".vk-gate-frame")?.declarations.transition);
     expect(transition).toBe(
       [
-        `--vk-gate-in ${GATE_ENTER_MS}ms var(--ease-standard) ${GATE_ENTER_DELAY_MS}ms`,
+        `--vk-gate-in ${GATE_ENTER_MS}ms var(--ease-standard)`,
         `--vk-gate-out ${GATE_EXIT_MS}ms var(--ease-exit)`,
-        `--vk-gate-arrive ${GATE_ACCENT_MS}ms var(--ease-standard) ${GATE_ACCENT_DELAY_MS}ms`,
+        `--vk-gate-arrive ${GATE_ACCENT_MS}ms var(--ease-standard)`,
       ].join(", "),
     );
+    expect(squash(pinned(".vk-gate-stage")?.declarations.transition)).toBe(
+      `--vk-gate-shown ${GATE_STEP_MS}ms linear ${GATE_ENTER_DELAY_MS}ms`,
+    );
+    expect(pinned(".vk-gate-stage")?.declarations["--vk-gate-shown"]).toBe("var(--vk-gate-state)");
     expect(transition).not.toContain("var(--vk-");
     expect(GATE_ENTER_DELAY_MS + GATE_ENTER_MS).toBeLessThanOrEqual(GATE_HANDOFF_CEILING_MS);
-    expect(GATE_ACCENT_DELAY_MS + GATE_ACCENT_MS).toBeLessThanOrEqual(GATE_HANDOFF_CEILING_MS);
-    expect(GATE_EXIT_MS).toBeLessThan(GATE_ENTER_DELAY_MS + GATE_ENTER_MS);
-    expect(GATE_HANDOFF_CEILING_MS).toBeLessThanOrEqual(600);
+    expect(GATE_ENTER_DELAY_MS + GATE_ACCENT_MS).toBeLessThanOrEqual(GATE_HANDOFF_CEILING_MS);
     for (const rule of rules.filter((candidate) => candidate.selector.includes("vk-gate")))
       expect(rule.declarations["transition-delay"], rule.selector).toBeUndefined();
     const css = docsGlobalCss();
@@ -523,9 +541,9 @@ describe("the gate stylesheet", () => {
         (flat.match(/\.[\w-]+|\[[^\]]*\]|(?<!:):(?!:)[\w-]+/g) ?? []).length,
       ];
     };
-    const accent = rules.find(
-      (rule) => rule.selector === "html[data-motion-ready] .vk-gate .vk-gate-track .vk-gate-moves",
-    );
+    const yielding = "html[data-motion-ready] .vk-gate .vk-gate-track .vk-gate-moves";
+    const accent = rules.find((rule) => rule.selector.split(/,\s*/).includes(yielding));
+    expect(accent?.selector.split(/,\s*/)).toContain(".vk-gate-moves");
     expect(accent?.declarations).toMatchObject({
       opacity: "var(--vk-gate-arrive)",
       transition: "none",
@@ -533,7 +551,7 @@ describe("the gate stylesheet", () => {
     expect(squash(accent?.declarations.translate)).toBe(
       `0 calc((1 - var(--vk-gate-arrive)) * -${GATE_DROP_PX}px)`,
     );
-    const [ids, classes] = specificity(accent?.selector ?? "");
+    const [ids, classes] = specificity(yielding);
     const [hidingIds, hidingClasses] = specificity(
       "html[data-motion-ready] [data-reveal]:not([data-revealed])",
     );
@@ -567,8 +585,6 @@ describe("the gate stylesheet", () => {
       );
       expect(from).toBeLessThanOrEqual(index === 0 ? 1 : (GATE_CUTS[index - 1] ?? 0));
     });
-    expect(gateMarkerRange(0)[1]).toBe(gateMarkerRange(1)[0]);
-    expect(gateMarkerRange(1)[1]).toBe(gateMarkerRange(2)[0]);
   });
 
   it("holds the same layout in the stacked and the staged card, spanning the column grid", () => {
@@ -623,23 +639,26 @@ describe("the gate stylesheet", () => {
     expect(cssBlock(css, "\n.vk-gate-track {", "\n.vk-gate-stage {").length).toBeGreaterThan(5);
   });
 
-  it("says in the skill exactly what the schedule says", () => {
+  it("says in the skill's gate entry exactly what the schedule says", () => {
+    const entry = skill.slice(skill.indexOf("- **Gate.**"), skill.indexOf("- **Phone length.**"));
+    expect(entry.length).toBeGreaterThan(3000);
     const [first, second] = GATE_CUTS;
-    expect(skill).toContain(`\`GATE_PIN_SVH\`, ${GATE_PIN_SVH}svh`);
-    expect(skill).toContain(`at least ${GATE_STATE_FLOOR_SVH}svh of scroll`);
-    expect(skill).toContain(`the cuts at ${first} and ${second}svh`);
-    expect(skill).toContain(`${GATE_EXIT_MS}ms`);
-    expect(skill).toContain(`${GATE_ENTER_DELAY_MS}ms`);
-    expect(skill).toContain(`${GATE_ENTER_MS}ms`);
-    expect(skill).toContain(`${GATE_ACCENT_DELAY_MS}ms`);
-    expect(skill).toContain(`${GATE_ACCENT_MS}ms`);
-    expect(skill).toContain(`${GATE_HANDOFF_CEILING_MS}ms`);
-    expect(skill).toContain("`--vk-gate-state`");
+    expect(entry).toContain(`\`GATE_PIN_SVH\`, ${GATE_PIN_SVH}svh`);
+    expect(entry).toContain(`the cuts at ${first} and ${second}svh`);
+    expect(entry).toContain(`${GATE_PAGE_STEP_MAX_SVH}svh`);
+    for (const [name, milliseconds] of [
+      ["GATE_EXIT_MS", GATE_EXIT_MS],
+      ["GATE_ENTER_DELAY_MS", GATE_ENTER_DELAY_MS],
+      ["GATE_ENTER_MS", GATE_ENTER_MS],
+      ["GATE_ACCENT_MS", GATE_ACCENT_MS],
+      ["GATE_HANDOFF_CEILING_MS", GATE_HANDOFF_CEILING_MS],
+    ] as const)
+      expect(entry, name).toContain(`\`${name}\` (${milliseconds}ms)`);
+    expect(entry).toContain("`--vk-gate-state`");
     for (const gone of [
       "dim window",
       "GATE_DIM",
       "GATE_RISE",
-      "GATE_CUT_LEAD_SVH` (0.15svh)",
       "GATE_SWAP_CEILING_SVH",
       "GATE_HOLD_FLOOR_SVH",
       "gateFrameOpacity",

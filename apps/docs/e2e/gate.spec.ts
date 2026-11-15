@@ -1,20 +1,37 @@
 import { expect, type Page, test } from "playwright/test";
 import {
   GATE_CUTS,
-  GATE_HANDOFF_CEILING_MS,
   GATE_MARKER_MIN_PX,
-  GATE_OVERLAP_CEILING,
+  GATE_PAGE_STEP_MARGIN_SVH,
+  GATE_PAGE_STEP_MAX_SVH,
   GATE_PIN_SVH,
-  GATE_STATE_FLOOR_SVH,
   gateMarkerRange,
   gateStateAt,
   gateStateMiddle,
+  gateStateRange,
 } from "@/lib/gate-timeline";
+import {
+  cross,
+  expectPageKeysNeverSkip,
+  expectRest,
+  expectRestOn,
+  flipInsideTheEntrance,
+  HEADER,
+  handoffAcross,
+  type Landing,
+  MIN_CONTRAST,
+  openStaged,
+  pinStart,
+  restNow,
+  STATES,
+  scrollInstant,
+  scrollToSvh,
+  walk,
+} from "./gate-support";
 import {
   expectNoAxeViolations,
   expectNoHorizontalScroll,
   expectNothingPastRightEdge,
-  type GateHandoff,
   type GateRest,
   homeUrl,
   installGateProbe,
@@ -28,102 +45,19 @@ import {
 const SECTION = "section#gate";
 const FRAMES = `${SECTION} .vk-gate-frame`;
 const MOVES = `${FRAMES} .vk-gate-moves`;
-const HEADER = 56;
-const STATES = ["candidate", "refused", "stale"] as const;
 const SCAN_STEP = 4;
-const MIN_CONTRAST = 4.5;
-const SAMPLE_MS = 50;
-const SAMPLE_WINDOW_MS = 1000;
-const SLIDE_SEEN_PX = 20;
 const FREE_SPACE_TOLERANCE = 24;
 const CARD_SPREAD_LIMIT = 60;
+const ENTRANCE_REVERSALS = [
+  [330, 330, 330],
+  [300, 150, 400, 200],
+  [120, 450, 250],
+] as const;
 const VIEWPORTS = [
   [1440, 900],
   [1280, 720],
   [1024, 672],
 ] as const;
-
-async function openStaged(page: Page, locale: (typeof LOCALES)[number] = "en"): Promise<void> {
-  await page.addInitScript(installGateProbe);
-  await page.goto(homeUrl(locale), { waitUntil: "networkidle" });
-  await page.evaluate(() => document.fonts.ready);
-  await expect(page.locator(".vk-scroll-top-sentinel")).toBeAttached();
-}
-
-async function pinStart(page: Page): Promise<number> {
-  return page.evaluate(
-    (header) =>
-      (document.querySelector(".vk-gate-track")?.getBoundingClientRect().top ?? 0) +
-      window.scrollY -
-      header,
-    HEADER,
-  );
-}
-
-async function settled(page: Page): Promise<void> {
-  expect(await page.evaluate(() => window.gateProbe?.settle()), "transitions settle").toBe(true);
-}
-
-async function scrollToSvh(page: Page, svh: number): Promise<void> {
-  const start = await pinStart(page);
-  await page.evaluate(
-    (y) => window.scrollTo(0, y),
-    start + (svh / 100) * (page.viewportSize()?.height ?? 0),
-  );
-  await settled(page);
-}
-
-async function restNow(page: Page): Promise<GateRest> {
-  await settled(page);
-  return page.evaluate(() => window.gateProbe?.rest() as GateRest);
-}
-
-function expectRest(rest: GateRest, label: string): void {
-  expect(rest.problems, `${label}: ${rest.problems.join(" | ")}`).toEqual([]);
-  expect(rest.full, `${label}: frames at opacity 1`).toBe(1);
-  expect(rest.minContrast, `${label}: lowest text contrast`).toBeGreaterThanOrEqual(MIN_CONTRAST);
-  expect(rest.pastEdge, `${label}: elements past a viewport edge`).toBe(0);
-}
-
-async function handoffAcross(
-  page: Page,
-  states: { from: number; to: number },
-  label: string,
-  moving: boolean,
-): Promise<void> {
-  await scrollToSvh(page, gateStateMiddle(states.from));
-  const samples = await cross(page, gateStateMiddle(states.to));
-  const direction = states.to > states.from ? "down" : "up";
-  expectHandoff(samples, label, direction, { outgoing: states.from, incoming: states.to }, moving);
-}
-
-async function expectRestOn(page: Page, label: string, state: number): Promise<void> {
-  const rest = await restNow(page);
-  expectRest(rest, label);
-  expect(rest.current, `${label}: state`).toBe(state);
-}
-
-async function flipAcross(page: Page, first: number, second: number): Promise<number> {
-  return page.evaluate(
-    async ([from, to]) => {
-      const read = () =>
-        [...document.querySelectorAll(".vk-gate-frame")].map((node) =>
-          Number(getComputedStyle(node).opacity),
-        );
-      let peak = 0;
-      for (let flip = 0; flip < 8; flip += 1) {
-        window.scrollTo(0, flip % 2 === 0 ? (to as number) : (from as number));
-        for (let wait = 0; wait < 6; wait += 1) {
-          await new Promise((resolve) => setTimeout(resolve, 16));
-          const [top = 0, next = 0] = read().sort((x, y) => y - x);
-          peak = Math.max(peak, Math.min(top, next));
-        }
-      }
-      return peak;
-    },
-    [first, second] as const,
-  );
-}
 
 type Sweep = {
   at: number;
@@ -176,27 +110,6 @@ async function sweep(page: Page, step: number, reverse: boolean): Promise<Sweep[
   );
 }
 
-async function cross(page: Page, svh: number): Promise<GateHandoff[]> {
-  const start = await pinStart(page);
-  const height = page.viewportSize()?.height ?? 0;
-  return page.evaluate(
-    ([y, step, length]) =>
-      window.gateProbe?.handoff(step as number, length as number, () =>
-        window.scrollTo(0, y as number),
-      ) ?? [],
-    [start + (svh / 100) * height, SAMPLE_MS, SAMPLE_WINDOW_MS] as const,
-  );
-}
-
-function joint(samples: GateHandoff[]): number {
-  return Math.max(
-    ...samples.map((sample) => {
-      const [first = 0, second = 0] = [...sample.frames].sort((a, b) => b - a);
-      return Math.min(first, second);
-    }),
-  );
-}
-
 type Free = { state: string; above: number; below: number; card: number };
 
 async function freeSpace(page: Page): Promise<Free[]> {
@@ -234,15 +147,14 @@ for (const [width, height] of VIEWPORTS) {
   test.describe(`gate pinned at ${width}x${height}`, () => {
     test.use({ viewport: { width, height }, reducedMotion: "no-preference" });
 
-    test("rests on exactly one whole frame at every 4px of the pin, forward and back, and gives every state its floor", async ({
+    test("rests on exactly one whole frame at every 4px of the pin, forward and back, with full contrast and nothing past an edge, and keeps every state wider than a page step", async ({
       page,
-      browserName,
     }) => {
-      test.setTimeout(240_000);
+      test.setTimeout(480_000);
       await openStaged(page);
       await expect(page.locator(`${SECTION} .vk-gate-pin`)).toHaveCSS("position", "sticky");
       for (const reverse of [false, true]) {
-        const label = `${browserName} ${width}x${height} ${reverse ? "up" : "down"}`;
+        const label = `${width}x${height} ${reverse ? "up" : "down"}`;
         expectSweepRests(await sweep(page, SCAN_STEP, reverse), label, height);
       }
     });
@@ -310,40 +222,36 @@ for (const [width, height] of VIEWPORTS) {
       for (const segment of widths) expect(segment).toBeGreaterThanOrEqual(GATE_MARKER_MIN_PX);
     });
 
-    test("slides the frames on time, left out and right in going down and the mirror going up, with no two frames above 0.3 and inside the ceiling", async ({
+    test("slides the frames on time, left out and right in going down and the mirror going up, readable for most of the travel, with no two frames above 0.3 and inside the ceiling", async ({
       page,
-      browserName,
     }) => {
       await openStaged(page);
       for (const [index, cut] of GATE_CUTS.entries())
-        for (const direction of ["down", "up"] as const)
+        for (const direction of ["down", "up"] as const) {
+          const down = direction === "down";
           await handoffAcross(
             page,
-            {
-              from: direction === "down" ? index : index + 1,
-              to: direction === "down" ? index + 1 : index,
-            },
-            `${browserName} ${width}x${height} ${cut}svh ${direction}`,
-            browserName !== "firefox",
+            { from: down ? index : index + 1, to: down ? index + 1 : index },
+            `${width}x${height} ${cut}svh ${direction}`,
           );
+        }
     });
 
-    test("survives a fast back and forth across a cut and a flick through every state, ending on one whole frame", async ({
+    test("turns back inside the entrance without two frames above 0.3 and settles on one whole frame, and survives a flick through every state", async ({
       page,
-      browserName,
     }) => {
       await openStaged(page);
       const start = await pinStart(page);
       const at = (svh: number) => start + (svh / 100) * height;
+      for (const waits of ENTRANCE_REVERSALS)
+        await flipInsideTheEntrance(page, `${width}x${height}`, [...waits]);
       await scrollToSvh(page, gateStateMiddle(0));
-      const peaks = await flipAcross(page, at(gateStateMiddle(0)), at(gateStateMiddle(1)));
-      console.log(`back and forth ${browserName} ${width}x${height}: joint ${peaks.toFixed(2)}`);
-      expect(peaks).toBeLessThanOrEqual(GATE_OVERLAP_CEILING);
-      await expectRestOn(page, "after back and forth", 0);
       await page.evaluate((y) => window.scrollTo(0, y), at(gateStateMiddle(2)));
       await expectRestOn(page, "after a flick down", 2);
       await page.evaluate((y) => window.scrollTo(0, y), at(gateStateMiddle(0)));
       await expectRestOn(page, "after a flick up", 0);
+      await cross(page, [gateStateMiddle(2)]);
+      await expectRestOn(page, "after a sampled flick", 2);
     });
 
     test("lands /#gate on the start of the pin, with the heading and the card in view", async ({
@@ -352,10 +260,10 @@ for (const [width, height] of VIEWPORTS) {
       await page.addInitScript(installGateProbe);
       await page.goto(`${homeUrl("en")}#gate`, { waitUntil: "networkidle" });
       await page.evaluate(() => document.fonts.ready);
-      await page.waitForTimeout(500);
       const start = await pinStart(page);
-      const scrolled = await page.evaluate(() => window.scrollY);
-      expect(Math.abs(scrolled - start)).toBeLessThanOrEqual(2);
+      await expect
+        .poll(async () => Math.abs((await page.evaluate(() => window.scrollY)) - start))
+        .toBeLessThanOrEqual(2);
       const view = await page.evaluate(() => {
         const heading = document.querySelector("#gate-heading")?.getBoundingClientRect();
         const card = document
@@ -373,14 +281,20 @@ for (const [width, height] of VIEWPORTS) {
       expectRest(await restNow(page), "/#gate");
     });
 
-    test("shows the chip of the first frame dropped before the pin and in place once its frame is current", async ({
+    test("keeps the chip of the first frame in place while its frame is current and before the pin, and parks it raised while another frame is", async ({
       page,
     }) => {
       await openStaged(page);
       const chip = page.locator(`${FRAMES}[data-state='candidate'] .vk-gate-slot`);
+      const inPlace = /^(none|0px)( 0px)?$/;
+      await expect(chip).toHaveCSS("opacity", "1");
+      await expect(chip).toHaveCSS("translate", inPlace);
+      await scrollToSvh(page, gateStateMiddle(1));
+      await expect(chip).toHaveCSS("opacity", "0");
+      await expect(chip).toHaveCSS("translate", "0px -12px");
       await scrollToSvh(page, gateStateMiddle(0));
       await expect(chip).toHaveCSS("opacity", "1");
-      await expect(chip).toHaveCSS("translate", /^(none|0px)( 0px)?$/);
+      await expect(chip).toHaveCSS("translate", inPlace);
     });
 
     for (const theme of THEMES) {
@@ -399,13 +313,24 @@ for (const [width, height] of VIEWPORTS) {
 }
 
 function expectSweepRests(samples: Sweep[], label: string, height: number): void {
-  const incomplete = samples.filter(
-    (sample) => sample.rest.full !== 1 || sample.rest.problems.length > 0,
-  );
+  const incomplete = samples.filter((sample) => {
+    const { rest } = sample;
+    return (
+      rest.full !== 1 ||
+      rest.problems.length > 0 ||
+      rest.minContrast < MIN_CONTRAST ||
+      rest.pastEdge > 0
+    );
+  });
   console.log(
-    `rests ${label}: ${samples.length} positions, not at one full frame ${incomplete.length}`,
+    `rests ${label}: ${samples.length} positions, not at one whole frame ${incomplete.length}, lowest contrast ${Math.min(...samples.map((sample) => sample.rest.minContrast)).toFixed(1)}`,
   );
-  expect(incomplete.map((sample) => `${sample.at}: ${sample.rest.problems.join(",")}`)).toEqual([]);
+  expect(
+    incomplete.map(
+      (sample) =>
+        `${sample.at}: ${sample.rest.problems.join(",")} contrast ${sample.rest.minContrast.toFixed(1)} edge ${sample.rest.pastEdge}`,
+    ),
+  ).toEqual([]);
   const cutsPx = GATE_CUTS.map((cut) => (cut / 100) * height);
   for (const sample of samples) {
     if (cutsPx.some((px) => Math.abs(sample.at - px) <= 2 * SCAN_STEP)) continue;
@@ -415,87 +340,13 @@ function expectSweepRests(samples: Sweep[], label: string, height: number): void
   }
   for (const [index, state] of STATES.entries()) {
     const held = samples.filter((sample) => sample.state === index).length * SCAN_STEP;
+    const [from, to] = gateStateRange(index);
     console.log(`hold ${label} ${state}: ${held}px`);
-    expect(held, state).toBeGreaterThanOrEqual((GATE_STATE_FLOOR_SVH / 100) * height - SCAN_STEP);
+    expect(held, state).toBeGreaterThanOrEqual(
+      ((GATE_PAGE_STEP_MAX_SVH + GATE_PAGE_STEP_MARGIN_SVH) / 100) * height - SCAN_STEP,
+    );
+    expect(held, state).toBeGreaterThanOrEqual(((to - from) / 100) * height - 3 * SCAN_STEP);
   }
-}
-
-function expectHandoff(
-  samples: GateHandoff[],
-  label: string,
-  direction: "down" | "up",
-  frames: { outgoing: number; incoming: number },
-  moving: boolean,
-): void {
-  const { outgoing, incoming } = frames;
-  const peak = joint(samples);
-  console.log(`handoff ${label}: joint ${peak.toFixed(2)}`);
-  expect(peak, label).toBeLessThanOrEqual(GATE_OVERLAP_CEILING);
-  const done = samples.find((sample) => sample.at > 0 && sample.frames[incoming] === 1);
-  expect(done?.at ?? Number.POSITIVE_INFINITY, `${label} settles`).toBeLessThanOrEqual(
-    GATE_HANDOFF_CEILING_MS + SAMPLE_MS * 2,
-  );
-  expect(samples.at(-1)?.frames[incoming], label).toBe(1);
-  expect(samples.at(-1)?.frames[outgoing], label).toBe(0);
-  if (!moving) return;
-  const fading = samples.some((sample) => {
-    const opacity = sample.frames[outgoing] ?? 0;
-    return opacity > 0.02 && opacity < 0.98;
-  });
-  expect(fading, `${label} runs on time`).toBe(true);
-  const side = direction === "down" ? -1 : 1;
-  const leave = samples.map((sample) => (sample.captions[outgoing] ?? 0) * side);
-  const enter = samples.map((sample) => (sample.captions[incoming] ?? 0) * -side);
-  expect(Math.max(...leave), `${label} leaves`).toBeGreaterThan(SLIDE_SEEN_PX / 4);
-  expect(Math.min(...leave), `${label} leaves the right way`).toBeGreaterThanOrEqual(-0.5);
-  expect(Math.max(...enter), `${label} arrives from the other side`).toBeGreaterThan(SLIDE_SEEN_PX);
-  expect(Math.min(...enter), `${label} arrives the right way`).toBeGreaterThanOrEqual(-0.5);
-}
-
-type Landing = { page: Page; start: number; height: number; label: string; states: Set<number> };
-
-async function currentSvh(landing: Landing): Promise<number> {
-  const y = await landing.page.evaluate(() => window.scrollY);
-  return ((y - landing.start) / landing.height) * 100;
-}
-
-async function land(landing: Landing, kind: string, detail: string): Promise<void> {
-  const y = await settleScroll(landing.page);
-  const svh = ((y - landing.start) / landing.height) * 100;
-  if (svh <= 0 || svh >= GATE_PIN_SVH) return;
-  const rest = await restNow(landing.page);
-  console.log(
-    `${kind} ${landing.label} ${detail} y${y} ${svh.toFixed(1)}svh frame ${rest.current} opacity ${rest.full === 1 ? 1 : "below 1"} contrast ${rest.minContrast.toFixed(1)} past edge ${rest.pastEdge}`,
-  );
-  expectRest(rest, `${kind} ${detail} at ${svh.toFixed(1)}svh`);
-  landing.states.add(rest.current);
-}
-
-async function walk(
-  landing: Landing,
-  kind: string,
-  press: () => Promise<void>,
-  done: (svh: number) => boolean,
-): Promise<number[]> {
-  landing.states.clear();
-  for (let count = 0; count < 90; count += 1) {
-    await press();
-    await land(landing, kind, String(count));
-    if (done(await currentSvh(landing))) break;
-  }
-  return [...landing.states].sort();
-}
-
-async function settleScroll(page: Page): Promise<number> {
-  let last = Number.NaN;
-  let stable = 0;
-  for (let tries = 0; tries < 80 && stable < 3; tries += 1) {
-    await page.waitForTimeout(60);
-    const y = await page.evaluate(() => window.scrollY);
-    stable = y === last ? stable + 1 : 0;
-    last = y;
-  }
-  return last;
 }
 
 for (const locale of LOCALES) {
@@ -507,7 +358,7 @@ for (const locale of LOCALES) {
         page,
         browserName,
       }) => {
-        test.setTimeout(420_000);
+        test.setTimeout(600_000);
         await openStaged(page, locale);
         const landing: Landing = {
           page,
@@ -517,8 +368,7 @@ for (const locale of LOCALES) {
           states: new Set(),
         };
         const end = GATE_PIN_SVH;
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await settleScroll(page);
+        await scrollInstant(page, 0);
         const down = await walk(
           landing,
           "pagedown",
@@ -526,10 +376,7 @@ for (const locale of LOCALES) {
           (svh) => svh >= end,
         );
         console.log(`pagedown ${landing.label} rests on states ${down.join(",")}`);
-        if (browserName === "chromium")
-          expect(down, "PageDown rests on every state").toEqual([0, 1, 2]);
-        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-        await settleScroll(page);
+        await scrollInstant(page, 1e6);
         const up = await walk(
           landing,
           "pageup",
@@ -537,8 +384,8 @@ for (const locale of LOCALES) {
           (svh) => svh <= 0,
         );
         console.log(`pageup ${landing.label} rests on states ${up.join(",")}`);
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await settleScroll(page);
+        await expectPageKeysNeverSkip(landing);
+        await scrollInstant(page, 0);
         await page.mouse.move(width / 2, height / 2);
         const wheel = await walk(
           landing,

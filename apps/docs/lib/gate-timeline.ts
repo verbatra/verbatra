@@ -1,10 +1,12 @@
-export type SvhRange = readonly [number, number];
+type SvhRange = readonly [number, number];
 
-export const GATE_PIN_SVH = 215;
+export const GATE_PIN_SVH = 300;
 
-export const GATE_CUTS: readonly [number, number] = [77, 147];
+export const GATE_CUTS: readonly [number, number] = [100, 200];
 
-export const GATE_STATE_FLOOR_SVH = 40;
+export const GATE_PAGE_STEP_MAX_SVH = 96;
+
+export const GATE_PAGE_STEP_MARGIN_SVH = 4;
 
 export const GATE_SLIDE_PX = 64;
 
@@ -20,15 +22,15 @@ export const GATE_STAMP_SCALE = 1.6;
 
 export const GATE_CUT_LEAD_SVH = 0.15;
 
-export const GATE_FADE_SPAN = 0.4;
+export const GATE_FADE_EXPONENT = 2;
 
 export const GATE_EXIT_MS = 280;
 
-export const GATE_ENTER_DELAY_MS = 160;
+export const GATE_ENTER_DELAY_MS = 260;
 
-export const GATE_ENTER_MS = 380;
+export const GATE_ENTER_MS = 320;
 
-export const GATE_ACCENT_DELAY_MS = 200;
+export const GATE_STEP_MS = 1;
 
 export const GATE_ACCENT_MS = 300;
 
@@ -36,9 +38,19 @@ export const GATE_HANDOFF_CEILING_MS = 600;
 
 export const GATE_OVERLAP_CEILING = 0.3;
 
+export const GATE_GAP_CEILING_MS = 80;
+
+export const GATE_OUT_READABLE_OPACITY = 0.5;
+
+export const GATE_OUT_READABLE_TRAVEL = 0.6;
+
+export const GATE_IN_READABLE_REMAINING = 0.4;
+
+export const GATE_LANDING_OFFSET_PX = 56;
+
 export const GATE_MARKER_MIN_PX = 48;
 
-export const GATE_MARKER_EDGE_SVH = 1;
+const GATE_MARKER_EDGE_SVH = 1;
 
 export function gateStateRange(index: number): SvhRange {
   const [first, second] = GATE_CUTS;

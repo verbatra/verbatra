@@ -4980,6 +4980,12 @@ html.light .vk-deck-shot-light {
   initial-value: 0;
 }
 
+@property --vk-gate-shown {
+  syntax: "<integer>";
+  inherits: true;
+  initial-value: 0;
+}
+
 @property --vk-gate-in {
   syntax: "<number>";
   inherits: true;
@@ -5159,7 +5165,7 @@ html.light .vk-deck-shot-light {
   ) and (scripting: enabled) {
   @supports (animation-timeline: view()) {
     .vk-gate-track {
-      --vk-gate-pin: 215svh;
+      --vk-gate-pin: 300svh;
       --vk-gate-stage: calc(100svh - var(--vk-landing-offset));
       --vk-gate-slide: 64px;
       height: calc(var(--vk-gate-pin) + var(--vk-gate-stage));
@@ -5200,16 +5206,18 @@ html.light .vk-deck-shot-light {
     }
 
     .vk-gate-stage {
+      --vk-gate-shown: var(--vk-gate-state);
       grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
       column-gap: var(--grid-gap);
       align-items: center;
+      transition: --vk-gate-shown 1ms linear 260ms;
     }
 
     .vk-gate-frame {
-      --vk-gate-here: clamp(-1, calc(var(--vk-gate-index) - var(--vk-gate-state)), 1);
-      --vk-gate-in: var(--vk-gate-here);
-      --vk-gate-out: var(--vk-gate-here);
-      --vk-gate-arrive: calc(1 - min(1, max(var(--vk-gate-here), var(--vk-gate-here) * -1)));
+      --vk-gate-there: clamp(-1, calc(var(--vk-gate-index) - var(--vk-gate-shown)), 1);
+      --vk-gate-in: var(--vk-gate-there);
+      --vk-gate-out: clamp(-1, calc(var(--vk-gate-index) - var(--vk-gate-state)), 1);
+      --vk-gate-arrive: calc(1 - min(1, max(var(--vk-gate-there), var(--vk-gate-there) * -1)));
       --vk-gate-away: max(
         var(--vk-gate-in),
         var(--vk-gate-in) *
@@ -5222,11 +5230,11 @@ html.light .vk-deck-shot-light {
       grid-column: 1 / span 8;
       grid-template-columns: minmax(0, 1fr);
       align-self: center;
-      opacity: calc(1 - min(1, var(--vk-gate-away) * 2.5));
+      opacity: calc(1 - var(--vk-gate-away) * var(--vk-gate-away));
       transition:
-        --vk-gate-in 380ms var(--ease-standard) 160ms,
+        --vk-gate-in 320ms var(--ease-standard),
         --vk-gate-out 280ms var(--ease-exit),
-        --vk-gate-arrive 300ms var(--ease-standard) 200ms;
+        --vk-gate-arrive 300ms var(--ease-standard);
       animation-fill-mode: both;
       animation-timing-function: linear;
       animation-timeline: --vk-gate;
@@ -5264,11 +5272,7 @@ html.light .vk-deck-shot-light {
       scale: calc(1 - 0.06 * min(1, var(--vk-gate-away)));
     }
 
-    .vk-gate-moves {
-      opacity: var(--vk-gate-arrive);
-      translate: 0 calc((1 - var(--vk-gate-arrive)) * -12px);
-    }
-
+    .vk-gate-moves,
     html[data-motion-ready] .vk-gate .vk-gate-track .vk-gate-moves {
       opacity: var(--vk-gate-arrive);
       translate: 0 calc((1 - var(--vk-gate-arrive)) * -12px);
@@ -5305,15 +5309,15 @@ html.light .vk-deck-shot-light {
     }
 
     .vk-gate-progress i[data-state="candidate"]::after {
-      animation-range: contain 0.465% contain 35.814%;
+      animation-range: contain 0.333% contain 33.333%;
     }
 
     .vk-gate-progress i[data-state="refused"]::after {
-      animation-range: contain 35.814% contain 68.372%;
+      animation-range: contain 33.333% contain 66.667%;
     }
 
     .vk-gate-progress i[data-state="stale"]::after {
-      animation-range: contain 68.372% contain 99.535%;
+      animation-range: contain 66.667% contain 99.667%;
     }
 
     @media (forced-colors: active) {
@@ -5324,18 +5328,18 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-state {
       0%,
-      35.744% {
+      33.283% {
         --vk-gate-state: 0;
         animation-timing-function: step-end;
       }
 
-      35.814%,
-      68.302% {
+      33.333%,
+      66.617% {
         --vk-gate-state: 1;
         animation-timing-function: step-end;
       }
 
-      68.372%,
+      66.667%,
       100% {
         --vk-gate-state: 2;
       }
@@ -5343,12 +5347,12 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-hit-candidate {
       0%,
-      35.744% {
+      33.283% {
         pointer-events: auto;
         animation-timing-function: step-end;
       }
 
-      35.814%,
+      33.333%,
       100% {
         pointer-events: none;
       }
@@ -5356,18 +5360,18 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-hit-refused {
       0%,
-      35.744% {
+      33.283% {
         pointer-events: none;
         animation-timing-function: step-end;
       }
 
-      35.814%,
-      68.302% {
+      33.333%,
+      66.617% {
         pointer-events: auto;
         animation-timing-function: step-end;
       }
 
-      68.372%,
+      66.667%,
       100% {
         pointer-events: none;
       }
@@ -5375,12 +5379,12 @@ html.light .vk-deck-shot-light {
 
     @keyframes vk-gate-hit-stale {
       0%,
-      68.302% {
+      66.617% {
         pointer-events: none;
         animation-timing-function: step-end;
       }
 
-      68.372%,
+      66.667%,
       100% {
         pointer-events: auto;
       }

@@ -344,14 +344,19 @@ export type GateHandoff = {
   frames: number[];
   captions: number[];
   cards: number[];
+  scales: number[];
 };
+
+export type GateFlip = { wait: number; to: number };
 
 declare global {
   interface Window {
     gateProbe?: {
       settle: () => Promise<boolean>;
       rest: () => GateRest;
-      handoff: (step: number, length: number, move: () => void) => Promise<GateHandoff[]>;
+      handoff: (length: number, flips: GateFlip[]) => Promise<GateHandoff[]>;
+      armScrollEnd: () => void;
+      scrollEnded: () => Promise<void>;
     };
   }
 }
@@ -383,13 +388,20 @@ export function installGateProbe(): void {
   canvas.width = 1;
   canvas.height = 1;
   const context = canvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D;
+  const parsed = new Map<string, [number, number, number, number]>();
   const colour = (value: string): [number, number, number, number] => {
-    context.clearRect(0, 0, 1, 1);
-    context.fillStyle = "#000";
+    const known = parsed.get(value);
+    if (known) return known;
+    context.fillStyle = "#123456";
     context.fillStyle = value;
+    if (context.fillStyle === "#123456" && value.replace(/\s/g, "") !== "#123456")
+      throw new Error(`unparseable colour ${value}`);
+    context.clearRect(0, 0, 1, 1);
     context.fillRect(0, 0, 1, 1);
     const [r = 0, g = 0, b = 0, a = 0] = context.getImageData(0, 0, 1, 1).data;
-    return [r, g, b, a / 255];
+    const result: [number, number, number, number] = [r, g, b, a / 255];
+    parsed.set(value, result);
+    return result;
   };
   const over = (
     top: [number, number, number, number],
@@ -408,14 +420,35 @@ export function installGateProbe(): void {
     };
     return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
   };
+  const withOpacity = (
+    layer: [number, number, number, number],
+    opacity: number,
+  ): [number, number, number, number] => [layer[0], layer[1], layer[2], layer[3] * opacity];
+  const chains = new Map<Element, number>();
+  const layers = new Map<Element, [number, number, number, number]>();
+  const chainOpacity = (element: Element): number => {
+    const known = chains.get(element);
+    if (known !== undefined) return known;
+    const parent = element.parentElement;
+    const value = Number(getComputedStyle(element).opacity) * (parent ? chainOpacity(parent) : 1);
+    chains.set(element, value);
+    return value;
+  };
+  const layerOf = (element: Element): [number, number, number, number] => {
+    const known = layers.get(element);
+    if (known) return known;
+    const value = withOpacity(
+      colour(getComputedStyle(element).backgroundColor),
+      chainOpacity(element),
+    );
+    layers.set(element, value);
+    return value;
+  };
   const backdrop = (element: Element): [number, number, number, number] => {
-    const layers: Array<[number, number, number, number]> = [];
-    for (let node: Element | null = element; node; node = node.parentElement) {
-      const layer = colour(getComputedStyle(node).backgroundColor);
-      layers.push(layer);
-      if (layer[3] >= 1) break;
-    }
-    return layers.reduceRight((below, layer) => over(layer, below), [255, 255, 255, 1] as [
+    const stack: Array<[number, number, number, number]> = [];
+    for (let node: Element | null = element; node; node = node.parentElement)
+      stack.push(layerOf(node));
+    return stack.reduceRight((below, layer) => over(layer, below), [255, 255, 255, 1] as [
       number,
       number,
       number,
@@ -424,7 +457,10 @@ export function installGateProbe(): void {
   };
   const contrast = (element: Element): number => {
     const bottom = backdrop(element);
-    const text = over(colour(getComputedStyle(element).color), bottom);
+    const text = over(
+      withOpacity(colour(getComputedStyle(element).color), chainOpacity(element)),
+      bottom,
+    );
     const [lighter, darker] = [luminance(text), luminance(bottom)].sort((a, b) => b - a) as [
       number,
       number,
@@ -488,13 +524,21 @@ export function installGateProbe(): void {
     return lowest;
   };
   const countPastEdge = (active: Element): number => {
-    const width = document.documentElement.clientWidth;
+    const { clientWidth, clientHeight } = document.documentElement;
     return [active, ...active.querySelectorAll("*")].filter((element) => {
       const box = element.getBoundingClientRect();
-      return box.width > 0 && (box.left < -1 || box.right > width + 1);
+      return (
+        box.width > 0 &&
+        (box.left < -1 ||
+          box.right > clientWidth + 1 ||
+          box.top < -1 ||
+          box.bottom > clientHeight + 1)
+      );
     }).length;
   };
   const rest = (): GateRest => {
+    chains.clear();
+    layers.clear();
     const list = frames();
     const opacities = list.map((node) => Number(getComputedStyle(node).opacity));
     const current = opacities.indexOf(1);
@@ -512,39 +556,70 @@ export function installGateProbe(): void {
       current,
     };
   };
-  const handoff = async (
-    step: number,
-    length: number,
-    move: () => void,
-  ): Promise<GateHandoff[]> => {
-    const samples: GateHandoff[] = [];
-    const started = performance.now();
-    const read = (): void => {
-      const list = frames();
-      samples.push({
-        at: Math.round(performance.now() - started),
-        frames: list.map((node) => Number(getComputedStyle(node).opacity)),
-        captions: list.map(
-          (node) =>
-            Number.parseFloat(
-              getComputedStyle(node.querySelector(":scope > figcaption") as Element).translate,
-            ) || 0,
-        ),
-        cards: list.map(
-          (node) =>
-            Number.parseFloat(
-              getComputedStyle(node.querySelector(":scope > .vk-gate-card") as Element).translate,
-            ) || 0,
-        ),
-      });
-    };
-    move();
-    read();
-    while (performance.now() - started < length) {
-      await new Promise((resolve) => setTimeout(resolve, step));
-      read();
-    }
-    return samples;
+  const translateX = (element: Element): number =>
+    Number.parseFloat(getComputedStyle(element).translate) || 0;
+  const scaleOf = (element: Element): number => {
+    const scale = getComputedStyle(element).scale;
+    return scale === "none" ? 1 : Number.parseFloat(scale);
   };
-  window.gateProbe = { settle, rest, handoff };
+  const reading = (started: number): GateHandoff => {
+    const list = frames();
+    const parts = (selector: string): Element[] =>
+      list.map((node) => node.querySelector(selector) as Element);
+    return {
+      at: performance.now() - started,
+      frames: list.map((node) => Number(getComputedStyle(node).opacity)),
+      captions: parts(":scope > figcaption").map(translateX),
+      cards: parts(":scope > .vk-gate-card").map(translateX),
+      scales: parts(":scope > .vk-gate-card").map(scaleOf),
+    };
+  };
+  const handoff = (length: number, flips: GateFlip[]): Promise<GateHandoff[]> =>
+    new Promise((resolve) => {
+      const samples: GateHandoff[] = [];
+      const started = performance.now();
+      const schedule = flips.map((flip, index) => ({
+        at: flips.slice(0, index + 1).reduce((sum, item) => sum + item.wait, 0),
+        to: flip.to,
+      }));
+      let next = 0;
+      const tick = (): void => {
+        const elapsed = performance.now() - started;
+        const due = schedule[next];
+        if (due && elapsed >= due.at) {
+          window.scrollTo(0, due.to);
+          next += 1;
+        }
+        samples.push(reading(started));
+        if (elapsed < length) requestAnimationFrame(tick);
+        else resolve(samples);
+      };
+      requestAnimationFrame(tick);
+    });
+  let scrollEnd: Promise<void> = Promise.resolve();
+  const armScrollEnd = (): void => {
+    scrollEnd = new Promise((resolve) => {
+      const fallback = window.setTimeout(resolve, 800);
+      window.addEventListener(
+        "scrollend",
+        () => {
+          window.clearTimeout(fallback);
+          resolve();
+        },
+        { once: true },
+      );
+    });
+  };
+  const scrollEnded = async (): Promise<void> => {
+    await scrollEnd;
+    const started = performance.now();
+    let still = 0;
+    let last = window.scrollY;
+    while (still < 4 && performance.now() - started < 2000) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      still = window.scrollY === last ? still + 1 : 0;
+      last = window.scrollY;
+    }
+  };
+  window.gateProbe = { settle, rest, handoff, armScrollEnd, scrollEnded };
 }
