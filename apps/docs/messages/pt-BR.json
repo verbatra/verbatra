@@ -730,7 +730,7 @@
       "ogImageAlt": "Como o Verbatra se compara, com o logotipo verbatra"
     },
     "heading": "Como o Verbatra se compara",
-    "takeaway": "O Verbatra traduz só as chaves alteradas na sua CI, com suas próprias chaves de API, sob licença MIT.",
+    "takeaway": "O Verbatra traduz só as chaves alteradas na sua CI, com suas chaves de API, sob licença MIT.",
     "scope": "O Verbatra é uma CLI e um SDK; as outras colunas são plataformas de tradução e um fluxo manual, comparados como formas de manter arquivos de locale traduzidos.",
     "stronger": "Onde outros são mais fortes: edição no contexto (Tolgee, Crowdin, Lokalise, Phrase) e editor hospedado para tradutores.",
     "skip": "Pular a comparação",
