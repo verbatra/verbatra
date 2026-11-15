@@ -10,7 +10,7 @@ import {
   gateStateAt,
   gateStateMiddle,
   gateStateRange,
-} from "@/lib/gate-timeline";
+} from "@/test-support/gate-schedule";
 import {
   cross,
   expectPageKeysNeverSkip,
