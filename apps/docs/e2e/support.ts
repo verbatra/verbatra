@@ -313,36 +313,52 @@ export async function expectBackwardWalkClearsStickyHead(page: Page, scope: stri
   expect(hidden).toEqual([]);
 }
 
+type ShiftEntry = PerformanceEntry & {
+  value: number;
+  hadRecentInput: boolean;
+  sources?: Array<{ node: Node | null }>;
+};
+
+type ShiftState = {
+  total: number;
+  sources: string[];
+  observer: PerformanceObserver;
+  take: (entries: PerformanceEntryList) => void;
+};
+
 export async function installShiftCounter(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    const shifts = { total: 0, sources: [] as string[] };
-    (window as unknown as { shifts: typeof shifts }).shifts = shifts;
-    new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) {
-        const shift = entry as PerformanceEntry & {
-          value: number;
-          hadRecentInput: boolean;
-          sources?: Array<{ node: Node | null }>;
-        };
-        if (shift.hadRecentInput) continue;
-        shifts.total += shift.value;
-        for (const source of shift.sources ?? [])
-          shifts.sources.push(
-            `${shift.value.toFixed(4)} at ${Math.round(shift.startTime)}ms ${(source.node as Element | null)?.className ?? source.node?.nodeName}`,
+    const state = { total: 0, sources: [] as string[] } as ShiftState;
+    state.take = (entries) => {
+      for (const entry of entries as ShiftEntry[]) {
+        if (entry.hadRecentInput) continue;
+        state.total += entry.value;
+        for (const source of entry.sources ?? [])
+          state.sources.push(
+            `${entry.value.toFixed(4)} at ${Math.round(entry.startTime)}ms ${(source.node as Element | null)?.className ?? source.node?.nodeName}`,
           );
       }
-    }).observe({ type: "layout-shift", buffered: true });
+    };
+    state.observer = new PerformanceObserver((list) => state.take(list.getEntries()));
+    state.observer.observe({ type: "layout-shift", buffered: true });
+    (window as unknown as { shifts: ShiftState }).shifts = state;
+  });
+}
+
+async function drainedShifts(page: Page): Promise<{ total: number; sources: string[] }> {
+  return page.evaluate(() => {
+    const state = (window as unknown as { shifts: ShiftState }).shifts;
+    state.take(state.observer.takeRecords());
+    return { total: state.total, sources: state.sources };
   });
 }
 
 export async function layoutShift(page: Page): Promise<number> {
-  return page.evaluate(() => (window as unknown as { shifts: { total: number } }).shifts.total);
+  return (await drainedShifts(page)).total;
 }
 
 export async function layoutShiftSources(page: Page): Promise<string[]> {
-  return page.evaluate(
-    () => (window as unknown as { shifts: { sources: string[] } }).shifts.sources,
-  );
+  return (await drainedShifts(page)).sources;
 }
 
 export type GateRest = {
