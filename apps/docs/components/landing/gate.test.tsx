@@ -191,9 +191,9 @@ describe("Gate", () => {
 
   it.each([
     ["en", en, 92, /retried/i],
-    ["de", de, 114, /(erneut|wieder)/i],
-    ["es", es, 109, /reintent/i],
-    ["fr", fr, 118, /(r\u00e9essay|relanc|nouveau)/i],
+    ["de", MESSAGE_CATALOGS.de, 114, /(erneut|wieder)/i],
+    ["es", MESSAGE_CATALOGS.es, 109, /reintent/i],
+    ["fr", MESSAGE_CATALOGS.fr, 118, /(r\u00e9essay|relanc|nouveau)/i],
     ["zh-CN", MESSAGE_CATALOGS["zh-CN"], 76, /重试/],
     ["pt-BR", MESSAGE_CATALOGS["pt-BR"], 103, /de novo/i],
   ] as const)(
