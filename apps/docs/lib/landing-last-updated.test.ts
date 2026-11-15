@@ -50,6 +50,7 @@ const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-11-13", hash: "a3c68428794e98f62778def8853c5a73c05f35a0c7a093e08ede41b6cc6eefa2" },
   { date: "2026-11-13", hash: "1482c5b53b85928e76cf8f69fb61bd676e8be04d253e5103f806f71edc5d5964" },
   { date: "2026-11-13", hash: "81e1cf5a8cb7a14c0432a29707d02b94b33b01b08be1130114ce3c67fdf4c034" },
+  { date: "2026-11-13", hash: "16fde8395d24a9c1159d7646060c51b815c481e70475302235aec54b47bf932d" },
 ];
 
 function compareCellModel(): string {
