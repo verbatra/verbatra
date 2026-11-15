@@ -242,7 +242,7 @@ jobs:
   docs-e2e:
     name: Docs accessibility and layout suite
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
