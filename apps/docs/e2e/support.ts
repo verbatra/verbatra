@@ -349,12 +349,22 @@ export type GateHandoff = {
 
 export type GateFlip = { wait: number; to: number };
 
+export type GateReversal = { from: number; to: number; delay: number; home: number };
+
+export type GateReversalResult = {
+  delay: number;
+  joint: number;
+  settle: number;
+  final: number[];
+};
+
 declare global {
   interface Window {
     gateProbe?: {
       settle: () => Promise<boolean>;
       rest: () => GateRest;
       handoff: (length: number, flips: GateFlip[]) => Promise<GateHandoff[]>;
+      reversals: (trials: GateReversal[], tail: number) => Promise<GateReversalResult[]>;
       armScrollEnd: () => void;
       scrollEnded: () => Promise<void>;
     };
@@ -621,5 +631,35 @@ export function installGateProbe(): void {
       last = window.scrollY;
     }
   };
-  window.gateProbe = { settle, rest, handoff, armScrollEnd, scrollEnded };
+  const jointOf = (samples: GateHandoff[]): number =>
+    Math.max(
+      ...samples.map((sample) => {
+        const [first = 0, second = 0] = [...sample.frames].sort((a, b) => b - a);
+        return Math.min(first, second);
+      }),
+    );
+  const reversal = async (trial: GateReversal, tail: number): Promise<GateReversalResult> => {
+    window.scrollTo(0, trial.from);
+    await settle();
+    const samples = await handoff(trial.delay + tail, [
+      { wait: 0, to: trial.to },
+      { wait: trial.delay, to: trial.from },
+    ]);
+    const exact = (sample: GateHandoff): boolean =>
+      sample.frames.every((opacity, index) => opacity === (index === trial.home ? 1 : 0));
+    const lastBad = samples.findLastIndex((sample) => !exact(sample));
+    const final = samples.at(-1)?.frames ?? [];
+    return {
+      delay: trial.delay,
+      joint: jointOf(samples),
+      settle: (samples[lastBad + 1]?.at ?? Number.POSITIVE_INFINITY) - trial.delay,
+      final,
+    };
+  };
+  const reversals = async (trials: GateReversal[], tail: number): Promise<GateReversalResult[]> => {
+    const results: GateReversalResult[] = [];
+    for (const trial of trials) results.push(await reversal(trial, tail));
+    return results;
+  };
+  window.gateProbe = { settle, rest, handoff, reversals, armScrollEnd, scrollEnded };
 }

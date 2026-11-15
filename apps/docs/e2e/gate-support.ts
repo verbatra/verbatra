@@ -9,6 +9,7 @@ import {
   GATE_OUT_READABLE_TRAVEL,
   GATE_OVERLAP_CEILING,
   GATE_PIN_SVH,
+  GATE_REVERSAL_SETTLE_MS,
   GATE_SLIDE_SCALE,
   gateStateMiddle,
 } from "@/lib/gate-timeline";
@@ -16,6 +17,8 @@ import {
   type GateFlip,
   type GateHandoff,
   type GateRest,
+  type GateReversal,
+  type GateReversalResult,
   homeUrl,
   installGateProbe,
   type LOCALES,
@@ -358,4 +361,59 @@ export async function expectPageKeysNeverSkip(landing: Landing): Promise<void> {
       expect((after - before) * direction, label).toBeLessThanOrEqual(1);
     }
   }
+}
+
+export type ReversalRow = GateReversalResult & { cut: number; direction: "down" | "up" };
+
+type ReversalMeta = { cut: number; direction: "down" | "up" };
+
+function reversalTrials(
+  delays: number[],
+  y: (index: number) => number,
+): { trials: GateReversal[]; meta: ReversalMeta[] } {
+  const trials: GateReversal[] = [];
+  const meta: ReversalMeta[] = [];
+  for (const [cut, svh] of GATE_CUTS.entries())
+    for (const direction of ["down", "up"] as const) {
+      const home = direction === "down" ? cut : cut + 1;
+      const away = direction === "down" ? cut + 1 : cut;
+      for (const delay of delays) {
+        meta.push({ cut: svh, direction });
+        trials.push({ from: y(home), to: y(away), delay, home });
+      }
+    }
+  return { trials, meta };
+}
+
+export async function reversalSweep(page: Page, delays: number[]): Promise<ReversalRow[]> {
+  const start = await pinStart(page);
+  const height = page.viewportSize()?.height ?? 0;
+  const { trials, meta } = reversalTrials(
+    delays,
+    (index) => start + (gateStateMiddle(index) / 100) * height,
+  );
+  const results = await page.evaluate(
+    ([list, tail]) => window.gateProbe?.reversals(list as GateReversal[], tail as number) ?? [],
+    [trials, 900] as const,
+  );
+  return results.map((result, index) => ({ ...result, ...(meta[index] as ReversalMeta) }));
+}
+
+function expectReversal(row: ReversalRow, label: string): void {
+  const where = `${label} ${row.cut}svh ${row.direction} reversed after ${row.delay}ms`;
+  expect(row.joint, `${where}: two frames at once`).toBeLessThanOrEqual(GATE_OVERLAP_CEILING);
+  expect(row.settle, `${where}: settles`).toBeLessThanOrEqual(GATE_REVERSAL_SETTLE_MS);
+  const home = row.final.indexOf(1);
+  expect(
+    home >= 0 && row.final.every((opacity, index) => opacity === (index === home ? 1 : 0)),
+    `${where}: ends on one exact frame`,
+  ).toBe(true);
+}
+
+export function expectReversals(rows: ReversalRow[], label: string): void {
+  const worst = rows.reduce((best, row) => (row.joint > best.joint ? row : best));
+  console.log(
+    `reversals ${label}: ${rows.length} trials, worst joint ${worst.joint.toFixed(2)} at ${worst.delay}ms (${worst.cut}svh ${worst.direction}), slowest settle ${Math.max(...rows.map((row) => row.settle)).toFixed(0)}ms`,
+  );
+  for (const row of rows) expectReversal(row, label);
 }

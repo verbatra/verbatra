@@ -35,6 +35,7 @@ import {
   GATE_PAGE_STEP_MARGIN_SVH,
   GATE_PAGE_STEP_MAX_SVH,
   GATE_PIN_SVH,
+  GATE_REVERSAL_SETTLE_MS,
   GATE_SLIDE_PX,
   GATE_SLIDE_SCALE,
   GATE_SLIDE_WIDE_PX,
@@ -448,14 +449,15 @@ describe("the gate stylesheet", () => {
     expect(squash(frame["--vk-gate-out"])).toBe(
       "clamp(-1, calc(var(--vk-gate-index) - var(--vk-gate-state)), 1)",
     );
-    expect(squash(frame["--vk-gate-arrive"])).toBe(
+    expect(squash(frame["--vk-gate-current"])).toBe(
       "calc(1 - min(1, max(var(--vk-gate-there), var(--vk-gate-there) * -1)))",
     );
+    expect(frame["--vk-gate-arrive"]).toBe("var(--vk-gate-current)");
     expect(squash(frame["--vk-gate-away"])).toBe(
       "max(var(--vk-gate-in), var(--vk-gate-in) * -1, var(--vk-gate-out), var(--vk-gate-out) * -1)",
     );
     expect(squash(frame.opacity)).toBe(
-      `calc(1 - ${Array.from({ length: GATE_FADE_EXPONENT }, () => "var(--vk-gate-away)").join(" * ")})`,
+      `calc((1 - ${Array.from({ length: GATE_FADE_EXPONENT }, () => "var(--vk-gate-away)").join(" * ")}) * var(--vk-gate-current))`,
     );
     for (const [index, state] of STATES.entries())
       expect(declared(`.vk-gate-frame[data-state="${state}"]`, "--vk-gate-index")).toBe(
@@ -652,6 +654,7 @@ describe("the gate stylesheet", () => {
       ["GATE_ENTER_MS", GATE_ENTER_MS],
       ["GATE_ACCENT_MS", GATE_ACCENT_MS],
       ["GATE_HANDOFF_CEILING_MS", GATE_HANDOFF_CEILING_MS],
+      ["GATE_REVERSAL_SETTLE_MS", GATE_REVERSAL_SETTLE_MS],
     ] as const)
       expect(entry, name).toContain(`\`${name}\` (${milliseconds}ms)`);
     expect(entry).toContain("`--vk-gate-state`");

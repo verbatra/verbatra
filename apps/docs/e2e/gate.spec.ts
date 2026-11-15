@@ -15,6 +15,7 @@ import {
   expectPageKeysNeverSkip,
   expectRest,
   expectRestOn,
+  expectReversals,
   flipInsideTheEntrance,
   HEADER,
   handoffAcross,
@@ -23,6 +24,7 @@ import {
   openStaged,
   pinStart,
   restNow,
+  reversalSweep,
   STATES,
   scrollInstant,
   scrollToSvh,
@@ -46,6 +48,11 @@ const SECTION = "section#gate";
 const FRAMES = `${SECTION} .vk-gate-frame`;
 const MOVES = `${FRAMES} .vk-gate-moves`;
 const SCAN_STEP = 4;
+const REVERSAL_DELAYS = [
+  ...Array.from({ length: 21 }, (_, step) => 100 + step * 25),
+  ...Array.from({ length: 13 }, (_, step) => 245 + step * 5),
+];
+const REVERSAL_VIEWPORTS: ReadonlyArray<number> = [900, 672];
 const FREE_SPACE_TOLERANCE = 24;
 const CARD_SPREAD_LIMIT = 60;
 const ENTRANCE_REVERSALS = [
@@ -252,6 +259,15 @@ for (const [width, height] of VIEWPORTS) {
       await expectRestOn(page, "after a flick up", 0);
       await cross(page, [gateStateMiddle(2)]);
       await expectRestOn(page, "after a sampled flick", 2);
+    });
+
+    test("never shows two frames above 0.3 for a reversal at any delay, 100 to 600ms, across both cuts and both directions", async ({
+      page,
+    }) => {
+      test.skip(!REVERSAL_VIEWPORTS.includes(height), "swept at 1440x900 and 1024x672");
+      test.setTimeout(480_000);
+      await openStaged(page);
+      expectReversals(await reversalSweep(page, REVERSAL_DELAYS), `${width}x${height}`);
     });
 
     test("lands /#gate on the start of the pin, with the heading and the card in view", async ({

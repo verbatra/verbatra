@@ -5217,7 +5217,8 @@ html.light .vk-deck-shot-light {
       --vk-gate-there: clamp(-1, calc(var(--vk-gate-index) - var(--vk-gate-shown)), 1);
       --vk-gate-in: var(--vk-gate-there);
       --vk-gate-out: clamp(-1, calc(var(--vk-gate-index) - var(--vk-gate-state)), 1);
-      --vk-gate-arrive: calc(1 - min(1, max(var(--vk-gate-there), var(--vk-gate-there) * -1)));
+      --vk-gate-current: calc(1 - min(1, max(var(--vk-gate-there), var(--vk-gate-there) * -1)));
+      --vk-gate-arrive: var(--vk-gate-current);
       --vk-gate-away: max(
         var(--vk-gate-in),
         var(--vk-gate-in) *
@@ -5230,7 +5231,7 @@ html.light .vk-deck-shot-light {
       grid-column: 1 / span 8;
       grid-template-columns: minmax(0, 1fr);
       align-self: center;
-      opacity: calc(1 - var(--vk-gate-away) * var(--vk-gate-away));
+      opacity: calc((1 - var(--vk-gate-away) * var(--vk-gate-away)) * var(--vk-gate-current));
       transition:
         --vk-gate-in 320ms var(--ease-standard),
         --vk-gate-out 280ms var(--ease-exit),
