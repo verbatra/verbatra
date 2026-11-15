@@ -260,7 +260,7 @@
       "stale": {
         "label": "Toujours obsolète",
         "text": "La clé reste obsolète, donc la vérification échoue toujours.",
-        "foot": "L’ancienne valeur reste dans {file}. La CI échoue tant que la clé n’obtient pas une valeur qui conserve {placeholder}."
+        "foot": "{file} conserve la valeur précédente. La clé reste obsolète et sera réessayée lors de la prochaine exécution."
       },
       "valueUnchanged": "inchangé"
     },
