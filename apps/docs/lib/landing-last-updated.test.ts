@@ -52,7 +52,7 @@ const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-11-13", hash: "1482c5b53b85928e76cf8f69fb61bd676e8be04d253e5103f806f71edc5d5964" },
   { date: "2026-11-13", hash: "81e1cf5a8cb7a14c0432a29707d02b94b33b01b08be1130114ce3c67fdf4c034" },
   { date: "2026-11-13", hash: "16fde8395d24a9c1159d7646060c51b815c481e70475302235aec54b47bf932d" },
-  { date: "2026-11-13", hash: "f1c2595a593d9556517f33edb736104cb2119baeaaf7e999162adf65650f4ed7" },
+  { date: "2026-11-13", hash: "9ffc8aab8d00e23c88b5338156484bc5d1a230fe8c123c53098ee3c8f6e5332e" },
 ];
 
 function compareCellModel(): string {
