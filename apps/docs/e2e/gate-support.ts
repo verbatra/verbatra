@@ -140,26 +140,36 @@ function settleMs(samples: GateHandoff[], incoming: number): number {
   return samples[lastBelow + 1]?.at ?? Number.POSITIVE_INFINITY;
 }
 
+function travelAtHalf(samples: GateHandoff[], frame: number, rising: boolean): number {
+  const level = GATE_OUT_READABLE_OPACITY;
+  const opacity = (sample: GateHandoff): number => sample.frames[frame] ?? 0;
+  const travel = (sample: GateHandoff): number => Math.abs(sample.captions[frame] ?? 0);
+  const crossing = samples.findIndex((sample, index) => {
+    const next = samples[index + 1];
+    if (!next) return false;
+    return rising
+      ? opacity(sample) < level && opacity(next) >= level
+      : opacity(sample) >= level && opacity(next) < level;
+  });
+  const before = samples[crossing];
+  const after = samples[crossing + 1];
+  if (!before || !after) return Number.NaN;
+  const share = (level - opacity(before)) / (opacity(after) - opacity(before));
+  return travel(before) + (travel(after) - travel(before)) * share;
+}
+
 export function measureHandoff(
   samples: GateHandoff[],
   frames: { outgoing: number; incoming: number },
 ): HandoffMeasure {
-  const { outgoing, incoming } = frames;
   const slide = Math.max(...samples.flatMap((sample) => sample.captions.map(Math.abs)));
-  const readableOut = samples.filter(
-    (sample) => (sample.frames[outgoing] ?? 0) >= GATE_OUT_READABLE_OPACITY,
-  );
-  const firstIn = samples.find(
-    (sample) => (sample.frames[incoming] ?? 0) >= GATE_OUT_READABLE_OPACITY,
-  );
   return {
     joint: joint(samples),
     gapMs: gapMs(samples),
-    settleMs: settleMs(samples, incoming),
+    settleMs: settleMs(samples, frames.incoming),
     slide,
-    outTravel:
-      Math.max(...readableOut.map((sample) => Math.abs(sample.captions[outgoing] ?? 0))) / slide,
-    inRemaining: Math.abs(firstIn?.captions[incoming] ?? 0) / slide,
+    outTravel: travelAtHalf(samples, frames.outgoing, false) / slide,
+    inRemaining: travelAtHalf(samples, frames.incoming, true) / slide,
   };
 }
 
