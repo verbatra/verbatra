@@ -3,6 +3,7 @@ import de from "../messages/de.json" with { type: "json" };
 import en from "../messages/en.json" with { type: "json" };
 import es from "../messages/es.json" with { type: "json" };
 import fr from "../messages/fr.json" with { type: "json" };
+import zhCN from "../messages/zh-CN.json" with { type: "json" };
 import {
   expectNoAxeViolations,
   expectNoHorizontalScroll,
@@ -13,7 +14,7 @@ import {
 } from "./support";
 
 const FAB = "button.vk-scroll-top";
-const LABELS = { en, de, es, fr } as const;
+const LABELS = { en, de, es, fr, "zh-CN": zhCN } as const;
 
 async function ready(page: Page, url = "/"): Promise<void> {
   await page.goto(url);

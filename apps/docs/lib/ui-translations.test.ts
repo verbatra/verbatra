@@ -12,6 +12,7 @@ const SAME_AS_ENGLISH: Readonly<Record<TranslatedLocale, ReadonlySet<string>>> =
   de: new Set(["System(theme switcher)(aria-label)"]),
   es: new Set(),
   fr: new Set(["Type(type table)"]),
+  "zh-CN": new Set(),
 };
 
 function englishLabel(key: string): string {

@@ -31,13 +31,24 @@ const SPELLED_COUNTS = assertLocaleTable(
         "cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt",
       nouns: "formats|fournisseurs|commandes|sous-commandes",
     },
+    "zh-CN": {
+      numbers: "二十|十九|十八|十七|十六|十五|十四|十三|十二|十一|十|九|八|七|六|五",
+      counters: "种|个|款|项|类|条|家",
+      nouns: "文件格式|格式|提供商|子命令|命令",
+    },
   },
   "SPELLED_COUNTS",
   LOCALES,
 );
 
 function countPattern(locale) {
-  const { numbers, nouns } = SPELLED_COUNTS[locale];
+  const { numbers, counters, nouns } = SPELLED_COUNTS[locale];
+  if (counters !== undefined) {
+    return new RegExp(
+      `(?<![\\p{N}一二三四五六七八九十两])(?:${numbers})\\s*(?:${counters})\\s*(?:[A-Za-z]+\\s*|\\p{Script=Han}{1,3})?\\s*(?:${nouns})`,
+      "gu",
+    );
+  }
   return new RegExp(
     `(?<![\\p{L}-])(?:${numbers})\\s+(?:[\\p{L}-]+\\s+)?(?:${nouns})(?![\\p{L}-])`,
     "giu",
@@ -114,6 +125,12 @@ describe("the spelled-count rule", () => {
     ["de", "Er deckt die fünf gehosteten Provider ab und liest vierzehn Formate."],
     ["es", "Se soportan catorce formatos y quince comandos."],
     ["fr", "Il embarque sept fournisseurs et quinze sous-commandes."],
+    ["zh-CN", "支持七个提供商和十四种文件格式。"],
+    ["zh-CN", "共有十五个子命令，其中七个命令会调用提供商。"],
+    ["zh-CN", "它支持八家提供商。"],
+    ["zh-CN", "它读取十四种内置格式。"],
+    ["zh-CN", "其中七个 LLM 提供商共用一层。"],
+    ["zh-CN", "命令行有十五个 CLI 命令。"],
   ];
 
   it("has a flagged sample for every locale", () => {
@@ -131,6 +148,10 @@ describe("the spelled-count rule", () => {
     ["en", "Pass it once, and the provider answers in seven seconds."],
     ["es", "Once se usa en inglés, pero dos formatos no se crean desde cero."],
     ["en", "```\nfourteen formats inside a code block\n```"],
+    ["zh-CN", "这个格式和每个提供商都使用统一格式，第三方提供商除外。"],
+    ["zh-CN", "运行 `verbatra check`，用 14 种文件格式和 8 个提供商的数字写法。"],
+    ["zh-CN", "```\n十四种格式写在代码块里\n```"],
+    ["zh-CN", "三个步骤之后，每家提供商都会回答。"],
   ])("leaves a small or unrelated count alone in %s: %s", (locale, sentence) => {
     expect(spelledCounts(sentence, locale)).toEqual([]);
   });

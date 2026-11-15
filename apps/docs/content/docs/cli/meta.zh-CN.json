@@ -1,0 +1,27 @@
+{
+  "title": "CLI",
+  "pages": [
+    "index",
+    "output",
+    "---设置---",
+    "init",
+    "doctor",
+    "---翻译---",
+    "extract",
+    "translate",
+    "watch",
+    "---检查---",
+    "check",
+    "diff",
+    "report",
+    "pseudo",
+    "types",
+    "---交接---",
+    "export",
+    "import",
+    "tmx",
+    "---服务器---",
+    "studio",
+    "mcp"
+  ]
+}

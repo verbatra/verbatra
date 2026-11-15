@@ -56,6 +56,7 @@ const IMPRINT_NAME_IN_TEXT: Record<Locale, string> = {
   de: "Impressum",
   es: "aviso legal (Impressum)",
   fr: "mentions légales (Impressum)",
+  "zh-CN": "法律声明（Impressum）",
 };
 
 const NO_DPO_PHRASE: Record<Locale, RegExp> = {
@@ -63,6 +64,7 @@ const NO_DPO_PHRASE: Record<Locale, RegExp> = {
   de: /Ein Datenschutzbeauftragter ist nicht benannt/,
   es: /No se ha designado un delegado de protección de datos/,
   fr: /Aucun délégué à la protection des données n’a été désigné/,
+  "zh-CN": /我们没有指定数据保护官/,
 };
 
 const OBJECTION_CROSS_REFERENCE: Record<Locale, RegExp> = {
@@ -70,6 +72,7 @@ const OBJECTION_CROSS_REFERENCE: Record<Locale, RegExp> = {
   de: /\bAbschnitt 9\b/,
   es: /\bsección 9\b/,
   fr: /\bsection 9\b/,
+  "zh-CN": /第 9 节/,
 };
 
 const ARCJET_RETENTION: Record<Locale, RegExp> = {
@@ -77,6 +80,7 @@ const ARCJET_RETENTION: Record<Locale, RegExp> = {
   de: /speichert Arcjet diese Anfragedaten 30 Tage lang und daraus abgeleitete aggregierte Daten länger/,
   es: /conserva estos datos de la solicitud durante 30 días y conserva durante más tiempo los datos agregados/,
   fr: /conserve ces données de requête pendant 30 jours et conserve plus longtemps les données agrégées/,
+  "zh-CN": /Arcjet 会将这些请求数据保留 30 天，并将由其派生的汇总数据保留更长时间/,
 };
 
 const ARCJET_THIRD_COUNTRY: Record<Locale, RegExp> = {
@@ -84,6 +88,7 @@ const ARCJET_THIRD_COUNTRY: Record<Locale, RegExp> = {
   de: /in die USA, ein Drittland, übermittelt werden \(Art\. 44 ff\. DSGVO\)/,
   es: /transferirse a Estados Unidos, un tercer país \(art\. 44 y ss\. del RGPD\)/,
   fr: /transférées vers les États-Unis, un pays tiers \(art\. 44 et suivants du RGPD\)/,
+  "zh-CN": /传输到美国这个第三国（GDPR 第 44 条及以下）/,
 };
 
 const ARCJET_SAFEGUARD: Record<Locale, RegExp> = {
@@ -91,6 +96,8 @@ const ARCJET_SAFEGUARD: Record<Locale, RegExp> = {
   de: /nicht unter dem EU-US-Datenschutzrahmen zertifiziert.*EU-Standardvertragsklauseln \(Art\. 46 Abs\. 2 lit\. c DSGVO\)/,
   es: /no está certificada en el marco del EU-U\.S\. Data Privacy Framework.*cláusulas contractuales tipo de la UE \(art\. 46\.2\.c\) del RGPD\)/,
   fr: /n’est pas certifiée au titre de l’EU-U\.S\. Data Privacy Framework.*clauses contractuelles types de l’UE \(art\. 46, paragraphe 2, point c\) du RGPD\)/,
+  "zh-CN":
+    /未获得欧盟-美国数据隐私框架（EU-U\.S\. Data Privacy Framework）认证.*欧盟标准合同条款（GDPR 第 46\(2\)\(c\) 条）/,
 };
 
 const UMAMI_NOT_STORED: Record<Locale, RegExp> = {
@@ -98,6 +105,7 @@ const UMAMI_NOT_STORED: Record<Locale, RegExp> = {
   de: /Deine IP-Adresse und deine User-Agent-Zeichenkette selbst werden nicht gespeichert\./,
   es: /Tu dirección IP y tu cadena de user-agent en sí no se almacenan\./,
   fr: /Ton adresse IP et ta chaîne user-agent elles-mêmes ne sont pas conservées\./,
+  "zh-CN": /你的 IP 地址和 user-agent 字符串本身不会存储。/,
 };
 
 const UMAMI_PSEUDONYMOUS: Record<Locale, RegExp> = {
@@ -105,6 +113,7 @@ const UMAMI_PSEUDONYMOUS: Record<Locale, RegExp> = {
   de: /pseudonyme Sitzungskennung/,
   es: /identificador de sesión seudónimo/,
   fr: /identifiant de session pseudonyme/,
+  "zh-CN": /计算出一个假名化的会话标识符/,
 };
 
 const UMAMI_SAME_SERVER: Record<Locale, RegExp> = {
@@ -112,6 +121,7 @@ const UMAMI_SAME_SERVER: Record<Locale, RegExp> = {
   de: /demselben Server wie diese Seite hosten \(siehe Abschnitt 3\)/,
   es: /mismo servidor que este sitio \(ver la sección 3\)/,
   fr: /même serveur que ce site \(voir la section 3\)/,
+  "zh-CN": /与本站相同的服务器上（见第 3 节）/,
 };
 
 const UMAMI_SERVER_FORWARD: Record<Locale, RegExp> = {
@@ -119,6 +129,8 @@ const UMAMI_SERVER_FORWARD: Record<Locale, RegExp> = {
   de: /In deinem Browser läuft kein Analyseskript, und zum Zählen der Seitenaufrufe wird nichts auf deinem Gerät gespeichert\..*leitet unser Webserver.*deine IP-Adresse, die User-Agent-Zeichenkette deines Browsers, das erste Sprachkürzel aus dem Accept-Language-Header deines Browsers .*, die verweisende Seite \(ohne ihre Query-Parameter\) und den Pfad der geladenen Seite/,
   es: /En tu navegador no se ejecuta ningún script de analítica, y para contar las visitas no se escribe nada en tu dispositivo\..*nuestro servidor web reenvía .*: tu dirección IP, la cadena de user-agent de tu navegador, la primera etiqueta de idioma de la cabecera Accept-Language de tu navegador .*, la página de referencia \(sin sus parámetros de consulta\) y la ruta de la página que cargaste/,
   fr: /Aucun script de statistiques ne s’exécute dans ton navigateur, et rien n’est écrit sur ton appareil pour compter les pages vues\..*notre serveur web transmet .*: ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l’en-tête Accept-Language de ton navigateur .*, la page référente \(sans ses paramètres de requête\) et le chemin de la page chargée/,
+  "zh-CN":
+    /你的浏览器中不运行任何分析脚本，统计页面浏览量也不会向你的设备写入任何内容。.*我们的 Web 服务器会把该请求的以下信息转发给我们的 Umami 服务器：你的 IP 地址，你浏览器的 user-agent 字符串，浏览器 Accept-Language 请求头中的第一个语言标签.*，来源页面（不含其查询字符串），以及你加载的页面路径/,
 };
 
 const UMAMI_SESSION_HASH: Record<Locale, RegExp> = {
@@ -126,6 +138,8 @@ const UMAMI_SESSION_HASH: Record<Locale, RegExp> = {
   de: /indem er die Website-ID, deine IP-Adresse, deine User-Agent-Zeichenkette, einen monatlich wechselnden Wert und einen geheimen Schlüssel des Servers hasht/,
   es: /aplicando un hash al ID del sitio web, tu dirección IP, tu cadena de user-agent, un valor que cambia cada mes y una clave secreta del servidor/,
   fr: /en hachant l’identifiant du site, ton adresse IP, ta chaîne user-agent, une valeur qui change chaque mois et une clé secrète du serveur/,
+  "zh-CN":
+    /对网站 ID、你的 IP 地址、你的 user-agent 字符串、每月变化的一个值和服务器的一个密钥做哈希/,
 };
 
 const UMAMI_GEOLITE: Record<Locale, RegExp> = {
@@ -133,6 +147,8 @@ const UMAMI_GEOLITE: Record<Locale, RegExp> = {
   de: /Land, Region und Stadt, die er aus deiner IP-Adresse in einer GeoLite2-Datenbank auf demselben Server ermittelt/,
   es: /país, región y ciudad, que obtiene a partir de tu dirección IP en una base de datos GeoLite2 del mismo servidor/,
   fr: /ton pays, ta région et ta ville, qu’il détermine à partir de ton adresse IP dans une base de données GeoLite2 sur le même serveur/,
+  "zh-CN":
+    /你的国家、地区和城市，这些信息由它在同一服务器上的 GeoLite2 数据库中根据你的 IP 地址查出/,
 };
 
 const UMAMI_LEGAL_BASIS: Record<Locale, RegExp> = {
@@ -140,6 +156,7 @@ const UMAMI_LEGAL_BASIS: Record<Locale, RegExp> = {
   de: /keine Einwilligung nach § 25 TDDDG .* erforderlich\. Rechtsgrundlage der Verarbeitung ist Art\. 6 Abs\. 1 lit\. f DSGVO/,
   es: /no se necesita para ello ningún consentimiento según el § 25 de la TDDDG .* La base jurídica del tratamiento es el art\. 6\.1\.f\) del RGPD/,
   fr: /aucun consentement au titre du § 25 TDDDG .* n’est nécessaire pour cela\. La base légale du traitement est l’art\. 6, paragraphe 1, point f\) du RGPD/,
+  "zh-CN": /依据 § 25 TDDDG（.*）无需征得同意。处理的法律依据是 GDPR 第 6\(1\)\(f\) 条/,
 };
 
 const UMAMI_LANGUAGE_TAG_PER_PAGEVIEW: Record<Locale, RegExp> = {
@@ -147,6 +164,7 @@ const UMAMI_LANGUAGE_TAG_PER_PAGEVIEW: Record<Locale, RegExp> = {
   de: /erste Sprachkürzel aus dem Accept-Language-Header deines Browsers \(zum Beispiel de-DE\), das bei jedem Seitenaufruf weitergeleitet wird/,
   es: /primera etiqueta de idioma de la cabecera Accept-Language de tu navegador \(por ejemplo, es-ES\), que se reenvía con cada visita a una página/,
   fr: /première balise de langue de l’en-tête Accept-Language de ton navigateur \(par exemple fr-FR\), transmise à chaque page vue/,
+  "zh-CN": /Accept-Language 请求头中的第一个语言标签（例如 en-US，每次页面浏览都会转发）/,
 };
 
 const UMAMI_UTM_ONLY: Record<Locale, RegExp> = {
@@ -154,6 +172,8 @@ const UMAMI_UTM_ONLY: Record<Locale, RegExp> = {
   de: /zusammen mit den fünf UTM-Parametern der Seitenadresse \(utm_source, utm_medium, utm_campaign, utm_term und utm_content, jeweils auf 255 Zeichen gekürzt\); alle anderen Query-Parameter, etwa Klick-Kennungen von Werbenetzwerken, und das Fragment werden verworfen und nicht weitergeleitet\./,
   es: /junto con los cinco parámetros UTM de la dirección de la página \(utm_source, utm_medium, utm_campaign, utm_term y utm_content, cada uno acortado a 255 caracteres\); todos los demás parámetros de consulta, como los identificadores de clic publicitarios, y el fragmento se descartan y no se reenvían\./,
   fr: /avec les cinq paramètres UTM de l’adresse de la page \(utm_source, utm_medium, utm_campaign, utm_term et utm_content, chacun raccourci à 255 caractères\) ; tous les autres paramètres de requête, comme les identifiants de clic publicitaires, ainsi que le fragment sont écartés et ne sont pas transmis\./,
+  "zh-CN":
+    /连同页面地址中的五个 UTM 参数（utm_source、utm_medium、utm_campaign、utm_term 和 utm_content，每个截断为 255 个字符）；其他所有查询参数（例如广告点击标识符）和片段都会丢弃，不会转发。/,
 };
 
 const UMAMI_NO_INTERACTIONS: Record<Locale, RegExp> = {
@@ -161,6 +181,7 @@ const UMAMI_NO_INTERACTIONS: Record<Locale, RegExp> = {
   de: /Klicks, kopierte Texte und andere Interaktionen werden nicht erfasst\./,
   es: /No se registran clics, textos copiados ni otras interacciones\./,
   fr: /Les clics, les textes copiés et les autres interactions ne sont pas enregistrés\./,
+  "zh-CN": /点击、复制的文本和其他交互不会记录。/,
 };
 
 const UMAMI_OLD_OPT_OUT_IGNORED: Record<Locale, RegExp> = {
@@ -168,6 +189,7 @@ const UMAMI_OLD_OPT_OUT_IGNORED: Record<Locale, RegExp> = {
   de: /Widerspruch, der unter der früheren Analyse-Einrichtung dieser Seite im lokalen Speicher deines Browsers abgelegt wurde, wird nicht mehr ausgelesen/,
   es: /exclusión guardada en el almacenamiento local de tu navegador con la configuración de analítica anterior de este sitio ya no se lee/,
   fr: /opposition enregistrée dans le stockage local de ton navigateur avec l’ancienne configuration statistique de ce site n’est plus lue/,
+  "zh-CN": /本站早先的分析设置曾把退出选择保存在你浏览器的本地存储中，现在不再读取/,
 };
 
 const OPT_OUT_COOKIE_BASIS: Record<Locale, RegExp> = {
@@ -175,6 +197,8 @@ const OPT_OUT_COOKIE_BASIS: Record<Locale, RegExp> = {
   de: /verbatra_analytics_optout mit dem Wert 1, gültig für ein Jahr.*keine Einwilligung braucht \(§ 25 Abs\. 2 Nr\. 2 TDDDG\)\. Wenn du die Analyse wieder erlaubst, wird es gelöscht\. Andere Cookies werden nicht gesetzt\./,
   es: /verbatra_analytics_optout con el valor 1, válida durante un año.*no requiere consentimiento \(§ 25, apdo\. 2, n\.º 2 de la TDDDG\)\. Si vuelves a permitir la analítica, se elimina\. No se establece ninguna otra cookie\./,
   fr: /verbatra_analytics_optout avec la valeur 1, valable un an.*ne requiert donc aucun consentement \(§ 25, al\. 2, n° 2 TDDDG\)\. Autoriser à nouveau les statistiques le supprime\. Aucun autre cookie n’est déposé\./,
+  "zh-CN":
+    /名为 verbatra_analytics_optout 的 Cookie，值为 1，有效期一年.*无需征得同意（§ 25 第 2 款第 2 项 TDDDG）。再次允许分析会删除它。本站不设置其他 Cookie。/,
 };
 
 const OPT_OUT_COOKIE_READ_ONLY_TO_HONOUR: Record<Locale, RegExp> = {
@@ -182,6 +206,8 @@ const OPT_OUT_COOKIE_READ_ONLY_TO_HONOUR: Record<Locale, RegExp> = {
   de: /Im Zusammenhang mit der Analyse wird von deinem Gerät nur das in Abschnitt 5 beschriebene Widerspruchs-Cookie ausgelesen, und zwar ausschließlich, um deinen Widerspruch zu beachten\..*Weil zum Zählen der Seitenaufrufe nichts auf deinem Gerät gespeichert wird und das Widerspruchs-Cookie nur ausgelesen wird, um deinen Widerspruch zu beachten, ist dafür keine Einwilligung/,
   es: /Lo único que se lee de tu dispositivo en relación con la analítica es la cookie de oposición descrita en la sección 5, y solo para respetar tu oposición\..*Como para contar las visitas no se almacena nada en tu dispositivo y la cookie de oposición solo se lee para respetar tu oposición, no se necesita para ello ningún consentimiento/,
   fr: /La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d’opposition décrit à la section 5, et uniquement pour respecter ton opposition\..*Comme rien n’est stocké sur ton appareil pour compter les pages vues et que le cookie d’opposition n’est lu que pour respecter ton opposition, aucun consentement/,
+  "zh-CN":
+    /与分析相关、从你的设备读取的唯一内容，是第 5 节所述的退出分析 Cookie，而且只在遵从你的反对时读取。.*由于统计页面浏览量时没有向你的设备存储任何内容，退出分析 Cookie 也只在遵从你的反对时读取，因此依据/,
 };
 
 const THEME_STORAGE: Record<Locale, RegExp> = {
@@ -189,6 +215,8 @@ const THEME_STORAGE: Record<Locale, RegExp> = {
   de: /hellem und dunklem Design wechselst, wird deine Wahl im lokalen Speicher \(Local Storage\) unter dem Schlüssel theme abgelegt\./,
   es: /tema claro y el oscuro, tu elección se guarda en el almacenamiento local con la clave theme\./,
   fr: /thème clair au thème sombre ou inversement, ton choix est enregistré dans le stockage local sous la clé theme\./,
+  "zh-CN":
+    /在浅色和深色主题之间切换时，你的选择会以 theme 为键名保存在本地存储（local storage）中。/,
 };
 
 const PACKAGE_MANAGER_STORAGE: Record<Locale, RegExp> = {
@@ -196,6 +224,8 @@ const PACKAGE_MANAGER_STORAGE: Record<Locale, RegExp> = {
   de: /Paketmanager \(npm, pnpm, yarn oder bun\) auswählst, wird deine Wahl unter dem Schlüssel package-manager sowohl im lokalen Speicher als auch im Sitzungsspeicher \(Session Storage\) abgelegt/,
   es: /gestor de paquetes \(npm, pnpm, yarn o bun\) en las pestañas encima de un comando de instalación, tu elección se guarda con la clave package-manager tanto en el almacenamiento local como en el almacenamiento de sesión/,
   fr: /gestionnaire de paquets \(npm, pnpm, yarn ou bun\) dans les onglets au-dessus d’une commande d’installation, ton choix est enregistré sous la clé package-manager, à la fois dans le stockage local et dans le stockage de session/,
+  "zh-CN":
+    /选择包管理器（npm、pnpm、yarn 或 bun）时，你的选择会以 package-manager 为键名同时保存在本地存储和会话存储（session storage）中/,
 };
 
 const STORAGE_NEVER_SENT: Record<Locale, RegExp> = {
@@ -203,6 +233,8 @@ const STORAGE_NEVER_SENT: Record<Locale, RegExp> = {
   de: /Keiner der beiden Einträge wird geschrieben, bevor du diese Wahl triffst; beide bleiben in deinem Browser, werden nie an unseren Server oder an andere gesendet/,
   es: /Ninguna de las dos entradas se escribe antes de que hagas esa elección; ambas se quedan en tu navegador, nunca se envían a nuestro servidor ni a nadie más/,
   fr: /Aucune de ces deux entrées n’est écrite avant que tu fasses ce choix ; toutes deux restent dans ton navigateur, ne sont jamais envoyées à notre serveur ni à qui que ce soit/,
+  "zh-CN":
+    /在你做出该选择之前，这两项都不会写入；它们只保留在你的浏览器中，绝不会发送到我们的服务器或其他任何方/,
 };
 
 const HOSTING_PROCESSOR: Record<Locale, RegExp> = {
@@ -210,6 +242,7 @@ const HOSTING_PROCESSOR: Record<Locale, RegExp> = {
   de: /Contabo GmbH, Welfenstraße 22, 81541 München, Deutschland.*als Auftragsverarbeiter \(Art\. 28 DSGVO\)/,
   es: /Contabo GmbH, Welfenstraße 22, 81541 Múnich, Alemania.*como encargado del tratamiento \(art\. 28 del RGPD\)/,
   fr: /Contabo GmbH, Welfenstraße 22, 81541 Munich, Allemagne.*en tant que sous-traitant \(art\. 28 du RGPD\)/,
+  "zh-CN": /Contabo GmbH，Welfenstraße 22, 81541 München，德国.*作为处理者（GDPR 第 28 条）/,
 };
 
 const CONTAINER_LOG_ROTATION: Record<Locale, RegExp> = {
@@ -217,6 +250,7 @@ const CONTAINER_LOG_ROTATION: Record<Locale, RegExp> = {
   de: /Container-Log wird automatisch rotiert und ist auf \d+ Dateien mit je \d+ MB begrenzt/,
   es: /registro del contenedor se rota automáticamente y está limitado a \d+ archivos de \d+ MB cada uno/,
   fr: /journal du conteneur fait l’objet d’une rotation automatique et est limité à \d+ fichiers de \d+ Mo chacun/,
+  "zh-CN": /容器日志自动轮转，最多保留 \d+ 个文件，每个 \d+ MB/,
 };
 
 const ARCJET_ONLY_OTHER_PROCESSOR: Record<Locale, RegExp> = {
@@ -224,6 +258,7 @@ const ARCJET_ONLY_OTHER_PROCESSOR: Record<Locale, RegExp> = {
   de: /Neben dem Hosting-Anbieter \(siehe Abschnitt 3\) ist der einzige beteiligte Auftragsverarbeiter nach Art\. 28 DSGVO Arcjet/,
   es: /Aparte del proveedor de alojamiento \(ver la sección 3\), el único encargado del tratamiento en el sentido del art\. 28 del RGPD es Arcjet/,
   fr: /Outre l’hébergeur \(voir la section 3\), le seul sous-traitant au sens de l’art\. 28 du RGPD est Arcjet/,
+  "zh-CN": /除托管提供商（见第 3 节）外，GDPR 第 28 条下涉及的唯一处理者是 Arcjet/,
 };
 
 const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
@@ -231,13 +266,16 @@ const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
   de: /Zugriffs-Logs des Webservers werden gelöscht, sobald sie für diese Zwecke nicht mehr benötigt werden/,
   es: /registros de acceso del servidor web se eliminan en cuanto dejan de ser necesarios/,
   fr: /journaux d’accès du serveur web sont supprimés dès qu’ils ne sont plus nécessaires/,
+  "zh-CN": /访问日志在不再需要用于这些目的时立即删除/,
 };
 
 const AI_TRANSLATION_PIPELINE: Record<Locale, RegExp> = {
-  en: /machine-translated into German, Spanish, and French by verbatra with Google's Gemini/,
-  de: /von verbatra mit dem Sprachmodell Gemini von Google maschinell/,
-  es: /verbatra traduce automáticamente .* con el modelo de lenguaje Gemini de Google/,
-  fr: /traduits automatiquement .* par verbatra avec le modèle de langage Gemini de Google/,
+  en: /machine-translated into every language other than English, either by verbatra with Google's Gemini language model or by an AI coding agent working in the repository whose output is imported with verbatra/,
+  de: /maschinell in jede andere Sprache als Englisch übersetzt, entweder von verbatra mit dem Sprachmodell Gemini von Google oder von einem KI-Coding-Agenten, der im Repository arbeitet und dessen Ergebnis mit verbatra importiert wird/,
+  es: /se traducen automáticamente a todos los idiomas distintos del inglés, bien con verbatra y el modelo de lenguaje Gemini de Google, bien con un agente de programación con IA que trabaja en el repositorio y cuyo resultado se importa con verbatra/,
+  fr: /traduits automatiquement dans toutes les langues autres que l’anglais, soit par verbatra avec le modèle de langage Gemini de Google, soit par un agent de code IA qui travaille dans le dépôt et dont le résultat est importé avec verbatra/,
+  "zh-CN":
+    /会自动翻译为英语以外的所有语言：要么由 verbatra 使用 Google 的 Gemini 语言模型完成，要么由在仓库中工作的 AI 编码智能体完成，其输出再通过 verbatra 导入/,
 };
 
 const AI_TRANSLATION_BEST_EFFORT: Record<Locale, RegExp> = {
@@ -245,6 +283,7 @@ const AI_TRANSLATION_BEST_EFFORT: Record<Locale, RegExp> = {
   de: /nach bestem Bemühen geprüft: Nicht jeder übersetzte Text wird .* von einem Menschen/,
   es: /se revisan en la medida de lo posible: no todos los textos traducidos los revisa una persona/,
   fr: /vérifiées dans la mesure du possible : tous les textes traduits ne sont pas relus par une personne/,
+  "zh-CN": /译文会尽力检查：并非每段译文在发布前都经过人工审校/,
 };
 
 function imprintFacts(): string[] {
@@ -254,10 +293,11 @@ function imprintFacts(): string[] {
 }
 
 const EQUALLY_BINDING: Record<Locale, RegExp> = {
-  en: /All four language versions have the same content and are equally binding\./,
-  de: /Alle vier Sprachfassungen sind inhaltlich gleich und gleichermaßen verbindlich\./,
-  es: /Las cuatro versiones lingüísticas tienen el mismo contenido y son igualmente vinculantes\./,
-  fr: /Les quatre versions linguistiques ont le même contenu et font également foi\./,
+  en: /All language versions have the same content and are equally binding\./,
+  de: /Alle Sprachfassungen sind inhaltlich gleich und gleichermaßen verbindlich\./,
+  es: /Todas las versiones lingüísticas tienen el mismo contenido y son igualmente vinculantes\./,
+  fr: /Toutes les versions linguistiques ont le même contenu et font également foi\./,
+  "zh-CN": /所有语言版本内容相同，具有同等效力。/,
 };
 
 describe.each(i18n.languages)("privacy page (%s)", (locale) => {
@@ -299,7 +339,7 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     const controller = sectionText(await renderPrivacy(locale), /^1\. /);
 
     expect(controller).toMatch(NO_DPO_PHRASE[locale]);
-    expect(controller).toMatch(/Art\. 37|art\. 37/);
+    expect(controller).toMatch(locale === "zh-CN" ? /第 37 条/ : /Art\. 37|art\. 37/);
     expect(controller).toMatch(/§ 38 (de la )?BDSG/);
   });
 
@@ -316,7 +356,7 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
         'a[href="https://www.baden-wuerttemberg.datenschutz.de"]',
       ),
     ).not.toBeNull();
-    expect(rights).toMatch(/Art\. 77|art\. 77/);
+    expect(rights).toMatch(/Art\. 77|art\. 77|第 77 条/);
   });
 
   it("renders the right to object as its own highlighted section right after the rights", async () => {
@@ -337,7 +377,7 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     const objection = sectionText(doc, /^9\. /);
     const byNumber = (n: number) => sectionNumbered(doc, n);
 
-    expect(objection).toMatch(/3, 4,? (and|und|y|et) 12/);
+    expect(objection).toMatch(/3, 4,? (and|und|y|et) 12|3、4 和 12/);
     for (const n of [3, 4, 12]) {
       expect(byNumber(n)?.textContent).toMatch(
         /6(\(1\)\(f\)| Abs\. 1 lit\. f|\.1\.f\)|, paragraphe 1, point f\))/,

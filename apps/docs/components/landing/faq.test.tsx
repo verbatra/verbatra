@@ -33,6 +33,7 @@ vi.mock("next-intl/server", async () => {
     de: (await import("@/messages/de.json")).default,
     es: (await import("@/messages/es.json")).default,
     fr: (await import("@/messages/fr.json")).default,
+    "zh-CN": (await import("@/messages/zh-CN.json")).default,
   };
   return {
     getTranslations: async ({ locale, namespace }: { locale: Locale; namespace: string }) =>
@@ -301,8 +302,20 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
   });
 });
 
-const YES: Readonly<Record<Locale, string>> = { en: "Yes.", de: "Ja.", es: "Sí.", fr: "Oui." };
-const NO: Readonly<Record<Locale, string>> = { en: "No.", de: "Nein.", es: "No.", fr: "Non." };
+const YES: Readonly<Record<Locale, string>> = {
+  en: "Yes.",
+  de: "Ja.",
+  es: "Sí.",
+  fr: "Oui.",
+  "zh-CN": "是的。",
+};
+const NO: Readonly<Record<Locale, string>> = {
+  en: "No.",
+  de: "Nein.",
+  es: "No.",
+  fr: "Non.",
+  "zh-CN": "不是。",
+};
 
 const SENTENCE_END = /[.!?](?:\s|$)|[。！？]/;
 
@@ -317,6 +330,7 @@ const FAQ_WORD_CAPS: Readonly<Record<Locale, FaqWordCaps>> = {
   de: SPACED_FAQ_CAPS,
   es: SPACED_FAQ_CAPS,
   fr: SPACED_FAQ_CAPS,
+  "zh-CN": { firstSentence: 25, answer: 40 },
 };
 
 describe("the landing faq copy", () => {

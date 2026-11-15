@@ -19,4 +19,22 @@ export const OG_LOCALE_FONTS: Readonly<Record<Locale, readonly OgLocaleFont[]>> 
   de: [],
   es: [],
   fr: [],
+  "zh-CN": [
+    {
+      name: "Noto Sans SC",
+      file: "NotoSansSC-Medium.ttf",
+      weight: 500,
+      lang: "zh-CN",
+      sourceFile: "NotoSansSC[wght].ttf",
+      variationAxes: { wght: 500 },
+    },
+    {
+      name: "Noto Sans SC",
+      file: "NotoSansSC-Bold.ttf",
+      weight: 700,
+      lang: "zh-CN",
+      sourceFile: "NotoSansSC[wght].ttf",
+      variationAxes: { wght: 700 },
+    },
+  ],
 };

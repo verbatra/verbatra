@@ -96,6 +96,7 @@ describe("homeAlternates", () => {
       de: "/de",
       es: "/es",
       fr: "/fr",
+      "zh-CN": "/zh-CN",
       "x-default": "/",
     });
   });
@@ -123,6 +124,7 @@ describe("localeAlternates", () => {
       de: "/de/privacy",
       es: "/es/privacy",
       fr: "/fr/privacy",
+      "zh-CN": "/zh-CN/privacy",
       "x-default": "/privacy",
     });
   });
@@ -138,12 +140,13 @@ describe("ogLocale", () => {
     expect(ogLocale("de")).toBe("de_DE");
     expect(ogLocale("es")).toBe("es_ES");
     expect(ogLocale("fr")).toBe("fr_FR");
+    expect(ogLocale("zh-CN")).toBe("zh_CN");
   });
 });
 
 describe("ogAlternateLocales", () => {
   it("lists every other locale in the configured order", () => {
-    expect(ogAlternateLocales("en")).toEqual(["de_DE", "es_ES", "fr_FR"]);
-    expect(ogAlternateLocales("es")).toEqual(["en_US", "de_DE", "fr_FR"]);
+    expect(ogAlternateLocales("en")).toEqual(["de_DE", "es_ES", "fr_FR", "zh_CN"]);
+    expect(ogAlternateLocales("es")).toEqual(["en_US", "de_DE", "fr_FR", "zh_CN"]);
   });
 });

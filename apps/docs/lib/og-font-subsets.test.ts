@@ -103,7 +103,7 @@ describe("OG font subsets", () => {
       return root;
     }
 
-    const table = { ...OG_LOCALE_FONTS, en: [fixtureFont("Fixture.ttf")] };
+    const table = { ...OG_LOCALE_FONTS, "zh-CN": [], en: [fixtureFont("Fixture.ttf")] };
 
     it("collects the headline, the compare heading and the page frontmatter", () => {
       const root = project("<accent>Ship é</accent> fast", "title: Start\ndescription: Über uns");
@@ -129,6 +129,7 @@ describe("OG font subsets", () => {
   });
 
   it("covers every character the locale's images can draw, for each locale with an extra font", () => {
+    expect(localesWithOgFonts()).toContain("zh-CN");
     for (const locale of localesWithOgFonts()) {
       const fonts = ogFontFilesFor(locale).map((file) => readFileSync(join(FONT_ROOT, file)));
       const characters = ogCharacters(ogTexts(locale, process.cwd()));
@@ -140,13 +141,31 @@ describe("OG font subsets", () => {
     expect(ogFontFilesFor("en")).toEqual(OG_FONT_FILES.map((font) => font.file));
   });
 
-  it("does nothing, and says so, while no locale configures an extra font", () => {
-    expect(localesWithOgFonts()).toEqual([]);
+  it("lists zh-CN as the only locale with an extra font, a Medium and a Bold instance", () => {
+    expect(localesWithOgFonts()).toEqual(["zh-CN"]);
+    expect(OG_LOCALE_FONTS["zh-CN"].map((font) => font.weight)).toEqual([500, 700]);
+    expect(ogFontFilesFor("zh-CN")).toEqual([
+      ...OG_FONT_FILES.map((font) => font.file),
+      "NotoSansSC-Medium.ttf",
+      "NotoSansSC-Bold.ttf",
+    ]);
+  });
+
+  it("asks for the source font directory when a locale configures an extra font", () => {
     const result = spawnSync(process.execPath, ["scripts/build-og-font-subsets.mjs"], {
       cwd: process.cwd(),
       encoding: "utf8",
     });
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain("nothing to subset");
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("--source-dir");
+    expect(result.stderr).toContain("zh-CN");
+  });
+
+  it("does nothing, and says so, while no locale configures an extra font", async () => {
+    const none = { ...OG_LOCALE_FONTS, "zh-CN": [] };
+    expect(localesWithOgFonts(none)).toEqual([]);
+    expect(
+      await buildOgFontSubsets({ root: process.cwd(), sourceDir: FONT_ROOT, table: none }),
+    ).toEqual([]);
   });
 });

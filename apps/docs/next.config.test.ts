@@ -92,6 +92,24 @@ function docsPageFiles(slug: string): string[] {
 }
 
 describe("moved docs pages", () => {
+  it("spells one move out literally, in every locale including zh-CN and as Markdown", async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    for (const redirect of [
+      { source: "/docs/testing", destination: "/docs/translation-safety" },
+      {
+        source: "/:locale(de|es|fr|zh-CN)/docs/testing",
+        destination: "/:locale/docs/translation-safety",
+      },
+      { source: "/docs/testing.md", destination: "/docs/translation-safety.md" },
+      {
+        source: "/:locale(de|es|fr|zh-CN)/docs/testing.md",
+        destination: "/:locale/docs/translation-safety.md",
+      },
+    ]) {
+      expect(redirects).toContainEqual({ ...redirect, permanent: true });
+    }
+  });
+
   const moves = Object.entries(MOVED_DOCS_PAGES);
 
   it.each(moves)(
@@ -99,13 +117,15 @@ describe("moved docs pages", () => {
     async (from) => {
       const redirects = (await nextConfig.redirects?.()) ?? [];
       const localized = redirects.find(
-        (redirect) => redirect.source === `/:locale(de|es|fr)/docs/${from}`,
+        (redirect) =>
+          redirect.source === `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}`,
       );
       const match = getPathMatch(localized?.source ?? "", {
         removeUnnamedParams: true,
         strict: true,
       });
       expect(match(`/de/docs/${from}`)).toEqual({ locale: "de" });
+      expect(match(`/zh-CN/docs/${from}`)).toEqual({ locale: "zh-CN" });
       expect(match(`/en/docs/${from}`)).toBe(false);
     },
   );
@@ -117,12 +137,12 @@ describe("moved docs pages", () => {
       const expected = [
         { source: `/docs/${from}`, destination: `/docs/${to}` },
         {
-          source: `/:locale(de|es|fr)/docs/${from}`,
+          source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}`,
           destination: `/:locale/docs/${to}`,
         },
         { source: `/docs/${from}.md`, destination: `/docs/${to}.md` },
         {
-          source: `/:locale(de|es|fr)/docs/${from}.md`,
+          source: `/:locale(${localeAlternation(TRANSLATED_LOCALES)})/docs/${from}.md`,
           destination: `/:locale/docs/${to}.md`,
         },
       ];

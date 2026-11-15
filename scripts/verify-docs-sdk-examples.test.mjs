@@ -26,7 +26,7 @@ const RECIPES = "(sdk)/programmatic-api";
 const EXAMPLE_PAGES = [QUICKSTART, RECIPES];
 const REFERENCE_PAGES = sdkReferencePages().map((page) => `sdk/${page}`);
 const EXAMPLE_TITLES = assertLocaleTable(
-  { "": "Example", ".de": "Beispiel", ".es": "Ejemplo", ".fr": "Exemple" },
+  { "": "Example", ".de": "Beispiel", ".es": "Ejemplo", ".fr": "Exemple", ".zh-CN": "示例" },
   "EXAMPLE_TITLES",
 );
 const SLOW = 180_000;

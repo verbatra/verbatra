@@ -58,7 +58,7 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
       <LegalPageHead eyebrow={tLegal("title")} title={IMPRINT_TITLE} lead={t("intro")} />
       <p>
         <em>
-          {t("lastUpdatedLabel")}: {LEGAL_LAST_UPDATED}
+          {t.rich("lastUpdated", { date: LEGAL_LAST_UPDATED, stamp: (chunks) => <>{chunks}</> })}
         </em>
       </p>
 

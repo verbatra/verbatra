@@ -6,6 +6,7 @@ export function SiteWordmark(): ReactNode {
     <span className="inline-flex items-center gap-2">
       <VMark size={20} decorative />
       <span
+        lang="en"
         className="text-lg font-semibold tracking-tight"
         style={{ fontFamily: "var(--font-display)" }}
       >

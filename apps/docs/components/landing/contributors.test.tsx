@@ -26,12 +26,28 @@ beforeAll(async () => {
   root.innerHTML = renderToStaticMarkup(await FooterContributors());
 });
 
+const NEW_TAB_NOTE = /^(?:\(.+\)|（.+）)$/;
+
 describe("FooterContributors", () => {
   it("says a link opens a new tab in every locale", () => {
     for (const catalog of Object.values(MESSAGE_CATALOGS)) {
-      expect(catalog.landing.openSource.newTab).toMatch(/^\(.+\)$/);
+      expect(catalog.landing.openSource.newTab).toMatch(NEW_TAB_NOTE);
     }
   });
+
+  it.each(["(opens in a new tab)", "（在新标签页中打开）"])(
+    "reads %s as a new-tab note",
+    (note) => {
+      expect(note).toMatch(NEW_TAB_NOTE);
+    },
+  );
+
+  it.each(["opens in a new tab", "(在新标签页中打开）", "（在新标签页中打开"])(
+    "does not read %s as a new-tab note",
+    (note) => {
+      expect(note).not.toMatch(NEW_TAB_NOTE);
+    },
+  );
 
   it("keeps only the contributor copy in the open source namespace", () => {
     for (const catalog of Object.values(MESSAGE_CATALOGS)) {

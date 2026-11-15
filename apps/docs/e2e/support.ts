@@ -179,7 +179,13 @@ export const wordsWithoutMargin = (selector: string): WordScan => ({
 });
 
 export function wordsFailing({ selector, split, check }: WordScan): WordFindings {
-  const pattern = split === "space" ? /\S+/g : /[^\s\-/]+/g;
+  const spaceless = /^(zh|ja|th|lo|km|my)\b/.test(document.documentElement.lang);
+  const patternOf = (node: Text): RegExp => {
+    if (split === "space") return /\S+/g;
+    if (check === "overflow" || !spaceless || node.parentElement?.closest(".vk-compare-unit"))
+      return /[^\s\-/]+/g;
+    return /[A-Za-z0-9_][A-Za-z0-9_.:@]*/g;
+  };
   const textNodes = (root: Element): Text[] => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     const nodes: Text[] = [];
@@ -205,7 +211,7 @@ export function wordsFailing({ selector, split, check }: WordScan): WordFindings
       (node) => check === "broken" || !node.parentElement?.closest(".sr-only"),
     );
     return spoken.flatMap((node) =>
-      Array.from(node.data.matchAll(pattern))
+      Array.from(node.data.matchAll(patternOf(node)))
         .filter((match) => {
           const range = rangeOf(node, match);
           if (check === "broken") return isBroken(range);

@@ -15,6 +15,7 @@ import {
   heroFilePreview,
 } from "@/lib/landing-hero-files";
 import { splitPlaceholders } from "@/lib/placeholder-segments";
+import { breakBetweenWords } from "@/lib/word-breaks";
 
 export const HERO_TITLE_ID = "hero-title";
 
@@ -73,9 +74,13 @@ export async function Hero(): Promise<ReactNode> {
       <div className="vk-banner-grid vk-gutter vk-w-wide mx-auto w-full">
         <div className="vk-banner-copy">
           <h1 id={HERO_TITLE_ID} className="vk-banner-title">
-            {t.rich("headline", {
-              accent: (chunks) => <span className="vk-banner-title-lit">{chunks}</span>,
-            })}
+            {breakBetweenWords(
+              t.rich("headline", {
+                accent: (chunks) => (
+                  <span className="vk-banner-title-lit">{breakBetweenWords(chunks)}</span>
+                ),
+              }),
+            )}
           </h1>
           <p className="vk-banner-lead">{t("lead")}</p>
           <div className="vk-banner-ctas">

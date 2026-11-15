@@ -15,7 +15,7 @@ const REGIONAL = ["en", "zh-CN", "pt-BR"];
 
 describe("locale source of truth", () => {
   it("pins the supported locales and the default", () => {
-    expect([...LOCALES]).toEqual(["en", "de", "es", "fr"]);
+    expect([...LOCALES]).toEqual(["en", "de", "es", "fr", "zh-CN"]);
     expect(DEFAULT_LOCALE).toBe("en");
   });
 
@@ -45,7 +45,13 @@ describe("locales.ts as loaded by the published CLI", () => {
 
 describe("localePrefix", () => {
   it("leaves the default locale unprefixed and prefixes every other with a slash", () => {
-    expect(LOCALES.map((locale) => localePrefix(locale))).toEqual(["", "/de", "/es", "/fr"]);
+    expect(LOCALES.map((locale) => localePrefix(locale))).toEqual([
+      "",
+      "/de",
+      "/es",
+      "/fr",
+      "/zh-CN",
+    ]);
   });
 });
 

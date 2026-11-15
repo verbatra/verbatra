@@ -4,7 +4,13 @@ import { COMPARE_LAST_CHECKED, COMPARE_PATH } from "@/lib/landing-compare";
 import { homePath, LANDING_LAST_UPDATED, LEGAL_LAST_UPDATED, SITE_URL } from "@/lib/site";
 import { source } from "@/lib/source";
 
-const HOME_PRIORITY: Readonly<Record<Locale, number>> = { en: 1, de: 0.9, es: 0.9, fr: 0.9 };
+const HOME_PRIORITY: Readonly<Record<Locale, number>> = {
+  en: 1,
+  de: 0.9,
+  es: 0.9,
+  fr: 0.9,
+  "zh-CN": 0.9,
+};
 
 const LEGAL_PATHS = ["/contact", "/imprint", "/licenses", "/privacy"] as const;
 

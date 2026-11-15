@@ -47,6 +47,7 @@ const DELETION_RULE: Record<Locale, RegExp> = {
   de: /gelöscht, sobald deine Anfrage abschließend bearbeitet ist\./,
   es: /Se eliminan una vez que tu consulta se ha gestionado por completo\./,
   fr: /supprimés dès que ta demande a été entièrement traitée\./,
+  "zh-CN": /你的咨询处理完毕后，它们会被删除。/,
 };
 
 const NOTICE_DELETION: Record<Locale, RegExp> = {
@@ -54,6 +55,7 @@ const NOTICE_DELETION: Record<Locale, RegExp> = {
   de: /löschen sie, sobald die Anfrage erledigt ist\./,
   es: /los eliminamos una vez gestionada\./,
   fr: /nous les supprimons une fois celle-ci traitée\./,
+  "zh-CN": /处理完毕后即予删除。/,
 };
 
 describe.each(i18n.languages)("contact page privacy notice (%s)", (locale) => {
@@ -84,6 +86,7 @@ const IMPRINT_NAME_IN_TEXT: Record<Locale, string> = {
   de: "Impressum",
   es: "aviso legal (Impressum)",
   fr: "mentions légales (Impressum)",
+  "zh-CN": "法律声明（Impressum）",
 };
 
 describe.each(i18n.languages)("contact page intro (%s)", (locale) => {
@@ -103,6 +106,8 @@ const NO_SCRIPT_FALLBACK: Record<Locale, RegExp> = {
   de: /Das Formular braucht JavaScript, um deine Nachricht zu senden\. Ohne JavaScript schreib stattdessen an die E-Mail-Adresse im Impressum\./,
   es: /El formulario necesita JavaScript para enviar tu mensaje\. Sin él, escribe a la dirección de correo electrónico que figura en el aviso legal \(Impressum\)\./,
   fr: /Le formulaire a besoin de JavaScript pour envoyer ton message\. Sans JavaScript, écris plutôt à l’adresse e-mail indiquée dans les mentions légales \(Impressum\)\./,
+  "zh-CN":
+    /此表单需要 JavaScript 才能发送你的留言。没有 JavaScript 时，请改为写信到法律声明（Impressum）中的电子邮件地址。/,
 };
 
 function imprintPath(locale: Locale): string {

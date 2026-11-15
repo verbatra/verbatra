@@ -34,6 +34,7 @@ describe("LocaleLinks", () => {
       ["/de/compare", "de", "de", LOCALE_DISPLAY_NAMES.de],
       ["/es/compare", "es", "es", LOCALE_DISPLAY_NAMES.es],
       ["/fr/compare", "fr", "fr", LOCALE_DISPLAY_NAMES.fr],
+      ["/zh-CN/compare", "zh-CN", "zh-CN", LOCALE_DISPLAY_NAMES["zh-CN"]],
     ]);
   });
 
@@ -44,8 +45,15 @@ describe("LocaleLinks", () => {
       null,
       null,
       "page",
+      null,
     ]);
-    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/", "/de", "/es", "/fr"]);
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/",
+      "/de",
+      "/es",
+      "/fr",
+      "/zh-CN",
+    ]);
   });
 
   it("is a navigation landmark named by its visible, localized label", () => {

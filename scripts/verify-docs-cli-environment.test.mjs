@@ -15,6 +15,7 @@ const ENVIRONMENT_FILES_HEADING = assertLocaleTable(
     ".de": "## Umgebungsdateien",
     ".es": "## Archivos de entorno",
     ".fr": "## Fichiers d'environnement",
+    ".zh-CN": "## 环境文件",
   },
   "ENVIRONMENT_FILES_HEADING",
 );
@@ -148,13 +149,15 @@ function commandSpans(text, commands) {
     .sort();
 }
 
+const SENTENCE_BREAK = /(?<=[.!?])\s+|(?<=[。！？])\s*/;
+
 function environmentFilesLists(suffix, commands) {
   return environmentFilesListsOf(readDocPage("cli/index", suffix), suffix, commands);
 }
 
 function environmentFilesListsOf(page, suffix, commands) {
   const sentences = section(page, ENVIRONMENT_FILES_HEADING[suffix])
-    .split(/(?<=[.!?])\s+/)
+    .split(SENTENCE_BREAK)
     .map((sentence) => ({ sentence, names: commandSpans(sentence, commands) }))
     .filter(({ names }) => names.length > 0);
   const loading = sentences.filter(({ sentence }) => sentence.includes("`.env.local`"));
@@ -184,6 +187,15 @@ describe("the environment files section names exactly the commands that load .en
 
     expect(lists.loading).toEqual(loading);
     expect(lists.notLoading).toEqual(commands.filter((name) => !loading.includes(name)));
+  });
+
+  it("breaks a sentence after a spaced full stop or an unspaced full-width one, and nowhere else", () => {
+    expect("One. Two! Three?".split(SENTENCE_BREAK)).toEqual(["One.", "Two!", "Three?"]);
+    expect("翻译加载 `.env`。检查不加载！".split(SENTENCE_BREAK)).toEqual([
+      "翻译加载 `.env`。",
+      "检查不加载！",
+    ]);
+    expect("a.b and 1.5".split(SENTENCE_BREAK)).toEqual(["a.b and 1.5"]);
   });
 
   it("sees a command that starts loading .env files without the page saying so", () => {
@@ -251,6 +263,7 @@ const SPEND_SECTION_HEADING = {
       ".de": "### Ausgaben und Agent-Tools",
       ".es": "### Gasto y herramientas de agente",
       ".fr": "### Dépenses et outils d'agent",
+      ".zh-CN": "### 花费与智能体工具",
     },
     "SPEND_SECTION_HEADING.studio",
   ),
@@ -260,6 +273,7 @@ const SPEND_SECTION_HEADING = {
       ".de": "### Kostenpflichtige Tools",
       ".es": "### Herramientas de gasto",
       ".fr": "### Outils payants",
+      ".zh-CN": "### 付费工具",
     },
     "SPEND_SECTION_HEADING.mcp",
   ),
@@ -271,6 +285,7 @@ const REDACT_SECTION_HEADING = assertLocaleTable(
     ".de": "### Geschwärzte Werte [#redacted-values]",
     ".es": "### Valores ocultos [#redacted-values]",
     ".fr": "### Valeurs masquées [#redacted-values]",
+    ".zh-CN": "### 脱敏的值 [#redacted-values]",
   },
   "REDACT_SECTION_HEADING",
 );

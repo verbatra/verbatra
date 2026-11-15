@@ -1,0 +1,17 @@
+{
+  "title": "SDK",
+  "pages": [
+    "index",
+    "run",
+    "inspect",
+    "edit",
+    "review",
+    "history",
+    "exchange",
+    "config",
+    "extend",
+    "run-summary",
+    "json-schemas",
+    "errors"
+  ]
+}

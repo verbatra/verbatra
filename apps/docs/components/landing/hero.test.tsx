@@ -70,13 +70,20 @@ function source(path: string): string {
   return readFileSync(join(process.cwd(), path), "utf8");
 }
 
-const LEAD_WORD_CAP: Readonly<Record<Locale, number>> = { en: 25, de: 30, es: 30, fr: 30 };
+const LEAD_WORD_CAP: Readonly<Record<Locale, number>> = {
+  en: 25,
+  de: 30,
+  es: 30,
+  fr: 30,
+  "zh-CN": 30,
+};
 
 const CHANGED_KEYS_BADGE: Readonly<Record<Locale, string>> = {
   en: "2 keys changed",
   de: "2 Schlüssel geändert",
   es: "2 claves modificadas",
   fr: "2 clés modifiées",
+  "zh-CN": "2 个键已更改",
 };
 
 describe("Hero copy", () => {

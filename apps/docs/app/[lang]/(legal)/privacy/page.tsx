@@ -68,9 +68,7 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
   };
 
   const lastUpdatedText = (
-    <em>
-      {t("lastUpdatedLabel")}: {LEGAL_LAST_UPDATED}
-    </em>
+    <em>{t.rich("lastUpdated", { date: LEGAL_LAST_UPDATED, stamp: (chunks) => <>{chunks}</> })}</em>
   );
   const lastUpdated = <p>{lastUpdatedText}</p>;
 

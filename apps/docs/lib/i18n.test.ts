@@ -12,7 +12,7 @@ import { LOCALES } from "./locales";
 
 describe("i18n configuration", () => {
   it("declares exactly the supported locales, in order", () => {
-    expect(i18n.languages).toEqual(["en", "de", "es", "fr"]);
+    expect(i18n.languages).toEqual(["en", "de", "es", "fr", "zh-CN"]);
     expect(i18n.languages).toEqual([...LOCALES]);
   });
 
@@ -61,6 +61,7 @@ describe("localizedAnchorPath", () => {
     de: "plurale",
     es: "plurales",
     fr: "pluriels",
+    "zh-CN": "复数",
   };
 
   it("prefixes the locale and appends that locale's anchor", () => {

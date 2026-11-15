@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { i18n } from "@/lib/i18n";
 import { SITE_URL } from "@/lib/site-url";
+import { isSpaceless } from "@/lib/word-count";
 
 vi.mock(
   "next-intl/server",
@@ -46,8 +47,11 @@ function blocks(doc: Document, selector: string): string[] {
     .filter((text) => text.length > 0);
 }
 
-function words(text: string): string {
-  return normalized(text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[#.,;:()*`"]/g, " "));
+function words(text: string, lang: string): string {
+  const spaced = normalized(
+    text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[#.,;:()*`"]/g, " "),
+  );
+  return isSpaceless(lang) ? spaced.replace(/\s+/g, "") : spaced;
 }
 
 function normalized(text: string): string {
@@ -65,6 +69,14 @@ function markdownText(markdown: string): string {
       .replace(/^\*(.*)\*$/gm, "$1"),
   );
 }
+
+describe("words", () => {
+  it("drops the spaces a rendered inline element adds in a spaceless locale, and keeps them elsewhere", () => {
+    expect(words("见 法律声明（Impressum） 中", "zh-CN")).toBe("见法律声明（Impressum）中");
+    expect(words("see the [notice](/x) here", "en")).toBe("see the notice here");
+    expect(words("a b", "en")).not.toBe(words("ab", "en"));
+  });
+});
 
 describe.each(i18n.languages)("legal markdown in %s", (lang) => {
   it("carries exactly the text of the imprint page", async () => {
@@ -88,10 +100,10 @@ describe.each(i18n.languages)("legal markdown in %s", (lang) => {
   it("carries every heading and paragraph of the contact page and links the form", async () => {
     const doc = await rendered(ContactPage, lang);
     const body = await contactMarkdown(lang);
-    const text = words(body);
+    const text = words(body, lang);
     const found = blocks(doc, "article h1, article p");
     expect(found.length).toBeGreaterThanOrEqual(3);
-    for (const block of found) expect(text).toContain(words(block));
+    for (const block of found) expect(text).toContain(words(block, lang));
     const contact = lang === "en" ? "/contact" : `/${lang}/contact`;
     expect(body).toContain(`](${SITE_URL}${contact})`);
   });
@@ -100,13 +112,13 @@ describe.each(i18n.languages)("legal markdown in %s", (lang) => {
     const doc = await rendered(LicensesPage, lang);
     doc.querySelector(".vk-page-eyebrow")?.remove();
     doc.querySelector(".vk-legal-jump")?.remove();
-    const text = words(await licensesMarkdown(lang));
+    const text = words(await licensesMarkdown(lang), lang);
     const found = blocks(
       doc,
       "article h1, article h2, article h3, article p, article li, article pre",
     );
     expect(found.length).toBeGreaterThan(20);
-    const missing = found.filter((block) => !text.includes(words(block)));
+    const missing = found.filter((block) => !text.includes(words(block, lang)));
     expect(missing).toEqual([]);
   });
 });

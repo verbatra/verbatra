@@ -47,6 +47,33 @@ function rootFolders(tree: Root): Folder[] {
   return tree.children.filter((node): node is Folder => node.type === "folder" && !!node.root);
 }
 
+describe("docs sidebar translations", () => {
+  const translated = i18n.languages.filter((locale) => locale !== i18n.defaultLanguage);
+
+  describe.each(translated)("%s", (locale) => {
+    const tree = docs.getPageTree(locale);
+    const titles = new Set(docs.getPages(locale).map((page) => page.data.title));
+
+    it("serves every locale-suffixed page under its own title, not the English one", () => {
+      const own = contentFiles().filter((file) => file.endsWith(`.${locale}.mdx`));
+      expect(own.length).toBeGreaterThan(0);
+      for (const file of own) expect(titles, file).toContain(frontmatterTitle(file));
+    });
+
+    it("names the two tabs from the locale's own meta files", () => {
+      const named = ["(docs)", "(reference)"].map(
+        (folder) =>
+          (
+            JSON.parse(
+              readFileSync(join(CONTENT_DIR, folder, `meta.${locale}.json`), "utf8"),
+            ) as MetaData
+          ).title,
+      );
+      expect(rootFolders(tree).map((folder) => folder.name)).toEqual(named);
+    });
+  });
+});
+
 describe("docs sidebar", () => {
   describe.each(i18n.languages)("%s", (locale) => {
     const tree = docs.getPageTree(locale);

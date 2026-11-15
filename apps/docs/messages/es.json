@@ -3,7 +3,9 @@
     "machineTranslated": {
       "title": "Página traducida automáticamente",
       "text": "Esta página se tradujo automáticamente, así que puede contener errores o sonar un poco rara. La versión en inglés es la fuente de la verdad.",
-      "viewOriginal": "Leer el original en inglés"
+      "viewOriginal": "Leer el original en inglés",
+      "joined": "{machine} <link>{original}</link>.",
+      "joinedOutdated": "{machine} {outdated} <link>{original}</link>."
     },
     "outdatedTranslation": {
       "title": "La traducción puede estar desactualizada",
@@ -741,7 +743,8 @@
     "home": "Volver a la página de inicio de Verbatra",
     "breadcrumbHome": "Inicio",
     "breadcrumbCompare": "Comparar",
-    "noneFound": "“Nada encontrado” significa que nuestra búsqueda no halló nada, no que falte."
+    "noneFound": "“Nada encontrado” significa que nuestra búsqueda no halló nada, no que falte.",
+    "checkedLine": "{label} <time>{date}</time>. {noneFound}"
   },
   "legal": {
     "privacy": {
@@ -750,8 +753,7 @@
         "description": "Cómo el sitio de documentación de verbatra maneja tus datos."
       },
       "title": "Política de privacidad",
-      "lastUpdatedLabel": "Última actualización",
-      "languageVersions": "Esta política de privacidad está disponible en inglés, alemán, español y francés. Las cuatro versiones lingüísticas tienen el mismo contenido y son igualmente vinculantes.",
+      "languageVersions": "Esta política de privacidad está disponible en inglés y en traducciones. Todas las versiones lingüísticas tienen el mismo contenido y son igualmente vinculantes.",
       "s1": {
         "heading": "1. Responsable del tratamiento",
         "body": "El responsable del tratamiento de datos en este sitio es Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Alemania (los mismos datos que figuran en el <imprint>aviso legal (Impressum)</imprint>). Puedes contactarnos por correo electrónico en <email>info@kreitz-webdev.de</email>. No se ha designado un delegado de protección de datos, ya que ni el art. 37 del RGPD ni el § 38 de la BDSG (Ley Federal alemana de Protección de Datos) lo exigen para este sitio."
@@ -809,8 +811,9 @@
       },
       "s12": {
         "heading": "13. Traducción asistida por IA",
-        "body": "Este proyecto, verbatra, es una herramienta de traducción asistida por IA, y este sitio de documentación la usa también en sí mismo. El idioma de origen es el inglés. verbatra traduce automáticamente los textos de la interfaz (navegación, botones y textos similares) al alemán, español y francés con el modelo de lenguaje Gemini de Google. Las páginas de documentación también se traducen con IA, aunque en un paso aparte, fuera de esa canalización automatizada. Algunos textos, entre ellos partes de estas páginas legales, se redactaron o corrigieron directamente en lugar de generarse con esa canalización. Las traducciones se revisan en la medida de lo posible: no todos los textos traducidos los revisa una persona antes de publicarse, por lo que una traducción puede contener errores. Si detectas alguno, avísanos a través del <contact>formulario de contacto</contact>. Ofrecemos esta información de forma voluntaria, por transparencia."
-      }
+        "body": "Este proyecto, verbatra, es una herramienta de traducción asistida por IA, y este sitio de documentación la usa también en sí mismo. El idioma de origen es el inglés. Los textos de la interfaz (navegación, botones y textos similares) se traducen automáticamente a todos los idiomas distintos del inglés, bien con verbatra y el modelo de lenguaje Gemini de Google, bien con un agente de programación con IA que trabaja en el repositorio y cuyo resultado se importa con verbatra. Las páginas de documentación también se traducen con IA, aunque en un paso aparte, fuera de esa canalización automatizada. Algunos textos, entre ellos partes de estas páginas legales, se redactaron o corrigieron directamente en lugar de generarse con esa canalización. Las traducciones se revisan en la medida de lo posible: no todos los textos traducidos los revisa una persona antes de publicarse, por lo que una traducción puede contener errores. Si detectas alguno, avísanos a través del <contact>formulario de contacto</contact>. Ofrecemos esta información de forma voluntaria, por transparencia."
+      },
+      "lastUpdated": "Última actualización: <stamp>{date}</stamp>"
     },
     "imprint": {
       "meta": {
@@ -818,8 +821,8 @@
         "description": "Información legal (Impressum) del sitio de documentación de verbatra."
       },
       "intro": "Aviso legal (Impressum) de este sitio web. Los datos se indican en alemán.",
-      "lastUpdatedLabel": "Última actualización",
-      "contactLinkNote": "Para una respuesta electrónica rápida, también puedes usar nuestro <link>formulario de contacto en línea</link>."
+      "contactLinkNote": "Para una respuesta electrónica rápida, también puedes usar nuestro <link>formulario de contacto en línea</link>.",
+      "lastUpdated": "Última actualización: <stamp>{date}</stamp>"
     },
     "contact": {
       "meta": {

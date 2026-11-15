@@ -155,7 +155,13 @@ function mountToggle(): HTMLElement {
   return host;
 }
 
-const SPELLED_COUNTS: Readonly<Record<Locale, { numbers: string; nouns: string }>> = {
+interface SpelledCount {
+  readonly numbers: string;
+  readonly nouns: string;
+  readonly counters?: string;
+}
+
+const SPELLED_COUNTS: Readonly<Record<Locale, SpelledCount>> = {
   en: {
     numbers:
       "one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty",
@@ -176,10 +182,21 @@ const SPELLED_COUNTS: Readonly<Record<Locale, { numbers: string; nouns: string }
       "un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt",
     nouns: "fournisseurs?|formats?",
   },
+  "zh-CN": {
+    numbers: "二十|十九|十八|十七|十六|十五|十四|十三|十二|十一|十|九|八|七|六|五|四|三|两|二|一",
+    counters: "种|个|款|项|类|条|家",
+    nouns: "提供商|文件格式|格式",
+  },
 };
 
 function spelledCount(locale: Locale): RegExp {
-  const { numbers, nouns } = SPELLED_COUNTS[locale];
+  const { numbers, nouns, counters } = SPELLED_COUNTS[locale];
+  if (counters !== undefined) {
+    return new RegExp(
+      `(?<![\\p{N}一二三四五六七八九十两])(?:\\d+|${numbers})\\s*(?:${counters})\\s*(?:[A-Za-z]+\\s*|\\p{Script=Han}{1,3})?\\s*(?:${nouns})`,
+      "u",
+    );
+  }
   return new RegExp(
     `(?<![\\p{L}-])(?:\\d+|${numbers})\\s+(?:[\\p{L}-]+\\s+)?(?:${nouns})(?![\\p{L}-])`,
     "iu",
@@ -273,11 +290,30 @@ describe("Marquee", () => {
     de: "Sieben Provider und vierzehn Dateiformate.",
     es: "Siete proveedores y catorce formatos de archivo.",
     fr: "Sept fournisseurs et quatorze formats de fichier.",
+    "zh-CN": "支持七个提供商和十四种文件格式。",
   };
 
   it.each(LOCALES)("flags a spelled-out or numeric count in %s", (locale) => {
     expect(SPELLED_SAMPLES[locale]).toMatch(spelledCount(locale));
   });
+
+  it.each([
+    "共 8 个提供商",
+    "两种格式",
+    "十四种格式",
+    "八家提供商",
+    "十四种内置格式",
+    "七个 LLM 提供商",
+  ])("flags the zh-CN count %s", (sample) => {
+    expect(sample).toMatch(spelledCount("zh-CN"));
+  });
+
+  it.each(["统一格式", "这个格式", "每个提供商", "每家提供商", "七个命令"])(
+    "leaves the zh-CN phrase %s alone",
+    (sample) => {
+      expect(sample).not.toMatch(spelledCount("zh-CN"));
+    },
+  );
 
   it.each(LOCALES)(
     "types no provider or format count, in digits or words, in %s",

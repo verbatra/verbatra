@@ -9,6 +9,7 @@ import { type BrandMarkId, MARQUEE_GLYPH_SIZE, marqueeMarkSize } from "@/lib/bra
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, type MachineProviderId, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { landingProviders } from "@/lib/landing-providers";
+import { breakBetweenWords } from "@/lib/word-breaks";
 import { MarqueeMotion } from "./islands";
 import { PlainList } from "./plain-list";
 
@@ -178,7 +179,7 @@ export async function Marquee(): Promise<ReactNode> {
   return (
     <section id="marquee" aria-labelledby="marquee-heading" className="vk-marquee-section">
       <h2 id="marquee-heading" className="vk-marquee-heading vk-gutter">
-        {t("heading")}
+        {breakBetweenWords(t("heading"))}
       </h2>
       <BrandMarkSprite
         prefix={MARQUEE_ICON_PREFIX}

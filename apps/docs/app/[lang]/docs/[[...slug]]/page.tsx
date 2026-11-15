@@ -101,11 +101,16 @@ async function LocaleNotice({
       type={outdatedCopy ? "warn" : "info"}
       title={outdatedCopy ? outdatedCopy("title") : machineTranslated("title")}
     >
-      {machineTranslated("text")} {outdatedCopy ? `${outdatedCopy("text")} ` : null}
-      <Link className="vk-prose-link" href={`/docs/${slug.join("/")}`}>
-        {machineTranslated("viewOriginal")}
-      </Link>
-      .
+      {machineTranslated.rich(outdatedCopy ? "joinedOutdated" : "joined", {
+        machine: machineTranslated("text"),
+        outdated: outdatedCopy ? outdatedCopy("text") : "",
+        original: machineTranslated("viewOriginal"),
+        link: (chunks) => (
+          <Link className="vk-prose-link" href={`/docs/${slug.join("/")}`}>
+            {chunks}
+          </Link>
+        ),
+      })}
     </DocsCallout>
   );
 }

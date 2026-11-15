@@ -45,6 +45,20 @@ const DATING = new RegExp(
   "giu",
 );
 
+const DATED_VERSION = "(?<![\\d.])`?v?(\\d+\\.\\d+(?:\\.\\d+)?)(?![\\d.]*\\d)`?";
+const HAN_RANGE_END = "(?!`?\\s*(?:升级)?\\s*(?:到|至)\\s*`?v?\\d)";
+const HAN_DATING = new RegExp(
+  `(?:自|从|首次出现于|首次出现在|新增于|引入于|始于)\\s*${DATED_VERSION}${HAN_RANGE_END}|${DATED_VERSION}\\s*(?:版本?)?\\s*(?:起|开始|以来|(?:中)?(?:新增|引入|添加|加入|推出|发布|首次出现))`,
+  "gu",
+);
+
+function datedVersions(text: string): string[] {
+  return [...text.matchAll(DATING), ...text.matchAll(HAN_DATING)].flatMap(([, first, second]) => {
+    const version = first ?? second;
+    return version === undefined ? [] : [version];
+  });
+}
+
 type Placement = "page" | "heading" | "table" | "inline" | "stand-alone";
 
 type Badge = {
@@ -204,7 +218,7 @@ function restatedBadge(page: PageBadges, line: number, version: string): Badge |
 
 function restatementViolations(page: PageBadges): string[] {
   return page.prose.flatMap(({ line, text }) =>
-    [...text.matchAll(DATING)].flatMap(([, version = ""]) => {
+    datedVersions(text).flatMap((version) => {
       const badge = restatedBadge(page, line, version);
       return badge === undefined
         ? []
@@ -241,6 +255,15 @@ const RESTATING_SENTENCES: ReadonlyArray<readonly [Locale, string]> = [
   ["fr", "`X` apparaît pour la première fois en 0.12.0."],
   ["fr", "À partir de 0.12.0, il écrit le fichier."],
   ["en", "From `0.12.0` it also writes the file."],
+  ["zh-CN", "`X` 自 0.12.0 起提供。"],
+  ["zh-CN", "从 0.12 开始，它也会写入文件。"],
+  ["zh-CN", "`X` 在 0.12.0 版本新增。"],
+  ["zh-CN", "`X` 在 0.12.0 中引入。"],
+  ["zh-CN", "`X` 首次出现在 0.12.0。"],
+  ["zh-CN", "`X` 在 0.12.0 中添加。"],
+  ["zh-CN", "`X` 于 0.12.0 推出。"],
+  ["zh-CN", "`X` 随 0.12.0 发布。"],
+  ["zh-CN", "`X` 在 0.12.0 版本加入了。"],
 ];
 
 describe("AvailableFrom badge placement", () => {
@@ -307,6 +330,7 @@ describe("AvailableFrom badge placement", () => {
       "It needs a `version` of `0.12.0` or newer, and braucht eine `version` ab `0.12.0`.",
       "Up to 0.11 it returned the map; from 0.11.0 it was flat.",
       "Upgrading from 0.12.0 to 0.13.0 keeps the file, and so does von `0.12.0` auf `0.13.0`.",
+      "需要 0.12.0 或更高版本。从 0.12.0 升级到 0.13.0 会保留该文件，从 `0.12.0` 到 `0.13.0` 也一样。0.11 之前返回映射。",
       "## B",
       "From 0.12.0 any other key fails.",
     ].join("\n\n");

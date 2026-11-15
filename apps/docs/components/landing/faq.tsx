@@ -12,7 +12,7 @@ import {
 } from "@/lib/landing-faq";
 import type { FaqItem } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
-import { keepCompoundsWhole } from "@/lib/word-breaks";
+import { breakBetweenWords, keepCompoundsWhole } from "@/lib/word-breaks";
 import { FaqKeys } from "./islands";
 import { LICENSE_URL } from "./links";
 import { Section } from "./section";
@@ -140,7 +140,7 @@ export async function Faq({
               className="vk-faq-item"
             >
               <summary className="vk-faq-summary">
-                <h3 className="vk-faq-question">{item.question}</h3>
+                <h3 className="vk-faq-question">{breakBetweenWords(item.question)}</h3>
                 <span aria-hidden="true" className="vk-faq-mark" />
               </summary>
               <p className="vk-faq-answer">{item.content}</p>

@@ -49,7 +49,10 @@ function toolNamesInOrder() {
   return toolNamesOf([...block[1].matchAll(/(\w+Tool)\b/g)].map((match) => match[1]));
 }
 
-const YES = assertLocaleTable({ "": "yes", ".de": "ja", ".es": "sí", ".fr": "oui" }, "YES");
+const YES = assertLocaleTable(
+  { "": "yes", ".de": "ja", ".es": "sí", ".fr": "oui", ".zh-CN": "是" },
+  "YES",
+);
 
 function toolTableRows(page) {
   const lines = page.split("\n");

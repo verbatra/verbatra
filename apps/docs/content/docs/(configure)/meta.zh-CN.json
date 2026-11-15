@@ -1,0 +1,4 @@
+{
+  "title": "配置",
+  "pages": ["config-file", "formats", "providers"]
+}

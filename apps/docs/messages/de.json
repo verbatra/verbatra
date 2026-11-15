@@ -3,7 +3,9 @@
     "machineTranslated": {
       "title": "Maschinell übersetzte Seite",
       "text": "Diese Seite wurde automatisch übersetzt und kann daher Fehler oder seltsame Formulierungen enthalten. Die englische Version ist die maßgebliche Quelle.",
-      "viewOriginal": "Das englische Original lesen"
+      "viewOriginal": "Das englische Original lesen",
+      "joined": "{machine} <link>{original}</link>.",
+      "joinedOutdated": "{machine} {outdated} <link>{original}</link>."
     },
     "outdatedTranslation": {
       "title": "Übersetzung möglicherweise veraltet",
@@ -741,7 +743,8 @@
     "home": "Zurück zur Verbatra-Startseite",
     "breadcrumbHome": "Startseite",
     "breadcrumbCompare": "Vergleichen",
-    "noneFound": "„Nichts gefunden“ heißt: Unsere Suche war ergebnislos, nicht, dass die Funktion fehlt."
+    "noneFound": "„Nichts gefunden“ heißt: Unsere Suche war ergebnislos, nicht, dass die Funktion fehlt.",
+    "checkedLine": "{label} <time>{date}</time>. {noneFound}"
   },
   "legal": {
     "privacy": {
@@ -750,8 +753,7 @@
         "description": "Wie die verbatra-Dokumentationsseite mit deinen Daten umgeht."
       },
       "title": "Datenschutzerklärung",
-      "lastUpdatedLabel": "Zuletzt aktualisiert",
-      "languageVersions": "Diese Datenschutzerklärung gibt es auf Englisch, Deutsch, Spanisch und Französisch. Alle vier Sprachfassungen sind inhaltlich gleich und gleichermaßen verbindlich.",
+      "languageVersions": "Diese Datenschutzerklärung gibt es auf Englisch und in Übersetzungen. Alle Sprachfassungen sind inhaltlich gleich und gleichermaßen verbindlich.",
       "s1": {
         "heading": "1. Verantwortliche Stelle",
         "body": "Verantwortlich für die Datenverarbeitung auf dieser Website ist Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Deutschland (dieselben Angaben wie im <imprint>Impressum</imprint>). Du erreichst uns per E-Mail unter <email>info@kreitz-webdev.de</email>. Ein Datenschutzbeauftragter ist nicht benannt, da weder Art. 37 DSGVO noch § 38 BDSG für diese Website eine Benennung vorschreiben."
@@ -809,8 +811,9 @@
       },
       "s12": {
         "heading": "13. KI-gestützte Übersetzung",
-        "body": "Dieses Projekt, verbatra, ist ein Werkzeug für KI-gestützte Übersetzung, und diese Dokumentationsseite setzt es auch bei sich selbst ein. Ausgangssprache ist Englisch. Die Oberflächentexte (Navigation, Schaltflächen und ähnliche Texte) werden von verbatra mit dem Sprachmodell Gemini von Google maschinell ins Deutsche, Spanische und Französische übersetzt. Auch die Dokumentationsseiten werden mit KI übersetzt, allerdings in einem separaten Schritt außerhalb dieser automatisierten Pipeline. Einige Texte, darunter Teile dieser rechtlichen Seiten, wurden direkt verfasst oder korrigiert, statt von dieser Pipeline erzeugt zu werden. Übersetzungen werden nach bestem Bemühen geprüft: Nicht jeder übersetzte Text wird vor der Veröffentlichung von einem Menschen durchgesehen, daher kann eine Übersetzung Fehler enthalten. Wenn dir einer auffällt, sag uns bitte über das <contact>Kontaktformular</contact> Bescheid. Wir geben diese Information freiwillig, aus Transparenzgründen."
-      }
+        "body": "Dieses Projekt, verbatra, ist ein Werkzeug für KI-gestützte Übersetzung, und diese Dokumentationsseite setzt es auch bei sich selbst ein. Ausgangssprache ist Englisch. Die Oberflächentexte (Navigation, Schaltflächen und ähnliche Texte) werden maschinell in jede andere Sprache als Englisch übersetzt, entweder von verbatra mit dem Sprachmodell Gemini von Google oder von einem KI-Coding-Agenten, der im Repository arbeitet und dessen Ergebnis mit verbatra importiert wird. Auch die Dokumentationsseiten werden mit KI übersetzt, allerdings in einem separaten Schritt außerhalb dieser automatisierten Pipeline. Einige Texte, darunter Teile dieser rechtlichen Seiten, wurden direkt verfasst oder korrigiert, statt von dieser Pipeline erzeugt zu werden. Übersetzungen werden nach bestem Bemühen geprüft: Nicht jeder übersetzte Text wird vor der Veröffentlichung von einem Menschen durchgesehen, daher kann eine Übersetzung Fehler enthalten. Wenn dir einer auffällt, sag uns bitte über das <contact>Kontaktformular</contact> Bescheid. Wir geben diese Information freiwillig, aus Transparenzgründen."
+      },
+      "lastUpdated": "Zuletzt aktualisiert: <stamp>{date}</stamp>"
     },
     "imprint": {
       "meta": {
@@ -818,8 +821,8 @@
         "description": "Rechtliche Angaben (Impressum) für die verbatra-Dokumentationsseite."
       },
       "intro": "Anbieterkennzeichnung für diese Website.",
-      "lastUpdatedLabel": "Zuletzt aktualisiert",
-      "contactLinkNote": "Für eine schnelle elektronische Antwort kannst du auch unser <link>Online-Kontaktformular</link> nutzen."
+      "contactLinkNote": "Für eine schnelle elektronische Antwort kannst du auch unser <link>Online-Kontaktformular</link> nutzen.",
+      "lastUpdated": "Zuletzt aktualisiert: <stamp>{date}</stamp>"
     },
     "contact": {
       "meta": {

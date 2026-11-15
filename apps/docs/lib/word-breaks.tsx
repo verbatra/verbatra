@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import { groupWordSegments, SPACELESS_SCRIPT } from "@/lib/word-count";
 
 export function breakAfterUnderscores(text: ReactNode): ReactNode {
   if (typeof text !== "string" || !text.includes("_")) return text;
@@ -127,9 +128,12 @@ export function breakUrlAfterSlashes(url: string): ReactNode {
   ));
 }
 
+const COMPOUND_CHAR = String.raw`[^\s\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u3000-\u303F\uFF00-\uFFEF]`;
+const COMPOUND = new RegExp(`(${COMPOUND_CHAR}+-${COMPOUND_CHAR}+)`, "u");
+
 export function keepCompoundsWhole(text: string): ReactNode {
-  if (!/\S-\S/.test(text)) return text;
-  return text.split(/(\S+-\S+)/).map((part, index) =>
+  if (!COMPOUND.test(text)) return text;
+  return text.split(COMPOUND).map((part, index) =>
     index % 2 === 1 ? (
       <span key={`${index}-${part}`} className="whitespace-nowrap">
         {part}
@@ -145,4 +149,32 @@ const LINK_LABEL_WHOLE_MAX_WORDS = 2;
 export function keepLinkLabelWhole(text: string): ReactNode {
   if (text.trim().split(/\s+/).length > LINK_LABEL_WHOLE_MAX_WORDS) return keepCompoundsWhole(text);
   return <span className="whitespace-nowrap">{text}</span>;
+}
+
+const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
+
+const WORD_SEGMENTERS = {
+  zh: new Intl.Segmenter("zh", { granularity: "word" }),
+  ja: new Intl.Segmenter("ja", { granularity: "word" }),
+};
+
+export function breakBetweenWords(node: ReactNode): ReactNode {
+  if (Array.isArray(node)) {
+    return node.map((part, index) => (
+      <Fragment key={`part-${index}`}>{breakBetweenWords(part)}</Fragment>
+    ));
+  }
+  if (typeof node !== "string" || !SPACELESS_SCRIPT.test(node)) return node;
+  const segmenter = KANA.test(node) ? WORD_SEGMENTERS.ja : WORD_SEGMENTERS.zh;
+  const groups = groupWordSegments(segmenter.segment(node));
+  return groups.map((group, index) => {
+    const previous = groups[index - 1];
+    const breakBefore = previous?.isWordLike === true && group.isWordLike;
+    return (
+      <Fragment key={`${index}-${group.text}`}>
+        {breakBefore ? <wbr /> : null}
+        {group.text}
+      </Fragment>
+    );
+  });
 }

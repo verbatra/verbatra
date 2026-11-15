@@ -61,6 +61,8 @@ beforeAll(async () => {
   doc = new DOMParser().parseFromString(renderToString(await LockDemo()), "text/html");
 });
 
+const STALE_WORD = /\(stale\)|（stale）/g;
+
 describe("the lock demo heading and counts", () => {
   it.each(i18n.languages)("%s spells the changed count out and shows no digit", async (locale) => {
     const t = await translator(locale);
@@ -110,7 +112,21 @@ describe("the lock demo heading and counts", () => {
     (locale) => {
       const lockDemo = (CATALOGS[locale].landing as unknown as { lockDemo: Tree }).lockDemo;
       const note = (lockDemo.foot as Tree).compare as string;
-      expect(note.match(/\(stale\)/g)).toHaveLength(1);
+      expect(note.match(STALE_WORD)).toHaveLength(1);
+    },
+  );
+
+  it.each(["过期 (stale) 表示", "过期（stale）表示", "stale (stale)"])(
+    "reads the CLI word %s in ASCII or full-width parentheses",
+    (note) => {
+      expect(note.match(STALE_WORD)).toHaveLength(1);
+    },
+  );
+
+  it.each(["过期 stale 表示", "过期（stale) 表示", "(staled)"])(
+    "does not read %s as the CLI word in parentheses",
+    (note) => {
+      expect(note.match(STALE_WORD)).toBeNull();
     },
   );
 
