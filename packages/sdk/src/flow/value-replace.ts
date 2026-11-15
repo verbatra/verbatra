@@ -352,7 +352,7 @@ function previewEntry(
  * and `+` for what the replaced value has. A replaced value longer than 20,000 characters is listed as `too-long`, which is not an
  * integrity refusal and carries no `reason`. Keys that
  * match `pinnedKeys`, and values a person wrote, imported, or changed outside verbatra, are listed
- * as `pinned` and `protected` whatever the config's `humanEdits` says (a key that is both is
+ * as `pinned` and `protected` regardless of the config's `humanEdits` (a key that is both is
  * listed as `pinned` with `protected: true`), and every value counts as
  * protected when the provenance file cannot be read, which includes a file from a newer verbatra:
  * that file is never rewritten, and a value changed with `includeProtected` gets no record in it. A
@@ -695,8 +695,8 @@ function markDuplicates(
  * A key with no source text, and a replacement that leaves the value as it is, are `skipped`. A
  * pinned key is `skipped` unless `includePinned` is set and `actor` is `human`; an agent never
  * changes a pinned key. A value that is protected as {@link previewValueReplace} describes it is
- * `skipped` unless `includeProtected` is set, and this holds whatever `humanEdits` the config
- * sets, so a key that is both pinned and protected needs both options. A value the integrity gate
+ * `skipped` unless `includeProtected` is set, and this applies regardless of the config's
+ * `humanEdits`, so a key that is both pinned and protected needs both options. A value the integrity gate
  * (or the structure check) refuses is `refused`, with its reason, and a replaced value longer than
  * 20,000 characters is `too-long` and not written. Every remaining candidate is written and
  * reported `applied`.
