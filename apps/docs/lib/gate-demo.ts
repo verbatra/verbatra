@@ -11,18 +11,18 @@ export const GATE_KEY = "profile.greeting";
 
 export const GATE_PLACEHOLDER = "{name}";
 
-export const GATE_SOURCE: string =
+export const GATE_SOURCE = "Good to see you, {name}!";
+
+export const GATE_SOURCE_BEFORE: string =
   HERO_TERMINAL_SOURCE.find(({ key }) => key === GATE_KEY)?.value ?? "";
 
-export const GATE_SOURCE_BEFORE = "Welcome, {name}!";
+export const GATE_LOCALE: string = HERO_TERMINAL_LOCALES[0]?.locale ?? "";
 
 export const GATE_DE_OLD = "Willkommen, {name}!";
 
-export const GATE_DE_CANDIDATE = "Willkommen zurück!";
+export const GATE_DE_CANDIDATE = "Schön, Sie zu sehen!";
 
 export const GATE_SOURCE_LOCALE = "en";
-
-export const GATE_LOCALE: string = HERO_TERMINAL_LOCALES[0]?.locale ?? "";
 
 export const GATE_SOURCE_FILE = `${GATE_SOURCE_LOCALE}.json`;
 
