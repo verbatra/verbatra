@@ -70,13 +70,15 @@ the interface strings with `pnpm i18n` (see below).
 ## Where content lives
 
 - `content/docs/**` is the documentation itself. English source is `page.mdx`; a translation is a
-  locale-suffixed sibling, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`. The sidebar's Docs and
+  locale-suffixed sibling, `page.<locale>.mdx`, for each other language. The sidebar's Docs and
   Reference tabs are the `(docs)` and `(reference)` route groups. `(docs)` holds only meta files
   that list the other route groups; `(reference)` holds the `error-codes` page beside its meta
-  file. Each meta file has `meta.de.json`, `meta.es.json`, and `meta.fr.json` siblings. An AI agent translates these in the same change as the English page;
-  `lib/docs-locale-parity.test.ts` keeps the four locales structurally in sync.
-- `messages/en.json` is the source of the site's own interface strings, with `de.json`, `es.json`,
-  and `fr.json` alongside it. These are machine-translated by verbatra.
+  file. Each meta file has a `meta.<locale>.json` sibling for each other language. An AI agent translates these in the same change as the English page;
+  `lib/docs-locale-parity.test.ts` keeps every locale structurally in sync.
+- `messages/en.json` is the source of the site's own interface strings, with one `<locale>.json`
+  per other language alongside it. The locale set lives in `lib/locales.ts` (`LOCALES`,
+  `TRANSLATED_LOCALES`), the one place a locale is added. These are produced by verbatra
+  (`pnpm i18n`) or imported from an AI agent's filled handoff, as described below.
 - `app/`, `components/`, and `lib/` are the Next.js application; `public/` holds the images,
   including the Studio screenshots the root README links.
 - `lib/licenses.generated.json` (the `/licenses` page) and the root `THIRD_PARTY_NOTICES.md` are
@@ -92,23 +94,37 @@ GEMINI_API_KEY=... pnpm i18n
 ```
 
 That runs `verbatra translate` against `verbatra.config.ts` in this directory:
-`format: "next-intl-json"`, `files.pattern: "messages/{locale}.json"`, targets `de`, `es`, `fr`,
-provider `gemini`, `tone: "informal"`. Only new or changed keys are sent, so a run over unchanged
-messages calls no provider and needs no key. The key is read from the environment, never from the
-config.
+`format: "next-intl-json"`, `files.pattern: "messages/{locale}.json"`, targets taken from
+`TRANSLATED_LOCALES` in `lib/locales.ts`, provider `gemini`, `tone: "informal"`. Only new or changed keys are sent, so a run over
+unchanged messages calls no provider and needs no key. The key is read from the environment, never
+from the config.
+
+Not every value in `messages/*.json` came from that run. The `zh-CN` strings and some corrected
+`de`, `es` and `fr` values were written by an AI coding agent working in the repository and brought
+in with `verbatra import`, so they are recorded with origin `import` in `verbatra.provenance.json`
+and protected: when the English source of such a key changes, `pnpm i18n` leaves the key stale
+instead of translating it. To refresh them, run `verbatra export` and then `verbatra import` on the
+filled handoff, or `pnpm i18n --include-human` after reading its dry run (it retranslates with only
+the `glossary` block of `verbatra.config.ts`). `verbatra import` removes no keys: after deleting a
+key from `en.json`, run `pnpm i18n --prune` to drop it from every locale file. Never edit
+`messages/<locale>.json` by hand.
 
 `.github/workflows/docs-i18n-check.yml` runs the action in `check` mode on every pull request that
 touches this app's messages, content, config, or lock file. That check validates only what
 `verbatra.config.ts` covers, so it catches drift in `messages/*.json` and nothing else.
 
-## Every user-facing change updates all four locales
+## Every user-facing change updates every locale
 
-A change to `messages/en.json` or to an English `page.mdx` is not complete until the matching `de`,
-`es`, and `fr` files are updated in the *same* change, by hand for MDX content or by re-running
+A change to `messages/en.json` or to an English `page.mdx` is not complete until the matching files of every other
+language are updated in the *same* change, by hand for MDX content or by re-running
 `pnpm i18n` for interface strings. CI backstops only the `messages/*.json` half of this; a stale
-`.de.mdx`, `.es.mdx`, or `.fr.mdx` is not caught, so treat it as authoring discipline.
+`page.<locale>.mdx` is not caught, so treat it as authoring discipline.
 
-Register is informal throughout: German `du`, Spanish `tú`, French `tu`. No em dash in any locale.
+Register is informal throughout (for example German `du`, Spanish `tú`, French `tu`, Chinese `你`). No
+em dash (U+2014) or horizontal bar (U+2015) in any locale. The translation conventions, and the
+handling a spaceless script such as Chinese needs, are in
+[`.claude/rules/docs.md`](../../.claude/rules/docs.md); adding a locale is in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md) "Adding a docs locale".
 
 ## The landing page
 
@@ -128,8 +144,8 @@ providers, formats, the features, the commands it prints) live in typed tables u
   `app/global.css`, and the page and footer sit on `--surface-page`.
   The hero headline uses `--banner-title`, whose
   gradient sits only on the `.vk-banner-title-lit` span.
-- **Edit copy**: change the `landing.*` key in `messages/en.json`, then update `de.json`,
-  `es.json` and `fr.json` in the same change, with `pnpm i18n`; a protected value goes through
+- **Edit copy**: change the `landing.*` key in `messages/en.json`, then update every other
+  `<locale>.json` in the same change, with `pnpm i18n`; a protected value goes through
   `verbatra export` and `verbatra import`, never a hand edit. Afterwards run
   `npx @verbatra/cli check` from this directory: it must report every locale in sync.
 - **Add or reorder a section**: build it in `components/landing/` on `Section`, with `SectionHead`
