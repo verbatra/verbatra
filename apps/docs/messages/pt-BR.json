@@ -262,7 +262,7 @@
       "stale": {
         "label": "Continua obsoleta",
         "text": "A chave continua obsoleta, então a verificação continua falhando.",
-        "foot": "O valor antigo permanece em {file}. A CI falha até a chave receber um valor que preserve {placeholder}."
+        "foot": "{file} mantém o valor anterior. A chave continua obsoleta e é tentada de novo na próxima execução."
       },
       "valueUnchanged": "inalterado"
     },
