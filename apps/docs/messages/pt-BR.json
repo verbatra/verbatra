@@ -355,7 +355,7 @@
         "yes": "Sim",
         "no": "Não",
         "partial": "Parcial",
-        "unknown": "Incerto",
+        "unknown": "Não apurado",
         "noneFound": "Nenhum encontrado",
         "notApplicable": "Não aplicável"
       },
@@ -449,7 +449,7 @@
             "note": "por usuários e palavras; teste de 14 dias"
           },
           "manual": {
-            "value": "Tempo de dev",
+            "value": "Tempo de desenvolvedor",
             "note": "mais o serviço escolhido"
           }
         },
@@ -568,7 +568,7 @@
         "ci": {
           "label": "CI e GitHub Action",
           "verbatra": {
-            "note": "Action oficial; `check` sai com 1 por ausentes ou obsoletas"
+            "note": "Action oficial; `check` retorna 1 com chaves ausentes ou obsoletas"
           },
           "lingo": {
             "note": "GitHub App; o repositório traz um action.yml"
@@ -730,9 +730,9 @@
       "ogImageAlt": "Como o Verbatra se compara, com o logotipo verbatra"
     },
     "heading": "Como o Verbatra se compara",
-    "takeaway": "O Verbatra traduz só as chaves alteradas na sua CI, com suas chaves de API, sob licença MIT.",
-    "scope": "O Verbatra é uma CLI e um SDK; as outras colunas são plataformas ou um fluxo manual, comparados como formas de manter arquivos traduzidos.",
-    "stronger": "Onde outros são mais fortes: edição no contexto (Tolgee, Crowdin, Lokalise, Phrase), editor hospedado.",
+    "takeaway": "O Verbatra traduz só as chaves alteradas na sua CI, com chaves de API próprias, sob licença MIT.",
+    "scope": "O Verbatra é uma CLI e um SDK; as outras colunas são plataformas de tradução e um fluxo manual, comparados como formas de manter arquivos de locale traduzidos.",
+    "stronger": "Onde outros são mais fortes: edição no contexto (Tolgee, Crowdin, Lokalise, Phrase) e editor hospedado para tradutores.",
     "skip": "Pular a comparação",
     "pickerLabel": "Comparar o Verbatra com",
     "caption": "Formas de manter arquivos de locale traduzidos: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase e um fluxo manual",
@@ -743,7 +743,7 @@
     "home": "Voltar à página inicial do Verbatra",
     "breadcrumbHome": "Início",
     "breadcrumbCompare": "Comparar",
-    "noneFound": "“Nenhum encontrado” quer dizer que nossa busca não achou nada, não que falte ao produto.",
+    "noneFound": "“Nenhum encontrado” significa que não achamos nada, não que falte ao produto.",
     "checkedLine": "{label} <time>{date}</time>. {noneFound}"
   },
   "legal": {
