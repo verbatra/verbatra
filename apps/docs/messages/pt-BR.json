@@ -568,7 +568,7 @@
         "ci": {
           "label": "CI e GitHub Action",
           "verbatra": {
-            "note": "Action oficial; `check` sai com código 1 por chaves ausentes ou obsoletas"
+            "note": "Action oficial; `check` sai com 1 por ausentes ou obsoletas"
           },
           "lingo": {
             "note": "GitHub App; o repositório traz um action.yml"
