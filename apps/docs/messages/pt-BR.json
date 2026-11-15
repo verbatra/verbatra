@@ -355,7 +355,7 @@
         "yes": "Sim",
         "no": "Não",
         "partial": "Parcial",
-        "unknown": "Desconhecido",
+        "unknown": "Incerto",
         "noneFound": "Nenhum encontrado",
         "notApplicable": "Não aplicável"
       },
@@ -449,7 +449,7 @@
             "note": "por usuários e palavras; teste de 14 dias"
           },
           "manual": {
-            "value": "Tempo de desenvolvimento",
+            "value": "Tempo de dev",
             "note": "mais o serviço escolhido"
           }
         },
@@ -568,7 +568,7 @@
         "ci": {
           "label": "CI e GitHub Action",
           "verbatra": {
-            "note": "Action oficial; `check` sai com código 1 por chaves ausentes/obsoletas"
+            "note": "Action oficial; `check` sai com código 1 por chaves ausentes ou obsoletas"
           },
           "lingo": {
             "note": "GitHub App; o repositório traz um action.yml"
