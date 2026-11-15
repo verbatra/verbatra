@@ -260,7 +260,7 @@
       "stale": {
         "label": "Still stale",
         "text": "The key stays stale, so the check still fails.",
-        "foot": "The old value stays in {file}. CI fails until the key gets a value that keeps {placeholder}."
+        "foot": "{file} keeps the previous value. The key stays stale and is retried next run."
       },
       "valueUnchanged": "unchanged"
     },

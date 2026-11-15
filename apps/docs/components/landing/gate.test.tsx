@@ -178,8 +178,27 @@ describe("Gate", () => {
       es: /(otra vez|de nuevo|reintent|volver a|pr\u00f3xima ejecuci\u00f3n|siguiente ejecuci\u00f3n)/i,
       fr: /(r\u00e9essay|de nouveau|\u00e0 nouveau|relanc|prochaine ex\u00e9cution|r\u00e9ex\u00e9cut)/i,
     } as const;
-    expect(JSON.stringify(catalog.landing.gate)).not.toMatch(PATTERNS[locale]);
+    const { foot, ...stale } = catalog.landing.gate.stale;
+    expect(foot.length).toBeGreaterThan(0);
+    expect(JSON.stringify({ ...catalog.landing.gate, stale })).not.toMatch(PATTERNS[locale]);
   });
+
+  it.each([
+    ["en", en, 92, /retried/i],
+    ["de", de, 114, /(erneut|wieder)/i],
+    ["es", es, 109, /reintent/i],
+    ["fr", fr, 118, /(r\u00e9essay|relanc|nouveau)/i],
+  ] as const)(
+    "names the retry in the %s stale foot, within its previous length, and never promises the retry succeeds",
+    (_locale, catalog, previousLength, retry) => {
+      const { foot } = catalog.landing.gate.stale;
+      expect(foot).toMatch(retry);
+      expect(foot.length).toBeLessThanOrEqual(previousLength);
+      expect(foot).not.toMatch(
+        /(succe|gelingt|funciona|r\u00e9ussi|\bfix(ed|es)?\b|behoben|corrige|corrig)/i,
+      );
+    },
+  );
 
   it("gives each frame one moving element, marked for the shared reveal, outside every CLI block", () => {
     for (const frame of frames()) {

@@ -36,17 +36,7 @@ export const GATE_ACCENT_MS = 300;
 
 export const GATE_HANDOFF_CEILING_MS = 600;
 
-export const GATE_OVERLAP_CEILING = 0.3;
-
-export const GATE_GAP_CEILING_MS = 80;
-
 export const GATE_REVERSAL_SETTLE_MS = 650;
-
-export const GATE_OUT_READABLE_OPACITY = 0.5;
-
-export const GATE_OUT_READABLE_TRAVEL = 0.6;
-
-export const GATE_IN_READABLE_REMAINING = 0.4;
 
 export const GATE_LANDING_OFFSET_PX = 56;
 

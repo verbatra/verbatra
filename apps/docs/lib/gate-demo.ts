@@ -5,6 +5,7 @@ import {
   HERO_TERMINAL_SOURCE,
   HERO_TRANSLATE_COMMAND,
 } from "@/lib/hero-terminal";
+import { PLAYGROUND_METADATA } from "@/lib/landing-playground";
 
 export const GATE_KEY = "profile.greeting";
 
@@ -27,7 +28,7 @@ export const GATE_SOURCE_FILE = `${GATE_SOURCE_LOCALE}.json`;
 
 export const GATE_TARGET_FILE = `${GATE_LOCALE}.json`;
 
-export const GATE_MODEL = "claude-sonnet-4-6";
+export const GATE_MODEL: string = PLAYGROUND_METADATA.model;
 
 export const GATE_DOCS_PATH = "/docs/translation-safety";
 

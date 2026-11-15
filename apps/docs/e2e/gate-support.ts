@@ -1,13 +1,8 @@
 import { expect, type Page } from "playwright/test";
 import {
   GATE_CUTS,
-  GATE_GAP_CEILING_MS,
   GATE_HANDOFF_CEILING_MS,
-  GATE_IN_READABLE_REMAINING,
   GATE_LANDING_OFFSET_PX,
-  GATE_OUT_READABLE_OPACITY,
-  GATE_OUT_READABLE_TRAVEL,
-  GATE_OVERLAP_CEILING,
   GATE_PIN_SVH,
   GATE_REVERSAL_SETTLE_MS,
   GATE_SLIDE_SCALE,
@@ -25,6 +20,11 @@ import {
 } from "./support";
 
 export const HEADER = GATE_LANDING_OFFSET_PX;
+const GATE_OVERLAP_CEILING = 0.3;
+const GATE_GAP_CEILING_MS = 80;
+const GATE_OUT_READABLE_OPACITY = 0.5;
+const GATE_OUT_READABLE_TRAVEL = 0.6;
+const GATE_IN_READABLE_REMAINING = 0.4;
 export const MIN_CONTRAST = 4.5;
 export const STATES = ["candidate", "refused", "stale"] as const;
 
