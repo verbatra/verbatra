@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "playwright/test";
+import { GATE_DE_CANDIDATE, GATE_DE_OLD } from "@/lib/gate-demo";
 import {
   GATE_CUTS,
   GATE_MARKER_MIN_PX,
@@ -579,8 +580,8 @@ test.describe("gate with reduced motion", () => {
       await expect(moves).toHaveCSS("transform", "none");
     }
     const text = (await page.locator(SECTION).textContent()) ?? "";
-    expect(text.split("Willkommen zurück!")).toHaveLength(2);
-    expect(text.split("Willkommen, {name}!")).toHaveLength(3);
+    expect(text.split(GATE_DE_CANDIDATE)).toHaveLength(2);
+    expect(text.split(GATE_DE_OLD)).toHaveLength(3);
     await expect(page.locator(`${SECTION} .vk-gate-pin`)).not.toHaveCSS("position", "sticky");
 
     for (const frame of frames) {
@@ -604,7 +605,7 @@ test.describe("gate with reduced motion", () => {
       await expect(frame).toHaveCSS("opacity", "1");
     }
     expect(
-      ((await bare.locator(SECTION).textContent()) ?? "").split("Willkommen zurück!"),
+      ((await bare.locator(SECTION).textContent()) ?? "").split(GATE_DE_CANDIDATE),
     ).toHaveLength(2);
     await noScript.close();
   });
