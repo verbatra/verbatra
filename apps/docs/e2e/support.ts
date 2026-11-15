@@ -315,12 +315,21 @@ export async function expectBackwardWalkClearsStickyHead(page: Page, scope: stri
 
 export async function installShiftCounter(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    const shifts = { total: 0 };
+    const shifts = { total: 0, sources: [] as string[] };
     (window as unknown as { shifts: typeof shifts }).shifts = shifts;
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        const shift = entry as PerformanceEntry & { value: number; hadRecentInput: boolean };
-        if (!shift.hadRecentInput) shifts.total += shift.value;
+        const shift = entry as PerformanceEntry & {
+          value: number;
+          hadRecentInput: boolean;
+          sources?: Array<{ node: Node | null }>;
+        };
+        if (shift.hadRecentInput) continue;
+        shifts.total += shift.value;
+        for (const source of shift.sources ?? [])
+          shifts.sources.push(
+            `${shift.value.toFixed(4)} at ${Math.round(shift.startTime)}ms ${(source.node as Element | null)?.className ?? source.node?.nodeName}`,
+          );
       }
     }).observe({ type: "layout-shift", buffered: true });
   });
@@ -328,6 +337,12 @@ export async function installShiftCounter(page: Page): Promise<void> {
 
 export async function layoutShift(page: Page): Promise<number> {
   return page.evaluate(() => (window as unknown as { shifts: { total: number } }).shifts.total);
+}
+
+export async function layoutShiftSources(page: Page): Promise<string[]> {
+  return page.evaluate(
+    () => (window as unknown as { shifts: { sources: string[] } }).shifts.sources,
+  );
 }
 
 export type GateRest = {
