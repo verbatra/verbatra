@@ -1,0 +1,116 @@
+---
+title: 翻译安全
+seoTitle: "翻译安全：完整性检查与审校"
+description: "安全模型：不可信字符串、完整性门禁、审校标记、token 预算，以及不会泄露信息的错误。"
+type: concept
+---
+verbatra 既不信任它要翻译的字符串，也不信任提供商返回的内容。
+
+| 层 | 防范对象 | 失败时 |
+| --- | --- | --- |
+| 提示词注入边界 | 读起来像指令的字符串 | 无可失败之处：字符串始终只是数据 |
+| 完整性门禁 | 损坏的占位符、ICU、内联标记，以及为空或退化的值 | 该键被搁置，下次运行重试 |
+| 审校标记 | 有效但可疑的值 | 该键照常写入，并排入队列等待人工处理 |
+| token 预算 | 超出你设定的上限的花费 | 本次运行的其余部分被搁置，或被标记 |
+| 结构化错误 | 密钥或请求头泄露到错误信息中 | 带固定错误信息的稳定错误码 |
+
+## 不可信字符串与提示词注入边界
+
+可翻译的字符串可能包含看起来像指令的文本（例如“忽略你的指令”），所以 verbatra 把每个字符串都当作不可信输入。发送给 LLM 提供商的系统规则是编译期常量。所有可变内容（条目、术语表和语气、语言名称、复数的目标类别）都只通过用户轮次中的 JSON 载荷传递，从不进入指令通道。响应必须符合固定的 schema；响应中出现从未请求过的键时，整个子批次失败。
+
+### 语言、文字与地区名称
+
+<AvailableFrom version="0.12.0" />
+
+只有语言环境代码并不总是够用：`sr-Latn` 常常返回西里尔字母的结果，`pt-BR` 和 `pt-PT` 也容易混在一起。因此 LLM 提供商还会收到每种语言的英文名称、文字和地区，这些信息取自 Node.js，对应你配置中的语言环境，即使 `localeMap` 发送的是另一个代码也是如此。它们作为数据传递，由一条固定的系统规则要求模型使用指定的文字和变体来书写，并且不属于[翻译缓存](/zh-CN/docs/the-cache)指纹的一部分。Node.js 无法命名的代码（例如私有使用的 `qaa`）发送时不带名称。
+
+## 完整性门禁
+
+符合 schema 的译文仍可能是坏的，所以由一道门禁根据候选值本身决定是否接受，从不信任提供商自己的报告。同一道门禁运行在每条写入路径上：提供商的回答、缓存命中、工作簿导入行，以及在 Studio 中输入的编辑。多个源文本相同的键共用一个值时，门禁按每个键各自的源值逐键检查。
+
+| 检查 | 候选译文被拒绝的情形 |
+| --- | --- |
+| 占位符 | 占位符与源值不同，按多重集比较（个数有影响，顺序无影响）。什么算占位符，由各[格式](/zh-CN/docs/formats)定义。 |
+| ICU | 对 next-intl 和 ARB：它不再是可解析的 ICU 消息，或其复数分支与目标语言不匹配（见下文）。比较会区分分支，所以在某个复数分支内多出的占位符也会被发现。 |
+| 多出的记号 | 对 i18next、ngx-translate 和 YAML：它添加了源值中没有的形如 `{name}` 的记号。删掉一个是允许的，因为在这些格式中单花括号是字面文本。 |
+| 内联标记 | 它的 HTML 或 XML 标签与源值不同，或不成对（见下文） |
+| 退化 | 它是重复循环，或长度与源值相差悬殊 |
+| 为空 | 源值非空时，它为空或只有空白。清空译文是有意为之的操作：工作簿中的 `[[CLEAR]]` 特殊标记值可以做到（[用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation)）。 |
+
+候选译文违反多项检查时，只给出一个拒绝原因，即按以下顺序最先适用的那个：`empty`、`icu`（无法解析）、`placeholder`、`markup`、`icu`（分支）、`degenerate`。每个原因以及 verbatra 随之输出的详情，都列在[完整性拒绝原因](/zh-CN/docs/error-codes#integrity-refusal-reasons)中。
+
+门禁保证的是：被拒绝的值永远不会写入。它在运行摘要中显示为完整性不匹配，在锁文件（见[锁文件与来源记录](/zh-CN/docs/the-lock-file)）中保留原来的哈希，并在下次运行时重试。完全没有得到译文的键（提供商调用失败，或经过一次补救请求后该键仍然缺失）则报告为提供商失败，并以同样的方式重试。在源值一侧，自身值是无效 ICU 的键会在翻译前被单独挑出。
+
+门禁不保证的是：译文是否正确。它证明的是结构，不是含义。
+
+### 各目标语言的复数分支
+
+<AvailableFrom version="0.12.0" />
+
+ICU 复数为其语言的每个 CLDR 复数类别提供一个分支（[示例](/zh-CN/docs/language-support#复数)）。对 next-intl 和 ARB，verbatra 从 Node.js 内置的 CLDR 数据中读取目标语言的类别：
+
+- 向 LLM 提供商请求的正是这些分支（`plural` 用基数，`selectordinal` 用序数）。类别作为数据传递，所以注入边界不变。
+- 在每条写入路径上，门禁都会拒绝缺少必需分支、或保留了该语言没有的分支的 `plural` 或 `selectordinal`，并指出每个有误的分支。
+- `=0` 之类的精确值分支必须全部保留，译文可以再增加。`select` 分支是你代码中的键，所以译文必须保留与源值完全相同的 `select` 分支。
+- 对于 Node.js 没有复数规则的语言环境，只要求 `other`。
+
+这项检查出现之前写入的值（例如缺少 `many` 的法语复数）会一直保留，直到其源值更改；[`verbatra check --qa`](/zh-CN/docs/cli/check#质量检查) 现在可以找出它。
+
+### 内联标记一致性
+
+<AvailableFrom version="0.11.0" />
+
+被丢弃或损坏的内联标签（例如 i18next `Trans` 块中的 `<b>`、Android `<string>` 中转义的 `&lt;b&gt;`、gettext 中的 `<a href>`）会破坏渲染，所以门禁把标签名和属性名当作多重集来比较：
+
+- **拒绝**：被丢弃、多出或改名的标签；属性名集合有变化（包括添加 `dir`）；不成对或嵌套错误的内联标记；两个标签合并成一个。
+- **接受**：相同的标签但顺序不同；翻译过的属性值，例如 `title` 或 `alt`；把 `<br>` 写成 `<br/>`。
+- **受防护的值**：URL 属性必须保留其协议和主机（`/docs` 可以变成 `/de/docs`，但不能变成 `https://evil.example/docs`），`javascript:` URL 会被拒绝，`style`、事件处理器或 `<meta content>` 之类的值必须与源值完全一致。
+- **不翻译**：`script`、`style` 等元素的内容必须原样返回。要翻译这类标签周围的文本，请在正文中对该标签转义（`&lt;script&gt;`）。
+
+在原本没有内联标记的字符串中凭空多出内联标记，同样会被拒绝，而 `<Enter>` 这样普通的带尖括号的词会被当作文本。格式已经报告为占位符的标签，交给占位符检查处理。注释、原始文本和格式有误的源值，见 [`markup`](/zh-CN/docs/error-codes#markup)。
+
+## 审校标记
+
+第二层是建议性的，把可疑的结果标记出来交给人工处理。标记从不搁置任何键：值会照常写入、锁定，并放入审校队列。
+
+| 原因 | 标记这样的译文 |
+| --- | --- |
+| [`LENGTH_RATIO_OUTLIER`](/zh-CN/docs/error-codes#length_ratio_outlier) | 比源值短得多或长得多，按文字加权 |
+| [`MAX_LENGTH_EXCEEDED`](/zh-CN/docs/error-codes#max_length_exceeded) | 超过该键的 [`maxLength`](/zh-CN/docs/config-file#maxlength) 预算 <AvailableFrom version="0.11.0" /> |
+| [`EQUALS_SOURCE`](/zh-CN/docs/error-codes#equals_source) | 与源文本相同（忽略两端空白） |
+| [`GLOSSARY_TERM_MISSED`](/zh-CN/docs/error-codes#glossary_term_missed) | 未使用术语表规定的译法，或改动了不翻译的术语 |
+| [`GLOSSARY_FORBIDDEN_TERM`](/zh-CN/docs/error-codes#glossary_forbidden_term) | 使用了术语表禁用的译法 <AvailableFrom version="0.12.0" /> |
+| [`INTEGRITY_REORDERED`](/zh-CN/docs/error-codes#integrity_reordered) | 保留了每个占位符，但顺序不同 |
+| [`PROVIDER_DEGRADED`](/zh-CN/docs/error-codes#provider_degraded) | 来自提供商降级处理过的批次，例如丢掉了正式程度 |
+| [`FUZZY_CACHE_REUSE`](/zh-CN/docs/error-codes#fuzzy_cache_reuse) | 是[从相似的、已编辑的源值复用的](/zh-CN/docs/the-cache#模糊复用) <AvailableFrom version="0.11.0" /> |
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/zh-CN/docs/error-codes#foreign_placeholder_changed) | 丢掉或改动了形似占位符、但其[格式](/zh-CN/docs/formats)不做插值的记号，例如 i18next 中的 `{name}` <AvailableFrom version="0.12.0" /> |
+| [`BIDI_CONTROLS_CHANGED`](/zh-CN/docs/error-codes#bidi_controls_changed) | 留下未闭合的方向控制字符，或添加了会反转文本的覆盖字符 <AvailableFrom version="0.12.0" /> |
+
+DeepL、Google 和 LibreTranslate 会把这类记号遮蔽起来，无法遮蔽或还原的值则会被搁置（[`PLACEHOLDER_UNSUPPORTED`](/zh-CN/docs/error-codes#placeholder_unsupported)）；该标记针对的是 LLM 和人工译文。
+
+缓存命中和共用的值，与新翻译的值一样会被标记。被标记的键在运行摘要中显示为 `needsReview`，也出现在工作簿的审校列中，以及 Studio 的 **Review**（审校）页面上（见[在 Studio 中审校](/zh-CN/docs/review-in-studio)），直到有人批准、拒绝或重写该值（[审校决定](/zh-CN/docs/the-lock-file#审校决定)）。
+
+## token 预算
+
+`maxTokens` 统计一次运行中所有调用和语言环境的 token；`budgetBehavior: "stop"` 会在即将超出上限时搁置本次运行的其余部分，留到下次运行重试（[规则](/zh-CN/docs/config-file#maxtokens-与-budgetbehavior)）。
+
+预算保证的是：上限之前完成的工作保持写入并锁定，不会留下写了一半的内容。预算不保证的是：正在进行的请求可能比推算的花费更多；上限只约束一次运行（不约束一个 `watch` 会话）；Studio 或智能体发起的重新翻译不在其范围内。
+
+## 错误不会泄露信息
+
+提供商调用失败时，原始 SDK 错误（可能带有请求头或凭据）会被丢弃，从不记录或重新抛出。verbatra 改为抛出结构化错误：它带有稳定的[错误码](/zh-CN/docs/error-codes#provider-error-codes)和固定的错误信息，不含任何密钥。密钥脱敏见[数据处理与隐私](/zh-CN/docs/data-handling#api-密钥)。
+
+## 在哪里查看
+
+以上所有内容都是运行摘要（见 [RunSummary](/zh-CN/docs/sdk/run-summary)）中按语言环境划分的数据，并且某个语言环境的失败从不会中止其他语言环境。
+
+### 已提交的值
+
+<AvailableFrom version="0.12.0" />
+
+[`verbatra check --qa`](/zh-CN/docs/cli/check#质量检查) 会在不调用提供商的情况下，对已提交的值运行门禁和审校标记。
+
+## 相关内容
+
+- [运行的工作原理](/zh-CN/docs/how-it-works)：每项检查在流程中的位置。
+- [数据处理与隐私](/zh-CN/docs/data-handling)：哪些数据会离开你的机器。

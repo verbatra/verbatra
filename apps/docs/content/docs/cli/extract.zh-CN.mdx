@@ -1,0 +1,167 @@
+---
+title: verbatra extract
+seoTitle: "verbatra extract：在源代码中查找键"
+description: 扫描应用源代码中的翻译调用点，并把新键添加到源语言文件中。
+status: new
+type: reference
+---
+<AvailableFrom version="0.11.0" />
+
+从你的代码出发，而不是从语言文件出发。`extract` 遍历你配置的源代码根目录，找出其中的翻译调用点，并添加源语言文件中尚没有的每个键。这让 verbatra 也能用于尚未国际化的项目，并且不产生花费：不用提供商，不用 API 密钥，不发起网络请求。
+
+## 用法
+
+```bash
+verbatra extract [flags]
+```
+
+## 示例
+
+```bash
+# add every new key found in your source to the source locale file
+verbatra extract
+
+# preview the keys that would be added, write nothing
+verbatra extract --dry-run
+
+# machine-readable result for a CI step
+verbatra extract --json
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--dry-run` | 无 | 关闭 | 报告将要添加的内容，不写入任何文件 |
+
+还接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd`、`--config` 和 `--json`；`extract` 的 `roots` 从[项目根目录](/zh-CN/docs/config-file#工作目录与-env)开始解析。
+
+## 行为
+
+### 配置
+
+`extract` 由配置中的 [`extract` 块](/zh-CN/docs/config-file#extract)驱动。没有该块时运行失败，错误码为 `EXTRACT_NOT_CONFIGURED`，退出码为 `2`。对于 `i18next-json`，`verbatra init` 会在生成的配置中以注释形式写入该块；取消注释并调整 `roots` 即可。<AvailableFrom version="0.13.5" />
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/cli";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de", "fr"],
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+  extract: {
+    framework: "i18next",
+    roots: ["src"],
+  },
+});
+```
+
+### 它能找到什么
+
+`i18next` 框架读取 `.ts`、`.tsx`、`.js`、`.jsx`、`.mjs`、`.cjs`、`.mts` 和 `.cts` 文件中的 `t(...)`、`$t(...)` 和 `<object>.t(...)` 调用形式，每种形式也支持可选调用和显式类型参数列表。键是第一个参数；默认值是第二个参数，或选项对象上的 `defaultValue` 字段：
+
+```ts
+t("nav.home");                              // key only, written with an empty value
+t("nav.away", "Away");                      // positional default
+t("nav.help", { defaultValue: "Help" });    // default on the options object
+t?.("nav.back");                            // optional call
+t<string>("nav.next");                      // explicit type argument
+```
+
+注释、字符串和正则表达式都能被识别，所以注释中的调用点，或字符串内带引号的 `t(`，不会被收集。键和默认值都必须是一个完整的字面量：`t("user." + id)` 会被报告为动态键；拼接而成的默认值会添加该键但不带默认值，而不是写入被截断的值。路径段为空的键（`t("user.")`、`t(".lead")`、`t("a..b")`）会落到你的应用永远不会读取的无名子节点下，所以它也被报告为动态键。
+
+### 尚不解析命名空间
+
+带命名空间限定的键（例如 `t("common:nav.home")`）会被报告为动态键，并且从不写入：一份 verbatra 配置只对应一个消息目录文件，所以无法把它写到与你的 i18next 配置含义一致的位置。如果你的项目在每个调用点都指定命名空间，这次运行不会添加任何内容。目前 `extract` 适用于只保留一个命名空间、键不带前缀的项目。
+
+### 它写入什么
+
+只写入源语言文件，并且只写入真正新增的键：
+
+- 消息目录中已有的键保持原值不变；调用点上的默认值从不覆盖已有的编辑。
+- 消息目录中只以复数形式存在的键算作已存在：`t("cart.items", { count })` 在 `cart.items_one` 和 `cart.items_other` 旁边不会添加任何内容，gettext 的 `msgid_plural` 条目和 Android 的 `<plurals>` 资源同理。在不标记复数形式的格式（例如 YAML）中，每个以 i18next 复数后缀结尾的键都算作已存在。
+- 没有任何调用点提及的消息目录中的键保持不动。`extract` 从不删除；[`verbatra diff --unused`](/zh-CN/docs/cli/diff#未使用的源键) 会列出这些键。
+- 没有发现新内容的运行不写入任何内容，所以文件保持逐字节相同。
+- 从不写入目标语言文件。之后运行 [`verbatra translate`](/zh-CN/docs/cli/translate) 来补全新键。以空值添加的键会被跳过，直到你写入它的源文本，运行时会用 [`SOURCE_VALUE_EMPTY`](/zh-CN/docs/error-codes#source_value_empty) 指出它。
+
+`xliff` 和 `apple-xcstrings` 消息目录从不凭空创建：先创建源消息目录（`.xcstrings` 文件在 Xcode 中创建），之后 `extract` 会向其中追加。
+
+### 它报告而不是猜测的内容
+
+扫描无法解析的内容都会作为数据返回，所以一个有问题的文件不会中止整个运行。这些情况都不会改变退出码。
+
+| 报告为 | 情形 |
+| --- | --- |
+| `dynamic` | 键不是一个完整的静态字符串，或拼出了 verbatra 无法寻址的路径：变量、成员表达式、带表达式的模板字面量、拼接、带命名空间限定的键，或空路径段。它从不写入。 |
+| `conflicts` | 同一个键出现在两个调用点，默认值不同。两个值都不写入，所以消息目录从不依赖遍历顺序。 |
+| `withoutDefault` | 键以空值添加，因为它的调用点没有默认值。填写后再翻译。 |
+| `diagnostics` | 某个文件或目录无法读到末尾：它已消失、超过 2,000,000 字节的限制、扫描在其上失败，或者未终止的注释、模板字面量、JSX 元素或字符串使其余内容被放弃。在那一点之前读到的内容仍会报告。 |
+
+### 扫描边界
+
+配置的 `roots` 之外的内容一律不读取。`node_modules`、`.git`、`.next`、`.turbo`、`.verbatra`、`dist`、`build` 和 `coverage` 始终被跳过，`extract.exclude` 可以加入你自己的目录名，符号链接不会被跟随。结果只包含键、值以及文件和行位置，从不包含源文件的内容。
+
+### JSON 输出
+
+Schema：[`extract-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/extract-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+使用 `--json` 时，[信封](/zh-CN/docs/cli/output#json-输出)包含一个结果：
+
+```ts
+interface ExtractResult {
+  sourcePath: string;          // the source locale file, relative to the project root
+  scannedFiles: number;
+  added: { key: string; value: string; file: string; line: number }[];
+  existingKeys: number;        // keys found that were already in the catalog
+  withoutDefault: string[];
+  dynamic: { file: string; line: number }[];
+  conflicts: { key: string; values: string[]; locations: { file: string; line: number }[] }[];
+  diagnostics: { file: string; reason: "unreadable" | "too-large" | "unparseable" | "unreadable-directory" }[];
+  written: boolean;            // false for a dry run and for a run that added nothing
+  dryRun: boolean;
+}
+```
+
+### 终端反馈
+
+<AvailableFrom version="0.12.0" />
+
+摘要输出到 stdout。在 stderr 上，一行加载动画（spinner）统计已扫描的文件；添加了键时，提示建议运行 `verbatra translate`，使用 `--dry-run` 之后则提示去掉该选项再运行同样的 extract。`--quiet` 会去掉 stderr 的输出行：
+
+```text output
+verbatra: scanning the source... done (0.6s)
+verbatra extract
+  42 files scanned, 18 keys already present
+  added 3 keys to locales/en.json
+  new keys (3):
+    nav.home  src/components/Nav.tsx:14
+    nav.away  src/components/Nav.tsx:15
+    cart.empty  src/routes/cart.tsx:31
+  dynamic keys (1):
+    src/routes/product.tsx:88
+next: verbatra translate (translate the new keys)
+```
+
+每个列表显示 10 行，之后是 `and N more`。摘要还可能列出 `written with an empty value`、`conflicting defaults` 和 `skipped` 文件；试运行会显示 `would add`，并以 `dry run, nothing written` 结束。
+
+颜色、加载动画以及控制它们的变量，见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 扫描已运行，无论发现了什么 |
+| `2` | 无法运行：用法错误、没有 `extract` 块、无法解析格式、源消息目录无法解析，或源消息目录无法写入 |
+
+没有退出码 `1`：动态调用点和相互冲突的默认值是检查结果，不是失败。每个命令都遵循的约定见[退出码](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [从源代码中提取键](/zh-CN/docs/extract-keys)讲解了从调用点到已翻译键的完整工作流程。
+- [配置文件](/zh-CN/docs/config-file#extract)记录了 `extract` 块。
+- 新键出现后，[`verbatra translate`](/zh-CN/docs/cli/translate) 会补全目标语言环境。
+- [`verbatra types`](/zh-CN/docs/cli/types) 为 TypeScript 声明这些键。
+- [`verbatra check`](/zh-CN/docs/cli/check) 报告新键造成的漂移。
+- [SDK](/zh-CN/docs/sdk/inspect#extract) 以 `extract()` 提供同样的功能。

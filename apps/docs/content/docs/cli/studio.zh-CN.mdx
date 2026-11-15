@@ -1,0 +1,110 @@
+---
+title: verbatra studio
+seoTitle: "verbatra studio：打开本地审校仪表盘"
+description: "启动本地的翻译仪表盘 Verbatra Studio，在浏览器中查看项目状态并处理审校队列；除非你允许，否则不产生花费。"
+type: reference
+---
+启动 Verbatra Studio，一个基于你的项目的本地网页仪表盘：包括覆盖率、上次运行和含费用的运行历史记录 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> 的概览，翻译状态和键列表，审校队列，术语表，以及你解析后的设置；它们都实时读取磁盘上的文件，包括 `.verbatra-local/run-history.jsonl`。编辑语言文件和文件形式的术语表开箱即用；只有提供商的花费需要主动开启，由 `--allow-spend` 控制。
+
+<AvailableFrom version="0.5.0" />
+
+## 用法
+
+```bash
+verbatra studio [flags]
+```
+
+## 示例
+
+```bash
+# 在默认端口启动 Verbatra Studio
+verbatra studio
+
+# 启用调用提供商的操作，并指定端口
+verbatra studio --allow-spend --port 6000
+
+# 让浏览器智能体操作审校功能
+verbatra studio --expose-agent-tools
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--port` | `<n>` | `5849` | 监听该端口；必须是 1 到 65535 的整数 |
+| `--allow-spend` | 无 | 关闭，或 `VERBATRA_STUDIO_ALLOW_SPEND` | 允许 Studio 调用翻译提供商（重新翻译某个键、翻译待处理的更改） |
+| `--expose-agent-tools` | 无 | 关闭，或 `VERBATRA_STUDIO_AGENT_TOOLS` | 把 Studio 的审校操作注册为 WebMCP 工具，让浏览器 AI 智能体可以操作它们 |
+| `--verbose` | 无 | 关闭 | 同时为每个请求在 stderr 输出一行，其中的会话令牌已脱敏 |
+
+同时接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd` 和 `--config`。
+
+## 行为
+
+### 输出的 URL
+
+启动之前，`studio` 会加载[环境文件](/zh-CN/docs/cli#环境文件)，并解析一次你的配置；配置错误会在任何服务器启动之前以退出码 `2` 退出。Studio 只绑定到 `127.0.0.1`，开始监听之后，在 stdout 上输出一行：
+
+```
+Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
+```
+
+打开这个确切的 URL。令牌只在第一次加载页面时作为 `?token=` 被接受：服务器检查它，设置一个 HttpOnly 会话 cookie，并重定向到 `/`。之后的每个请求都需要这个 cookie。令牌不是一次性的，因此 Studio 运行期间，把这个 URL 当作机密。端口绑定之前不会输出任何内容，所以启动失败时绝不会泄露令牌。
+
+绑定失败会在 stderr 上报告为 `verbatra: error [<code>] <message>`：另一个进程占用端口时是 `PORT_IN_USE`（传入 `--port <n>`，或停掉那个进程），套接字在 `127.0.0.1` 以外的地址上建立时是 `BIND_FAILED`。
+
+当语言文件、锁文件、来源记录文件或限制文件更改时，每个页面都会实时刷新（[在 Studio 中审校](/zh-CN/docs/review-in-studio#翻译待处理的更改)描述了弹出提示）；历史文件更改、标签页重新获得焦点或一次运行返回时，**Run history and cost**（运行历史记录与费用）会重新读取。
+
+### 导航与链接
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Overview**（概览）、**Translations**（翻译）、**Review**（审校）、**Glossary**（术语表）和 **Settings**（设置）是页眉中的链接，宽度低于 1280px 时用菜单抽屉。页眉搜索会打开按你输入内容过滤的 Translations，主题按钮在系统、浅色和深色之间循环。Translations 和 Review 把状态保存在地址中，因此你可以链接到它们：`#/translations?locale=de&status=missing&key=nav.title&q=text`（`status` 可以重复）和 `#/review?locale=de`。
+
+### stderr 上输出什么
+
+<AvailableFrom version="0.12.0" />
+
+URL 那一行是 stdout 上唯一的输出。在它之后，stderr 说明哪些功能已开启，以及如何开启尚未开启的功能：
+
+```text output
+verbatra: spend tools off (pass --allow-spend to retranslate from Studio)
+verbatra: agent tools off (pass --expose-agent-tools to register them)
+```
+
+在提供商为 `none` 时使用 `--allow-spend`，第一行显示为 `verbatra: spend tools off (provider none)`。在交互式终端上，还会输出 `verbatra: press Ctrl-C to stop`，并在关闭之后输出 `verbatra: Studio stopped`。`--verbose` 为每个请求转发一行（例如 `GET / 200`，或带 RPC 方法名、绝不带其参数的 `POST /rpc status.check 200`）；Studio 自己的启动行始终被丢弃。`--quiet` 只保留 URL 那一行。仪表盘的批量操作因意外的服务器错误而停止时输出的 `verbatra: studio error: ...` 行，即使在 `--quiet` 下也始终出现。见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+### 花费与智能体工具
+
+<AvailableFrom version="0.2.0" pkg="@verbatra/studio" />
+
+没有 `--allow-spend` 时，Studio 读取 `VERBATRA_STUDIO_ALLOW_SPEND`；`--expose-agent-tools` 同样回退到 `VERBATRA_STUDIO_AGENT_TOOLS`。对两者来说，`1`、`true`、`yes` 或 `on`（不分大小写，忽略两端空格）都算开启，且选项始终优先于变量。两者都没有时，Studio 从不联系提供商。Studio 会先加载[环境文件](/zh-CN/docs/cli#环境文件)，因此两个变量都可以放在 `.env.local` 或 `.env` 中。
+
+来自智能体的花费需要两个选项同时开启；开启其中一个不会自动开启另一个。配置为 `provider: { id: "none" }` 时，按策略禁用机器翻译，因此即使有 `--allow-spend`，Studio 也不允许花费，**Settings** 页面会说明这一点。工具目录和安全模型见[用浏览器智能体操作 Studio](/zh-CN/docs/agent-tools-in-studio)。
+
+### 安装
+
+`@verbatra/studio` 是独立的包，通过动态导入加载，因此没有它，CLI 的其余部分也能工作。用 `npm install --save-dev @verbatra/cli @verbatra/studio` 把它与 CLI 一起安装。没有它时，`verbatra studio` 以退出码 `2` 退出，并输出：
+
+```
+Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: npm install --save-dev @verbatra/studio, or run both without installing with: npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio
+```
+
+使用 pnpm 时，这个安装能成功，但会报告 `ERR_PNPM_IGNORED_BUILDS` 并以退出码 `1` 退出，还会留下一个尚待处理的 `pnpm-workspace.yaml`；一次性的解决办法见[故障排查](/zh-CN/docs/troubleshooting)。npm 和 yarn 没有这个问题。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 被一次中断（Ctrl-C 或 SIGTERM）正常停止 |
+| `1` | 停止失败：关闭过程中，关闭服务器时抛出了错误 |
+| `2` | 无法启动：配置错误、未安装 `@verbatra/studio`、端口被占用，或 `--port` 无效（`INVALID_PORT`） |
+| `130` | 关闭过程中被第二次中断强制停止 |
+
+每个命令遵循的约定见[退出码](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [在 Studio 中审校](/zh-CN/docs/review-in-studio)介绍 **Overview** 和 **Translations** 页面、审校队列，以及用 `--allow-spend` 重新翻译。
+- [在 Studio 中查看已更改的文件](/zh-CN/docs/changes-in-studio)列出与上次提交不同的语言文件，以及每个文件中更改的键。
+- [用浏览器智能体操作 Studio](/zh-CN/docs/agent-tools-in-studio) 涵盖 `--expose-agent-tools` 和 WebMCP 工具接口。
+- [`verbatra check`](/zh-CN/docs/cli/check) 和 [`verbatra diff`](/zh-CN/docs/cli/diff) 与 Studio 实时显示的是同样的计算。

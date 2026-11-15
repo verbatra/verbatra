@@ -1,0 +1,89 @@
+---
+title: 添加语言
+seoTitle: "为 verbatra 项目添加新的目标语言"
+description: 只改一行配置并运行一次 translate，就能为现有 verbatra 项目添加新的目标语言环境，现有语言环境不受影响。
+type: how-to
+---
+项目已经翻译成若干种语言，想再加一种时，按本页操作。只需改一行配置并运行一次。verbatra 会把新语言环境视为缺失所有键并补全；现有语言环境不产生费用，因为锁文件仍把它们记录为最新。
+
+你需要一个可用的项目：一份配置、一个源语言文件和一个提供商的密钥。还没有的话，先看[快速上手](/zh-CN/docs/quickstart)。
+
+## 把语言环境加入配置
+
+把代码加入 `verbatra.config.ts` 的 `targetLocales`：
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/cli";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de", "fr"], // [!code highlight]
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+});
+```
+
+### 语言环境代码规则
+
+<AvailableFrom version="0.12.0" />
+
+代码使用 BCP 47 写法，带连字符：写 `pt-BR`，不写 `pt_BR`。如果你的文件使用下划线，仍然写 `pt-BR`，并把 `files.localeStyle` 设为 `posix`，verbatra 会保留 `pt_BR.json` 这个文件名。加载配置时，无效的代码、源语言环境，以及只有大小写不同的两个代码都会被拒绝。完整规则见[语言环境代码](/zh-CN/docs/config-file#语言环境代码)。运行 [`verbatra doctor`](/zh-CN/docs/cli/doctor) 可查看提供商是否支持新语言。
+
+## 预览工作量
+
+产生任何花费之前，先看一次运行会做什么：
+
+```bash
+verbatra diff --locales fr
+```
+
+新语言环境还没有文件，所以每个源键都列为缺失。省略 `--locales`，可以确认其他语言环境没有列出任何内容。`diff` 不调用提供商，也不写入任何文件。要看费用数字，运行 `verbatra translate --estimate`，详见[运行前估算费用](/zh-CN/docs/estimating-cost)。
+
+## 翻译
+
+```bash
+verbatra translate
+```
+
+这次运行会把每个源键翻译到新语言环境，并按 `files.pattern` 写入文件，这里是 `locales/fr.json`。只有新语言环境会触发提供商调用：其他语言环境相对锁文件基线没有缺失或已更改的键，所以不会发送任何内容。
+
+如果这次运行没有为新语言环境保留任何内容（每个键都没通过检查、提供商请求都失败了，或 token 预算搁置了它们），就不会创建文件。这些键保持缺失，下次运行会重试。
+
+之后，当所有语言环境（包括新加的这个）都已同步时，`verbatra check` 以退出码 `0` 结束。
+
+## 复数类别更多的语言
+
+有些语言需要的复数形式比源语言更多。英语有 `one` 和 `other`，波兰语需要 4 种，阿拉伯语需要 6 种，法语还多一个 `many`。默认情况下，verbatra 只翻译源语言已有的形式，不会臆造其他形式：运行成功，并报告 `PLURAL_CATEGORIES_INCOMPLETE` 通知，列出缺少的部分。
+
+### 生成缺失的形式
+
+<AvailableFrom version="0.3.0" />
+
+如果你用 i18next JSON 和 LLM 提供商，可以让 verbatra 写出缺失的形式：
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  generatePlurals: true,
+});
+```
+
+生成的形式与其他译文一样要通过完整性检查。
+
+### 来自 CLDR 的形式
+
+<AvailableFrom version="0.12.0" />
+
+一种语言需要哪些形式，取决于 Node.js 内置的 CLDR 复数规则，所有语言都适用，序数也包括在内。ICU 格式（next-intl 和 ARB）把整个复数放在一个值里，因此无需生成：向提供商请求的正是目标语言使用的分支。哪些情况回退到通知，见 [`generatePlurals`](/zh-CN/docs/config-file#generateplurals)；verbatra 如何判断一种语言需要哪些形式，见[复数](/zh-CN/docs/language-support#复数)。
+
+## 只维护源语言
+
+从现在起，你只编辑源语言环境。在其中添加一个字符串，再次运行 `translate`：verbatra 会把它补全到每个目标语言环境，包括你刚添加的这个。
+
+## 相关内容
+
+- [`verbatra translate`](/zh-CN/docs/cli/translate) 和 [`verbatra diff`](/zh-CN/docs/cli/diff)：本页用到的所有选项。
+- [配置文件](/zh-CN/docs/config-file#语言环境与文件)：`targetLocales`、`files.pattern` 和 `files.localeStyle`。
+- [语言与语言环境](/zh-CN/docs/language-support)：各提供商覆盖哪些语言、文字、地区变体和从右到左的文本。
+- [锁文件与来源记录](/zh-CN/docs/the-lock-file)：为什么再次运行时现有语言环境不产生费用。

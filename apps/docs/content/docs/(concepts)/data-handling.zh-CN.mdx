@@ -1,0 +1,135 @@
+---
+title: 数据处理与隐私
+seoTitle: "verbatra CLI 的数据处理与隐私"
+description: verbatra 会把哪些数据从你的机器发出去、发给谁、在本地保留什么，方便安全或法务审查据此放行。
+type: concept
+---
+说明 verbatra 的 CLI、SDK、Studio 和 MCP 服务器会从你的机器或 CI 发出哪些数据。本网站本身另有[隐私政策](/privacy)。
+
+## 简要回答
+
+- **没有遥测**，没有更新检查，也没有需要联系的 verbatra 服务器。
+- **只有一个出站目标：你的提供商**，且仅在命令执行翻译时才会访问；设为 `provider: { id: "none" }` 时不会访问任何目标。其余一切都留在本地。
+- **只发送需要翻译的内容**：不发送未更改的键、缓存命中、受保护的键和固定的键（`humanEdits: "suggest"` 下已过期的人工编辑除外）。
+- **API 密钥只来自环境变量**，绝不会出现在任何输出信息中。
+
+## 数据如何流动
+
+```text
+ your project (local disk)                               provider (only on translate, watch,
+                                                         SDK retranslateEntry, or a Studio /
+ +-----------------------------------------+             MCP retranslate or translate-pending)
+ | locale files, verbatra.config.ts,       |   HTTPS     +--------------------------+
+ | glossary          -- read by verbatra --|------------>| Anthropic / OpenAI /     |
+ |                                         |  changed    | Gemini / DeepL / Google  |
+ | verbatra.lock.json, provenance file,    |  strings    | or your own server       |
+ | verbatra.cache.json, .verbatra-local/   |<------------| (self-hosted)            |
+ |                 -- written by verbatra  | translations+--------------------------+
+ +-----------------------------------------+
+        |                        |
+        | 127.0.0.1 only         | stdio
+        v                        v
+  Studio in your browser   MCP client (your AI agent)
+```
+
+箭头代表 HTTPS，只有 [`openai-compatible`](/zh-CN/docs/providers#openai-compatible) 和 [`libretranslate`](/zh-CN/docs/providers#libretranslate) 可以对你自己的 `baseUrl` 使用普通 http。
+
+## 何时发出请求
+
+只有图中的命令会调用提供商；Studio 和 MCP 中的这类操作需要 [`--allow-spend`](/zh-CN/docs/cli/mcp#付费工具)。其余一切都在本地完成，包括试运行和估算，唯一的例外是 [`verbatra doctor --live`](/zh-CN/docs/cli/doctor)：它会获取 DeepL、Google 或 LibreTranslate 的语言列表，不发送任何字符串。
+
+`translate` 运行只发送相对于锁文件（见[锁文件与来源记录](/zh-CN/docs/the-lock-file)）缺失或已更改的键，去掉[翻译缓存](/zh-CN/docs/the-cache)命中的键，相同的文本只发送一次。你的 DNS 解析器能看到提供商的主机名。
+
+## 各提供商收到什么
+
+| 提供商 | 发送的内容 | 发送到哪里 |
+| --- | --- | --- |
+| `anthropic`、`openai`、`gemini`、`openai-compatible` | 每个键：键名、源文本，以及源文件携带的说明或含义。每次请求：源语言环境和目标语言环境的代码（经过 [`localeMap`](/zh-CN/docs/providers#发送给提供商的语言环境代码) 处理后）及其英文名称、你的 `tone`、目标语言环境的术语表条目、批次含复数时目标语言环境的复数类别、verbatra 的固定指令、模型名称和输出 token 上限。 | `api.anthropic.com`、`api.openai.com`、`generativelanguage.googleapis.com`，或你配置的 `baseUrl`。[`*_BASE_URL`](/zh-CN/docs/network-policy#托管提供商) 会重定向托管的那几个。 |
+| `opencode` | 与第一行相同。 | `opencode.ai`，固定的端点，任何 `*_BASE_URL` 都不会重定向它。 |
+| `deepl` | 每个键的源文本，占位符[已遮蔽](/zh-CN/docs/providers#deepl) <AvailableFrom version="0.12.0" />，语言环境代码，使用付费密钥且 `tone` 要求时的正式程度设置，以及你的 `glossaryId`。不发送键名、说明或术语表条目。 | `api.deepl.com`，密钥以 `:fx` 结尾时是 `api-free.deepl.com`。 |
+| `google-translate` | 每个键的源文本，占位符[已遮蔽](/zh-CN/docs/providers#google-cloud-translation) <AvailableFrom version="0.12.0" />，以及语言环境代码。 | `translation.googleapis.com` |
+| `libretranslate` | 每个键的源文本，占位符[已遮蔽](/zh-CN/docs/providers#libretranslate)（含 ICU 语法的值不发送），语言环境代码，以及已设置时的 `LIBRETRANSLATE_API_KEY`。 | 你配置的 `baseUrl`。 |
+| `none` | 无。 | 无。 |
+
+服务商的 SDK 还会发送标明库、操作系统和 Node.js 版本的请求头。你的 API 密钥只发往配置的端点（`google-translate` 把它放在 `?key=` 查询字符串中发送）。
+
+## 敏感内容防护
+
+<AvailableFrom version="0.12.0" />
+
+`sensitiveData` 会在任何请求之前，扫描上表中要发送的内容。它的检测器、`patterns` 和 `allow` 见[所有配置项](/zh-CN/docs/config-file#所有配置项)。`email` 检测器会跳过 `example.com`、`example.org`、`example.net`（及其子域名），以及 `.example`、`.test`、`.invalid` 或 `.localhost` 下的域名。模式如果重复了含量词或分支的分组、含有多个 `*`、`+` 或 `{n,}`，或者分支过多，就会被拒绝。扫描只读取字段的前 2,000 个字符，1 秒后停止；超时算作一条检查结果（`pattern-timeout-<n>`）。
+
+| `mode` | 作用 |
+| --- | --- |
+| `warn` | 照常发送；通知中会列出相关的键。 |
+| `block` | 搁置该键，因此该语言环境最终为 `partial`。 |
+| `redact` | 为值中的每处匹配发送一个标记，并在返回后还原该匹配；说明或含义中的匹配以 `[redacted]` 发送。键名中的匹配、扫描超时，或没有恰好返回一次的标记，都会使该键搁置。在 DeepL、Google 和 LibreTranslate 上，标记就是占位符，因此无法保护的值会被搁置（`PLACEHOLDER_UNSUPPORTED`）。 |
+
+`block` 和 `redact` 还会丢弃匹配的术语表条目。`verbatra init` 为机器翻译提供商写入 `warn`。遇到误报时，把该文本加入 `allow`，或去掉对应的检测器。[`verbatra check --sensitive`](/zh-CN/docs/cli/check#敏感内容) 无需密钥就能运行这项扫描。扫描无法识别自由文本中的姓名。
+
+## 服务商数据保留与数据处理条款
+
+数据保留由服务商和你的合同决定。引文截至 2026 年 9 月。
+
+| 提供商 | 服务商的说法 | 数据处理条款 |
+| --- | --- | --- |
+| Anthropic | “For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation”（[数据保留](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)）。“By default, we will not use your inputs or outputs from our commercial products [...] to train our models”（[训练](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)）。零数据保留按组织设置（[详情](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)）。 | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
+| OpenAI | “data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us)”；“abuse monitoring logs are generated for all API feature usage and retained for up to 30 days, unless longer retention is required by law”。零数据保留和 Modified Abuse Monitoring“are subject to prior approval by OpenAI”，而 verbatra 调用的端点 `/v1/chat/completions` 被列为符合条件（[你的数据](https://developers.openai.com/api/docs/guides/your-data)）。 | [Data Processing Addendum](https://openai.com/policies/data-processing-addendum/) |
+| Gemini | 在免费套餐（Unpaid Services）上，“human reviewers may read, annotate, and process your API input and output”，条款还要求不要提交“sensitive, confidential, or personal information”。在 Paid Services 上，“Google doesn't use your prompts [...] or responses to improve our products”，并“for a limited period of time, solely for detecting and preventing violations of the Prohibited Use Policy”记录它们。在 EEA、瑞士和英国，Paid Services 条款适用于所有使用，免费套餐也包括在内（[Gemini API terms](https://ai.google.dev/gemini-api/terms)）。verbatra 既不使用 grounding，也不使用显式缓存，而 Google 的[零数据保留](https://ai.google.dev/gemini-api/docs/zdr)页面把这两者排除在外。 | [Processor terms](https://business.safety.google/processorterms/)，即 Gemini API 条款为 Paid Services 指定的条款 |
+| DeepL | 对 DeepL API Free，[隐私政策](https://www.deepl.com/en/privacy)写道：“We process the content you upload and their translations or improvements for a limited period of time to train and improve our neural networks and algorithms.”对 Pro，“your texts will not be used to improve the quality of our services”，并且“After complete performance of the contractually agreed services all submitted texts or documents and their translations or improvements will be deleted.” | Data Processing Agreement，见 [DeepL Pro terms](https://www.deepl.com/en/pro-license) 中的引用 |
+| Google Cloud Translation | “text is held briefly in-memory in order to perform the translation and return the results to you”，并且“Google does not use the content you send to train and improve our Google Translation features”（[数据使用](https://docs.cloud.google.com/translate/data-usage)）。 | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
+| OpenCode | 由 OpenCode 及其转发到的模型提供商决定；发送机密字符串之前，请先阅读它的[隐私政策](https://opencode.ai/legal/privacy-policy)。 | [Terms of Service](https://opencode.ai/legal/terms-of-service) |
+| openai-compatible、LibreTranslate | 取决于你自己的服务器。 | 你自己的条款 |
+
+## 把字符串留在内部
+
+| 方案 | 用法 |
+| --- | --- |
+| 不用机器翻译 | [不用机器翻译运行](/zh-CN/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
+| 你自己的模型 | 把 [`openai-compatible`](/zh-CN/docs/providers#openai-compatible) 与 Ollama、LM Studio 或 vLLM 搭配 |
+| 不用语言模型的机器翻译 | [`libretranslate`](/zh-CN/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
+| 强制执行 | `local-only` 网络策略（[限制网络访问](/zh-CN/docs/network-policy)），在 CI 中固定 <AvailableFrom version="0.12.0" /> |
+
+## 本地写入的内容
+
+| 文件 | 内容 | 是否提交 |
+| --- | --- | --- |
+| 语言文件 | 译文 | 是 |
+| `verbatra.lock.json` | 每条译文所依据的源字符串的哈希 | 是 |
+| `verbatra.provenance.json` | 每个键的写入路径、值背后的提供商和模型，以及任何审校决定和审校人员姓名；不含译文和时间戳 | 是 |
+| `verbatra.limits.json` | 每个键的长度限制 <AvailableFrom version="0.13.0" /> | 是 |
+| `verbatra.cache.json` | 源文本及其译文，按提供商、模型、语气、术语表和 `localeMap` 区分 | 否，`verbatra init` 会把它加入 gitignore |
+| `.verbatra-local/` | 上次运行的状态、审校标记和 token 用量，运行历史（各类计数、用量、费用）<AvailableFrom version="0.13.0" />，生成的伪语言环境，以及记录持有者主机名和 PID 的写锁 | 否，已加入 gitignore |
+| `.env`、`.env.local` | 你的 API 密钥（如果你放在这里） | 绝不提交，`verbatra init` 会把两者都加入 gitignore |
+
+## API 密钥
+
+提供商错误和 CLI 输出会把每个已知的[密钥变量](/zh-CN/docs/providers#密钥来自环境变量)中长度不少于 8 个字符的值，以及任何形如 API 密钥的内容，替换为 `[REDACTED]`。
+
+## Studio 与 MCP
+
+**Studio** 只绑定 `127.0.0.1`，使用会话令牌（见 [verbatra studio](/zh-CN/docs/cli/studio)），拒绝其他 `Host` 或 `Origin`，其 Content-Security-Policy 会阻止向互联网发起请求。
+
+**MCP 服务器**通过 stdio 通信，不打开任何端口。它的只读工具返回字符串、术语表和状态；[`--redact-values`](/zh-CN/docs/cli/mcp#redacted-values) 会对值脱敏。`history.list` 和 `history.keyRevisions` 会给出每次提交的作者姓名（`--redact-values` 下不会），绝不给出邮箱。
+
+MCP 客户端，或使用 Studio 的 `--expose-agent-tools` 的浏览器智能体，会按该服务商的条款，把读到的内容发送给它的 AI 模型。Studio 的智能体工具从不脱敏。
+
+## AI 生成的译文与来源记录
+
+欧盟《AI 法案》的透明度规则（[第 50 条](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)）是否适用，由你的法务顾问判断。verbatra 会为每个机器翻译的值[记录](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)背后的提供商和模型。
+
+### 审计文件
+
+<AvailableFrom version="0.12.0" />
+
+`verbatra report provenance --json` 会把该记录转换成逐键的审计文件（见[记录机器翻译证据](/zh-CN/docs/provenance-evidence)）。
+
+## DPA（数据处理协议）或 NDA（保密协议）审查清单
+
+1. 先决定字符串能否离开你的网络；如果不能，就[把字符串留在内部](#把字符串留在内部)。
+2. 对托管提供商，使用付费套餐（[服务商条款](#服务商数据保留与数据处理条款)），并签署它的数据处理条款。
+3. 运行 `verbatra check --sensitive`。
+4. 把 API 密钥放在密钥库或已加入 gitignore 的 `.env` 中，并运行 `verbatra doctor`。
+5. 决定哪些 AI 智能体可以使用 Studio 或 MCP 服务器，以及它们是否需要 `--redact-values`。
+6. 提交 `verbatra.provenance.json`，并为每个发布版本归档 `verbatra report provenance --json`。
+7. 附上每台主机的 [`verbatra doctor --data-flow --json`](/zh-CN/docs/cli/doctor#数据流向) 清单。

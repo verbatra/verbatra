@@ -1,0 +1,103 @@
+---
+title: 限制网络访问
+seoTitle: "限制翻译提供商的网络访问"
+description: 限制翻译提供商可以连接哪些主机，让纯本地部署由 verbatra 强制执行，而不是只靠约定。
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+字符串必须留在你自己的网络内时使用本页，例如通过 `openai-compatible` 接入自托管模型，或通过 `libretranslate` 接入 LibreTranslate 服务器。否则，拼错的 `baseUrl`、意外残留的 `OPENAI_BASE_URL` 或切换到托管提供商，都会把字符串发送到公共端点。设置网络策略后，verbatra 会在任何请求离开本机之前，拒绝策略不允许的主机。请求包含哪些内容见[数据处理与隐私](/zh-CN/docs/data-handling)。
+
+## 设置策略
+
+在配置中添加 `network` 块（参考中的 [`network`](/zh-CN/docs/config-file#network)）：
+
+```ts title="verbatra.config.ts"
+network: {
+  policy: "local-only",
+}
+```
+
+| 策略 | 允许 |
+| --- | --- |
+| `any` | 所有主机；未设置 `network` 块时的默认值 |
+| `local-only` | 回环地址（`127.0.0.0/8`、`::1`，以及仅解析到回环地址的 `localhost` 或 `*.localhost`）、私有 IPv4（`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`）、唯一本地 IPv6（`fc00::/7`）和 `allowedHosts` |
+| `allowlist` | 仅 `allowedHosts` 中列出的主机，至少要有一个条目 |
+
+每个 `allowedHosts` 条目可以是主机名（`llm.internal`，不区分大小写）、通配符（`*.corp.example`，只匹配子域名，`*.` 后至少有两个标签）、IP 地址，或 CIDR 范围，例如 `100.64.0.0/10`。不要写协议、端口或路径。加载配置或环境时，大于 255 的八位组、长于地址的前缀（超过 `/32` 或 `/128`）和格式错误的 IPv6 地址都会被拒绝。
+
+`local-only` 不包含链路本地地址（`169.254.0.0/16`，其中有云元数据地址，以及 `fe80::/10`）、运营商级 NAT 范围 `100.64.0.0/10`，以及 `0.0.0.0` 和 `::`。如果你的服务器监听 `0.0.0.0`，把 `baseUrl` 指向 `127.0.0.1`；如果你使用 VPN 地址范围，把它列入 `allowedHosts`。
+
+## 托管提供商
+
+在 `local-only` 下，`anthropic`、`openai`、`gemini`、`deepl`、`google-translate` 和 `opencode` 会被拒绝，因为它们的端点是公开的。要允许其中一个，列出它的主机：
+
+```ts title="verbatra.config.ts"
+network: {
+  policy: "local-only",
+  allowedHosts: ["api.deepl.com"],
+}
+```
+
+这些主机是 `api.anthropic.com`、`api.openai.com`、`generativelanguage.googleapis.com`、`api.deepl.com`（以 `:fx` 结尾的密钥用 `api-free.deepl.com`）、`translation.googleapis.com` 和 `opencode.ai`。如果设置了 `ANTHROPIC_BASE_URL`、`OPENAI_BASE_URL` 或 `GOOGLE_GEMINI_BASE_URL`，verbatra 会改为检查该端点。Vertex AI 模式下的 Gemini（`GOOGLE_GENAI_USE_VERTEXAI` 或 `GOOGLE_GENAI_USE_ENTERPRISE` 设为 `true`）在限制性策略下一律被拒绝。
+
+## 用环境变量固定策略
+
+要在 CI 中强制执行某个策略，而不管仓库的配置怎么写：
+
+```bash
+export VERBATRA_NETWORK_POLICY=local-only
+export VERBATRA_NETWORK_ALLOWED_HOSTS=gpu.lan,10.20.0.0/16
+```
+
+`VERBATRA_NETWORK_ALLOWED_HOSTS` 是以逗号分隔的 `allowedHosts` 条目列表。配置和环境都设置了策略时，主机必须同时满足两者，所以配置永远无法放宽环境所固定的限制。
+
+无法识别的值（例如 `local_only`），或只有主机列表而没有策略变量，会使运行以 [`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid) 失败，而不是放行所有主机。除提供商为 `none` 外，`translate --dry-run` 和 `--estimate` 也会检查这些变量。
+
+## 检查策略
+
+运行 [`verbatra doctor`](/zh-CN/docs/cli/doctor)：它会报告生效的策略、各部分的来源、提供商的主机，以及该主机是否被允许。它不解析任何名称，也不发送任何内容，`doctor --live` 获取的语言列表同样受该策略约束。
+
+主机被拒绝时，`translate`、启动时的 `watch`、Studio 和 MCP 中的重新翻译，以及 SDK 的 `retranslateEntry` 都会停止，报出 [`NETWORK_POLICY_VIOLATION`](/zh-CN/docs/error-codes#network_policy_violation)，退出码为 `2`，且发生在读取任何密钥之前。试运行和 `--estimate` 不调用提供商，所以不会被拒绝。
+
+## 了解请求何时检查
+
+第一次检查不解析任何名称，所以这次检查无法单凭名称归类的主机名（例如 `llm.internal`）会先通过。`anthropic`、`openai`、`gemini`、`google-translate`、`opencode`、`openai-compatible` 和 `libretranslate` 发出的每个请求，在发送前还会再检查一次：
+
+- 解析主机名，它解析到的每个地址都必须被允许；
+- 只跟随指向同源的 `307` 或 `308`，最多连续五次；指向其他任何源的重定向（包括从 `https` 到 `http`）会使请求失败。
+
+在这里被拒绝的请求，其子批次会以提供商错误 [`NETWORK_POLICY_VIOLATION`](/zh-CN/docs/error-codes#provider-network_policy_violation) 失败，错误只写明主机，且不会重试。
+
+## 限制
+
+- **DNS 重绑定**：名称先解析一次用于检查，再解析一次用于连接，所以返回不同结果的 DNS 服务器可以绕过检查。写 IP 地址，或把名称列入 `allowedHosts`：列入的名称无需解析即视为可信。
+- **DeepL 只检查一次**，在构造提供商之前检查，不按请求或重定向检查。
+- **代理**：在限制性策略下，提供商会用到的每个代理本身也必须被允许，写成 IP 地址或列出的名称。DeepL 使用 `HTTPS_PROXY`、`HTTP_PROXY` 和 `ALL_PROXY`，或它们的小写写法；其他提供商只有在设置 `NODE_USE_ENV_PROXY=1` 或 `--use-env-proxy` 时才使用它们。`NO_PROXY` 会被忽略。
+- **自定义提供商**：通过 SDK 的 `createProvider` 传入的提供商，在创建之前会被检查，并收到生效的策略；是否把它应用到自己的请求，由该代码决定。
+
+## 不用大语言模型的机器翻译
+
+有些 NDA（保密协议）禁止使用大语言模型（LLM），但接受在自有硬件上运行的传统机器翻译。[LibreTranslate](/zh-CN/docs/providers#libretranslate) 就是这样：一个带有 Argos Translate 模型的开源服务器。用你需要的语言运行它：
+
+```bash
+docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
+```
+
+然后把 verbatra 指向它，并固定网络：
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "libretranslate",
+  options: { baseUrl: "http://127.0.0.1:5000" },
+},
+network: { policy: "local-only" },
+```
+
+`verbatra doctor --locales --live` 会按已安装的模型检查每个目标语言环境。LibreTranslate 写入的值仍记录为来源 `machine`。
+
+## 相关内容
+
+- [`network`](/zh-CN/docs/config-file#network)：配置项。
+- [`verbatra doctor`](/zh-CN/docs/cli/doctor)：不翻译，只检查策略。
+- [数据处理与隐私](/zh-CN/docs/data-handling)：什么会离开本机，以及何时离开。

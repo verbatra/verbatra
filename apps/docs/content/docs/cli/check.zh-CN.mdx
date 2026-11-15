@@ -1,0 +1,262 @@
+---
+title: verbatra check
+seoTitle: "verbatra check：找出缺失和过期的键"
+description: "按语言环境报告哪些键缺失或过期，不写入文件也不调用提供商；任何语言环境不同步时让 CI 失败。"
+type: reference
+---
+按目标语言环境报告有多少键缺失、过期或已是最新，并以 CI 步骤可以据此判断结果的退出码退出。`check` 运行 [`verbatra translate`](/zh-CN/docs/cli/translate) 在调用提供商之前所做的读取和比对，然后停止：不调用提供商，不写入文件，不需要 API 密钥。
+
+## 用法
+
+```bash
+verbatra check [flags]
+```
+
+## 示例
+
+```bash
+# 译文漂移时让构建失败
+verbatra check
+
+# 两个语言环境的机器可读状态
+verbatra check --locales de,fr --json
+
+# 同时列出被翻译成多种译法的源字符串
+verbatra check --consistency
+
+# 占位符、内联标记和 ICU 损坏时失败，出现警告时也失败
+verbatra check --qa --strict
+
+# 机器译文还在等待批准时失败
+verbatra check --require-reviewed
+
+# 源中出现邮箱、API 密钥或银行卡号时失败
+verbatra check --sensitive
+
+# 检查编辑器或智能体刚更改的那一个文件
+verbatra check --file locales/de.json --json
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 所有已配置的目标 | 只检查这个以逗号分隔的子集；未配置的语言环境以 `UNKNOWN_LOCALE` 失败，空列表以 `INVALID_LOCALES` 失败，两者的退出码都是 `2` |
+| `--consistency` | 无 | 关闭 | 同时列出被翻译成多种译法的源字符串；仅作报告，见[一致性报告](#一致性报告) |
+| `--qa` | 无 | 关闭 | 同时对每条已提交的译文运行[质量检查](#质量检查)；出现错误时退出码为 `1` |
+| `--file` | `<path>` | 关闭 | 只检查这个语言文件，见[单个文件](#单个文件)；不能与 `--locales`、`--consistency`、`--require-reviewed` 或 `--sensitive` 同用 |
+| `--severity` | `error` 或 `warning` | `warning` | 与 `--qa` 或 `--file` 同用时，报告的最低严重级别 |
+| `--strict` | 无 | 关闭 | 与 `--qa` 或 `--file` 同用时，出现警告或[不完整的复数](#复数类别)时退出码也为 `1`；不能与 `--severity error` 同用 |
+| `--require-reviewed` | 无 | 关闭 | 机器编写的译文[尚未获批](#要求译文已审校)时，退出码也为 `1` |
+| `--sensitive` | 无 | 关闭 | 同时扫描源文件和术语表中的[敏感内容](#敏感内容)；出现任何检查结果时退出码为 `1` |
+
+同时接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd`、`--config` 和 `--json`。
+
+源中有、目标中没有的键是缺失的；其源字符串在上次翻译之后又更改的键是过期的。语言环境既无缺失也无过期时，即为同步。要查看计数背后的键列表，用 [`verbatra diff`](/zh-CN/docs/cli/diff)。
+
+## 行为
+
+纯文本输出：
+
+```text output
+verbatra check
+  de: 3 missing, 1 stale (1 protected), 38 up-to-date (out of sync)
+  fr: 0 missing, 0 stale, 42 up-to-date (in sync)
+out of sync (run verbatra translate to update)
+```
+
+### 一致性报告
+
+<AvailableFrom version="0.11.0" />
+
+`--consistency` 按目标语言环境，列出两个或更多键译法不同的每个源字符串：源文本、每种不同的译文，以及持有它的键。它从不更改退出码、值或审校队列。比较规则如下：
+
+- 比较的是经过 Unicode NFC 规范化、`\r\n` 折叠为 `\n`、并去掉首尾空白之后的值。内部空白和字母大小写都计入比较。
+- 只比较已是最新的键，与其自身的源相同的译文留给 `EQUALS_SOURCE` 处理。
+- 描述、含义、复数标志或 gettext `msgctxt` 不同的键，从不归为一组。
+- 复数形式按形式逐个比较：同一个键的 `one` 和 `other` 形式从不归到一起。
+
+已知的误报：i18next 的上下文变体（`invite_male`、`invite_female`），标有 `#, fuzzy` 的 gettext 条目，不支持复数的格式（`yaml`、`ngx-translate-json`、`xliff`、`properties`、`ini`、`resx`）中带复数风格的键，以及 `custom:` 格式的复数形式。给这样的键设置不同的描述或含义，或者忽略该检查结果。使用 `--json` 时，每个语言环境都带有 `inconsistencies: { source, context?, description?, meaning?, isPlural, pluralForm?, translations: [{ value, keys }] }[]`。
+
+### 受保护的键
+
+<AvailableFrom version="0.12.0" />
+
+由人工编写、导入或在 verbatra 之外更改的过期键，或匹配 `pinnedKeys` 的键，是 `translate` 留给人工处理的键（见[保留人工翻译](/zh-CN/docs/protecting-human-translations)）。`check` 仍会统计它，并显示其中受保护的数量，例如 `2 stale (1 protected)`。`--json` 在每个语言环境中用 `protected` 字段给出该数量；`verbatra.provenance.json` 不可读时，只统计固定的键。
+
+### 复数类别
+
+<AvailableFrom version="0.12.0" />
+
+每次 `check` 都会列出缺少目标语言所用 CLDR 复数类别的复数，例如只有 `one` 和 `other` 的波兰语 Android `<plurals>`：
+
+```text output
+plural categories (warning: exit 1 only under --qa --strict)
+  pl: 2 plurals missing CLDR categories
+    cart {count} plural: missing few, many
+    files: missing few, many
+```
+
+类别来自 Node.js 内置的 CLDR 规则（见[语言与语言环境](/zh-CN/docs/language-support#复数)）。检查的格式：
+
+| 格式 | 读取的复数形式 |
+| --- | --- |
+| `i18next-json` | `_one`、`_few` 等键后缀，以及按序数规则检查的 `_ordinal_` 复数 |
+| `android-xml` | 每个 `<plurals>` 的 `<item quantity>` 条目 |
+| `apple-strings` | `.strings` 文件旁边 `.stringsdict` 中的复数规则 |
+| `apple-xcstrings` | 每个语言环境的 `variations.plural` 类别 |
+| `next-intl-json`、`arb` | 每个 ICU `plural` 和 `selectordinal`，包括嵌套的 |
+
+`other` 始终是必需的。`=1` 这样的精确分支从不替代某个类别，`select` 分支从不检查，并且只检查目标中至少拥有一种形式的复数。它是警告：普通的 `check` 不会因此改变退出码，`--qa --strict` 则因它失败。[`verbatra doctor`](/zh-CN/docs/cli/doctor) 报告同样的复数。使用 `--json` 时，每个语言环境都带有按键排序的 `incompletePlurals`：
+
+```ts
+interface IncompletePlural {
+  code: "PLURAL_CATEGORIES_INCOMPLETE";
+  key: string;              // 基础键，或 ICU 消息的键
+  argument?: string;        // ICU 复数的参数，例如 count
+  ruleType: "cardinal" | "ordinal";
+  missing: ("zero" | "one" | "two" | "few" | "many" | "other")[]; // 按 CLDR 顺序
+}
+```
+
+### 质量检查
+
+<AvailableFrom version="0.12.0" />
+
+`--qa` 把翻译运行对提供商输出所做的检查，应用于语言文件中已有的值，无论是否过期，包括目标语言需要的额外复数形式。检查结果分两种严重级别：
+
+- **error**：该值未通过[完整性门禁](/zh-CN/docs/translation-safety#完整性门禁)，原因为 `placeholder`、`markup`、`icu`、`degenerate` 或 `empty`。详情把丢失的记号列为 `-{{name}}`，把多出的列为 `+{{nom}}`。
+- **warning**：该值带有一个[审校原因](/zh-CN/docs/translation-safety#审校标记)，由值、它的源和你的配置（术语表、`maxLength`）计算得出，因此不会有依赖提供商或缓存的原因；对 `FOREIGN_PLACEHOLDER_CHANGED`，检查结果的 `details` 会列出每个丢失或更改的记号，例如 `-{name}`。有错误的值不会再有警告。
+
+```text output
+qa: 1 error, 1 warning
+  de: 1 error, 1 warning in 42 values checked
+    greeting: error placeholder (-{{name}}, +{{nme}})
+    title: warning EQUALS_SOURCE
+```
+
+孤立的键和缺失的键会被跳过，不是有效 ICU 的源键在 `invalidSourceKeys` 下列出一次。受保护的、固定的和已拒绝的值与其他值一样接受检查。使用 `--json` 时，`result.qa` 保存总数，每个语言环境保存它自己的 `qa`：
+
+```ts
+interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: string[]; limitsNotice?: { code: "LIMITS_FILE_IGNORED"; message: string } }
+interface LocaleQaReport { checked: number; errors: number; warnings: number; findings: QaFinding[] }
+type QaFinding =
+  | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
+  | { key: string; severity: "warning"; reason: string; details?: string[] }; // 上面的审校原因之一
+```
+
+### 要求译文已审校
+
+<AvailableFrom version="0.12.0" />
+
+当某个值的[来源](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)是 `machine`、`memory`、`fuzzy` 或 `agent`，且未在已提交的 `verbatra.provenance.json` 中获得批准时，`--require-reviewed` 以退出码 `1` 失败；Studio（见[在 Studio 中审校](/zh-CN/docs/review-in-studio)）和 MCP 工具（见 [verbatra mcp](/zh-CN/docs/cli/mcp)）把决定记录在这个文件中。源文本更改之前、或值更改之前给出的批准不算数。
+
+```text output
+review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
+  de: 2 unreviewed: checkout.title, checkout.total
+  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json
+```
+
+使用 `--json` 时，`result.review` 是 `{ reviewed, unreviewed, code? }`，其中 `code` 是 `REVIEW_REQUIRED`，或在来源记录文件已损坏或来自更新版本的 verbatra 时是 `REVIEW_STATE_UNREADABLE`（此时门禁失败）。每个语言环境带有 `review.unreviewed`，即按源顺序排列的键。
+
+### 敏感内容
+
+<AvailableFrom version="0.12.0" />
+
+`--sensitive` 对每个源键（键名、值、描述、含义）以及每个被检查语言环境的术语表，运行[敏感内容防护](/zh-CN/docs/data-handling#敏感内容防护)的扫描，使用 `sensitiveData` 的检测器、模式和允许列表（没有该块时用默认检测器），无论它的 `mode` 和提供商是什么，包括 `none`：值仍会通过导出、XLIFF 和 TMX 交接离开本机。它报告键和检测器，除键名外从不报告匹配到的文本，出现任何检查结果时以退出码 `1` 失败。
+
+`email` 检测器会跳过[保留的示例域名](/zh-CN/docs/data-handling#敏感内容防护)，因此用看起来真实的地址来测试。
+
+```text output
+sensitive: 1 key and 0 glossary terms hold content that looks sensitive
+  support.contact: email in value
+  remove it, list it in sensitiveData.allow, or turn the detector off in sensitiveData.detectors
+```
+
+使用 `--json` 时，`result.sensitive` 是 `{ findings, glossaryTerms }`，每条检查结果是 `{ key, fields, detectors }`；`detectors` 可能包含 `pattern-timeout-<n>`。
+
+### 单个文件
+
+<AvailableFrom version="0.12.0" />
+
+`--file <path>` 检查一个语言文件，供编辑器和智能体在编辑后通过钩子调用。它读取该文件、`verbatra.limits.json` <AvailableFrom version="0.13.0" />（无法使用时会被忽略，并在 stderr 上给出通知，与 `--qa` 下相同；[`doctor`](/zh-CN/docs/cli/doctor) 会指出问题），以及（该文件属于目标语言环境时）源文件，除此之外不读取别的。路径相对于 `--cwd` 解析，并与 `files.pattern` 匹配，以找出它的语言环境。
+
+- 无法解析的文件是一个 `syntax` 错误，带适配器的错误码（`INVALID_JSON`、`INVALID_YAML` 等），解析器报告位置时还带行号和列号。
+- 目标文件按 [`--qa`](#质量检查) 检查，包括复数类别；源文件只检查语法。`apple-xcstrings` 消息目录文件会针对每个目标语言环境检查。
+- 路径不是任何已配置语言环境的文件时，以 `NOT_A_LOCALE_FILE` 和退出码 `2` 失败。
+
+使用 `--json` 时，`result` 复用 `--qa` 的报告，因此钩子只需解析一种结构：
+
+```ts
+interface CheckFileSummary {
+  file: string;                          // 相对于项目根目录
+  role: "source" | "target" | "catalogue";
+  locales: {
+    locale: string;
+    incompletePlurals: IncompletePlural[];
+    qa: { checked: number; errors: number; warnings: number; findings: (QaFinding | QaSyntaxFinding)[] };
+  }[];
+  qa: CheckQaSummary;
+}
+interface QaSyntaxFinding {
+  severity: "error"; reason: "syntax"; code: string; message: string;
+  line?: number; column?: number;       // 解析器报告位置时给出，从 1 开始计数
+}
+```
+
+缺失的键和过期的键不属于文件检查的内容。
+
+### JSON 输出
+
+Schema：[`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+`--json` 输出一个[信封](/zh-CN/docs/cli/output#json-输出)，其 `result` 是状态文档。没有 `--qa`、`--require-reviewed` 或 `--sensitive` 时，`inSync` 恰好在命令以 `0` 退出时为真：
+
+```ts
+interface CheckSummary {
+  inSync: boolean;
+  locales: LocaleCheckSummary[];
+  qa?: CheckQaSummary;          // 仅在使用 --qa 时
+  review?: CheckReviewSummary;  // 仅在使用 --require-reviewed 时
+  sensitive?: CheckSensitiveSummary; // 仅在使用 --sensitive 时
+}
+
+interface LocaleCheckSummary {
+  locale: string;
+  missing: number;              // 源中有，目标中没有
+  stale: number;                // 源在上次翻译之后已更改
+  upToDate: number;
+  inSync: boolean;              // missing === 0 && stale === 0
+  emptySource?: number;         // 源值为空：从不算缺失或过期
+  provenance?: ProvenanceSummary; // 按来源和审校状态的计数
+  protected?: number;
+  incompletePlurals?: IncompletePlural[];
+  inconsistencies?: InconsistencyGroup[]; // 仅在使用 --consistency 时
+  qa?: LocaleQaReport;          // 仅在使用 --qa 时
+  review?: LocaleReviewReport;  // 仅在使用 --require-reviewed 时
+}
+```
+
+源键的值为空或只有空白，例如 `extract` 添加时没有默认值的键，暂时没有可翻译的内容：它计入 `emptySource`，而不是 `missing` 或 `stale`，从不让语言环境变成不同步，终端输出会指出这个数量。
+
+### 终端反馈
+
+<AvailableFrom version="0.12.0" />
+
+`check` 在 stderr 上显示 `verbatra: checking the locales... done (0.1s)`，使用 `--file` 时显示 `verbatra: checking locales/de.json...`。`--quiet` 会去掉它。见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 已同步，且所给选项没有把任何检查结果变成失败 |
+| `1` | 某个语言环境有缺失或过期的键，`--qa` 或 `--file` 发现了错误（在 `--strict` 下还包括警告或不完整的复数），`--require-reviewed` 发现了未获批准的译文，或 `--sensitive` 发现了敏感内容 |
+| `2` | 无法运行：整个运行的错误，例如 `SOURCE_UNREADABLE` 或 `NOT_A_LOCALE_FILE`，或用法错误，例如 `INVALID_QA_OPTION`、`INVALID_SEVERITY`，以及 `--file` 为空或与 `--locales`、`--consistency`、`--require-reviewed` 或 `--sensitive` 同用时的 `INVALID_OPTION` |
+
+退出码 `1` 表示结果不干净，不表示运行失败；报告仍会输出。在源文件尚未就位的项目上，[`verbatra doctor`](/zh-CN/docs/cli/doctor) 仍会给出报告。约定见[退出码](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [`verbatra diff`](/zh-CN/docs/cli/diff) 列出这些计数背后的确切键。
+- [在 CI 中运行 verbatra](/zh-CN/docs/ci-and-exit-codes) 展示如何把 `check` 用作漂移门禁。
+- [锁文件与来源记录](/zh-CN/docs/the-lock-file)说明如何检测过期。

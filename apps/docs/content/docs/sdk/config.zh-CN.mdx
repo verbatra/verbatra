@@ -1,0 +1,420 @@
+---
+title: "配置与术语表"
+seoTitle: "SDK：加载配置与编辑术语表"
+description: "加载并校验 verbatra 配置、编辑术语表的 SDK 入口函数，以及检测目录是否为项目的入口函数。"
+type: reference
+---
+## 加载配置 [#config]
+
+### loadConfig
+
+查找、加载并校验项目配置，返回 `VerbatraConfig`。优先级为：`configOverride`（校验内存中的对象）高于 `configPath`（加载一个明确指定的文件），后者高于按[查找顺序](/zh-CN/docs/config-file#查找顺序)从 `cwd` 开始的查找。以文件路径给出的 `glossary` 会在这里读取并校验，因此下游代码拿到的始终是内存中的术语表：版本 1 的“源术语到译文”映射，或版本 2 的定义。
+
+```ts title="签名"
+function loadConfig(
+  options?: LoadConfigOptions,
+): Promise<VerbatraConfig>;
+```
+
+<SdkTypeTable name="LoadConfigOptions" />
+
+**返回**：`VerbatraConfig`
+
+**抛出**：[`CONFIG_NOT_FOUND`](/zh-CN/docs/error-codes#config_not_found)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)
+
+**示例**：[不用文件的配置](/zh-CN/docs/programmatic-api#不用文件的配置)
+
+配置的 schema 见[配置文件](/zh-CN/docs/config-file)。`fs` 是读取术语表文件所用的文件系统端口，详见[依赖接缝](/zh-CN/docs/sdk#依赖接缝)。
+
+### loadConfigWithMeta
+
+<AvailableFrom version="0.5.0" />
+
+同样的加载，外加来源信息：返回 `{ config, source, glossary }`。`source` 说明配置来自查找命中、明确指定的路径还是内存中的覆盖（有绝对路径 `filepath` 时一并给出），`glossary` 记录术语表是缺失、内联，还是从文件解析而来。需要显示配置来源时使用它。
+
+```ts title="签名"
+function loadConfigWithMeta(
+  options?: LoadConfigOptions,
+): Promise<LoadedConfig>;
+```
+
+<SdkTypeTable name="LoadConfigOptions" />
+
+**返回**：`LoadedConfig`
+
+**抛出**：[`CONFIG_NOT_FOUND`](/zh-CN/docs/error-codes#config_not_found)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)
+
+两者都接受 `fresh: true`，让 JavaScript 或 TypeScript 配置文件重新求值，而不是复用同一进程中更早一次加载的求值结果；长时间运行的进程若会在编辑后重新加载配置，应设置它。JSON、YAML 和 `package.json` 配置总是重新读取。<AvailableFrom version="0.12.0" />
+
+### configCandidatePaths
+
+<AvailableFrom version="0.12.0" />
+
+列出 `loadConfigWithMeta` 在相同的 `{ cwd?, configPath? }` 下可能读取配置的每个文件：设置了 `configPath` 时只有该文件，否则是查找链中每个目录里的每个查找位置，由近到远，无论文件是否存在。监视这些文件（例如按修改时间），就能在不必对每个请求都加载配置的情况下，发现配置被创建、编辑或删除。术语表文件不包括在内；`loadConfigWithMeta` 在 `glossary` 中给出它的名称。
+
+```ts title="签名"
+function configCandidatePaths(
+  options?: ConfigCandidateOptions,
+): readonly string[];
+```
+
+<SdkTypeTable name="ConfigCandidateOptions" />
+
+**返回**：`readonly string[]`
+
+### resolveProjectRoot
+
+<AvailableFrom version="0.12.0" />
+
+返回各流程解析相对路径所依据的项目根目录：找到的配置文件所在的目录，这样在子目录中启动的进程，也会处理项目自己的语言文件、锁文件和 `.verbatra-local/`；对来自 `configPath` 的配置，则返回 `cwd`。流程拿到的若是 `loadConfig` 或 `loadConfigWithMeta` 返回的配置，其 `cwd` 已默认为该根目录。复制或重建配置时，以及对不接受配置的 `loadLockFile`、`loadProvenance` 和 `runStatus`，把 `resolveProjectRoot(loaded.source, cwd)` 作为 `cwd` 传入。
+
+```ts title="签名"
+function resolveProjectRoot(
+  source: ConfigSource,
+  cwd: string,
+): string;
+```
+
+**返回**：`string`
+
+## 术语表
+
+### readGlossaryFile
+
+<AvailableFrom version="0.9.0" />
+
+从磁盘重新读取文件形式的术语表，返回规范化的 `Glossary`：`{ version, terms, doNotTranslate }`。`version` 对扁平术语映射为 `1`，对[按语言环境区分的术语表](/zh-CN/docs/config-file#glossary)为 `2`；每个术语带有 `source`、可选的 `target`、`targets`、`forbidden`、`caseSensitive`，以及可选的 `note` 和 `partOfSpeech`。它的 `glossary` 输入是 `loadConfigWithMeta` 给出的 `GlossaryProvenance`，因此读取的始终是配置所指定的那个文件。在长时间运行、需要显示术语表当前状态而不是加载时状态的工具中使用它。
+
+```ts title="签名"
+function readGlossaryFile(
+  input: GlossaryFileInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="GlossaryFileInput" />
+
+**返回**：`Glossary`
+
+**抛出**：[`GLOSSARY_NOT_FILE_BACKED`](/zh-CN/docs/error-codes#glossary_not_file_backed)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)
+
+术语表是内联的或不存在时，抛出 `GLOSSARY_NOT_FILE_BACKED`；文件违反[术语表文件规则](/zh-CN/docs/config-file#glossary)或声明了其他版本时，抛出 `CONFIG_INVALID`。
+
+<AvailableFrom version="0.12.0" />
+
+直到 0.11，它返回的是扁平术语映射本身。
+
+### updateGlossaryTerm
+
+<AvailableFrom version="0.9.0" />
+
+在文件形式的术语表中添加、更改或删除恰好一个术语，并返回此刻规范化后的术语表。`translation` 是新文本，或用 `null` 删除该术语。文件其余部分保持键的顺序和缩进，写入是原子的，整个读取、修改、写入的过程都持有项目范围的术语表锁，因此两个并发的编辑会被串行化，而不是交错进行。
+
+```ts title="签名"
+function updateGlossaryTerm(
+  input: UpdateGlossaryTermInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="UpdateGlossaryTermInput" />
+
+**返回**：`Glossary`
+
+**抛出**：[`GLOSSARY_NOT_FILE_BACKED`](/zh-CN/docs/error-codes#glossary_not_file_backed)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/zh-CN/docs/error-codes#run_cancelled)、[`GLOSSARY_UNWRITABLE`](/zh-CN/docs/error-codes#glossary_unwritable)
+
+<AvailableFrom version="0.12.0" />
+
+它还接受 `locale`（此时 `translation` 是该语言环境自己的译文，`null` 只删除它）、`forbidden`（`locale` 绝不能使用的译法；`null` 或 `[]` 表示删除）、`note`、`partOfSpeech`（各自用 `null` 删除）、`caseSensitive` 和 `doNotTranslate`（`true` 把该术语加入保持不翻译的术语，`false` 将其移除；不能与术语字段组合使用）。只要编辑只是为所有语言环境设置或删除译文，版本 1 的文件就保持版本 1；任何其他编辑都会把它重写为版本 2，每个已有术语的译文保留为 `target`。不带 `locale` 的 `translation: null` 只删除共享译文；术语本身在不再有译文和禁用译法时才被删除，对版本 1 的术语来说这是立即发生的。
+
+给出 `sourceLocale` 时，仅大小写与已存术语不同的术语（两者都不是 `caseSensitive`）会更新该术语，并保留其已存的拼写；不给出时，只有完全匹配才会更新。<AvailableFrom version="0.13.5" /> 内联的术语表会以 `GLOSSARY_NOT_FILE_BACKED` 拒绝，而不是被转换。缺少 `term`、字段为空白、编辑没有设置任何字段或把 `doNotTranslate` 与术语字段混用、没有语言环境却给出禁用译法、语言环境无效、编辑会让术语表无效，以及编辑结果会超过 1 MiB 的术语表上限，都以 `CONFIG_INVALID` 拒绝；写入失败（包括术语表写锁）则是 [`GLOSSARY_UNWRITABLE`](/zh-CN/docs/error-codes#glossary_unwritable)，文件系统错误作为它的 `cause`。编辑后术语表与原来相同的，则成功且不写入任何内容。
+
+<AvailableFrom version="0.12.0" />
+
+它还接受 `lockAcquireTimeoutMs`，用来限定等待术语表锁的时间，超时后调用以 `LOCK_CONTENDED` 失败（默认 10 分钟）；无效的上限会在读取任何内容之前以 `LOCK_TIMEOUT_INVALID` 失败。
+
+### glossaryForLocale
+
+<AvailableFrom version="0.12.0" />
+
+解析术语表中适用于某个目标语言环境的部分：`glossaryForLocale(config.glossary, "de")` 返回 `{ terms, doNotTranslate }`，每个术语带有该语言环境的 `target`（先取它自己的条目，再取其基础语言的，最后取共享的）、它的 `forbidden` 译法、`caseSensitive`，以及 `note` 和 `partOfSpeech`；术语表中没有任何内容适用于该处时返回 `undefined`。这正是翻译请求发往该语言环境时所携带的 [`TranslateRequest.glossary`](/zh-CN/docs/sdk/extend#自定义提供商)，也是该语言环境的审校检查和缓存指纹所看到的内容。
+
+```ts title="签名"
+function glossaryForLocale(
+  glossary: GlossaryInput | Glossary | undefined,
+  locale: string,
+): LocaleGlossary | undefined;
+```
+
+**返回**：`LocaleGlossary | undefined`
+
+### glossaryHits
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryHits({ glossary, locale, sourceLocale, source })` 返回适用于某个目标语言环境中一段源文本的术语表条目，形式为 `{ terms, doNotTranslate }`，与 `glossaryForLocale` 返回的结构相同：每个其源术语作为完整术语出现在 `source` 中的术语，连同该语言环境须遵守的译文和禁用译法，以及每个出现在其中、须保持不翻译的术语。术语是否区分大小写，按它自己声明的为准；忽略大小写时，按 `sourceLocale` 的规则折叠大小写。它使用的匹配规则与翻译运行在标记遗漏的术语表术语时相同，并且不读取任何内容。
+
+```ts title="签名"
+function glossaryHits(
+  input: GlossaryHitsInput,
+): LocaleGlossary;
+```
+
+<SdkTypeTable name="GlossaryHitsInput" />
+
+**返回**：`LocaleGlossary`
+
+### glossaryDraftCheck
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryDraftCheck({ glossary, locale, sourceLocale, source, draft })` 在你写入之前，对照 `glossaryHits` 在源文本中找到的术语表条目，检查一份译文草稿。每个术语都带回 `targetUsed`（草稿是否包含所要求的译文；对只禁用某些译法的术语则不出现）和 `forbiddenUsed`（草稿使用了、而源中没有的禁用译法），每个须保持不翻译的术语带回 `kept`。翻译运行用这些规则标记 `GLOSSARY_TERM_MISSED` 和 `GLOSSARY_FORBIDDEN_TERM`。它不读取任何内容。
+
+```ts title="签名"
+function glossaryDraftCheck(
+  input: GlossaryDraftCheckInput,
+): GlossaryDraftCheck;
+```
+
+<SdkTypeTable name="GlossaryDraftCheckInput" />
+
+**返回**：`GlossaryDraftCheck`
+
+### normalizeGlossary
+
+<AvailableFrom version="0.12.0" />
+
+把任一形式的术语表（版本 1 的扁平映射或版本 2 的定义）转换为 `readGlossaryFile` 返回的规范化 `Glossary`，并填充所有默认值。用它可以把内联术语表与文件形式的术语表以同样的方式显示。它不会再次校验；`loadConfig` 已经校验过。
+
+```ts title="签名"
+function normalizeGlossary(
+  glossary: GlossaryInput | Glossary,
+): Glossary;
+```
+
+**返回**：`Glossary`
+
+### sharedGlossaryTranslations
+
+<AvailableFrom version="0.12.0" />
+
+把规范化的 `Glossary` 投影为一个扁平映射：把每个带共享 `target` 的术语映射到该译文，顺序与术语表一致。各语言环境自己的译文、禁用译法和不翻译术语都会省略，因此只在使用方只能显示扁平术语映射的场合使用它。名为 `__proto__` 的术语仍是自有键。
+
+```ts title="签名"
+function sharedGlossaryTranslations(
+  glossary: Glossary,
+): Readonly<Record<string, string>>;
+```
+
+<SdkTypeTable name="Glossary" />
+
+**返回**：`Readonly<Record<string, string>>`
+
+### redactGlossary
+
+<AvailableFrom version="0.12.0" />
+
+让规范化 `Glossary` 中的每个源术语、译文、禁用译法、备注、词性和不翻译术语都经过 `redact`，并返回 `{ glossary, redactedTerms }`。`redactedTerms` 列出每个有值被替换的术语，被脱敏的源术语本身记为 `[REDACTED]`，因此这份列表绝不会再次暴露密钥。MCP 服务器和 Studio 在术语表离开进程之前使用它。
+
+```ts title="签名"
+function redactGlossary(glossary: Glossary): RedactedGlossary;
+```
+
+<SdkTypeTable name="Glossary" />
+
+**返回**：`RedactedGlossary`
+
+### readCurrentGlossary
+
+<AvailableFrom version="0.12.0" />
+
+读取已加载配置所指定的术语表的当前状态：`readCurrentGlossary({ loaded })`，其中 `loaded` 是 `loadConfigWithMeta` 的返回值。文件形式的术语表从磁盘重新读取，内联的取自配置，无论哪种，结果都是规范化的 `Glossary`；配置没有声明术语表时返回 `undefined`。要查看某个目标语言环境须遵守什么，把结果传给 `glossaryForLocale`。
+
+```ts title="签名"
+function readCurrentGlossary(
+  input: ReadCurrentGlossaryInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary | undefined>;
+```
+
+<SdkTypeTable name="ReadCurrentGlossaryInput" />
+
+**返回**：`Glossary | undefined`
+
+**抛出**：[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)
+
+### editConfiguredGlossaryTerm
+
+<AvailableFrom version="0.12.0" />
+
+面向持有已加载配置的工具的 `updateGlossaryTerm`：用 `loaded` 代替 `glossary`，编辑字段相同，把值为 `undefined` 的字段视为未提供，并先对照已配置的目标语言环境检查 `locale`，不在其中时以 `UNKNOWN_LOCALE` 失败，且不写入任何内容。MCP 服务器和 Studio 通过它写入术语表。
+
+```ts title="签名"
+function editConfiguredGlossaryTerm(
+  input: EditConfiguredGlossaryTermInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="EditConfiguredGlossaryTermInput" />
+
+**返回**：`Glossary`
+
+**抛出**：[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`GLOSSARY_NOT_FILE_BACKED`](/zh-CN/docs/error-codes#glossary_not_file_backed)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/zh-CN/docs/error-codes#run_cancelled)、[`GLOSSARY_UNWRITABLE`](/zh-CN/docs/error-codes#glossary_unwritable)
+
+## 长度限制
+
+### setKeyLengthLimit
+
+<AvailableFrom version="0.13.0" />
+
+在 `verbatra.limits.json` 中设置、更改或删除某个键的长度限制。这个文件已提交，与锁文件放在一起，保存配置的 [`maxLength`](/zh-CN/docs/config-file#maxlength) 未涵盖的限制。该键必须存在于源中；为配置的 `maxLength` 已设置的键设限制会被拒绝；`null` 删除文件中的条目，已离开源的键或由配置设置的键的条目也可以删除。读取、修改、写入在项目范围的限制锁下运行，文件以原子方式替换，因此来自一个或多个进程的并发调用都不会丢失更新。没有任何更改的调用不写入任何内容，无法作为限制文件读取的文件绝不会被覆盖。
+
+```ts title="签名"
+function setKeyLengthLimit(
+  input: SetKeyLengthLimitInput,
+  deps?: SetKeyLengthLimitDeps,
+): Promise<SetKeyLengthLimitResult>;
+```
+
+<SdkTypeTable name="SetKeyLengthLimitInput" />
+
+**返回**：`SetKeyLengthLimitResult`
+
+**抛出**：[`LENGTH_LIMIT_INVALID`](/zh-CN/docs/error-codes#length_limit_invalid)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/zh-CN/docs/error-codes#unknown_key)、[`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/zh-CN/docs/error-codes#run_cancelled)、[`LIMITS_FILE_UNUSABLE`](/zh-CN/docs/error-codes#limits_file_unusable)、[`LIMITS_FILE_UNWRITABLE`](/zh-CN/docs/error-codes#limits_file_unwritable)
+
+## 编写、检测与纯人工模式
+
+### defineConfig
+
+为带类型的 `verbatra.config.ts` 提供的恒等辅助函数：原样返回它的参数，用于类型推断和编辑器自动补全，包括所选提供商已知的模型 ID（仅用于编写阶段；运行时任何非空字符串都能通过）。除 `opencode`、`openai-compatible`、`libretranslate` 和 `none` 外，每个提供商还有一个接受 `AuthoringConfigFor<"<id>">` 的重载，例如 `AuthoringConfigFor<"anthropic">`，它把 `provider` 块收窄到该提供商的选项；这四个提供商使用下面的 `AuthoringConfig` 兜底重载。
+
+```ts title="签名"
+function defineConfig(config: AuthoringConfigFor<"anthropic">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"openai">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"gemini">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"deepl">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"google-translate">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfig): VerbatraConfigInput;
+```
+
+**返回**：`VerbatraConfigInput`
+
+**示例**：[添加源文件和配置](/zh-CN/docs/sdk-quickstart#添加源文件和配置)
+
+### verbatraConfigSchema
+
+`loadConfig` 用来校验的 zod schema，导出后，你自己的工具就能以 SDK 相同的方式校验配置对象。未知的顶层键会被拒绝，因此密钥不会藏在配置里，`$schema` 除外：它是可选的字符串，运行时忽略，让 JSON 或 YAML 配置可以把编辑器指向该包的 `@verbatra/sdk/config-schema.json`。
+
+```ts title="签名"
+const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
+```
+
+它的 `rates` 块是 `RateCard`，即把估算（见[运行前估算费用](/zh-CN/docs/estimating-cost)）换算成金额的价目表：
+
+<SdkTypeTable name="RateCard" />
+
+### scaffoldingMetadata
+
+<AvailableFrom version="0.4.0" />
+
+CLI 的 `init` 命令据以生成提示的只读元数据：`providerEnv`（提供商 id 到读取其密钥的环境变量）、`scaffoldModels`（`init` 为每个 LLM 提供商写入配置的默认模型）、`providerTokenLimitKeys`（每个 LLM 提供商用来设置输出 token 上限的选项键）和 `supportedFormats`（格式 id 的封闭集合）。从 `providerTokenLimitKeys` 读取 token 上限的键，不要假定某一个，因为各提供商的键不同（[提供商](/zh-CN/docs/providers)）；DeepL 和 Google Cloud Translation 没有对应条目，因为它们不设 token 上限。`ScaffoldableProviderId` 类型是 `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`：只需要 id 就够的每个提供商。`openai-compatible` 和 `libretranslate` 各自需要只有你能提供的 `baseUrl`，且没有必需的环境变量；`none` 则完全不调用提供商。
+
+```ts title="签名"
+const scaffoldingMetadata: {
+  readonly providerEnv: { ... };
+  readonly scaffoldModels: { ... };
+  readonly providerTokenLimitKeys: { ... };
+  readonly supportedFormats: readonly [...];
+  readonly humanOnlyProviderId: "none";
+  readonly openAiCompatibleKeyEnv: "OPENAI_COMPATIBLE_API_KEY";
+  readonly libreTranslateKeyEnv: "LIBRETRANSLATE_API_KEY";
+  readonly configSearchPlaces: readonly string[];
+};
+```
+
+`scaffoldingMetadata.humanOnlyProviderId` 是 `"none"`，即禁用机器翻译的 id。它没有 `providerEnv` 条目，因为它不读取密钥。
+
+<AvailableFrom version="0.12.0" />
+
+`scaffoldingMetadata.libreTranslateKeyEnv` 是 `"LIBRETRANSLATE_API_KEY"`，即 `libretranslate` 提供商读取其密钥的变量。它是可选的：没有带 `--api-keys` 启动的服务器不需要密钥，因此生成器应让它保持未设置。
+
+`scaffoldingMetadata.openAiCompatibleKeyEnv` 是 `"OPENAI_COMPATIBLE_API_KEY"`，即 `openai-compatible` 提供商的选项没有指定 `apiKeyEnvVar` 时读取的变量。`scaffoldingMetadata.configSearchPlaces` 按检查顺序列出 `loadConfig` 查找配置时检查的每个文件名；写入 `verbatra.config.ts` 的生成器，应在其中另一个已存在时拒绝写入，因为先找到的那个生效。
+
+### detectProject
+
+<AvailableFrom version="0.12.0" />
+
+根据项目的文件检测其语言文件的格式和布局，方式与 `verbatra init` 在写入配置之前相同。它不写入任何内容，也不调用提供商。它扫描目录（跳过隐藏目录、`node_modules` 和构建输出，深度和条目数有上限），找出已注册的适配器认领的文件，找到每个文件中拼写出语言环境的路径段，并保留覆盖语言环境最多的文件路径模式。格式取其适配器的 `canHandle` 在给定内容时认领每个匹配文件的那一个；对 JSON，所有 JSON 适配器都会认领，此时由 `package.json` 中唯一匹配的 i18n 库决定。
+
+```ts title="签名"
+function detectProject(
+  input?: DetectProjectInput,
+  deps?: DetectProjectDeps,
+): Promise<ProjectDetection>;
+```
+
+<SdkTypeTable name="DetectProjectInput" />
+
+**返回**：`ProjectDetection`
+
+```ts title="示例"
+import { detectProject } from "@verbatra/sdk";
+
+const detection = await detectProject({ cwd: "/path/to/project" });
+if (detection.ambiguities.length > 0) {
+  // several formats or file patterns fit: choose one of detection.ambiguities[0].candidates
+}
+const format = detection.format?.id;          // for example "yaml"
+const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
+```
+
+结果包含 `format`（带 `from`：`input`、`files` 或 `dependencies`）、`layout`（`pattern`、`localeStyle`、`locales`、`sourceLocale`、`files`、`unqualifiedSourceFile`）、`ambiguities`（每项带 `subject`，取 `format` 或 `layout`，以及它的 `candidates`）、取值为 `high`、`medium`、`low` 或 `none` 的 `confidence`，以及 `reasons`，每个决定一句话。势均力敌的情况报告为歧义，绝不猜测。可选的 `format`、`pattern` 和 `sourceLocale` 输入会缩小搜索范围，`deps.fs` 和 `deps.adapterRegistry` 替换文件系统和适配器，因此第三方适配器的文件也能被检测到。缺失、不可读或格式错误的文件绝不会抛出错误，只会让报告变得单薄。`layout.unqualifiedSourceFile` 指出布局旁边一个文件，其中的字符串不属于任何语言环境名称，例如 `messages.properties` 或 gettext 的 `.pot` 模板；此时不确定源语言环境，因为源是从模式为它指定的文件中读取的。
+
+### isMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+恰好在配置设置了 `provider: { id: "none" }` 时返回 `false`，这是纯人工模式（见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)）：从不构造提供商，也不读取 API 密钥。提供会产生花费的操作的界面用它把这些操作整个省去，Studio 和 MCP 服务器就是这样做到即使加了 `--allow-spend` 也不提供花费的。
+
+```ts title="签名"
+function isMachineTranslationEnabled(
+  config: Pick<VerbatraConfig, "provider">,
+): boolean;
+```
+
+**返回**：`boolean`
+
+### assertMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+接受配置和一个指明操作的短语，在 `provider: { id: "none" }` 下抛出 `SdkError` `MACHINE_TRANSLATION_DISABLED`。在把 `translate` 包装成显式的“翻译所有待处理项”操作之前调用它，这样该操作的失败方式与 `retranslateEntry` 相同，而不是悄悄地只从翻译记忆库填充。
+
+```ts title="签名"
+function assertMachineTranslationEnabled(
+  config: Pick<VerbatraConfig, "provider">,
+  action: string,
+): void;
+```
+
+**返回**：`void`
+
+**抛出**：[`MACHINE_TRANSLATION_DISABLED`](/zh-CN/docs/error-codes#machine_translation_disabled)
+
+### assertTargetLocale
+
+<AvailableFrom version="0.12.0" />
+
+接受配置和一个语言环境，当该语言环境不是已配置的 `targetLocales` 之一时，抛出 `SdkError` `UNKNOWN_LOCALE`，错误信息与每个接受 `locales` 过滤条件的 SDK 函数相同。在自己只接受单个语言环境的界面中调用它，例如 MCP 服务器的 `glossary.get`，这样错误的语言环境的失败方式与在 SDK 中完全一致。
+
+```ts title="签名"
+function assertTargetLocale(
+  config: Pick<VerbatraConfig, "targetLocales">,
+  locale: string,
+): void;
+```
+
+**返回**：`void`
+
+**抛出**：[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)

@@ -1,0 +1,113 @@
+---
+title: 锁文件与来源记录
+seoTitle: "verbatra 锁文件与来源记录文件"
+description: verbatra.lock.json 和 verbatra.provenance.json 记录什么、如何检测漂移、并发运行如何串行化，以及为什么两者都要提交。
+type: concept
+---
+`verbatra.lock.json` 是每次运行比对所依据的基线，所以运行可以跳过已是最新的内容，并重新翻译已漂移的内容。与它并列的 [`verbatra.provenance.json`](#来源记录谁写了每个值) 记录每个值由谁或什么写入。
+
+## 记录的内容
+
+对每个目标语言环境，锁文件为每个已翻译的键记录一个哈希，对应当前译文所依据的源条目，另有一个 `version` 字段：没有译文，也没有密钥。该哈希涵盖源值，以及它的描述、含义、复数标志和占位符，所以描述有更改，该键同样变为过期。哈希计算前，Unicode 规范化为 NFC，换行符规范化为 LF，所以用 CRLF 换行符重新保存源文件不会产生任何更改。
+
+## 如何检测漂移
+
+目标语言环境缺少的非空源键属于缺失。对目标已有的键，把当前源哈希与记录的哈希比较：不同说明源值有更改，该键会重新翻译；相同则永远不会发送，所以没有源值编辑的第二次运行不产生费用。流程见[运行的工作原理](/zh-CN/docs/how-it-works)。
+
+### 受保护的键
+
+<AvailableFrom version="0.12.0" />
+
+例外是值由人编写或导入、且已更改的键：默认情况下这类键受保护（见[保留人工翻译](/zh-CN/docs/protecting-human-translations)），保持过期，不会重新翻译。
+
+## 接入现有项目
+
+已经包含审校过的译文的语言文件不会重新翻译。首次运行时没有锁文件，所以不存在过期的键：目标已有的键保留原值，只翻译它缺少的键，运行把每个源哈希记录为基线，不产生提供商费用。
+
+接入按键是否存在判断，从不看值，这有两个后果：
+
+- **空值或未翻译的值算作已翻译**：删除该键（清空值不够），下次运行才会翻译它。
+- **过时的译文会被记录为最新**：首次运行前，先修正或删除它。
+
+同一规则会保留手写的复数形式，所以接入时使用 `generatePlurals` 是安全的。要预览这一切，运行 [`verbatra diff`](/zh-CN/docs/cli/diff) 或 `verbatra translate --dry-run`。
+
+## 更新方式
+
+- 完整运行（`translate`、`watch` 或导入）用本次运行的结果替换某个语言环境的条目。
+- 单键操作（例如在 Studio 中重新翻译）只合并该键的条目。
+
+无论哪种方式，本次运行中搁置的键（完整性检查或提供商调用失败，或源值是无效的 ICU）都保留之前的哈希，所以下次运行会重试。孤立的键没有条目，排序后的键让差异保持精简。
+
+## 写锁
+
+两次运行同时处理同一个语言环境，可能都与过期的基线比对而重复付费，所以每次写入都会在 `.verbatra-local/` 下为该语言环境持有一个跨进程锁。后来的写入方等待，然后与包含先写入方结果的基线比对。不同语言环境从不互相阻塞。
+
+锁保证的内容：
+
+- **超时不产生费用**：`--lock-timeout` 只限制任何提供商调用之前的等待，所以放弃的语言环境没有花费，也没有写入；记录已写入的文件时，等待上限是完整的默认 10 分钟，不受 `--lock-timeout` 限制。
+- **过期的锁不会阻塞你**：持有进程已不在本机上的锁会立即回收；超过 30 秒未刷新的锁（持有者每 10 秒刷新一次）视为已过期。
+- **中断会释放锁**：`translate` 或 `import` 期间按 Ctrl-C 或收到 SIGTERM，以及强制停止 `watch` 的第二次中断，都会在进程退出前释放所有锁。
+- **丢失的锁会停止写入**：每个锁带一个随机令牌，每次写入前都会检查；另一次运行接管了锁时，写入以 [`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended) 停止，不写入任何内容。
+
+锁不覆盖的情况：
+
+- **来自另一台机器的锁**（共享网络驱动器）或来自早于 0.12.0 的 verbatra 的锁，永远不会自动回收；清除步骤见[故障排查](/zh-CN/docs/troubleshooting)。
+- **检查与写入之间的长时间暂停**：在令牌检查之后立刻暂停的运行（机器休眠、进程被停止），恢复后仍可能写入一次。
+- **主机名相同的主机**：在 Linux 之外，主机名是唯一的机器标识，所以两个主机名相同、共享 `.verbatra-local/` 的容器，可能把对方有效的锁误认为已过期的锁。给每个容器设置各自的主机名或工作副本。
+
+## 写法不同的语言环境代码
+
+<AvailableFrom version="0.12.0" />
+
+锁文件、缓存和来源记录文件都以配置中的语言环境代码作为状态的键。你改动某个代码的写法（例如把 `pt_BR` 改为 `pt-BR`）时，下次 `translate` 或 `watch` 运行会把旧状态一次性迁移到新的语言环境代码下，并报告 [`LOCALE_STATE_CARRIED_OVER`](/zh-CN/docs/error-codes#locale_state_carried_over)。重命名之前的源值更改仍会重新翻译，缓存的译文仍会复用。
+
+只有在没有歧义时才会迁移：`pt-BR` 自己没有状态，并且文件中恰好有一种下划线写法（或它的 gettext 写法，例如 `sr-Latn` 对应的 `sr@latin`）持有状态，比较时不区分大小写。`pt-BR` 已有的状态永远不会被覆盖。如果迁移无法写入，该语言环境不运行，并以 [`LOCALE_STATE_NOT_CARRIED_OVER`](/zh-CN/docs/error-codes#locale_state_not_carried_over) 失败，所以下次运行会再试一次；其他语言环境照常运行。
+
+在此之前，每次读取都把旧状态当作 `pt-BR` 的状态，且不写入，所以过期的键仍报告为过期。单键写入（编辑、重新翻译、审校决定）和 `verbatra import` 会以同样的方式先迁移状态。[`verbatra doctor`](/zh-CN/docs/cli/doctor) 的 `locale-state` 检查会列出遗留的状态。
+
+## 缺失或损坏
+
+缺失锁文件属于[首次运行](#接入现有项目)，不是错误。锁文件无法解析、结构有误、体积过大或版本不受支持时，运行以 [`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid) 失败，而不是覆盖它，这样你可以恢复它，不会丢失基线。
+
+## 来源记录：谁写了每个值
+
+<AvailableFrom version="0.12.0" />
+
+`verbatra.provenance.json` 记录语言文件中的每个现有值由哪条写入路径产生，以及是否有人审校过。较旧的 verbatra（例如固定在 CI 中的版本）会忽略它。
+
+| 来源 | 写入方 |
+| --- | --- |
+| `machine` | `translate`、`watch` 或单键重新翻译中提供商的应答，附带提供商的 `id`，已知时还有模型 |
+| `memory` | 精确的缓存命中，包括纯人工运行（提供商为 `none`）填入的每个值 |
+| `fuzzy` | [模糊缓存](/zh-CN/docs/the-cache#模糊复用)命中 |
+| `human` | 人通过 SDK 的 `editEntry` 所做的编辑，Studio 的编辑对话框即是如此 |
+| `agent` | AI 智能体通过 `editEntry` 并带 `actor: "agent"` 所做的编辑 |
+| `import` | 来自 `verbatra import` 的已接受行 |
+| `unknown` | 对没有记录的值所做的审校决定，或本版本不认识的来源 |
+
+另有两个来源在读取时推导：`unrecorded` 是没有记录的值，升级后每个键都是如此；`external` 是不再与其记录的哈希一致的值，因为 verbatra 之外有东西更改了它，例如译者的 pull request、较旧的 verbatra 或一次合并。每次读取返回的字段见 [SDK 参考](/zh-CN/docs/sdk/inspect#loadprovenance)。
+
+该文件保证的内容：
+
+- **稳定的差异**：没有译文文本，也没有时间戳，每行一条排序后的记录，所以没有更改的运行会让文件保持不变。发生合并冲突时，取与你保留的语言文件一致的那一侧：不匹配的记录读取为 `external`，这会保护该值不被重新翻译。
+- **新值有新记录**：更改了值的写入会用一条新的、未审校的记录替换原记录；值和源都没有更改的写入会保留原记录。
+- **没有静默覆盖**：文件损坏时，每次写入都以 [`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid) 停止，此时还没有任何语言文件被更改；报告则改为省略其来源记录字段。来自较新 verbatra 的文件保持不动，增长到无法再读回的文件不会写入（[`PROVENANCE_FILE_TOO_LARGE`](/zh-CN/docs/error-codes#provenance_file_too_large)）。
+
+它不防篡改；要把它转成报告，见[记录机器翻译证据](/zh-CN/docs/provenance-evidence)。
+
+### 审校决定
+
+<AvailableFrom version="0.12.0" />
+
+记录可以带一个审校决定：`approved` 或 `rejected`，还可附带可选的 `reviewer` 名称。Studio 的 **Review**（审校）页面（[在 Studio 中审校](/zh-CN/docs/review-in-studio)）、SDK 的审校函数（[审校与重新翻译](/zh-CN/docs/sdk/review)）和 MCP 审校工具（[verbatra mcp](/zh-CN/docs/cli/mcp)）都会写入它们；MCP 工具转达的是某个人的决定，并要求提供其名称。决定只适用于审校人员看到的那个确切的值，该值有更改时，决定会被拒绝。
+
+- **批准**只更改来源记录文件，源文本有更改后，该值重新读取为未审校。
+- **拒绝**会删除该值及其锁条目，所以在下次 `translate` 运行或有人写入新值之前，该键读取为缺失。记录会保留已删除文本的哈希，并丢弃缓存条目，所以运行不会把同一段文本放回去。XLIFF 无法删除单条译文，所以在那里拒绝会以 [`REVIEW_REJECT_UNSUPPORTED`](/zh-CN/docs/error-codes#review_reject_unsupported) 被拒绝。
+
+只有 `machine`、`memory`、`fuzzy` 和 `agent` 的值会进入审校队列和 `--require-reviewed` 门禁。`check` 和 `lock.state` 中的 `byReviewState` 计数按记录的决定涵盖每个值，所以人写入或导入、没有决定的值在那里计为 `unreviewed`，尽管它不在队列中；请结合 `byOrigin` 阅读。
+
+决定保存在这个已提交的文件中，所以审校队列和 [`verbatra check --require-reviewed`](/zh-CN/docs/cli/check#要求译文已审校) 在任何地方看到的状态都相同，`reviewer` 名称是公开的；verbatra 从不自动填写它。
+
+## 提交这两个文件
+
+把 `verbatra.lock.json` 和 `verbatra.provenance.json` 与语言文件一起提交，且不要手动编辑：它们是你的团队和 CI 比对所依据的基线，也是回滚（见[撤销一次运行](/zh-CN/docs/recovery-and-rollback)）恢复的内容。

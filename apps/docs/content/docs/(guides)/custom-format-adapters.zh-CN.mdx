@@ -1,0 +1,102 @@
+---
+title: 编写自定义格式适配器
+seoTitle: "为 verbatra 编写自定义 i18n 格式适配器"
+description: "接入 verbatra 不支持的格式：用 custom: 标识符命名，基于适配器工厂函数构建，并了解安装适配器时你信任的是什么。"
+type: how-to
+status: new
+---
+<AvailableFrom version="0.11.0" />
+
+语言文件采用 verbatra 开箱不支持的格式时（见[格式](/zh-CN/docs/formats)），使用本页。你在自己的包中构建适配器，用 `custom:` 标识符命名格式，再把包含它的注册表交给 verbatra。不需要向 verbatra 发布任何内容，也不涉及版本发布。
+
+项目中需要有 `@verbatra/sdk`。`verbatra` 命令行按设计不加载任何插件（见[你信任的是什么](#你信任的是什么)），所以使用自定义格式的项目要通过 SDK 运行 verbatra。
+
+## 命名格式
+
+verbatra 之外的格式写成 `custom:` 加上小写、用连字符分隔的名称，例如 `custom:toml` 或 `custom:my-format`。内置名称都不含冒号，所以它永远不会与内置名称冲突。像内置名称一样把它写进配置：
+
+```json title=".verbatrarc.json"
+{
+  "sourceLocale": "en",
+  "targetLocales": ["de"],
+  "format": "custom:toml",
+  "files": { "pattern": "locales/{locale}.toml" },
+  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash", "maxOutputTokens": 4096 } }
+}
+```
+
+配置只检查标识符的形状，因为适配器位于你的包中。如果没有任何东西为它提供适配器，运行会以 [`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format) 失败。Studio 和 MCP 服务器的 `project.snapshot` 会原样报告该标识符，所以智能体能区分自定义格式和内置格式。
+
+## 构建适配器
+
+不要手动实现适配器接口。两个工厂函数已经提供了有上限的读取、原子写入、扩展名检测和结构化错误，你只需要处理自己格式的解析。
+
+如果每个条目都由一个没有嵌套的键定位，使用 [`createFlatFileAdapter`](/zh-CN/docs/sdk/extend#createflatfileadapter)：
+
+```ts title="toml-adapter.ts"
+import { createFlatFileAdapter, type FormatAdapter } from "@verbatra/sdk";
+
+const TOKEN = /\{[a-z]+\}/g;
+
+const tokensIn = (value: string): readonly string[] =>
+  [...value.matchAll(TOKEN)].map((match) => match[0]);
+
+export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
+  format: "custom:toml",
+  extensions: [".toml"],
+  parseEntries: (content, namespace) => parseToml(content, namespace),
+  serializeEntries: (entries) => serializeToml(entries),
+  extractPlaceholders: tokensIn,
+});
+```
+
+如果条目位于嵌套对象的路径中，使用 [`createTreeFileAdapter`](/zh-CN/docs/sdk/extend#createtreefileadapter)，它接收针对树的 `parse` 和 `serialize`，以及针对每个叶子节点的 `deriveEntry`。
+
+然后按你的格式需要，继续添加：
+
+- 如果扩展名比较通用，就给工厂函数传入 `sniff`，由它检查内容样本。否则你的适配器会认领所有带该扩展名的文件，检测会报告存在歧义。
+- 如果一个文件同时包含源文本和目标文本，或记录了自己的语言环境，就读取 `parseEntries` 和 `serializeEntries` 额外接收的 `locale` 参数。
+- 如果扁平的记号列表会丢失你的占位符结构，就添加 `comparePlaceholders`；如果格式有复数或 select 分支，就添加 `compareBranchArms`。
+- 如果格式会把某些内容标记为不可翻译，就从 `parseEntries` 返回 `{ entries, excludedLeafPaths }`，不要直接丢弃这些内容。
+- 通过工厂函数交给你的 `fs` 端口读写，默认是 [`nodeAdapterFs`](/zh-CN/docs/sdk/extend#nodeadapterfs)，不要直接使用 `node:fs`。这样可以保留有上限的读取和原子写入，也能在没有磁盘的情况下测试适配器。
+
+## 注册并运行
+
+从内置注册表开始，让你的格式与其他格式并列，再把它作为每个 SDK 流程都接受的 `adapterRegistry` 依赖传入：
+
+```ts title="translate.ts"
+import { createDefaultRegistry, translate, loadConfig } from "@verbatra/sdk";
+import { tomlAdapter } from "./toml-adapter.js";
+
+const config = await loadConfig({ cwd: process.cwd() });
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+`register` 返回注册表，所以注册可以链式调用。遇到注册表已有的格式，`register` 以 [`DUPLICATE_FORMAT`](/zh-CN/docs/error-codes#duplicate_format) 拒绝；遇到格式错误的标识符（例如 `custom:TOML`），`register` 以 [`INVALID_FORMAT_ID`](/zh-CN/docs/error-codes#invalid_format_id) 拒绝，所以两个选了同一名称的插件会在启动时失败。
+
+## 抛出正确的错误
+
+`custom:` 适配器在注册时会被包装，所以它意外抛出的错误会表现为 [`ADAPTER_FAILED`](/zh-CN/docs/error-codes#adapter_failed)，其中写明你的格式和方法，而不是归咎于 verbatra。该消息不会复述你的错误信息，因为你的信息可能引用文件内容；请从 `cause` 中读取你原来的错误。
+
+有两类错误会原样通过：
+
+- 你自己抛出的 `AdapterError` 保留其错误码。内容无法用你的格式表示时，抛出 [`INVALID_STRUCTURE`](/zh-CN/docs/error-codes#invalid_structure)。
+- 带有 errno 码（例如 `ENOENT`）的错误保留该码，所以缺失的文件仍会被报告为缺失。检查只看错误的结构，所以不要在你自己的校验错误上加 errno 码。
+
+## 你信任的是什么
+
+**格式适配器是完全受信任的代码，信任级别与你安装的任何包相同。verbatra 不会为它提供沙箱**。
+
+适配器可以读取 `process.env`（所有提供商密钥都在其中），读写进程能访问的任何文件，并建立网络连接。`fs` 端口只是一种约定，不是边界。
+
+适配器还决定什么算占位符。如果它报告没有任何占位符，该格式的占位符完整性检查（见[翻译安全](/zh-CN/docs/translation-safety)）就会通过，所以无论适配器有缺陷还是怀有恶意，破坏了插值的译文都会悄悄发布。
+
+verbatra 能保证的是：加载从不是隐式的。它不会自动查找插件，不扫描任何目录，不安装任何东西，也不遵循任何命名约定。适配器之所以运行，只是因为你的代码导入了它，并把注册表交给了 verbatra。像对待读取你密钥的任何依赖一样对待它：阅读它，固定版本，并审查每次更新。
+
+## 相关内容
+
+- [适配器、提供商与脱敏](/zh-CN/docs/sdk/extend)：每个工厂函数的选项和导出。
+- [格式适配器错误码](/zh-CN/docs/error-codes#adapter-error-codes)：每种拒绝的含义。
+- [格式](/zh-CN/docs/formats)：verbatra 内置的格式。

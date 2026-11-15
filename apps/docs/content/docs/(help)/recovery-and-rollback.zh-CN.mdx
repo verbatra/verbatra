@@ -1,0 +1,94 @@
+---
+title: 撤销一次运行
+seoTitle: "撤销一次 verbatra translate 运行并回滚"
+description: 如何撤销一次 translate 运行，为什么语言文件、锁文件和来源记录文件必须一起恢复，以及中断的运行会留下什么。
+type: how-to
+---
+一次运行产生了你不想要的译文时使用本页：语气不对、模型不对，或忘了加术语表。verbatra 没有撤销命令，也不保留备份。版本控制就是恢复机制，这正是要提交语言文件、锁文件和来源记录文件的原因：它们合在一起，就是你要回到的快照。
+
+你需要让项目处于 git 管理之下，并且已提交运行之前的状态。
+
+## 一次运行会写入什么
+
+`translate`、`watch` 或 `import` 运行会写入回滚时需要关注的文件：
+
+- 目标语言文件，位于你的 `files.pattern` 路径；
+- `verbatra.lock.json`，每个已翻译的键对应一个源内容哈希。
+
+`verbatra.cache.json` 和 `.verbatra-local/` 是可重新生成、已加入 gitignore 的状态，绝不要恢复它们。每个受跟踪的文件都是原子写入的，所以不会有写了一半的文件需要修复。
+
+### 来源记录文件
+
+<AvailableFrom version="0.12.0" />
+
+一次运行还会写入 `verbatra.provenance.json`，记录每个值由谁写成。要把它与另外两个文件一起恢复；如果它是本次运行创建的，就删除它。忘记它并非无害：被还原的值不再与其记录匹配，所以会显示为 `external`，在默认的 `humanEdits: protect` 下算作人工编辑，且以后不会再翻译。
+
+## 回滚已完成的运行
+
+如果这次运行还没有提交，先一起丢弃语言文件和锁文件，再处理来源记录文件：
+
+```bash
+git checkout HEAD -- locales verbatra.lock.json
+```
+
+如果 `verbatra.provenance.json` 已经提交，用同样的方式恢复它。如果它是本次运行创建的，git 没有可恢复的内容，所以直接删除：
+
+```bash
+git checkout HEAD -- verbatra.provenance.json   # already committed
+rm verbatra.provenance.json                      # created by this run
+```
+
+如果这次运行已经提交，还原该提交：
+
+```bash
+git revert <commit>
+```
+
+无论哪种方式，都要在同一次操作中恢复语言文件、`verbatra.lock.json` 和 `verbatra.provenance.json`。原因见下一节。
+
+## 为什么要三个文件一起恢复，或者都不恢复
+
+锁文件记录每条译文所对应**源**值的哈希，不记录译文本身的任何信息；来源记录文件记录每个值由谁写成，并以该值的哈希为键。只还原其中一个文件，另外几个就会描述不同的时间点。
+
+**只恢复语言文件**：锁文件仍然说每个键都是最新的。下次运行时，被还原的键存在，且其哈希与源值匹配，所以不会再次发送：旧值就一直留在原处。只有本次运行新建的键会重新显示为缺失。`check` 和 `diff` 与同一个基线比对，所以会报告该语言环境是干净的，没有任何信息告诉你这些译文已经过时。
+
+**只恢复锁文件**：恢复后的哈希比当前源值更旧，所以相关的键显示为已更改。下次运行会再次翻译它们，并覆盖语言文件，包括此后所做的手动修正。你要花两次费用，还会丢失这些编辑。
+
+**没有来源记录文件**：被还原的值不再与其记录匹配，所以显示为 `external`，在默认的 `humanEdits: protect` 下以后不会再翻译。
+
+**三个都恢复**：哈希、记录和译文都回到同一个时间点，下次运行的表现就像这次不理想的运行从未发生过。
+
+## 回滚后重新运行
+
+回滚后再次运行 `verbatra translate` 是重做，不是换个角度再来一遍。提供商、模型、语气、verbatra 会发送的术语表条目和提供商的 `localeMap` 都相同时，[缓存](/zh-CN/docs/the-cache#指纹)的指纹不变，所以这次运行会直接从 `verbatra.cache.json` 返回相同的译文，不调用提供商。
+
+想得到不同的结果，就更改让第一次出错的因素：新的语气、术语表或模型会改变指纹，自动重新翻译。想用同样的配置再次发送给提供商，添加 `--no-cache`：
+
+```bash
+verbatra translate --no-cache
+```
+
+想从头重建一个语言环境，而不是撤销一次运行，见[如何重新翻译全部内容？](/zh-CN/docs/faq#如何重新翻译全部内容)。删除锁文件不是重置：没有基线，就不会检测到任何过期的键，所以下次运行什么都不翻译。
+
+## 中断或失败的运行
+
+中断的运行不需要回滚。再运行一次即可。
+
+每个语言环境单独落盘：先写入它的文件，再记录它的锁条目。中断会让已完成的语言环境保持完整，其余的保持原样，再次运行会接着处理没动过的那些。唯一的空档在某个语言环境写入文件之后、更新锁文件之前，这个空档会自行修复：新增的键按现状采纳，已更改的键仍带着旧哈希，所以会被再次翻译。不会丢失任何工作。
+
+运行期间因检查失败、提供商调用失败或 token 预算而被搁置的键，保留其之前的哈希，所以下次运行会重试它们。各种原因见[故障排查](/zh-CN/docs/troubleshooting)。
+
+中断的运行会释放它的写锁。被强制终止的进程（`kill -9`、崩溃）可能在 `.verbatra-local/` 下留下一个写锁；同一台机器上的下次运行会发现该进程已不存在，并回收这个锁。无法检查的锁会让运行等待，然后以 [`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended) 失败，该错误会写明要删除的路径。
+
+## 在难以撤销的运行之前
+
+- 先提交语言文件、`verbatra.lock.json` 和 `verbatra.provenance.json`，这样 `git checkout HEAD --` 才有可以回到的状态。
+- 用 `verbatra translate --dry-run`、`verbatra diff` 或 `verbatra check` 预览。它们都不调用提供商，也不写入文件。
+- 先用 `--locales <locale>` 试一个语言环境。
+
+## 相关内容
+
+- [锁文件与来源记录](/zh-CN/docs/the-lock-file)：它记录什么，以及如何检测漂移。
+- [翻译缓存](/zh-CN/docs/the-cache)：指纹和 `--no-cache`。
+- [`verbatra translate`](/zh-CN/docs/cli/translate)：`--dry-run`、`--locales` 和 `--no-cache`。
+- [错误码](/zh-CN/docs/error-codes#lock_contended)：`LOCK_CONTENDED` 和其他锁错误。

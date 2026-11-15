@@ -1,0 +1,189 @@
+---
+title: 在 Studio 中审校
+seoTitle: "在 Verbatra Studio 中审校机器翻译"
+description: 启动 Verbatra Studio，处理审校队列，就地修正条目，并在本地仪表盘中重新翻译被标记的键。
+type: how-to
+---
+在 Verbatra Studio 中找出待处理的机器翻译，修正值，并批准或拒绝提供商写入的内容。
+
+两条规则：**本地编辑始终开启**，**提供商花费始终关闭**，除非你用 `--allow-spend` 启动 Studio。
+
+## 启动 Studio
+
+```bash
+npm install --save-dev @verbatra/studio
+verbatra studio
+```
+
+打开它输出的 URL，其中包含令牌。端口、令牌、选项和实时刷新见 [`verbatra studio`](/zh-CN/docs/cli/studio)。
+
+## 阅读 Translations 页面
+
+### 一张键表
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Translations**（翻译）是一张表，列出所有需要关注的键：缺失、已更改、孤立、受保护、在审校队列中，或未通过完整性检查。每行显示键、源文本和每个语言环境的状态；选择一个语言环境可查看译文、状态和来源。搜索也能找到已同步的键。
+
+### 键的详情
+
+点击某个键打开它的编辑器，其中列出每个语言环境的值，并带有完整性指示：占位符一致、不一致（并指出相关记号），或消息语法无效。还会显示：
+
+| 详情 | 显示内容 |
+| --- | --- |
+| **Inline markup mismatch**（内联标记不一致） | 译文丢掉（`-`）或添加（`+`）的每个标签 <AvailableFrom version="0.5.1" pkg="@verbatra/studio" /> |
+| **ICU arms mismatch**（ICU 分支不匹配） | 与目标语言不匹配的复数或 select 分支；从右到左的值按从右到左渲染（[语言与语言环境](/zh-CN/docs/language-support#从右到左的语言)）<AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| 来源徽章 | 每个值由谁写成，读取自 [`verbatra.provenance.json`](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)，例如 **Machine**（机器）、**Human**（人工）或 **Edited outside verbatra**（在 verbatra 之外编辑） <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+### 按状态筛选
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+搜索框旁边的筛选标签按状态缩小表格范围，包括 **Review queue**（审校队列）和 **Integrity problems**（完整性问题）。**Copy as review report**（复制为审校报告）会把待处理的键复制为 Markdown，用于 pull request。
+
+### 带完整性门禁的编辑
+
+**Edit**（编辑）打开该语言环境的草稿。保存时，值会先通过[完整性门禁](/zh-CN/docs/translation-safety#完整性门禁)；被拒绝的值不会写入，并显示原因。被接受的编辑会写入语言文件并更新锁文件。
+
+#### 草稿检查
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+编辑器显示该键的描述、你的草稿用到或漏掉的术语表条目，以及草稿相对于源值和 `maxLength` 的长度。按 Ctrl 或 Cmd 加 Enter 保存。
+
+#### 设置长度限制
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+在长度行下方，**Set limit**（设置限制）、**Change limit**（更改限制）和 **Remove limit**（移除限制）会编辑该键在 [`verbatra.limits.json`](/zh-CN/docs/config-file#maxlength) 中的条目，对所有语言环境生效。配置中的 `maxLength` 优先，且为只读。无法使用的文件会显示原因，并禁用该控件。限制只是建议：翻译运行会把更长的值标记为待审校，不会阻止任何内容。Studio 只为源键设置限制；为生成形式自身的键写入的限制仍然有效。
+
+#### 预览 ICU 消息
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+使用 `next-intl-json` 或 `arb` 时，草稿下方折叠的 **ICU preview**（ICU 预览）会按该语言环境的语言和方向，为每个分支渲染一次。输入的示例值命中某个分支时会增加一行，否则显示一条说明。数字和日期使用这台计算机的语言数据，所以你的应用中可能有所不同。
+
+#### 与表格并排
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+宽度达到 1280px 时，编辑器显示在表格旁边；更窄时是抽屉。带着未保存的编辑离开该键时，会询问你保存、放弃还是继续编辑；离开 Studio 时会出现浏览器自带的确认。
+
+### 搜索与替换
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Search and replace**（搜索与替换）更改译文值中的字面文本：选择文本、替换内容、大小写和语言环境，检查最多 1,000 处匹配，然后应用。固定的键和受保护的值不会被包含，除非你勾选它们的复选框。受保护的值是指由人工编写或导入的值，或在 verbatra 之外更改的值；`verbatra.provenance.json` 无法读取时，所有值都算受保护。
+
+## 处理审校队列
+
+**Review**（审校）页面列出每个由机器写成且无人批准的值：每个语言环境和键占一行，显示完整的源值和译文、来源，以及本机上次运行留下的所有[审校标记](/zh-CN/docs/translation-safety#审校标记)。
+
+<StudioScreenshot
+  shot="review"
+  alt="Verbatra Studio 的 Review 页面，Needs review 标签处于按下状态，列出德语条目；两行带有审校原因 Matches source text 和 Unusual length，旁边是来源 Machine，每行都有 Edit、Approve 和 Reject 操作。"
+  caption="一次运行之后的审校队列，被标记的行显示各自的原因。Studio 提供浅色和深色主题；切换截图即可对比。"
+/>
+
+### 标记标签
+
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+有两个审校标记显示为 **Over length budget**（超出长度预算）和 **Reused after source edit**（源值编辑后复用）。
+
+### 行操作
+
+<AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
+
+先按语言环境或文本筛选，然后：
+
+- **Edit** 打开带完整性门禁的编辑器。被接受的编辑会清除该行。
+- **Approve**（批准）接受该值。
+- **Reject**（拒绝）在确认后移除该值，以便替换。
+
+### 保存的决定
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+两种决定都按[审校决定](/zh-CN/docs/the-lock-file#审校决定)的规则保存在 `verbatra.provenance.json` 中。批准还要求该值相对于其源值是最新的（未过期）。把语言文件、锁文件和来源记录文件一起提交；在 XLIFF 项目中，请编辑而不是拒绝。
+
+### 全团队共用一个队列
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+队列读取自已提交的文件，所以拉取这些文件的队友也能看到它。有人批准、拒绝、编写或导入某个值后，该值就离开队列；已批准的值被机器重写后会重新回到队列。
+
+**Needs review**（待审校）和 **Approved**（已批准）标签切换列表并显示数量；筛选栏按来源缩小范围；选定语言环境后，**Approve all in**（全部批准）会在确认后全部批准。要在机器翻译等待批准期间让 pull request 失败，请在 CI 中运行 [`verbatra check --require-reviewed`](/zh-CN/docs/cli/check#要求译文已审校)。
+
+### 用键盘处理队列
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+按 `j` 或向下箭头开始，然后：
+
+| 按键 | 操作 |
+| --- | --- |
+| `j` 或向下箭头 | 下一个条目 |
+| `k` 或向上箭头 | 上一个条目 |
+| `a` | 批准高亮的条目 |
+| `r` | 拒绝它（仍会弹出确认） |
+| `e` 或 Enter | 在编辑器中打开它 |
+| `t` | 重新翻译它（仅在使用 `--allow-spend` 时可用；会调用你的提供商） |
+| `x` | 选中或取消选中它，用于批量操作 |
+| `?` | 显示或隐藏快捷键列表 |
+
+在筛选栏或对话框中输入时，快捷键暂停。
+
+### 一次处理多个条目
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+勾选各行（或勾选表头复选框以选中所有筛选出的行），然后选择 **Approve selected**（批准所选）、**Reject selected**（拒绝所选），或在使用 `--allow-spend` 时选择 **Retranslate selected**（重新翻译所选）。失败的条目按原因列出，并保持选中。一个批次最多包含 100 个要批准或拒绝的条目，或 20 个要重新翻译的条目。
+
+## 重新翻译被标记的键
+
+以允许花费的方式启动 Studio（[如何授予花费权限](/zh-CN/docs/cli/studio#花费与智能体工具)）：
+
+```bash
+verbatra studio --allow-spend
+```
+
+每个 Review 行上会出现 **Retranslate**（重新翻译）按钮；对于有完整性缺陷的值，该按钮也出现在键的编辑器中。它只发起一次提供商调用，用完整性门禁检查结果，并把新值留在队列中等待批准。在 Review 行中，人工编写的值永远不会被替换；如需替换，在 **Translations** 页面中该键的编辑器里选择 **Replace anyway**（仍然替换）。
+
+## 翻译待处理的更改
+
+Studio 运行期间，源语言环境或目标语言环境的文件发生变化时，会显示一条弹出提示，内容为 `Source changed` 或 `Target changed: de`，并附上键的数量。使用 `--allow-spend` 时，源文件的弹出提示还会提供 **Translate pending changes across all locales**（翻译所有语言环境中待处理的更改），即 `verbatra translate` 会执行的那次运行。
+
+## 在 Overview 中查看覆盖率和上次运行
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Studio 默认打开 **Overview**（概览）页面：显示每个语言环境的覆盖率及其锁文件状态（见[锁文件与来源记录](/zh-CN/docs/the-lock-file)）、语言文件的 git 历史，以及上次运行的 token 用量（设置了预算时还有预算仪表）。
+
+其下方的 **Run history and cost**（运行历史记录与费用）在表格上方用图表显示最近几次运行的费用和 token，表格中是每个语言环境最近一次已知的覆盖率。
+
+<StudioScreenshot
+  shot="overview"
+  alt="Verbatra Studio 的 Overview 页面，上方有四个数字：Needs attention、Waiting for review、Avg coverage 和 Locales in sync，下方的表格显示 de、es 和 fr 语言环境的覆盖率，以及指向各语言环境译文和审校队列的链接。"
+  caption="Overview 页面是 Studio 的起始页。切换截图即可对比浅色和深色主题。"
+/>
+
+## 在 Glossary 页面保持术语表最新
+
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
+
+**Glossary**（术语表）有自己的页面。使用 JSON 术语表时，你可以搜索、添加、编辑和删除术语。删除前会先询问；有未保存的编辑时，离开前会询问。内联术语表保持只读。
+
+术语表的编辑只改变下次运行收到的内容，不会改动已经写入的文本；请重启 Studio，让它自己的重新翻译使用新内容。
+
+### 按语言环境查看
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+**Show translations for**（显示译文）切换到某个语言环境的[术语表](/zh-CN/docs/config-file#glossary)视图：译文、禁用的译法和备注。
+
+## 相关内容
+
+- [用浏览器智能体操作 Studio](/zh-CN/docs/agent-tools-in-studio)：从浏览器中的 AI 智能体执行同样的工作流程。
+- [记录机器翻译证据](/zh-CN/docs/provenance-evidence)
+- SDK 参考：[审校与重新翻译](/zh-CN/docs/sdk/review)

@@ -1,0 +1,201 @@
+---
+title: SDK 快速上手
+seoTitle: "verbatra SDK 快速上手：在 Node.js 中翻译"
+description: 安装 @verbatra/sdk，无需 API 密钥预览一次运行，用自己的脚本翻译，处理错误，并在 CI 中设门禁。
+type: tutorial
+---
+读完本页，你的 TypeScript 脚本就能把英文语言文件翻译成德语，报告运行结果，并在某个语言环境不同步时让 CI 任务失败。你需要 Node.js `^22.22.0 || >=24`，大约 10 分钟。前三步不需要 API 密钥。
+
+每一步都是一个完整的脚本，用 `node` 运行。Node.js 可以直接运行 TypeScript 文件，因此不需要额外的选项。这些脚本使用 `import` 和顶层 `await`，所以第一步还会把项目标记为 ES 模块。
+
+## 步骤
+
+<Steps>
+<Step>
+
+### 安装 SDK
+
+```bash
+npm init -y
+npm pkg set type=module
+npm install --save-dev @verbatra/sdk
+```
+
+在空目录中运行：`npm init -y` 会创建 `package.json`，`npm pkg set type=module` 再把它标记为 ES 模块。在已有的项目中，跳过 `npm init -y`。如果 pnpm 以 `ERR_PNPM_IGNORED_BUILDS` 退出，见[安装](/zh-CN/docs/sdk#安装)。
+
+</Step>
+<Step>
+
+### 添加源文件和配置
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/sdk";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de"],
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+});
+```
+
+`loadConfig` 会从工作目录找到这个文件并校验它。[选择技术栈](/zh-CN/docs/pick-your-stack)给出了各框架对应的 `format`，[提供商](/zh-CN/docs/providers)列出了所有提供商及其选项。要完全跳过这个文件，把同样的对象作为 `configOverride` 传入，见 [SDK 实用示例](/zh-CN/docs/programmatic-api#不用文件的配置)。
+
+</Step>
+<Step>
+
+### 不用密钥预览运行
+
+```ts title="preview.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const preview = await translate({ config, dryRun: true });
+
+for (const locale of preview.locales) {
+  console.log(`${locale.locale}: would translate ${locale.translated.join(", ")}`);
+}
+```
+
+```bash
+node preview.ts
+```
+
+```text output
+de: would translate cart.empty, greeting
+```
+
+试运行不会构造提供商，因此不需要密钥，不产生花费，也不写入任何内容。改传 `estimate: true` 可以得到 token 或费用数字，见[运行前估算费用](/zh-CN/docs/estimating-cost)。
+
+</Step>
+<Step>
+
+### 翻译并查看摘要
+
+```ts title="translate.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const summary = await translate({
+  config,
+  onProgress: (event) => {
+    if (event.type === "locale-finished") console.log(`${event.locale}: ${event.translated} keys`);
+  },
+});
+
+const { succeeded, partial, failed, usage } = summary;
+console.log(`${succeeded.length} ok, ${partial.length} partial, ${failed.length} failed`);
+if (usage !== undefined) {
+  console.log(`tokens: ${usage.inputTokens} in, ${usage.outputTokens} out`);
+}
+
+for (const locale of summary.locales) {
+  if (locale.status === "failed") {
+    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
+    continue;
+  }
+  for (const entry of locale.needsReview) {
+    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+  }
+}
+
+if (failed.length > 0 || partial.length > 0) {
+  process.exitCode = 1;
+}
+```
+
+提供商从环境变量读取它的密钥，而且与 CLI 不同，SDK 不会加载 `.env` 文件，所以要自己传入。每个提供商对应的变量见[提供商](/zh-CN/docs/providers#密钥来自环境变量)。
+
+```bash
+node --env-file=.env translate.ts
+```
+
+`locales/de.json` 现在包含两个键，`{{name}}` 完好无损。状态为 `partial` 的语言环境写入时仍缺少一些键，所以脚本遇到它时，会像遇到 `failed` 一样失败。各语言环境的问题以数据的形式出现在摘要中；只有影响整次运行的问题才会抛出。[`translate`](/zh-CN/docs/sdk/run#translate) 列出了其他所有选项。
+
+</Step>
+<Step>
+
+### 处理错误
+
+<AvailableFrom version="0.12.0" />
+
+影响整次运行的问题会抛出 `SdkError`。根据它稳定的 `code` 分支处理，并打印 `errorHint` 给出的下一步操作。
+
+```ts title="safe-translate.ts"
+import { errorHint, loadConfig, SdkError, translate } from "@verbatra/sdk";
+
+try {
+  const summary = await translate({ config: await loadConfig() });
+  console.log(`${summary.succeeded.length} locales translated`);
+} catch (error) {
+  if (!(error instanceof SdkError)) {
+    throw error;
+  }
+  switch (error.code) {
+    case "CONFIG_NOT_FOUND":
+      console.error(`${error.code}: ${error.message} (searched from ${process.cwd()} upward)`);
+      break;
+    case "PROVIDER_CONSTRUCTION_FAILED":
+      console.error(`${error.code}: the provider could not be built, most often for a missing key`);
+      break;
+    default:
+      console.error(`${error.code}: ${error.message}`);
+  }
+  const hint = errorHint(error);
+  if (hint !== undefined) {
+    console.error(`next: ${hint}`);
+  }
+  process.exitCode = 2;
+}
+```
+
+不设置密钥运行它，会报告 `PROVIDER_CONSTRUCTION_FAILED` 并指出缺少的变量，绝不会给出密钥的值。所有错误码见[错误码](/zh-CN/docs/error-codes#sdk-error-codes)。
+
+</Step>
+<Step>
+
+### 用 check 在 CI 中设门禁
+
+```ts title="check.ts"
+import { check, loadConfig } from "@verbatra/sdk";
+
+const summary = await check({ config: await loadConfig() });
+
+for (const locale of summary.locales) {
+  console.log(`${locale.locale}: ${locale.missing} missing, ${locale.stale} stale`);
+}
+
+if (!summary.inSync) {
+  process.exitCode = 1;
+}
+```
+
+```bash
+node check.ts
+```
+
+`check` 不调用任何提供商，也不写入任何内容，因此在 CI 中不需要密钥。源字符串没有译文，或在翻译之后又有更改时，脚本以 `1` 退出。
+
+</Step>
+</Steps>
+
+## CommonJS
+
+在 CommonJS 项目中，`require("@verbatra/sdk")` 返回相同的导出。那里不能使用顶层 `await`，所以请把调用包在 `async` 函数中。
+
+## 接下来
+
+- [SDK 实用示例](/zh-CN/docs/programmatic-api)：估算、监听模式、提供商的测试替身、审校队列，以及工作簿和 TMX 的往返流程。
+- [SDK 参考](/zh-CN/docs/sdk)：每个入口函数、它的输入，以及它会抛出什么。
+- [自定义提供商](/zh-CN/docs/sdk/extend#自定义提供商)和[编写自定义格式适配器](/zh-CN/docs/custom-format-adapters)：接入 verbatra 没有内置的部分。
+- [翻译安全](/zh-CN/docs/translation-safety)：verbatra 在写入译文之前会检查什么。

@@ -1,0 +1,204 @@
+---
+title: "JSON Schema"
+seoTitle: "每个 verbatra --json 结果的 JSON Schema"
+description: "每个 --json 结果背后的 zod schema，以及把它们转换为已发布 JSON Schema 文档的函数。"
+type: reference
+---
+<AvailableFrom version="0.12.0" />
+
+CLI 在 `--json` 下输出的每个 `result`，在 SDK 中都有一个 zod 4 schema，并在编译期与它所描述的 TypeScript 类型绑定：字段相同，可选字段相同，值类型相同，所以只改其中一个而不改另一个，构建就会失败。它的 `parse` 也接受来自更新版 verbatra 的值：它允许未列出的字段，并把这些字段从结果中去掉。同样的 schema 也以 JSON Schema 文档的形式发布；它们的 URL 和版本规则见[退出码与 JSON 输出](/zh-CN/docs/cli/output#schema)。
+
+## 结果 schema
+
+### runSummarySchema
+
+描述 [`RunSummary`](/zh-CN/docs/sdk/run-summary)，即 `translate`、`watch` 和 `import` 的 `result`。以 `run-summary.json` 发布。
+
+```ts title="签名"
+const runSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### checkSummarySchema
+
+描述 `CheckSummary`，即 [`check`](/zh-CN/docs/sdk/inspect#check) 的 `result`。以 `check-summary.json` 发布。
+
+```ts title="签名"
+const checkSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### checkFileSummarySchema
+
+描述 `CheckFileSummary`，即 [`checkFile`](/zh-CN/docs/sdk/inspect#checkfile) 的 `result`。以 `check-file-summary.json` 发布。
+
+```ts title="签名"
+const checkFileSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### diffSummarySchema
+
+描述 `DiffSummary`，即 [`diff`](/zh-CN/docs/sdk/inspect#diff) 的 `result`。以 `diff-summary.json` 发布。
+
+```ts title="签名"
+const diffSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### doctorResultSchema
+
+描述 `DoctorResult`，即 [`doctor`](/zh-CN/docs/sdk/inspect#doctor) 的 `result`。它的 `dataFlow` 字段是 [`dataFlowManifestSchema`](/zh-CN/docs/sdk/inspect#dataflowmanifestschema)，所以 `doctor-result.json` 引用 `data-flow-manifest.json`，而不是重复它。
+
+```ts title="签名"
+const doctorResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### provenanceReportResultSchema
+
+描述 `ProvenanceReportResult`，即 [`provenanceReport`](/zh-CN/docs/sdk/inspect#provenancereport) 的 `result`，包括 `available: false` 变体。以 `provenance-report.json` 发布。
+
+```ts title="签名"
+const provenanceReportResultSchema: z.ZodUnion<readonly [...]>;
+```
+
+### pseudolocalizeResultSchema
+
+描述 `PseudolocalizeResult`，即 [`pseudolocalize`](/zh-CN/docs/sdk/run#pseudolocalize) 的 `result`。以 `pseudolocalize-result.json` 发布。
+
+```ts title="签名"
+const pseudolocalizeResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### generateTypesResultSchema
+
+描述 `GenerateTypesResult`，即 [`generateTypes`](/zh-CN/docs/sdk/run#generatetypes) 的 `result`。以 `generate-types-result.json` 发布。
+
+```ts title="签名"
+const generateTypesResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### extractResultSchema
+
+描述 `ExtractResult`，即 [`extract`](/zh-CN/docs/sdk/inspect#extract) 的 `result`。以 `extract-result.json` 发布。
+
+```ts title="签名"
+const extractResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### exportWorkbookResultSchema
+
+描述 `ExportWorkbookResult`，即 [`exportWorkbook`](/zh-CN/docs/sdk/exchange#exportworkbook) 的 `result`。以 `export-workbook-result.json` 发布。
+
+```ts title="签名"
+const exportWorkbookResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### importTmxResultSchema
+
+描述 `ImportTmxResult`，即 [`importTmx`](/zh-CN/docs/sdk/exchange#importtmx) 的 `result`。以 `import-tmx-result.json` 发布。
+
+```ts title="签名"
+const importTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### exportTmxResultSchema
+
+描述 `ExportTmxResult`，即 [`exportTmx`](/zh-CN/docs/sdk/exchange#exporttmx) 的 `result`。以 `export-tmx-result.json` 发布。
+
+```ts title="签名"
+const exportTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### runHistoryResultSchema
+
+描述 `RunHistoryResult`，即 [`runHistory`](/zh-CN/docs/sdk/history#runhistory) 的结果。以 `run-history-result.json` 发布。
+
+```ts title="签名"
+const runHistoryResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+## 共用 schema
+
+### localeSummarySchema
+
+描述 `LocaleSummary`，即运行摘要的 `locales` 中的一个条目。
+
+```ts title="签名"
+const localeSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### keyProvenanceSchema
+
+描述 `KeyProvenance`，即某个键已记录的来源和审校状态。
+
+```ts title="签名"
+const keyProvenanceSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### provenanceSummarySchema
+
+描述 `ProvenanceSummary`，即 `check` 的某个语言环境所携带的、按来源和按审校状态统计的键数量。
+
+```ts title="签名"
+const provenanceSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### keyOriginSchema
+
+描述 `KeyOrigin`：谁或什么写入了某个键的当前值。
+
+```ts title="签名"
+const keyOriginSchema: z.ZodEnum<{ ... }>;
+```
+
+## 流记录
+
+### progressEventSchema
+
+描述 `ProgressEvent`，即 `onProgress` 收到的内容。在 `--json` 下，CLI 会把其中一些事件输出到 stderr。以 `progress-event.json` 发布。
+
+```ts title="签名"
+const progressEventSchema: z.ZodUnion<readonly [...]>;
+```
+
+### lockWaitEventSchema
+
+描述 `LockWaitEvent`，即运行等待某个语言环境的写锁时 `onLockWait` 收到的内容。CLI 会把它连同加上的 `type: "lock-wait"` 输出到 stderr。以 `lock-wait-event.json` 发布。
+
+```ts title="签名"
+const lockWaitEventSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+## 发布
+
+`SDK_JSON_SCHEMAS` 列出 SDK 在 `@verbatra/sdk/schemas/` 下发布的每个文档，每个都带有它的 `name`、`title`、`io` 和 zod `schema`。`JSON_SCHEMA_BASE_URL` 是 `https://verbatra.kreitz-webdev.de/schema/v1/`。`KNOWN_ERROR_CODES` 列出每个 SDK、提供商和适配器错误码；错误信封（envelope）schema 把它们作为提示提供，同时接受任何错误码。
+
+### renderJsonSchemas
+
+根据一组 `JsonSchemaDocument` 生成 verbatra 自己的 JSON Schema 文档（draft 2020-12），按名称作键。每个文档获得由 `jsonSchemaUrl` 按其名称给出的 `$id`，即本站上的一个 URL，所以它只用于 verbatra 自己的文档，你自己的 schema 请用 `renderOutputJsonSchema`。输出文档允许它未列出的每个属性；输入文档（如配置）保持封闭对象。嵌入了任一列表中某个文档的 schema，会按 URL 引用它。
+
+```ts title="签名"
+function renderJsonSchemas(
+  documents: readonly JsonSchemaDocument[],
+  references?: readonly JsonSchemaDocument[],
+): Readonly<Record<string, JsonSchemaObject>>;
+```
+
+**返回**：`documents` 的每个条目对应一个文档，每个都带有 `$schema`、`$id` 和 `title`。
+
+### renderOutputJsonSchema
+
+按生成输出文档的方式，为单个 zod schema 生成 JSON Schema，不带 `$id`，例如用于 MCP 工具的 `outputSchema`。
+
+```ts title="签名"
+function renderOutputJsonSchema(schema: z.ZodType): JsonSchemaObject;
+```
+
+**返回**：`JsonSchemaObject`
+
+### jsonSchemaUrl
+
+返回已发布文档的公开 URL，它同时也是该文档的 `$id`：`jsonSchemaUrl("run-summary")` 是 `https://verbatra.kreitz-webdev.de/schema/v1/run-summary.json`。
+
+```ts title="签名"
+function jsonSchemaUrl(name: string): string;
+```
+
+**返回**：`string`

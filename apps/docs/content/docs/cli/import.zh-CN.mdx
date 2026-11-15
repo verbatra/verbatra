@@ -1,0 +1,116 @@
+---
+title: verbatra import
+seoTitle: "verbatra import：把译好的内容导回项目"
+description: 把填好的工作簿、CSV、TSV 或 XLIFF 交接文件导回语言文件，并执行相同的安全检查。
+type: reference
+---
+把译者填好的交接文件读回你的语言文件。每个值都要经过与自动运行相同的完整性检查：通过的值写入，并更新锁文件（见[锁文件与来源记录](/zh-CN/docs/the-lock-file)）；未通过的值被搁置并报告，因此有问题的单元格绝不会进入语言文件。实际运行还会把缺失的条目添加到已有的 `.gitignore` 中，见 [.gitignore 条目](/zh-CN/docs/cli#gitignore-条目)。
+
+## 用法
+
+```bash
+verbatra import <workbook> [flags]
+```
+
+- `<workbook>`：由 [`verbatra export`](/zh-CN/docs/cli/export) 写出、并由译者填好的交接文件。对 `xlsx` 是工作簿文件；对 `csv`、`tsv`、`xliff2` 和 `xliff12` 是单个 `<locale>.csv`、`<locale>.tsv` 或 `<locale>.xlf` 文件，或是每个语言环境一个文件的目录。
+
+## 示例
+
+```bash
+# import the filled workbook
+verbatra import verbatra-translations.xlsx
+
+# validate and report, write nothing
+verbatra import verbatra-translations.xlsx --dry-run
+
+# import every locale file in a CSV handoff directory
+verbatra import handoff --format csv
+
+# import one XLIFF file back from a CAT tool, naming the reviewer
+verbatra import handoff/de.xlf --reviewer "Agency GmbH"
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--dry-run` | 无 | 关闭 | 校验并报告，不写入语言文件，也不更新锁文件 |
+| `--format` | `<format>` | 取决于路径的扩展名：`csv`、`tsv`，`.xlf` 或 `.xliff` 为 `xliff2`，其余为 `xlsx`；对目录，取决于导出清单或其中的语言文件 | `xlsx`、`csv`、`tsv`、`xliff2` 或 `xliff12`；两种 XLIFF 格式都能读取两个版本 |
+| `--reviewer` | `<name>` | 无 | 记录在每个标为 reviewed 或 final 的 XLIFF 单元上的名字；最多 64 个字符，存入已提交的来源记录文件 |
+| `--lock-timeout` | `<seconds>` | `600` | 某个语言环境的写锁被占用时等待的时长；`1` 到 `3600` 的整数，否则是用法错误，退出码 `2` |
+
+还接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd`、`--config` 和 `--json`。
+
+## 行为
+
+<Callout type="warn">
+每个通过检查的已填值都会替换语言文件中的值，包括人工写入的值。请先运行 `--dry-run`，查看会有哪些更改。
+</Callout>
+
+### 语言文件与遗留文件
+
+使用 `csv` 或 `tsv` 时，语言环境取自文件名，所以每个文件都要保持导出时的名字。已配置的目标语言环境没有文件（工作簿中则是没有工作表）时，该语言环境以 `WORKBOOK_SHEET_MISSING` 失败，绝不会被悄悄跳过。
+
+早先用范围更广的 `--locales` 导出而遗留下来的文件绝不会被应用。导入会对照最近一次导出写下的清单检查目录，并让这样的语言环境以 `HANDOFF_FILE_STALE` 失败。请重新导出该语言环境，或删除这个文件。没有可读清单的目录（手工拼成，或被压缩包去掉了清单）按原样读取，你直接指定的单个文件也一样。
+
+### 写锁
+
+<AvailableFrom version="0.12.0" />
+
+`--lock-timeout` 设置语言环境在遇到被占用的[写锁](/zh-CN/docs/the-lock-file#写锁)时等待多久，超时后以 `LOCK_CONTENDED` 失败，与 [`verbatra translate`](/zh-CN/docs/cli/translate) 完全一样。等待发生在写入该语言环境的文件之前，所以超时的语言环境保持不变，其他语言环境仍会导入，命令以退出码 `1` 退出。文件写入之后，把它记入锁文件时最多等待默认的 10 分钟，不受 `--lock-timeout` 影响。等待超过 1 秒时，会打印一行，指出锁及其持有者（使用 `--json` 时是一条 `lock-wait` 记录）。`--dry-run` 不获取锁，所以从不等待。
+
+### XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+XLIFF 文件按它声明的版本读取，名字不是已配置语言环境的单个文件，则按它声明的目标语言匹配。target 与当前值相同的单元不改变任何内容；其他任何 target 都像工作簿中的行一样经过完整性门禁。标为 `reviewed` 或 `final` 的单元（1.2 中还包括 `signed-off` 或 `approved="yes"`）记录为已批准，并写明 `--reviewer`，同时以 `HANDOFF_REVIEWS_RECORDED` 通知报告。id 不对应任何源键的单元，报告为格式错误的行。见[交给翻译公司（XLIFF）](/zh-CN/docs/translation-agency)。
+
+### 空行与损坏的行
+
+空的 `Translation` 单元格不会使语言环境失败：该行被跳过，保留它的锁文件基线，只要该键仍需要翻译，就报告为 `unfilled`。因此，导入一份还没有人填写的交接文件会成功，并列出所有待处理的键。
+
+已填的行如果源文本在导出之后又有更改，就会被搁置：它的键列在 `integrity-withheld` 下，不带原因，该语言环境为部分完成，并且该键会再次导出。
+
+单个无法读取的行报告为格式错误的行，该语言环境的其余部分仍会导入。交接文件过大或根本无法解析（例如不是可读的 xlsx 容器）时，是整次运行的 `SOURCE_INVALID` 错误，错误信息会说明问题所在。
+
+在 CSV、TSV 或 xlsx 交接文件中，已填的行如果等于已是最新的键当前持有的值，并且通过了完整性门禁，就保持原样，报告为未更改，而不是已翻译 <AvailableFrom version="0.13.0" />。见[用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation#导入接受什么)。
+
+### 终端反馈
+
+<AvailableFrom version="0.12.0" />
+
+`import` 在读取并应用文件时显示一行。导入顺利完成之后，它建议运行 `verbatra check`；`--dry-run` 之后，则建议运行不带该选项的同一条导入命令。语言环境失败或部分完成之后，它建议在你更正被拒绝的行后重新运行同一条导入命令；语言环境因带有下一步提示的错误而失败时，则给出那一步：
+
+```text output
+verbatra: importing verbatra-translations.xlsx... done (0.4s)
+next: verbatra check (confirm every locale is in sync)
+```
+
+这些行输出到 stderr，`--quiet` 会去掉它们。见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+### JSON 输出
+
+Schema：[`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+使用 `--json` 时，[信封](/zh-CN/docs/cli/output#json-输出)带有一个 `RunSummary`，形状与 [`verbatra translate`](/zh-CN/docs/cli/translate) 打印的相同；所有字段见 [RunSummary](/zh-CN/docs/sdk/run-summary)。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 每个目标语言环境都已完整完成 |
+| `1` | 运行已结束，但有一个或多个语言环境失败或部分完成 |
+| `2` | 无法运行：整次运行的错误（配置、交接文件、格式或损坏的锁文件），或用法错误 |
+| `130` | 在释放本次运行的写锁之后，被 Ctrl-C（SIGINT）中断 |
+| `143` | 在释放本次运行的写锁之后，被 SIGTERM 停止 |
+
+<AvailableFrom version="0.9.0" />
+
+约定与 [`verbatra translate`](/zh-CN/docs/cli/translate) 相同，因此手动交接在 CI 中的分支方式也相同：部分完成的语言环境以 `1` 退出；锁文件已经损坏或中途损坏时，整次运行以 `2` 停止，其余语言环境保持不变（之前已应用的语言环境保持写入）。每个命令都遵循的约定见[退出码](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation)涵盖完整的导出、填写、导入往返流程，以及译者可以编辑什么。
+- [翻译安全](/zh-CN/docs/translation-safety)说明了可能搁置某个值的检查。
+- [交给翻译公司（XLIFF）](/zh-CN/docs/translation-agency)涵盖通过 CAT 工具进行的 XLIFF 往返流程。
+- [`verbatra export`](/zh-CN/docs/cli/export) 生成本命令读取的交接文件。

@@ -1,0 +1,90 @@
+---
+title: "编辑"
+seoTitle: "SDK：编辑单个值，或在语言环境中替换文本"
+description: "写入一个修正后的值，或在目标语言环境的值中预览并应用按字面查找替换。"
+type: reference
+---
+<AvailableFrom version="0.13.0" />
+
+## 编辑单个键
+
+### editEntry
+
+<AvailableFrom version="0.5.0" />
+
+为一个键和一个语言环境写入一条人工输入的修正。候选译文在写入磁盘之前，要通过与提供商译文相同的完整性门禁；通过后，在该语言环境的写锁之内更新语言文件和该键的锁条目。从不调用提供商。
+
+```ts title="签名"
+function editEntry(
+  input: EditEntryInput,
+  deps?: EditEntryDeps,
+): Promise<EditEntryResult>;
+```
+
+<SdkTypeTable name="EditEntryInput" />
+
+**返回**：`EditEntryResult`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/zh-CN/docs/error-codes#unknown_key)、[`KEY_PINNED`](/zh-CN/docs/error-codes#key_pinned)、[`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/zh-CN/docs/error-codes#run_cancelled)、[`TARGET_UNWRITABLE`](/zh-CN/docs/error-codes#target_unwritable)、[`LOCALE_STATE_NOT_CARRIED_OVER`](/zh-CN/docs/error-codes#locale_state_not_carried_over)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid)
+
+**示例**：[编辑并重新翻译单个键](/zh-CN/docs/programmatic-api#编辑并重新翻译单个键)
+
+返回 `{ accepted: true, value }`，或 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`，此时不写入任何内容（[完整性门禁](/zh-CN/docs/translation-safety#完整性门禁)）。需要针对这些原因构建任何 schema 时，使用导出的 `INTEGRITY_GATE_REASONS` 元组。`"empty"` 拒绝源文本非空时的空白值；要清除某个键，改用工作簿的 `[[CLEAR]]` 特殊标记值。`placeholder` 或 `markup` 拒绝还会带上 `details`：列出背后的每个占位符或标签，候选译文丢掉它时以 `-` 为前缀，多出它时以 `+` 为前缀。
+
+该值以来源 `human` 记录在 `verbatra.provenance.json` 中；由 AI 智能体编写时传入 `actor: "agent"`，让记录如实说明（由调用方声明，verbatra 不做核实）；任何其他 `actor` 都会在读取任何内容之前抛出 `TypeError`。来源记录文件已损坏时，会在对值执行门禁之前抛出 `PROVENANCE_FILE_INVALID`，且不写入任何内容；来自更新版 verbatra 的文件，或记录增长后会超过 verbatra 能读回的大小的文件，保持不动，该值写入时不带记录。
+
+<AvailableFrom version="0.12.0" />
+
+使用 `actor: "agent"` 时，匹配配置中 `pinnedKeys` 的键会在写入任何内容之前抛出 `KEY_PINNED`。人对固定的键所做的编辑则会被接受。
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` 限定等待该语言环境写锁的时间，超时后调用以 `LOCK_CONTENDED` 失败（默认 10 分钟），`onLockWait` 报告这次等待，无效的限定值会在读取任何内容之前以 `LOCK_TIMEOUT_INVALID` 失败。
+
+## 跨语言环境替换
+
+对目标语言环境的值按字面查找并替换，分两步。`previewValueReplace` 列出哪些内容会更改，以及某些值为什么不会更改。`applyValueReplace` 更改你选定的值，并在写锁之内对每一项重新判断。两者都不读取源语言环境来查找匹配，也都不调用提供商。
+
+### previewValueReplace
+
+列出包含 `find` 的目标值，每个值带有一个状态。按字面匹配：没有模式语法，没有 Unicode 规范化（NFD 形式的 `find` 不会匹配 NFC 形式的值），也没有换行符转换。`replace` 按所写内容原样插入，所以 `$&` 和 `$1` 没有任何特殊含义。`caseSensitive` 默认为 `true`。匹配从不开始或结束于代理对内部；空的 `find`、超过 20,000 个字符的 `find`，或含有未配对代理项的 `find` 或 `replace`，会抛出 `FIND_TEXT_INVALID`。只读。
+
+```ts title="签名"
+function previewValueReplace(
+  input: PreviewValueReplaceInput,
+  deps?: ValueReplaceDeps,
+): Promise<ValueReplacePreview>;
+```
+
+<SdkTypeTable name="PreviewValueReplaceInput" />
+
+**返回**：`ValueReplacePreview`
+
+**抛出**：[`FIND_TEXT_INVALID`](/zh-CN/docs/error-codes#find_text_invalid)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)
+
+每一项都有一个状态。`ready` 和 `stale-source` 可以应用；`stale-source` 表示该键的源文本在记录其译文之后有更改。`gate-refused` 带有替换后的值所违反的 `reason`，与针对当前源文本的编辑一样，要通过[同一个完整性门禁](/zh-CN/docs/translation-safety#完整性门禁)。对于 ICU 格式（next-intl 和 ARB），如果替换改变了某个参数的作用，也会以原因 `icu` 拒绝：包括它的类型、数字或日期样式或骨架，或复数分支中 `#` 的数量，对比的是当前值；当前值不是有效的 ICU 时，对比的是源文本。参数名与源文本不同的，会以 `placeholder` 拒绝。`details` 列出每处差异，`-` 表示被比较的值，`+` 表示替换后的值。`too-long` 是增长后会超过 20,000 个字符的值；它不是完整性拒绝，没有 `reason`。`pinned` 是匹配 `pinnedKeys` 的键。`protected` 是人编写或导入的值、在 verbatra 之外更改过的值，或在来源记录文件无法读取时的任何值（包括来自更新版 verbatra 的文件）；不论 `humanEdits` 如何设置，它都按受保护处理。既是固定的又是受保护的键，列为 `pinned`，并带有 `protected: true`，需要同时设置 `includePinned` 和 `includeProtected`。`no-source-entry` 是没有源文本可供核对的键，`unchanged` 是替换后保持原样的值。
+
+最多列出 1,000 个值，顺序按配置中 `targetLocales` 的顺序，不论 `locales` 以什么顺序列出它们。`truncated` 说明是否还有更多匹配，`before` 和 `after` 会截取为首个匹配前后的 200 个字符。`valueHash` 是来源记录为当前值存储的哈希；把它交回给 `applyValueReplace`。`baselineUnavailable: true` 表示无法读取锁文件，所以没有任何值与其记录的源文本比较过，也没有任何值是 `stale-source`。
+
+### applyValueReplace
+
+在你选定的值中替换 `find`，在该语言环境的写锁之内，根据磁盘上的文本重新计算每个新值。它从不接受调用方计算好的值，预览只供参考：每一项都会重新判断。
+
+```ts title="签名"
+function applyValueReplace(
+  input: ApplyValueReplaceInput,
+  deps?: ValueReplaceDeps,
+): Promise<ApplyValueReplaceResult>;
+```
+
+<SdkTypeTable name="ApplyValueReplaceInput" />
+
+**返回**：`ApplyValueReplaceResult`
+
+**抛出**：[`FIND_TEXT_INVALID`](/zh-CN/docs/error-codes#find_text_invalid)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid)
+
+每一项的结果是 `applied`、`skipped`（带原因）、`refused`（带完整性原因）、`changed` 或 `too-long`。`changed` 表示该值不再匹配其 `valueHash`、不再包含 `find` 或已不存在，且没有为它写入任何内容。哈希忽略 Unicode 规范化和换行符，所以与预览仅有这类差异的值，在 `find` 仍然匹配时会被替换，不匹配时则为 `changed`。固定的键会被跳过，除非设置了 `includePinned` 且 `actor` 为 `human`；受保护的值会被跳过，除非设置了 `includeProtected`；两者兼有的键需要同时设置两者。来源记录文件来自更新版 verbatra 时，每个值都算作受保护；`includeProtected` 仍会更改它，但文件保持不动，该值不会得到记录。同一个 `locale` 和 `key` 出现多次时，由第一项决定，不论它的 `valueHash` 是什么，之后的每一项都标记为 `skipped`，原因为 `duplicate-entry`。
+
+语言环境逐个处理，顺序为各自在 `entries` 中首次出现的顺序，每个语言环境在自己的锁之下，各进行一次语言文件写入、一次锁文件和来源记录文件更新，以及一次翻译记忆库更新。过期的键保留其旧的锁哈希，所以 `check` 仍会报告它已过期，它的值也不会加入翻译记忆库。每个写入的值都会得到新的来源记录，来源为 `actor`，没有审校决定。`actor` 是必填项，不是 `human` 或 `agent` 的值会在读取任何内容之前抛出 `TypeError`。
+
+某个语言环境失败不会使其他语言环境停止。`localeFailures` 列出每个失败，并带有其 `code` 和 `message`，例如它的写锁在 `lockAcquireTimeoutMs` 内未能释放时的 `LOCK_CONTENDED`、`TARGET_UNWRITABLE`、`SOURCE_INVALID` 或适配器错误。完整性门禁已拒绝的项仍然返回 `refused`，失败之前已经由某项检查确定的项保留其结果；其余的项标记为 `skipped`，原因为 `locale-failed`，没有为它们写入任何内容。失败带有 `fileWritten: true` 时，表示它发生在语言文件写入之后，即更新锁文件或来源记录文件，或释放写锁的时候：已接受的项为 `applied`，它们的值已在磁盘上，锁或来源记录可能滞后，所以重试之前先检查该语言环境。如果某个替换的 `find` 出现在它的 `replace` 中，不要不加检查就再次运行。等待锁文件自身防护的时间使用默认的 10 分钟，不使用 `lockAcquireTimeoutMs`。

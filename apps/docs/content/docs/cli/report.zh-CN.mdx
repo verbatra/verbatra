@@ -1,0 +1,91 @@
+---
+title: verbatra report
+seoTitle: "verbatra report：谁写了每条译文"
+description: 打印只读的项目报告。来源记录报告列出每条译文的来源，以及是否经过人工审校。
+status: new
+type: reference
+---
+<AvailableFrom version="0.12.0" />
+
+`verbatra report provenance` 读取 `verbatra.provenance.json`、锁文件和语言文件，按目标语言环境打印机器写入的值有多少、人工审校的值有多少，以及人工编写或导入的值有多少。它不调用任何提供商，不需要 API 密钥，也不写入任何内容。该报告是辅助证据，不构成法律意见。
+
+## 用法
+
+```bash
+verbatra report <report> [flags]
+```
+
+- `<report>`：要打印的报告。目前只有 `provenance`；其他任何名称都是用法错误。
+
+## 示例
+
+```bash
+# 每个语言环境的计数：机器且未审校、机器且已审校、人工、导入，以及其余
+verbatra report provenance
+
+# 每个键的来源和审校状态，用于审计文件
+verbatra report provenance --json > provenance-report.json
+
+# 只看德语语言环境
+verbatra report provenance --locales de
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 所有已配置的目标语言环境 | 只报告这个以逗号分隔的子集；未配置的语言环境以 `UNKNOWN_LOCALE` 失败，空列表以 `INVALID_LOCALES` 失败，两者都以退出码 `2` 退出 |
+
+还接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd`、`--config` 和 `--json`。
+
+## 行为
+
+### 输出
+
+```text output
+verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z)
+  locale  machine, unreviewed  machine, reviewed  human  import  external  unrecorded  unknown  total
+  de      12                   40                 3      85      1         0           0        141
+Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
+```
+
+第一行给出源语言环境、verbatra 版本和报告生成的时间。每一行统计在源语言环境和该语言环境中都有值的键。各类别的含义、报告能说明和不能说明什么，以及完整的 JSON schema，见[记录机器翻译证据](/zh-CN/docs/provenance-evidence#来源记录报告)。
+
+没有 `--out`：报告输出到 stdout，与 `check` 和 `diff` 一样，需要保存时请重定向。
+
+### JSON 输出
+
+Schema：[`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+`--json` 打印一个[信封](/zh-CN/docs/cli/output#json-输出)，其 `result` 列出每个键的来源、审校状态、提供商、模型和审校人员，用于审计文件。无法读取来源记录文件时，结果是 `{ "available": false, "reason": "provenance-unreadable" }`。
+
+### 来源记录不可读
+
+在没有可读的来源记录文件的情况下生成报告，会把每个值都列为 `unrecorded`，这与没有记录并不相同。因此该命令直接失败（fail closed），以退出码 `1` 退出，与 [`check --require-reviewed`](/zh-CN/docs/cli/check) 一样，这样 CI 任务就不会归档一个空的审计文件。
+
+### 终端反馈
+
+读取文件时，该命令显示一行。有机器翻译等待审校时，它会建议使用 Studio：
+
+```text output
+verbatra: reading the provenance record... done (0.1s)
+next: verbatra studio (approve or reject the 12 machine translations no person has reviewed yet)
+```
+
+这些行输出到 stderr，`--quiet` 会去掉它们。见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 已打印报告 |
+| `1` | 没有报告：`verbatra.provenance.json` 已损坏，或由更新版本的 verbatra 写入 |
+| `2` | 无法运行：配置错误、源文件或锁文件不可读、未配置或为空的 `--locales` 值（`UNKNOWN_LOCALE`、`INVALID_LOCALES`），或未知的报告名称 |
+
+见[退出码约定](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [记录机器翻译证据](/zh-CN/docs/provenance-evidence)涵盖该报告、它的 schema，以及 XLIFF 和 TMX 导出中的机器翻译标记。
+- [锁文件与来源记录](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)说明了该报告读取的来源记录文件。
+- [`verbatra check --require-reviewed`](/zh-CN/docs/cli/check) 在有机器翻译尚未获批准时让 CI 失败。

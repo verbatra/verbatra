@@ -1,0 +1,94 @@
+---
+title: 从源代码中提取键
+seoTitle: "用 verbatra 从源代码中提取 i18n 键"
+description: 把代码中已调用的翻译键收集到源语言文件，填写源文本，再交给 translate 翻译。
+type: how-to
+---
+<AvailableFrom version="0.11.0" />
+
+代码走在消息目录前面时，按本页操作：你在组件里写了 `t("cart.empty", "Your cart is empty")`，想让这个键进入源语言文件，而不用手工复制。对从未做过国际化的项目，也可以从代码出发，而不是从空的 JSON 文件开始。
+
+`verbatra extract` 读取你的源代码，只写入源语言文件。它不调用提供商，不需要 API 密钥，也不发出网络请求。
+
+你需要：
+
+- 一份 verbatra 配置（没有的话，运行 [`verbatra init`](/zh-CN/docs/cli/init)）；
+- 调用 i18next 的 `t(...)`、`$t(...)` 或 `i18n.t(...)` 的代码，这是 `extract` 目前读取的唯一框架；
+- 每个消息目录文件对应一个命名空间。带命名空间的键（如 `t("common:nav.home")`）只会报告，不会写入，因为一份配置只对应一个文件。
+
+## 指定源代码位置
+
+添加 `extract` 块，列出要扫描的目录：
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  extract: {
+    framework: "i18next",
+    roots: ["src"], // [!code highlight]
+  },
+});
+```
+
+`roots` 之外的内容不会读取，`node_modules` 和 `dist` 等构建输出始终跳过。如果某个根目录下有生成的代码，把它的目录名加入 `exclude`。所有字段见 [`extract`](/zh-CN/docs/config-file#extract)。
+
+## 预览将添加的内容
+
+```bash
+verbatra extract --dry-run
+```
+
+摘要列出新键，以及提到它们的文件和行，不写入任何内容。继续之前，先看其中三部分：
+
+- **new keys**（新键）：真正运行时会添加到源文件的键。
+- **dynamic keys**（动态键）：键不是一个完整字符串的调用点，例如 `t("user." + id)` 或 `` t(`nav.${page}`) ``。这些键不会写入。手工把它们加入消息目录，或者把调用改成字面量键。
+- **conflicts**（冲突）：同一个键在两个调用点有两个不同的默认值。两个值都不会写入，请选定一种文本，并让调用点保持一致。
+
+## 添加键
+
+```bash
+verbatra extract
+```
+
+```text output
+verbatra extract
+  42 files scanned, 18 keys already present
+  added 3 keys to locales/en.json
+  new keys (3):
+    nav.home  src/components/Nav.tsx:14
+    nav.away  src/components/Nav.tsx:15
+    cart.empty  src/routes/cart.tsx:31
+next: verbatra translate (translate the new keys)
+```
+
+调用点上的默认值成为该键的源文本。消息目录中已有的键保留原值，所以再次运行 `extract` 不会覆盖你的编辑；没有发现新内容的运行会让文件保持逐字节不变。
+
+调用点没有默认值的键，会以空值添加，并在 `--json` 结果中列为 `withoutDefault`。翻译之前，先把它的源文本写入源语言文件。
+
+如果你的格式是 `xliff` 或 `apple-xcstrings`，先创建源消息目录（`.xcstrings` 文件在 Xcode 中创建）：`extract` 只向其中追加，从不创建它。
+
+## 翻译新键
+
+```bash
+verbatra translate
+```
+
+新键在每个目标语言环境中都是缺失的，所以这次运行只翻译它们，不翻译其他内容。批次较大时，先用 [`--estimate`](/zh-CN/docs/estimating-cost) 预览花费。
+
+如果你使用 TypeScript，用 [`verbatra types`](/zh-CN/docs/cli/types) 重新生成键声明，这样新键的拼写错误会让编译失败。
+
+## 让代码与消息目录保持同步
+
+`extract` 只添加。另外两个只读检查覆盖相反的方向：
+
+- `verbatra diff --unused` 列出不再被任何调用点使用的源键。它复用 `extract` 的 `roots`，不删除任何内容，是否移除某个键由你决定。该列表何时完整到值得信任，见[未使用的源键](/zh-CN/docs/cli/diff#未使用的源键)。
+- `verbatra doctor --literals` 列出从未经过 `t(...)` 的面向用户的字符串，例如 JSX 文本或 `aria-label`。哪些算在内、如何排除某一条，见[未翻译的字面量](/zh-CN/docs/cli/doctor#未翻译的字面量)。
+
+添加调用点后，随时再次运行 `verbatra extract`。重复运行是安全的，而且无论发现什么，它都以退出码 `0` 结束，所以必须在出现新键时失败的 CI 步骤，应读取 `--json` 中的 `added` 列表，而不是退出码。
+
+## 相关内容
+
+- [`verbatra extract`](/zh-CN/docs/cli/extract)：它读取的调用形式、完整报告和 JSON 结果。
+- [配置文件](/zh-CN/docs/config-file#extract)：`extract` 块。
+- [`verbatra translate`](/zh-CN/docs/cli/translate)：补全目标语言环境。
+- [错误码](/zh-CN/docs/error-codes#extract_not_configured)：缺少该块时的 `EXTRACT_NOT_CONFIGURED`。

@@ -1,0 +1,414 @@
+---
+title: 连接 MCP 客户端
+seoTitle: "把 MCP 客户端连接到 verbatra 服务器"
+description: "把 verbatra 的 stdio MCP 服务器接入你的编码智能体或其他 MCP 客户端，提供商密钥不写入任何提交的文件。"
+type: how-to
+status: new
+---
+<StartHere />
+
+通过 verbatra 的 stdio MCP 服务器，让编码智能体读取翻译状态并修正值。每个客户端只注册一次：再添加一个条目会启动第二个服务器。你需要一个带 verbatra 配置的项目（[`npx @verbatra/cli init`](/zh-CN/docs/cli/init)）和 Node.js `^22.22.0 || >=24`。
+
+<AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
+
+## 选择启动命令
+
+| 命令 | 前提 | 是否读取 `.env` 文件 |
+| --- | --- | --- |
+| `npx -y @verbatra/mcp` | 无需安装任何东西 | 否 |
+| `npx @verbatra/cli mcp` | 把 `@verbatra/cli` 和 `@verbatra/mcp` 作为开发依赖 | 是：先 `.env.local`，再 `.env` |
+
+不要用 `npx -y @verbatra/cli mcp`，它会以 `2` 退出，因为 CLI 从不安装 `@verbatra/mcp`。服务器到哪里查找配置，见[项目目录](/zh-CN/docs/cli/mcp#项目目录)。
+
+### MCP Registry
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+该服务器也收录在[官方 MCP Registry](https://registry.modelcontextprotocol.io) 中，名称为 `io.github.verbatra/verbatra`。
+
+## 决定智能体能否产生花费
+
+服务器启动时只提供读取工具和本地编辑工具：付费工具保持隐藏，也没有任何工具会读取密钥。
+
+<Accordions type="single">
+<Accordion title="花费与密钥规则">
+
+要让智能体产生花费，两项都要添加：
+
+- 在参数中加 `--allow-spend`，或在环境中设置 `VERBATRA_MCP_ALLOW_SPEND=1`（[付费工具](/zh-CN/docs/cli/mcp#付费工具)）；
+- 提供商的密钥变量，例如 `ANTHROPIC_API_KEY`（[提供商](/zh-CN/docs/providers)）。
+
+<Callout type="warn">
+不要把密钥写入提交的文件，例如 `.mcp.json`、`.codex/config.toml`、`.gemini/settings.json`、`.cursor/mcp.json` 或 `.vscode/mcp.json`。
+</Callout>
+
+要避免智能体的模型看到值，添加 `--redact-values`，详见 [Studio 与 MCP](/zh-CN/docs/data-handling#studio-与-mcp)。
+
+</Accordion>
+</Accordions>
+
+### 先估算
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+服务器仍会提示智能体先运行 `translation.estimate`，等你同意后再产生花费。
+
+<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Cursor", "VS Code", "其他"]}>
+<Tab value="Claude Code" forceMount>
+
+## Claude Code
+
+### 让 init 写入
+
+<AvailableFrom version="0.12.0" />
+
+推荐做法，在项目根目录运行：
+
+```bash
+npx @verbatra/cli init --agent
+```
+
+[`init --agent`](/zh-CN/docs/cli/init#配置编码智能体) 会写入智能体指令文件，并在花费关闭的情况下把下面这个条目写入要提交到仓库的 `.mcp.json`。写入的条件是：发现了 Claude Code（`CLAUDE.md`、`.claude/` 或 `.mcp.json`），或者根本没有发现任何客户端。`--client claude` 会强制写入：
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+重启 Claude Code，并批准 `verbatra` 服务器。Claude Code 会向服务器传入 `CLAUDE_PROJECT_DIR` 和你的环境变量。要在某次会话中产生花费，先导出密钥，再运行：
+
+```bash
+VERBATRA_MCP_ALLOW_SPEND=1 claude
+```
+
+`claude mcp list` 可检查连接。详见 [Claude Code MCP 文档](https://code.claude.com/docs/en/mcp)。
+
+### 其他方式
+
+#### 不用 CLI
+
+```bash
+claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp
+```
+
+这会写入相同的条目。这里不要加 `--env KEY=value`：它会把值写入 `.mcp.json`。
+
+#### verbatra 插件
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+插件取代 `.mcp.json`，打包了 [verbatra 技能](/zh-CN/docs/agent-recipes#技能包)、这个服务器，以及一个钩子：Claude 编辑语言文件后，由钩子检查该文件。
+
+<Callout type="warn">
+不要把 verbatra 插件与 `.mcp.json` 中的 `verbatra` 条目同时使用：插件自带第二个服务器。插件在 `.claude/settings.json` 或 `.claude/settings.local.json` 中启用时，`init --agent` 会跳过该条目。
+</Callout>
+
+```bash
+claude plugin marketplace add verbatra/skills
+claude plugin install verbatra@verbatra --scope project
+```
+
+- **服务器**：固定版本的 `@verbatra/mcp`，`--cwd` 指向已打开的项目。
+- **花费**：关闭，直到你开启插件的 `allowSpend` 选项（`--config allowSpend=true`，或 `/config`）。已提交的文件无法开启它。
+- **密钥**：来自你启动 `claude` 时所用的环境。
+- **钩子**：运行项目的 `verbatra check --file <path>`（需要 CLI 0.12.0 或更高版本），报告损坏的占位符、内联标记或 ICU，不调用提供商。
+
+详见 [Claude Code 插件参考](https://code.claude.com/docs/en/plugins-reference)。
+
+</Tab>
+
+<Tab value="Codex" forceMount>
+
+## Codex
+
+推荐：运行 `npx @verbatra/cli init --agent --client codex`（`.codex/` 已存在时，直接运行 `init --agent` 即可），它会在花费关闭的情况下，把下面这个表追加到 `.codex/config.toml`：
+
+```toml title=".codex/config.toml"
+[mcp_servers.verbatra]
+command = "npx"
+args = ["-y", "@verbatra/mcp"]
+startup_timeout_sec = 60
+```
+
+只有你回答 **Trust this folder?**（信任此文件夹吗？）之后，Codex 才会加载它，这个回答覆盖仓库根目录。从子文件夹启动时，服务器以它找到的配置所在位置为根。详见 [Codex MCP 文档](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)。
+
+### Codex 用户配置
+
+要产生花费，改用 `~/.codex/config.toml`。`env_vars` 按名称传递变量；`env` 表或 `codex mcp add --env` 会存储值：
+
+```toml title="~/.codex/config.toml"
+[mcp_servers.verbatra]
+command = "npx"
+args = ["-y", "@verbatra/mcp", "--allow-spend"]
+cwd = "/path/to/your/project"
+env_vars = ["ANTHROPIC_API_KEY"]
+```
+
+</Tab>
+
+<Tab value="Gemini CLI" forceMount>
+
+## Gemini CLI
+
+推荐：运行 `npx @verbatra/cli init --agent --client gemini`（`.gemini/` 或 `GEMINI.md` 已存在时，直接运行 `init --agent` 即可），它会在花费关闭的情况下，把下面这个条目添加到 `.gemini/settings.json`：
+
+```json title=".gemini/settings.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+Gemini CLI 只从启动它的文件夹读取该文件：在项目根目录启动 `gemini`，并在对话框中或用 `/permissions trust` 信任该目录。不要设置 `trust`；`/mcp` 会列出工具。它读取 `GEMINI.md`，不读取 `AGENTS.md`：在设置中加入 `"context": { "fileName": ["AGENTS.md", "GEMINI.md"] }`，或在 `GEMINI.md` 中加入 `@AGENTS.md`。详见 [Gemini CLI MCP 文档](https://geminicli.com/docs/tools/mcp-server/)。
+
+### Gemini CLI 用户设置
+
+要产生花费，改用你的用户设置，并写绝对路径的 `cwd`：
+
+```json title="~/.gemini/settings.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--allow-spend"],
+      "cwd": "/path/to/your/project",
+      "env": {
+        "ANTHROPIC_API_KEY": "$ANTHROPIC_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Gemini CLI 不会把密钥变量传给服务器，所以要通过 `env` 传入密钥。
+
+</Tab>
+
+<Tab value="Cursor" forceMount>
+
+## Cursor
+
+发现 `.cursor/` 或 `.cursorrules` 时，或使用 `--client cursor`，`init --agent` 会写入 Cursor 的 `.cursor/mcp.json`：
+
+```json title=".cursor/mcp.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "${workspaceFolder}"]
+    }
+  }
+}
+```
+
+要产生花费，在 `args` 末尾追加 `"--allow-spend"`，并添加 `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`。详见 [Cursor MCP 文档](https://cursor.com/docs/mcp)。
+
+</Tab>
+
+<Tab value="VS Code" forceMount>
+
+## VS Code
+
+VS Code（GitHub Copilot 的智能体模式）读取 `.vscode/mcp.json`，其键为 `servers`，`init --agent --client vscode` 会写入它。不带 `--client` 时，`init --agent` 只在该文件已存在时接入，对于只有 `.vscode/` 文件夹、没有该文件的项目，它会打印所需的命令。这里不需要 `--cwd`：
+
+```json title=".vscode/mcp.json"
+{
+  "servers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+要产生花费，把密钥声明为输入项，VS Code 会把它存储在文件之外：
+
+```json title=".vscode/mcp.json"
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "anthropic-key",
+      "description": "Anthropic API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--allow-spend"],
+      "env": {
+        "ANTHROPIC_API_KEY": "${input:anthropic-key}"
+      }
+    }
+  }
+}
+```
+
+<McpInstallLink client="vscode" />
+
+不用这个文件时，点击按钮或运行下面的命令，可在花费关闭的情况下把它添加到你的用户配置文件。只选一种方式，不要两种都用：
+
+```bash
+code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
+```
+
+详见 [VS Code MCP 配置参考](https://code.visualstudio.com/docs/agents/reference/mcp-configuration)。
+
+</Tab>
+
+<Tab value="其他" forceMount>
+
+## GitHub Copilot
+
+### Copilot 云端智能体
+
+仓库管理员在 **Settings**（设置）、**Copilot**、**MCP servers**（MCP 服务器）下添加该服务器。云端智能体调用工具时不会询问，所以只列出既不写入也不调用提供商的工具：
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "type": "local",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"],
+      "tools": [
+        "project.snapshot",
+        "project.doctor",
+        "status.check",
+        "status.diff",
+        "glossary.get",
+        "lock.state",
+        "history.list",
+        "history.keyRevisions",
+        "key.integrity",
+        "locale.integrity",
+        "key.value",
+        "key.context",
+        "locale.values",
+        "translation.estimate",
+        "review.queue",
+        "report.provenance",
+        "usage.summary",
+        "usage.history"
+      ]
+    }
+  }
+}
+```
+
+只有当智能体应在它的 pull request 中写入时，才添加 `translation.editEntry` 和 `glossary.write`，并且不要加入 `review.approve` 和 `review.reject`：审校决定需要由人来做。要检查，打开 **View session**（查看会话），展开 **Start MCP Servers**（启动 MCP 服务器）。详见 [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers)。
+
+### Copilot CLI
+
+```bash
+copilot mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
+```
+
+这会写入 `~/.copilot/mcp-config.json`。Copilot CLI 只向服务器传递 `PATH`，所以密钥要放进该条目的 `env`，不要放进项目文件。详见 [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers)。
+
+## Windsurf
+
+Windsurf 为所有项目读取同一个 `mcp_config.json`，所以 `--cwd` 要写绝对路径：
+
+```json title="mcp_config.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+要产生花费，追加 `"--allow-spend"`，并添加 `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`。详见 [Cascade MCP 文档](https://docs.devin.ai/desktop/cascade/mcp)。
+
+## Zed
+
+Zed 从它的设置中读取 `context_servers`；依次点击 **Settings**、**AI**、**MCP Servers**（MCP 服务器）、**Add Server**（添加服务器）会写入该条目：
+
+```json title="settings.json"
+{
+  "context_servers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"],
+      "env": {}
+    }
+  }
+}
+```
+
+`env` 中的密钥是字面值，所以只在你的用户设置中添加它和 `--allow-spend`，不要写进 `.zed/settings.json`。详见 [Zed MCP 文档](https://zed.dev/docs/ai/mcp)。
+
+## JetBrains AI Assistant
+
+依次打开 **Settings**、**Tools**（工具）、**AI Assistant**（AI 助手）、**Model Context Protocol (MCP)**（模型上下文协议），添加服务器，并粘贴：
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+把 **Working directory**（工作目录）设为项目根目录，并保持这个条目不产生花费。详见 [AI Assistant MCP 文档](https://www.jetbrains.com/help/ai-assistant/mcp.html)。
+
+## Claude Desktop
+
+依次点击 **Settings**、**Developer**（开发者）、**Edit Config**（编辑配置），打开 `claude_desktop_config.json`。这里没有项目，所以 `--cwd` 要写绝对路径：
+
+```json title="claude_desktop_config.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+要产生花费，追加 `"--allow-spend"`，并添加 `"env": { "ANTHROPIC_API_KEY": "..." }`，然后重启 Claude Desktop。详见 [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers)。
+
+## 其他 stdio 客户端
+
+给客户端设置命令 `npx -y @verbatra/mcp`。除非客户端在项目内启动服务器，否则再加上 `--cwd /path/to/your/project`；配置在别处时，再加 `--config <path>`。`--allow-spend` 和密钥只通过客户端的密钥管理机制传入。
+
+</Tab>
+</Tabs>
+
+## 检查连接
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+让智能体调用 `project.snapshot`；它会返回语言环境、格式和提供商，但不会调用提供商。
+
+- **`configured: false`**：没有找到可用的配置。让智能体调用 `project.doctor`，然后运行 `npx @verbatra/cli init` 或修正 `--cwd`。详见[没有配置时](/zh-CN/docs/cli/mcp#没有配置时)。
+- **付费工具缺失**：检查花费开关，以及提供商是否为 `none`。
+- **配置已编辑**：无需重启，详见[配置更改后](/zh-CN/docs/cli/mcp#配置更改后)。
+
+## 相关内容
+
+- [`verbatra mcp`](/zh-CN/docs/cli/mcp)：选项和所有工具。
+- [用 JSON 编写 verbatra 脚本](/zh-CN/docs/agent-recipes#技能包)：`verbatra-mcp-tools` 技能。

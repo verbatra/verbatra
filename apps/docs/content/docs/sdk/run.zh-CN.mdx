@@ -1,0 +1,191 @@
+---
+title: "运行翻译"
+seoTitle: "SDK：在你自己的 Node.js 代码中运行翻译"
+description: "translate、watch 以及围绕一次运行的各个入口函数，外加伪语言环境和带类型的消息目录，全部可以在你自己的 Node.js 脚本中调用。"
+type: reference
+---
+## 翻译与监听 [#run-translations]
+
+### translate
+
+一次性流程：读取源文件，把每个目标语言环境与锁文件基线比对，把缺失和已更改的键发给提供商，运行完整性检查，写入语言文件，并更新锁文件。适用于脚本、构建步骤和 CI 任务。
+
+```ts title="签名"
+function translate(
+  input: TranslateInput,
+  deps?: TranslateDeps,
+): Promise<RunSummary>;
+```
+
+<SdkTypeTable name="TranslateInput" />
+
+**返回**：[`RunSummary`](/zh-CN/docs/sdk/run-summary)
+
+**抛出**：[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_UNSUPPORTED_BY_PROVIDER`](/zh-CN/docs/error-codes#locale_unsupported_by_provider)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`CONCURRENCY_INVALID`](/zh-CN/docs/error-codes#concurrency_invalid)、[`CONCURRENCY_BUDGET_CONFLICT`](/zh-CN/docs/error-codes#concurrency_budget_conflict)、[`MAX_TOKENS_INVALID`](/zh-CN/docs/error-codes#max_tokens_invalid)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`PROVIDER_CONSTRUCTION_FAILED`](/zh-CN/docs/error-codes#provider_construction_failed)、[`NETWORK_POLICY_VIOLATION`](/zh-CN/docs/error-codes#network_policy_violation)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid)
+
+**示例**：[翻译并查看摘要](/zh-CN/docs/sdk-quickstart#翻译并查看摘要)
+
+表格没有涵盖的内容：
+
+- `cache` 是本地[翻译缓存](/zh-CN/docs/the-cache)（`verbatra.cache.json`，也以 `CACHE_FILE_NAME` 导出）。
+- `humanEdits`（自 0.12.0 起）：默认情况下，由人写入、导入或在 verbatra 之外更改且已过期的键会被保留，并列在 `LocaleSummary.protected` 中。见[保留人工翻译](/zh-CN/docs/protecting-human-translations)。
+- `onProgress` 接收下文的[进度事件](#进度事件)。
+- `maxBatchSize` 和 `budgetBehavior` 只能在配置中设置，没有按次运行的覆盖值。
+
+影响整次运行的问题会抛出 `SdkError`；单个语言环境失败从不抛出，而是在运行继续的同时，以 `status: "failed"` 出现在该语言环境的条目上。见 [`RunSummary` 的结构](/zh-CN/docs/sdk/run-summary#runsummary-的结构)。
+
+### 进度事件
+
+<AvailableFrom version="0.12.0" />
+
+`onProgress` 接收 `ProgressEvent`，这是以 `type` 区分的联合类型。次版本可能增加类型，所以请忽略不认识的类型。
+
+| `type` | 触发时机 | 字段 |
+| --- | --- | --- |
+| `locale-started` | 某个语言环境的工作开始 | `locale`、`localeIndex`、`totalLocales` |
+| `locale-planned` | 查询翻译记忆库之后、发送第一个批次之前；仅在调用提供商时触发 | `locale`、`keys`、`batches`、`cacheHits` |
+| `sub-batch` | 每个翻译批次开始尝试之前 | `locale`、`batchIndex`、`totalBatches` |
+| `provider-retry` | 内置提供商重试一个以可重试状态失败的请求 | `attempt`、`delayMs?`、`status?` |
+| `repair` | LLM 提供商重新请求其首次响应遗漏的键 | `locale`、`keys` |
+| `split-retry` | 输出被截断的批次拆成两半重试 | `locale`、`keys` |
+| `batch-finished` | 一个批次已结束，无论成功与否 | `locale`、`batchIndex`、`totalBatches`、`durationMs`、`usage?` |
+| `writing` | 写入某个语言环境的文件之前 | `locale` |
+| `locale-finished` | 某个语言环境的工作结束 | `locale`、`status`、`translated`、`localeIndex`、`totalLocales` |
+| `run-finished` | 每个语言环境都已结束 | `localesCompleted`、`localesFailed` |
+| `change-detected` | 仅 `watch`：对源文件的更改已稳定 | `paths` |
+| `idle` | 仅 `watch`：一次运行已结束，且没有排队的运行 | 无 |
+
+`provider-retry` 不指明语言环境，因为一个提供商服务整次运行。Gemini 报告延迟和状态；Anthropic、OpenAI、OpenCode 和 openai-compatible 报告其客户端开始该次尝试时的尝试次数；DeepL、Google Cloud Translation 和 LibreTranslate 都不报告。试运行和估算只发出 `locale-started`、`locale-finished` 和 `run-finished`。CLI 的 `--json` 进度记录只保留最初的四种类型：`locale-started`、`sub-batch`、`locale-finished` 和 `run-finished`。
+
+`extract`、带 `unused` 的 `diff` 以及带 `literals` 的 `doctor` 各有自己的 `onProgress`。它接收 `ScanProgressEvent`，即 `{ type: "files-scanned", scanned, total }`，扫描每读取一个应用源文件，就触发一次。
+
+<SdkTypeTable name="ScanProgressEvent" />
+
+只要运行报告进度，自定义的 `CreateProvider` 就会收到第三个参数 `CreateProviderHooks`。用 `{ attempt, delayMs?, status? }` 调用它的 `onRetry`，你的提供商的重试就会作为 `provider-retry` 事件出现。
+
+### resolveDryRun
+
+<AvailableFrom version="0.11.0" />
+
+回答一组运行选项是否会解析为试运行。它接收你即将交给 `translate` 的 `dryRun` 和 `estimate`，并返回该次运行是否会构造提供商、写入文件或产生任何花费。`estimate` 隐含 `dryRun` 这条规则只在这里判定，所以每当围绕一次运行的某个环节需要事先知道结果时，就用它，而不是自己重述这个隐含关系，导致与它不一致。
+
+```ts title="签名"
+function resolveDryRun(input: {
+  readonly dryRun?: boolean | undefined;
+  readonly estimate?: boolean | undefined;
+}): boolean;
+```
+
+**返回**：`boolean`
+
+```ts title="示例"
+import { resolveDryRun, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+const options = { dryRun: false, estimate: true };
+resolveDryRun(options); // true
+
+const summary = await translate({ config, ...options });
+```
+
+### watch
+
+监听源语言文件，在每次经过防抖的更改后重新运行 `translate`。它在启动时立即触发一次初始运行，之后每次稳定的更改触发一次运行。运行是串行的：一次运行期间发生的更改会合并为一次后续运行。
+
+```ts title="签名"
+function watch(
+  input: WatchInput,
+  deps?: WatchDeps,
+): Promise<WatchController>;
+```
+
+<SdkTypeTable name="WatchInput" />
+
+**返回**：`WatchController`
+
+**抛出**：[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_UNSUPPORTED_BY_PROVIDER`](/zh-CN/docs/error-codes#locale_unsupported_by_provider)、[`CONCURRENCY_INVALID`](/zh-CN/docs/error-codes#concurrency_invalid)、[`LOCK_TIMEOUT_INVALID`](/zh-CN/docs/error-codes#lock_timeout_invalid)、[`CONCURRENCY_BUDGET_CONFLICT`](/zh-CN/docs/error-codes#concurrency_budget_conflict)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`NETWORK_POLICY_VIOLATION`](/zh-CN/docs/error-codes#network_policy_violation)、[`PROVIDER_CONSTRUCTION_FAILED`](/zh-CN/docs/error-codes#provider_construction_failed)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)
+
+**示例**：[在长时间运行的进程中监听](/zh-CN/docs/programmatic-api#在长时间运行的进程中监听)
+
+`debounceMs` 默认为 300。`onRun` 每次运行调用一次，参数是 `WatchRunResult`：`{ status: "succeeded", summary }` 或 `{ status: "failed", error: { code, message, causeCode?, hint? } }`，其中 `causeCode` 指明该失败所包装的带错误码的错误，`hint` 是 `errorHint` 给出的下一步。`onReady` 在启动检查通过之后、初始运行之前调用一次，这样你可以在该次运行的输出之前宣布会话开始。如果 `onReady` 抛出，监听器会关闭，`watch` 返回的 Promise 在任何运行开始之前就以该错误 reject。SDK 不做任何日志记录；`onRun` 是唯一的输出。`concurrency`、`cache`、`onProgress`、`onLockWait` 和 `lockAcquireTimeoutMs` 会传给每次运行，行为与在 `translate` 上完全相同。`locales` 把会话中的每次运行缩小到该子集，并且只在启动时校验一次，而不是每个周期都校验。
+
+返回一个 `WatchController`，它只有一个方法 `stop()`：`stop()` 会关闭监听器，并等待正在进行的运行结束。**抛出**行中的每个错误码都在启动时、监听器存在之前就会抛出，所以 `watch` 返回的 Promise 本身会 reject，而不是返回控制器。其中两个对会话的影响比对单次运行更大：配置设置了 `maxTokens` 时，大于 1 的 `concurrency` 总会抛出 `CONCURRENCY_BUDGET_CONFLICT`，因为不存在试运行监听；自 0.12.0 起，无法构建的提供商（例如其 API 密钥变量未设置）会抛出一次 `PROVIDER_CONSTRUCTION_FAILED`，而不是让每次运行都失败。启动之后的每个失败都通过 `onRun` 呈现，监听继续进行。
+
+### releaseHeldLocks
+
+<AvailableFrom version="0.12.0" />
+
+删除当前进程持有的所有写锁，用于即将退出、不再等待正在进行的运行结束的进程：中断停止 `translate` 或 `import` 时，以及第二次中断强制停止 `watch` 时，CLI 会调用它。获得这些锁的运行会失去保护，所以只能在进程退出前一刻调用。它不接受参数，只有在某个持有的锁无法删除时，才在尝试处理完每个锁之后，以列出这些锁路径的 `AggregateError` reject。仍在运行的操作在运行期间正在获取或尝试获取的锁，会以 `RUN_CANCELLED` 被拒绝，并且不留下文件；`releaseHeldLocks` 为这样的获取最多等待 3 秒。
+
+```ts title="签名"
+function releaseHeldLocks(): Promise<void>;
+```
+
+**返回**：`void`
+
+进程被直接杀死时仍可能遗留锁，但这种锁不需要调用它：同一台机器上等待的运行会发现记录的进程已经不存在，并自行回收这个锁。见[写锁](/zh-CN/docs/the-lock-file#写锁)。
+
+## 伪本地化
+
+### pseudolocalize
+
+<AvailableFrom version="0.11.0" />
+
+只根据源字符串构建一个虚构的语言环境，这样在拥有任何 API 密钥之前，就能发现布局被截断，以及从未提取出来供翻译的字符串。每个值都会加上重音符号，按可翻译长度扩展约三分之一，并用 `[` 和 `]` 边界标记包住，而占位符在适配器能识别的所有语法中都保持不变，包括 ICU 的复数和 select 分支、内联标记标签和转义序列。它不构造提供商，不读取 API 密钥，也不发出网络请求。
+
+```ts title="签名"
+function pseudolocalize(
+  input: PseudolocalizeInput,
+  deps?: PseudolocalizeDeps,
+): Promise<PseudolocalizeResult>;
+```
+
+<SdkTypeTable name="PseudolocalizeInput" />
+
+**返回**：`PseudolocalizeResult`
+
+**抛出**：[`PSEUDO_OUTPUT_CONFLICT`](/zh-CN/docs/error-codes#pseudo_output_conflict)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`TARGET_UNWRITABLE`](/zh-CN/docs/error-codes#target_unwritable)
+
+**示例**：[构建伪语言环境](/zh-CN/docs/programmatic-api#构建伪语言环境)
+
+每个生成的值都要通过与提供商译文相同的完整性门禁。通不过的值会原样复制源值，并列在 `copied` 中，而不是以损坏的形式写入，因此该条目仍然存在，仍能正常渲染。
+
+<AvailableFrom version="0.12.0" />
+
+`mode` 从 `PSEUDO_MODES` 中选择转换方式：默认的 `accented`，或 `bidi`；后者用从右到左标记和覆盖符包住每个可翻译文本的词，占位符、ICU 语法、内联标记、数字和标点留在它之外，并且不加任何重音。在 `bidi` 模式下，`locale` 默认为 `ar-XB`，这个代码解析为从右到左的方向；它的阿拉伯语复数规则如何与你的源文本的复数形式对应，见 [`verbatra pseudo`](/zh-CN/docs/cli/pseudo)。
+
+`locale` 默认为 `en-XA`，`out` 默认为 `.verbatra-local/pseudo`，`verbatra init` 已把它加入 `.gitignore`；配置的 `files.pattern` 会在它里面展开，所以文件保持应用所期望的布局。名字与已配置语言环境相同的伪语言环境，或会落在已配置语言文件上的伪语言环境，会在读取或写入任何内容之前以 `PSEUDO_OUTPUT_CONFLICT` 被拒绝，因此它既不会覆盖真实译文，也不会冒充真实译文；以下的 `out` 同样会被拒绝：绝对路径、跳出 `cwd` 的路径，或指向 `cwd` 本身（例如 `.`）的路径；并且当 `deps.fs` 像默认实现一样实现了 `realpath` 时，解析符号链接之后出现以上任何情况、落在已配置语言文件所在目录，或落在项目依赖的其他文件上的 `out` 也会被拒绝。由于该文件位于 `files.pattern` 之外，`translate` 从不为它花费，`check` 和 `diff` 也从不把它报告为已漂移。
+
+返回 `PseudolocalizeResult`：`locale`、`mode`、绝对路径 `path`、处理了多少 `entries`、转换了多少 `transformed`、被 `copied` 的键，以及是否有内容被 `written`。转换是确定性的，所以对未更改的源文件再运行一次不会重写任何内容，并把 `written` 报告为 false。对 `xliff` 和 `apple-xcstrings`，它们的写入器只修补已存在的文档，所以每次写入时输出都会从源文件重新复制，这样第一次运行之后添加到源文件的键仍会进入伪语言环境，复制出的 XLIFF 的 `target-language` 也会被改写为该伪语言环境。
+
+## 带类型的消息目录
+
+### generateTypes
+
+<AvailableFrom version="0.11.0" />
+
+把项目的源消息目录声明为 TypeScript：它包含的每个键的联合类型，以及每个键的消息所插值的参数。让翻译函数以结果为类型，拼错的键或缺失的插值参数就会成为编译错误，而不是运行时的查找失败。它不产生任何花费：不构造提供商，不读取 API 密钥环境变量，也不发出网络请求。
+
+```ts title="签名"
+function generateTypes(
+  input: GenerateTypesInput,
+  deps?: GenerateTypesDeps,
+): Promise<GenerateTypesResult>;
+```
+
+<SdkTypeTable name="GenerateTypesInput" />
+
+**返回**：`GenerateTypesResult`
+
+**抛出**：[`TYPES_OUTPUT_CONFLICT`](/zh-CN/docs/error-codes#types_output_conflict)、[`TYPES_UNWRITABLE`](/zh-CN/docs/error-codes#types_unwritable)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)
+
+**示例**：[生成带类型的消息目录](/zh-CN/docs/programmatic-api#生成带类型的消息目录)
+
+它读取一个文件（源语言环境的消息目录），写入一个文件（声明文件）；目标语言文件从不被触及。键与格式适配器已经产生的完全一致，按文档顺序排列，所以对未更改的目录运行两次，写出的字节完全相同。参数来自适配器提取出的占位符记号，ICU 消息格式（`next-intl-json` 和 `arb`）除外，在这两种格式中，每条消息都用适配器所用的同一个 ICU 解析器读取。每个键都作为带引号的字符串字面量输出，所以带点号、保留字、以数字开头、带引号，或根本为空的键，都会原样声明，而不是被丢弃或重新拆分，适配器在 `excludedLeafPaths` 中报告的键则根本不会声明。
+
+它不做哪些断言，和它声明了什么同样重要。没有占位符的消息得到一个形状，传入任何参数都会是类型错误；占位符带有参数名的消息得到对象形状；占位符是编号或匿名的消息得到只读元组。只有部分 `select` 或 `plural` 分支用到的 ICU 参数，声明为可选成员。参数类型只来自目录所记录的内容：ICU 的 `number`、`plural` 或 `selectordinal` 参数，以及数值格式化器或转换，是 `number`；ICU 的 `date` 或 `time` 参数和 i18next 的 `datetime` 格式化器是 `Date | number`；ICU 的 `select` 参数和 printf 字符串转换是 `string`；其他情况是 `string | number` 别名，绝不使用宽松的 `any`。i18next 的未转义插值（`{{- name}}`）按其前缀之后的名字声明。适配器报告为无效的消息、看起来既有命名又有编号参数的消息，以及占位符索引超出范围的消息，会连同它们的参数一起声明，并在 `unresolved` 中报告，而不是悄悄声明为没有参数。复数同级的键从不合并：每个都单独声明，适配器标记为复数的键会列出。
+
+`out` 默认为 `DEFAULT_TYPES_PATH`（`verbatra-types.d.ts`）。在读取或写入任何内容之前，`TYPES_OUTPUT_CONFLICT` 会拒绝以下的 `out`：没有指向任何文件（包括以路径分隔符结尾的）、是绝对路径、用 `..` 跳出 `cwd`、指向 `cwd` 本身（`.`），或不以 `.ts`、`.mts` 或 `.cts` 结尾；还有指向已配置的语言文件、锁文件、来源记录文件、翻译记忆库缓存、verbatra 查找其配置所用的文件、`configPath`（`config` 加载自的配置文件），或 `glossaryPath`（它指名的术语表文件）的 `out`；名字比较不区分大小写，并且当 `deps.fs` 像默认实现一样实现了 `realpath` 时，会在解析符号链接之后，对路径最终落点再次执行同样的检查。生成运行还会以同一个错误码，拒绝替换不以 verbatra 所写的标题行开头的现有文件，并保持该文件不变。完整列表见 [`verbatra types`](/zh-CN/docs/cli/types) 页面。设置了 `check` 时，完全不写入任何内容，也不会因内容而拒绝任何东西，运行只报告已提交的文件是否仍然匹配，这正是 CI 门禁想要的形式。
+
+返回 `GenerateTypesResult`：绝对路径 `path`、构建它所用的 `sourcePath`、声明了多少个 `keys`、其中有多少个带有 verbatra 能确定的至少一个参数（`withArguments`，从不计入 `unresolved` 的键）、`unresolved` 的键，以及 `excluded` 和 `plural` 的键、是否有内容被 `written`、运行开始时磁盘上的文件是否 `stale`、它是否完全 `missing`（缺失的文件同样是 `stale`），以及这是否是一次 `check` 运行。

@@ -1,0 +1,450 @@
+---
+title: SDK 实用示例
+seoTitle: "用于脚本和 CI 作业的 verbatra SDK 实用示例"
+description: "可完整运行的模式，用于从你自己的脚本和 CI 作业中驱动 verbatra，每个都基于公开的 @verbatra/sdk 入口函数。"
+type: how-to
+---
+[SDK 快速上手](/zh-CN/docs/sdk-quickstart)讲解了第一次运行。本页接着给出完整的实用示例，可以直接复制到脚本中；[SDK 参考](/zh-CN/docs/sdk)则列出每个入口函数。SDK 不会加载 `.env` 文件，所以调用提供商的示例要用 `node --env-file=.env` 运行。要对有速率限制的提供商一次只处理一种语言，请向 `translate` 传入 `locales: ["de"]`。
+
+## 花费之前先估算一次运行
+
+<AvailableFrom version="0.11.0" />
+
+`estimate: true` 隐含 `dryRun`。估算结果位于 `RunSummary.estimate`：根据 `unit` 判断计费维度，根据 `pricing` 判断是否有 [`rates`](/zh-CN/docs/config-file#rates) 块为它定价。
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const summary = await translate({ config: await loadConfig(), estimate: true });
+const estimate = summary.estimate;
+
+if (estimate !== undefined) {
+  console.log(`${estimate.keys} keys in ${estimate.requests} requests to ${estimate.rateKey}`);
+
+  if (estimate.unit === "tokens") {
+    console.log(`about ${estimate.inputTokens} in, ${estimate.outputTokens} out`);
+  } else {
+    console.log(`about ${estimate.sourceCharacters} source characters`);
+  }
+
+  if (estimate.pricing === "priced") {
+    console.log(`about ${estimate.cost} ${estimate.currency}, rates read ${estimate.asOf}`);
+    for (const locale of estimate.locales) {
+      console.log(`  ${locale.locale}: ${locale.cost}`);
+    }
+  } else {
+    console.log(`no currency figure: ${estimate.pricing}`);
+  }
+
+  console.log(`leaves out: ${estimate.caveats.join(", ")}`);
+}
+```
+
+它给出的是计划的上限，不是账单；[运行前估算费用](/zh-CN/docs/estimating-cost)解释了估算方法，[RunSummary](/zh-CN/docs/sdk/run-summary) 则列出 `caveats` 中每个 `EstimateCaveatCode` 所排除的内容。
+
+## 在 CI 中检查而不写入
+
+`check` 只读取并比对，不调用提供商，也不触碰任何文件；没有任何缺失或过期的键时，`inSync` 为 `true`，否则为 `false`。
+
+```ts
+import { check, loadConfig } from "@verbatra/sdk";
+
+const summary = await check({ config: await loadConfig() });
+
+if (!summary.inSync) {
+  for (const locale of summary.locales) {
+    if (!locale.inSync) {
+      console.error(`${locale.locale}: ${locale.missing} missing, ${locale.stale} stale`);
+    }
+  }
+  process.exitCode = 1;
+}
+```
+
+需要键名而不是数量？换成 `diff`，它按语言环境返回 `missing`、`changed` 和 `orphaned` 键列表，并带有同样的 `hasPendingChanges` 门禁。想在 CI 中直接运行 CLI？见[在 CI 中运行 verbatra](/zh-CN/docs/ci-and-exit-codes)。
+
+```ts
+import { diff, loadConfig } from "@verbatra/sdk";
+
+const summary = await diff({ config: await loadConfig() });
+
+if (summary.hasPendingChanges) {
+  for (const locale of summary.locales) {
+    console.error(`${locale.locale}: missing ${locale.missing.join(", ")}; changed ${locale.changed.join(", ")}`);
+  }
+  process.exitCode = 1;
+}
+```
+
+## 不用密钥测试你的集成
+
+把假的提供商作为 `createProvider` 传入，就能运行整个流程（包括文件和完整性门禁），不需要密钥，不发起网络调用，输出也是确定的：这正是为你自己的工具编写单元测试所需要的。
+
+```ts title="fake-provider.ts"
+import { type CreateProvider, check, loadConfig, translate } from "@verbatra/sdk";
+
+const createProvider: CreateProvider = () => ({
+  id: "fake",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  translateBatch: async (request) => ({
+    values: new Map(
+      request.entries.map((entry) => [entry.key, `[${request.targetLocale}] ${entry.value}`]),
+    ),
+    integrity: new Map(),
+    notices: [],
+  }),
+});
+
+const config = await loadConfig();
+const summary = await translate({ config }, { createProvider });
+const after = await check({ config });
+
+console.log(`${summary.succeeded.length} locales translated, in sync: ${after.inSync}`);
+if (summary.failed.length > 0 || !after.inSync) {
+  process.exitCode = 1;
+}
+```
+
+这次运行会写入真实文件，所以要在项目的临时副本上测试。真实的提供商以同样的方式接入；见[自定义提供商](/zh-CN/docs/sdk/extend#自定义提供商)。
+
+## 在长时间运行的进程中监听
+
+`watch` 在启动时立即触发一次运行，之后每次经过防抖的源文件更改再触发一次，并通过 `onRun` 报告每次运行。要干净地关闭，请 await `controller.stop()`：它会关闭监听器，并等正在进行的运行结束，之后你的进程才退出。
+
+```ts
+import { loadConfig, watch } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const controller = await watch({
+  config,
+  onRun: (result) => {
+    if (result.status === "succeeded") {
+      console.log(`ran: ${result.summary.succeeded.length} ok, ${result.summary.failed.length} failed`);
+    } else {
+      console.error(`run failed: ${result.error.code} ${result.error.message}`);
+    }
+  },
+});
+
+process.on("SIGINT", () => {
+  void controller.stop().then(() => {
+    process.exit(0);
+  });
+});
+```
+
+启动之后的运行失败从不抛出；它以 `{ status: "failed" }` 的形式送达，监听继续进行。
+
+## 取消一次运行
+
+<AvailableFrom version="0.12.0" />
+
+把 `AbortSignal` 作为 `signal` 传入。此时 `translate` 会 resolve 而不是 reject：它写入已经返回的内容，其余保持待处理，并设置 `cancelled: true`。
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const controller = new AbortController();
+process.once("SIGINT", () => controller.abort());
+
+const summary = await translate({ config: await loadConfig(), signal: controller.signal });
+
+if (summary.cancelled === true) {
+  const { succeeded, partial, failed } = summary;
+  console.error(
+    `cancelled: ${succeeded.length} done, ${partial.length} partial,`,
+    `${failed.length} failed or not started`,
+  );
+  process.exitCode = 130;
+}
+```
+
+因中止而未能开始的语言环境带有 [`RUN_CANCELLED` 错误码](/zh-CN/docs/error-codes#run_cancelled)，运行中途被中止的语言环境则带有 [`RUN_CANCELLED` 通知](/zh-CN/docs/error-codes#notice-run_cancelled)。中止信号在所有语言环境都已完成之后才到达时，`cancelled` 不会出现；启动时的整体运行错误仍会让调用被拒绝。
+
+## 从源代码中提取键
+
+<AvailableFrom version="0.11.0" />
+
+`extract` 是唯一读取应用代码而不是语言文件的入口函数。它只写入源消息目录（源语言文件），并且只写入真正新增的键：已有的键保留其值，没有任何调用点提及的键则不动。扫描无法解析的内容都会作为数据返回，所以在真正写入之前，先做一次试运行是个不错的门禁。
+
+```ts
+import { extract, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const preview = await extract({ config, dryRun: true });
+
+console.log(`${preview.scannedFiles} files scanned, ${preview.existingKeys} keys already present`);
+for (const added of preview.added) {
+  console.log(`+ ${added.key} = ${JSON.stringify(added.value)} (${added.file}:${added.line})`);
+}
+for (const conflict of preview.conflicts) {
+  console.warn(`${conflict.key} has two defaults: ${conflict.values.join(" | ")}`);
+}
+for (const site of preview.dynamic) {
+  console.warn(`non-static key argument at ${site.file}:${site.line}`);
+}
+for (const diagnostic of preview.diagnostics) {
+  console.warn(`${diagnostic.file}: ${diagnostic.reason}`);
+}
+
+if (preview.added.length > 0 && preview.conflicts.length === 0) {
+  const run = await extract({ config });
+  console.log(`wrote ${run.added.length} keys to ${run.sourcePath}: ${run.written}`);
+}
+```
+
+`config.extract` 必须指明框架和源代码根目录，否则调用会抛出 `EXTRACT_NOT_CONFIGURED`。[`extract`](/zh-CN/docs/sdk/inspect#extract) 列出了它抛出的其他所有错误。
+
+## 生成带类型的消息目录
+
+<AvailableFrom version="0.11.0" />
+
+`generateTypes` 把源消息目录声明为 TypeScript：所有键的联合类型，加上每条消息插值所用的参数。它读取一个文件并写入一个文件，对未更改的消息目录运行两次会写出逐字节相同的内容，这使得 `check` 模式可以用作 CI 门禁。
+
+```ts
+import { generateTypes, loadConfigWithMeta } from "@verbatra/sdk";
+
+const loaded = await loadConfigWithMeta();
+const out = "src/generated/messages.d.ts";
+const configPath = loaded.source.kind === "override" ? undefined : loaded.source.filepath;
+
+const result = await generateTypes({
+  config: loaded.config,
+  out,
+  ...(configPath !== undefined ? { configPath } : {}),
+});
+
+console.log(`${result.keys} keys in ${result.path}, ${result.withArguments} take arguments`);
+for (const message of result.unresolved) {
+  console.warn(`arguments not claimed for ${message.key}: ${message.reason}`);
+}
+
+// In CI, compare instead of writing.
+const gate = await generateTypes({ config: loaded.config, out, check: true });
+if (gate.stale) {
+  console.error(`${gate.path} is out of date, re-generate it`);
+  process.exitCode = 1;
+}
+```
+
+传入 `configPath`，这样输出路径就不能是本次运行加载的配置文件。`check` 运行不写入任何内容，只报告 `stale`。[`verbatra types`](/zh-CN/docs/cli/types) 列出了生成运行会拒绝的所有情形。
+
+## 构建伪语言环境
+
+<AvailableFrom version="0.11.0" />
+
+`pseudolocalize` 只根据源字符串构建一个虚构的语言环境，所以在拥有任何 API 密钥之前，就能发现布局截断和从未提取的字符串。它不调用提供商，输出位于 `files.pattern` 之外，所以没有任何运行会为它产生花费，也不会把它报告为已漂移。
+
+```ts
+import { loadConfig, pseudolocalize } from "@verbatra/sdk";
+
+const result = await pseudolocalize({ config: await loadConfig() });
+
+console.log(`${result.locale} written to ${result.path}: ${result.written}`);
+console.log(`${result.transformed} of ${result.entries} entries transformed`);
+for (const key of result.copied) {
+  console.warn(`copied from source verbatim, a pseudolocalized value would not pass the gate: ${key}`);
+}
+```
+
+`locale` 默认为 `en-XA`，使用 `mode: "bidi"` 时默认为 `ar-XB`，`out` 默认为 `.verbatra-local/pseudo`。转换是确定的，所以对未更改的源文件再运行一次不会重写任何内容，并且 `written` 报告为 false。
+
+## 编辑并重新翻译单个键
+
+这些是 Verbatra Studio 所用的接缝；可以用它们构建你自己的审校流程。用 `keyValue` 读取当前值，用 `editEntry` 保存人工修正，或用 `retranslateEntry` 让提供商只重新处理一个键。两个写入函数都会让候选值通过与完整运行相同的完整性检查，并返回双分支的结果，而不是在值被拒绝时抛出错误。
+
+```ts
+import { editEntry, keyValue, loadConfig, retranslateEntry } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+// Read the live values feeding your edit UI.
+const current = await keyValue({ config, locale: "de", key: "checkout.title" });
+console.log(`source: ${current.source}, target: ${current.target ?? "(not yet translated)"}`);
+
+// Save a human-typed correction. No provider call.
+const edit = await editEntry({
+  config,
+  locale: "de",
+  key: "checkout.title",
+  value: "Zur Kasse",
+});
+if (!edit.accepted) {
+  console.error(`rejected (${edit.reason} check failed), nothing written`);
+}
+
+// Or ask the provider for a fresh translation of just this key. The edit above
+// recorded a value a person wrote, which retranslateEntry protects unless told otherwise.
+const retry = await retranslateEntry({
+  config,
+  locale: "de",
+  key: "checkout.title",
+  includeHuman: true,
+});
+if (retry.accepted) {
+  console.log(`wrote: ${retry.value}`);
+  if (retry.reviewReasons.length > 0) {
+    console.warn(`flagged for review: ${retry.reviewReasons.join(", ")}`);
+  }
+}
+```
+
+它们各自会抛出什么，见 [`retranslateEntry`](/zh-CN/docs/sdk/review#retranslateentry)。
+
+### 人工编写的值
+
+<AvailableFrom version="0.12.0" />
+
+`retranslateEntry` 会以 `KEY_PROTECTED` 拒绝人工编写的值，包括 `editEntry` 刚刚保存的那个，除非你传入 `includeHuman: true`，或配置设置了 `humanEdits: "overwrite"`。这就是示例中传入它的原因。固定的键始终会被拒绝；见[保留人工翻译](/zh-CN/docs/protecting-human-translations)。
+
+## 处理审校队列
+
+<AvailableFrom version="0.12.0" />
+
+`reviewQueue` 列出每个尚无人批准的机器写成的值，以及上次运行把它标记出来的原因。此脚本批准没有标记的值，拒绝其余的值，被拒绝的值会被移除，下次 `translate` 会重新填充它们。如果值在此期间发生了变化，`expectedValue` 会让调用抛出 `REVIEW_VALUE_CHANGED`。在没有上次运行记录的机器上（例如刚克隆的仓库或 CI 运行器），`reasons` 同样为空，所以脚本在没有 `lastRunAt` 时会停止。
+
+```ts title="review.ts"
+import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const queue = await reviewQueue({ config });
+
+if (!queue.available) {
+  console.error(`no review queue: ${queue.reason}`);
+  process.exit(1);
+}
+if (queue.lastRunAt === undefined) {
+  console.error("no run recorded on this machine, so flags are unknown: run translate first");
+  process.exit(1);
+}
+
+for (const { locale, needsReview } of queue.locales) {
+  for (const entry of needsReview) {
+    const { target } = await keyValue({ config, locale, key: entry.key });
+    if (target === undefined) {
+      continue;
+    }
+    const decision = { config, locale, key: entry.key, expectedValue: target };
+    if (entry.reasons.length > 0) {
+      await rejectEntry(decision);
+      console.log(`rejected ${locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+    } else {
+      await approveEntry(decision);
+      console.log(`approved ${locale}/${entry.key}`);
+    }
+  }
+}
+```
+
+[审校与重新翻译](/zh-CN/docs/sdk/review#approveentry)给出了批量版本，以及它们抛出的每个错误码。
+
+## 批量读取每个值
+
+<AvailableFrom version="0.10.0" />
+
+`localeValues` 是 `keyValue` 的批量版本：对磁盘上已有的文件遍历一遍，按语言环境返回每个键当前的源文本和目标文本。
+
+```ts title="scan-values.ts"
+import { loadConfig, localeValues } from "@verbatra/sdk";
+
+const report = await localeValues({ config: await loadConfig() });
+
+for (const { locale, values } of report) {
+  for (const [key, pair] of Object.entries(values)) {
+    if (pair.source === undefined) {
+      console.warn(`${locale}/${key}: orphaned, no source key any more`);
+    } else if (pair.target === undefined) {
+      console.warn(`${locale}/${key}: not translated yet`);
+    } else if (pair.target.includes("TODO")) {
+      console.log(`${locale}/${key}: ${pair.target}`);
+    }
+  }
+}
+```
+
+只读：它不调用提供商，不写入任何内容，也不触碰锁文件和缓存。它覆盖每个已配置的目标语言环境；传入 `locales` 可以缩小到其中几个，传入 `targetLocales` 之外的语言环境会抛出 `UNKNOWN_LOCALE`。
+
+## 工作簿往返流程
+
+把需要翻译的字符串导出到 Excel 工作簿，交给译者，再把填好的文件导入回来。`importWorkbook` 运行与 `translate` 相同的漂移和完整性检查，并返回相同形状的 `RunSummary`。
+
+```ts
+import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+// Write a workbook of the missing and changed strings.
+const exported = await exportWorkbook({ config });
+for (const sheet of exported.locales) {
+  console.log(`${sheet.locale}: ${sheet.rows} rows`);
+}
+console.log(`wrote ${exported.path}`);
+
+// ...later, after the translator returns the file, import it back.
+const summary = await importWorkbook({ config, workbook: exported.path });
+console.log(`${summary.succeeded.length} locales ok, ${summary.failed.length} failed`);
+```
+
+向 `importWorkbook` 传入 `dryRun: true`，可以在不写入任何内容的情况下校验返回的文件。译者可以编辑什么，以及各行如何校验，见[用 Excel 或 CSV 交接](/zh-CN/docs/manual-translation)。
+
+## TMX 往返流程
+
+<AvailableFrom version="0.11.0" />
+
+`importTmx` 和 `exportTmx` 把翻译记忆库（见[翻译缓存](/zh-CN/docs/the-cache)）导入和导出为 TMX，这是主流翻译平台生成和使用的交换格式。与工作簿这一对不同，它把整个翻译记忆库作为一个多语言文件在工具之间传递。
+
+```ts
+import { exportTmx, importTmx, loadConfig, tmxErrorLocation } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+// Validate another tool's file before it touches the memory.
+try {
+  const preview = await importTmx({ config, file: "legacy.tmx", dryRun: true });
+  console.log(`${preview.units} units, source language ${preview.sourceLanguage ?? "undeclared"}`);
+  for (const locale of preview.locales) {
+    console.log(
+      `${locale.locale}: +${locale.added}, kept ${locale.kept}, conflicting ${locale.conflicting}`,
+    );
+  }
+
+  // Then land it. Pass overwrite: true to let the file win where the two disagree.
+  const landed = await importTmx({ config, file: "legacy.tmx" });
+  if (!landed.memoryWritable) {
+    console.error("the memory file was written by a newer verbatra and was left untouched");
+  }
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at === undefined) {
+    throw error;
+  }
+  console.error(`legacy.tmx is malformed at line ${at.line}, column ${at.column}`);
+}
+
+// ...and hand this project's memory to another tool.
+const exported = await exportTmx({ config, out: "out/memory.tmx" });
+console.log(`${exported.units} units to ${exported.path}`);
+```
+
+`importTmx` 对损坏的数据只报告，不抛出：被拒绝的文件会抛出 `SOURCE_INVALID`，而 `tmxErrorLocation` 无需强制转换该错误或其 `cause`，就能从中读出位置。只有当前配置指纹下的条目才会被导出，这与一次运行会复用的条目集合相同。
+
+## 不用文件的配置
+
+`loadConfig` 接受内存中的 `configOverride`，校验方式与加载的文件完全相同，所以你可以完全通过代码驱动 verbatra，磁盘上不需要配置文件。
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig({
+  configOverride: {
+    sourceLocale: "en",
+    targetLocales: ["de", "fr"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+  },
+});
+
+await translate({ config });
+```

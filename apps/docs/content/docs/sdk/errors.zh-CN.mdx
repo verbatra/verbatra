@@ -1,0 +1,115 @@
+---
+title: "错误"
+seoTitle: "SDK 错误：SdkError 类与错误辅助函数"
+description: "SdkError 模型：错误类、哪些错误码带有 cause、规则的例外情况，以及错误辅助函数。"
+type: reference
+---
+## 错误模型
+
+整个运行级别的失败会抛出 `SdkError`：一个类，一个稳定的 `code`，以及不含密钥的 `message`。请根据错误码分支，不要根据信息文本分支。单个语言环境的失败、提供商通知和完整性检查结果都以数据的形式出现在 `RunSummary` 上，绝不会被抛出。
+
+每个错误码的含义、哪些 CLI 命令会遇到它以及它的下一步，都列在 [SDK 错误码](/zh-CN/docs/error-codes#sdk-error-codes)下。
+
+`code` 的类型是 `SdkErrorCode` 联合类型。[`errorHint`](#errorhint) 返回解决某个错误的下一步，[`projectRelativeMessage`](#projectrelativemessage) 会在你把信息展示给用户之前，缩短其中的项目路径。
+
+少数错误码还会把它所包装的错误作为标准的 `cause` 携带：解析器或适配器失败时的 `SOURCE_INVALID`（文件因大小被拒绝时不带），`PROVIDER_CONSTRUCTION_FAILED`（提供商工厂函数自身的错误，其信息也已脱敏写入 `SdkError` 的信息），`EXPORT_UNWRITABLE`、`GLOSSARY_UNWRITABLE` 和 `SOURCE_UNWRITABLE`（文件系统错误），`REVIEW_RESTORE_FAILED`（中断该决定的失败），以及锁被接管或遗留的锁无法回收或移开时的 `LOCK_CONTENDED`（文件系统错误）。`CONFIG_INVALID` 只有在配置文件因带错误码的错误而加载失败时才携带它，例如某个导入无法解析。对于解析错误或 schema 错误，它不携带，`CONFIG_NOT_FOUND` 则从不携带，因为配置解析器的错误可能引用文件内容，而写入配置的密钥不得随错误一起传递。只有 `PROVIDER_CONSTRUCTION_FAILED` 错误的信息经过脱敏：它的 `cause` 是原始错误，原封不动。内置的提供商工厂函数抛出的错误不含任何密钥，而你自己提供的 `createProvider` 抛出的错误会原样返回，所以请确保其中不含密钥，或在记录 `cause` 之前自行脱敏。
+
+“一个错误类”规则的例外：
+
+- 单次调用失败时，`retranslateEntry` 会重新抛出提供商自己的 `ProviderError`。
+- 意外错误使批次中途停止时，`approveEntries`、`rejectEntries` 和 `retranslateEntries` 会抛出 `BatchInterruptedError`，原始错误作为它的 `cause`。
+- 适配器无法解析的目标语言文件，会在 `check`、`diff` 和其他读取它的流程中以其 `AdapterError`（带有自己的 `code`）出现；`checkFile` 则把它报告为语法检查结果。
+- `watch` 会原样传出监听器工厂函数或你的 `onReady` 回调抛出的任何内容，不做包装。
+- `runStatus` 完全不会抛出。
+
+这些错误码如何对应 CLI 退出码，见 [SDK 错误码](/zh-CN/docs/error-codes#sdk-error-codes)；从现象出发的帮助见[故障排查](/zh-CN/docs/troubleshooting)。
+
+## 错误类
+
+### SdkError
+
+整个运行级别的失败都以这个类抛出。其 `name` 是 `"SdkError"`，`code` 是 `SdkErrorCode` 联合类型的一个成员（[SDK 错误码](/zh-CN/docs/error-codes#sdk-error-codes)完整列出），其 `cause` 只为[错误模型](#错误模型)所列的错误码设置。用 `error instanceof SdkError` 测试它，并按 `error.code` 分支，TypeScript 会把每个分支收窄为一个错误码。
+
+```ts title="签名"
+class SdkError extends Error {
+  readonly code: SdkErrorCode;
+  constructor(code: SdkErrorCode, message: string, options?: { readonly cause?: unknown });
+}
+```
+
+<SdkTypeTable name="SdkError" />
+
+### ProviderError
+
+<AvailableFrom version="0.12.0" />
+
+翻译提供商失败时抛出的结构化错误，用来代替原始的 SDK 或 HTTP 错误。其 `name` 是 `"ProviderError"`，`code` 是 `ProviderErrorCode`，错误信息固定且已脱敏。在 `MISSING_API_KEY` 失败时，`envVar` 指明提供商读取密钥所用的变量，绝不包含它的值。`retranslateEntry` 会重新抛出它，自定义提供商从 `translateBatch` 抛出它；[提供商错误码](/zh-CN/docs/error-codes#provider-error-codes)列出每个错误码。用 `error instanceof ProviderError` 测试它。在没有导出该类的旧版本中，请检查 `error.name === "ProviderError"` 并读取 `code`。
+
+```ts title="签名"
+class ProviderError extends Error {
+  readonly code: ProviderErrorCode;
+  readonly envVar?: string;
+  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string });
+}
+```
+
+<SdkTypeTable name="ProviderError" />
+
+### AdapterError
+
+<AvailableFrom version="0.11.0" />
+
+格式适配器或适配器注册表失败时抛出的结构化错误。其 `name` 是 `"AdapterError"`，`code` 是 `AdapterErrorCode`，列在[格式适配器错误码](/zh-CN/docs/error-codes#adapter-error-codes)下。`position` 以从 1 开始的 `{ line, column }` 定位格式错误的语法，列按 UTF-16 码元计数：内置适配器在解析器报告了位置的 `INVALID_JSON` 或 `INVALID_YAML` 错误上设置它，其他情况下为 `undefined`。`custom:` 适配器自己抛出的错误会以 `ADAPTER_FAILED` 错误的形式出现，并把它作为 `cause` 携带。
+
+```ts title="签名"
+class AdapterError extends Error {
+  readonly code: AdapterErrorCode;
+  readonly position: SyntaxPosition | undefined;
+  constructor(code: AdapterErrorCode, message: string, options?: { readonly cause?: unknown; readonly position?: SyntaxPosition });
+}
+```
+
+<SdkTypeTable name="AdapterError" />
+
+## 错误辅助函数
+
+### projectRelativeMessage
+
+<AvailableFrom version="0.12.0" />
+
+`projectRelativeMessage(message, cwd)` 把信息中项目内的每个绝对路径改写为相对项目根目录的路径：`cwd` 之下的路径去掉该前缀，`cwd` 本身变为 `.`，项目之外的路径保持不变。`RunSummary` 上每个语言环境的 `error.message` 和通知信息，已经以这种方式、相对运行的 `cwd` 指明项目文件；在你把某个流程抛出的错误的信息展示给用户、智能体或浏览器标签页之前，请对它调用此函数。`verbatra mcp` 和 Studio 对它们返回的每个错误也这样处理。
+
+```ts title="签名"
+function projectRelativeMessage(
+  message: string,
+  cwd: string,
+): string;
+```
+
+**返回**：`string`
+
+### errorHint
+
+<AvailableFrom version="0.12.0" />
+
+`errorHint(error)` 返回解决 verbatra 所抛出错误的下一步：一个简短的祈使句，没有时为 `undefined`。每个 `SdkError` 错误码、每个 `ProviderError` 错误码和每个格式适配器错误码都有一条，所以智能体无需解析信息就能对失败采取行动。它读取错误的 `code`，所以普通的 `{ code, message }` 对象（如失败的 `watch` 运行的 `error`）会得到同样的提示。`PROVIDER_CONSTRUCTION_FAILED` 错误采用它所包装的提供商错误的提示，所以缺少密钥时会指明要设置的确切变量，该变量读取自 `MISSING_API_KEY` 的 `ProviderError` 所携带的 `envVar`。来自导入无法解析的配置文件的 `CONFIG_INVALID` 错误（其 `causeCode` 为 `MODULE_NOT_FOUND`、`ERR_MODULE_NOT_FOUND`、`ERR_PACKAGE_PATH_NOT_EXPORTED` 或 `ERR_UNSUPPORTED_DIR_IMPORT`），其提示是安装或修复该导入。提示是固定文本，最多再加一个变量名：它从不包含密钥值，也不引用错误信息。CLI 的 `--json` 错误信封（envelope）把它作为 `hint` 携带，`verbatra mcp` 则以它结束失败调用的文本。
+
+```ts title="签名"
+function errorHint(error: unknown): string | undefined;
+```
+
+**返回**：`string | undefined`
+
+**示例**：[处理错误](/zh-CN/docs/sdk-quickstart#处理错误)
+
+```ts title="示例"
+import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+try {
+  await translate({ config });
+} catch (error) {
+  console.error(errorHint(error)); // e.g. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
+}
+```

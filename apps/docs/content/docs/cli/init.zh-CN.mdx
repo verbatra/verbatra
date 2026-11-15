@@ -1,0 +1,223 @@
+---
+title: verbatra init
+seoTitle: "verbatra init：为你的项目生成配置"
+description: 为当前项目创建 verbatra 配置和 .env 示例，依据你的语言文件自动检测，可交互进行，也可完全无人值守。
+type: reference
+---
+生成项目配置：`init` 会写入 `verbatra.config.ts`、列出提供商 API 密钥变量名（绝不写密钥值）的 `.env.example`，以及 `.env`、`.env.local`、`.verbatra-local/` 和 `verbatra.cache.json` 的 `.gitignore` 条目。对 `i18next-json`，配置中还会带一个已注释的 `extract` 块，取消注释即可使用。它先读取项目中已有的语言文件，所以通常只需要告诉它提供商。
+
+## 用法
+
+```bash
+verbatra init [flags]
+```
+
+## 示例
+
+```bash
+# prompt for anything not passed or detected
+verbatra init --provider gemini
+
+# fully unattended, one JSON document on stdout
+verbatra init --provider gemini --yes --json
+
+# choose the format and pattern yourself
+verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml" --yes
+
+# a local server that needs no key
+verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
+
+# a self-hosted LibreTranslate server, no language model
+verbatra init --provider libretranslate --base-url http://localhost:5000 --yes
+
+# human-only: no provider, no API key
+verbatra init --provider none --yes
+
+# also set the project up for coding agents
+verbatra init --provider gemini --yes --agent
+
+# wire Cursor and VS Code, and only show what would change
+verbatra init --agent --client cursor,vscode --dry-run
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--provider` | `<id>` | 无（必填，除非通过提示输入） | 要生成配置的提供商：`anthropic`、`openai`、`gemini`、`deepl`、`google-translate`、`opencode`、`openai-compatible`、`libretranslate` 或 `none` |
+| `--format` | `<id>` | 自动检测，否则为 `i18next-json` | 语言文件格式，取[格式](/zh-CN/docs/formats)页上列出的 ID 之一 |
+| `--source` | `<locale>` | 自动检测，否则为 `en` | 字符串所用的源语言环境 |
+| `--targets` | `<locales>` | 自动检测，否则为 `de` | 要翻译成的目标语言环境，以逗号分隔 |
+| `--path` | `<pattern>` | 自动检测，否则为该格式的常用布局（[检测](#检测)） | 语言文件路径模式；必须包含 `{locale}` 占位符 |
+| `--model` | `<name>` | 生成配置时的默认值 | 模型；`openai-compatible` 必填，`anthropic`、`openai`、`gemini` 和 `opencode` 可选 |
+| `--base-url` | `<url>` | 无 | 服务器 URL；仅限 `openai-compatible` 和 `libretranslate`，且在这两者中必填 |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | `openai-compatible` 读取其密钥的变量 |
+| `--yes` | 无 | 关闭 | 不再提示；对既未传入也未检测到的内容采用默认值 |
+| `--force` | 无 | 关闭 | 覆盖内容不同的已有 `verbatra.config.ts` |
+| `--agent` | 无 | 关闭 | 还会把编码智能体部分写入 `AGENTS.md` 或 `CLAUDE.md`，并把 verbatra MCP 服务器写入每个检测到的客户端的项目配置（[配置编码智能体](#配置编码智能体)） |
+| `--client` | `<ids>` | 自动检测 | `--agent` 要接入的客户端，以逗号分隔，代替自动检测到的客户端：`claude`、`cursor`、`vscode`、`codex`、`gemini` 或 `all`；需要同时使用 `--agent` |
+| `--dry-run` | 无 | 关闭 | 报告 `init` 会写入或更改的每个文件，并且不写入任何内容（[试运行](#试运行)） |
+
+还接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd` 和 `--json`，但不接受 `--config`。这里的 `--cwd` 是要扫描和写入的目录，该目录必须已经存在。`--json` 从不提示。
+
+## 行为
+
+### 交互提示
+
+<AvailableFrom version="0.12.0" />
+
+选项始终优先。你省略的内容会先从项目中检测；stdin 是终端，且既没有 `--yes` 也没有 `--json` 时，再提示输入；否则只有在 `--yes` 下才采用默认值。按 Enter 接受建议值。值为空的选项，例如 `--targets ''`，是用法错误（`INVALID_OPTION`），绝不会被当作请求默认值。如果 stdin 在提示处结束（Ctrl-D），`init` 以 `2` 退出，并报出 `MISSING_OPTIONS`。
+
+每个回答在输入时就会被检查。无效的回答会在 stderr 上说明原因并重新询问，最多 3 次，并保留你之前的回答；第三次无效的回答会使 `init` 以该回答的错误码（例如 `INVALID_LOCALE`）停止，写明应改为传入的选项，且不写入任何内容。
+
+### 检测
+
+`init` 扫描目录中格式适配器认领的文件，跳过隐藏目录、`node_modules` 和构建输出，并找出每个路径中写明语言环境的部分，例如 `de.json`、`messages_pt_BR.properties`、`de.lproj/` 或 Android 的 `values-de/`。覆盖语言环境最多的文件路径模式胜出，并据此填入：
+
+- `format`：其适配器能读取所有匹配文件的那个唯一格式。每个 JSON 适配器都能读取 `.json`，所以对 JSON 文件，由 `package.json` 中唯一匹配的依赖（`i18next`、`vue-i18n`、`next-intl` 或 `@ngx-translate/core`）决定。
+- `files.pattern` 和 `files.localeStyle`：文件写作 `pt_BR` 时为 `posix`，`values-*` 目录为 `android`，其他情况为 `literal`。
+- `sourceLocale`：`.xcstrings` 消息目录的源语言；否则为 `en` 或找到的唯一 `en-*` 语言环境；再否则为找到的唯一语言环境。
+- `targetLocales`：找到的其他所有语言环境。
+
+如果语言文件旁边有一个文件名不带语言环境名称的字符串文件（例如 `messages.properties`、`Strings.resx` 或 gettext 的 `app.pot`），`init` 会把它报告为 `unqualifiedSourceFile`。verbatra 无法从这样的文件读取源，所以 `init` 不会猜测源语言环境：即使使用 `--yes`，也要传入 `--source`，后续步骤会写明要重命名的文件，或要把基础文件复制成什么名称。
+
+完全没有语言文件时，只由依赖决定格式，路径模式沿用该格式的常用布局，即[选择技术栈](/zh-CN/docs/pick-your-stack)页按格式列出的那一种。
+
+`apple-xcstrings` 消息目录是所有语言环境共用的一个文件，verbatra 从不创建它：请先在 Xcode 中创建。`--format`、`--path` 和 `--source` 会缩小检测范围，而不是被检测结果覆盖，所以 `--format yaml` 只查看 YAML 文件。
+
+`init` 从不在势均力敌的候选项之间猜测。多个格式都能读取这些文件（没有 i18n 依赖的纯 JSON）时，以 `2` 退出并报出 `FORMAT_AMBIGUOUS`；多个文件路径模式并列（每个命名空间一个文件）时，以 `2` 退出并报出 `LAYOUT_AMBIGUOUS`。两者都会列出候选项；传入 `--format` 或 `--path` 来选择。在终端中则改为询问。
+
+### 无人值守运行
+
+没有终端，或使用 `--json` 时，`init` 从不提示。既没有传入、也没有检测到、也没有被 `--yes` 采用默认值的值，会导致错误：`init` 以 `2` 退出，报出 `MISSING_OPTIONS`，并写明每个缺失的选项。出现歧义或选项无效时，同样会列出仍然缺失的选项，所以运行一次，智能体就知道要传入的全部内容。`--provider` 没有默认值，`openai-compatible` 的 `--base-url` 和 `--model`，以及 `libretranslate` 的 `--base-url` 也没有。智能体运行的就是这条命令：
+
+```bash
+npx @verbatra/cli init --provider gemini --yes --json
+```
+
+### JSON 输出
+
+Schema：[`init-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+使用 `--json` 时，stdout 恰好带有一个[信封](/zh-CN/docs/cli/output#json-输出)。它的 `result`：
+
+```ts
+interface InitResult {
+  configPath: string;                  // absolute path of verbatra.config.ts, or of the config --agent kept
+  files: { path: string; action: "created" | "overwritten" | "updated" | "unchanged" }[];
+  dryRun: boolean;                     // true under --dry-run: files holds the planned actions
+  config: {                            // the config that was validated and written
+    sourceLocale: string;
+    targetLocales: string[];
+    format: string;
+    files: { pattern: string; localeStyle?: "posix" | "android" };
+    provider: { id: string; options?: Record<string, unknown> };
+    sensitiveData?: { mode: "warn" };
+  } | null;
+  sources: {                           // where each value came from
+    provider: "flag" | "prompt";
+    format: "flag" | "prompt" | "files" | "dependencies" | "default";
+    pattern: "flag" | "prompt" | "detected" | "default";
+    sourceLocale: "flag" | "prompt" | "detected" | "default";
+    targetLocales: "flag" | "prompt" | "detected" | "default";
+  } | null;
+  apiKeyEnvVar: string | null;         // the variable to set; null for provider none
+  detection: {
+    format: { id: string; from: "input" | "files" | "dependencies" } | null;
+    layout: {
+      pattern: string;
+      localeStyle: "literal" | "posix" | "android";
+      locales: string[];
+      sourceLocale: string | null;
+      unqualifiedSourceFile: string | null;
+      files: string[];
+    } | null;
+    ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
+    confidence: "high" | "medium" | "low" | "none";
+    reasons: string[];                 // one sentence per decision or doubt
+  } | null;
+  agent: {                             // null without --agent
+    instructionsFile: "AGENTS.md" | "CLAUDE.md";
+    mcpServer: "added" | "present" | "differs" | "skipped" | null; // Claude Code; null when not wired
+    configKept: boolean;               // true when --agent kept an existing config
+    clients: {
+      id: "claude" | "cursor" | "vscode" | "codex" | "gemini";
+      file: string;                    // the client's config file, such as .mcp.json
+      server: "added" | "present" | "differs" | "skipped";
+      reason: "plugin" | "symlink" | null; // why the client was skipped
+      selectedBy: "flag" | "markers" | "default";
+      markers: string[];               // the client's marker files found in the project
+    }[];
+  } | null;
+  nextSteps: { description: string; command: string | null }[];
+}
+```
+
+当文件本身就足以决定一切时，`confidence` 为 `high`；约定或依赖填补了某个空缺（例如把 `en` 当作源），或仍有空缺时为 `medium`；没有语言文件支持该格式时为 `low`；什么都没检测到时为 `none`。`sources` 中的 `default` 是需要再次核对的值。`nextSteps` 以接下来要运行的确切命令结尾。
+
+`FORMAT_AMBIGUOUS`、`LAYOUT_AMBIGUOUS`、`INVALID_PROVIDER` 或 `INVALID_FORMAT` 的错误信封还会带上 `candidates`，即可供选择的值。凡是还留有未回答选项的用法错误，都会带上 `missing`，写明这些选项，例如 `"--source <locale>"`。
+
+### 提供商
+
+<AvailableFrom version="0.12.0" />
+
+- `--provider none` 生成纯人工配置（见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)），没有 `options`，也不写入 `.env.example`，因为从不读取任何 API 密钥。
+- `--provider openai-compatible` 根据 `--base-url` 和 `--model` 生成本地或自托管服务器的配置，带 `maxOutputTokens: 4096`。它的密钥是可选的：不需要密钥的服务器就不设置 `OPENAI_COMPATIBLE_API_KEY`，`--api-key-env-var` 可以指定另一个变量，用大写，例如 `LLM_API_KEY`。被拒绝的值绝不会回显，以防它就是密钥本身。
+- `--provider libretranslate` 只根据 `--base-url`（例如 `http://localhost:5000`）生成自托管 [LibreTranslate](/zh-CN/docs/providers#libretranslate) 服务器的配置，并拒绝 `--model` 和 `--api-key-env-var`。对以 `--api-keys` 启动的服务器，`.env.example` 会列出 `LIBRETRANSLATE_API_KEY`。
+
+`init` 把变量的名称写入配置和 `.env.example`，绝不写入值，并拒绝带有凭据、查询字符串或片段的基础 URL（`https://user:key@host`、`https://host/v1?api-key=...`），因为密钥可能因此进入已提交的配置。
+
+### 已有文件
+
+用相同的回答再次运行 `init` 不会更改任何内容，并且成功。遇到内容不同的 `verbatra.config.ts`，`init` 以 `CONFIG_EXISTS` 拒绝，除非传入 `--force`，且该拒绝先于任何提示或其他错误。目录中另有 verbatra 配置（`.verbatrarc.json`，或 `package.json` 中的 `verbatra` 属性）时，即使使用 `--force`，`init` 也会拒绝，因为那个配置会被优先读取。`init` 拒绝时不写入任何内容。父目录的配置覆盖了本目录时，会在 stderr 上给出警告（试运行也一样）：新的 `verbatra.config.ts` 会在本目录取代它。
+
+遇到 `init` 无法写入的目录，`init` 以 `INIT_UNWRITABLE` 拒绝，并写明该文件和已经写入的文件。`verbatra.config.ts`、`.env.example` 或 `.gitignore` 是指向项目之外或无处可去的符号链接时，`init` 在写入任何内容之前就以 `INIT_UNWRITABLE` 拒绝。已有的 `.env.example` 会保留；它尚未列出密钥变量时，会追加这一行；在 `--force` 下，`init` 自己写的标题行会针对新的提供商重写。`.gitignore` 只补上缺少的条目。
+
+### 试运行
+
+<AvailableFrom version="0.12.0" />
+
+`--dry-run` 执行真实运行的所有检查和拒绝，只除了写入失败（例如只读目录），为每个文件输出 `would create`、`would update`、`would overwrite` 或 `unchanged`，并且不写入任何内容。
+
+### 配置编码智能体
+
+<AvailableFrom version="0.12.0" />
+
+`--agent` 还会为编码智能体准备项目。它不写入任何密钥值，从不通过指向项目之外的链接写入，并添加：
+
+- **指令文件**：位于 `<!-- verbatra:start -->` 和 `<!-- verbatra:end -->` 标记之间的 verbatra 部分，与[向你的智能体介绍 verbatra](/zh-CN/docs/agent-recipes#向你的智能体介绍-verbatra) 中的片段逐字相同。它写入 `AGENTS.md`；`CLAUDE.md` 是唯一的指令文件时写入 `CLAUDE.md`；两者都存在时，以 `AGENTS.md` 为准。已有该部分的文件中，标记之间的文本会替换为当前内容并报告为 `updated`，已经一致时报告为 `unchanged`。
+- **各客户端的 MCP 配置**：来自[连接 MCP 客户端](/zh-CN/docs/connect-an-mcp-client)的 `verbatra` 服务器条目，即不带 `--allow-spend` 或 `VERBATRA_MCP_ALLOW_SPEND` 的 `npx -y @verbatra/mcp`，所以付费工具保持隐藏。`@verbatra/cli` 把这些条目导出为 `AGENT_CLIENT_CONFIGS`。
+
+| 客户端 | `--client` | 文件 | 检测依据 |
+| --- | --- | --- | --- |
+| Claude Code | `claude` | `.mcp.json` | `CLAUDE.md`、`.claude/`、`.mcp.json` |
+| Cursor | `cursor` | `.cursor/mcp.json` | `.cursor/`、`.cursorrules` |
+| VS Code | `vscode` | `.vscode/mcp.json`，位于 `servers` 下 | `.vscode/mcp.json` |
+| Codex | `codex` | `.codex/config.toml`，写成 `[mcp_servers.verbatra]` | `.codex/` |
+| Gemini CLI | `gemini` | `.gemini/settings.json` | `.gemini/`、`GEMINI.md` |
+
+`init` 会接入它检测到的每个客户端，没有找到任何标记时只接入 Claude Code。`AGENTS.md` 决定的是指令文件，不是客户端。有 `.vscode` 文件夹但没有 `mcp.json` 时不会接入：后续步骤会写明接入它的命令。Gemini CLI 读取 `GEMINI.md`：除非它的设置或 `GEMINI.md` 加载了指令文件，否则后续步骤会说明如何处理。检测到的客户端，其配置路径经过符号链接时，会以 `symlink` 为原因跳过，并给出一个后续步骤。`--client` 取代自动检测；未知的 ID、空列表或不带 `--agent` 的 `--client`，会以 `2` 退出，报出 `INVALID_OPTION` 和候选项。
+
+标记之外的内容一律不动；文件按每行一个条目排布时，其他服务器和键会保留原有的字节、缩进和换行符；否则文件会以相同的内容重写。Codex 的表会追加到文件末尾。已有的 `verbatra` 服务器从不改动：文件报告为 `unchanged`，条目与生成的内容一致时，客户端的 `server` 为 `present`，不一致时为 `differs`，同时还会添加一条 `nextSteps` 说明。
+
+`.claude/settings.json` 或 `.claude/settings.local.json` 启用了 verbatra Claude Code 插件时，`init` 会跳过 `.mcp.json`：Claude Code 以 `plugin` 为原因报告为 `skipped`，并给出一个后续步骤，已有的条目绝不会被删除。位于符号链接之后的设置文件会被忽略。
+
+已有配置时，`init --agent` 会保留它，只写入智能体文件，输出 `kept verbatra.config.ts`，从不提示，也不检测任何内容。JSON 结果把配置列为 `unchanged`，把 `agent.configKept` 设为 `true`，并让 `config`、`sources`、`apiKeyEnvVar` 和 `detection` 为 `null`。传入配置项或 `--force` 会让配置重新参与运行，与不带 `--agent` 时相同。
+
+遇到下列情况时，`init` 会在写入任何内容之前拒绝，并报出 `AGENT_FILE_INVALID`：客户端文件不是纯 JSON（它从不重写注释或尾随逗号）、不是对象、有重复的键，或 servers 的值不是对象；`.codex/config.toml` 以内联方式、点号键或表数组设置了 `mcp_servers` 或 verbatra 服务器，重复了该表或其中的键，或有未结束的字符串、数组或表头；`--client` 指定的客户端，其配置路径上有符号链接，或指令文件链接到项目之外；或指令文件中的标记不成对、顺序错误或重复。错误信息从不引用文件内容。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 文件已写入，或已是最新 |
+| `2` | 用法错误：`MISSING_OPTIONS`、`INVALID_PROVIDER`、`INVALID_FORMAT`、`INVALID_OPTION`、`INVALID_LOCALE`、`INVALID_LOCALES`、`FORMAT_AMBIGUOUS`、`LAYOUT_AMBIGUOUS`、`CONFIG_EXISTS`、`INIT_UNWRITABLE`、`AGENT_FILE_INVALID`，或在回答无法构成有效配置时的 `CONFIG_INVALID` |
+
+这些退出码在每个命令中如何使用，见[退出码约定](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [用 AI 智能体配置 verbatra](/zh-CN/docs/start-with-ai) 是基于此命令构建的智能体提示词。
+- [快速上手](/zh-CN/docs/quickstart)从 init 一直讲到第一次运行。
+- [配置文件](/zh-CN/docs/config-file)记录了生成配置所设置的每个配置项。
+- [提供商](/zh-CN/docs/providers)介绍提供商选项和 API 密钥变量。

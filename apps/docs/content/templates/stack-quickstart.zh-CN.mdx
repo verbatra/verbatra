@@ -1,0 +1,145 @@
+学完本页，你的 <StackText field="name" /> 应用会显示一条由 verbatra 从 <StackText field="sourceFile" /> 翻译而来的德语字符串，并且锁文件会让之后的每次运行只翻译已更改的内容。你需要 Node.js `^22.22.0 || >=24`、一个 <StackText field="name" /> 项目，以及大约 10 分钟。前四步不需要账号，也不需要 API 密钥。
+
+已经有语言文件和编码智能体了？那就改为把[用 AI 智能体配置 verbatra](/zh-CN/docs/start-with-ai) 中的提示词交给它：它会围绕你的项目已有的文件工作，并在产生任何花费之前停下。
+
+## 步骤
+
+<Steps>
+<Step>
+
+### 安装 CLI
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+verbatra 是开发工具，从不随你的应用发布。下面的命令使用 `npx`；使用 pnpm、yarn 或 bun 时，改为运行 `pnpm verbatra`、`yarn verbatra` 或 `bun run verbatra`。
+
+<StackOnly stacks="flutter">
+<Callout title="Flutter 应用没有 package.json">
+包管理器会在第一次安装时创建它。把 `node_modules/` 添加到你的 `.gitignore`。
+</Callout>
+</StackOnly>
+
+</Step>
+<Step>
+
+### 添加源语言文件
+
+如果 <StackText field="sourceFile" /> 已存在，跳过这一步。否则，创建它并写入两条字符串，其中一条带占位符：
+
+<StackBlock name="source-file" />
+
+</Step>
+<Step>
+
+### 生成配置
+
+<StackBlock name="init" />
+
+`--format` 的值 <StackText field="format" /> 是 <StackText field="library" /> 的文件格式。`init` 会查找你的语言文件；还没有语言文件时，则写入路径模式 <StackText field="pattern" />。`--yes` 直接采用 `init` 检测到的结果，不再提示。新的 `verbatra.config.ts` 把 `en` 翻译成 `de`；要添加更多语言，把语言环境代码加入 `targetLocales`。
+
+</Step>
+<Step>
+
+### 不用密钥预览运行
+
+```bash
+npx @verbatra/cli translate --dry-run
+```
+
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+试运行不构造提供商，因此不需要密钥，不产生花费，也不写入任何内容。
+
+</Step>
+<Step>
+
+### 翻译
+
+```bash
+cp .env.example .env
+```
+
+打开 `.env`，把你的密钥粘贴到 `GEMINI_API_KEY=` 之后。还没有密钥？Gemini 有免费套餐：在 [Google AI Studio](https://aistudio.google.com/apikey) 创建一个。其他提供商及其变量见[提供商](/zh-CN/docs/providers)。
+
+```bash
+npx @verbatra/cli translate
+```
+
+verbatra 把这两条字符串发给 Gemini，检查每个占位符是否保留，并写入 <StackText field="targetFile" />。具体措辞取决于模型，例如：
+
+<StackBlock name="translated-file" />
+
+</Step>
+<Step>
+
+### 确认每个语言环境都已同步
+
+```bash
+npx @verbatra/cli check
+```
+
+```text output
+[ok] checking the locales (0.0s)
+verbatra check
+  de: 0 missing, 0 stale, 2 up-to-date (in sync)
+all locales in sync
+```
+
+`check` 不调用提供商，语言环境一旦不同步就以退出码 `1` 退出，因此它可以用门禁拦住 pull request。
+
+</Step>
+<Step>
+
+### 在应用中加载语言文件
+
+添加 <StackText field="library" />：
+
+<StackBlock name="runtime-install" />
+
+然后加载两个文件并渲染问候语：
+
+<StackBlock name="load" />
+
+启动你的应用：问候语显示为 `Hallo, Ada!`。
+
+</Step>
+</Steps>
+
+## 刚才发生了什么
+
+- `verbatra.lock.json` 记录每条源字符串的哈希，因此下次运行只发送新增和已更改的字符串。见[锁文件与来源记录](/zh-CN/docs/the-lock-file)。
+- 丢失占位符的译文会被搁置，绝不会写入。见[翻译安全](/zh-CN/docs/translation-safety)。
+
+把语言文件、`verbatra.lock.json` 和 `verbatra.provenance.json` 一起提交。
+
+## 可选：连接你的编码智能体
+
+<AvailableFrom version="0.12.0" />
+
+```bash
+npx @verbatra/cli init --agent
+```
+
+配置已就位时，`init --agent` 保留它，只添加智能体文件：写入 `AGENTS.md` 的 verbatra 规则（如果 `CLAUDE.md` 是你唯一的指令文件，则写入 `CLAUDE.md`），以及在它检测到的每个编码智能体的项目配置中注册 verbatra MCP 服务器（不允许花费）。它为哪个智能体写入哪些文件，以及用 `--client` 自己指定智能体，见[配置编码智能体](/zh-CN/docs/cli/init#配置编码智能体)。`--dry-run` 显示这些文件，但不写入。
+
+或者，不用 CLI，只把 MCP 服务器添加到你的 VS Code 用户配置文件；只用其中一种方式，不要两种都用：
+
+<McpInstallLink client="vscode" />
+
+## 接下来
+
+<Cards>
+  <Card title="添加语言" href="/zh-CN/docs/add-a-language" description="添加一个目标语言环境，让一次运行把它填好。" />
+  <Card title="在 CI 中运行 verbatra" href="/zh-CN/docs/ci-and-exit-codes" description="语言环境发生漂移时让 pull request 失败。" />
+  <Card title="选择技术栈" href="/zh-CN/docs/pick-your-stack" description="其他每个框架的格式 id 和文件布局。" />
+</Cards>

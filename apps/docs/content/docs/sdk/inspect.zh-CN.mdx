@@ -1,0 +1,408 @@
+---
+title: "查看项目状态"
+seoTitle: "SDK：不写入文件地查看项目状态"
+description: "doctor、check 和 diff 背后的只读 SDK 入口函数，以及完整性检查和锁文件、来源记录状态，它们都不写入文件。"
+type: reference
+---
+## 不写入地查看状态
+
+这些函数都不翻译，也不更改锁文件。只有 `extract` 会写入文件（源消息目录），只有带 `live` 的 `doctor` 会发出网络请求（获取提供商的语言列表）。
+
+### doctor
+
+<AvailableFrom version="0.9.0" />
+
+校验项目配置，不产生任何花费：不构造提供商；除非 `live` 要求，否则不发出网络请求；只为那一次语言列表请求读取 API 密钥的值（LibreTranslate 不使用密钥）。即使前面的某项检查失败，每项检查也都会运行，所以一次调用就能报告所有相互独立的问题；检查项列表见 [`verbatra doctor`](/zh-CN/docs/cli/doctor#检查内容)。
+
+```ts title="签名"
+function doctor(
+  input?: DoctorInput,
+  deps?: DoctorDeps,
+): Promise<DoctorResult>;
+```
+
+<SdkTypeTable name="DoctorInput" />
+
+**返回**：`DoctorResult`
+
+**抛出**：[`CONFIG_NOT_FOUND`](/zh-CN/docs/error-codes#config_not_found)
+
+<AvailableFrom version="0.12.0" />
+
+生效的网络策略（见[限制网络访问](/zh-CN/docs/network-policy)）拒绝提供商的主机或代理，或网络变量无效时，`network-policy` 检查会失败；对 `none` 提供商则通过。信息性检查从不失败，也不重命名任何内容；`warn` 不会使 `ok` 变为 false，[检查表](/zh-CN/docs/cli/doctor#检查内容)说明了每项检查写明什么，以及何时为 `skipped`。
+
+<AvailableFrom version="0.12.0" />
+
+`locales` 检查在产生花费之前，像 `translate` 一样评估每个已配置的语言环境：遇到不受支持的语言环境时失败，对 `none` 为 `skipped`，并把评估结果以 `LocaleCapabilityReport` 的形式放在 `DoctorResult.locales` 中。使用 `live: true` 时，它会先获取提供商当前的语言列表，不占用配额；`LocaleCapabilityReport.live` 说明获取的情况。见[语言与语言环境](/zh-CN/docs/language-support#运行前检查支持情况)。
+
+设置 `literals` 时，只运行 `config` 和 `untranslated-literals` 检查，与 [`verbatra doctor --literals`](/zh-CN/docs/cli/doctor#未翻译的字面量) 相同。`doctor` 自己加载配置，所以没有配置的项目得到的是一份报告，而不是抛出的错误：只有在没有任何检查失败时，`ok` 才为 true；只有显式传入的 `configPath` 不存在时，才会抛出 `CONFIG_NOT_FOUND`。
+
+<AvailableFrom version="0.12.0" />
+
+只有失败的检查带有 `fix`，即一条祈使句形式的下一步；与 `detail` 一样，它写明变量和路径，绝不包含 API 密钥的值。
+
+### dataFlow
+
+<AvailableFrom version="0.12.0" />
+
+针对已加载的配置，以带版本的 `DataFlowManifest` 描述项目的数据流向。[`verbatra doctor --data-flow`](/zh-CN/docs/cli/doctor#数据流向) 会输出它并列出其字段；`doctor({ dataFlow: true })` 则把它作为 `DoctorResult.dataFlow` 返回。它不读取 API 密钥，也不发出网络请求。无效的网络变量或无法读取的源文件会写在清单中，而不是抛出。
+
+```ts title="签名"
+function dataFlow(
+  input?: DataFlowInput,
+  deps?: DataFlowDeps,
+): Promise<DataFlowManifest>;
+```
+
+<SdkTypeTable name="DataFlowInput" />
+
+**返回**：`DataFlowManifest`
+
+**抛出**：[`CONFIG_NOT_FOUND`](/zh-CN/docs/error-codes#config_not_found)、[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)
+
+### dataFlowManifestSchema
+
+<AvailableFrom version="0.12.0" />
+
+`DataFlowManifest` 的 zod schema，供 CI 步骤或审查者的工具校验清单。未知字段会被保留，因为更新版 verbatra 可能在版本 1 之内增加字段；忽略你不认识的字段即可。`DATA_FLOW_MANIFEST_VERSION` 是当前构建写入的 `version`。
+
+```ts title="签名"
+const dataFlowManifestSchema: z.ZodType<DataFlowManifest>;
+```
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+扫描应用源码中的翻译调用点，把找到的内容合并进源语言环境的消息目录，该消息目录尚不存在时也可以。不构造提供商，不读取 API 密钥，也不发出网络请求。
+
+```ts title="签名"
+function extract(
+  input: ExtractInput,
+  deps?: ExtractDeps,
+): Promise<ExtractResult>;
+```
+
+<SdkTypeTable name="ExtractInput" />
+
+**返回**：`ExtractResult`
+
+**抛出**：[`EXTRACT_NOT_CONFIGURED`](/zh-CN/docs/error-codes#extract_not_configured)、[`EXTRACT_FS_UNSUPPORTED`](/zh-CN/docs/error-codes#extract_fs_unsupported)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`SOURCE_UNWRITABLE`](/zh-CN/docs/error-codes#source_unwritable)
+
+**示例**：[从源代码中提取键](/zh-CN/docs/programmatic-api#从源代码中提取键)
+
+只添加真正新增的键（[它写入什么](/zh-CN/docs/cli/extract#它写入什么)）。扫描无法解析的内容会作为数据放在 `dynamic`、`conflicts` 和 `diagnostics` 中返回，从不抛出（[它报告而不是猜测的内容](/zh-CN/docs/cli/extract#它报告而不是猜测的内容)），结果也从不带有源文件的内容。
+
+`config.extract` 指定框架和 `roots`。查找文件需要 `SdkFs` 的可选成员 `readDirectory`；没有它时会抛出 `EXTRACT_FS_UNSUPPORTED`。
+
+### check
+
+<AvailableFrom version="0.4.0" />
+
+按语言环境以数量报告漂移：`missing`（在源文件中，目标文件中没有）、`stale`（上次翻译之后源值有更改）和 `upToDate`。可用作 CI 门禁。
+
+```ts title="签名"
+function check(
+  input: CheckInput,
+  deps?: CheckDeps,
+): Promise<CheckSummary>;
+```
+
+<SdkTypeTable name="CheckInput" />
+
+**返回**：`CheckSummary`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)
+
+**示例**：[在 CI 中检查而不写入](/zh-CN/docs/programmatic-api#在-ci-中检查而不写入)
+
+只有当每个被检查的语言环境都没有缺失、也没有过期的键时，`inSync` 才为 true。
+
+<AvailableFrom version="0.11.0" />
+
+使用 `consistency: true` 时，每个 `LocaleCheckSummary` 还会带有 `inconsistencies`：语言环境中同一个源字符串在不同键下有多种译法时，每个这样的源字符串对应一个 `InconsistencyGroup`，形状与[一致性报告](/zh-CN/docs/cli/check#一致性报告)所示相同。它只是报告：从不改变 `inSync`、任何数量或任何文件。
+
+<AvailableFrom version="0.12.0" />
+
+每个 `LocaleCheckSummary` 还带有 `provenance`：对该语言环境有值的键，按 `byOrigin` 和 `byReviewState` 统计的数量，读取自 `verbatra.provenance.json`（[来源](/zh-CN/docs/the-lock-file#来源记录谁写了每个值)）。文件已损坏或来自更新版 verbatra 时，这个字段和报告中其他所有来源记录字段都会被省略，不会报错。
+
+<AvailableFrom version="0.12.0" />
+
+每个 `LocaleCheckSummary` 还带有 `protected`，即在 `humanEdits` 和 `pinnedKeys` 之下，`translate` 运行会留给人处理的那部分 `stale` 键（[受保护的键](/zh-CN/docs/cli/check#受保护的键)）。它们仍算作过期，所以在有人处理之前，`inSync` 保持 false；固定的键缺失时只算作缺失。
+
+<AvailableFrom version="0.12.0" />
+
+使用 `qa: true` 时，`check` 还会对每个已提交的值运行[质量检查](/zh-CN/docs/cli/check#质量检查)，无需密钥，也不写入：每个 `LocaleCheckSummary` 带有一份 `qa` 报告，摘要带有 `qa` 总计，形状见该节。错误原因来自 `INTEGRITY_GATE_REASONS`，警告原因来自 `REVIEW_REASON_CODES`，严重级别来自 `QA_SEVERITIES`；`qaSeverity: "error"` 会跳过警告。它从不改变 `inSync`：CI 门禁读取 `qa.errors`，严格模式下还读取 `qa.warnings`。
+
+<AvailableFrom version="0.12.0" />
+
+每个 `LocaleCheckSummary` 还带有 `incompletePlurals`，按键排序：目标语言使用的 CLDR 类别有缺失的每个复数对应一个 `IncompletePlural`：`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`。这只是警告；涉及的格式和规则见[复数类别](/zh-CN/docs/cli/check#复数类别)。
+
+使用 `requireReviewed: true` 时，`check` 还会运行[审校门禁](/zh-CN/docs/cli/check#要求译文已审校)，无需密钥，也不写入：每个 `LocaleCheckSummary` 带有 `review: { unreviewed }`，即尚未批准的机器类键；摘要带有 `review: { reviewed, unreviewed, code? }`，其中的错误码见该节。该报告从不改变 `inSync`；CI 门禁读取 `review.reviewed`。
+
+<AvailableFrom version="0.12.0" />
+
+使用 `sensitive: true` 时，`check` 还会运行[敏感内容](/zh-CN/docs/cli/check#敏感内容)扫描，无需密钥，也不写入：摘要带有 `sensitive: { findings, glossaryTerms }`，每个被标记的键对应一个 `{ key, fields, detectors }`，绝不包含匹配到的文本。CI 门禁可以在其中任何一项上失败。
+
+### checkFile
+
+<AvailableFrom version="0.12.0" />
+
+在编辑之后检查一个语言文件。它读取该文件、限制文件（无法使用时给出一条通知），以及对于目标语言环境，还读取源文件；不调用提供商，不读取 API 密钥，也不写入任何内容。
+
+```ts title="签名"
+function checkFile(
+  input: CheckFileInput,
+  deps?: CheckFileDeps,
+): Promise<CheckFileSummary>;
+```
+
+<SdkTypeTable name="CheckFileInput" />
+
+**返回**：`CheckFileSummary`
+
+**抛出**：[`NOT_A_LOCALE_FILE`](/zh-CN/docs/error-codes#not_a_locale_file)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)
+
+`file` 是绝对路径，或相对于 `cwd` 的路径；`CheckFileSummary` 的形状见[单个文件](/zh-CN/docs/cli/check#单个文件)。目标文件的检查方式与 `qa: true` 时的 `check` 相同，源文件只检查语法。无法解析的文件不会抛出错误：它的语言环境带有一个 `QaSyntaxFinding`，其位置与 `AdapterError.position` 对 JSON 和 YAML 报告的位置相同。路径不是任何已配置语言环境的文件，或文件不存在时，会抛出 `NOT_A_LOCALE_FILE`。
+
+### diff
+
+<AvailableFrom version="0.4.0" />
+
+`check` 的详细版本：计算相同，但按语言环境返回键列表（`missing`、`changed`、`orphaned`），而不是数量。孤立的键只用于报告，从不改变 `hasPendingChanges`，因为默认运行不会清理。
+
+```ts title="签名"
+function diff(
+  input: DiffInput,
+  deps?: DiffDeps,
+): Promise<DiffSummary>;
+```
+
+<SdkTypeTable name="DiffInput" />
+
+**返回**：`DiffSummary`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)
+
+**示例**：[在 CI 中检查而不写入](/zh-CN/docs/programmatic-api#在-ci-中检查而不写入)
+
+使用 `unused: true` 时，它还会扫描配置中 `extract` 的 `roots`，只读且无需密钥，并添加一份 `unused` 报告，列出没有任何静态引用的源语言环境键；它与每个 `orphaned` 列表分开，也从不改变 `hasPendingChanges`；其字段见[未使用的源键](/zh-CN/docs/cli/diff#未使用的源键)。
+
+<AvailableFrom version="0.12.0" />
+
+每个 `LocaleDiff` 还带有 `changedOrigins`，即每个 `changed` 键当前值的来源（例如 `machine`、`human` 或 `external`）：重新翻译会替换谁的成果。
+
+<AvailableFrom version="0.12.0" />
+
+每个 `LocaleDiff` 还带有 `protected`，即 `translate` 运行会保留不动的缺失键和已更改键，已排序；它们仍算作待处理。
+
+### keyIntegrity
+
+<AvailableFrom version="0.5.0" />
+
+针对每个语言环境的已更改键，报告当前目标值是否仍与源值的占位符和内联标记一致，并且是有效的 ICU：每个条目带有 `key`、`hasPlaceholders`、`matches`、不匹配时缺失和多余的记号 `missing` 和 `extra`、`icuValid`、`markupMatches` 和 `markupDetails`，绝不包含字符串值。写入时门禁出现之前写入的值，或在 verbatra 之外编辑过的值，按同样的规则判断。Studio 会展示这份按键的报告。
+
+```ts title="签名"
+function keyIntegrity(
+  input: KeyIntegrityInput,
+  deps?: KeyIntegrityDeps,
+): Promise<readonly LocaleKeyIntegrity[]>;
+```
+
+<SdkTypeTable name="KeyIntegrityInput" />
+
+**返回**：`readonly LocaleKeyIntegrity[]`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`UNKNOWN_KEY`](/zh-CN/docs/error-codes#unknown_key)
+
+<AvailableFrom version="0.12.0" />
+
+每个条目还带有 `icuArmsMatch` 和 `icuArmDetails`：值的 ICU `plural`、`selectordinal` 和 `select` 分支是否适合目标语言，判断方式与[写入时门禁](/zh-CN/docs/translation-safety#各目标语言的复数分支)相同，每个错误的分支给出一条简短的问题说明。对于不检查分支的格式，`icuArmsMatch` 始终为 true。
+
+`keys` 缩小检查范围；只有某个语言环境中“已更改”的键才会被检查。
+
+### localeIntegrity
+
+<AvailableFrom version="0.12.0" />
+
+找出目标语言环境中当前已损坏的每条译文：占位符或内联标记丢失或多出、ICU 无效，或 ICU 分支不适合目标语言。与 `keyIntegrity` 不同，它按同样的规则判断源语言环境和目标语言环境中都存在的每个键，不论其同步状态如何，并且只返回失败的键：`entries` 列表为空表示该语言环境通过。
+
+```ts title="签名"
+function localeIntegrity(
+  input: LocaleIntegrityInput,
+  deps?: LocaleIntegrityDeps,
+): Promise<readonly LocaleKeyIntegrity[]>;
+```
+
+<SdkTypeTable name="LocaleIntegrityInput" />
+
+**返回**：`readonly LocaleKeyIntegrity[]`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)
+
+每次调用都会重新读取并解析源文件和每个请求的目标文件，不使用缓存。
+
+### lockState
+
+<AvailableFrom version="0.5.0" />
+
+报告锁文件是否存在、其版本，以及每个语言环境的漂移情况（基线键数，加上缺失、过期和最新的数量）。`exists` 来自显式探测，所以锁文件不存在和为空仍可区分；不存在时，结果为 `{ exists: false }`，不读取其他任何内容。
+
+```ts title="签名"
+function lockState(
+  input: LockStateInput,
+  deps?: LockStateDeps,
+): Promise<LockStateResult>;
+```
+
+<SdkTypeTable name="LockStateInput" />
+
+**返回**：`LockStateResult`
+
+**抛出**：[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)
+
+每个语言环境还带有与 `check` 所报告的相同的 `provenance` 数量。
+
+### loadLockFile
+
+<AvailableFrom version="0.5.0" />
+
+读取锁文件本身（`verbatra.lock.json`，也导出为 `LOCK_FILE_NAME`），并返回解析后的结构：`{ version, locales }`，其中每个语言环境把键映射到它们上次翻译时所依据的源内容哈希。文件缺失时按空锁文件处理，这与 `translate` 所依赖的首次运行行为相同；需要区分文件是否存在时，使用 `lockState`。
+
+```ts title="签名"
+function loadLockFile(
+  input?: LoadLockFileInput,
+  deps?: LoadLockFileDeps,
+): Promise<LockFile>;
+```
+
+<SdkTypeTable name="LoadLockFileInput" />
+
+**返回**：`LockFile`
+
+**抛出**：[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)
+
+不需要配置。
+
+### loadProvenance
+
+<AvailableFrom version="0.12.0" />
+
+读取来源记录文件本身（`verbatra.provenance.json`，也导出为 `PROVENANCE_FILE_NAME`），并返回其存储的结构：`{ version, locales }`，其中每个语言环境把键映射到一条记录 `{ origin, provider?, model?, valueHash, reviewState?, reviewer?, reviewedSourceHash? }`，不含译文文本。文件缺失或来自更新版 verbatra 时，读取结果为空；文件已损坏时会抛出 `PROVENANCE_FILE_INVALID`。`keyValue`、`localeValues`、`check`、`diff` 和 `lockState` 报告的是解释后的视图（`KeyProvenance`），它还能区分 `unrecorded` 和 `external`。
+
+```ts title="签名"
+function loadProvenance(
+  input?: LoadProvenanceInput,
+  deps?: LoadProvenanceDeps,
+): Promise<ProvenanceFile>;
+```
+
+<SdkTypeTable name="LoadProvenanceInput" />
+
+**返回**：`ProvenanceFile`
+
+**抛出**：[`PROVENANCE_FILE_INVALID`](/zh-CN/docs/error-codes#provenance_file_invalid)
+
+不需要配置。
+
+### runStatus
+
+<AvailableFrom version="0.5.0" />
+
+读取最近一次非试运行的 `translate` 或 `watch` 运行持久化到 `.verbatra-local/run-status.json` 的审校标记和 token 用量快照。从不抛出错误：无法使用的文件按 `available: false` 返回。该文件是尽力而为的遥测数据，不是正确性基线。
+
+```ts title="签名"
+function runStatus(
+  input?: RunStatusInput,
+  deps?: RunStatusDeps,
+): Promise<RunStatusResult>;
+```
+
+<SdkTypeTable name="RunStatusInput" />
+
+**返回**：`RunStatusResult`
+
+不需要配置。返回 `{ available: false, reason }`（见 `RUN_STATUS_UNAVAILABLE_REASONS`），或 `{ available: true, version, generatedAt, usage?, budget?, locales, incomplete? }`，其中 `incomplete: { failed, partial }` 统计所记录的运行中失败或中途停止的语言环境，没有这样的语言环境时则省略。<AvailableFrom version="0.13.5" />
+
+在强制执行 token 预算之前生成的快照仍然会被读取，但会去掉带有 `supported: false` 的 `budget`（其 `tokensUsed: 0` 并不是计数）。新快照只增加一个标记字段，所以旧版读取器可能把估算的预算显示为未跟踪。未知的审校原因会被忽略，因此而不再有任何原因的条目会被丢弃。
+
+### reviewQueue
+
+<AvailableFrom version="0.12.0" />
+
+根据已提交的文件读取审校队列：当前值的来源属于机器类（`machine`、`memory`、`fuzzy` 或 `agent`，即 `MACHINE_CLASS_ORIGINS` 元组）且尚未批准的每个键，按目标语言环境，并按源文件中的顺序排列。它读取语言文件、`verbatra.lock.json` 和 `verbatra.provenance.json`，所以处于同一次提交的每个人看到的队列相同。键的值被批准或拒绝，或有人编写或导入了新值后，该键就会离开队列；智能体重写过的值仍留在队列中；批准发生在源值更改之前的键也仍留在队列中。最近一次的 `runStatus` 快照只增加细节：每个条目的 `reasons`（运行没有用已知原因标记它时为空）、该语言环境的 `fuzzyHits` 和 `lastRunAt`。
+
+```ts title="签名"
+function reviewQueue(
+  input: ReviewQueueInput,
+  deps?: ReviewQueueDeps,
+): Promise<ReviewQueueResult>;
+```
+
+<SdkTypeTable name="ReviewQueueInput" />
+
+**返回**：`ReviewQueueResult`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)
+
+**示例**：[处理审校队列](/zh-CN/docs/programmatic-api#处理审校队列)
+
+返回 `{ available: true, locales, lastRunAt? }`，每个语言环境为 `{ locale, needsReview, approved?, fuzzyHits? }`，每个条目为 `{ key, reasons, provenance }`；`approved` 列出已批准的机器类值，只有在使用 `includeApproved: true` 时才出现。来源记录文件已损坏或来自更新版 verbatra 时，它返回 `{ available: false, reason: "provenance-unreadable" }`。无法读取的源文件、目标文件或锁文件会使调用失败，与它们使 `check` 失败的方式相同。0.11 及更早版本中，队列只包含最近一次运行的标记。
+
+### provenanceReport
+
+<AvailableFrom version="0.12.0" />
+
+生成 `verbatra report provenance` 输出的按语言环境的报告：在源语言环境和目标语言环境中都有值的每个键，按源文件中的顺序排列，带有其来源、审校状态、提供商、模型和审校人员，并统计到一个 `PROVENANCE_BUCKETS` 类别中（这些类别的定义见[来源记录报告](/zh-CN/docs/provenance-evidence#来源记录报告)）。它不调用提供商，也不写入任何内容。
+
+```ts title="签名"
+function provenanceReport(
+  input: ProvenanceReportInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportInput" />
+
+**返回**：`ProvenanceReportResult`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)
+
+`deps` 还接受 `now`，即 `generatedAt` 所用的时钟。结果的完整结构见 [JSON Schema](/zh-CN/docs/provenance-evidence#json-schema)。来源记录文件已损坏或来自更新版 verbatra 时，它返回 `{ available: false, reason: "provenance-unreadable" }`，因为每个值都会读作 `unrecorded`。无法读取的源文件、目标文件或锁文件会使调用失败，与它们使 `check` 失败的方式相同。该报告是辅助证据，不是法律意见。
+
+### provenanceReportPage
+
+<AvailableFrom version="0.12.0" />
+
+生成与 `provenanceReport` 相同的报告，并一次返回一页条目，可以只返回某些 `buckets` 中的条目，并带有指向下一页的游标。每一页都保留每个语言环境完整的 `total` 和 `counts`。MCP 服务器的 `report.provenance` 用它分页。只读。
+
+```ts title="签名"
+function provenanceReportPage(
+  input: ProvenanceReportPageInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportPageResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportPageInput" />
+
+**返回**：`ProvenanceReportPageResult`
+
+**抛出**：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/zh-CN/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/zh-CN/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)、[`PAGE_CURSOR_INVALID`](/zh-CN/docs/error-codes#page_cursor_invalid)、[`PAGE_LIMIT_INVALID`](/zh-CN/docs/error-codes#page_limit_invalid)
+
+每个语言环境只在包含其条目的页上带有 `entries`。一页最多包含 `limit` 个条目，默认为 `PAGE_LIMIT_DEFAULT`；把 `nextCursor` 作为 `cursor` 传回，并保持相同的 `locales` 和 `buckets`，直到它不再出现。它在 `provenanceReport` 不可用或失败时，恰好也不可用或失败。
+
+### previewIcuMessage
+
+<AvailableFrom version="0.13.0" />
+
+按某个语言环境下的读法渲染一条 ICU 消息：每个分支一行，即每个复数类别、精确分支和 select 选项，以及它们出现的每个位置，每次变动一个参数，其余参数保持为示例值。它只预览其消息使用 ICU 语法的格式，即 `next-intl-json` 和 `arb`；其他任何格式（包括 `custom:` 格式）都会返回 `supported: false`。消息是不可信文本，调用从不因它而抛出错误：超过 20,000 个字符、嵌套超过 16 层大括号、`{` 和 `<` 字符超过 256 个，或不是有效 ICU 的消息，会返回 `valid: false` 并带有 `reason`，未知的语言环境也一样。它不读写任何文件，也不发出请求。
+
+```ts title="签名"
+function previewIcuMessage(input: IcuPreviewInput): IcuPreviewResult;
+```
+
+<SdkTypeTable name="IcuPreviewInput" />
+
+**返回**：`IcuPreviewResult`
+
+数字和日期使用当前运行时的 Node CLDR 数据，日期使用 UTC 中的固定时刻，除非 `args` 中的某个数字设置了该时刻，所以文本可能与你的应用自己的运行时输出的不同。每一行包含纯文本的 `segments`，其类型为 `text`、`argument` 或 `tag`，绝不包含需要解释的内联标记。嵌套参数所在的行，会把外层参数保持在包含该嵌套参数的分支上，所以这一行显示的正是其标签所指的分支，并把外层参数列在 `held` 中。`args` 中为复数、序数或 select 参数提供的值，会为它驱动的每个维度增加一个标记为 `supplied` 的行，显示该值到达的分支；没有到达某个维度任何分支的值则不增加行。最多返回 24 行，受同一个输出预算限制；标签和文本相同的行会合并，有可到达的分支被省略时会设置 `truncated`。

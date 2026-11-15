@@ -1,0 +1,184 @@
+---
+title: 故障排查
+seoTitle: "故障排查：修复 verbatra 抛出的错误"
+description: "verbatra 实际抛出的错误的现象、原因和解决办法，每条都列在对应的错误码下，另含 Studio 和 MCP 的安装问题。"
+type: reference
+---
+每个条目都从你看到的现象出发，并把背后的错误码链接到[错误码](/zh-CN/docs/error-codes)，该页列出每个错误码的含义、退出码和下一步。请按 `verbatra: error [CODE]` 中的错误码搜索，不要按错误信息文本搜索。
+
+逐条排查之前，先运行 [`verbatra doctor`](/zh-CN/docs/cli/doctor)：它一次性检查配置、格式、提供商、API 密钥变量和源文件，不产生任何花费，并且在源语言文件尚不存在时也能工作。
+
+## pnpm 阻止依赖的安装脚本（ERR_PNPM_IGNORED_BUILDS）
+
+**现象**：`pnpm add -D @verbatra/cli` 输出安装摘要后以退出码 `1` 结束：
+
+```
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@3.1.0, protobufjs@7.6.5
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+```
+
+pnpm 还会往你的项目中写入一个 `pnpm-workspace.yaml`，其中有一个尚未回答的选择：
+
+```yaml
+allowBuilds:
+  '@google/genai': set this to true or false
+  protobufjs: set this to true or false
+```
+
+在你回答之前，该项目中之后的每条 pnpm 命令都会以同样的方式失败，包括 `pnpm exec verbatra init`。
+
+**原因**：pnpm 不会运行第三方依赖的安装脚本，除非你允许。`@google/genai` 及其传递依赖 `protobufjs` 声明了这类脚本，而无论你配置哪个提供商，都会安装 Gemini SDK，所以每种 pnpm 安装方式都会遇到这个问题。verbatra 自身不声明任何安装脚本，npm 和 yarn 安装同一个包时也不会提示。安装本身已经完成：`node_modules/.bin/verbatra` 已经可以使用。
+
+**解决**：回答这个选择一次即可。交互式地运行 `pnpm approve-builds`，两项都不批准。非交互式（CI 中需要这样）则在安装之前，把答案写进项目根目录的 `pnpm-workspace.yaml`：
+
+```yaml
+allowBuilds:
+  '@google/genai': false
+  protobufjs: false
+```
+
+verbatra 不需要这些脚本，本仓库也拒绝了这两项。有了这个答案，`pnpm add -D @verbatra/cli` 会以退出码 `0` 结束，之后的 pnpm 命令也能正常运行。信息中的包版本会随发布变化，解决办法不变。
+
+## 配置无效（CONFIG_INVALID）
+
+**现象**：`The verbatra configuration is invalid: ...`，每个字段一条问题。
+
+**原因**：找到了配置，但未通过校验，例如 `files.pattern` 缺少 `{locale}`、语言环境代码不是 BCP 47（如 `en_US`），或有未知的配置项。未知的配置项会附上说明 `API keys are read from the environment, not the config`：schema 是严格的，所以密钥无法藏在已提交的文件里。
+
+**解决**：更正信息指明的字段；见[配置文件](/zh-CN/docs/config-file)。对于 `No verbatra configuration found...`，见 [`CONFIG_NOT_FOUND`](/zh-CN/docs/error-codes#config_not_found)。错误码：[`CONFIG_INVALID`](/zh-CN/docs/error-codes#config_invalid)。
+
+## 格式没有适配器（UNKNOWN_FORMAT）
+
+**现象**：`No adapter is registered for format "..."`，后面跟着支持的列表。
+
+**原因**：配置中的 `format` 不是已注册的 id。`custom:` 格式无法通过命令行运行，因为命令行不加载任何插件。
+
+**解决**：使用[格式](/zh-CN/docs/formats)中的 id。对于 `custom:` 格式，请通过 SDK 运行，并使用包含其适配器的注册表：见[编写自定义格式适配器](/zh-CN/docs/custom-format-adapters)。错误码：[`UNKNOWN_FORMAT`](/zh-CN/docs/error-codes#unknown_format)。
+
+## 请求的语言环境未配置（UNKNOWN_LOCALE）
+
+**现象**：`Requested locale not in the configured target locales: ...`
+
+**原因**：`--locales`（或 SDK 的 `locales` 输入）指定了不在 `targetLocales` 中的语言环境。筛选只能从已配置的列表中选择，绝不会往里添加。
+
+**解决**：把该语言环境加入 `targetLocales`，或更正拼写错误。错误码：[`UNKNOWN_LOCALE`](/zh-CN/docs/error-codes#unknown_locale)。
+
+## 源文件缺失或无法解析（SOURCE_UNREADABLE、SOURCE_INVALID）
+
+**现象**：`The source locale file was not found at <path>.` 或 `The source locale file at
+<path> could not be read: ...`
+
+**原因**：填入源语言环境后的 `files.pattern` 指向的文件不存在，或文件无法解析。路径相对于项目根目录解析，即查找所得配置所在的目录（使用 `--config` 时为工作目录），所以 `--cwd` 或 `--config` 有误是常见原因，通配符也是：`files.pattern` 是字面路径，不是 glob（见[命名空间布局](/zh-CN/docs/formats#命名空间布局)）。
+
+**解决**：检查输出的路径。对于解析失败，`causeCode` 会指明[格式适配器错误码](/zh-CN/docs/error-codes#adapter-error-codes)。错误码：[`SOURCE_UNREADABLE`](/zh-CN/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/zh-CN/docs/error-codes#source_invalid)。
+
+## 缺少 API 密钥（PROVIDER_CONSTRUCTION_FAILED）
+
+**现象**：`Failed to construct provider "anthropic": The ANTHROPIC_API_KEY environment variable
+is not set.`（或你的提供商对应的变量）。
+
+**原因**：信息中指明的变量未设置或为空。密钥只来自环境变量，绝不来自配置或选项。
+
+**解决**：设置该变量，并用 `verbatra doctor` 确认。CLI 还会从 [`.env.local` 和 `.env`](/zh-CN/docs/cli#环境文件) 中读取它；SDK 不会，所以在你自己的脚本中请使用 `node --env-file=.env`。错误码：[`PROVIDER_CONSTRUCTION_FAILED`](/zh-CN/docs/error-codes#provider_construction_failed)、[`MISSING_API_KEY`](/zh-CN/docs/error-codes#missing_api_key)。
+
+## 运行中途出现速率限制、超时和认证失败（RATE_LIMITED、TIMEOUT、AUTH_FAILED）
+
+**现象**：运行完成，但部分键列在 `providerFailures` 下，并带有指明提供商错误码的 `SUB_BATCH_FAILED` 通知，命令以退出码 `1` 结束。
+
+**原因**：提供商构造完成之后，某次提供商请求失败：HTTP 429、超时，或 HTTP 401/403。
+
+**解决**：没有任何损失；这些键会在下次运行时重新处理。对 [`RATE_LIMITED`](/zh-CN/docs/error-codes#rate_limited)，请稍后重新运行；如果信息中指明了等待时间（每日配额已用尽），则在该时间之后运行；对严格的配额，请用 `--locales` 一次只处理一个语言环境。对 [`TIMEOUT`](/zh-CN/docs/error-codes#timeout)，若模型较慢，请调高 [`requestTimeoutMs`](/zh-CN/docs/providers#请求超时)。[`AUTH_FAILED`](/zh-CN/docs/error-codes#auth_failed) 无法通过重试解决：请更换密钥。
+
+## 锁文件已损坏（LOCK_FILE_INVALID）
+
+**现象**：`The lock-file at <path> is not valid JSON.`、`... has an unexpected shape.`、`... has version N ...` 或 `... exceeds the maximum allowed size ...`
+
+**原因**：`verbatra.lock.json` 被手动编辑、被截断、在合并中损坏，或由不兼容的版本写入。`translate` 和 `import` 会因此停止整个运行，在停止之前已提交的语言环境保留其已写入的内容。
+
+**解决**：从版本控制中恢复该文件。删除它也能清除错误，但会丢失基线，之后早先的源文件编辑就不再被视为过期。见[锁文件与来源记录](/zh-CN/docs/the-lock-file)。错误码：[`LOCK_FILE_INVALID`](/zh-CN/docs/error-codes#lock_file_invalid)。
+
+## 语言文件无法写入（TARGET_UNWRITABLE）
+
+**现象**：某个语言环境失败，信息为 `Could not write the locale file locales/de.json (EACCES). ...`
+
+**原因**：文件或其目录不可写：权限问题、目录缺失、只读挂载或磁盘已满。写入通过同一目录中的临时文件完成，所以该目录也必须可写。
+
+**解决**：修复文件系统错误码指明的问题，然后重新运行。只有该语言环境失败，它保留之前的文件和基线。错误码：[`TARGET_UNWRITABLE`](/zh-CN/docs/error-codes#target_unwritable)。
+
+## 另一个进程持有写锁（LOCK_CONTENDED）
+
+**现象**：`Could not acquire the write lock at <path>: another process is holding it. ...`
+
+**原因**：另一个 `translate`、`watch`、`import` 或 Studio 写入持有该语言环境的锁。本机上已终止进程遗留的锁会自动回收，所以残留的锁来自另一台机器，或来自早于 0.12.0 的 verbatra。
+
+**解决**：等待另一次运行结束；如果任何地方都没有 verbatra 进程在运行，则删除输出的锁文件。在 [`translate`](/zh-CN/docs/cli/translate)、[`watch`](/zh-CN/docs/cli/watch) 和 [`import`](/zh-CN/docs/cli/import) 上使用 `--lock-timeout <seconds>` 可以更改运行的等待时长。错误码：[`LOCK_CONTENDED`](/zh-CN/docs/error-codes#lock_contended)。
+
+## 带点号的键或 YAML 键冲突（INVALID_STRUCTURE）
+
+**现象**：`A literal dotted leaf key and a nested key path resolve to the same path.`，对 YAML 则是 `A mapping key is a map or sequence (expected scalar keys).`
+
+**原因**：一个文件中的两个条目解析为同一个键，例如 `"a.b"` 与 `a: { b: ... }` 并列，或 YAML 键没有字符串形式。verbatra 选择拒绝，而不是丢掉其中一个。
+
+**解决**：重命名其中一个键，或使用标量 YAML 键。在源文件中，它会出现在 `SOURCE_INVALID` 内部。错误码：[`INVALID_STRUCTURE`](/zh-CN/docs/error-codes#invalid_structure)。
+
+## 运行在处理完部分键之前就停止了（token 预算）
+
+**现象**：出现 `BUDGET_TOKENS_EXCEEDED` 通知；在 `budgetBehavior: "stop"` 下，键还会列在 `budgetWithheld` 下。
+
+**原因**：运行达到了配置中的 `maxTokens` 或本次运行的 `--max-tokens`。`"warn"` 只报告配置中设置的预算；`"stop"`，以及无论配置如何都生效的 `--max-tokens`，会搁置所有尚未尝试的键，该语言环境以 `partial` 或 `failed` 结束。
+
+**解决**：这是护栏在起作用：已完成的内容会写入，被搁置的键在下次运行时翻译。调高预算，或切换到 `"warn"` 以便一次运行完成。预算如何计算见[翻译安全](/zh-CN/docs/translation-safety#token-预算)。错误码：[`BUDGET_TOKENS_EXCEEDED`](/zh-CN/docs/error-codes#budget_tokens_exceeded)。
+
+## 译文因内联标记被搁置（完整性不匹配）
+
+**现象**：某个键列在 `integrityMismatches` 下并保留原值，或 Studio 显示 `Rejected: inline markup mismatch` 并给出有问题的标签：候选译文丢掉的标签显示为 `-<a href>`，凭空多出的显示为 `+<i>`。`verbatra check --qa` 对已在磁盘上的值报告同样的内容。
+
+**原因**：候选译文没有带上源文本的内联标签，或带上了但不平衡或嵌套错误，所以完整性门禁像对待丢失的占位符一样拒绝它。
+
+**解决**：重新运行该键，或在 Studio 或工作簿中手动修正该值；同一个门禁会对两者做同样的判断。比较的内容，以及按设计会拒绝的情况，见[内联标记一致性](/zh-CN/docs/translation-safety#内联标记一致性)。
+
+## Studio：端口已被占用
+
+**现象**：`port 5849 is already in use`（或你的 `--port` 值）。
+
+**原因**：另一个进程（常常是之前启动的 Studio）已绑定该端口。
+
+**解决**：停止它，或在另一个端口启动 Studio：`verbatra studio --port 6000`。
+
+## Studio：未安装 @verbatra/studio
+
+**现象**：`Verbatra Studio requires @verbatra/studio.`，后面跟着安装命令。
+
+**原因**：Studio 是单独的包，`studio` 命令按需加载它。
+
+**解决**：`npm install --save-dev @verbatra/studio`，或一次性运行 `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio`。使用 pnpm 时，请先看 [pnpm 阻止依赖的安装脚本](#pnpm-阻止依赖的安装脚本err_pnpm_ignored_builds)。
+
+`npx @verbatra/cli` 运行的是当前文件夹所在包中安装的 CLI，所以请在项目根目录运行它（在工作区子包中则使用 `pnpm exec verbatra`）；在其他任何位置，npx 都会获取最新的 CLI，它可能与你本地的 `@verbatra/studio` 或 `@verbatra/mcp` 不匹配。
+
+## Studio：缺少重新翻译和翻译操作
+
+**现象**：编辑可用，但重新翻译和翻译待处理的操作没有出现。
+
+**原因**：提供商付费授权在启动时按[花费与智能体工具](/zh-CN/docs/cli/studio#花费与智能体工具)中的规则授予，没有授权时不会注册付费操作。
+
+**解决**：用 `verbatra studio --allow-spend` 重新启动，除非项目是纯人工项目（见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)）。见[在 Studio 中审校](/zh-CN/docs/review-in-studio)。
+
+## MCP：未安装 @verbatra/mcp
+
+**现象**：`Verbatra's MCP server requires @verbatra/mcp.`，后面跟着安装命令。
+
+**原因**：MCP 服务器是单独的包，`mcp` 命令按需加载它，所以单独运行 `npx -y @verbatra/cli mcp` 永远不会成功。
+
+**解决**：运行 `npx -y @verbatra/mcp`，或在 CLI 旁安装 `@verbatra/mcp` 后重新运行 `verbatra mcp`。使用 pnpm 时，请先看 [pnpm 阻止依赖的安装脚本](#pnpm-阻止依赖的安装脚本err_pnpm_ignored_builds)。
+
+## MCP：智能体的 tools/list 中从不出现 `translation.retranslateEntry` 或 `translation.translatePending`
+
+**现象**：本地工具可用，但两个付费工具缺失，调用其中一个会作为未知工具而失败。
+
+**原因**：付费授权在启动时按[付费工具](/zh-CN/docs/cli/mcp#付费工具)中的规则授予，并且工具列表不得随连接而变化，所以付费工具被完全省略。
+
+**解决**：用 `verbatra mcp --allow-spend` 重新启动，除非项目是纯人工项目（见[不用机器翻译运行](/zh-CN/docs/human-only-workflow)）。
+
+## 撤销一次运行（无错误码）
+
+verbatra 没有撤销命令；版本控制是恢复途径。请一并还原语言文件、`verbatra.lock.json` 和 `verbatra.provenance.json`，绝不要只还原语言文件。见[撤销一次运行](/zh-CN/docs/recovery-and-rollback)。

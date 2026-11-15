@@ -1,0 +1,100 @@
+---
+title: verbatra watch
+seoTitle: "verbatra watch：每次更改都重新翻译"
+description: "在每次源文件更改后重新翻译，直到被中断，让语言文件在你编辑源文件时保持同步；每次运行只发送新增和已更改的键。"
+type: reference
+---
+监听源语言文件，在每次经过防抖的更改后重新运行翻译，直到你中断它。`watch` 启动时先运行一次翻译，之后在你每次保存时让目标语言环境保持最新。每次运行的工作方式与 [`verbatra translate`](/zh-CN/docs/cli/translate) 相同，区别是 `watch` 没有 `--dry-run`、`--prune`、`--include-human`、`--estimate` 和 `--max-tokens`，并且从不以退出码 `3` 退出。启动时它还会把缺失的条目添加到已有的 `.gitignore` 中，见 [.gitignore 条目](/zh-CN/docs/cli#gitignore-条目)。
+
+## 用法
+
+```bash
+verbatra watch [flags]
+```
+
+## 示例
+
+```bash
+# 监听并在每次更改时重新翻译
+verbatra watch
+
+# 在频繁保存的编辑器中更平稳：最后一次更改后等待 1 秒，输出 NDJSON 流
+verbatra watch --debounce 1000 --json
+
+# 工作时只让德语保持最新
+verbatra watch --locales de
+```
+
+## 选项
+
+| 选项 | 参数 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 每个已配置的目标语言环境 | 只监听这个以逗号分隔的子集；启动时检查一次，未配置的语言环境会以 `UNKNOWN_LOCALE` 失败 |
+| `--debounce` | `<ms>` | `300` | 最后一次更改之后等待这么多毫秒再翻译；取值为 `1` 到 `60000` 的整数 |
+| `--lock-timeout` | `<seconds>` | `600` | 每次运行中等待被占用的语言环境写锁这么长时间；取值为 `1` 到 `3600` 的整数 |
+| `--concurrency` | `<n>` | `1` | 每次运行最多同时翻译 `n` 个目标语言环境；取值为 `1` 到 `100` 的整数，设置了 `maxTokens` 预算时会被拒绝 |
+| `--no-cache` | 无 | 关闭（缓存开启） | 每次运行都绕过[翻译缓存](/zh-CN/docs/the-cache)（`verbatra.cache.json`） |
+
+还接受[全局选项](/zh-CN/docs/cli#全局选项) `--cwd`、`--config` 和 `--json`；这里的 `--json` 每次运行输出一条记录。启动之前，`watch` 会加载[环境文件](/zh-CN/docs/cli#环境文件)。
+
+## 行为
+
+### 每次运行
+
+每次运行都会翻译 `--locales` 指定的子集，或所有目标，并使用全新的 token 预算。某个语言环境的写锁（见[锁文件与来源记录](/zh-CN/docs/the-lock-file)）被占用超过 `--lock-timeout` 时，它在该次运行的摘要中以 `LOCK_CONTENDED` 失败，其他语言环境仍会运行；由已不再运行的 verbatra 进程留下的锁会立即回收。失败的运行从不会让监听进程停止。等待锁时会输出 [`translate`](/zh-CN/docs/cli/translate#写锁与中断) 中描述的锁等待行。
+
+`--concurrency` 大于 `1` 且同时配置了 `maxTokens` 预算时，会在启动时、首次运行之前被拒绝，退出码为 `2`，因为哪个语言环境会丢掉剩余工作，取决于各语言环境如何交错执行。
+
+无法构建的提供商（最常见的原因是它的 API 密钥变量未设置）同样会在启动时被拒绝：`watch` 以退出码 `2` 退出，并给出 `PROVIDER_CONSTRUCTION_FAILED` 和一行指出该变量的 `next:`，与 `translate` 完全一样，而不是等待那些任何一次运行都无法翻译的更改。0.12.0 之前它会一直等待。`watch` 还会在启动时以退出码 `2` 拒绝提供商不支持的语言环境（`LOCALE_UNSUPPORTED_BY_PROVIDER`）、网络策略拒绝的主机（`NETWORK_POLICY_VIOLATION`）以及缺失的源文件（`SOURCE_UNREADABLE`）。
+
+### 停止
+
+<AvailableFrom version="0.12.0" />
+
+第一次中断（Ctrl-C 或 SIGTERM）会让当前运行结束，停止监听进程，并以退出码 `0` 退出。关闭过程还在进行时再次中断，会强制停止并以退出码 `130` 退出，之前会先释放本次会话的写锁。不带 `--json` 时，stderr 会在每次运行之后输出 `verbatra: waiting for changes...`，在交互式终端的启动行之后输出 `verbatra: press Ctrl-C to stop`，关闭完成后输出 `verbatra: stopped`。`--quiet` 会去掉这些行，但不会去掉启动行，也不会去掉第一次中断时的 `verbatra: stopping, finishing current run...`：它们在所有模式下都会输出，包括 `--json`。
+
+### JSON 输出
+
+Schema：[`watch-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/watch-envelope.json) 校验整个信封（envelope）；其他 schema 见 [Schema](/zh-CN/docs/cli/output#schema)。
+
+使用 `--json` 时，stdout 是 NDJSON：每次运行一个[信封](/zh-CN/docs/cli/output#json-输出)，其中 `command: "watch"`。成功的运行是一条 `ok: true` 记录，带有该次运行的 [`RunSummary`](/zh-CN/docs/cli/translate#json-输出)；失败的运行是一条 `ok: false` 记录，带有该失败自身的错误码，没有错误码时为 `WATCH_RUN_FAILED`，有 `hint` 时还会附上它。失败的运行只是一条记录：它既不会停止监听进程，也不会改变退出码。启动行、停止通知和进度输出到 stderr。不带 `--json` 时，一次运行的摘要输出到 stdout，失败运行的 `verbatra: error [CODE] message` 行输出到 stderr。
+
+### 终端反馈
+
+<AvailableFrom version="0.12.0" />
+
+不带 `--json` 时，`watch` 会在源文件的某次更改稳定下来后指出该文件，然后像 `translate` 一样报告这次运行，在交互式终端上使用同样的加载动画（spinner）：
+
+```text output
+verbatra: watching en (locales/{locale}.json); running initial translation
+verbatra: press Ctrl-C to stop
+...
+verbatra: waiting for changes...
+verbatra: change detected: locales/en.json
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de: writing
+verbatra: de done, 1 translated
+verbatra: run finished, 1 locale processed
+verbatra: waiting for changes...
+```
+
+这些行输出到 stderr，`--quiet` 会去掉它们。见[终端输出](/zh-CN/docs/cli/output#终端输出)。
+
+## 退出码
+
+| 退出码 | 含义 |
+| --- | --- |
+| `0` | 收到一次中断后正常停止 |
+| `2` | 无法启动或停止：配置错误、启动或关闭失败，或用法错误（例如无效的 `--debounce`） |
+| `130` | 收到第二次中断后强制停止 |
+
+会话期间失败的运行从不改变退出码。见[退出码约定](/zh-CN/docs/cli/output#退出码)。
+
+## 相关内容
+
+- [`verbatra translate`](/zh-CN/docs/cli/translate) 是 `watch` 反复执行的一次性运行。
+- [翻译缓存](/zh-CN/docs/the-cache)解释了 `--no-cache` 在每次运行中绕过什么。
+- [运行的工作原理](/zh-CN/docs/how-it-works)解释了每次运行做什么。
+- [保留人工翻译](/zh-CN/docs/protecting-human-translations)解释了为什么一次运行会保留人工编写的过期值。
+- [SDK 参考](/zh-CN/docs/sdk)记录了 `WatchRunResult` 和 `RunSummary` 的形状。
