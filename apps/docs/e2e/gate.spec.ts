@@ -49,8 +49,8 @@ const FRAMES = `${SECTION} .vk-gate-frame`;
 const MOVES = `${FRAMES} .vk-gate-moves`;
 const SCAN_STEP = 4;
 const REVERSAL_DELAYS = [
-  ...Array.from({ length: 21 }, (_, step) => 100 + step * 25),
-  ...Array.from({ length: 13 }, (_, step) => 245 + step * 5),
+  ...Array.from({ length: 11 }, (_, step) => 100 + step * 50),
+  ...Array.from({ length: 9 }, (_, step) => 245 + step * 5),
 ];
 const REVERSAL_VIEWPORTS: ReadonlyArray<number> = [900, 672];
 const FREE_SPACE_TOLERANCE = 24;
