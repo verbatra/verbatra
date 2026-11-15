@@ -457,7 +457,7 @@ describe("the comparison cells", () => {
     es: /^Desconocido$/,
     fr: /^Inconnu$/,
     "zh-CN": /^未知$/,
-    "pt-BR": /^Desconhecido$/,
+    "pt-BR": /^Incerto$/,
   };
 
   for (const locale of i18n.languages) {
