@@ -1,0 +1,499 @@
+---
+title: Receitas do SDK
+seoTitle: "Receitas do SDK do verbatra para scripts e CI"
+description: "Padrões completos e executáveis para operar o verbatra a partir dos seus scripts e jobs de CI, cada um baseado nos pontos de entrada públicos do @verbatra/sdk."
+type: how-to
+---
+O [Início rápido do SDK](/pt-BR/docs/sdk-quickstart) cobre a primeira execução. Esta página continua a partir dali
+com receitas completas para copiar em um script; a [Referência do SDK](/pt-BR/docs/sdk) cataloga cada ponto
+de entrada. O SDK não carrega arquivos `.env`, então execute uma receita que chama um provedor com
+`node --env-file=.env`. Para trabalhar com um provedor com limite de taxa um idioma por vez, passe
+`locales: ["de"]` para `translate`.
+
+## Estimar uma execução antes de gastar
+
+<AvailableFrom version="0.11.0" />
+
+`estimate: true` implica `dryRun`. O valor chega em `RunSummary.estimate`: consulte `unit` para saber a dimensão cobrada e `pricing` para saber se um bloco [`rates`](/pt-BR/docs/config-file#rates) o precificou.
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const summary = await translate({ config: await loadConfig(), estimate: true });
+const estimate = summary.estimate;
+
+if (estimate !== undefined) {
+  console.log(`${estimate.keys} keys in ${estimate.requests} requests to ${estimate.rateKey}`);
+
+  if (estimate.unit === "tokens") {
+    console.log(`about ${estimate.inputTokens} in, ${estimate.outputTokens} out`);
+  } else {
+    console.log(`about ${estimate.sourceCharacters} source characters`);
+  }
+
+  if (estimate.pricing === "priced") {
+    console.log(`about ${estimate.cost} ${estimate.currency}, rates read ${estimate.asOf}`);
+    for (const locale of estimate.locales) {
+      console.log(`  ${locale.locale}: ${locale.cost}`);
+    }
+  } else {
+    console.log(`no currency figure: ${estimate.pricing}`);
+  }
+
+  console.log(`leaves out: ${estimate.caveats.join(", ")}`);
+}
+```
+
+A estimativa delimita o plano, não a fatura; [Estimar o custo antes de uma execução](/pt-BR/docs/estimating-cost) explica o método,
+e [RunSummary](/pt-BR/docs/sdk/run-summary) lista o que cada `EstimateCaveatCode` em `caveats` deixa
+de fora.
+
+## Verificar na CI sem gravar
+
+`check` lê e compara sem chamar um provedor nem tocar em nenhum arquivo, e o campo `inSync` dele é
+verdadeira exatamente quando nada está ausente nem obsoleto.
+
+```ts
+import { check, loadConfig } from "@verbatra/sdk";
+
+const summary = await check({ config: await loadConfig() });
+
+if (!summary.inSync) {
+  for (const locale of summary.locales) {
+    if (!locale.inSync) {
+      console.error(`${locale.locale}: ${locale.missing} missing, ${locale.stale} stale`);
+    }
+  }
+  process.exitCode = 1;
+}
+```
+
+Precisa dos nomes das chaves em vez de contagens? Troque por `diff`, que retorna listas de chaves `missing`, `changed` e
+`orphaned` por locale, com a mesma barreira `hasPendingChanges`. Prefere executar a CLI na CI?
+Veja [Executar o verbatra na CI](/pt-BR/docs/ci-and-exit-codes).
+
+```ts
+import { diff, loadConfig } from "@verbatra/sdk";
+
+const summary = await diff({ config: await loadConfig() });
+
+if (summary.hasPendingChanges) {
+  for (const locale of summary.locales) {
+    console.error(`${locale.locale}: missing ${locale.missing.join(", ")}; changed ${locale.changed.join(", ")}`);
+  }
+  process.exitCode = 1;
+}
+```
+
+## Testar sua integração sem chave de API
+
+Um provedor falso passado como `createProvider` executa o fluxo inteiro, com arquivos e barreira de integridade
+incluídos, sem chave de API, sem chamada de rede e com saída determinística: aquilo de que um teste unitário das suas próprias
+ferramentas precisa.
+
+```ts title="fake-provider.ts"
+import { type CreateProvider, check, loadConfig, translate } from "@verbatra/sdk";
+
+const createProvider: CreateProvider = () => ({
+  id: "fake",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  translateBatch: async (request) => ({
+    values: new Map(
+      request.entries.map((entry) => [entry.key, `[${request.targetLocale}] ${entry.value}`]),
+    ),
+    integrity: new Map(),
+    notices: [],
+  }),
+});
+
+const config = await loadConfig();
+const summary = await translate({ config }, { createProvider });
+const after = await check({ config });
+
+console.log(`${summary.succeeded.length} locales translated, in sync: ${after.inSync}`);
+if (summary.failed.length > 0 || !after.inSync) {
+  process.exitCode = 1;
+}
+```
+
+A execução grava arquivos reais, então teste em uma cópia temporária do projeto. Um provedor real se encaixa
+da mesma forma; veja [Provedores personalizados](/pt-BR/docs/sdk/extend#provedores-personalizados).
+
+## Observar em um processo de longa duração
+
+`watch` dispara uma execução imediatamente na inicialização e depois uma por alteração de origem com debounce, relatando cada uma
+por `onRun`. Para um encerramento limpo, aguarde `controller.stop()`: ele fecha o processo do `watch` e espera
+a execução em andamento terminar antes de o processo sair.
+
+```ts
+import { loadConfig, watch } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const controller = await watch({
+  config,
+  onRun: (result) => {
+    if (result.status === "succeeded") {
+      console.log(`ran: ${result.summary.succeeded.length} ok, ${result.summary.failed.length} failed`);
+    } else {
+      console.error(`run failed: ${result.error.code} ${result.error.message}`);
+    }
+  },
+});
+
+process.on("SIGINT", () => {
+  void controller.stop().then(() => {
+    process.exit(0);
+  });
+});
+```
+
+Uma falha de execução depois da inicialização nunca lança um erro; ela chega como `{ status: "failed" }` e a observação
+continua.
+
+## Cancelar uma execução
+
+<AvailableFrom version="0.12.0" />
+
+Passe um `AbortSignal` como `signal`. A Promise de `translate` então é resolvida em vez de rejeitada: ele grava o que
+já chegou, deixa o restante pendente e define `cancelled: true`.
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const controller = new AbortController();
+process.once("SIGINT", () => controller.abort());
+
+const summary = await translate({ config: await loadConfig(), signal: controller.signal });
+
+if (summary.cancelled === true) {
+  const { succeeded, partial, failed } = summary;
+  console.error(
+    `cancelled: ${succeeded.length} done, ${partial.length} partial,`,
+    `${failed.length} failed or not started`,
+  );
+  process.exitCode = 130;
+}
+```
+
+Um locale que o cancelamento impediu de começar recebe o [código de erro `RUN_CANCELLED`](/pt-BR/docs/error-codes#run_cancelled), e um que ele interrompeu no meio da execução recebe o [aviso `RUN_CANCELLED`](/pt-BR/docs/error-codes#notice-run_cancelled). Um cancelamento que chega depois de todos os locales terminarem deixa `cancelled` ausente, e um erro que afeta a execução inteira na inicialização ainda faz a Promise ser rejeitada.
+
+## Extrair chaves do seu código-fonte
+
+<AvailableFrom version="0.11.0" />
+
+`extract` é o único ponto de entrada que lê o código do aplicativo em vez de um arquivo de locale. Ele grava
+apenas o catálogo de origem, e só as chaves realmente novas: uma chave existente mantém seu valor, e uma chave que nenhum
+ponto de chamada menciona é deixada como está. Tudo o que a varredura não consegue resolver volta como dados, então uma
+simulação serve bem como barreira antes da execução que grava.
+
+```ts
+import { extract, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const preview = await extract({ config, dryRun: true });
+
+console.log(`${preview.scannedFiles} files scanned, ${preview.existingKeys} keys already present`);
+for (const added of preview.added) {
+  console.log(`+ ${added.key} = ${JSON.stringify(added.value)} (${added.file}:${added.line})`);
+}
+for (const conflict of preview.conflicts) {
+  console.warn(`${conflict.key} has two defaults: ${conflict.values.join(" | ")}`);
+}
+for (const site of preview.dynamic) {
+  console.warn(`non-static key argument at ${site.file}:${site.line}`);
+}
+for (const diagnostic of preview.diagnostics) {
+  console.warn(`${diagnostic.file}: ${diagnostic.reason}`);
+}
+
+if (preview.added.length > 0 && preview.conflicts.length === 0) {
+  const run = await extract({ config });
+  console.log(`wrote ${run.added.length} keys to ${run.sourcePath}: ${run.written}`);
+}
+```
+
+`config.extract` precisa nomear o framework e os diretórios-raiz do código-fonte, ou a chamada lança
+`EXTRACT_NOT_CONFIGURED`. [`extract`](/pt-BR/docs/sdk/inspect#extract) lista todos os outros erros que ele lança.
+
+## Gerar um catálogo tipado
+
+<AvailableFrom version="0.11.0" />
+
+`generateTypes` declara o catálogo de origem como TypeScript: uma união de todas as chaves, mais os argumentos
+que cada mensagem interpola. Ele lê um arquivo e grava um arquivo, e duas execuções sobre um catálogo
+inalterado gravam bytes idênticos, o que torna o modo `check` uma barreira utilizável na CI.
+
+```ts
+import { generateTypes, loadConfigWithMeta } from "@verbatra/sdk";
+
+const loaded = await loadConfigWithMeta();
+const out = "src/generated/messages.d.ts";
+const configPath = loaded.source.kind === "override" ? undefined : loaded.source.filepath;
+
+const result = await generateTypes({
+  config: loaded.config,
+  out,
+  ...(configPath !== undefined ? { configPath } : {}),
+});
+
+console.log(`${result.keys} keys in ${result.path}, ${result.withArguments} take arguments`);
+for (const message of result.unresolved) {
+  console.warn(`arguments not claimed for ${message.key}: ${message.reason}`);
+}
+
+// In CI, compare instead of writing.
+const gate = await generateTypes({ config: loaded.config, out, check: true });
+if (gate.stale) {
+  console.error(`${gate.path} is out of date, re-generate it`);
+  process.exitCode = 1;
+}
+```
+
+Passe `configPath` para que o arquivo de configuração que a execução carregou seja recusado como caminho de saída. Uma execução com `check`
+não grava nada e só relata `stale`. [`verbatra types`](/pt-BR/docs/cli/types) lista tudo o que uma execução
+de geração recusa.
+
+## Gerar um pseudolocale
+
+<AvailableFrom version="0.11.0" />
+
+`pseudolocalize` gera um locale falso só a partir das strings de origem, então o truncamento de layout e as
+strings que nunca foram extraídas aparecem antes de existir qualquer chave de API. Ele não chama nenhum provedor, e sua
+saída fica fora de `files.pattern`, então nenhuma execução gasta com ele nem o relata como divergente.
+
+```ts
+import { loadConfig, pseudolocalize } from "@verbatra/sdk";
+
+const result = await pseudolocalize({ config: await loadConfig() });
+
+console.log(`${result.locale} written to ${result.path}: ${result.written}`);
+console.log(`${result.transformed} of ${result.entries} entries transformed`);
+for (const key of result.copied) {
+  console.warn(`copied from source verbatim, a pseudolocalized value would not pass the gate: ${key}`);
+}
+```
+
+`locale` tem como padrão `en-XA`, ou `ar-XB` com `mode: "bidi"`, e `out` tem como padrão `.verbatra-local/pseudo`. A transformação é determinística,
+então uma segunda execução sobre a origem inalterada não regrava nada e relata `written` como false.
+
+## Editar e retraduzir uma única chave
+
+São as funções que o Verbatra Studio aciona; use-as para montar seu próprio fluxo de revisão. Leia os
+valores atuais com `keyValue`, salve uma correção humana com `editEntry` ou execute o provedor de novo
+para uma chave com `retranslateEntry`. As duas funções de gravação passam o valor candidato pelas mesmas
+verificações de integridade de uma execução completa e retornam um resultado de duas variantes em vez de lançar um erro para um
+valor rejeitado.
+
+```ts
+import { editEntry, keyValue, loadConfig, retranslateEntry } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+// Read the live values feeding your edit UI.
+const current = await keyValue({ config, locale: "de", key: "checkout.title" });
+console.log(`source: ${current.source}, target: ${current.target ?? "(not yet translated)"}`);
+
+// Save a human-typed correction. No provider call.
+const edit = await editEntry({
+  config,
+  locale: "de",
+  key: "checkout.title",
+  value: "Zur Kasse",
+});
+if (!edit.accepted) {
+  console.error(`rejected (${edit.reason} check failed), nothing written`);
+}
+
+// Or ask the provider for a fresh translation of just this key. The edit above
+// recorded a value a person wrote, which retranslateEntry protects unless told otherwise.
+const retry = await retranslateEntry({
+  config,
+  locale: "de",
+  key: "checkout.title",
+  includeHuman: true,
+});
+if (retry.accepted) {
+  console.log(`wrote: ${retry.value}`);
+  if (retry.reviewReasons.length > 0) {
+    console.warn(`flagged for review: ${retry.reviewReasons.join(", ")}`);
+  }
+}
+```
+
+[`retranslateEntry`](/pt-BR/docs/sdk/review#retranslateentry) lista o que cada uma delas lança.
+
+### Valores escritos por uma pessoa
+
+<AvailableFrom version="0.12.0" />
+
+`retranslateEntry` recusa um valor escrito por uma pessoa com `KEY_PROTECTED`, inclusive o que
+`editEntry` acabou de salvar, a menos que você passe `includeHuman: true` ou a configuração defina
+`humanEdits: "overwrite"`. É por isso que a receita o passa. Uma chave fixada é sempre recusada; veja [Manter traduções humanas](/pt-BR/docs/protecting-human-translations).
+
+## Percorrer a fila de revisão
+
+<AvailableFrom version="0.12.0" />
+
+`reviewQueue` lista todo valor escrito por máquina que ninguém aprovou ainda, com os motivos pelos quais a última
+execução o sinalizou. Este script aprova os valores não sinalizados e rejeita os demais, o que os remove
+para que o próximo `translate` os preencha de novo. `expectedValue` faz uma chamada lançar
+`REVIEW_VALUE_CHANGED` se o valor mudou nesse meio-tempo. Em uma máquina sem registro da última execução,
+como um clone novo ou um runner de CI, `reasons` também fica vazio, então o script para sem `lastRunAt`.
+
+```ts title="review.ts"
+import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const queue = await reviewQueue({ config });
+
+if (!queue.available) {
+  console.error(`no review queue: ${queue.reason}`);
+  process.exit(1);
+}
+if (queue.lastRunAt === undefined) {
+  console.error("no run recorded on this machine, so flags are unknown: run translate first");
+  process.exit(1);
+}
+
+for (const { locale, needsReview } of queue.locales) {
+  for (const entry of needsReview) {
+    const { target } = await keyValue({ config, locale, key: entry.key });
+    if (target === undefined) {
+      continue;
+    }
+    const decision = { config, locale, key: entry.key, expectedValue: target };
+    if (entry.reasons.length > 0) {
+      await rejectEntry(decision);
+      console.log(`rejected ${locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+    } else {
+      await approveEntry(decision);
+      console.log(`approved ${locale}/${entry.key}`);
+    }
+  }
+}
+```
+
+[Revisar e retraduzir](/pt-BR/docs/sdk/review#approveentry) traz as variantes em lote e todos os códigos que elas lançam.
+
+## Ler todos os valores em massa
+
+<AvailableFrom version="0.10.0" />
+
+`localeValues` é a contrapartida em massa de `keyValue`: uma única passagem pelos arquivos que já estão em disco,
+retornando o texto de origem e de destino atual de cada chave, por locale.
+
+```ts title="scan-values.ts"
+import { loadConfig, localeValues } from "@verbatra/sdk";
+
+const report = await localeValues({ config: await loadConfig() });
+
+for (const { locale, values } of report) {
+  for (const [key, pair] of Object.entries(values)) {
+    if (pair.source === undefined) {
+      console.warn(`${locale}/${key}: orphaned, no source key any more`);
+    } else if (pair.target === undefined) {
+      console.warn(`${locale}/${key}: not translated yet`);
+    } else if (pair.target.includes("TODO")) {
+      console.log(`${locale}/${key}: ${pair.target}`);
+    }
+  }
+}
+```
+
+Somente leitura: ele não chama nenhum provedor, não grava nada e não toca no arquivo de lock nem no cache.
+Ele cobre todos os locales de destino configurados; passe `locales` para restringir a alguns deles, e um locale fora de `targetLocales` lança `UNKNOWN_LOCALE`.
+
+## O ciclo de ida e volta da pasta de trabalho
+
+Exporte as strings que precisam de tradução para uma pasta de trabalho do Excel, entregue-a a um tradutor e depois
+importe de volta o arquivo preenchido. `importWorkbook` executa as mesmas verificações de divergência e de integridade que
+`translate` e retorna o mesmo formato de `RunSummary`.
+
+```ts
+import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+// Write a workbook of the missing and changed strings.
+const exported = await exportWorkbook({ config });
+for (const sheet of exported.locales) {
+  console.log(`${sheet.locale}: ${sheet.rows} rows`);
+}
+console.log(`wrote ${exported.path}`);
+
+// ...later, after the translator returns the file, import it back.
+const summary = await importWorkbook({ config, workbook: exported.path });
+console.log(`${summary.succeeded.length} locales ok, ${summary.failed.length} failed`);
+```
+
+Passe `dryRun: true` para `importWorkbook` para validar um arquivo devolvido sem gravar nada. Veja
+[Tradução manual](/pt-BR/docs/manual-translation) para saber o que os tradutores podem editar e como as linhas são
+validadas.
+
+## O ciclo de ida e volta do TMX
+
+<AvailableFrom version="0.11.0" />
+
+`importTmx` e `exportTmx` movem a memória de tradução (veja [O cache de tradução](/pt-BR/docs/the-cache)) para dentro e para fora do TMX, o
+formato de intercâmbio que as principais plataformas de tradução produzem e consomem. Ao contrário do par da
+pasta de trabalho, esse par move a memória inteira como um único arquivo multilíngue entre ferramentas.
+
+```ts
+import { exportTmx, importTmx, loadConfig, tmxErrorLocation } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+// Validate another tool's file before it touches the memory.
+try {
+  const preview = await importTmx({ config, file: "legacy.tmx", dryRun: true });
+  console.log(`${preview.units} units, source language ${preview.sourceLanguage ?? "undeclared"}`);
+  for (const locale of preview.locales) {
+    console.log(
+      `${locale.locale}: +${locale.added}, kept ${locale.kept}, conflicting ${locale.conflicting}`,
+    );
+  }
+
+  // Then land it. Pass overwrite: true to let the file win where the two disagree.
+  const landed = await importTmx({ config, file: "legacy.tmx" });
+  if (!landed.memoryWritable) {
+    console.error("the memory file was written by a newer verbatra and was left untouched");
+  }
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at === undefined) {
+    throw error;
+  }
+  console.error(`legacy.tmx is malformed at line ${at.line}, column ${at.column}`);
+}
+
+// ...and hand this project's memory to another tool.
+const exported = await exportTmx({ config, out: "out/memory.tmx" });
+console.log(`${exported.units} units to ${exported.path}`);
+```
+
+`importTmx` relata
+dados danificados em vez de lançar um erro: um arquivo recusado lança `SOURCE_INVALID`, e
+`tmxErrorLocation` lê o local a partir desse erro sem fazer cast dele nem de seu `cause`. Só as entradas
+com a impressão digital da configuração atual são exportadas, que é o mesmo conjunto que uma execução reutilizaria.
+
+## Uma configuração sem arquivo
+
+`loadConfig` aceita um `configOverride` em memória, validado exatamente como um arquivo carregado, para que você
+possa operar o verbatra inteiramente a partir do código, sem arquivo de configuração em disco.
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig({
+  configOverride: {
+    sourceLocale: "en",
+    targetLocales: ["de", "fr"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+  },
+});
+
+await translate({ config });
+```

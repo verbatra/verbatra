@@ -1,0 +1,218 @@
+---
+title: "Referência do SDK"
+seoTitle: "Referência do SDK do verbatra para Node.js"
+sidebarTitle: "Visão geral"
+description: "Instale o @verbatra/sdk e encontre a página de referência de cada ponto de entrada. Arquivos fora do disco chegam ao SDK pelo seu próprio sistema de arquivos."
+type: reference
+---
+O `@verbatra/sdk` é o motor sobre o qual o comando `verbatra` é executado. A CLI é uma camada fina, então tudo
+o que a linha de comando faz, você pode fazer em código.
+
+## Comece aqui
+
+Novo no SDK? Comece por um destes:
+
+<Cards>
+  <Card title="Início rápido do SDK" href="/pt-BR/docs/sdk-quickstart">Instale o SDK, pré-visualize uma execução sem chave de API, traduza a partir do seu próprio script, trate erros e barre a CI.</Card>
+  <Card title="Receitas do SDK" href="/pt-BR/docs/programmatic-api">Scripts completos para estimativas, modo de observação, um provedor falso, a fila de revisão e os ciclos de ida e volta de pasta de trabalho e TMX.</Card>
+</Cards>
+
+## Páginas de referência
+
+Estas páginas catalogam toda a API pública, agrupada pela tarefa que cada ponto de entrada executa.
+
+<SdkEntryPoints />
+
+<SdkAnchorForward />
+
+## Instalação
+
+```npm
+npm install --save-dev @verbatra/sdk
+```
+
+Requer o Node.js `^22.22.0 || >=24`.
+
+Com o pnpm, `pnpm add --save-dev @verbatra/sdk` instala corretamente, mas termina com código `1` e `ERR_PNPM_IGNORED_BUILDS`: o pnpm bloqueia, até que sejam aprovados, os
+scripts de instalação do SDK do Gemini embutido e do `protobufjs` dele, e deixa para trás um
+`pnpm-workspace.yaml` com uma escolha sem resposta, que faz todo comando pnpm seguinte no projeto falhar do mesmo jeito.
+Execute `pnpm approve-builds` uma vez e não aprove nenhuma das duas entradas, ou veja
+[Solução de problemas](/pt-BR/docs/troubleshooting) para a correção não interativa. Não existe um atalho com `npx`
+para contornar isso, como existe para a CLI, porque você está importando uma biblioteca, e não executando um
+binário.
+
+<Callout title="Chaves de API e o ambiente">
+O SDK nunca lê, guarda nem aceita uma chave de API. O provedor lê a chave de API do ambiente
+(por exemplo `ANTHROPIC_API_KEY`) quando é instanciado. Ao contrário da CLI, o SDK não carrega
+arquivos `.env`: no seu próprio script, defina a variável você mesmo, por exemplo com
+`node --env-file=.env script.js`.
+</Callout>
+
+Todo ponto de entrada recebe um objeto de entrada cujo primeiro campo é a `config` validada (vinda de
+`loadConfig`), salvo onde indicado. A maioria aceita também um segundo argumento opcional `deps` que injeta
+um registro de adaptadores, um construtor de provedor ou um sistema de arquivos; você pode ignorá-lo no uso normal. Veja
+[O ponto de injeção de dependências](#o-ponto-de-injeção-de-dependências) para o que `deps.fs` alcança.
+
+## O ponto de injeção de dependências
+
+<AvailableFrom version="0.9.0" />
+
+`deps.fs` substitui a porta do sistema de arquivos pela qual passa a E/S do próprio SDK, tipada como `SdkFs`. O
+ponto de injeção é completo: o arquivo de status da execução, o arquivo de lock, as ferramentas de arquivo de glossário, a E/S de pasta de trabalho e
+de intercâmbio e os próprios arquivos de locale passam todos por ele, porque os adaptadores de formato leem e gravam
+por uma porta construída a partir do mesmo objeto. Uma execução inteira pode, portanto, ficar na memória, que é
+como os testes do próprio SDK evitam tocar o disco e como um aplicativo que embute o SDK pode armazenar parte de um
+projeto em algo diferente de um disco local.
+
+<SdkTypeTable name="SdkFs" />
+
+Dois pontos do contrato que uma implementação precisa respeitar. As leituras têm limite de tamanho, então `readFileBounded`
+e `readBytesBounded` recebem um limite em bytes e informam `missing` ou `too-large` como um estado, em vez de
+lançar um erro, o que impede que um arquivo hostil ou acidentalmente enorme esgote a memória. Espera-se que as gravações sejam
+atômicas, para que uma falha no meio da gravação nunca deixe um arquivo pela metade, e
+`createExclusive` precisa ser atômico em relação a outros processos, porque é a primitiva por trás da
+trava de escrita de cada locale. Antes de gravar um arquivo de locale, o arquivo de status da execução ou um arquivo de saída, como
+uma pasta de trabalho, o SDK chama o `mkdir` opcional com o diretório pai, então `writeFile` e
+`writeBytes` não precisam criar um; deixe o `mkdir` de fora quando o armazenamento não tiver diretórios.
+`createExclusive` não recebe essa chamada e cria sozinho um diretório pai ausente. Os outros membros obrigatórios
+são `fileExists` e `deleteFile`, que tem êxito quando o arquivo já não existe.
+
+`readDirectory` é opcional, então uma implementação escrita antes de a extração de código-fonte existir continua
+compilando. [`extract`](/pt-BR/docs/sdk/inspect#extract) é o único ponto de entrada que precisa dele, e relata a ausência como
+`EXTRACT_FS_UNSUPPORTED`. Ele lista as entradas imediatas de um diretório como `{ name, kind }`, em que
+`kind` é `"file"`, `"directory"` ou `"other"`. Um link simbólico pertence a `"other"`: a varredura
+nunca segue um, o que a mantém dentro das raízes que recebeu.
+
+`realpath` também é opcional. Ele resolve todo link simbólico em um caminho existente, e as proteções de saída de
+[`generateTypes`](/pt-BR/docs/sdk/run#generatetypes), [`exportTmx`](/pt-BR/docs/sdk/exchange#exporttmx),
+[`exportWorkbook`](/pt-BR/docs/sdk/exchange#exportworkbook) e [`pseudolocalize`](/pt-BR/docs/sdk/run#pseudolocalize) o usam para ver onde um
+caminho de saída realmente cai, de modo que um link não possa levar um arquivo gravado para fora de `cwd` nem para um arquivo de que o
+projeto depende. Sem ele, essas proteções comparam os caminhos como foram escritos. Um link no caminho de saída
+cujo destino não existe não pode ser resolvido, então as proteções supõem que `writeFile` e `writeBytes`
+substituem o link ali em vez de gravar através dele, como faz a gravação atômica padrão.
+
+`rename` também é opcional.
+
+<AvailableFrom version="0.12.0" />
+
+Ele move um arquivo para um novo nome no mesmo diretório em uma única etapa atômica, substituindo qualquer arquivo que já esteja
+lá, e a Promise é rejeitada com um erro cujo `code` é `ENOENT` quando o arquivo de origem não existe. A trava de escrita
+o usa para remover uma trava ou uma proteção de recuperação deixada por um processo que já não existe, e para liberar a própria
+trava: o arquivo é renomeado para fora do caminho, com um nome único `<name>.<pid>.<tag>.<uuid>.stale`, e só é apagado
+quando ainda é o registro que a trava esperava. Qualquer outra coisa, como uma trava que outro processo obteve nesse
+meio-tempo, é devolvida com `createExclusive`. Um rename que falha com `EPERM`, `EBUSY` ou
+`EACCES`, como o Windows relata para um arquivo que outro processo mantém aberto, conta como “não recuperada nesta
+consulta”, e a trava continua consultando até o seu tempo limite. Quando o rename que libera uma trava falha por
+qualquer motivo, a liberação recorre a ler o arquivo de trava e apagá-lo enquanto ele ainda contém
+o token do detentor, e tenta de novo uma falha `EPERM`, `EBUSY` ou `EACCES` algumas vezes, com o intervalo de uma consulta entre as tentativas.
+Um registro que deveria ter sido devolvido mas não pode ser, porque um terceiro processo ocupou o caminho nesse
+meio-tempo, é apagado, já que a conferência de token do seu detentor passa a falhar daí em diante. Sem `rename`, a trava lê o arquivo e
+o apaga se não mudou, o que deixa uma janela maior em que uma trava que outro processo acabou de obter
+é apagada.
+
+Renomear um arquivo para fora do caminho e devolvê-lo são duas etapas, então, em intercalações raras, dois processos podem
+acreditar por um instante que detêm a mesma trava. Por isso, toda trava registra um token de posse aleatório, e, antes de cada gravação que a trava protege (o arquivo de locale, o arquivo de lock, o arquivo
+de procedência, o glossário), o detentor confere se o arquivo de trava ainda carrega o seu token. Quando não carrega,
+a operação para com `LOCK_CONTENDED` e não grava nada. Um arquivo de trava ausente, ou com outro
+token, na liberação é relatado do mesmo modo quando a operação teve êxito, já que o outro
+processo pode ter alterado os mesmos arquivos desde então; uma operação que falhou lança o seu próprio erro. A
+conferência e a gravação ainda são duas etapas, e nada limita o tempo entre elas: um detentor pausado
+logo depois da conferência (uma máquina em repouso, um processo parado, um depurador, um salto de relógio ou um longo
+bloqueio do seu laço de eventos) interrompe o seu heartbeat, então, quando a trava dele tem três intervalos de idade (30 segundos
+por padrão), outro processo na mesma máquina a assume, e o detentor pausado ainda pode
+gravar uma vez quando retomar. A conferência de token depende de `createExclusive` criar um arquivo que
+`readFileBounded` lê de volta, então uma implementação personalizada precisa manter essa promessa.
+
+`touch` e `mtimeMs` também são opcionais.
+
+<AvailableFrom version="0.12.0" />
+
+`touch(path)` define o horário de modificação de um arquivo existente como agora, e `mtimeMs(path)` o retorna em
+milissegundos, ou `undefined` quando o arquivo não existe. Com `touch`, um detentor de trava registra um
+intervalo de heartbeat de 10 segundos na sua trava e atualiza o horário de modificação do arquivo nesse
+intervalo enquanto mantém a trava. Ele também chama `touch` no arquivo de trava logo depois de criá-lo, para que a
+idade do arquivo seja medida pelo relógio deste processo, e não pelo do servidor de arquivos. Com `mtimeMs`, um processo em espera trata como abandonada uma trava na sua própria
+máquina cujo processo registrado ainda está em execução, mas cujo arquivo não é atualizado há três dos
+intervalos registrados (30 segundos por padrão). Isso cobre um registro de trava que sobreviveu à sua
+posse, por exemplo um devolvido para um processo de longa duração do Studio, do `watch` ou do servidor MCP que já
+o tinha liberado. Uma proteção de recuperação não registra heartbeat: ela é limpa quando o seu processo
+comprovadamente já não existe e ela foi vista sem mudança em duas consultas. Sem esses membros, uma trava só é considerada abandonada
+quando o processo registrado comprovadamente já não existe.
+
+Um processo que falha enquanto tem uma trava renomeada para fora do caminho pode deixar um arquivo `.stale` em
+`.verbatra-local/locks/`. Esses arquivos podem ser apagados manualmente sem risco, e a próxima aquisição de trava
+os apaga quando o processo que os renomeou já não existe ou, quando `touch` está implementado, quando
+eles têm mais idade que o limite de abandono, contada a partir da renomeação. Um sistema de arquivos sem `touch` os mantém
+até que o processo que os renomeou deixe de existir.
+
+`deps.fs` não alcança um `deps.adapterRegistry` fornecido pelo chamador. Esses adaptadores
+foram construídos pelo chamador, então o acesso a arquivos deles é o que o chamador configurou neles.
+Fornecer os dois significa que o chamador é responsável por essa configuração.
+
+O carregamento da configuração também fica fora do ponto de injeção. `loadConfig` e `loadConfigWithMeta` não recebem `deps`:
+eles leem o próprio arquivo de configuração do disco real, e um arquivo de glossário que a configuração nomeia, pela
+própria opção `fs`, então o `deps.fs` que um fluxo posterior recebe não alcança nenhuma das duas leituras. Para manter um projeto
+inteiro na memória, passe o mesmo `SdkFs` como `loadConfig({ fs })` e entregue a configuração como
+`configOverride`, e não como um arquivo. Os fluxos resolvem caminhos a partir do próprio `cwd`, então passe-o
+lá também.
+
+O exemplo mantém um projeto inteiro na memória só com os membros obrigatórios. Com o provedor
+`none`, a execução não precisa de chave de API e deixa `greeting` para uma pessoa traduzir.
+
+```ts title="Exemplo"
+import { check, loadConfig, type SdkFs, translate } from "@verbatra/sdk";
+
+const files = new Map<string, Uint8Array>();
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function bounded(path: string, maxBytes: number) {
+  const bytes = files.get(path);
+  if (bytes === undefined) return { kind: "missing" } as const;
+  if (bytes.byteLength > maxBytes) return { kind: "too-large" } as const;
+  return { kind: "ok", bytes } as const;
+}
+
+const memoryFs: SdkFs = {
+  fileExists: async (path) => files.has(path),
+  readFileBounded: async (path, maxBytes) => {
+    const read = bounded(path, maxBytes);
+    return read.kind === "ok" ? { kind: "ok", content: decoder.decode(read.bytes) } : read;
+  },
+  readBytesBounded: async (path, maxBytes) => bounded(path, maxBytes),
+  writeFile: async (path, data) => {
+    files.set(path, encoder.encode(data));
+  },
+  writeBytes: async (path, data) => {
+    files.set(path, data);
+  },
+  createExclusive: async (path, data) => {
+    if (files.has(path)) return false;
+    files.set(path, encoder.encode(data));
+    return true;
+  },
+  deleteFile: async (path) => {
+    files.delete(path);
+  },
+};
+
+files.set("/project/locales/en.json", encoder.encode('{ "greeting": "Hello, {{name}}!" }'));
+
+const config = await loadConfig({
+  cwd: "/project",
+  fs: memoryFs,
+  configOverride: {
+    sourceLocale: "en",
+    targetLocales: ["de"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    provider: { id: "none" },
+  },
+});
+
+const summary = await translate({ config, cwd: "/project" }, { fs: memoryFs });
+const status = await check({ config, cwd: "/project" }, { fs: memoryFs });
+
+console.log(summary.locales[0]?.unfilled, status.inSync); // [ 'greeting' ] false
+console.log([...files.keys()]); // the source, verbatra.lock.json, .verbatra-local/run-status.json
+```

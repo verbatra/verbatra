@@ -1,0 +1,132 @@
+---
+title: Introdução
+seoTitle: "Introdução ao verbatra para tradução de i18n"
+description: "O que é o verbatra e o problema que ele resolve: traduzir só as chaves que mudaram. Veja como a CLI e o SDK se encaixam com o Studio e o servidor MCP."
+type: overview
+---
+
+<DocsHomeHeader
+  eyebrow="Documentação"
+  headline="Configure o verbatra e mantenha cada locale em sincronia."
+  lead="Guias e referência da CLI, do SDK, do Studio e do servidor MCP: comece pelo início rápido ou peça ao seu agente de programação que configure o verbatra."
+>
+
+<DocsHomeTabs
+  label="Pontos de entrada"
+  tabs={[
+    { label: "Início rápido", href: "/docs/quickstart" },
+    { label: "CLI", href: "/docs/cli" },
+    { label: "SDK", href: "/docs/sdk" },
+    { label: "GitHub Action", href: "/docs/github-action" },
+    { label: "Servidor MCP", href: "/docs/cli/mcp" },
+    { label: "Studio", href: "/docs/review-in-studio" },
+  ]}
+/>
+
+<DocsHomeAgentTip title="Você usa um agente de programação?">
+Cole o prompt no Claude Code, no Cursor ou em qualquer agente de programação, e ele configura o verbatra para você; [Configurar o verbatra com um agente de IA](/pt-BR/docs/start-with-ai) mostra cada passo. Para que ele leia e edite suas traduções diretamente, conecte o servidor MCP (veja [verbatra mcp](/pt-BR/docs/cli/mcp)).
+</DocsHomeAgentTip>
+
+</DocsHomeHeader>
+
+<DocsHomeBody>
+
+<DocsHomeSection title="Comece pelo seu objetivo" lead="Escolha o que você quer fazer; cada card abre a página que explica como.">
+
+<DocsHomePaths
+  cards={[
+    {
+      goal: "Traduzir um projeto",
+      page: "Início rápido",
+      body: "Instale a CLI, pré-visualize a execução sem chave de API e depois traduza seu primeiro arquivo.",
+      href: "/docs/quickstart",
+    },
+    {
+      goal: "Barrar pull requests",
+      page: "Executar o verbatra na CI",
+      body: "Faça um pull request falhar quando um locale divergir, com saída JSON para scripts.",
+      href: "/docs/ci-and-exit-codes",
+    },
+    {
+      goal: "Entregar a tradutores",
+      page: "Tradução manual",
+      body: "Exporte uma pasta de trabalho para uma pessoa traduzir e depois importe de volta.",
+      href: "/docs/manual-translation",
+    },
+  ]}
+/>
+
+</DocsHomeSection>
+
+<DocsHomeSection id="pick-your-stack" title="Escolha sua stack" lead="Um card marcado com Início rápido abre um guia passo a passo para essa stack; os demais cards abrem o comando init e a estrutura de arquivos.">
+
+<StackCards
+  labelledBy="pick-your-stack"
+  cards={[
+    { label: "React", icon: "web", mark: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Início rápido", description: "Traduza arquivos JSON do i18next em um app React." },
+    { label: "Next.js", icon: "web", mark: "deviconNextjs", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Início rápido", description: "Mantenha os arquivos de mensagens do next-intl em sincronia em todos os locales." },
+    { label: "Vue", icon: "web", mark: "fontawesomeVuejs", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Início rápido", description: "Traduza mensagens JSON do vue-i18n em um app Vue." },
+    { label: "Nuxt", icon: "web", mark: "deviconNuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-e-nuxt-com-vue-i18n", description: "Traduza mensagens JSON do vue-i18n em um app Nuxt." },
+    { label: "Angular", icon: "web", mark: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Início rápido", description: "Traduza arquivos JSON do ngx-translate em um app Angular." },
+    { label: "Flutter", icon: "mobile", mark: "fontawesomeFlutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Início rápido", description: "Traduza arquivos ARB para o gen-l10n do Flutter." },
+    { label: "Android", icon: "mobile", mark: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android", description: "Traduza recursos strings.xml, uma pasta por locale." },
+    { label: "iOS e macOS", icon: "mobile", mark: "fontawesomeApple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-e-macos", description: "Traduza .strings, .stringsdict e String Catalogs." },
+    { label: "gettext", icon: "po", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext", description: "Traduza arquivos PO a partir de um modelo POT." },
+    { label: "Java e Spring", icon: "server", mark: "deviconSpring", formats: ["properties"], href: "/docs/pick-your-stack#java-e-spring", description: "Traduza pacotes de mensagens .properties." },
+    { label: ".NET", icon: "server", mark: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net", description: "Traduza arquivos de recursos .resx." },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml", description: "Traduza arquivos de locale YAML aninhados." },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff", description: "Traduza arquivos XLIFF, o formato que as ferramentas de tradução trocam entre si." },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini", description: "Traduza arquivos de locale INI simples." },
+  ]}
+/>
+
+<DocsHomeNote>
+Não encontrou sua stack? Comece pelo [início rápido](/pt-BR/docs/quickstart) genérico ou ensine seu formato ao verbatra com um adaptador de formato personalizado (veja [Escrever um adaptador de formato personalizado](/pt-BR/docs/custom-format-adapters)).
+</DocsHomeNote>
+
+</DocsHomeSection>
+
+<DocsHomeSection title="Cada execução é um diff, não uma reescrita." lead="O que acontece quando você executa `verbatra translate`.">
+
+Manter manualmente um único locale de origem faz todos os outros arquivos de locale divergirem: chaves novas faltam nos destinos, strings editadas deixam traduções obsoletas para trás e chaves excluídas ficam como órfãs. O verbatra fecha essa lacuna comparando cada destino com um arquivo de lock versionado, `verbatra.lock.json`, e enviando só o que mudou ao provedor que você configurou; uma segunda execução sem nada novo para traduzir não faz nenhuma chamada ao provedor. Cada resultado é verificado antes de ser gravado, então um placeholder quebrado fica retido e é tentado de novo, nunca publicado. Veja [Como funciona uma execução](/pt-BR/docs/how-it-works) para a sequência completa de etapas.
+
+<DocsHomeSteps />
+
+O verbatra lê e grava os formatos comuns de arquivo de locale, de JSON e YAML a XLIFF, gettext e catálogos do Android e da Apple, e traduz por qualquer provedor de LLM ou de tradução automática aceito, por trás de uma única interface (ou por nenhum, em um fluxo somente humano: veja [Trabalhar sem tradução automática](/pt-BR/docs/human-only-workflow)). Um formato que ele não traz pode ser adicionado como adaptador personalizado (veja [Escrever um adaptador de formato personalizado](/pt-BR/docs/custom-format-adapters)). As listas completas estão em [Formatos](/pt-BR/docs/formats) e [Provedores](/pt-BR/docs/providers).
+
+</DocsHomeSection>
+
+<DocsHomeSection title="Os pacotes" lead="Um motor, quatro formas de operá-lo.">
+
+<DocsHomeFeatures
+  features={[
+    {
+      title: "@verbatra/cli",
+      pkg: "cli",
+      body: "O binário verbatra: todos os comandos, de init e extract a translate, check, export e studio, como uma camada fina sobre o SDK. Comece por aqui.",
+      href: "/docs/cli",
+    },
+    {
+      title: "@verbatra/sdk",
+      pkg: "sdk",
+      body: "O motor por baixo: translate, watch, check, diff, doctor, extract, pseudolocalização, geração de tipos e os ciclos de ida e volta com Excel e TMX, tudo a partir do código.",
+      href: "/docs/sdk",
+    },
+    {
+      title: "@verbatra/studio",
+      pkg: "studio",
+      body: "Um painel local com edição direta, uma fila de revisão, uma página Overview de cobertura e execuções e ferramentas para agentes de navegador. O gasto com provedores fica desativado até você ativá-lo.",
+      href: "/docs/review-in-studio",
+    },
+    {
+      title: "@verbatra/mcp",
+      pkg: "mcp",
+      body: "Um servidor MCP via stdio que expõe o status das traduções, o glossário e ferramentas de edição ao Claude Code, ao Cursor ou a qualquer cliente MCP.",
+      href: "/docs/cli/mcp",
+    },
+  ]}
+/>
+
+</DocsHomeSection>
+
+</DocsHomeBody>

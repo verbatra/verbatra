@@ -1,0 +1,51 @@
+---
+title: Ver arquivos alterados no Studio
+seoTitle: "Ver arquivos de locale alterados no Studio"
+description: Veja quais arquivos de locale diferem do último commit do git e quais chaves mudaram em cada um, na página Overview do Verbatra Studio.
+type: how-to
+---
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Use isto antes de fazer commit de uma execução: o Studio mostra quais arquivos de locale uma execução de tradução ou uma edição tocou, e quais chaves mudaram em cada um, sem sair dele. Ele só lê; o Studio nunca coloca nada na área de stage, nunca faz commit e nunca restaura nada.
+
+## Abrir a seção Changes
+
+Inicie o Studio ([Revisar no Studio](/pt-BR/docs/review-in-studio#iniciar-o-studio)) e role a página **Overview** (visão geral) até **Changes** (alterações), abaixo da tabela de locales. Ela mostra o branch em checkout (ou **Detached HEAD**, o HEAD desanexado) e lista todos os arquivos que diferem do último commit, dez por vez, com **Show all N files** (mostrar todos os N arquivos) para o restante:
+
+| Estado | Significado |
+| --- | --- |
+| **Modified** | o arquivo difere do último commit |
+| **Added** | o arquivo é novo e está na área de stage |
+| **Deleted** | o arquivo sumiu da árvore de trabalho ou do índice |
+| **Untracked** | o git ainda não rastreia o arquivo |
+| **Conflicted** | o arquivo tem conflitos de merge não resolvidos |
+| **Matches last commit** | um arquivo que você abriu e que não difere mais, mantido no lugar até você fechá-lo |
+
+Seus arquivos de locale de origem e de destino aparecem na lista, assim como `verbatra.lock.json` e `verbatra.provenance.json`, que mostram um estado e nenhuma alteração de chave. Um projeto limpo informa que nenhum arquivo de locale difere.
+
+## Ler as alterações de chaves
+
+**Key changes (de)** (alterações de chaves) abre o arquivo desse locale como chaves, comparado com o último commit: chaves **Changed** (alteradas) com o texto antigo e o novo lado a lado, chaves **Added** (adicionadas) e chaves **Removed** (removidas). Clique no botão de novo para fechar; só um locale fica aberto de cada vez. Uma chave alterada ou adicionada que a origem também tem leva à sua entrada na página **Translations** (traduções).
+
+- **Um arquivo, vários locales:** um catálogo como `apple-xcstrings` guarda todos os locales em um só arquivo, então tem um botão por locale. Cada um compara apenas aquele locale.
+- **Listas longas:** uma lista contém no máximo 500 chaves e cada texto é cortado em 2.000 caracteres. Quando isso acontece, o Studio avisa que a lista está incompleta e marca o texto cortado; o próprio git tem a diferença completa. Uma lista longa mostra 50 chaves por vez.
+- **Só a ordem mudou:** um arquivo alterado cujas chaves e textos são os mesmos informa isso.
+- **Conflitos:** um arquivo com conflitos de merge não resolvidos mostra seu estado e nenhuma alteração de chave. Resolva os conflitos no git primeiro.
+- **Texto seguro:** chaves e valores aparecem como texto simples, no idioma e na direção do próprio locale, nunca como marcação.
+
+## Quando não há nada para mostrar
+
+Quando não consegue comparar, o Studio explica em vez de relatar um erro, por exemplo quando:
+
+- o projeto não está em um repositório git, ou o git não está instalado ou é mais antigo do que um clone parcial exige;
+- o git recusa a pasta porque outro usuário é o dono dela, ou a pasta está dentro de um repositório bare;
+- o repositório configura um filtro de conteúdo, que o Studio não executa;
+- um `files.pattern` coloca um arquivo de locale fora da pasta do projeto, por exemplo com `../`, de modo que uma lista poderia deixar esse arquivo de fora.
+
+Uma leitura que demorou demais ou falhou mostra o erro da página com seu botão **Retry** (tentar de novo). Um projeto com um formato `custom:` mostra seus arquivos alterados, mas nunca as alterações de chaves: o Studio compara o arquivo versionado apenas com os adaptadores de formato embutidos, que não conseguem executar um adaptador personalizado. Veja [Escrever um adaptador de formato personalizado](/pt-BR/docs/custom-format-adapters).
+
+## Saber o quão recente é
+
+A seção lê de novo quando um arquivo de locale, de lock ou de procedência muda no disco, quando o índice do git ou o `HEAD` muda (um commit, uma troca de branch, um reset ou um `git add`) e quando você volta à aba ou à janela do Studio. Se uma leitura falha, o Studio mantém a última resposta e informa isso.
+
+As mesmas leituras estão disponíveis para o seu próprio código como [`localeGitStatus` e `localeGitDiff`](/pt-BR/docs/sdk/review#localegitstatus), que listam todos os motivos pelos quais uma comparação pode ficar indisponível e as salvaguardas do git que elas aplicam.

@@ -1,0 +1,109 @@
+---
+title: Executar o verbatra na CI
+seoTitle: "verbatra na CI: barrar divergências de tradução"
+description: Faça um pull request falhar por divergências de tradução, valores quebrados ou saída automática sem revisão, e traduza a cada push, com a CLI em qualquer CI.
+type: how-to
+---
+Use este guia quando um pipeline precisar detectar arquivos de locale que divergiram da origem, ou traduzi-los para você a cada push. Cada passo executa a mesma CLI que você executa localmente, então funciona em qualquer CI; os exemplos usam o GitHub Actions.
+
+Antes de começar, você precisa de:
+
+- `@verbatra/cli` como dependência de desenvolvimento, com o lockfile do gerenciador de pacotes versionado. A CLI exige o Node `^22.22.0 || >=24`.
+- Uma configuração versionada, os arquivos de locale e o [`verbatra.lock.json`](/pt-BR/docs/the-lock-file).
+- Só para traduzir: a chave de API do seu provedor no cofre de segredos da CI.
+
+Se você usa o GitHub Actions e quer anotações e um resumo do job sem escrever o job você mesmo, use a GitHub Action (veja [Usar a GitHub Action](/pt-BR/docs/github-action)).
+
+## Adicionar uma barreira contra divergências
+
+O [`verbatra check`](/pt-BR/docs/cli/check) compara a origem, os arquivos de destino e o arquivo de lock, e termina com código `1` quando um locale tem chaves ausentes ou obsoletas. Ele não chama nenhum provedor, então o job não precisa de chave de API e é executado em pull requests vindos de forks:
+
+```yaml title=".github/workflows/i18n.yml"
+name: i18n
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  check-translations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<commit-sha>
+      - uses: pnpm/action-setup@<commit-sha>
+      - uses: actions/setup-node@<commit-sha>
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec verbatra check
+```
+
+Troque `check` por [`verbatra diff`](/pt-BR/docs/cli/diff) quando quiser os nomes das chaves por trás da divergência, por exemplo para publicá-los em um comentário do pull request. Ele termina com código `1` na mesma condição; chaves órfãs aparecem na saída, mas nunca fazem o comando falhar sozinhas.
+
+Para barrar só alguns locales, passe `--locales de,fr`. Um valor de `--locales` que nomeia um locale não configurado termina com código `2`, mesmo ao lado de locales válidos, então um erro de digitação nunca deixa a barreira verde.
+
+### Barrar pela qualidade da tradução
+
+<AvailableFrom version="0.12.0" />
+
+A divergência não é a única falha que vale detectar. Adicione `--qa` para executar também a barreira de integridade e as sinalizações de revisão sobre toda tradução versionada, de modo que um valor editado manualmente com um placeholder quebrado, uma marcação quebrada ou ramos de plural ICU inadequados faça o job falhar:
+
+```bash
+verbatra check --qa
+```
+
+- Adicione `--strict` para falhar também por alertas de revisão e por categorias de plural ausentes.
+- Em um hook de edição, `verbatra check --file <path>` verifica um único arquivo de locale isoladamente.
+
+Veja [Verificação de qualidade](/pt-BR/docs/cli/check#verificação-de-qualidade) e [Um único arquivo](/pt-BR/docs/cli/check#um-único-arquivo). A [GitHub Action](/pt-BR/docs/github-action#verificar-a-qualidade-da-tradução) executa a mesma barreira com `qa: "true"`.
+
+### Barrar pelas decisões de revisão
+
+<AvailableFrom version="0.12.0" />
+
+Adicione `--require-reviewed` para falhar enquanto houver qualquer tradução escrita por máquina que não esteja aprovada no `verbatra.provenance.json` versionado, o arquivo em que a fila de revisão do Studio (**Review queue**) e as ferramentas de revisão do MCP gravam (veja [Revisar no Studio](/pt-BR/docs/review-in-studio)):
+
+```bash
+verbatra check --require-reviewed
+```
+
+Ele também não precisa de chave de API. Veja [Exigir traduções revisadas](/pt-BR/docs/cli/check#exigir-traduções-revisadas) para os códigos que ele relata.
+
+## Traduzir a cada push
+
+Execute o [`verbatra translate`](/pt-BR/docs/cli/translate) e mapeie a chave de API do provedor do seu cofre de segredos para o ambiente do passo. A CLI não aceita chave de API como argumento e não lê nenhuma chave de API da configuração; [As chaves de API vêm do ambiente](/pt-BR/docs/providers#as-chaves-de-api-vêm-do-ambiente) lista a variável que cada provedor lê.
+
+```yaml
+      - run: pnpm exec verbatra translate --json
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+- O passo grava os arquivos de locale no checkout e para por aí. Adicione um passo seu que os inclua em um commit ou abra um pull request, e conceda `contents: write` ou `pull-requests: write` só a esse job.
+- Para pré-visualizar antes, execute `verbatra translate --dry-run` ou `--estimate`: nenhum dos dois chama um provedor nem precisa de chave de API. Veja [Estimar o custo antes de uma execução](/pt-BR/docs/estimating-cost).
+- Com um provedor sujeito a limite de taxa, traduza um locale por passo com `--locales`.
+
+## Verificação prévia com doctor
+
+Coloque o [`verbatra doctor`](/pt-BR/docs/cli/doctor) antes de qualquer um dos jobs para falhar cedo em uma configuração quebrada. Ele verifica a configuração, o formato, o provedor, a variável da chave de API, a política de rede, o arquivo de origem e o suporte a locales, e não chama nenhum provedor nem lê o valor de nenhuma chave de API, a menos que você passe `--live`. Ainda assim, ele relata uma variável da chave de API não definida como verificação com falha, então mapeie a chave de API em todo job em que essa verificação precisa passar.
+
+## Códigos de saída
+
+Tome decisões com base no código de saída, nunca no texto. O que cada código significa, com seus casos-limite, está em [Códigos de saída e saída JSON](/pt-BR/docs/cli/output#códigos-de-saída); um código de erro na saída é explicado em [Códigos de erro](/pt-BR/docs/error-codes).
+
+## Saída JSON
+
+Passe `--json` para obter um envelope (o objeto JSON da resposta) por registro no stdout. Os campos dele estão em [Códigos de saída e saída JSON](/pt-BR/docs/cli/output#saída-json), e o `result` de cada comando está na página do comando. [Automatizar o verbatra com JSON](/pt-BR/docs/agent-recipes) tem receitas que o processam.
+
+## Chaves de API e instalações
+
+- Instale com `pnpm install --frozen-lockfile` ou `npm ci`, para que o job execute exatamente a versão do `@verbatra/cli` que seu lockfile do gerenciador de pacotes registra.
+- Mantenha os segredos fora de jobs que nunca chamam um provedor: `check`, `diff`, `report`, `export`, `import`, `extract`, `pseudo`, `types` e `tmx`.
+- Na CI, conte com `env:`. Quais comandos também carregam `.env.local` e `.env` está em [Arquivos de ambiente](/pt-BR/docs/cli#arquivos-de-ambiente).
+
+## Veja também
+
+- [Usar a GitHub Action](/pt-BR/docs/github-action): as mesmas barreiras, com anotações e um resumo do job.
+- [`verbatra check`](/pt-BR/docs/cli/check) e [`verbatra diff`](/pt-BR/docs/cli/diff): todas as flags das duas barreiras.
+- [Códigos de saída e saída JSON](/pt-BR/docs/cli/output): o contrato que um passo da CI lê.
+- [Códigos de erro](/pt-BR/docs/error-codes): o que cada código significa e o próximo passo dele.

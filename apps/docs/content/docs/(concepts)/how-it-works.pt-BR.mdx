@@ -1,0 +1,79 @@
+---
+title: Como funciona uma execução
+seoTitle: "Como o verbatra traduz seus arquivos de locale"
+description: "O fluxo de tradução de ponta a ponta: ler o locale de origem, achar as chaves alteradas, gravar as traduções e atualizar o arquivo de lock."
+type: concept
+---
+Uma execução é uma sequência de etapas: ler o locale de origem, comparar cada destino com o arquivo de lock, enviar ao provedor só o que precisa de trabalho, verificar o que volta, gravar e registrar o resultado. A sequência é a mesma, seja a execução iniciada pela CLI, pelo SDK ou pelo `watch`.
+
+<DiffPanel />
+
+## Ler o locale de origem
+
+O adaptador de formato converte o arquivo de origem em um conjunto neutro de entradas com chave, então cada etapa seguinte funciona do mesmo jeito para qualquer formato. Uma chave de origem cujo valor é inválido para a sintaxe de mensagem do formato (ICU inválido) é separada e relatada, em vez de ir ao provedor em estado quebrado. Um arquivo de origem ausente ou que não pode ser analisado faz a execução falhar; veja [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable) e [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid).
+
+## Comparar com a linha de base do arquivo de lock
+
+O diff é o que torna uma execução incremental. O verbatra lê o arquivo de destino existente (um arquivo ausente conta como vazio, embora os gravadores de `xliff` e `apple-xcstrings` recusem um destino ausente) e compara cada chave de origem com o arquivo de lock (veja [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file)), o registro do que foi traduzido antes:
+
+| Categoria | Significado | O que a execução faz |
+| --- | --- | --- |
+| missing | o destino não tem a chave | traduz a chave |
+| changed | a origem não bate mais com o hash registrado | traduz a chave |
+| unchanged | a origem ainda bate com o hash registrado, ou nenhum está registrado | deixa a chave como está |
+| empty source | o valor de origem está em branco | ignora a chave e a conta à parte |
+| orphaned | a chave está no destino, mas não na origem | relata a chave; só a remove com `--prune` ou `prune: true` |
+
+### Chaves suspensas
+
+<AvailableFrom version="0.12.0" />
+
+Dois tipos de candidato ficam suspensos. Uma chave alterada cujo valor atual foi escrito ou importado por uma pessoa é protegida por padrão (`humanEdits`), e uma chave que bate com `pinnedKeys` nunca é traduzida automaticamente. As duas continuam obsoletas até uma pessoa resolvê-las; veja [Manter traduções humanas](/pt-BR/docs/protecting-human-translations).
+
+## Enviar em lotes ao provedor
+
+Cada candidato é procurado primeiro no cache de tradução (veja [O cache de tradução](/pt-BR/docs/the-cache)). Um acerto é reutilizado e nunca chega ao provedor. Entre as falhas de cache, as chaves com o mesmo conteúdo de origem são agrupadas, de modo que esse texto custa uma requisição por locale, e não uma por chave.
+
+Os grupos vão ao seu provedor em sublotes sequenciais de no máximo `maxBatchSize` (padrão 50), cada um levando as entradas, os termos do glossário desse locale e seu `tone`. Se um sublote falha (um limite de taxa, um tempo limite, uma chave de API revogada), as chaves dele ficam retidas nesta execução enquanto os outros sublotes continuam. [Provedores](/pt-BR/docs/providers) descreve como cada provedor aplica essas entradas.
+
+## Validar a resposta
+
+A saída do provedor são dados, nunca texto livre. Para os provedores de LLM, a resposta precisa corresponder a um schema fixo:
+
+- Uma resposta malformada, ou que contém uma chave que nunca foi solicitada, faz o sublote inteiro falhar.
+- Uma chave solicitada que volta ausente ou duplicada é solicitada mais uma vez.
+- Uma chave ainda não resolvida depois disso não é traduzida nesta execução.
+
+Os provedores de tradução automática não têm schema de resposta, mas seus resultados passam pela mesma barreira de integridade.
+
+## Passar pela barreira de integridade
+
+Uma tradução válida para o schema ainda pode estar quebrada, então o verbatra decide a partir do próprio valor candidato se vai aceitá-lo e nunca confia no relato do provedor. Um candidato que perde um placeholder, quebra uma mensagem ICU ou sua marcação, volta vazio ou degenera fica retido em vez de gravado. As verificações estão em [A barreira de integridade](/pt-BR/docs/translation-safety#a-barreira-de-integridade), na página Segurança da tradução.
+
+## Gravar pelo adaptador
+
+As traduções aceitas são mescladas ao destino e gravadas pelo adaptador de formato, de forma atômica e em ordem estável de chaves: uma chave que já está no destino mantém sua posição, e as chaves novas são acrescentadas depois das existentes, na ordem da origem. Uma gravação interrompida nunca deixa um arquivo pela metade, e quem revisa vê diffs pequenos e estáveis.
+
+## Atualizar o arquivo de lock
+
+Depois que um locale é gravado, suas entradas no arquivo de lock são atualizadas com os hashes de origem atuais. Uma chave retida nesta execução mantém o hash anterior, então a próxima execução ainda a vê como pendente de trabalho. Cada locale é gravado sob uma trava de escrita entre processos (veja [A trava de escrita](/pt-BR/docs/the-lock-file#a-trava-de-escrita)), então duas execuções sobrepostas nunca comparam com uma linha de base obsoleta nem pagam duas vezes pela mesma chamada.
+
+## Um locale por vez, falhas como dados
+
+Cada locale de destino é executado por conta própria, e a falha de um locale não interrompe os outros. A execução retorna um resumo por locale: traduzidas, inalteradas, órfãs, retidas, sinalizadas para revisão e avisos. O que cada campo contém está em [RunSummary](/pt-BR/docs/sdk/run-summary).
+
+O que este design garante:
+
+- Uma segunda execução sem edições na origem não faz nenhuma chamada ao provedor.
+- Nada que uma verificação recusou é gravado, e nada retido é registrado como concluído.
+- Uma simulação (`--dry-run`) termina logo após o diff e retorna o mesmo formato de resumo, sem instanciar um provedor nem gravar um arquivo.
+
+O que ele não faz: nunca julga se uma tradução é boa. Para isso existem as [sinalizações de revisão](/pt-BR/docs/translation-safety#sinalizações-de-revisão) e uma pessoa.
+
+## Veja também
+
+- [`verbatra translate`](/pt-BR/docs/cli/translate): flags, saída e códigos de saída de uma execução.
+- [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file): o que a linha de base registra.
+- [O cache de tradução](/pt-BR/docs/the-cache): como a reutilização é indexada.
+- [Segurança da tradução](/pt-BR/docs/translation-safety): a barreira de integridade e as sinalizações de revisão.
+- [Códigos de erro](/pt-BR/docs/error-codes): todo código que uma execução pode relatar.

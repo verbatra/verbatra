@@ -1,0 +1,102 @@
+---
+title: Manter traduções humanas
+seoTitle: "Manter traduções humanas quando a origem muda"
+description: Mantenha as strings escritas por um tradutor quando a origem muda, receba sugestões em vez de sobrescritas e fixe chaves que nenhuma máquina pode tocar.
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+Use esta página quando algumas traduções foram escritas por uma pessoa: textos jurídicos, de marketing ou de marca, pelos quais alguém foi pago. Quando o texto de origem de uma chave muda, ela fica obsoleta, e uma execução comum com tradução automática traduziria por cima do valor. O verbatra o mantém por padrão; aqui você vê como encontrar essas chaves, resolvê-las e deixar a regra mais rígida ou mais flexível.
+
+Você precisa de um projeto que já tenha executado `translate` pelo menos uma vez, para que o `verbatra.provenance.json` exista e registre quem escreveu cada valor.
+
+## O que é protegido
+
+Quando o texto de origem de uma chave muda, `translate` e `watch` deixam o valor intocado se uma pessoa o escreveu:
+
+| Valor de `origin` | De onde o valor veio |
+| --- | --- |
+| `human` | uma edição de uma pessoa, por exemplo no diálogo de edição do Studio |
+| `import` | uma linha importada de uma entrega a um tradutor com `verbatra import` |
+| `external` | uma edição feita fora do verbatra, como um tradutor alterando o arquivo de locale em um pull request |
+
+A saída de tradução automática (`machine`, `memory`, `fuzzy`), as edições de agentes (`agent`) e os valores sem registro ainda (`unrecorded`) são retraduzidos como de costume. Um valor que um revisor rejeitou nunca é protegido. Veja [Procedência: quem escreveu cada valor](/pt-BR/docs/the-lock-file#procedência-quem-escreveu-cada-valor) para saber como cada valor de `origin` é registrado.
+
+## Encontrar as chaves protegidas
+
+Uma chave protegida não é enviada ao provedor, mantém o valor e continua obsoleta, então permanece visível:
+
+```bash
+verbatra translate --dry-run
+```
+
+```text output
+verbatra translate (dry run)
+  de: 1 would translate, 12 unchanged, 1 protected
+    protected:       checkout.terms (import)
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+- `verbatra translate` traduz todo o resto, lista a chave como protegida e mesmo assim sai com `0`.
+- `verbatra check` conta a chave como obsoleta e sai com `1`, então uma barreira na CI mostra que uma pessoa tem trabalho a fazer.
+- `verbatra diff` a lista em `protected`.
+- `verbatra export` a entrega ao tradutor como `changed`, como qualquer chave obsoleta.
+
+## Resolver uma chave protegida
+
+Uma chave protegida deixa de ser obsoleta assim que uma pessoa decide o que ela deve dizer:
+
+- Edite-a no Studio, ou salve-a sem alterações para manter o texto. Nos dois casos o valor é registrado como `human` em relação ao novo texto de origem.
+- Exporte-a, deixe o tradutor atualizá-la e importe a entrega. Veja [Entregar com Excel ou CSV](/pt-BR/docs/manual-translation).
+- Retraduza-a de propósito em uma execução com `verbatra translate --include-human`.
+
+## Sugestões em vez de sobrescritas
+
+Para ver o que uma máquina escreveria sem substituir o texto da pessoa, defina `humanEdits` como `suggest`:
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  humanEdits: "suggest",
+});
+```
+
+Uma chave protegida passa então a ser enviada ao provedor, mas a resposta é só uma sugestão. Ela aparece ao lado da chave no resumo da execução, com um `suggestionStatus` que informa se chegou ou por que não chegou, e fica guardada na memória de tradução; nunca é gravada no arquivo de locale. Uma entrada exata da memória para o novo texto pode servir como sugestão, e a próxima execução a entrega de novo sem custo. `translate --estimate` conta essas chaves, porque elas são enviadas. Em um projeto somente humano não há provedor a consultar, então `suggest` se comporta como `protect`.
+
+Para voltar a retraduzir tudo, defina `humanEdits` como `overwrite`. Veja [`humanEdits` e `pinnedKeys`](/pt-BR/docs/config-file#humanedits-e-pinnedkeys).
+
+## Fixar chaves
+
+Algumas chaves nunca devem ser tocadas por uma máquina: uma marca registrada, um aviso legal. Liste-as em `pinnedKeys`, onde `*` corresponde a qualquer sequência de caracteres:
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  pinnedKeys: ["legal.*", "brand.name"],
+});
+```
+
+Uma chave fixada nunca é traduzida, sugerida nem retraduzida, mesmo quando está ausente e mesmo com `--include-human`. Ela é listada como protegida com o motivo `pinned` até que uma pessoa a preencha.
+
+## Agentes
+
+Um agente de IA não pode substituir o trabalho de uma pessoa. A ferramenta MCP `translation.retranslateEntry` recusa um valor protegido com [`KEY_PROTECTED`](/pt-BR/docs/error-codes#key_protected) e uma chave fixada com [`KEY_PINNED`](/pt-BR/docs/error-codes#key_pinned), e não oferece nenhuma exceção por chamada; para um valor protegido, só a configuração `humanEdits` do projeto muda isso (`overwrite` retraduz a chave, e com `suggest` o `translation.translatePending` apenas informa uma sugestão); uma chave fixada é sempre recusada. O `translation.translatePending` não mexe nas chaves protegidas e as lista. Um agente ainda pode gravar um valor com `translation.editEntry`, a menos que a chave esteja fixada; esse valor é registrado como `agent`, então nunca se passa por trabalho de uma pessoa.
+
+## No Studio
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+A página **Translations** (traduções) marca uma chave protegida como **Protected** (protegida), permite filtrar só as chaves protegidas e mostra como o valor atual foi produzido (`origin`). Abra a chave para editá-la, ou salve-a sem alterações para manter o texto. Retraduzir uma chave protegida no editor de chaves é recusado, e então o Studio oferece **Replace anyway** (substituir mesmo assim), que a retraduz de propósito. Veja [Revisar no Studio](/pt-BR/docs/review-in-studio).
+
+## Casos-limite
+
+- **Um arquivo de procedência de um verbatra mais novo.** Nenhum `origin` pode ser lido, então `translate` protege toda chave obsoleta que tenha valor até você atualizar, enquanto `check` e `diff` listam como protegidas apenas as chaves fixadas.
+- **Um arquivo de procedência corrompido.** `translate`, inclusive uma simulação, falha com [`PROVENANCE_FILE_INVALID`](/pt-BR/docs/error-codes#provenance_file_invalid). `check` e `diff` continuam funcionando e listam como protegidas apenas as chaves fixadas.
+- **Projetos somente humanos.** As chaves protegidas contam para o código de saída `3`, como as chaves que a memória de tradução não conseguiu preencher: as duas precisam de uma pessoa.
+
+## Veja também
+
+- [Arquivo de configuração](/pt-BR/docs/config-file#humanedits-e-pinnedkeys): `humanEdits` e `pinnedKeys`.
+- [`verbatra translate`](/pt-BR/docs/cli/translate#chaves-escritas-por-uma-pessoa): `--include-human`.
+- [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file#procedência-quem-escreveu-cada-valor): como o `verbatra.provenance.json` registra o `origin` de cada valor.
+- [Trabalhar sem tradução automática](/pt-BR/docs/human-only-workflow): projetos em que todo valor vem de uma pessoa.

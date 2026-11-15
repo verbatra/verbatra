@@ -1,0 +1,151 @@
+---
+title: verbatra diff
+seoTitle: "verbatra diff: o que uma execução mudaria"
+description: "Mostra as chaves que uma execução adicionaria ou retraduziria por locale e as chaves órfãs que ela deixaria, sem gravar arquivos nem chamar um provedor."
+type: reference
+---
+Lista as chaves pendentes exatas por locale de destino: as que uma execução adicionaria, as que ela retraduziria e as que agora são órfãs. O `diff` executa a mesma leitura e a mesma comparação do [`verbatra translate`](/pt-BR/docs/cli/translate) e para: sem chamada ao provedor, sem arquivo gravado, sem atualização do arquivo de lock (veja [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file)) e sem precisar de chave de API.
+
+## Sinopse
+
+```bash
+verbatra diff [flags]
+```
+
+## Exemplos
+
+```bash
+# listar as chaves pendentes por locale (código de saída 1 se houver alguma)
+verbatra diff
+
+# só os locales alemão e francês
+verbatra diff --locales de,fr
+
+# listas de chaves legíveis por máquina para ferramentas ou um comentário no pull request
+verbatra diff --json
+
+# listar também as chaves de origem que o seu código não nomeia mais
+verbatra diff --unused
+```
+
+## Flags
+
+| Flag | Argumento | Padrão | Efeito |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | todos os destinos configurados | compara só este subconjunto separado por vírgulas; um locale não configurado falha com `UNKNOWN_LOCALE` e uma lista vazia com `INVALID_LOCALES`, ambos com código de saída `2` |
+| `--unused` | nenhum | desativado | lista também as chaves do locale de origem que nenhum ponto de chamada sob os diretórios-raiz do código-fonte (`roots`) do bloco [`extract`](/pt-BR/docs/config-file#extract) nomeia; veja [Chaves de origem não usadas](#chaves-de-origem-não-usadas) |
+
+Aceita também as [Flags globais](/pt-BR/docs/cli#flags-globais) `--cwd`, `--config` e `--json`.
+
+## Comportamento
+
+### Chaves pendentes e órfãs
+
+Cada locale lista quatro tipos de chave:
+
+| Lista | Significado |
+| --- | --- |
+| `missing` (exibido como `add`) | na origem, ausente do destino: uma execução a adicionaria |
+| `changed` (exibido como `re-translate`) | o texto de origem mudou desde a última tradução: uma execução a retraduziria |
+| `orphaned` | no destino, ausente da origem: só é relatada |
+| `emptySource` (exibido como `empty source`) | o valor de origem está vazio ou só tem espaços em branco: não há nada a traduzir até você escrevê-lo, nunca fica pendente |
+
+Um locale tem alterações pendentes quando tem pelo menos uma chave ausente ou alterada. As chaves órfãs nunca contam como pendentes, porque uma execução padrão as deixa no lugar; só o [`verbatra translate --prune`](/pt-BR/docs/cli/translate) as remove. Onde o [`verbatra check`](/pt-BR/docs/cli/check) dá as contagens, o `diff` dá as listas de chaves.
+
+### Chaves de origem não usadas
+
+<AvailableFrom version="0.11.0" />
+
+O `--unused` responde a uma pergunta diferente da de `orphaned`: quais chaves do arquivo de locale de origem o seu app não nomeia mais? Ele varre os `roots` do [bloco `extract`](/pt-BR/docs/config-file#extract) com o leitor que o [`verbatra extract`](/pt-BR/docs/cli/extract) usa e lista toda chave de origem que nenhuma referência estática nomeia. As duas listas nunca são mescladas. A varredura continua somente leitura: nada é removido e nenhuma chave de API é lida. Excluir uma chave é decisão sua.
+
+A varredura modela o runtime do i18next. Contam como referência:
+
+- uma chamada `t(...)`, `$t(...)` ou `<object>.t(...)` em qualquer lugar sob os diretórios-raiz, também por um alias como `const { t: translate } = useTranslation()`, `const tr = i18n.t`, `t.bind(i18n)` ou `i18n.getFixedT(...)`;
+- um `keyPrefix` estático ou o terceiro argumento de `getFixedT`, que cobre também a forma com prefixo de toda chave estática naquele arquivo, e um `i18nKey` estático em `Trans` ou em um objeto;
+- uma chave qualificada por namespace (`common:nav.home` cobre também `nav.home`), uma chave em linguagem natural e cada entrada de um array estático de chaves;
+- uma variante de plural ou de contexto de uma chave referenciada (`t("items", { count })` cobre `items_one` e `items_other`) e toda chave sob um pai referenciado.
+
+As chaves são comparadas na codificação própria do formato do catálogo, então uma chave JSON plana com pontos, uma entrada de plural ou `msgctxt` do gettext e uma entrada `<plurals>` do Android correspondem todas à chave que o seu código nomeia. Um template literal com início estático, como `` t(`nav.${page}`) ``, lista as chaves sob `nav.` como `possiblyDynamic`, separadas de `unused`, e nunca faz a execução falhar.
+
+O relatório traz um `status`: `complete` (toda chave alcançável foi delimitada, então `unused` é confiável), `unreliable` (uma chave listada ainda pode estar em uso; `unreliableBecause` nomeia cada motivo com a sua contagem e os seus pontos) ou `not-run` (nada é listado; `reason` diz por quê):
+
+| Motivo | `status` | Quando |
+| --- | --- | --- |
+| `dynamic-keys` | `unreliable` | uma chave sem parte estática: `t(key)`, um template literal sem início estático ou uma concatenação |
+| `dynamic-key-prefix` | `unreliable` | um prefixo de `keyPrefix` ou de `getFixedT` que não é uma string estática |
+| `trans-without-key` | `unreliable` | um elemento `Trans` sem um `i18nKey` estático |
+| `aliased-translate-function` | `unreliable` | `t` atribuído a qualquer coisa que não seja uma variável simples, como `this.tr = t` |
+| `translate-function-escapes` | `unreliable` | uma função de tradução usada em qualquer lugar que não seja uma chamada direta, o seu binding, um alias local, `t={t}` em `Trans` ou `Translation`, ou um array de dependências de hook: `renderRow(t)`, `{ t }`, `return t`, `export default t` |
+| `unrecognised-translate-source` | `unreliable` | um `t` ou `$t` obtido de um jeito que a varredura não modela, como um hook wrapper que retorna `useTranslation(...)`, opções de hook montadas com um spread ou o resultado exportado de um `getFixedT` |
+| `template-files-not-scanned` | `unreliable` | arquivos `.vue`, `.svelte`, `.html`, `.htm`, `.astro`, `.hbs`, `.handlebars`, `.ejs`, `.pug`, `.njk`, `.liquid` ou `.mdx` sob os diretórios-raiz (os 20 primeiros são listados, todos são contados) |
+| `incomplete-scan` | `unreliable` | um arquivo grande demais, ilegível ou que não pode ser lido até o fim (também um elemento JSX sem fechamento ou uma string entre aspas que corre até o fim da linha), ou um diretório que não pode ser listado |
+| `EXTRACT_NOT_CONFIGURED` | `not-run` | nenhum bloco `extract` |
+| `EXTRACT_FS_UNSUPPORTED` | `not-run` | o sistema de arquivos de quem chama pelo SDK não consegue listar diretórios |
+| `FRAMEWORK_NOT_MODELED` | `not-run` | o formato é `next-intl-json`, `vue-i18n-json` ou `ngx-translate-json`, cujos runtimes a varredura não modela |
+| `NO_SOURCE_FILES` | `not-run` | não há nenhum arquivo de origem sob os diretórios-raiz |
+| `NO_REFERENCES_FOUND` | `not-run` | os arquivos varridos não nomeiam nenhuma chave e não têm nenhum ponto de chave dinâmica enquanto o catálogo não está vazio, o que costuma significar que os diretórios-raiz não alcançam o seu código |
+
+As formas reconhecidas de obter a função de tradução são `useTranslation(...)` desestruturado em um binding local, não exportado, com argumentos estáticos; um `i18n.getFixedT(...)` local com argumentos estáticos; uma chamada direta em um membro `t` (`i18n.t("key")`, `this.props.t("key")`) e o seu alias local; `<Translation>{(t) => ...}</Translation>`; `withTranslation("ns")(Component)` com `props.t(...)`; e `import { t } from "i18next"`. Toda variável ou membro chamado `t` ou `$t` é avaliado, então um `frame.t + 1` sem relação pode tornar um relatório não confiável. Em arquivos `.tsx`, `.jsx` e `.js`, o texto JSX e os valores de atributo entre aspas são lidos como marcação, nunca como código.
+
+Cada chave listada mostra a sua grafia decodificada (uma entrada `msgctxt` do gettext como `menu|Open`); o `--json` traz também o `catalogKey` como o adaptador o escreve. Uma chave usada só fora do código-fonte varrido (um template de servidor, um CMS) pertence a [`extract.unused.ignore`](/pt-BR/docs/config-file#extract): um padrão corresponde à chave decodificada, e uma chave que corresponde é listada em `ignored`, nunca descartada.
+
+### Chaves protegidas
+
+<AvailableFrom version="0.12.0" />
+
+As chaves ausentes e alteradas que o `translate` deixaria para uma pessoa (uma pessoa escreveu, importou ou alterou o valor fora do verbatra, ou a chave corresponde a `pinnedKeys`) são listadas de novo em `protected`; veja [Manter traduções humanas](/pt-BR/docs/protecting-human-translations). Elas continuam em `add` e `re-translate`, porque ainda estão pendentes. Quando o `verbatra.provenance.json` está corrompido ou vem de um verbatra mais novo, só as chaves fixadas são listadas.
+
+### Saída JSON
+
+Schema: o [`diff-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/diff-envelope.json) valida o envelope inteiro (o objeto JSON da resposta); [Schemas](/pt-BR/docs/cli/output#schemas) lista os demais.
+
+O `--json` imprime um envelope (veja [Saída JSON](/pt-BR/docs/cli/output#saída-json)) cujo `result` é um `DiffSummary`. `hasPendingChanges` é verdadeiro exatamente quando o comando termina com `1` por chaves pendentes:
+
+```ts
+interface DiffSummary {
+  hasPendingChanges: boolean;
+  locales: LocaleDiff[];
+  unused?: UnusedKeysReport;   // só com --unused
+}
+
+interface LocaleDiff {
+  locale: string;
+  missing: string[];           // seria adicionada
+  changed: string[];           // seria retraduzida
+  orphaned: string[];          // só é relatada
+  emptySource?: string[];      // valor de origem vazio: nunca pendente
+  hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
+  changedOrigins?: Record<string, KeyOrigin>; // ausente quando o arquivo de procedência não pode ser lido
+  protected?: string[];        // chaves pendentes que o translate deixaria de lado
+}
+```
+
+### Retorno no terminal
+
+<AvailableFrom version="0.12.0" />
+
+O `diff` mostra uma linha enquanto trabalha (`diffing and scanning the source`, com uma contagem de arquivos em andamento sob `--unused`) e sugere o próximo comando:
+
+```text output
+verbatra: diffing the locales... done (0.8s)
+next: verbatra translate (send the pending keys to your provider)
+```
+
+Quando toda chave pendente está protegida, ele sugere `verbatra studio`; sob `provider: { id: "none" }`, sugere `verbatra export`. Essas linhas vão para o stderr, e o `--quiet` as suprime. Veja [Saída no terminal](/pt-BR/docs/cli/output#saída-no-terminal).
+
+## Códigos de saída
+
+| Código | Significado |
+| --- | --- |
+| `0` | nenhum locale tem uma chave a adicionar ou retraduzir, e nenhuma varredura `--unused` completa encontrou uma chave não usada |
+| `1` | pelo menos um locale tem uma chave ausente ou alterada, ou uma varredura `--unused` com status `complete` encontrou uma chave não usada |
+| `2` | não conseguiu executar: um erro que afeta a execução inteira, um valor de `--locales` não configurado (`UNKNOWN_LOCALE`) ou um erro de uso, como uma lista `--locales` vazia (`INVALID_LOCALES`) |
+
+As chaves órfãs, as possivelmente dinâmicas e as ignoradas, assim como um relatório `unreliable` ou `not-run`, nunca causam `1` sozinhas. Veja o contrato dos códigos de saída em [Códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída).
+
+## Veja também
+
+- O [`verbatra check`](/pt-BR/docs/cli/check) dá as contagens por locale por trás dessas listas.
+- O [`verbatra translate`](/pt-BR/docs/cli/translate) aplica as alterações pendentes; o `--prune` remove as chaves órfãs.
+- A página [Arquivo de configuração](/pt-BR/docs/config-file#extract) documenta o bloco `extract` e o `unused.ignore`.
+- [Executar o verbatra na CI](/pt-BR/docs/ci-and-exit-codes) mostra o `diff` em um pipeline.

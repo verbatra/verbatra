@@ -1,0 +1,89 @@
+---
+title: Configurar o verbatra com um agente de IA
+seoTitle: "Configurar o verbatra no projeto com um agente"
+description: "Um prompt curto para um agente de programação de IA adicionar o verbatra a um projeto que já tem i18n, com confirmação humana antes de qualquer gasto."
+type: tutorial
+---
+<StartHere />
+
+Esta página é para um projeto que já tem arquivos de locale versionados. Cole o **Prompt para agentes de IA** acima no Claude Code, no Codex, no Gemini CLI, no Cursor ou em qualquer agente que execute comandos de shell. Ele segue os passos abaixo e pergunta três coisas:
+
+- **Qual provedor** usar, a menos que o projeto deixe isso óbvio.
+- **A chave de API**: o agente deixa a variável dela em branco no `.env` para você preencher e nunca pede a chave de API.
+- **A autorização** antes do primeiro `translate` real, que gasta na hora.
+
+## Os passos que o agente segue
+
+Agente: siga estes passos em ordem e nunca pule a parada do passo 6.
+
+### 1. Inspecionar a configuração existente
+
+Antes de mudar qualquer coisa, encontre a biblioteca de i18n no `package.json` (como `i18next`, `vue-i18n` ou `next-intl`) e os arquivos de locale. Anote o locale de origem, cada locale de destino que já existe e o padrão de caminho com o placeholder `{locale}`, como `locales/{locale}.json`. [Escolher sua stack](/pt-BR/docs/pick-your-stack) associa cada stack ao seu id de formato e ao seu layout; [Formatos](/pt-BR/docs/formats) diz quais arquivos já precisam existir. JSON simples sem biblioteca de i18n: placeholders `{{name}}` indicam `i18next-json` e `{name}` de chave simples indica `vue-i18n-json`.
+
+### 2. Instalar a CLI
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+pnpm, yarn e bun também funcionam. Não aprove nenhum script de instalação, nem em `pnpm approve-builds` nem em `allowScripts` do npm: o verbatra não precisa de nenhum.
+
+### 3. Gerar a configuração e os arquivos do agente
+
+```bash
+npx @verbatra/cli init --provider <provider> --yes --json --agent
+```
+
+Pergunte à pessoa qual provedor usar, a menos que o projeto deixe isso óbvio. Nunca escolha um que gaste em um serviço com o qual a pessoa não concordou e nunca passe um valor de chave de API ao `init`. [Provedores](/pt-BR/docs/providers) lista os ids; `none` desativa a tradução automática. O `init` detecta o formato, o padrão de caminho e os locales, imprime um único envelope JSON (o objeto da resposta) e nunca faz perguntas. A flag `--agent` também grava uma seção do verbatra no `AGENTS.md` (ou no `CLAUDE.md`, quando ele é o único arquivo de instruções ou já contém a seção do verbatra) e adiciona o servidor MCP do verbatra, com os gastos desativados, à configuração de cada cliente que o `init` detecta, que é o `.mcp.json` do Claude Code quando o `init` encontra o Claude Code ou não encontra nenhum cliente; `result.agent.clients` lista os arquivos.
+
+| Código de saída e código de erro | Faça isto |
+| --- | --- |
+| `0` | Compare `result.config` com o passo 1, começando por cada entrada de `result.sources` que diga `default`; `result.config.files.localeStyle` só aparece quando os nomes dos arquivos não grafam os códigos de locale da forma como eles são escritos. Se algo estiver errado, execute de novo com o `--format`, `--path`, `--source` ou `--targets` correto, mais `--force`. |
+| `2`, `FORMAT_AMBIGUOUS` ou `LAYOUT_AMBIGUOUS` | Escolha entre os `candidates` e execute de novo com `--format` ou `--path`. Arquivos de namespace lado a lado: pare e pergunte à pessoa, porque uma configuração cobre um único padrão de arquivo. |
+| `2`, `MISSING_OPTIONS` | A mensagem nomeia todas as flags que ainda faltam. |
+| `2`, `CONFIG_EXISTS` | Diga à pessoa qual provedor a configuração existente usa e espere a confirmação dela. Depois execute `npx @verbatra/cli init --agent --json`, que mantém a configuração e adiciona só os arquivos do agente. Pergunte antes de passar `--force`. |
+
+[verbatra init](/pt-BR/docs/cli/init#provedores) documenta todas as flags.
+
+### 4. Deixar a chave de API com a pessoa
+
+Pule este passo para o provedor `none`. A variável da chave de API é `result.apiKeyEnvVar`; depois de `CONFIG_EXISTS` ela é `null`, então pegue o nome na verificação `api-key` que falhou em `npx @verbatra/cli doctor --json`. Copie `.env.example` para `.env`, ou crie o `.env` se o `init` não gravou nenhum exemplo, escreva o nome da variável nele com valor em branco e peça à pessoa que o preencha. Nunca escreva, invente nem peça um valor de chave de API. Siga em frente sem esperar.
+
+### 5. Verificar a configuração sem gastar
+
+```bash
+npx @verbatra/cli doctor --json
+npx @verbatra/cli check --json
+npx @verbatra/cli diff --json
+npx @verbatra/cli translate --dry-run --json
+```
+
+Nenhum destes comandos chama um provedor, precisa de chave de API ou grava um arquivo. Corrija no `verbatra.config.ts` toda verificação do `doctor` que falhar e que você consiga resolver; a verificação `api-key` só passa depois que a pessoa define a chave, então não fique repetindo essa verificação. Em `check` ou `diff`, o código de saída `1` (fora de sincronia) é esperado antes da primeira execução; só o código `2` indica um problema de configuração. Com o provedor `none`, `translate --dry-run` sai com `3` quando sobram chaves para um tradutor humano. Só as chaves ausentes de um destino são traduzidas, e uma string vazia conta como presente, então pergunte antes de apagar chaves com o valor fictício `""`.
+
+### 6. Parar e perguntar
+
+Resuma quantas chaves estão pendentes por locale e o que `translate --dry-run` relatou, depois pare. Uma execução real gasta na hora e não tem confirmação própria, então espere a autorização explícita da pessoa. Nunca use `--prune`, a menos que a pessoa tenha pedido.
+
+### 7. Traduzir depois da autorização
+
+```bash
+npx @verbatra/cli translate --json
+```
+
+Relate as listas `succeeded`, `partial` e `failed` do resumo. Um locale `partial` ou `failed` mantém o que deu certo.
+
+### 8. Fazer commit e conectar
+
+Faça commit de `verbatra.config.ts`, de `.env.example` se ele existir, do arquivo de instruções e dos arquivos de configuração de cliente do passo 3, de `verbatra.lock.json`, de `verbatra.provenance.json` assim que uma execução o gravar e dos arquivos de locale traduzidos. Nunca faça commit de `.env`, `.env.local`, `.verbatra-local/` nem de `verbatra.cache.json`; confirme que o `.gitignore` cobre todos eles.
+
+Depois peça à pessoa que reinicie o cliente e aprove o servidor `verbatra` do projeto. No Claude Code, não instale também o plugin do verbatra, que o registra duas vezes; `claude mcp list` mostra a conexão. Um cliente que o `init` não detectou usa a única entrada indicada em [Conectar um cliente MCP](/pt-BR/docs/connect-an-mcp-client).
+
+## Próximos passos
+
+<Cards>
+  <Card title="Conectar um cliente MCP" href="/pt-BR/docs/connect-an-mcp-client" description="A única entrada de que cada cliente além do Claude Code precisa e como deixar o agente gastar." />
+  <Card title="Receitas para agentes e scripts" href="/pt-BR/docs/agent-recipes" description="O envelope do --json e os códigos de saída em que os comandos deste prompt se apoiam, para montar seus próprios laços de agente." />
+  <Card title="Operar o Studio com um agente de navegador" href="/pt-BR/docs/agent-tools-in-studio" description="Outra interface, para operar um projeto já configurado a partir de uma aba do navegador em vez de um shell." />
+  <Card title="Início rápido" href="/pt-BR/docs/quickstart" description="O mesmo passo a passo de configuração, escrito para uma pessoa em vez de um agente." />
+  <Card title="O arquivo de lock e a procedência" href="/pt-BR/docs/the-lock-file" description="O detalhe completo do comportamento de segurança na adoção em que este prompt se apoia." />
+</Cards>

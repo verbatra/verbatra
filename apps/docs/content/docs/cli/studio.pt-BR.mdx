@@ -1,0 +1,110 @@
+---
+title: verbatra studio
+seoTitle: "verbatra studio: abre o painel local de revisão"
+description: "Inicia o Verbatra Studio, o painel local de tradução, para ver o projeto e processar a fila de revisão no navegador, com gastos desativados até você permitir."
+type: reference
+---
+Inicia o Verbatra Studio, um painel web local sobre o seu projeto: uma visão geral da cobertura, da última execução e do histórico de execuções com o custo <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />, o status das traduções e a lista de chaves, a fila de itens que precisam de revisão, o glossário e suas configurações resolvidas, ao vivo sobre os arquivos em disco, inclusive `.verbatra-local/run-history.jsonl`. Editar arquivos de locale e um glossário baseado em arquivo funciona de imediato; só o gasto com provedor precisa ser liberado, com `--allow-spend`.
+
+<AvailableFrom version="0.5.0" />
+
+## Sinopse
+
+```bash
+verbatra studio [flags]
+```
+
+## Exemplos
+
+```bash
+# inicia o Verbatra Studio na porta padrão
+verbatra studio
+
+# ativa as ações que chamam o provedor, em uma porta específica
+verbatra studio --allow-spend --port 6000
+
+# deixa um agente de navegador operar as ações de revisão
+verbatra studio --expose-agent-tools
+```
+
+## Flags
+
+| Flag | Argumento | Padrão | Efeito |
+| --- | --- | --- | --- |
+| `--port` | `<n>` | `5849` | escuta nesta porta; precisa ser um inteiro de 1 a 65535 |
+| `--allow-spend` | nenhum | desativado, ou `VERBATRA_STUDIO_ALLOW_SPEND` | permite que o Studio chame um provedor de tradução (retraduzir uma chave, traduzir alterações pendentes) |
+| `--expose-agent-tools` | nenhum | desativado, ou `VERBATRA_STUDIO_AGENT_TOOLS` | registra as ações de revisão do Studio como ferramentas WebMCP para que um agente de IA de navegador possa operá-las |
+| `--verbose` | nenhum | desativado | imprime também uma linha no stderr por requisição, com o token de sessão mascarado |
+
+Aceita também as [flags globais](/pt-BR/docs/cli#flags-globais) `--cwd` e `--config`.
+
+## Comportamento
+
+### A URL exibida
+
+Antes de iniciar, o `studio` carrega os [arquivos de ambiente](/pt-BR/docs/cli#arquivos-de-ambiente) e resolve sua configuração uma vez; um erro de configuração termina com código `2` antes de qualquer servidor iniciar. O Studio se vincula só a `127.0.0.1` e, assim que está escutando, imprime uma linha no stdout:
+
+```
+Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
+```
+
+Abra exatamente essa URL. O token só é aceito como `?token=` no primeiro carregamento de página: o servidor o confere, define um cookie de sessão HttpOnly e redireciona para `/`. Toda requisição seguinte precisa desse cookie. O token não é de uso único, então trate a URL como um segredo enquanto o Studio estiver em execução. Nada é impresso antes de a porta ser vinculada, então uma inicialização que falha nunca vaza um token.
+
+Uma falha ao vincular é relatada no stderr como `verbatra: error [<code>] <message>`: `PORT_IN_USE` quando outro processo ocupa a porta (passe `--port <n>` ou encerre esse processo), ou `BIND_FAILED` quando o socket subiu em um endereço diferente de `127.0.0.1`.
+
+Toda página é atualizada ao vivo quando um arquivo de locale, de lock, de procedência ou de limites muda (a notificação, ou toast, está descrita em [Traduzir alterações pendentes](/pt-BR/docs/review-in-studio#traduzir-alterações-pendentes)), e **Run history and cost** (histórico de execuções e custo) é relido quando o arquivo de histórico muda, a aba recupera o foco ou uma execução termina.
+
+### Navegação e links
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Overview** (visão geral), **Translations** (traduções), **Review** (revisão), **Glossary** (glossário) e **Settings** (configurações) são links no cabeçalho, com uma gaveta de menu abaixo de 1280 px de largura. A busca do cabeçalho abre a página **Translations** filtrada pelo que você digita, e o botão de tema alterna entre sistema, claro e escuro. **Translations** e **Review** guardam seu estado no endereço, então você pode criar links para elas: `#/translations?locale=de&status=missing&key=nav.title&q=text` (`status` pode se repetir) e `#/review?locale=de`.
+
+### O que ele exibe no stderr
+
+<AvailableFrom version="0.12.0" />
+
+A linha da URL é a única saída no stdout. Depois dela, o stderr informa quais recursos estão ativados e como ativar os que estão desativados:
+
+```text output
+verbatra: spend tools off (pass --allow-spend to retranslate from Studio)
+verbatra: agent tools off (pass --expose-agent-tools to register them)
+```
+
+Com `--allow-spend` e o provedor `none`, a primeira linha passa a ser `verbatra: spend tools off (provider none)`. Em um terminal interativo, ele acrescenta `verbatra: press Ctrl-C to stop` e imprime `verbatra: Studio stopped` depois do encerramento. `--verbose` repassa uma linha por requisição (como `GET / 200`, ou `POST /rpc status.check 200` nomeando o método RPC, nunca seus parâmetros); a própria linha de inicialização do Studio é sempre descartada. `--quiet` mantém só a linha da URL. Uma linha `verbatra: studio error: ...`, impressa quando uma ação em lote do painel para por um erro inesperado do servidor, sempre aparece, mesmo com `--quiet`. Veja [Saída no terminal](/pt-BR/docs/cli/output#saída-no-terminal).
+
+### Gastos e ferramentas de agente
+
+<AvailableFrom version="0.2.0" pkg="@verbatra/studio" />
+
+Sem `--allow-spend`, o Studio lê `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` recorre da mesma forma a `VERBATRA_STUDIO_AGENT_TOOLS`. Para as duas, `1`, `true`, `yes` ou `on` (sem diferenciar maiúsculas de minúsculas, ignorando espaços nas bordas) conta como ativado, e a flag sempre prevalece sobre a variável. Sem nenhuma das duas, o Studio nunca contata um provedor. O Studio carrega primeiro os [arquivos de ambiente](/pt-BR/docs/cli#arquivos-de-ambiente), então as duas variáveis podem ficar em `.env.local` ou `.env`.
+
+O gasto a partir de um agente exige as duas flags; nenhuma implica a outra. Uma configuração com `provider: { id: "none" }` desativa a tradução automática por política, então o Studio não permite gastos mesmo com `--allow-spend`, e a página **Settings** informa isso. Veja [Operar o Studio com um agente de navegador](/pt-BR/docs/agent-tools-in-studio) para o catálogo de ferramentas e o modelo de segurança.
+
+### Instalação
+
+O `@verbatra/studio` é um pacote à parte, carregado por uma importação dinâmica para que o resto da CLI funcione sem ele. Instale-o ao lado da CLI com `npm install --save-dev @verbatra/cli @verbatra/studio`. Sem ele, `verbatra studio` termina com código `2` e a mensagem:
+
+```
+Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: npm install --save-dev @verbatra/studio, or run both without installing with: npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio
+```
+
+Com o pnpm, essa instalação tem êxito, mas termina com código `1` e `ERR_PNPM_IGNORED_BUILDS` e deixa para trás um `pnpm-workspace.yaml` com uma escolha sem resposta; veja [Solução de problemas](/pt-BR/docs/troubleshooting) para a correção, que só precisa ser feita uma vez. O npm e o yarn não têm esse problema.
+
+## Códigos de saída
+
+| Código | Significado |
+| --- | --- |
+| `0` | encerrado normalmente por uma única interrupção (Ctrl-C ou SIGTERM) |
+| `1` | o encerramento falhou: fechar o servidor lançou um erro durante o desligamento |
+| `2` | não foi possível iniciar: um erro de configuração, `@verbatra/studio` não instalado, porta em uso ou um `--port` inválido (`INVALID_PORT`) |
+| `130` | encerrado à força por uma segunda interrupção enquanto o desligamento estava em andamento |
+
+Veja [Códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída) para o contrato que todo comando segue.
+
+## Veja também
+
+- [Revisar no Studio](/pt-BR/docs/review-in-studio) percorre as páginas **Overview** e **Translations**, a fila de revisão e a retradução com `--allow-spend`.
+- [Ver arquivos alterados no Studio](/pt-BR/docs/changes-in-studio) lista os arquivos de locale que diferem do último commit e as chaves que mudaram em cada um.
+- [Operar o Studio com um agente de navegador](/pt-BR/docs/agent-tools-in-studio) cobre `--expose-agent-tools` e a interface de ferramentas WebMCP.
+- [`verbatra check`](/pt-BR/docs/cli/check) e [`verbatra diff`](/pt-BR/docs/cli/diff) são os mesmos cálculos que o Studio mostra ao vivo.

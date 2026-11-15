@@ -1,0 +1,189 @@
+---
+title: Revisar no Studio
+seoTitle: "Revisar traduções automáticas no Verbatra Studio"
+description: Inicie o Verbatra Studio, percorra a fila de revisão, corrija entradas no lugar e retraduza chaves sinalizadas pelo painel local.
+type: how-to
+---
+Encontre traduções automáticas pendentes, corrija valores e aprove ou rejeite o que um provedor escreveu, no Verbatra Studio.
+
+Duas regras: **a edição local está sempre ativa** e **o gasto com provedores está sempre desativado**, a menos que você inicie o Studio com `--allow-spend`.
+
+## Iniciar o Studio
+
+```bash
+npm install --save-dev @verbatra/studio
+verbatra studio
+```
+
+Abra a URL que ele imprime, token incluído. [`verbatra studio`](/pt-BR/docs/cli/studio) cobre a porta, o token, as flags e a atualização ao vivo.
+
+## Ler a página Translations
+
+### Uma tabela de chaves
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+A página **Translations** (traduções) é uma única tabela com todas as chaves que precisam de atenção: ausentes, alteradas, órfãs, protegidas, na fila de revisão ou com falha em uma verificação de integridade. Cada linha mostra a chave, o texto de origem e um status por locale; escolha um locale para ver a tradução, o status e como o valor foi produzido. A busca também encontra chaves sincronizadas.
+
+### Detalhes da chave
+
+Clique em uma chave para abrir o editor dela, que lista o valor de cada locale com um indicador de integridade: os placeholders batem, uma incompatibilidade com os placeholders nomeados ou sintaxe de mensagem inválida. Também aparecem:
+
+| Detalhe | Mostra |
+| --- | --- |
+| **Inline markup mismatch** (incompatibilidade de marcação inline) | cada tag que a tradução removeu (`-`) ou acrescentou (`+`) <AvailableFrom version="0.5.1" pkg="@verbatra/studio" /> |
+| **ICU arms mismatch** (incompatibilidade de ramos ICU) | ramos de plural ou de `select` que não servem ao idioma de destino; valores da direita para a esquerda são renderizados nessa direção (veja [Idiomas da direita para a esquerda](/pt-BR/docs/language-support#idiomas-da-direita-para-a-esquerda)) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| Selo de procedência | quem escreveu cada valor, lido de [`verbatra.provenance.json`](/pt-BR/docs/the-lock-file#procedência-quem-escreveu-cada-valor), como **Machine** (máquina), **Human** (humano) ou **Edited outside verbatra** (editado fora do verbatra) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+### Filtrar por estado
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Chips ao lado da busca restringem a tabela por estado, incluindo **Review queue** (fila de revisão) e **Integrity problems** (problemas de integridade). **Copy as review report** (copiar como relatório de revisão) copia as chaves pendentes como Markdown para um pull request.
+
+### Editar com a barreira de integridade
+
+**Edit** (editar) abre o rascunho desse locale. Ao salvar, o valor passa pela [barreira de integridade](/pt-BR/docs/translation-safety#a-barreira-de-integridade); um valor que ela recusa não é gravado, e o motivo é exibido. Uma edição aceita grava o arquivo de locale e atualiza o arquivo de lock.
+
+#### Verificações do rascunho
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+O editor mostra a descrição da chave, os termos do glossário que seu rascunho usa ou deixa de usar e o tamanho dele em relação à origem e a `maxLength`. Ctrl ou Cmd com Enter salva.
+
+#### Definir um limite de tamanho
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Sob a linha de tamanho, **Set limit** (definir limite), **Change limit** (alterar limite) e **Remove limit** (remover limite) editam a entrada da chave em [`verbatra.limits.json`](/pt-BR/docs/config-file#maxlength), para todos os locales. O `maxLength` da configuração prevalece, somente leitura. Um arquivo inutilizável mostra o motivo e bloqueia o controle. Um limite é consultivo: as execuções de translate sinalizam um valor mais longo para revisão, e nada é bloqueado. O Studio só define limites para chaves de origem; um limite gravado para a chave própria de uma forma gerada continua valendo.
+
+#### Pré-visualizar mensagens ICU
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Com `next-intl-json` ou `arb`, um **ICU preview** (pré-visualização ICU) recolhido sob o rascunho o renderiza uma vez por ramo, no idioma e na direção do locale. Um exemplo digitado acrescenta uma linha quando chega a um ramo, ou uma nota caso contrário. Números e datas usam os dados de idioma deste computador, então seu app pode diferir.
+
+#### Ao lado da tabela
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+A partir de 1280 px de largura, o editor fica ao lado da tabela; abaixo disso, ele é uma gaveta. Sair da chave com edições não salvas pergunta se você quer salvar, descartar ou continuar editando; sair do Studio mostra a confirmação do próprio navegador.
+
+### Buscar e substituir
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Search and replace** (buscar e substituir) altera texto literal em valores traduzidos: escolha o texto, a substituição, a diferenciação de maiúsculas e minúsculas e os locales, revise até 1.000 ocorrências e aplique. Chaves fixadas e valores protegidos ficam de fora, a menos que você marque a caixa deles. Protegido significa que uma pessoa o escreveu, importou ou alterou fora do verbatra, ou qualquer valor enquanto `verbatra.provenance.json` não puder ser lido.
+
+## Percorrer a fila Review
+
+A página **Review** (revisão) lista todo valor que uma máquina escreveu e que ninguém aprovou: uma linha por locale e chave, com o texto de origem e a tradução completos, como o valor foi produzido e as [sinalizações de revisão](/pt-BR/docs/translation-safety#sinalizações-de-revisão) da última execução nesta máquina.
+
+<StudioScreenshot
+  shot="review"
+  alt="A página Review do Verbatra Studio com o chip Needs review pressionado, listando entradas em alemão; duas linhas têm motivos de revisão, Matches source text e Unusual length, ao lado da procedência Machine, e cada linha tem as ações Edit, Approve e Reject."
+  caption="A fila Review depois de uma execução, com as linhas sinalizadas mostrando seus motivos. O Studio vem nos temas claro e escuro; alterne a captura de tela para comparar."
+/>
+
+### Rótulos das sinalizações
+
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+Duas sinalizações de revisão aparecem como **Over length budget** (acima do orçamento de tamanho) e **Reused after source edit** (reutilizado após edição da origem).
+
+### Ações por linha
+
+<AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
+
+Filtre por locale ou texto e depois:
+
+- **Edit** abre o editor com barreira de integridade. Uma edição aceita limpa a linha.
+- **Approve** (aprovar) aceita o valor.
+- **Reject** (rejeitar) remove o valor para substituição, depois de uma confirmação.
+
+### Decisões salvas
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+As duas decisões são salvas em `verbatra.provenance.json`, sob as regras de [Decisões de revisão](/pt-BR/docs/the-lock-file#decisões-de-revisão). Uma aprovação também exige que o valor esteja em dia com a origem. Faça commit dos arquivos de locale, de lock e de procedência juntos; em um projeto XLIFF, edite em vez de rejeitar.
+
+### Uma fila para a equipe inteira
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+A fila é lida dos arquivos versionados, então um colega que os baixe também a vê. Um valor sai dela quando uma pessoa o aprova, rejeita, escreve ou importa; um valor aprovado que uma máquina reescreve volta.
+
+Os chips **Needs review** (precisa de revisão) e **Approved** (aprovado) alternam a lista e mostram contagens; a barra filtra pelo modo como o valor foi produzido; com um locale escolhido, **Approve all in** (aprovar tudo em) aprova tudo depois de uma confirmação. Para reprovar um pull request enquanto há traduções automáticas esperando, execute [`verbatra check --require-reviewed`](/pt-BR/docs/cli/check#exigir-traduções-revisadas) na CI.
+
+### Percorrer a fila pelo teclado
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Pressione `j` ou a seta para baixo para começar e depois:
+
+| Tecla | Ação |
+| --- | --- |
+| `j` ou seta para baixo | próxima entrada |
+| `k` ou seta para cima | entrada anterior |
+| `a` | aprovar a entrada destacada |
+| `r` | rejeitá-la (a confirmação ainda abre) |
+| `e` ou Enter | abri-la no editor |
+| `t` | retraduzi-la (só com `--allow-spend`; chama seu provedor) |
+| `x` | selecioná-la ou desmarcá-la para uma ação em massa |
+| `?` | mostrar ou ocultar a lista de atalhos |
+
+Os atalhos pausam enquanto você digita, na barra de filtros ou em uma caixa de diálogo.
+
+### Agir sobre várias entradas de uma vez
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Marque linhas (ou a caixa do cabeçalho para todas as linhas filtradas) e depois escolha **Approve selected** (aprovar selecionadas), **Reject selected** (rejeitar selecionadas) ou, com `--allow-spend`, **Retranslate selected** (retraduzir selecionadas). As falhas são listadas por causa e continuam selecionadas. Um lote tem no máximo 100 entradas para aprovar ou rejeitar, ou 20 para retraduzir.
+
+## Retraduzir uma chave sinalizada
+
+Inicie o Studio com os gastos liberados ([como os gastos são liberados](/pt-BR/docs/cli/studio#gastos-e-ferramentas-de-agente)):
+
+```bash
+verbatra studio --allow-spend
+```
+
+Um botão **Retranslate** (retraduzir) aparece em cada linha de **Review** e, para um valor com defeito de integridade, também no editor da chave. Ele faz uma única chamada ao provedor, passa o resultado pela barreira e deixa o novo valor na fila para aprovação. A partir de uma linha de **Review**, um valor escrito por uma pessoa nunca é substituído; no editor dele em **Translations**, escolha **Replace anyway** (substituir mesmo assim).
+
+## Traduzir alterações pendentes
+
+Quando um arquivo de locale de origem ou de destino muda enquanto o Studio está em execução, uma notificação (toast) mostra `Source changed` ou `Target changed: de` com as contagens de chaves. Com `--allow-spend`, a notificação de origem também oferece **Translate pending changes across all locales** (traduzir alterações pendentes em todos os locales), a execução que o `verbatra translate` faria.
+
+## Verificar a cobertura e a última execução em Overview
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+O Studio abre em **Overview** (visão geral): a cobertura de cada locale com o estado do arquivo de lock (veja [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file)), o histórico do git dos arquivos de locale e o uso de tokens da última execução, com o medidor de orçamento quando definido.
+
+**Run history and cost** (histórico de execuções e custo), logo abaixo, mostra em um gráfico o custo e os tokens das execuções mais recentes, acima de uma tabela, com a última cobertura conhecida de cada locale.
+
+<StudioScreenshot
+  shot="overview"
+  alt="A página Overview do Verbatra Studio com quatro números, Needs attention, Waiting for review, Avg coverage e Locales in sync, acima de uma tabela com a cobertura dos locales de, es e fr e links para as traduções e a fila de revisão de cada locale."
+  caption="A página Overview abre o Studio. Alterne a captura de tela para comparar os temas claro e escuro."
+/>
+
+## Manter o glossário em dia na página Glossary
+
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
+
+O **Glossary** (glossário) tem a própria página. Com um glossário em JSON, você pode buscar, adicionar, editar e remover termos. Remover um pede confirmação antes; edições não salvas pedem confirmação antes de você sair. Um glossário inline continua somente leitura.
+
+Uma edição no glossário muda o que a próxima execução recebe, nunca o texto já gravado; reinicie o Studio para que as retraduções dele também o usem.
+
+### Visão por locale
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+**Show translations for** (mostrar traduções de) alterna para a visão do [glossário](/pt-BR/docs/config-file#glossary) de um único locale: tradução, traduções proibidas e nota.
+
+## Veja também
+
+- [Operar o Studio com um agente de navegador](/pt-BR/docs/agent-tools-in-studio): o mesmo fluxo a partir de um agente de IA de navegador.
+- [Registrar evidências de tradução automática](/pt-BR/docs/provenance-evidence)
+- [Revisar e retraduzir](/pt-BR/docs/sdk/review) pelo SDK

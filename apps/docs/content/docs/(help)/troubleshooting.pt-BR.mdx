@@ -1,0 +1,269 @@
+---
+title: Solução de problemas
+seoTitle: "Solução de problemas: erros que o verbatra relata"
+description: "Sintomas, causas e correções dos erros que o verbatra realmente relata, cada um sob o seu código de erro, mais problemas de instalação do Studio e do MCP."
+type: reference
+---
+Cada entrada parte do que você vê e liga o código por trás dele a [Códigos de erro](/pt-BR/docs/error-codes),
+que lista todos os códigos com o significado, o código de saída e o próximo passo. Busque pelo código em
+`verbatra: error [CODE]`, nunca pelo texto da mensagem.
+
+Execute [`verbatra doctor`](/pt-BR/docs/cli/doctor) antes de passar entrada por entrada: ele verifica a configuração, o
+formato, o provedor, a variável da chave de API e o arquivo de origem de uma só vez, não gasta nada e
+funciona antes de o arquivo de locale de origem existir.
+
+## O pnpm bloqueia os scripts de instalação de uma dependência (ERR_PNPM_IGNORED_BUILDS)
+
+**Sintoma**: `pnpm add -D @verbatra/cli` imprime o resumo da instalação e depois sai com `1`:
+
+```
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@3.1.0, protobufjs@7.6.5
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+```
+
+O pnpm também grava no seu projeto um `pnpm-workspace.yaml` com uma escolha sem resposta:
+
+```yaml
+allowBuilds:
+  '@google/genai': set this to true or false
+  protobufjs: set this to true or false
+```
+
+Até você responder, todo comando pnpm seguinte nesse projeto falha do mesmo modo, inclusive
+`pnpm exec verbatra init`.
+
+**Causa**: o pnpm não executa os scripts de instalação de uma dependência de terceiros, a menos que você os permita.
+O `@google/genai` e o `protobufjs`, dependência transitiva dele, declaram esses scripts, e o SDK do Gemini é
+instalado seja qual for o provedor configurado, então todo caminho de instalação com o pnpm cai nisso. Nada no
+verbatra declara um script de instalação próprio, e o npm e o yarn instalam o mesmo pacote sem
+perguntar. A instalação em si foi concluída: `node_modules/.bin/verbatra` já funciona.
+
+**Correção**: responda à escolha uma vez. No modo interativo, execute `pnpm approve-builds` e não aprove
+nenhuma das entradas. No modo não interativo, que é o que você quer na CI, grave a resposta antes de instalar
+colocando isto no `pnpm-workspace.yaml` na raiz do projeto:
+
+```yaml
+allowBuilds:
+  '@google/genai': false
+  protobufjs: false
+```
+
+O verbatra não precisa desses scripts, e este repositório recusa os dois. Com a resposta definida,
+`pnpm add -D @verbatra/cli` sai com `0` e os comandos pnpm seguintes funcionam normalmente. As versões dos pacotes
+na mensagem acompanham a versão publicada; a correção não muda.
+
+## A configuração é inválida (CONFIG_INVALID)
+
+**Sintoma**: `The verbatra configuration is invalid: ...`, com um problema por campo.
+
+**Causa**: a configuração foi encontrada, mas falha na validação, por exemplo um `files.pattern` sem
+`{locale}`, um código de locale que não é BCP 47 (como `en_US`) ou uma opção desconhecida. Uma opção desconhecida
+recebe a nota `API keys are read from the environment, not the config`: o schema é estrito para que um
+segredo não se esconda em um arquivo versionado.
+
+**Correção**: corrija o campo que a mensagem nomeia; veja [Arquivo de configuração](/pt-BR/docs/config-file). Para
+`No verbatra configuration found...`, veja [`CONFIG_NOT_FOUND`](/pt-BR/docs/error-codes#config_not_found).
+Código: [`CONFIG_INVALID`](/pt-BR/docs/error-codes#config_invalid).
+
+## Nenhum adaptador para o formato (UNKNOWN_FORMAT)
+
+**Sintoma**: `No adapter is registered for format "..."`, seguido da lista de formatos aceitos.
+
+**Causa**: o `format` da configuração não é um id registrado. Um formato `custom:` não pode ser executado pela
+linha de comando, que não carrega nenhum plugin.
+
+**Correção**: use um id de [Formatos](/pt-BR/docs/formats). Para um formato `custom:`, execute pelo SDK com um
+registro de adaptadores que contenha o adaptador dele: veja [Escrever um adaptador de formato personalizado](/pt-BR/docs/custom-format-adapters). Código:
+[`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format).
+
+## O locale solicitado não está configurado (UNKNOWN_LOCALE)
+
+**Sintoma**: `Requested locale not in the configured target locales: ...`
+
+**Causa**: `--locales` (ou uma entrada `locales` do SDK) nomeia um locale que não está em `targetLocales`.
+Um filtro seleciona a partir da lista configurada; ele nunca acrescenta a ela.
+
+**Correção**: adicione o locale a `targetLocales` ou corrija o erro de digitação. Código:
+[`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale).
+
+## O arquivo de origem está ausente ou não pode ser analisado (SOURCE_UNREADABLE, SOURCE_INVALID)
+
+**Sintoma**: `The source locale file was not found at <path>.` ou `The source locale file at
+<path> could not be read: ...`
+
+**Causa**: `files.pattern` com o locale de origem preenchido não aponta para nenhum arquivo, ou o arquivo
+não pode ser analisado. O caminho é resolvido a partir da raiz do projeto, o diretório da configuração que a busca encontrou
+(ou o diretório de trabalho com `--config`), então um `--cwd` ou `--config` errado é uma causa comum, assim como um curinga: `files.pattern` é um caminho literal, não um glob (veja
+[Layouts de namespace](/pt-BR/docs/formats#layouts-de-namespace)).
+
+**Correção**: confira o caminho impresso. Para uma falha de análise, o `causeCode` nomeia o
+[código de erro do adaptador de formato](/pt-BR/docs/error-codes#adapter-error-codes). Códigos:
+[`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable),
+[`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid).
+
+## Chave de API ausente (PROVIDER_CONSTRUCTION_FAILED)
+
+**Sintoma**: `Failed to construct provider "anthropic": The ANTHROPIC_API_KEY environment variable
+is not set.` (ou a variável do seu provedor).
+
+**Causa**: a variável que a mensagem nomeia não está definida ou está vazia. As chaves de API vêm só do ambiente,
+nunca da configuração nem de uma flag.
+
+**Correção**: defina a variável e confirme com `verbatra doctor`. A CLI também a lê de
+[`.env.local` e `.env`](/pt-BR/docs/cli#arquivos-de-ambiente); o SDK não lê, então use
+`node --env-file=.env` no seu próprio script. Códigos:
+[`PROVIDER_CONSTRUCTION_FAILED`](/pt-BR/docs/error-codes#provider_construction_failed),
+[`MISSING_API_KEY`](/pt-BR/docs/error-codes#missing_api_key).
+
+## Limites de taxa, tempos limite e falhas de autenticação no meio da execução (RATE_LIMITED, TIMEOUT, AUTH_FAILED)
+
+**Sintoma**: a execução termina, mas algumas chaves são listadas em `providerFailures` com um
+aviso `SUB_BATCH_FAILED` que nomeia o código do provedor, e o comando sai com `1`.
+
+**Causa**: uma requisição ao provedor falhou depois que o provedor foi instanciado: HTTP 429, um tempo limite ou HTTP
+401/403.
+
+**Correção**: nada se perde; as chaves são retomadas na próxima execução. Execute de novo mais tarde para
+[`RATE_LIMITED`](/pt-BR/docs/error-codes#rate_limited), depois da espera que a mensagem indica, se indicar uma
+(uma cota diária esgotada), e um locale por vez com `--locales` quando a cota for restrita. Para um modelo lento, aumente
+[`requestTimeoutMs`](/pt-BR/docs/providers#tempo-limite-da-requisição) diante de
+[`TIMEOUT`](/pt-BR/docs/error-codes#timeout). [`AUTH_FAILED`](/pt-BR/docs/error-codes#auth_failed) não
+se resolve tentando de novo: substitua a chave de API.
+
+## O arquivo de lock está corrompido (LOCK_FILE_INVALID)
+
+**Sintoma**: `The lock-file at <path> is not valid JSON.`, `... has an unexpected shape.`,
+`... has version N ...` ou `... exceeds the maximum allowed size ...`
+
+**Causa**: o `verbatra.lock.json` foi editado manualmente, truncado, danificado em um merge ou gravado por uma
+versão incompatível. `translate` e `import` interrompem a execução inteira por causa dele, e os locales gravados
+antes da interrupção mantêm o que gravaram.
+
+**Correção**: restaure o arquivo a partir do controle de versão. Apagá-lo também elimina o erro, mas perde as
+linhas de base, então edições anteriores na origem deixam de ser vistas como obsoletas. Veja
+[O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file). Código:
+[`LOCK_FILE_INVALID`](/pt-BR/docs/error-codes#lock_file_invalid).
+
+## Não foi possível gravar um arquivo de locale (TARGET_UNWRITABLE)
+
+**Sintoma**: um locale falha com `Could not write the locale file locales/de.json (EACCES). ...`
+
+**Causa**: o arquivo ou o diretório dele não é gravável: permissões, um diretório ausente, um
+ponto de montagem somente leitura ou um disco cheio. A gravação passa por um arquivo temporário no mesmo diretório, então
+o diretório também precisa ser gravável.
+
+**Correção**: corrija o que o código de erro do sistema de arquivos indica e execute de novo. Só esse locale falha, e ele mantém o
+arquivo e a linha de base anteriores. Código: [`TARGET_UNWRITABLE`](/pt-BR/docs/error-codes#target_unwritable).
+
+## Outro processo detém a trava de escrita (LOCK_CONTENDED)
+
+**Sintoma**: `Could not acquire the write lock at <path>: another process is holding it. ...`
+
+**Causa**: outro `translate`, `watch`, `import` ou uma gravação do Studio detém a trava do locale. Uma trava
+deixada por um processo encerrado nesta máquina é recuperada automaticamente, então uma trava que persiste vem de
+outra máquina ou de um verbatra anterior à 0.12.0.
+
+**Correção**: espere a outra execução ou apague o arquivo de trava impresso se nenhum processo do verbatra estiver em execução
+em lugar nenhum. `--lock-timeout <seconds>` em [`translate`](/pt-BR/docs/cli/translate),
+[`watch`](/pt-BR/docs/cli/watch) e [`import`](/pt-BR/docs/cli/import) muda por quanto tempo uma execução espera. Código:
+[`LOCK_CONTENDED`](/pt-BR/docs/error-codes#lock_contended).
+
+## Chaves com pontos ou chaves YAML colidem (INVALID_STRUCTURE)
+
+**Sintoma**: `A literal dotted leaf key and a nested key path resolve to the same path.` ou, para YAML,
+`A mapping key is a map or sequence (expected scalar keys).`
+
+**Causa**: duas entradas em um arquivo resolvem para a mesma chave, como `"a.b"` ao lado de
+`a: { b: ... }`, ou uma chave YAML não tem forma de string. O verbatra recusa em vez de descartar uma delas.
+
+**Correção**: renomeie uma das chaves ou use uma chave YAML escalar. No arquivo de origem, isso chega dentro de
+`SOURCE_INVALID`. Código: [`INVALID_STRUCTURE`](/pt-BR/docs/error-codes#invalid_structure).
+
+## A execução parou antes de algumas chaves (orçamento de tokens)
+
+**Sintoma**: um aviso `BUDGET_TOKENS_EXCEEDED`; com `budgetBehavior: "stop"`, as chaves também são listadas
+em `budgetWithheld`.
+
+**Causa**: a execução atingiu `maxTokens` na configuração ou `--max-tokens` na execução. `"warn"` apenas
+informa um orçamento definido na configuração; `"stop"`, e `--max-tokens` seja o que a configuração disser, retêm toda chave ainda não tentada, e o locale termina `partial` ou
+`failed`.
+
+**Correção**: é a proteção funcionando: o que foi concluído é gravado, e as chaves retidas são traduzidas
+na próxima execução. Aumente o orçamento ou mude para `"warn"` para concluir em uma execução. Como o orçamento é
+contado está em [Segurança da tradução](/pt-BR/docs/translation-safety#o-orçamento-de-tokens). Código:
+[`BUDGET_TOKENS_EXCEEDED`](/pt-BR/docs/error-codes#budget_tokens_exceeded).
+
+## Uma tradução é retida por causa da marcação inline (incompatibilidade de integridade)
+
+**Sintoma**: uma chave é listada em `integrityMismatches` e mantém o valor anterior, ou o Studio
+mostra `Rejected: inline markup mismatch` com as tags problemáticas: `-<a href>` para uma tag que o
+candidato omitiu, `+<i>` para uma que ele inventou. `verbatra check --qa` informa o mesmo para valores
+que já estão em disco.
+
+**Causa**: o candidato não traz as tags inline da origem, ou as traz desbalanceadas ou
+mal aninhadas, então a barreira de integridade o recusa como um placeholder omitido.
+
+**Correção**: traduza a chave de novo, ou corrija o valor manualmente no Studio ou em uma pasta de trabalho; a mesma barreira julga
+os dois. O que é comparado, e as recusas que existem de propósito, estão em
+[Paridade da marcação inline](/pt-BR/docs/translation-safety#paridade-da-marcação-inline).
+
+## Studio: a porta já está em uso
+
+**Sintoma**: `port 5849 is already in use` (ou o valor do seu `--port`).
+
+**Causa**: outro processo, muitas vezes um Studio anterior, está usando a porta.
+
+**Correção**: encerre-o ou inicie o Studio em outra porta: `verbatra studio --port 6000`.
+
+## Studio: @verbatra/studio não está instalado
+
+**Sintoma**: `Verbatra Studio requires @verbatra/studio.`, seguido dos comandos de instalação.
+
+**Causa**: o Studio é um pacote separado que o comando `studio` carrega sob demanda.
+
+**Correção**: `npm install --save-dev @verbatra/studio` ou, para uma execução avulsa,
+`npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio`. Com o pnpm, veja primeiro
+[O pnpm bloqueia os scripts de instalação de uma dependência](#o-pnpm-bloqueia-os-scripts-de-instalação-de-uma-dependência-err_pnpm_ignored_builds).
+
+`npx @verbatra/cli` executa a CLI instalada no pacote da pasta atual, então execute-o na
+raiz do projeto (ou use `pnpm exec verbatra` em um subpacote do workspace); em qualquer outro lugar o npx baixa
+a CLI mais recente, que pode não corresponder ao seu `@verbatra/studio` ou `@verbatra/mcp` locais.
+
+## Studio: faltam as ações de retraduzir e traduzir
+
+**Sintoma**: a edição funciona, mas as ações de retraduzir e de traduzir pendentes não aparecem.
+
+**Causa**: o gasto com o provedor é liberado na inicialização, sob as regras de
+[Gastos e ferramentas de agente](/pt-BR/docs/cli/studio#gastos-e-ferramentas-de-agente), e sem ele as ações pagas
+não são registradas.
+
+**Correção**: reinicie com `verbatra studio --allow-spend`, a menos que o projeto seja
+somente humano (veja [Trabalhar sem tradução automática](/pt-BR/docs/human-only-workflow)). Veja [Revisar no Studio](/pt-BR/docs/review-in-studio).
+
+## MCP: @verbatra/mcp não está instalado
+
+**Sintoma**: `Verbatra's MCP server requires @verbatra/mcp.`, seguido dos comandos de instalação.
+
+**Causa**: o servidor MCP é um pacote separado que o comando `mcp` carrega sob demanda, então
+`npx -y @verbatra/cli mcp` sozinho nunca funciona.
+
+**Correção**: execute `npx -y @verbatra/mcp` ou instale `@verbatra/mcp` ao lado da CLI e execute
+`verbatra mcp` de novo. Com o pnpm, veja primeiro
+[O pnpm bloqueia os scripts de instalação de uma dependência](#o-pnpm-bloqueia-os-scripts-de-instalação-de-uma-dependência-err_pnpm_ignored_builds).
+
+## MCP: o tools/list de um agente nunca mostra `translation.retranslateEntry` nem `translation.translatePending`
+
+**Sintoma**: as ferramentas locais funcionam, mas as duas ferramentas pagas estão ausentes, e chamar uma delas falha como
+ferramenta desconhecida.
+
+**Causa**: o gasto é liberado na inicialização, sob as regras de [Ferramentas pagas](/pt-BR/docs/cli/mcp#ferramentas-pagas),
+e a lista de ferramentas não pode mudar por conexão, então as ferramentas pagas ficam de fora por completo.
+
+**Correção**: reinicie com `verbatra mcp --allow-spend`, a menos que o projeto seja
+somente humano (veja [Trabalhar sem tradução automática](/pt-BR/docs/human-only-workflow)).
+
+## Desfazer uma execução (sem código de erro)
+
+O verbatra não tem um comando para desfazer; o controle de versão é o caminho de recuperação. Reverta os arquivos de locale,
+o `verbatra.lock.json` e o `verbatra.provenance.json` juntos, nunca só os arquivos de locale. Veja
+[Desfazer uma execução](/pt-BR/docs/recovery-and-rollback).

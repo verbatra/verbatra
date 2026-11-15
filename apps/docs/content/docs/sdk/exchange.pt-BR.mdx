@@ -1,0 +1,248 @@
+---
+title: "Entrega e intercâmbio"
+seoTitle: "SDK: entrega por pasta de trabalho e TMX"
+description: "Pontos de entrada do SDK para importar e exportar pastas de trabalho e TMX, além de snapshots de arquivos de locale e dos caminhos de cada locale."
+type: reference
+---
+<SdkAnchorForward />
+
+## Snapshots de arquivos de locale
+
+Os blocos de construção de um observador de arquivos com atualização ao vivo, como o do Studio: capturar o estado de um arquivo de locale e depois contar o que mudou desde então.
+
+### readLocaleFileSnapshot
+
+<AvailableFrom version="0.5.0" />
+
+Lê um arquivo de locale (o locale de origem ou qualquer locale de destino) e o reduz a um hash de conteúdo por chave. Um arquivo que ainda não existe é lido como um snapshot vazio, em vez de lançar um erro.
+
+```ts title="Assinatura"
+function readLocaleFileSnapshot(
+  input: ReadLocaleFileSnapshotInput,
+  deps?: ReadLocaleFileSnapshotDeps,
+): Promise<LocaleFileSnapshot>;
+```
+
+<SdkTypeTable name="ReadLocaleFileSnapshotInput" />
+
+**Retorna:** `LocaleFileSnapshot`
+
+**Lança:** [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision)
+
+Retorna `{ locale, hashes }`.
+
+### diffLocaleSnapshots
+
+<AvailableFrom version="0.5.0" />
+
+Compara dois snapshots do mesmo arquivo, tirados em momentos diferentes, e conta as chaves adicionadas, alteradas e removidas entre eles. Uma função síncrona simples: `diffLocaleSnapshots(previous, current)` retorna `{ added, changed, removed }`. Só contagens, nunca nomes de chaves.
+
+```ts title="Assinatura"
+function diffLocaleSnapshots(
+  previous: LocaleFileSnapshot,
+  current: LocaleFileSnapshot,
+): LocaleSnapshotDelta;
+```
+
+<SdkTypeTable name="LocaleFileSnapshot" />
+
+**Retorna:** `LocaleSnapshotDelta`
+
+## Caminhos de locale
+
+### createLocalePathResolver
+
+<AvailableFrom version="0.7.0" />
+
+Resolve o mapeamento de locale para caminho do projeto nos dois sentidos, a partir de `files.pattern`, dos locales configurados e de `files.localeStyle`. `createLocalePathResolver(cwd, config)` retorna `{ pathFor, localeFor }`: `pathFor(locale)` é o caminho absoluto do arquivo de um locale, e `localeFor(path)` é o locale dono de um caminho, ou `undefined` para um caminho que este projeto não possui, e sempre `undefined` para um formato de catálogo compartilhado, como `apple-xcstrings`. Todo ponto de entrada do SDK resolve caminhos por ele, então um observador ou painel construído sobre o SDK enxerga exatamente os caminhos que uma execução grava.
+
+```ts title="Assinatura"
+function createLocalePathResolver(
+  cwd: string,
+  config: LocalePathResolverConfig,
+): LocalePathResolver;
+```
+
+<SdkTypeTable name="LocalePathResolverConfig" />
+
+**Retorna:** `LocalePathResolver`
+
+**Lança:** [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision)
+
+Toda verificação é feita quando o resolvedor é criado, antes de qualquer arquivo ser lido: um padrão e um estilo que não podem ser combinados, ou um locale para o qual o estilo não tem grafia correta, lançam `LOCALE_LAYOUT_INVALID`, e dois locales que resolvem para o mesmo caminho lançam `LOCALE_PATH_COLLISION`.
+
+### localeWatchPaths
+
+<AvailableFrom version="0.13.0" />
+
+Nomeia os arquivos de que um observador precisa: o arquivo de cada locale configurado com os arquivos ao lado dele que guardam parte dos seus dados (o arquivo `.stringsdict` de `apple-strings`), e os arquivos que o git reescreve em um commit, uma troca de branch, um reset ou uma operação de staging. Somente leitura; a parte do git é consultada pelo `execFile` injetável, com as salvaguardas de [`localeGitStatus`](/pt-BR/docs/sdk/review#localegitstatus).
+
+```ts title="Assinatura"
+function localeWatchPaths(
+  input: LocaleWatchPathsInput,
+  deps?: LocaleWatchPathsDeps,
+): Promise<LocaleWatchPathsResult>;
+```
+
+<SdkTypeTable name="LocaleWatchPathsInput" />
+
+**Retorna:** `LocaleWatchPathsResult`
+
+**Lança:** [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision)
+
+`locales` lista o locale de origem primeiro, cada um com seus `paths`. `git` é `{ available: true, paths }` com os caminhos absolutos do índice, de `HEAD` e do reflog de `HEAD` desta worktree, ou `{ available: false, reason }` fora de uma worktree legível; os arquivos de locale são listados nos dois casos.
+
+## O par da pasta de trabalho
+
+A entrega ao tradutor, como uma pasta de trabalho do Excel ou como texto delimitado; veja [Tradução manual](/pt-BR/docs/manual-translation).
+
+### exportWorkbook
+
+<AvailableFrom version="0.2.0" />
+
+Grava as strings que ainda precisam de tradução (chaves ausentes e alteradas por locale; adicione as inalteradas com `includeUnchanged`) em uma pasta de trabalho `.xlsx` formatada. As linhas carregam a mesma sinalização de revisão que uma execução de tradução calcula. Nenhuma chamada a provedor, nenhuma gravação no arquivo de lock.
+
+```ts title="Assinatura"
+function exportWorkbook(
+  input: ExportWorkbookInput,
+  deps?: ExportWorkbookDeps,
+): Promise<ExportWorkbookResult>;
+```
+
+<SdkTypeTable name="ExportWorkbookInput" />
+
+**Retorna:** `ExportWorkbookResult`
+
+**Lança:** [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/pt-BR/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`EXPORT_OUTPUT_CONFLICT`](/pt-BR/docs/error-codes#export_output_conflict), [`EXPORT_UNWRITABLE`](/pt-BR/docs/error-codes#export_unwritable)
+
+**Exemplo:** [O ciclo de ida e volta da pasta de trabalho](/pt-BR/docs/programmatic-api#o-ciclo-de-ida-e-volta-da-pasta-de-trabalho)
+
+`format` é `xlsx` por padrão; `csv` e `tsv` gravam um `<locale>.csv` ou `<locale>.tsv` por locale, então `out` nomeia um diretório para eles (criado se não existir) e um caminho de arquivo para `xlsx`. `out` tem como padrão `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) ou, para os formatos delimitados e XLIFF, `DEFAULT_DELIMITED_PATH` (`verbatra-translations`), ambos exportados como constantes. Os valores aceitos são exportados como `EXCHANGE_FORMATS` e o padrão como `DEFAULT_EXCHANGE_FORMAT`, então uma ferramenta que envolve o SDK pode validar um argumento de formato sem fixar a lista no código. Retorna `{ path, locales }`: o caminho absoluto gravado e uma contagem de linhas por locale.
+
+Antes de qualquer leitura, `EXPORT_OUTPUT_CONFLICT` recusa um `out` que resolve para fora de `cwd`, e um que, ou um arquivo que a exportação gravaria dentro dele, nomeia um arquivo de locale configurado, o arquivo de lock, o arquivo de procedência, o cache da memória de tradução, um arquivo que o verbatra procura para a configuração, o arquivo de `configPath` ou o arquivo de `glossaryPath`, comparados sem diferenciar maiúsculas de minúsculas e, quando `deps.fs` implementa `realpath` como o padrão faz, de novo depois que os links simbólicos são resolvidos. Um caminho `xlsx` também é recusado quando não nomeia nenhum arquivo (inclusive um que termina com separador de caminho) ou nomeia o próprio `cwd`; um diretório de `csv`, `tsv` ou XLIFF pode ser `cwd`. Uma gravação que falha, porque o diretório não permite escrita, há um diretório ou arquivo ocupando o caminho ou o disco está cheio, lança `EXPORT_UNWRITABLE` nomeando o arquivo e o código do sistema de arquivos, com o erro do sistema de arquivos como `cause`.
+
+<AvailableFrom version="0.12.0" />
+
+`format: "xliff2"` e `format: "xliff12"` gravam um `<locale>.xlf` XLIFF 2.0 ou 1.2 por locale no diretório de `out`, para uma ferramenta CAT: uma unidade por chave, placeholders e marcação como códigos inline `<ph>` protegidos, a descrição e o significado da chave como notas, o hash de origem nos metadados da unidade e um estado de segmento a partir do estado no arquivo de lock e do estado de revisão (`initial` para uma chave ausente ou obsoleta, `translated` quando atualizada, `reviewed` quando aprovada). Os dois tipos são exportados, com `XliffFormat` nomeando os dois membros XLIFF de `ExchangeFormat`. Veja [Entregar a uma agência (XLIFF)](/pt-BR/docs/translation-agency).
+
+Cada unidade com destino também carrega seu valor de `origin`: o XLIFF 1.2 qualifica um destino de classe automática não aprovado com `state-qualifier="mt-suggestion"`, e o XLIFF 2.0 adiciona entradas `origin` e `review-state` ao grupo de metadados `verbatra` da unidade. O resultado então também traz `provenanceMarkers`: `"written"`, ou `"unavailable"` quando o arquivo de procedência não pôde ser lido e nenhum marcador foi gravado. Veja [Registrar evidências de tradução automática](/pt-BR/docs/provenance-evidence#marcadores-nas-exportações).
+
+### importWorkbook
+
+<AvailableFrom version="0.2.0" />
+
+Lê uma pasta de trabalho preenchida de volta para os arquivos de locale, executando as mesmas verificações de divergência da origem e de integridade que o `translate`. Só as linhas aceitas avançam a sua linha de base no arquivo de lock; uma linha em branco ou rejeitada continua sendo exportada de novo até ser realmente resolvida. Em uma entrega CSV, TSV ou xlsx, uma linha preenchida igual ao valor que uma chave atualizada já tem, e que passa na barreira de integridade, é deixada como está e relatada como `unchanged`, não traduzida <AvailableFrom version="0.13.0" />; veja [O que o import aceita](/pt-BR/docs/manual-translation#o-que-o-import-aceita).
+
+```ts title="Assinatura"
+function importWorkbook(
+  input: ImportWorkbookInput,
+  deps?: ImportWorkbookDeps,
+): Promise<RunSummary>;
+```
+
+<SdkTypeTable name="ImportWorkbookInput" />
+
+**Retorna:** [`RunSummary`](/pt-BR/docs/sdk/run-summary)
+
+**Lança:** [`LOCK_TIMEOUT_INVALID`](/pt-BR/docs/error-codes#lock_timeout_invalid), [`REVIEWER_INVALID`](/pt-BR/docs/error-codes#reviewer_invalid), [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`LOCK_FILE_INVALID`](/pt-BR/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/pt-BR/docs/error-codes#provenance_file_invalid)
+
+**Exemplo:** [O ciclo de ida e volta da pasta de trabalho](/pt-BR/docs/programmatic-api#o-ciclo-de-ida-e-volta-da-pasta-de-trabalho)
+
+Com `csv` ou `tsv`, `workbook` é um arquivo de intercâmbio ou o diretório que guarda um por locale, e o locale vem do nome do arquivo. Um arquivo terminado em `.csv` ou `.tsv` é lido nesse formato quando `format` é omitido, e um diretório no formato do seu manifesto de exportação ou dos seus arquivos de locale. Retorna o mesmo formato de `RunSummary` que o `translate` (com `needsReview` sempre vazio, já que nenhum provedor está envolvido). Uma planilha de um locale que não é um destino configurado faz esse locale falhar com `CONFIG_INVALID` como dado no resumo, não como um erro lançado.
+
+<AvailableFrom version="0.12.0" />
+
+`onLockWait` e `lockAcquireTimeoutMs` se comportam exatamente como no `translate`. `lockAcquireTimeoutMs` limita a espera pela trava de escrita de um locale, obtida antes de o arquivo desse locale ser gravado, e um locale ainda em disputa depois disso falha com `LOCK_CONTENDED` no próprio resumo enquanto os outros locales são importados. Registrar um arquivo gravado no arquivo de lock sempre permite o padrão de dez minutos. Uma simulação não obtém nenhuma trava, então nenhuma das duas opções se aplica a ela.
+
+<AvailableFrom version="0.12.0" />
+
+O `integrityRefusals` de cada locale nomeia as linhas que a barreira de integridade recusou, com o motivo e seus `details`, como cada ramo de ICU que não se encaixa no idioma de destino. Uma linha retida porque a origem dela mudou desde a exportação é listada somente em `integrityMismatches`. O `exportWorkbook` sinaliza uma tradução atual com os ramos errados como `icu-arms` nas suas colunas de revisão.
+
+<AvailableFrom version="0.12.0" />
+
+Com `xliff2` ou `xliff12`, qualquer um dos quais lê as duas versões, e por padrão para um caminho de `workbook` terminado em `.xlf` ou `.xliff`, todo código inline é resolvido de volta ao texto exato antes das mesmas verificações. Um destino igual ao valor atual não muda nada, uma unidade cujo id não nomeia nenhuma chave de origem é relatada em `malformedRows`, e uma unidade no estado `reviewed` ou `final` (1.2: `signed-off`, `final` ou `approved="yes"`) é registrada como aprovada no arquivo de procedência, nomeando `reviewer` quando informado (verificado como o de `approveEntry`, `REVIEWER_INVALID`), e relatada com o aviso `HANDOFF_REVIEWS_RECORDED`.
+
+## O par TMX
+
+<AvailableFrom version="0.11.0" />
+
+`importTmx` e `exportTmx` movem a memória de tradução (veja [O cache de tradução](/pt-BR/docs/the-cache)) para dentro e para fora do TMX, o formato de intercâmbio que as principais plataformas de tradução produzem e consomem. Nenhum dos dois instancia um provedor, lê uma chave de API nem faz uma chamada de rede: todo valor vem do arquivo ou da memória que já está em disco. Isto não é o par da pasta de trabalho em outro formato. O par da pasta de trabalho entrega a um tradutor humano uma fatia por locale do delta pendente; este par move a memória inteira como um único arquivo multilíngue entre ferramentas.
+
+### importTmx
+
+Lê um arquivo TMX para a memória do projeto.
+
+```ts title="Assinatura"
+function importTmx(
+  input: ImportTmxInput,
+  deps?: ImportTmxDeps,
+): Promise<ImportTmxResult>;
+```
+
+<SdkTypeTable name="ImportTmxInput" />
+
+**Retorna:** `ImportTmxResult`
+
+**Lança:** [`UNKNOWN_FORMAT`](/pt-BR/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/pt-BR/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/pt-BR/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/pt-BR/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision), [`MEMORY_UNWRITABLE`](/pt-BR/docs/error-codes#memory_unwritable)
+
+**Exemplo:** [O ciclo de ida e volta do TMX](/pt-BR/docs/programmatic-api#o-ciclo-de-ida-e-volta-do-tmx)
+
+Nada vindo do arquivo é considerado de confiança. O XML é analisado com as proteções do pacote de intercâmbio, então uma declaração de entidade, um subconjunto DTD interno, um arquivo grande demais ou um malformado é recusado com um erro estruturado `SOURCE_INVALID` em vez de ser analisado. Quando o problema tem um lugar no arquivo, a mensagem nomeia a linha, a coluna e, dentro de uma unidade de tradução, o ordinal da unidade começando em 1, e `tmxErrorLocation(error)` retorna o mesmo lugar como um `TmxErrorLocation`, ou `undefined` para qualquer outro erro, então você nunca faz cast do erro nem do seu `cause`. Uma tag de idioma é resolvida para um locale configurado por uma regra explícita: grafia exata depois de converter para minúsculas e trocar sublinhados por hifens; na falta dela, o locale configurado mais longo que é um prefixo de subtags da tag (busca da RFC 4647), ou então um locale configurado que estende a tag só por subtags de região ou de variante, nunca por uma de escrita, então duas tags cujas subtags de escrita ou de região diferem (`sr-Latn` e `sr-Cyrl`, `de-AT` e `de-CH`) nunca coincidem; e uma tag é relatada como ambígua só quando os locales que ela poderia alcançar não estão em uma única cadeia de prefixos. Segmentos de uma mesma unidade que resolvem para o mesmo locale, o locale de origem inclusive, nunca deixam o último prevalecer: uma tag exata tem precedência sobre uma correspondência por prefixo, e dois segmentos de mesma classificação com valores diferentes não guardam nada para esse locale e são contados como `conflicting` (para o locale de origem, a unidade é recusada e contada em `conflictingSourceUnits`). Toda tradução candidata passa então pela mesma barreira de placeholders, marcação inline, ICU, degeneração e vazio que a saída de um provedor e uma linha preenchida da pasta de trabalho já enfrentam, verificada quando o registro entra na memória, e não deixada para a execução que o lê depois.
+
+Quando uma unidade importada discorda de uma tradução que a memória já tem, a memória prevalece, a menos que `overwrite` esteja definido. As unidades são guardadas sob a impressão digital da configuração atual, a mesma chave que uma execução real grava, então deixam de corresponder quando o provedor, o modelo, o tom, os termos do glossário que o verbatra enviaria ou o `localeMap` do provedor mudam. Importar o mesmo arquivo duas vezes não muda nada na segunda vez.
+
+Retorna um relatório em vez de lançar um erro com dados danificados: quantas unidades foram lidas, uma contagem por locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `conflicting` e `rejected` por motivo, mais as unidades que foram puladas, não tinham segmento de origem, perderam marcação inline ou tiveram texto `sub` omitido (`subflowDroppedUnits`), e as tags de idioma que não corresponderam a nada ou corresponderam de forma ambígua. `memoryWritable` é falso quando o arquivo da memória foi gravado por um verbatra mais novo, caso em que ele é deixado intacto. As contagens por locale ainda são relatadas nesse caso, como em uma simulação, então `added` e `overwritten` descrevem o que teria sido gravado; com `memoryWritable` falso, nada foi.
+
+<AvailableFrom version="0.12.0" />
+
+Cada locale também lista seus `refusals`, um `TmxUnitRefusal` por unidade contada sob um motivo da barreira: `{ unit, reason, details? }`, em que `unit` é o ordinal da unidade no arquivo começando em 1 e `details` nomeia o que está errado, como cada ramo de ICU que não se encaixa no idioma de destino.
+
+### tmxErrorLocation
+
+Lê onde um arquivo TMX recusado deu errado a partir do que o `importTmx` lançou. Retorna um `TmxErrorLocation` (`{ line, column, unit? }`, todos começando em 1) para uma recusa `SOURCE_INVALID` que tem um lugar no arquivo, e `undefined` para qualquer outro erro, inclusive um arquivo ausente ou grande demais, então você nunca faz cast do erro nem do seu `cause`.
+
+```ts title="Assinatura"
+function tmxErrorLocation(
+  error: unknown,
+): TmxErrorLocation | undefined;
+```
+
+**Retorna:** `TmxErrorLocation | undefined`
+
+```ts title="Exemplo"
+import { importTmx, tmxErrorLocation, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
+
+### exportTmx
+
+Grava a memória como TMX 1.4b. `out` tem como padrão `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exportado como constante. Antes de a memória ser lida, `TMX_OUTPUT_CONFLICT` recusa um `out` que não nomeia nenhum arquivo (inclusive um que termina com separador de caminho), resolve para fora de `cwd` ou para o próprio `cwd`, ou nomeia um arquivo de locale configurado, o arquivo de lock, o arquivo de procedência, o cache da memória de tradução, um arquivo que o verbatra procura para a configuração, o arquivo de `configPath` ou o arquivo de `glossaryPath`, comparados sem diferenciar maiúsculas de minúsculas e, quando `deps.fs` implementa `realpath` como o padrão faz, de novo depois que os links simbólicos são resolvidos. Uma gravação que falha, porque o diretório não permite escrita, há um diretório nesse caminho ou o disco está cheio, lança `TMX_UNWRITABLE` nomeando o arquivo e o código do sistema de arquivos. Só as entradas sob a impressão digital da configuração atual são gravadas, que é o mesmo conjunto que uma execução reutilizaria. As tags de idioma são gravadas na forma BCP 47 (`en_US` vira `en-US`), o que não muda como a memória é indexada. Uma memória vazia produz um arquivo válido e vazio, e não um erro.
+
+```ts title="Assinatura"
+function exportTmx(
+  input: ExportTmxInput,
+  deps?: ExportTmxDeps,
+): Promise<ExportTmxResult>;
+```
+
+<SdkTypeTable name="ExportTmxInput" />
+
+**Retorna:** `ExportTmxResult`
+
+**Lança:** [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/pt-BR/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/pt-BR/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/pt-BR/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision)
+
+**Exemplo:** [O ciclo de ida e volta do TMX](/pt-BR/docs/programmatic-api#o-ciclo-de-ida-e-volta-do-tmx)
+
+Retorna `{ path, units, locales, withoutSource, otherConfiguration?, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` conta as entradas deixadas de fora porque a memória não guarda texto de origem para elas, o que só acontece com entradas levadas adiante de um cache gravado antes de a memória guardar o texto de origem, `otherConfiguration` conta as entradas deixadas de fora porque estão guardadas sob outra impressão digital de configuração (um provedor, modelo, tom ou glossário anterior), uma vez por locale e hash <AvailableFrom version="0.13.5" />, e `illegalCharactersRemoved` conta os caracteres que o XML 1.0 não consegue representar e que foram removidos do texto dos segmentos.
+
+<AvailableFrom version="0.12.0" />
+
+Cada segmento de destino carrega `<prop type="x-origin">` (`machine`, `human`, `import` ou `unknown`, o tipo `TmxOrigin`) e um segmento `machine` também carrega `<prop type="x-review">` (`approved`, `unreviewed` ou `rejected`, o tipo `TmxReview`), derivados de toda chave cuja entrada no arquivo de lock nomeia a origem do segmento e cujo registro descreve exatamente o texto dele. `provenanceMarkers` é `"unavailable"` quando o arquivo de procedência ou o arquivo de lock não pôde ser lido, caso em que nenhum segmento carrega uma propriedade.

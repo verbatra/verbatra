@@ -1,0 +1,167 @@
+---
+title: verbatra extract
+seoTitle: "verbatra extract: encontra chaves no seu código"
+description: Varre o código-fonte do seu aplicativo em busca de pontos de chamada de tradução e adiciona as chaves novas ao arquivo de locale de origem.
+status: new
+type: reference
+---
+<AvailableFrom version="0.11.0" />
+
+Comece pelo seu código em vez de um arquivo de locale. O `extract` percorre os diretórios-raiz do código-fonte que você configura, encontra neles os pontos de chamada de tradução e adiciona toda chave que o arquivo de locale de origem ainda não tem. Isso torna o verbatra utilizável em um projeto que ainda não está internacionalizado, e não gasta nada: nenhum provedor, nenhuma chave de API, nenhuma requisição de rede.
+
+## Sinopse
+
+```bash
+verbatra extract [flags]
+```
+
+## Exemplos
+
+```bash
+# add every new key found in your source to the source locale file
+verbatra extract
+
+# preview the keys that would be added, write nothing
+verbatra extract --dry-run
+
+# machine-readable result for a CI step
+verbatra extract --json
+```
+
+## Flags
+
+| Flag | Argumento | Padrão | Efeito |
+| --- | --- | --- | --- |
+| `--dry-run` | nenhum | desativado | relata o que seria adicionado e não grava nada |
+
+Também aceita as [flags globais](/pt-BR/docs/cli#flags-globais) `--cwd`, `--config` e `--json`; os `roots` do `extract` são resolvidos a partir da [raiz do projeto](/pt-BR/docs/config-file#o-diretório-de-trabalho-e-o-env).
+
+## Comportamento
+
+### Configuração
+
+O `extract` é conduzido pelo [bloco `extract`](/pt-BR/docs/config-file#extract) da sua configuração. Uma execução sem ele falha com `EXTRACT_NOT_CONFIGURED` e código de saída `2`. Para `i18next-json`, o `verbatra init` grava o bloco como comentário na configuração gerada; descomente-o e ajuste `roots`. <AvailableFrom version="0.13.5" />
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/cli";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de", "fr"],
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+  extract: {
+    framework: "i18next",
+    roots: ["src"],
+  },
+});
+```
+
+### O que ele encontra
+
+O framework `i18next` lê as formas de chamada `t(...)`, `$t(...)` e `<object>.t(...)` em arquivos `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` e `.cts`, cada um também por meio de uma chamada opcional e de uma lista explícita de argumentos de tipo. A chave é o primeiro argumento; um valor padrão é o segundo argumento ou um campo `defaultValue` no objeto de opções:
+
+```ts
+t("nav.home");                              // key only, written with an empty value
+t("nav.away", "Away");                      // positional default
+t("nav.help", { defaultValue: "Help" });    // default on the options object
+t?.("nav.back");                            // optional call
+t<string>("nav.next");                      // explicit type argument
+```
+
+Comentários, strings e expressões regulares são reconhecidos, então um ponto de chamada dentro de um comentário ou um `t(` entre aspas dentro de uma string não é capturado. Uma chave e um valor padrão precisam ser, cada um, um literal completo: `t("user." + id)` é relatado como dinâmico, e um valor padrão concatenado adiciona a chave sem valor padrão em vez de um valor truncado. Uma chave com um segmento de caminho vazio (`t("user.")`, `t(".lead")`, `t("a..b")`) cairia sob um filho sem nome que seu aplicativo nunca lê, então também é relatada como dinâmica.
+
+### Namespaces ainda não são resolvidos
+
+Uma chave qualificada por namespace, como `t("common:nav.home")`, é relatada como dinâmica e nunca é gravada: uma configuração do verbatra endereça um arquivo de catálogo, então não há lugar para ela que signifique o que sua configuração do i18next significa. Se o seu projeto nomeia um namespace em todo ponto de chamada, a execução não adiciona nada. Hoje o `extract` é útil em um projeto que mantém um único namespace e escreve suas chaves sem o prefixo.
+
+### O que ele grava
+
+Só o arquivo de locale de origem, e só chaves realmente novas:
+
+- Uma chave que já está no catálogo mantém seu valor exatamente como está; o valor padrão de um ponto de chamada nunca sobrescreve uma edição.
+- Uma chave que o catálogo guarda apenas como formas de plural conta como presente: `t("cart.items", { count })` não adiciona nada ao lado de `cart.items_one` e `cart.items_other`, e a mesma regra vale para uma entrada `msgid_plural` do gettext e para um recurso `<plurals>` do Android. Em um formato que não marca formas de plural, como YAML, toda chave que termina em um sufixo de plural do i18next conta.
+- Uma chave do catálogo que nenhum ponto de chamada menciona é deixada como está. O `extract` nunca apaga; [`verbatra diff --unused`](/pt-BR/docs/cli/diff#chaves-de-origem-não-usadas) lista essas chaves.
+- Uma execução que não encontra nada novo não grava nada, então o arquivo continua idêntico byte a byte.
+- Um arquivo de locale de destino nunca é gravado. Execute [`verbatra translate`](/pt-BR/docs/cli/translate) depois para preencher as chaves novas. Uma chave adicionada com valor vazio é ignorada até você escrever o texto de origem dela, e a execução a nomeia com [`SOURCE_VALUE_EMPTY`](/pt-BR/docs/error-codes#source_value_empty).
+
+Catálogos `xliff` e `apple-xcstrings` nunca são criados do zero: crie primeiro o catálogo de origem (o `.xcstrings` no Xcode), e o `extract` passa a acrescentar a ele.
+
+### O que ele relata em vez de adivinhar
+
+Tudo o que a varredura não consegue resolver volta como dados, então um arquivo problemático nunca interrompe uma execução. Nenhum destes casos altera o código de saída.
+
+| Relatado como | Quando |
+| --- | --- |
+| `dynamic` | a chave não é uma string estática completa, ou escreve um caminho que o verbatra não consegue endereçar: uma variável, uma expressão de membro, um template literal com uma expressão, uma concatenação, uma chave qualificada por namespace ou um segmento de caminho vazio. Ela nunca é gravada. |
+| `conflicts` | uma chave aparece em dois pontos de chamada com valores padrão diferentes. Nenhum dos valores é gravado, então o catálogo nunca depende da ordem de percurso. |
+| `withoutDefault` | uma chave foi adicionada com valor vazio porque o ponto de chamada dela não tinha valor padrão. Preencha-a e depois traduza. |
+| `diagnostics` | um arquivo ou diretório não pôde ser lido até o fim: ele sumiu, passa do limite de 2.000.000 de bytes, a varredura falhou nele, ou um comentário, template literal, elemento JSX ou string não terminado fez o restante ser abandonado. O que foi lido antes desse ponto continua sendo relatado. |
+
+### Limites da varredura
+
+Nada fora dos `roots` configurados é lido. `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` e `coverage` são sempre ignorados, `extract.exclude` acrescenta nomes de diretório seus, e links simbólicos não são seguidos. O resultado traz apenas chaves, valores e locais de arquivo e linha, nunca o conteúdo de um arquivo de código-fonte.
+
+### Saída JSON
+
+Schema: [`extract-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/extract-envelope.json) valida o envelope inteiro (o objeto JSON da resposta); [Schemas](/pt-BR/docs/cli/output#schemas) lista os outros.
+
+Com `--json`, o [envelope](/pt-BR/docs/cli/output#saída-json) traz um resultado:
+
+```ts
+interface ExtractResult {
+  sourcePath: string;          // the source locale file, relative to the project root
+  scannedFiles: number;
+  added: { key: string; value: string; file: string; line: number }[];
+  existingKeys: number;        // keys found that were already in the catalog
+  withoutDefault: string[];
+  dynamic: { file: string; line: number }[];
+  conflicts: { key: string; values: string[]; locations: { file: string; line: number }[] }[];
+  diagnostics: { file: string; reason: "unreadable" | "too-large" | "unparseable" | "unreadable-directory" }[];
+  written: boolean;            // false for a dry run and for a run that added nothing
+  dryRun: boolean;
+}
+```
+
+### Retorno no terminal
+
+<AvailableFrom version="0.12.0" />
+
+O resumo vai para o stdout. No stderr, uma linha de spinner (indicador de progresso) conta os arquivos varridos; quando chaves foram adicionadas, uma dica sugere `verbatra translate` ou, depois de `--dry-run`, o mesmo extract sem a flag. `--quiet` descarta as linhas do stderr:
+
+```text output
+verbatra: scanning the source... done (0.6s)
+verbatra extract
+  42 files scanned, 18 keys already present
+  added 3 keys to locales/en.json
+  new keys (3):
+    nav.home  src/components/Nav.tsx:14
+    nav.away  src/components/Nav.tsx:15
+    cart.empty  src/routes/cart.tsx:31
+  dynamic keys (1):
+    src/routes/product.tsx:88
+next: verbatra translate (translate the new keys)
+```
+
+Cada lista mostra dez linhas e depois `and N more`. O resumo também pode listar `written with an empty value`, `conflicting defaults` e arquivos `skipped`; uma simulação diz `would add` e termina com `dry run, nothing written`.
+
+Veja [Saída no terminal](/pt-BR/docs/cli/output#saída-no-terminal) para cor, o spinner e as variáveis que os controlam.
+
+## Códigos de saída
+
+| Código | Significado |
+| --- | --- |
+| `0` | a varredura foi executada, qualquer que fosse o resultado |
+| `2` | não foi possível executar: um erro de uso, nenhum bloco `extract`, um formato que não pôde ser resolvido, um catálogo de origem que não pôde ser analisado ou um catálogo de origem que não pôde ser gravado |
+
+Não existe código de saída `1`: pontos de chamada dinâmicos e valores padrão em conflito são ocorrências, não falhas. Veja [Códigos de saída](/pt-BR/docs/cli/output#códigos-de-saída) para o contrato que todo comando segue.
+
+## Veja também
+
+- [Extrair chaves do código-fonte](/pt-BR/docs/extract-keys) percorre o fluxo do ponto de chamada até a chave traduzida.
+- [Arquivo de configuração](/pt-BR/docs/config-file#extract) documenta o bloco `extract`.
+- [`verbatra translate`](/pt-BR/docs/cli/translate) preenche os locales de destino quando as chaves novas existem.
+- [`verbatra types`](/pt-BR/docs/cli/types) declara as chaves para o TypeScript.
+- [`verbatra check`](/pt-BR/docs/cli/check) relata a divergência que as chaves novas criam.
+- No SDK, [`extract`](/pt-BR/docs/sdk/inspect#extract) expõe a mesma capacidade como `extract()`.

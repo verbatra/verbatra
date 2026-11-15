@@ -1,0 +1,162 @@
+---
+title: Estimar o custo antes de uma execução
+seoTitle: "Estimar o custo da tradução antes de executar"
+description: "Dimensione uma execução antes de gastar: conte as chaves em uma simulação, deixe o verbatra calcular requisições, tokens e custo e limite a execução aprovada."
+type: how-to
+---
+Use esta página antes da primeira execução em um projeto real, ou antes de qualquer execução que alguém precise aprovar. O verbatra não publica preços, porque os preços pertencem ao provedor e mudam sem aviso. Ele conta o que será cobrado de você e converte isso em dinheiro quando você informa os preços atuais do seu provedor.
+
+Em um projeto típico, a primeira execução é a que custa alguma coisa, e a seguinte custa quase nada, porque só as chaves alteradas são enviadas.
+
+## Contar o trabalho
+
+```bash
+verbatra translate --dry-run
+```
+
+```text output
+verbatra translate (dry run)
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+`would translate` é o número de chaves que uma execução real enviaria: as que faltam no arquivo de destino mais as que tiveram o texto de origem alterado. Uma simulação não instancia nenhum provedor, não lê nenhuma chave de API e não grava nada. Trate a contagem como um limite superior: ela ignora [o cache de tradução](/pt-BR/docs/the-cache), que atende strings repetidas de graça em uma execução real, e não une strings de origem idênticas, que uma execução real envia uma só vez.
+
+## Estimar o gasto
+
+<AvailableFrom version="0.11.0" />
+
+```bash
+verbatra translate --estimate
+```
+
+```text output
+verbatra translate (estimate)
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
+  estimate: 1200 keys in 24 requests, ~40944 input + ~30720 output tokens
+  estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
+  estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+`--estimate` implica `--dry-run`, então não gasta nada. Ele informa a unidade que o seu provedor cobra: tokens para um modelo de linguagem (LLM), caracteres de origem para o DeepL e o Google Cloud Translation, e nenhum custo de API para um servidor `openai-compatible` ou `libretranslate` auto-hospedado. Com `--json`, os mesmos números ficam em `result.estimate`, por locale e no total, para que um script possa barrar a execução com base neles.
+
+Para ver valores em dinheiro, consulte o preço atual do seu modelo na página de preços do próprio provedor:
+
+| Provedor | Cobrado por | Preços |
+| --- | --- | --- |
+| Gemini | tokens de entrada e de saída (há nível gratuito) | [Preços da API Gemini](https://ai.google.dev/gemini-api/docs/pricing) |
+| Anthropic | tokens de entrada e de saída | [Preços da Anthropic](https://platform.claude.com/docs/en/about-claude/pricing) |
+| OpenAI | tokens de entrada e de saída | [Preços da API OpenAI](https://developers.openai.com/api/docs/pricing) |
+| OpenCode | tokens de entrada e de saída | [Preços do OpenCode Zen](https://opencode.ai/docs/zen/) |
+| DeepL | caracteres de origem | [Preços da API DeepL](https://www.deepl.com/pro#api) |
+| Google Cloud Translation | caracteres de origem | [Preços do Cloud Translation](https://cloud.google.com/products/translate/pricing) |
+| openai-compatible, LibreTranslate | nada: o seu próprio servidor | sem custo de API |
+
+Depois, adicione-o à configuração com a data em que você o leu:
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  rates: {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      // placeholders: copy the current rates from https://ai.google.dev/gemini-api/docs/pricing
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 1, outputPerMillionTokens: 2 },
+    },
+  },
+});
+```
+
+Os preços acima são valores de exemplo, não preços reais. Todo número impresso a partir deles traz a data `asOf`, então uma tabela de preços antiga é visivelmente antiga. O verbatra nunca inventa um preço ausente nem imprime `0.00` para um modelo que não consegue precificar; ele indica a entrada que falta. Veja [`rates`](/pt-BR/docs/config-file#rates) para o formato das chaves de `rates.table` e as unidades.
+
+## Saber o que o número cobre
+
+A estimativa faz a aritmética que você faria manualmente:
+
+- **Requisições.** As chaves de cada locale são divididas em lotes de no máximo [`maxBatchSize`](/pt-BR/docs/config-file#maxbatchsize) (padrão `50`), uma requisição cada, mais os lotes que [`generatePlurals`](/pt-BR/docs/config-file#generateplurals) enviaria.
+- **Entrada.** Toda requisição a um LLM leva regras de sistema fixas (cerca de 550 tokens) e um schema da resposta (cerca de 100 tokens), depois as chaves, as descrições delas, o tom e o glossário completo do locale de destino. O prompt é medido serializando o payload que seria enviado, então um glossário grande é contado em toda requisição em que viaja.
+- **Saída.** Uma tradução ainda não existe, então ela é dimensionada como o texto de origem mais 50%, já que alemão, francês e russo costumam ser de um terço à metade mais longos que o inglês.
+- **Tokens.** Os caracteres são convertidos a cerca de quatro por token, o que serve para prosa em inglês; outras escritas são mais densas.
+
+Uma execução real em geral custa menos, pelos dois motivos que tornam a contagem da simulação um limite superior. Ela também pode custar mais, e a linha `estimate excludes` nomeia cada caso. Dois importam mais:
+
+- **Novas tentativas.** Uma requisição que falha é [tentada de novo](/pt-BR/docs/providers#novas-tentativas): até duas tentativas extras para Anthropic, OpenAI, OpenCode, `openai-compatible` e Gemini, cinco para o DeepL, nenhuma para o Google Cloud Translation e o LibreTranslate. Uma tentativa que chegou ao modelo é cobrada.
+- **Reparos.** Quando chaves voltam ausentes, o verbatra envia uma requisição de reparo, que leva de novo, por inteiro, as regras de sistema, o glossário e o tom.
+
+Planeje com o número; não o prometa como um teto. A estimativa também cobre apenas o `translate`: retraduzir uma entrada pelo Studio (veja [Revisar no Studio](/pt-BR/docs/review-in-studio)) ou por uma ferramenta de agente gasta por um caminho próprio.
+
+## Limitar a execução
+
+<AvailableFrom version="0.12.0" />
+
+Dê à execução aprovada um limite rígido um pouco acima da soma dos tokens de entrada e de saída da estimativa:
+
+```bash
+verbatra translate --max-tokens 80000
+```
+
+Uma requisição que ultrapassaria o teto fica retida em vez de ser enviada, e as chaves dela continuam pendentes para a próxima execução. Quando a configuração também define `maxTokens`, vale o menor valor. O DeepL, o Google Cloud Translation e o LibreTranslate não informam tokens, então o teto é aplicado contra a projeção do próprio verbatra para eles. Veja [Teto de tokens](/pt-BR/docs/cli/translate#teto-de-tokens) e [`maxTokens` e `budgetBehavior`](/pt-BR/docs/config-file#maxtokens-e-budgetbehavior) para um orçamento que vale para toda execução.
+
+## Calibrar com um locale
+
+O número exato vem de uma execução real. Traduza um locale e leia o uso:
+
+```bash
+verbatra translate --locales de
+```
+
+```text output
+verbatra translate
+  de: 400 translated, 0 unchanged, 18400 tokens (10800 in, 7600 out)
+  total: 18400 tokens (10800 in, 7600 out)
+1 succeeded, 0 partial, 0 failed
+```
+
+Multiplique pelo número de locales restantes. Com `--json`, os números são `usage.inputTokens` e `usage.outputTokens`. A execução gasta dinheiro de verdade, mas o trabalho é mantido: aquele locale está concluído.
+
+## Ver quanto custaram as execuções anteriores
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+A página **Overview** (visão geral) do Studio lista as execuções registradas com o custo delas, congelado quando a execução terminou, então uma mudança posterior em `rates` nunca o reescreve. Um montante é o número de tokens que o provedor informou vezes o preço registrado naquele momento. **Estimated** (estimado) é um número em caracteres de origem para um provedor que não informa uso. **At least** (no mínimo) é um limite inferior, porque um locale não informou tokens. **No rate** (sem preço) significa que nenhum preço correspondeu àquele modelo, e **unknown** (desconhecido) significa que chaves foram enviadas, mas nenhum token voltou; nenhum dos dois é gratuito. Os provedores auto-hospedados mostram **not billed** (não cobrado). O registro está documentado em [`runHistory`](/pt-BR/docs/sdk/history#runhistory); [Revisar no Studio](/pt-BR/docs/review-in-studio) mostra a página.
+
+## Provedores de tradução automática
+
+O DeepL e o Google Cloud Translation cobram caracteres de origem, não tokens, e o LibreTranslate conta caracteres de origem sem cobrar nada. O verbatra envia a eles o texto de origem com os placeholders como marcadores numerados curtos, sem regras de sistema, nomes de chaves nem JSON em volta. A estimativa conta apenas caracteres de origem. O DeepL não cobra as tags em volta dos marcadores; não está documentado se o Google cobra a marcação de span em volta deles. Um valor que esses provedores retêm ([`PLACEHOLDER_UNSUPPORTED`](/pt-BR/docs/error-codes#placeholder_unsupported)) não é enviado, então os caracteres enviados podem ficar abaixo do total bruto.
+
+### Google Cloud Translation
+
+<AvailableFrom version="0.10.0" />
+
+O Google Cloud Translation é contado como o DeepL: caracteres de origem na estimativa e um número projetado de tokens para um orçamento `maxTokens`, marcado como estimado no resumo da execução.
+
+## Estimar a partir de um agente
+
+Duas ferramentas de agente retornam o que `translate --estimate --json` imprime, para todos os locales ou um subconjunto, e nunca chamam um provedor:
+
+| Ferramenta | Onde |
+| --- | --- |
+| `translation.estimate` | o servidor MCP (veja [verbatra mcp](/pt-BR/docs/cli/mcp)) <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> |
+| `verbatra_translation_estimate` | as ferramentas de agente do Studio (veja [Operar o Studio com um agente de navegador](/pt-BR/docs/agent-tools-in-studio)) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+### Gastar dentro da estimativa
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Em seguida, `translation.translatePending` aceita os mesmos `locales` e um teto `maxTokens`. Veja [Estimar e depois gastar](/pt-BR/docs/cli/mcp#estimar-e-depois-gastar).
+
+## Por que a próxima execução custa menos
+
+Os números acima são o custo da primeira execução. Depois disso, o verbatra envia só as chaves ausentes ou cuja origem mudou desde a linha de base do arquivo de lock (veja [O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file)), e [o cache de tradução](/pt-BR/docs/the-cache) reutiliza traduções anteriores de strings idênticas. No dia a dia, você paga pelas strings que editou. Para testar de graça, use o nível gratuito do Gemini ou aponte o `openai-compatible` para um modelo local; veja [Provedores](/pt-BR/docs/providers).
+
+## Veja também
+
+- [`verbatra translate`](/pt-BR/docs/cli/translate): `--dry-run`, `--estimate`, `--max-tokens` e `--locales`.
+- [Arquivo de configuração](/pt-BR/docs/config-file#rates): `rates`, `maxTokens`, `budgetBehavior` e `maxBatchSize`.
+- [Provedores](/pt-BR/docs/providers): as opções de cada provedor e onde obter uma chave de API.

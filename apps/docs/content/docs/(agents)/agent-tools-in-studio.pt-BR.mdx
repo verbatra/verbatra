@@ -1,0 +1,130 @@
+---
+title: Operar o Studio com um agente de navegador
+seoTitle: "Operar o Verbatra Studio com um agente de IA"
+description: Registre as ações de revisão do Verbatra Studio como ferramentas WebMCP para que um agente de IA no navegador trabalhe na aba aberta e autenticada do painel.
+type: how-to
+---
+Use esta página para deixar um agente de IA no navegador, como o Gemini ou o Claude no Chrome, verificar divergências, percorrer a fila de revisão (no Studio, **Review queue**) e corrigir entradas na aba do Studio que você deixou aberta. Ela não serve para configurar o projeto nem para acesso remoto.
+
+Você precisa de:
+
+- o Studio em execução sobre o seu projeto ([Revisar no Studio](/pt-BR/docs/review-in-studio#iniciar-o-studio));
+- o Chrome 149 ou mais recente com `chrome://flags/#enable-webmcp-testing` ativado, ou um navegador com suporte nativo a WebMCP, em uma janela normal, não no modo headless.
+
+<Callout title="Experimental">
+O WebMCP é um recurso novo do navegador, atrás de uma flag, e a interface dele ainda pode mudar.
+</Callout>
+
+## Ativar as ferramentas
+
+```bash
+verbatra studio --expose-agent-tools
+```
+
+`VERBATRA_STUDIO_AGENT_TOOLS=1` faz o mesmo; [Gastos e ferramentas de agente](/pt-BR/docs/cli/studio#gastos-e-ferramentas-de-agente) mostra como a flag e a variável são resolvidas. Abra a URL impressa no navegador com WebMCP, e o agente daquela aba encontra as ferramentas.
+
+Para deixar o agente chamar o seu provedor, inicie o Studio também com `--allow-spend`.
+
+O agente lê todo valor sem ocultação, como a página o mostra, porque um agente na aba pode ler a página de qualquer forma. As exceções são as ferramentas de glossário e `verbatra_history_keyRevisions`: os valores delas passam pela ocultação de segredos, então um valor com o formato de uma chave de API volta substituído por `[REDACTED]`. Para manter valores longe de um agente, use o servidor MCP com [`--redact-values`](/pt-BR/docs/cli/mcp#redacted-values); para um projeto sob NDA (acordo de confidencialidade), veja [Studio e MCP](/pt-BR/docs/data-handling#studio-e-mcp).
+
+## Saber o que o agente pode chamar
+
+Cada ferramenta é uma ação do Studio com o prefixo `verbatra_`. As ferramentas de leitura são marcadas como somente leitura, as de escrita alteram apenas os seus arquivos locais e as ferramentas pagas só são registradas com `--allow-spend`.
+
+### Ferramentas de leitura
+
+| Ferramenta | O que faz |
+| --- | --- |
+| `verbatra_project_snapshot` | a configuração carregada, as `capabilities` e, em `capabilities.limits`, os limites de taxa de `retranslate`, `reviewDecision` e dos dois métodos de substituição de valores |
+| `verbatra_status_check` | cobertura por locale |
+| `verbatra_status_diff` | chaves ausentes, alteradas e órfãs por locale |
+| `verbatra_glossary_get` | o glossário resolvido, com os segredos ocultados |
+| `verbatra_lock_state` | o estado do arquivo de lock por locale |
+| `verbatra_history_list` | commits recentes nos arquivos de locale, com o nome do autor ([nunca o e-mail](/pt-BR/docs/data-handling#studio-e-mcp)) |
+| `verbatra_history_keyRevisions` | os commits de uma chave em um locale, com diffs por palavra e chaves de API removidas <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
+| `verbatra_key_integrity` | verificações de placeholder, marcação e ICU de uma chave, nos locales em que a origem dela mudou |
+| `verbatra_review_queue` | todo valor escrito por máquina que ninguém aprovou, a partir dos arquivos versionados <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_key_value` | a origem e o destino de uma chave, com quem escreveu o destino |
+| `verbatra_key_context` | a descrição, os termos do glossário e o `maxLength` de uma chave, e a verificação de um `draft` opcional <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_locale_values` | valores de chaves por locale de destino, 200 por página por padrão, filtrados por `locales`, `keys` ou `query` |
+| `verbatra_locale_integrity` | toda tradução que falha nas verificações de integridade <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_translation_estimate` | o que uma chamada para traduzir as pendências enviaria e quanto custaria, sem chamar um provedor |
+| `verbatra_usage_summary` | o uso de tokens da última execução, o orçamento e, se algum locale falhou ou parou no meio, `incomplete` <AvailableFrom version="0.7.5" pkg="@verbatra/studio" /> |
+| `verbatra_usage_history` | execuções registradas, das mais recentes às mais antigas, com tokens, custo e cobertura, apenas como contagens <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
+
+### Ferramentas de escrita
+
+| Ferramenta | O que faz |
+| --- | --- |
+| `verbatra_glossary_write` | altera um termo de um glossário baseado em arquivo <AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> |
+| `verbatra_review_approve` | registra a aprovação de um valor por uma pessoa identificada <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_review_reject` | registra a rejeição por uma pessoa identificada, removendo o valor |
+| `verbatra_translation_editEntry` | grava um valor pela barreira de integridade |
+
+### Ferramentas pagas
+
+| Ferramenta | O que faz |
+| --- | --- |
+| `verbatra_translation_retranslateEntry` | retraduz uma chave em um locale |
+| `verbatra_translation_translatePending` | traduz tudo o que está pendente, opcionalmente para alguns `locales` sob um teto `maxTokens` <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+`verbatra_key_integrity` retorna apenas os locales em que a origem da chave mudou, então uma lista vazia significa que nada precisava ser verificado. As linhas dela são mais planas que as do [`key.integrity`](/pt-BR/docs/cli/mcp#entradas-e-resultados) do servidor MCP. Só o servidor MCP tem `project.doctor` e `report.provenance`. `verbatra_locale_values` pagina como o `locale.values` do servidor MCP, com os mesmos `limit` e `cursor` ([Mais entradas e resultados](/pt-BR/docs/cli/mcp#mais-entradas-e-resultados)).
+
+## Conhecer as regras que as ferramentas seguem
+
+Toda chamada passa pelo próprio RPC de loopback autenticado do painel, com a mesma validação de entrada e a mesma barreira de integridade (veja [Segurança da tradução](/pt-BR/docs/translation-safety)): um valor que falha em uma verificação é recusado, não gravado.
+
+### Regras por chamada
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+- **Procedência**: a edição de um agente é registrada com `origin` `agent` e permanece na fila de revisão; uma edição no painel é `human`. As ferramentas de leitura informam quem escreveu cada valor ([O arquivo de lock e a procedência](/pt-BR/docs/the-lock-file#procedência-quem-escreveu-cada-valor)).
+- **Trabalho humano**: retraduzir recusa o valor de uma pessoa com `KEY_PROTECTED` (exceto com `humanEdits: "overwrite"`) e uma chave fixada com `KEY_PINNED`, e editar recusa uma chave fixada ([Manter traduções humanas](/pt-BR/docs/protecting-human-translations)).
+- **Decisões de revisão**: aprovar e rejeitar apenas repassam a sua decisão. Ambas exigem `reviewer`, o nome da pessoa, e `expectedValue`, o texto revisado; um valor alterado é recusado com `REVIEW_VALUE_CHANGED`.
+- **Sem ferramentas em massa**: **Approve selected** (aprovar selecionados), **Reject selected** (rejeitar selecionados), **Retranslate selected** (retraduzir selecionados), **Approve all in** (aprovar tudo em) e **Search and replace** (buscar e substituir) continuam exclusivos de pessoas.
+- **Estimar primeiro**: um locale desconhecido é recusado com `UNKNOWN_LOCALE` antes de qualquer gasto, e vale o menor entre o `maxTokens` da chamada e o da configuração ([Estimar o custo antes de uma execução](/pt-BR/docs/estimating-cost)).
+- **Limites de taxa**: em qualquer janela de um minuto, 20 retraduções, 20 edições, 20 gravações no glossário, 60 decisões de revisão e 5 chamadas para traduzir as pendências, uma de cada vez.
+
+## Ler uma chamada com falha
+
+Toda ferramenta retorna o envelope do painel (o objeto JSON da resposta), então uma falha aparece como `{ "ok": false, "error": { "code": ..., "message": ... } }`. Além dos códigos do próprio SDK, a camada de RPC adiciona:
+
+| Código | Significado |
+| --- | --- |
+| `REQUEST_INVALID` | a requisição ou a resposta não era um envelope legível |
+| `METHOD_UNKNOWN` | o método não existe nesta versão do Studio |
+| `SPEND_DISABLED` | um método pago enquanto os gastos estão desativados: o Studio está em execução sem `--allow-spend`, ou o provedor é `none`; a mensagem diz qual dos dois |
+| `PARAMS_INVALID` | um parâmetro falhou na validação; `issues` nomeia cada campo |
+| `METHOD_RATE_LIMITED` | acima do limite de taxa; `retryAfterSeconds` diz quando a chamada volta a caber no limite |
+| `BATCH_TOO_LARGE` | um lote excede uma janela inteira do limite de taxa; envie menos entradas |
+| `ALREADY_IN_PROGRESS` | uma segunda chamada para uma entrada ainda em andamento (HTTP 409) |
+| `SESSION_EXPIRED` | o Studio reiniciou com um novo token; abra a URL que ele imprimiu |
+| `INTERNAL` | um handler falhou com um erro inesperado (HTTP 500); a mensagem é genérica |
+
+## Corrigir ferramentas degradadas
+
+Se o navegador rejeita o registro das ferramentas, toda visualização mostra um alerta como:
+
+> Agent tools degraded: 2 of the agent tool registrations failed with SecurityError. The dashboard itself is unaffected. The browser console lists every failing tool.
+
+O console tem uma linha que nomeia cada falha:
+
+```text output
+Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+```
+
+Leia primeiro o nome do erro ali e depois recarregue a aba, o que registra as ferramentas de novo. Uma flag ausente ou um navegador sem WebMCP nunca mostra esse aviso: nesses casos nada é registrado, sem nenhuma mensagem. Uma sessão sem `--allow-spend` tenta registrar duas ferramentas a menos, o que não é uma falha.
+
+## Avaliar o risco de gastos
+
+As ferramentas não adicionam nenhuma exposição de rede: o Studio continua escutando apenas em `127.0.0.1`, toda requisição leva o token da sessão, e as ferramentas que retornam texto do projeto o marcam como não confiável, para que o agente o trate como dados.
+
+<Callout type="warn">
+Com `--allow-spend` e `--expose-agent-tools` juntos, um agente pode gastar no seu provedor sem uma confirmação por chamada, até os limites de taxa. O Studio não distingue a chamada de um agente do seu clique, então não adiciona nenhum diálogo de aprovação. Para apenas ler e editar, deixe `--allow-spend` desativado.
+</Callout>
+
+## Veja também
+
+- [Revisar no Studio](/pt-BR/docs/review-in-studio): o mesmo processo, feito manualmente.
+- [`verbatra studio`](/pt-BR/docs/cli/studio): todas as flags e o contrato de inicialização.
+- [Conectar um cliente MCP](/pt-BR/docs/connect-an-mcp-client#o-plugin-do-verbatra): o plugin traz a skill `verbatra-studio-agent-tools`, mas você mesmo inicia o Studio.

@@ -1,0 +1,61 @@
+---
+title: "Histórico de uma chave"
+seoTitle: "SDK: o histórico do git de uma chave de tradução"
+description: "Leia como a tradução de uma chave mudou de commit em commit, com o autor, a procedência do valor e uma diferença em nível de palavra."
+type: reference
+---
+<AvailableFrom version="0.13.0" />
+
+## Histórico do git de uma chave
+
+### keyHistory
+
+Lista os commits em que o valor de uma chave mudou em um locale de destino, do mais recente para o mais antigo, cada um com uma diferença em nível de palavra em relação ao valor anterior. Somente leitura; recebe um locale e uma chave, nunca um caminho, e executa `git log` e `git cat-file` por meio do `execFile` injetável.
+
+```ts title="Assinatura"
+function keyHistory(
+  input: KeyHistoryInput,
+  deps?: KeyHistoryDeps,
+): Promise<KeyHistoryResult>;
+```
+
+<SdkTypeTable name="KeyHistoryInput" />
+
+**Retorna:** `KeyHistoryResult`
+
+**Lança:** [`UNKNOWN_LOCALE`](/pt-BR/docs/error-codes#unknown_locale), [`UNKNOWN_KEY`](/pt-BR/docs/error-codes#unknown_key), [`LOCALE_LAYOUT_INVALID`](/pt-BR/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/pt-BR/docs/error-codes#locale_path_collision)
+
+Cada revisão do git traz `commit`, `authorDate`, `author` (o nome depois do `.mailmap`, nunca o e-mail), `subject`, `value`, `origin`, `sourceChanged` e `diff`. Caracteres de controle e de formatação bidirecional são removidos de `author` e `subject`, e as chaves de API reconhecidas neles são substituídas por `[REDACTED]` (uma antiga chave de API personalizada em um formato não reconhecido pode permanecer) antes de os textos serem cortados em 200 e 500 caracteres. Um texto que uma revisão do git revela ser uma chave de API (um `api_key=` antes de um UUID solto, por exemplo) também é substituído em qualquer outro lugar em que apareça na resposta, e `valueRedacted` é definido em todo valor que mudou desse modo. O `diff` lista segmentos `{ kind, text }` com `kind` igual a `equal`, `added` ou `removed`: placeholders e tags permanecem inteiros, uma mudança de espaço em branco aparece como mudança, e uma diferença grande demais para ser alinhada vira um trecho removido e um adicionado. O `origin` vem do arquivo de procedência como foi versionado com a revisão do git: um `origin` armazenado, `unrecorded` ou `external` quando o registro dele descreve outro valor, e ausente quando esse arquivo não pôde ser lido nem analisado, tem mais de 4 MiB, ou o tempo acabou antes. O `sourceChanged` compara o hash de conteúdo da entrada de origem atual da chave (seu texto, descrição, significado, indicador de plural e placeholders) com o hash que o arquivo de lock versionado registrou para a chave nesse locale: `true` quando diferem, `false` quando batem e `"unknown"` quando o arquivo de lock, sua entrada para a chave ou a entrada de origem atual está ausente, não pôde ser lida nem analisada, passa do limite, ou o tempo acabou antes. O `origin` é separado: ele compara o valor da revisão do git com o registro de procedência e fica ausente, não `"unknown"`, quando esse arquivo não pode ser usado. Restaurar um valor cuja entrada de origem mudou faz com que ele passe a contar como em dia.
+
+Todo valor e os dois lados de todo `diff` passam por `redact`. Um valor que continha uma chave de API volta com `[REDACTED]` no lugar dela e `valueRedacted: true`: não é o texto armazenado, então não o ofereça para restauração. Uma chave de API que não está mais configurada não pode ser reconhecida e é retornada como foi escrita.
+
+Os commits vêm de `git log --first-parent` no arquivo de locale (e no arquivo `.stringsdict` para `apple-strings`), então uma alteração trazida por um merge é listada no commit do merge. Cada arquivo é lido com `git cat-file blob` e analisado pelo adaptador embutido, e um commit só é listado se o valor da chave difere do commit imediatamente anterior no histórico do arquivo, que precisa ter sido lido. Um commit que remove a chave não é listado. Até `LOCALE_HISTORY_LIMIT_CAP` commits são examinados (`LOCALE_HISTORY_LIMIT_DEFAULT` por padrão), quatro arquivos são lidos por vez, e depois de `KEY_HISTORY_DEADLINE_MS` (`30000` milissegundos) nenhum outro commit é examinado e nenhuma leitura de arquivo de commit começa (o arquivo no disco ainda é lido); a chamada `git log`, uma listagem de tamanhos e uma leitura já em andamento mantêm o próprio limite de 10 s. O `truncated` é `true` quando algo que a chamada examinou foi ignorado, ficou ilegível, passou de um limite de tamanho, ultrapassou um orçamento ou foi interrompido pelo prazo, e `truncatedBy` diz o motivo, listando todas as causas que se aplicam, de `KEY_HISTORY_TRUNCATION_REASONS`: `commit-limit` (existem mais commits do que o `limit` examina), `shallow-clone`, `unreadable-revision`, `file-too-large`, `byte-budget`, `deadline`, `source-unreadable`, `records-unreadable` (um arquivo de lock ou de procedência) e `scrub-cap` (apareceram mais de 256 chaves de API distintas, uma chave com mais de 4.096 caracteres, ou chaves que somam mais de 65.536 unidades de código UTF-16; a ocultação não consegue cobrir todos os textos, então todo valor não vazio, segmento de `diff`, assunto e nome de autor vira `[REDACTED]`, texto vazio continua vazio e `valueRedacted` é definido em toda revisão do git). O `truncatedBy` fica vazio exatamente quando `truncated` é `false`, e o arquivo no disco só é relatado por `workingTreeUnreadable`. Um commit só é listado se o commit anterior a ele foi lido, então um commit cujo vizinho mais antigo não pôde ser lido não é apresentado como alteração da chave.
+
+Os tamanhos vêm do git antes de qualquer análise, então o mesmo repositório recebe as mesmas decisões de limite de bytes e de orçamento em qualquer máquina; uma chamada do git que excede o tempo limite, o prazo de 30 s e as chaves de API dos provedores no ambiente (que decidem o que é removido) ainda podem mudar uma resposta. Um arquivo de locale com mais de 512 KiB para `yaml` e os formatos XML (`xliff`, `android-xml`, `resx`, `apple-strings`) ou com mais de 4 MiB para os demais formatos é ignorado sem ser analisado, e os dois arquivos de um commit `apple-strings` contam como a soma deles. Uma chamada lê no máximo 16 MiB de arquivos de locale para `yaml` e os formatos XML e 128 MiB para os demais: commits mais antigos além disso não são examinados. Um arquivo de lock ou de procedência com mais de 4 MiB não é lido, e uma chamada lê no máximo 128 MiB deles juntos: além disso, as revisões do git mais antigas ficam sem `origin` e `sourceChanged` é `"unknown"`. O arquivo de origem é lido até o mesmo tamanho dos arquivos de locale. A análise cede o controle ao event loop entre um arquivo e outro. Um commit ignorado por causa do tamanho, que não pode ser lido nem analisado, cuja linha de log não foi analisada, ou cujo valor tem mais de `KEY_HISTORY_MAX_VALUE_CHARS` (`4096`) caracteres, conta em `unreadableRevisions` e nunca é retornado parcialmente; um commit além de um orçamento não é examinado e não conta. A `key` tem no máximo `KEY_HISTORY_MAX_KEY_CHARS` (`1024`) caracteres e nunca chega ao git. O `workingTree` traz o valor no disco, com seu `diff`, quando ele difere do `HEAD`. Quando o valor no disco não pode ser comparado com o `HEAD` (o arquivo não pode ser analisado, como durante um conflito de merge, é um link simbólico ou passa do limite, o valor é longo demais, a cópia no `HEAD` não pôde ser lida, ou o tempo acabou), as revisões do git ainda são listadas e `workingTreeUnreadable` é `true`.
+
+Renomeações não são acompanhadas, então o histórico anterior a uma renomeação não é listado; edições que nunca foram versionadas não são vistas, e uma chave renomeada na origem parece nova. As salvaguardas do git são as de `localeGitStatus`, e o resultado é `{ available: false, reason }` com um motivo de `LOCALE_GIT_UNAVAILABLE_REASONS`, inclusive `custom-adapter` para um formato `custom:`.
+
+## Histórico de execuções
+
+### runHistory
+
+Lê `.verbatra-local/run-history.jsonl`, onde cada execução de `translate`, `watch`, `retranslateEntry` e `retranslateEntries` que deixou um rastro adiciona um registro. Não grava nada, não chama nenhum provedor e não lança nada.
+
+```ts title="Assinatura"
+function runHistory(
+  input?: RunHistoryInput,
+  deps?: RunHistoryDeps,
+): Promise<RunHistoryResult>;
+```
+
+<SdkTypeTable name="RunHistoryInput" />
+
+**Retorna:** `RunHistoryResult`
+
+Os `records` vêm do mais recente para o mais antigo, no máximo `limit` deles (`RUN_HISTORY_DEFAULT_LIMIT` é 50, `RUN_HISTORY_MAX_LIMIT` é 200; qualquer outro valor é limitado a esse intervalo). Cada registro contém o horário, o `trigger` (`translate` ou `retranslate`), o provedor e o modelo, o `usage` de tokens, o `cost` e, por locale, as contagens de chaves traduzidas, acertos de cache, acertos aproximados, formas de plural geradas, chaves removidas, recusas por integridade e falhas do provedor. Um registro nunca contém o nome de uma chave nem um texto. Uma simulação não é registrada, nem uma execução que não deixou rastro, como um ciclo do `watch` sem nada a fazer; uma execução com falha ou recusada é registrada. O `entries` conta as entradas que um registro de retradução tentou, inclusive uma chamada ao provedor que falhou, e um lote de retraduções é um único registro. O arquivo mantém os 1.000 mais recentes.
+
+O `cost` é fixado quando a execução termina, a partir dos `rates` que a configuração tinha na hora. Um `pricing` `priced` acrescenta `currency`, `asOf` e `amount`; `no-rate-on-file`, `rate-unit-mismatch` e `no-usage` (chaves foram enviadas e o provedor não informou tokens) não trazem valor, o que significa desconhecido, não grátis; `not-billed` (o verbatra não precifica esse provedor: um servidor `openai-compatible` auto-hospedado ou LibreTranslate, ou `none`; um endpoint hospedado ainda pode cobrar de você) não traz nem um `amount` nem um `basis`, e traz `USAGE_PARTIAL` quando parte do uso não foi informada. O `basis` (um de `RUN_COST_BASES`) `usage` é a contagem de tokens do provedor. O `source-characters` é uma estimativa para o DeepL e o Google Cloud Translation, que não informam uso: os caracteres de origem das chaves enviadas, sem os acertos de cache, contando as chaves recusadas e não as com falha, com `caveats` nomeando o que ela deixa de fora. Um valor de `usage` com a ressalva `USAGE_PARTIAL` é um limite inferior, precificado ou não: um locale enviou chaves e não informou tokens, então o valor e a contagem de tokens cobrem só o que foi informado. Um locale que informou uso em alguns de seus sublotes, mas não em outros, não se distingue de um completo e não mostra nenhuma marca.
+
+Depois da execução, um `check` sobre os locales que ela tocou define a `coverage` de cada locale (`missing`, `stale`, `upToDate`). Um locale sem ela não foi medido, e `coverageUnavailable` informa que essa verificação falhou.
+
+O `unreadableRecords` conta as linhas deixadas de fora por não poderem ser lidas, e a próxima execução registrada reescreve o arquivo sem elas. O `unavailable` (um de `RUN_HISTORY_UNAVAILABLE_REASONS`: `unreadable` ou `too-large`, acima de 8 MiB) informa que o arquivo inteiro não pôde ser lido, então uma lista vazia não é prova de que nada foi executado. Um arquivo ilegível é deixado como está e nenhum registro é adicionado a ele, e uma linha que não é UTF-8 válido conta como um registro ilegível.
