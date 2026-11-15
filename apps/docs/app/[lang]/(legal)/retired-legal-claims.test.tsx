@@ -34,6 +34,7 @@ interface RetiredClaim {
   readonly claim: string;
   readonly pattern: RegExp;
   readonly sample: string;
+  readonly portugueseSample?: string;
 }
 
 const RETIRED_CLAIMS: readonly RetiredClaim[] = [
@@ -55,8 +56,10 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
   {
     claim: "German law requires the imprint in German",
     pattern:
-      /required by German law|nach deutschem Recht erforderlich|exige la ley alemana|l'exige la loi allemande/,
+      /required by German law|nach deutschem Recht erforderlich|exige la ley alemana|l'exige la loi allemande|exigido pela lei alemã|exigida pela lei alemã/,
     sample: "This legal notice (Impressum) is provided in German as required by German law.",
+    portugueseSample:
+      "Este aviso legal (Impressum) é fornecido em alemão, conforme exigido pela lei alemã.",
   },
   {
     claim: "commercial imprint basis under § 5 DDG",
@@ -88,8 +91,10 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
   {
     claim: "open-ended legal retention of contact enquiries",
     pattern:
-      /unless we are legally required to keep them|gesetzlich zur Aufbewahrung verpflichtet|la ley nos obligue a conservarlos|la loi nous oblige à les conserver/,
+      /unless we are legally required to keep them|gesetzlich zur Aufbewahrung verpflichtet|la ley nos obligue a conservarlos|la loi nous oblige à les conserver|a menos que a lei nos obrigue a mantê-los/,
     sample: "delete them once it has been handled, unless we are legally required to keep them",
+    portugueseSample:
+      "Os dados são excluídos após o atendimento, a menos que a lei nos obrigue a mantê-los.",
   },
   {
     claim: "consumer dispute resolution statement (§ 36 VSBG)",
@@ -100,8 +105,9 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
   {
     claim: "English privacy policy prevails over its translations",
     pattern:
-      /English version prevails|englische Fassung maßgeblich|prevalece la versión en inglés|version anglaise prévaut/,
+      /English version prevails|englische Fassung maßgeblich|prevalece la versión en inglés|version anglaise prévaut|a versão em inglês prevalece/,
     sample: "In case of any discrepancy, the English version prevails.",
+    portugueseSample: "Em caso de divergência, a versão em inglês prevalece.",
   },
   {
     claim: "repealed Telemediengesetz",
@@ -115,25 +121,30 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
   },
   {
     claim: "one-hour Arcjet retention",
-    pattern: /\b(one hour|einer Stunde|una hora|une heure)\b/,
+    pattern: /\b(one hour|einer Stunde|una hora|une heure|uma hora)\b/,
     sample: "Arcjet keeps this data for one hour",
+    portugueseSample: "A Arcjet retém esses dados por uma hora.",
   },
   {
     claim: "Arcjet as the only processor overall",
-    pattern: /only third-party processor|Der einzige beteiligte Auftragsverarbeiter/,
+    pattern:
+      /only third-party processor|Der einzige beteiligte Auftragsverarbeiter|único operador terceirizado/,
     sample: "Arcjet is the only third-party processor",
+    portugueseSample: "A Arcjet é o único operador terceirizado.",
   },
   {
     claim: "Umami collects no personal data",
     pattern:
-      /does not collect personal data|erhebt keine personenbezogenen Daten|no recopila datos personales|ne collecte pas de données personnelles/,
+      /does not collect personal data|erhebt keine personenbezogenen Daten|no recopila datos personales|ne collecte pas de données personnelles|não coleta dados pessoais/,
     sample: "Umami erhebt keine personenbezogenen Daten",
+    portugueseSample: "O Umami não coleta dados pessoais.",
   },
   {
     claim: "Umami writes nothing to the device",
     pattern:
-      /writes nothing to your device|schreibt nichts auf dein Gerät|ni escribe nada en tu dispositivo|n'écrit rien sur ton appareil/,
+      /writes nothing to your device|schreibt nichts auf dein Gerät|ni escribe nada en tu dispositivo|n'écrit rien sur ton appareil|não grava nada no seu dispositivo/,
     sample: "Umami sets no cookies and writes nothing to your device",
+    portugueseSample: "O Umami não define cookies e não grava nada no seu dispositivo.",
   },
   {
     claim: "local storage opt-out under umami.disabled",
@@ -142,31 +153,37 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
   },
   {
     claim: "Umami script running in the browser",
-    pattern: /Umami script|Umami-Skript|script de Umami|script Umami/,
+    pattern: /Umami script|Umami-Skript|script de Umami|script Umami|script do Umami/,
     sample: "When a page loads, the Umami script reads the page address",
+    portugueseSample: "Quando uma página carrega, o script do Umami lê o endereço da página.",
   },
   {
     claim: "site sets no cookies at all",
-    pattern: /sets no cookies|setzt keine Cookies|no establece cookies|ne dépose aucun cookie/,
+    pattern:
+      /sets no cookies|setzt keine Cookies|no establece cookies|ne dépose aucun cookie|não define cookies/,
     sample: "This site sets no cookies.",
+    portugueseSample: "Este site não define cookies.",
   },
   {
     claim: "logs kept only for a short period",
     pattern:
-      /only for a short period|nur für einen kurzen Zeitraum|solo durante un periodo breve|que pour une courte période/,
+      /only for a short period|nur für einen kurzen Zeitraum|solo durante un periodo breve|que pour une courte période|só por um curto período|apenas por um curto período/,
     sample: "Logs are stored only for a short period",
+    portugueseSample: "Os logs são armazenados apenas por um curto período.",
   },
   {
     claim: "every translation reviewed before publication",
     pattern:
-      /reviewed before publication|vor der Veröffentlichung geprüft|se revisa antes de publicarse|relu avant sa publication/,
+      /reviewed before publication|vor der Veröffentlichung geprüft|se revisa antes de publicarse|relu avant sa publication|revisada antes da publicação|revisado antes da publicação/,
     sample: "Each translation is reviewed before publication",
+    portugueseSample: "Cada tradução é revisada antes da publicação.",
   },
   {
     claim: "AI translation note given without a legal duty",
     pattern:
-      /not because a specific legal disclosure requirement|nicht weil dafür eine bestimmte gesetzliche|no porque se aplique una obligación legal|non parce qu'une obligation légale/,
+      /not because a specific legal disclosure requirement|nicht weil dafür eine bestimmte gesetzliche|no porque se aplique una obligación legal|non parce qu'une obligation légale|não porque um requisito legal específico/,
     sample: "not because a specific legal disclosure requirement applies",
+    portugueseSample: "Este aviso existe, não porque um requisito legal específico se aplique.",
   },
 ];
 
@@ -196,4 +213,17 @@ describe("legal pages: retired claim patterns", () => {
   it.each(RETIRED_CLAIMS)("catch the $claim wording", ({ pattern, sample }) => {
     expect(sample).toMatch(pattern);
   });
+
+  const PORTUGUESE_CLAIMS = RETIRED_CLAIMS.filter((entry) => entry.portugueseSample !== undefined);
+
+  it("covers the twelve claims with a per-language pattern in Portuguese", () => {
+    expect(PORTUGUESE_CLAIMS).toHaveLength(12);
+  });
+
+  it.each(PORTUGUESE_CLAIMS)(
+    "catch the Portuguese $claim wording",
+    ({ pattern, portugueseSample }) => {
+      expect(portugueseSample).toMatch(pattern);
+    },
+  );
 });

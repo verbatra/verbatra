@@ -36,6 +36,11 @@ const SPELLED_COUNTS = assertLocaleTable(
       counters: "种|个|款|项|类|条|家",
       nouns: "文件格式|格式|提供商|子命令|命令",
     },
+    "pt-BR": {
+      numbers:
+        "cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte",
+      nouns: "formatos|provedores|comandos|subcomandos",
+    },
   },
   "SPELLED_COUNTS",
   LOCALES,
@@ -131,6 +136,10 @@ describe("the spelled-count rule", () => {
     ["zh-CN", "它读取十四种内置格式。"],
     ["zh-CN", "其中七个 LLM 提供商共用一层。"],
     ["zh-CN", "命令行有十五个 CLI 命令。"],
+    ["pt-BR", "O verbatra lê catorze formatos e quinze comandos."],
+    ["pt-BR", "Ele aceita quatorze formatos de arquivo e oito provedores."],
+    ["pt-BR", "Ele aceita quatorze formatos e oito provedores."],
+    ["pt-BR", "Há dezesseis subcomandos."],
   ];
 
   it("has a flagged sample for every locale", () => {
@@ -152,6 +161,9 @@ describe("the spelled-count rule", () => {
     ["zh-CN", "运行 `verbatra check`，用 14 种文件格式和 8 个提供商的数字写法。"],
     ["zh-CN", "```\n十四种格式写在代码块里\n```"],
     ["zh-CN", "三个步骤之后，每家提供商都会回答。"],
+    ["pt-BR", "Onze chaves mudaram e dois formatos compartilham um parser."],
+    ["pt-BR", "Passe uma vez, e o provedor responde em sete segundos."],
+    ["pt-BR", "```\ncatorze formatos dentro de um bloco de código\n```"],
   ])("leaves a small or unrelated count alone in %s: %s", (locale, sentence) => {
     expect(spelledCounts(sentence, locale)).toEqual([]);
   });

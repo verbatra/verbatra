@@ -78,7 +78,7 @@ describe("the lock demo heading and counts", () => {
     },
   );
 
-  it.each(["es", "fr"] as const)(
+  it.each(["es", "fr", "pt-BR"] as const)(
     "%s puts the linking word after a million, and nothing at one",
     async (locale) => {
       const t = await translator(locale);
@@ -86,10 +86,10 @@ describe("the lock demo heading and counts", () => {
       const one = { count: 1, rest: 5 };
       for (const path of ["heading", "edit.text", "compare.text", "send.text", "foot.lock"]) {
         expect(t(path as never, { ...million, file: "f" } as never), `${locale} ${path}`).toMatch(
-          /1\D000\D000 de (claves|clés|valores|valeurs|hashes)/,
+          /1\D000\D000 de (claves|clés|valores|valeurs|hashes|chaves)/,
         );
         expect(t(path as never, { ...one, file: "f" } as never), `${locale} ${path}`).not.toMatch(
-          /\bde (claves|clés|valores|valeurs|hashes)/,
+          /\bde (claves|clés|valores|valeurs|hashes|chaves)/,
         );
       }
     },

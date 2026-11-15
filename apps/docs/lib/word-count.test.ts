@@ -8,12 +8,15 @@ import {
 } from "@/lib/word-count";
 
 describe("countWords", () => {
-  it.each(["en", "de", "es", "fr"])("counts whitespace separated words in %s", (locale) => {
-    expect(countWords("  one two\tthree\nfour  ", locale)).toBe(4);
-    expect(countWords("", locale)).toBe(0);
-    expect(countWords("   ", locale)).toBe(0);
-    expect(countWords("hash-based lock file.", locale)).toBe(3);
-  });
+  it.each(["en", "de", "es", "fr", "pt-BR"])(
+    "counts whitespace separated words in %s",
+    (locale) => {
+      expect(countWords("  one two\tthree\nfour  ", locale)).toBe(4);
+      expect(countWords("", locale)).toBe(0);
+      expect(countWords("   ", locale)).toBe(0);
+      expect(countWords("hash-based lock file.", locale)).toBe(3);
+    },
+  );
 
   it("counts a spaced language by whitespace even when the text holds CJK", () => {
     expect(countWords("北京 上海", "en")).toBe(2);

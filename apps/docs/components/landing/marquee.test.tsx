@@ -187,6 +187,11 @@ const SPELLED_COUNTS: Readonly<Record<Locale, SpelledCount>> = {
     counters: "种|个|款|项|类|条|家",
     nouns: "提供商|文件格式|格式",
   },
+  "pt-BR": {
+    numbers:
+      "um|uma|dois|duas|três|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte",
+    nouns: "provedor(?:es)?|formatos?",
+  },
 };
 
 function spelledCount(locale: Locale): RegExp {
@@ -291,6 +296,7 @@ describe("Marquee", () => {
     es: "Siete proveedores y catorce formatos de archivo.",
     fr: "Sept fournisseurs et quatorze formats de fichier.",
     "zh-CN": "支持七个提供商和十四种文件格式。",
+    "pt-BR": "Sete provedores e catorze formatos de arquivo.",
   };
 
   it.each(LOCALES)("flags a spelled-out or numeric count in %s", (locale) => {

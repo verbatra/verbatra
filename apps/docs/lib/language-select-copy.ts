@@ -6,4 +6,5 @@ export const LOCALE_DISPLAY_NAMES: Record<Locale, string> = {
   es: "Español",
   fr: "Français",
   "zh-CN": "简体中文",
+  "pt-BR": "Português (Brasil)",
 };

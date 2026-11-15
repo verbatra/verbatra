@@ -143,6 +143,7 @@ const NEXT_STEP_LABEL = assertLocaleTable(
     ".es": "Siguiente paso",
     ".fr": "Étape suivante",
     ".zh-CN": "下一步",
+    ".pt-BR": "Próximo passo",
   },
   "NEXT_STEP_LABEL",
 );
@@ -154,6 +155,7 @@ const INPUT_FILE_HINT_LABELS = assertLocaleTable(
     ".es": { handoff: "Siguiente paso con `import`", tmx: "Siguiente paso con `tmx import`" },
     ".fr": { handoff: "Étape suivante pour `import`", tmx: "Étape suivante pour `tmx import`" },
     ".zh-CN": { handoff: "`import` 的下一步", tmx: "`tmx import` 的下一步" },
+    ".pt-BR": { handoff: "Próximo passo com `import`", tmx: "Próximo passo com `tmx import`" },
   },
   "INPUT_FILE_HINT_LABELS",
 );
@@ -428,7 +430,7 @@ describe("the SDK reference catalogs the whole public surface", () => {
 
 const SDK_ERROR_CODES = new Set(unionCodes("packages/sdk/src/errors.ts", "SdkErrorCode"));
 
-const THROWS_LINE = /^(?:\*\*(?:Throws|Wirft|Lanza|Lève) ?:\*\* |\*\*抛出\*\*：)(.*)$/m;
+const THROWS_LINE = /^(?:\*\*(?:Throws|Wirft|Lanza|Lève|Lança) ?:\*\* |\*\*抛出\*\*：)(.*)$/m;
 
 function sdkTypeExports() {
   const source = readRepoFile("packages/sdk/src/index.ts");
@@ -502,6 +504,7 @@ describe("the label lines the reference checks parse", () => {
     ["**Throws:** [`A`](/docs/error-codes#a)", "[`A`](/docs/error-codes#a)"],
     ["**Wirft:** [`A`](/de/docs/error-codes#a)", "[`A`](/de/docs/error-codes#a)"],
     ["**Lève :** [`A`](/fr/docs/error-codes#a)", "[`A`](/fr/docs/error-codes#a)"],
+    ["**Lança:** [`A`](/pt-BR/docs/error-codes#a)", "[`A`](/pt-BR/docs/error-codes#a)"],
     [
       "**抛出**：[`A`](/zh-CN/docs/error-codes#a)、[`B`](/zh-CN/docs/error-codes#b)",
       "[`A`](/zh-CN/docs/error-codes#a)、[`B`](/zh-CN/docs/error-codes#b)",
@@ -515,6 +518,8 @@ describe("the label lines the reference checks parse", () => {
     "**抛出** [`A`](/zh-CN/docs/error-codes#a)",
     "**返回**：一个 RunSummary 对象。",
     "**Throws** [`A`](/docs/error-codes#a)",
+    "**Lança** [`A`](/pt-BR/docs/error-codes#a)",
+    "**Lanca:** [`A`](/pt-BR/docs/error-codes#a)",
   ])("does not read %s as a Throws line", (line) => {
     expect(THROWS_LINE.exec(line)).toBeNull();
   });
@@ -523,6 +528,7 @@ describe("the label lines the reference checks parse", () => {
     ["- **Next step**: Do x", ["Next step", "Do x"]],
     ["- **Étape suivante** : Do x", ["Étape suivante", "Do x"]],
     ["- **下一步**：Do x", ["下一步", "Do x"]],
+    ["- **Próximo passo**: Do x", ["Próximo passo", "Do x"]],
   ])("reads the error code bullet %s", (line, [label, text]) => {
     const match = BULLET_LINE.exec(line);
 

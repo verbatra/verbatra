@@ -8,7 +8,14 @@ import { sdkReferencePages } from "./sdk-reference-pages.mjs";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const SIGNATURE_TITLES = assertLocaleTable(
-  { "": "Signature", ".de": "Signatur", ".es": "Firma", ".fr": "Signature", ".zh-CN": "签名" },
+  {
+    "": "Signature",
+    ".de": "Signatur",
+    ".es": "Firma",
+    ".fr": "Signature",
+    ".zh-CN": "签名",
+    ".pt-BR": "Assinatura",
+  },
   "SIGNATURE_TITLES",
 );
 const SIGNATURE_BLOCK = new RegExp(

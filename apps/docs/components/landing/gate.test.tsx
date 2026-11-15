@@ -108,6 +108,8 @@ const RERUN_PROMISES: Readonly<Record<Locale, RegExp>> = {
   es: /(otra vez|de nuevo|reintent|volver a|pr\u00f3xima ejecuci\u00f3n|siguiente ejecuci\u00f3n)/i,
   fr: /(r\u00e9essay|de nouveau|\u00e0 nouveau|relanc|prochaine ex\u00e9cution|r\u00e9ex\u00e9cut)/i,
   "zh-CN": /(重新运行|再次运行|重试|下次运行|再运行)/,
+  "pt-BR":
+    /(de novo|novamente|outra vez|tentar novamente|reexecut|próxima execução|nova tentativa)/i,
 };
 
 const CATALOG_ENTRIES = Object.entries(MESSAGE_CATALOGS) as [Locale, Messages][];

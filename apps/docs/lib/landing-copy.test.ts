@@ -159,6 +159,7 @@ describe("the redesigned landing copy", () => {
     es: SPACED_CAPS,
     fr: SPACED_CAPS,
     "zh-CN": { verdict: 3, note: 12, flaggedNote: 15, value: 5 },
+    "pt-BR": SPACED_CAPS,
   };
 
   const QUALIFIER_BREAK = /[,:;，：；、]/;

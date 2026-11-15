@@ -29,7 +29,7 @@ describe("the machine-translated notice", () => {
     expect(notice("zh-CN").joined).toBe("{machine}<link>{original}</link>。");
   });
 
-  it.each(["en", "de", "es", "fr"])("keeps the spaced form in %s", (locale) => {
+  it.each(["en", "de", "es", "fr", "pt-BR"])("keeps the spaced form in %s", (locale) => {
     expect(notice(locale).joined).toBe("{machine} <link>{original}</link>.");
     expect(notice(locale).joinedOutdated).toBe("{machine} {outdated} <link>{original}</link>.");
   });

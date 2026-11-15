@@ -1,0 +1,27 @@
+{
+  "title": "CLI",
+  "pages": [
+    "index",
+    "output",
+    "---Configurar---",
+    "init",
+    "doctor",
+    "---Traduzir---",
+    "extract",
+    "translate",
+    "watch",
+    "---Verificar---",
+    "check",
+    "diff",
+    "report",
+    "pseudo",
+    "types",
+    "---Entregar---",
+    "export",
+    "import",
+    "tmx",
+    "---Servidores---",
+    "studio",
+    "mcp"
+  ]
+}

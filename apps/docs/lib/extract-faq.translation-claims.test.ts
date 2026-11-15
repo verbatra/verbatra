@@ -18,6 +18,7 @@ const TRANSLATION_QUESTION: Record<Locale, RegExp> = {
   es: /^¿El contenido de este sitio está traducido por IA\?$/,
   fr: /^Le contenu de ce site est-il traduit par IA \?$/,
   "zh-CN": /^本站内容是由 AI 翻译的吗？$/,
+  "pt-BR": /^O conteúdo deste site é traduzido por IA\?$/,
 };
 
 const RETIRED_CLAIMS: Record<Locale, RegExp> = {
@@ -26,6 +27,8 @@ const RETIRED_CLAIMS: Record<Locale, RegExp> = {
   es: /Sí, las dos mitades|lo retraduce automáticamente|ejecutado por pnpm i18n cada vez|se revisa antes de publicarse|paso\s+aparte y manual/,
   fr: /Oui, les deux moitiés|retraduit automatiquement|exécuté par pnpm i18n dès que|relu avant sa publication|étape séparée et manuelle/,
   "zh-CN": /是的，两部分都|源文件一更改就自动|发布前都经过审校|单独的手动步骤/,
+  "pt-BR":
+    /Sim, as duas metades|retraduz automaticamente|executado pelo pnpm i18n sempre que|revisado antes da publicação|etapa separada e manual/,
 };
 
 const SAME_CHANGE_AGENT_TRANSLATION: Record<Locale, RegExp> = {
@@ -34,6 +37,8 @@ const SAME_CHANGE_AGENT_TRANSLATION: Record<Locale, RegExp> = {
   es: /un agente de IA traduce cada página\s+de documentación en el mismo cambio que edita su fuente en inglés/,
   fr: /un agent IA\s+traduit chaque page de documentation dans le même changement/,
   "zh-CN": /AI 智能体会在编辑英文源文件的同一次变更中翻译对应的文档页面/,
+  "pt-BR":
+    /um agente de IA traduz cada página\s+da documentação na mesma alteração\s+que edita a origem em inglês/,
 };
 
 const BEST_EFFORT_REVIEW: Record<Locale, RegExp> = {
@@ -42,6 +47,8 @@ const BEST_EFFORT_REVIEW: Record<Locale, RegExp> = {
   es: /se revisan en la medida de lo posible, y no todos los textos traducidos los revisa una persona/,
   fr: /vérifiées dans la mesure du possible, et tous les textes traduits ne sont pas relus par une personne/,
   "zh-CN": /译文会尽力检查，但并非每段译文都经过人工审校/,
+  "pt-BR":
+    /verificadas na medida do possível, e nem todo texto traduzido é revisado por uma pessoa/,
 };
 
 describe.each(i18n.languages)("extractFaqItems: site translation answer (%s)", (locale) => {

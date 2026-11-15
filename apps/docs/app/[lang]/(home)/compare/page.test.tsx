@@ -177,6 +177,7 @@ const META_WINDOWS: Readonly<Record<Locale, MetaWindow>> = {
     title: { min: 30, max: SPACELESS_SNIPPET_WIDTH.titleMax },
     description: { min: 100, max: SPACELESS_SNIPPET_WIDTH.descriptionMax },
   },
+  "pt-BR": SEARCH_WINDOW,
 };
 
 describe.each(i18n.languages)("the %s comparison page", (locale) => {
@@ -207,6 +208,7 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
         es: "/es/compare",
         fr: "/fr/compare",
         "zh-CN": "/zh-CN/compare",
+        "pt-BR": "/pt-BR/compare",
         "x-default": "/compare",
       },
       types: { "text/markdown": `${path}.md` },
@@ -446,6 +448,7 @@ describe("the comparison cells", () => {
     es: /^No\b/,
     fr: /^Non$/,
     "zh-CN": /^否$/,
+    "pt-BR": /^Não$/,
   };
 
   const UNKNOWN: Readonly<Record<Locale, RegExp>> = {
@@ -454,6 +457,7 @@ describe("the comparison cells", () => {
     es: /^Desconocido$/,
     fr: /^Inconnu$/,
     "zh-CN": /^未知$/,
+    "pt-BR": /^Desconhecido$/,
   };
 
   for (const locale of i18n.languages) {

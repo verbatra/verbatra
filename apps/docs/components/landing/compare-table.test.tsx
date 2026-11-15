@@ -151,7 +151,7 @@ describe("CompareCellBody", () => {
     COMPARE_TOOLS.map((tool) => ({ row, tool, links: compareCell(row, tool).urls.length })),
   ).filter((entry) => entry.links > 1);
 
-  it.each(["en", "de", "es", "fr", "zh-CN"] as const)(
+  it.each(["en", "de", "es", "fr", "zh-CN", "pt-BR"] as const)(
     "keeps every source arrow of a cell in the no-wrap unit with its last word in %s",
     (locale) => {
       const t = createTranslator({

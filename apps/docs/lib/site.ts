@@ -50,6 +50,7 @@ const OG_LOCALES: Record<Locale, string> = {
   es: "es_ES",
   fr: "fr_FR",
   "zh-CN": "zh_CN",
+  "pt-BR": "pt_BR",
 };
 
 export function ogLocale(locale: Locale): string {

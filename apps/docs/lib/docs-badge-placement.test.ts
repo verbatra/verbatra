@@ -38,8 +38,34 @@ const DATING_PHRASES = [
   "nouveau dans",
   "depuis",
   "dès",
+  "aparece pela primeira vez na versão",
+  "aparece pela primeira vez na",
+  "aparece pela primeira vez em",
+  "disponível a partir da versão",
+  "disponível a partir da",
+  "disponível desde a versão",
+  "disponível desde a",
+  "disponível desde",
+  "a partir da versão",
+  "a partir da",
+  "desde a versão",
+  "desde a",
+  "novo na versão",
+  "novo na",
+  "novo em",
+  "adicionado na versão",
+  "adicionado na",
+  "adicionado em",
+  "introduzido na versão",
+  "introduzido na",
+  "introduzido em",
+  "incluído na versão",
+  "incluído na",
+  "lançado na versão",
+  "lançado na",
 ];
-const RANGE_END = "(?!`?\\s+(?:to|bis|auf|nach|a|hasta|à|vers|jusqu'à)\\s+`?v?\\d)";
+const RANGE_END =
+  "(?!`?\\s+(?:to|bis|auf|nach|a|hasta|à|vers|jusqu'à|até(?:\\s+a)?|para(?:\\s+a)?)\\s+`?v?\\d)";
 const DATING = new RegExp(
   `(?<![\\p{L}\\p{N}])(?<!version\`?\\s)(?:${DATING_PHRASES.join("|")})\\s+(?:@verbatra\\/[a-z]+\\s+)?\`?v?(\\d+\\.\\d+(?:\\.\\d+)?)(?![\\d.]*\\d)\`?${RANGE_END}`,
   "giu",
@@ -264,6 +290,12 @@ const RESTATING_SENTENCES: ReadonlyArray<readonly [Locale, string]> = [
   ["zh-CN", "`X` 于 0.12.0 推出。"],
   ["zh-CN", "`X` 随 0.12.0 发布。"],
   ["zh-CN", "`X` 在 0.12.0 版本加入了。"],
+  ["pt-BR", "`X` aparece pela primeira vez na 0.12.0."],
+  ["pt-BR", "A partir da 0.12, ele também grava o arquivo."],
+  ["pt-BR", "`X` foi adicionado na versão 0.12.0."],
+  ["pt-BR", "`X` está disponível desde a versão 0.12.0."],
+  ["pt-BR", "Novo na 0.12.0."],
+  ["pt-BR", "`X` foi introduzido em `0.12.0`."],
 ];
 
 describe("AvailableFrom badge placement", () => {
@@ -331,6 +363,7 @@ describe("AvailableFrom badge placement", () => {
       "Up to 0.11 it returned the map; from 0.11.0 it was flat.",
       "Upgrading from 0.12.0 to 0.13.0 keeps the file, and so does von `0.12.0` auf `0.13.0`.",
       "需要 0.12.0 或更高版本。从 0.12.0 升级到 0.13.0 会保留该文件，从 `0.12.0` 到 `0.13.0` 也一样。0.11 之前返回映射。",
+      "Requer a 0.12.0 ou mais recente, e precisa da versão 0.12.0 ou posterior. Atualize da 0.12.0 para a 0.13.0, de `0.12.0` até `0.13.0`, ou desde a 0.12 até a 0.13.",
       "## B",
       "From 0.12.0 any other key fails.",
     ].join("\n\n");

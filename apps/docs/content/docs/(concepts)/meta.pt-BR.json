@@ -1,0 +1,11 @@
+{
+  "title": "Conceitos",
+  "pages": [
+    "how-it-works",
+    "the-lock-file",
+    "the-cache",
+    "translation-safety",
+    "language-support",
+    "data-handling"
+  ]
+}

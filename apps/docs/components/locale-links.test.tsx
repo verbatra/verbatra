@@ -35,6 +35,7 @@ describe("LocaleLinks", () => {
       ["/es/compare", "es", "es", LOCALE_DISPLAY_NAMES.es],
       ["/fr/compare", "fr", "fr", LOCALE_DISPLAY_NAMES.fr],
       ["/zh-CN/compare", "zh-CN", "zh-CN", LOCALE_DISPLAY_NAMES["zh-CN"]],
+      ["/pt-BR/compare", "pt-BR", "pt-BR", LOCALE_DISPLAY_NAMES["pt-BR"]],
     ]);
   });
 
@@ -46,6 +47,7 @@ describe("LocaleLinks", () => {
       null,
       "page",
       null,
+      null,
     ]);
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       "/",
@@ -53,6 +55,7 @@ describe("LocaleLinks", () => {
       "/es",
       "/fr",
       "/zh-CN",
+      "/pt-BR",
     ]);
   });
 

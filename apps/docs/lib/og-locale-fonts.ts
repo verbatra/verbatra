@@ -37,4 +37,5 @@ export const OG_LOCALE_FONTS: Readonly<Record<Locale, readonly OgLocaleFont[]>> 
       variationAxes: { wght: 700 },
     },
   ],
+  "pt-BR": [],
 };
