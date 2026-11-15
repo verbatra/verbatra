@@ -65,7 +65,8 @@ const provider = () =>
     return phase === "seed" ? GATE_DE_OLD : GATE_DE_CANDIDATE;
   });
 
-const sourceBefore = () => sourceFile(({ value }) => value);
+const sourceBefore = () =>
+  sourceFile(({ key, value }) => (key === GATE_KEY ? GATE_SOURCE_BEFORE : value));
 
 const sourceAfter = () => sourceFile(({ key, value }) => (key === GATE_KEY ? GATE_SOURCE : value));
 
