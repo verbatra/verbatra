@@ -195,7 +195,7 @@ describe("Gate", () => {
     ["es", MESSAGE_CATALOGS.es, 109, /reintent/i],
     ["fr", MESSAGE_CATALOGS.fr, 118, /(r\u00e9essay|relanc|nouveau)/i],
     ["zh-CN", MESSAGE_CATALOGS["zh-CN"], 76, /重试/],
-    ["pt-BR", MESSAGE_CATALOGS["pt-BR"], 103, /de novo/i],
+    ["pt-BR", MESSAGE_CATALOGS["pt-BR"], 103, /(tentad|nova tentativa|de novo)/i],
   ] as const)(
     "names the retry in the %s stale foot, within its previous length, and never promises the retry succeeds",
     (locale, catalog, previousLength, retry) => {
