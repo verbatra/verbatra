@@ -1,6 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { check, translate } from "@verbatra/sdk";
+import { check, translate, type VerbatraConfig } from "@verbatra/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { englishDocsPages } from "@/lib/docs-pages";
 import {
@@ -29,6 +29,7 @@ import {
   GATE_TRANSLATE_COMMAND,
   GATE_TRANSLATE_HEADER,
 } from "@/lib/gate-demo";
+import { PLAYGROUND_METADATA } from "@/lib/landing-playground";
 import {
   fixtureConfig,
   readTarget,
@@ -43,7 +44,10 @@ import {
 import { SCAFFOLD_MODELS } from "../../../packages/ai-providers/src/scaffold";
 import { renderCheckHuman, renderHuman } from "../../../packages/cli/src/render";
 
-const CONFIG = fixtureConfig(GATE_MODEL);
+const CONFIG: VerbatraConfig = {
+  ...fixtureConfig(),
+  provider: { id: "gemini", options: { model: GATE_MODEL, maxOutputTokens: 256 } },
+};
 
 const TRANSLATE_ARGV = ["translate"] as const;
 
@@ -109,6 +113,10 @@ describe("the gate demo prints what verbatra prints after a refusal", () => {
     );
     expect(GATE_SOURCE_LOCALE).toBe(CONFIG.sourceLocale);
     expect(CONFIG.targetLocales).toContain(GATE_LOCALE);
+  });
+
+  it("badges the candidate with the model the lock demo's recorded run names, from one source", () => {
+    expect(GATE_MODEL).toBe(PLAYGROUND_METADATA.model);
   });
 
   it("badges the candidate with the model verbatra init scaffolds for the provider the config names", () => {
