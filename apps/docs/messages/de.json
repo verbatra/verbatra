@@ -262,7 +262,7 @@
       "stale": {
         "label": "Immer noch veraltet",
         "text": "Der Schlüssel bleibt veraltet, daher schlägt die Überprüfung weiterhin fehl.",
-        "foot": "Der alte Wert bleibt in {file}. CI schlägt fehl, bis der Schlüssel einen Wert erhält, der {placeholder} beibehält."
+        "foot": "{file} behält den vorherigen Wert bei. Der Schlüssel bleibt veraltet und wird beim nächsten Lauf erneut versucht."
       },
       "valueUnchanged": "unverändert"
     },
