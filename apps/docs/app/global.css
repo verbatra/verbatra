@@ -943,7 +943,7 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   gap: 1.5rem;
-  overflow: hidden;
+  overflow: clip;
   padding: clamp(3rem, 8vw, 6rem) clamp(1.25rem, 4vw, 2rem);
   padding-block-end: calc(clamp(3rem, 8vw, 6rem) + var(--closer-halo-height));
   border: 1px solid var(--border-tile);
@@ -5501,6 +5501,38 @@ html.light .vk-deck-shot-light {
       66.667%,
       100% {
         pointer-events: auto;
+      }
+    }
+  }
+}
+
+.vk-words .vk-word {
+  display: inline-block;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    html[data-motion-ready] .vk-words:not([data-words-done]) {
+      view-timeline: --vk-words block;
+      view-timeline-inset: 0;
+    }
+
+    html[data-motion-ready] .vk-words:not([data-words-done]) .vk-word {
+      animation: vk-word-in linear both;
+      animation-timeline: --vk-words;
+      animation-range-start: entry calc(20vh + var(--i) * 0.7rem);
+      animation-range-end: entry min(calc(20vh + var(--i) * 0.7rem + 7rem), calc(100% + 30vh));
+    }
+
+    @keyframes vk-word-in {
+      from {
+        opacity: 0.15;
+        filter: blur(4px);
+      }
+
+      to {
+        opacity: 1;
+        filter: blur(0);
       }
     }
   }
