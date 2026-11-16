@@ -3,7 +3,10 @@ import {
   expectNoAxeViolations,
   expectNoHorizontalScroll,
   homeUrl,
+  installShiftCounter,
   LOCALES,
+  layoutShift,
+  layoutShiftSources,
   openInTheme,
   pageUrl,
   THEMES,
@@ -11,6 +14,20 @@ import {
 
 const HERO = "section.vk-banner";
 const FILES = `${HERO} .vk-banner-files`;
+
+for (const locale of LOCALES) {
+  test.describe(`hero load at 1440x900 ${homeUrl(locale)}`, () => {
+    test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+
+    test("shifts no layout while the page loads", async ({ page }) => {
+      await installShiftCounter(page);
+      await page.goto(homeUrl(locale), { waitUntil: "networkidle" });
+      await page.evaluate(() => document.fonts.ready);
+      await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
+      expect(await layoutShift(page), (await layoutShiftSources(page)).join("; ")).toBe(0);
+    });
+  });
+}
 
 for (const locale of LOCALES) {
   test.describe(`hero ${homeUrl(locale)}`, () => {

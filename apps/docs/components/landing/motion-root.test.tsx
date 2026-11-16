@@ -256,7 +256,7 @@ describe("the motion stylesheet", () => {
     }
   });
 
-  it("animates only opacity and transform in every keyframe set a scrubbed rule names, and a frame's discrete pointer-events", () => {
+  it("animates only opacity and transform in every keyframe set a scrubbed rule names, the gate's stepped state and a frame's discrete pointer-events", () => {
     const names = new Set(
       all
         .filter((rule) => rule.media.includes("@supports (animation-timeline: view())"))
@@ -267,10 +267,11 @@ describe("the motion stylesheet", () => {
     for (const name of names) {
       const sets = all.filter((rule) => rule.media.endsWith(`@keyframes ${name}`));
       expect(sets.length, name).toBeGreaterThan(0);
-      const frame = /^vk-gate-(candidate|refused|stale)$/.test(name);
-      const allowed = frame
-        ? ["opacity", "pointer-events", "animation-timing-function"]
-        : ["opacity", "transform"];
+      const allowed = /^vk-gate-hit-(candidate|refused|stale)$/.test(name)
+        ? ["pointer-events", "animation-timing-function"]
+        : name === "vk-gate-state"
+          ? ["--vk-gate-state", "animation-timing-function"]
+          : ["opacity", "transform"];
       for (const rule of sets)
         expect(
           Object.keys(rule.declarations).filter((property) => !allowed.includes(property)),

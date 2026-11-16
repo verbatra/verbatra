@@ -212,7 +212,8 @@ describe("the four surfaces print what verbatra returns", () => {
     expect(renderCheckHuman(summary)).toContain(`${SURFACE_COUNTS.stale} ${LOCK_STATE_STALE}`);
   });
 
-  it("flattens a line list to the text the page prints", () => {
-    expect(surfaceText(CLI_LINES)).toBe(CLI_LINES.map(({ text }) => text).join("\n"));
+  it("flattens a line list to its text, one line per entry and no trailing newline", () => {
+    expect(surfaceText([{ text: "one" }, { text: "" }, { text: "three" }])).toBe("one\n\nthree");
+    expect(surfaceText([])).toBe("");
   });
 });

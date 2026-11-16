@@ -5,29 +5,41 @@ import {
   HERO_TERMINAL_SOURCE,
   HERO_TRANSLATE_COMMAND,
 } from "@/lib/hero-terminal";
+import { PLAYGROUND_METADATA } from "@/lib/landing-playground";
 
 export const GATE_KEY = "profile.greeting";
 
 export const GATE_PLACEHOLDER = "{name}";
 
-export const GATE_SOURCE: string =
-  HERO_TERMINAL_SOURCE.find(({ key }) => key === GATE_KEY)?.value ?? "";
+export const GATE_SOURCE = "Good to see you, {name}!";
 
-export const GATE_SOURCE_BEFORE = "Welcome, {name}!";
+export function fixtureValueOf(key: string): string {
+  const entry = HERO_TERMINAL_SOURCE.find((candidate) => candidate.key === key);
+  if (entry === undefined) throw new Error(`the hero fixture has no key ${key}`);
+  return entry.value;
+}
+
+export function firstTargetLocale(locales: ReadonlyArray<{ readonly locale: string }>): string {
+  const first = locales[0];
+  if (first === undefined) throw new Error("the hero fixture lists no target locale");
+  return first.locale;
+}
+
+export const GATE_SOURCE_BEFORE: string = fixtureValueOf(GATE_KEY);
+
+export const GATE_LOCALE: string = firstTargetLocale(HERO_TERMINAL_LOCALES);
 
 export const GATE_DE_OLD = "Willkommen, {name}!";
 
-export const GATE_DE_CANDIDATE = "Willkommen zurück!";
+export const GATE_DE_CANDIDATE = "Schön, Sie zu sehen!";
 
 export const GATE_SOURCE_LOCALE = "en";
-
-export const GATE_LOCALE: string = HERO_TERMINAL_LOCALES[0]?.locale ?? "";
 
 export const GATE_SOURCE_FILE = `${GATE_SOURCE_LOCALE}.json`;
 
 export const GATE_TARGET_FILE = `${GATE_LOCALE}.json`;
 
-export const GATE_MODEL = "claude-sonnet-4-6";
+export const GATE_MODEL: string = PLAYGROUND_METADATA.model;
 
 export const GATE_DOCS_PATH = "/docs/translation-safety";
 
