@@ -413,7 +413,9 @@ describe("quantifyLocale: everything the request carries is counted", () => {
       50,
     );
 
-    expect(withGlossary.inputTokens).toBeGreaterThan(without.inputTokens * 3);
+    expect(withGlossary.inputTokens - without.inputTokens).toBeGreaterThanOrEqual(
+      Math.floor(JSON.stringify(glossary).length / ESTIMATED_CHARACTERS_PER_TOKEN),
+    );
   });
 
   it("charges the glossary once per request, so two requests carry it twice", () => {
@@ -588,7 +590,9 @@ describe("estimateForRun", () => {
       maxBatchSize: 50,
     });
 
-    expect(withGlossary.inputTokens ?? 0).toBeGreaterThan((plain.inputTokens ?? 0) * 3);
+    expect((withGlossary.inputTokens ?? 0) - (plain.inputTokens ?? 0)).toBeGreaterThanOrEqual(
+      Math.floor(JSON.stringify(glossary).length / ESTIMATED_CHARACTERS_PER_TOKEN),
+    );
   });
 
   it("carries the config's tone into the figure", () => {

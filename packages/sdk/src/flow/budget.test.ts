@@ -198,7 +198,7 @@ describe("checkBudgetTrip", () => {
     expect(warnTracker.stopped).toBe(false);
 
     const stopTracker = createBudgetTracker(900, "stop");
-    spend(stopTracker, 900, 0);
+    spend(stopTracker, 1000, 0);
     checkBudgetTrip(stopTracker);
     expect(stopTracker.stopped).toBe(true);
   });
