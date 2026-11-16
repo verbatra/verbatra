@@ -265,7 +265,8 @@
         "text": "La clé reste obsolète, donc la vérification échoue toujours.",
         "foot": "{file} conserve la valeur précédente. La clé reste obsolète et sera réessayée lors de la prochaine exécution."
       },
-      "valueUnchanged": "inchangé"
+      "valueUnchanged": "inchangé",
+      "label": "La barrière"
     },
     "highlights": {
       "heading": "Une surface au choix, la même réponse",

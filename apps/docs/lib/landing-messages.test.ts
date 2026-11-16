@@ -185,7 +185,7 @@ describe("landing message parity", () => {
   });
 
   it("labels every content section with a short eyebrow that does not repeat its heading, in every locale", () => {
-    const sections = ["lockDemo", "features", "highlights", "comparison", "faq"];
+    const sections = ["lockDemo", "gate", "features", "highlights", "comparison", "faq"];
     for (const locale of i18n.languages) {
       for (const section of sections) {
         const label = landingText(locale, `${section}.label`);

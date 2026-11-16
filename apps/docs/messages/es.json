@@ -265,7 +265,8 @@
         "text": "La clave sigue obsoleta, por lo que la comprobación sigue fallando.",
         "foot": "{file} mantiene el valor anterior. La clave sigue obsoleta y se reintenta en la próxima ejecución."
       },
-      "valueUnchanged": "sin cambios"
+      "valueUnchanged": "sin cambios",
+      "label": "La barrera"
     },
     "highlights": {
       "heading": "Pregunta a cualquier superficie, obtén la misma respuesta",

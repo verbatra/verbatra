@@ -265,7 +265,8 @@
         "text": "キーは古いままなので、チェックは引き続き失敗します。",
         "foot": "{file} は前の値のままです。キーは古いままで、次の実行で再試行されます。"
       },
-      "valueUnchanged": "未変更"
+      "valueUnchanged": "未変更",
+      "label": "ゲート"
     },
     "highlights": {
       "heading": "どこに聞いても、答えは同じ",

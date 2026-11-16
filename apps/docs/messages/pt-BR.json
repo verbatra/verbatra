@@ -265,7 +265,8 @@
         "text": "A chave continua obsoleta, então a verificação continua falhando.",
         "foot": "{file} mantém o valor anterior. A chave continua obsoleta e é tentada de novo na próxima execução."
       },
-      "valueUnchanged": "inalterado"
+      "valueUnchanged": "inalterado",
+      "label": "A barreira"
     },
     "highlights": {
       "heading": "Pergunte a qualquer interface, receba a mesma resposta",

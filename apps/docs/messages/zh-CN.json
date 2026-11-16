@@ -265,7 +265,8 @@
         "text": "该键保持过期，所以检查仍会失败。",
         "foot": "{file} 保留之前的值。该键仍为过期状态，下次运行时会重试。"
       },
-      "valueUnchanged": "未更改"
+      "valueUnchanged": "未更改",
+      "label": "门禁"
     },
     "highlights": {
       "heading": "无论问哪个入口，答案都一样",

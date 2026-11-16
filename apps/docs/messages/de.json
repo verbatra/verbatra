@@ -265,7 +265,8 @@
         "text": "Der Schlüssel bleibt veraltet, daher schlägt die Überprüfung weiterhin fehl.",
         "foot": "{file} behält den vorherigen Wert bei. Der Schlüssel bleibt veraltet und wird beim nächsten Lauf erneut versucht."
       },
-      "valueUnchanged": "unverändert"
+      "valueUnchanged": "unverändert",
+      "label": "Das Gate"
     },
     "highlights": {
       "heading": "Frage eine beliebige Oberfläche, erhalte dieselbe Antwort",

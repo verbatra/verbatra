@@ -265,7 +265,8 @@
         "text": "The key stays stale, so the check still fails.",
         "foot": "{file} keeps the previous value. The key stays stale and is retried next run."
       },
-      "valueUnchanged": "unchanged"
+      "valueUnchanged": "unchanged",
+      "label": "The gate"
     },
     "highlights": {
       "heading": "Ask any surface, get the same answer",

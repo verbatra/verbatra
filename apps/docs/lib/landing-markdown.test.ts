@@ -164,7 +164,7 @@ describe("the English landing markdown after the surfaces and the comparison lin
 
   it("prints the not-written stamp of the gate outside every fenced block, so no CLI line is altered", async () => {
     const body = await landingMarkdown("en");
-    const at = body.indexOf("## When the provider gets it wrong, nothing is written");
+    const at = body.indexOf("## The gate: When the provider gets it wrong, nothing is written");
     const section = body.slice(at, body.indexOf("\n## ", at + 3));
     expect(section).toContain("**verbatra translate** not written 1 integrity-withheld");
     const fenced = [...section.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map(

@@ -5160,16 +5160,9 @@ html.light .vk-deck-shot-light {
   margin-top: 0.25rem;
 }
 
-.vk-gate-progress {
+.vk-gate-pin-eyebrow,
+.vk-gate-steps {
   display: none;
-  gap: 6px;
-}
-
-.vk-gate-progress i {
-  width: 3rem;
-  height: 4px;
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--text-muted) 40%, transparent);
 }
 
 @media (max-width: 39.99rem) {
@@ -5195,11 +5188,6 @@ html.light .vk-deck-shot-light {
   .vk-lock-line[data-mark="refused"] {
     outline: 2px solid Highlight;
     outline-offset: -2px;
-  }
-
-  .vk-gate-progress i {
-    background: GrayText;
-    forced-color-adjust: none;
   }
 }
 
@@ -5245,8 +5233,8 @@ html.light .vk-deck-shot-light {
       }
     }
 
-    .vk-home section.vk-gate[id] {
-      scroll-margin-top: calc(-1 * var(--section-rhythm));
+    .vk-gate-head {
+      margin-bottom: max(0px, calc(var(--head-gap) - 2rem));
     }
 
     .vk-gate-card {
@@ -5257,10 +5245,7 @@ html.light .vk-deck-shot-light {
     .vk-gate-pin {
       position: sticky;
       top: var(--vk-landing-offset);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      height: var(--vk-gate-stage);
+      padding-block-start: 2rem;
       animation-name: vk-gate-state;
       animation-fill-mode: both;
       animation-timing-function: linear;
@@ -5272,7 +5257,8 @@ html.light .vk-deck-shot-light {
       --vk-gate-shown: var(--vk-gate-state);
       grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
       column-gap: var(--grid-gap);
-      align-items: center;
+      align-items: start;
+      margin-top: 0;
       transition: --vk-gate-shown 1ms linear 260ms;
     }
 
@@ -5293,7 +5279,7 @@ html.light .vk-deck-shot-light {
       grid-row: 1;
       grid-column: 1 / span 8;
       grid-template-columns: minmax(0, 1fr);
-      align-self: center;
+      align-self: start;
       opacity: calc((1 - var(--vk-gate-away) * var(--vk-gate-away)) * var(--vk-gate-current));
       transition:
         --vk-gate-in 320ms var(--ease-standard),
@@ -5348,44 +5334,78 @@ html.light .vk-deck-shot-light {
       scale: calc(1 + 0.6 * (1 - var(--vk-gate-arrive)));
     }
 
-    .vk-gate-progress {
-      position: absolute;
-      inset-block-end: 0.5rem;
-      inset-inline-start: 0;
-      display: flex;
+    .vk-gate-pin-eyebrow {
+      display: block;
+      margin: 0 0 1rem;
     }
 
-    .vk-gate-progress i {
+    .vk-gate-head-eyebrow {
+      display: none;
+    }
+
+    .vk-gate-steps {
+      grid-row: 1;
+      grid-column: 10 / span 3;
+      align-self: start;
+      display: grid;
+      gap: 1rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .vk-gate-steps li {
+      --vk-gate-on: calc(
+        1 -
+        min(
+          1,
+          max(
+            var(--vk-gate-step) -
+            var(--vk-gate-state),
+            var(--vk-gate-state) -
+            var(--vk-gate-step)
+          )
+        )
+      );
       position: relative;
-      overflow: hidden;
+      padding-inline-start: 1rem;
+      color: color-mix(
+        in srgb,
+        var(--text-strong) calc(var(--vk-gate-on) * 100%),
+        var(--text-muted)
+      );
+      transition: color 300ms var(--ease-standard);
     }
 
-    .vk-gate-progress i::after {
+    .vk-gate-steps li[data-state="candidate"] {
+      --vk-gate-step: 0;
+    }
+
+    .vk-gate-steps li[data-state="refused"] {
+      --vk-gate-step: 1;
+    }
+
+    .vk-gate-steps li[data-state="stale"] {
+      --vk-gate-step: 2;
+    }
+
+    .vk-gate-steps li::before {
       content: "";
       position: absolute;
-      inset: 0;
+      inset-block: 0;
+      inset-inline-start: 0;
+      width: 2px;
+      border-radius: var(--radius-full);
       background: var(--accent-fill);
-      transform-origin: left;
-      animation-name: vk-gate-fill;
-      animation-fill-mode: both;
-      animation-timing-function: linear;
-      animation-timeline: --vk-gate;
-    }
-
-    .vk-gate-progress i[data-state="candidate"]::after {
-      animation-range: contain 0.333% contain 33.333%;
-    }
-
-    .vk-gate-progress i[data-state="refused"]::after {
-      animation-range: contain 33.333% contain 66.667%;
-    }
-
-    .vk-gate-progress i[data-state="stale"]::after {
-      animation-range: contain 66.667% contain 99.667%;
+      opacity: var(--vk-gate-on);
     }
 
     @media (forced-colors: active) {
-      .vk-gate-progress i::after {
+      .vk-gate-steps li::before {
         background: Highlight;
       }
     }
@@ -5451,16 +5471,6 @@ html.light .vk-deck-shot-light {
       66.667%,
       100% {
         pointer-events: auto;
-      }
-    }
-
-    @keyframes vk-gate-fill {
-      from {
-        transform: scaleX(0);
-      }
-
-      to {
-        transform: scaleX(1);
       }
     }
   }

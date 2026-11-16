@@ -214,7 +214,7 @@ async function gate({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.gate" });
   const targetFile = GATE_TARGET_EXCERPT.join("\n");
   return blocks(
-    `## ${t("heading")}`,
+    `## ${t("label")}: ${t("heading")}`,
     `${t("lead")} ${link(GATE_DOCS_PATH.slice(1), localizedPath(locale, GATE_DOCS_PATH))}`,
     list([
       `**${t("candidate.label")}**: ${t("candidate.text", { key: GATE_KEY, file: GATE_SOURCE_FILE, placeholder: GATE_PLACEHOLDER })}`,

@@ -66,9 +66,9 @@ async function paneSlack(page: Page): Promise<number[]> {
 const SLACK_LIMIT = 48;
 
 const HEIGHT_CEILINGS: ReadonlyArray<readonly [number, number]> = [
-  [1440, 944],
+  [1440, 1010],
   [768, 1050],
-  [391, 1350],
+  [391, 1360],
 ];
 
 for (const locale of LOCALES) {
@@ -349,7 +349,7 @@ test.describe("highlights cross-highlight", () => {
           });
         },
       );
-      expect(ratios.filter(({ rail }) => rail)).toHaveLength(4);
+      expect(ratios.filter(({ rail }) => rail)).toHaveLength(2);
       for (const { rail, ratio } of ratios) expect(ratio).toBeGreaterThanOrEqual(rail ? 6 : 4.5);
     });
   }
