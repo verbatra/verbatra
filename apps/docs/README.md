@@ -120,7 +120,7 @@ language are updated in the *same* change, by hand for MDX content or by re-runn
 `pnpm i18n` for interface strings. CI backstops only the `messages/*.json` half of this; a stale
 `page.<locale>.mdx` is not caught, so treat it as authoring discipline.
 
-Register is informal throughout (for example German `du`, Spanish `tú`, French `tu`, Chinese `你`, Japanese `です`/`ます`). No
+Register is informal throughout (for example German `du`, Spanish `tú`, French `tu`, Brazilian Portuguese `você`, Chinese `你`, Japanese `です`/`ます`). No
 em dash (U+2014) or horizontal bar (U+2015) in any locale. The translation conventions, and the
 handling a spaceless script such as Chinese or Japanese needs, are in
 [`.claude/rules/docs.md`](../../.claude/rules/docs.md); adding a locale is in

@@ -423,14 +423,14 @@ explicitly; a new kana helper must do the same.
 ## Register and tone
 
 Informal address throughout, per locale: German `du` (not `Sie`), Spanish `tú` (not `usted`),
-French `tu` (not `vous`), Simplified Chinese `你` (not `您`), Japanese polite `です`/`ます` (never
+French `tu` (not `vous`), Brazilian Portuguese `você` (not `tu` or `o senhor`), Simplified Chinese `你` (not `您`), Japanese polite `です`/`ます` (never
 `だ`/`である`, no `あなた`). Pick the informal form for a new
 locale and state it here. This is the same tone the automated translation already applies
 (`apps/docs/verbatra.config.ts`: `tone: "informal"`), so agent-translated MDX content should match
 it for consistency between the UI strings and the pages.
 
-Never use the em dash (U+2014) or the horizontal bar (U+2015) in any locale, including German,
-Spanish, French or Chinese content an agent wrote. `check:no-em-dash` rejects both. Use a spaced
+Never use the em dash (U+2014) or the horizontal bar (U+2015) in any locale, including content
+an agent wrote in any translated locale. `check:no-em-dash` rejects both. Use a spaced
 hyphen, a colon, or parentheses instead, exactly as the repo-wide rule requires for English; the
 Chinese dash is written as two U+2014 in ordinary typography, so rephrase instead.
 
