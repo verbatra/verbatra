@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Guard against em dash (U+2014)
+      - name: Guard against em dash and horizontal bar (U+2014, U+2015)
         run: pnpm check:no-em-dash
 
       - name: Check (lint and format)

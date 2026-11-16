@@ -99,7 +99,7 @@ but **no test that drives it in a real browser**. Concretely, as of this writing
   320px reflow on the landing and legal pages, 320px and 375px reflow on the docs pages, and that the
   phone navigation sheet opens without overflow. Its specs end in `.spec.ts` and live outside
   the directories `apps/docs/vitest.config.ts` includes, so Vitest never runs them. CI runs it in
-  the `docs-e2e` job of `.github/workflows/ci.yml`, split into three Playwright shards (`--shard=N/3`) so each fits its 20-minute limit, which the `gate` job requires. Nothing in
+  the `docs-e2e` job of `.github/workflows/ci.yml`, split into three Playwright shards (`--shard=N/3`) so each fits its 30-minute job limit (`timeout-minutes: 30`), which the `gate` job requires. Nothing in
   `packages/studio` is covered by it.
 
   The docs unit tests are Vitest too, co-located under `apps/docs`; a per-locale table in them is a

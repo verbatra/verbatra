@@ -87,6 +87,16 @@ describe("the root verify script mirrors the CI build-and-test job", () => {
     }
   });
 
+  it("names the dash guard step after every character the script rejects", () => {
+    const step = CI_WORKFLOW.split(/\r?\n/).findIndex((line) =>
+      line.includes("pnpm check:no-em-dash"),
+    );
+    const name = CI_WORKFLOW.split(/\r?\n/)[step - 1] ?? "";
+    expect(name).toContain("U+2014");
+    expect(name).toContain("U+2015");
+    expect(ROOT_MANIFEST.scripts["check:no-em-dash"]).toContain("\\342\\200\\225");
+  });
+
   it("names only scripts the root manifest actually defines", () => {
     for (const step of verifySteps) {
       if (step === "pnpm turbo run typecheck") {
