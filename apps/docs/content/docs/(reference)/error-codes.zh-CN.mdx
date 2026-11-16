@@ -740,7 +740,7 @@ HTTP 5xx：提供商自身出现故障，请求本身没有问题。提供商会
 
 ### PROVIDER_ERROR
 
-任何无法归类的情况。对 LLM 提供商，HTTP 失败会给出状态码（例如 `HTTP 404`），以及服务器的错误类型（当它是由字母、数字和下划线组成的短记号时，例如 `MissingSessionID`）；服务器自己的信息、响应正文和 URL 路径从不出现。对 `openai-compatible` 的 `baseUrl`，404 或 405 会补充提示检查 `baseUrl` 是否为 API 根地址，400 或 422 会补充提示检查模型名称，以及是否支持带严格 JSON schema 输出的 Chat Completions；对 `opencode`，400、404 或 422 会补充说明，该模型必须是 OpenCode Zen 通过 Chat Completions 端点提供的模型。重试对 4xx 状态码没有帮助。可识别的传输问题（连接被拒绝、主机名无法解析、连接已关闭、主机不可达、TLS 证书未通过验证）会连同检查建议一起给出；其他任何情况得到固定的、不含密钥的信息。无法加载提供商包时，信息会给出该包的名称，并提示重新安装 `@verbatra/sdk`。
+任何无法归类的情况。对 LLM 提供商，HTTP 失败会给出状态码（例如 `HTTP 404`），以及服务器的错误类型（当它是由字母、数字和下划线组成的短记号时，例如 `MissingSessionID`）；服务器自己的信息、响应正文和 URL 路径从不出现。对 `openai-compatible` 的 `baseUrl`，404 或 405 会补充提示检查 `baseUrl` 是否为 API 根地址，400 或 422 会补充提示检查模型名称，以及是否支持带严格 JSON schema 输出的 Chat Completions；对 `opencode`，400、404 或 422 会补充说明，该模型必须是 OpenCode Zen 通过 Chat Completions 端点提供的模型。对 `anthropic`，400 会补充提示检查模型 ID 是否存在，以及该模型是否支持 verbatra 发送的参数。重试对 4xx 状态码没有帮助。可识别的传输问题（连接被拒绝、主机名无法解析、连接已关闭、主机不可达、TLS 证书未通过验证）会连同检查建议一起给出；其他任何情况得到固定的、不含密钥的信息。无法加载提供商包时，信息会给出该包的名称，并提示重新安装 `@verbatra/sdk`。
 
 - **下一步**：Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
 
@@ -1014,7 +1014,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`translate`、`watch`
 - **退出码**：`1`：该语言环境以 `partial` 或 `failed` 结束
-- **下一步**：在[提供商错误码](#provider-error-codes)中查找它给出的错误码。这些键会在下次运行时重新翻译。
+- **下一步**：在[提供商错误码](#provider-error-codes)中查找它给出的错误码。在速率限制、超时或服务器故障之后，这些键会在下次运行时重新翻译；在请求被拒绝（4xx 状态码）或凭据失败之后，再次运行会以同样的方式失败，直到原因被修复。
 
 ### BLANK_ROW_BASELINE_RETAINED
 

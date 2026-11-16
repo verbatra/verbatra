@@ -740,7 +740,7 @@ Die [Netzwerkrichtlinie](/de/docs/network-policy) hat die Anfrage direkt vor dem
 
 ### PROVIDER_ERROR
 
-Alles Unklassifizierbare. Bei den LLM-Providern nennt ein HTTP-Fehlschlag seinen Status, etwa `HTTP 404`, und den Fehlertyp des Servers, wenn er ein kurzes Token aus Buchstaben, Ziffern und Unterstrichen ist, etwa `MissingSessionID`; die eigene Meldung des Servers, der Antworttext und der URL-Pfad erscheinen nie. Bei einer `openai-compatible`-`baseUrl` ergänzt ein 404 oder 405 die Prüfung, ob `baseUrl` die API-Wurzel ist, und ein 400 oder 422 die Prüfung des Modellnamens und der Unterstützung für Chat Completions mit striktem JSON-Schema-Output; bei `opencode` ergänzt ein 400, 404 oder 422, dass das Modell eines sein muss, das OpenCode Zen über den Chat-Completions-Endpunkt bereitstellt. Bei einem 4xx-Status hilft Wiederholen nicht. Ein erkennbares Transportproblem (Verbindung abgelehnt, Hostname nicht aufgelöst, Verbindung geschlossen, Host nicht erreichbar, TLS-Zertifikat nicht verifiziert) wird mit dem, was zu prüfen ist, benannt; alles andere bekommt eine statische, geheimnisfreie Meldung. Konnte ein Provider-Paket nicht geladen werden, nennt die Meldung das Paket und rät, `@verbatra/sdk` neu zu installieren.
+Alles Unklassifizierbare. Bei den LLM-Providern nennt ein HTTP-Fehlschlag seinen Status, etwa `HTTP 404`, und den Fehlertyp des Servers, wenn er ein kurzes Token aus Buchstaben, Ziffern und Unterstrichen ist, etwa `MissingSessionID`; die eigene Meldung des Servers, der Antworttext und der URL-Pfad erscheinen nie. Bei einer `openai-compatible`-`baseUrl` ergänzt ein 404 oder 405 die Prüfung, ob `baseUrl` die API-Wurzel ist, und ein 400 oder 422 die Prüfung des Modellnamens und der Unterstützung für Chat Completions mit striktem JSON-Schema-Output; bei `opencode` ergänzt ein 400, 404 oder 422, dass das Modell eines sein muss, das OpenCode Zen über den Chat-Completions-Endpunkt bereitstellt. bei `anthropic` ergänzt ein 400 die Prüfung, ob die Modell-ID existiert und das Modell die Parameter unterstützt, die verbatra sendet. Bei einem 4xx-Status hilft Wiederholen nicht. Ein erkennbares Transportproblem (Verbindung abgelehnt, Hostname nicht aufgelöst, Verbindung geschlossen, Host nicht erreichbar, TLS-Zertifikat nicht verifiziert) wird mit dem, was zu prüfen ist, benannt; alles andere bekommt eine statische, geheimnisfreie Meldung. Konnte ein Provider-Paket nicht geladen werden, nennt die Meldung das Paket und rät, `@verbatra/sdk` neu zu installieren.
 
 - **Nächster Schritt**: Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
 
@@ -1131,7 +1131,7 @@ Eine Provider-Anfrage ist gescheitert. Der Hinweis nennt den Fehlercode des Prov
 
 - **Ausgelöst von**: `translate`, `watch`
 - **Exit-Code**: `1`: Die Locale endet `partial` oder `failed`
-- **Nächster Schritt**: Schlag den genannten Code unter [Provider-Fehlercodes](#provider-error-codes) nach. Die Keys werden beim nächsten Lauf erneut übersetzt.
+- **Nächster Schritt**: Schlag den genannten Code unter [Provider-Fehlercodes](#provider-error-codes) nach. Die Keys werden beim nächsten Lauf nach einem Rate-Limit, Timeout oder Serverfehler erneut übersetzt; nach einer abgelehnten Anfrage (Status 4xx) oder einem Fehler bei den Zugangsdaten scheitert ein erneuter Lauf genauso, bis die Ursache behoben ist.
 
 ### BLANK_ROW_BASELINE_RETAINED
 
