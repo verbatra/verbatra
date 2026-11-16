@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { APP_ROOT, appCodeFiles, importSpecifiers } from "@/test-support/app-sources";
 
 const EXTENSIONS = ["", ".ts", ".tsx", ".mts", ".js", ".jsx", ".mjs", "/index.ts", "/index.tsx"];
@@ -69,13 +69,17 @@ describe("Intl.Segmenter stays out of the client bundle", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("no module constructs a segmenter at module evaluation", () => {
-    const eager = segmenterModules.filter((file) =>
-      readFileSync(file, "utf8")
-        .split("\n")
-        .some((line) => /new Intl\.Segmenter/.test(line) && !/^\s/.test(line)),
-    );
-    expect(eager.map((file) => relative(APP_ROOT, file))).toEqual([]);
+  it("importing a segmenter module constructs no segmenter", async () => {
+    for (const file of segmenterModules) {
+      vi.resetModules();
+      const constructed = vi.spyOn(Intl, "Segmenter");
+      try {
+        await import(/* @vite-ignore */ file);
+        expect(constructed, relative(APP_ROOT, file)).not.toHaveBeenCalled();
+      } finally {
+        constructed.mockRestore();
+      }
+    }
   });
 
   it("walks a planted chain", () => {
