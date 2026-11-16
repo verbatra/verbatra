@@ -95,7 +95,7 @@ for (const locale of LOCALES) {
     }) => {
       await page.setViewportSize({ width: TABLE_CHECK_WIDTH, height: 800 });
       await openDocsPage(page, url);
-      await expectNoTableWiderThanItsWrapper(page);
+      await expectNoTableWiderThanItsWrapper(page, { requireTable: true });
     });
   }
 }

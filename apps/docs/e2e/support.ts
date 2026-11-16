@@ -81,14 +81,22 @@ export async function expectNoHorizontalScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
-export async function expectNoTableWiderThanItsWrapper(page: Page): Promise<void> {
-  const wide = await page.evaluate(() =>
-    [...document.querySelectorAll("#nd-page table")]
+export async function expectNoTableWiderThanItsWrapper(
+  page: Page,
+  options: { requireTable?: boolean } = {},
+): Promise<void> {
+  const { count, wide } = await page.evaluate(() => {
+    const wrappers = [...document.querySelectorAll("#nd-page table")]
       .map((table) => table.parentElement)
-      .filter((wrapper): wrapper is HTMLElement => wrapper !== null)
-      .filter((wrapper) => wrapper.scrollWidth > wrapper.clientWidth + 1)
-      .map((wrapper) => wrapper.scrollWidth - wrapper.clientWidth),
-  );
+      .filter((wrapper): wrapper is HTMLElement => wrapper !== null);
+    return {
+      count: wrappers.length,
+      wide: wrappers
+        .filter((wrapper) => wrapper.scrollWidth > wrapper.clientWidth + 1)
+        .map((wrapper) => wrapper.scrollWidth - wrapper.clientWidth),
+    };
+  });
+  if (options.requireTable === true) expect(count, "tables on the page").toBeGreaterThan(0);
   expect(wide).toEqual([]);
 }
 
