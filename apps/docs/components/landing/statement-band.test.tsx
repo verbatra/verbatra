@@ -38,7 +38,10 @@ describe("StatementBand", () => {
     expect(paragraph?.textContent).toBe(en.landing.statement.text);
     expect(section.querySelectorAll("p")).toHaveLength(1);
     expect(section.querySelector("h1, h2, h3, .vk-eyebrow, [data-reveal]")).toBeNull();
-    expect(paragraph?.className).toBe("vk-statement-text");
+    expect(paragraph?.className).toBe("vk-statement-text vk-words");
+    expect([...(paragraph?.querySelectorAll(".vk-word") ?? [])].map((w) => w.textContent)).toEqual(
+      en.landing.statement.text.split(" "),
+    );
   });
 
   it("sits in the wide column like every other section", async () => {

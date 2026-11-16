@@ -140,8 +140,18 @@ describe("FinalCta", () => {
     expect(css).not.toMatch(/\.vk-closer-proof[^{]*\{[^}]*(#[0-9a-f]{3,8}\b|hsl\()/i);
   });
 
+  it("splits its own heading into indexed word spans outside every reveal mark", () => {
+    const heading = root.querySelector("h2");
+    const words = [...(heading?.querySelectorAll(".vk-word") ?? [])];
+    expect(words.map((word) => word.textContent)).toEqual(copy.heading.split(" "));
+    expect(words.map((word) => word.getAttribute("style"))).toEqual(
+      words.map((_, index) => `--i:${index}`),
+    );
+    expect(heading?.closest("[data-reveal]")).toBeNull();
+  });
+
   it("sizes the heading from 36px to 72px", () => {
-    expect(root.querySelector("h2")?.className).toBe("vk-closer-title");
+    expect(root.querySelector("h2")?.className).toBe("vk-closer-title vk-words");
     expect(css).toMatch(/\.vk-closer-title \{[^}]*font-size: clamp\(2\.25rem, 5vw, 4\.5rem\);/);
   });
 

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { LOCALES } from "./locales";
 import { breakBetweenWords, splitWords } from "./word-segments";
 
 function markup(text: ReactNode): string {
@@ -181,4 +182,41 @@ describe("splitWords", () => {
   it("renders an empty string as nothing", () => {
     expect(words("")).toHaveLength(0);
   });
+});
+
+describe("splitWords on every landing heading of every locale", () => {
+  const KEYS = [
+    ["gate", "heading"],
+    ["features", "heading"],
+    ["highlights", "heading"],
+    ["comparison", "heading"],
+    ["faq", "heading"],
+    ["closing", "heading"],
+    ["statement", "text"],
+  ] as const;
+
+  it.each([...LOCALES])(
+    "keeps the %s text whole and never isolates one Han character",
+    async (locale) => {
+      const messages = (await import(`@/messages/${locale}.json`)).default.landing as Record<
+        string,
+        Record<string, string>
+      >;
+      for (const [section, key] of KEYS) {
+        const text = messages[section]?.[key] ?? "";
+        const doc = new DOMParser().parseFromString(
+          renderToStaticMarkup(<h2>{splitWords(text)}</h2>),
+          "text/html",
+        );
+        const heading = doc.querySelector("h2") as Element;
+        expect(heading.textContent, `${locale} ${section}`).toBe(text);
+        const spans = [...heading.querySelectorAll(".vk-word")];
+        expect(spans.length, `${locale} ${section}`).toBeGreaterThan(0);
+        for (const span of spans)
+          expect(/^\p{Script=Han}$/u.test(span.textContent ?? ""), `${locale} ${section}`).toBe(
+            false,
+          );
+      }
+    },
+  );
 });

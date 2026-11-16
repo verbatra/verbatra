@@ -60,6 +60,18 @@ describe("landing reveal marks", () => {
     }
   });
 
+  it.each(["hero", "marquee"] as const)("%s carries no word reveal", (id) => {
+    expect(source(SECTION_FILES[id])).not.toMatch(/vk-words|splitWords/);
+  });
+
+  it("lets a heading carry the word reveal but never a reveal mark on top of it", () => {
+    for (const file of ["section-head.tsx", "final-cta.tsx", "statement-band.tsx"]) {
+      const text = source(file);
+      expect(text, file).toMatch(/vk-words/);
+      expect(text, file).not.toMatch(/<(h2|p)\b[^>]*data-reveal/);
+    }
+  });
+
   it("never reveals a section heading", () => {
     expect(source("section-head.tsx")).not.toContain("data-reveal");
   });

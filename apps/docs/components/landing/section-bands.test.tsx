@@ -293,3 +293,78 @@ describe("the section head on the 12-column grid", () => {
     );
   });
 });
+
+describe("the headline word reveal in the section heads", () => {
+  function heading(node: ReactNode, selector: string): Element {
+    const doc = new DOMParser().parseFromString(renderToString(node), "text/html");
+    const found = doc.querySelector(selector);
+    if (found === null) throw new Error(`no ${selector}`);
+    return found;
+  }
+
+  it("splits a split, stacked and inline head title into indexed word spans on the h2", () => {
+    for (const layout of ["split", "stacked", "inline"] as const) {
+      const h2 = heading(
+        <SectionHead id="h" title="Two keys changed" lead="Lead" layout={layout} />,
+        "h2#h",
+      );
+      expect(h2.classList.contains("vk-words"), layout).toBe(true);
+      expect(
+        [...h2.querySelectorAll(".vk-word")].map((word) => word.getAttribute("style")),
+      ).toEqual(["--i:0", "--i:1", "--i:2"]);
+      expect(h2.textContent).toBe("Two keys changed");
+    }
+  });
+
+  it("splits the sticky aside heading too and leaves the lead and the eyebrow whole", () => {
+    const aside = heading(
+      <SectionAside id="h" title="Before you ship" lead="Lead text" eyebrow="The questions">
+        <p>body</p>
+      </SectionAside>,
+      ".vk-section-aside",
+    );
+    expect(aside.querySelector("h2")?.classList.contains("vk-words")).toBe(true);
+    expect(aside.querySelectorAll(".vk-word")).toHaveLength(3);
+    expect(aside.querySelector(".vk-section-head-lead")?.querySelector(".vk-word")).toBeNull();
+    expect(aside.querySelector(".vk-eyebrow")?.querySelector(".vk-word")).toBeNull();
+  });
+
+  it("keeps a title that is not plain text as it was, without a words host", () => {
+    const h2 = heading(<SectionHead id="h" title={<em>Rich</em>} lead="Lead" />, "h2#h");
+    expect(h2.classList.contains("vk-words")).toBe(false);
+    expect(h2.querySelector(".vk-word")).toBeNull();
+  });
+
+  it("puts the words host on the h2 of every section but the hero and the marquee, never under a reveal mark", async () => {
+    await preloadRegisteredIslands();
+    const { Faq, faqContent } = await import("./faq");
+    const { Features } = await import("./features");
+    const { Comparison } = await import("./comparison");
+    const { Highlights } = await import("./highlights");
+    const { Marquee } = await import("./marquee");
+    const { LockDemo } = await import("./lock-demo");
+    const { Gate } = await import("./gate");
+    const { StatementBand } = await import("./statement-band");
+    const sections: ReadonlyArray<readonly [string, () => Promise<ReactNode>, string]> = [
+      ["lock-demo", LockDemo, "h2"],
+      ["gate", Gate, "h2"],
+      ["statement", StatementBand, "p.vk-statement-text"],
+      ["features", Features, "h2"],
+      ["highlights", Highlights, "h2"],
+      ["compare", Comparison, "h2"],
+      ["faq", async () => Faq({ locale: "en", items: await faqContent("en") }), "h2"],
+    ];
+    for (const [id, section, selector] of sections) {
+      const doc = new DOMParser().parseFromString(renderToString(await section()), "text/html");
+      const host = doc.querySelector(`section#${id} ${selector}.vk-words`);
+      expect(host, id).not.toBeNull();
+      expect(host?.closest("[data-reveal]"), id).toBeNull();
+      expect(host?.querySelectorAll(".vk-word").length, id).toBeGreaterThan(0);
+      for (const word of host?.querySelectorAll(".vk-word") ?? [])
+        expect(word.getAttributeNames().sort(), id).toEqual(["class", "style"]);
+      expect(doc.querySelectorAll(`section#${id} .vk-words`), id).toHaveLength(1);
+    }
+    const marquee = new DOMParser().parseFromString(renderToString(await Marquee()), "text/html");
+    expect(marquee.querySelector(".vk-words, .vk-word")).toBeNull();
+  });
+});

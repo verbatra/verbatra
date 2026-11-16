@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { breakBetweenWords } from "@/lib/word-segments";
+import { breakBetweenWords, splitWords } from "@/lib/word-segments";
 
 type SectionHeadLayout = "split" | "stacked" | "inline";
 
@@ -52,8 +52,11 @@ function HeadBlock({
       data-align={shape === "split" && align === "start" ? "start" : undefined}
     >
       <div className="vk-section-head-title">
-        <h2 id={id} className={cn("vk-h2", TITLE_MEASURE[shape])}>
-          {breakBetweenWords(title)}
+        <h2
+          id={id}
+          className={cn("vk-h2", typeof title === "string" && "vk-words", TITLE_MEASURE[shape])}
+        >
+          {typeof title === "string" ? splitWords(title) : breakBetweenWords(title)}
         </h2>
       </div>
       {lead ? (
