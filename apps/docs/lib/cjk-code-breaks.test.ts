@@ -25,9 +25,17 @@ function run(children: HastNode[]): string[] {
 }
 
 describe("rehypeCjkCodeBreaks", () => {
-  it.each(["、", "，", "；", "："])("offers a break after %s before inline code", (mark) => {
-    expect(run([code(".vue"), text(mark), code(".svelte")])).toEqual(["code", mark, "wbr", "code"]);
-  });
+  it.each(["、", "，", "；", "：", "。", "）", "」", "』", "】"])(
+    "offers a break after %s before inline code",
+    (mark) => {
+      expect(run([code(".vue"), text(mark), code(".svelte")])).toEqual([
+        "code",
+        mark,
+        "wbr",
+        "code",
+      ]);
+    },
+  );
 
   it("leaves a code run in Latin text, and a mark before plain text, untouched", () => {
     expect(run([code("a"), text(", "), code("b")])).toEqual(["code", ", ", "code"]);

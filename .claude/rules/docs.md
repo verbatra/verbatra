@@ -401,7 +401,7 @@ has one owner:
   `apps/docs/lib/word-segments.tsx`, the only module besides `lib/word-count.ts` that may use
   `Intl.Segmenter` (built lazily, and never reachable from a `"use client"` file:
   `lib/no-segmenter-in-client.test.ts`). `rehypeCjkCodeBreaks` (`lib/cjk-code-breaks.ts`) adds a
-  `<wbr>` after a CJK clause mark before inline code, which Unicode line breaking forbids when the
+  `<wbr>` after a CJK clause mark, full stop or closing bracket before inline code, which Unicode line breaking forbids when the
   code starts with `.` or `%`.
   The compare table keeps a cell's trailing arrow with its last word through `tailCut` in
   `apps/docs/components/landing/compare-table.tsx`.

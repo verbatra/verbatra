@@ -1,6 +1,6 @@
 import { type HastNode, isElement, visitParents } from "./hast";
 
-const BREAK_AFTER = /[、，；：]$/u;
+const BREAK_AFTER = /[、，；：。）」』】]$/u;
 
 const lineBreakOpportunity = (): HastNode => ({
   type: "element",
