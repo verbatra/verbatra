@@ -25,6 +25,7 @@ import type { Locale } from "@/lib/locales";
 import { LOCALES } from "@/lib/locales";
 import { LOCK_FILE_NAME } from "@/lib/lock-demo";
 import { MESSAGE_CATALOGS, type Messages } from "@/lib/message-catalogs";
+import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import en from "@/messages/en.json";
 import { cssBlock, literalColours } from "@/test-support/css-block";
 import { preloadRegisteredIslands } from "@/test-support/islands";
@@ -315,14 +316,19 @@ describe("Highlights stylesheet", () => {
     );
   });
 
-  it("lights every stale field from a hovered or focused pane through :has(), never a tabindex", () => {
-    const trigger = ".vk-hl:has(.vk-hl-pane:hover, .vk-hl-pane:focus-within)";
-    expect(css).toContain(`${trigger} .vk-hl-stale {`);
-    expect(css).toContain(`${trigger} .vk-lock-line[data-mark] {`);
-    expect(css).toMatch(/\.vk-hl-stale \{[^}]*color: var\(--accent\);/);
-    expect(css).toMatch(
-      /\.vk-hl-rail \.vk-lock-value,\s+[^{]*\.vk-hl-rail \.vk-lock-sign \{\s+color: var\(--text-strong\);/,
+  it("lights every stale field from a hovered or focused pane or the hovered rail through :has(), never a tabindex", () => {
+    const trigger = ".vk-hl:has(.vk-hl-pane:hover, .vk-hl-pane:focus-within, .vk-hl-rail:hover)";
+    const rules = docsStylesheetRules();
+    const exact = (selector: string) => rules.filter((rule) => rule.selector === selector);
+    expect(exact(`${trigger} .vk-hl-stale`)).not.toHaveLength(0);
+    expect(exact(`${trigger} .vk-lock-line[data-mark]`)).not.toHaveLength(0);
+    const rail = rules.find(
+      (rule) =>
+        rule.selector.includes(`${trigger} .vk-hl-rail .vk-lock-value`) &&
+        rule.selector.includes(`${trigger} .vk-hl-rail .vk-lock-sign`),
     );
+    expect(rail?.declarations.color).toBe("var(--text-strong)");
+    expect(css).toMatch(/\.vk-hl-stale \{[^}]*color: var\(--accent\);/);
   });
 
   it("fades the highlight over --duration-fast, only where motion is welcome, and animates no layout", () => {
@@ -342,9 +348,14 @@ describe("Highlights stylesheet", () => {
   });
 
   it("outlines the lit field under forced colors", () => {
-    expect(css).toMatch(
-      /@media \(forced-colors: active\) \{[^@]*\.vk-hl:has\([^{]*\.vk-hl-stale \{\s+outline: 2px solid Highlight;/,
-    );
+    const lit = docsStylesheetRules()
+      .filter(
+        (rule) =>
+          rule.selector ===
+          ".vk-hl:has(.vk-hl-pane:hover, .vk-hl-pane:focus-within, .vk-hl-rail:hover) .vk-hl-stale",
+      )
+      .find((rule) => rule.media === "@media (forced-colors: active)");
+    expect(lit?.declarations.outline).toBe("2px solid Highlight");
     const forced = cssBlock(css, "@media (forced-colors: active) {\n  .vk-hl-bar {", "\n}\n");
     expect(forced).toContain("border: 1px solid CanvasText;");
     expect(forced).toContain("background: Highlight;");
@@ -361,5 +372,172 @@ describe("Highlights stylesheet", () => {
 
   it("leaves no bento or tile rule behind", () => {
     expect(css).not.toMatch(/\.vk-bento|\.vk-tile|vk-highlight-placeholder/);
+  });
+});
+
+describe("Highlights lit pane (D17)", () => {
+  const rules = docsStylesheetRules();
+  const LIT = "article.vk-hl-pane:is(:hover, :focus-within) > .vk-lock-card";
+  const exact = (selector: string) => rules.filter((rule) => rule.selector === selector);
+  const LIFT_MEDIA = "@media (hover: hover) and (prefers-reduced-motion: no-preference)";
+
+  it("lifts the inner card 4px with transform only inside both media gates", () => {
+    const lifted = exact(LIT).filter((rule) => "transform" in rule.declarations);
+    expect(lifted.map((rule) => [rule.media, rule.declarations.transform])).toEqual([
+      [LIFT_MEDIA, "translateY(calc(-1 * var(--motion-distance-sm)))"],
+    ]);
+    expect(exact("article.vk-hl-pane:is(:hover, :focus-within)")).toEqual([]);
+  });
+
+  it("mirrors :hover with :focus-within and moves the card, never the article", () => {
+    const moving = rules.filter((rule) => "transform" in rule.declarations);
+    expect(moving.filter((rule) => rule.selector.includes(".vk-hl-pane:is(")).length).toBe(1);
+    for (const rule of rules.filter((r) => r.selector.includes(".vk-hl-pane:hover"))) {
+      expect(rule.selector).toContain(".vk-hl-pane:focus-within");
+    }
+    expect(rulesFor(rules, ".vk-hl-pane")[0]?.declarations.transform).toBeUndefined();
+  });
+
+  it("sets the lit border to --accent and fades a neutral shadow by opacity", () => {
+    expect(exact(LIT)[0]?.declarations["border-color"]).toBe("var(--accent)");
+    const shadow = rulesFor(rules, ".vk-hl-pane::before")[0];
+    expect(shadow?.declarations["box-shadow"]).toBe("var(--shadow-panel)");
+    expect(shadow?.declarations.opacity).toBe("0");
+    expect(
+      exact("article.vk-hl-pane:is(:hover, :focus-within)::before")[0]?.declarations.opacity,
+    ).toBe("1");
+  });
+
+  it("transitions only transform and opacity, plus the paint of the border and shadow, under no-preference and a hover device", () => {
+    const transitions = rules
+      .filter((rule) => rule.selector.includes(".vk-hl-pane") && "transition" in rule.declarations)
+      .filter((rule) => rule.declarations.transition !== "none");
+    expect(transitions.map((rule) => rule.media)).toEqual([LIFT_MEDIA, LIFT_MEDIA]);
+    for (const rule of transitions) {
+      const properties = (rule.declarations.transition ?? "")
+        .split(/,\s*/)
+        .map((part) => part.split(" ")[0]);
+      expect(
+        properties.every((p) =>
+          ["transform", "opacity", "border-color", "box-shadow"].includes(p ?? ""),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("outlines the lit card with Highlight under forced colors", () => {
+    const outline = exact(LIT).find((rule) => rule.media === "@media (forced-colors: active)");
+    expect(outline?.declarations.outline).toBe("2px solid Highlight");
+  });
+
+  it("adds no client code and no tabindex to the section", () => {
+    const source = readFileSync(join(process.cwd(), "components/landing/highlights.tsx"), "utf8");
+    expect(source.startsWith('"use client"')).toBe(false);
+    expect(source).not.toMatch(/tabIndex|onPointer|onMouse|addEventListener/);
+  });
+});
+
+describe("Highlights zig-zag guide line (D18 A)", () => {
+  const rules = docsStylesheetRules();
+  const WIDE = "@media (min-width: 64rem)";
+  const SCRUB =
+    "@media screen and (min-width: 64rem) and (prefers-reduced-motion: no-preference) and ( scripting: enabled ) @supports (animation-timeline: view())";
+
+  function at(selector: string, media: string) {
+    return Object.assign(
+      {},
+      ...rulesFor(rules, selector)
+        .filter((rule) => rule.media === media)
+        .map((rule) => rule.declarations),
+    ) as Record<string, string>;
+  }
+
+  it("places the panes on a two by two grid and offsets the second row of the zig-zag by 104px from 64rem", () => {
+    expect(at(".vk-hl-panes", "")["--hl-offset"]).toBe("6.5rem");
+    expect(at(".vk-hl-pane:nth-child(2)", WIDE)["margin-top"]).toBe("var(--hl-offset)");
+    expect(at(".vk-hl-pane:nth-child(3)", WIDE)["margin-top"]).toBe("calc(-1 * var(--hl-offset))");
+    expect(at(".vk-hl-panes", WIDE)["align-items"]).toBe("start");
+    expect(at(".vk-hl-pane:nth-child(1)", WIDE)["grid-area"]).toBe("1 / 1");
+    expect(at(".vk-hl-pane:nth-child(4)", WIDE)["grid-area"]).toBe("2 / 2");
+  });
+
+  it("draws the spine as two grid items of the panes, so it needs no height guess", () => {
+    const spine = at(".vk-hl-panes::after", WIDE);
+    expect(spine.position).toBe("static");
+    expect(spine["grid-column"]).toBe("1 / -1");
+    expect(spine["margin-top"]).toBe("calc(-1 * var(--grid-gap))");
+  });
+
+  it("scrubs the fill, stubs and nodes on one view timeline of the panes, behind scripting, no-preference and support", () => {
+    expect(at(".vk-hl-panes", SCRUB)["view-timeline"]).toBe("--vk-hl block");
+    const fill = at(".vk-hl-panes::after", SCRUB);
+    expect(fill["animation-range"]).toBe("cover 8% cover 62%");
+    expect(fill["animation-timeline"]).toBe("--vk-hl");
+    expect(at(".vk-hl-pane::before", SCRUB).animation).toBe("vk-hl-stub linear both");
+    expect(at(".vk-hl-pane::after", SCRUB).animation).toBe("vk-hl-node linear both");
+    const timelines = rules.filter((rule) => rule.declarations["animation-timeline"] === "--vk-hl");
+    expect(timelines.length).toBe(3);
+    for (const rule of timelines) expect(rule.media).toBe(SCRUB);
+  });
+
+  it("orders each node after the fill reaches it, stub first", () => {
+    const ranges = [1, 2, 3, 4].map((n) => at(`.vk-hl-pane:nth-child(${n})`, SCRUB)["--hl-at"]);
+    expect(ranges).toEqual(["9%", "24%", "42%", "57%"]);
+    expect(at(".vk-hl-pane::before", SCRUB)["animation-range"]).toBe(
+      "cover calc(var(--hl-at) + 5%) cover calc(var(--hl-at) + 8%)",
+    );
+    expect(at(".vk-hl-pane::after", SCRUB)["animation-range"]).toBe(
+      "cover calc(var(--hl-at) + 8%) cover calc(var(--hl-at) + 12%)",
+    );
+  });
+
+  it("animates only transform and opacity in the three keyframe sets", () => {
+    const stub = rules.find(
+      (rule) => rule.media === "@keyframes vk-hl-stub" && rule.selector === "from",
+    );
+    expect(Object.keys(stub?.declarations ?? {})).toEqual(["transform"]);
+    const node = rules.find(
+      (rule) => rule.media === "@keyframes vk-hl-node" && rule.selector === "from",
+    );
+    expect(Object.keys(node?.declarations ?? {}).sort()).toEqual(["opacity", "transform"]);
+  });
+
+  it("leaves the end state static where nothing scrubs: no animation outside the scrub query", () => {
+    for (const rule of rules.filter((r) => /\.vk-hl-pane|\.vk-hl-panes/.test(r.selector))) {
+      if (rule.media === SCRUB) continue;
+      expect(rule.declarations.animation, rule.selector).toBeUndefined();
+      expect(rule.declarations["animation-timeline"], rule.selector).toBeUndefined();
+    }
+  });
+
+  it("keeps the phone and the 40 to 64rem layouts free of added height", () => {
+    const line = at(".vk-hl-panes::before", "");
+    expect(line.position).toBe("absolute");
+    expect(line.top).toBe("0");
+    expect(line.bottom).toBe("0");
+    expect(at(".vk-hl-panes::before", "@media (min-width: 40rem)").display).toBe("none");
+  });
+
+  it("puts the section's one halo on the rail and the pane tier on --surface-card with a hairline", () => {
+    expect(at(".vk-hl-rail", "")["box-shadow"]).toContain("var(--halo-strong)");
+    expect(at(".vk-hl", "")["--hl-pane-surface"]).toBe("var(--surface-card)");
+    expect(at("html.light .vk-hl", "")["--hl-pane-surface"]).toBe("var(--surface-tile)");
+    expect(at(".vk-hl-pane > .vk-lock-card", "")["box-shadow"]).toContain(
+      "inset 0 1px 0 var(--hl-edge)",
+    );
+    expect(rules.filter((r) => r.selector.includes("--halo")).length).toBe(0);
+  });
+
+  it("draws the spine and stubs in CanvasText under forced colors", () => {
+    const forced = at(".vk-hl-panes::after", "@media (forced-colors: active)");
+    expect(forced.background).toBe("CanvasText");
+    expect(
+      at(".vk-hl-pane::before", "@media (forced-colors: active) @media (min-width: 64rem)")
+        .background,
+    ).toBe("CanvasText");
+  });
+
+  it("holds no variant selector", () => {
+    expect(readFileSync(join(process.cwd(), "app/global.css"), "utf8")).not.toContain("data-hl");
   });
 });
