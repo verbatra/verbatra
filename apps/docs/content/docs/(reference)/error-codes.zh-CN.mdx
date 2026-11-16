@@ -821,7 +821,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 - **触发来源**：`check --require-reviewed`
 - **退出码**：`1`
-- **下一步**：在 [Studio 的审校队列](/zh-CN/docs/review-in-studio)中，或用 MCP 工具 `review.approve` 和 `review.reject`，批准或修正列出的键，然后提交 `verbatra.provenance.json`。
+- **下一步**：在 Studio 的 **Review queue**（审校队列，见[在 Studio 中审校](/zh-CN/docs/review-in-studio)）中，或用 MCP 工具 `review.approve` 和 `review.reject`，批准或修正列出的键，然后提交 `verbatra.provenance.json`。
 
 ### REVIEW_STATE_UNREADABLE
 
@@ -888,7 +888,7 @@ YAML 语言文件不是有效的 YAML。解析器报告行和列时，信息以�
 
 候选值在结构上已退化：出现重复循环，或长度与其源相比失控，这是模型陷入重复某个片段时的样子，即使每个占位符都保留了下来。
 
-- **下一步**：让下次运行重新翻译该键，或手写译文。
+- **下一步**：让下次运行重新翻译该键，或手动编写译文。
 
 ### empty
 
@@ -1062,7 +1062,7 @@ XLIFF 交接把一些键标记为已审校或最终，它们在 `verbatra.proven
 
 - **触发来源**：`translate`、`watch`、`import`
 - **退出码**：无
-- **下一步**：这些值仍已写入；只是它们的记录缺失。在下次运行之前，先查明该文件为何变得这么大。
+- **下一步**：这些值已照常写入，只是缺少它们的记录。在下次运行之前，先查明该文件为何变得这么大。
 
 ### LIMITS_FILE_IGNORED
 
@@ -1144,7 +1144,7 @@ DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样�
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`
 - **退出码**：无
-- **下一步**：移除这些内容，在 `sensitiveData.allow` 中允许它，或改用 `redact` 或 `block`。
+- **下一步**：移除这些内容，在 `sensitiveData.allow` 中允许这些内容，或改用 `redact` 或 `block`。
 
 ### SENSITIVE_CONTENT_REDACTED
 
@@ -1160,7 +1160,7 @@ DeepL、Google Cloud Translation 和 LibreTranslate 会像对待占位符那样�
 
 - **触发来源**：`translate`（试运行同样如此）、`watch`
 - **退出码**：`1`，因为被搁置的键会让语言环境处于 `partial` 或 `failed`；只有术语表条目被排除时为 `0`，因为语言环境仍然成功
-- **下一步**：移除这些内容，或在 `sensitiveData.allow` 中允许它；这些键会在下次运行时重试。
+- **下一步**：移除这些内容，或在 `sensitiveData.allow` 中允许这些内容；这些键会在下次运行时重试。
 
 ### RUN_CANCELLED [#notice-run_cancelled]
 
