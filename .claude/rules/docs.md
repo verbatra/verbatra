@@ -408,8 +408,9 @@ has one owner:
   `apps/docs/assets/og-fonts/` with its OFL text beside it. Rebuild the subset whenever that
   locale's title, description or a message the OG image prints changes:
   `pnpm --filter @verbatra/docs og:fonts --source-dir <dir holding the source font>`
-  (`apps/docs/scripts/build-og-font-subsets.mjs`). `lib/og-font-subsets.test.ts` fails when a
-  committed subset lacks a character.
+  (`apps/docs/scripts/build-og-font-subsets.mjs`). The script checks each source file against the
+  SHA-256 in `OG_FONT_SOURCES` (`apps/docs/lib/og-locale-fonts.ts`) and refuses a mismatch.
+  `lib/og-font-subsets.test.ts` fails when a committed subset lacks a character.
 
 Tests with a Han or kana branch: `scripts/verify-docs-registry-counts.test.mjs` (spelled-out
 counts), `apps/docs/components/landing/marquee.test.tsx` (the same on the marquee),

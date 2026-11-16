@@ -1,11 +1,22 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { OG_FONT_DIR, OG_FONT_FILES, ogFontFilesFor } from "./og-fonts";
-import { OG_LOCALE_FONTS, type OgLocaleFont } from "./og-locale-fonts";
-import { buildOgFontSubsets, localesWithOgFonts, subsetOgFont } from "./og-subset";
+import {
+  OG_FONT_SOURCES,
+  OG_LOCALE_FONTS,
+  type OgFontSource,
+  type OgLocaleFont,
+} from "./og-locale-fonts";
+import {
+  buildOgFontSubsets,
+  localesWithOgFonts,
+  subsetOgFont,
+  verifyOgFontSource,
+} from "./og-subset";
 import { ogCharacters, ogTexts } from "./og-texts";
 import { fontCodePoints, fontTableTags, missingGlyphs } from "./ttf-coverage";
 
@@ -44,6 +55,16 @@ function withTables(font: Buffer, extra: Readonly<Record<string, Buffer>>): Buff
 
 const EMPTY_LAYOUT_TABLE = Buffer.from([0, 1, 0, 0, 0, 10, 0, 12, 0, 14, 0, 0, 0, 0, 0, 0]);
 const LAYOUT_TAGS = ["GPOS", "GSUB", "kern"];
+
+const FIXTURE_SOURCES: Readonly<Record<string, OgFontSource>> = {
+  "Geist-Bold.ttf": {
+    family: "Geist",
+    sha256: createHash("sha256").update(BOLD).digest("hex"),
+    version: "fixture",
+    license: "OFL-1.1",
+    vendorUrl: "https://example.invalid/",
+  },
+};
 
 function fixtureFont(file: string): OgLocaleFont {
   return { name: "Fixture", file, weight: 700, lang: undefined, sourceFile: "Geist-Bold.ttf" };
@@ -112,7 +133,12 @@ describe("OG font subsets", () => {
 
     it("writes a subset that covers every character the locale's images can draw", async () => {
       const root = project("Ship é", "title: Start\ndescription: Über uns");
-      const [written] = await buildOgFontSubsets({ root, sourceDir: FONT_ROOT, table });
+      const [written] = await buildOgFontSubsets({
+        root,
+        sourceDir: FONT_ROOT,
+        table,
+        sources: FIXTURE_SOURCES,
+      });
       expect(written).toBe(join(root, OG_FONT_DIR, "Fixture.ttf"));
       const subset = readFileSync(written ?? "");
       expect(missingGlyphs(ogCharacters(ogTexts("en", root)), [subset])).toEqual([]);
@@ -121,7 +147,12 @@ describe("OG font subsets", () => {
 
     it("reports the characters a subset lacks once the text gains one", async () => {
       const root = project("Ship é", "title: Start");
-      const [written] = await buildOgFontSubsets({ root, sourceDir: FONT_ROOT, table });
+      const [written] = await buildOgFontSubsets({
+        root,
+        sourceDir: FONT_ROOT,
+        table,
+        sources: FIXTURE_SOURCES,
+      });
       writeFileSync(join(root, "content/docs/index.mdx"), `---\ntitle: Start ${CJK_WORD}\n---\n`);
       const subset = readFileSync(written ?? "");
       expect(missingGlyphs(ogCharacters(ogTexts("en", root)), [subset])).toEqual([...CJK_WORD]);
@@ -187,5 +218,62 @@ describe("OG font subsets", () => {
     expect(
       await buildOgFontSubsets({ root: process.cwd(), sourceDir: FONT_ROOT, table: none }),
     ).toEqual([]);
+  });
+
+  describe("source font provenance", () => {
+    it("records a family, a 64 hex SHA-256, a version and OFL-1.1 for every configured source file", () => {
+      const sourceFiles = new Set(
+        Object.values(OG_LOCALE_FONTS).flatMap((fonts) => fonts.map((font) => font.sourceFile)),
+      );
+      expect([...sourceFiles].sort()).toEqual(Object.keys(OG_FONT_SOURCES).sort());
+      for (const recorded of Object.values(OG_FONT_SOURCES)) {
+        expect(recorded.sha256).toMatch(/^[0-9a-f]{64}$/);
+        expect(recorded.version).toMatch(/^Version \d/);
+        expect(recorded.license).toBe("OFL-1.1");
+        expect(recorded.family).toMatch(/^Noto Sans /);
+      }
+    });
+
+    it("accepts a source whose SHA-256 matches", () => {
+      expect(() => verifyOgFontSource(BOLD, "Geist-Bold.ttf", FIXTURE_SOURCES)).not.toThrow();
+    });
+
+    it("refuses a source whose bytes differ from the recorded SHA-256", () => {
+      expect(() =>
+        verifyOgFontSource(
+          Buffer.concat([BOLD, Buffer.from("x")]),
+          "Geist-Bold.ttf",
+          FIXTURE_SOURCES,
+        ),
+      ).toThrow(/refusing to subset/);
+    });
+
+    it("refuses a source with no recorded SHA-256", () => {
+      expect(() => verifyOgFontSource(BOLD, "Unknown.ttf", FIXTURE_SOURCES)).toThrow(
+        /No SHA-256 is recorded/,
+      );
+    });
+
+    it("does not write a subset when the source is refused", async () => {
+      const root = mkdtempSync(join(tmpdir(), "og-refuse-"));
+      try {
+        mkdirSync(join(root, "messages"));
+        mkdirSync(join(root, "content/docs"), { recursive: true });
+        writeFileSync(
+          join(root, "messages/en.json"),
+          JSON.stringify({
+            landing: { banner: { headline: "Ship" } },
+            compare: { heading: "Compare" },
+          }),
+        );
+        const table = { ...OG_LOCALE_FONTS, "zh-CN": [], ja: [], en: [fixtureFont("Fixture.ttf")] };
+        await expect(
+          buildOgFontSubsets({ root, sourceDir: FONT_ROOT, table, sources: {} }),
+        ).rejects.toThrow(/No SHA-256/);
+        expect(existsSync(join(root, OG_FONT_DIR, "Fixture.ttf"))).toBe(false);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
   });
 });

@@ -67,6 +67,20 @@ started there yourself. Build first.
 No API key is needed to run, build, or test the site. A provider key is needed only to re-translate
 the interface strings with `pnpm i18n` (see below).
 
+## Regenerating the OG font subsets
+
+The `zh-CN` and `ja` OG images draw Noto Sans SC and Noto Sans JP, subset into `assets/og-fonts/`.
+Obtain the two variable source fonts (`NotoSansSC[wght].ttf`, `NotoSansJP[wght].ttf`) into one
+directory and run:
+
+```bash
+pnpm --filter @verbatra/docs og:fonts --source-dir <dir holding the source fonts>
+```
+
+`OG_FONT_SOURCES` in `lib/og-locale-fonts.ts` records each source's family, SHA-256, version and
+license, and the script refuses a source file whose SHA-256 differs, so only the recorded build
+regenerates byte-identical subsets. Rebuild whenever a locale's OG text changes.
+
 ## Where content lives
 
 - `content/docs/**` is the documentation itself. English source is `page.mdx`; a translation is a
