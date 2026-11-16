@@ -24,7 +24,7 @@ export function projectRelativeMessage(message: string, cwd: string): string {
     return message;
   }
   const pattern = new RegExp(
-    `(?<![\\w.-])${escapeRegExp(root)}(?:${escapeRegExp(sep)}|(?![\\w.-]))`,
+    `(?<![\\w.+/-])${escapeRegExp(root)}(?:${escapeRegExp(sep)}|(?![\\w.-]))`,
     "g",
   );
   return message.replace(pattern, (match) => (match === root ? "." : ""));

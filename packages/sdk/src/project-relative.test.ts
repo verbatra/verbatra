@@ -50,6 +50,15 @@ describe("projectRelativeMessage", () => {
     expect(projectRelativeMessage(message, "/work/proj")).toBe(message);
   });
 
+  it.each([
+    ["a plus before the root", "a+/work/proj/x"],
+    ["a doubled separator before the root", "https://host//work/proj/x"],
+  ])("leaves a path with %s unchanged", (_name, path) => {
+    const message = `fetched ${path} failed`;
+
+    expect(projectRelativeMessage(message, "/work/proj")).toBe(message);
+  });
+
   it("rewrites every inside occurrence and keeps every outside one in one message", () => {
     const root = `${sep}home${sep}u${sep}proj`;
     const backup = `${sep}backup${root}${sep}locales${sep}de.json`;
