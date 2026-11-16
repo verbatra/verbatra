@@ -2,6 +2,7 @@ import "../global.css";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
+import { AnalyticsLoader } from "@/components/analytics-loader";
 import { DefaultThemeMeta } from "@/components/default-theme-meta";
 import { JsonLd } from "@/components/json-ld";
 import { FONT_VARIABLES } from "@/lib/fonts";
@@ -86,6 +87,7 @@ export default async function Layout({
         <JsonLd data={websiteLd({ lang: locale })} />
         <JsonLd data={organizationLd()} />
         {children}
+        <AnalyticsLoader />
       </body>
     </html>
   );

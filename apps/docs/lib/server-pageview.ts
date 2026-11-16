@@ -3,11 +3,13 @@ import { isIPv4, isIPv6 } from "node:net";
 import { hasLegacyOptOut, readChoiceCookie } from "@/lib/analytics-choice";
 import { loadBuiltScriptHashes } from "@/lib/csp-script-hashes";
 import { MARKDOWN_SUFFIX } from "@/lib/markdown-route";
+import { pageviewUrl } from "@/lib/pageview-url";
 import { requestHost } from "@/lib/request-host";
 import type { ScriptHashesByRoute } from "@/lib/script-hashes-manifest.mjs";
 import { SITE_HOST } from "@/lib/site";
 import { UMAMI_ORIGIN, UMAMI_WEBSITE_ID } from "@/lib/umami-config.mjs";
 
+export { FORWARDED_UTM_PARAMETERS, MAX_UTM_LENGTH, pageviewUrl } from "@/lib/pageview-url";
 export { UMAMI_ORIGIN, UMAMI_WEBSITE_ID };
 
 export const PAGEVIEW_TIMEOUT_MS = 1500;
@@ -50,16 +52,6 @@ const IPV4_MAPPED_PREFIX = 0xffffn;
 export const MAX_LANGUAGE_LENGTH = 35;
 
 export const MAX_REFERRER_LENGTH = 500;
-
-export const MAX_UTM_LENGTH = 255;
-
-export const FORWARDED_UTM_PARAMETERS = [
-  "utm_source",
-  "utm_medium",
-  "utm_campaign",
-  "utm_term",
-  "utm_content",
-] as const;
 
 interface PageviewPayload {
   readonly website: string;
@@ -205,22 +197,6 @@ function referrerWithoutQuery(headers: Headers): string | undefined {
 function primaryLanguage(headers: Headers): string | undefined {
   const tag = (headers.get("accept-language") ?? "").split(",")[0]?.split(";")[0]?.trim();
   return tag && tag !== "*" && tag.length <= MAX_LANGUAGE_LENGTH ? tag : undefined;
-}
-
-function capUtmValue(value: string): string {
-  const capped = value.slice(0, MAX_UTM_LENGTH);
-  return /[\uD800-\uDBFF]$/.test(capped) ? capped.slice(0, -1) : capped;
-}
-
-export function pageviewUrl(requestUrl: string): string {
-  const { pathname, searchParams } = new URL(requestUrl);
-  const forwarded = new URLSearchParams();
-  for (const name of FORWARDED_UTM_PARAMETERS) {
-    const value = searchParams.getAll(name).find((candidate) => candidate !== "");
-    if (value !== undefined) forwarded.set(name, capUtmValue(value));
-  }
-  const query = forwarded.toString();
-  return query === "" ? pathname : `${pathname}?${query}`;
 }
 
 export function pageviewFor(request: Request): Pageview | undefined {
