@@ -260,7 +260,7 @@
       "stale": {
         "label": "Sigue obsoleto",
         "text": "La clave sigue obsoleta, por lo que la comprobación sigue fallando.",
-        "foot": "El valor antiguo se queda en {file}. CI falla hasta que la clave obtiene un valor que mantiene {placeholder}."
+        "foot": "{file} mantiene el valor anterior. La clave sigue obsoleta y se reintenta en la próxima ejecución."
       },
       "valueUnchanged": "sin cambios"
     },
