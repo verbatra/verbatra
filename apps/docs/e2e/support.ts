@@ -81,6 +81,17 @@ export async function expectNoHorizontalScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+export async function expectNoTableWiderThanItsWrapper(page: Page): Promise<void> {
+  const wide = await page.evaluate(() =>
+    [...document.querySelectorAll("#nd-page table")]
+      .map((table) => table.parentElement)
+      .filter((wrapper): wrapper is HTMLElement => wrapper !== null)
+      .filter((wrapper) => wrapper.scrollWidth > wrapper.clientWidth + 1)
+      .map((wrapper) => wrapper.scrollWidth - wrapper.clientWidth),
+  );
+  expect(wide).toEqual([]);
+}
+
 export async function expectNothingPastRightEdge(page: Page): Promise<void> {
   const clipped = await page.evaluate(() => {
     const viewport = document.documentElement.clientWidth;

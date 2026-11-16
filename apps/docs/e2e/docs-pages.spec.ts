@@ -7,6 +7,7 @@ import {
   DOCS_PAGES,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
+  expectNoTableWiderThanItsWrapper,
   expectNothingPastRightEdge,
   LOCALES,
   openInTheme,
@@ -52,6 +53,7 @@ for (const locale of LOCALES) {
           await openDocsPage(page, url);
           await expectNoHorizontalScroll(page);
           await expectNothingPastRightEdge(page);
+          await expectNoTableWiderThanItsWrapper(page);
         });
 
         test(`opens the mobile navigation at ${width}px without overflow`, async ({ page }) => {
@@ -78,6 +80,19 @@ for (const locale of LOCALES) {
           await expectNothingPastRightEdge(page);
         });
       }
+    });
+  }
+}
+
+const TABLE_PAGES = ["/docs/cli/check", "/docs/cli/diff"] as const;
+
+for (const locale of LOCALES) {
+  for (const path of TABLE_PAGES) {
+    const url = pageUrl(locale, path);
+    test(`keeps every table of ${url} inside its wrapper at 375px`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 800 });
+      await openDocsPage(page, url);
+      await expectNoTableWiderThanItsWrapper(page);
     });
   }
 }
