@@ -1,0 +1,90 @@
+---
+title: "編集"
+seoTitle: "SDK：値の編集とロケール全体のテキスト置換"
+description: "修正した値を 1 件書き込みます。ターゲットロケールの値へのリテラルの検索置換は、プレビューしてから適用します。"
+type: reference
+---
+<AvailableFrom version="0.13.0" />
+
+## 1 つのキーを編集する
+
+### editEntry
+
+<AvailableFrom version="0.5.0" />
+
+1 つのキーとロケールに対して、人が入力した修正を 1 件書き込みます。候補訳は、何かがディスクに届く前に、プロバイダーの訳文と同じ整合性ゲートを通過します。受け付けられると、ロケールのファイルと、そのキーのロックファイルのエントリが、ロケールの書き込みロックの中で更新されます。プロバイダーは呼び出しません。
+
+```ts title="シグネチャ"
+function editEntry(
+  input: EditEntryInput,
+  deps?: EditEntryDeps,
+): Promise<EditEntryResult>;
+```
+
+<SdkTypeTable name="EditEntryInput" />
+
+**戻り値**：`EditEntryResult`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`UNKNOWN_KEY`](/ja/docs/error-codes#unknown_key)、[`KEY_PINNED`](/ja/docs/error-codes#key_pinned)、[`LOCK_CONTENDED`](/ja/docs/error-codes#lock_contended)、[`RUN_CANCELLED`](/ja/docs/error-codes#run_cancelled)、[`TARGET_UNWRITABLE`](/ja/docs/error-codes#target_unwritable)、[`LOCALE_STATE_NOT_CARRIED_OVER`](/ja/docs/error-codes#locale_state_not_carried_over)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/ja/docs/error-codes#provenance_file_invalid)
+
+**例**：[1 つのキーを編集して再翻訳する](/ja/docs/programmatic-api#1-つのキーを編集して再翻訳する)
+
+`{ accepted: true, value }` を返します。または、何も書き込まれずに `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` を返します（[整合性ゲート](/ja/docs/translation-safety#整合性ゲート)）。理由に対するスキーマを作るには、エクスポートされている `INTEGRITY_GATE_REASONS` タプルを使います。`"empty"` は、テキストのあるソースに対する空白の値を拒否します。キーをクリアするには、代わりにブックの `[[CLEAR]]` 特殊値を使います。`placeholder` または `markup` の拒否には `details` も付き、その原因となる各プレースホルダーまたはタグが示されます。候補訳が欠いたものには `-`、候補訳が余分に加えたものには `+` が先頭に付きます。
+
+値は、出どころ `human` として `verbatra.provenance.json` に記録されます。AI エージェントが書いた場合は `actor: "agent"` を渡すと、記録にそう残ります（呼び出し側が主張するだけで、検証はされません）。それ以外の `actor` を渡すと、何かを読み込む前に `TypeError` をスローします。来歴ファイルが壊れている場合は、値がゲートに通される前に `PROVENANCE_FILE_INVALID` をスローし、何も書き込まれません。より新しい verbatra のものである場合や、記録を追加すると verbatra が読み戻せるサイズを超える場合は、そのファイルには触れず、記録なしで値が書き込まれます。
+
+<AvailableFrom version="0.12.0" />
+
+`actor: "agent"` の場合、設定ファイルの `pinnedKeys` に一致するキーを編集すると、何かが書き込まれる前に `KEY_PINNED` をスローします。人による固定されたキーの編集は受け付けられます。
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` は、ロケールの書き込みロックを待つ時間の上限です（デフォルトは 10 分）。超えると呼び出しは `LOCK_CONTENDED` で失敗します。`onLockWait` はその待機を報告します。無効な上限は、何かを読み込む前に `LOCK_TIMEOUT_INVALID` で失敗します。
+
+## ロケールをまたいで置換する
+
+ターゲットロケールの値に対するリテラルの検索置換は、2 つのステップに分かれます。`previewValueReplace` は、変更される内容と、一部の値が変更されない理由を一覧表示します。`applyValueReplace` は、選んだ値を変更し、各値を書き込みロックの中でもう一度判定します。どちらも、一致の判定にソースロケールを読み込まず、プロバイダーも呼び出しません。
+
+### previewValueReplace
+
+`find` を含むターゲットの値を、それぞれの状態とともに一覧表示します。照合はリテラルです。パターン構文、Unicode の正規化（NFD の `find` は NFC の値に一致しません）、改行コードの変換はありません。`replace` は書かれたとおりに挿入されるので、`$&` や `$1` に特別な意味はありません。`caseSensitive` のデフォルトは `true` です。一致がサロゲートペアの内側で始まったり終わったりすることはありません。空の `find`、20,000 文字を超える `find`、対のないサロゲートを含む `find` または `replace` は、`FIND_TEXT_INVALID` をスローします。読み取り専用です。
+
+```ts title="シグネチャ"
+function previewValueReplace(
+  input: PreviewValueReplaceInput,
+  deps?: ValueReplaceDeps,
+): Promise<ValueReplacePreview>;
+```
+
+<SdkTypeTable name="PreviewValueReplaceInput" />
+
+**戻り値**：`ValueReplacePreview`
+
+**例外**：[`FIND_TEXT_INVALID`](/ja/docs/error-codes#find_text_invalid)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)
+
+すべてのエントリには、状態が 1 つあります。`ready` と `stale-source` は適用できます。`stale-source` は、訳文が記録されてからソースのテキストが変わったキーを示します。`gate-refused` には、置換後の値が破る `reason` が付き、現在のソーステキストに対する編集と[同じ整合性ゲート](/ja/docs/translation-safety#整合性ゲート)が適用されます。ICU フォーマット（next-intl と ARB）では、引数の働きが変わる置換も、理由 `icu` で拒否されます。引数の型、数値や日付のスタイルまたはスケルトン、複数形の分岐内の `#` の数が、現在の値と比べて変わる場合です。現在の値が有効な ICU でない場合は、ソーステキストと比べます。ソーステキストから名前が変わった引数は、`placeholder` として拒否されます。`details` は、各違いを一覧表示し、比較した値には `-`、置換した値には `+` が付きます。`too-long` は、20,000 文字を超えて長くなる値です。整合性による拒否ではなく、`reason` もありません。`pinned` は、`pinnedKeys` に一致するキーです。`protected` は、人が書いた、またはインポートした値、verbatra の外で変更された値、あるいは来歴ファイルを読み取れない場合のすべての値で、より新しい verbatra のファイルもこれに含まれます。これは `humanEdits` にかかわらず常に当てはまります。両方に該当するキーは、`protected: true` 付きの `pinned` として一覧表示され、`includePinned` と `includeProtected` の両方が必要です。`no-source-entry` は、照合するソーステキストがないキーで、`unchanged` は、置換しても変わらない値です。
+
+一覧表示されるのは最大 1,000 件の値で、`locales` に指定した順序にかかわらず、設定ファイルの `targetLocales` の順序です。一致がさらにある場合は `truncated` が示し、`before` と `after` は最初の一致の前後 200 文字に切り詰められます。`valueHash` は、来歴の記録が現在の値について保存するハッシュで、`applyValueReplace` にそのまま渡します。`baselineUnavailable: true` は、ロックファイルを読み取れなかったことを示します。そのため、どの値も記録済みのソーステキストと比較されず、`stale-source` になる値もありません。
+
+### applyValueReplace
+
+選んだ値の `find` を置換します。新しい値は、ロケールの書き込みロックの中で、ディスク上のテキストからそのつど計算し直します。呼び出し側から計算済みの値を受け取ることは決してなく、プレビューはあくまで目安で、すべてのエントリがもう一度判定されます。
+
+```ts title="シグネチャ"
+function applyValueReplace(
+  input: ApplyValueReplaceInput,
+  deps?: ValueReplaceDeps,
+): Promise<ApplyValueReplaceResult>;
+```
+
+<SdkTypeTable name="ApplyValueReplaceInput" />
+
+**戻り値**：`ApplyValueReplaceResult`
+
+**例外**：[`FIND_TEXT_INVALID`](/ja/docs/error-codes#find_text_invalid)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/ja/docs/error-codes#provenance_file_invalid)
+
+各エントリの結果は、`applied`、`skipped`（理由付き）、`refused`（整合性の理由付き）、`changed`、`too-long` のいずれかです。`changed` は、値が `valueHash` と一致しなくなった、`find` を含まなくなった、または存在しなくなったことを意味し、そのエントリには何も書き込まれません。ハッシュは Unicode の正規化と改行コードを無視するので、プレビューとその点だけが異なる値は、`find` がまだ一致すれば置換され、一致しなければ `changed` になります。固定されたキーは、`includePinned` が設定され、かつ `actor` が `human` である場合を除き、スキップされます。保護された値は、`includeProtected` が設定されない限りスキップされます。両方に該当するキーは、両方が必要です。より新しい verbatra の来歴ファイルがある場合、すべての値が保護されたものとして扱われます。`includeProtected` を指定すれば変更されますが、ファイルには触れず、値に記録は付きません。同じ `locale` と `key` が複数回現れる場合、`valueHash` にかかわらず最初のものが判定され、後のものはすべて `duplicate-entry` として `skipped` になります。
+
+ロケールは、`entries` に最初に現れる順に 1 つずつ処理されます。各ロケールは専用の書き込みロックの下で、ロケールファイルの書き込み 1 回、ロックファイルと来歴ファイルの更新 1 回、翻訳メモリの更新 1 回で処理されます。古くなったキーはロックファイルの古いハッシュを保つので、`check` は引き続きそれを古いと報告し、その値は翻訳メモリに追加されません。書き込まれたすべての値には、`actor` を出どころとし、レビューの判断を含まない新しい来歴の記録が付きます。`actor` は必須で、`human` または `agent` 以外の値を渡すと、何かを読み込む前に `TypeError` をスローします。
+
+失敗したロケールが、ほかのロケールを止めることはありません。`localeFailures` は、失敗したロケールを、それぞれ `code` と `message` とともに一覧表示します。たとえば、`lockAcquireTimeoutMs` の間に書き込みロックが空かない場合の `LOCK_CONTENDED`、`TARGET_UNWRITABLE`、`SOURCE_INVALID`、アダプターのエラーなどです。整合性ゲートが拒否したエントリは、引き続き `refused` で返り、失敗の前にチェックで結果が確定していたものは、その結果を保ちます。残りは、何も書き込まれずに、`locale-failed` として `skipped` になります。失敗に `fileWritten: true` が付いている場合、それはロケールファイルの書き込み後、ロックファイルまたは来歴ファイルの更新中、あるいは書き込みロックの解放中に起きたものです。受け付けられたエントリは `applied` で、その値はディスク上にあり、ロックファイルや来歴ファイルの更新が遅れている可能性があるので、再試行の前にロケールを確認します。`find` が `replace` の中に現れる置換は、確認せずにもう一度実行しないでください。ロックファイル自身のガードの待機には、`lockAcquireTimeoutMs` ではなく、デフォルトの 10 分が使われます。

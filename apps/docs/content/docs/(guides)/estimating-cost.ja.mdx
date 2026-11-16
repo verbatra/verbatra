@@ -1,0 +1,162 @@
+---
+title: 実行前に費用を見積もる
+seoTitle: "verbatra の実行前に翻訳費用を見積もる"
+description: "費用をかける前に翻訳の実行規模を見積もります。ドライランでキー数を数え、verbatra にリクエスト数、トークン、金額へ換算させ、承認した実行に上限を設けます。"
+type: how-to
+---
+実際のプロジェクトで初めて実行する前や、誰かの承認が必要な実行の前に使います。verbatra は価格を公開しません。単価はプロバイダーのものであり、予告なく変わるためです。verbatra が数えるのは課金の対象になる量で、プロバイダーの現在の単価を渡すと、それを金額に換算します。
+
+一般的なプロジェクトで費用がかかるのは最初の実行だけです。次回以降は、変更されたキーしか送られないため、費用はほとんどかかりません。
+
+## 作業量を数える
+
+```bash
+verbatra translate --dry-run
+```
+
+```text output
+verbatra translate (dry run)
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+`would translate` は、実際の実行が送るキーの数です。ターゲットファイルに欠落しているキーと、ソーステキストが変更されたキーの合計になります。ドライランはプロバイダーを生成せず、API キーも読み取らず、何も書き込みません。この数は上限として扱ってください。ドライランは、実際の実行なら重複する文字列を無料で返す[キャッシュ](/ja/docs/the-cache)を使わず、同一のソース文字列も統合しません。実際の実行では、同一の文字列は 1 回だけ送られます。
+
+## 費用を見積もる
+
+<AvailableFrom version="0.11.0" />
+
+```bash
+verbatra translate --estimate
+```
+
+```text output
+verbatra translate (estimate)
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
+  estimate: 1200 keys in 24 requests, ~40944 input + ~30720 output tokens
+  estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
+  estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+`--estimate` は `--dry-run` も有効にするため、費用はかかりません。プロバイダーの課金単位で報告します。LLM ではトークン、DeepL と Google Cloud Translation ではソース文字数、セルフホストの `openai-compatible` や `libretranslate` のサーバーでは 「API の費用なし」と報告します。`--json` を付けると、同じ数値がロケールごと、および合計として `result.estimate` に入るため、スクリプトでゲート条件にできます。
+
+金額を確認するには、使うモデルの現在の単価を、プロバイダー自身の料金ページで調べます。
+
+| プロバイダー | 課金単位 | 料金 |
+| --- | --- | --- |
+| Gemini | 入力トークンと出力トークン（無料枠あり） | [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing) |
+| Anthropic | 入力トークンと出力トークン | [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
+| OpenAI | 入力トークンと出力トークン | [OpenAI API pricing](https://developers.openai.com/api/docs/pricing) |
+| OpenCode | 入力トークンと出力トークン | [OpenCode Zen pricing](https://opencode.ai/docs/zen/) |
+| DeepL | ソース文字数 | [DeepL API pricing](https://www.deepl.com/pro#api) |
+| Google Cloud Translation | ソース文字数 | [Cloud Translation pricing](https://cloud.google.com/products/translate/pricing) |
+| openai-compatible、LibreTranslate | なし（自分のサーバー） | API の費用なし |
+
+次に、確認した日付とともに設定へ追加します。
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  rates: {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      // placeholders: copy the current rates from https://ai.google.dev/gemini-api/docs/pricing
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 1, outputPerMillionTokens: 2 },
+    },
+  },
+});
+```
+
+上の単価はダミー値であり、実際の価格ではありません。この単価から出力される数値にはすべて `asOf` の日付が付くため、古い料金表は古いとひと目でわかります。verbatra は、ない単価を作り出したり、価格を付けられないモデルに `0.00` を出力したりしません。代わりに、欠落しているエントリを示します。キーの形式と単位は、[`rates`](/ja/docs/config-file#rates) を参照してください。
+
+## 見積もりに含まれるものを知る
+
+見積もりは、本来なら手で計算する内容を代わりに計算します：
+
+- **リクエスト**：各ロケールのキーは、最大 [`maxBatchSize`](/ja/docs/config-file#maxbatchsize)（デフォルトは `50`）件ずつのバッチに分けられ、1 バッチにつき 1 リクエストになります。ここに、[`generatePlurals`](/ja/docs/config-file#generateplurals) が送るバッチも加わります。
+- **入力**：LLM のリクエストにはすべて、固定のシステムルール（約 550 トークン）とレスポンススキーマ（約 100 トークン）、続いてキー、その説明、トーン、ターゲットロケールの用語集全体が含まれます。プロンプトは、送信されるペイロードをシリアライズして測るため、大きな用語集は、それを載せるリクエストのたびに数えられます。
+- **出力**：訳文はまだ存在しないため、ソーステキストの 1.5 倍の大きさとして見積もります。ドイツ語、フランス語、ロシア語は、英語より 3 分の 1 から半分ほど長くなることが多いためです。
+- **トークン**：文字は、1 トークンあたり約 4 文字で換算します。これは英語の文章に合う値で、ほかの文字体系ではもっと密になります。
+
+実際の実行は、たいてい見積もりより安くなります。ドライランの件数が上限である 2 つの理由と同じです。高くなることもあり、`estimate excludes` の行にその要因が示されます。特に重要なのは次の 2 つです。
+
+- **再試行**：失敗したリクエストは[再試行](/ja/docs/providers#再試行)されます。追加の試行は、Anthropic、OpenAI、OpenCode、`openai-compatible`、Gemini で最大 2 回、DeepL で 5 回、Google Cloud Translation と LibreTranslate ではありません。モデルに届いた試行は課金されます。
+- **修復**：キーが返ってこなかった場合、verbatra は修復リクエストを 1 回送ります。これには、システムルール、用語集、トーンがもう一度すべて含まれます。
+
+見積もりは計画に使うものであり、上限として約束しないでください。また、見積もりの対象は `translate` だけです。[Studio](/ja/docs/review-in-studio) やエージェントツールで 1 つのエントリを再翻訳する場合は、別の経路で費用が発生します。
+
+## 実行に上限を設ける
+
+<AvailableFrom version="0.12.0" />
+
+承認した実行には、見積もりの入力トークンと出力トークンの合計より少し大きい値で、厳格な停止ラインを設けます。
+
+```bash
+verbatra translate --max-tokens 80000
+```
+
+上限を超えるリクエストは、送られずに保留され、そのキーは次回の実行まで未処理のままです。設定にも `maxTokens` がある場合は、小さいほうの値が適用されます。DeepL、Google Cloud Translation、LibreTranslate はトークンを報告しないため、これらでは verbatra 自身の予測に対して上限が適用されます。[トークンの上限](/ja/docs/cli/translate#トークンの上限)と、すべての実行に適用される予算については [`maxTokens` と `budgetBehavior`](/ja/docs/config-file#maxtokens-と-budgetbehavior) を参照してください。
+
+## 1 つのロケールで調整する
+
+正確な数値は、実際の実行から得られます。ロケールを 1 つだけ翻訳して、使用量を確認します。
+
+```bash
+verbatra translate --locales de
+```
+
+```text output
+verbatra translate
+  de: 400 translated, 0 unchanged, 18400 tokens (10800 in, 7600 out)
+  total: 18400 tokens (10800 in, 7600 out)
+1 succeeded, 0 partial, 0 failed
+```
+
+この値に、残りのロケール数を掛けます。`--json` では、`usage.inputTokens` と `usage.outputTokens` が該当します。この実行には実際に費用がかかりますが、作業は残ります。そのロケールは完了しています。
+
+## 過去の実行の費用を確認する
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Studio の **Overview**（概要）には、記録された実行が費用とともに一覧表示されます。費用は実行が終わった時点で固定されるため、あとから `rates` を変更しても書き換わりません。金額は、プロバイダーが報告したトークン数に、その時点の単価を掛けたものです。**Estimated**（見積もり値）は、使用量を報告しないプロバイダーのソース文字数に基づく値です。**At least**（下限値）は、トークンを報告しなかったロケールがあるため、下限であることを示します。**No rate**（単価なし）は、そのモデルに一致する単価がないことを、**unknown**（不明）は、キーは送られたもののトークンが返らなかったことを意味し、どちらも無料ではありません。セルフホストのプロバイダーは **not billed**（課金なし）と表示されます。記録については [`runHistory`](/ja/docs/sdk/history#runhistory) に説明があり、画面は [Studio でレビューする](/ja/docs/review-in-studio)で確認できます。
+
+## 機械翻訳プロバイダー
+
+DeepL と Google Cloud Translation はトークンではなくソース文字数で課金し、LibreTranslate はソース文字数を数えますが課金はしません。verbatra がこれらに送るのは、プレースホルダーを短い番号付きマーカーにしたソーステキストで、システムルール、キー名、周りの JSON は付きません。見積もりが数えるのは、ソース文字数だけです。DeepL は、マーカーを囲むタグを課金しません。Google がマーカーを囲む span のマークアップを課金するかどうかは、明記されていません。これらのプロバイダーが保留する値（[`PLACEHOLDER_UNSUPPORTED`](/ja/docs/error-codes#placeholder_unsupported)）は送られないため、送られる文字数は、元の合計より少なくなることがあります。
+
+### Google Cloud Translation
+
+<AvailableFrom version="0.10.0" />
+
+Google Cloud Translation は DeepL と同じように数えます。見積もりではソース文字数で、`maxTokens` の予算にはトークン数の予測値で数え、実行サマリーでは見積もりとして示されます。
+
+## エージェントから見積もる
+
+2 つのエージェントツールが、`translate --estimate --json` が出力するのと同じ内容を、すべてのロケール、または一部のロケールについて返します。プロバイダーは呼び出しません。
+
+| ツール | 場所 |
+| --- | --- |
+| `translation.estimate` | [MCP サーバー](/ja/docs/cli/mcp) <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> |
+| `verbatra_translation_estimate` | [Studio のエージェントツール](/ja/docs/agent-tools-in-studio) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+### 見積もりの範囲内で費用をかける
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+そのあと `translation.translatePending` に、同じ `locales` と `maxTokens` の上限を渡します。[見積もってから費用をかける](/ja/docs/cli/mcp#見積もってから費用をかける)を参照してください。
+
+## 次回の実行が安くなる理由
+
+ここまでの数値は、最初の実行の費用です。それ以降、verbatra が送るのは、欠落しているキーと、[ロックファイル](/ja/docs/the-lock-file)のベースラインからソースが変更されたキーだけで、[キャッシュ](/ja/docs/the-cache)が同一の文字列の以前の訳文を再利用します。日々の費用は、編集した文字列の分だけです。無料で試すには、Gemini の無料枠を使うか、`openai-compatible` をローカルモデルに向けます。[プロバイダー](/ja/docs/providers)を参照してください。
+
+## 関連項目
+
+- [`verbatra translate`](/ja/docs/cli/translate)：`--dry-run`、`--estimate`、`--max-tokens`、`--locales` です。
+- [設定ファイル](/ja/docs/config-file#rates)：`rates`、`maxTokens`、`budgetBehavior`、`maxBatchSize` です。
+- [プロバイダー](/ja/docs/providers)：各プロバイダーのオプションと API キーの入手先です。

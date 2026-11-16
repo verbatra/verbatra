@@ -1,0 +1,192 @@
+---
+title: "アダプター、プロバイダー、秘匿化"
+seoTitle: "カスタムアダプターとプロバイダーで SDK を拡張する"
+description: "verbatra が提供していないフォーマットアダプターや翻訳プロバイダーを作り、SDK に渡すテキストからシークレットを秘匿化します。"
+type: reference
+---
+## フォーマットアダプター
+
+<AvailableFrom version="0.11.0" />
+
+verbatra が提供していないフォーマットのアダプターを作り、組み込みのアダプターと並べて登録するために必要なものがすべて揃っています。verbatra の外部にあるフォーマットは、`custom:toml` のような `custom:` 識別子で名前を付けます。設定ファイルは、これを組み込みの名前とまったく同じように受け付けます。手順の全体は[カスタムフォーマットアダプターを書く](/ja/docs/custom-format-adapters)を参照してください。サードパーティのアダプターをインストールするときに何を信頼することになるかも説明しています。アダプターは完全に信頼されるコードであり、verbatra はアダプターをサンドボックスで隔離しません。
+
+### createDefaultRegistry
+
+verbatra が提供するすべてのアダプターを、検出順で保持する `AdapterRegistry` を作ります。空のレジストリからではなく、ここから始めます。そうすれば、自分のフォーマットが組み込みのものを置き換えず、組み込みのものに加わります。その結果を `deps.adapterRegistry` として、任意のフローに渡します。`register` と `resolve` は [`AdapterRegistry`](#adapterregistry) で説明しています。
+
+```ts title="シグネチャ"
+function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
+```
+
+**戻り値**：`AdapterRegistry`
+
+**例**：[登録して実行する](/ja/docs/custom-format-adapters#登録して実行する)
+
+```ts title="例"
+import {
+  createDefaultRegistry,
+  translate,
+  type FormatAdapter,
+  type VerbatraConfig,
+} from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare const tomlAdapter: FormatAdapter;
+
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+### AdapterRegistry
+
+登録されたアダプターを保持し、ファイルに対して 1 つを解決します。`new AdapterRegistry()` は空の状態から始まるため、登録したフォーマットだけを読み取ります。通常の起点は `createDefaultRegistry` です。`register(adapter)` は、アダプターを検出順の末尾に追加し、レジストリを返します。そのため、登録を連鎖できます。レジストリがすでに保持しているフォーマットと、不正な `custom:` 識別子は拒否します。また `custom:` のアダプターをラップし、そのアダプターが予期せずスローしたものを、フォーマットを名指しする `AdapterError` として表に出します。`resolve(filePath, options)` は、1 つのファイルに対するアダプターを選びます。`options.format` が指定されていればそれで選び、なければ検出で選びます。検出は、先頭部分の内容サンプルである `options.sample` で補助できます。
+
+```ts title="シグネチャ"
+class AdapterRegistry {
+  register(adapter: FormatAdapter): this;
+  resolve(filePath: string, options?: ResolveOptions): AdapterResolution;
+}
+```
+
+`resolve` は、次のオプションを受け取ります。
+
+<SdkTypeTable name="ResolveOptions" />
+
+**戻り値**：`register` はレジストリを返します。`resolve` は `AdapterResolution` を返します。これは `status` で区別されます。`resolved` は `adapter` を、`no-match` は `filePath` と `triedFormats` を、`ambiguous` は `filePath` と競合する `candidates` を持ちます。`ambiguous` は、候補の 1 つを `format` として渡せば解決できます。解決できないファイルは状態として返され、例外にはなりません。
+
+**例外**：`AdapterError` の [`DUPLICATE_FORMAT`](/ja/docs/error-codes#duplicate_format)、[`INVALID_FORMAT_ID`](/ja/docs/error-codes#invalid_format_id)（`register` から）、[`ADAPTER_FAILED`](/ja/docs/error-codes#adapter_failed)（`custom:` アダプター自身の `canHandle` が検出中にスローした場合に `resolve` から）
+
+### createFlatFileAdapter
+
+フラットなキーと値のフォーマット向けの `FormatAdapter` を作ります。ここでいうフラットなフォーマットとは、すべてのエントリが入れ子なしの 1 つのキーで指定されるものです。フォーマット固有の `parseEntries`、`serializeEntries`、`extractPlaceholders` を渡します。ファクトリ関数が、サイズを制限した読み取り、アトミックな書き込み、拡張子による検出、構造化されたエラー処理を提供します。`parseEntries` は、ファイルを読み込むロケールも受け取ります。1 つのファイルにソースとターゲットの両方のテキストを持つフォーマット向けです。`serializeEntries` は、呼び出し側の書き込みコンテキストを受け取ります。そのオプションの `sourcePath` がソースロケールのファイルを示します。0.12.0 以上では、書き込み中のロケールも 5 番目の引数として受け取ります。ファイルの中にロケールを記録するフォーマット向けです。拡張子が汎用的なものである場合は、必ず `sniff` を渡してください。渡さないと、アダプターがその拡張子を共有するすべてのファイルを引き受けてしまい、検出は選ぶ代わりにあいまいさを報告します。オプションのフックは、`validateMessage`、`computeInvalidIcuKeys`、`comparePlaceholders`、そして 0.12.0 以上では `compareBranchArms` です。`fs` はファイルシステムのポートを置き換えます。デフォルトは `nodeAdapterFs` です。
+
+```ts title="シグネチャ"
+function createFlatFileAdapter(
+  options: FlatFileAdapterOptions,
+): FormatAdapter;
+```
+
+<SdkTypeTable name="FlatFileAdapterOptions" />
+
+**戻り値**：`FormatAdapter`
+
+**例**：[アダプターを作る](/ja/docs/custom-format-adapters#アダプターを作る)
+
+`FormatAdapter` は、ファイルを `LocaleResource` に読み込みます。これは、すべてのアダプターとフローが共有する中立的な形です。
+
+<SdkTypeTable name="LocaleResource" />
+
+### createTreeFileAdapter
+
+入れ子のツリー構造のフォーマット向けの `FormatAdapter` を作ります。ここでいうツリー構造のフォーマットとは、エントリが入れ子のオブジェクトを通るパスに置かれているものです。ツリーを扱う `parse` と `serialize`、各リーフのプレースホルダーと複数形かどうかを報告する `deriveEntry`、1 つの値用の `extractPlaceholders` を受け取り、平坦化と復元はファクトリ関数側で処理します。フラットなファクトリ関数と同じく、`format`、`extensions`、オプションの `sniff` を受け取ります。構造化されたフォーマットに必要なオプションのフックも備えています。`validateTree`、`validateMessage`、`computeInvalidIcuKeys`、`comparePlaceholders`、`compareBranchArms`（0.12.0 以上）、`deriveDescriptions`、`buildWriteTree`、`keyMode` です。`fs` はファイルシステムのポートを置き換えます。デフォルトは `nodeAdapterFs` です。
+
+```ts title="シグネチャ"
+function createTreeFileAdapter(
+  options: TreeFileAdapterOptions,
+): FormatAdapter;
+```
+
+<SdkTypeTable name="TreeFileAdapterOptions" />
+
+**戻り値**：`FormatAdapter`
+
+### nodeAdapterFs
+
+`AdapterFs` 型のファイルシステムのポートです。ポートが渡されなかったときに、すべてのアダプターのファクトリ関数が使います。読み取りはサイズを制限し、ファイルがない場合や大きすぎる場合は、スローせずに状態として報告します。書き込みは一時ファイルとリネームを経由するため、中断された書き込みが、書きかけのロケールファイルを残すことはありません。自作のアダプターでは、`node:fs` を直接使わず、このポートを通して読み書きしてください。これは境界ではなく慣習であり、verbatra は自分のものではないコードにこの慣習を強制できません。
+
+```ts title="シグネチャ"
+const nodeAdapterFs: AdapterFs;
+```
+
+### isCustomFormatId
+
+フォーマット識別子がサードパーティのものかどうかを判定します。正しい形の `custom:` 識別子なら true、組み込みのフォーマット名なら false です。自分のツールで両者を区別する必要がある場合に便利です。たとえば、設定ファイルを実行する前にレジストリを渡す必要があるかを判断する場合です。
+
+```ts title="シグネチャ"
+function isCustomFormatId(
+  format: string,
+): format is CustomFormatId;
+```
+
+**戻り値**：`format is CustomFormatId`
+
+## シークレットの秘匿化
+
+<AvailableFrom version="0.10.0" />
+
+### redact
+
+プロバイダーの API キーの形式と、設定されたプロバイダーの環境変数の現在の値そのものを、文字列から消去します。一致した部分は、それぞれ `[REDACTED]` に置き換えます。`@verbatra/studio` と `@verbatra/mcp` はどちらも、呼び出し元に返す値のうち、自分たちで生成したものではないすべての値に `redact` を適用します。たとえば、用語集の用語、ファイルパス、上流のエラーメッセージです。そのため、環境にすでにある API キーや、プロジェクトのファイルに書かれた API キーが、ブラウザーのタブ、エージェント、ログの行に届くことはありません。`verbatra` CLI は、stdout と stderr に書き込むものすべてを、`--json` のエンベロープ（envelope）も含めて、最後の手順として `redact` に通します。
+
+```ts title="シグネチャ"
+function redact(text: string): string;
+```
+
+**戻り値**：`string`
+
+これには、`openai-compatible` プロバイダーが `apiKeyEnvVar` で指定する変数も含まれます。この変数は、それを指定する設定ファイルを `loadConfig` が読み込んだときか、そのプロバイダーが作られたときに宣言されます。それ以降は、組み込みの変数とまったく同じように値が消去されます。宣言が取り除かれることはありません。値が 8 文字より短い場合は、値による消去は行いません。そのため、短い変数が無関係なテキストを消してしまうことはありません。
+
+DeepL の API キーが形式だけで認識されるのは、無料の API キーの接尾辞 `:fx` が付いている場合か、単独の UUID が API キーの文脈にある場合に限られます。API キーの文脈とは、`DeepL-Auth-Key` ヘッダーの後、または `auth_key`、`authKey`、`--auth-key`、`api_key`、`deeplKey`、`DEEPL_API_KEY`、`DEEPL_AUTH_KEY` のような名前の後に、`:`、`=`、URL エンコードされた `%3D`、スペースのいずれかが続く場合です。引用符の有無は問いません。文字列にシリアライズされた JSON の中でも同じです。ファイルパスやリクエスト ID に含まれるものなど、それ以外の UUID は、そのまま読める状態で残ります。`DEEPL_API_KEY` に入っている Pro の API キーは、どこに現れても、その値によって消去されます。
+
+`sk-` トークンが秘匿化されるのは、`sk-` の後に英字と数字が 32 文字以上続く場合です。`-` と `_` で区切られたセグメントをまたいで数え、接頭辞は問いません。この 1 つのルールが、OpenAI と Anthropic のすべての API キーの形式をカバーします。`sk-proj-` や `sk-ant-` のような既知の接頭辞だけでは、短いトークンは秘匿化されません。トークンとして数えるのは、英字や数字が直前にない場合だけです。次のものも境界になります。`\n` や `\u0007` のような JSON のエスケープ、`%3D` のようなパーセントエンコードされた文字、`\x1b[31m`、`\x1b[2K`、`\x1b[?25h` のような ANSI CSI シーケンス、`\x1b(B` のような ANSI の文字セット指定、そして JSON で `\u001b` とエスケープされたどちらかの ANSI 形式です。`locales/sk-SK.json` や `sk-banner_headline` のようなスロバキア語のパスやキーは、そのまま読める状態で残ります。ただし、スロバキア語に似た長いキーはしきい値に達し、秘匿化されます。`sk-SK_settings_notifications_email_digest` は、`sk-` の後に英字と数字が 34 文字あります。`sk-onboardingWelcomeScreenPrimaryButton` のような、長いキャメルケースのキーも同様です。
+
+Gemini の API キーは、形式だけで認識されます。`AIza` の後に、英字、数字、`_`、`-` が 35 文字続くものです。
+
+### declareProviderKeyEnvVar
+
+<AvailableFrom version="0.12.0" />
+
+`provider` ブロックが API キーの取得元として指定する変数を宣言し、`redact` がその値を消去するようにします。現時点で変数を指定するのは、`apiKeyEnvVar` を持つ `openai-compatible` プロバイダーだけです。それ以外のプロバイダーでは、何も行いません。`loadConfig` とプロバイダーの生成は、すでにこの処理をしています。Studio と MCP サーバーも、受け取った設定ファイルに対して同じ処理をします。そのため、ほかの経路で設定ファイルが自分のコードに届く場合にだけ、`declareProviderKeyEnvVar` を呼び出します。宣言はプロセス全体に及び、プロセスに読み込まれた SDK のすべてのコピーで共有されます。
+
+```ts title="シグネチャ"
+function declareProviderKeyEnvVar(
+  provider: ProviderConfig,
+): void;
+```
+
+**戻り値**：`void`
+
+## カスタムプロバイダー
+
+<AvailableFrom version="0.12.0" />
+
+SDK が提供していないプロバイダーは、`deps.createProvider` を通して差し込みます。これは `TranslationProvider` を返す `CreateProvider` です。SDK はインターフェース全体を型としてエクスポートします。そのため、このようなプロバイダーは、組み込みのものが実装するのと同じインターフェースに対して型チェックされます。フィールドが使う型も含まれます。リクエストでは `Tone`、`PluralCategories`、`PlaceholderExtractor`、`PlaceholderComparator`、結果では `Usage`、`ProviderNotice`、`ProviderNoticeCode`、`ReviewFlag`、`ProviderNetwork` では `NetworkPolicy` と `NetworkRule` です。
+
+```ts title="例"
+import {
+  translate,
+  type CreateProvider,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
+  type VerbatraConfig,
+} from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare function callInHouseService(
+  locale: string,
+  entries: TranslateRequest["entries"],
+): Promise<ReadonlyMap<string, string>>;
+
+const provider: TranslationProvider = {
+  id: "in-house",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  async translateBatch(request: TranslateRequest): Promise<TranslateResult> {
+    const values = await callInHouseService(request.targetLocale, request.entries);
+    return { values, integrity: new Map(), notices: [] };
+  },
+};
+
+const createProvider: CreateProvider = () => provider;
+const summary = await translate({ config }, { createProvider });
+```
+
+- `TranslationProvider` は唯一のインターフェースです。`id`、`kind`（`ProviderKind`）、`supportsGlossary`、`translateBatch(request)` を持ちます。リクエストのすべての値を信頼できないデータとして扱い、API キーはリクエストからではなく環境から読み取り、呼び出しが失敗したときは、シークレットを含まない `ProviderError` をスローします。
+- `ProviderKind` は `"llm"` または `"machine-translation"` です。プロバイダーのオブジェクトの `kind` は、説明のためだけのものです。複数形の生成と、機密情報ガードがスキャンする対象は、このフィールドからではなく、設定されたプロバイダーの `id` の種類から SDK が決めます。
+- `TranslateRequest` は、`sourceLocale`、`targetLocale`、翻訳する `entries`、そしてオプションの `glossary`（ターゲットロケールに対する [`glossaryForLocale`](/ja/docs/sdk/config#glossaryforlocale) の結果）、`tone`、`maxLength`、`pluralCategories` を持ちます。さらに、プロバイダーが整合性チェックに使う `extractPlaceholders` と、フォーマットによっては `comparePlaceholders` も持ちます。実行中の呼び出しを中断する `signal`、`onRepair`、`foreignPlaceholders` も持ちます。`foreignPlaceholders` は、キーごとに、別のプレースホルダー構文の記号をプレースホルダーのように保護するためのものです。
+- `TranslateResult` は、エントリのキーごとの `values` と `integrity` を返します。オプションの `usage`、`notices`、`reviewFlags` もあります。`values` にないキーは、翻訳されなかったものとして扱われます。そのため、プロバイダーは、安全に翻訳できない値を省けます。返されたすべての値に対して、どちらの場合も SDK が独自の整合性ゲートを実行します。
+- `ProviderRetryListener` は、`CreateProviderHooks.onRetry` の型です。再試行のたびに `ProviderRetry`（`{ attempt, delayMs?, status? }`）を受け取り、各呼び出しは `provider-retry` の[進捗イベント](/ja/docs/sdk/run#進捗イベント)になります。
+- `ProviderNetwork` は、ネットワークポリシーがプロバイダーの接続先を制限しているときに、`CreateProviderContext.network` が持つものです。実効の `policy`、エンドポイントの解決に使った `env`、オプションのテスト用 `deps` で構成されます。カスタムプロバイダーはこれを無視できますが、その場合、プロバイダーのリクエストに適用されるのは、SDK がファクトリ関数を呼び出す前に行うチェックだけです。
+
+**例**：[API キーなしで統合をテストする](/ja/docs/programmatic-api#api-キーなしで統合をテストする)

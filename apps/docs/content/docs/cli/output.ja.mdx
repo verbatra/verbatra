@@ -1,0 +1,140 @@
+---
+title: 終了コードと JSON 出力
+seoTitle: "verbatra の終了コードと --json の出力フォーマット"
+description: "終了コードの規約、--json を付けたコマンドが出力するエンベロープ、CLI 自身が報告するコード、stderr とターミナルへの出力の仕組みを説明します。"
+type: reference
+---
+スクリプトや CI のステップが、コマンドをまたいで頼れる内容をまとめています。各[コマンドのページ](/ja/docs/cli)には、そのコマンド固有の内容だけを載せています。
+
+## 終了コード
+
+CI のステップは、終了コードで分岐します。終了コードが規約です。
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | 成功（コマンドごとの内容は表の下に一覧） |
+| `1` | 実行はできたが、結果がクリーンではない：`translate` または `import` が、失敗または一部完了のロケールを 1 つ以上残して終了した。`check` が同期していないロケールを検出した（`--qa` では整合性エラーのあるコミット済みの訳文、`--qa` に `--strict` を加えるとレビューの警告や不完全な複数形、`--require-reviewed` では誰も承認していない機械翻訳の訳文、`--sensitive` ではソースファイルや用語集で機密情報に見える内容も対象）。`check --file` がファイルの構文エラーまたは整合性エラーを検出した（`--strict` ではレビューの警告や不完全な複数形も対象）。`diff` が欠落または変更されたキーを検出した（`--unused` では、完全なスキャンで未使用のソースキーを検出した場合）。`report provenance` が、破損した `verbatra.provenance.json` またはより新しい verbatra が書いたものを検出した。`doctor` が失敗したチェックを 1 つ以上検出した。`types --check` がコミット済みの宣言が古いことを検出した。`studio` または `mcp` がサーバーの停止中に失敗した |
+| `2` | 実行できなかった：実行全体のエラー（不正な設定、読み込めないソース、破損したロックファイル、プロバイダーが対応しないロケール）、使い方の誤り（空の `--locales` リスト、`INVALID_LOCALES`、不正な `--debounce` や `--port`）、設定にない `--locales` の値（`UNKNOWN_LOCALE`）、必要なオプションが足りない `init`、条件に合うフォーマットやファイルパターンが複数見つかった場合、既存の設定ファイルを上書きしない場合、有効な設定ファイルを作成できない場合、`watch` の起動または停止の失敗、`studio` が設定を読み込めない、`@verbatra/studio` をインポートできない、またはサーバーを起動できない場合、`mcp` に存在しない `--config` のパスが渡された、`@verbatra/mcp` をインポートできない、サーバーを起動できない、またはインストール済みの `@verbatra/mcp` で `--redact-values` に対応できない場合（探索で設定ファイルが見つからない、または無効な場合は、未設定の状態で起動します） |
+| `3` | [人手のみ](/ja/docs/human-only-workflow)のプロジェクト（`provider: { id: "none" }`）で `translate`（ドライランと `--estimate` を含む）が正常に終了したが、人手翻訳が必要なキーが残った。失敗または一部完了のロケールがある場合は、引き続き `1` で終了する |
+| `130` | 書き込みロックを解放した後に、`translate` または `import` が Ctrl-C（SIGINT）で中断された。または `watch`、`studio`、`mcp` が 2 回目の中断で強制停止された |
+| `143` | 書き込みロックを解放した後に、`translate` または `import` が SIGTERM で停止された |
+
+終了コード `0` の意味は、コマンドごとに次のとおりです。
+
+- `translate` または `import`：すべてのロケールが完了した
+- `check`：すべてのロケールが同期している
+- `diff`：未処理の変更がない
+- `report`：レポートを出力した
+- `doctor`：構成に問題がない
+- `extract`：スキャンが完了した
+- `pseudo`：疑似ロケールを生成した
+- `types`：宣言を生成した
+- `export`：ブックを書き込んだ
+- `tmx`：翻訳メモリをインポートまたはエクスポートした
+- `init`：プロジェクトの設定を作成した、またはすでに最新であることを確認した
+- `watch`、`studio`、`mcp`：正常に停止した
+- `--help` または `--version`：ヘルプまたはバージョンを出力した
+
+`130` と `143` では、stderr の最後に `verbatra: interrupted (SIGINT), released locks`（または `SIGTERM`）が出力されます。`--json` ではレコード `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` が出力されます。書き込みロックの解放に失敗した場合や 5 秒以内に終わらなかった場合は、その旨を示す行が出力されます（`could not release locks: <reason>` または `lock release did not finish within 5s`。どちらも、残った書き込みロックの見つけ方と削除方法が続きます）。JSON のレコードには `"locksReleased":false` が入り、`"reason":"failed"`（`message` も付く）または `"reason":"timed-out"`（`deadlineMs` も付く）が続きます。
+
+知っておくとよい特殊なケースがあります。
+
+<AvailableFrom version="0.9.0" />
+
+- **一部完了**（partial）のロケールは失敗として数えられます。ファイルは書き込まれたものの、一部のキーがまだ欠落している状態です。多くはプロバイダーのサブバッチが失敗したか、整合性ゲートが訳文を拒否したことが原因です。失敗したロケールとまったく同じように `1` で終了します。2 つを区別するには、サマリーの `partial` を読みます。値が 1 つも書き込まれなかったロケールは、一部完了ではなく `failed` になります。そのため、一部完了の後に同じ `import` を再実行すると、失敗として読まれます。前回書き込んだ分はすでに変更がなく、拒否された行だけが残っているためです。失敗したサブバッチは、プロバイダーのエラーコードを示す `SUB_BATCH_FAILED` の通知をロケールに残します。失敗が構造化されたプロバイダーのエラーではなかった場合は `PROVIDER_CALL_FAILED` です。
+- **プロバイダーが対応しないロケール**も、実行全体のエラーです。失敗した 1 つのロケールとして扱われることはありません。`translate`（ドライランと `--estimate` を含む）、起動時の `watch`、単一キーの再翻訳は、プロバイダーを生成する前、また費用が発生する前に、`LOCALE_UNSUPPORTED_BY_PROVIDER` で拒否して終了コード `2` で終了します。判断の基準は、DeepL と Google Cloud Translation 用に verbatra が同梱している言語テーブルです。LLM プロバイダーはどのロケールも受け付けます。ほかのロケールを翻訳するには、`--locales` でそのロケールを外します。理由は [`verbatra doctor --locales`](/ja/docs/cli/doctor#ロケールの対応状況) で確認できます。詳しくは[実行前の対応確認](/ja/docs/language-support#実行前の対応確認)を参照してください。
+- **破損したロックファイル**は、`translate` でも `import` でも実行全体のエラーです。失敗した 1 つのロケールとして扱われることはありません。ロックファイルは共有される 1 つのファイルです。実行中にロックファイルが破損した場合、残りのロケールを続行せず、`2` で実行を止めます。中断前に書き込まれたものはディスクに残ります。ロックファイルを修正して、コマンドを再実行してください。
+- 1 回の中断は正常な停止です。長時間動作する 3 つのコマンド（`watch`、`studio`、`mcp`）は、いずれも `0` で終了します。ただし、それ以外では同じ動作とは限りません。停止自体に失敗した場合、`watch` は `2` で終了し、`studio` と `mcp` は `1` で終了します。
+- `watch` 中に実行が失敗した場合は、出力ストリームのレコードとして現れます。ゼロ以外の終了コードにはなりません。
+- `export` にはロケール単位の失敗モードがありません。`0` または `2` で終了し、`1` にはなりません。
+- `doctor` は、壊れた設定を、ほかのどのコマンドとも違う扱いで読み取ります。探索で見つからない設定や、検証に失敗する設定は、失敗したチェックとなり終了コード `1` です。それを報告するのがこのコマンドの役割だからです。`2` で終了するのは、存在しない `--config` のパスを明示した場合など、まったく実行できないときだけです。
+- 規約の外にある失敗モードが 1 つあります。使い方の誤りではない解析の失敗は、再スローされます。バイナリはそれをキャッチしないため、6 つのコードのいずれでもなく、処理されない reject に対する Node のデフォルトの処理が適用されます。
+- [保護された](/ja/docs/protecting-human-translations)キー（人が書いた、インポートした、または verbatra の外で変更された古い値、あるいは固定されたキー）は、プロバイダーがあるプロジェクトの `translate` の終了コードを変えません。`0` で終了し、残したキーの件数を stderr に出力します（固定されたキーは数えません）。`check` は、人が解決するまでそのキーが古いままなので、引き続き `1` で終了します。人手のみのプロジェクトでは、終了コード `3` の対象として数えられます。
+
+## JSON 出力
+
+`studio` と `mcp` を除くすべてのコマンドが、`--json` で stdout に機械可読の出力を返します。対象は `translate`、`watch`、`check`、`diff`、`report`、`export`、`import`、`tmx`、`doctor`、`pseudo`、`types`、`extract`、`init` です。すべてのレコードは 1 行で、同じエンベロープ（envelope）で包まれています。そのため、1 つのフィールドで分岐でき、どのコマンドのペイロードを持っているかを推測する必要はありません。
+
+```ts
+type Envelope<TResult> =
+  | { ok: true; version: 1; command: string; result: TResult }
+  | {
+      ok: false;
+      version: 1;
+      command: string | null;
+      code: string;
+      message: string;
+      causeCode?: string; // the code of the error this one wraps, when it has one
+      candidates?: string[]; // the values to choose from, on an error that has them
+      missing?: string[]; // the flags still to pass, on an init usage error
+      hint?: string; // the next step that resolves the error, when there is one
+    };
+```
+
+`version` は、パッケージのバージョンではなく、このエンベロープの形のバージョンです。整数なので、範囲を解析せず `===` で比較できます。既存のフィールドの意味が変わるか、フィールドがなくなる場合にだけ変わります。新しいフィールドは、バージョンを上げずに追加されることがあります。知らないフィールドは無視してください。
+
+実行全体が失敗した場合は、`ok: false` のレコードをちょうど 1 つ stdout に書き込み、`2` で終了します。その `code` は stderr の行に出る安定したエラーコードと同じです。分岐にはこれを使います。
+
+```json
+{ "ok": false, "version": 1, "command": "translate", "code": "CONFIG_INVALID", "message": "..." }
+```
+
+`command` が `null` になるのは、サブコマンドが決まる前に失敗した場合だけです。`candidates` は、`init` の `FORMAT_AMBIGUOUS` のように選択を求めるエラーにだけ現れ、選べる値を一覧します。`missing` は、オプションが未指定のままの `init` の使い方の誤りに現れ、まだ渡すべきオプションを 1 つずつ示します。`causeCode` は、別のコード付きエラーを包んでいる場合に現れます。たとえば `MISSING_API_KEY` が原因の `PROVIDER_CONSTRUCTION_FAILED` です。このとき stderr の行は `(cause: MISSING_API_KEY)` で終わります。
+
+<AvailableFrom version="0.12.0" />
+
+`hint` は、エラーに次の手順がある場合に現れます。エラーを解決する短い命令文が 1 つ入ります。たとえば、API キーがない場合は `"Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."`、`USAGE_ERROR` の場合は `` "Run `verbatra check --help` to see the options and arguments it accepts." `` です。`message` を解析する代わりに、これに従ってください。変数、オプション、パスは示しますが、API キーの値は示しません。SDK、プロバイダー、フォーマットアダプターのすべてのコードにヒントがあります（SDK は同じテキストを [`errorHint`](/ja/docs/sdk/errors#errorhint) として公開しています）。`CLI_ERROR` を除くすべての [CLI のエラーコード](/ja/docs/error-codes#cli-error-codes)にもあります。`--json` を付けない場合は、`--quiet` を指定していなければ、同じテキストがエラー行の後に `next: ...` として stderr に出力されます。`mcp --json` は例外で、stderr に `USAGE_ERROR` の 1 行を出して拒否され、エンベロープも `next:` も出力されません。`studio` と `mcp` の起動時のエラーにも `next:` 行は付きません。
+
+成功したエンベロープの `result` はコマンドごとに異なり、各ページの JSON 出力で説明しています。[`extract`](/ja/docs/cli/extract)、[`translate`](/ja/docs/cli/translate)、[`watch`](/ja/docs/cli/watch)、[`check`](/ja/docs/cli/check)、[`diff`](/ja/docs/cli/diff)、[`report`](/ja/docs/cli/report)、[`doctor`](/ja/docs/cli/doctor)、[`pseudo`](/ja/docs/cli/pseudo)、[`types`](/ja/docs/cli/types)、[`export`](/ja/docs/cli/export)、[`import`](/ja/docs/cli/import)、[`tmx`](/ja/docs/cli/tmx)、[`init`](/ja/docs/cli/init) です。
+
+## スキーマ
+
+<AvailableFrom version="0.12.0" />
+
+`--json` が出力するすべてのレコードには、JSON Schema（draft 2020-12）があります。スキーマは npm パッケージに同梱され、固定の URL で提供されています。スクリプト、エージェント、エディターは、説明文を読まなくても出力を検証できます。出力のスキーマはすべて、上記のエンベロープの規約が約束するとおり、一覧にないプロパティを許可します。コピーして使う場合も、そのままにしてください。設定ファイルのスキーマは意図的な例外です。書く内容を記述するものなので、タイプミスを見つけられるよう、不明なキーを拒否します。
+
+| ドキュメント | URL | パッケージ内のファイル |
+| --- | --- | --- |
+| 成功またはエラーを問わないエンベロープ | [`envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/envelope.json) | `@verbatra/cli/schemas/envelope.json` |
+| 1 つのコマンドのエンベロープ（`result` を含む） | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
+| エラーのエンベロープ | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
+| エンベロープを除いた `init` の結果だけ | [`init-result.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-result.json) | `@verbatra/cli/schemas/init-result.json` |
+| stderr の JSON 行：進捗、書き込みロックの待機、中断 | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
+| 設定ファイル | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json`、または `@verbatra/sdk/config-schema.json`（`$id` と `title` がない同じスキーマ） |
+
+各コマンドのページでは、JSON 出力の項目からそのエンベロープにリンクしています。[https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) には、すべてのドキュメントがタイトルとともに一覧されています。コマンドのエンベロープは、`$ref` の URL で `result` のスキーマを指しています。バリデーターはそれをネットワーク経由で読み込みます。先にそれらのファイルを登録しておけば、`node_modules/@verbatra/sdk/dist/schemas` から読み込みます。
+
+`v1` はエンベロープの `version: 1` に対応し、常に最新のリリースを提供します。フィールドの追加は `v1` のままです。ペイロードを壊す変更では、エンベロープの `version` を上げて `/schema/v2/` を追加します。設定ファイルのスキーマも同じ URL の仕組みを使いますが、設定ファイル自体の変更に従います。URL は常に最新のリリースを提供しますが、npm から取得したコピーはそのバージョンのままです。そのため、スキーマが閉じた値を列挙している箇所（stderr レコードの `type` やエンベロープの `command` など）では、古いコピーが新しい CLI のレコードを拒否することがあります。
+
+## CLI のエラーコード
+
+<AvailableFrom version="0.12.0" />
+
+CLI 自身がこれらのコードを報告します。同じ一覧は、`@verbatra/cli` から `CLI_ERROR_CODES`（型は `CliErrorCode`）として公開されます。スクリプトでコードを照合できます。これ以外のコードは、SDK、プロバイダー、フォーマットアダプターのいずれかに由来します。各コードの意味、報告するコマンド、次の手順は[エラーコード](/ja/docs/error-codes#cli-error-codes)にあります。
+
+## stderr のエラー
+
+すべてのエラーは、どちらのモードでも、構造化された 1 行（`verbatra: error [CODE] message`）として stderr に出力されます。0.12.0 以上では、引数の解析エラー（未知のオプションやコマンド、引数の不足）も含まれます。`verbatra: error [USAGE_ERROR] unknown option '--nope'` を出力して `2` で終了します。以前は、コードのない commander 自身の `error: unknown option '--nope'` が出力されていました。`init` も 0.12.0 以上では同じ書式に従います。以前は、プロバイダーが指定されていない場合に、コードのない `verbatra: --provider is required (...)` が出力されていました。0.12.0 以上では、`--json` を付けない場合はヒントが `next: ...` として行の後に続きます。`--json` を付けた場合は、解析エラーが `hint` 付きの `USAGE_ERROR` エンベロープを stdout に書き込みます。`mcp` は stdout をプロトコルのために使うため、`--json` は stderr だけで拒否します。`studio` と `mcp` の起動は、構造化された行の例外です。`@verbatra/studio` または `@verbatra/mcp` がインストールされていない場合、stderr にはインストール手順だけが出力され、`verbatra:` のプレフィックスは付きません。`--json` を付けた場合、解析エラーの `message` は、`error: ` のプレフィックスを含む commander 自身のテキストです。`--json` を付けない場合も、失敗した実行が stdout に何かを書き込むことはありません。進捗と書き込みロックの待機のレコードは常に stderr に出力されます。そのため、stdout にはエンベロープだけが出力されます。
+
+## ターミナル出力
+
+<AvailableFrom version="0.12.0" />
+
+結果は stdout に出力されます。進捗、通知、ヒント、警告、エラーは stderr に出力されます。verbatra は、stderr の出力先に合わせて表示を切り替えます。
+
+- 対話型のターミナルでは、`error`、`[ok]`、`next:` などの固定ラベルに色が付きます。300 ms を超えるステップでは、ASCII のスピナー（spinner、`| / - \`）が表示されます。
+- stderr がパイプで渡されているか、リダイレクトされている場合、`CI` が空、`0`、`false` 以外に設定されている場合、または `TERM` が `dumb` の場合は、色もアニメーションもない、追記だけのプレーンな行になります。
+- stdout に出力される [`doctor`](/ja/docs/cli/doctor) レポートのステータスラベル（`[ok  ]`、`[warn]`、`[fail]`、`[skip]`）は、stdout 自体が対話型のターミナルである場合に色が付きます。そのため、リダイレクトされたレポートは、`FORCE_COLOR` で色を有効にしない限りプレーンのままです。
+- `--json` は色もアニメーションも追加せず、stdout にはエンベロープだけが出力されます。プレーンな `verbatra:` の警告行は stderr に出力される場合があります。そのため、受け取る側は `{` で始まる stderr の行だけを解析します。詳しくは [JSON 出力](/ja/docs/cli/output#json-出力)を参照してください。
+
+| オプションまたは変数 | 説明 |
+| --- | --- |
+| `-q`、`--quiet` | 結果、警告、エラーだけを出力します。進捗行、`next:` のヒント、情報の stderr 行は出力されません。通知を含む結果のサマリーは残ります。コマンド名の前でも後でも指定できます |
+| `--no-color` | 出力に色を付けません |
+| `NO_COLOR`、`NODE_DISABLE_COLORS`、`VERBATRA_NO_COLOR` | 空でない値を設定すると色が無効になります。`VERBATRA_NO_COLOR` は `FORCE_COLOR` よりも優先されます |
+| `FORCE_COLOR` | `1`、`2`、`3`、`true`、または空の値で、stderr や stdout がターミナルでなくても色を有効にします。それ以外の値（`0` を含む）は無効にします。設定すると、`NO_COLOR`、`NODE_DISABLE_COLORS`、`CI`、`TERM=dumb` よりも優先されます。`--no-color` と `VERBATRA_NO_COLOR` は引き続き優先されます |
+| `VERBATRA_NO_SPINNER` | 空でない値を設定すると、スピナーが静的な `label... done (1.2s)` の行に置き換わります。スクリーンリーダーやターミナルの録画向けです |
+
+コマンドのページにある `output` のサンプルは、プレーンな形式です。対話型のターミナルでは、実行中のステップがスピナーの行として表示され、`[ok]` と経過時間で終わります。
+
+ステータスを示す語は ASCII のプレーンな文字（`[ok]`、`[warn]`、`[fail]`、`[skip]`）です。そのため、どのターミナルやログでも同じように読めます。すべての行は、ほかの出力と同じ API キーの秘匿化を通ります。色が付くのは固定ラベルだけで、API キー、パス、メッセージに色が付くことはありません。

@@ -1,0 +1,115 @@
+---
+title: "エラー"
+seoTitle: "SDK のエラー：SdkError クラスとエラーヘルパー"
+description: "SdkError のモデルを説明します。エラークラス、原因（cause）を持つコード、規則の例外、エラーヘルパーを扱います。"
+type: reference
+---
+## エラーモデル
+
+実行全体の失敗は、`SdkError` としてスローされます。クラスは 1 つで、安定した `code` と、シークレットを含まない `message` を持ちます。分岐にはメッセージではなくコードを使ってください。ロケールごとの失敗、プロバイダーの通知、整合性の検出結果は、スローされず、`RunSummary` のデータとして返されます。
+
+すべてのコード、その意味、どの CLI コマンドで発生するか、次の手順は、[SDK のエラーコード](/ja/docs/error-codes#sdk-error-codes)に一覧があります。
+
+`code` の型は `SdkErrorCode` のユニオンです。[`errorHint`](#errorhint) は、エラーを解決する次の手順を返します。[`projectRelativeMessage`](#projectrelativemessage) は、メッセージ内のプロジェクトのパスを短くします。ユーザーに表示する前に使ってください。
+
+一部のコードは、ラップしたエラーを標準の `cause` としても持ちます。`SOURCE_INVALID` はパーサーやアダプターが失敗した場合です（ファイルがサイズのために拒否された場合は持ちません）。`PROVIDER_CONSTRUCTION_FAILED` はプロバイダーのファクトリ関数自身のエラーで、そのメッセージは `SdkError` のメッセージにも秘匿化されて入ります。`EXPORT_UNWRITABLE`、`GLOSSARY_UNWRITABLE`、`SOURCE_UNWRITABLE` はファイルシステムのエラーです。`REVIEW_RESTORE_FAILED` は判断を中断させた失敗です。`LOCK_CONTENDED` は、書き込みロックが別のプロセスに取得された場合や、放棄された書き込みロックを回収または退避できなかった場合のファイルシステムのエラーです。`CONFIG_INVALID` が `cause` を持つのは、解決できない import のようにコード付きのエラーで設定ファイルの読み込みに失敗した場合だけです。解析エラーやスキーマのエラーでは持たず、`CONFIG_NOT_FOUND` は決して持ちません。設定のパーサーのエラーはファイルの内容を引用することがあり、設定に書かれた API キーがエラーとともに伝わってはならないためです。秘匿化されるのは、`PROVIDER_CONSTRUCTION_FAILED` のエラーのメッセージだけで、その `cause` は元のエラーのまま、手を加えられません。組み込みのプロバイダーのファクトリ関数がスローするエラーにシークレットは含まれません。自分で渡した `createProvider` がスローしたエラーは、スローしたとおりに返ります。そのため、シークレットを含めないようにするか、`cause` をログに出す前に自分で秘匿化してください。
+
+エラークラスが 1 つという規則の例外は次のとおりです。
+
+- `retranslateEntry` は、1 回の呼び出しが失敗したとき、プロバイダー自身の `ProviderError` を再スローします。
+- `approveEntries`、`rejectEntries`、`retranslateEntries` は、予期しないエラーがバッチを途中で止めたとき、元のエラーを `cause` に持つ `BatchInterruptedError` をスローします。
+- アダプターが解析できないターゲットロケールファイルは、それを読む `check`、`diff` などのフローから、独自の `code` を持つ `AdapterError` として表に出ます。`checkFile` は、代わりに構文の検出結果として報告します。
+- `watch` は、監視プロセスのファクトリ関数や `onReady` コールバックがスローしたものを、ラップせずにそのまま渡します。
+- `runStatus` は、一切スローしません。
+
+これらのコードが CLI の終了コードにどう対応するかは、[SDK のエラーコード](/ja/docs/error-codes#sdk-error-codes)を参照してください。症状から探すには、[トラブルシューティング](/ja/docs/troubleshooting)を参照してください。
+
+## エラークラス
+
+### SdkError
+
+実行全体の失敗がスローされるときのクラスです。`name` は `"SdkError"`、`code` は `SdkErrorCode` のユニオンのメンバーの 1 つで、すべては [SDK のエラーコード](/ja/docs/error-codes#sdk-error-codes)に一覧があります。`cause` が設定されるのは、[エラーモデル](#エラーモデル)に挙げたコードだけです。`error instanceof SdkError` で判定し、`error.code` で分岐すると、TypeScript は各ケースを 1 つのコードに絞り込みます。
+
+```ts title="シグネチャ"
+class SdkError extends Error {
+  readonly code: SdkErrorCode;
+  constructor(code: SdkErrorCode, message: string, options?: { readonly cause?: unknown });
+}
+```
+
+<SdkTypeTable name="SdkError" />
+
+### ProviderError
+
+<AvailableFrom version="0.12.0" />
+
+翻訳プロバイダーが失敗時にスローする構造化されたエラーで、生の SDK や HTTP のエラーの代わりに使われます。`name` は `"ProviderError"`、`code` は `ProviderErrorCode` で、メッセージは固定され、秘匿化されています。`MISSING_API_KEY` の失敗では、`envVar` に、プロバイダーが API キーを読み取る変数の名前が入り、値は入りません。`retranslateEntry` がこれを再スローし、カスタムプロバイダーは `translateBatch` からスローします。すべてのコードは、[プロバイダーのエラーコード](/ja/docs/error-codes#provider-error-codes)に一覧があります。`error instanceof ProviderError` で判定します。このクラスをエクスポートしていない古いバージョンでは、`error.name === "ProviderError"` を確認して、`code` を読み取ります。
+
+```ts title="シグネチャ"
+class ProviderError extends Error {
+  readonly code: ProviderErrorCode;
+  readonly envVar?: string;
+  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string });
+}
+```
+
+<SdkTypeTable name="ProviderError" />
+
+### AdapterError
+
+<AvailableFrom version="0.11.0" />
+
+フォーマットアダプターやアダプターのレジストリが失敗時にスローする、構造化されたエラーです。`name` は `"AdapterError"`、`code` は `AdapterErrorCode` で、[フォーマットアダプターのエラーコード](/ja/docs/error-codes#adapter-error-codes)に一覧があります。`position` は、不正な構文の位置を、1 から数える `{ line, column }` で示します。列は UTF-16 のコード単位で数えます。組み込みアダプターは、パーサーが位置を報告した `INVALID_JSON` や `INVALID_YAML` のエラーにこれを設定し、それ以外では `undefined` のままにします。`custom:` アダプター自身がスローしたものは、`ADAPTER_FAILED` エラーとして届き、元のエラーは `cause` に入ります。
+
+```ts title="シグネチャ"
+class AdapterError extends Error {
+  readonly code: AdapterErrorCode;
+  readonly position: SyntaxPosition | undefined;
+  constructor(code: AdapterErrorCode, message: string, options?: { readonly cause?: unknown; readonly position?: SyntaxPosition });
+}
+```
+
+<SdkTypeTable name="AdapterError" />
+
+## エラーヘルパー
+
+### projectRelativeMessage
+
+<AvailableFrom version="0.12.0" />
+
+`projectRelativeMessage(message, cwd)` は、メッセージの中にあるプロジェクト内の絶対パスをすべて、プロジェクトルートからの相対パスに書き換えます。`cwd` の下のパスはその接頭辞が取り除かれ、`cwd` 自身は `.` になり、プロジェクトの外のパスはそのままです。`RunSummary` のロケールごとの `error.message` と通知メッセージは、すでに実行の `cwd` からの相対パスでプロジェクトのファイルを示しています。フローがスローしたエラーのメッセージは、ユーザー、エージェント、ブラウザーのタブに表示する前に、この関数を通してください。`verbatra mcp` と Studio は、返すすべてのエラーに対して同じ処理をします。
+
+```ts title="シグネチャ"
+function projectRelativeMessage(
+  message: string,
+  cwd: string,
+): string;
+```
+
+**戻り値**：`string`
+
+### errorHint
+
+<AvailableFrom version="0.12.0" />
+
+`errorHint(error)` は、verbatra がスローしたエラーを解決する次の手順を返します。短い命令形の 1 文で、ない場合は `undefined` です。すべての `SdkError` のコード、すべての `ProviderError` のコード、すべてのフォーマットアダプターのエラーコードに次の手順があるため、エージェントはメッセージを解析せずに、失敗に対処できます。この関数はエラーの `code` を読むので、失敗した `watch` の実行の `error` のような、単純な `{ code, message }` のオブジェクトでも、同じヒントが得られます。`PROVIDER_CONSTRUCTION_FAILED` のエラーは、ラップしているプロバイダーのエラーのヒントを取ります。そのため、API キーがない場合は、`MISSING_API_KEY` の `ProviderError` が持つ `envVar` から、設定すべき変数が正確に示されます。import を解決できなかった設定ファイルの `CONFIG_INVALID` エラー（`causeCode` が `MODULE_NOT_FOUND`、`ERR_MODULE_NOT_FOUND`、`ERR_PACKAGE_PATH_NOT_EXPORTED`、`ERR_UNSUPPORTED_DIR_IMPORT` のいずれか）では、その import をインストールまたは修正するよう案内します。ヒントは固定のテキストに、多くても変数名が加わるだけで、API キーの値を含んだり、メッセージを引用したりすることはありません。CLI の `--json` のエラーエンベロープでは `hint` として含まれ、`verbatra mcp` は、失敗した呼び出しのテキストの最後にこれを付けます。
+
+```ts title="シグネチャ"
+function errorHint(error: unknown): string | undefined;
+```
+
+**戻り値**：`string | undefined`
+
+**例**：[エラーを処理する](/ja/docs/sdk-quickstart#エラーを処理する)
+
+```ts title="例"
+import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+try {
+  await translate({ config });
+} catch (error) {
+  console.error(errorHint(error)); // e.g. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
+}
+```

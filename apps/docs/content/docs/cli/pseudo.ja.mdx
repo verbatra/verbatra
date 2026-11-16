@@ -1,0 +1,133 @@
+---
+title: verbatra pseudo
+seoTitle: "verbatra pseudo：疑似ロケールを生成する"
+description: "ソース文字列から疑似ロケールを生成し、切れたボタンや未抽出のラベルを目立たせます。プロバイダーの呼び出しも API キーの読み込みもありません。"
+status: new
+type: reference
+---
+<AvailableFrom version="0.11.0" />
+
+存在しない言語でアプリを実行します。`pseudo` は、ソース文字列から偽のロケールを作ります。すべての値にアクセントを付け、長くし、見えるマーカーで囲みます。そのため、切れたボタン、連結された文、未抽出のラベルが目立ちます。`--mode bidi` を付けると、すべての文字列を代わりに右から左へ描画します。プロバイダーを生成せず、API キーも読み込まず、ネットワークリクエストも送らないため、API キーがなくても動作します。
+
+## 書式
+
+```bash
+verbatra pseudo [flags]
+```
+
+## 例
+
+```bash
+# en-XA を .verbatra-local/pseudo の下に生成する
+verbatra pseudo
+
+# ar-XB ですべての文字列を右から左に描画する
+verbatra pseudo --mode bidi
+
+# 開発サーバーが静的ファイルを配信している場所に書き込む（bidi ファイルはコミットしない。GitHub が隠れた Unicode にフラグを付けるため）
+verbatra pseudo --out public/locales-pseudo
+
+# スクリプト向けの機械可読な結果
+verbatra pseudo --json
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--mode` | `<mode>` | `accented` | <AvailableFrom version="0.12.0" /> 変換の種類：`accented`、または各単語を右から左に描画する `bidi`（それ以外は `INVALID_OPTION`） |
+| `--locale` | `<code>` | `en-XA`（`--mode bidi` の場合は `ar-XB`） | 生成する疑似ロケール。使えるのは英字、数字、ハイフンだけ（それ以外は `INVALID_LOCALE`） |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | 疑似ロケールを書き込むディレクトリ。作業ディレクトリからの相対パスで、プロジェクトルートの内側にする。空の値は `INVALID_OUT` |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション) `--cwd`、`--config`、`--json` も使えます。
+
+## 動作
+
+### 変換の内容
+
+| 手順 | 表示される内容 |
+| --- | --- |
+| アクセント付与 | ASCII の英字がすべて、アクセント付きの似た文字に変わります（`Save` は `Śáṽé` と表示されます） |
+| 拡張 | 翻訳対象の長さの約 3 分の 1 だけ値が長くなります（英語に対してドイツ語が必要とする長さにほぼ相当します） |
+| マーク | 値が `[` と `]` で囲まれるため、切れた文字列や連結された文字列がはっきりわかります |
+
+`Hello {{name}}, you have {{count}} unread messages` は、次のようになります。
+`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`
+
+変わるのは翻訳対象のテキストだけです。プレースホルダーは、[フォーマットアダプター](/ja/docs/formats)が認識するすべての構文で保たれます。ICU メッセージの中では、引数名、`plural` と `select` のキーワード、分岐のセレクターがそのまま残ります。vue-i18n のパイプ区切りの複数形は、1 つずつ変換されます。`car | cars` は `[ćáŕ··] | [ćáŕś··]` になります。変換は決定的なので、ファイルの差分はきれいに出ます。
+
+### 右から左モード
+
+<AvailableFrom version="0.12.0" />
+
+`--mode bidi` は、アクセントの代わりに右から左へのオーバーライドを使います。これは Android と Chromium が `ar-XB` の疑似ロケールで採用している方法です。左から右のテキストを前提にしたレイアウトの問題が、右から左の訳文が存在する前に見つかります。
+
+| 手順 | 表示される内容 |
+| --- | --- |
+| オーバーライド | すべての単語が右から左へのマークとオーバーライドで囲まれ（前に `U+200F U+202E`、後ろに `U+202C U+200F`）、`Save` は `evaS` と描画されます |
+| 維持 | プレースホルダー、ICU 構文、マークアップ、数字、句読点はオーバーライドの外に置かれ、実際の右から左のテキストと同じように、左から右に読まれます |
+
+アクセント付与も、長さの拡張も、括弧による囲みも行いません。幅を試すのはデフォルトのモードです。ファイルには、文字が保存された順序のまま残ります。すべての値は同じ整合性ゲートを通るため、プレースホルダーと複数形の分岐はバイト単位で同一のままです。
+
+疑似ロケールのデフォルトは `ar-XB` です。`Intl.Locale` と多くの i18n ライブラリは、これを右から左に解決します。そのため、ロケールから `dir` を導くアプリは、自動で向きが切り替わります。`ar-XB` はアラビア語の複数形ルール（`zero`、`one`、`two`、`few`、`many`、`other`）に従います。ICU メッセージ、Android の `<plurals>`、gettext、Apple のカタログ、vue-i18n のパイプでは、数がファイルにすでにある形に対して解決されます。`i18next-json` は各形を独自の `_one` や `_other` のキーの下に保つため、ソースにないカテゴリもすべてファイルに追加されます（`_zero`、`_two`、`_few`、`_many`、序数の形も同様）。値はソースの `other` の形から埋められるため、フォールバック言語にフォールバックする数はありません。英語の複数形ルールを保つには `--locale en-XB` を渡し、`dir="rtl"` は自分で設定します。
+
+Unicode のフォーマット文字を取り除くサニタイザーは、オーバーライドも削除するため、文字列はまた左から右に描画されます。隠れた双方向文字について警告するエディターやコードスキャナーは、このファイルにフラグを付けます。これも、ファイルを `.verbatra-local` の下に置いておく理由の 1 つです。
+
+### 壊れた内容はファイルに書き込まれない
+
+生成されたすべての値は、プロバイダーの訳文と同じ整合性ゲートを通ります。プレースホルダーがソースと同じであること、メッセージ構文が正しいこと、崩れていないこと、空白でないことが条件です。失敗する値は、ソースからそのままコピーされ、`copied verbatim` の下に名前が示されます。これは報告であり、失敗ではありません。
+
+### 出力先
+
+疑似ロケールは、実際のロケールファイルの外に書き込まれます。デフォルトは `.verbatra-local/pseudo` の下で、[`verbatra init`](/ja/docs/cli/init) がこれを `.gitignore` に追加します（エントリがない場合は、`pseudo` が補います）。`files.pattern` はそのディレクトリの内側に展開されます。たとえば `locales/{locale}.json` なら、デフォルトの実行は `.verbatra-local/pseudo/locales/en-XA.json` を書き込みます。開発サーバーをそこに向けるか、`--out` を渡して、ビルドがすでに配信している場所に書き込みます。
+
+`PSEUDO_OUTPUT_CONFLICT` は、何かを読み取ったり書き込んだりする前に、次のものを拒否します。
+
+- ソースロケールまたはターゲットロケールと同じ名前の疑似ロケール
+- 設定済みのロケールファイルと同じディレクトリにファイルを置く `--out`
+- 絶対パス、プロジェクトルートの外へ出るパス、またはシンボリックリンクを解決した結果、プロジェクトの外、ルート自体、プロジェクトが依存するファイルのいずれかになる `--out`
+
+ファイルが `files.pattern` の外にあるため、[`translate`](/ja/docs/cli/translate) がこのファイルに費用をかけることはなく、[`check`](/ja/docs/cli/check) と [`diff`](/ja/docs/cli/diff) がこのファイルを報告することもありません。
+
+### 既存ファイルへのパッチで書き込むフォーマット
+
+`xliff` と `apple-xcstrings` のライターは、出力先のドキュメントにすでにある翻訳単位にパッチを当てます。疑似ロケールのファイルは、書き込みのたびにソースファイルから再びコピーします。そのため、あとからソースに追加されたキーも反映されます。コピーされた XLIFF は、`target-language` が疑似ロケールに書き換えられます。
+
+### JSON 出力
+
+スキーマ：[`pseudo-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/pseudo-envelope.json) がエンベロープ（envelope）全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` を付けると、[エンベロープ](/ja/docs/cli/output#json-出力)に次の内容が含まれます。`locale`、`mode`（`accented` または `bidi`）、`path`、`entries`（書き込まれたエントリ。bidi モードで追加された複数形を含む）、`transformed`（ソースと異なる値）、`copied`（そのままコピーされたキー）、`written`（ファイルがすでに最新だった場合は `false`）です。
+
+### ターミナルへの表示
+
+<AvailableFrom version="0.12.0" />
+
+結果は stdout に出力されます。進捗の行と次の手順は stderr に出力されます。
+
+```text output
+verbatra: pseudolocalizing the source... done (0.1s)
+verbatra pseudo
+  en-XA (accented): 118 of 120 entries pseudolocalized
+    copied verbatim: legal.disclaimer, brand.name
+  wrote .verbatra-local/pseudo/locales/en-XA.json
+next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
+```
+
+ソースが変わっていない状態で 2 回目を実行すると、`wrote` の代わりに `unchanged` と表示されます。`--quiet` を付けると、stderr の行は出力されません。[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | 疑似ロケールが生成された（ファイルが変わったかどうかは問わない）。そのままコピーされた値があっても、この結果は変わらない |
+| `2` | 実行できなかった：使い方の誤り、設定またはソースの問題、あるいは拒否された疑似ロケールや出力パス |
+
+[終了コードの規則](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [`verbatra translate`](/ja/docs/cli/translate) は、API キーが用意できたら、本物の翻訳を実行します。
+- [`verbatra doctor`](/ja/docs/cli/doctor) も、費用をかけずにプロジェクトを検証します。
+- [フォーマット](/ja/docs/formats)に、各フォーマットのプレースホルダー構文が載っています。
+- [設定ファイル](/ja/docs/config-file)に `files.pattern` の説明があります。これが生成されるファイルの配置を決めます。

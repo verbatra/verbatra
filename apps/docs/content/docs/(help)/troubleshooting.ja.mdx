@@ -1,0 +1,182 @@
+---
+title: トラブルシューティング
+seoTitle: "トラブルシューティング：エラーを解決する"
+description: "verbatra が実際に出すエラーの症状、原因、対処をエラーコードごとにまとめ、Studio と MCP のインストールの問題も扱います。"
+type: reference
+---
+各項目は、目に見える症状から始まり、その背後にあるコードを[エラーコード](/ja/docs/error-codes)にリンクします。エラーコードのページには、すべてのコードの意味、終了コード、次の手順が載っています。検索には、`verbatra: error [CODE]` の `CODE` を使い、メッセージの文言では検索しないでください。
+
+項目を順に見る前に、[`verbatra doctor`](/ja/docs/cli/doctor) を実行します。設定、フォーマット、プロバイダー、API キーの変数、ソースファイルを一度にチェックし、費用はかからず、ソースのロケールファイルがなくても動作します。
+
+## pnpm が依存パッケージのインストールスクリプトをブロックする（ERR_PNPM_IGNORED_BUILDS）
+
+**症状**：`pnpm add -D @verbatra/cli` がインストールのサマリーを表示したあと、終了コード `1` で終了します。
+
+```
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@3.1.0, protobufjs@7.6.5
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+```
+
+pnpm は、プロジェクトに `pnpm-workspace.yaml` も書き込みます。そこには、未回答の選択肢が入っています。
+
+```yaml
+allowBuilds:
+  '@google/genai': set this to true or false
+  protobufjs: set this to true or false
+```
+
+回答するまで、そのプロジェクトでの以降の pnpm コマンドは、`pnpm exec verbatra init` を含めて、すべて同じように失敗します。
+
+**原因**：pnpm は、許可しない限り、サードパーティの依存パッケージのインストールスクリプトを実行しません。`@google/genai` とその間接依存の `protobufjs` がそのようなスクリプトを宣言しており、Gemini SDK は設定したプロバイダーにかかわらずインストールされるため、pnpm でのインストールはどの経路でもここに当たります。verbatra 自体は、インストールスクリプトを宣言していません。npm と yarn は、同じパッケージを確認なしでインストールします。インストール自体は完了しており、`node_modules/.bin/verbatra` はすでに動作します。
+
+**対処**：選択肢に 1 回だけ回答します。対話的に行うなら、`pnpm approve-builds` を実行し、どちらのエントリも承認しません。CI のように対話なしで行う場合は、インストールの前に、プロジェクトルートの `pnpm-workspace.yaml` に次の内容を書いて回答します。
+
+```yaml
+allowBuilds:
+  '@google/genai': false
+  protobufjs: false
+```
+
+verbatra にこれらのスクリプトは不要で、このリポジトリも両方を拒否しています。回答を書いておけば、`pnpm add -D @verbatra/cli` は終了コード `0` で終了し、以降の pnpm コマンドは通常どおり動作します。メッセージに出るパッケージのバージョンはリリースに合わせて変わりますが、対処は変わりません。
+
+## 設定が無効（CONFIG_INVALID）
+
+**症状**：`The verbatra configuration is invalid: ...` と表示され、フィールドごとに 1 件ずつ問題が示されます。
+
+**原因**：設定は見つかったものの、検証に失敗しています。たとえば、`files.pattern` に `{locale}` がない、ロケールコードが BCP 47 ではない（`en_US` など）、未知の設定キーがある、といった場合です。未知の設定キーには `API keys are read from the environment, not the config` という注記が付きます。コミットされるファイルにシークレットを紛れ込ませないよう、スキーマは厳格です。
+
+**対処**：メッセージが示すフィールドを直します。[設定ファイル](/ja/docs/config-file)を参照してください。`No verbatra configuration found...` については、[`CONFIG_NOT_FOUND`](/ja/docs/error-codes#config_not_found) を参照してください。コード：[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)。
+
+## フォーマットに対応するアダプターがない（UNKNOWN_FORMAT）
+
+**症状**：`No adapter is registered for format "..."` と表示され、続けて対応フォーマットの一覧が示されます。
+
+**原因**：設定の `format` が、登録されている ID ではありません。`custom:` フォーマットは、プラグインを読み込まないコマンドラインからは実行できません。
+
+**対処**：[フォーマット](/ja/docs/formats)にある ID を使います。`custom:` フォーマットは、そのアダプターを持つレジストリを使って SDK から実行します。[カスタムフォーマットアダプターを書く](/ja/docs/custom-format-adapters)を参照してください。コード：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)。
+
+## 指定したロケールが設定されていない（UNKNOWN_LOCALE）
+
+**症状**：`Requested locale not in the configured target locales: ...`
+
+**原因**：`--locales`（または SDK の `locales` 入力）に、`targetLocales` にないロケールが指定されています。フィルターは設定済みの一覧から選ぶもので、一覧に追加することはありません。
+
+**対処**：そのロケールを `targetLocales` に追加するか、タイプミスを直します。コード：[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)。
+
+## ソースファイルがない、または解析できない（SOURCE_UNREADABLE、SOURCE_INVALID）
+
+**症状**：`The source locale file was not found at <path>.` または `The source locale file at <path> could not be read: ...`
+
+**原因**：ソースロケールを埋めた `files.pattern` が存在しないファイルを指しているか、ファイルが解析できません。パスは、プロジェクトルート（探索で見つかった設定ファイルのあるディレクトリ。`--config` を使った場合は作業ディレクトリ）を基準に解決されます。そのため、`--cwd` や `--config` の間違いがよくある原因です。ワイルドカードも原因になります。`files.pattern` は glob ではなく、リテラルのパスです（[名前空間のレイアウト](/ja/docs/formats#名前空間のレイアウト)を参照）。
+
+**対処**：表示されたパスを確認します。解析の失敗では、`causeCode` に[フォーマットアダプターのエラーコード](/ja/docs/error-codes#adapter-error-codes)が示されます。コード：[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)。
+
+## API キーがない（PROVIDER_CONSTRUCTION_FAILED）
+
+**症状**：`Failed to construct provider "anthropic": The ANTHROPIC_API_KEY environment variable is not set.`（または、使っているプロバイダーの変数）
+
+**原因**：メッセージに示された変数が、未設定か空です。API キーは環境変数からだけ読み込まれ、設定やオプションからは読み込まれません。
+
+**対処**：変数を設定し、`verbatra doctor` で確認します。CLI は [`.env.local` と `.env`](/ja/docs/cli#環境ファイル) からも読み込みますが、SDK は読み込まないため、自分のスクリプトでは `node --env-file=.env` を使います。コード：[`PROVIDER_CONSTRUCTION_FAILED`](/ja/docs/error-codes#provider_construction_failed)、[`MISSING_API_KEY`](/ja/docs/error-codes#missing_api_key)。
+
+## 実行中のレート制限、タイムアウト、認証エラー（RATE_LIMITED、TIMEOUT、AUTH_FAILED）
+
+**症状**：実行は完了しますが、一部のキーが `providerFailures` に一覧表示され、プロバイダーのコードを示す `SUB_BATCH_FAILED` 通知が出て、コマンドは終了コード `1` で終了します。
+
+**原因**：プロバイダーを生成した後で、リクエストが失敗しました。HTTP 429、タイムアウト、または HTTP 401/403 です。
+
+**対処**：失われたものはありません。該当のキーは、次回の実行で再び処理されます。[`RATE_LIMITED`](/ja/docs/error-codes#rate_limited) は、あとで再実行します。メッセージが待ち時間を示している場合（1 日のクォータの使い切り）は、その時間が過ぎてから実行します。厳しいクォータでは、`--locales` でロケールを 1 つずつ実行します。[`TIMEOUT`](/ja/docs/error-codes#timeout) には、遅いモデルなら [`requestTimeoutMs`](/ja/docs/providers#リクエストのタイムアウト) を大きくします。[`AUTH_FAILED`](/ja/docs/error-codes#auth_failed) は再試行では解決しないため、API キーを入れ替えます。
+
+## ロックファイルが破損している（LOCK_FILE_INVALID）
+
+**症状**：`The lock-file at <path> is not valid JSON.`、`... has an unexpected shape.`、`... has version N ...`、または `... exceeds the maximum allowed size ...`
+
+**原因**：`verbatra.lock.json` が手で編集された、途中で切れた、マージで壊れた、または互換性のないバージョンが書いたものです。`translate` と `import` は、この状態では実行全体を止めます。停止前に確定したロケールは、書き込んだ内容がそのまま残ります。
+
+**対処**：バージョン管理からファイルを復元します。ファイルを削除してもエラーは消えますが、ベースラインが失われるため、以前のソースの編集が古いものとして検出されなくなります。[ロックファイルと来歴](/ja/docs/the-lock-file)を参照してください。コード：[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)。
+
+## ロケールファイルに書き込めない（TARGET_UNWRITABLE）
+
+**症状**：ロケールが `Could not write the locale file locales/de.json (EACCES). ...` で失敗します。
+
+**原因**：ファイルまたはそのディレクトリに書き込めません。権限、ディレクトリがない、読み取り専用のマウント、ディスクの空き容量不足などが考えられます。書き込みは同じディレクトリの一時ファイルを経由するため、ディレクトリにも書き込める必要があります。
+
+**対処**：ファイルシステムのコードが示す問題を直して、再実行します。失敗するのはそのロケールだけで、以前のファイルとベースラインは残ります。コード：[`TARGET_UNWRITABLE`](/ja/docs/error-codes#target_unwritable)。
+
+## 別のプロセスが書き込みロックを保持している（LOCK_CONTENDED）
+
+**症状**：`Could not acquire the write lock at <path>: another process is holding it. ...`
+
+**原因**：別の `translate`、`watch`、`import`、または Studio の書き込みが、そのロケールの書き込みロックを保持しています。このマシンで終了したプロセスが残した書き込みロックは自動的に回収されます。そのため、残り続ける書き込みロックは、別のマシンか、0.12.0 より前の verbatra によるものです。
+
+**対処**：もう一方の実行が終わるのを待つか、どこでも verbatra のプロセスが動いていなければ、表示された書き込みロックのファイルを削除します。[`translate`](/ja/docs/cli/translate)、[`watch`](/ja/docs/cli/watch)、[`import`](/ja/docs/cli/import) の `--lock-timeout <seconds>` で、実行が待つ時間を変更できます。コード：[`LOCK_CONTENDED`](/ja/docs/error-codes#lock_contended)。
+
+## ドット付きキーまたは YAML のキーが衝突する（INVALID_STRUCTURE）
+
+**症状**：`A literal dotted leaf key and a nested key path resolve to the same path.`、または YAML の場合は `A mapping key is a map or sequence (expected scalar keys).`
+
+**原因**：1 つのファイルの 2 つのエントリが、同じキーに解決されます。たとえば、`"a.b"` と `a: { b: ... }` が並んでいる場合や、YAML のキーに文字列の形がない場合です。verbatra は、どちらかを黙って落とすのではなく、拒否します。
+
+**対処**：どちらかのキーの名前を変えるか、YAML のキーをスカラーにします。ソースファイルでは、これは `SOURCE_INVALID` の中に含まれて届きます。コード：[`INVALID_STRUCTURE`](/ja/docs/error-codes#invalid_structure)。
+
+## 一部のキーを処理する前に実行が止まった（トークン予算）
+
+**症状**：`BUDGET_TOKENS_EXCEEDED` 通知が出ます。`budgetBehavior: "stop"` では、キーが `budgetWithheld` にも一覧表示されます。
+
+**原因**：実行が、設定の `maxTokens`、またはその実行の `--max-tokens` に達しました。`"warn"` が報告するのは、設定で決めた予算だけです。`"stop"` と、設定にかかわらず `--max-tokens` は、まだ試行していないすべてのキーを保留し、そのロケールは `partial` または `failed` で終わります。
+
+**対処**：これはガードレールが働いた結果です。書き込めた分は書き込まれ、保留されたキーは次回の実行で翻訳されます。1 回の実行で終わらせたい場合は、予算を上げるか、`"warn"` に切り替えます。予算の数え方は、[翻訳の安全性](/ja/docs/translation-safety#トークン予算)にあります。コード：[`BUDGET_TOKENS_EXCEEDED`](/ja/docs/error-codes#budget_tokens_exceeded)。
+
+## インラインマークアップが原因で訳文が保留された（整合性の不一致）
+
+**症状**：キーが `integrityMismatches` に一覧表示されて以前の値を保つか、Studio に `Rejected: inline markup mismatch` と、問題のタグが表示されます。候補訳が落としたタグは `-<a href>`、余分に作ったタグは `+<i>` と示されます。`verbatra check --qa` は、すでにディスクにある値についても同じ報告をします。
+
+**原因**：候補訳が、ソースのインラインタグを持っていないか、閉じていない、または入れ子が誤っているタグを持っています。そのため、整合性ゲートは、プレースホルダーが欠けた場合と同じように拒否します。
+
+**対処**：そのキーをもう一度実行するか、Studio やブックで値を手で直します。どちらも同じゲートが判定します。何を比較するか、設計上拒否されるのはどのような場合かは、[インラインマークアップの一致](/ja/docs/translation-safety#インラインマークアップの一致)にあります。
+
+## Studio：ポートがすでに使用されている
+
+**症状**：`port 5849 is already in use`（または `--port` に指定した値）
+
+**原因**：別のプロセス、多くは以前の Studio が、そのポートにバインドしています。
+
+**対処**：そのプロセスを止めるか、別のポートで Studio を起動します（`verbatra studio --port 6000`）。
+
+## Studio：@verbatra/studio がインストールされていない
+
+**症状**：`Verbatra Studio requires @verbatra/studio.` と表示され、続けてインストールのコマンドが示されます。
+
+**原因**：Studio は別のパッケージで、`studio` コマンドが必要に応じて読み込みます。
+
+**対処**：`npm install --save-dev @verbatra/studio` を実行します。1 回だけ実行するなら `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio` です。pnpm の場合は、先に [pnpm が依存パッケージのインストールスクリプトをブロックする](#pnpm-が依存パッケージのインストールスクリプトをブロックするerr_pnpm_ignored_builds)を確認します。
+
+`npx @verbatra/cli` は、現在のフォルダーのパッケージにインストールされた CLI を実行します。そのため、プロジェクトルートから実行してください（ワークスペースのサブパッケージでは `pnpm exec verbatra` を使います）。ほかの場所では、npx が最新の CLI を取得し、ローカルの `@verbatra/studio` や `@verbatra/mcp` と一致しない場合があります。
+
+## Studio：再翻訳と翻訳の操作が表示されない
+
+**症状**：編集はできますが、再翻訳と未処理の変更を翻訳する操作が表示されません。
+
+**原因**：プロバイダーへの課金の許可は起動時に与えられ、その規則は[課金ツールとエージェントツール](/ja/docs/cli/studio#課金ツールとエージェントツール)にあります。許可がなければ、課金を伴う操作は登録されません。
+
+**対処**：プロジェクトが[人手のみ](/ja/docs/human-only-workflow)でない限り、`verbatra studio --allow-spend` で再起動します。[Studio でレビューする](/ja/docs/review-in-studio)を参照してください。
+
+## MCP：@verbatra/mcp がインストールされていない
+
+**症状**：`Verbatra's MCP server requires @verbatra/mcp.` と表示され、続けてインストールのコマンドが示されます。
+
+**原因**：MCP サーバーは別のパッケージで、`mcp` コマンドが必要に応じて読み込みます。そのため、`npx -y @verbatra/cli mcp` だけでは動作しません。
+
+**対処**：`npx -y @verbatra/mcp` を実行するか、CLI と並べて `@verbatra/mcp` をインストールし、`verbatra mcp` を再実行します。pnpm の場合は、先に [pnpm が依存パッケージのインストールスクリプトをブロックする](#pnpm-が依存パッケージのインストールスクリプトをブロックするerr_pnpm_ignored_builds)を確認します。
+
+## MCP：エージェントの tools/list に `translation.retranslateEntry` や `translation.translatePending` が表示されない
+
+**症状**：ローカルのツールは動作しますが、2 つの課金ツールがなく、呼び出すと未知のツールとして失敗します。
+
+**原因**：課金の許可は起動時に与えられ、その規則は[課金ツール](/ja/docs/cli/mcp#課金ツール)にあります。ツールの一覧は接続ごとに変わってはならないため、課金ツールは一覧から完全に除かれます。
+
+**対処**：プロジェクトが[人手のみ](/ja/docs/human-only-workflow)でない限り、`verbatra mcp --allow-spend` で再起動します。
+
+## 実行の取り消し（エラーコードなし）
+
+verbatra に取り消しのコマンドはなく、復旧の手段はバージョン管理です。ロケールファイルだけでなく、`verbatra.lock.json` と `verbatra.provenance.json` も一緒に元に戻してください。[実行を取り消す](/ja/docs/recovery-and-rollback)を参照してください。

@@ -1,0 +1,147 @@
+---
+title: Excel や CSV で受け渡す
+seoTitle: "Excel や CSV ファイルで翻訳を受け渡す"
+description: "未翻訳の文字列を Excel のブックや CSV ファイルにエクスポートして翻訳者に渡し、結果を自動実行と同じ安全チェックでインポートします。"
+type: how-to
+---
+人が翻訳すべき文字列がある場合に使います。たとえば、マーケティングコピー、法務文書、最も重要な言語です。翻訳が必要な文字列を**エクスポート**し、翻訳者が埋め、そのファイルをロケールファイルに**インポート**します。
+
+エクスポートは、自動実行が翻訳するのと同じキー（新しいキーと変更されたキー）だけを選びます。インポートは `translate` と同じ整合性チェックを実行するので、プレースホルダーを壊す手入力の値は、書き込まれずに保留され、報告されます。どちらのコマンドもプロバイダーを呼び出さず、API キーも不要です。
+
+1 つ以上のターゲットロケールを持つ verbatra プロジェクトが必要です。
+
+## 往復の流れ
+
+```bash
+# 1. Export the strings that need translating
+verbatra export
+
+# 2. A translator fills the Translation column and sends the file back
+
+# 3. Import the filled workbook
+verbatra import verbatra-translations.xlsx
+```
+
+エクスポートは、作業ディレクトリに `verbatra-translations.xlsx` を書き込みます。インポートは、入力済みのすべての行を検証し、通過した値を書き込みます。そして `translate` の実行と同じように、受け付けたキーに限り、ロックファイル（[ロックファイルと来歴](/ja/docs/the-lock-file)を参照）を進めます。
+
+## ブックに入る内容
+
+ブックは **Instructions**（説明）シートで始まり、続いてターゲットロケールごとに 1 枚のシートがあります。シート名はロケールです（`de`、`fr`、...）。どのロケールシートも、同じ列を持ちます。
+
+| 列 | 編集可能 | 用途 |
+| --- | --- | --- |
+| `Key` | いいえ | キーのパス（行を文字列に対応づける唯一の手がかり） |
+| `Source` | いいえ | ソースロケールの値 |
+| `Current translation` | いいえ | 既存のターゲット値（ある場合） |
+| `Status` | いいえ | `new`、`changed`（翻訳後にソースが変わった）、`unchanged`（`--include-unchanged` を付けた場合のみ） |
+| `Translation` | **はい** | 翻訳者が埋める唯一のセル |
+| `Source hash` | いいえ | 非表示（エクスポート後にソースが変わったことを検出する） |
+| `Context` | いいえ | キーの説明（ソースのフォーマットが持つ場合のみ。インポートされることはない） |
+| `Review status` | いいえ | `ok`、または[レビューフラグ](/ja/docs/translation-safety#レビューフラグ)が再確認を勧める場合の `review` |
+| `Review reasons` | いいえ | `review` の状態になった[レビューの理由](/ja/docs/error-codes#review-reason-codes) |
+
+`Translation` 以外のすべての列は、シートの保護でロックされています。`Translation` は Excel の表示形式「文字列」を使うので、`007` のような値や `=` で始まる値は、文字どおりのテキストのままです。レビュー列は参考用で、インポートがこれらを読むことはありません。
+
+## 受け渡し
+
+翻訳者に次のルールを伝えます（**Instructions** シートにも同じ内容が書かれています）。
+
+- `Translation` 列を埋め、ほかは何も変更しません。
+- 言語タブの名前変更、削除、並べ替えはしません。各タブは正確な名前でロケールに対応づけられるため、名前を変えたタブや足りないタブは、そのロケールを失敗させます。
+- 行の並べ替えやフィルターは問題ありません。行は `Key` で対応づけられるためです。列は今の位置のままにします。
+- 「まだ翻訳していない」ときは、セルを空にします。半分だけ埋めたブックを今返し、残りを後で返すこともできます。
+- 既存の値をあえてクリアするには、`[[CLEAR]]` とそのまま入力します。
+
+## インポートが受け付けるもの
+
+書き込みの前に、入力済みのすべての行を、現在のプロジェクトに照らして判定します。
+
+- **ソースのドリフト**：エクスポート後にソース文字列が変わった場合、その行は保留されます。古いソースの訳文が書き込まれることはありません。
+- **整合性**：プレースホルダー、インラインマークアップ、ICU の構造は、すべての実行と同じように、ソースと一致している必要があります。詳しくは[整合性ゲート](/ja/docs/translation-safety#整合性ゲート)を参照してください。
+- **崩れた値**：繰り返しのループ、異常な長さ、空でないソースに対する空の値は、保留されます。
+- **不明なキー**：キーがソースにもターゲットにも存在しない入力済みの行は、そのロケールのシートを失敗させます。ターゲットにだけあるキーは、書き込まれません。
+- **変更のない行**：CSV、TSV、xlsx の受け渡しで、最新のキーがすでに持つ値と等しい入力済みの行は、同じゲートを通過したうえで、書き込まれず、変更なしとして報告されます。
+
+保留された行や空白の行は、ロックファイルのベースラインを保ちます。そのため、解決されるまでそのキーは再びエクスポートされます。ソースがドリフトした空白の行は、[`BLANK_ROW_BASELINE_RETAINED`](/ja/docs/error-codes#blank_row_baseline_retained) も発生させます。読み取れない行や重複したキーは、シートを失敗させずに報告されます。各シートは実行サマリーの中で 1 つのロケールとして扱われます。インポートは `translate` と同じ終了コードを使うので、受け渡しにも、自動実行と同じ CI のチェックを使えます（[CI で verbatra を実行する](/ja/docs/ci-and-exit-codes)を参照）。詳しくは [`verbatra import`](/ja/docs/cli/import) を参照してください。
+
+### まずドライランする
+
+返ってきたブックが何を書き込むかを、ファイルに触れずにプレビューします。
+
+```bash
+verbatra import verbatra-translations.xlsx --dry-run
+```
+
+## ブックの代わりに CSV と TSV
+
+ベンダーやパイプラインがプレーンテキストを求める場合は、`--format csv` または `--format tsv` を指定すると、同じ列がロケールごとに 1 つのファイルとして書き込まれます。
+
+```bash
+# write handoff/de.csv and handoff/fr.csv
+verbatra export --format csv --out handoff
+
+# import every locale file in the directory back
+verbatra import handoff --format csv
+```
+
+ロケールはファイル名から決まるので、エクスポートしたときの名前のままにします。ブックと比べると、次のようになります。
+
+- **何も保護されません**：すべての列が編集可能で、`Source hash` も見えます。編集されたハッシュが信頼されることはありません。行は現在のソースと比較され、ドリフトとして保留されます。
+- **Instructions シートはありません**：上記のルールは、翻訳者に自分で伝えます。
+- **数式は無害化されます**：`=`、`+`、`-`、`@`、タブ、キャリッジリターンで始まる値は、先頭にアポストロフィを付けて書き込まれるので、スプレッドシートはテキストとして保持します。インポートでは、アポストロフィが再び取り除かれます。それでも、返されたファイルは信頼できない入力として扱ってください。
+- **範囲を狭めて再エクスポートすると、古いファイルは無効になります**：以前の、より広い範囲のエクスポートで残ったファイルは、インポート時に適用されず、拒否されます。何も削除されません。
+
+## CAT ツール向けの XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+翻訳会社が Trados、memoQ、OmegaT などの CAT ツール（翻訳支援ツール）で作業する場合は、代わりに XLIFF をエクスポートします。[翻訳会社に受け渡す（XLIFF）](/ja/docs/translation-agency)を参照してください。
+
+## TMX は別の経路
+
+<AvailableFrom version="0.11.0" />
+
+受け渡しは、各ロケールの未処理の文字列を人に届けます。[`verbatra tmx`](/ja/docs/cli/tmx) は、翻訳メモリ全体を、1 つの多言語ファイルとしてツール間で移動します。そのため、TMX は `export --format` に指定する値ではありません。
+
+## エクスポート対象の選択
+
+デフォルトでは、エクスポートに含まれるのは、欠落している文字列と変更された文字列だけです。
+
+```bash
+# Only the German and French sheets
+verbatra export --locales de,fr
+
+# Also include strings that are already up to date
+verbatra export --include-unchanged
+
+# Write to a specific path
+verbatra export --out handoff/round-2.xlsx
+```
+
+翻訳者がコンテキストのためにロケール全体を必要とする場合は、`--include-unchanged` を使います。`--out` はプロジェクト内にとどめる必要があり、プロジェクトが依存するファイルを指してはいけません。すべてのオプションとルールは [`verbatra export`](/ja/docs/cli/export) を参照してください。
+
+## レビュー列
+
+どちらの列も、エクスポート時にソースと現在の値から計算されるので、訳文のない行は常に `ok` です。`Review reasons` は、各理由を小文字とハイフンで書きます（`length-ratio-outlier`）。ただし、実行でしか見えない 2 つ（`provider-degraded`、`fuzzy-cache-reuse`）は、表示されません。値の ICU の分岐がターゲット言語に合わない場合は、欠落している分岐や余分な分岐とともに `icu-arms` も追加されます。整合性ゲートはその値を拒否するので、行を返す前に直します。フラグを消すには、訳文を直します。
+
+## SDK から使う
+
+2 つのコマンドは、[`exportWorkbook`](/ja/docs/sdk/exchange#exportworkbook) と [`importWorkbook`](/ja/docs/sdk/exchange#importworkbook) をラップしています。
+
+```ts
+import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+await exportWorkbook({ config, format: "csv", out: "handoff" });
+
+const summary = await importWorkbook({ config, workbook: "handoff", format: "csv" });
+```
+
+`importWorkbook` は、`translate` と同じ [`RunSummary`](/ja/docs/sdk/run-summary) を返します。
+
+## 関連項目
+
+- [`verbatra export`](/ja/docs/cli/export) と [`verbatra import`](/ja/docs/cli/import)：すべてのオプション、出力パス、終了コード
+- [翻訳の安全性](/ja/docs/translation-safety)：すべての書き込みの背後にある整合性ゲート
+- [機械翻訳なしで実行する](/ja/docs/human-only-workflow)：すべての訳文が人から届くプロジェクト

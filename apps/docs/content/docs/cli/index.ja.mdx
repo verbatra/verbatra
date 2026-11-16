@@ -1,0 +1,80 @@
+---
+title: "CLI リファレンス"
+seoTitle: "verbatra CLI リファレンス：コマンドとオプション"
+sidebarTitle: "概要"
+description: "verbatra のすべてのサブコマンドと、それらが共有するグローバルオプション、そして CLI が環境を読み取って .env ファイルを読み込む仕組みを説明します。"
+type: reference
+---
+`@verbatra/cli` は `verbatra` バイナリを提供します。[`@verbatra/sdk`](/ja/docs/sdk) の薄いラッパーです。
+
+## コマンド
+
+作業を実行するコマンドは次のとおりです。
+
+<Cards>
+  <Card title="init" href="/ja/docs/cli/init">このプロジェクトの verbatra 設定ファイルと `.env.example` を作成します。</Card>
+  <Card title="extract" href="/ja/docs/cli/extract">アプリケーションのソースから翻訳の呼び出し箇所をスキャンし、新しいキーをソースロケールファイルに追加します。</Card>
+  <Card title="translate" href="/ja/docs/cli/translate">すべてのターゲットロケールを 1 回翻訳して終了します。</Card>
+  <Card title="watch" href="/ja/docs/cli/watch">中断されるまで、ソースが変わるたびに翻訳し直します。</Card>
+  <Card title="check" href="/ja/docs/cli/check">ロケールごとに欠落しているキーと古くなったキーを報告します（読み取り専用）。</Card>
+  <Card title="diff" href="/ja/docs/cli/diff">ロケールごとに、追加される、翻訳し直される、孤立しているキーを正確に一覧にします（読み取り専用）。</Card>
+  <Card title="report" href="/ja/docs/cli/report">読み取り専用のレポートを出力します。`report provenance` は、どの訳文を機械が書き、どの訳文を人がレビューしたかを一覧にします。</Card>
+  <Card title="doctor" href="/ja/docs/cli/doctor">プロバイダーを呼び出さずに、プロジェクトの構成を検証し、すべての問題を一度に報告します。</Card>
+  <Card title="pseudo" href="/ja/docs/cli/pseudo">プロバイダーを呼び出さずに、ソース文字列から疑似ロケールを生成します。</Card>
+  <Card title="types" href="/ja/docs/cli/types">プロバイダーを呼び出さずに、カタログのキーとメッセージ引数の TypeScript 宣言を生成します。</Card>
+  <Card title="export" href="/ja/docs/cli/export">未翻訳の文字列を、人の翻訳者向けにエクスポートします。出力できるのは、Excel のブック、ロケールごとの CSV または TSV ファイル、CAT ツール向けのロケールごとの XLIFF ファイルです。</Card>
+  <Card title="import" href="/ja/docs/cli/import">記入済みのブックまたは区切り文字ファイルを、ロケールファイルに取り込みます。</Card>
+  <Card title="tmx" href="/ja/docs/cli/tmx">別のツールの TMX 翻訳メモリを、このプロジェクトの翻訳メモリに取り込みます。または、このプロジェクトの翻訳メモリを TMX ファイルとしてエクスポートします。</Card>
+  <Card title="studio" href="/ja/docs/cli/studio">ローカルの翻訳ダッシュボード、Verbatra Studio を起動します。</Card>
+  <Card title="mcp" href="/ja/docs/cli/mcp">verbatra のツールを MCP クライアントに公開する stdio MCP サーバーを起動します。</Card>
+</Cards>
+
+## インストールと呼び出し
+
+`@verbatra/cli` を開発依存としてインストールします。
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+その後、パッケージマネージャー経由でバイナリを実行します。
+
+```verbatra-run
+<command>
+```
+
+Node.js `^22.22.0 || >=24` が必要です（CLI 0.12.x では `^22.18.0 || >=24` が使えます）。
+
+インストールする前にコマンドを試したい場合は、`npx @verbatra/cli <command>`（npm）または `pnpm dlx @verbatra/cli <command>`（pnpm）を使います。どちらも、事前のローカルインストールなしで動作します。必ずスコープ付きの名前を使ってください。npm のスコープなしの名前 `verbatra` は、このプロジェクトのものではありません。
+
+## グローバルオプション
+
+これらのオプションは、受け付けるすべてのコマンドで同じ意味を持ちます。そのため、各コマンドのページには、そのコマンド固有のオプションだけを載せています。最後の列は、そのオプションを受け付けないコマンドを示します。
+
+| オプション | 引数 | デフォルト | 説明 | 使えないコマンド |
+| --- | --- | --- | --- | --- |
+| `--cwd` | `<path>` | カレントディレクトリ | 設定ファイルの探索をここから始め、渡したパスもここを基準に解決する（ロケールファイルは、探索で見つかった設定ファイルのあるディレクトリが基準。`init` はここにファイルを書き込む） | なし |
+| `--config` | `<path>` | 探索する | 探索せずにこの設定ファイルを読み込む（探索順序は[設定ファイル](/ja/docs/config-file)を参照） | `init` |
+| `--json` | なし | オフ | 機械可読な[エンベロープ](/ja/docs/cli/output#json-出力)（envelope）を stdout に、1 レコード 1 行で出力する（エラーは引き続き stderr に出力） | `mcp`、`studio` |
+| `-q`、`--quiet` | なし | オフ | 結果、警告、エラーだけを出力する（進捗、ヒント、情報行は出力しない）。コマンド名の前後どちらでも使える | なし |
+| `--no-color` | なし | ターミナルではカラー | 出力に色を付けない（[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照） | なし |
+| `-h`、`--help` | なし | オフ | プログラムまたはコマンドのヘルプを出力し、終了コード `0` で終了する | なし |
+| `-V`、`--version` | なし | オフ | CLI のバージョンを出力し、終了コード `0` で終了する | なし |
+
+未知のコマンドやオプションは終了コード `2` で終了します。コマンドなしの `verbatra` だけの場合も同じです。その場合はヘルプを stderr に出力し、設定ファイルが見つからなければ `verbatra init` を提案します。`mcp` は stdout に何も書き込みません。stdout がプロトコルのチャネルだからです。そのため、`--json` は `USAGE_ERROR` で拒否します。0.12.0 以上では、存在するディレクトリを指さない `--cwd` は、何かを読み込んだり書き込んだりする前に、すべてのコマンドで [`INVALID_OPTION`](/ja/docs/error-codes#invalid_option) を伴って終了コード `2` で終了します。
+
+## 環境ファイル
+
+`translate`、`watch`、`doctor`、`studio`、`mcp` は、実行する前に、作業ディレクトリから `.env.local`、続いて `.env` を読み込みます。探索で見つかった設定ファイルが親ディレクトリにある場合は、そのディレクトリから同じ 2 つのファイルも読み込みます。`--config` を指定した場合は、作業ディレクトリのファイルだけを読み込みます。MCP クライアントがルートを変更すると、MCP サーバーも新しいプロジェクトルートから両方のファイルを読み込みます。`doctor --literals` は例外です。API キーを読み込まないため、どちらのファイルも読み込みません。優先順位は、実際の環境ですでに設定されている変数が常に最優先で、次に作業ディレクトリのファイル、その次に設定ファイルのディレクトリのファイルです。また、`.env.local` の値は、同じ変数の `.env` の値より優先されます。API キーは環境変数からのみ読み込み、設定ファイルやオプションからは読み込みません（[プロバイダー](/ja/docs/providers)を参照）。読み取り専用のコマンド（`check`、`diff`、`report`）、受け渡しのコマンド（`export`、`import`）、`extract`、`init`、`pseudo`、`types`、`tmx` は、プロバイダーを呼び出さず、`.env` ファイルも読み込みません。
+
+## .gitignore のエントリ
+
+`translate`、`watch`、`import`、`tmx import`、`pseudo` を実際に実行すると、プロジェクトルートに既存の `.gitignore` がある場合、そこに欠落している `.env`、`.env.local`、`.verbatra-local/`、`verbatra.cache.json` が追加され、stderr に名前が表示されます（`--json` と `--quiet` ではこの行は出力されません）。これは設定ファイルを読み込んだ時点で行われるため、その後で失敗した実行でも、すでに追加されています。ドライランはファイルに触れず、これらのコマンドが `.gitignore` を新規作成することもありません。作成するのは [`verbatra init`](/ja/docs/cli/init) です。プロジェクトの外を指すシンボリックリンクの `.gitignore` は変更されず、警告が出ます。この警告は `--json` と `--quiet` でも出力されます。
+
+## ターミナル出力
+
+カラー、スピナー（spinner）、`--quiet`、それらを制御する変数は、[ターミナル出力](/ja/docs/cli/output#ターミナル出力)で説明しています。
+
+## 終了コード
+
+終了コードの規約とその例外的なケースは、[終了コードと JSON 出力](/ja/docs/cli/output#終了コード)にあります。各コマンドのページには、そのコマンドが返すコードだけを載せています。

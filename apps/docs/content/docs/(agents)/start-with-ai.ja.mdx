@@ -1,0 +1,89 @@
+---
+title: AI エージェントで verbatra をセットアップする
+seoTitle: "AI エージェントで verbatra を導入する"
+description: "i18n の構成がすでにあるプロジェクトに verbatra を追加するための、AI コーディングエージェント向けの短いプロンプトです。費用が発生する前に人が確認します。"
+type: tutorial
+---
+<StartHere />
+
+このページは、ロケールファイルがすでにコミットされているプロジェクト向けです。上の **AI エージェント向けのプロンプト**を Claude Code、Codex、Gemini CLI、Cursor など、シェルコマンドを実行できるエージェントに貼り付けます。エージェントは以下の手順に従い、次の 3 つを確認します。
+
+- **使用するプロバイダー**：プロジェクトから明らかな場合を除きます。
+- **API キー**：エージェントは `.env` の変数を空のままにします。値は人が入力し、エージェントが API キーを尋ねることはありません。
+- **実行の許可**：最初に `translate` を本番実行する前に確認します。すぐに費用が発生するためです。
+
+## エージェントが従う手順
+
+エージェント向け：手順を順番に実行します。手順 6 の停止は省略しないでください。
+
+### 1. 既存の構成を調べる
+
+何かを変更する前に、`package.json` で i18n ライブラリ（`i18next`、`vue-i18n`、`next-intl` など）とロケールファイルを探します。ソースロケール、すでにあるすべてのターゲットロケール、`{locale}` プレースホルダーを含むパスのパターン（`locales/{locale}.json` など）を控えます。[技術スタックを選ぶ](/ja/docs/pick-your-stack)は、各技術スタックのフォーマット ID とレイアウトを示します。[フォーマット](/ja/docs/formats)は、あらかじめ存在している必要があるファイルを説明します。i18n ライブラリを使わないプレーンな JSON の場合：`{{name}}` プレースホルダーなら `i18next-json`、波括弧 1 つの `{name}` なら `vue-i18n-json` です。
+
+### 2. CLI をインストールする
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+pnpm、yarn、bun でも使えます。インストールスクリプトは承認しません。`pnpm approve-builds` でも npm の `allowScripts` でも同じです。verbatra にはインストールスクリプトは不要です。
+
+### 3. 設定ファイルとエージェント用ファイルを作成する
+
+```bash
+npx @verbatra/cli init --provider <provider> --yes --json --agent
+```
+
+プロジェクトから明らかな場合を除き、使用するプロバイダーを人に尋ねます。人が同意していないサービスで費用が発生するプロバイダーは選ばないでください。`init` に API キーの値を渡すことも絶対にしません。[プロバイダー](/ja/docs/providers)に ID の一覧があります。`none` は機械翻訳をオフにします。`init` はフォーマット、パスのパターン、ロケールを検出し、JSON のエンベロープ（envelope）を 1 つ出力します。対話式の質問はしません。`--agent` を付けると、`AGENTS.md` に verbatra のセクションを書き込みます。指示ファイルが `CLAUDE.md` だけの場合や、`CLAUDE.md` にすでに verbatra のセクションがある場合は、`CLAUDE.md` に書き込みます。さらに、課金をオフにした verbatra MCP サーバーを、検出した各クライアントの設定に書き込みます。Claude Code を検出した場合、またはクライアントを 1 つも検出しなかった場合は、Claude Code の `.mcp.json` に書き込みます。書き込んだファイルは `result.agent.clients` に一覧されます。
+
+| 終了コードとエラーコード | 対処 |
+| --- | --- |
+| `0` | `result.config` を手順 1 の内容と照らし合わせます。まず `default` と表示されている `result.sources` のエントリから確認します。`result.config.files.localeStyle` は、ファイルがロケールを記述どおりに表記していない場合にだけ現れます。誤りがあれば、正しい `--format`、`--path`、`--source`、`--targets` と `--force` を付けて再実行します。 |
+| `2`、`FORMAT_AMBIGUOUS` または `LAYOUT_AMBIGUOUS` | `candidates` から選び、`--format` または `--path` を付けて再実行します。名前空間ごとのファイルが並んでいる場合は、止まって人に確認します。1 つの設定ファイルで扱えるファイルパターンは 1 つだけだからです。 |
+| `2`、`MISSING_OPTIONS` | まだ必要なオプションがすべてメッセージに示されます。 |
+| `2`、`CONFIG_EXISTS` | 既存の設定ファイルが使うプロバイダーを人に伝え、確認を待ちます。その後 `npx @verbatra/cli init --agent --json` を実行します。設定ファイルはそのままにして、エージェント用ファイルだけを追加します。`--force` を付ける前に確認してください。 |
+
+すべてのオプションは [init](/ja/docs/cli/init#プロバイダー) に記載しています。
+
+### 4. API キーは人に任せる
+
+プロバイダーが `none` の場合は、この手順を省略します。API キーの変数は `result.apiKeyEnvVar` です。`CONFIG_EXISTS` の後は `null` になるため、`npx @verbatra/cli doctor --json` で失敗している `api-key` チェックから変数名を取ります。`.env.example` を `.env` にコピーします。`init` が例を書き込まなかった場合は、`.env` を新しく作成します。そこに変数名を値なしで書き、人に入力を依頼します。API キーの値を書いたり、作り出したり、尋ねたりしないでください。入力を待たずに先へ進みます。
+
+### 5. 費用をかけずに構成を確認する
+
+```bash
+npx @verbatra/cli doctor --json
+npx @verbatra/cli check --json
+npx @verbatra/cli diff --json
+npx @verbatra/cli translate --dry-run --json
+```
+
+これらはいずれも、プロバイダーを呼び出さず、API キーを必要とせず、ファイルを書き込みません。失敗している `doctor` のチェックのうち、`verbatra.config.ts` で直せるものはすべて直します。`api-key` チェックは人が API キーを設定して初めて通るため、繰り返し直そうとしないでください。`check` や `diff` では、最初の実行の前に終了コード `1`（同期していない）が出るのは想定どおりです。構成の問題を示すのは終了コード `2` だけです。プロバイダーが `none` の場合、翻訳者に任せるキーが残っていると、`translate --dry-run` は終了コード `3` で終了します。翻訳されるのはターゲットにないキーだけで、空文字列は存在するものとして扱われます。そのため、ダミー値として `""` を入れたキーを削除する前に確認します。
+
+### 6. 止まって確認を求める
+
+ロケールごとの未処理のキーの数と、`translate --dry-run` が報告した内容を要約してから、止まります。実際の実行はすぐに費用が発生し、実行前に確認する対話式の質問もありません。人からの明確な許可を待ちます。人から求められない限り、`--prune` は使わないでください。
+
+### 7. 許可を得てから翻訳する
+
+```bash
+npx @verbatra/cli translate --json
+```
+
+サマリーの `succeeded`、`partial`、`failed` の一覧を報告します。`partial` または `failed` のロケールでは、成功した分が残ります。
+
+### 8. コミットして接続する
+
+次のファイルをコミットします。`verbatra.config.ts`、存在する場合は `.env.example`、手順 3 の指示ファイルとクライアントの設定ファイル、`verbatra.lock.json`、実行によって書き込まれた後の `verbatra.provenance.json`、翻訳済みのロケールファイルです。`.env`、`.env.local`、`.verbatra-local/`、`verbatra.cache.json` は絶対にコミットしないでください。`.gitignore` がこれらを対象にしていることを確認します。
+
+続けて、クライアントを再起動し、プロジェクトの `verbatra` サーバーを承認するよう人に伝えます。Claude Code では、verbatra プラグインを重ねてインストールしないでください。サーバーが二重に登録されます。接続は `claude mcp list` で確認できます。`init` が検出しなかったクライアントには、[MCP クライアントを接続する](/ja/docs/connect-an-mcp-client)にあるエントリを 1 つ追加します。
+
+## 次のステップ
+
+<Cards>
+  <Card title="MCP クライアントを接続する" href="/ja/docs/connect-an-mcp-client" description="Claude Code 以外の各クライアントに必要な 1 つのエントリと、エージェントに課金を許可する方法です。" />
+  <Card title="エージェントとスクリプト向けのレシピ" href="/ja/docs/agent-recipes" description="このプロンプトのコマンドが前提にしている --json のエンベロープと終了コードです。独自のエージェントループを作るときに使います。" />
+  <Card title="ブラウザーエージェントで Studio を操作する" href="/ja/docs/agent-tools-in-studio" description="シェルではなくブラウザーのタブから、セットアップ済みのプロジェクトを操作するための別の画面やツールです。" />
+  <Card title="クイックスタート" href="/ja/docs/quickstart" description="同じセットアップの手順を、エージェントではなく人向けに書いたものです。" />
+  <Card title="ロックファイルと来歴" href="/ja/docs/the-lock-file" description="このプロンプトが前提にしている、既存プロジェクト導入時の安全な動作の詳細です。" />
+</Cards>

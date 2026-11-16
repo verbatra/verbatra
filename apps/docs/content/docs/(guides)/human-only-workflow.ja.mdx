@@ -1,0 +1,84 @@
+---
+title: 機械翻訳なしで実行する
+seoTitle: "機械翻訳を使わずに verbatra を実行する"
+description: 機械翻訳をポリシーで無効にして verbatra を実行します。文字列が翻訳サービスに送られることはなく、すべての訳文を人が用意します。
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+NDA（秘密保持契約）、顧客との契約、社内ルールのいずれかで、AI や翻訳サービスへの文字列の送信が禁止されている場合に使います。プロバイダーを `none` に設定すると、費用が発生したり何かを送信したりするおそれのあるコマンドは、すべてローカルのデータだけで動作するか、実行を拒否します。プロバイダーが不要な機能（差分、ロックファイル、翻訳メモリ、エクスポートとインポート、チェック、型、疑似ローカライズ、抽出）は、これまでどおり動作します。
+
+verbatra プロジェクト、または `verbatra init` を実行しようとしているフォルダーが必要です。
+
+## 設定する
+
+```bash
+verbatra init --provider none
+```
+
+これで、プロバイダーのブロックが次の 1 行だけの設定ファイルが書き込まれます。API キーは読み込まれないため、`.env.example` は作成されません。
+
+```ts title="verbatra.config.ts"
+provider: { id: "none" }
+```
+
+既存のプロジェクトでは、`provider` ブロックを `{ id: "none" }` に置き換えます。すると [`verbatra doctor`](/ja/docs/cli/doctor) は `machine translation disabled by policy` と報告し、API キーを探さずに、プロバイダーと API キーのチェックを通します。
+
+## 各コマンドの動作
+
+| コマンド | `provider: { id: "none" }` の場合 |
+| --- | --- |
+| `translate`、`watch` | 翻訳メモリ（[翻訳キャッシュ](/ja/docs/the-cache)を参照）の完全一致のヒットだけでキーを埋め、あいまい一致では埋めません。ほかの欠落または変更されたキーは `unfilled` として一覧に出て、変更されずに残り、次回の実行で再び対象になります。キーが残っている間、`translate` は終了コード `3` で終了します。 |
+| `export`、`import`、`tmx` | 変わりません。人手翻訳を取り込む経路が、受け渡しと翻訳メモリです。 |
+| `check`、`diff`、`doctor`、`pseudo`、`types`、`extract` | 変わりません。どれもプロバイダーを呼び出しません。 |
+| `studio`、`mcp` | ローカルでの読み取りと編集は動作します。プロバイダーの費用が発生する操作は、`--allow-spend` を指定しても提示されません。 |
+| SDK の [`retranslateEntry`](/ja/docs/sdk/review#retranslateentry) | 何かを読み込んだりロックしたりする前に、[`MACHINE_TRANSLATION_DISABLED`](/ja/docs/error-codes#machine_translation_disabled) で失敗します。 |
+
+どの経路でも、環境に何が設定されていてもプロバイダーは生成されず、ネットワークリクエストも行われません。
+
+## `none` 以外のプロバイダーからの切り替え
+
+翻訳メモリは、人手のみの作業を専用の区画に保存し、`none` 以外のプロバイダーが生成したものとは分けています。そのため `none` に切り替えると、翻訳メモリは空の状態から始まります。`tone` や用語集を変更しても、この区画には影響しません。
+
+以前の訳文を引き継ぎたい場合は、明示的に移します。人手のみの翻訳メモリに `none` 以外のプロバイダーの出力を取り込むことになる点に注意してください。切り替える前にエクスポートします。切り替えた直後は、`tmx export` が人手のみの区画を書き出しますが、その区画はまだ空です。
+
+```bash
+# 1. Still on the old provider: export its memory
+verbatra tmx export
+
+# 2. Switch the config to provider: { id: "none" }
+
+# 3. Import it into the human-only bucket
+verbatra tmx import verbatra-memory.tmx
+```
+
+ファイル名とオプションは、[`verbatra tmx`](/ja/docs/cli/tmx) を参照してください。
+
+## 日々の作業の流れ
+
+```bash
+# 1. After source strings change, see what needs a human
+verbatra translate          # exits 3 and lists the unfilled keys
+
+# 2. Hand them to your translators
+verbatra export
+
+# 3. Bring the filled workbook back
+verbatra import verbatra-translations.xlsx
+
+# 4. Gate CI on it
+verbatra check
+```
+
+手順 1 は省略できます。`verbatra diff` と `verbatra check` でも、同じ未処理のキーを確認できるためです。それでも実行する価値はあります。翻訳メモリがすでにカバーしているキーはすべて埋まるため、翻訳者には本当に新しいものだけが渡ります。受け渡しそのものについては、[Excel や CSV で受け渡す](/ja/docs/manual-translation)または[翻訳会社に受け渡す（XLIFF）](/ja/docs/translation-agency)を参照してください。
+
+## CI での利用
+
+人の対応を待つキーがあると、`translate` は終了コード `3` で終了します（[終了コード](/ja/docs/cli/output#終了コード)）。そのためパイプラインは、ビルドを失敗させる、翻訳の依頼を作成する、報告だけにする、のいずれかを選べます。[GitHub Action](/ja/docs/github-action#人手のみのモード) は、終了コード `3` でもその手順を成功として扱い、`needs-human` 出力を `"true"` に設定します。後続の手順がこれを見て対応できます。
+
+## 関連項目
+
+- [終了コード](/ja/docs/cli/output#終了コード)：終了コードの規約のすべて
+- [翻訳キャッシュ](/ja/docs/the-cache)：`translate` が値を埋めるときに使う翻訳メモリ
+- [プロバイダー](/ja/docs/providers)：翻訳プロバイダーと並ぶ `none`
+- [データの取り扱いとプライバシー](/ja/docs/data-handling)：各プロバイダーで、マシンから外に出る内容

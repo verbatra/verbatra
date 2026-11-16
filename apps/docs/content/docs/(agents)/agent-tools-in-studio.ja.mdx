@@ -1,0 +1,130 @@
+---
+title: ブラウザーエージェントで Studio を操作する
+seoTitle: "ブラウザーの AI エージェントで Studio を操作する"
+description: Verbatra Studio のレビュー操作を WebMCP ツールとして登録し、ブラウザーの AI エージェントが開いている認証済みのダッシュボードのタブを操作できるようにします。
+type: how-to
+---
+Gemini や Claude in Chrome などのブラウザーの AI エージェントに、開いている Studio のタブでドリフトの確認、レビューキューの処理、エントリの修正をさせる手順です。プロジェクトのセットアップやリモートアクセスには使えません。
+
+必要なもの：
+
+- プロジェクトで起動している Studio（[Studio でレビューする](/ja/docs/review-in-studio#studio-を起動する)）
+- Chrome 149 以上で `chrome://flags/#enable-webmcp-testing` を有効にしたもの、またはネイティブの WebMCP に対応したブラウザー（ヘッドレスではない通常のウィンドウ）
+
+<Callout title="試験的機能">
+WebMCP はフラグで有効にする新しいブラウザー機能で、仕様がまだ変わる可能性があります。
+</Callout>
+
+## ツールを有効にする
+
+```bash
+verbatra studio --expose-agent-tools
+```
+
+`VERBATRA_STUDIO_AGENT_TOOLS=1` でも同じ結果になります。オプションと環境変数がどう解決されるかは、[課金ツールとエージェントツール](/ja/docs/cli/studio#課金ツールとエージェントツール)を参照してください。表示された URL を WebMCP 対応のブラウザーで開くと、そのタブのエージェントがツールを見つけます。
+
+エージェントにプロバイダーを呼び出させるには、`--allow-spend` も付けて Studio を起動します。
+
+エージェントは、ページに表示されるとおり、すべての値を秘匿化せずに読み取ります。タブ上のエージェントはどのみちページを読めるためです。例外は用語集のツールと `verbatra_history_keyRevisions` です。これらの値はシークレットの秘匿化を通るため、API キーの形をした値はプレースホルダーに置き換わって返ります。エージェントに値を見せたくない場合は、代わりに MCP サーバーを [`--redact-values`](/ja/docs/cli/mcp#redacted-values) 付きで使います。NDA（秘密保持契約）の対象プロジェクトについては、[Studio と MCP](/ja/docs/data-handling#studio-と-mcp) を参照してください。
+
+## エージェントが呼び出せるものを知る
+
+各ツールは、`verbatra_` で始まる Studio の操作です。読み取りツールには読み取り専用の印が付き、書き込みツールが変更するのはローカルのファイルだけで、課金ツールは `--allow-spend` を付けたときだけ登録されます。
+
+### 読み取りツール
+
+| ツール | 機能 |
+| --- | --- |
+| `verbatra_project_snapshot` | 読み込まれた設定、機能の一覧、`capabilities.limits` 配下にある `retranslate`、`reviewDecision`、2 つの値置換メソッドのレート制限 |
+| `verbatra_status_check` | ロケールごとの対応率 |
+| `verbatra_status_diff` | ロケールごとの欠落しているキー、変更されたキー、孤立したキー |
+| `verbatra_glossary_get` | 解決済みの用語集（シークレットは秘匿化） |
+| `verbatra_lock_state` | ロケールごとのロックファイルの状態 |
+| `verbatra_history_list` | ロケールファイルへの最近のコミットと作成者の名前（[メールアドレスは含みません](/ja/docs/data-handling#studio-と-mcp)） |
+| `verbatra_history_keyRevisions` | 1 つのロケールにおける 1 つのキーのコミットと単語単位の差分（API キーは消去済み） <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
+| `verbatra_key_integrity` | ソースが変わったロケールでの、1 つのキーのプレースホルダー、マークアップ、ICU のチェック |
+| `verbatra_review_queue` | コミット済みのファイルにある、誰も承認していない機械翻訳の値すべて <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_key_value` | 1 つのキーのソース値とターゲット値、およびターゲット値を書いた主体 |
+| `verbatra_key_context` | 1 つのキーの説明、用語集の用語、`maxLength`、および任意の `draft` のチェック <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_locale_values` | ターゲットロケールごとのキーの値（デフォルトは 1 ページ 200 件、`locales`、`keys`、`query` で絞り込み） |
+| `verbatra_locale_integrity` | 整合性チェックに失敗しているすべての訳文 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_translation_estimate` | 未処理の変更を翻訳する呼び出しで送信される内容と費用（プロバイダーは呼び出さない） |
+| `verbatra_usage_summary` | 直近の実行のトークン使用量と予算、および失敗または途中で止まったロケールがある場合の `incomplete` <AvailableFrom version="0.7.5" pkg="@verbatra/studio" /> |
+| `verbatra_usage_history` | 記録された実行（新しい順）のトークン、費用、対応率（件数のみ） <AvailableFrom version="0.7.0" pkg="@verbatra/studio" /> |
+
+### 書き込みツール
+
+| ツール | 機能 |
+| --- | --- |
+| `verbatra_glossary_write` | ファイルに保存された用語集の用語を 1 つ変更する <AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> |
+| `verbatra_review_approve` | 名前を指定した人による 1 つの値の承認を記録する <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_review_reject` | 名前を指定した人による却下を記録し、値を削除する |
+| `verbatra_translation_editEntry` | 整合性ゲートを通して 1 つの値を書き込む |
+
+### 課金ツール
+
+| ツール | 機能 |
+| --- | --- |
+| `verbatra_translation_retranslateEntry` | 1 つのロケールの 1 つのキーを再翻訳する |
+| `verbatra_translation_translatePending` | 未処理のものをすべて翻訳する（`locales` で一部のロケールに絞り込み、`maxTokens` の上限を設定することも可能） <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+`verbatra_key_integrity` が返すのは、キーのソースが変わったロケールだけです。リストが空なら、チェックが必要なものはありません。返される行は、MCP サーバーの [`key.integrity`](/ja/docs/cli/mcp#入力と結果) より平坦な構造です。`project.doctor` と `report.provenance` は MCP サーバーにしかありません。`verbatra_locale_values` は、MCP サーバーの `locale.values` と同じ `limit` と `cursor` でページ分割されます（[その他の入力と結果](/ja/docs/cli/mcp#その他の入力と結果)）。
+
+## ツールが従うルールを知る
+
+すべての呼び出しは、ダッシュボード自身の認証済みループバック RPC を通り、同じ入力の検証と整合性ゲート（[翻訳の安全性](/ja/docs/translation-safety)を参照）が適用されます。チェックに失敗した値は書き込まれず、拒否されます。
+
+### 呼び出しごとのルール
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+- **来歴**：エージェントの編集は出どころ `agent` として記録され、レビューキューに残ります。ダッシュボードでの編集は `human` です。読み取りツールは、各値を誰が書いたかを報告します（[ロックファイルと来歴](/ja/docs/the-lock-file#来歴各値を誰が書いたか)）。
+- **人手の作業**：再翻訳は、人が書いた値を `KEY_PROTECTED` で拒否し（`humanEdits: "overwrite"` の場合を除く）、固定されたキーを `KEY_PINNED` で拒否します。編集も固定されたキーを拒否します（[人手翻訳を保護する](/ja/docs/protecting-human-translations)）。
+- **レビューの判断**：承認と却下は、人の判断を中継するだけです。どちらも、人の名前を示す `reviewer` と、レビューしたテキストを示す `expectedValue` が必要です。値が変わっている場合は `REVIEW_VALUE_CHANGED` で拒否されます。
+- **一括ツールなし**：**Approve selected**（選択項目を承認）、**Reject selected**（選択項目を却下）、**Retranslate selected**（選択項目を再翻訳）、**Approve all in**（一括承認）、**Search and replace**（検索と置換）は、人だけが操作できます。
+- **先に見積もる**：不明なロケールは、費用が発生する前に `UNKNOWN_LOCALE` で拒否されます。呼び出しの `maxTokens` と設定の `maxTokens` は、小さいほうが適用されます（[実行前に費用を見積もる](/ja/docs/estimating-cost)）。
+- **レート制限**：1 分間の移動ウィンドウあたり、再翻訳 20 回、編集 20 回、用語集の書き込み 20 回、レビューの判断 60 回、未処理の変更を翻訳する呼び出し 5 回（同時に実行できるのは 1 つ）です。
+
+## 失敗した呼び出しを読み解く
+
+どのツールもダッシュボードのエンベロープ（envelope）を返すため、失敗は `{ "ok": false, "error": { "code": ..., "message": ... } }` の形になります。SDK 自身のコードに加えて、RPC 層が次のコードを追加します。
+
+| エラーコード | 意味 |
+| --- | --- |
+| `REQUEST_INVALID` | 読み取れるエンベロープではないリクエストまたはレスポンス |
+| `METHOD_UNKNOWN` | この Studio のバージョンにそのメソッドがない |
+| `SPEND_DISABLED` | 課金がオフのときに呼び出された課金メソッドです。Studio が `--allow-spend` なしで動いているか、プロバイダーが `none` です。メッセージにどちらかが示されます。 |
+| `PARAMS_INVALID` | パラメーターの検証に失敗しました。`issues` に各フィールドが示されます。 |
+| `METHOD_RATE_LIMITED` | レート制限を超えました。`retryAfterSeconds` に、呼び出しが制限内に収まるまでの秒数が示されます。 |
+| `BATCH_TOO_LARGE` | バッチがレート制限のウィンドウ全体を超えています。エントリを減らして送ります。 |
+| `ALREADY_IN_PROGRESS` | 処理中のエントリに対する 2 回目の呼び出し（HTTP 409） |
+| `SESSION_EXPIRED` | Studio が新しいセッショントークンで再起動しました。表示された URL を開きます。 |
+| `INTERNAL` | ハンドラーが予期しないエラーで失敗しました（HTTP 500）。メッセージは汎用的なものです。 |
+
+## 機能低下したツールを直す
+
+ブラウザーがツールの登録を拒否すると、すべての画面に次のような警告が表示されます。
+
+> Agent tools degraded: 2 of the agent tool registrations failed with SecurityError. The dashboard itself is unaffected. The browser console lists every failing tool.
+
+ブラウザーのコンソールには、失敗ごとに 1 行が出力されます。
+
+```text output
+Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+```
+
+まずそこでエラー名を確認し、タブを再読み込みして登録をやり直します。フラグがない場合や、WebMCP のないブラウザーでは、この通知は表示されず、何も登録されないまま静かに終わります。`--allow-spend` なしのセッションで試みる登録は 2 件少なくなりますが、これは失敗ではありません。
+
+## 課金のリスクを見極める
+
+ツールを使っても、ネットワークへの公開範囲は広がりません。Studio は引き続き `127.0.0.1` にだけバインドし、すべてのリクエストにセッショントークンが付きます。プロジェクトのテキストを返すツールはそのテキストを信頼できないものとして示すため、エージェントはデータとして扱います。
+
+<Callout type="warn">
+`--allow-spend` と `--expose-agent-tools` を両方付けると、エージェントは呼び出しごとの確認なしに、レート制限の範囲内でプロバイダーに費用をかけられます。Studio はエージェントの呼び出しと人のクリックを区別できないため、承認ダイアログは追加されません。読み取りと編集だけにしたい場合は、`--allow-spend` を付けないでください。
+</Callout>
+
+## 関連項目
+
+- [Studio でレビューする](/ja/docs/review-in-studio)：同じ作業を手で行う方法です。
+- [`verbatra studio`](/ja/docs/cli/studio)：すべてのオプションと、起動時の動作の仕様です。
+- [MCP クライアントを接続する](/ja/docs/connect-an-mcp-client#verbatra-プラグイン)：プラグインに `verbatra-studio-agent-tools` スキルが含まれますが、Studio は自分で起動します。

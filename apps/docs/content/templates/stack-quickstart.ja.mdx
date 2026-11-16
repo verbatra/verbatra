@@ -1,0 +1,145 @@
+このページを終えると、<StackText field="name" /> アプリに、verbatra が <StackText field="sourceFile" /> から翻訳したドイツ語の文字列が表示されます。以降の実行では、ロックファイルのおかげで変更された分だけが翻訳されます。必要なものは、Node.js `^22.22.0 || >=24`、<StackText field="name" /> プロジェクト、10 分ほどの時間です。最初の 4 つの手順には、アカウントも API キーも必要ありません。
+
+すでにロケールファイルとコーディングエージェントがある場合は、代わりに [AI エージェントで verbatra をセットアップする](/ja/docs/start-with-ai)のプロンプトをエージェントに渡します。エージェントはプロジェクトにあるファイルに合わせて作業し、費用が発生する前に止まります。
+
+## 手順
+
+<Steps>
+<Step>
+
+### CLI をインストールする
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+verbatra は開発用のツールで、アプリに同梱されることはありません。以下のコマンドは `npx` を使います。pnpm、yarn、bun を使う場合は、代わりに `pnpm verbatra`、`yarn verbatra`、`bun run verbatra` を実行します。
+
+<StackOnly stacks="flutter">
+<Callout title="Flutter アプリには package.json がない">
+パッケージマネージャーが、最初のインストール時に作成します。`.gitignore` に `node_modules/` を追加します。
+</Callout>
+</StackOnly>
+
+</Step>
+<Step>
+
+### ソースロケールファイルを追加する
+
+<StackText field="sourceFile" /> がすでにある場合は、この手順を飛ばします。ない場合は、文字列を 2 つ入れて作成します。そのうち 1 つにはプレースホルダーを含めます。
+
+<StackBlock name="source-file" />
+
+</Step>
+<Step>
+
+### 設定ファイルを作成する
+
+<StackBlock name="init" />
+
+`--format` の <StackText field="format" /> は、<StackText field="library" /> のファイルフォーマットです。`init` はロケールファイルを探し、まだない場合はパターン <StackText field="pattern" /> を書き込みます。`--yes` を付けると、`init` が検出した内容をそのまま採用し、質問を表示しません。作成された `verbatra.config.ts` は `en` から `de` へ翻訳します。言語を増やすには、`targetLocales` にコードを追加します。
+
+</Step>
+<Step>
+
+### API キーなしで実行をプレビューする
+
+```bash
+npx @verbatra/cli translate --dry-run
+```
+
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+ドライランはプロバイダーを生成しません。そのため API キーは不要で、費用はかからず、何も書き込まれません。
+
+</Step>
+<Step>
+
+### 翻訳する
+
+```bash
+cp .env.example .env
+```
+
+`.env` を開き、`GEMINI_API_KEY=` の後ろに API キーを貼り付けます。まだ API キーがない場合、Gemini には無料枠があります。[Google AI Studio](https://aistudio.google.com/apikey) で作成します。ほかのプロバイダーとその環境変数は、[プロバイダー](/ja/docs/providers)にあります。
+
+```bash
+npx @verbatra/cli translate
+```
+
+verbatra は 2 つの文字列を Gemini に送り、すべてのプレースホルダーが残っているかをチェックして、<StackText field="targetFile" /> を書き込みます。表現はモデルによって変わります。たとえば次のようになります。
+
+<StackBlock name="translated-file" />
+
+</Step>
+<Step>
+
+### すべてのロケールが同期していることを確認する
+
+```bash
+npx @verbatra/cli check
+```
+
+```text output
+[ok] checking the locales (0.0s)
+verbatra check
+  de: 0 missing, 0 stale, 2 up-to-date (in sync)
+all locales in sync
+```
+
+`check` はプロバイダーを呼び出さず、ロケールが同期していなければ終了コード `1` で終了します。そのため、pull request をゲートで止められます。
+
+</Step>
+<Step>
+
+### アプリでロケールを読み込む
+
+<StackText field="library" /> を追加します。
+
+<StackBlock name="runtime-install" />
+
+次に、2 つのファイルを読み込み、あいさつを表示します。
+
+<StackBlock name="load" />
+
+アプリを起動すると、あいさつが `Hallo, Ada!` と表示されます。
+
+</Step>
+</Steps>
+
+## ここで起きたこと
+
+- `verbatra.lock.json` が各ソース文字列のハッシュを記録します。そのため、次回の実行では新しい文字列と変更された文字列だけが送られます。[ロックファイルと来歴](/ja/docs/the-lock-file)を参照してください。
+- プレースホルダーが失われた結果は保留され、書き込まれません。[翻訳の安全性](/ja/docs/translation-safety)を参照してください。
+
+ロケールファイル、`verbatra.lock.json`、`verbatra.provenance.json` は、まとめてコミットします。
+
+## 任意：コーディングエージェントを接続する
+
+<AvailableFrom version="0.12.0" />
+
+```bash
+npx @verbatra/cli init --agent
+```
+
+設定ファイルがすでにある場合、`init --agent` は変更を加えず、エージェント用のファイルだけを追加します。追加されるのは、`AGENTS.md` の verbatra のルール（指示ファイルが `CLAUDE.md` だけの場合は `CLAUDE.md`）と、検出した各コーディングエージェントのプロジェクト設定に登録する verbatra MCP サーバー（課金はオフ）です。どのエージェントにどのファイルを書き込むか、また `--client` でエージェントを自分で指定する方法は、[コーディングエージェントを設定する](/ja/docs/cli/init#コーディングエージェントを設定する)にあります。`--dry-run` を付けると、ファイルを書き込まずに表示します。
+
+CLI を使わずに、MCP サーバーだけを VS Code のユーザープロファイルに追加することもできます。どちらか一方の方法だけを使い、両方は使わないでください。
+
+<McpInstallLink client="vscode" />
+
+## 次のステップ
+
+<Cards>
+  <Card title="言語を追加する" href="/ja/docs/add-a-language" description="ターゲットロケールを追加し、1 回の実行で埋めます。" />
+  <Card title="CI で verbatra を実行する" href="/ja/docs/ci-and-exit-codes" description="ロケールがドリフトしたら pull request を失敗させます。" />
+  <Card title="技術スタックを選ぶ" href="/ja/docs/pick-your-stack" description="ほかのすべてのフレームワークのフォーマット ID とファイルのレイアウト。" />
+</Cards>

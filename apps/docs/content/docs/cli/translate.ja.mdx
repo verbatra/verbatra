@@ -1,0 +1,173 @@
+---
+title: verbatra translate
+seoTitle: "verbatra translate：変更されたキーを翻訳"
+description: "すべてのターゲットロケールを 1 回翻訳します。新しいキーと変更されたキーだけをプロバイダーに送り、結果を書き込んで終了します。"
+type: reference
+---
+すべてのターゲットロケールに対して、翻訳を 1 回実行して終了します。`translate` は、ソースを[ロックファイル](/ja/docs/the-lock-file)と比較し、新しい文字列と変更された文字列だけをプロバイダーに送り、[整合性チェック](/ja/docs/translation-safety)を実行し、ロケールファイルを書き込み、ロックファイルを更新します。変更のない文字列が二度送られることはありません。実際の実行は、来歴、新しいキャッシュエントリ、`.verbatra-local/` の下の実行状態と履歴も記録し、既存の `.gitignore` に欠落しているエントリを追加します（[.gitignore のエントリ](/ja/docs/cli#gitignore-のエントリ)を参照）。
+
+## 書式
+
+```bash
+verbatra translate [flags]
+```
+
+## 例
+
+```bash
+# 見つかった設定で 1 回翻訳する
+verbatra translate
+
+# 削除対象になるキーを、費用をかけずにプレビューする
+verbatra translate --prune --dry-run
+
+# ロケールを 1 つずつ翻訳する（レート制限のある無料枠で必要）
+verbatra translate --locales de
+
+# 費用をかけずに、実行の規模と費用を見積もる
+verbatra translate --estimate
+
+# 実行が 50000 トークンを超える前に止める
+verbatra translate --max-tokens 50000
+
+# 人が書いた古くなったキーも再翻訳する
+verbatra translate --include-human
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 設定済みのすべてのターゲットロケール | カンマ区切りの一部のロケールだけを翻訳する。設定にないロケールは `UNKNOWN_LOCALE` で、空のリストは `INVALID_LOCALES` で失敗し、どちらも終了コード `2` になる |
+| `--dry-run` | なし | オフ | プロバイダーを呼び出さず、ファイルも書き込まずに、実行で変わる内容を報告する。API キーは不要 |
+| `--prune` | なし | 設定の `prune`、なければオフ | 孤立したキー（ターゲットファイルにあり、ソースにないキー）を、書き込むファイルとロックファイルから削除する |
+| `--lock-timeout` | `<seconds>` | `600` | ロケールごとの書き込みロックが保持されている間、この秒数だけ待つ。`1` から `3600` の整数 |
+| `--concurrency` | `<n>` | `1` | 最大 `n` 個のターゲットロケールを同時に翻訳する。`1` から `100` の整数で、トークン予算がある場合は拒否される |
+| `--max-tokens` | `<n>` | 設定の `maxTokens` | この実行のトークンの厳格な上限。正の整数（そうでなければ `INVALID_MAX_TOKENS`）で、この値と設定の `maxTokens` の小さいほうが適用される |
+| `--no-cache` | なし | オフ（キャッシュ有効） | この実行で[翻訳メモリのキャッシュ](/ja/docs/the-cache)（`verbatra.cache.json`）を使わない |
+| `--include-human` | なし | オフ | 人が書いた、またはインポートした古くなったキーも、この実行に限って再翻訳する。[固定されたキー](/ja/docs/protecting-human-translations#キーの固定)には手を付けない |
+| `--estimate` | なし | オフ | 実行が送る内容と費用を見積もって終了する。`--dry-run` も有効になる |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)の `--cwd`、`--config`、`--json` も使えます。実行の前に、`translate` は[環境ファイル](/ja/docs/cli#環境ファイル)を読み込みます。
+
+## 動作
+
+<Callout type="warn">
+`--dry-run` も `--estimate` も付けない実行は、新しい文字列と変更された文字列をすべてプロバイダーに送り、ホスト型のプロバイダーでは課金されます。`--estimate` で実行の規模を見積もり、`--max-tokens` で上限を設けてください。
+</Callout>
+
+<Callout type="warn">
+セルフホストのサーバーに、プレーンな `http://`（ループバックではない）で API キーを送ると、API キーは暗号化されずにネットワークを流れます。[API キーは省略可能](/ja/docs/providers#api-キーは省略可能)を参照してください。
+</Callout>
+
+### ドライラン
+
+`--dry-run` はプロバイダーを生成しないため、API キーは不要で、費用がかかることもありません。ソースファイルとターゲットファイルを読み取り、ロックファイルと比較して、実際の実行で何が変わるかを正確に報告します。何も書き込みません（ロケールファイル、ロックファイルの更新、実行状態のスナップショットのいずれも）。プロバイダーが `none` 以外の場合は、キャッシュを読み書きしません（プロバイダー `none` では翻訳メモリを読みます。後述）。書き込みロックも取らないため、実行中の処理を待つことはありません。
+
+<Callout>
+デフォルトでは、実行は何も削除しません。孤立したキーは報告され、そのまま残ります。`--prune` または設定の `prune: true` は、まさにそれらのキーをターゲットファイルとロックファイルから削除します。`--prune --dry-run` でプレビューできます。
+</Callout>
+
+### 費用の見積もり
+
+<AvailableFrom version="0.11.0" />
+
+`--estimate` は、ドライランに実行前の見積もりを加えます。送られるキーの数、それに必要なプロバイダーのリクエスト数、プロバイダーが課金する量です（LLM や `openai-compatible` のエンドポイントではトークン、DeepL、Google Cloud Translation、LibreTranslate ではソース文字数です。セルフホストのエンドポイントやサーバーは課金されないため、API の費用なしと報告されます）。金額が表示されるのは、プロバイダーとモデルを対象にした `rates` ブロックが設定にある場合だけです。ない場合は、`0.00` を作り出さずに、欠落している単価のキーを示します。出力の最後には、数値に含まれないものを示す `estimate excludes:` の行が付きます。プロバイダーの課金と別の単位で保存された単価は、価格を計算せず、不一致として報告されます。[実行前に費用を見積もる](/ja/docs/estimating-cost)を参照してください。
+
+### 一部のロケール
+
+<AvailableFrom version="0.9.0" />
+
+`--locales de,fr` は、実行を設定済みのターゲットの一部に絞り込みます。ほかのロケールのファイル、ロックファイルのエントリ、キャッシュのエントリは、そのまま残ります。レート制限のある無料枠でロケールを 1 つずつ翻訳する場合や、一部完了になった 1 つのロケールだけを再実行する場合に使います。このとき、実行状態のスナップショットは、その一部のロケールだけを表します。
+
+### 書き込みロックと中断
+
+ロケールは、競合している[書き込みロック](/ja/docs/the-lock-file#書き込みロック)を最大 `--lock-timeout` だけ待ち、それを過ぎると `LOCK_CONTENDED` で失敗します。その間も、ほかのロケールは実行されます。このマシンで動作していない verbatra プロセスが残した書き込みロックは、すぐに回収されます。タイムアウトが制限するのは、プロバイダーを呼び出す前のその待ち時間だけです。書き込んだファイルをロックファイルに記録する処理は、常にデフォルトの 10 分まで待つため、書き込まれたファイルが未記録のまま残ることはありません。1 秒を超える待ちが発生すると、書き込みロックとその保持者を示す行が stderr に出力されます（`--json` では `lock-wait` レコード）。この行は `--quiet` でも非表示になりません。Ctrl-C または SIGTERM では、コマンドが終了する前に、その実行の書き込みロックが解放されます。
+
+### トークンの上限
+
+<AvailableFrom version="0.12.0" />
+
+`--max-tokens` は常に厳格な停止です。上限を超えるプロバイダーのリクエストは、`budgetBehavior` の設定にかかわらず保留され、そのキーは `budgetWithheld` として一覧表示されます。数え方は設定済みの [`maxTokens` の予算](/ja/docs/config-file#maxtokens-と-budgetbehavior)と同じで、その予算を厳しくすることはできても、緩めることはできません。上限で途中終了した実行は、終了コード `1` で終了します。値を決めるには、先に `--estimate` を実行します。
+
+### ロケールの並列処理
+
+トークン予算が適用される場合（`maxTokens` または `--max-tokens` による）、`--concurrency` は終了コード `2` で拒否されます。どのロケールが残りの作業を失うかが、ロケール同士の実行の入り交じり方に左右されるためです。ドライランは対象外です。ロケールの実行中に、壊れたロックファイルのような実行全体のエラーが発生した場合、新しいロケールは開始されません。実行中のロケールは終了して書き込みロックを解放し、そのあとコマンドが終了コード `2` で終了します。
+
+### 人が書いたキー
+
+<AvailableFrom version="0.12.0" />
+
+人が書いた、インポートした、または verbatra の外で変更した値を持つ古くなったキーは、デフォルトでそのまま残されます。`protected` として一覧に示され、プロバイダーには送られず、`verbatra check` では古くなったキーのまま扱われます。stderr の警告に、残したキーの件数（固定されたキーは数えません）と、それらを 1 回の実行に限って再翻訳する `--include-human`（`humanEdits: "overwrite"`）が示されます。`--include-human` を使うと警告は出力されません。保護されたキーが終了コードを変えるのは、人手のみのプロジェクトの場合だけです。[人手翻訳を保護する](/ja/docs/protecting-human-translations)を参照してください。
+
+[`verbatra.limits.json`](/ja/docs/config-file#maxlength) も適用されます。使えないファイルは無視され、すべてのロケールに `LIMITS_FILE_IGNORED` 通知が付きます。
+
+### 人手のみのプロジェクト
+
+<AvailableFrom version="0.12.0" />
+
+[人手のみ](/ja/docs/human-only-workflow)のプロジェクト（`provider: { id: "none" }`）では、プロバイダーは呼び出されません。翻訳メモリが対応するキーは書き込まれ、ほかの欠落または変更されたキーは `unfilled` として一覧に示されて終了コード `3` になります。失敗または一部完了のロケールがある場合は、`1` が優先されます。ドライランはここで翻訳メモリを読むため、計画には同じ `cacheHits` と `unfilled` のキーが表示され、`--estimate` は課金なしと報告します。どちらも、同じように終了コード `3` で終了します。`--json` なしでは、人が必要なキーの件数が stderr の警告に示され、`next:` のヒントが [`verbatra export`](/ja/docs/cli/export) を指します。`unfilled` のキーは、そこで受け渡します。
+
+### 失敗したロケールと一部完了のロケール
+
+<AvailableFrom version="0.9.0" />
+
+1 つのロケールが失敗しても致命的ではありません。実行は最後まで進み、終了コード `1` で終了します。**一部完了**のロケールも終了コード `1` です。ファイルは書き込まれていますが、キーがまだ欠けています。多くの場合、プロバイダーのサブバッチが失敗したか、整合性ゲートが訳文を拒否したことが原因です。人が読む出力では、拒否されたキーがすべて `integrity-withheld` の下に、理由（`placeholder`、`markup`、`icu`、`degenerate`、`empty`）とともに一覧表示されます。`--json` では、各ロケールの `integrityRefusals` に入ります。実行がレビューのフラグを付けたキーは、ロケールの `N needs-review` の件数に続く `needs-review:` の行に、それぞれの[レビューの理由](/ja/docs/translation-safety#レビューフラグ)とともに示されます。`--json` では `needsReview` に入ります。 <AvailableFrom version="0.13.5" />
+
+### 対応していないロケール
+
+<AvailableFrom version="0.12.0" />
+
+設定した DeepL または Google Cloud Translation が対応していないロケールがあると、実行全体が `LOCALE_UNSUPPORTED_BY_PROVIDER` と終了コード `2` で拒否されます。ドライランや `--estimate` でも同じで、費用が発生する前に拒否されます。そのロケールは `--locales` で除くか、[実行前の対応確認](/ja/docs/language-support#実行前の対応確認)を参照してください。プロバイダーが適用できない用語集やトーンは、通知を追加するだけです（`GLOSSARY_UNSUPPORTED_BY_PROVIDER`、`FORMALITY_UNSUPPORTED_BY_PROVIDER`）。`LOCALE_UNVERIFIED_BY_PROVIDER` と、LLM の場合の `LOCALE_NOT_WELL_TESTED` も、通知を追加するだけです。
+
+### JSON 出力
+
+スキーマ：[`translate-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/translate-envelope.json) はエンベロープ全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` を付けると、stdout に 1 つの[エンベロープ（envelope）](/ja/docs/cli/output#json-出力)が出力され、その `result` は `RunSummary` です。実行とロケールごとのすべてのフィールドは [RunSummary](/ja/docs/sdk/run-summary) にあります。`--json` では、stderr にも、`locale-started`、`sub-batch`、`locale-finished`、`run-finished` のイベントごとに JSON が 1 行ずつ出力され、`lock-wait` と `interrupted` のレコードも加わります。これらは [`stderr-record.json`](/ja/docs/cli/output#スキーマ) で検証できます。
+
+### ターミナルへの表示
+
+<AvailableFrom version="0.12.0" />
+
+`translate` は、実行の前にロケールとプロバイダーを示し、実行の後に経過時間、使用したトークン、次のコマンドを出力します。対話式のターミナルでは進捗が 1 行のスピナー（spinner）になり、stderr がパイプされている場合は、各ステップが通常の行になります。
+
+```text output
+verbatra: translating 2 locales with gemini/gemini-2.5-flash
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de: writing
+verbatra: de done, 12 translated
+verbatra: translating fr
+verbatra: fr batch 1/1
+verbatra: fr: writing
+verbatra: fr done, 12 translated
+verbatra: run finished, 2 locales processed
+[ok] done in 4.2s, 1830 tokens
+next: verbatra check (confirm every locale is in sync)
+```
+
+ゼロ以外の終了コードで終わる実際の実行は、`[ok] done in` の代わりに `[warn] finished in 4.2s, 1830 tokens, see the summary above` で終わり、エラーに次の手順がある場合は、プロバイダーの次の手順が続きます。
+
+ドライランは `dry run over 2 locales, no provider call` で始まり、見積もりは `estimating 2 locales, no provider call` で、人手のみのプロジェクトは `filling 2 locales from the translation memory (provider none)` で始まります。ドライランや見積もりでは、各ロケールが代わりに `would translate` で終わります。一部のキーだけを保持したロケールは `partly done`、失敗したロケールは `failed` で終わり、最後の行には失敗した件数が加わります。ドライランは `dry run done in 4.2s, nothing written` で終わります。見積もりは `estimate done in 4.2s, nothing written` で終わります <AvailableFrom version="0.13.0" />。これらの行は stderr に出力され、`--quiet` で非表示になります。[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | すべてのターゲットロケールが完了した |
+| `1` | 実行は終了したが、失敗した、または一部完了のロケールがある |
+| `2` | 実行できなかった。設定、ソース、フォーマット、プロバイダー、未対応ロケール、ロックファイルのエラー、または使い方の誤り |
+| `3` | 人手のみのプロジェクト。実行（ドライランや `--estimate` を含む）は正常に終了したが、人の翻訳を待つキーが残っている |
+| `130` | Ctrl-C（SIGINT）で中断され、書き込みロックを解放してから終了した |
+| `143` | SIGTERM で停止され、書き込みロックを解放してから終了した |
+
+中断時には、stderr の最後が `verbatra: interrupted (SIGINT), released locks` になります。`--json` では、レコード `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` になります。書き込みロックの解放に失敗した場合、または 5 秒以内に終わらなかった場合は、その旨を示す行が代わりに出力され（`could not release locks: <reason>` または `lock release did not finish within 5s`）、JSON のレコードには `"locksReleased":false` が入り、`"reason":"failed"`（と `message`）または `"reason":"timed-out"`（と `deadlineMs`）が付きます。[終了コードの仕様](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [実行の仕組み](/ja/docs/how-it-works)は、読み取り、比較、翻訳、書き込みの流れを説明します。
+- [翻訳キャッシュ](/ja/docs/the-cache)は、`--no-cache` が使わないものを説明します。
+- [翻訳の安全性](/ja/docs/translation-safety)は、整合性チェックと要レビューのキューを扱います。
+- [`verbatra diff`](/ja/docs/cli/diff) は、同じ未処理のキーを読み取り専用でプレビューします。
+- [CI で verbatra を実行する](/ja/docs/ci-and-exit-codes)は、パイプラインでこれらの終了コードによって分岐する方法を示します。

@@ -1,0 +1,113 @@
+---
+title: verbatra export
+seoTitle: "verbatra export：文字列を翻訳者に渡す"
+description: 未翻訳の文字列を翻訳者への受け渡しファイルに書き出します。フォーマットは、スタイル付きの Excel ブック、ロケールごとの CSV か TSV、CAT ツール向けの XLIFF です。
+type: reference
+---
+翻訳が必要な文字列を、人が記入して [`verbatra import`](/ja/docs/cli/import) に戻せる受け渡しファイルに書き出します。デフォルトで含まれるのは、欠落した文字列と変更された文字列だけです。自動実行がプロバイダーに送るのと同じキーです。ソース値が空、または空白だけのキーには、ソーステキストを書くまで行が作られません。`export` はプロバイダーを呼び出さず、API キーも不要です。
+
+## 書式
+
+```bash
+verbatra export [flags]
+```
+
+## 例
+
+```bash
+# write the workbook with missing and changed strings
+verbatra export
+
+# only the German and French sheets, to a specific path
+verbatra export --locales de,fr --out handoff/round-2.xlsx
+
+# one de.csv and fr.csv under handoff/
+verbatra export --format csv --out handoff
+
+# one de.xlf and fr.xlf in XLIFF 2.0 for a CAT tool
+verbatra export --format xliff2 --out handoff
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--out` | `<path>` | `verbatra-translations.xlsx`（ほかのフォーマットでは `verbatra-translations`） | 受け渡しファイルの書き込み先。`xlsx` ではファイル、`csv`、`tsv`、`xliff2`、`xliff12` ではディレクトリ |
+| `--format` | `<format>` | `xlsx` | `xlsx`（Excel ブック）、`csv` または `tsv`（ロケールごとに 1 ファイル）、`xliff2` または `xliff12`（ロケールごとに 1 つの XLIFF ファイル） |
+| `--locales` | `<list>` | 設定されているすべてのターゲットロケール | カンマ区切りの一部だけをエクスポートします。設定にないロケールは `UNKNOWN_LOCALE`、空のリストは `INVALID_LOCALES` で失敗し、どちらも終了コード `2` です |
+| `--include-unchanged` | なし | オフ | すでに最新の文字列もエクスポートします |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)の `--cwd`、`--config`、`--json` も使えます。
+
+## 動作
+
+### CSV と TSV
+
+`--format csv` と `--format tsv` は、エクスポートするロケールごとに `<locale>.csv` または `<locale>.tsv` を 1 つ書き込みます。列はブックのシートと同じ順序で同じ内容です。`--out` にはディレクトリを指定します。ディレクトリがない場合は作成されます。
+
+区切り文字ファイルは差分を取りやすく、どこでも開けます。ただしセルの保護はなく、すべての列が編集可能で、`Source hash` 列も表示されます。編集されたハッシュは信頼されません。インポートでは、ハッシュを現在のソースと比較し、その行を保留します。
+
+区切り文字ファイルのエクスポートでは、書き込んだロケールを記した非表示のマニフェスト `.verbatra-export-csv.json` または `.verbatra-export-tsv.json` も書き込まれます。`--locales` を絞ってあとからエクスポートすると、外れたロケールは廃止扱いになります。ファイルはディスクに残りますが、[`verbatra import`](/ja/docs/cli/import) は残存ファイルとして拒否します。エクスポートが出力ディレクトリから何かを削除することはありません。
+
+### XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+`--format xliff2` は XLIFF 2.0 を、`--format xliff12` は XLIFF 1.2 を書き込みます。`--out` のディレクトリに、エクスポートするロケールごとの `<locale>.xlf` と、CSV のものと同じ仕組みの `.verbatra-export-xliff.json` マニフェストができます。各キーは、キー名を名前とする翻訳単位になります。プレースホルダーとマークアップは保護されたインラインコードになり、キーの説明と意味は注記になります。セグメントの状態は、ロックファイルとレビューの状態に従います（欠落または古くなったキーは `initial`、最新の場合は `translated`、承認済みの場合は `reviewed`）。詳しくは[翻訳会社に受け渡す（XLIFF）](/ja/docs/translation-agency)を参照してください。
+
+各ターゲットには、出どころも記録されます。XLIFF 1.2 では、プロバイダー、翻訳メモリ、AI エージェントのいずれかが書き、人が承認していないターゲットに `state-qualifier="mt-suggestion"` が付きます。XLIFF 2.0 では、翻訳単位の `verbatra` メタデータグループに `origin` と `review-state` が入ります。インポートはどちらも無視します。`verbatra.provenance.json` を読み込めない場合は、マーカーは書き込まれず、`--json` の結果に `provenanceMarkers: "unavailable"` が入ります。詳しくは[機械翻訳の証跡を記録する](/ja/docs/provenance-evidence#エクスポート内のマーカー)を参照してください。
+
+### 受け渡しファイルの書き込み先
+
+受け渡しファイルは、プロジェクトルートの中にだけ書き込まれます。何かを読み込む前に、`export` は次のような `--out` を `EXPORT_OUTPUT_CONFLICT` で拒否します。プロジェクトルートの外に出るもの、またはプロジェクトが依存するファイルを指すもの（それ自体、または書き込むファイルを通して）です。依存するファイルとは、設定済みのロケールファイル、ロックファイル、来歴ファイル、翻訳メモリのキャッシュ、verbatra が探す設定ファイル、実行が読み込んだ設定ファイル、設定済みの `glossary` ファイルです。`xlsx` では、ファイルを指さないパス（`out/` など）やプロジェクトルートそのものも拒否されます。名前は大文字と小文字を区別せずに比較され、チェックはシンボリックリンクを解決した後にもう一度行われます。
+
+チェックを通ったパスでも、書き込み中に失敗することがあります（書き込み不可、パスがすでに使われている、ディスクが満杯など）。その場合、実行はファイルとファイルシステムのコードを示して `EXPORT_UNWRITABLE` で止まります。
+
+シートまたはファイルに名前を付けられないターゲットロケールがあると、エクスポートは `WORKBOOK_INVALID` で止まります。xlsx のシート名は 1〜31 文字で、`: \ / ? * [ ]` のいずれも含められず、`Instructions` や、ほかのターゲットロケールのシート名と、大文字と小文字を区別せずに一致してはいけません。`csv`、`tsv`、`xlf` のファイル名は、空、`.`、`..` にはできず、パス区切り文字、制御文字、`: * ? " < > |` のいずれも含められません。ブックをシリアライズできなかった場合にも、同じコードが使われます。
+
+### ターミナルへの表示
+
+<AvailableFrom version="0.12.0" />
+
+`export` は書き込み中に 1 行を表示します。受け渡すものがあった場合は、記入済みのファイルを取り込むインポートのコマンドも示します。
+
+```text output
+verbatra: exporting to xlsx... done (0.3s)
+next: verbatra import verbatra-translations.xlsx (once your translators have filled it in)
+```
+
+未処理のものがなく、`--include-unchanged` も指定されていない場合、ファイルには行がありません。このとき `next:` 行は、代わりに `--include-unchanged` を付けた同じエクスポートを示します。`--format`、`--out`、`--locales`、`--cwd`、`--config` は引き継がれます。<AvailableFrom version="0.13.5" />
+
+これらの行は stderr に出力され、`--quiet` で非表示になります。詳しくは[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+使用できない `verbatra.limits.json` は、stderr の警告とともに無視されます（`--json` では `LIMITS_FILE_IGNORED`）。
+
+### JSON 出力
+
+スキーマ：[`export-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/export-envelope.json) がエンベロープ（envelope）全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` を付けると、[エンベロープ](/ja/docs/cli/output#json-出力)に、受け渡しファイルの書き込み先とロケールごとの行数が入ります。
+
+```ts
+{
+  path: string;                // absolute path: the workbook for xlsx, the output directory otherwise
+  locales: { locale: string; rows: number }[];
+  provenanceMarkers?: "written" | "unavailable"; // XLIFF formats only
+  limitsNotice?: { code: "LIMITS_FILE_IGNORED"; message: string };
+}
+```
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | 受け渡しファイルを書き込んだ |
+| `2` | 実行できなかった：実行全体のエラー、拒否された出力パス（`EXPORT_OUTPUT_CONFLICT`）、書き込めなかった受け渡しファイル（`EXPORT_UNWRITABLE`、`WORKBOOK_INVALID`）、または使い方の誤り |
+
+`export` にはロケール単位の失敗モードがないため、`1` で終了することはありません。すべてのコマンドが従う規約は[終了コード](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [Excel や CSV で受け渡す](/ja/docs/manual-translation)：ブックのレイアウト、レビュー列、往復の流れ全体
+- [翻訳会社に受け渡す（XLIFF）](/ja/docs/translation-agency)：CAT ツール（翻訳支援ツール）向けの XLIFF の受け渡し
+- [`verbatra import`](/ja/docs/cli/import)：記入済みの受け渡しファイルの読み戻し

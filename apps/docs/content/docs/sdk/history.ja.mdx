@@ -1,0 +1,69 @@
+---
+title: "キーの履歴"
+seoTitle: "SDK：1 つの翻訳キーの Git 履歴"
+description: "1 つのキーの訳文がコミットごとにどう変わったかを、作者、値の出どころ、単語単位の差分とともに読み取ります。"
+type: reference
+---
+<AvailableFrom version="0.13.0" />
+
+## 1 つのキーの Git 履歴
+
+### keyHistory
+
+1 つのターゲットロケールで、1 つのキーの値が変わったコミットを新しい順に一覧します。各コミットには、直前の値との単語単位の差分が付きます。読み取り専用です。受け取るのはロケールとキーだけで、パスは受け取りません。差し替え可能な `execFile` を通じて、`git log` と `git cat-file` を実行します。
+
+```ts title="シグネチャ"
+function keyHistory(
+  input: KeyHistoryInput,
+  deps?: KeyHistoryDeps,
+): Promise<KeyHistoryResult>;
+```
+
+<SdkTypeTable name="KeyHistoryInput" />
+
+**戻り値**：`KeyHistoryResult`
+
+**例外**：[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`UNKNOWN_KEY`](/ja/docs/error-codes#unknown_key)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)
+
+各リビジョンには、`commit`、`authorDate`、`author`（`.mailmap` 適用後の名前で、メールアドレスは含みません）、`subject`、`value`、`origin`、`sourceChanged`、`diff` が含まれます。`author` と `subject` からは、制御文字と双方向の書式制御文字が取り除かれ、認識された API キーは `[REDACTED]` に置き換えられます（認識できない形式の、以前のカスタムキーは残る場合があります）。そのあとで、それぞれ 200 文字と 500 文字に切り詰められます。あるリビジョンで API キーだと判明したテキスト（たとえば、UUID の直前にある `api_key=`）は、回答内のほかの場所に現れても置き換えられます。この方法で変わったすべての値には `valueRedacted` が設定されます。
+
+`diff` は `{ kind, text }` のセグメントを一覧し、`kind` は `equal`、`added`、`removed` のいずれかです。プレースホルダーとタグは分割されず、空白の変更は変更として表示されます。位置合わせできないほど大きな差分は、削除された 1 つの連続部分と追加された 1 つの連続部分になります。
+
+`origin` は、そのリビジョンでコミットされた来歴ファイルから取得します。値は、保存されている出どころ、`unrecorded`、またはその記録が別の値を説明している場合の `external` です。ファイルを読み取れない、解析できない、4 MiB を超えている、または先に時間切れになった場合は、存在しません。
+
+`sourceChanged` は、キーの現在のソースエントリ（テキスト、説明、意味、複数形のフラグ、プレースホルダー）のコンテンツハッシュを、コミットされたロックファイルがそのロケールのキーについて記録したハッシュと比較します。異なる場合は `true`、一致する場合は `false` です。ロックファイル、そのキーのエントリ、または現在のソースエントリが、存在しない、読み取れない、解析できない、上限を超えている、または先に時間切れになった場合は `"unknown"` です。`origin` は別の判定です。リビジョンの値を来歴の記録と比較し、そのファイルを使えない場合は、`"unknown"` ではなく存在しません。ソースエントリが変更された値を復元すると、その値は最新として扱われます。
+
+すべての値と、すべての `diff` の両側は、`redact` を通ります。API キーを含んでいた値は、その部分が `[REDACTED]` に置き換わり、`valueRedacted: true` で返されます。保存されているテキストではないため、復元の候補として示さないでください。設定されなくなった API キーは認識できず、書かれたまま返されます。
+
+コミットは、ロケールファイル（`apple-strings` では `.stringsdict` ファイルも）に対する `git log --first-parent` から取得します。そのため、マージで入った変更はマージコミットに一覧されます。各ファイルは `git cat-file blob` で読み込み、組み込みのアダプターで解析します。コミットが一覧に載るのは、ファイルの履歴でその直前にあるコミットとキーの値が異なる場合だけで、その直前のコミットも読み取られている必要があります。キーを削除したコミットは一覧に載りません。調べるコミットは最大 `LOCALE_HISTORY_LIMIT_CAP` 件で（デフォルトは `LOCALE_HISTORY_LIMIT_DEFAULT`）、一度に 4 つのファイルを読み込みます。`KEY_HISTORY_DEADLINE_MS`（`30000` ミリ秒）を過ぎると、それ以上コミットを調べず、コミットファイルの読み取りも開始しません（ディスク上のファイルは引き続き読み込みます）。`git log` の呼び出し、サイズの一覧取得、すでに実行中の読み取りには、それぞれ 10 秒の独自の上限があります。
+
+`truncated` は、呼び出しが調べたものがスキップされた、読み取れなかった、サイズの上限を超えた、予算を超えた、またはデッドラインで止まった場合に `true` になります。`truncatedBy` は理由を示し、当てはまるすべての原因を `KEY_HISTORY_TRUNCATION_REASONS` から一覧します。原因は次のとおりです。`commit-limit`（`limit` が調べる数より多くのコミットがある）、`shallow-clone`、`unreadable-revision`、`file-too-large`、`byte-budget`、`deadline`、`source-unreadable`、`records-unreadable`（ロックファイルまたは来歴ファイル）、`scrub-cap` です。`scrub-cap` は、256 個を超える異なる API キー、4,096 文字より長い 1 つの API キー、または合計で 65,536 UTF-16 コードユニットを超える API キーが見つかった場合です。この場合、秘匿化の処理がすべてのテキストをカバーできません。そのため、空でないすべての値、diff のセグメント、件名、作者名が `[REDACTED]` になり、空のテキストは空のままで、すべてのリビジョンに `valueRedacted` が設定されます。`truncatedBy` が空になるのは、`truncated` が `false` のときだけです。ディスク上のファイルは `workingTreeUnreadable` だけで報告されます。コミットが一覧に載るのは、その直前のコミットが読み取られている場合だけです。そのため、直前のコミットを読み取れなかったコミットは、キーを変更したコミットとして扱われません。
+
+サイズはテキストを解析する前に git から取得します。そのため、同じリポジトリでは、どのマシンでもバイト上限と予算の判定は同じになります。ただし、タイムアウトした git の呼び出し、30 秒のデッドライン、環境内のプロバイダーの API キー（何を秘匿化するかを決める）は、回答を変えることがあります。`yaml` と XML 系フォーマット（`xliff`、`android-xml`、`resx`、`apple-strings`）で 512 KiB を超えるロケールファイル、またはそれ以外のフォーマットで 4 MiB を超えるロケールファイルは、解析されずにスキップされます。`apple-strings` のコミットの 2 つのファイルは、合計で数えます。1 回の呼び出しが読み込むロケールファイルは、`yaml` と XML 系フォーマットでは最大 16 MiB、それ以外では最大 128 MiB です。それを超える古いコミットは調べません。4 MiB を超えるロックファイルや来歴ファイルは読み込まれず、1 回の呼び出しで読み込む合計は最大 128 MiB です。それを超えると、古いリビジョンには `origin` がなく、`sourceChanged` は `"unknown"` になります。ソースファイルは、ロケールファイルと同じサイズまで読み込みます。解析はファイルの間でイベントループに処理を譲ります。サイズのためにスキップされた、読み取れない、解析できない、ログの行を解析できなかった、または値が `KEY_HISTORY_MAX_VALUE_CHARS`（`4096`）文字を超えるコミットは、`unreadableRevisions` に数えられ、一部だけが返されることはありません。予算を超えたコミットは調べられず、数えられません。`key` は最大 `KEY_HISTORY_MAX_KEY_CHARS`（`1024`）文字で、git には渡されません。`workingTree` は、ディスク上の値が `HEAD` と異なる場合に、その値と `diff` を持ちます。ディスク上の値を `HEAD` と比較できない場合でも、リビジョンは一覧され、`workingTreeUnreadable` が `true` になります。比較できない場合とは、ファイルを解析できない（たとえばマージ競合中）、シンボリックリンクである、上限を超えている、値が長すぎる、`HEAD` のコピーを読み取れなかった、または時間切れになった場合です。
+
+ファイル名の変更は追跡されないため、ファイル名を変更する前の履歴は一覧されません。コミットされていない編集は見えず、ソースで名前が変わったキーは新しいキーに見えます。git の安全策は `localeGitStatus` のものと同じで、結果は `{ available: false, reason }` になります。`reason` は `LOCALE_GIT_UNAVAILABLE_REASONS` のいずれかで、`custom:` フォーマットの場合は `custom-adapter` です。
+
+## 実行履歴
+
+### runHistory
+
+`.verbatra-local/run-history.jsonl` を読み込みます。このファイルには、痕跡を残した `translate`、`watch`、`retranslateEntry`、`retranslateEntries` の実行ごとに、レコードが 1 件追加されます。何も書き込まず、プロバイダーを呼び出さず、何もスローしません。
+
+```ts title="シグネチャ"
+function runHistory(
+  input?: RunHistoryInput,
+  deps?: RunHistoryDeps,
+): Promise<RunHistoryResult>;
+```
+
+<SdkTypeTable name="RunHistoryInput" />
+
+**戻り値**：`RunHistoryResult`
+
+`records` は新しい順で、最大 `limit` 件です（`RUN_HISTORY_DEFAULT_LIMIT` は 50、`RUN_HISTORY_MAX_LIMIT` は 200 で、それ以外の値は範囲内に丸められます）。各レコードには、時刻、`trigger`（`translate` または `retranslate`）、プロバイダーとモデル、トークンの `usage`、`cost` が入ります。ロケールごとに、翻訳されたキー、キャッシュヒット、あいまい一致のヒット、生成された複数形、削除された孤立キー、整合性による拒否、プロバイダーの失敗の件数も入ります。レコードにキー名やテキストが入ることはありません。ドライランは記録されません。何もすることがない `watch` のサイクルのように、痕跡を残さなかった実行も記録されません。失敗した実行や拒否された実行は記録されます。`entries` は、再翻訳のレコードが試みたエントリ数で、失敗したプロバイダー呼び出しも含みます。再翻訳のバッチは 1 件のレコードになります。ファイルが保持するのは、最新の 1,000 件です。
+
+`cost` は実行の終了時に、そのときの設定の `rates` から確定します。`pricing` が `priced` の場合は、`currency`、`asOf`、`amount` が加わります。`no-rate-on-file`、`rate-unit-mismatch`、`no-usage`（キーを送ったがプロバイダーがトークンを報告しなかった）には金額がなく、無料ではなく不明を意味します。`not-billed` は、verbatra がこのプロバイダーの価格を算出しない場合です。セルフホストの `openai-compatible` や LibreTranslate サーバー、または `none` が該当しますが、ホスト型のエンドポイントは、それでも課金することがあります。`not-billed` には金額も `basis` もなく、使用量の一部が報告されなかった場合は `USAGE_PARTIAL` が付きます。`basis`（`RUN_COST_BASES` のいずれか）が `usage` の場合は、プロバイダーのトークン数です。`source-characters` は、使用量を報告しない DeepL と Google Cloud Translation の見積もりです。送ったキーのソースの文字数で、キャッシュヒットは含まず、拒否されたキーは数え、失敗したキーは数えません。含まれないものは `caveats` が示します。`USAGE_PARTIAL` の注意書きが付いた `usage` の値は、価格が付いていてもいなくても下限です。あるロケールがキーを送ったのにトークンを報告しなかったため、金額とトークン数は報告されたものだけを対象にします。一部のサブバッチだけが報告し、ほかが報告しなかったロケールは区別できず、印は付きません。
+
+実行のあとで、その実行が触れたロケールに対する 1 回の `check` が、各ロケールの `coverage`（`missing`、`stale`、`upToDate`）を設定します。`coverage` がないロケールは測定されておらず、`coverageUnavailable` はその処理が失敗したことを示します。
+
+`unreadableRecords` は、読み取れなかったために除外された行の数で、次に記録される実行がそれらを除いてファイルを書き直します。`unavailable`（`RUN_HISTORY_UNAVAILABLE_REASONS` のいずれかで、`unreadable`、または 8 MiB を超える `too-large`）は、ファイル全体を読み取れなかったことを示します。そのため、一覧が空でも何も実行されなかった証拠にはなりません。読み取れないファイルはそのまま残され、レコードは追加されません。有効な UTF-8 でない行は、読み取れないレコード 1 件として数えます。

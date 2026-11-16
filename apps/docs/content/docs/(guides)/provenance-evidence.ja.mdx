@@ -1,0 +1,136 @@
+---
+title: 機械翻訳の証跡を記録する
+seoTitle: "キーごとに機械翻訳の証跡を記録する"
+description: 機械が書いた訳文と人がレビューした訳文をキーごとに記録し、その区別を XLIFF と TMX のエクスポートに引き継ぎます。
+status: new
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+公開しているテキストのうち、どれをプロバイダーや AI エージェントが翻訳したのか、人がレビューしたのかと問われたときに使います。verbatra はこれをキーごとに `verbatra.provenance.json` へ記録します。取り出す方法は 2 つあります。保管用のレポートにするか、ほかのツールに渡す XLIFF や TMX ファイルのマーカーにします。
+
+<Callout type="warn" title="補足的な証跡であり、法的助言ではありません">
+[EU AI 法第 50 条](/ja/docs/data-handling#ai-が生成した訳文と来歴)では、編集上の責任のもとで人がレビューしたテキストと、そうでないテキストは区別して扱われます。レポートとマーカーは、それがプロダクトにどう当てはまるかを判断する担当者のための補足的な証跡です。法的助言ではなく、これらを使ってもプロダクトが何らかの基準に適合したことにはなりません。
+</Callout>
+
+## 記録からわかること、わからないこと
+
+verbatra が書き込むすべての値には、出どころ（その値を生み出した書き込み経路）、レビューの判断、レビュー担当者の名前が記録されます。詳しくは[ロックファイルと来歴](/ja/docs/the-lock-file#来歴各値を誰が書いたか)を参照してください。証跡としては、出どころは 2 つのクラスに分かれます。
+
+- **機械クラス**：`machine`、`memory`、`fuzzy`、`agent` です。翻訳メモリはエントリを誰が書いたかを記録しないため、機械クラスに数えます。
+- **人**：`human`（Studio または SDK での編集）と `import`（翻訳者からの受け渡し）です。
+
+`external`、`unrecorded`、`unknown` はどちらにも当てはまりません。ソーステキストが変わる前に出した承認は、未レビューとして扱われます。
+
+記録をほかの人に渡すときは、次の制限に注意してください。
+
+- **改ざんを検知できません**：ロケールファイルを編集できる人は、この記録も編集できます。記録の信頼性は、git の履歴とコードレビューによって支えられます。
+- **タイムスタンプがありません**：値がいつ書かれ、いつ承認されたかは git の履歴（`git log -p verbatra.provenance.json`）に残ります。
+- **機械側に寄せて判定します**：翻訳メモリのヒット、あいまい一致、エージェントの編集はすべて機械として数えます。承認されていない機械の値は、テキストに問題がなくても未レビューとして数えます。
+
+## 来歴レポート
+
+[`verbatra report provenance`](/ja/docs/cli/report) は、ターゲットロケールごとに、各分類に入る値の件数を出力します。
+
+```bash
+verbatra report provenance
+```
+
+| 分類 | 値を書いた主体 | レビュー済みか |
+| --- | --- | --- |
+| `machine-unreviewed` | `machine`、`memory`、`fuzzy`、`agent` | 未承認（ファイルに戻された却下済みの値を含む） |
+| `machine-reviewed` | `machine`、`memory`、`fuzzy`、`agent` | 人が承認済み |
+| `human` | verbatra 経由の人 | どちらもあり得ます |
+| `import` | 翻訳者からの受け渡し | どちらもあり得ます |
+| `external` | 記録が書かれた後に verbatra の外で書かれたもの | 不明 |
+| `unrecorded` | verbatra が把握している書き手がいない（記録がない） | 不明 |
+| `unknown` | 書き手が不明のまま記録されたもの | どちらもあり得ます |
+
+数えるのは、ソースとターゲットの両方のロケールに値があるキーだけです。欠落しているキーには説明すべきテキストがありません。エージェントは、MCP ツールの [`report.provenance`](/ja/docs/cli/mcp#tools) で同じレポートを読みます。
+
+### CI で作る監査ファイル
+
+`--json` を付けると、レポートにすべてのキーが一覧されます。リリースごとに保管する監査ファイルとして使えます。
+
+```bash
+verbatra report provenance --json > provenance-report.json
+```
+
+`verbatra.provenance.json` が破損している場合や、より新しい verbatra が書いたファイルの場合、コマンドは `1` で終了します。すべての値を `unrecorded` として一覧する誤ったレポートは出力しません。そのため CI ジョブは、空の監査ファイルを保管せずに失敗します。
+
+リリース前にすべての機械翻訳をレビュー済みにする必要がある場合は、[`verbatra check --require-reviewed`](/ja/docs/cli/check#レビュー済みの訳文を必須にする) もゲート条件にします。
+
+### JSON スキーマ
+
+レポートは、通常の [JSON エンベロープ（envelope）](/ja/docs/cli/output#json-出力)の `result` で、`command` は `"report"` です。SDK の呼び出し側は、[`provenanceReport`](/ja/docs/sdk/inspect#provenancereport) から同じオブジェクトを受け取ります。
+
+| フィールド | 型 | 意味 |
+| --- | --- | --- |
+| `available` | `true` | コミット済みのファイルから作成されたレポート |
+| `generatedAt` | string | レポートの生成日時（UTC の ISO 8601） |
+| `toolVersion` | string | 生成した verbatra のバージョン。SDK の呼び出し側が渡さなかった場合は `unknown` |
+| `sourceLocale` | string | 設定されているソースロケール |
+| `locales[]` | array | ターゲットロケールごとに 1 エントリ（設定の順序、`--locales` で絞り込み） |
+| `locales[].locale` | string | ターゲットロケール |
+| `locales[].total` | number | そのロケールに一覧されたキーの数 |
+| `locales[].counts` | object | 各分類に入るキーの数（7 つの分類すべてを常に含む） |
+| `locales[].entries[]` | array | ソースとそのロケールの両方に値があるキーごとに 1 エントリ（ソースの順序） |
+| `entries[].key` | string | 翻訳キー |
+| `entries[].bucket` | string | 上記の分類のいずれか |
+| `entries[].origin` | string | 出どころ（`unrecorded` と `external` を含む） |
+| `entries[].reviewState` | string | `unreviewed`、`approved`、`rejected` のいずれか |
+| `entries[].provider` | string（省略可） | 応答したプロバイダーの `id`（`machine` の値の場合） |
+| `entries[].model` | string（省略可） | 記録にモデル名がある場合の、設定されたモデル |
+| `entries[].reviewer` | string（省略可） | 判断とともに指定され、その判断がまだ有効な場合のレビュー担当者 |
+
+来歴ファイルを読み込めない場合の結果は `{ "available": false, "reason": "provenance-unreadable" }` です。省略可能なフィールドは今後追加される可能性があります。既存のフィールドの意味は変わりません。
+
+## エクスポート内のマーカー
+
+出どころは、ほかのツールに渡すファイルにも引き継がれます。受け取る側は、機械の出力と人の作業を区別できます。
+
+### XLIFF
+
+[`verbatra export`](/ja/docs/cli/export) に `--format xliff12` または `--format xliff2` を指定すると、ターゲットのあるすべての翻訳単位にマーカーが付きます。
+
+| ターゲットの状態 | XLIFF 1.2 | XLIFF 2.0 |
+| --- | --- | --- |
+| 機械クラスで未承認 | `<target>` に `state-qualifier="mt-suggestion"` | `<mda:meta type="origin">` と `<mda:meta type="review-state">` |
+| 機械クラスで承認済み | 修飾子なし | 同じ 2 つのメタエントリ |
+| human、import、external、unrecorded、unknown | 修飾子なし | 同じ 2 つのメタエントリ |
+
+`mt-suggestion` は、XLIFF 1.2 で「機械翻訳による提案」を表す値です。CAT ツール（翻訳支援ツール）は、通常の `state` の隣にこれをそのとおり表示します。人が承認した値や、verbatra が出どころを保証できない値には、修飾子は付きません。
+
+XLIFF 2.0 には state の修飾子がありません。そのため、すでにソースのハッシュを持つ翻訳単位の `verbatra` メタデータグループに、出どころとレビュー状態の全体を記録します。
+
+```xml
+<mda:metaGroup category="verbatra">
+  <mda:meta type="source-hash">8f3a0c1e2b4d6f70</mda:meta>
+  <mda:meta type="origin">machine</mda:meta>
+  <mda:meta type="review-state">unreviewed</mda:meta>
+</mda:metaGroup>
+```
+
+### TMX
+
+[`verbatra tmx export`](/ja/docs/cli/tmx) は、ターゲットのすべてのセグメントに `x-origin` プロパティを書き込みます。`machine` のセグメントには `x-review` も続けて書き込みます。
+
+```xml
+<tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
+```
+
+`x-origin` は `machine`、`human`、`import`、`unknown` のいずれかです。`x-review` は `approved`、`unreviewed`、`rejected` のいずれかです。翻訳メモリのエントリは、キーではなくテキストの組です。そのため、まったく同じテキストを持つキーのいずれかが機械クラスであれば、セグメントは `machine` になります。そのようなキーのいずれかが却下されていれば `rejected` で、すべてが承認済みの場合だけ `approved` になります。どの記録にも当てはまらないテキストは `unknown` です。
+
+### マーカー付きファイルのインポート
+
+インポートでは、すべてのマーカーを無視します。XLIFF の翻訳単位はターゲットと状態で、TMX のセグメントはテキストで判断します。受け渡しファイルから取り込んだ値は `import` として記録されます。TMX のインポートは翻訳メモリを埋めるだけです。そのため、ツールが書き換えたり、削除したり、勝手に付けたりしたマーカーが、記録を変えることはありません。
+
+### 記録を読み込めない場合
+
+`verbatra.provenance.json` が破損している場合や、より新しい verbatra が書いたファイルの場合（TMX ではロックファイルを読み込めない場合も）、エクスポートは成功しますが、裏付けのできないマーカーを書く代わりに、マーカーは 1 つも書き込まれません。サマリーにその旨が表示され、`--json` の結果では `"written"` の代わりに `provenanceMarkers: "unavailable"` となります。
+
+## 関連項目
+
+- [`verbatra report`](/ja/docs/cli/report)：来歴レポートのオプション、出力、終了コード
+- [Studio でレビューする](/ja/docs/review-in-studio)：機械翻訳を 1 件ずつ、またはロケール単位で承認または却下する方法
+- [データの取り扱いとプライバシー](/ja/docs/data-handling)：verbatra が何を誰に送り、何をローカルに保持するか

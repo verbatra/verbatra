@@ -1,0 +1,110 @@
+---
+title: verbatra studio
+seoTitle: "verbatra studio：ローカルのレビュー画面"
+description: "ローカルの翻訳ダッシュボード Verbatra Studio を起動し、プロジェクトの状態を確認してレビューキューを処理します。費用が発生する操作は許可しない限りオフです。"
+type: reference
+---
+Verbatra Studio を起動します。プロジェクトを対象にしたローカルの Web ダッシュボードで、対応率の概要、前回の実行、費用つきの実行履歴 <AvailableFrom version="0.7.0" pkg="@verbatra/studio" />、訳文の状況とキー一覧、レビューキュー（Studio では **Review queue**）、用語集、解決された設定を表示します。表示内容は、ディスク上のファイル（`.verbatra-local/run-history.jsonl` を含む）からリアルタイムで読み込まれます。ロケールファイルの編集と、ファイルに保存された用語集の編集は、そのまま使えます。オプトインなのはプロバイダーの費用が発生する操作だけで、`--allow-spend` が必要です。
+
+<AvailableFrom version="0.5.0" />
+
+## 書式
+
+```bash
+verbatra studio [flags]
+```
+
+## 例
+
+```bash
+# デフォルトのポートで Verbatra Studio を起動する
+verbatra studio
+
+# プロバイダーを呼び出す操作を有効にし、ポートを指定する
+verbatra studio --allow-spend --port 6000
+
+# ブラウザーエージェントにレビュー操作を任せる
+verbatra studio --expose-agent-tools
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--port` | `<n>` | `5849` | このポートで待ち受ける（1〜65535 の整数） |
+| `--allow-spend` | なし | オフ、または `VERBATRA_STUDIO_ALLOW_SPEND` | Studio が翻訳プロバイダーを呼び出すことを許可する（キーの再翻訳、未処理の変更の翻訳） |
+| `--expose-agent-tools` | なし | オフ、または `VERBATRA_STUDIO_AGENT_TOOLS` | Studio のレビュー操作を WebMCP ツールとして登録し、ブラウザーの AI エージェントが操作できるようにする |
+| `--verbose` | なし | オフ | リクエストごとに stderr に 1 行を追加で出力する（セッショントークンは秘匿化される） |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)の `--cwd` と `--config` も使えます。
+
+## 動作
+
+### 表示される URL
+
+`studio` は起動する前に[環境ファイル](/ja/docs/cli#環境ファイル)を読み込み、設定ファイルを 1 回解決します。設定のエラーがあれば、サーバーが起動する前に終了コード `2` で終了します。Studio は `127.0.0.1` だけにバインドし、待ち受けを始めると stdout に 1 行を出力します。
+
+```
+Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
+```
+
+この URL をそのまま開きます。セッショントークンは、最初のページ読み込みの `?token=` としてだけ受け付けられます。サーバーはセッショントークンを確認し、HttpOnly のセッション Cookie を設定して `/` にリダイレクトします。以降のすべてのリクエストには、この Cookie が必要です。セッショントークンは 1 回限りではないため、Studio の実行中は URL をシークレットとして扱ってください。ポートをバインドする前には何も出力されないため、起動に失敗してもセッショントークンが漏れることはありません。
+
+バインドの失敗は、stderr に `verbatra: error [<code>] <message>` として報告されます。ほかのプロセスがポートを使っている場合は `PORT_IN_USE`（`--port <n>` を指定するか、そのプロセスを止めます）、ソケットが `127.0.0.1` 以外のアドレスで起動した場合は `BIND_FAILED` です。
+
+ロケールファイル、ロックファイル、来歴ファイル、上限ファイルが変更されると、すべてのページがリアルタイムで更新されます（トースト通知については、[Studio でレビューする](/ja/docs/review-in-studio#未処理の変更を翻訳する)を参照）。**Run history and cost**（実行履歴と費用）は、履歴ファイルが変更されたとき、タブがフォーカスを取り戻したとき、または実行が完了したときに、再び読み込まれます。
+
+### ナビゲーションとリンク
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+**Overview**（概要）、**Translations**（訳文）、**Review**（レビュー）、**Glossary**（用語集）、**Settings**（設定）はヘッダーのリンクで、幅が 1280 px 未満ではメニュードロワーになります。ヘッダーの検索は、入力した内容で絞り込んだ **Translations** を開きます。テーマボタンを押すと、システム、ライト、ダークの順に切り替わります。**Translations** と **Review** は状態をアドレスに保持するため、リンクできます。`#/translations?locale=de&status=missing&key=nav.title&q=text`（`status` は繰り返し指定できます）と `#/review?locale=de` です。
+
+### stderr に出力される内容
+
+<AvailableFrom version="0.12.0" />
+
+URL の行は、stdout への唯一の出力です。その後、stderr に、どの機能がオンか、オフの機能をオンにする方法が表示されます。
+
+```text output
+verbatra: spend tools off (pass --allow-spend to retranslate from Studio)
+verbatra: agent tools off (pass --expose-agent-tools to register them)
+```
+
+`--allow-spend` を指定していてもプロバイダーが `none` の場合、1 行目は `verbatra: spend tools off (provider none)` になります。対話式のターミナルでは `verbatra: press Ctrl-C to stop` が追加され、シャットダウン後に `verbatra: Studio stopped` が出力されます。`--verbose` はリクエストごとに 1 行を転送します（`GET / 200` や、RPC メソッド名を示す `POST /rpc status.check 200` など。パラメーターは示されません）。Studio 自身の起動の行は、常に除外されます。`--quiet` では URL の行だけが残ります。ダッシュボードの一括操作が予期しないサーバーエラーで止まったときに出力される `verbatra: studio error: ...` の行は、`--quiet` でも常に表示されます。[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+### 課金ツールとエージェントツール
+
+<AvailableFrom version="0.2.0" pkg="@verbatra/studio" />
+
+`--allow-spend` を指定しない場合、Studio は `VERBATRA_STUDIO_ALLOW_SPEND` を読み取ります。`--expose-agent-tools` も、同じように `VERBATRA_STUDIO_AGENT_TOOLS` にフォールバックします。どちらも、`1`、`true`、`yes`、`on`（大文字と小文字は区別せず、前後の空白は無視）がオンとして扱われ、オプションは常に変数より優先されます。どちらも指定しない場合、Studio がプロバイダーに接続することはありません。Studio は最初に[環境ファイル](/ja/docs/cli#環境ファイル)を読み込むため、2 つの変数は `.env.local` または `.env` に置けます。
+
+エージェントによる費用が発生する操作には、両方のオプションが必要で、一方がもう一方を含意することはありません。`provider: { id: "none" }` の設定ファイルは、ポリシーによって機械翻訳を無効にします。そのため、Studio は `--allow-spend` を指定しても費用が発生する操作を提供せず、**Settings** ページにもそう表示されます。ツールの一覧とセキュリティモデルは、[ブラウザーエージェントで Studio を操作する](/ja/docs/agent-tools-in-studio)を参照してください。
+
+### インストール
+
+`@verbatra/studio` は独立したパッケージで、動的インポートで読み込まれます。そのため、CLI のそのほかの部分はこれがなくても動作します。CLI と並べて `npm install --save-dev @verbatra/cli @verbatra/studio` でインストールします。インストールしていない場合、`verbatra studio` は次のメッセージとともに終了コード `2` で終了します。
+
+```
+Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: npm install --save-dev @verbatra/studio, or run both without installing with: npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio
+```
+
+pnpm の場合、そのインストールは成功しますが、`ERR_PNPM_IGNORED_BUILDS` で終了コード `1` になり、回答されていない `pnpm-workspace.yaml` が残ります。1 回限りの対処法は、[トラブルシューティング](/ja/docs/troubleshooting)を参照してください。npm と yarn では、この問題は起きません。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | 1 回の割り込み（Ctrl-C または SIGTERM）で正常に停止した |
+| `1` | 停止に失敗した（シャットダウン中にサーバーのクローズが例外をスローした） |
+| `2` | 起動できなかった（設定のエラー、`@verbatra/studio` が未インストール、ポートが使用中、または無効な `--port`（`INVALID_PORT`）） |
+| `130` | シャットダウン中に 2 回目の割り込みを受けて強制停止した |
+
+すべてのコマンドが従う規約は、[終了コード](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [Studio でレビューする](/ja/docs/review-in-studio)は、**Overview** ページと **Translations** ページ、レビューキュー、`--allow-spend` を使った再翻訳を順に説明します。
+- [Studio で変更されたファイルを確認する](/ja/docs/changes-in-studio)は、最後のコミットと異なるロケールファイルと、それぞれで変更されたキーを一覧にします。
+- [ブラウザーエージェントで Studio を操作する](/ja/docs/agent-tools-in-studio)は、`--expose-agent-tools` と WebMCP のツールの範囲を扱います。
+- [`verbatra check`](/ja/docs/cli/check) と [`verbatra diff`](/ja/docs/cli/diff) は、Studio がリアルタイムで表示するのと同じ計算です。

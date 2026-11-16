@@ -1,0 +1,94 @@
+---
+title: ソースコードからキーを抽出する
+seoTitle: "verbatra でソースコードから i18n キーを抽出する"
+description: コードがすでに呼び出している翻訳キーをソースロケールファイルに集め、テキストを入力して、translate に渡します。
+type: how-to
+---
+<AvailableFrom version="0.11.0" />
+
+コードがカタログより先に進んでいる場合の手順です。コンポーネントに `t("cart.empty", "Your cart is empty")` と書いたとき、そのキーを手でコピーせずにソースロケールファイルへ入れられます。国際化したことのないプロジェクトを、空の JSON ファイルではなくコードから始めたい場合にも使えます。
+
+`verbatra extract` はソースコードを読み、ソースロケールファイルだけを書き込みます。プロバイダーを呼び出さず、API キーは不要で、ネットワークリクエストも送りません。
+
+必要なものは次のとおりです。
+
+- verbatra の設定ファイル（ない場合は [`verbatra init`](/ja/docs/cli/init) を実行します）。
+- i18next の `t(...)`、`$t(...)`、`i18n.t(...)` を呼び出すコード。現在 `extract` が読み込めるフレームワークはこれだけです。
+- カタログファイル 1 つにつき名前空間 1 つ。`t("common:nav.home")` のように名前空間付きのキーは、報告されるだけで書き込まれません。1 つの設定が扱うファイルは 1 つだからです。
+
+## verbatra にソースコードの場所を指定する
+
+スキャンするディレクトリを指定した `extract` ブロックを追加します。
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  extract: {
+    framework: "i18next",
+    roots: ["src"], // [!code highlight]
+  },
+});
+```
+
+`roots` の外側は読み込まれません。`node_modules` や `dist` などのビルド出力は常にスキップされます。生成されたコードがルートの下にある場合は、そのディレクトリ名を `exclude` に追加します。すべてのフィールドは [`extract`](/ja/docs/config-file#extract) を参照してください。
+
+## 追加される内容をプレビューする
+
+```bash
+verbatra extract --dry-run
+```
+
+サマリーには、新しいキーとそれを指定したファイルおよび行が一覧で表示されます。何も書き込みません。先に進む前に、次の 3 つの項目を確認します。
+
+- **new keys**（新しいキー）：実際に実行するとソースファイルに追加されるキーです。
+- **dynamic keys**（動的キー）：キーが 1 つの完全な文字列になっていない呼び出し箇所です。`t("user." + id)` や `` t(`nav.${page}`) `` が該当します。これらは書き込まれません。キーをカタログに手で追加するか、リテラルのキーで呼び出しを書き換えます。
+- **conflicts**（競合）：1 つのキーに対して、2 つの呼び出し箇所で異なるデフォルト値が指定されている場合です。どちらの値も書き込まれないため、テキストを 1 つに決めて呼び出し箇所をそろえます。
+
+## キーを追加する
+
+```bash
+verbatra extract
+```
+
+```text output
+verbatra extract
+  42 files scanned, 18 keys already present
+  added 3 keys to locales/en.json
+  new keys (3):
+    nav.home  src/components/Nav.tsx:14
+    nav.away  src/components/Nav.tsx:15
+    cart.empty  src/routes/cart.tsx:31
+next: verbatra translate (translate the new keys)
+```
+
+呼び出し箇所のデフォルト値が、そのキーのソーステキストになります。カタログにすでにあるキーは値が保たれるため、`extract` を再実行しても編集内容は上書きされません。新しいキーが見つからなかった実行では、ファイルはバイト単位で同一のままです。
+
+呼び出し箇所にデフォルト値がないキーは、空の値で追加され、`--json` の結果では `withoutDefault` に一覧されます。翻訳する前に、ソースロケールファイルにソーステキストを書いておきます。
+
+フォーマットが `xliff` または `apple-xcstrings` の場合は、先にソースカタログを作成します（`.xcstrings` は Xcode で作成します）。`extract` はそこに追記しますが、作成はしません。
+
+## 新しいキーを翻訳する
+
+```bash
+verbatra translate
+```
+
+新しいキーはすべてのターゲットロケールで欠落しているため、実行ではそのキーだけが翻訳されます。バッチが大きい場合は、先に [`--estimate`](/ja/docs/estimating-cost) で費用を見積もります。
+
+TypeScript を使っている場合は、[`verbatra types`](/ja/docs/cli/types) でキーの宣言を再生成します。新しいキーのタイプミスがコンパイルエラーになります。
+
+## コードとカタログを一致させる
+
+`extract` はキーを追加するだけです。ほかの方向は、読み取り専用の 2 つのチェックで確認できます。
+
+- `verbatra diff --unused` は、どの呼び出し箇所からも参照されなくなったソースキーを一覧します。`extract` の `roots` を再利用し、何も削除しません。キーを削除するかどうかは利用者が判断します。一覧をどこまで信頼できるかは[使われていないソースキー](/ja/docs/cli/diff#使われていないソースキー)を参照してください。
+- `verbatra doctor --literals` は、`t(...)` を通っていないユーザー向けの文字列を一覧します。JSX のテキストや `aria-label` が該当します。対象になるものと、除外する方法は[未翻訳のリテラル](/ja/docs/cli/doctor#未翻訳のリテラル)を参照してください。
+
+呼び出し箇所を追加するたびに、`verbatra extract` を再実行します。繰り返しても安全で、何が見つかっても `0` で終了します。新しいキーがあれば失敗させたい CI のステップでは、終了コードではなく `--json` の `added` リストを読みます。
+
+## 関連項目
+
+- [`verbatra extract`](/ja/docs/cli/extract)：読み込める呼び出しの形、完全なレポート、JSON の結果
+- [設定ファイル](/ja/docs/config-file#extract)：`extract` ブロック
+- [`verbatra translate`](/ja/docs/cli/translate)：ターゲットロケールを埋めるコマンド
+- [エラーコード](/ja/docs/error-codes#extract_not_configured)：ブロックがない場合の `EXTRACT_NOT_CONFIGURED`

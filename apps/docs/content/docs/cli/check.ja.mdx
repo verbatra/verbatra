@@ -1,0 +1,262 @@
+---
+title: verbatra check
+seoTitle: "verbatra check：欠落しているキーと古いキーを探す"
+description: "ファイルの書き込みもプロバイダーの呼び出しもなしに、ロケールごとの欠落しているキーと古くなったキーを報告し、同期していないロケールがあれば CI を失敗させます。"
+type: reference
+---
+ターゲットロケールごとに、欠落しているキー、古くなったキー、最新のキーが何件あるかを報告し、CI の手順が分岐に使える終了コードで終了します。`check` は、[`verbatra translate`](/ja/docs/cli/translate) がプロバイダーを呼び出す前に行う読み込みと差分の処理を実行し、そこで止まります。プロバイダーを呼び出さず、ファイルも書き込まず、API キーも不要です。
+
+## 書式
+
+```bash
+verbatra check [flags]
+```
+
+## 例
+
+```bash
+# 翻訳がドリフトしたらビルドを失敗させる
+verbatra check
+
+# 2 つのロケールの機械可読なステータス
+verbatra check --locales de,fr --json
+
+# 複数の訳し方がされているソース文字列も一覧に出す
+verbatra check --consistency
+
+# プレースホルダー、マークアップ、ICU の破損と、警告でも失敗させる
+verbatra check --qa --strict
+
+# 機械翻訳が承認待ちの間は失敗させる
+verbatra check --require-reviewed
+
+# ソースにメールアドレス、API キー、カード番号があれば失敗させる
+verbatra check --sensitive
+
+# エディターやエージェントが変更した 1 つのファイルだけをチェックする
+verbatra check --file locales/de.json --json
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | 設定済みのすべてのターゲット | カンマ区切りで指定したサブセットだけをチェックする（設定していないロケールは `UNKNOWN_LOCALE`、空のリストは `INVALID_LOCALES` で失敗し、どちらも終了コード `2`） |
+| `--consistency` | なし | オフ | 複数の訳し方がされているソース文字列も一覧に出す（報告のみ。[一貫性レポート](#一貫性レポート)を参照） |
+| `--qa` | なし | オフ | コミット済みのすべての訳文に[品質チェック](#品質チェック)も実行する。エラーがあれば終了コード `1` |
+| `--file` | `<path>` | オフ | このロケールファイルだけをチェックする（[単一のファイル](#単一のファイル)を参照。`--locales`、`--consistency`、`--require-reviewed`、`--sensitive` とは併用できない） |
+| `--severity` | `error` または `warning` | `warning` | `--qa` または `--file` と併用したときに報告する最低の重大度 |
+| `--strict` | なし | オフ | `--qa` または `--file` と併用したときに、警告や[不完全な複数形](#複数形カテゴリ)でも終了コード `1` にする（`--severity error` とは併用できない） |
+| `--require-reviewed` | なし | オフ | 機械が書いた訳文が[承認されていない](#レビュー済みの訳文を必須にする)間も終了コード `1` にする |
+| `--sensitive` | なし | オフ | ソースファイルと用語集も[機密情報](#機密情報)についてスキャンする。検出結果が 1 件でもあれば終了コード `1` |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)の `--cwd`、`--config`、`--json` も使えます。
+
+キーが欠落しているのは、ソースにあってターゲットにない場合です。キーが古いのは、最後に翻訳してからソース文字列が変わった場合です。どちらもないロケールは、同期しています。件数の元になっているキーの一覧は、[`verbatra diff`](/ja/docs/cli/diff) で確認できます。
+
+## 動作
+
+通常の出力は次のとおりです。
+
+```text output
+verbatra check
+  de: 3 missing, 1 stale (1 protected), 38 up-to-date (out of sync)
+  fr: 0 missing, 0 stale, 42 up-to-date (in sync)
+out of sync (run verbatra translate to update)
+```
+
+### 一貫性レポート
+
+<AvailableFrom version="0.11.0" />
+
+`--consistency` は、ターゲットロケールごとに、2 つ以上のキーで訳し方が異なるソース文字列をすべて一覧にします。ソース、異なる訳文のそれぞれ、その訳文を持つキーが示されます。終了コード、値、レビューキューが変わることはありません。比較のルールは次のとおりです。
+
+- 値は、Unicode NFC 正規化、`\r\n` から `\n` への統一、前後の空白の削除をした後で比較します。内側の空白と、大文字と小文字の違いは区別されます。
+- 最新のキーだけを比較します。ソースと同じ訳文は `EQUALS_SOURCE` に任せます。
+- description、meaning、複数形のフラグ、gettext の `msgctxt` が異なるキーは、グループにまとめられません。
+- 複数形は形ごとに比較します。1 つのキーの `one` と `other` が、互いにグループにまとめられることはありません。
+
+既知の誤検出は、i18next のコンテキストバリアント（`invite_male`、`invite_female`）、`#, fuzzy` が付いた gettext エントリ、複数形に対応しないフォーマット（`yaml`、`ngx-translate-json`、`xliff`、`properties`、`ini`、`resx`）の複数形風のキー、`custom:` フォーマットの複数形です。このようなキーには、異なる description や meaning を付けるか、検出結果を無視します。`--json` では、各ロケールが `inconsistencies: { source, context?, description?, meaning?, isPlural, pluralForm?, translations: [{ value, keys }] }[]` を持ちます。
+
+### 保護されたキー
+
+<AvailableFrom version="0.12.0" />
+
+人が書いた、インポートした、または verbatra の外で変更した古くなったキー、あるいは `pinnedKeys` に一致するキーは、`translate` が人に任せるキーです（[人手翻訳を保護する](/ja/docs/protecting-human-translations)を参照）。`check` はそれでも件数に含め、保護されたキーの内訳を示します（例：`2 stale (1 protected)`）。`--json` では、ロケールごとに `protected` として含まれます。`verbatra.provenance.json` が読み取れない場合は、保護されたキーとして数えられるのは、固定されたキーだけです。
+
+### 複数形カテゴリ
+
+<AvailableFrom version="0.12.0" />
+
+`check` は毎回、ターゲット言語が使う CLDR の複数形カテゴリが欠けている複数形を一覧にします。たとえば、`one` と `other` だけを持つポーランド語の Android `<plurals>` です。
+
+```text output
+plural categories (warning: exit 1 only under --qa --strict)
+  pl: 2 plurals missing CLDR categories
+    cart {count} plural: missing few, many
+    files: missing few, many
+```
+
+カテゴリは Node.js に組み込まれた CLDR のルールから決まります（[言語とロケール](/ja/docs/language-support#複数形)を参照）。チェックの対象になるフォーマットは次のとおりです。
+
+| フォーマット | 読み込む複数形 |
+| --- | --- |
+| `i18next-json` | `_one`、`_few` などのキーのサフィックスと、序数ルールと照合する `_ordinal_` の複数形 |
+| `android-xml` | 各 `<plurals>` の `<item quantity>` エントリ |
+| `apple-strings` | `.strings` ファイルの隣にある `.stringsdict` の複数形ルール |
+| `apple-xcstrings` | 各ロケールの `variations.plural` のカテゴリ |
+| `next-intl-json`、`arb` | ネストしたものを含む、すべての ICU `plural` と `selectordinal` |
+
+`other` は常に必要です。`=1` のような完全一致の分岐は、カテゴリの代わりになりません。`select` の分岐はチェックされません。チェックされるのは、ターゲットに少なくとも 1 つの形がある複数形だけです。これは警告です。通常の `check` は終了コードを変えず、`--qa --strict` ではこれで失敗します。[`verbatra doctor`](/ja/docs/cli/doctor) も同じ複数形を報告します。`--json` では、各ロケールがキー順の `incompletePlurals` を持ちます。
+
+```ts
+interface IncompletePlural {
+  code: "PLURAL_CATEGORIES_INCOMPLETE";
+  key: string;              // 基本キー、または ICU メッセージのキー
+  argument?: string;        // ICU の複数形の引数。たとえば count
+  ruleType: "cardinal" | "ordinal";
+  missing: ("zero" | "one" | "two" | "few" | "many" | "other")[]; // CLDR の順
+}
+```
+
+### 品質チェック
+
+<AvailableFrom version="0.12.0" />
+
+`--qa` は、翻訳の実行がプロバイダーの出力に適用するチェックを、ロケールファイルにすでにある値に対して実行します。古いかどうかは問いません。ターゲット言語が必要とする追加の複数形も対象です。検出結果の重大度は 2 種類です。
+
+- **error**：値が[整合性ゲート](/ja/docs/translation-safety#整合性ゲート)で `placeholder`、`markup`、`icu`、`degenerate`、`empty` のいずれかとして不合格になったものです。詳細には、失われたプレースホルダーが `-{{name}}`、追加されたものが `+{{nom}}` の形で並びます。
+- **warning**：値そのもの、ソース、設定（用語集、`maxLength`）から計算された[レビューフラグ](/ja/docs/translation-safety#レビューフラグ)の理由が付いた値です。つまり、プロバイダーやキャッシュに依存する理由は含まれません。`FOREIGN_PLACEHOLDER_CHANGED` では、検出結果の `details` に、失われた、または変更された各プレースホルダーが `-{name}` のように示されます。エラーのある値に、警告は付きません。
+
+```text output
+qa: 1 error, 1 warning
+  de: 1 error, 1 warning in 42 values checked
+    greeting: error placeholder (-{{name}}, +{{nme}})
+    title: warning EQUALS_SOURCE
+```
+
+孤立したキーと欠落しているキーはスキップされ、有効な ICU ではないソースキーは `invalidSourceKeys` に 1 回だけ示されます。保護された値、固定された値、却下された値も、ほかの値と同じようにチェックされます。`--json` では、`result.qa` が合計を、各ロケールがそれぞれの `qa` を持ちます。
+
+```ts
+interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: string[]; limitsNotice?: { code: "LIMITS_FILE_IGNORED"; message: string } }
+interface LocaleQaReport { checked: number; errors: number; warnings: number; findings: QaFinding[] }
+type QaFinding =
+  | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
+  | { key: string; severity: "warning"; reason: string; details?: string[] }; // 上記のレビューの理由のいずれか
+```
+
+### レビュー済みの訳文を必須にする
+
+<AvailableFrom version="0.12.0" />
+
+`--require-reviewed` は、値の出どころ（[来歴：各値を誰が書いたか](/ja/docs/the-lock-file#来歴各値を誰が書いたか)を参照）が `machine`、`memory`、`fuzzy`、`agent` のいずれかである値が、コミット済みの `verbatra.provenance.json` で承認されていない間、終了コード `1` で失敗します。このファイルに判断を記録するのは、[Studio でレビューする](/ja/docs/review-in-studio)で説明している Studio と、[`verbatra mcp`](/ja/docs/cli/mcp) の MCP ツールです。ソースのテキストが変わる前、または値が変わる前の承認は、数えられません。
+
+```text output
+review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
+  de: 2 unreviewed: checkout.title, checkout.total
+  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json
+```
+
+`--json` では、`result.review` は `{ reviewed, unreviewed, code? }` です。`code` は `REVIEW_REQUIRED` で、来歴ファイルが破損している、またはより新しい verbatra のものである場合は `REVIEW_STATE_UNREADABLE` になります（この場合、ゲートは失敗します）。各ロケールには、未承認のキーをソースの順序で並べた `review.unreviewed` が含まれます。
+
+### 機密情報
+
+<AvailableFrom version="0.12.0" />
+
+`--sensitive` は、各ソースキー（キー名、値、description、meaning）と、チェック対象の各ロケールの用語集に、[機密情報ガード](/ja/docs/data-handling#機密情報ガード)のスキャンを実行します。検出器、パターン、許可リストには `sensitiveData` の設定を使い（ブロックがなければデフォルトの検出器）、`mode` やプロバイダーは問いません。`none` でも同じです。エクスポート、XLIFF、TMX の受け渡しを通じて、値はマシンの外に出るためです。報告するのはキーと検出器だけで、キー名以外の一致したテキストは報告しません。検出結果が 1 件でもあれば、終了コード `1` で失敗します。
+
+`email` 検出器は予約されたサンプルドメイン（[機密情報ガード](/ja/docs/data-handling#機密情報ガード)を参照）をスキップするため、テストには本物らしいアドレスを使います。
+
+```text output
+sensitive: 1 key and 0 glossary terms hold content that looks sensitive
+  support.contact: email in value
+  remove it, list it in sensitiveData.allow, or turn the detector off in sensitiveData.detectors
+```
+
+`--json` では、`result.sensitive` は `{ findings, glossaryTerms }` で、各検出結果は `{ key, fields, detectors }` です。`detectors` には `pattern-timeout-<n>` が含まれることがあります。
+
+### 単一のファイル
+
+<AvailableFrom version="0.12.0" />
+
+`--file <path>` は、編集後のエディターやエージェントのフック向けに、1 つのロケールファイルをチェックします。読み込むのは、そのファイル、`verbatra.limits.json` <AvailableFrom version="0.13.0" />（使用できない場合は無視され、`--qa` のときと同様に stderr に通知が出ます。問題は [`doctor`](/ja/docs/cli/doctor) が示します）、ターゲットロケールの場合はソースファイルだけです。パスは `--cwd` を基準に解決され、`files.pattern` と照合されてロケールが決まります。
+
+- 解析できないファイルは、アダプターのコード（`INVALID_JSON`、`INVALID_YAML` など）を持つ 1 件の `syntax` エラーになります。パーサーが位置を報告する場合は、行と列も示されます。
+- ターゲットファイルは [`--qa`](#品質チェック) と同様にチェックされ、複数形カテゴリも含まれます。ソースファイルは構文だけです。`apple-xcstrings` のカタログは、すべてのターゲットロケールに対してチェックされます。
+- 設定済みのどのロケールのファイルでもないパスは、`NOT_A_LOCALE_FILE` で失敗し、終了コードは `2` です。
+
+`--json` では、`result` が `--qa` のレポートを再利用するため、フックが解析する形は 1 つです。
+
+```ts
+interface CheckFileSummary {
+  file: string;                          // プロジェクトルートからの相対パス
+  role: "source" | "target" | "catalogue";
+  locales: {
+    locale: string;
+    incompletePlurals: IncompletePlural[];
+    qa: { checked: number; errors: number; warnings: number; findings: (QaFinding | QaSyntaxFinding)[] };
+  }[];
+  qa: CheckQaSummary;
+}
+interface QaSyntaxFinding {
+  severity: "error"; reason: "syntax"; code: string; message: string;
+  line?: number; column?: number;       // パーサーが位置を報告する場合。1 から数える
+}
+```
+
+欠落しているキーと古くなったキーは、ファイルのチェックの対象外です。
+
+### JSON 出力
+
+スキーマ：[`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) がエンベロープ全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` は 1 つの[エンベロープ](/ja/docs/cli/output#json-出力)（envelope）を出力し、その `result` がステータスのドキュメントです。`--qa`、`--require-reviewed`、`--sensitive` を指定しない場合、`inSync` は、コマンドが終了コード `0` で終了するときに true になり、それ以外では false です。
+
+```ts
+interface CheckSummary {
+  inSync: boolean;
+  locales: LocaleCheckSummary[];
+  qa?: CheckQaSummary;          // --qa のときだけ
+  review?: CheckReviewSummary;  // --require-reviewed のときだけ
+  sensitive?: CheckSensitiveSummary; // --sensitive のときだけ
+}
+
+interface LocaleCheckSummary {
+  locale: string;
+  missing: number;              // ソースにあり、ターゲットにない
+  stale: number;                // 最後に翻訳してからソースが変更された
+  upToDate: number;
+  inSync: boolean;              // missing === 0 && stale === 0
+  emptySource?: number;         // ソースの値が空：欠落にも古くなったキーにもならない
+  provenance?: ProvenanceSummary; // 出どころとレビュー状態ごとの件数
+  protected?: number;
+  incompletePlurals?: IncompletePlural[];
+  inconsistencies?: InconsistencyGroup[]; // --consistency のときだけ
+  qa?: LocaleQaReport;          // --qa のときだけ
+  review?: LocaleReviewReport;  // --require-reviewed のときだけ
+}
+```
+
+値が空、または空白だけのソースキー（デフォルトなしで `extract` が追加したものなど）は、まだ翻訳するものがありません。`missing` や `stale` ではなく `emptySource` に数えられ、ロケールが同期していない状態になることはなく、ターミナル出力にその件数が示されます。
+
+### ターミナルへの表示
+
+<AvailableFrom version="0.12.0" />
+
+`check` は stderr に `verbatra: checking the locales... done (0.1s)` を表示し、`--file` では `verbatra: checking locales/de.json...` を表示します。`--quiet` で非表示にできます。[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | 同期しており、指定したオプションが失敗に変える検出結果もない |
+| `1` | ロケールに欠落または古くなったキーがある、`--qa` または `--file` がエラーを検出した（`--strict` では警告や不完全な複数形も）、`--require-reviewed` が未承認の訳文を検出した、`--sensitive` が機密情報を検出した、のいずれか |
+| `2` | 実行できなかった。`SOURCE_UNREADABLE` や `NOT_A_LOCALE_FILE` のような実行全体のエラー、または `INVALID_QA_OPTION`、`INVALID_SEVERITY` のような使い方の誤り。空の `--file`、または `--locales`、`--consistency`、`--require-reviewed`、`--sensitive` と組み合わせた `--file` では `INVALID_OPTION` になる |
+
+終了コード `1` は、結果がクリーンではないという意味で、実行が失敗したという意味ではありません。レポートは出力されます。ソースファイルがまだ配置されていないプロジェクトでも、[`verbatra doctor`](/ja/docs/cli/doctor) は報告します。規約については、[終了コード](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [`verbatra diff`](/ja/docs/cli/diff) は、これらの件数の元になっているキーを正確に一覧にします。
+- [CI で verbatra を実行する](/ja/docs/ci-and-exit-codes)は、`check` をドリフトゲートとして使う例を示します。
+- [ロックファイルと来歴](/ja/docs/the-lock-file)は、古くなったキーの検出方法を説明します。

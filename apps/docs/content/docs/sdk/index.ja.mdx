@@ -1,0 +1,135 @@
+---
+title: "SDK リファレンス"
+seoTitle: "Node.js と TypeScript 向け SDK リファレンス"
+sidebarTitle: "概要"
+description: "@verbatra/sdk をインストールし、各エントリポイントのリファレンスページを探します。ディスク上にないファイルは、自分のファイルシステム経由で SDK に渡します。"
+type: reference
+---
+`@verbatra/sdk` は、`verbatra` コマンドが動作するエンジンです。CLI は薄いラッパーなので、コマンドラインでできることは、コードでもすべて実行できます。
+
+## ここから始める
+
+SDK を初めて使う場合は、次のどちらかから始めます。
+
+<Cards>
+  <Card title="SDK クイックスタート" href="/ja/docs/sdk-quickstart">SDK のインストール、API キーなしの実行プレビュー、自分のスクリプトからの翻訳、エラーの処理、CI のゲートを扱います。</Card>
+  <Card title="SDK レシピ" href="/ja/docs/programmatic-api">見積もり、ウォッチモード、フェイクプロバイダー、レビューキュー、ブックと TMX の往復について、完全なスクリプトを載せています。</Card>
+</Cards>
+
+## リファレンスページ
+
+これらのページは、公開されているすべての範囲を、エントリポイントごとの役割でグループ分けして載せています。
+
+<SdkEntryPoints />
+
+<SdkAnchorForward />
+
+## インストール
+
+```npm
+npm install --save-dev @verbatra/sdk
+```
+
+Node.js `^22.22.0 || >=24` が必要です。
+
+pnpm では、`pnpm add --save-dev @verbatra/sdk` は正しくインストールされますが、`ERR_PNPM_IGNORED_BUILDS` で終了コード `1` になります。pnpm が、同梱されている Gemini SDK とその `protobufjs` のインストールスクリプトをブロックし、回答されていない `pnpm-workspace.yaml` を残すためです。そのファイルが残っていると、プロジェクト内のこれ以降の pnpm コマンドがすべて同じように失敗します。`pnpm approve-builds` を 1 回実行し、どちらのエントリも承認しないでください。非対話式の対処法は、[トラブルシューティング](/ja/docs/troubleshooting)を参照してください。CLI のような `npx` による近道は、ここにはありません。バイナリを実行するのではなく、ライブラリをインポートするためです。
+
+<Callout title="API キーと環境">
+SDK が API キーを読み取ったり、保持したり、受け取ったりすることはありません。プロバイダーは、生成されるときに、環境から API キーを読み取ります（たとえば `ANTHROPIC_API_KEY`）。CLI と違い、SDK は `.env` ファイルを読み込みません。自分のスクリプトで変数を自分で設定します。たとえば `node --env-file=.env script.js` を使います。
+</Callout>
+
+すべてのエントリポイントは、特記がない限り、1 つの入力オブジェクトを受け取ります。その最初のフィールドは、（`loadConfig` で得た）検証済みの `config` です。ほとんどのエントリポイントは、レジストリ、プロバイダービルダー、ファイルシステムを注入する、省略可能な 2 つ目の引数 `deps` も受け取ります。通常の使い方では無視してかまいません。`deps.fs` が届く範囲は、[依存関係の差し替え口](#依存関係の差し替え口)を参照してください。
+
+## 依存関係の差し替え口
+
+<AvailableFrom version="0.9.0" />
+
+`deps.fs` は、SDK 自身の I/O が通るファイルシステムのポートを置き換えるもので、`SdkFs` 型です。この差し替え口は完全です。実行状態ファイル、ロックファイル、用語集ファイルのツール、ブックと交換ファイルの I/O、ロケールファイル自体のすべてが、ここを通ります。フォーマットアダプターが、同じオブジェクトから作られたポートを通して読み書きするためです。そのため、実行全体をメモリ上に保持できます。SDK 自身のテストがディスクに触れないのも、組み込み先のアプリケーションがプロジェクトの一部をローカルディスク以外に置けるのも、この仕組みのおかげです。
+
+<SdkTypeTable name="SdkFs" />
+
+実装が守る必要のある、契約上の点が 2 つあります。読み取りにはサイズの上限があります。そのため `readFileBounded` と `readBytesBounded` はバイト数の上限を受け取り、`missing` または `too-large` を、スローせずに状態として報告します。これにより、悪意のあるファイルや誤って巨大になったファイルでメモリを使い果たすことを防ぎます。書き込みはアトミックであることが求められます。クラッシュしても、書きかけのファイルが残らないようにするためです。`createExclusive` は、ロケールごとの書き込みロックの基盤となるプリミティブなので、ほかのプロセスに対してもアトミックである必要があります。ロケールファイル、実行状態ファイル、ブックなどの出力ファイルを書き込む前に、SDK は親ディレクトリを渡して省略可能な `mkdir` を呼び出します。そのため `writeFile` と `writeBytes` は、親ディレクトリを作成する必要がありません。ストアにディレクトリがない場合は、`mkdir` を省略します。`createExclusive` にはこの呼び出しがなく、存在しない親ディレクトリは自分で作成します。そのほかの必須メンバーは `fileExists` と `deleteFile` で、`deleteFile` はファイルがすでにない場合も成功します。
+
+`readDirectory` は省略可能です。ソース抽出の機能が追加される前に書かれた実装も、そのままコンパイルできます。これを必要とするエントリポイントは [`extract`](/ja/docs/sdk/inspect#extract) だけで、ない場合は `EXTRACT_FS_UNSUPPORTED` として報告します。1 つのディレクトリの直下のエントリを `{ name, kind }` として一覧にし、`kind` は `"file"`、`"directory"`、`"other"` のいずれかです。シンボリックリンクは `"other"` に入れます。スキャンはリンクをたどらないため、与えられたルートの外に出ません。
+
+`realpath` も省略可能です。既存のパスにあるすべてのシンボリックリンクを解決します。[`generateTypes`](/ja/docs/sdk/run#generatetypes)、[`exportTmx`](/ja/docs/sdk/exchange#exporttmx)、[`exportWorkbook`](/ja/docs/sdk/exchange#exportworkbook)、[`pseudolocalize`](/ja/docs/sdk/run#pseudolocalize) の出力ガードは、これを使って出力パスが実際にどこに着地するかを調べます。そのため、リンクを使って、書き込んだファイルを `cwd` の外や、プロジェクトが依存するファイルに運ぶことはできません。`realpath` がない場合、これらのガードはパスを書かれたまま比較します。出力パスにあるリンクの指す先が存在しない場合は解決できないため、ガードは `writeFile` と `writeBytes` が、デフォルトのアトミックな書き込みと同様に、リンクを通して書くのではなくリンクを置き換えると仮定します。
+
+`rename` も省略可能です。
+
+<AvailableFrom version="0.12.0" />
+
+同じディレクトリ内でファイルを新しい名前に、1 回のアトミックな操作で移動し、すでにあるファイルを置き換えます。移動元がない場合は、`code` が `ENOENT` のエラーで reject します。書き込みロックはこれを使い、すでに存在しないプロセスが残した書き込みロックや回収ガードを取り除き、自分の書き込みロックを解放します。ファイルは、一意の `<name>.<pid>.<tag>.<uuid>.stale` という名前で脇に移され、書き込みロックが期待していたレコードのままである場合にだけ削除されます。それ以外のもの（たとえば、その間にほかのプロセスが取得した書き込みロック）は、`createExclusive` で元に戻します。`EPERM`、`EBUSY`、`EACCES` で失敗した名前変更（Windows が、ほかのプロセスが開いているファイルに対して報告するもの）は、「今回のポーリングでは回収されなかった」として扱われ、書き込みロックはタイムアウトまでポーリングを続けます。書き込みロックを解放する名前変更が何らかの理由で失敗した場合、解放処理は、書き込みロックのファイルを読み、ホルダーのトークンがまだ入っている間に削除する方法にフォールバックします。`EPERM`、`EBUSY`、`EACCES` の失敗は、ポーリング 1 回分の間隔をあけて数回再試行します。元に戻すべきレコードを、その間に第三のプロセスがパスを取得したために元に戻せない場合は、削除されます。以降、そのホルダーのトークンの確認は失敗するためです。`rename` がない場合、書き込みロックはファイルを読み、変更がなければ削除します。この方法では、ほかのプロセスが取得したばかりの書き込みロックが削除される時間帯が広くなります。
+
+ファイルを脇に移して元に戻すのは、2 つの手順です。そのため、まれなタイミングの重なりで、2 つのプロセスが一時的に、どちらも同じ書き込みロックを持っていると思い込むことがあります。そこで、すべての書き込みロックはランダムな所有権トークンを記録し、ホルダーは、書き込みロックが保護する書き込み（ロケールファイル、ロックファイル、来歴ファイル、用語集）の前に、書き込みロックのファイルにまだ自分のトークンがあることを確認します。ない場合、操作は `LOCK_CONTENDED` で止まり、何も書き込みません。解放時に書き込みロックのファイルがない、または別のトークンが入っていた場合は、操作が成功していたときに限り、同じ形で報告されます。その間にほかのプロセスが同じファイルを変更した可能性があるためです。操作が失敗していた場合は、その操作自身のエラーをスローします。確認と書き込みは、依然として 2 つの手順で、その間の時間に上限はありません。確認の直後に一時停止したホルダー（スリープ中のマシン、停止したプロセス、デバッガー、時計の変更、イベントループの長いブロックなど）は、ハートビートを止めます。そのため、書き込みロックがハートビート間隔の 3 倍（デフォルトでは 30 秒）古くなると、同じマシンのほかのプロセスがそれを回収し、一時停止していたホルダーは、再開時にもう 1 回書き込めてしまいます。トークンの確認は、`createExclusive` が作成したファイルを `readFileBounded` が読み戻せることを前提にしています。そのため、カスタム実装はこの約束を守る必要があります。
+
+`touch` と `mtimeMs` も省略可能です。
+
+<AvailableFrom version="0.12.0" />
+
+`touch(path)` は既存ファイルの更新日時を現在の時刻に設定し、`mtimeMs(path)` は更新日時をミリ秒で返します。ファイルがない場合は `undefined` を返します。`touch` があると、書き込みロックのホルダーは、10 秒のハートビート間隔を書き込みロックに記録し、保持している間、その間隔でファイルの更新日時を更新します。作成した直後にも書き込みロックのファイルを touch するため、ファイルの経過時間は、ファイルサーバーの時計ではなく、このプロセスの時計で測られます。`mtimeMs` があると、待機中のプロセスは、自分と同じマシンの書き込みロックのうち、記録されたプロセスがまだ動いているのに、ファイルが記録された間隔の 3 回分（デフォルトでは 30 秒）更新されていないものを、放棄されたものとして扱います。これは、保持期間より長く残った書き込みロックの記録を対象にします。たとえば、すでに書き込みロックを解放した、長時間動く Studio、`watch`、MCP サーバーのプロセスのために元に戻されたものです。回収ガードはハートビートを記録しません。プロセスが確実に存在しなくなり、かつ 2 回のポーリングで変化がないことを確認すると、削除されます。これらのメンバーがない場合、書き込みロックが放棄されたと判断されるのは、記録されたプロセスが確実に存在しなくなったときだけです。
+
+書き込みロックを脇に移している間にクラッシュしたプロセスは、`.verbatra-local/locks/` に `.stale` ファイルを残すことがあります。このようなファイルは、手で削除しても安全です。次に書き込みロックを取得するときにも、移したプロセスが存在しなくなったとき、または `touch` が実装されている場合は、移した時点から数えて、古いと見なすしきい値より古くなったときに削除されます。`touch` のないファイルシステムでは、移したプロセスがいなくなるまで残ります。
+
+`deps.fs` は、呼び出し側が渡した `deps.adapterRegistry` には届きません。それらのアダプターは呼び出し側が生成したものなので、ファイルアクセスは、呼び出し側がそのアダプターに組み込んだものになります。両方を渡す場合は、その組み込みを呼び出し側が管理します。
+
+設定の読み込みも、差し替え口の外にあります。`loadConfig` と `loadConfigWithMeta` は `deps` を受け取りません。設定ファイル自体は実際のディスクから、設定が指定する用語集ファイルは、これらの関数自身の `fs` オプションを通して読み込みます。そのため、後続のフローが受け取る `deps.fs` は、どちらの読み込みにも届きません。プロジェクト全体をメモリ上に置くには、同じ `SdkFs` を `loadConfig({ fs })` として渡し、設定をファイルではなく `configOverride` として渡します。フローはパスを自分の `cwd` を基準に解決するため、そちらにも `cwd` を渡します。
+
+この例では、必須メンバーだけでプロジェクト全体をメモリ上に置いています。プロバイダー `none` では、実行に API キーは不要で、`greeting` は人が翻訳するために残されます。
+
+```ts title="例"
+import { check, loadConfig, type SdkFs, translate } from "@verbatra/sdk";
+
+const files = new Map<string, Uint8Array>();
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function bounded(path: string, maxBytes: number) {
+  const bytes = files.get(path);
+  if (bytes === undefined) return { kind: "missing" } as const;
+  if (bytes.byteLength > maxBytes) return { kind: "too-large" } as const;
+  return { kind: "ok", bytes } as const;
+}
+
+const memoryFs: SdkFs = {
+  fileExists: async (path) => files.has(path),
+  readFileBounded: async (path, maxBytes) => {
+    const read = bounded(path, maxBytes);
+    return read.kind === "ok" ? { kind: "ok", content: decoder.decode(read.bytes) } : read;
+  },
+  readBytesBounded: async (path, maxBytes) => bounded(path, maxBytes),
+  writeFile: async (path, data) => {
+    files.set(path, encoder.encode(data));
+  },
+  writeBytes: async (path, data) => {
+    files.set(path, data);
+  },
+  createExclusive: async (path, data) => {
+    if (files.has(path)) return false;
+    files.set(path, encoder.encode(data));
+    return true;
+  },
+  deleteFile: async (path) => {
+    files.delete(path);
+  },
+};
+
+files.set("/project/locales/en.json", encoder.encode('{ "greeting": "Hello, {{name}}!" }'));
+
+const config = await loadConfig({
+  cwd: "/project",
+  fs: memoryFs,
+  configOverride: {
+    sourceLocale: "en",
+    targetLocales: ["de"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    provider: { id: "none" },
+  },
+});
+
+const summary = await translate({ config, cwd: "/project" }, { fs: memoryFs });
+const status = await check({ config, cwd: "/project" }, { fs: memoryFs });
+
+console.log(summary.locales[0]?.unfilled, status.inSync); // [ 'greeting' ] false
+console.log([...files.keys()]); // the source, verbatra.lock.json, .verbatra-local/run-status.json
+```

@@ -1,0 +1,248 @@
+---
+title: "受け渡しと交換"
+seoTitle: "受け渡しと TMX 交換のための SDK エントリポイント"
+description: "ブックと TMX のインポートとエクスポート、ロケールファイルのスナップショット、ロケールごとに verbatra が解決するパスを扱う SDK のエントリポイントです。"
+type: reference
+---
+<SdkAnchorForward />
+
+## ロケールファイルのスナップショット
+
+Studio のようなライブ更新の監視プロセスを作るための部品です。ロケールファイルの状態を取得し、その後の変更を数えます。
+
+### readLocaleFileSnapshot
+
+<AvailableFrom version="0.5.0" />
+
+1 つのロケールファイル（ソースロケールまたは任意のターゲットロケール）を読み込み、キーごとのコンテンツハッシュに縮約します。まだ存在しないファイルは、スローせずに空のスナップショットとして読み込まれます。
+
+```ts title="シグネチャ"
+function readLocaleFileSnapshot(
+  input: ReadLocaleFileSnapshotInput,
+  deps?: ReadLocaleFileSnapshotDeps,
+): Promise<LocaleFileSnapshot>;
+```
+
+<SdkTypeTable name="ReadLocaleFileSnapshotInput" />
+
+**戻り値**：`LocaleFileSnapshot`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)
+
+`{ locale, hashes }` を返します。
+
+### diffLocaleSnapshots
+
+<AvailableFrom version="0.5.0" />
+
+異なる時点で取得した同じファイルの 2 つのスナップショットを比較し、その間に追加、変更、削除されたキーの数を数えます。単純な同期関数で、`diffLocaleSnapshots(previous, current)` は `{ added, changed, removed }` を返します。返すのは件数だけで、キー名は返しません。
+
+```ts title="シグネチャ"
+function diffLocaleSnapshots(
+  previous: LocaleFileSnapshot,
+  current: LocaleFileSnapshot,
+): LocaleSnapshotDelta;
+```
+
+<SdkTypeTable name="LocaleFileSnapshot" />
+
+**戻り値**：`LocaleSnapshotDelta`
+
+## ロケールのパス
+
+### createLocalePathResolver
+
+<AvailableFrom version="0.7.0" />
+
+`files.pattern`、設定されたロケール、`files.localeStyle` から、プロジェクトのロケールとパスの対応を双方向に解決します。`createLocalePathResolver(cwd, config)` は `{ pathFor, localeFor }` を返します。`pathFor(locale)` は 1 つのロケールのファイルの絶対パスです。`localeFor(path)` は、そのパスを持つロケールを返します。このプロジェクトに属さないパスでは `undefined` を返し、`apple-xcstrings` のように 1 つのカタログを共有するフォーマットでは常に `undefined` を返します。すべての SDK エントリポイントがこれを通してパスを解決します。そのため、SDK 上に作った監視プロセスやダッシュボードには、実行が書き込むパスとまったく同じパスが見えます。
+
+```ts title="シグネチャ"
+function createLocalePathResolver(
+  cwd: string,
+  config: LocalePathResolverConfig,
+): LocalePathResolver;
+```
+
+<SdkTypeTable name="LocalePathResolverConfig" />
+
+**戻り値**：`LocalePathResolver`
+
+**例外**：[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)
+
+すべてのチェックは、ファイルを読み込む前の、リゾルバーの作成時に行われます。組み合わせられないパターンとスタイル、またはスタイルに正しい表記がないロケールは `LOCALE_LAYOUT_INVALID` をスローします。2 つのロケールが 1 つのパスに解決される場合は `LOCALE_PATH_COLLISION` をスローします。
+
+### localeWatchPaths
+
+<AvailableFrom version="0.13.0" />
+
+監視プロセスが必要とするファイルを返します。設定された各ロケールのファイルと、データの一部を持つ隣のファイル（`apple-strings` の `.stringsdict` ファイル）、そしてコミット、ブランチの切り替え、リセット、ステージング操作で git が書き換えるファイルです。読み取り専用です。git の部分は、差し替え可能な `execFile` を通して問い合わせ、[`localeGitStatus`](/ja/docs/sdk/review#localegitstatus) と同じ安全策が適用されます。
+
+```ts title="シグネチャ"
+function localeWatchPaths(
+  input: LocaleWatchPathsInput,
+  deps?: LocaleWatchPathsDeps,
+): Promise<LocaleWatchPathsResult>;
+```
+
+<SdkTypeTable name="LocaleWatchPathsInput" />
+
+**戻り値**：`LocaleWatchPathsResult`
+
+**例外**：[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)
+
+`locales` には、ソースロケールが先頭に来て、それぞれの `paths` が一覧されます。`git` は、このワークツリーの index、`HEAD`、`HEAD` の reflog の絶対パスを持つ `{ available: true, paths }` です。読み取れるワークツリーの外では `{ available: false, reason }` になります。どちらの場合も、ロケールファイルは一覧されます。
+
+## ブック用の関数ペア
+
+翻訳者への受け渡しを、Excel ブックまたは区切り文字テキストで行います。[Excel や CSV で受け渡す](/ja/docs/manual-translation)を参照してください。
+
+### exportWorkbook
+
+<AvailableFrom version="0.2.0" />
+
+まだ翻訳が必要な文字列（ロケールごとの欠落しているキーと変更されたキー。最新のものを加えるには `includeUnchanged` を使います）を、スタイル付きの `.xlsx` ブックに書き込みます。各行には、翻訳の実行が計算するのと同じレビューフラグのシグナルが付きます。プロバイダーは呼び出さず、ロックファイルにも書き込みません。
+
+```ts title="シグネチャ"
+function exportWorkbook(
+  input: ExportWorkbookInput,
+  deps?: ExportWorkbookDeps,
+): Promise<ExportWorkbookResult>;
+```
+
+<SdkTypeTable name="ExportWorkbookInput" />
+
+**戻り値**：`ExportWorkbookResult`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`EXPORT_OUTPUT_CONFLICT`](/ja/docs/error-codes#export_output_conflict)、[`EXPORT_UNWRITABLE`](/ja/docs/error-codes#export_unwritable)
+
+**例**：[ブックの往復](/ja/docs/programmatic-api#ブックの往復)
+
+`format` のデフォルトは `xlsx` です。`csv` と `tsv` では、代わりにロケールごとに `<locale>.csv` または `<locale>.tsv` を 1 つ書き込みます。そのため `out` は、これらではディレクトリ（存在しない場合は作成されます）を、`xlsx` ではファイルパスを指定します。`out` のデフォルトは `DEFAULT_WORKBOOK_PATH`（`verbatra-translations.xlsx`）です。区切り文字ファイルと XLIFF のフォーマットでは `DEFAULT_DELIMITED_PATH`（`verbatra-translations`）で、どちらも定数としてエクスポートされています。指定できる値は `EXCHANGE_FORMATS` として、デフォルトは `DEFAULT_EXCHANGE_FORMAT` としてエクスポートされています。そのため、SDK をラップするツールは、一覧をハードコードせずにフォーマットの引数を検証できます。`{ path, locales }` を返します。書き込んだ絶対パスと、ロケールごとの行数です。
+
+何かを読み込む前に、`EXPORT_OUTPUT_CONFLICT` が、次のような `out` を拒否します。`cwd` の外に解決されるもの、または、それ自体や、エクスポートがその中に書き込むファイルが、設定済みのロケールファイル、ロックファイル、来歴ファイル、翻訳メモリのキャッシュ、verbatra が設定を探すファイル、`configPath` のファイル、`glossaryPath` のファイルを指すものです。比較は大文字と小文字を区別せずに行われます。`deps.fs` がデフォルトと同様に `realpath` を実装している場合は、シンボリックリンクを解決した後にもう一度行われます。`xlsx` のパスは、ファイルを指していない場合（パス区切り文字で終わるものを含む）や、`cwd` そのものを指している場合にも拒否されます。`csv`、`tsv`、XLIFF のディレクトリは `cwd` でも構いません。書き込みが失敗した場合は、`EXPORT_UNWRITABLE` をスローします。ディレクトリに書き込めない、ディレクトリやファイルがすでにそのパスにある、ディスクが満杯などが原因です。スローされるエラーは、ファイルとファイルシステムのコードを示し、ファイルシステムのエラーを `cause` に持ちます。
+
+<AvailableFrom version="0.12.0" />
+
+`format: "xliff2"` と `format: "xliff12"` は、CAT ツール（翻訳支援ツール）向けに、ロケールごとに XLIFF 2.0 または 1.2 の `<locale>.xlf` を `out` ディレクトリへ書き込みます。キー 1 つにつき翻訳単位が 1 つで、プレースホルダーとマークアップは保護された `<ph>` インラインコードになり、キーの説明と意味は注記になり、ソースハッシュは翻訳単位のメタデータに入ります。セグメントの状態はロックファイルとレビューの状態から決まります（欠落または古くなったキーは `initial`、最新の場合は `translated`、承認済みの場合は `reviewed`）。どちらの型もエクスポートされています。`XliffFormat` は、`ExchangeFormat` のうち 2 つの XLIFF のメンバーを指します。[翻訳会社に受け渡す（XLIFF）](/ja/docs/translation-agency)を参照してください。
+
+ターゲットを持つ各翻訳単位には、出どころも記録されます。XLIFF 1.2 では、未承認の機械クラスのターゲットに `state-qualifier="mt-suggestion"` が付きます。XLIFF 2.0 では、翻訳単位の `verbatra` メタデータグループに `origin` と `review-state` のエントリが追加されます。このとき結果には `provenanceMarkers` も含まれます。値は `"written"` で、来歴ファイルを読み込めずマーカーを書き込まなかった場合は `"unavailable"` です。[機械翻訳の証跡を記録する](/ja/docs/provenance-evidence#エクスポート内のマーカー)を参照してください。
+
+### importWorkbook
+
+<AvailableFrom version="0.2.0" />
+
+記入済みのブックをロケールファイルに読み戻します。`translate` と同じように、ソースのドリフトと整合性をチェックします。ロックファイルのベースラインが進むのは、受け入れられた行だけです。空白の行や拒否された行は、本当に解決されるまでエクスポートされ続けます。CSV、TSV、xlsx の受け渡しでは、最新のキーがすでに持つ値と同じで、整合性ゲートも通る記入済みの行は、そのまま残され、`unchanged` として報告されます。翻訳されません<AvailableFrom version="0.13.0" />。詳しくは[インポートが受け付けるもの](/ja/docs/manual-translation#インポートが受け付けるもの)を参照してください。
+
+```ts title="シグネチャ"
+function importWorkbook(
+  input: ImportWorkbookInput,
+  deps?: ImportWorkbookDeps,
+): Promise<RunSummary>;
+```
+
+<SdkTypeTable name="ImportWorkbookInput" />
+
+**戻り値**：[`RunSummary`](/ja/docs/sdk/run-summary)
+
+**例外**：[`LOCK_TIMEOUT_INVALID`](/ja/docs/error-codes#lock_timeout_invalid)、[`REVIEWER_INVALID`](/ja/docs/error-codes#reviewer_invalid)、[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`LOCK_FILE_INVALID`](/ja/docs/error-codes#lock_file_invalid)、[`PROVENANCE_FILE_INVALID`](/ja/docs/error-codes#provenance_file_invalid)
+
+**例**：[ブックの往復](/ja/docs/programmatic-api#ブックの往復)
+
+`csv` または `tsv` では、`workbook` は 1 つの交換ファイル、またはロケールごとに 1 つのファイルを収めたディレクトリのどちらかです。ロケールはファイル名から決まります。`format` を省略した場合、`.csv` または `.tsv` で終わるファイルはそのフォーマットで読み込まれ、ディレクトリはエクスポートのマニフェストまたはロケールファイルのフォーマットで読み込まれます。`translate` と同じ `RunSummary` の形を返します（プロバイダーが関与しないため、`needsReview` は常に空です）。設定されたターゲットではないロケールのシートは、スローされずに、サマリー上のデータとして、そのロケールが `CONFIG_INVALID` で失敗します。
+
+<AvailableFrom version="0.12.0" />
+
+`onLockWait` と `lockAcquireTimeoutMs` の動作は `translate` とまったく同じです。`lockAcquireTimeoutMs` が制限するのは、ロケールのファイルを書き込む前に取得する、そのロケールの書き込みロックの待機時間です。その後も書き込みロックが競合したままのロケールは、そのロケール自身のサマリーで `LOCK_CONTENDED` により失敗し、ほかのロケールはインポートを続けます。書き込んだファイルをロックファイルに記録する処理は、常に 10 分のデフォルトを許容します。ドライランは書き込みロックを取得しないため、どちらのオプションも適用されません。
+
+<AvailableFrom version="0.12.0" />
+
+各ロケールの `integrityRefusals` には、整合性ゲートが拒否した行が、理由とその `details` とともに示されます。ターゲット言語に合わない ICU の分岐などです。エクスポート以降にソースが変わったために保留された行は、`integrityMismatches` にだけ一覧されます。`exportWorkbook` は、分岐が誤っている最新の訳文を、レビュー列に `icu-arms` としてフラグ付けします。
+
+<AvailableFrom version="0.12.0" />
+
+`xliff2` または `xliff12`（どちらも両方のバージョンを読み込めます）を指定した場合、および `.xlf` または `.xliff` で終わる `workbook` パスではデフォルトで、同じチェックの前に、すべてのインラインコードが元のテキストに戻されます。現在の値と同じターゲットは何も変更しません。ID がどのソースキーも指さない翻訳単位は `malformedRows` に報告されます。状態が `reviewed` または `final` の翻訳単位（1.2 では `signed-off`、`final`、`approved="yes"`）は、来歴ファイルに承認として記録されます。`reviewer` が指定された場合はその名前も記録され（`approveEntry` と同様に検査され、`REVIEWER_INVALID`）、通知 `HANDOFF_REVIEWS_RECORDED` で報告されます。
+
+## TMX 用の関数ペア
+
+<AvailableFrom version="0.11.0" />
+
+`importTmx` と `exportTmx` は、[翻訳メモリ](/ja/docs/the-cache)を TMX に取り込み、TMX から書き出します。TMX は、主要な翻訳プラットフォームが出力し、読み込む交換フォーマットです。どちらもプロバイダーを生成せず、API キーを読み込まず、ネットワーク通信もしません。すべての値は、ファイルか、すでにディスクにある翻訳メモリから取得されます。これは、ブック用の関数ペアを別のフォーマットにしたものではありません。ブック用のペアは、未処理の差分のうちロケールごとの一部を人の翻訳者に渡します。このペアは、翻訳メモリ全体を、1 つの多言語ファイルとしてツール間で移します。
+
+### importTmx
+
+TMX ファイルをプロジェクトの翻訳メモリに読み込みます。
+
+```ts title="シグネチャ"
+function importTmx(
+  input: ImportTmxInput,
+  deps?: ImportTmxDeps,
+): Promise<ImportTmxResult>;
+```
+
+<SdkTypeTable name="ImportTmxInput" />
+
+**戻り値**：`ImportTmxResult`
+
+**例外**：[`UNKNOWN_FORMAT`](/ja/docs/error-codes#unknown_format)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)、[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`SOURCE_UNREADABLE`](/ja/docs/error-codes#source_unreadable)、[`SOURCE_INVALID`](/ja/docs/error-codes#source_invalid)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)、[`MEMORY_UNWRITABLE`](/ja/docs/error-codes#memory_unwritable)
+
+**例**：[TMX の往復](/ja/docs/programmatic-api#tmx-の往復)
+
+ファイルの内容は何も信頼されません。XML は、交換パッケージの防御策のもとで解析されます。そのため、エンティティ宣言、内部 DTD サブセット、大きすぎるファイル、壊れたファイルは、解析されずに、構造化された `SOURCE_INVALID` エラーで拒否されます。問題がファイル内の特定の位置にある場合、メッセージにはその行、列、翻訳単位の内側であれば翻訳単位の 1 から始まる序数が示されます。`tmxErrorLocation(error)` は、同じ位置を `TmxErrorLocation` として返します。ほかのエラーでは `undefined` を返すため、エラーやその `cause` をキャストする必要はありません。言語タグは、明示的なルールで、設定されたロケールに解決されます。まず、小文字にしてアンダースコアをハイフンにそろえた綴りが完全に一致するものを探します。見つからなければ、タグの部分タグの接頭辞になっている最長の設定済みロケール（RFC 4647 のルックアップ）を探します。それでも見つからなければ、地域またはバリアントの部分タグだけでタグを拡張している設定済みのロケールを探し、文字体系で拡張しているものは対象にしません。そのため、文字体系や地域の部分タグが異なる 2 つのタグ（`sr-Latn` と `sr-Cyrl`、`de-AT` と `de-CH`）は一致しません。タグがあいまいと報告されるのは、届き得るロケールが 1 本の接頭辞の連鎖上にない場合だけです。1 つの翻訳単位の中で、同じロケール（ソースロケールを含む）に解決されるセグメントが複数ある場合、最後のものが勝つことはありません。完全一致のタグは接頭辞の一致より優先されます。同順位の 2 つのセグメントの値が異なる場合、そのロケールには何も保存されず、`conflicting` として数えられます（ソースロケールでは、翻訳単位が拒否され `conflictingSourceUnits` に数えられます）。そのうえで、すべての候補訳が、プロバイダーの出力や記入済みのブックの行がすでに通っているのと同じゲートを通ります。プレースホルダー、インラインマークアップ、ICU、崩れた出力、空であることの検査で、後でそれを読み込む実行に任せず、レコードが翻訳メモリに入る時点で確認されます。
+
+インポートされた翻訳単位が、翻訳メモリにすでにある訳文と食い違う場合は、`overwrite` を設定しない限り、翻訳メモリの内容が優先されます。翻訳単位は、現在の設定のフィンガープリントのもとで保存されます。これは実際の実行が書き込むのと同じキャッシュキーです。そのため、プロバイダー、モデル、トーン、verbatra が送る用語集の用語、プロバイダーの `localeMap` が変わると、一致しなくなります。同じファイルを 2 回インポートしても、2 回目は何も変わりません。
+
+損傷したデータに対しては、スローせずにレポートを返します。読み込んだ翻訳単位の数、ロケールごとの `added`、`unchanged`、`overwritten`、`kept`、`duplicates`、`conflicting`、理由別の `rejected` の内訳、さらにスキップされた翻訳単位、ソースのセグメントがなかった翻訳単位、インラインマークアップが失われた翻訳単位、`sub` のテキストが除外された翻訳単位（`subflowDroppedUnits`）、どれにも一致しなかった、またはあいまいに一致した言語タグです。`memoryWritable` が false になるのは、翻訳メモリのファイルがより新しい verbatra によって書かれた場合で、そのときファイルには手を加えません。その場合も、ドライランと同様にロケールごとの件数は報告されます。そのため `added` と `overwritten` は、書き込まれていたであろう内容を表します。`memoryWritable` が false の場合、実際には何も書き込まれていません。
+
+<AvailableFrom version="0.12.0" />
+
+各ロケールには `refusals` も一覧されます。ゲートの理由で数えられた翻訳単位ごとに 1 つの `TmxUnitRefusal` が入り、`{ unit, reason, details? }` の形です。`unit` はファイル内の翻訳単位の 1 から始まる序数で、`details` は、ターゲット言語に合わない ICU の分岐など、問題の内容を示します。
+
+### tmxErrorLocation
+
+`importTmx` がスローしたものから、拒否された TMX ファイルのどこで問題が起きたかを読み取ります。ファイル内の位置を持つ `SOURCE_INVALID` の拒否では `TmxErrorLocation`（`{ line, column, unit? }`、すべて 1 から始まる）を返します。ファイルがない、大きすぎるなど、ほかのエラーでは `undefined` を返します。そのため、エラーやその `cause` をキャストする必要はありません。
+
+```ts title="シグネチャ"
+function tmxErrorLocation(
+  error: unknown,
+): TmxErrorLocation | undefined;
+```
+
+**戻り値**：`TmxErrorLocation | undefined`
+
+```ts title="例"
+import { importTmx, tmxErrorLocation, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
+
+### exportTmx
+
+翻訳メモリを TMX 1.4b として書き出します。`out` のデフォルトは `DEFAULT_TMX_PATH`（`verbatra-memory.tmx`）で、定数としてエクスポートされています。翻訳メモリを読み込む前に、`TMX_OUTPUT_CONFLICT` が、次のような `out` を拒否します。ファイルを指していない（パス区切り文字で終わるものを含む）、`cwd` の外、または `cwd` そのものに解決される、あるいは設定済みのロケールファイル、ロックファイル、来歴ファイル、翻訳メモリのキャッシュ、verbatra が設定を探すファイル、`configPath` のファイル、`glossaryPath` のファイルを指すものです。比較は大文字と小文字を区別せずに行われ、`deps.fs` がデフォルトと同様に `realpath` を実装している場合は、シンボリックリンクを解決した後にもう一度行われます。書き込みが失敗した場合は、`TMX_UNWRITABLE` をスローし、ファイルとファイルシステムのコードを示します。ディレクトリに書き込めない、そのパスにディレクトリがある、ディスクが満杯などが原因です。書き出されるのは、現在の設定のフィンガープリントのもとにあるエントリだけです。これは、実行が再利用するのと同じ集合です。言語タグは BCP 47 の形式で書き込まれます（`en_US` は `en-US` になります）。翻訳メモリのキーの付け方は変わりません。空の翻訳メモリからは、エラーではなく、有効で空のファイルが生成されます。
+
+```ts title="シグネチャ"
+function exportTmx(
+  input: ExportTmxInput,
+  deps?: ExportTmxDeps,
+): Promise<ExportTmxResult>;
+```
+
+<SdkTypeTable name="ExportTmxInput" />
+
+**戻り値**：`ExportTmxResult`
+
+**例外**：[`UNKNOWN_LOCALE`](/ja/docs/error-codes#unknown_locale)、[`CONFIG_INVALID`](/ja/docs/error-codes#config_invalid)、[`TMX_OUTPUT_CONFLICT`](/ja/docs/error-codes#tmx_output_conflict)、[`TMX_UNWRITABLE`](/ja/docs/error-codes#tmx_unwritable)、[`LOCALE_LAYOUT_INVALID`](/ja/docs/error-codes#locale_layout_invalid)、[`LOCALE_PATH_COLLISION`](/ja/docs/error-codes#locale_path_collision)
+
+**例**：[TMX の往復](/ja/docs/programmatic-api#tmx-の往復)
+
+`{ path, units, locales, withoutSource, otherConfiguration?, illegalCharactersRemoved, provenanceMarkers }` を返します。`withoutSource` は、翻訳メモリにそのソーステキストがないために除外されたエントリの数です。これは、翻訳メモリがソーステキストを保存するようになる前に書かれたキャッシュから引き継がれたエントリでだけ起こります。`otherConfiguration` は、別の設定のフィンガープリント（以前のプロバイダー、モデル、トーン、用語集）のもとで保存されているために除外されたエントリの数で、ロケールとハッシュごとに 1 回数えます<AvailableFrom version="0.13.5" />。`illegalCharactersRemoved` は、XML 1.0 で表現できないために、セグメントのテキストから削除された文字の数です。
+
+<AvailableFrom version="0.12.0" />
+
+各ターゲットセグメントには `<prop type="x-origin">`（`machine`、`human`、`import`、`unknown` のいずれか。型は `TmxOrigin`）が付き、`machine` のセグメントにはさらに `<prop type="x-review">`（`approved`、`unreviewed`、`rejected` のいずれか。型は `TmxReview`）が付きます。これらは、ロックファイルのエントリがそのセグメントのソースを指し、記録がそのテキストとまったく同じものを記述しているすべてのキーから導き出されます。来歴ファイルまたはロックファイルを読み込めなかった場合、`provenanceMarkers` は `"unavailable"` になり、どのセグメントにもプロパティは付きません。

@@ -1,0 +1,109 @@
+---
+title: CI で verbatra を実行する
+seoTitle: "CI で verbatra を実行して翻訳のドリフトを止める"
+description: CLI を使えばどの CI システムでも、翻訳のドリフト、壊れた値、未レビューの機械翻訳で pull request を失敗させ、プッシュ時に翻訳できます。
+type: how-to
+---
+パイプラインでソースからドリフトしたロケールファイルを検出したい場合や、プッシュ時に自動で翻訳したい場合に、このガイドを使います。すべての手順は、ローカルで実行するのと同じ CLI を実行します。そのため、どの CI システムでも動作します。例では GitHub Actions を使います。
+
+始める前に、次のものが必要です。
+
+- 開発依存として追加した `@verbatra/cli`。パッケージマネージャーのロックファイルもコミットしておきます。CLI には Node `^22.22.0 || >=24` が必要です。
+- コミット済みの設定ファイル、ロケールファイル、[`verbatra.lock.json`](/ja/docs/the-lock-file)。
+- 翻訳する場合だけ：プロバイダーの API キーを CI のシークレットストアに登録しておくこと。
+
+GitHub Actions を使っていて、ジョブを自分で書かずに注釈とジョブの概要を使いたい場合は、代わりに [GitHub Action を使う](/ja/docs/github-action)を参照してください。
+
+## ドリフトゲートを追加する
+
+[`verbatra check`](/ja/docs/cli/check) は、ソース、ターゲットファイル、ロックファイルを比較し、欠落または古くなったキーがあるロケールがあれば終了コード `1` で終了します。プロバイダーを呼び出さないため、ジョブに API キーは不要で、フォークからの pull request でも実行できます。
+
+```yaml title=".github/workflows/i18n.yml"
+name: i18n
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  check-translations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<commit-sha>
+      - uses: pnpm/action-setup@<commit-sha>
+      - uses: actions/setup-node@<commit-sha>
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec verbatra check
+```
+
+ドリフトの原因になっているキー名がほしい場合（たとえば pull request のコメントに投稿したい場合）は、`check` を [`verbatra diff`](/ja/docs/cli/diff) に置き換えます。終了コード `1` になる条件は同じです。孤立したキーは出力に表示されますが、それだけで失敗することはありません。
+
+一部のロケールだけをゲートの対象にするには、`--locales de,fr` を指定します。設定していないロケールを `--locales` に指定すると、有効なロケールと並べても終了コード `2` で終了します。そのため、タイプミスでゲートが通ってしまうことはありません。
+
+### 翻訳品質をゲート条件にする
+
+<AvailableFrom version="0.12.0" />
+
+検出する価値があるのは、ドリフトだけではありません。`--qa` を追加すると、コミット済みのすべての訳文に整合性ゲートとレビューフラグも実行されます。手で編集した値のプレースホルダーやマークアップが壊れている場合や、ICU の複数形の分岐が合っていない場合に、ジョブが失敗します。
+
+```bash
+verbatra check --qa
+```
+
+- `--strict` を追加すると、レビューの警告と欠落している複数形カテゴリでも失敗します。
+- 編集フックでは、`verbatra check --file <path>` で 1 つのロケールファイルを単独でチェックできます。
+
+[品質チェック](/ja/docs/cli/check#品質チェック)と[単一のファイル](/ja/docs/cli/check#単一のファイル)を参照してください。[GitHub Action](/ja/docs/github-action#翻訳品質のチェック) では、`qa: "true"` で同じゲートを実行します。
+
+### レビューの判断をゲート条件にする
+
+<AvailableFrom version="0.12.0" />
+
+`--require-reviewed` を追加すると、機械が書いた訳文のうち、コミット済みの `verbatra.provenance.json` で承認されていないものがある間は失敗します。このファイルには、レビューキュー（Studio では **Review queue**）と MCP のレビューツールが書き込みます（[Studio でレビューする](/ja/docs/review-in-studio)を参照）。
+
+```bash
+verbatra check --require-reviewed
+```
+
+こちらも API キーは不要です。報告されるコードについては、[レビュー済みの訳文を必須にする](/ja/docs/cli/check#レビュー済みの訳文を必須にする)を参照してください。
+
+## プッシュ時に翻訳する
+
+[`verbatra translate`](/ja/docs/cli/translate) を実行し、シークレットストアのプロバイダーの API キーを、その手順の環境変数に割り当てます。CLI は API キーを引数で受け取らず、設定ファイルからも読み込みません。各プロバイダーが読み込むAPI キーの変数は、[プロバイダー](/ja/docs/providers#api-キーは環境変数から読み込む)にあります。
+
+```yaml
+      - run: pnpm exec verbatra translate --json
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+- この手順はロケールファイルをチェックアウトに書き込み、そこで終わります。ファイルをコミットする、または pull request を作成する手順は、自分で追加します。そのジョブにだけ `contents: write` または `pull-requests: write` を付与します。
+- 先にプレビューするには、`verbatra translate --dry-run` または `--estimate` を実行します。どちらもプロバイダーを呼び出さず、API キーも不要です。[実行前に費用を見積もる](/ja/docs/estimating-cost)を参照してください。
+- レート制限のあるプロバイダーでは、`--locales` を使って 1 つの手順で 1 つのロケールを翻訳します。
+
+## doctor で事前チェックする
+
+どちらのジョブの前にも [`verbatra doctor`](/ja/docs/cli/doctor) を置くと、構成が壊れている場合に早い段階で失敗させられます。`doctor` は、設定ファイル、フォーマット、プロバイダー、API キーの変数、ネットワークポリシー、ソースファイル、ロケールのサポートをチェックします。`--live` を指定しない限り、プロバイダーを呼び出さず、API キーの値も読み込みません。ただし、API キーの変数が未設定の場合はチェックの失敗として報告します。そのチェックを通す必要があるジョブには、API キーを割り当ててください。
+
+## 終了コード
+
+分岐の条件にするのは終了コードで、テキストではありません。各コードの意味と例外的なケースは、[終了コードと JSON 出力](/ja/docs/cli/output#終了コード)にあります。出力に含まれるエラーコードの説明は、[エラーコード](/ja/docs/error-codes)にあります。
+
+## JSON 出力
+
+`--json` を指定すると、レコードごとに 1 つのエンベロープ（envelope）が stdout に出力されます。フィールドは[終了コードと JSON 出力](/ja/docs/cli/output#json-出力)に、各コマンドの `result` は、そのコマンドのページにあります。この出力を解析するレシピは、[JSON で verbatra をスクリプト化する](/ja/docs/agent-recipes)にあります。
+
+## API キーとインストール
+
+- インストールには `pnpm install --frozen-lockfile` または `npm ci` を使います。そうすると、ジョブはパッケージマネージャーのロックファイルに記録された `@verbatra/cli` のリリースをそのまま実行します。
+- プロバイダーを呼び出さないジョブ（`check`、`diff`、`report`、`export`、`import`、`extract`、`pseudo`、`types`、`tmx`）には、シークレットを渡しません。
+- CI では `env:` を使います。どのコマンドが `.env.local` と `.env` も読み込むかは、[環境ファイル](/ja/docs/cli#環境ファイル)にあります。
+
+## 関連項目
+
+- [GitHub Action を使う](/ja/docs/github-action)：注釈とジョブの概要が付いた同じゲート
+- [`verbatra check`](/ja/docs/cli/check) と [`verbatra diff`](/ja/docs/cli/diff)：2 つのゲートのすべてのオプション
+- [終了コードと JSON 出力](/ja/docs/cli/output)：CI の手順が読み取る規約
+- [エラーコード](/ja/docs/error-codes)：各コードの意味と次の手順

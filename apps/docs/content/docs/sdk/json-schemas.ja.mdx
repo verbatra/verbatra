@@ -1,0 +1,204 @@
+---
+title: "JSON Schema"
+seoTitle: "verbatra のすべての --json 結果の JSON Schema"
+description: "すべての --json 結果の元になる zod スキーマと、それを公開用の JSON Schema ドキュメントに変換する関数を説明します。"
+type: reference
+---
+<AvailableFrom version="0.12.0" />
+
+CLI が `--json` で出力するすべての `result` には、SDK に zod 4 のスキーマがあり、コンパイル時に、それが表す TypeScript の型と一致するよう固定されています。フィールド、省略可能なフィールド、値の型が同じなので、片方だけを変更するとビルドが失敗します。その `parse` は、より新しい verbatra の値も受け付けます。列挙されていないフィールドを許可し、結果からは取り除きます。同じスキーマが JSON Schema のドキュメントとして公開されています。その URL とバージョニングの規則は、[終了コードと JSON 出力](/ja/docs/cli/output#スキーマ)にあります。
+
+## 結果のスキーマ
+
+### runSummarySchema
+
+`translate`、`watch`、`import` の `result` である [`RunSummary`](/ja/docs/sdk/run-summary) を表します。`run-summary.json` として公開されます。
+
+```ts title="シグネチャ"
+const runSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### checkSummarySchema
+
+[`check`](/ja/docs/sdk/inspect#check) の `result` である `CheckSummary` を表します。`check-summary.json` として公開されます。
+
+```ts title="シグネチャ"
+const checkSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### checkFileSummarySchema
+
+[`checkFile`](/ja/docs/sdk/inspect#checkfile) の `result` である `CheckFileSummary` を表します。`check-file-summary.json` として公開されます。
+
+```ts title="シグネチャ"
+const checkFileSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### diffSummarySchema
+
+[`diff`](/ja/docs/sdk/inspect#diff) の `result` である `DiffSummary` を表します。`diff-summary.json` として公開されます。
+
+```ts title="シグネチャ"
+const diffSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### doctorResultSchema
+
+[`doctor`](/ja/docs/sdk/inspect#doctor) の `result` である `DoctorResult` を表します。`dataFlow` フィールドは [`dataFlowManifestSchema`](/ja/docs/sdk/inspect#dataflowmanifestschema) なので、`doctor-result.json` は `data-flow-manifest.json` を繰り返さずに参照します。
+
+```ts title="シグネチャ"
+const doctorResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### provenanceReportResultSchema
+
+[`provenanceReport`](/ja/docs/sdk/inspect#provenancereport) の `result` である `ProvenanceReportResult` を表します。`available: false` のバリアントも含みます。`provenance-report.json` として公開されます。
+
+```ts title="シグネチャ"
+const provenanceReportResultSchema: z.ZodUnion<readonly [...]>;
+```
+
+### pseudolocalizeResultSchema
+
+[`pseudolocalize`](/ja/docs/sdk/run#pseudolocalize) の `result` である `PseudolocalizeResult` を表します。`pseudolocalize-result.json` として公開されます。
+
+```ts title="シグネチャ"
+const pseudolocalizeResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### generateTypesResultSchema
+
+[`generateTypes`](/ja/docs/sdk/run#generatetypes) の `result` である `GenerateTypesResult` を表します。`generate-types-result.json` として公開されます。
+
+```ts title="シグネチャ"
+const generateTypesResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### extractResultSchema
+
+[`extract`](/ja/docs/sdk/inspect#extract) の `result` である `ExtractResult` を表します。`extract-result.json` として公開されます。
+
+```ts title="シグネチャ"
+const extractResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### exportWorkbookResultSchema
+
+[`exportWorkbook`](/ja/docs/sdk/exchange#exportworkbook) の `result` である `ExportWorkbookResult` を表します。`export-workbook-result.json` として公開されます。
+
+```ts title="シグネチャ"
+const exportWorkbookResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### importTmxResultSchema
+
+[`importTmx`](/ja/docs/sdk/exchange#importtmx) の `result` である `ImportTmxResult` を表します。`import-tmx-result.json` として公開されます。
+
+```ts title="シグネチャ"
+const importTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### exportTmxResultSchema
+
+[`exportTmx`](/ja/docs/sdk/exchange#exporttmx) の `result` である `ExportTmxResult` を表します。`export-tmx-result.json` として公開されます。
+
+```ts title="シグネチャ"
+const exportTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### runHistoryResultSchema
+
+[`runHistory`](/ja/docs/sdk/history#runhistory) の結果である `RunHistoryResult` を表します。`run-history-result.json` として公開されます。
+
+```ts title="シグネチャ"
+const runHistoryResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+## 共通のスキーマ
+
+### localeSummarySchema
+
+実行サマリーの `locales` の 1 エントリである `LocaleSummary` を表します。
+
+```ts title="シグネチャ"
+const localeSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### keyProvenanceSchema
+
+1 つのキーの記録された出どころとレビューの状態である `KeyProvenance` を表します。
+
+```ts title="シグネチャ"
+const keyProvenanceSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### provenanceSummarySchema
+
+`check` のロケールが持つ、出どころごと、レビューの状態ごとのキーの件数である `ProvenanceSummary` を表します。
+
+```ts title="シグネチャ"
+const provenanceSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### keyOriginSchema
+
+キーの現在の値を誰が、または何が書いたかを示す `KeyOrigin` を表します。
+
+```ts title="シグネチャ"
+const keyOriginSchema: z.ZodEnum<{ ... }>;
+```
+
+## ストリームのレコード
+
+### progressEventSchema
+
+`onProgress` が受け取るイベントである `ProgressEvent` を表します。CLI は `--json` のとき、これらのイベントの一部を stderr に出力します。`progress-event.json` として公開されます。
+
+```ts title="シグネチャ"
+const progressEventSchema: z.ZodUnion<readonly [...]>;
+```
+
+### lockWaitEventSchema
+
+実行がロケールの書き込みロックを待つ間に `onLockWait` が受け取るイベントである `LockWaitEvent` を表します。CLI は `type: "lock-wait"` を加えて stderr に出力します。`lock-wait-event.json` として公開されます。
+
+```ts title="シグネチャ"
+const lockWaitEventSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+## 公開
+
+`SDK_JSON_SCHEMAS` は、`@verbatra/sdk/schemas/` の下で SDK が公開するすべてのドキュメントを、それぞれの `name`、`title`、`io`、zod の `schema` とともに一覧にしたものです。`JSON_SCHEMA_BASE_URL` は `https://verbatra.kreitz-webdev.de/schema/v1/` です。`KNOWN_ERROR_CODES` は、SDK、プロバイダー、アダプターのすべてのエラーコードを一覧にしたものです。エラーエンベロープのスキーマは、これらをヒントとして示しつつ、どのコードも受け付けます。
+
+### renderJsonSchemas
+
+`JsonSchemaDocument` のリストから、verbatra 自身の JSON Schema ドキュメント（draft 2020-12）を、名前をキーにして生成します。各ドキュメントには、`jsonSchemaUrl` がその名前に対して返す `$id`（このサイトの URL）が付きます。そのため、これは verbatra のドキュメント専用に使い、自分のスキーマには `renderOutputJsonSchema` を使ってください。出力ドキュメントは、列挙されていないプロパティをすべて許可します。設定のような入力ドキュメントは、閉じたオブジェクトのままです。どちらかのリストのドキュメントを埋め込むスキーマは、そのドキュメントを URL で参照します。
+
+```ts title="シグネチャ"
+function renderJsonSchemas(
+  documents: readonly JsonSchemaDocument[],
+  references?: readonly JsonSchemaDocument[],
+): Readonly<Record<string, JsonSchemaObject>>;
+```
+
+**戻り値**：`documents` の各エントリに対応する 1 つのドキュメントで、それぞれ `$schema`、`$id`、`title` を持ちます。
+
+### renderOutputJsonSchema
+
+1 つの zod スキーマの JSON Schema を、出力ドキュメントと同じ方法で、`$id` なしで生成します。たとえば MCP ツールの `outputSchema` に使えます。
+
+```ts title="シグネチャ"
+function renderOutputJsonSchema(schema: z.ZodType): JsonSchemaObject;
+```
+
+**戻り値**：`JsonSchemaObject`
+
+### jsonSchemaUrl
+
+公開されているドキュメントの公開 URL を返します。これは `$id` でもあります。`jsonSchemaUrl("run-summary")` は `https://verbatra.kreitz-webdev.de/schema/v1/run-summary.json` です。
+
+```ts title="シグネチャ"
+function jsonSchemaUrl(name: string): string;
+```
+
+**戻り値**：`string`

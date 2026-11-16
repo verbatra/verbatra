@@ -1,0 +1,152 @@
+---
+title: クイックスタート
+seoTitle: "クイックスタート：最初のロケールファイルを翻訳"
+description: CLI をインストールし、設定ファイルを作成して、API キーなしで実行をプレビューし、最初のロケールファイルを翻訳します。
+type: tutorial
+---
+このページを終えると、英語のロケールファイルに対応するドイツ語のファイルができます。プロバイダーが書き、verbatra がチェックしたファイルです。あわせて、以降の実行で変更された箇所だけを翻訳するためのロックファイルもできます。必要なのは Node.js `^22.22.0 || >=24` と、約 10 分の時間です。最初の 4 つのステップには、アカウントも API キーも不要です。
+
+<Callout title="ロケールファイルとコーディングエージェントは、すでにありますか？">
+[AI エージェントで verbatra をセットアップする](/ja/docs/start-with-ai)のプロンプトをエージェントに渡します。エージェントは、プロジェクトにすでにあるロケールファイルをそのまま使って verbatra を導入し、費用が発生する前に止まります。以下の手順は、ゼロから始めるものです。
+</Callout>
+
+翻訳したファイルをアプリに読み込むところまで含むクイックスタートが、[React](/ja/docs/quickstart/react)、[Next.js](/ja/docs/quickstart/nextjs)、[Vue](/ja/docs/quickstart/vue)、[Angular](/ja/docs/quickstart/angular)、[Flutter](/ja/docs/quickstart/flutter) 向けに用意されています。
+
+## 手順
+
+<Steps>
+<Step>
+
+### CLI をインストールする
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+以下のコマンドは `npx` を使います。pnpm、yarn、bun では、代わりに `pnpm verbatra`、`yarn verbatra`、`bun run verbatra` を実行します。pnpm が `ERR_PNPM_IGNORED_BUILDS` で終了した場合は、[トラブルシューティング](/ja/docs/troubleshooting#pnpm-が依存パッケージのインストールスクリプトをブロックするerr_pnpm_ignored_builds)を参照してください。
+
+</Step>
+<Step>
+
+### ソースロケールファイルを追加する
+
+プロジェクトにすでにロケールファイルがある場合は、この手順を飛ばします。ない場合は、次のように作成します。
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### 設定ファイルを作成する
+
+```bash
+npx @verbatra/cli init --format i18next-json --provider gemini --yes
+```
+
+`--format` にはファイルフォーマットを指定します。各フレームワークの ID は[技術スタックを選ぶ](/ja/docs/pick-your-stack)にあります。`--yes` を付けると、対話式の質問を出さずに、`init` が検出した内容をそのまま使います。省略すると、[`verbatra init`](/ja/docs/cli/init) が挙げる対話式の質問に答えられます。
+
+```text output
+created verbatra.config.ts
+created .env.example
+created .gitignore (.env, .env.local, .verbatra-local/, verbatra.cache.json)
+detected format i18next-json, pattern locales/{locale}.json, locales en (confidence: medium)
+next steps:
+  - Copy .env.example to .env and set GEMINI_API_KEY there. Never commit .env.
+  - npx @verbatra/cli doctor  (Check the setup. It calls no provider and reads no key value.)
+  - npx @verbatra/cli translate --dry-run  (Preview what a run would translate, without calling the provider.)
+```
+
+新しい `verbatra.config.ts` は、`en` から `de` へ翻訳します。言語を増やすには、`targetLocales` にコードを追加します。
+
+</Step>
+<Step>
+
+### API キーなしで実行をプレビューする
+
+```bash
+npx @verbatra/cli translate --dry-run
+```
+
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+これは対話型ターミナルでの表示です。パイプ経由や CI では、各ステップにも専用の行が出力されます。詳しくは[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。ドライランはプロバイダーを生成しないので、API キーは不要で、費用はかからず、何も書き込まれません。[`verbatra doctor`](/ja/docs/cli/doctor) も、同じ方法で構成の残りをチェックします。
+
+</Step>
+<Step>
+
+### 翻訳する
+
+```bash
+cp .env.example .env
+```
+
+`.env` を開き、`GEMINI_API_KEY=` の後に API キーを貼り付けます。API キーは必ず環境変数から読み込まれ、CLI は [`.env.local` と `.env`](/ja/docs/cli#環境ファイル) をそこに読み込みます。API キーがまだない場合、Gemini には無料枠があり、[Google AI Studio](https://aistudio.google.com/apikey) で API キーを作成できます。ほかのプロバイダーと、その環境変数は[プロバイダー](/ja/docs/providers)に載っています。
+
+```bash
+npx @verbatra/cli translate
+```
+
+verbatra は欠落している 2 件のキーを Gemini に送り、すべての結果をチェックして、ドイツ語のファイルを書き込みます。サマリーは `de: 2 translated, 0 unchanged` で始まり、実行で使ったトークンが一覧表示されます。表現はモデルによって変わります。たとえば次のようになります。
+
+```json title="locales/de.json"
+{
+  "greeting": "Hallo, {{name}}!",
+  "cart": {
+    "empty": "Dein Warenkorb ist leer."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### すべてのロケールが同期していることを確認する
+
+```bash
+npx @verbatra/cli check
+```
+
+```text output
+[ok] checking the locales (0.0s)
+verbatra check
+  de: 0 missing, 0 stale, 2 up-to-date (in sync)
+all locales in sync
+```
+
+`check` はプロバイダーを呼び出さず、ロケールが同期していない状態になるとすぐに終了コード `1` で終了します。そのため、同じコマンドで pull request をゲートで止められます。
+
+</Step>
+</Steps>
+
+## ここで起きたこと
+
+- `locales/de.json` には、ソースと同じキーが同じ順序で入り、`{{name}}` も残っています。プレースホルダーが欠けた結果は保留され、書き込まれることはありません。詳しくは[翻訳の安全性](/ja/docs/translation-safety)を参照してください。
+- `verbatra.lock.json` は、各訳文の元になったソース文字列のハッシュを記録します。そのため次回の実行では、新しいキーと変更されたキーだけが送られます。詳しくは[ロックファイルと来歴](/ja/docs/the-lock-file)を参照してください。
+- `verbatra.provenance.json` は、各値を書いたプロバイダーとモデルを記録します。詳しくは[来歴：各値を誰が書いたか](/ja/docs/the-lock-file#来歴各値を誰が書いたか)を参照してください。
+- `verbatra.cache.json` と `.verbatra-local/` には、再生成可能な翻訳キャッシュとローカルの実行状態が入っています。`init` はすでに両方を gitignore に追加しています。詳しくは[翻訳キャッシュ](/ja/docs/the-cache)を参照してください。
+
+ロケールファイル、ロックファイル、来歴ファイルをまとめてコミットします。そうすると、すべてのマシンと CI が同じベースラインと比較できます。
+
+## 次のステップ
+
+<Cards>
+  <Card title="言語を追加する" href="/ja/docs/add-a-language" description="ターゲットロケールを追加し、1 回の実行で埋めます。" />
+  <Card title="CI で verbatra を実行する" href="/ja/docs/ci-and-exit-codes" description="ロケールがドリフトしたら pull request を失敗させます。" />
+  <Card title="実行の仕組み" href="/ja/docs/how-it-works" description="いま実行したコマンドの裏側で動く処理の流れを説明します。" />
+  <Card title="設定ファイル" href="/ja/docs/config-file" description="verbatra.config.ts に書けるすべての内容を説明します。" />
+</Cards>

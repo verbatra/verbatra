@@ -1,0 +1,116 @@
+---
+title: verbatra import
+seoTitle: "verbatra import：完成した訳文を取り込む"
+description: 記入済みのブック、CSV、TSV、XLIFF の受け渡しファイルをロケールファイルに取り込み、同じ安全チェックを実行します。
+type: reference
+---
+翻訳者が記入した受け渡しファイルを、ロケールファイルに読み戻します。すべての値は、自動実行と同じ整合性チェックを通ります。通過した値は書き込まれ、[ロックファイルと来歴](/ja/docs/the-lock-file)が更新されます。失敗した値は保留されて報告されるため、不正なセルがロケールファイルに入ることはありません。実際の実行では、既存の `.gitignore` に欠落しているエントリも追加します。詳しくは [.gitignore のエントリ](/ja/docs/cli#gitignore-のエントリ)を参照してください。
+
+## 書式
+
+```bash
+verbatra import <workbook> [flags]
+```
+
+- `<workbook>`：[`verbatra export`](/ja/docs/cli/export) が書き出し、翻訳者が記入した受け渡しファイルです。`xlsx` ではブックファイルです。`csv`、`tsv`、`xliff2`、`xliff12` では、`<locale>.csv`、`<locale>.tsv`、`<locale>.xlf` のいずれか 1 つのファイル、またはロケールごとに 1 ファイルを含むディレクトリです。
+
+## 例
+
+```bash
+# import the filled workbook
+verbatra import verbatra-translations.xlsx
+
+# validate and report, write nothing
+verbatra import verbatra-translations.xlsx --dry-run
+
+# import every locale file in a CSV handoff directory
+verbatra import handoff --format csv
+
+# import one XLIFF file back from a CAT tool, naming the reviewer
+verbatra import handoff/de.xlf --reviewer "Agency GmbH"
+```
+
+## オプション
+
+| オプション | 引数 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `--dry-run` | なし | オフ | ロケールファイルへの書き込みもロックファイルの更新もせずに、検証して報告する |
+| `--format` | `<format>` | パスの拡張子から決まる。`csv`、`tsv`、`.xlf` または `.xliff` なら `xliff2`、それ以外は `xlsx`。ディレクトリでは、エクスポートのマニフェストまたは中のロケールファイルから決まる | `xlsx`、`csv`、`tsv`、`xliff2`、`xliff12` のいずれか。どちらの XLIFF フォーマットも両方のバージョンを読み込む |
+| `--reviewer` | `<name>` | なし | `reviewed` または `final` とされた各 XLIFF 翻訳単位に記録される名前。最大 64 文字で、コミットされる来歴ファイルに保存される |
+| `--lock-timeout` | `<seconds>` | `600` | 保持されているロケールごとの書き込みロックを待つ時間。`1` から `3600` までの整数で、それ以外は使い方の誤りとなり終了コード `2` になる |
+
+[グローバルオプション](/ja/docs/cli#グローバルオプション)の `--cwd`、`--config`、`--json` も使えます。
+
+## 動作
+
+<Callout type="warn">
+チェックを通過した記入済みの値は、人が書いた値であっても、ロケールファイル内の対応する値を置き換えます。まず `--dry-run` を実行して、何が変わるかを確認してください。
+</Callout>
+
+### ロケールファイルと残存ファイル
+
+`csv` または `tsv` では、ロケールはファイル名から決まるため、すべてのファイルをエクスポートしたときの名前のままにします。ファイル（ブックの場合はシート）がない設定済みのターゲットロケールは、`WORKBOOK_SHEET_MISSING` で失敗します。黙ってスキップされることはありません。
+
+より広い `--locales` 指定の以前のエクスポートから残っているファイルは、適用されません。インポートは、ディレクトリを直近のエクスポートが書き込んだマニフェストと照合し、該当するロケールを `HANDOFF_FILE_STALE` で失敗させます。そのロケールを再エクスポートするか、ファイルを削除します。読み取れるマニフェストがないディレクトリ（手で組み立てた場合や、アーカイブで失われた場合）は、そのまま読み込まれます。直接指定した単一のファイルも同じです。
+
+### 書き込みロック
+
+<AvailableFrom version="0.12.0" />
+
+`--lock-timeout` は、使用中の[書き込みロック](/ja/docs/the-lock-file#書き込みロック)をロケールが待つ時間を設定します。時間を過ぎると `LOCK_CONTENDED` で失敗します。動作は [`verbatra translate`](/ja/docs/cli/translate) と同じです。待機はロケールのファイルを書き込む前に行われるため、タイムアウトしたロケールには手が付けられず、ほかのロケールは引き続きインポートされます。コマンドは `1` で終了します。ファイルを書き込んだあと、ロックファイルへの記録は、`--lock-timeout` の値にかかわらず、デフォルトの 10 分まで待ちます。1 秒を超える待機では、書き込みロックとその保持者を示す行が出力されます（`--json` では `lock-wait` レコード）。`--dry-run` は書き込みロックを取らないため、待機しません。
+
+### XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+XLIFF ファイルは、宣言されているバージョンで読み込まれます。名前が設定済みのロケールでない単一のファイルは、宣言されているターゲット言語で照合されます。ターゲットが現在の値と等しい翻訳単位は何も変えません。それ以外のターゲットは、ブックの行と同じように整合性ゲートを通ります。`reviewed` または `final`（1.2 では `signed-off` や `approved="yes"` も）の翻訳単位は、`--reviewer` の名前とともに承認として記録され、`HANDOFF_REVIEWS_RECORDED` 通知で報告されます。ID が指すソースキーがない翻訳単位は、不正な行として報告されます。詳しくは[翻訳会社に受け渡す（XLIFF）](/ja/docs/translation-agency)を参照してください。
+
+### 空の行と壊れた行
+
+空の `Translation` セルでロケールが失敗することはありません。その行はスキップされ、ロックファイルのベースラインは維持され、キーはまだ翻訳が必要な間は `unfilled` として報告されます。まだ誰も記入していない受け渡しファイルをインポートしても成功し、未処理のキーがすべて一覧に出ます。
+
+エクスポート後にソーステキストが変わった記入済みの行は保留されます。そのキーは理由なしで `integrity-withheld` に一覧され、ロケールは一部完了になり、キーは再びエクスポートされます。
+
+読み取れない行が 1 つあれば、不正な行として報告され、ロケールの残りは引き続きインポートされます。サイズが大きすぎる、またはまったく解析できない受け渡しファイル（たとえば読み取れる xlsx コンテナーではない場合）は、実行全体の `SOURCE_INVALID` エラーになり、メッセージに原因が示されます。
+
+CSV、TSV、xlsx の受け渡しファイルでは、最新のキーがすでに持っている値と等しい記入済みの行は、整合性ゲートを通過したあとも手を付けず、翻訳されたものではなく未変更として報告されます <AvailableFrom version="0.13.0" />。詳しくは[インポートが受け付けるもの](/ja/docs/manual-translation#インポートが受け付けるもの)を参照してください。
+
+### ターミナルへの表示
+
+<AvailableFrom version="0.12.0" />
+
+`import` は、ファイルを読み込んで適用している間、1 行を表示します。正常にインポートが終わると `verbatra check` を、`--dry-run` のあとは `--dry-run` を外した同じインポートを提案します。ロケールが失敗した場合や一部完了になった場合は、拒否された行を修正したあとの同じインポートを提案します。次の手順を持つエラーでロケールが失敗した場合は、その手順を提案します。
+
+```text output
+verbatra: importing verbatra-translations.xlsx... done (0.4s)
+next: verbatra check (confirm every locale is in sync)
+```
+
+これらの行は stderr に出力され、`--quiet` で表示されなくなります。詳しくは[ターミナル出力](/ja/docs/cli/output#ターミナル出力)を参照してください。
+
+### JSON 出力
+
+スキーマ：[`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) がエンベロープ（envelope）全体を検証します。ほかのスキーマは[スキーマ](/ja/docs/cli/output#スキーマ)に一覧があります。
+
+`--json` を付けると、[JSON 出力](/ja/docs/cli/output#json-出力)のエンベロープが 1 つの `RunSummary` を含みます。形は [`verbatra translate`](/ja/docs/cli/translate) が出力するものと同じで、すべてのフィールドは [RunSummary](/ja/docs/sdk/run-summary) にあります。
+
+## 終了コード
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | ターゲットロケールがすべて完了した |
+| `1` | 実行は終了したが、1 つ以上のロケールが失敗したか一部完了になった |
+| `2` | 実行できなかった。実行全体のエラー（設定、受け渡しファイル、フォーマット、破損したロックファイル）または使い方の誤り |
+| `130` | Ctrl-C（SIGINT）で中断された。実行の書き込みロックを解放した後で終了した |
+| `143` | SIGTERM で停止された。実行の書き込みロックを解放した後で終了した |
+
+<AvailableFrom version="0.9.0" />
+
+終了コードの規則は [`verbatra translate`](/ja/docs/cli/translate) と同じです。そのため、手動の受け渡しも CI で同じように分岐します。一部完了のロケールは `1` で終了します。ロックファイルが破損している場合、または破損した場合は、実行全体を `2` で止め、残りのロケールには手を付けません（それ以前に適用されたロケールは書き込まれたままです）。すべてのコマンドが従う規則は[終了コード](/ja/docs/cli/output#終了コード)を参照してください。
+
+## 関連項目
+
+- [Excel や CSV で受け渡す](/ja/docs/manual-translation)：エクスポート、記入、インポートの往復の全体と、翻訳者が編集してよい箇所
+- [翻訳の安全性](/ja/docs/translation-safety)：値を保留にすることがあるチェックの説明
+- [翻訳会社に受け渡す（XLIFF）](/ja/docs/translation-agency)：CAT ツールを使った XLIFF の往復
+- [`verbatra export`](/ja/docs/cli/export)：このコマンドが読み込む受け渡しファイルの生成

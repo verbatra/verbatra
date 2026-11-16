@@ -1,0 +1,99 @@
+---
+title: 言語とロケール
+seoTitle: "verbatra が対応する言語とロケールコード"
+description: verbatra が翻訳できる言語、ロケールコードが各プロバイダーに届く仕組み、複数形、文字体系、地域バリアント、右から左に書くテキストの扱いを説明します。
+type: concept
+---
+<AvailableFrom version="0.12.0" />
+
+verbatra 独自の言語リストはありません。有効な BCP 47 ロケールコードであれば何でも受け付けるので、プロバイダーが対応する言語を使えます。人手のみのプロジェクトなら、すべての言語を使えます。verbatra は各コードをプロバイダーが求める表記に変換し、すべての訳文をその言語の複数形ルールに従わせます。プロバイダーがロケールに対応できない場合は、実行前に警告します。
+
+## ロケールコード
+
+設定ファイルのロケールは、すべて有効な BCP 47 タグである必要があります。たとえば `fr`、`pt-BR`、`sr-Latn`、`es-419` です。`pt_BR.json` という名前のファイルの場合は `pt-BR` と書き、`files.localeStyle` を `posix` に設定します。詳しいルールは[ロケールコード](/ja/docs/config-file#ロケールコード)にあります。
+
+verbatra は、設定ファイルに書いたコードをそのまま、あらゆる場所に保存します。ファイルパス、ロックファイル、キャッシュのすべてです（[ロックファイルと来歴](/ja/docs/the-lock-file)、[翻訳キャッシュ](/ja/docs/the-cache)を参照）。プロバイダー固有の表記が現れるのは、リクエストの中だけです。すでに翻訳しているコードの表記を `pt_BR` から `pt-BR` に変えても、履歴は引き継がれます。詳しくは[表記の異なるロケールコード](/ja/docs/the-lock-file#表記の異なるロケールコード)を参照してください。
+
+## プロバイダーごとの対応状況
+
+言語ごとの翻訳品質はプロバイダー次第です。各行から、ベンダー自身のリストにリンクしています。
+
+| プロバイダー | 言語 | 送信されるコード | 用語集 | トーン |
+| --- | --- | --- | --- | --- |
+| `anthropic` | 固定のリストなし（[Claude multilingual support](https://platform.claude.com/docs/en/build-with-claude/multilingual-support)） | 書かれたまま（言語、文字体系、地域の英語名も送信） | プロンプト内のロケール別の用語 | プロンプト内 |
+| `openai` | 固定のリストなし（[Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages)） | 書かれたまま（名前も送信） | プロンプト内のロケール別の用語 | プロンプト内 |
+| `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | 書かれたまま（名前も送信） | プロンプト内のロケール別の用語 | プロンプト内 |
+| `opencode` | 選んだ Zen モデルが対応する言語すべて | 書かれたまま（名前も送信） | プロンプト内のロケール別の用語 | プロンプト内 |
+| `openai-compatible` | 実行するモデルが対応する言語すべて | 書かれたまま（名前も送信） | プロンプト内のロケール別の用語 | プロンプト内 |
+| `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | DeepL のコードに正規化 | `glossaryId` で指定する作成済みの DeepL 用語集のみ（32 言語） | 一部の言語で DeepL の丁寧さを利用（無料枠の API キーでは不可） |
+| `google-translate` | [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages)（verbatra が使う Basic 版 v2 には NMT のリストが当てはまります） | 中国語とノルウェー語は正規化、それ以外は書かれたまま | なし | なし |
+| `libretranslate` | サーバーにインストールされているモデル（インストール可能なモデルは[上流のリスト](https://docs.libretranslate.com/)を参照） | 言語のみ（`pt-BR`、`zh-Hans`、`zh-Hant` を除く） | なし | なし |
+| `none` | 該当なし（プロバイダーを呼び出さない） | 何も送信されない | 該当なし | 該当なし |
+
+実際には次のようになります。
+
+- **LLM プロバイダー**には、固定の対応言語リストがありません。指定した言語は何でも試みますが、学習データが少ない言語では品質が下がります。低リソースのターゲット言語は、人がレビューすることをお勧めします。最も疑わしい結果は、[レビューフラグ](/ja/docs/translation-safety#レビューフラグ)が示します。
+- **DeepL と Google Cloud Translation** には固定の対応言語リストがあり、実行前に照合されます。
+- **LibreTranslate** は、サーバーにインストールされたモデルが対応する言語を扱います。
+- プロバイダーが対応できない `tone` や用語集は、通知として報告されます。詳しくは[プロバイダーごとのトーンと用語集](/ja/docs/providers#プロバイダーごとのトーンと用語集)を参照してください。
+
+### 各プロバイダーへのコードの渡し方
+
+DeepL と Google Cloud Translation には、一部のコードを独自の表記で渡します。DeepL は、素の `en` や `pt` のターゲットをリクエストの前に拒否します。LLM プロバイダーには、コードに加えて、言語、文字体系、地域の英語名を渡します（[言語名、文字体系名、地域名](/ja/docs/translation-safety#言語名文字体系名地域名)を参照）。プロバイダーの `options` にある `localeMap` で、ロケールごとにコードを上書きできます。完全なマッピングは、[プロバイダーに送られるロケールコード](/ja/docs/providers#プロバイダーに送られるロケールコード)にあります。
+
+## 実行前の対応確認
+
+費用をかける前に、verbatra は設定されたすべてのロケールをプロバイダーに照らして判定します。[`verbatra doctor --locales`](/ja/docs/cli/doctor#ロケールの対応状況) がその判定を出力します。
+
+- **supported**：verbatra が送るコードがプロバイダーの表にある場合、またはプロバイダーが LLM の場合です。
+- **unverified**：基底言語だけが一覧にある場合、コードが明示的な `localeMap` エントリに由来する場合、またはプロバイダーが LibreTranslate サーバーで、モデルがライブの一覧からしかわからない場合です。翻訳はされますが、警告 `LOCALE_UNVERIFIED_BY_PROVIDER` が出ます。
+- **unsupported**：コードも基底言語も一覧にない場合です。`translate`、`watch`、単一キーの再翻訳は、実行全体を [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/ja/docs/error-codes#locale_unsupported_by_provider) で拒否します。
+
+`--locales` でそのロケールを除外するか、プロバイダーがあとからその言語に対応した場合は `localeMap` でマッピングします。明示的なエントリは信頼されます。同梱の表はベンダーのリストのコピーです（DeepL は 125 コード、Google は 198 コードで、どちらも 2026 年 9 月 28 日時点）。現在のリストは `verbatra doctor --live` で確認できます。
+
+LLM プロバイダーでは、何も拒否されません。LLM が高品質に翻訳できることが知られている言語に含まれないターゲットには、警告 `LOCALE_NOT_WELL_TESTED` が出ます。出力のレビューを促すものです。リストは基底言語で照合するので、`pt-BR` はポルトガル語として扱われます。LLM が高品質に翻訳できることが知られている言語（警告は出ません）は次のとおりです。アラビア語（`ar`）、中国語（`zh`）、オランダ語（`nl`）、英語（`en`）、フランス語（`fr`）、ドイツ語（`de`）、ヒンディー語（`hi`）、インドネシア語（`id`）、イタリア語（`it`）、日本語（`ja`）、韓国語（`ko`）、ポーランド語（`pl`）、ポルトガル語（`pt`）、ロシア語（`ru`）、スペイン語（`es`）、スウェーデン語（`sv`）、トルコ語（`tr`）、ウクライナ語（`uk`）、ベトナム語（`vi`）。
+
+## 文字体系と地域バリアント
+
+文字体系または地域のサブタグが変えるのは、プロバイダーへの依頼内容です。verbatra が何かを保存する方法は変わりません。
+
+| ロケール | DeepL | Google Cloud Translation | LibreTranslate | LLM プロバイダー |
+| --- | --- | --- | --- | --- |
+| `pt-BR` / `pt-PT` | `PT-BR` / `PT-PT` | `pt-BR` / `pt-PT` | `pt-BR` / `pt` | Portuguese (Brazil) / Portuguese (Portugal) |
+| `es-419`、`es-MX` | `ES-419` | `es-419`、`es-MX` | `es` | Spanish (Latin America)、Spanish (Mexico) |
+| `zh-Hans` / `zh-Hant` | `ZH-HANS` / `ZH-HANT` | `zh-CN` / `zh-TW` | `zh-Hans` / `zh-Hant` | Chinese (Simplified) / Chinese (Traditional) |
+| `sr-Latn` / `sr-Cyrl` | どちらも `SR` | `sr-Latn` / `sr-Cyrl` | どちらも `sr` | Serbian (Latin) / Serbian (Cyrillic) |
+
+DeepL と LibreTranslate が文字体系を保つのは、中国語だけです。そのため `sr-Latn` と `sr-Cyrl` には、エンジンがセルビア語に使う文字体系がそのまま使われます。文字体系を名前で伝える LLM プロバイダーが、確実な選択肢です。`LENGTH_RATIO_OUTLIER` のフラグは文字体系ごとに文字数の重みを変えるので、コンパクトな中国語、日本語、韓国語のテキストが短いと判定されることはありません。単語間にスペースのない文字体系の用語集の用語は、包含で照合されます。
+
+## 複数形
+
+verbatra は、言語が必要とする複数形カテゴリ（序数を含む）を、Node.js の ICU データにある CLDR ルールから読み取ります。英語の基数カテゴリは 2 つ、ロシア語とポーランド語は 4 つ、アラビア語とウェールズ語は 6 つ、日本語は `other` だけです。Node.js にルールがないロケールでは、実行の通知は `one` と `other` を想定しますが、整合性ゲート、`check`、`doctor` は `other` だけを要求します。そのようなロケールは、[`verbatra doctor`](/ja/docs/cli/doctor) の `plural-rules` チェックが示します。
+
+複数形を正しく保つ方法は、フォーマットによって異なります。
+
+- **i18next** は、各形に CLDR のサフィックスを付けたキーを使います（`items_one`、`items_few`）。ソースにターゲットが必要とするカテゴリがない場合、実行は `PLURAL_CATEGORIES_INCOMPLETE` を報告します。`generatePlurals: true` と LLM プロバイダーを使うと、verbatra が欠落している形を書き込みます。詳しくは[複数形カテゴリが多い言語](/ja/docs/add-a-language#複数形カテゴリが多い言語)を参照してください。
+- **next-intl と ARB** は、ICU の複数形全体を 1 つの値に保ちます。ターゲット言語に合わない分岐を持つ値は拒否されます。詳しくは[ターゲット言語ごとの複数形の分岐](/ja/docs/translation-safety#ターゲット言語ごとの複数形の分岐)を参照してください。
+- **Apple、Android、gettext** は、各ロケールが持つ形を過不足なく読み書きします。欠落している形は、手で追加する必要があります。gettext は `Plural-Forms` ヘッダーをそのまま保ちます。
+
+### 複数形の警告
+
+[`verbatra check`](/ja/docs/cli/check#複数形カテゴリ) と `verbatra doctor` は、言語が使うカテゴリが欠けている複数形をすべて警告します。対象は、上に挙げたフォーマットのうち gettext を除くすべてです。gettext の形は独自のヘッダーに従います。ほかのフォーマットの複数形はチェックされません。DeepL、Google Cloud Translation、LibreTranslate は既存の形を翻訳しますが、新しい形は生成しません。
+
+## 右から左に書く言語
+
+アラビア語、ヘブライ語、ペルシア語、ウルドゥー語など、右から左に書く言語に特別な扱いは不要です。値はそのまま読み取り、送信し、チェックし、書き戻します。方向制御文字を追加、削除、並べ替えすることはありません。具体的には次のとおりです。
+
+- **方向は文字列ではなくアプリ側で設定します**。`dir` 属性、CSS、またはプラットフォームのレイアウト方向を使います。[インラインマークアップの一致](/ja/docs/translation-safety#インラインマークアップの一致)のチェックは、ソースにない `dir` 属性を追加した訳文を拒否します。
+- **方向制御文字は通常のテキストです**。削除されることがあるので、方向制御文字に依存する訳文は確認してください。閉じられていない埋め込み、オーバーライド、アイソレート（ソースが自分で閉じている場合）、または追加されたオーバーライドは、[`BIDI_CONTROLS_CHANGED`](/ja/docs/error-codes#bidi_controls_changed) を発生させます。
+- **プレースホルダーの順序が変わった場合**は、`INTEGRITY_REORDERED` だけが発生します。別の言語では別の順序が正しいことが多いためです。
+- **Studio は、右から左に書く文字体系のすべてのロケールで、値を右から左に表示します**。判定は、ブラウザーの方向、またはロケールの文字体系の推定によります（`ku-Arab` は右から左、`ku` は左から右）。変わるのは表示だけです。
+- **[`verbatra pseudo --mode bidi`](/ja/docs/cli/pseudo) は、ソースを右から左にレンダリングします**。`ar-XB` 疑似ロケールで、訳文がまだない段階で、左から右を前提にしたレイアウトを洗い出せます。画像やアイコンの左右反転は、各自で確認してください。
+
+## 低リソース言語とローカルモデル
+
+ホスト型プロバイダーの対応が弱い言語の場合は、次の方法があります。
+
+- **`openai-compatible` でローカルモデルを実行します**。指示チューニング済みのチャットモデルで、JSON オブジェクトを 1 つ返すものが必要です。詳しくは[ローカルモデルの選び方](/ja/docs/providers#ローカルモデルの選び方)を参照してください。
+- **verbatra の外で専用の翻訳モデルを使い**、結果をブックの往復で戻します（[Excel や CSV で受け渡す](/ja/docs/manual-translation)を参照）。往復でも同じ整合性チェックが実行されます。次のモデルはチャットモデルではないため、どれも `openai-compatible` には接続できません。[MADLAD-400](https://huggingface.co/google/madlad400-3b-mt)（Apache-2.0、400 を超える言語）、[TranslateGemma](https://huggingface.co/google/translategemma-4b-it)（55 言語、Gemma の利用規約）、[NLLB-200](https://huggingface.co/facebook/nllb-200-distilled-600M)（約 200 言語。ただし CC-BY-NC-4.0 のため、商用製品には使えません）です。ライセンスは、各モデルについて自分で確認してください。
+- **人が翻訳します**。人手のみの作業の流れ（[機械翻訳なしで実行する](/ja/docs/human-only-workflow)を参照）は、どの言語でも使えます。
