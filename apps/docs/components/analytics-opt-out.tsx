@@ -1,18 +1,21 @@
 import { buttonClasses } from "@verbatra/ui";
 import type { ReactNode } from "react";
+import type { AnalyticsChoice } from "@/lib/analytics-choice";
 import type { Locale } from "@/lib/i18n";
 
 export const ANALYTICS_OPT_OUT_ACTION = "/api/analytics";
 
 export interface AnalyticsOptOutLabels {
-  readonly optOut: string;
   readonly optIn: string;
-  readonly statusOptedOut: string;
+  readonly defaultOnly: string;
+  readonly optOut: string;
   readonly statusOptedIn: string;
+  readonly statusDefault: string;
+  readonly statusOptedOut: string;
   readonly signals: string;
 }
 
-type Choice = "off" | "on";
+type Choice = AnalyticsChoice;
 
 function ChoiceForm({
   locale,
@@ -55,13 +58,15 @@ export function AnalyticsOptOut({
   labels: AnalyticsOptOutLabels;
 }): ReactNode {
   return (
-    <div className="not-prose mt-4 flex flex-col gap-3 rounded-xl border border-(--border-default) bg-(--surface-card) p-4">
+    <div className="not-prose mt-4 flex flex-col gap-3 rr-block rounded-xl border border-(--border-default) bg-(--surface-card) p-4">
+      <ChoiceStatus choice="full" label={labels.statusOptedIn} />
+      <ChoiceStatus choice="default" label={labels.statusDefault} />
       <ChoiceStatus choice="off" label={labels.statusOptedOut} />
-      <ChoiceStatus choice="on" label={labels.statusOptedIn} />
       <p className="m-0 text-sm text-(--text-body)">{labels.signals}</p>
       <div className="flex flex-wrap gap-3">
+        <ChoiceForm locale={locale} choice="full" label={labels.optIn} />
+        <ChoiceForm locale={locale} choice="default" label={labels.defaultOnly} />
         <ChoiceForm locale={locale} choice="off" label={labels.optOut} />
-        <ChoiceForm locale={locale} choice="on" label={labels.optIn} />
       </div>
     </div>
   );

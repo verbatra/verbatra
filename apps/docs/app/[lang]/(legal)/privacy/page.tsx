@@ -60,10 +60,12 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
   const tLegal = await getTranslations({ locale, namespace: "landing.footer.cols.legal" });
   const linkTags = linkTagsFor(locale);
   const optOutLabels: AnalyticsOptOutLabels = {
-    optOut: t(`${PRIVACY_ANALYTICS_KEY}.optOut.optOut`),
     optIn: t(`${PRIVACY_ANALYTICS_KEY}.optOut.optIn`),
-    statusOptedOut: t(`${PRIVACY_ANALYTICS_KEY}.optOut.statusOptedOut`),
+    defaultOnly: t(`${PRIVACY_ANALYTICS_KEY}.optOut.defaultOnly`),
+    optOut: t(`${PRIVACY_ANALYTICS_KEY}.optOut.optOut`),
     statusOptedIn: t(`${PRIVACY_ANALYTICS_KEY}.optOut.statusOptedIn`),
+    statusDefault: t(`${PRIVACY_ANALYTICS_KEY}.optOut.statusDefault`),
+    statusOptedOut: t(`${PRIVACY_ANALYTICS_KEY}.optOut.statusOptedOut`),
     signals: t(`${PRIVACY_ANALYTICS_KEY}.optOut.signals`),
   };
 

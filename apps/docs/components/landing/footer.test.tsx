@@ -276,6 +276,7 @@ describe("FullFooter", () => {
         "/privacy",
         "/contact",
         "/licenses",
+        "/privacy#analytics",
       ],
     ]);
     expect(groups.map((group) => group.dataset.group)).toEqual([

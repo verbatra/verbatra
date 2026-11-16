@@ -116,7 +116,7 @@ describe.each(i18n.languages)("every layout links the imprint (%s)", (locale) =>
 
 describe("the compact legal footer", () => {
   it.each(LAYOUTS.filter(([name]) => name !== "home"))(
-    "gives the %s layout imprint, privacy, contact and licenses links in the reader's locale",
+    "gives the %s layout imprint, privacy, contact, licenses and analytics settings links in the reader's locale",
     async (_name, layout) => {
       const doc = await renderLayout(layout, "de");
       const links = Array.from(
@@ -129,6 +129,7 @@ describe("the compact legal footer", () => {
         ["/de/privacy", "Datenschutzerklärung"],
         ["/de/contact", "Kontakt"],
         ["/de/licenses", "Lizenzen"],
+        ["/de/privacy#analytics", "Analyse-Einstellungen"],
       ]);
       expect(doc.querySelector("footer nav")?.getAttribute("aria-label")).toBe("Rechtliches");
       expect(

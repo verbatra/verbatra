@@ -162,7 +162,8 @@
           "privacy": "Politique de confidentialité",
           "imprint": "Mentions légales (Impressum)",
           "contact": "Contact",
-          "licenses": "Licences"
+          "licenses": "Licences",
+          "analyticsSettings": "Réglages d’analyse"
         }
       },
       "versionParts": "CLI et SDK v{cli}, Studio v{studio}, serveur MCP v{mcp}",
@@ -423,10 +424,12 @@
         "body": "Nous comptons les pages vues avec Umami, un outil de statistiques open source que nous hébergeons nous-mêmes sur le même serveur que ce site (voir la section 3), de sorte qu’aucune donnée statistique n’est transmise à un tiers. Aucun script de statistiques ne s’exécute dans ton navigateur, et rien n’est écrit sur ton appareil pour compter les pages vues. La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d’opposition décrit à la section 5, et uniquement pour respecter ton opposition. À la place, lorsque ton navigateur charge directement une page de ce site (et non lorsqu’il la précharge en arrière-plan), notre serveur web transmet à notre serveur Umami les informations suivantes de cette requête : ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l’en-tête Accept-Language de ton navigateur (par exemple fr-FR), transmise à chaque page vue, la page référente (sans ses paramètres de requête) et le chemin de la page chargée avec les cinq paramètres UTM de l’adresse de la page (utm_source, utm_medium, utm_campaign, utm_term et utm_content, chacun raccourci à 255 caractères) ; tous les autres paramètres de requête, comme les identifiants de clic publicitaires, ainsi que le fragment sont écartés et ne sont pas transmis. Les clics, les textes copiés et les autres interactions ne sont pas enregistrés. <strong>Ton adresse IP et ta chaîne user-agent elles-mêmes ne sont pas conservées.</strong> Le serveur Umami calcule un identifiant de session pseudonyme en hachant l’identifiant du site, ton adresse IP, ta chaîne user-agent, une valeur qui change chaque mois et une clé secrète du serveur. Pour chaque page vue, il enregistre cet identifiant, l’heure, le chemin de la page avec les éventuels paramètres UTM et la page référente, et pour la session cette balise de langue, ton navigateur, ton système d’exploitation et ton type d’appareil (déduits de la chaîne user-agent), ainsi que ton pays, ta région et ta ville, qu’il détermine à partir de ton adresse IP dans une base de données GeoLite2 sur le même serveur sans interroger aucun autre service. Comme l’identifiant de session est dérivé de ton adresse IP, il s’agit d’un traitement pseudonyme, et non anonyme, de données personnelles. Nous ne consultons les résultats que sous forme agrégée et ne cherchons pas à identifier des visiteurs individuels. Comme rien n’est stocké sur ton appareil pour compter les pages vues et que le cookie d’opposition n’est lu que pour respecter ton opposition, aucun consentement au titre du § 25 TDDDG (loi allemande sur la protection des données dans les télécommunications et les services numériques) n’est nécessaire pour cela. La base légale du traitement est l’art. 6, paragraphe 1, point f) du RGPD (notre intérêt légitime à comprendre comment le site est utilisé). Les données statistiques sont stockées dans la base de données Umami de ce serveur. Si ton navigateur envoie un signal Global Privacy Control (GPC) ou Do Not Track, rien n’est transmis. Tu peux aussi t’y opposer avec le bouton ci-dessous : il dépose le cookie décrit à la section 5 et, tant que ton navigateur envoie ce cookie, rien n’est transmis non plus. Une opposition enregistrée dans le stockage local de ton navigateur avec l’ancienne configuration statistique de ce site n’est plus lue ; si tu t’es opposé de cette manière, oppose-toi à nouveau ici. Tu peux en savoir plus sur Umami dans sa <umami>documentation</umami>.",
         "optOut": {
           "optOut": "Refuser les statistiques",
-          "optIn": "Autoriser à nouveau les statistiques",
-          "statusOptedOut": "Enregistré : tu t’es opposé. Tes pages vues ne sont pas comptées tant que ce navigateur conserve le cookie.",
-          "statusOptedIn": "Enregistré : les statistiques sont à nouveau autorisées. Tes pages vues sont comptées sauf si ton navigateur envoie un signal GPC ou Do Not Track.",
-          "signals": "Si ton navigateur envoie un signal Global Privacy Control (GPC) ou Do Not Track, tes pages vues ne sont pas comptées, quel que soit le bouton choisi. Les boutons fonctionnent sans JavaScript."
+          "optIn": "Autoriser l’analyse étendue",
+          "statusOptedOut": "Enregistré : tu t’es opposé. Rien n’est compté et aucun script d’analyse n’est chargé tant que ce navigateur conserve le choix.",
+          "statusOptedIn": "Enregistré : l’analyse étendue est autorisée. Tu peux changer cela ici à tout moment.",
+          "signals": "Si ton navigateur envoie un signal Global Privacy Control (GPC) ou Do Not Track, rien n’est compté et aucun script d’analyse n’est chargé, quel que soit le bouton choisi. Les boutons fonctionnent sans JavaScript.",
+          "defaultOnly": "Compter uniquement les pages vues",
+          "statusDefault": "Enregistré : l’analyse étendue reste désactivée. Tes pages vues sont toujours comptées sur notre serveur tant que tu ne t’y opposes pas."
         }
       },
       "s5": {
@@ -527,5 +530,13 @@
     "lead": "L’adresse contient peut-être une faute de frappe, ou la page a été déplacée. La documentation et la page d’accueil sont un bon point de départ.",
     "home": "Aller à la page d’accueil",
     "docs": "Ouvrir la documentation"
+  },
+  "analyticsPrompt": {
+    "label": "Choix d’analyse",
+    "title": "Tu veux nous aider à améliorer la doc ?",
+    "body": "Si tu l’autorises, nous chargeons notre propre outil d’analyse : les commandes que tu utilises et, pour un échantillon de visites, un enregistrement et une carte de chaleur des mouvements de souris, des clics et du défilement. Les champs de saisie sont toujours masqués.",
+    "allow": "Autoriser",
+    "decline": "Non merci",
+    "privacy": "Politique de confidentialité et réglages"
   }
 }

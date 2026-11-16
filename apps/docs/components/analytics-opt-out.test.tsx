@@ -12,10 +12,12 @@ import {
 } from "./analytics-opt-out";
 
 const LABELS: AnalyticsOptOutLabels = {
+  optIn: "Allow extended analytics",
+  defaultOnly: "Count page views only",
   optOut: "Opt out",
-  optIn: "Opt in",
+  statusOptedIn: "Extended analytics allowed",
+  statusDefault: "Page views only",
   statusOptedOut: "Opted out",
-  statusOptedIn: "Opted in",
   signals: "GPC and DNT are honored",
 };
 
@@ -25,15 +27,12 @@ function render(locale: "en" | "de" = "en"): Document {
 }
 
 describe("AnalyticsOptOut", () => {
-  it("renders two plain forms that post the choice and the locale without JavaScript", () => {
+  it("renders three plain forms that post the choice and the locale without JavaScript", () => {
     const doc = render("de");
     const forms = Array.from(doc.querySelectorAll("form"));
 
     expect(forms.map((form) => [form.getAttribute("method"), form.getAttribute("action")])).toEqual(
-      [
-        ["post", ANALYTICS_OPT_OUT_ACTION],
-        ["post", ANALYTICS_OPT_OUT_ACTION],
-      ],
+      forms.map(() => ["post", ANALYTICS_OPT_OUT_ACTION]),
     );
     expect(
       forms.map((form) =>
@@ -45,12 +44,14 @@ describe("AnalyticsOptOut", () => {
         ),
       ),
     ).toEqual([
+      { lang: "de", choice: "full" },
+      { lang: "de", choice: "default" },
       { lang: "de", choice: "off" },
-      { lang: "de", choice: "on" },
     ]);
     expect(forms.map((form) => form.querySelector('button[type="submit"]')?.textContent)).toEqual([
+      "Allow extended analytics",
+      "Count page views only",
       "Opt out",
-      "Opt in",
     ]);
   });
 
@@ -58,8 +59,9 @@ describe("AnalyticsOptOut", () => {
     const doc = render();
 
     for (const [id, text] of [
+      ["analytics-full", "Extended analytics allowed"],
+      ["analytics-default", "Page views only"],
       ["analytics-off", "Opted out"],
-      ["analytics-on", "Opted in"],
     ] as const) {
       const status = doc.getElementById(id);
       expect(status?.textContent).toBe(text);
@@ -68,6 +70,10 @@ describe("AnalyticsOptOut", () => {
         expect.arrayContaining(["hidden", "target:block"]),
       );
     }
+  });
+
+  it("blocks the panel from session replay", () => {
+    expect(render().querySelector(".rr-block")).not.toBeNull();
   });
 
   it("states that browser privacy signals are honored", () => {

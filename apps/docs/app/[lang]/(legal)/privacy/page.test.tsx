@@ -540,21 +540,22 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     expect(analytics).not.toContain("umami.disabled");
   });
 
-  it("renders the opt-out as two plain forms in the analytics section", async () => {
+  it("renders the analytics choice as three plain forms in the analytics section", async () => {
     const doc = await renderPrivacy(locale);
     const analytics = sectionNumbered(doc, 4);
     const forms = Array.from(analytics?.querySelectorAll("form") ?? []);
 
     expect(analytics?.querySelector("h2")?.id).toBe("analytics");
-    expect(forms).toHaveLength(2);
+    expect(forms).toHaveLength(3);
     for (const form of forms) {
       expect(form.getAttribute("method")).toBe("post");
       expect(form.getAttribute("action")).toBe("/api/analytics");
       expect(form.querySelector<HTMLInputElement>('input[name="lang"]')?.value).toBe(locale);
     }
-    expect(analytics?.querySelector("#analytics-off")).not.toBeNull();
-    expect(analytics?.querySelector("#analytics-on")).not.toBeNull();
-    expect(doc.querySelectorAll("form")).toHaveLength(2);
+    for (const choice of ["full", "default", "off"]) {
+      expect(analytics?.querySelector(`#analytics-${choice}`)).not.toBeNull();
+    }
+    expect(doc.querySelectorAll("form")).toHaveLength(3);
   });
 
   it("names the opt-out cookie as the only cookie and every browser storage entry", async () => {
