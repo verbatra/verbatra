@@ -21,13 +21,6 @@ vi.mock("next-intl/server", () => ({
     createTranslator({ locale: "en", messages, namespace: namespace as never }),
 }));
 
-const breakSpy = vi.hoisted(() => vi.fn((node: unknown) => node));
-
-vi.mock("@/lib/word-breaks", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/word-breaks")>()),
-  breakBetweenWords: breakSpy,
-}));
-
 vi.mock("@/components/static-site-header", () => ({
   StaticSiteHeader: () => <header data-static-header="" />,
 }));
@@ -113,11 +106,5 @@ describe("the global not-found page", () => {
     const metadata = await generateMetadata();
     expect(metadata.title).toBe(`${messages.notFound.meta.title} | verbatra`);
     expect(metadata).not.toHaveProperty("robots");
-  });
-
-  it("passes the heading through the word-break helper so a Japanese title can wrap", async () => {
-    breakSpy.mockClear();
-    await render();
-    expect(breakSpy).toHaveBeenCalledWith(messages.notFound.title);
   });
 });

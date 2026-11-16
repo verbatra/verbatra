@@ -1,5 +1,4 @@
 import { Fragment, type ReactNode } from "react";
-import { groupWordSegments, KANA, SPACELESS_SCRIPT } from "@/lib/word-count";
 
 export function breakAfterUnderscores(text: ReactNode): ReactNode {
   if (typeof text !== "string" || !text.includes("_")) return text;
@@ -149,30 +148,4 @@ const LINK_LABEL_WHOLE_MAX_WORDS = 2;
 export function keepLinkLabelWhole(text: string): ReactNode {
   if (text.trim().split(/\s+/).length > LINK_LABEL_WHOLE_MAX_WORDS) return keepCompoundsWhole(text);
   return <span className="whitespace-nowrap">{text}</span>;
-}
-
-const WORD_SEGMENTERS = {
-  zh: new Intl.Segmenter("zh", { granularity: "word" }),
-  ja: new Intl.Segmenter("ja", { granularity: "word" }),
-};
-
-export function breakBetweenWords(node: ReactNode): ReactNode {
-  if (Array.isArray(node)) {
-    return node.map((part, index) => (
-      <Fragment key={`part-${index}`}>{breakBetweenWords(part)}</Fragment>
-    ));
-  }
-  if (typeof node !== "string" || !SPACELESS_SCRIPT.test(node)) return node;
-  const segmenter = KANA.test(node) ? WORD_SEGMENTERS.ja : WORD_SEGMENTERS.zh;
-  const groups = groupWordSegments(segmenter.segment(node));
-  return groups.map((group, index) => {
-    const previous = groups[index - 1];
-    const breakBefore = previous?.isWordLike === true && group.isWordLike;
-    return (
-      <Fragment key={`${index}-${group.text}`}>
-        {breakBefore ? <wbr /> : null}
-        {group.text}
-      </Fragment>
-    );
-  });
 }

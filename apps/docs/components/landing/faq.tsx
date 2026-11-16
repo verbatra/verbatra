@@ -12,7 +12,8 @@ import {
 } from "@/lib/landing-faq";
 import type { FaqItem } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
-import { breakBetweenWords, keepCompoundsWhole } from "@/lib/word-breaks";
+import { keepCompoundsWhole } from "@/lib/word-breaks";
+import { breakBetweenWords } from "@/lib/word-segments";
 import { FaqKeys } from "./islands";
 import { LICENSE_URL } from "./links";
 import { Section } from "./section";

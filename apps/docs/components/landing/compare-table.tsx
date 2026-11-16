@@ -13,8 +13,8 @@ import {
   compareSourceHref,
 } from "@/lib/landing-compare";
 import { cn } from "@/lib/utils";
-import { breakBetweenWords } from "@/lib/word-breaks";
 import { isSpaceless, lastWordStart, SPACELESS_SCRIPT } from "@/lib/word-count";
+import { breakBetweenWords } from "@/lib/word-segments";
 
 export type CompareTranslator = Awaited<ReturnType<typeof getTranslations<"landing.compare">>>;
 

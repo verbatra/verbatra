@@ -4,7 +4,7 @@ import { toLocale } from "@/lib/i18n";
 import { DRY_RUN_COMMAND, INIT_COMMAND } from "@/lib/install-commands";
 import { PROOF_IDS, proofHref, proofIsExternal } from "@/lib/landing-proof";
 import { COVERAGE_THRESHOLD } from "@/lib/site";
-import { breakBetweenWords } from "@/lib/word-breaks";
+import { breakBetweenWords } from "@/lib/word-segments";
 import { CommandRow } from "./islands";
 
 const CLOSING_HEADING_ID = "closing-heading";

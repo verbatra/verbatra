@@ -5,7 +5,7 @@ import { type Locale, localizedPath } from "@/lib/i18n";
 import { COMPARE_LAST_CHECKED, COMPARE_TOOLS } from "@/lib/landing-compare";
 import { formatLandingDate } from "@/lib/landing-date";
 import { homePath } from "@/lib/site";
-import { breakBetweenWords } from "@/lib/word-breaks";
+import { breakBetweenWords } from "@/lib/word-segments";
 import { CompareMatrix, ComparePairs, toolName } from "./compare-table";
 import { ComparePicker } from "./islands";
 

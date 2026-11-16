@@ -6,7 +6,8 @@ import { type Locale, localizedPath } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { cn } from "@/lib/utils";
-import { breakBetweenWords, keepCompoundsWhole, keepLinkLabelWhole } from "@/lib/word-breaks";
+import { keepCompoundsWhole, keepLinkLabelWhole } from "@/lib/word-breaks";
+import { breakBetweenWords } from "@/lib/word-segments";
 
 const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 

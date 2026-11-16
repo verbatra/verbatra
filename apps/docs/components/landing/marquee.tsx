@@ -9,7 +9,7 @@ import { type BrandMarkId, MARQUEE_GLYPH_SIZE, marqueeMarkSize } from "@/lib/bra
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, type MachineProviderId, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { landingProviders } from "@/lib/landing-providers";
-import { breakBetweenWords } from "@/lib/word-breaks";
+import { breakBetweenWords } from "@/lib/word-segments";
 import { MarqueeMotion } from "./islands";
 import { PlainList } from "./plain-list";
 

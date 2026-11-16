@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { breakBetweenWords } from "@/lib/word-breaks";
+import { breakBetweenWords } from "@/lib/word-segments";
 
 type SectionHeadLayout = "split" | "stacked" | "inline";
 

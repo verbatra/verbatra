@@ -15,7 +15,7 @@ import {
   heroFilePreview,
 } from "@/lib/landing-hero-files";
 import { splitPlaceholders } from "@/lib/placeholder-segments";
-import { breakBetweenWords } from "@/lib/word-breaks";
+import { breakBetweenWords } from "@/lib/word-segments";
 
 export const HERO_TITLE_ID = "hero-title";
 
