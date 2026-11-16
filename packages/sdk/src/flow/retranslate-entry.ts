@@ -26,7 +26,7 @@ import {
   writeLockKeyFor,
   writeLockOptions,
 } from "../lock/locale-write-lock.js";
-import { updateLockFileLocale } from "../lock/lock-file.js";
+import { assertLockFileReadable, updateLockFileLocale } from "../lock/lock-file.js";
 import { machineAttribution } from "../lock/machine-attribution.js";
 import { type PendingProvenance, settleProvenance } from "../lock/provenance-file.js";
 import { assertProvenanceReadable } from "../lock/provenance-notice.js";
@@ -282,6 +282,7 @@ async function saveAccepted(
   const merged = new Map(target.entries);
   merged.set(key, { ...sourceEntry, value, namespace: target.namespace });
   const resolver = createLocalePathResolver(cwd, config);
+  await assertLockFileReadable(cwd, fs);
   await writeTargetResource(
     adapter,
     { locale, namespace: target.namespace, format: config.format, entries: merged },
@@ -421,7 +422,11 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
  * written.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
- * unsupported version.
+ * unsupported version. Checked before the provider is called and again inside the write lock just
+ * before the locale file is written, so nothing is written; when only the second check fails, the
+ * provider has already been called and its answer is discarded. A lock-file that becomes invalid
+ * in the milliseconds after that second check is thrown once the baseline is recorded, when the new
+ * value is already saved without one.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
  * structurally wrong. Checked before the provider is called or anything is written. A file from a
  * newer verbatra is left untouched and the value is written without a record, and so is a value

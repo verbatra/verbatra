@@ -133,6 +133,10 @@ function applyLockLocalePatch(
   return { ...currentEntries, ...patch.entries };
 }
 
+export async function assertLockFileReadable(cwd: string, fs: SdkFs): Promise<void> {
+  await readLockFile(lockFilePath(cwd), fs);
+}
+
 export interface LockLocaleUpdate {
   readonly lock: LockFile;
   readonly provenance: ProvenanceWriteOutcome;
