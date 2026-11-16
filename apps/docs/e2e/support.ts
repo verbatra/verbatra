@@ -6,7 +6,7 @@ import { THEME_STORAGE_KEY, THEMES, type ThemeName } from "@/lib/theme";
 
 export const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] as const;
 
-export { LOCALES, THEMES, type ThemeName };
+export { LOCALES, type Locale, THEMES, type ThemeName };
 
 export const LEGAL_PAGES = ["/imprint", "/privacy", "/licenses", "/contact"] as const;
 

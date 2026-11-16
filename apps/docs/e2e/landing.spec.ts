@@ -5,6 +5,7 @@ import {
   expectNothingPastRightEdge,
   homeUrl,
   LOCALES,
+  type Locale,
   openInTheme,
   THEMES,
 } from "./support";
@@ -138,19 +139,30 @@ test.describe("landing search", () => {
 test.describe("landing length on a phone", () => {
   const PHONE = { width: 391, height: 844 };
 
-  for (const { motion, screens } of [
-    { motion: "no-preference", screens: 13.5 },
-    { motion: "reduce", screens: 13.5 },
-  ] as const) {
-    test(`stays under ${screens} screens with motion ${motion}`, async ({ page }) => {
-      await page.setViewportSize(PHONE);
-      await page.emulateMedia({ reducedMotion: motion });
-      await page.goto(homeUrl("en"), { waitUntil: "networkidle" });
-      await page.evaluate(() => document.fonts.ready);
-      await expect(page.locator(".vk-scroll-top-sentinel")).toBeAttached();
-      const height = await page.evaluate(() => document.documentElement.scrollHeight);
-      expect(height / PHONE.height).toBeLessThan(screens);
-    });
+  const PHONE_SCREENS: Record<Locale, number> = {
+    en: 13.5,
+    de: 14,
+    es: 14,
+    fr: 14,
+    ja: 14,
+    "pt-BR": 14,
+    "zh-CN": 14,
+  };
+
+  for (const locale of LOCALES) {
+    for (const motion of ["no-preference", "reduce"] as const) {
+      test(`stays under ${PHONE_SCREENS[locale]} screens in ${locale} with motion ${motion}`, async ({
+        page,
+      }) => {
+        await page.setViewportSize(PHONE);
+        await page.emulateMedia({ reducedMotion: motion });
+        await page.goto(homeUrl(locale), { waitUntil: "networkidle" });
+        await page.evaluate(() => document.fonts.ready);
+        await expect(page.locator(".vk-scroll-top-sentinel")).toBeAttached();
+        const height = await page.evaluate(() => document.documentElement.scrollHeight);
+        expect(height / PHONE.height).toBeLessThan(PHONE_SCREENS[locale]);
+      });
+    }
   }
 
   test("lists the features as text cards with a docs link and no artifact card", async ({
