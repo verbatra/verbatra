@@ -1,4 +1,4 @@
-import { createAnthropicProvider, ProviderError } from "@verbatra/ai-providers";
+import { ProviderError } from "@verbatra/ai-providers";
 import { describe, expect, it } from "vitest";
 import { subBatchFailedNotice } from "./batching.js";
 
@@ -30,36 +30,37 @@ describe("subBatchFailedNotice: cause code", () => {
   });
 });
 
-const ONE_ENTRY = {
-  sourceLocale: "en",
-  targetLocale: "de",
-  entries: [{ key: "k", namespace: "", value: "Hello", placeholders: [], isPlural: false }],
-  extractPlaceholders: () => [],
-} as const;
-
-async function providerFailureWithStatus(status: number): Promise<unknown> {
-  const failing = {
-    messages: {
-      create: (): Promise<never> => Promise.reject(Object.assign(new Error("vendor"), { status })),
-    },
-  };
-  const provider = createAnthropicProvider(
-    { model: "m", maxTokens: 64 },
-    { client: failing as never },
-  );
-  return provider.translateBatch(ONE_ENTRY).catch((caught: unknown) => caught);
-}
+const NO_RETRY =
+  /and was withheld; running again will fail the same way until the cause is fixed\.$/;
+const RETRY = /and was withheld; it will be retried next run\.$/;
 
 describe("subBatchFailedNotice: retry advice by HTTP status", () => {
-  it.each([400, 404, 422])("says a retry will not help after a %i", async (status) => {
-    const notice = subBatchFailedNotice(1, await providerFailureWithStatus(status));
-    expect(notice.message).toMatch(
-      /and was withheld; running again will fail the same way until the cause is fixed\.$/,
-    );
+  it.each([400, 404, 422])("says a retry will not help after a %i", (status) => {
+    const notice = subBatchFailedNotice(1, new ProviderError("PROVIDER_ERROR", "x", { status }));
+    expect(notice.message).toMatch(NO_RETRY);
   });
 
-  it.each([408, 429, 500, 503])("promises a retry after a %i", async (status) => {
-    const notice = subBatchFailedNotice(1, await providerFailureWithStatus(status));
-    expect(notice.message).toMatch(/and was withheld; it will be retried next run\.$/);
+  it.each([
+    ["TIMEOUT", 408],
+    ["RATE_LIMITED", 429],
+    ["PROVIDER_UNAVAILABLE", 503],
+    ["PROVIDER_ERROR", 500],
+  ] as const)("promises a retry after %s with HTTP %i", (code, status) => {
+    const notice = subBatchFailedNotice(1, new ProviderError(code, "x", { status }));
+    expect(notice.message).toMatch(RETRY);
+  });
+});
+
+describe("subBatchFailedNotice: retry advice by cause", () => {
+  it("says a retry will not help after AUTH_FAILED", () => {
+    const notice = subBatchFailedNotice(1, new ProviderError("AUTH_FAILED", "rejected"));
+    expect(notice.message).toMatch(NO_RETRY);
+    expect(notice.causeCode).toBe("AUTH_FAILED");
+  });
+
+  it("promises a retry after a failure that is not a ProviderError", () => {
+    const notice = subBatchFailedNotice(1, new Error("socket hang up"));
+    expect(notice.message).toMatch(RETRY);
+    expect(notice.message).toContain("PROVIDER_CALL_FAILED");
   });
 });
