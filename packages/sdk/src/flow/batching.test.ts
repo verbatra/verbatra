@@ -1,4 +1,4 @@
-import { ProviderError } from "@verbatra/ai-providers";
+import { createAnthropicProvider, ProviderError } from "@verbatra/ai-providers";
 import { describe, expect, it } from "vitest";
 import { subBatchFailedNotice } from "./batching.js";
 
@@ -27,5 +27,39 @@ describe("subBatchFailedNotice: cause code", () => {
     const notice = subBatchFailedNotice(2, new Error("x"));
     expect(notice).not.toHaveProperty("causeCode");
     expect(notice.message).toContain("PROVIDER_CALL_FAILED");
+  });
+});
+
+const ONE_ENTRY = {
+  sourceLocale: "en",
+  targetLocale: "de",
+  entries: [{ key: "k", namespace: "", value: "Hello", placeholders: [], isPlural: false }],
+  extractPlaceholders: () => [],
+} as const;
+
+async function providerFailureWithStatus(status: number): Promise<unknown> {
+  const failing = {
+    messages: {
+      create: (): Promise<never> => Promise.reject(Object.assign(new Error("vendor"), { status })),
+    },
+  };
+  const provider = createAnthropicProvider(
+    { model: "m", maxTokens: 64 },
+    { client: failing as never },
+  );
+  return provider.translateBatch(ONE_ENTRY).catch((caught: unknown) => caught);
+}
+
+describe("subBatchFailedNotice: retry advice by HTTP status", () => {
+  it.each([400, 404, 422])("says a retry will not help after a %i", async (status) => {
+    const notice = subBatchFailedNotice(1, await providerFailureWithStatus(status));
+    expect(notice.message).toMatch(
+      /and was withheld; running again will fail the same way until the cause is fixed\.$/,
+    );
+  });
+
+  it.each([408, 429, 500, 503])("promises a retry after a %i", async (status) => {
+    const notice = subBatchFailedNotice(1, await providerFailureWithStatus(status));
+    expect(notice.message).toMatch(/and was withheld; it will be retried next run\.$/);
   });
 });

@@ -7,6 +7,7 @@ import {
   REJECTED_REQUEST_REMEDY,
 } from "./http-failure-message.js";
 import { NetworkPolicyViolation } from "./network/guarded-fetch.js";
+import { isRetryableProviderError } from "./retryability.js";
 
 class StatusError extends Error {
   readonly status: number;
@@ -312,5 +313,42 @@ describe("guardProviderCall: network policy", () => {
       code: "NETWORK_POLICY_VIOLATION",
       message: "The request was blocked.",
     });
+  });
+});
+
+describe("isRetryableProviderError", () => {
+  async function failureOf(status: number): Promise<ProviderError> {
+    const error = await guardProviderCall(() => Promise.reject(new StatusError(status))).catch(
+      (caught: unknown) => caught,
+    );
+    return error as ProviderError;
+  }
+
+  it.each([400, 404, 405, 409, 413, 422])(
+    "is false for a %i raised as PROVIDER_ERROR",
+    async (status) => {
+      const error = await failureOf(status);
+      expect(error.code).toBe("PROVIDER_ERROR");
+      expect(isRetryableProviderError(error)).toBe(false);
+    },
+  );
+
+  it.each([408, 429, 500, 503])("is true for a %i", async (status) => {
+    expect(isRetryableProviderError(await failureOf(status))).toBe(true);
+  });
+
+  it.each([401, 403])("is false for a %i", async (status) => {
+    expect(isRetryableProviderError(await failureOf(status))).toBe(false);
+  });
+
+  it("is true for a network failure without a status", async () => {
+    const error = await guardProviderCall(() => Promise.reject(new Error("socket hang up"))).catch(
+      (caught: unknown) => caught,
+    );
+    expect(isRetryableProviderError(error as ProviderError)).toBe(true);
+  });
+
+  it("is true for a PROVIDER_ERROR constructed outside the guard", () => {
+    expect(isRetryableProviderError(new ProviderError("PROVIDER_ERROR", "x"))).toBe(true);
   });
 });
