@@ -1,84 +1,159 @@
 ---
 name: umami-analytics
-description: 'Server-side Umami pageview counting for the verbatra docs site (apps/docs). Use when changing which requests count as a pageview, the Umami host or website ID, the opt-out (cookie, /api/analytics, the privacy page form), or when someone proposes adding a client-side tracker or event tracking back.'
+description: 'Umami analytics for the verbatra docs site (apps/docs): the server-side pageview count, the consent-gated client tracker and session recorder, the choice cookie and its three states, the consent prompt and privacy switch, click events, the CSP origin, and the privacy wording that describes them. Use when changing what is counted or recorded, the Umami host or website ID, the choice cookie, /api/analytics, the loader, an event, or the privacy page.'
 license: MIT
 metadata:
   author: verbatra
-  version: '2.0'
+  version: '3.0'
   source: 'internal'
-user-invocable: false
 ---
 
 # Umami Analytics (apps/docs)
 
 ## Overview
 
-apps/docs runs no analytics script in the browser and records no events. The proxy
-(apps/docs/proxy.ts) counts a pageview on the server and posts it to the self-hosted Umami
-API after the response is sent (`event.waitUntil`). Nothing is written to the visitor's device
-for analytics; the only cookie is the opt-out cookie, set when the visitor asks for it and read
-only to honour that objection. The privacy page describes this in legal.privacy.s4 and s5
-(apps/docs/messages/*.json) and renders the opt-out forms in section 4.
+Two tiers, one switch.
 
-**When to use:** changing the counting rules, the Umami origin or website ID, the opt-out
-cookie or route, or the privacy wording that describes them.
+- **Tier 0, server count (default).** The proxy (apps/docs/proxy.ts) counts a pageview on the
+  server and posts it to the self-hosted Umami API after the response is sent
+  (`event.waitUntil`). Nothing is read from or written to the visitor's device for it. Legal
+  basis Art. 6(1)(f) GDPR.
+- **Tier 1, extended analytics (opt-in).** After an explicit Allow, a first-party loader injects
+  Umami's `script.js` (client pageviews, soft navigations, click events) and `recorder.js`
+  (session replay and heatmaps). Legal basis Art. 6(1)(a) GDPR with section 25(1) TDDDG.
+- **Off.** `Sec-GPC`, `DNT`, the choice `off` or the legacy opt-out cookie: nothing is counted
+  and nothing is loaded.
 
-**When NOT to use:** general proxy or CSP work unrelated to pageviews.
+The reason for the split: the stock tracker reads device data with JavaScript (screen size) and
+the recorder captures behaviour continuously, so both need consent in Germany, while the
+server count reads only what the browser sends anyway. The recorder also ignores
+`umami.disabled`, DNT and GPC, so no opt-out of the tracker alone can stop it: the only safe
+design is a loader that injects neither script until consent. This is a technical risk
+assessment, not legal advice.
+
+**When to use:** changing the counting rules, the Umami origin or website ID, the choice cookie
+or route, the loader, an event, the prompt, or the privacy wording that describes them.
+
+**When NOT to use:** general proxy or CSP work unrelated to analytics.
 
 ## Key Concepts
 
-- **One module** - apps/docs/lib/server-pageview.ts (server-only) holds UMAMI_ORIGIN,
-  UMAMI_WEBSITE_ID, the opt-out cookie name and every rule. Neither the origin nor the ID
-  appears in client code or in the Content-Security-Policy.
-- **What counts** - `countedPageview` returns an event only for a GET with
-  `Sec-Fetch-Dest: document` and `Sec-Fetch-Mode: navigate`, no `prefetch` in `Sec-Purpose`
-  or `Purpose`, a 200 response without `Location`, not the `.md` markdown variant, a served
-  pathname listed in the CSP hash manifest (`.next/csp-script-hashes.json`) other than
-  `/_not-found` and `/_global-error`, on the production host (`SITE_HOST`, read by
-  `lib/request-host.ts` from `Host`, which nginx sets, and only without it from the last
-  `X-Forwarded-Host` value), with a non-empty user agent that is not an obvious tool
-  or crawler. Local runs, csp-smoke and health checks never count.
-- **Refusals** - `Sec-GPC: 1`, `DNT: 1` or the cookie `verbatra_analytics_optout=1` stop the
-  pageview before anything is built.
-- **Payload** - `{ type: "event", payload: { website, hostname, url, referrer, language, ip,
-  userAgent } }`: the path plus only `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`
-  and `utm_content` (`pageviewUrl`: that fixed order, each value capped at 255 characters, empty
-  ones dropped, every other query parameter such as `gclid` or `fbclid` and the fragment
-  stripped), the Referer without query, the first Accept-Language tag (dropped above 35
-  characters; a referrer is dropped above 500), and the right-most public address in
-  `X-Forwarded-For` (nginx is the only hop; private, loopback, CGNAT, link-local, multicast,
-  documentation, benchmark and NAT64 ranges skipped, hex-form IPv4-mapped IPv6 normalised),
-  else a public `X-Real-IP`, else no `ip`. Umami 3.3.1 accepts `payload.ip` and
-  `payload.userAgent`, so no Umami setting is needed.
-- **Sending** - `sendPageview` POSTs `${UMAMI_ORIGIN}/api/send` with the visitor's user agent
-  as `User-Agent` and `AbortSignal.timeout(1500)`. It never rejects and never logs.
-- **Opt-out** - apps/docs/app/api/analytics/route.ts takes a form POST
-  (`application/x-www-form-urlencoded`, `choice=off|on`, `lang`), checks the full Origin and
-  refuses `Sec-Fetch-Site: cross-site` like the contact route, sets or clears the HttpOnly,
-  Secure, SameSite=Lax cookie (one year) and answers 303 to
-  `/privacy?analytics=<choice>#analytics-<choice>` for the default locale (no prefix) and
-  `/<lang>/privacy?analytics=<choice>#analytics-<choice>` for the others. The locale is
-  validated with zod, so the target is built from an allowlist.
-  components/analytics-opt-out.tsx renders two plain forms; the confirmation shows through
-  `:target`, so it works without JavaScript.
-- **Accepted limits** - only full page loads count: client-side navigations and prefetched
-  pages never reach the proxy as document requests. No titles, screen sizes or events.
+- **Shared constants** - apps/docs/lib/umami-config.mjs (no `server-only`, so client code and
+  security headers import it): `UMAMI_ORIGIN`, `UMAMI_WEBSITE_ID`, `UMAMI_SCRIPT_URL`,
+  `UMAMI_RECORDER_URL`, `ANALYTICS_CHOICE_COOKIE`, `LEGACY_OPT_OUT_COOKIE`,
+  `ANALYTICS_CHOICES`. `lib/server-pageview.ts` re-exports the origin and website ID.
+- **Choice cookie** - `verbatra_analytics` with the value `full`, `default` or `off`; absent
+  means undecided; anything else is undecided. Secure, SameSite=Lax, Path=/, one year, NOT
+  HttpOnly (the loader and the prompt read it in the browser; page HTML is prerendered, so the
+  server cannot decide). `default` is "No thanks" and keeps the Tier 0 count. Parsing and the
+  `Set-Cookie` string live in lib/analytics-choice.ts (`readChoiceCookie`, `parseChoice`,
+  `choiceCookie`, `hasPrivacySignal`).
+- **Legacy cookie** - `verbatra_analytics_optout=1` is HttpOnly, so only the server sees it. The
+  proxy still honours it for counting and, when it is present without the choice cookie,
+  appends `Set-Cookie: verbatra_analytics=off` (`withChoiceMigration`). An explicit choice on
+  /api/analytics clears it.
+- **Server count rules** - `countedPageview` (lib/server-pageview.ts) returns an event only for a
+  GET with `Sec-Fetch-Dest: document` and `Sec-Fetch-Mode: navigate`, no `prefetch` in
+  `Sec-Purpose` or `Purpose`, a 200 response without `Location`, not the `.md` variant, a served
+  pathname listed in the CSP hash manifest other than `/_not-found` and `/_global-error`, on the
+  production host (`SITE_HOST`), with a non-empty user agent that is not an obvious tool or
+  crawler. Local runs, csp-smoke and health checks never count.
+- **Refusals** - `Sec-GPC: 1`, `DNT: 1`, the choice `off` or the legacy cookie stop the count
+  (`isTrackingRefused`). The choice `full` also skips it, because the client tracker counts that
+  visitor: one count per visit, never both. One extra server count on the page where consent is
+  given is accepted. There is no server fallback for a visitor whose tracker is blocked.
+- **Payload (server)** - `{ type: "event", payload: { website, hostname, url, referrer,
+  language, ip, userAgent } }`: path plus only the five UTM parameters (`pageviewUrl` in
+  lib/pageview-url.ts, shared with the client sanitiser), Referer without query, first
+  Accept-Language tag, right-most public `X-Forwarded-For` address.
+  `sendPageview` never rejects and never logs.
+- **Loader** - components/analytics-loader.tsx (client, renders null, mounted in the locale
+  layout). In an effect it injects, only when the choice is `full` and there is no GPC or DNT
+  signal (lib/analytics-client.ts), `script.js` with `data-website-id`,
+  `data-exclude-hash="true"`, `data-before-send="verbatraUmamiBeforeSend"` and
+  `data-domains` set to the site hostname (the real script refuses to send on any other
+  hostname, so a local run counts nothing), then `recorder.js` with only `data-website-id`. Both
+  carry ids and are injected once. It listens for the same-tab event `verbatra:analytics-choice`:
+  `full` injects without a reload, anything else reloads when the scripts are present (scripts
+  cannot be unloaded). It reads and writes no storage. There is no `next/script`, no inline
+  code and no manifest hash change; external scripts are never hashed.
+- **Sanitiser** - lib/analytics-sanitize.ts, exposed as `window.verbatraUmamiBeforeSend`: drops
+  `screen`, rebuilds `url` as path plus the five UTM parameters (255 cap), strips query and hash
+  from `referrer`. The recorder has no such hook and sends `location.href`, so keep query
+  strings out of internal links (the only query on the site is the privacy page `?analytics=`
+  redirect, which is inside an `rr-block` panel).
+- **CSP** - lib/security-headers.mjs adds `UMAMI_ORIGIN` to `script-src` and `connect-src`
+  statically, in production and development. `img-src`, `frame-ancestors` (`'none'`) and
+  `X-Frame-Options: DENY` are unchanged, so the Umami heatmap preview shows a blank canvas by
+  decision. The choice is enforced by the loader and its tests, not by the CSP.
+- **Consent prompt** - components/analytics-prompt.tsx: a non-blocking fixed region (bottom
+  corner, no layout shift), rendered only after hydration when there is no choice and no GPC or
+  DNT signal, with equal-weight Allow and No thanks and a link to `/privacy#analytics`. It
+  posts to /api/analytics with `fetch` (`redirect: "manual"`), checks that the cookie arrived,
+  hides, and dispatches the choice event. Strings: `analyticsPrompt.*` in messages.
+- **Privacy switch** - components/analytics-opt-out.tsx renders three plain forms (Allow
+  extended analytics, Count page views only, Opt out) in section 4 of the policy; they work
+  without JavaScript. app/api/analytics/route.ts takes the form POST (`choice=full|default|off`,
+  `lang`), checks the Origin like the contact route, sets the choice cookie, clears the legacy
+  one, and answers 303 to `/privacy?analytics=<choice>#analytics-<choice>` (locale prefixed
+  except for English). The confirmation shows through `:target`. A footer link "Analytics
+  settings" (`LEGAL_PAGE_LINKS` in components/landing/links.ts) reaches it from every page, so
+  withdrawal is as easy as consent.
+- **Events** - lib/analytics-events.ts has `trackEvent(name, data)`, a typed no-op that never
+  throws or logs while the tracker is absent (`window.umami.track`). Click events are reported
+  by one delegated listener (components/analytics-click-events.tsx,
+  lib/analytics-click-events.ts) from markup, so Next `Link` soft navigation is never touched:
+
+  | Event | Properties | Marked by |
+  | --- | --- | --- |
+  | `copy_code` | `surface`: code-block, command-row, ai-prompt, page-markdown | `data-copy-surface` on the copy button (or its actions region) |
+  | `cta_click` | `id`: hero-quickstart, hero-compare; `locale` | `data-cta` |
+  | `outbound_click` | `target`: github, npm, mcp-registry, other; `from`: header, footer, landing, docs, legal | any `<a target="_blank">` to another origin |
+
+  Property values are allowlisted constants, never link text, queries, code or form values.
+  `data-umami-event` is not used: on an anchor without `_blank` the real tracker calls
+  `preventDefault()` and navigates itself, which breaks `Link`.
+- **Replay masking** - the Umami dashboard sets mask level `moderate` (all inputs masked). Markup
+  carries `rr-block` on the contact form, the opt-out panel and the consent prompt. The recorder
+  runs on every route otherwise (legal pages included); a soft navigation cannot un-record a
+  page, which is why those three blocks are in markup.
+- **Not used on purpose** - `umami.identify()`, `data-distinct-id`, `data-performance`,
+  `data-errors`, `data-tag`, reading `umami.disabled`.
+- **Kill switch** - turning replay and heatmaps off in the Umami website settings stops
+  recording without a deploy (the recorder fetches its config first).
+- **Accepted limits** - the tiers measure different things: Tier 0 counts document loads only,
+  Tier 1 counts soft navigations too, so the two series are not comparable. Visitors with a
+  blocker on Tier 1 are not counted at all.
 
 ## Common Mistakes
 
 | Mistake | Correct Pattern |
 | --- | --- |
-| Adding the Umami script or a client beacon back | It reads and sends device data, which brings back the § 25 TDDDG consent question; keep counting on the server |
-| Adding custom events or data-umami-event attributes | There is no client tracker; events were dropped on purpose |
+| Loading `script.js` or `recorder.js` anywhere but the loader, or before the choice is `full` | The loader is the only injector; the stock tracker sends `screen` and the recorder ignores DNT, GPC and `umami.disabled` |
+| Putting `data-umami-event` on an internal anchor | Mark the element for the delegated listener; the real tracker breaks `Link` otherwise |
+| Free text, queries, code or form values in an event | Allowlisted constants only; add the value to the typed lists in lib/analytics-events.ts |
 | Counting in a route handler or page | Count only in proxy.ts through `countedPageview`, so prefetch and RSC rules stay in one place |
-| Logging a failed send | `sendPageview` stays silent: no IP, user agent or error text in logs |
-| Adding the Umami origin to the CSP | The browser never talks to Umami; csp-smoke fails on any third-party request |
-| Changing the counted data without the policy | Update legal.privacy.s4 in every locale and verbatra.lock.json in the same change |
-| Adding a cookie, localStorage or sessionStorage write (including a fumadocs `persist` or `groupId`) without the policy | Name the key, when it is written and that it is never sent in legal.privacy.s5 in every locale, and pin it in privacy/page.test.tsx |
+| Server counting for a `full` visitor | `countedPageview` must skip it, or one visit counts twice |
+| Making the choice cookie HttpOnly | The loader and prompt read it in the browser; the policy says why it is readable |
+| Adding another cookie, localStorage or sessionStorage write (including a fumadocs `persist` or `groupId`) | Name it, say when it is written and that it is never sent in legal.privacy.s5 in every locale, and pin it in privacy/page.test.tsx |
+| Widening the CSP beyond the Umami origin, or loosening `frame-ancestors` | The heatmap blank canvas is accepted; any other origin fails csp-smoke |
+| Putting a query string on an internal link | The recorder sends `location.href` unsanitised |
+| Logging a failed send | `sendPageview` and `trackEvent` stay silent: no IP, user agent or error text |
+| Changing what is counted or recorded without the policy | Update legal.privacy.s2, s4, s5, s6 and the objection section in every locale and verbatra.lock.json in the same change, through `verbatra export` and `verbatra import`, never `pnpm i18n` for hand-maintained legal text |
+| Pinning a replay sample rate or percentage in the policy | Say "a sample of sessions"; the rate lives in the Umami dashboard |
 
 ## Tests
 
-lib/server-pageview.test.ts (every skip rule, IP extraction, payload, silent failures),
-proxy.pageview.test.ts (waitUntil exactly once for a document navigation, never otherwise),
-app/api/analytics/route.test.ts (cookie, 303 target, invalid locale, foreign origin), and
-scripts/csp-smoke.mjs (no request to any other origin) after a build.
+lib/server-pageview.test.ts, proxy.pageview.test.ts, proxy.cookies.test.ts (migration),
+lib/analytics-choice.test.ts, lib/analytics-client.test.ts, lib/analytics-sanitize.test.ts,
+components/analytics-loader.test.tsx, components/analytics-prompt.test.tsx,
+components/analytics-opt-out.test.tsx, lib/analytics-events.test.ts,
+lib/analytics-click-events.test.ts, components/analytics-click-events.test.tsx,
+app/api/analytics/route.test.ts, lib/security-headers.test.ts and proxy.csp.test.ts (Umami origin
+in exactly `script-src` and `connect-src`), lib/inline-script-hashes.test.ts, the privacy page
+tests under app/[lang]/(legal)/, and e2e/analytics.spec.ts. The e2e and scripts/csp-smoke.mjs
+answer the Umami origin with the stubs in scripts/umami-stub.mjs and never reach the real host.
+
+Before a deploy, run csp-smoke once by hand against the real `script.js` and `recorder.js`
+downloaded to an untracked path (the recorder contains a blob worker string), and put the result
+in the PR description.
