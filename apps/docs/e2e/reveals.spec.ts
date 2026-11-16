@@ -248,6 +248,8 @@ test.describe("reveals when under a tenth of the viewport lies below the proof r
   test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
 
   async function geometry(page: Page) {
+    await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
+    await expect(page.locator(".vk-scroll-top-sentinel[data-active]")).toHaveCount(1);
     return page.evaluate(() => {
       const root = document.documentElement;
       const row = document.querySelector(".vk-closer-proof") as HTMLElement;
