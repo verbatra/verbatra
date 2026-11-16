@@ -86,9 +86,11 @@ Alongside that chain, `ui` sits beside `config` as a leaf: `config <- ui <- docs
   (`packages/cli/src/render.ts`, `run.ts`, `types.ts` and `watch-session.ts`, `packages/studio/src/client/coverage.ts`
   and `src/app/LocalesSection.tsx`, `packages/mcp/src/tools/status-check.ts` and `registry.ts`, plus
   `packages/mcp/src/test-support.ts`, which has no public equivalent because `startMcpServer` binds `process.stdin` and
-  `process.stdout`, and `packages/ai-providers/src/scaffold.ts` for the scaffold model), and no non-test module under
-  `lib/` or `components/` imports them. The edge exists so the `--filter @verbatra/docs...` install and build closure
-  carries each package's own dependencies; `knip.config.ts` lists `@verbatra/studio`, `@verbatra/mcp` and `@verbatra/ai-providers` under
+  `process.stdout`), and no non-test module under the app root, `app/`, `components/`, `lib/` or `i18n/` imports a
+  `packages/<name>/src` path or `test-support/`: `lib/no-package-source-import.test.ts` fails when one does. The scaffold
+  models (`SCAFFOLD_MODELS`) and the shared vitest preset (`@verbatra/config/vitest`, a `devDependency` for `lib/site.test.ts`)
+  are imported by package name, because those packages export them. The edge exists so the `--filter @verbatra/docs...` install and build closure
+  carries each package's own dependencies; `knip.config.ts` lists `@verbatra/studio` and `@verbatra/mcp` under
   `ignoreDependencies` because nothing imports them by name, and `lib/third-party-licenses.ts`, which walks
   `dependencies` only, never sees them.
   Its `subset-font` `devDependency` (`apps/docs/package.json`) is used only by

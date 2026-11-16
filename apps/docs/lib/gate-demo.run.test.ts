@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { SCAFFOLD_MODELS } from "@verbatra/ai-providers";
 import { check, translate, type VerbatraConfig } from "@verbatra/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { englishDocsPages } from "@/lib/docs-pages";
@@ -43,7 +44,6 @@ import {
   writeConfig,
   writeSource,
 } from "@/test-support/run-fixture";
-import { SCAFFOLD_MODELS } from "../../../packages/ai-providers/src/scaffold";
 import { renderCheckHuman, renderHuman } from "../../../packages/cli/src/render";
 
 const CONFIG: VerbatraConfig = {

@@ -1,16 +1,11 @@
 import { readFileSync } from "node:fs";
 import { relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { APP_ROOT, appCodeFiles } from "@/test-support/app-sources";
+import { APP_ROOT, appCodeFiles, importSpecifiers } from "@/test-support/app-sources";
 
 const SCRIPTS = ["scr", "ipts"].join("");
-const SPECIFIER =
-  /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+|\brequire\s*\(\s*|\brequire\.resolve\s*\(\s*|\bexport\s+\*\s+from\s*)["'`]([^"'`]+)["'`]/g;
-
 function scriptImports(source: string): string[] {
-  return [...source.matchAll(SPECIFIER)]
-    .map(([, specifier]) => specifier ?? "")
-    .filter((specifier) => /(^|\/)scripts(\/|$)/.test(specifier));
+  return importSpecifiers(source).filter((specifier) => /(^|\/)scripts(\/|$)/.test(specifier));
 }
 
 describe("app code never imports scripts/", () => {
