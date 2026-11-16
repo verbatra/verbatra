@@ -5,7 +5,7 @@ import { feedTranslationMemory } from "../cache/translation-memory.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { updateLockFileLocale } from "../lock/lock-file.js";
+import { assertLockFileReadable, updateLockFileLocale } from "../lock/lock-file.js";
 import { settleProvenance } from "../lock/provenance-file.js";
 import { readTarget } from "./diff-locales.js";
 import type { EditEntryActor } from "./edit-entry.js";
@@ -117,6 +117,7 @@ export async function applyEntryEdit(
   const target = await readTargetOf(context);
   const outcome = judgeEdit(context, edit, {});
   if (outcome.accepted) {
+    await assertLockFileReadable(context.cwd, context.fs);
     await writeAcceptedEdits(context, target, [edit], false);
   }
   return outcome;

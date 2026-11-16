@@ -142,7 +142,8 @@ export type EditEntryResult =
  * @throws {@link SdkError} `KEY_PINNED`: `actor` is `agent` and the key matches the config's
  * `pinnedKeys`. A person's edit of a pinned key is accepted.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
- * not be acquired before the timeout elapsed.
+ * not be acquired before the timeout elapsed. Before the first write nothing was written;
+ * before a later one the locale file is already saved and its baseline or record is not.
  * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
  * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
@@ -154,7 +155,10 @@ export type EditEntryResult =
  * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
  * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
- * unsupported version.
+ * unsupported version. Checked when the call starts and again inside the write lock just before the
+ * locale file is written, so nothing is written and the previous translation is intact. A
+ * lock-file that becomes invalid in the milliseconds after that second check is thrown once the
+ * baseline is recorded, when the new value is already saved without one.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
  * structurally wrong. Checked before the value is gated or anything is written. A file from a newer
  * verbatra is left untouched and the value is written without a record, and so is a value whose
