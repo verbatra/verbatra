@@ -72,6 +72,11 @@ describe("AnalyticsOptOut", () => {
     }
   });
 
+  it("lets a long label wrap inside its button instead of widening the page", () => {
+    const classes = render().querySelector("form button")?.className.split(" ") ?? [];
+    expect(classes).toEqual(expect.arrayContaining(["whitespace-normal", "max-w-full", "h-auto"]));
+  });
+
   it("blocks the panel from session replay", () => {
     expect(render().querySelector(".rr-block")).not.toBeNull();
   });

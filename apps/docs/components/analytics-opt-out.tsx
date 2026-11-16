@@ -27,10 +27,17 @@ function ChoiceForm({
   label: string;
 }): ReactNode {
   return (
-    <form method="post" action={ANALYTICS_OPT_OUT_ACTION} className="m-0">
+    <form method="post" action={ANALYTICS_OPT_OUT_ACTION} className="m-0 max-w-full">
       <input type="hidden" name="lang" value={locale} />
       <input type="hidden" name="choice" value={choice} />
-      <button type="submit" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+      <button
+        type="submit"
+        className={buttonClasses({
+          variant: "secondary",
+          size: "sm",
+          className: "h-auto min-h-8 max-w-full whitespace-normal py-1.5 text-center",
+        })}
+      >
         {label}
       </button>
     </form>
