@@ -100,6 +100,65 @@ describe("buildProjectSnapshot", () => {
     expect(snapshot).not.toHaveProperty("maxBatchSize");
   });
 
+  it("projects a tone map as its default plus the per-locale entries", () => {
+    const loaded: LoadedConfig = {
+      config: baseStudioConfig({
+        targetLocales: ["de", "ja"],
+        tone: { default: "informal", ja: "neutral" },
+      }),
+      source: { kind: "override" },
+      glossary: { source: "none" },
+    };
+
+    const snapshot = buildProjectSnapshot(loaded, PROJECT_ROOT, NO_CAPABILITIES, false);
+
+    expect(snapshot.tone).toBe("informal");
+    expect(snapshot.toneByLocale).toEqual({ ja: "neutral" });
+  });
+
+  it("leaves tone unset for a map without a default and keeps no toneByLocale for a scalar", () => {
+    const withoutDefault = buildProjectSnapshot(
+      {
+        config: baseStudioConfig({ targetLocales: ["de", "ja"], tone: { ja: "neutral" } }),
+        source: { kind: "override" },
+        glossary: { source: "none" },
+      },
+      PROJECT_ROOT,
+      NO_CAPABILITIES,
+      false,
+    );
+    const scalar = buildProjectSnapshot(
+      {
+        config: baseStudioConfig({ tone: "formal" }),
+        source: { kind: "override" },
+        glossary: { source: "none" },
+      },
+      PROJECT_ROOT,
+      NO_CAPABILITIES,
+      false,
+    );
+
+    expect(withoutDefault).not.toHaveProperty("tone");
+    expect(withoutDefault.toneByLocale).toEqual({ ja: "neutral" });
+    expect(scalar).not.toHaveProperty("toneByLocale");
+  });
+
+  it("omits toneByLocale for a map that only sets a default", () => {
+    const snapshot = buildProjectSnapshot(
+      {
+        config: baseStudioConfig({ tone: { default: "formal" } }),
+        source: { kind: "override" },
+        glossary: { source: "none" },
+      },
+      PROJECT_ROOT,
+      NO_CAPABILITIES,
+      false,
+    );
+
+    expect(snapshot.tone).toBe("formal");
+    expect(snapshot).not.toHaveProperty("toneByLocale");
+  });
+
   it("includes an explicitly configured maxBatchSize and generatePlurals", () => {
     const loaded: LoadedConfig = {
       config: baseStudioConfig({ maxBatchSize: 25, generatePlurals: true }),

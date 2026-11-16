@@ -108,6 +108,14 @@ function optionalItems(snapshot: ProjectSnapshotResult): Array<readonly [string,
   if (snapshot.tone !== undefined) {
     items.push(["Tone", snapshot.tone]);
   }
+  if (snapshot.toneByLocale !== undefined) {
+    items.push([
+      "Tone by locale",
+      Object.entries(snapshot.toneByLocale)
+        .map(([locale, tone]) => `${locale}: ${tone}`)
+        .join(", "),
+    ]);
+  }
   return items;
 }
 
