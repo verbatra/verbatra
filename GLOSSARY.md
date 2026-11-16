@@ -49,7 +49,7 @@ Any value about to be written to a locale file, whatever produced it: a provider
 _Avoid_: provider answer (one kind of candidate only), suggestion (a suggestion is shown, never written)
 
 **Integrity gate**:
-The structural check every candidate must pass before it is written: the same placeholders and inline markup as the source, valid ICU with the target language's plural arms, not empty and not degenerate. It proves structure, never meaning.
+The structural check every candidate must pass before it is written: the same placeholders and inline markup as the source, valid ICU (with the target language's plural arms, where the target locale is known and the format can compare them), not empty and not degenerate. It proves structure, never meaning.
 _Avoid_: gate (alone), validation, QA
 
 **Refused**:
@@ -71,7 +71,7 @@ An advisory mark, with one or more review reasons, on a value that was written b
 _Avoid_: needs review, warning
 
 **Review queue**:
-The machine-class values in a locale that no person has approved for their current text and source; a value in it is unreviewed. A reviewer approves a value, or rejects it, which removes it and leaves the key missing.
+The machine-class values in a locale that no person has approved for the source text the lock file records; a value in it is unreviewed. A reviewer approves a value, or rejects it, which removes it and leaves the key missing; XLIFF and Flutter ARB cannot drop a single value, so there a reviewer edits or retranslates it instead.
 _Avoid_: needs-review queue, needs review, pending
 
 **Review gate**:
