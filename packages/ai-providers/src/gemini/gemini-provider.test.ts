@@ -78,7 +78,6 @@ describe("createGeminiProvider: request building", () => {
     );
     const body = firstCallOf(calls);
     expect(body.config.systemInstruction).toBe(GEMINI_SYSTEM_RULES);
-    expect(body.config.systemInstruction).not.toContain("formal");
     expect(body.config.systemInstruction).not.toContain("Servus");
     expect(body.config.responseMimeType).toBe("application/json");
     expect(body.config.responseSchema).toEqual(

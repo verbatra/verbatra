@@ -80,7 +80,7 @@ Die Tarife oben sind Platzhalter, keine zitierten Preise. Jede daraus berechnete
 Die Schätzung erledigt die Rechnung, die du sonst von Hand machen würdest:
 
 - **Anfragen.** Die Keys jeder Locale werden in Batches von höchstens [`maxBatchSize`](/de/docs/config-file#maxbatchsize) (Standard `50`) aufgeteilt, eine Anfrage pro Batch, dazu die Batches, die [`generatePlurals`](/de/docs/config-file#generateplurals) senden würde.
-- **Eingabe.** Jede LLM-Anfrage enthält feste Systemregeln (etwa 550 Tokens) und ein Antwortschema (etwa 100 Tokens), dann die Keys, ihre Beschreibungen, den Tonfall und das vollständige Glossar der Ziel-Locale. Der Prompt wird gemessen, indem die Nutzlast serialisiert wird, die gesendet würde, sodass ein großes Glossar bei jeder Anfrage zählt, die es mitführt.
+- **Eingabe.** Jede LLM-Anfrage enthält feste Systemregeln (etwa 650 Tokens) und ein Antwortschema (etwa 100 Tokens), dann die Keys, ihre Beschreibungen, den Tonfall und das vollständige Glossar der Ziel-Locale. Der Prompt wird gemessen, indem die Nutzlast serialisiert wird, die gesendet würde, sodass ein großes Glossar bei jeder Anfrage zählt, die es mitführt.
 - **Ausgabe.** Eine Übersetzung gibt es noch nicht, also wird sie als Quelltext plus 50 Prozent angesetzt, weil Deutsch, Französisch und Russisch oft ein Drittel bis die Hälfte länger sind als Englisch.
 - **Tokens.** Zeichen werden mit etwa vier pro Token umgerechnet, was zu englischem Fließtext passt; andere Schriften sind dichter.
 

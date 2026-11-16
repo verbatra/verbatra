@@ -80,7 +80,7 @@ Les tarifs ci-dessus sont des exemples, pas des prix cités. Chaque montant calc
 L'estimation fait le calcul que tu ferais sinon à la main :
 
 - **Requêtes.** Les clés de chaque locale sont réparties en lots d'au plus [`maxBatchSize`](/fr/docs/config-file#maxbatchsize) (`50` par défaut), une requête par lot, plus les lots qu'enverrait [`generatePlurals`](/fr/docs/config-file#generateplurals).
-- **Entrée.** Chaque requête LLM porte des règles système fixes (environ 550 tokens) et un schéma de réponse (environ 100 tokens), puis les clés, leurs descriptions, le ton et le glossaire complet de la locale cible. Le prompt est mesuré en sérialisant la charge qui serait envoyée, donc un grand glossaire compte à chaque requête qui le transporte.
+- **Entrée.** Chaque requête LLM porte des règles système fixes (environ 650 tokens) et un schéma de réponse (environ 100 tokens), puis les clés, leurs descriptions, le ton et le glossaire complet de la locale cible. Le prompt est mesuré en sérialisant la charge qui serait envoyée, donc un grand glossaire compte à chaque requête qui le transporte.
 - **Sortie.** La traduction n'existe pas encore, elle est donc évaluée comme le texte source plus 50 pour cent, car l'allemand, le français et le russe sont souvent d'un tiers à la moitié plus longs que l'anglais.
 - **Tokens.** Les caractères sont convertis à raison d'environ quatre par token, ce qui convient à de la prose anglaise ; d'autres écritures sont plus denses.
 

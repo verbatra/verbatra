@@ -80,7 +80,7 @@ Las tarifas de arriba son marcadores, no precios citados. Cada cifra calculada c
 La estimación hace las cuentas que, si no, harías a mano:
 
 - **Peticiones.** Las claves de cada locale se reparten en lotes de como mucho [`maxBatchSize`](/es/docs/config-file#maxbatchsize) (por defecto `50`), una petición por lote, más los lotes que enviaría [`generatePlurals`](/es/docs/config-file#generateplurals).
-- **Entrada.** Cada petición a un LLM lleva unas reglas de sistema fijas (unos 550 tokens) y un esquema de respuesta (unos 100 tokens), y después las claves, sus descripciones, el tono y el glosario completo del locale de destino. El prompt se mide serializando la carga que se enviaría, así que un glosario grande cuenta en cada petición que lo lleva.
+- **Entrada.** Cada petición a un LLM lleva unas reglas de sistema fijas (unos 650 tokens) y un esquema de respuesta (unos 100 tokens), y después las claves, sus descripciones, el tono y el glosario completo del locale de destino. El prompt se mide serializando la carga que se enviaría, así que un glosario grande cuenta en cada petición que lo lleva.
 - **Salida.** La traducción aún no existe, así que se calcula como el texto de origen más un 50 por ciento, porque el alemán, el francés y el ruso suelen ser entre un tercio y la mitad más largos que el inglés.
 - **Tokens.** Los caracteres se convierten a razón de unos cuatro por token, lo que encaja con prosa en inglés; otras escrituras son más densas.
 

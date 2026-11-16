@@ -80,7 +80,7 @@ The rates above are placeholders, not quoted prices. Every figure printed from t
 The estimate performs the arithmetic you would otherwise do by hand:
 
 - **Requests.** Each locale's keys are split into batches of at most [`maxBatchSize`](/docs/config-file#maxbatchsize) (default `50`), one request each, plus the batches [`generatePlurals`](/docs/config-file#generateplurals) would send.
-- **Input.** Every LLM request carries fixed system rules (about 550 tokens) and a response schema (about 100 tokens), then the keys, their descriptions, the tone, and the target locale's full glossary. The prompt is measured by serializing the payload that would be sent, so a large glossary is counted on every request it rides on.
+- **Input.** Every LLM request carries fixed system rules (about 650 tokens) and a response schema (about 100 tokens), then the keys, their descriptions, the tone, and the target locale's full glossary. The prompt is measured by serializing the payload that would be sent, so a large glossary is counted on every request it rides on.
 - **Output.** A translation does not exist yet, so it is sized as the source text plus 50 percent, since German, French and Russian often run a third to a half longer than English.
 - **Tokens.** Characters are converted at about four per token, which fits English prose; other scripts run denser.
 
