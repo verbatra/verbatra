@@ -122,8 +122,7 @@ Apartar un archivo y devolverlo son dos pasos, así que en intercalados poco fre
 pueden creer durante un momento que tienen el mismo bloqueo. Por eso cada bloqueo registra un token
 de propiedad aleatorio, y antes de cada escritura que protege el bloqueo (el archivo del locale, el
 archivo de bloqueo, el archivo de procedencia, el glosario) quien lo tiene comprueba que el archivo
-de bloqueo sigue llevando su token. Si no es así, la operación se detiene con `LOCK_CONTENDED` y no
-escribe nada. Un archivo de bloqueo que falta o lleva otro token al liberar se informa igual cuando
+de bloqueo sigue llevando su token. Si no es así, la operación se detiene con `LOCK_CONTENDED` y no se realiza la escritura interrumpida; una operación que escribe más de un archivo puede haber hecho ya una escritura anterior. Un archivo de bloqueo que falta o lleva otro token al liberar se informa igual cuando
 la operación terminó bien, porque el otro proceso puede haber cambiado los mismos archivos desde
 entonces; una operación que falló lanza su propio error. La comprobación y la escritura siguen
 siendo dos pasos, y nada limita el tiempo entre ellos: quien tiene el bloqueo y se pausa justo

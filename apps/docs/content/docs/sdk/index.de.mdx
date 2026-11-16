@@ -123,7 +123,7 @@ Beiseitelegen und Zurücklegen sind zwei Schritte, daher können in seltenen Abl
 kurz beide glauben, dieselbe Sperre zu halten. Jede Sperre hält deshalb ein zufälliges Besitz-Token
 fest, und vor jedem Schreibvorgang, den die Sperre schützt (die Locale-Datei, die Lock-Datei, die
 Herkunftsdatei, das Glossar), prüft der Halter, ob die Sperrdatei noch sein Token enthält. Ist das
-nicht so, bricht die Operation mit `LOCK_CONTENDED` ab und schreibt nichts. Eine Sperrdatei, die
+nicht so, bricht die Operation mit `LOCK_CONTENDED` ab und der unterbrochene Schreibvorgang erfolgt nicht; eine Operation, die mehr als eine Datei schreibt, kann schon früher geschrieben haben. Eine Sperrdatei, die
 beim Freigeben fehlt oder ein anderes Token enthält, wird genauso gemeldet, wenn die Operation
 erfolgreich war, denn der andere Prozess kann dieselben Dateien seitdem geändert haben; eine
 gescheiterte Operation wirft ihren eigenen Fehler. Prüfung und Schreiben bleiben zwei Schritte, und

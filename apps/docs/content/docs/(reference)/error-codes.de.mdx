@@ -439,7 +439,7 @@ Das Format behält den Wert eines Keys, wenn die Datei ohne ihn geschrieben wird
 
 ### LOCK_CONTENDED
 
-Die Schreibsperre einer Locale oder die Glossarsperre, die `updateGlossaryTerm` nimmt, konnte nicht vor ihrem Timeout erworben werden, oder ein anderer Prozess hat sie vor einem Schreibvorgang übernommen, den sie schützt, und es wurde nichts geschrieben; die Meldung nennt den Pfad der Lock-Datei.
+Die Schreibsperre einer Locale oder die Glossarsperre, die `updateGlossaryTerm` nimmt, konnte nicht vor ihrem Timeout erworben werden, oder ein anderer Prozess hat sie vor einem Schreibvorgang übernommen, den sie schützt, wobei dieser Schreibvorgang nicht erfolgt und ein früherer Schreibvorgang derselben Operation auf der Platte bleibt; die Meldung nennt den Pfad der Lock-Datei.
 
 - **Ausgelöst von**: `translate`, `watch`, `import`; Studio und der MCP-Server
 - **Nächster Schritt**: Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.

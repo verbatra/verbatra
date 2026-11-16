@@ -439,7 +439,7 @@ The `reviewer` is empty, longer than 64 characters, or contains a control charac
 
 ### LOCK_CONTENDED
 
-A locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could not be acquired before its timeout, or another process took it over before a write it protects, in which case nothing was written; the message names the lock file's path.
+A locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could not be acquired before its timeout, or another process took it over before a write it protects, in which case that write is not made and a write the same operation made before it stays on disk; the message names the lock file's path.
 
 - **Raised by**: `translate`, `watch`, `import`; Studio and the MCP server
 - **Next step**: Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.

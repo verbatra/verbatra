@@ -439,7 +439,7 @@ verbatra 报告的每个失败都带有稳定的错误码：出现在 stderr 的
 
 ### LOCK_CONTENDED
 
-语言环境的写锁，或 `updateGlossaryTerm` 获取的术语表锁，在超时之前无法获取，或另一个进程在它所保护的写入之前接管了它，此时没有写入任何内容；信息会给出锁文件的路径。
+语言环境的写锁，或 `updateGlossaryTerm` 获取的术语表锁，在超时之前无法获取，或另一个进程在它所保护的写入之前接管了它，此时这次写入不会进行，而同一操作在此之前所做的写入会保留在磁盘上；信息会给出锁文件的路径。
 
 - **触发来源**：`translate`、`watch`、`import`；Studio 和 MCP 服务器
 - **下一步**：Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.

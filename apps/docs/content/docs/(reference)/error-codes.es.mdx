@@ -439,7 +439,7 @@ El formato conserva el valor de una clave cuando el archivo se escribe sin ella,
 
 ### LOCK_CONTENDED
 
-El bloqueo de escritura de un locale, o el bloqueo del glosario que toma `updateGlossaryTerm`, no se pudo adquirir antes de su tiempo límite, u otro proceso lo tomó antes de una escritura que protege, y no se escribió nada; el mensaje nombra la ruta del archivo de bloqueo.
+El bloqueo de escritura de un locale, o el bloqueo del glosario que toma `updateGlossaryTerm`, no se pudo adquirir antes de su tiempo límite, u otro proceso lo tomó antes de una escritura que protege, y esa escritura no se realiza, mientras que una escritura anterior de la misma operación permanece en disco; el mensaje nombra la ruta del archivo de bloqueo.
 
 - **Lo lanza**: `translate`, `watch`, `import`; Studio y el servidor MCP
 - **Siguiente paso**: Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.

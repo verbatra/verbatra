@@ -113,7 +113,7 @@ o apaga se não mudou, o que deixa uma janela maior em que uma trava que outro p
 Renomear um arquivo para fora do caminho e devolvê-lo são duas etapas, então, em intercalações raras, dois processos podem
 acreditar por um instante que detêm a mesma trava. Por isso, toda trava registra um token de posse aleatório, e, antes de cada gravação que a trava protege (o arquivo de locale, o arquivo de lock, o arquivo
 de procedência, o glossário), o detentor confere se o arquivo de trava ainda carrega o seu token. Quando não carrega,
-a operação para com `LOCK_CONTENDED` e não grava nada. Um arquivo de trava ausente, ou com outro
+a operação para com `LOCK_CONTENDED` e a gravação interrompida não é feita; uma operação que grava mais de um arquivo pode já ter feito uma gravação anterior. Um arquivo de trava ausente, ou com outro
 token, na liberação é relatado do mesmo modo quando a operação teve êxito, já que o outro
 processo pode ter alterado os mesmos arquivos desde então; uma operação que falhou lança o seu próprio erro. A
 conferência e a gravação ainda são duas etapas, e nada limita o tempo entre elas: um detentor pausado

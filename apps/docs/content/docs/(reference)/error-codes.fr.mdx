@@ -439,7 +439,7 @@ Le format garde la valeur d'une clé quand le fichier est écrit sans elle, comm
 
 ### LOCK_CONTENDED
 
-Le verrou d'écriture d'une locale, ou le verrou du glossaire que prend `updateGlossaryTerm`, n'a pas pu être acquis avant l'expiration de son délai, ou un autre processus l'a repris avant une écriture qu'il protège, et rien n'a été écrit ; le message nomme le chemin du fichier de verrouillage.
+Le verrou d'écriture d'une locale, ou le verrou du glossaire que prend `updateGlossaryTerm`, n'a pas pu être acquis avant l'expiration de son délai, ou un autre processus l'a repris avant une écriture qu'il protège, et cette écriture n'est pas faite, tandis qu'une écriture antérieure de la même opération reste sur le disque ; le message nomme le chemin du fichier de verrouillage.
 
 - **Levé par** : `translate`, `watch`, `import` ; Studio et le serveur MCP
 - **Étape suivante** : Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.

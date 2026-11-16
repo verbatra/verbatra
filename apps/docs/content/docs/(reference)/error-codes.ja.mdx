@@ -440,7 +440,7 @@ CLI 自身がこれらのコードを報告します。同じ一覧は、`@verba
 
 ### LOCK_CONTENDED
 
-ロケールの書き込みロック、または `updateGlossaryTerm` が取得する用語集の書き込みロックを、タイムアウトまでに取得できませんでした。または、それが保護する書き込みの前に別のプロセスがその書き込みロックを回収しました。この場合、何も書き込まれていません。メッセージには、書き込みロックのファイルのパスが示されます。
+ロケールの書き込みロック、または `updateGlossaryTerm` が取得する用語集の書き込みロックを、タイムアウトまでに取得できませんでした。または、それが保護する書き込みの前に別のプロセスがその書き込みロックを回収しました。この場合、その書き込みは行われず、同じ操作がそれより前に行った書き込みはディスクに残ります。メッセージには、書き込みロックのファイルのパスが示されます。
 
 - **発生元**：`translate`、`watch`、`import`、Studio、MCP サーバー
 - **次の手順**：Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
