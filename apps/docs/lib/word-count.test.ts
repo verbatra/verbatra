@@ -198,6 +198,15 @@ function endingViolation(groups: readonly WordGroup[]): string | undefined {
   return undefined;
 }
 
+function nonWordViolation(
+  list: readonly WordSegment[],
+  groups: readonly WordGroup[],
+): string | undefined {
+  const kept = list.filter((piece) => piece.isWordLike !== true).map((piece) => piece.segment);
+  const seen = groups.filter((group) => !group.isWordLike).map((group) => group.text);
+  return seen.join("|") === kept.join("|") ? undefined : `non-word pieces became ${seen.join("|")}`;
+}
+
 const OFFENDER_LIMIT = 3;
 
 function offendersOver(
@@ -251,9 +260,37 @@ describe("groupWordSegments with kana pieces", () => {
       other("、"),
     ];
     const offenders = offendersOver(alphabet, 6, (list, groups) => {
-      return textAndOffsetViolation(list, groups) ?? endingViolation(groups);
+      return (
+        textAndOffsetViolation(list, groups) ??
+        nonWordViolation(list, groups) ??
+        endingViolation(groups)
+      );
     });
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("groupWordSegments with an ending after a piece that is not a word", () => {
+  it.each([
+    ["punctuation", [other("、"), wordLike("ます")], ["、", "ます"], [false, true]],
+    ["an opening bracket", [other("（"), wordLike("ました")], ["（", "ました"], [false, true]],
+    ["a space", [other(" "), wordLike("ます")], [" ", "ます"], [false, true]],
+    ["the start of the text", [wordLike("ます")], ["ます"], [true]],
+    [
+      "punctuation after a word",
+      [wordLike("書き"), other("、"), wordLike("ます")],
+      ["書き", "、", "ます"],
+      [true, false, true],
+    ],
+  ])("keeps the ending apart after %s", (_name, pieces, texts, wordLikes) => {
+    const groups = groupWordSegments(pieces);
+    expect(groups.map((group) => group.text)).toEqual(texts);
+    expect(groups.map((group) => group.isWordLike)).toEqual(wordLikes);
+  });
+
+  it("still joins an ending to the word before it", () => {
+    expect(texts([wordLike("書き"), wordLike("ます")])).toEqual(["書きます"]);
+    expect(texts([wordLike("API"), wordLike("ます")])).toEqual(["APIます"]);
   });
 });
 

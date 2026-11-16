@@ -1,4 +1,5 @@
-import { expect, type Page } from "playwright/test";
+import { expect, type Page, test } from "playwright/test";
+import type { Locale } from "@/lib/locales";
 import {
   GATE_CUTS,
   GATE_HANDOFF_CEILING_MS,
@@ -21,6 +22,12 @@ import {
 } from "./support";
 
 export const HEADER = GATE_LANDING_OFFSET_PX;
+export const VIEWPORTS = [
+  [1440, 900],
+  [1280, 720],
+  [1024, 672],
+] as const;
+export const REST_SWEEP_EARLY_LOCALES: readonly Locale[] = ["en", "de", "es"];
 const GATE_OVERLAP_CEILING = 0.3;
 const GATE_GAP_CEILING_MS = 80;
 const GATE_OUT_READABLE_OPACITY = 0.5;
@@ -427,4 +434,63 @@ export function expectReversals(rows: ReversalRow[], label: string): void {
     `reversals ${label}: ${rows.length} trials, worst joint ${worst.joint.toFixed(2)} at ${worst.delay}ms (${worst.cut}svh ${worst.direction}), slowest settle ${Math.max(...rows.map((row) => row.settle)).toFixed(0)}ms`,
   );
   for (const row of rows) expectReversal(row, label);
+}
+
+export function defineRestSweeps(locales: readonly Locale[]): void {
+  for (const locale of locales) {
+    for (const [width, height] of VIEWPORTS) {
+      test.describe(`gate rests ${homeUrl(locale)} at ${width}x${height}`, () => {
+        test.use({ viewport: { width, height }, reducedMotion: "no-preference" });
+
+        test("rests on one whole frame at every PageDown, PageUp and wheel-notch landing", async ({
+          page,
+          browserName,
+        }) => {
+          test.setTimeout(600_000);
+          await openStaged(page, locale);
+          const landing: Landing = {
+            page,
+            start: await pinStart(page),
+            height,
+            label: `${browserName} ${locale} ${width}x${height}`,
+            states: new Set(),
+          };
+          const end = GATE_PIN_SVH;
+          await scrollInstant(page, 0);
+          const down = await walk(
+            landing,
+            "pagedown",
+            () => page.keyboard.press("PageDown"),
+            (svh) => svh >= end,
+          );
+          console.log(`pagedown ${landing.label} rests on states ${down.join(",")}`);
+          await scrollInstant(page, 1e6);
+          const up = await walk(
+            landing,
+            "pageup",
+            () => page.keyboard.press("PageUp"),
+            (svh) => svh <= 0,
+          );
+          console.log(`pageup ${landing.label} rests on states ${up.join(",")}`);
+          await expectPageKeysNeverSkip(landing);
+          await scrollInstant(page, 0);
+          await page.mouse.move(width / 2, height / 2);
+          const wheel = await walk(
+            landing,
+            "wheel",
+            () => page.mouse.wheel(0, 100),
+            (svh) => svh >= end,
+          );
+          expect(wheel, "wheel notches rest on every state").toEqual([0, 1, 2]);
+          const back = await walk(
+            landing,
+            "wheel-up",
+            () => page.mouse.wheel(0, -100),
+            (svh) => svh <= 0,
+          );
+          expect(back, "wheel-up notches rest on every state").toEqual([0, 1, 2]);
+        });
+      });
+    }
+  }
 }

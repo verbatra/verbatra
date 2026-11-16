@@ -13,23 +13,20 @@ import {
 } from "@/test-support/gate-schedule";
 import {
   cross,
-  expectPageKeysNeverSkip,
   expectRest,
   expectRestOn,
   expectReversals,
   flipInsideTheEntrance,
   HEADER,
   handoffAcross,
-  type Landing,
   MIN_CONTRAST,
   openStaged,
   pinStart,
   restNow,
   reversalSweep,
   STATES,
-  scrollInstant,
   scrollToSvh,
-  walk,
+  VIEWPORTS,
 } from "./gate-support";
 import {
   expectNoAxeViolations,
@@ -61,12 +58,6 @@ const ENTRANCE_REVERSALS = [
   [300, 150, 400, 200],
   [120, 450, 250],
 ] as const;
-const VIEWPORTS = [
-  [1440, 900],
-  [1280, 720],
-  [1024, 672],
-] as const;
-
 type Sweep = {
   at: number;
   state: number;
@@ -384,63 +375,6 @@ function expectSweepRests(samples: Sweep[], label: string, height: number): void
       ((GATE_PAGE_STEP_MAX_SVH + GATE_PAGE_STEP_MARGIN_SVH) / 100) * height - SCAN_STEP,
     );
     expect(held, state).toBeGreaterThanOrEqual(((to - from) / 100) * height - 3 * SCAN_STEP);
-  }
-}
-
-for (const locale of LOCALES) {
-  for (const [width, height] of VIEWPORTS) {
-    test.describe(`gate rests ${homeUrl(locale)} at ${width}x${height}`, () => {
-      test.use({ viewport: { width, height }, reducedMotion: "no-preference" });
-
-      test("rests on one whole frame at every PageDown, PageUp and wheel-notch landing", async ({
-        page,
-        browserName,
-      }) => {
-        test.setTimeout(600_000);
-        await openStaged(page, locale);
-        const landing: Landing = {
-          page,
-          start: await pinStart(page),
-          height,
-          label: `${browserName} ${locale} ${width}x${height}`,
-          states: new Set(),
-        };
-        const end = GATE_PIN_SVH;
-        await scrollInstant(page, 0);
-        const down = await walk(
-          landing,
-          "pagedown",
-          () => page.keyboard.press("PageDown"),
-          (svh) => svh >= end,
-        );
-        console.log(`pagedown ${landing.label} rests on states ${down.join(",")}`);
-        await scrollInstant(page, 1e6);
-        const up = await walk(
-          landing,
-          "pageup",
-          () => page.keyboard.press("PageUp"),
-          (svh) => svh <= 0,
-        );
-        console.log(`pageup ${landing.label} rests on states ${up.join(",")}`);
-        await expectPageKeysNeverSkip(landing);
-        await scrollInstant(page, 0);
-        await page.mouse.move(width / 2, height / 2);
-        const wheel = await walk(
-          landing,
-          "wheel",
-          () => page.mouse.wheel(0, 100),
-          (svh) => svh >= end,
-        );
-        expect(wheel, "wheel notches rest on every state").toEqual([0, 1, 2]);
-        const back = await walk(
-          landing,
-          "wheel-up",
-          () => page.mouse.wheel(0, -100),
-          (svh) => svh <= 0,
-        );
-        expect(back, "wheel-up notches rest on every state").toEqual([0, 1, 2]);
-      });
-    });
   }
 }
 
