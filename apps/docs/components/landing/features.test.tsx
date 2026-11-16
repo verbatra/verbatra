@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -118,6 +118,17 @@ describe("Features", () => {
       expect(item.querySelector(".vk-deck-pane")?.id).toBe(radio?.getAttribute("aria-controls"));
     }
     expect(root.querySelector("script, [onclick]")).toBeNull();
+  });
+
+  it("stays a server component and reaches the hover select only through the islands module", () => {
+    const source = readFileSync(join(process.cwd(), "components/landing/features.tsx"), "utf8");
+    expect(source.startsWith('"use client"')).toBe(false);
+    expect(source).toContain('import { DeckHover } from "./islands";');
+    expect(source).not.toContain("./deck-hover");
+    expect(root.querySelector("ol.vk-deck")?.id).toBe("vk-deck-list");
+    expect(readFileSync(join(process.cwd(), "components/landing/deck-hover.tsx"), "utf8")).toMatch(
+      /^"use client"/,
+    );
   });
 
   it("puts one artifact card in every pane: a head, a badge and the real output in English", () => {
