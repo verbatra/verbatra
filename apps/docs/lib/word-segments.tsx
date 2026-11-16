@@ -18,6 +18,7 @@ export function breakBetweenWords(node: ReactNode): ReactNode {
     ));
   }
   if (typeof node !== "string" || !SPACELESS_SCRIPT.test(node)) return node;
+  if (typeof Intl.Segmenter !== "function") return node;
   const segmenter = segmenterFor(KANA.test(node) ? "ja" : "zh");
   const groups = groupWordSegments(segmenter.segment(node));
   return groups.map((group, index) => {

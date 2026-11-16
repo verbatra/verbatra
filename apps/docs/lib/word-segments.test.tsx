@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { breakBetweenWords } from "./word-segments";
 
 function markup(text: ReactNode): string {
@@ -73,5 +73,24 @@ describe("breakBetweenWords", () => {
       "<span>Gate pull requests7</span>",
     );
     expect(breakBetweenWords("Gate pull requests")).toBe("Gate pull requests");
+  });
+});
+
+describe("breakBetweenWords without Intl.Segmenter", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it.each(["无论问哪个入口，答案都一样", "ファイルを同期します"])(
+    "returns %s unchanged and unbroken",
+    (text) => {
+      vi.stubGlobal("Intl", { ...Intl, Segmenter: undefined });
+      expect(markup(breakBetweenWords(text))).toBe(`<span>${text}</span>`);
+    },
+  );
+
+  it("leaves Latin text unchanged", () => {
+    vi.stubGlobal("Intl", { ...Intl, Segmenter: undefined });
+    expect(markup(breakBetweenWords("Plain Latin text"))).toBe("<span>Plain Latin text</span>");
   });
 });
