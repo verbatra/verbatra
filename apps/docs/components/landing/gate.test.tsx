@@ -6,6 +6,7 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { snippetLength } from "@/lib/display-width";
 import {
   GATE_CHECK_COMMAND,
   GATE_CHECK_LINES,
@@ -191,12 +192,13 @@ describe("Gate", () => {
     ["de", MESSAGE_CATALOGS.de, 114, /(erneut|wieder)/i],
     ["es", MESSAGE_CATALOGS.es, 109, /reintent/i],
     ["fr", MESSAGE_CATALOGS.fr, 118, /(r\u00e9essay|relanc|nouveau)/i],
+    ["zh-CN", MESSAGE_CATALOGS["zh-CN"], 76, /重试/],
   ] as const)(
     "names the retry in the %s stale foot, within its previous length, and never promises the retry succeeds",
-    (_locale, catalog, previousLength, retry) => {
+    (locale, catalog, previousLength, retry) => {
       const { foot } = catalog.landing.gate.stale;
       expect(foot).toMatch(retry);
-      expect(foot.length).toBeLessThanOrEqual(previousLength);
+      expect(snippetLength(locale, foot)).toBeLessThanOrEqual(previousLength);
       expect(foot).not.toMatch(
         /(succe|gelingt|funciona|r\u00e9ussi|\bfix(ed|es)?\b|behoben|corrige|corrig|成功|修复|修復|修正|解決|解消|sucesso|resolv)/i,
       );

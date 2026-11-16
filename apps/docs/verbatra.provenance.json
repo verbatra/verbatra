@@ -1305,7 +1305,7 @@
       "landing.gate.refused.label": {"origin":"import","valueHash":"5e71d8db5da786a8"},
       "landing.gate.refused.stamp": {"origin":"import","valueHash":"019e27bacd85994b"},
       "landing.gate.refused.text": {"origin":"import","valueHash":"5d6ae21e537b4df5"},
-      "landing.gate.stale.foot": {"origin":"import","valueHash":"43dea11aafd7295e"},
+      "landing.gate.stale.foot": {"origin":"import","valueHash":"875443399e04b668"},
       "landing.gate.stale.label": {"origin":"import","valueHash":"982871d016ba58e4"},
       "landing.gate.stale.text": {"origin":"import","valueHash":"bc179b332df3aa83"},
       "landing.gate.valueUnchanged": {"origin":"import","valueHash":"59976fba3e83c736"},
