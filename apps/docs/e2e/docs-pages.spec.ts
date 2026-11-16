@@ -46,6 +46,12 @@ for (const locale of LOCALES) {
         });
       }
 
+      test(`keeps every table inside its wrapper at ${TABLE_CHECK_WIDTH}px`, async ({ page }) => {
+        await page.setViewportSize({ width: TABLE_CHECK_WIDTH, height: 800 });
+        await openDocsPage(page, url);
+        await expectNoTableWiderThanItsWrapper(page);
+      });
+
       for (const width of REFLOW_WIDTHS) {
         test(`reflows at ${width}px with every visible element inside the viewport`, async ({
           page,
@@ -54,7 +60,6 @@ for (const locale of LOCALES) {
           await openDocsPage(page, url);
           await expectNoHorizontalScroll(page);
           await expectNothingPastRightEdge(page);
-          if (width === TABLE_CHECK_WIDTH) await expectNoTableWiderThanItsWrapper(page);
         });
 
         test(`opens the mobile navigation at ${width}px without overflow`, async ({ page }) => {
