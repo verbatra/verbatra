@@ -54,9 +54,13 @@ pnpm csp:smoke http://localhost:3000
 
 `csp:smoke` loads the key pages in Chromium and fails on any CSP violation, any failed
 `/_next/static` asset, a page that did not hydrate, any request to another origin (the Umami
-server included, since pageviews are sent from the server), a search that did not answer, or an
-HTML response without exactly one hashed policy header. It needs
-`pnpm exec playwright install chromium` once.
+server included, since a visitor without a choice never loads the tracker), a search that did not
+answer, or an HTML response without exactly one hashed policy header. A second run holds the
+cookie `verbatra_analytics=full` and answers the Umami origin with the stubs in
+`scripts/umami-stub.mjs`: it fails unless the tracker, the recorder and a pageview reach them, and
+it allows no origin besides Umami. It needs `pnpm exec playwright install chromium` once.
+
+`E2E_PORT` moves the e2e server and its base URL off port 3107.
 
 `pnpm test:e2e` runs the Playwright and axe suite in `e2e/` against the same standalone build: it
 copies the static assets and `public` into `.next/standalone` and starts the server on port 3107
