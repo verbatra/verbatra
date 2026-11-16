@@ -58,6 +58,7 @@ const IMPRINT_NAME_IN_TEXT: Record<Locale, string> = {
   fr: "mentions légales (Impressum)",
   "zh-CN": "法律声明（Impressum）",
   "pt-BR": "aviso legal (Impressum)",
+  ja: "運営者情報（Impressum）",
 };
 
 const NO_DPO_PHRASE: Record<Locale, RegExp> = {
@@ -67,6 +68,7 @@ const NO_DPO_PHRASE: Record<Locale, RegExp> = {
   fr: /Aucun délégué à la protection des données n’a été désigné/,
   "zh-CN": /我们没有指定数据保护官/,
   "pt-BR": /Nenhum encarregado de proteção de dados foi nomeado/,
+  ja: /データ保護オフィサーは指名していません/,
 };
 
 const OBJECTION_CROSS_REFERENCE: Record<Locale, RegExp> = {
@@ -76,6 +78,7 @@ const OBJECTION_CROSS_REFERENCE: Record<Locale, RegExp> = {
   fr: /\bsection 9\b/,
   "zh-CN": /第 9 节/,
   "pt-BR": /\bseção 9\b/,
+  ja: /第 9 節/,
 };
 
 const ARCJET_RETENTION: Record<Locale, RegExp> = {
@@ -86,6 +89,7 @@ const ARCJET_RETENTION: Record<Locale, RegExp> = {
   "zh-CN": /Arcjet 会将这些请求数据保留 30 天，并将由其派生的汇总数据保留更长时间/,
   "pt-BR":
     /retém esses dados da requisição por 30 dias e retém por mais tempo os dados agregados derivados deles/,
+  ja: /Arcjet はこのリクエストデータを 30 日間保持し、そこから得た集計データはそれより長く保持します/,
 };
 
 const ARCJET_THIRD_COUNTRY: Record<Locale, RegExp> = {
@@ -95,6 +99,7 @@ const ARCJET_THIRD_COUNTRY: Record<Locale, RegExp> = {
   fr: /transférées vers les États-Unis, un pays tiers \(art\. 44 et suivants du RGPD\)/,
   "zh-CN": /传输到美国这个第三国（GDPR 第 44 条及以下）/,
   "pt-BR": /transferidos para os Estados Unidos, um país terceiro \(art\. 44 e seguintes do GDPR\)/,
+  ja: /第三国である米国に移転される可能性があります（GDPR 第 44 条以下）/,
 };
 
 const ARCJET_SAFEGUARD: Record<Locale, RegExp> = {
@@ -106,6 +111,7 @@ const ARCJET_SAFEGUARD: Record<Locale, RegExp> = {
     /未获得欧盟-美国数据隐私框架（EU-U\.S\. Data Privacy Framework）认证.*欧盟标准合同条款（GDPR 第 46\(2\)\(c\) 条）/,
   "pt-BR":
     /não é certificada no EU-U\.S\. Data Privacy Framework.*Cláusulas Contratuais Padrão da UE \(art\. 46\(2\)\(c\) do GDPR\)/,
+  ja: /EU-U\.S\. Data Privacy Framework の認証を受けていない.*EU 標準契約条項（GDPR 第 46\(2\)\(c\) 条）/,
 };
 
 const UMAMI_NOT_STORED: Record<Locale, RegExp> = {
@@ -115,6 +121,7 @@ const UMAMI_NOT_STORED: Record<Locale, RegExp> = {
   fr: /Ton adresse IP et ta chaîne user-agent elles-mêmes ne sont pas conservées\./,
   "zh-CN": /你的 IP 地址和 user-agent 字符串本身不会存储。/,
   "pt-BR": /Seu endereço IP e sua string de user-agent em si não são armazenados\./,
+  ja: /IP アドレスと user-agent 文字列そのものは保存しません。/,
 };
 
 const UMAMI_PSEUDONYMOUS: Record<Locale, RegExp> = {
@@ -124,6 +131,7 @@ const UMAMI_PSEUDONYMOUS: Record<Locale, RegExp> = {
   fr: /identifiant de session pseudonyme/,
   "zh-CN": /计算出一个假名化的会话标识符/,
   "pt-BR": /identificador de sessão pseudônimo/,
+  ja: /仮名化されたセッション識別子を計算します/,
 };
 
 const UMAMI_SAME_SERVER: Record<Locale, RegExp> = {
@@ -133,6 +141,7 @@ const UMAMI_SAME_SERVER: Record<Locale, RegExp> = {
   fr: /même serveur que ce site \(voir la section 3\)/,
   "zh-CN": /与本站相同的服务器上（见第 3 节）/,
   "pt-BR": /mesmo servidor deste site \(veja a seção 3\)/,
+  ja: /このサイトと同じサーバー（第 3 節を参照）で自前運用しているオープンソースの分析ツール Umami/,
 };
 
 const UMAMI_SERVER_FORWARD: Record<Locale, RegExp> = {
@@ -144,6 +153,7 @@ const UMAMI_SERVER_FORWARD: Record<Locale, RegExp> = {
     /你的浏览器中不运行任何分析脚本，统计页面浏览量也不会向你的设备写入任何内容。.*我们的 Web 服务器会把该请求的以下信息转发给我们的 Umami 服务器：你的 IP 地址，你浏览器的 user-agent 字符串，浏览器 Accept-Language 请求头中的第一个语言标签.*，来源页面（不含其查询字符串），以及你加载的页面路径/,
   "pt-BR":
     /Nenhum script de análise é executado no seu navegador, e nada é gravado no seu dispositivo para contar visualizações de página\..*nosso servidor web encaminha .*: seu endereço IP, a string de user-agent do seu navegador, a primeira etiqueta de idioma do cabeçalho Accept-Language do seu navegador .*, a página de referência \(sem a query string\) e o caminho da página que você carregou/,
+  ja: /ブラウザーで分析スクリプトは動作せず、ページビューの集計のためにデバイスへ書き込むものもありません。.*Web サーバーがそのリクエストの次の情報を Umami サーバーに転送します。IP アドレス、ブラウザーの user-agent 文字列、ブラウザーの Accept-Language ヘッダーの最初の言語タグ.*、参照元ページ（クエリ文字列を除く）、読み込んだページのパス/,
 };
 
 const UMAMI_SESSION_HASH: Record<Locale, RegExp> = {
@@ -155,6 +165,7 @@ const UMAMI_SESSION_HASH: Record<Locale, RegExp> = {
     /对网站 ID、你的 IP 地址、你的 user-agent 字符串、每月变化的一个值和服务器的一个密钥做哈希/,
   "pt-BR":
     /aplicando um hash ao ID do site, ao seu endereço IP, à sua string de user-agent, a um valor que muda todo mês e a uma chave secreta do servidor/,
+  ja: /ウェブサイト ID、IP アドレス、user-agent 文字列、毎月変わる値、サーバーの秘密鍵をハッシュ化して/,
 };
 
 const UMAMI_GEOLITE: Record<Locale, RegExp> = {
@@ -166,6 +177,7 @@ const UMAMI_GEOLITE: Record<Locale, RegExp> = {
     /你的国家、地区和城市，这些信息由它在同一服务器上的 GeoLite2 数据库中根据你的 IP 地址查出/,
   "pt-BR":
     /país, região e cidade, que ele obtém a partir do seu endereço IP em um banco de dados GeoLite2 no mesmo servidor/,
+  ja: /国、地域、都市は、同じサーバー上の GeoLite2 データベースで IP アドレスから調べ/,
 };
 
 const UMAMI_LEGAL_BASIS: Record<Locale, RegExp> = {
@@ -176,6 +188,7 @@ const UMAMI_LEGAL_BASIS: Record<Locale, RegExp> = {
   "zh-CN": /依据 § 25 TDDDG（.*）无需征得同意。处理的法律依据是 GDPR 第 6\(1\)\(f\) 条/,
   "pt-BR":
     /não é necessário consentimento nos termos do § 25 da TDDDG .* para isso\. A base legal do tratamento é o art\. 6\(1\)\(f\) do GDPR/,
+  ja: /§ 25 TDDDG（.*）に基づく同意は不要です。処理の法的根拠は GDPR 第 6\(1\)\(f\) 条/,
 };
 
 const UMAMI_LANGUAGE_TAG_PER_PAGEVIEW: Record<Locale, RegExp> = {
@@ -186,6 +199,7 @@ const UMAMI_LANGUAGE_TAG_PER_PAGEVIEW: Record<Locale, RegExp> = {
   "zh-CN": /Accept-Language 请求头中的第一个语言标签（例如 en-US，每次页面浏览都会转发）/,
   "pt-BR":
     /primeira etiqueta de idioma do cabeçalho Accept-Language do seu navegador \(por exemplo, pt-BR\), que é encaminhada a cada visualização de página/,
+  ja: /Accept-Language ヘッダーの最初の言語タグ（例：en-US、ページビューごとに転送されます）/,
 };
 
 const UMAMI_UTM_ONLY: Record<Locale, RegExp> = {
@@ -197,6 +211,7 @@ const UMAMI_UTM_ONLY: Record<Locale, RegExp> = {
     /连同页面地址中的五个 UTM 参数（utm_source、utm_medium、utm_campaign、utm_term 和 utm_content，每个截断为 255 个字符）；其他所有查询参数（例如广告点击标识符）和片段都会丢弃，不会转发。/,
   "pt-BR":
     /junto com os cinco parâmetros UTM do endereço da página \(utm_source, utm_medium, utm_campaign, utm_term e utm_content, cada um limitado a 255 caracteres\); todos os outros parâmetros de consulta, como identificadores de clique de publicidade, e o fragmento são descartados e não são encaminhados\./,
+  ja: /ページアドレスの 5 つの UTM パラメーター（utm_source、utm_medium、utm_campaign、utm_term、utm_content。それぞれ 255 文字に切り詰め）です。広告のクリック ID などそれ以外のクエリパラメーターとフラグメントは破棄し、転送しません。/,
 };
 
 const UMAMI_NO_INTERACTIONS: Record<Locale, RegExp> = {
@@ -206,6 +221,7 @@ const UMAMI_NO_INTERACTIONS: Record<Locale, RegExp> = {
   fr: /Les clics, les textes copiés et les autres interactions ne sont pas enregistrés\./,
   "zh-CN": /点击、复制的文本和其他交互不会记录。/,
   "pt-BR": /Cliques, textos copiados e outras interações não são registrados\./,
+  ja: /クリック、コピーしたテキスト、その他の操作は記録しません。/,
 };
 
 const UMAMI_OLD_OPT_OUT_IGNORED: Record<Locale, RegExp> = {
@@ -216,6 +232,7 @@ const UMAMI_OLD_OPT_OUT_IGNORED: Record<Locale, RegExp> = {
   "zh-CN": /本站早先的分析设置曾把退出选择保存在你浏览器的本地存储中，现在不再读取/,
   "pt-BR":
     /opt-out salvo no armazenamento local do seu navegador pela configuração de análise anterior deste site não é mais lido/,
+  ja: /以前の分析設定でブラウザーのローカルストレージに保存されたオプトアウトは、もう読み取りません/,
 };
 
 const OPT_OUT_COOKIE_BASIS: Record<Locale, RegExp> = {
@@ -227,6 +244,7 @@ const OPT_OUT_COOKIE_BASIS: Record<Locale, RegExp> = {
     /名为 verbatra_analytics_optout 的 Cookie，值为 1，有效期一年.*无需征得同意（§ 25 第 2 款第 2 项 TDDDG）。再次允许分析会删除它。本站不设置其他 Cookie。/,
   "pt-BR":
     /verbatra_analytics_optout com o valor 1, válido por um ano.*não requer consentimento \(§ 25\(2\) nº 2 da TDDDG\)\. Permitir a análise de novo o exclui\. Nenhum outro cookie é definido\./,
+  ja: /verbatra_analytics_optout で、値は 1、有効期間は 1 年です.*同意は不要です（§ 25 第 2 項第 2 号 TDDDG）。分析を再び許可すると削除されます。ほかの Cookie は設定しません。/,
 };
 
 const OPT_OUT_COOKIE_READ_ONLY_TO_HONOUR: Record<Locale, RegExp> = {
@@ -238,6 +256,7 @@ const OPT_OUT_COOKIE_READ_ONLY_TO_HONOUR: Record<Locale, RegExp> = {
     /与分析相关、从你的设备读取的唯一内容，是第 5 节所述的退出分析 Cookie，而且只在遵从你的反对时读取。.*由于统计页面浏览量时没有向你的设备存储任何内容，退出分析 Cookie 也只在遵从你的反对时读取，因此依据/,
   "pt-BR":
     /A única coisa lida do seu dispositivo em relação à análise é o cookie de opt-out descrito na seção 5, e apenas para respeitar sua oposição\..*Como nada é armazenado no seu dispositivo para contar visualizações de página e o cookie de opt-out é lido apenas para respeitar sua oposição, não é necessário consentimento/,
+  ja: /分析に関連してデバイスから読み取るのは、第 5 節で説明するオプトアウト用 Cookie だけで、異議を尊重する目的でしか読み取りません。.*ページビューの集計のためにデバイスへ何も保存せず、オプトアウト用 Cookie も異議を尊重する目的でしか読み取らないため/,
 };
 
 const THEME_STORAGE: Record<Locale, RegExp> = {
@@ -248,6 +267,7 @@ const THEME_STORAGE: Record<Locale, RegExp> = {
   "zh-CN":
     /在浅色和深色主题之间切换时，你的选择会以 theme 为键名保存在本地存储（local storage）中。/,
   "pt-BR": /tema claro e o escuro, sua escolha é salva no armazenamento local com a chave theme\./,
+  ja: /ライトテーマとダークテーマを切り替えると、その選択はローカルストレージ（local storage）にキー theme で保存されます。/,
 };
 
 const PACKAGE_MANAGER_STORAGE: Record<Locale, RegExp> = {
@@ -259,6 +279,7 @@ const PACKAGE_MANAGER_STORAGE: Record<Locale, RegExp> = {
     /选择包管理器（npm、pnpm、yarn 或 bun）时，你的选择会以 package-manager 为键名同时保存在本地存储和会话存储（session storage）中/,
   "pt-BR":
     /gerenciador de pacotes \(npm, pnpm, yarn ou bun\) nas abas acima de um comando de instalação, sua escolha é salva com a chave package-manager tanto no armazenamento local quanto no armazenamento de sessão/,
+  ja: /パッケージマネージャー（npm、pnpm、yarn、bun）を選ぶと、その選択はローカルストレージとセッションストレージ（session storage）の両方にキー package-manager で保存され/,
 };
 
 const STORAGE_NEVER_SENT: Record<Locale, RegExp> = {
@@ -270,6 +291,7 @@ const STORAGE_NEVER_SENT: Record<Locale, RegExp> = {
     /在你做出该选择之前，这两项都不会写入；它们只保留在你的浏览器中，绝不会发送到我们的服务器或其他任何方/,
   "pt-BR":
     /Nenhuma das duas entradas é gravada antes de você fazer essa escolha; ambas ficam no seu navegador, nunca são enviadas ao nosso servidor nem a mais ninguém/,
+  ja: /どちらの項目も、選択する前には書き込まれません。どちらもブラウザー内にとどまり、このサーバーにもほかの誰にも送られず/,
 };
 
 const HOSTING_PROCESSOR: Record<Locale, RegExp> = {
@@ -280,6 +302,7 @@ const HOSTING_PROCESSOR: Record<Locale, RegExp> = {
   "zh-CN": /Contabo GmbH，Welfenstraße 22, 81541 München，德国.*作为处理者（GDPR 第 28 条）/,
   "pt-BR":
     /Contabo GmbH, Welfenstraße 22, 81541 Munique, Alemanha.*como operador \(art\. 28 do GDPR\)/,
+  ja: /Contabo GmbH, Welfenstraße 22, 81541 München, ドイツ.*処理者として（GDPR 第 28 条）処理します/,
 };
 
 const CONTAINER_LOG_ROTATION: Record<Locale, RegExp> = {
@@ -290,6 +313,7 @@ const CONTAINER_LOG_ROTATION: Record<Locale, RegExp> = {
   "zh-CN": /容器日志自动轮转，最多保留 \d+ 个文件，每个 \d+ MB/,
   "pt-BR":
     /log do contêiner é rotacionado automaticamente e limitado a \d+ arquivos de \d+ MB cada/,
+  ja: /コンテナーログは自動でローテーションされ、\d+ 個のファイル（各 \d+ MB）までに制限されます/,
 };
 
 const ARCJET_ONLY_OTHER_PROCESSOR: Record<Locale, RegExp> = {
@@ -300,6 +324,7 @@ const ARCJET_ONLY_OTHER_PROCESSOR: Record<Locale, RegExp> = {
   "zh-CN": /除托管提供商（见第 3 节）外，GDPR 第 28 条下涉及的唯一处理者是 Arcjet/,
   "pt-BR":
     /Além do provedor de hospedagem \(veja a seção 3\), o único operador envolvido nos termos do art\. 28 do GDPR é a Arcjet/,
+  ja: /ホスティングプロバイダー（第 3 節を参照）のほかに、GDPR 第 28 条の処理者として関与するのは Arcjet/,
 };
 
 const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
@@ -309,6 +334,7 @@ const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
   fr: /journaux d’accès du serveur web sont supprimés dès qu’ils ne sont plus nécessaires/,
   "zh-CN": /访问日志在不再需要用于这些目的时立即删除/,
   "pt-BR": /logs de acesso do servidor web são excluídos assim que deixam de ser necessários/,
+  ja: /Web サーバーのアクセスログは、これらの目的に不要になり次第削除します/,
 };
 
 const AI_TRANSLATION_PIPELINE: Record<Locale, RegExp> = {
@@ -320,6 +346,7 @@ const AI_TRANSLATION_PIPELINE: Record<Locale, RegExp> = {
     /会自动翻译为英语以外的所有语言：要么由 verbatra 使用 Google 的 Gemini 语言模型完成，要么由在仓库中工作的 AI 编码智能体完成，其输出再通过 verbatra 导入/,
   "pt-BR":
     /traduzido automaticamente para todos os idiomas diferentes do inglês, seja pelo verbatra com o modelo de linguagem Gemini do Google, seja por um agente de programação com IA que trabalha no repositório e cuja saída é importada com o verbatra/,
+  ja: /英語以外のすべての言語に機械翻訳されます。翻訳は、verbatra が Google の Gemini 言語モデルで行うか、リポジトリで作業する AI コーディングエージェントが行い、その出力を verbatra でインポートします/,
 };
 
 const AI_TRANSLATION_BEST_EFFORT: Record<Locale, RegExp> = {
@@ -329,6 +356,7 @@ const AI_TRANSLATION_BEST_EFFORT: Record<Locale, RegExp> = {
   fr: /vérifiées dans la mesure du possible : tous les textes traduits ne sont pas relus par une personne/,
   "zh-CN": /译文会尽力检查：并非每段译文在发布前都经过人工审校/,
   "pt-BR": /verificadas na medida do possível: nem todo texto traduzido é revisado por uma pessoa/,
+  ja: /訳文はできる範囲で確認していますが、すべての訳文を公開前に人がレビューしているわけではないため/,
 };
 
 function imprintFacts(): string[] {
@@ -344,10 +372,11 @@ const EQUALLY_BINDING: Record<Locale, RegExp> = {
   fr: /Toutes les versions linguistiques ont le même contenu et font également foi\./,
   "zh-CN": /所有语言版本内容相同，具有同等效力。/,
   "pt-BR": /Todas as versões de idioma têm o mesmo conteúdo e são igualmente vinculantes\./,
+  ja: /すべての言語版は内容が同じで、同等の効力を持ちます。/,
 };
 
 const BDSG_SECTION_38 = /§ 38 (de la |da )?BDSG/;
-const OBJECTION_SECTION_LIST = /3, 4,? (and|und|y|et|e) 12|3、4 和 12/;
+const OBJECTION_SECTION_LIST = /3, 4,? (and|und|y|et|e) 12|3、4 和 12|第 3 節、第 4 節、第 12 節/;
 
 describe("privacy page section reference patterns", () => {
   it("accepts the Portuguese contraction before BDSG and still rejects a missing section number", () => {
@@ -363,6 +392,12 @@ describe("privacy page section reference patterns", () => {
     expect("secciones 3, 4 y 12").toMatch(OBJECTION_SECTION_LIST);
     expect("seções 3, 4 ou 12").not.toMatch(OBJECTION_SECTION_LIST);
     expect("seções 3, 5 e 12").not.toMatch(OBJECTION_SECTION_LIST);
+  });
+
+  it("accepts the Japanese section list and rejects a Japanese list that skips a section", () => {
+    expect("第 3 節、第 4 節、第 12 節").toMatch(OBJECTION_SECTION_LIST);
+    expect("第 3 節、第 5 節、第 12 節").not.toMatch(OBJECTION_SECTION_LIST);
+    expect("第 3 節、第 4 節および第 12 節").not.toMatch(OBJECTION_SECTION_LIST);
   });
 });
 
@@ -405,7 +440,9 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     const controller = sectionText(await renderPrivacy(locale), /^1\. /);
 
     expect(controller).toMatch(NO_DPO_PHRASE[locale]);
-    expect(controller).toMatch(locale === "zh-CN" ? /第 37 条/ : /Art\. 37|art\. 37/);
+    expect(controller).toMatch(
+      locale === "zh-CN" || locale === "ja" ? /第 37 条/ : /Art\. 37|art\. 37/,
+    );
     expect(controller).toMatch(BDSG_SECTION_38);
   });
 

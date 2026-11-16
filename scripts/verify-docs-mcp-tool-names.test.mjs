@@ -50,7 +50,15 @@ function toolNamesInOrder() {
 }
 
 const YES = assertLocaleTable(
-  { "": "yes", ".de": "ja", ".es": "sí", ".fr": "oui", ".zh-CN": "是", ".pt-BR": "sim" },
+  {
+    "": "yes",
+    ".de": "ja",
+    ".es": "sí",
+    ".fr": "oui",
+    ".zh-CN": "是",
+    ".pt-BR": "sim",
+    ".ja": "はい",
+  },
   "YES",
 );
 

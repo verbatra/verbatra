@@ -3,6 +3,7 @@ import de from "../messages/de.json" with { type: "json" };
 import en from "../messages/en.json" with { type: "json" };
 import es from "../messages/es.json" with { type: "json" };
 import fr from "../messages/fr.json" with { type: "json" };
+import ja from "../messages/ja.json" with { type: "json" };
 import ptBR from "../messages/pt-BR.json" with { type: "json" };
 import zhCN from "../messages/zh-CN.json" with { type: "json" };
 import { homeUrl, LOCALES, pageUrl } from "./support";
@@ -14,6 +15,7 @@ const NEW_TAB = {
   fr: fr.landing.openSource.newTab,
   "zh-CN": zhCN.landing.openSource.newTab,
   "pt-BR": ptBR.landing.openSource.newTab,
+  ja: ja.landing.openSource.newTab,
 } as const;
 
 for (const locale of LOCALES) {

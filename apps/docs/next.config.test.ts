@@ -92,17 +92,17 @@ function docsPageFiles(slug: string): string[] {
 }
 
 describe("moved docs pages", () => {
-  it("spells one move out literally, in every locale including zh-CN and pt-BR and as Markdown", async () => {
+  it("spells one move out literally, in every locale including zh-CN, pt-BR and ja and as Markdown", async () => {
     const redirects = (await nextConfig.redirects?.()) ?? [];
     for (const redirect of [
       { source: "/docs/testing", destination: "/docs/translation-safety" },
       {
-        source: "/:locale(de|es|fr|zh-CN|pt-BR)/docs/testing",
+        source: "/:locale(de|es|fr|zh-CN|pt-BR|ja)/docs/testing",
         destination: "/:locale/docs/translation-safety",
       },
       { source: "/docs/testing.md", destination: "/docs/translation-safety.md" },
       {
-        source: "/:locale(de|es|fr|zh-CN|pt-BR)/docs/testing.md",
+        source: "/:locale(de|es|fr|zh-CN|pt-BR|ja)/docs/testing.md",
         destination: "/:locale/docs/translation-safety.md",
       },
     ]) {
@@ -127,6 +127,7 @@ describe("moved docs pages", () => {
       expect(match(`/de/docs/${from}`)).toEqual({ locale: "de" });
       expect(match(`/zh-CN/docs/${from}`)).toEqual({ locale: "zh-CN" });
       expect(match(`/pt-BR/docs/${from}`)).toEqual({ locale: "pt-BR" });
+      expect(match(`/ja/docs/${from}`)).toEqual({ locale: "ja" });
       expect(match(`/en/docs/${from}`)).toBe(false);
     },
   );

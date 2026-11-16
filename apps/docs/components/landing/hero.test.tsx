@@ -77,6 +77,7 @@ const LEAD_WORD_CAP: Readonly<Record<Locale, number>> = {
   fr: 30,
   "zh-CN": 30,
   "pt-BR": 30,
+  ja: 37,
 };
 
 const CHANGED_KEYS_BADGE: Readonly<Record<Locale, string>> = {
@@ -86,6 +87,7 @@ const CHANGED_KEYS_BADGE: Readonly<Record<Locale, string>> = {
   fr: "2 clés modifiées",
   "zh-CN": "2 个键已更改",
   "pt-BR": "2 chaves alteradas",
+  ja: "2 件のキーに変更あり",
 };
 
 describe("Hero copy", () => {

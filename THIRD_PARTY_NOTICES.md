@@ -14,6 +14,9 @@ published at https://verbatra.kreitz-webdev.de/licenses.
 - Noto Sans SC font (OFL-1.1): Subset to the Simplified Chinese social preview texts and embedded in those images (assets/og-fonts).
   - Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'
   - License text: text-36
+- Noto Sans JP font (OFL-1.1): Subset to the Japanese social preview texts and embedded in those images (assets/og-fonts).
+  - Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'
+  - License text: text-36
 - Screenshots (public/screenshots) (MIT): Own work of the verbatra project, under the project's MIT license.
   - Copyright (c) Mario Kreitz
 - Contributor avatars (public/contributors) (Owned by each contributor): GitHub profile images of the contributors, shown to credit them.

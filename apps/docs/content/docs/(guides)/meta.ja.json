@@ -1,0 +1,30 @@
+{
+  "title": "ガイド",
+  "pages": [
+    "---日常の作業---",
+    "../(get-started)/add-a-language",
+    "extract-keys",
+    "estimating-cost",
+    "protecting-human-translations",
+    "../(help)/recovery-and-rollback",
+    "---自動化---",
+    "ci-and-exit-codes",
+    "github-action",
+    "../(agents)/agent-recipes",
+    "---翻訳者との連携---",
+    "manual-translation",
+    "translation-agency",
+    "review-in-studio",
+    "changes-in-studio",
+    "history-in-studio",
+    "human-only-workflow",
+    "provenance-evidence",
+    "---AI エージェント---",
+    "../(agents)/connect-an-mcp-client",
+    "../(agents)/agent-tools-in-studio",
+    "---拡張---",
+    "../(sdk)/programmatic-api",
+    "custom-format-adapters",
+    "../(configure)/network-policy"
+  ]
+}

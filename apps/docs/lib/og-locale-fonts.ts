@@ -38,4 +38,22 @@ export const OG_LOCALE_FONTS: Readonly<Record<Locale, readonly OgLocaleFont[]>> 
     },
   ],
   "pt-BR": [],
+  ja: [
+    {
+      name: "Noto Sans JP",
+      file: "NotoSansJP-Medium.ttf",
+      weight: 500,
+      lang: "ja-JP",
+      sourceFile: "NotoSansJP[wght].ttf",
+      variationAxes: { wght: 500 },
+    },
+    {
+      name: "Noto Sans JP",
+      file: "NotoSansJP-Bold.ttf",
+      weight: 700,
+      lang: "ja-JP",
+      sourceFile: "NotoSansJP[wght].ttf",
+      variationAxes: { wght: 700 },
+    },
+  ],
 };

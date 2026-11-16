@@ -103,7 +103,7 @@ describe("OG font subsets", () => {
       return root;
     }
 
-    const table = { ...OG_LOCALE_FONTS, "zh-CN": [], en: [fixtureFont("Fixture.ttf")] };
+    const table = { ...OG_LOCALE_FONTS, "zh-CN": [], ja: [], en: [fixtureFont("Fixture.ttf")] };
 
     it("collects the headline, the compare heading and the page frontmatter", () => {
       const root = project("<accent>Ship é</accent> fast", "title: Start\ndescription: Über uns");
@@ -129,21 +129,40 @@ describe("OG font subsets", () => {
   });
 
   it("covers every character the locale's images can draw, for each locale with an extra font", () => {
-    expect(localesWithOgFonts()).toContain("zh-CN");
+    expect(localesWithOgFonts()).toEqual(expect.arrayContaining(["zh-CN", "ja"]));
     for (const locale of localesWithOgFonts()) {
       const fonts = ogFontFilesFor(locale).map((file) => readFileSync(join(FONT_ROOT, file)));
       const characters = ogCharacters(ogTexts(locale, process.cwd()));
+      expect(characters.length, locale).toBeGreaterThan(40);
       expect(missingGlyphs(characters, fonts), locale).toEqual([]);
     }
+  });
+
+  it("draws Japanese kana and the long-vowel mark from the Japanese subset", () => {
+    const characters = ogCharacters(ogTexts("ja", process.cwd()));
+    expect(characters).toMatch(/\p{Script=Hiragana}/u);
+    expect(characters).toMatch(/\p{Script=Katakana}/u);
+    const fonts = ogFontFilesFor("ja").map((file) => readFileSync(join(FONT_ROOT, file)));
+    expect(characters).toContain("ー");
+    expect(missingGlyphs("ー", fonts)).toEqual([]);
+    expect(missingGlyphs("ー", [readFileSync(join(FONT_ROOT, "NotoSansSC-Medium.ttf"))])).toEqual([
+      "ー",
+    ]);
   });
 
   it("ships no extra font for a locale until its table entry exists", () => {
     expect(ogFontFilesFor("en")).toEqual(OG_FONT_FILES.map((font) => font.file));
   });
 
-  it("lists zh-CN as the only locale with an extra font, a Medium and a Bold instance", () => {
-    expect(localesWithOgFonts()).toEqual(["zh-CN"]);
+  it("lists zh-CN and ja as the only locales with an extra font, a Medium and a Bold instance each", () => {
+    expect(localesWithOgFonts()).toEqual(["zh-CN", "ja"]);
     expect(OG_LOCALE_FONTS["zh-CN"].map((font) => font.weight)).toEqual([500, 700]);
+    expect(OG_LOCALE_FONTS.ja.map((font) => font.weight)).toEqual([500, 700]);
+    expect(ogFontFilesFor("ja")).toEqual([
+      ...OG_FONT_FILES.map((font) => font.file),
+      "NotoSansJP-Medium.ttf",
+      "NotoSansJP-Bold.ttf",
+    ]);
     expect(ogFontFilesFor("zh-CN")).toEqual([
       ...OG_FONT_FILES.map((font) => font.file),
       "NotoSansSC-Medium.ttf",
@@ -159,10 +178,11 @@ describe("OG font subsets", () => {
     expect(result.status).toBe(2);
     expect(result.stderr).toContain("--source-dir");
     expect(result.stderr).toContain("zh-CN");
+    expect(result.stderr).toContain("ja");
   });
 
   it("does nothing, and says so, while no locale configures an extra font", async () => {
-    const none = { ...OG_LOCALE_FONTS, "zh-CN": [] };
+    const none = { ...OG_LOCALE_FONTS, "zh-CN": [], ja: [] };
     expect(localesWithOgFonts(none)).toEqual([]);
     expect(
       await buildOgFontSubsets({ root: process.cwd(), sourceDir: FONT_ROOT, table: none }),

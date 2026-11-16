@@ -275,17 +275,26 @@ samp {
 
 :root:is(:lang(zh-CN), :lang(ja))
   :is(
-    .vk-display,
-    .vk-h2,
-    .vk-h3,
-    .vk-h4,
     .vk-banner-copy h1,
     .vk-closer h2,
     .vk-marquee-heading,
     .vk-compare-title,
-    .vk-docs-home-title,
+    .vk-docs-home-title
+  ):is(:lang(zh-CN), :lang(ja)) {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+:root:is(:lang(zh-CN), :lang(ja))
+  :is(
+    .vk-display,
+    .vk-h2,
+    .vk-h3,
+    .vk-h4,
     .vk-faq-question,
-    .vk-compare-note
+    .vk-compare-note,
+    .vk-compare-criterion,
+    .vk-compare-pair-row dt
   ):is(:lang(zh-CN), :lang(ja)) {
   word-break: keep-all;
   overflow-wrap: anywhere;
@@ -944,6 +953,7 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   position: relative;
   isolation: isolate;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   gap: 1.5rem;
   overflow: hidden;

@@ -385,7 +385,8 @@ of being skipped.
 
 A locale code is region-qualified where the language has regional written forms: Simplified
 Chinese is `zh-CN` in the URL segment, `html lang`, hreflang, `messages/zh-CN.json`,
-`page.zh-CN.mdx` and `meta.zh-CN.json`. Do not shorten it.
+`page.zh-CN.mdx` and `meta.zh-CN.json`. Do not shorten it. Japanese has no regional written form
+here and is plain `ja`, never `ja-JP`.
 
 ## Spaceless scripts (Chinese, Japanese)
 
@@ -401,8 +402,7 @@ has one owner:
   `apps/docs/components/landing/compare-table.tsx`.
 - Typography: one `:lang(zh-CN)` / `:lang(ja)` block in `apps/docs/app/global.css`: system font
   stacks after Geist, no CJK webfont, no letter-spacing, uppercase or italics on Han text, and the
-  heading line-height. The `:lang(ja)` rules exist before a Japanese locale does; change them
-  there, not per component.
+  heading line-height. Change them there, not per component.
 - OG images: Geist cannot draw Han, so `OG_LOCALE_FONTS` in `apps/docs/lib/og-locale-fonts.ts`
   gives the locale its own face, subset to that locale's OG text (`lib/og-texts.ts`) into
   `apps/docs/assets/og-fonts/` with its OFL text beside it. Rebuild the subset whenever that
@@ -411,15 +411,20 @@ has one owner:
   (`apps/docs/scripts/build-og-font-subsets.mjs`). `lib/og-font-subsets.test.ts` fails when a
   committed subset lacks a character.
 
-Tests with a Han branch: `scripts/verify-docs-registry-counts.test.mjs` (spelled-out counts),
+Tests with a Han or kana branch: `scripts/verify-docs-registry-counts.test.mjs` (spelled-out
+counts), `apps/docs/components/landing/marquee.test.tsx` (the same on the marquee),
 `apps/docs/lib/docs-badge-placement.test.ts` (prose restating a badge version) and
 `scripts/verify-docs-reference-parity.test.mjs` (label lines). A bold label line is `**<label>**`
-followed by the full-width colon `：` outside the bold, for example `**抛出**：`.
+followed by the full-width colon `：` outside the bold, for example `**抛出**：` or `**例外**：`.
+The long-vowel mark `ー` (U+30FC) and the middle dot `・` (U+30FB) have script `Common`, so
+`SPACELESS_SCRIPT` (`lib/word-count.ts`) and `COMPOUND_CHAR` (`lib/word-breaks.tsx`) name them
+explicitly; a new kana helper must do the same.
 
 ## Register and tone
 
 Informal address throughout, per locale: German `du` (not `Sie`), Spanish `tú` (not `usted`),
-French `tu` (not `vous`), Simplified Chinese `你` (not `您`). Pick the informal form for a new
+French `tu` (not `vous`), Simplified Chinese `你` (not `您`), Japanese polite `です`/`ます` (never
+`だ`/`である`, no `あなた`). Pick the informal form for a new
 locale and state it here. This is the same tone the automated translation already applies
 (`apps/docs/verbatra.config.ts`: `tone: "informal"`), so agent-translated MDX content should match
 it for consistency between the UI strings and the pages.

@@ -2934,6 +2934,15 @@
       "textId": "text-36"
     },
     {
+      "name": "Noto Sans JP font",
+      "license": "OFL-1.1",
+      "copyright": [
+        "Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'"
+      ],
+      "usage": "Subset to the Japanese social preview texts and embedded in those images (assets/og-fonts).",
+      "textId": "text-36"
+    },
+    {
       "name": "Screenshots (public/screenshots)",
       "license": "MIT",
       "copyright": ["Copyright (c) Mario Kreitz"],

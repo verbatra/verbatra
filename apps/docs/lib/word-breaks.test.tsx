@@ -122,6 +122,15 @@ describe("keepCompoundsWhole", () => {
     );
     expect(keepCompoundsWhole("支持、Gemini，另有 x")).toBe("支持、Gemini，另有 x");
   });
+
+  it("treats the Japanese long-vowel mark and middle dot as Japanese, never as a compound character", () => {
+    expect(keepCompoundsWhole("プロバイダー-x")).toBe("プロバイダー-x");
+    expect(keepCompoundsWhole("キー・ハッシュ-x")).toBe("キー・ハッシュ-x");
+    expect(markup(keepCompoundsWhole("サーバー next-intl-json を読む"))).toBe(
+      `<span>サーバー ${NOWRAP("next-intl-json")} を読む</span>`,
+    );
+    expect(keepCompoundsWhole("Mac-x")).not.toBe("Mac-x");
+  });
 });
 
 const SOFT = '<span class="vk-code-break"></span>';

@@ -1,0 +1,12 @@
+{
+  "title": "リファレンス",
+  "root": true,
+  "pages": [
+    "../cli",
+    "../(configure)",
+    "../sdk",
+    "[MCP サーバーのツール](/ja/docs/cli/mcp#tools)",
+    "error-codes",
+    "external:[リリースノート](https://github.com/verbatra/verbatra/releases)"
+  ]
+}

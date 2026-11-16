@@ -16,6 +16,7 @@ const PAGES: Record<string, readonly FakePage[]> = {
   fr: [{ slugs: ["intro"], url: "/fr/docs/intro" }],
   "zh-CN": [{ slugs: ["intro"], url: "/zh-CN/docs/intro" }],
   "pt-BR": [{ slugs: ["intro"], url: "/pt-BR/docs/intro" }],
+  ja: [{ slugs: ["intro"], url: "/ja/docs/intro" }],
 };
 
 vi.mock("@/lib/source", () => ({
@@ -75,6 +76,7 @@ describe("sitemap", () => {
         fr: "https://verbatra.kreitz-webdev.de/fr/compare",
         "zh-CN": "https://verbatra.kreitz-webdev.de/zh-CN/compare",
         "pt-BR": "https://verbatra.kreitz-webdev.de/pt-BR/compare",
+        ja: "https://verbatra.kreitz-webdev.de/ja/compare",
       },
     });
   });

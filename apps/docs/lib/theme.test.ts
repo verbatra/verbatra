@@ -413,6 +413,39 @@ describe("theme tokens", () => {
     expect(heading?.declarations["overflow-wrap"]).toBe("anywhere");
     expect(rules.some((rule) => rule.declarations.hyphens === "auto")).toBe(false);
   });
+
+  it("lets a Japanese or Chinese heading fed by the word-break helper use break-word, and keeps anywhere elsewhere", () => {
+    const wrapOf = (selector: string): string | undefined =>
+      rules.find(
+        (rule) =>
+          rule.selector.includes(":lang(ja)") &&
+          rule.selector.includes(selector) &&
+          rule.declarations["word-break"] === "keep-all",
+      )?.declarations["overflow-wrap"];
+    for (const selector of [".vk-closer h2", ".vk-compare-title", ".vk-marquee-heading"])
+      expect(wrapOf(selector)).toBe("break-word");
+    for (const selector of [".vk-h2", ".vk-display", ".vk-faq-question", ".vk-compare-note"])
+      expect(wrapOf(selector)).toBe("anywhere");
+  });
+
+  it("lets the closing call to action shrink its grid track below its heading", () => {
+    const closer = rules.find((rule) => rule.selector === ".vk-closer");
+    expect(closer?.declarations["grid-template-columns"]).toBe("minmax(0, 1fr)");
+  });
+
+  it("keeps a balanced Japanese or Chinese heading from tearing a word, except where a flex track must shrink", () => {
+    const wrapOf = (selector: string): string | undefined =>
+      rules.find(
+        (rule) =>
+          rule.selector.includes(":lang(ja)") &&
+          rule.selector.includes(selector) &&
+          rule.declarations["word-break"] === "keep-all",
+      )?.declarations["overflow-wrap"];
+    expect(wrapOf(".vk-closer h2")).toBe("break-word");
+    expect(wrapOf(".vk-compare-title")).toBe("break-word");
+    expect(wrapOf(".vk-faq-question")).toBe("anywhere");
+    expect(wrapOf(".vk-compare-note")).toBe("anywhere");
+  });
 });
 
 describe("embed", () => {

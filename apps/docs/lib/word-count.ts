@@ -21,7 +21,8 @@ export function countWords(text: string, locale: string): number {
   return count;
 }
 
-export const SPACELESS_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+export const SPACELESS_SCRIPT =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u30FB\u30FC]/u;
 
 const MIN_GROUP_CHARACTERS = 2;
 const MAX_WHOLE_RUN_ATTACHED = 3;
@@ -54,13 +55,17 @@ interface Run {
   readonly lone: boolean;
 }
 
-function joinLoneRuns(segments: Iterable<WordSegment>): Run[] {
+function joinLoneRuns(segments: Iterable<WordSegment>, japanese: boolean): Run[] {
   const runs: Run[] = [];
   let index = 0;
   for (const segment of segments) {
     const lone = isLoneCharacter(segment);
     const previous = runs.at(-1);
-    if (previous?.lone === true && lone)
+    if (
+      previous?.lone === true &&
+      lone &&
+      (!japanese || sameScript(previous.group.text, segment.segment))
+    )
       runs[runs.length - 1] = {
         lone,
         group: { ...previous.group, text: previous.group.text + segment.segment },
@@ -73,6 +78,10 @@ function joinLoneRuns(segments: Iterable<WordSegment>): Run[] {
     index += segment.segment.length;
   }
   return runs;
+}
+
+function sameScript(previous: string, next: string): boolean {
+  return HAN_CHARACTER.test(previous.slice(-1)) === HAN_CHARACTER.test(next);
 }
 
 function mergeGroups(first: WordGroup, second: WordGroup): WordGroup {
@@ -92,8 +101,14 @@ function attachRun(groups: WordGroup[], previous: WordGroup, run: WordGroup): vo
     });
 }
 
-function placeRun(groups: WordGroup[], run: WordGroup, lone: boolean): WordGroup | null {
+function placeRun(
+  groups: WordGroup[],
+  run: WordGroup,
+  lone: boolean,
+  forward: boolean,
+): WordGroup | null {
   const previous = groups.at(-1);
+  if (lone && forward) return run;
   if (lone && previous?.isWordLike === true) {
     attachRun(groups, previous, run);
     return null;
@@ -103,29 +118,111 @@ function placeRun(groups: WordGroup[], run: WordGroup, lone: boolean): WordGroup
   return null;
 }
 
-function absorbSingleCharacters(runs: Run[]): WordGroup[] {
+function absorbSingleCharacters(runs: Run[], japanese: boolean): WordGroup[] {
   const groups: WordGroup[] = [];
   let carried: WordGroup | null = null;
-  for (const { group, lone } of runs) {
+  for (const [position, { group, lone }] of runs.entries()) {
     if (carried !== null && group.isWordLike) {
       groups.push(mergeGroups(carried, group));
       carried = null;
       continue;
     }
     if (carried !== null) groups.push(carried);
-    carried = placeRun(groups, group, lone);
+    const next = runs[position + 1]?.group;
+    carried = placeRun(
+      groups,
+      group,
+      lone,
+      japanese && next?.isWordLike === true && leadsInto(group.text, next.text),
+    );
   }
   if (carried !== null) groups.push(carried);
   return groups;
 }
 
-export function groupWordSegments(segments: Iterable<WordSegment>): WordGroup[] {
-  return absorbSingleCharacters(joinLoneRuns(segments));
+const HAN_CHARACTER = /^\p{Script=Han}$/u;
+const HAN_START = /^\p{Script=Han}/u;
+const HIRAGANA_START = /^\p{Script=Hiragana}/u;
+const PARTICLE_START = /^[はがをにでとのもへやかねよ]/u;
+const KATAKANA = /\p{Script=Katakana}/u;
+const KATAKANA_OR_MARK = /[\p{Script=Katakana}\u30FC]/u;
+const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
+const MAX_KATAKANA_FRAGMENT = 3;
+const MAX_FRAGMENT_PAIR = 2;
+const MAX_WORD_CHARACTERS = 8;
+
+function leadsInto(character: string, next: string): boolean {
+  if (!HAN_CHARACTER.test(character)) return false;
+  const starts = HAN_START.test(next) || (HIRAGANA_START.test(next) && !PARTICLE_START.test(next));
+  return starts && characterCount(next) < MAX_WORD_CHARACTERS;
+}
+
+function bothShortKatakana(previous: string, next: string): boolean {
+  return (
+    Math.max(characterCount(previous), characterCount(next)) <= MAX_FRAGMENT_PAIR &&
+    continuesKatakana(previous, next)
+  );
+}
+
+function continuesKatakana(previous: string, next: string): boolean {
+  const last = previous.slice(-1);
+  const first = next.slice(0, 1);
+  return (
+    KATAKANA_OR_MARK.test(last) &&
+    KATAKANA_OR_MARK.test(first) &&
+    (KATAKANA.test(last) || KATAKANA.test(first)) &&
+    Math.min(characterCount(previous), characterCount(next)) <= MAX_KATAKANA_FRAGMENT
+  );
+}
+
+function mergeWhile(
+  groups: WordGroup[],
+  joins: (previous: string, next: string) => boolean,
+): WordGroup[] {
+  const merged: WordGroup[] = [];
+  for (const group of groups) {
+    const previous = merged.at(-1);
+    if (
+      previous?.isWordLike === true &&
+      group.isWordLike &&
+      characterCount(previous.text) + characterCount(group.text) <= MAX_WORD_CHARACTERS &&
+      joins(previous.text, group.text)
+    )
+      merged[merged.length - 1] = mergeGroups(previous, group);
+    else merged.push(group);
+  }
+  return merged;
+}
+
+function toGroups(segments: readonly WordSegment[]): WordGroup[] {
+  let index = 0;
+  return segments.map((segment) => {
+    const group = { text: segment.segment, index, isWordLike: segment.isWordLike === true };
+    index += segment.segment.length;
+    return group;
+  });
+}
+
+export function groupWordSegments(
+  segments: Iterable<WordSegment>,
+  { keepEndings = true }: { readonly keepEndings?: boolean } = {},
+): WordGroup[] {
+  const list = [...segments];
+  const japanese = list.some((segment) => KANA.test(segment.segment));
+  const words = mergeWhile(mergeWhile(toGroups(list), bothShortKatakana), continuesKatakana);
+  const runs = joinLoneRuns(
+    words.map((word) => ({ segment: word.text, isWordLike: word.isWordLike })),
+    japanese,
+  );
+  const groups = absorbSingleCharacters(runs, japanese);
+  return keepEndings ? mergeWhile(groups, (_previous, next) => HIRAGANA_START.test(next)) : groups;
 }
 
 export function lastWordStart(text: string, locale: string): number {
   let start = 0;
-  for (const group of groupWordSegments(wordSegmenter(locale).segment(text)))
+  for (const group of groupWordSegments(wordSegmenter(locale).segment(text), {
+    keepEndings: false,
+  }))
     if (group.isWordLike) start = group.index;
   return start;
 }

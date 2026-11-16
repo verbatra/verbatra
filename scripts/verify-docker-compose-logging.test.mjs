@@ -17,6 +17,7 @@ const POLICY_BOUND = assertLocaleTable(
     fr: (files, megabytes) => `limité à ${files} fichiers de ${megabytes} Mo chacun`,
     "zh-CN": (files, megabytes) => `最多保留 ${files} 个文件，每个 ${megabytes} MB`,
     "pt-BR": (files, megabytes) => `limitado a ${files} arquivos de ${megabytes} MB cada`,
+    ja: (files, megabytes) => `${files} 個のファイル（各 ${megabytes} MB）までに制限`,
   },
   "POLICY_BOUND",
   LOCALES,

@@ -78,8 +78,20 @@ const HAN_DATING = new RegExp(
   "gu",
 );
 
+const JA_DATING = new RegExp(
+  `(?:バージョン\\s*)?${DATED_VERSION}\\s*(?:` +
+    `(?:から|より|以降)(?!\\s*\`?v?\\d)(?!\\s*(?:の\\s*バージョン\\s*)?(?:が|を)?\\s*(?:必要|要る|前|以前|古い|新しい|へ))` +
+    `|(?:で|にて|において)\\s*(?:追加|導入|新た|新規|初めて|初登場|登場|対応|サポート|利用可能|使用可能|使える|利用でき)` +
+    `|の\\s*新機能)`,
+  "gu",
+);
+
 function datedVersions(text: string): string[] {
-  return [...text.matchAll(DATING), ...text.matchAll(HAN_DATING)].flatMap(([, first, second]) => {
+  return [
+    ...text.matchAll(DATING),
+    ...text.matchAll(HAN_DATING),
+    ...text.matchAll(JA_DATING),
+  ].flatMap(([, first, second]) => {
     const version = first ?? second;
     return version === undefined ? [] : [version];
   });
@@ -296,6 +308,14 @@ const RESTATING_SENTENCES: ReadonlyArray<readonly [Locale, string]> = [
   ["pt-BR", "`X` está disponível desde a versão 0.12.0."],
   ["pt-BR", "Novo na 0.12.0."],
   ["pt-BR", "`X` foi introduzido em `0.12.0`."],
+  ["ja", "`X` は 0.12.0 から利用できます。"],
+  ["ja", "0.12 以降、X もファイルに書き込みます。"],
+  ["ja", "`X` は 0.12.0 で追加されました。"],
+  ["ja", "`X` は 0.12.0 で導入されました。"],
+  ["ja", "`X` は 0.12.0 の新機能です。"],
+  ["ja", "`X` は 0.12.0 で初めて登場しました。"],
+  ["ja", "バージョン 0.12.0 より利用できます。"],
+  ["ja", "0.12.0 以降で使えます。"],
 ];
 
 describe("AvailableFrom badge placement", () => {
@@ -364,6 +384,7 @@ describe("AvailableFrom badge placement", () => {
       "Upgrading from 0.12.0 to 0.13.0 keeps the file, and so does von `0.12.0` auf `0.13.0`.",
       "需要 0.12.0 或更高版本。从 0.12.0 升级到 0.13.0 会保留该文件，从 `0.12.0` 到 `0.13.0` 也一样。0.11 之前返回映射。",
       "Requer a 0.12.0 ou mais recente, e precisa da versão 0.12.0 ou posterior. Atualize da 0.12.0 para a 0.13.0, de `0.12.0` até `0.13.0`, ou desde a 0.12 até a 0.13.",
+      "verbatra 0.12.0 以上が必要です。0.12.0 以降が必要です。0.12.0 以降のバージョンが必要です。0.12.0 以上では動作します。0.12.0 から 0.13.0 へのアップグレードではファイルが保持されます。`0.12.0` から `0.13.0` に上げても同じです。0.11 より前はマップを返していました。0.11 より古いバージョンは対象外です。",
       "## B",
       "From 0.12.0 any other key fails.",
     ].join("\n\n");

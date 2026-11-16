@@ -51,6 +51,7 @@ const OG_LOCALES: Record<Locale, string> = {
   fr: "fr_FR",
   "zh-CN": "zh_CN",
   "pt-BR": "pt_BR",
+  ja: "ja_JP",
 };
 
 export function ogLocale(locale: Locale): string {

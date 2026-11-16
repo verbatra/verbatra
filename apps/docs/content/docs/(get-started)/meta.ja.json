@@ -1,0 +1,5 @@
+{
+  "title": "スタートガイド",
+  "defaultOpen": true,
+  "pages": ["quickstart", "../(sdk)/sdk-quickstart", "pick-your-stack", "../(agents)/start-with-ai"]
+}

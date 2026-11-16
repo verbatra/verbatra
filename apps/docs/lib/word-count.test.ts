@@ -69,6 +69,39 @@ const other = (segment: string): WordSegment => ({ segment, isWordLike: false })
 const texts = (segments: WordSegment[]): string[] =>
   groupWordSegments(segments).map((group) => group.text);
 
+describe("SPACELESS_SCRIPT", () => {
+  it.each(["漢", "ひ", "カ", "ー", "・"])("matches the Japanese character %s", (character) => {
+    expect(SPACELESS_SCRIPT.test(character)).toBe(true);
+  });
+
+  it.each(["a", "7", "-", "_", " ", "。"])("does not match %s", (character) => {
+    expect(SPACELESS_SCRIPT.test(character)).toBe(false);
+  });
+
+  it("counts a lone long-vowel mark as a lone Japanese character, so it joins its neighbour", () => {
+    const groups = groupWordSegments([
+      { segment: "プロバイダ", isWordLike: true },
+      { segment: "ー", isWordLike: true },
+    ]);
+    expect(groups.map((group) => group.text)).toEqual(["プロバイダー"]);
+  });
+
+  it("leaves Latin and Chinese lone-character handling as it was", () => {
+    expect(
+      groupWordSegments([
+        { segment: "支持", isWordLike: true },
+        { segment: "a", isWordLike: true },
+      ]).map((group) => group.text),
+    ).toEqual(["支持", "a"]);
+    expect(
+      groupWordSegments([
+        { segment: "编辑", isWordLike: true },
+        { segment: "器", isWordLike: true },
+      ]).map((group) => group.text),
+    ).toEqual(["编辑器"]);
+  });
+});
+
 describe("groupWordSegments", () => {
   it("merges a run of one-character segments into one group", () => {
     expect(texts(["让", "每", "个", "语言", "环境"].map(wordLike))).toEqual([
@@ -153,5 +186,87 @@ describe("groupWordSegments", () => {
         expect(groups[position + 1]?.isWordLike ?? false).toBe(false);
       });
     }
+  });
+});
+
+describe("groupWordSegments groups Japanese text", () => {
+  const japanese = new Intl.Segmenter("ja", { granularity: "word" });
+  const shown = (text: string): string =>
+    groupWordSegments(japanese.segment(text))
+      .filter((group) => group.isWordLike)
+      .map((group) => group.text)
+      .join("¦");
+
+  it.each([
+    ["まずドライランから", "まず¦ドライランから"],
+    [
+      "Verbatra はどの翻訳プロバイダーに対応していますか？",
+      "Verbatra¦はどの¦翻訳¦プロバイダーに¦対応していますか",
+    ],
+    ["Apache-2.0（リポジトリ）", "Apache¦2.0¦リポジトリ"],
+    ["コマンドラインツール（CLI）", "コマンドライン¦ツール¦CLI"],
+    ["ファイルフォーマット", "ファイル¦フォーマット"],
+    ["プライバシーポリシー", "プライバシー¦ポリシー"],
+    ["プライベートクラウドは非対応", "プライベート¦クラウドは¦非対応"],
+    ["サーバーサイドレンダリング", "サーバーサイド¦レンダリング"],
+  ])("splits %s as %s", (text, expected) => {
+    expect(shown(text)).toBe(expected);
+  });
+
+  it("never chains katakana pieces past eight characters", () => {
+    const text = "サーバーサイドレンダリングコントリビューションガイド";
+    for (const group of groupWordSegments(japanese.segment(text)))
+      expect([...group.text].length).toBeLessThanOrEqual(8);
+  });
+
+  it("does not treat a long vowel mark alone as katakana", () => {
+    const pieces = [
+      { segment: "ーー", isWordLike: true },
+      { segment: "ーー", isWordLike: true },
+    ];
+    expect(groupWordSegments(pieces, { keepEndings: false })).toHaveLength(2);
+  });
+
+  it("attaches a lone kanji forward to the okurigana or kanji that follows", () => {
+    expect(shown("プロバイダーが誤っても、何も書き込まれません")).toContain("誤っても");
+    expect(shown("プライベートクラウドは非対応")).toContain("非対応");
+  });
+
+  it("keeps a lone kanji suffix with the word before it when a particle follows", () => {
+    expect(shown("翻訳者が確認します")).toBe("翻訳者が¦確認します");
+  });
+
+  it("keeps an ending whole only while the group stays within eight characters", () => {
+    expect(shown("対応していますか")).toBe("対応していますか");
+    expect(shown("翻訳が欠けているとき、Verbatra は pull request を失敗させられますか？")).toBe(
+      "翻訳が¦欠けているとき¦Verbatra¦は¦pull¦request¦を失敗させられ¦ますか",
+    );
+  });
+
+  it("leaves Simplified Chinese grouping alone", () => {
+    const chinese = new Intl.Segmenter("zh", { granularity: "word" });
+    const groups = (text: string): string[] =>
+      groupWordSegments(chinese.segment(text)).map((group) => group.text);
+    expect(groups("字符串或 API 密钥发到别处吗？")).toEqual([
+      "字符串或",
+      " ",
+      "API",
+      " ",
+      "密钥发到",
+      "别处吗",
+      "？",
+    ]);
+  });
+});
+
+describe("lastWordStart keeps a Japanese tail short", () => {
+  it("cuts only the last ending, never the whole verb phrase", () => {
+    const note = "本体は記載なし";
+    expect(note.slice(lastWordStart(note, "ja"))).toBe("なし");
+  });
+
+  it("keeps a katakana word whole at the end", () => {
+    const note = "ホスト型、リポジトリ";
+    expect(note.slice(lastWordStart(note, "ja"))).toBe("リポジトリ");
   });
 });

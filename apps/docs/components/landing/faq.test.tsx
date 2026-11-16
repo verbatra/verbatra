@@ -35,6 +35,7 @@ vi.mock("next-intl/server", async () => {
     fr: (await import("@/messages/fr.json")).default,
     "zh-CN": (await import("@/messages/zh-CN.json")).default,
     "pt-BR": (await import("@/messages/pt-BR.json")).default,
+    ja: (await import("@/messages/ja.json")).default,
   };
   return {
     getTranslations: async ({ locale, namespace }: { locale: Locale; namespace: string }) =>
@@ -310,6 +311,7 @@ const YES: Readonly<Record<Locale, string>> = {
   fr: "Oui.",
   "zh-CN": "是的。",
   "pt-BR": "Sim.",
+  ja: "はい。",
 };
 const NO: Readonly<Record<Locale, string>> = {
   en: "No.",
@@ -318,6 +320,7 @@ const NO: Readonly<Record<Locale, string>> = {
   fr: "Non.",
   "zh-CN": "不是。",
   "pt-BR": "Não.",
+  ja: "いいえ。",
 };
 
 const SENTENCE_END = /[.!?](?:\s|$)|[。！？]/;
@@ -335,6 +338,7 @@ const FAQ_WORD_CAPS: Readonly<Record<Locale, FaqWordCaps>> = {
   fr: SPACED_FAQ_CAPS,
   "zh-CN": { firstSentence: 25, answer: 40 },
   "pt-BR": SPACED_FAQ_CAPS,
+  ja: { firstSentence: 24, answer: 50 },
 };
 
 describe("the landing faq copy", () => {

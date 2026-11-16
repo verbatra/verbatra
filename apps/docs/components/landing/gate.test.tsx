@@ -112,6 +112,7 @@ const RERUN_PROMISES: Readonly<Record<Locale, RegExp>> = {
   "zh-CN": /(重新运行|再次运行|重试|下次运行|再运行)/,
   "pt-BR":
     /(de novo|novamente|outra vez|tentar novamente|reexecut|próxima execução|nova tentativa)/i,
+  ja: /(再実行|もう一度|再試行|次回の実行|次の実行)/,
 };
 
 const CATALOG_ENTRIES = Object.entries(MESSAGE_CATALOGS) as [Locale, Messages][];
@@ -196,6 +197,7 @@ describe("Gate", () => {
     ["fr", MESSAGE_CATALOGS.fr, 118, /(r\u00e9essay|relanc|nouveau)/i],
     ["zh-CN", MESSAGE_CATALOGS["zh-CN"], 76, /重试/],
     ["pt-BR", MESSAGE_CATALOGS["pt-BR"], 103, /(tentad|nova tentativa|de novo)/i],
+    ["ja", MESSAGE_CATALOGS.ja, 72, /再試行/],
   ] as const)(
     "names the retry in the %s stale foot, within its previous length, and never promises the retry succeeds",
     (locale, catalog, previousLength, retry) => {
@@ -203,7 +205,7 @@ describe("Gate", () => {
       expect(foot).toMatch(retry);
       expect(snippetLength(locale, foot)).toBeLessThanOrEqual(previousLength);
       expect(foot).not.toMatch(
-        /(succe|gelingt|funciona|r\u00e9ussi|\bfix(ed|es)?\b|behoben|corrige|corrig|成功|修复|sucesso|resolv)/i,
+        /(succe|gelingt|funciona|r\u00e9ussi|\bfix(ed|es)?\b|behoben|corrige|corrig|成功|修复|修復|修正|解決|解消|sucesso|resolv)/i,
       );
     },
   );

@@ -14,7 +14,7 @@ import {
 } from "@/lib/landing-compare";
 import { cn } from "@/lib/utils";
 import { breakBetweenWords } from "@/lib/word-breaks";
-import { isSpaceless, lastWordStart } from "@/lib/word-count";
+import { isSpaceless, lastWordStart, SPACELESS_SCRIPT } from "@/lib/word-count";
 
 export type CompareTranslator = Awaited<ReturnType<typeof getTranslations<"landing.compare">>>;
 
@@ -28,8 +28,14 @@ function toolDetail(t: CompareTranslator, tool: CompareTool): string | null {
   return null;
 }
 
-function Detail({ text }: { text: string | null }): ReactNode {
-  return text === null ? null : <small className="vk-compare-detail">{text}</small>;
+export function criterionLabel(label: string, locale: Locale): ReactNode {
+  return isSpaceless(locale) ? breakBetweenWords(label) : label;
+}
+
+function Detail({ text, locale }: { text: string | null; locale: Locale }): ReactNode {
+  return text === null ? null : (
+    <small className="vk-compare-detail">{criterionLabel(text, locale)}</small>
+  );
 }
 
 function PairDetail({ text }: { text: string | null }): ReactNode {
@@ -126,12 +132,28 @@ function Unit({ children }: { children: ReactNode }): ReactNode {
 const TAIL_SEGMENT = /[^\s\-/]*$/;
 const OPENING_PUNCTUATION = /[\p{Ps}\p{Pi}]$/u;
 
+const PREVIOUS_CHUNK = /\S+\s*$/;
+
+function isLoneSpacedCharacter(text: string, start: number): boolean {
+  const tail = text.slice(start);
+  return [...tail].length === 1 && SPACELESS_SCRIPT.test(tail) && /\s$/.test(text.slice(0, start));
+}
+
+const MAX_PREVIOUS_CHUNK = 6;
+
+function previousChunkStart(text: string, start: number): number {
+  const previous = text.slice(0, start).search(PREVIOUS_CHUNK);
+  return previous === -1 || [...text.slice(previous, start).trimEnd()].length > MAX_PREVIOUS_CHUNK
+    ? start
+    : previous;
+}
+
 function tailCut(text: string, locale: string): number {
   const cut = text.search(TAIL_SEGMENT);
   if (!isSpaceless(locale)) return cut;
   let start = Math.max(cut, lastWordStart(text, locale));
   while (start > cut && OPENING_PUNCTUATION.test(text.slice(0, start))) start -= 1;
-  return start;
+  return isLoneSpacedCharacter(text, start) ? previousChunkStart(text, start) : start;
 }
 
 function WordWithMark({
@@ -287,7 +309,7 @@ export function CompareMatrix({
       <thead>
         <tr>
           <th scope="col" className="vk-compare-head vk-compare-criterion">
-            {t("columns.criterion")}
+            {criterionLabel(t("columns.criterion"), locale)}
           </th>
           {COMPARE_TOOLS.map((tool) => (
             <th
@@ -297,7 +319,7 @@ export function CompareMatrix({
               className={cn("vk-compare-head", tool === "verbatra" && "vk-compare-self")}
             >
               {toolName(t, tool)}
-              <Detail text={toolDetail(t, tool)} />
+              <Detail text={toolDetail(t, tool)} locale={locale} />
             </th>
           ))}
         </tr>
@@ -306,8 +328,8 @@ export function CompareMatrix({
         {COMPARE_ROWS.map((row) => (
           <tr key={row} data-row={row}>
             <th scope="row" className="vk-compare-criterion">
-              {t(`rows.${row}.label`)}
-              <Detail text={row === "formats" ? t("rows.formats.detail") : null} />
+              {criterionLabel(t(`rows.${row}.label`), locale)}
+              <Detail text={row === "formats" ? t("rows.formats.detail") : null} locale={locale} />
             </th>
             {COMPARE_TOOLS.map((tool) => (
               <td
@@ -345,8 +367,11 @@ export function ComparePairs({ t, locale }: { t: CompareTranslator; locale: Loca
             {COMPARE_ROWS.map((row) => (
               <div key={row} className="vk-compare-pair-row" data-row={row}>
                 <dt>
-                  {t(`rows.${row}.label`)}
-                  <Detail text={row === "formats" ? t("rows.formats.detail") : null} />
+                  {criterionLabel(t(`rows.${row}.label`), locale)}
+                  <Detail
+                    text={row === "formats" ? t("rows.formats.detail") : null}
+                    locale={locale}
+                  />
                 </dt>
                 {(["verbatra", tool] as const).map((side) => (
                   <dd

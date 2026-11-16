@@ -59,6 +59,7 @@ const TITLE_WINDOWS: Readonly<Record<Locale, LengthWindow>> = {
   fr: SEARCH_TITLE_WINDOW,
   "zh-CN": CJK_TITLE_WINDOW,
   "pt-BR": SEARCH_TITLE_WINDOW,
+  ja: CJK_TITLE_WINDOW,
 };
 
 const DESCRIPTION_WINDOWS: Readonly<Record<Locale, LengthWindow>> = {
@@ -68,6 +69,7 @@ const DESCRIPTION_WINDOWS: Readonly<Record<Locale, LengthWindow>> = {
   fr: SEARCH_DESCRIPTION_WINDOW,
   "zh-CN": CJK_DESCRIPTION_WINDOW,
   "pt-BR": SEARCH_DESCRIPTION_WINDOW,
+  ja: CJK_DESCRIPTION_WINDOW,
 };
 
 const ABSENCE_FOUND_WORD: Readonly<Record<Locale, RegExp>> = {
@@ -77,6 +79,7 @@ const ABSENCE_FOUND_WORD: Readonly<Record<Locale, RegExp>> = {
   fr: /trouv/,
   "zh-CN": /找到/,
   "pt-BR": /encontr/,
+  ja: /未検出/,
 };
 
 describe("landing message parity", () => {

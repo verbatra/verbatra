@@ -99,7 +99,7 @@ That runs `verbatra translate` against `verbatra.config.ts` in this directory:
 unchanged messages calls no provider and needs no key. The key is read from the environment, never
 from the config.
 
-Not every value in `messages/*.json` came from that run. The `zh-CN` and `pt-BR` strings and some corrected
+Not every value in `messages/*.json` came from that run. The `zh-CN`, `pt-BR` and `ja` strings and some corrected
 `de`, `es` and `fr` values were written by an AI coding agent working in the repository and brought
 in with `verbatra import`, so they are recorded with origin `import` in `verbatra.provenance.json`
 and protected: when the English source of such a key changes, `pnpm i18n` leaves the key stale
@@ -120,9 +120,9 @@ language are updated in the *same* change, by hand for MDX content or by re-runn
 `pnpm i18n` for interface strings. CI backstops only the `messages/*.json` half of this; a stale
 `page.<locale>.mdx` is not caught, so treat it as authoring discipline.
 
-Register is informal throughout (for example German `du`, Spanish `tú`, French `tu`, Chinese `你`). No
+Register is informal throughout (for example German `du`, Spanish `tú`, French `tu`, Chinese `你`, Japanese `です`/`ます`). No
 em dash (U+2014) or horizontal bar (U+2015) in any locale. The translation conventions, and the
-handling a spaceless script such as Chinese needs, are in
+handling a spaceless script such as Chinese or Japanese needs, are in
 [`.claude/rules/docs.md`](../../.claude/rules/docs.md); adding a locale is in
 [`CONTRIBUTING.md`](../../CONTRIBUTING.md) "Adding a docs locale".
 

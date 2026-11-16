@@ -26,6 +26,7 @@ const SNIPPET_LIMITS: Readonly<Record<Locale, SnippetLimits>> = {
   fr: SEARCH_LIMITS,
   "zh-CN": CJK_LIMITS,
   "pt-BR": SEARCH_LIMITS,
+  ja: CJK_LIMITS,
 };
 
 function measured(limits: SnippetLimits, text: string): number {

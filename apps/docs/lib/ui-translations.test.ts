@@ -14,6 +14,7 @@ const SAME_AS_ENGLISH: Readonly<Record<TranslatedLocale, ReadonlySet<string>>> =
   fr: new Set(["Type(type table)"]),
   "zh-CN": new Set(),
   "pt-BR": new Set(),
+  ja: new Set(),
 };
 
 function englishLabel(key: string): string {

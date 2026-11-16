@@ -17,6 +17,7 @@ const ENVIRONMENT_FILES_HEADING = assertLocaleTable(
     ".fr": "## Fichiers d'environnement",
     ".zh-CN": "## 环境文件",
     ".pt-BR": "## Arquivos de ambiente",
+    ".ja": "## 環境ファイル",
   },
   "ENVIRONMENT_FILES_HEADING",
 );
@@ -266,6 +267,7 @@ const SPEND_SECTION_HEADING = {
       ".fr": "### Dépenses et outils d'agent",
       ".zh-CN": "### 花费与智能体工具",
       ".pt-BR": "### Gastos e ferramentas de agente",
+      ".ja": "### 課金ツールとエージェントツール",
     },
     "SPEND_SECTION_HEADING.studio",
   ),
@@ -277,6 +279,7 @@ const SPEND_SECTION_HEADING = {
       ".fr": "### Outils payants",
       ".zh-CN": "### 付费工具",
       ".pt-BR": "### Ferramentas pagas",
+      ".ja": "### 課金ツール",
     },
     "SPEND_SECTION_HEADING.mcp",
   ),
@@ -290,6 +293,7 @@ const REDACT_SECTION_HEADING = assertLocaleTable(
     ".fr": "### Valeurs masquées [#redacted-values]",
     ".zh-CN": "### 脱敏的值 [#redacted-values]",
     ".pt-BR": "### Valores ocultados [#redacted-values]",
+    ".ja": "### 秘匿化された値 [#redacted-values]",
   },
   "REDACT_SECTION_HEADING",
 );

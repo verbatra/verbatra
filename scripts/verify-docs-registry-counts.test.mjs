@@ -41,13 +41,28 @@ const SPELLED_COUNTS = assertLocaleTable(
         "cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte",
       nouns: "formatos|provedores|comandos|subcomandos",
     },
+    ja: {
+      numbers: "二十|十九|十八|十七|十六|十五|十四|十三|十二|十一|十|九|八|七|六|五",
+      wago: "いつつ|むっつ|ななつ|やっつ|ここのつ|とお",
+      counters: "種類|種|つ|個|件|社|本|項目",
+      filler:
+        "(?:の\\s*)?(?:[A-Za-z]+\\s*|組み込みの?\\s*|[\\p{Script=Han}\\p{Script=Katakana}ー]{1,6}?\\s*)?",
+      nouns:
+        "ファイルフォーマット|ファイル形式|フォーマット|形式|プロバイダー|プロバイダ|サブコマンド|コマンド",
+    },
   },
   "SPELLED_COUNTS",
   LOCALES,
 );
 
 function countPattern(locale) {
-  const { numbers, counters, nouns } = SPELLED_COUNTS[locale];
+  const { numbers, counters, nouns, wago, filler } = SPELLED_COUNTS[locale];
+  if (wago !== undefined) {
+    return new RegExp(
+      `(?<![\\p{N}\\p{Script=Han}])(?:(?:${numbers})\\s*(?:(?:${counters})|(?=の))|${wago})\\s*${filler}(?:${nouns})`,
+      "gu",
+    );
+  }
   if (counters !== undefined) {
     return new RegExp(
       `(?<![\\p{N}一二三四五六七八九十两])(?:${numbers})\\s*(?:${counters})\\s*(?:[A-Za-z]+\\s*|\\p{Script=Han}{1,3})?\\s*(?:${nouns})`,
@@ -140,6 +155,13 @@ describe("the spelled-count rule", () => {
     ["pt-BR", "Ele aceita quatorze formatos de arquivo e oito provedores."],
     ["pt-BR", "Ele aceita quatorze formatos e oito provedores."],
     ["pt-BR", "Há dezesseis subcomandos."],
+    ["ja", "十四種類のフォーマットをサポートします。"],
+    ["ja", "八つのプロバイダーと十五個のサブコマンドがあります。"],
+    ["ja", "十四種類の組み込みフォーマットを読み込みます。"],
+    ["ja", "七つの LLM プロバイダーが 1 つの層を共有します。"],
+    ["ja", "CLI には十五のコマンドがあります。"],
+    ["ja", "八社のプロバイダーに対応します。"],
+    ["ja", "五つのファイルフォーマットと七つのプロバイダー。"],
   ];
 
   it("has a flagged sample for every locale", () => {
@@ -164,6 +186,15 @@ describe("the spelled-count rule", () => {
     ["pt-BR", "Onze chaves mudaram e dois formatos compartilham um parser."],
     ["pt-BR", "Passe uma vez, e o provedor responde em sete segundos."],
     ["pt-BR", "```\ncatorze formatos dentro de um bloco de código\n```"],
+    ["ja", "このフォーマットと各プロバイダーは共通の形式を使います。"],
+    [
+      "ja",
+      "`verbatra check` を実行し、14 種類のフォーマットと 8 つのプロバイダーを数字で書きます。",
+    ],
+    ["ja", "```\n十四種類のフォーマットをコードブロックに書く\n```"],
+    ["ja", "三つの手順の後、各プロバイダーが応答します。"],
+    ["ja", "第十四のコマンド"],
+    ["ja", "唯一のフォーマットと統一のフォーマットと五つのファイルとプロバイダー。"],
   ])("leaves a small or unrelated count alone in %s: %s", (locale, sentence) => {
     expect(spelledCounts(sentence, locale)).toEqual([]);
   });

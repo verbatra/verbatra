@@ -15,6 +15,7 @@ const SIGNATURE_TITLES = assertLocaleTable(
     ".fr": "Signature",
     ".zh-CN": "签名",
     ".pt-BR": "Assinatura",
+    ".ja": "シグネチャ",
   },
   "SIGNATURE_TITLES",
 );

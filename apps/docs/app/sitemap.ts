@@ -11,6 +11,7 @@ const HOME_PRIORITY: Readonly<Record<Locale, number>> = {
   fr: 0.9,
   "zh-CN": 0.9,
   "pt-BR": 0.9,
+  ja: 0.9,
 };
 
 const LEGAL_PATHS = ["/contact", "/imprint", "/licenses", "/privacy"] as const;

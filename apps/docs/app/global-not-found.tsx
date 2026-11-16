@@ -13,6 +13,7 @@ import { MAIN_CONTENT_ID } from "@/lib/locale-home-layout";
 import { SITE_URL } from "@/lib/site";
 import { TITLE_SUFFIX } from "@/lib/social-metadata";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { breakBetweenWords } from "@/lib/word-breaks";
 
 const locale = i18n.defaultLanguage;
 
@@ -47,7 +48,7 @@ export default async function GlobalNotFound(): Promise<ReactNode> {
               className="vk-gutter vk-w-wide mx-auto grid w-full flex-1 content-center gap-6 py-24"
             >
               <h1 id="not-found-title" className="vk-h2 max-w-[20ch]">
-                {t("title")}
+                {breakBetweenWords(t("title"))}
               </h1>
               <p className="vk-lead max-w-[46ch]">{t("lead")}</p>
               <div className="flex flex-wrap gap-3">

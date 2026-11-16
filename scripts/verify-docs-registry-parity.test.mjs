@@ -487,6 +487,7 @@ const GLOBAL_FLAGS_ANCHOR = assertLocaleTable(
     ".fr": "options-globales",
     ".zh-CN": "全局选项",
     ".pt-BR": "flags-globais",
+    ".ja": "グローバルオプション",
   },
   "GLOBAL_FLAGS_ANCHOR",
 );
@@ -499,6 +500,7 @@ const COMMAND_PAGE_SECTIONS = assertLocaleTable(
     ".fr": ["Synopsis", "Exemples", "Options", "Comportement", "Codes de sortie", "Voir aussi"],
     ".zh-CN": ["用法", "示例", "选项", "行为", "退出码", "相关内容"],
     ".pt-BR": ["Sinopse", "Exemplos", "Flags", "Comportamento", "Códigos de saída", "Veja também"],
+    ".ja": ["書式", "例", "オプション", "動作", "終了コード", "関連項目"],
   },
   "COMMAND_PAGE_SECTIONS",
 );

@@ -36,6 +36,7 @@ const LICENSES_TITLE: Readonly<Record<Locale, string>> = {
   fr: "Licences",
   "zh-CN": "许可证",
   "pt-BR": "Licenças",
+  ja: "ライセンス",
 };
 
 const JUMP_LABEL: Readonly<Record<Locale, string>> = {
@@ -45,6 +46,7 @@ const JUMP_LABEL: Readonly<Record<Locale, string>> = {
   fr: "Sur cette page",
   "zh-CN": "本页内容",
   "pt-BR": "Nesta página",
+  ja: "このページの内容",
 };
 
 describe("licenses page", () => {

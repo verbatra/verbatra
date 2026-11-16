@@ -317,10 +317,12 @@ describe("FullFooter", () => {
         "/fr/compare",
         "/zh-CN/compare",
         "/pt-BR/compare",
+        "/ja/compare",
       ]);
       expect(links.map((link) => link.getAttribute("aria-current"))).toEqual([
         null,
         "page",
+        null,
         null,
         null,
         null,

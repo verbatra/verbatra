@@ -49,6 +49,7 @@ const DELETION_RULE: Record<Locale, RegExp> = {
   fr: /supprimés dès que ta demande a été entièrement traitée\./,
   "zh-CN": /你的咨询处理完毕后，它们会被删除。/,
   "pt-BR": /excluídos assim que sua solicitação tiver sido totalmente atendida\./,
+  ja: /お問い合わせへの対応が完了した時点で削除します。/,
 };
 
 const NOTICE_DELETION: Record<Locale, RegExp> = {
@@ -58,6 +59,7 @@ const NOTICE_DELETION: Record<Locale, RegExp> = {
   fr: /nous les supprimons une fois celle-ci traitée\./,
   "zh-CN": /处理完毕后即予删除。/,
   "pt-BR": /os excluímos assim que ela for atendida\./,
+  ja: /対応が完了したら削除します。/,
 };
 
 describe.each(i18n.languages)("contact page privacy notice (%s)", (locale) => {
@@ -90,6 +92,7 @@ const IMPRINT_NAME_IN_TEXT: Record<Locale, string> = {
   fr: "mentions légales (Impressum)",
   "zh-CN": "法律声明（Impressum）",
   "pt-BR": "aviso legal (Impressum)",
+  ja: "運営者情報（Impressum）",
 };
 
 describe.each(i18n.languages)("contact page intro (%s)", (locale) => {
@@ -113,6 +116,7 @@ const NO_SCRIPT_FALLBACK: Record<Locale, RegExp> = {
     /此表单需要 JavaScript 才能发送你的留言。没有 JavaScript 时，请改为写信到法律声明（Impressum）中的电子邮件地址。/,
   "pt-BR":
     /O formulário precisa de JavaScript para enviar sua mensagem\. Sem ele, escreva para o endereço de e-mail do aviso legal \(Impressum\)\./,
+  ja: /メッセージを送信するには、このフォームに JavaScript が必要です。JavaScript を使えない場合は、運営者情報（Impressum）に記載のメールアドレスに直接連絡してください。/,
 };
 
 function imprintPath(locale: Locale): string {

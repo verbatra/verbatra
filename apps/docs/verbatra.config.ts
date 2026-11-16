@@ -41,6 +41,7 @@ export default defineConfig({
           fr: "agent de code",
           "zh-CN": "编码智能体",
           "pt-BR": "agente de programação",
+          ja: "コーディングエージェント",
         },
       },
       {
@@ -50,17 +51,36 @@ export default defineConfig({
           fr: "agents de code",
           "zh-CN": "编码智能体",
           "pt-BR": "agentes de programação",
+          ja: "コーディングエージェント",
         },
       },
-      { source: "string", targets: { de: "String", "zh-CN": "字符串", "pt-BR": "string" } },
-      { source: "strings", targets: { de: "Strings", "zh-CN": "字符串", "pt-BR": "strings" } },
+      {
+        source: "string",
+        targets: { de: "String", "zh-CN": "字符串", "pt-BR": "string", ja: "文字列" },
+      },
+      {
+        source: "strings",
+        targets: { de: "Strings", "zh-CN": "字符串", "pt-BR": "strings", ja: "文字列" },
+      },
       {
         source: "locale",
-        targets: { es: "locale", fr: "locale", "zh-CN": "语言环境", "pt-BR": "locale" },
+        targets: {
+          es: "locale",
+          fr: "locale",
+          "zh-CN": "语言环境",
+          "pt-BR": "locale",
+          ja: "ロケール",
+        },
       },
       {
         source: "locales",
-        targets: { es: "locales", fr: "locales", "zh-CN": "语言环境", "pt-BR": "locales" },
+        targets: {
+          es: "locales",
+          fr: "locales",
+          "zh-CN": "语言环境",
+          "pt-BR": "locales",
+          ja: "ロケール",
+        },
       },
       {
         source: "placeholder",
@@ -69,6 +89,7 @@ export default defineConfig({
           fr: "placeholder",
           "zh-CN": "占位符",
           "pt-BR": "placeholder",
+          ja: "プレースホルダー",
         },
       },
       {
@@ -78,6 +99,7 @@ export default defineConfig({
           fr: "placeholders",
           "zh-CN": "占位符",
           "pt-BR": "placeholders",
+          ja: "プレースホルダー",
         },
       },
       {
@@ -87,6 +109,7 @@ export default defineConfig({
           fr: "exécution à blanc",
           "zh-CN": "试运行",
           "pt-BR": "simulação",
+          ja: "ドライラン",
         },
       },
       {
@@ -96,6 +119,7 @@ export default defineConfig({
           fr: "pull request",
           "zh-CN": "pull request",
           "pt-BR": "pull request",
+          ja: "pull request",
         },
       },
       {
@@ -105,11 +129,17 @@ export default defineConfig({
           fr: "pull requests",
           "zh-CN": "pull request",
           "pt-BR": "pull requests",
+          ja: "pull request",
         },
       },
       {
         source: "review queue",
-        targets: { fr: "file de relecture", "zh-CN": "审校队列", "pt-BR": "fila de revisão" },
+        targets: {
+          fr: "file de relecture",
+          "zh-CN": "审校队列",
+          "pt-BR": "fila de revisão",
+          ja: "レビューキュー",
+        },
       },
       { source: "provider", targets: { "pt-BR": "provedor" } },
       { source: "lock file", targets: { "pt-BR": "arquivo de lock" } },

@@ -51,7 +51,7 @@ describe("socialMetadata", () => {
   it("uses the page's locale and lists the other locales as alternates", () => {
     expect(legal.openGraph).toMatchObject({
       locale: "de_DE",
-      alternateLocale: ["en_US", "es_ES", "fr_FR", "zh_CN", "pt_BR"],
+      alternateLocale: ["en_US", "es_ES", "fr_FR", "zh_CN", "pt_BR", "ja_JP"],
     });
   });
 

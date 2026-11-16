@@ -33,6 +33,7 @@ const EXAMPLE_TITLES = assertLocaleTable(
     ".fr": "Exemple",
     ".zh-CN": "示例",
     ".pt-BR": "Exemplo",
+    ".ja": "例",
   },
   "EXAMPLE_TITLES",
 );

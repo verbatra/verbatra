@@ -19,6 +19,7 @@ const TRANSLATION_QUESTION: Record<Locale, RegExp> = {
   fr: /^Le contenu de ce site est-il traduit par IA \?$/,
   "zh-CN": /^本站内容是由 AI 翻译的吗？$/,
   "pt-BR": /^O conteúdo deste site é traduzido por IA\?$/,
+  ja: /^このサイトのコンテンツは AI で翻訳されていますか？$/,
 };
 
 const RETIRED_CLAIMS: Record<Locale, RegExp> = {
@@ -29,6 +30,7 @@ const RETIRED_CLAIMS: Record<Locale, RegExp> = {
   "zh-CN": /是的，两部分都|源文件一更改就自动|发布前都经过审校|单独的手动步骤/,
   "pt-BR":
     /Sim, as duas metades|retraduz automaticamente|executado pelo pnpm i18n sempre que|revisado antes da publicação|etapa separada e manual/,
+  ja: /はい、両方とも|英語のソースが変わるたびに自動で|公開前にレビュー|別の手動の手順/,
 };
 
 const SAME_CHANGE_AGENT_TRANSLATION: Record<Locale, RegExp> = {
@@ -39,6 +41,7 @@ const SAME_CHANGE_AGENT_TRANSLATION: Record<Locale, RegExp> = {
   "zh-CN": /AI 智能体会在编辑英文源文件的同一次变更中翻译对应的文档页面/,
   "pt-BR":
     /um agente de IA traduz cada página\s+da documentação na mesma alteração\s+que edita a origem em inglês/,
+  ja: /AI エージェントが、英語のソースを編集するのと同じ変更でドキュメントページを翻訳します/,
 };
 
 const BEST_EFFORT_REVIEW: Record<Locale, RegExp> = {
@@ -49,6 +52,7 @@ const BEST_EFFORT_REVIEW: Record<Locale, RegExp> = {
   "zh-CN": /译文会尽力检查，但并非每段译文都经过人工审校/,
   "pt-BR":
     /verificadas na medida do possível, e nem todo texto traduzido é revisado por uma pessoa/,
+  ja: /訳文はできる範囲で確認していますが、すべての訳文を人がレビューしているわけではありません/,
 };
 
 describe.each(i18n.languages)("extractFaqItems: site translation answer (%s)", (locale) => {

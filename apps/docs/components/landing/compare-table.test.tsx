@@ -4,7 +4,15 @@ import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { COMPARE_ROWS, COMPARE_TOOLS, compareCell } from "@/lib/landing-compare";
-import { arrowCut, CompareCellBody, type CompareTranslator, NoteWithArrow } from "./compare-table";
+import {
+  arrowCut,
+  CompareCellBody,
+  CompareMatrix,
+  ComparePairs,
+  type CompareTranslator,
+  criterionLabel,
+  NoteWithArrow,
+} from "./compare-table";
 
 describe("arrowCut", () => {
   it("cuts before the last word of a plain note", () => {
@@ -64,6 +72,30 @@ describe("arrowCut", () => {
     expect("使用`verbatra`命令即可。".slice(arrowCut("使用`verbatra`命令即可。", "zh-CN"))).toBe(
       "即可。",
     );
+  });
+
+  it("never leaves a single character as the tail of a spaceless note", () => {
+    for (const [note, locale, tail] of [
+      ["シートと単語数で課金、試用 14 日", "ja", "14 日"],
+      ["有料 4 段階 試用 14 日", "ja", "14 日"],
+      ["按席位和字数计费，试用 14 天", "zh-CN", "14 天"],
+    ] as const)
+      expect(note.slice(arrowCut(note, locale))).toBe(tail);
+  });
+
+  it("does not pull a long previous chunk into the tail", () => {
+    const note = "オープンソースで公開 日";
+    expect(note.slice(arrowCut(note, "ja"))).toBe("日");
+  });
+
+  it("changes the tail of a zh-CN note from the last character to the number and unit", () => {
+    const note = "内置 8 个";
+    expect(note.slice(arrowCut(note, "zh-CN"))).toBe("8 个");
+  });
+
+  it("keeps a two character tail of a spaceless note as it is", () => {
+    const note = "有料 4 段階";
+    expect(note.slice(arrowCut(note, "ja"))).toBe("段階");
   });
 
   it("leaves the cut of a spaced locale on the whitespace rule", () => {
@@ -151,7 +183,7 @@ describe("CompareCellBody", () => {
     COMPARE_TOOLS.map((tool) => ({ row, tool, links: compareCell(row, tool).urls.length })),
   ).filter((entry) => entry.links > 1);
 
-  it.each(["en", "de", "es", "fr", "zh-CN", "pt-BR"] as const)(
+  it.each(["en", "de", "es", "fr", "zh-CN", "pt-BR", "ja"] as const)(
     "keeps every source arrow of a cell in the no-wrap unit with its last word in %s",
     (locale) => {
       const t = createTranslator({
@@ -166,6 +198,39 @@ describe("CompareCellBody", () => {
         );
         expect(lastUnitContent(markup).split('data-source=""').length - 1).toBe(links);
       }
+    },
+  );
+});
+
+describe("criterionLabel", () => {
+  it("breaks a Japanese or Chinese label between words and leaves a spaced locale alone", () => {
+    expect(renderToStaticMarkup(<>{criterionLabel("ファイルフォーマット", "ja")}</>)).toBe(
+      "ファイル<wbr/>フォーマット",
+    );
+    expect(renderToStaticMarkup(<>{criterionLabel("自分の API キーを使う", "ja")}</>)).toContain(
+      "<wbr/>",
+    );
+    expect(criterionLabel("File formats", "en")).toBe("File formats");
+  });
+
+  it.each(["ja", "zh-CN"] as const)(
+    "puts a break in the header, label and detail cells in %s",
+    (locale) => {
+      const t = createTranslator({
+        locale,
+        messages: JSON.parse(
+          readFileSync(
+            fileURLToPath(new URL(`../../messages/${locale}.json`, import.meta.url)),
+            "utf8",
+          ),
+        ),
+        namespace: "landing.compare",
+      }) as unknown as CompareTranslator;
+      const matrix = renderToStaticMarkup(<CompareMatrix t={t} locale={locale} caption="c" />);
+      const pairs = renderToStaticMarkup(<ComparePairs t={t} locale={locale} />);
+      expect(matrix).toMatch(/<th scope="row" class="vk-compare-criterion">[^<]*<wbr\/>/);
+      expect(matrix).toMatch(/<small class="vk-compare-detail">[^<]*<wbr\/>/);
+      expect(pairs).toMatch(/<dt>[^<]*<wbr\/>/);
     },
   );
 });

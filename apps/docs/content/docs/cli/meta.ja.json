@@ -1,0 +1,27 @@
+{
+  "title": "CLI",
+  "pages": [
+    "index",
+    "output",
+    "---セットアップ---",
+    "init",
+    "doctor",
+    "---翻訳---",
+    "extract",
+    "translate",
+    "watch",
+    "---チェック---",
+    "check",
+    "diff",
+    "report",
+    "pseudo",
+    "types",
+    "---受け渡し---",
+    "export",
+    "import",
+    "tmx",
+    "---サーバー---",
+    "studio",
+    "mcp"
+  ]
+}
