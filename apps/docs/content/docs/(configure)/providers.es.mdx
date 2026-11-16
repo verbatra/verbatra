@@ -121,8 +121,8 @@ provider: {
 
 Lee `DEEPL_API_KEY`; `options` puede ser `{}`. DeepL no tiene modelo ni límite de tokens de salida, y se degrada con un aviso en lugar de fallar:
 
-- **Los placeholders** viajan como marcadores numerados en una etiqueta ignorada (`Hello {{name}}` como `Hello <x>{0}</x>`) y se restauran. `PLACEHOLDER_UNSUPPORTED` retiene el valor entero cuando un placeholder no es literal o el texto fuera de los placeholders contiene `<`, `>`, `{` o `}`; un resultado con un marcador perdido, repetido, cambiado o sin etiqueta, una entidad desconocida o una etiqueta ajena se descarta entero. El marcado sin placeholders va como texto plano. <AvailableFrom version="0.12.0" />
-- **El tono** se asigna a la formalidad (`formal` más, `informal` menos, `neutral` se omite). Una clave del nivel gratuito no envía ninguna formalidad e informa `FORMALITY_DOWNGRADED`. Una clave de pago la pide con `prefer_more` o `prefer_less`, así que un idioma sin formalidad, como el sueco, vuelve al registro predeterminado con el mismo aviso en lugar de fallar. El [glosario](#tono-y-glosario-entre-proveedores) no se aplica.
+- **Los placeholders** viajan como marcadores numerados en una etiqueta ignorada (`Hello {{name}}` como `Hello <x>{0}</x>`) y se restauran. `PLACEHOLDER_UNSUPPORTED` retiene el valor entero cuando contiene una etiqueta, un placeholder no es literal o el texto fuera de los placeholders contiene `<`, `>`, `{` o `}`; un resultado con un marcador perdido, repetido, cambiado o sin etiqueta, una entidad desconocida o una etiqueta ajena se descarta entero. El marcado sin placeholders va como texto plano. <AvailableFrom version="0.12.0" />
+- **El tono** se asigna a la formalidad (`formal` más, `informal` menos, `neutral` se omite). Una clave del nivel gratuito no envía formalidad e informa `FORMALITY_DOWNGRADED`. Una clave de pago la pide con `prefer_more` o `prefer_less`, así que un idioma sin formalidad, como el sueco, vuelve al registro predeterminado con el mismo aviso. El [glosario](#tono-y-glosario-entre-proveedores) no se aplica.
 
 <AvailableFrom version="0.12.0" />
 
@@ -141,12 +141,12 @@ provider: {
 
 | Opción | Tipo | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `requestTimeoutMs` | entero positivo | `120000` | Acota la llamada completa (sin reintentos). |
+| `requestTimeoutMs` | entero positivo | `120000` | Acota la llamada completa. |
 | `localeMap` | mapa de locale a código | ninguno | Sustituye el código enviado por locale. |
 
 Lee `GOOGLE_TRANSLATE_API_KEY`, una clave de API de un proyecto de Google Cloud con la Cloud Translation API activada. Solo funciona Basic (v2): Advanced (v3) necesita una cuenta de servicio.
 
-- **Los placeholders** se enmascaran como en DeepL, dentro de `<span translate="no">`; un valor con salto de línea, tabulador o doble espacio también se retiene. <AvailableFrom version="0.12.0" />
+- **Los placeholders** se enmascaran como en DeepL, dentro de `<span translate="no">`; un valor enmascarado con salto de línea, tabulador o doble espacio también se retiene. <AvailableFrom version="0.12.0" />
 - **Códigos.** Cada código enviado se comprueba como BCP 47 bien formado antes de cualquier llamada (`en_US` falla con `INVALID_REQUEST`). Se permiten códigos regionales; un par que Google rechaza falla con `INVALID_REQUEST` desde la API.
 
 <AvailableFrom version="0.12.0" />
@@ -256,7 +256,7 @@ provider: {
 | Opción | Tipo | Por defecto | Efecto |
 | --- | --- | --- | --- |
 | `baseUrl` | URL `http` o `https` | obligatoria | La raíz de la API, sin `/translate`. |
-| `requestTimeoutMs` | entero positivo | `120000` | Acota la llamada completa (sin reintentos). |
+| `requestTimeoutMs` | entero positivo | `120000` | Acota la llamada completa. |
 | `localeMap` | mapa de locale a código | ninguno | Sustituye el código enviado por locale. |
 
 Sus idiomas son los modelos instalados en tu servidor:
@@ -266,7 +266,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 ```
 
 - **Clave.** `LIBRETRANSLATE_API_KEY` se envía como `api_key` solo cuando está definida. Un servidor arrancado con `--api-keys` hace fallar la ejecución con `MISSING_API_KEY` cuando no está definida, y con `AUTH_FAILED` cuando la rechaza.
-- **Los placeholders** se enmascaran como en DeepL, como marcadores `{0}` sin etiqueta; el marcado se conserva, así que solo cuentan las llaves fuera de los placeholders.
+- **Los placeholders** se enmascaran como en DeepL, como marcadores `{0}` sin etiqueta; el marcado se conserva, así que en un valor con etiquetas solo cuentan las llaves fuera de los placeholders.
 - **Marcado.** Un valor con etiquetas de estilo HTML se envía en formato `html`: el texto dentro de las etiquetas se traduce, las etiquetas se quedan (una frase que cruza una etiqueta puede resentirse) y las etiquetas cambiadas se rechazan.
 - **Comprobación de idiomas.** Cada destino avisa `LOCALE_UNVERIFIED_BY_PROVIDER` en cada ejecución; `verbatra doctor --locales --live` los comprueba contra el servidor.
 

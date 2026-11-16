@@ -121,8 +121,8 @@ provider: {
 
 Liest `DEEPL_API_KEY`; `options` darf `{}` sein. DeepL hat kein Modell und kein Ausgabe-Token-Limit und stuft mit einem Hinweis herab, statt fehlzuschlagen:
 
-- **Platzhalter** reisen als nummerierte Markierungen in einem ignorierten Tag (`Hello {{name}}` als `Hello <x>{0}</x>`) und werden wieder eingesetzt. `PLACEHOLDER_UNSUPPORTED` hält den ganzen Wert zurück, wenn ein Platzhalter nicht wörtlich ist oder der Text außerhalb der Platzhalter `<`, `>`, `{` oder `}` enthält; ein Ergebnis mit verlorener, wiederholter, geänderter oder bloßer Markierung, unbekannter Entity oder fremdem Tag wird ganz verworfen. Reines Markup geht als Klartext hinaus. <AvailableFrom version="0.12.0" />
-- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent sendet gar keine Formalität und meldet `FORMALITY_DOWNGRADED`. Ein bezahlter Key fragt mit `prefer_more` oder `prefer_less` an, sodass eine Sprache ohne Formalität wie Schwedisch mit demselben Hinweis zurückfällt, statt zu scheitern. Das [Glossar](#tonfall-und-glossar-über-die-provider-hinweg) wird nicht angewendet.
+- **Platzhalter** reisen als nummerierte Markierungen in einem ignorierten Tag (`Hello {{name}}` als `Hello <x>{0}</x>`) und werden wieder eingesetzt. `PLACEHOLDER_UNSUPPORTED` hält den ganzen Wert zurück, wenn er ein Tag enthält, ein Platzhalter nicht wörtlich ist oder der Text außerhalb der Platzhalter `<`, `>`, `{` oder `}` enthält; ein Ergebnis mit verlorener, wiederholter, geänderter oder bloßer Markierung, unbekannter Entity oder fremdem Tag wird ganz verworfen. Reines Markup geht als Klartext hinaus. <AvailableFrom version="0.12.0" />
+- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent sendet keine Formalität und meldet `FORMALITY_DOWNGRADED`. Ein bezahlter Key fragt mit `prefer_more` oder `prefer_less` an, sodass eine Sprache ohne Formalität wie Schwedisch mit demselben Hinweis zurückfällt. Das [Glossar](#tonfall-und-glossar-über-die-provider-hinweg) wird nicht angewendet.
 
 <AvailableFrom version="0.12.0" />
 
@@ -141,12 +141,12 @@ provider: {
 
 | Option | Typ | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt den ganzen Aufruf (keine Wiederholungen). |
+| `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt den ganzen Aufruf. |
 | `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
 
 Liest `GOOGLE_TRANSLATE_API_KEY`, einen API-Key für ein Google-Cloud-Projekt mit aktivierter Cloud Translation API. Nur Basic (v2) funktioniert: Advanced (v3) braucht einen Service-Account.
 
-- **Platzhalter** werden wie bei DeepL maskiert, in `<span translate="no">`; ein Wert mit Zeilenumbruch, Tab oder doppeltem Leerzeichen wird ebenfalls zurückgehalten. <AvailableFrom version="0.12.0" />
+- **Platzhalter** werden wie bei DeepL maskiert, in `<span translate="no">`; ein maskierter Wert mit Zeilenumbruch, Tab oder doppeltem Leerzeichen wird ebenfalls zurückgehalten. <AvailableFrom version="0.12.0" />
 - **Codes.** Jeder gesendete Code wird vor jedem Aufruf als wohlgeformtes BCP 47 geprüft (`en_US` scheitert mit `INVALID_REQUEST`). Regionale Codes sind erlaubt; ein Paar, das Google ablehnt, scheitert mit `INVALID_REQUEST` von der API.
 
 <AvailableFrom version="0.12.0" />
@@ -256,7 +256,7 @@ provider: {
 | Option | Typ | Standard | Wirkung |
 | --- | --- | --- | --- |
 | `baseUrl` | `http`- oder `https`-URL | erforderlich | Die API-Wurzel, ohne `/translate`. |
-| `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt den ganzen Aufruf (keine Wiederholungen). |
+| `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt den ganzen Aufruf. |
 | `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
 
 Seine Sprachen sind die auf deinem Server installierten Modelle:
@@ -266,7 +266,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 ```
 
 - **Key.** `LIBRETRANSLATE_API_KEY` wird nur als `api_key` gesendet, wenn sie gesetzt ist. Ein mit `--api-keys` gestarteter Server lässt den Lauf mit `MISSING_API_KEY` scheitern, wenn sie nicht gesetzt ist, und mit `AUTH_FAILED`, wenn er sie ablehnt.
-- **Platzhalter** werden wie bei DeepL maskiert, als bloße `{0}`-Markierungen; Markup bleibt erhalten, daher zählen nur geschweifte Klammern außerhalb der Platzhalter.
+- **Platzhalter** werden wie bei DeepL maskiert, als bloße `{0}`-Markierungen; Markup bleibt erhalten, daher zählen in einem Wert mit Tags nur geschweifte Klammern außerhalb der Platzhalter.
 - **Markup.** Ein Wert mit HTML-artigen Tags wird im `html`-Format gesendet: Der Text in den Tags wird übersetzt, die Tags bleiben (eine Formulierung über ein Tag hinweg kann leiden), und veränderte Tags werden abgelehnt.
 - **Sprachprüfung.** Jedes Ziel warnt bei jedem Lauf `LOCALE_UNVERIFIED_BY_PROVIDER`; `verbatra doctor --locales --live` prüft sie gegen den Server.
 

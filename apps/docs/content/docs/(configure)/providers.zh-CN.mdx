@@ -121,8 +121,8 @@ provider: {
 
 读取 `DEEPL_API_KEY`；`options` 可以是 `{}`。DeepL 没有模型，也没有输出 token 上限，出现问题时以通知降级，而不是失败：
 
-- **占位符**以编号标记的形式放在被忽略的标签中传输（`Hello {{name}}` 变为 `Hello <x>{0}</x>`），随后还原。当占位符不是字面量，或占位符之外的文本含 `<`、`>`、`{` 或 `}` 时，`PLACEHOLDER_UNSUPPORTED` 会整条搁置该值；标记丢失、重复、被更改或单独出现、出现未知实体或多余的标签的结果则整条丢弃。只有内联标记、没有占位符的值按纯文本发送。<AvailableFrom version="0.12.0" />
-- **语气**映射为正式程度（`formal` 对应更正式，`informal` 对应更不正式，`neutral` 不发送）。免费套餐的密钥完全不发送正式程度，并报告 `FORMALITY_DOWNGRADED`。付费密钥会请求 `prefer_more` 或 `prefer_less`，所以不支持正式程度的语言（如瑞典语）会带着同样的通知回退，而不是失败。[术语表](#各提供商的语气与术语表)不适用。
+- **占位符**以编号标记的形式放在被忽略的标签中传输（`Hello {{name}}` 变为 `Hello <x>{0}</x>`），随后还原。当值含标签、占位符不是字面量，或占位符之外的文本含 `<`、`>`、`{` 或 `}` 时，`PLACEHOLDER_UNSUPPORTED` 会整条搁置该值；标记丢失、重复、被更改或单独出现、出现未知实体或多余的标签的结果则整条丢弃。只有内联标记、没有占位符的值按纯文本发送。<AvailableFrom version="0.12.0" />
+- **语气**映射为正式程度（`formal` 对应更正式，`informal` 对应更不正式，`neutral` 不发送）。免费套餐的密钥不发送正式程度，并报告 `FORMALITY_DOWNGRADED`。付费密钥会请求 `prefer_more` 或 `prefer_less`，所以不支持正式程度的语言（如瑞典语）会带着同样的通知回退。[术语表](#各提供商的语气与术语表)不适用。
 
 <AvailableFrom version="0.12.0" />
 
@@ -141,12 +141,12 @@ provider: {
 
 | 选项 | 类型 | 默认值 | 作用 |
 | --- | --- | --- | --- |
-| `requestTimeoutMs` | 正整数 | `120000` | 限制整个调用的时长（不重试）。 |
+| `requestTimeoutMs` | 正整数 | `120000` | 限制整个调用的时长。 |
 | `localeMap` | 语言环境到代码的映射 | 无 | 覆盖为每个语言环境发送的代码。 |
 
 读取 `GOOGLE_TRANSLATE_API_KEY`，即已启用 Cloud Translation API 的 Google Cloud 项目的 API 密钥。只有 Basic（v2）可用：Advanced（v3）需要服务账号。
 
-- **占位符**的遮蔽方式与 DeepL 相同，放在 `<span translate="no">` 中；含换行符、制表符或连续空格的值也会被整条搁置。<AvailableFrom version="0.12.0" />
+- **占位符**的遮蔽方式与 DeepL 相同，放在 `<span translate="no">` 中；含换行符、制表符或连续空格的已遮蔽值也会被整条搁置。<AvailableFrom version="0.12.0" />
 - **代码**：每个发送的代码在任何调用之前都会按格式正确的 BCP 47 检查（`en_US` 会以 `INVALID_REQUEST` 失败）。允许带地区的代码；Google 拒绝的语言对会由 API 返回 `INVALID_REQUEST` 而失败。
 
 <AvailableFrom version="0.12.0" />
@@ -256,7 +256,7 @@ provider: {
 | 选项 | 类型 | 默认值 | 作用 |
 | --- | --- | --- | --- |
 | `baseUrl` | `http` 或 `https` URL | 必填 | API 根地址，不含 `/translate`。 |
-| `requestTimeoutMs` | 正整数 | `120000` | 限制整个调用的时长（不重试）。 |
+| `requestTimeoutMs` | 正整数 | `120000` | 限制整个调用的时长。 |
 | `localeMap` | 语言环境到代码的映射 | 无 | 覆盖为每个语言环境发送的代码。 |
 
 它支持的语言就是你的服务器上安装的模型：
@@ -266,7 +266,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 ```
 
 - **密钥**：只有设置了 `LIBRETRANSLATE_API_KEY` 时，才会作为 `api_key` 发送。服务器用 `--api-keys` 启动时，变量未设置会让运行以 `MISSING_API_KEY` 失败，密钥被服务器拒绝会以 `AUTH_FAILED` 失败。
-- **占位符**的遮蔽方式与 DeepL 相同，使用裸的 `{0}` 标记；内联标记会保留，所以只有占位符之外的花括号才算数。
+- **占位符**的遮蔽方式与 DeepL 相同，使用裸的 `{0}` 标记；内联标记会保留，所以在含标签的值中，只有占位符之外的花括号才算数。
 - **内联标记**：含 HTML 风格标签的值以 `html` 格式发送：标签内的文本会翻译，标签保留（跨标签的措辞可能受影响），被更改的标签会被拒绝。
 - **语言检查**：每个目标语言环境在每次运行时都会警告 `LOCALE_UNVERIFIED_BY_PROVIDER`；`verbatra doctor --locales --live` 会对照服务器检查它们。
 
@@ -379,7 +379,7 @@ provider: {
 
 ### 输出 token 上限
 
-LLM 提供商会限制每次响应的 token；模型在上限处停止时会抛出 [`OUTPUT_TRUNCATED`](/zh-CN/docs/error-codes#output_truncated)。verbatra 会把被截断的子批次重新拆成两半，只搁置仍然溢出的条目。要解决，请调低 `maxBatchSize`，或调高 `maxTokens`（Anthropic）或 `maxOutputTokens`。推理模型的隐藏 token 共用这份预算，所以要留出余量。
+LLM 提供商会限制每次响应的 token；模型在上限处停止时会抛出 [`OUTPUT_TRUNCATED`](/zh-CN/docs/error-codes#output_truncated)。verbatra 会把被截断的子批次重新拆成两半，只搁置仍然溢出的条目。要解决此问题，请调低 `maxBatchSize`，或调高 `maxTokens`（Anthropic）或 `maxOutputTokens`。推理模型的隐藏 token 共用这份预算，所以要留出余量。
 
 ### 审校标记
 
