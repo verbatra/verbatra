@@ -401,6 +401,9 @@ importers:
       '@verbatra/cli':
         specifier: workspace:*
         version: link:../../packages/cli
+      '@verbatra/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@verbatra/core':
         specifier: workspace:*
         version: link:../../packages/core
