@@ -1,5 +1,12 @@
 # @verbatra/studio
 
+## 0.7.8
+
+### Patch Changes
+
+- Updated dependencies [[`902a330`](https://github.com/verbatra/verbatra/commit/902a330801131d1d7d72afa0136f9aad8bb14fba)]:
+  - @verbatra/sdk@0.13.7
+
 ## 0.7.7
 
 ### Patch Changes
