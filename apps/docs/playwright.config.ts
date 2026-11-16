@@ -4,6 +4,8 @@ const PORT = process.env.E2E_PORT ?? "3107";
 const BASE_URL = `http://localhost:${PORT}`;
 const IN_CI = process.env.CI !== undefined;
 const REUSE_SERVER = process.env.PW_REUSE_SERVER === "1";
+const REST_SWEEP_EARLY = "**/gate-rests-early.spec.ts";
+const REST_SWEEP_LATE = "**/gate-rests-late.spec.ts";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -17,7 +19,15 @@ export default defineConfig({
     trace: "retain-on-failure",
     reducedMotion: "reduce",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "rests-early", testMatch: REST_SWEEP_EARLY, use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "chromium",
+      testIgnore: [REST_SWEEP_EARLY, REST_SWEEP_LATE],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    { name: "rests-late", testMatch: REST_SWEEP_LATE, use: { ...devices["Desktop Chrome"] } },
+  ],
   webServer: {
     command: "node scripts/serve-standalone.mjs",
     url: BASE_URL,
