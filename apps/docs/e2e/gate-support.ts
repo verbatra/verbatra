@@ -4,6 +4,7 @@ import {
   GATE_HANDOFF_CEILING_MS,
   GATE_LANDING_OFFSET_PX,
   GATE_PIN_SVH,
+  GATE_REVERSAL_SAMPLE_TAIL_MS,
   GATE_REVERSAL_SETTLE_MS,
   GATE_SLIDE_SCALE,
   gateStateMiddle,
@@ -404,7 +405,7 @@ export async function reversalSweep(page: Page, delays: number[]): Promise<Rever
   );
   const results = await page.evaluate(
     ([list, tail]) => window.gateProbe?.reversals(list as GateReversal[], tail as number) ?? [],
-    [trials, 900] as const,
+    [trials, GATE_REVERSAL_SAMPLE_TAIL_MS] as const,
   );
   return results.map((result, index) => ({ ...result, ...(meta[index] as ReversalMeta) }));
 }
