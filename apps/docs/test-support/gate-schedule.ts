@@ -36,7 +36,7 @@ export const GATE_ACCENT_MS = 300;
 
 export const GATE_HANDOFF_CEILING_MS = 600;
 
-export const GATE_REVERSAL_SETTLE_MS = 650;
+export const GATE_REVERSAL_SETTLE_MS = 1000;
 
 export const GATE_LANDING_OFFSET_PX = 56;
 
