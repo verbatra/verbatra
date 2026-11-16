@@ -21,7 +21,11 @@ test.describe("pointer cursor on controls", () => {
   test("shows a pointer on a search result row", async ({ page }) => {
     await page.goto("/docs/cli/translate");
     await page.locator(".vk-header-search").first().click();
+    const searched = page.waitForResponse(
+      (response) => new URL(response.url()).pathname === "/api/search" && response.ok(),
+    );
     await page.getByRole("combobox").fill("translate");
+    await searched;
     const option = page.getByRole("option").first();
     await expect(option).toBeVisible();
     await expect(option).toHaveCSS("cursor", "pointer");
