@@ -37,6 +37,7 @@ import {
 } from "./hero-terminal";
 import {
   LOCK_STATE_STALE,
+  RAIL_BADGE,
   RAIL_ENTRIES,
   STUDIO_COLUMNS,
   STUDIO_ROW,
@@ -257,7 +258,7 @@ async function highlights({ locale }: Context): Promise<string> {
   return blocks(
     `## ${t("heading")}`,
     t("lead", { stale: SURFACE_COUNTS.stale, upToDate: SURFACE_COUNTS.upToDate }),
-    `**${LOCK_FILE_NAME}** ${HERO_CHECK_BADGE}`,
+    `**${LOCK_FILE_NAME}** ${RAIL_BADGE}`,
     fencedMarkdown(
       "text",
       null,

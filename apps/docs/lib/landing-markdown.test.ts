@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { stripAccentTags } from "@/test-support/accent-tags";
-import { HERO_TERMINAL_CHANGED_KEYS, HERO_TERMINAL_SYNCED_KEYS } from "./hero-terminal";
 import { i18n } from "./i18n";
 import { SDK_INSTALL_COMMAND } from "./install-commands";
 import { COMPARISON_ROWS, COMPARISON_TOOLS, comparisonCell } from "./landing-comparison";
@@ -150,7 +149,7 @@ describe("the English landing markdown after the surfaces and the comparison lin
     expect(at).toBeGreaterThan(0);
     const section = body.slice(at, body.indexOf("\n## ", at + 3));
     expect(section).toContain(
-      `Every surface reads one lock file, so German reads ${HERO_TERMINAL_CHANGED_KEYS.length} stale and ${HERO_TERMINAL_SYNCED_KEYS.length} up-to-date wherever you ask.`,
+      `Every surface reads one lock file, so with profile.greeting refused, German reads 1 stale and 13 up-to-date wherever you ask.`,
     );
     const names = ["### CLI", "### Studio", "### SDK", "### MCP server"].map((heading) =>
       section.indexOf(heading),
@@ -158,7 +157,7 @@ describe("the English landing markdown after the surfaces and the comparison lin
     expect(names.every((position) => position > 0)).toBe(true);
     expect([...names].sort((a, b) => a - b)).toEqual(names);
     expect(section).toContain(`[docs/sdk/inspect](${SITE_URL}/docs/sdk/inspect.md)`);
-    expect(section).toContain("| de | 86% 12 / 14 keys | 0 | 2 | 12 |");
+    expect(section).toContain("| de | 93% 13 / 14 keys | 0 | 1 | 13 |");
     expect(section).toContain("claude mcp add");
     expect(section).toContain(SDK_INSTALL_COMMAND);
   });

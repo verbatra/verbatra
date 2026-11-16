@@ -268,7 +268,7 @@
     },
     "highlights": {
       "heading": "无论问哪个入口，答案都一样",
-      "lead": "每个入口读取的都是同一个锁文件，所以无论在哪里查看，德语都是 {stale} 个过期、{upToDate} 个最新。",
+      "lead": "每个入口读取的都是同一个锁文件，所以在 profile.greeting 被拒绝的情况下，无论在哪里查看，德语都是 {stale} 个过期、{upToDate} 个最新。",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",

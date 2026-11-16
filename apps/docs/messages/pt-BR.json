@@ -268,7 +268,7 @@
     },
     "highlights": {
       "heading": "Pergunte a qualquer interface, receba a mesma resposta",
-      "lead": "Toda interface lê o mesmo arquivo de lock, então o alemão aparece com {stale} obsoletas e {upToDate} em dia, onde quer que você pergunte.",
+      "lead": "Toda interface lê o mesmo arquivo de lock, então com profile.greeting recusada, o alemão aparece com obsoletas: {stale} e em dia: {upToDate}, onde quer que você pergunte.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",

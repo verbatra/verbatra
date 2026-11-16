@@ -268,7 +268,7 @@
     },
     "highlights": {
       "heading": "Frage eine beliebige Oberfläche, erhalte dieselbe Antwort",
-      "lead": "Jede Oberfläche liest dieselbe Lock-Datei, also zeigt Deutsch überall {stale} veraltet und {upToDate} aktuell.",
+      "lead": "Jede Oberfläche liest dieselbe Lock-Datei, also zeigt Deutsch mit abgelehntem profile.greeting überall {stale} veraltet und {upToDate} aktuell.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",

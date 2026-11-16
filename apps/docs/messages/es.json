@@ -268,7 +268,7 @@
     },
     "highlights": {
       "heading": "Pregunta a cualquier superficie, obtén la misma respuesta",
-      "lead": "Cada superficie lee el mismo archivo de bloqueo, así que el alemán marca {stale} obsoletas y {upToDate} al día en todas.",
+      "lead": "Cada superficie lee el mismo archivo de bloqueo, así que con profile.greeting rechazada, el alemán muestra obsoletas: {stale} y al día: {upToDate} en todas.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",

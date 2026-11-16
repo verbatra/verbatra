@@ -1,12 +1,7 @@
 import { CHECK_CLI_COMMAND, CHECK_OVERALL_LINE } from "@/lib/check-demo";
-import {
-  HERO_CHECK_COMMAND,
-  HERO_CHECK_OUTPUT,
-  HERO_TERMINAL_CHANGED_KEYS,
-  HERO_TERMINAL_SOURCE,
-  HERO_TERMINAL_SYNCED_KEYS,
-} from "@/lib/hero-terminal";
-import { LOCK_DEMO_LOCALE, lockLines } from "@/lib/lock-demo";
+import { GATE_CHECK_LINES, GATE_KEY } from "@/lib/gate-demo";
+import { HERO_CHECK_COMMAND, HERO_TERMINAL_SOURCE } from "@/lib/hero-terminal";
+import { LOCK_DEMO_HASHES, LOCK_DEMO_LOCALE } from "@/lib/lock-demo";
 
 export type SurfaceLine = {
   readonly text: string;
@@ -15,11 +10,13 @@ export type SurfaceLine = {
   readonly collapse?: "phone" | "narrow";
 };
 
+const STALE_KEYS: ReadonlyArray<string> = [GATE_KEY];
+
 export const SURFACE_COUNTS = {
   locale: LOCK_DEMO_LOCALE,
   missing: 0,
-  stale: HERO_TERMINAL_CHANGED_KEYS.length,
-  upToDate: HERO_TERMINAL_SYNCED_KEYS.length,
+  stale: STALE_KEYS.length,
+  upToDate: HERO_TERMINAL_SOURCE.length - STALE_KEYS.length,
   total: HERO_TERMINAL_SOURCE.length,
 } as const;
 
@@ -35,7 +32,7 @@ export function surfaceText(lines: ReadonlyArray<SurfaceLine>): string {
 
 export const CLI_LINES: ReadonlyArray<SurfaceLine> = [
   { text: `$ ${HERO_CHECK_COMMAND}`, command: true },
-  ...HERO_CHECK_OUTPUT.map((text): SurfaceLine => {
+  ...[CHECK_CLI_COMMAND, ...GATE_CHECK_LINES].map((text): SurfaceLine => {
     if (text.includes(`${STALE_COUNT} ${LOCK_STATE_STALE}`))
       return { text, hit: `${STALE_COUNT} ${LOCK_STATE_STALE}` };
     if (text === CHECK_CLI_COMMAND || text === CHECK_OVERALL_LINE)
@@ -90,11 +87,13 @@ export const STUDIO_COLUMNS = ["Locale", "Coverage", "Missing", "Stale", "Up to 
 
 type RailEntry = { readonly key: string; readonly hash: string; readonly comma: boolean };
 
-export const RAIL_ENTRIES: ReadonlyArray<RailEntry> = lockLines().flatMap((line) =>
-  line.kind === "entry" && line.mark === "stale"
-    ? [{ key: line.key, hash: line.value, comma: line.comma }]
-    : [],
-);
+export const RAIL_ENTRIES: ReadonlyArray<RailEntry> = STALE_KEYS.map((key) => ({
+  key,
+  hash: LOCK_DEMO_HASHES[key]?.after ?? "",
+  comma: true,
+}));
+
+export const RAIL_BADGE = `${SURFACE_COUNTS.stale} stale, ${SURFACE_COUNTS.upToDate} up-to-date`;
 
 export type Surface = "cli" | "studio" | "sdk" | "mcp";
 

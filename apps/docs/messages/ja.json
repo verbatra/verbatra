@@ -268,7 +268,7 @@
     },
     "highlights": {
       "heading": "どこに聞いても、答えは同じ",
-      "lead": "どのインターフェースも同じロックファイルを読むため、どこで確認しても、ドイツ語は古い {stale} 件、最新 {upToDate} 件です。",
+      "lead": "どのインターフェースも同じロックファイルを読むため、profile.greeting が拒否されている状態では、どこで確認しても、ドイツ語は古い {stale} 件、最新 {upToDate} 件です。",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",

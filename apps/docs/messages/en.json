@@ -268,7 +268,7 @@
     },
     "highlights": {
       "heading": "Ask any surface, get the same answer",
-      "lead": "Every surface reads one lock file, so German reads {stale} stale and {upToDate} up-to-date wherever you ask.",
+      "lead": "Every surface reads one lock file, so with profile.greeting refused, German reads {stale} stale and {upToDate} up-to-date wherever you ask.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",

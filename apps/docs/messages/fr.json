@@ -268,7 +268,7 @@
     },
     "highlights": {
       "heading": "Une surface au choix, la même réponse",
-      "lead": "Chaque surface lit le même fichier de verrouillage, donc l’allemand affiche {stale} obsolètes et {upToDate} à jour, où que tu demandes.",
+      "lead": "Chaque surface lit le même fichier de verrouillage, donc avec profile.greeting refusée, l’allemand affiche obsolètes : {stale} et à jour : {upToDate}, où que tu demandes.",
       "surfaces": {
         "cli": "CLI",
         "studio": "Studio",

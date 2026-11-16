@@ -6,7 +6,7 @@ import { createTranslator, NextIntlClientProvider } from "next-intl";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { HERO_CHECK_BADGE } from "@/lib/hero-terminal";
+import { GATE_KEY } from "@/lib/gate-demo";
 import {
   CLI_LINES,
   LOCK_STATE_STALE,
@@ -95,13 +95,13 @@ describe("Highlights", () => {
   it("states the dataset from the fixture in the lead, naming the one lock file and the language", () => {
     const lead = root.querySelector(".vk-section-head-lead")?.textContent ?? "";
     expect(lead).toBe(
-      `Every surface reads one lock file, so German reads ${SURFACE_COUNTS.stale} stale and ${SURFACE_COUNTS.upToDate} up-to-date wherever you ask.`,
+      `Every surface reads one lock file, so with profile.greeting refused, German reads ${SURFACE_COUNTS.stale} stale and ${SURFACE_COUNTS.upToDate} up-to-date wherever you ask.`,
     );
     expect(SURFACE_COUNTS).toMatchObject({
       locale: "de",
       missing: 0,
-      stale: 2,
-      upToDate: 12,
+      stale: 1,
+      upToDate: 13,
       total: 14,
     });
   });
@@ -119,14 +119,15 @@ describe("Highlights", () => {
       );
       expect(language).toBeTruthy();
       expect(lead).toContain(language as string);
+      expect(lead).toContain(GATE_KEY);
       expect(catalog.landing.highlights.lead).not.toContain("{locale}");
     },
   );
 
-  it("shows a slim lock file rail with the two stale entries and the check badge", () => {
+  it("shows a slim lock file rail with the one stale entry and the badge the counts give", () => {
     const rail = root.querySelector(".vk-hl-rail");
     expect(rail?.querySelector(".vk-lock-head")?.textContent).toBe(
-      `${LOCK_FILE_NAME} ${HERO_CHECK_BADGE}`,
+      `${LOCK_FILE_NAME} 1 stale, 13 up-to-date`,
     );
     const lines = Array.from(rail?.querySelectorAll(".vk-lock-line[data-mark='stale']") ?? []);
     expect(lines).toHaveLength(SURFACE_COUNTS.stale);
@@ -192,8 +193,8 @@ describe("Highlights", () => {
       "de",
       `${STUDIO_ROW.percent}% ${STUDIO_ROW.keys}`,
       "0",
-      "2",
-      "12",
+      "1",
+      "13",
     ]);
     expect(studio?.querySelectorAll("a")).toHaveLength(1);
     expect(studio?.textContent).not.toMatch(/Drift|Open|Lock/);
