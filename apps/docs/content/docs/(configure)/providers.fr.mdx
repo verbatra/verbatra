@@ -121,7 +121,7 @@ provider: {
 
 Lit `DEEPL_API_KEY` ; `options` peut valoir `{}`. DeepL n'a ni modèle ni limite de tokens de sortie, et se dégrade avec un avis plutôt que d'échouer :
 
-- **Les placeholders** voyagent comme des marqueurs numérotés dans une balise ignorée (`Hello {{name}}` comme `Hello <x>{0}</x>`) puis sont restaurés. `PLACEHOLDER_UNSUPPORTED` retient une valeur avec un placeholder non littéral ou avec `<`, `>`, `{` ou `}` dans le reste du texte, et un résultat avec un marqueur perdu, répété, modifié ou nu, une entité inconnue ou une balise étrangère. Le balisage seul part en texte brut. <AvailableFrom version="0.12.0" />
+- **Les placeholders** voyagent comme des marqueurs numérotés dans une balise ignorée (`Hello {{name}}` comme `Hello <x>{0}</x>`) puis sont restaurés. `PLACEHOLDER_UNSUPPORTED` retient la valeur entière quand un placeholder n'est pas littéral ou que le texte hors des placeholders contient `<`, `>`, `{` ou `}` ; un résultat avec un marqueur perdu, répété, modifié ou nu, une entité inconnue ou une balise étrangère est rejeté en entier. Le balisage seul part en texte brut. <AvailableFrom version="0.12.0" />
 - **Le ton** se mappe sur la formalité (`formal` plus formel, `informal` moins, `neutral` omis). Une clé de l'offre gratuite n'envoie aucune formalité et signale `FORMALITY_DOWNGRADED`. Une clé payante la demande avec `prefer_more` ou `prefer_less`, donc une langue sans formalité, comme le suédois, retombe sur le registre par défaut avec le même avis au lieu d'échouer. Le [glossaire](#ton-et-glossaire-selon-les-fournisseurs) n'est pas appliqué.
 
 <AvailableFrom version="0.12.0" />
@@ -146,7 +146,7 @@ provider: {
 
 Lit `GOOGLE_TRANSLATE_API_KEY`, une clé d'API d'un projet Google Cloud où l'API Cloud Translation est activée. Seul Basic (v2) fonctionne : Advanced (v3) exige un compte de service.
 
-- **Les placeholders** sont masqués comme pour DeepL, dans `<span translate="no">` ; les sauts de ligne, tabulations et doubles espaces sont aussi retenus. <AvailableFrom version="0.12.0" />
+- **Les placeholders** sont masqués comme pour DeepL, dans `<span translate="no">` ; une valeur avec un saut de ligne, une tabulation ou un double espace est aussi retenue. <AvailableFrom version="0.12.0" />
 - **Codes.** Chaque code envoyé est vérifié comme du BCP 47 bien formé avant tout appel (`en_US` échoue avec `INVALID_REQUEST`). Les codes régionaux sont autorisés ; une paire que Google rejette échoue avec `INVALID_REQUEST` venant de l'API.
 
 <AvailableFrom version="0.12.0" />
@@ -266,7 +266,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 ```
 
 - **Clé.** `LIBRETRANSLATE_API_KEY` est envoyée comme `api_key` seulement si elle est définie. Un serveur démarré avec `--api-keys` fait échouer l'exécution avec `MISSING_API_KEY` quand elle est absente, et avec `AUTH_FAILED` quand il la rejette.
-- **Les placeholders** sont masqués comme pour DeepL, par de simples marqueurs `{0}` ; le balisage est conservé, donc seules les accolades à côté d'un placeholder comptent.
+- **Les placeholders** sont masqués comme pour DeepL, par de simples marqueurs `{0}` ; le balisage est conservé, donc seules comptent les accolades hors des placeholders.
 - **Balisage.** Une valeur avec des balises de style HTML est envoyée au format `html` : le texte dans les balises est traduit, les balises restent (une formulation qui traverse une balise peut en souffrir) et des balises modifiées sont refusées.
 - **Vérification des langues.** Chaque cible avertit `LOCALE_UNVERIFIED_BY_PROVIDER` à chaque exécution ; `verbatra doctor --locales --live` les vérifie auprès du serveur.
 
@@ -379,7 +379,7 @@ Un échec de fournisseur remonte comme une [erreur structurée, sans secret](/fr
 
 ### Limites de tokens de sortie
 
-Les fournisseurs LLM plafonnent les tokens de chaque réponse ; un modèle qui s'arrête au plafond lève [`OUTPUT_TRUNCATED`](/fr/docs/error-codes#output_truncated). verbatra redécoupe un sous-lot tronqué en deux moitiés, en descendant jusqu'à une seule entrée, et ne retient qu'une entrée qui déborde encore. Pour régler cela durablement, baisse `maxBatchSize` ou augmente `maxTokens` (Anthropic) ou `maxOutputTokens`. Un modèle de raisonnement puise ses tokens de raisonnement cachés dans le même budget : donne-lui donc une marge généreuse.
+Les fournisseurs LLM plafonnent les tokens de chaque réponse ; un modèle qui s'arrête au plafond lève [`OUTPUT_TRUNCATED`](/fr/docs/error-codes#output_truncated). verbatra redécoupe un sous-lot tronqué en deux moitiés et ne retient qu'une entrée qui déborde encore. Pour régler cela, baisse `maxBatchSize` ou augmente `maxTokens` (Anthropic) ou `maxOutputTokens`. Les tokens cachés d'un modèle de raisonnement partagent ce budget : laisse donc de la marge.
 
 ### Signalements de relecture
 

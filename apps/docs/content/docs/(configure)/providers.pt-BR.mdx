@@ -121,7 +121,7 @@ provider: {
 
 Lê `DEEPL_API_KEY`; `options` pode ser `{}`. O DeepL não tem modelo nem limite de tokens de saída, e, em vez de falhar, abre mão do recurso com um aviso:
 
-- **Placeholders** viajam como marcadores numerados dentro de uma tag ignorada (`Hello {{name}}` como `Hello <x>{0}</x>`) e são restaurados. `PLACEHOLDER_UNSUPPORTED` retém um valor com um placeholder não literal ou outro texto que contenha `<`, `>`, `{` ou `}`, e um resultado com um marcador perdido, repetido, alterado ou solto, uma entidade desconhecida ou uma tag avulsa. Marcação sozinha vai como texto simples. <AvailableFrom version="0.12.0" />
+- **Placeholders** viajam como marcadores numerados dentro de uma tag ignorada (`Hello {{name}}` como `Hello <x>{0}</x>`) e são restaurados. `PLACEHOLDER_UNSUPPORTED` retém o valor inteiro quando um placeholder não é literal ou o texto fora dos placeholders contém `<`, `>`, `{` ou `}`; um resultado com um marcador perdido, repetido, alterado ou solto, uma entidade desconhecida ou uma tag avulsa é descartado por inteiro. Marcação sozinha vai como texto simples. <AvailableFrom version="0.12.0" />
 - **Tom** é convertido em formalidade (`formal` mais, `informal` menos, `neutral` omitido). Uma chave de API do nível gratuito não envia formalidade alguma e informa `FORMALITY_DOWNGRADED`. Uma chave de API paga solicita `prefer_more` ou `prefer_less`, então um idioma sem formalidade, como o sueco, segue sem formalidade e com o mesmo aviso em vez de falhar. O [glossário](#tom-e-glossário-entre-provedores) não é aplicado.
 
 <AvailableFrom version="0.12.0" />
@@ -266,7 +266,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 ```
 
 - **Chave de API.** `LIBRETRANSLATE_API_KEY` é enviada como `api_key` somente quando definida. Um servidor iniciado com `--api-keys` faz a execução falhar com `MISSING_API_KEY` quando ela não está definida e com `AUTH_FAILED` quando ele a rejeita.
-- **Placeholders** são mascarados como no DeepL, como marcadores `{0}` soltos; a marcação é mantida, então só contam as chaves `{ }` ao lado de um placeholder.
+- **Placeholders** são mascarados como no DeepL, como marcadores `{0}` soltos; a marcação é mantida, então só contam as chaves `{ }` fora dos placeholders.
 - **Marcação.** Um valor com tags no estilo HTML é enviado no formato `html`: o texto dentro das tags é traduzido, as tags permanecem (a construção de frases que atravessam uma tag pode piorar) e tags alteradas são recusadas.
 - **Verificação de idiomas.** Todo locale de destino gera `LOCALE_UNVERIFIED_BY_PROVIDER` em toda execução; `verbatra doctor --locales --live` os verifica no servidor.
 
@@ -379,7 +379,7 @@ Uma falha do provedor aparece como um [erro estruturado e sem segredos](/pt-BR/d
 
 ### Limites de tokens de saída
 
-Os provedores de LLM limitam os tokens de cada resposta; um modelo que para no limite gera [`OUTPUT_TRUNCATED`](/pt-BR/docs/error-codes#output_truncated). O verbatra divide de novo um sublote truncado em metades, até chegar a uma única entrada, e retém apenas uma entrada que ainda estoura o limite. Para corrigir de vez, reduza `maxBatchSize` ou aumente `maxTokens` (Anthropic) ou `maxOutputTokens`. Um modelo de raciocínio gasta tokens de raciocínio ocultos do mesmo orçamento, então dê a ele bastante folga.
+Os provedores de LLM limitam os tokens de cada resposta; um modelo que para no limite gera [`OUTPUT_TRUNCATED`](/pt-BR/docs/error-codes#output_truncated). O verbatra divide de novo um sublote truncado em metades e retém apenas uma entrada que ainda estoura o limite. Para corrigir, reduza `maxBatchSize` ou aumente `maxTokens` (Anthropic) ou `maxOutputTokens`. Os tokens ocultos de um modelo de raciocínio dividem esse orçamento, então deixe folga.
 
 ### Sinalizações de revisão
 
