@@ -2,10 +2,7 @@ import { deriveJsonSchema, translationsResultSchema } from "../llm/schema.js";
 import { SHARED_SYSTEM_RULES } from "../llm/system-rules.js";
 import type { AnthropicConfig } from "./config.js";
 
-export const SYSTEM_RULES = [
-  ...SHARED_SYSTEM_RULES,
-  "Respond only with the JSON object: exactly one entry per requested key, no commentary, no extra keys, and no key that was not requested.",
-].join("\n");
+export const SYSTEM_RULES = SHARED_SYSTEM_RULES.join("\n");
 
 const OUTPUT_CONFIG = {
   format: { type: "json_schema", schema: deriveJsonSchema(translationsResultSchema) },

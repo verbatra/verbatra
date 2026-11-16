@@ -4,10 +4,7 @@ import type { OpenAiConfig } from "./config.js";
 
 const RESULT_SCHEMA_NAME = "translations";
 
-export const OPENAI_SYSTEM_RULES = [
-  ...SHARED_SYSTEM_RULES,
-  "Respond only with the structured object: exactly one entry per requested key, no commentary, no extra keys, and no key that was not requested.",
-].join("\n");
+export const OPENAI_SYSTEM_RULES = SHARED_SYSTEM_RULES.join("\n");
 
 export type OpenAiRequestMode = "strict-schema" | "json-object";
 

@@ -59,30 +59,21 @@ describe("SHARED_SYSTEM_RULES", () => {
     );
   });
 
-  it("prefixes every provider's assembled system rules, byte for byte", () => {
+  it("ends with the one response-format line every provider shares", () => {
+    expect(SHARED_SYSTEM_RULES.at(-1)).toBe(
+      "Respond only with a JSON object matching the required schema: exactly one entry per requested key, no commentary, no extra keys, and no key that was not requested.",
+    );
+  });
+
+  it("gives every provider the shared block byte for byte and nothing after it", () => {
     const sharedBlock = SHARED_SYSTEM_RULES.join("\n");
-    expect(ANTHROPIC_SYSTEM_RULES.startsWith(sharedBlock)).toBe(true);
-    expect(OPENAI_SYSTEM_RULES.startsWith(sharedBlock)).toBe(true);
-    expect(GEMINI_SYSTEM_RULES.startsWith(sharedBlock)).toBe(true);
+    expect(ANTHROPIC_SYSTEM_RULES).toBe(sharedBlock);
+    expect(OPENAI_SYSTEM_RULES).toBe(sharedBlock);
+    expect(GEMINI_SYSTEM_RULES).toBe(sharedBlock);
   });
 
-  it("leaves each provider exactly one trailing response-mechanism line after the shared block", () => {
-    const sharedLineCount = SHARED_SYSTEM_RULES.length;
-    expect(ANTHROPIC_SYSTEM_RULES.split("\n")).toHaveLength(sharedLineCount + 1);
-    expect(OPENAI_SYSTEM_RULES.split("\n")).toHaveLength(sharedLineCount + 1);
-    expect(GEMINI_SYSTEM_RULES.split("\n")).toHaveLength(sharedLineCount + 1);
-  });
-
-  it("gives OpenAI and Gemini the identical structured-object response line", () => {
-    const openaiLast = OPENAI_SYSTEM_RULES.split("\n").at(-1);
-    const geminiLast = GEMINI_SYSTEM_RULES.split("\n").at(-1);
-    expect(openaiLast).toBe(geminiLast);
-  });
-
-  it("gives Anthropic the JSON-object-only response line and no tool reference", () => {
-    const anthropicLast = ANTHROPIC_SYSTEM_RULES.split("\n").at(-1);
-    expect(anthropicLast).toContain("JSON object");
-    expect(ANTHROPIC_SYSTEM_RULES).not.toContain("submit_translations");
+  it("names no tool or mechanism-specific output", () => {
+    expect(SHARED_SYSTEM_RULES.join("\n")).not.toContain("submit_translations");
   });
 });
 
