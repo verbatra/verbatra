@@ -11,7 +11,7 @@ export default defineConfig({
   provider: {
     id: "anthropic",
     options: {
-      model: "claude-haiku-5-5",
+      model: "claude-sonnet-5-5",
       maxTokens: 32000,
     },
   },
