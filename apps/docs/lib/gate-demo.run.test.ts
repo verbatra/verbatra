@@ -29,7 +29,9 @@ import {
   GATE_TRANSLATE_COMMAND,
   GATE_TRANSLATE_HEADER,
 } from "@/lib/gate-demo";
+import { HERO_TERMINAL_SOURCE } from "@/lib/hero-terminal";
 import { PLAYGROUND_METADATA } from "@/lib/landing-playground";
+import { LOCK_DEMO_HASHES } from "@/lib/lock-demo";
 import {
   fixtureConfig,
   readTarget,
@@ -66,7 +68,7 @@ const provider = () =>
 const sourceBefore = () =>
   sourceFile(({ key, value }) => (key === GATE_KEY ? GATE_SOURCE_BEFORE : value));
 
-const sourceAfter = () => sourceFile(({ value }) => value);
+const sourceAfter = () => sourceFile(({ key, value }) => (key === GATE_KEY ? GATE_SOURCE : value));
 
 let cwd: string | undefined;
 
@@ -113,6 +115,25 @@ describe("the gate demo prints what verbatra prints after a refusal", () => {
     );
     expect(GATE_SOURCE_LOCALE).toBe(CONFIG.sourceLocale);
     expect(CONFIG.targetLocales).toContain(GATE_LOCALE);
+  });
+
+  it("starts from the lock the lock demo's run ends with, one hash per key", async () => {
+    const dir = await refusedProject();
+    const lock = JSON.parse(await readFile(join(dir, "verbatra.lock.json"), "utf8")) as {
+      locales: Record<string, Record<string, string>>;
+    };
+    expect(lock.locales[GATE_LOCALE]).toEqual(
+      Object.fromEntries(
+        HERO_TERMINAL_SOURCE.map(({ key }) => [key, LOCK_DEMO_HASHES[key]?.after]),
+      ),
+    );
+  });
+
+  it("edits the key from the value the fixture holds, to a value that still carries the placeholder", () => {
+    const fixture = HERO_TERMINAL_SOURCE.find(({ key }) => key === GATE_KEY)?.value;
+    expect(GATE_SOURCE_BEFORE).toBe(fixture);
+    expect(GATE_SOURCE).toContain(GATE_PLACEHOLDER);
+    expect(GATE_SOURCE).not.toBe(fixture);
   });
 
   it("badges the candidate with the model the lock demo's recorded run names, from one source", () => {
