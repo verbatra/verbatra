@@ -108,7 +108,7 @@ verificação de placeholders. Comentários, texto bruto e origens malformadas: 
 ## Sinalizações de revisão
 
 Uma segunda camada, só consultiva, sinaliza resultados suspeitos para uma pessoa. Uma sinalização nunca retém uma chave: o
-valor é gravado, registrado no arquivo de lock e colocado na fila de revisão (no Studio, **Review queue**).
+valor é gravado, registrado no arquivo de lock, listado em `needsReview` da execução e mantido na fila de revisão (no Studio, **Review queue**).
 
 | Motivo | Sinaliza uma tradução que |
 | --- | --- |
