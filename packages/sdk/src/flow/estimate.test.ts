@@ -90,7 +90,7 @@ describe("estimateRun: token-billed providers", () => {
     });
 
     expect(estimate.unit).toBe("tokens");
-    expect(estimate.inputTokens).toBe(791);
+    expect(estimate.inputTokens).toBe(841);
     expect(estimate.outputTokens).toBe(17);
     expect(estimate.sourceCharacters).toBeUndefined();
   });
@@ -128,8 +128,8 @@ describe("estimateRun: token-billed providers", () => {
     expect(estimate.pricing).toBe("priced");
     expect(estimate.currency).toBe("USD");
     expect(estimate.asOf).toBe("2026-01-15");
-    expect(estimate.cost).toBeCloseTo(0.002628, 9);
-    expect(estimate.locales[0]?.cost).toBeCloseTo(0.002628, 9);
+    expect(estimate.cost).toBeCloseTo(0.002778, 9);
+    expect(estimate.locales[0]?.cost).toBeCloseTo(0.002778, 9);
   });
 
   it("warns that a token count is a heuristic and that repair requests are uncounted", () => {
@@ -189,7 +189,7 @@ describe("estimateRun: what cannot be priced", () => {
     expect(estimate.pricing).toBe("not-billed");
     expect(estimate.cost).toBeUndefined();
     expect(estimate.currency).toBeUndefined();
-    expect(estimate.inputTokens).toBe(791);
+    expect(estimate.inputTokens).toBe(841);
   });
 
   it("names the missing rate key rather than reporting a cost of zero", () => {
@@ -313,7 +313,7 @@ describe("estimateRun: honesty about what the figure leaves out", () => {
 
 describe("the estimation heuristic", () => {
   it("holds the per-request overhead and character density the cost guide publishes", () => {
-    expect(ESTIMATED_SYSTEM_RULES_TOKENS).toBe(650);
+    expect(ESTIMATED_SYSTEM_RULES_TOKENS).toBe(700);
     expect(ESTIMATED_RESPONSE_SCHEMA_TOKENS).toBe(100);
     expect(ESTIMATED_CHARACTERS_PER_TOKEN).toBe(4);
     expect(ESTIMATED_TRANSLATION_EXPANSION).toBe(1.5);
@@ -327,7 +327,7 @@ describe("quantifyLocale", () => {
     expect(quantifyLocale([GREETING], CONTEXT, 50)).toEqual({
       keys: 1,
       requests: 1,
-      inputTokens: 791,
+      inputTokens: 841,
       outputTokens: 17,
       sourceCharacters: 11,
     });

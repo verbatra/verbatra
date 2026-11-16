@@ -770,7 +770,7 @@ describe("translate: plural generation and the token budget", () => {
 
     const summary = await translate(
       {
-        config: cfg({ maxTokens: 870, budgetBehavior: "stop" }),
+        config: cfg({ maxTokens: 920, budgetBehavior: "stop" }),
         cwd: dir,
         generatePlurals: true,
       },
@@ -822,7 +822,7 @@ describe("translate: plural generation and the token budget", () => {
         config: cfg({
           targetLocales: ["ar"],
           maxBatchSize: 2,
-          maxTokens: 870,
+          maxTokens: 920,
           budgetBehavior: "stop",
         }),
         cwd: dir,
